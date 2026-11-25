@@ -196,7 +196,11 @@ public sealed class NotebookPowerShellExecutionTests {
     [PowerShellRuntimeFact]
     public async Task OutputLimitsDoNotDiscardRunspaceState() {
         using var notebook = NotebookDocument.Create();
-        NotebookCell bounded = notebook.AddCodeCell("'abcd'; 'excess'; $later = 19", "powershell");
+        NotebookCell bounded = notebook.AddCodeCell("""
+            Add-Member -InputObject 'abcd' -NotePropertyName Length -NotePropertyValue 1 -Force -PassThru
+            'excess'
+            $later = 19
+            """, "powershell");
         NotebookCell next = notebook.AddCodeCell("$later", "powershell");
         using PowerShellNotebookSession session = await StartAsync();
 

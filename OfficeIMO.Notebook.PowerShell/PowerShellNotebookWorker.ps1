@@ -126,16 +126,19 @@ function Write-NotebookWorkerOutput {
                 continue
             }
         }
-        if ($null -ne $jsonEncodedTextType -and $record -is [string] -and
-            $record.Length -le $State.CharactersRemaining) {
-            # Plain results that fit the remaining budget need only their escaped text.
-            $State.CharactersRemaining -= $record.Length
-            $State.RecordsRemaining--
-            $encoded = $jsonEncodedTextType::Encode($record, $jsonEncoder).ToString()
-            $Writer.WriteLine('{"kind":"output","text":"' + $encoded + '"}')
-        } else {
-            Write-NotebookWorkerRecord $Writer $record $State
+        if ($null -ne $jsonEncodedTextType -and $record -is [string]) {
+            # Strip any extended Length member before checking the budget.
+            $text = [string] $record
+            $length = $text.Length
+            if ($length -le $State.CharactersRemaining) {
+                $State.CharactersRemaining -= $length
+                $State.RecordsRemaining--
+                $encoded = $jsonEncodedTextType::Encode($text, $jsonEncoder).ToString()
+                $Writer.WriteLine('{"kind":"output","text":"' + $encoded + '"}')
+                continue
+            }
         }
+        Write-NotebookWorkerRecord $Writer $record $State
     }
     if ($State.Truncated -and -not $State.TruncationReported) {
         $State.TruncationReported = $true
