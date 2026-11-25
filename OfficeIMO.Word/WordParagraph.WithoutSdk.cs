@@ -241,7 +241,7 @@ namespace OfficeIMO.Word {
                 if (!TryGetOwnedRunProperties(out OfficeXmlTree tree, out int properties)) return false;
                 if (properties != NoNode && tree.FindChild(properties, W, "highlight") != NoNode) {
                     WordOwnedEdits.RemoveChild(tree, properties, "highlight");
-                    _document._ownedModel!.MarkChanged();
+                    OwnedModel!.MarkChanged();
                 }
                 return true;
             }

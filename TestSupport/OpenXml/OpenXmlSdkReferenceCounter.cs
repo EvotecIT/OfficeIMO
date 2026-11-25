@@ -127,6 +127,10 @@ internal static class OpenXmlSdkReferenceCounter {
                 StandaloneSignature locals = _metadata.GetStandaloneSignature(body.LocalSignature);
                 if (locals.DecodeLocalSignature(this, null).Any(local => local)) return true;
             }
+            // A typed catch names its exception type in the exception table, not in the IL.
+            foreach (ExceptionRegion region in body.ExceptionRegions) {
+                if (region.Kind == ExceptionRegionKind.Catch && TokenUsesSdk(region.CatchType)) return true;
+            }
             return IlUsesSdk(body.GetILReader());
         }
 

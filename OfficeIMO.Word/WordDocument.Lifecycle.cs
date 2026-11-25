@@ -129,8 +129,13 @@ namespace OfficeIMO.Word {
             }
             if (_ownedModel.ParagraphsHandedOut) {
                 // Paragraphs read after disposal, as PowerShell output and using blocks do, read this copy.
-                _disposedPackageBytes = _ownedModel.CurrentBytes();
-                _disposedElementPositions = _ownedModel.ElementPositions();
+                try {
+                    _disposedPackageBytes = _ownedModel.CurrentBytes();
+                    _disposedElementPositions = _ownedModel.ElementPositions();
+                } catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or IOException) {
+                    // A document that can't be written keeps no copy; its paragraphs then fail as on a disposed document.
+                    _disposedPackageBytes = null;
+                }
                 _disposedOpenSettings = _sdkDeferredLoad?.OpenSettings;
             }
             _ownedModel.Dispose();

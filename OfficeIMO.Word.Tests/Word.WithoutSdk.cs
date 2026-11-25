@@ -16,7 +16,10 @@ namespace OfficeIMO.Tests;
 /// </summary>
 public sealed class WordWithoutSdkTests {
     private static readonly XNamespace Wn = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+    private static readonly XNamespace Mc = "http://schemas.openxmlformats.org/markup-compatibility/2006";
     private static readonly string Documents = Path.Combine(AppContext.BaseDirectory, "Documents");
+    // Whether the last read or save through the helpers below finished without opening the SDK.
+    private static bool _lastRunStayedOwned;
 
     [Fact]
     public void PlainDocumentLoadsReadsEditsAndSavesWithoutTheSdk() {
@@ -58,9 +61,9 @@ public sealed class WordWithoutSdkTests {
                 continue;
             }
             Assert.Equal(sdk, owned);
-            compared++;
+            if (_lastRunStayedOwned) compared++;
         }
-        Assert.True(compared > 20, $"Only {compared} documents were compared.");
+        Assert.True(compared > 20, $"Only {compared} documents were read without the SDK.");
     }
 
     [Fact]
@@ -75,9 +78,10 @@ public sealed class WordWithoutSdkTests {
                 continue;
             }
             AssertSamePackage(sdk, owned!, Path.GetFileName(path));
-            compared++;
+            if (_lastRunStayedOwned) compared++;
         }
-        Assert.True(compared > 20, $"Only {compared} documents were compared.");
+        // Documents with tables still save through the SDK, so fewer of them count here than for reads.
+        Assert.True(compared > 15, $"Only {compared} documents were edited and saved without the SDK.");
     }
 
     [Fact]
@@ -245,9 +249,11 @@ public sealed class WordWithoutSdkTests {
             extraContentTypes: "<Override PartName=\"/word/header1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml\"/>",
             documentRelationships: "<Relationship Id=\"rHeader\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/header\" Target=\"header1.xml\"/>");
         // The SDK path rejects the header when it loads it; the owned path must not accept the document instead.
-        var limited = new WordLoadOptions { OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 2000 } };
-        Assert.ThrowsAny<Exception>(() => WordDocument.Load(new MemoryStream(source), limited).Dispose());
-        Assert.NotNull(TryOpenOwned(source));
+        WordDocument Load(long limit) =>
+            WordDocument.Load(new MemoryStream(source), new WordLoadOptions { OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = limit } });
+        Assert.Throws<System.Xml.XmlException>(() => Load(2000));
+        using WordDocument permitted = Load(8000);
+        Assert.True(permitted.IsSdkDeferred);
     }
 
     [Fact]
@@ -371,9 +377,11 @@ public sealed class WordWithoutSdkTests {
             return null;
         }
         using (document) {
-            return document.Paragraphs.Select(paragraph =>
+            List<string> paragraphs = document.Paragraphs.Select(paragraph =>
                 $"{paragraph.Text}|{paragraph.Bold}|{paragraph.Italic}|{paragraph.Underline}|{paragraph.Strikethrough}|{paragraph.FontSize}"
                 + $"|{paragraph.Color}|{paragraph.FontFamily}|{paragraph.Highlight}|{paragraph.CapsStyle}").ToList();
+            _lastRunStayedOwned = document.IsSdkDeferred;
+            return paragraphs;
         }
     }
 
@@ -402,6 +410,7 @@ public sealed class WordWithoutSdkTests {
             (edit ?? StandardEdit)(document);
             using var output = new MemoryStream();
             document.Save(output);
+            _lastRunStayedOwned = document.IsSdkDeferred;
             return output.ToArray();
         }
     }
@@ -432,19 +441,30 @@ public sealed class WordWithoutSdkTests {
             foreach (XAttribute attribute in element.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration)
                          .OrderBy(attribute => attribute.Name.ToString(), StringComparer.Ordinal)) {
                 bool revision = attribute.Name.Namespace == Wn && attribute.Name.LocalName.StartsWith("rsid", StringComparison.Ordinal);
-                builder.Append(' ').Append(attribute.Name.ToString()).Append("=\"").Append(revision ? "*" : attribute.Value).Append('"');
+                string value = revision ? "*" : attribute.Name.Namespace == Mc ? PrefixesAsUris(element, attribute.Value) : attribute.Value;
+                builder.Append(' ').Append(attribute.Name.ToString()).Append("=\"").Append(System.Security.SecurityElement.Escape(value)).Append('"');
             }
             builder.Append('>');
             bool layout = element.HasElements;
             foreach (XNode node in element.Nodes()) {
                 if (node is XElement child) Write(child);
-                else if (node is XText text && (!layout || !string.IsNullOrWhiteSpace(text.Value))) builder.Append(text.Value);
+                else if (node is XText text && (!layout || !string.IsNullOrWhiteSpace(text.Value))) builder.Append(System.Security.SecurityElement.Escape(text.Value));
             }
             builder.Append("</>");
         }
         Write(document.Root!);
         return builder.ToString();
     }
+
+    // Markup compatibility attributes list prefixes; what counts is the namespaces they name.
+    private static string PrefixesAsUris(XElement element, string value) => string.Join(" ", value
+        .Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+        .Select(token => {
+            int colon = token.IndexOf(':');
+            string prefix = colon < 0 ? token : token.Substring(0, colon);
+            string uri = element.GetNamespaceOfPrefix(prefix)?.NamespaceName ?? prefix;
+            return colon < 0 ? uri : uri + token.Substring(colon);
+        }));
 
     private static Dictionary<string, byte[]> ReadParts(byte[] package) {
         using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
