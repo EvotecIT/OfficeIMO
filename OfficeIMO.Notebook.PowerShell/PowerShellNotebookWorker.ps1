@@ -1,8 +1,22 @@
 $ErrorActionPreference = 'Stop'
 
+# Use the host's JSON types when available. Windows PowerShell can use the JSON cmdlets.
+$jsonDocumentType = 'System.Text.Json.JsonDocument' -as [type]
+$jsonEncodedTextType = 'System.Text.Json.JsonEncodedText' -as [type]
+if ($null -ne $jsonEncodedTextType) {
+    # The frames go directly to a JSON reader over the pipe.
+    $jsonEncoder = [System.Text.Encodings.Web.JavaScriptEncoder]::UnsafeRelaxedJsonEscaping
+}
+
 function Write-NotebookWorkerMessage {
     param($Writer, $Message)
 
+    if ($null -ne $jsonEncodedTextType -and $Message.Count -eq 2 -and $Message.text -is [string]) {
+        # The two-field frames contain a fixed kind and a string.
+        $encoded = $jsonEncodedTextType::Encode($Message.text, $jsonEncoder).ToString()
+        $Writer.WriteLine('{"kind":"' + $Message.kind + '","text":"' + $encoded + '"}')
+        return
+    }
     $Writer.WriteLine((ConvertTo-Json -InputObject $Message -Depth 3 -Compress))
 }
 
@@ -112,37 +126,52 @@ function Write-NotebookWorkerOutput {
                 continue
             }
         }
+        if ($null -ne $jsonEncodedTextType -and $record -is [string]) {
+            # Strip any extended Length member before checking the budget.
+            $text = [string] $record
+            $length = $text.Length
+            if ($length -le $State.CharactersRemaining) {
+                $State.CharactersRemaining -= $length
+                $State.RecordsRemaining--
+                $encoded = $jsonEncodedTextType::Encode($text, $jsonEncoder).ToString()
+                $Writer.WriteLine('{"kind":"output","text":"' + $encoded + '"}')
+                continue
+            }
+        }
         Write-NotebookWorkerRecord $Writer $record $State
     }
     if ($State.Truncated -and -not $State.TruncationReported) {
         $State.TruncationReported = $true
-        Write-NotebookWorkerMessage $Writer @{ kind = 'truncated' }
+        $Writer.WriteLine('{"kind":"truncated"}')
     }
-    $Writer.Flush()
 }
 
 function Write-NotebookWorkerCompletion {
     param($Writer, [bool] $Failed, [bool] $Truncated)
 
-    Write-NotebookWorkerMessage $Writer @{
-        kind      = 'complete'
-        failed    = $Failed
-        truncated = $Truncated
+    if (-not ($Failed -or $Truncated)) {
+        $Writer.WriteLine('{"kind":"complete","failed":false,"truncated":false}')
+    } else {
+        Write-NotebookWorkerMessage $Writer @{
+            kind      = 'complete'
+            failed    = $Failed
+            truncated = $Truncated
+        }
     }
     $Writer.Flush()
 }
 
 function Invoke-NotebookWorkerCell {
-    param($Writer, $Runspace, $BeginInvoke, $Request)
+    param($Writer, $Runspace, $BeginInvoke, [string] $Source, [int] $Characters, [int] $Records)
 
-    if ([string]::IsNullOrWhiteSpace($Request.source)) {
+    if ([string]::IsNullOrWhiteSpace($Source)) {
         Write-NotebookWorkerCompletion $Writer $false $false
         return
     }
 
     $state = @{
-        CharactersRemaining = [int] $Request.maxOutputCharacters
-        RecordsRemaining    = [int] $Request.maxOutputRecords
+        CharactersRemaining = $Characters
+        RecordsRemaining    = $Records
         Failed              = $false
         Truncated           = $false
         TruncationReported  = $false
@@ -152,24 +181,29 @@ function Invoke-NotebookWorkerCell {
     $output = [System.Management.Automation.PSDataCollection[psobject]]::new()
     try {
         $pipeline.Runspace = $Runspace
-        [void] $pipeline.AddScript($Request.source, $false)
+        [void] $pipeline.AddScript($Source, $false)
         $pipeline.Commands.Commands[0].MergeMyResults(
             [System.Management.Automation.Runspaces.PipelineResultTypes]::All,
             [System.Management.Automation.Runspaces.PipelineResultTypes]::Output)
 
         $invocation = $BeginInvoke.Invoke($pipeline, [object[]] @($null, $output))
         while (-not $invocation.IsCompleted) {
-            Write-NotebookWorkerOutput $Writer $output $state
+            if ($output.Count -ne 0) {
+                Write-NotebookWorkerOutput $Writer $output $state
+                $Writer.Flush()
+            }
             if ($pipeline.Streams.Progress.Count -gt 0) {
                 $pipeline.Streams.Progress.Clear()
             }
             [void] $invocation.AsyncWaitHandle.WaitOne(5)
         }
 
+        # Send the completed pipeline's final records together with its completion frame.
         Write-NotebookWorkerOutput $Writer $output $state
         try {
             [void] $pipeline.EndInvoke($invocation)
         } catch {
+            $Writer.Flush()
             $failure = $pipeline.InvocationStateInfo.Reason
             if ($null -eq $failure) {
                 throw
@@ -219,11 +253,26 @@ try {
     }
     $writer.Flush()
     while ($null -ne ($line = $reader.ReadLine())) {
-        $request = ConvertFrom-Json -InputObject $line
-        if ($request.source -isnot [string] -or $request.maxOutputCharacters -lt 1 -or $request.maxOutputRecords -lt 1) {
+        if ($null -ne $jsonDocumentType) {
+            $request = $jsonDocumentType::Parse($line)
+            try {
+                $root = $request.RootElement
+                $source = $root.GetProperty('source').GetString()
+                $characters = $root.GetProperty('maxOutputCharacters').GetInt32()
+                $records = $root.GetProperty('maxOutputRecords').GetInt32()
+            } finally {
+                $request.Dispose()
+            }
+        } else {
+            $request = ConvertFrom-Json -InputObject $line
+            $source = $request.source
+            $characters = $request.maxOutputCharacters
+            $records = $request.maxOutputRecords
+        }
+        if ($source -isnot [string] -or $characters -lt 1 -or $records -lt 1) {
             throw 'The notebook worker received an invalid request.'
         }
-        Invoke-NotebookWorkerCell $writer $runspace $beginInvoke $request
+        Invoke-NotebookWorkerCell $writer $runspace $beginInvoke $source $characters $records
     }
 } catch {
     if ($null -ne $writer -and $pipe.IsConnected) {
