@@ -68,6 +68,12 @@ namespace OfficeIMO.Excel {
             int valueIndex = 0;
             for (int r = 0; r < values.RowCount; r++, row++) {
                 ct.ThrowIfCancellationRequested();
+                // Once the cells the worksheet mirrors are written, the buffer keeps the remaining rows as these values.
+                if (_pendingCellValueDirectSaveBuffer is { CellCount: >= PendingDirectCellValueMinimumCellCount } buffer
+                    && buffer.AddBlock(row, values, valueIndex, values.RowCount - r, dateStyle)) {
+                    break;
+                }
+
                 for (int column = 1; column <= columnCount; column++, valueIndex++) {
                     ExcelBufferedCell cell = GetBufferedCell(values, valueIndex);
                     if (cell.Kind == ExcelBufferedCellKind.Blank) continue;

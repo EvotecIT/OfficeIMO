@@ -65,15 +65,21 @@ internal sealed class OfficeZipWriter : IDisposable {
     /// without touching an archive, so several parts can be prepared at once and appended in order.
     /// </summary>
     internal static PreparedEntry Prepare(Action<Stream> write) {
-        var buffer = new MemoryStream();
-        using (var stream = new PreparingStream(buffer)) {
-            write(stream);
-            stream.Complete();
-            return new PreparedEntry(buffer, stream.Crc, stream.Size);
+        var content = new PreparedContent();
+        try {
+            using (var stream = new PreparingStream(content)) {
+                write(stream);
+                stream.Complete();
+                return new PreparedEntry(content, stream.Crc, stream.Size);
+            }
+        } catch {
+            content.Release();
+            throw;
         }
     }
 
     /// <summary>Appends a part that <see cref="Prepare"/> compressed; the entry is the one <see cref="OpenEntry"/> would write.</summary>
+    /// <remarks>The entry's buffers go back to the pool, so an entry is written once.</remarks>
     internal void WritePrepared(string name, PreparedEntry entry) {
         if (_closed) throw new ObjectDisposedException(nameof(OfficeZipWriter));
         if (_current != null) throw new InvalidOperationException("Close the previous package entry before opening another.");
@@ -83,33 +89,92 @@ internal sealed class OfficeZipWriter : IDisposable {
         try {
             WriteLocalHeader(part);
             long contentStart = _offset;
-            _sink.Write(entry.Content.GetBuffer(), 0, checked((int)entry.Content.Length));
+            entry.Content.CopyTo(_sink);
             part.Crc = entry.Crc;
             part.Size = entry.Size;
             part.CompressedSize = _offset - contentStart;
         } catch {
             FailPart();
             throw;
+        } finally {
+            entry.Content.Release();
         }
         CompletePart(part);
     }
 
     /// <summary>A part deflated away from the archive, with the CRC-32 and size of its uncompressed bytes.</summary>
     internal sealed class PreparedEntry {
-        internal PreparedEntry(MemoryStream content, uint crc, long size) {
+        internal PreparedEntry(PreparedContent content, uint crc, long size) {
             Content = content;
             Crc = crc;
             Size = size;
         }
 
-        internal MemoryStream Content { get; }
+        internal PreparedContent Content { get; }
         internal uint Crc { get; }
         internal long Size { get; }
     }
 
-    private sealed class PreparingStream(MemoryStream output) : Stream {
+    /// <summary>
+    /// Compressed bytes in pooled chunks below the large object heap threshold. A growing memory stream would copy
+    /// every byte on each doubling and leave large arrays behind for each part prepared in parallel.
+    /// </summary>
+    internal sealed class PreparedContent {
+        private const int ChunkLength = 64 * 1024;
+        // Chunks kept between saves, taken and returned with one interlocked exchange each. The shared array pool
+        // serializes parts prepared on many threads at once on its per-core locks.
+        private static readonly byte[]?[] Retained = new byte[]?[32];
+        private readonly List<byte[]> _chunks = new();
+        private int _lastUsed = ChunkLength;
+
+        internal long Length { get; private set; }
+
+        internal void Write(ReadOnlySpan<byte> bytes) {
+            Length += bytes.Length;
+            while (!bytes.IsEmpty) {
+                if (_lastUsed == ChunkLength) {
+                    _chunks.Add(RentChunk());
+                    _lastUsed = 0;
+                }
+                int count = Math.Min(bytes.Length, ChunkLength - _lastUsed);
+                bytes.Slice(0, count).CopyTo(_chunks[_chunks.Count - 1].AsSpan(_lastUsed));
+                _lastUsed += count;
+                bytes = bytes.Slice(count);
+            }
+        }
+
+        internal void CopyTo(Stream destination) {
+            for (int i = 0; i < _chunks.Count; i++) {
+                destination.Write(_chunks[i], 0, i == _chunks.Count - 1 ? _lastUsed : ChunkLength);
+            }
+        }
+
+        /// <summary>Returns the chunks to the pool; the content is empty afterwards.</summary>
+        internal void Release() {
+            foreach (byte[] chunk in _chunks) ReturnChunk(chunk);
+            _chunks.Clear();
+            _lastUsed = ChunkLength;
+            Length = 0;
+        }
+
+        private static byte[] RentChunk() {
+            for (int i = 0; i < Retained.Length; i++) {
+                if (Volatile.Read(ref Retained[i]) != null && Interlocked.Exchange(ref Retained[i], null) is { } chunk) return chunk;
+            }
+            return new byte[ChunkLength];
+        }
+
+        // A part reads back only the bytes it wrote into its chunks, so a reused chunk needs no clearing.
+        private static void ReturnChunk(byte[] chunk) {
+            for (int i = 0; i < Retained.Length; i++) {
+                if (Volatile.Read(ref Retained[i]) == null && Interlocked.CompareExchange(ref Retained[i], chunk, null) == null) return;
+            }
+        }
+    }
+
+    private sealed class PreparingStream(PreparedContent output) : Stream {
         // Parts are prepared several at once already, so each encodes its regions on its own thread.
-        private readonly OfficeDeflateEncoder _encoder = new(output);
+        private readonly OfficeDeflateEncoder _encoder = new(new ContentSink(output));
         private bool _completed;
 
         internal uint Crc => _encoder.Crc;
@@ -142,6 +207,21 @@ internal sealed class OfficeZipWriter : IDisposable {
         public override bool CanWrite => !_completed;
         public override long Length => throw new NotSupportedException();
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+    }
+
+    /// <summary>Receives the encoder's output for a prepared part.</summary>
+    private sealed class ContentSink(PreparedContent content) : Stream {
+        public override void Write(byte[] buffer, int offset, int count) => content.Write(new ReadOnlySpan<byte>(buffer, offset, count));
+        public override void Write(ReadOnlySpan<byte> buffer) => content.Write(buffer);
+        public override void Flush() { }
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => content.Length;
+        public override long Position { get => content.Length; set => throw new NotSupportedException(); }
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
