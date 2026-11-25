@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             byte[] source = CreateWorkbook();
             byte[] saved = SaveWithoutSdk(source, ApplyEdits, out _);
             var changed = ChangedEntries(source, saved);
-            Assert.Equal(new[] { "docProps/core.xml", "xl/sharedStrings.xml", "xl/worksheets/sheet1.xml" }, changed.OrderBy(name => name, StringComparer.Ordinal));
+            Assert.Equal(new[] { "docProps/core.xml", "xl/sharedStrings.xml", "xl/styles.xml", "xl/worksheets/sheet1.xml" }, changed.OrderBy(name => name, StringComparer.Ordinal));
         }
 
         [Fact]
@@ -49,12 +49,12 @@ namespace OfficeIMO.Tests {
             byte[] source = CreateWorkbook();
             byte[] expected = SaveThroughSdk(source, document => {
                 ApplyEdits(document);
-                document.Sheets[0].Cell(1, 1).SetBold();
+                document.Sheets[0].Cell(6, 6).SetFormula("=1+1");
             });
             byte[] actual;
             using (var document = ExcelDocument.Load(new MemoryStream(source))) {
                 ApplyEdits(document);
-                document.Sheets[0].Cell(1, 1).SetBold();
+                document.Sheets[0].Cell(6, 6).SetFormula("=1+1");
                 Assert.Single(document.OpenXmlSdkFallbacks);
                 using var output = new MemoryStream();
                 document.Save(output);
@@ -208,6 +208,13 @@ namespace OfficeIMO.Tests {
                     baseline.TryGetValue(reference, out string? want);
                     actualCells[index].TryGetValue(reference, out string? got);
                     if (!edited && reference == "dimension") continue;
+                    if (edited && CorpusStyleOnlyReferences.Contains(reference) && got != null) {
+                        sourceCells[index].TryGetValue(reference, out string? source2);
+                        string Value(string? text) => text == null ? "n  " : text.Substring(0, text.IndexOf(StyleSeparator, StringComparison.Ordinal));
+                        string Style(string? text) => text == null ? "" : text.Substring(text.IndexOf(StyleSeparator, StringComparison.Ordinal));
+                        want = Value(source2) + Style(want);
+                        got = Value(got) + Style(got);
+                    }
                     if (want != got) return "sheet " + (index + 1) + " " + reference + ": " + (edited ? "SDK" : "source") + " [" + want + "] owned [" + got + "]";
                 }
             }
@@ -225,9 +232,23 @@ namespace OfficeIMO.Tests {
             sheet.Cell(10, 2).SetValue(12345678901L);
             sheet.Cell(10, 1).SetValue(7m);
             sheet.Cell(12, 3).SetValue((object)"boxed");
+            sheet.Cell(1, 1).SetBold().SetFillColor(OfficeColor.ParseHex("DDEBF7"));
+            sheet.Cell(1, 2).SetBold();
+            sheet.Cell(2, 2).SetNumberFormat("0.000");
+            sheet.Cell(3, 1).SetItalic().SetFontSize(OfficeLength.Points(14)).SetColor(OfficeColor.ParseHex("C00000"));
+            sheet.Cell(4, 1).SetBorder(ExcelBorderStyle.Thin).SetUnderline(ExcelUnderlineStyle.Double);
+            sheet.Cell(4, 2).SetBorder(ExcelCellBorders.Bottom, ExcelBorderStyle.Medium, OfficeColor.ParseHex("1F4E79"));
+            sheet.Cell(5, 5).SetHorizontalAlignment(ExcelHorizontalAlignment.Center).SetWrapText();
+            sheet.Cell(3, 3).SetVerticalAlignment(ExcelVerticalAlignment.Top).SetStrikethrough().SetFontFamily("Arial");
+            sheet.Cell(2, 1).SetTextRotation(45).SetShrinkToFit().SetSuperscript();
+            sheet.Cell(13, 1).SetNumberFormat("#,##0.00").SetValue(1234.5);
+            sheet.Cell(14, 1).SetValue(new DateTime(2025, 1, 2)).SetBold();
         }
 
-        private static readonly HashSet<string> CorpusEditReferences = new(StringComparer.Ordinal) { "A1", "B2", "C3", "D4", "A5", "C2000" };
+        private static readonly HashSet<string> CorpusEditReferences = new(StringComparer.Ordinal) { "A1", "B2", "C3", "D4", "A5", "C2000", "B6", "C7" };
+        // Cells the corpus edits only restyle: their value is the source's, which the model's save may also repair.
+        private static readonly HashSet<string> CorpusStyleOnlyReferences = new(StringComparer.Ordinal) { "B6", "C7" };
+        private const string StyleSeparator = " | ";
 
         private static void ApplyCorpusEdits(ExcelDocument document) {
             ExcelSheet sheet = document.Sheets[0];
@@ -237,6 +258,10 @@ namespace OfficeIMO.Tests {
             sheet.Cell(4, 4).SetValue(false);
             sheet.Cell(5, 1).SetValue("Edited A1");
             sheet.Cell(2000, 3).SetValue("New row");
+            sheet.Cell(1, 1).SetBold();
+            sheet.Cell(2, 2).SetNumberFormat("0.0%");
+            sheet.Cell(6, 2).SetFillColor(OfficeColor.ParseHex("FFF2CC")).SetBorder(ExcelBorderStyle.Thin);
+            sheet.Cell(7, 3).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
         }
 
         private static byte[] SaveWithoutSdk(byte[] source, Action<ExcelDocument> edit, out bool owned) {
@@ -288,6 +313,15 @@ namespace OfficeIMO.Tests {
             return changed;
         }
 
+        private static string Flag(string value) => value == "true" ? "1" : value == "false" ? "0" : value;
+
+        /// <summary>An element's content with attributes and children in a fixed order, so equal formats compare equal.</summary>
+        private static string Canonical(XElement element) =>
+            "<" + element.Name.LocalName + string.Concat(element.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration)
+                .Select(attribute => " " + attribute.Name.LocalName + "=" + Flag(attribute.Value)).OrderBy(text => text, StringComparer.Ordinal))
+            + ">" + string.Concat(element.Elements().Select(Canonical).OrderBy(text => text, StringComparer.Ordinal))
+            + (element.HasElements ? string.Empty : element.Value) + "</>";
+
         private static string DescribeFormula(XElement? formula) => formula == null
             ? string.Empty
             : "f(" + string.Join(",", formula.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration)
@@ -338,11 +372,28 @@ namespace OfficeIMO.Tests {
                 foreach (XElement format in root.Element(Main + "numFmts")?.Elements(Main + "numFmt") ?? Enumerable.Empty<XElement>()) {
                     codes[(string)format.Attribute("numFmtId")!] = (string?)format.Attribute("formatCode") ?? "";
                 }
+                List<string> Entries(string collection, string item) =>
+                    (root.Element(Main + collection)?.Elements(Main + item) ?? Enumerable.Empty<XElement>()).Select(Canonical).ToList();
+                var fonts = Entries("fonts", "font");
+                var fills = Entries("fills", "fill");
+                var borders = Entries("borders", "border");
+                string Entry(List<string> entries, string? id) =>
+                    int.TryParse(id ?? "0", NumberStyles.None, CultureInfo.InvariantCulture, out int index) && index < entries.Count ? entries[index] : "#" + id;
+                int cellStyleFormats = root.Element(Main + "cellStyleXfs")?.Elements(Main + "xf").Count() ?? 0;
                 foreach (XElement format in root.Element(Main + "cellXfs")?.Elements(Main + "xf") ?? Enumerable.Empty<XElement>()) {
                     string id = (string?)format.Attribute("numFmtId") ?? "0";
-                    formats.Add(string.Join(",", format.Attributes().Where(attribute => attribute.Name.LocalName != "numFmtId")
-                        .Select(attribute => attribute.Name.LocalName + "=" + (attribute.Value == "true" ? "1" : attribute.Value == "false" ? "0" : attribute.Value))
-                        .OrderBy(text => text, StringComparer.Ordinal)) + ",fmt=" + (codes.TryGetValue(id, out string? code) ? code : id) + "," + format.Elements().Count());
+                    string[] references = { "numFmtId", "fontId", "fillId", "borderId", "xfId" };
+                    // A cell style past the end of the table is the Normal style; the model's save also repairs it to 0.
+                    string cellStyle = int.TryParse((string?)format.Attribute("xfId") ?? "0", NumberStyles.None, CultureInfo.InvariantCulture, out int xfId)
+                        && xfId < cellStyleFormats ? xfId.ToString(CultureInfo.InvariantCulture) : "0";
+                    formats.Add("xfId=" + cellStyle + "," + string.Join(",", format.Attributes().Where(attribute => !references.Contains(attribute.Name.LocalName))
+                        .Select(attribute => attribute.Name.LocalName + "=" + Flag(attribute.Value))
+                        .OrderBy(text => text, StringComparer.Ordinal))
+                        + ",fmt=" + (codes.TryGetValue(id, out string? code) ? code : id)
+                        + ",font=" + Entry(fonts, (string?)format.Attribute("fontId"))
+                        + ",fill=" + Entry(fills, (string?)format.Attribute("fillId"))
+                        + ",border=" + Entry(borders, (string?)format.Attribute("borderId"))
+                        + "," + string.Concat(format.Elements().Select(Canonical)));
                 }
             }
 
@@ -363,7 +414,7 @@ namespace OfficeIMO.Tests {
                         if (type == "s" && int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int index) && index < strings.Count) value = "'" + strings[index];
                         string style = (string?)cell.Attribute("s") is { } styleText && int.TryParse(styleText, out int styleIndex) && styleIndex < formats.Count
                             ? formats[styleIndex] : (string?)cell.Attribute("s") ?? "";
-                        map[(string?)cell.Attribute("r") ?? "?"] = type + " " + value + " " + DescribeFormula(cell.Element(Main + "f")) + " " + style;
+                        map[(string?)cell.Attribute("r") ?? "?"] = type + " " + value + " " + DescribeFormula(cell.Element(Main + "f")) + StyleSeparator + style;
                     }
                 }
                 result.Add(map);

@@ -10,18 +10,28 @@ namespace OfficeIMO.Excel {
         Boolean,
         /// <summary>A date serial written as invariant text, with the automatic date format.</summary>
         Date,
+        /// <summary>A style change; the cell keeps its value.</summary>
+        Style,
     }
 
     /// <summary>One cell value written while the SDK package was not open, in the order it was written.</summary>
     internal readonly struct ExcelDeferredCellEdit {
-        internal ExcelDeferredCellEdit(ExcelSheet sheet, int row, int column, ExcelDeferredCellKind kind, string text, object value) {
+        internal ExcelDeferredCellEdit(ExcelSheet sheet, int row, int column, ExcelDeferredCellKind kind, string text, object value,
+            ExcelStyleOperation? style = null, Action? replay = null) {
             Sheet = sheet;
             Row = row;
             Column = column;
             Kind = kind;
             Text = text;
             Value = value;
+            Style = style;
+            Replay = replay;
         }
+
+        /// <summary>The style change of a <see cref="ExcelDeferredCellKind.Style"/> edit.</summary>
+        internal ExcelStyleOperation? Style { get; }
+        /// <summary>Applies a style edit through the model when the package opens.</summary>
+        internal Action? Replay { get; }
 
         internal ExcelSheet Sheet { get; }
         internal int Row { get; }
@@ -101,8 +111,33 @@ namespace OfficeIMO.Excel {
         private bool RecordDeferredCell(int row, int column, ExcelDeferredCellKind kind, string text, object value) =>
             _excelDocument.RecordDeferredCellEdit(new ExcelDeferredCellEdit(this, row, column, kind, text, value));
 
+        /// <summary>Records a style change for the owned save; false when the model must apply it.</summary>
+        private bool TryDeferCellStyle(int row, int column, ExcelStyleOperation operation, Action replay) =>
+            CanDeferCellValue(row, column)
+            && _excelDocument.RecordDeferredCellEdit(new ExcelDeferredCellEdit(this, row, column, ExcelDeferredCellKind.Style, string.Empty,
+                string.Empty, operation, replay));
+
+        private bool TryDeferFontFlag(int row, int column, ExcelStyleOperationKind kind, bool flag, Action replay) =>
+            TryDeferCellStyle(row, column, ExcelStyleOperation.Of(kind, flag), replay);
+
+        private bool TryDeferFontName(int row, int column, string fontName) {
+            if (!CanDeferCellValue(row, column)) return false;
+            ExcelTextValidation.ThrowIfUnpairedSurrogate(fontName, nameof(fontName), "Font name");
+            return TryDeferCellStyle(row, column, ExcelStyleOperation.Of(ExcelStyleOperationKind.FontName, fontName), () => CellFontName(row, column, fontName));
+        }
+
+        private bool TryDeferNumberFormat(int row, int column, string numberFormat) {
+            if (numberFormat == null || !CanDeferCellValue(row, column)) return false;
+            ExcelTextValidation.ThrowIfUnpairedSurrogate(numberFormat, nameof(numberFormat), "Number format");
+            return TryDeferCellStyle(row, column, ExcelStyleOperation.Of(ExcelStyleOperationKind.NumberFormat, numberFormat), () => FormatCell(row, column, numberFormat));
+        }
+
         /// <summary>Writes a recorded value through the model, as the overload it came from would have written it.</summary>
         internal void ReplayDeferredCellEdit(in ExcelDeferredCellEdit edit) {
+            if (edit.Replay != null) {
+                edit.Replay();
+                return;
+            }
             switch (edit.Value) {
                 case string text: CellValue(edit.Row, edit.Column, text); break;
                 case double number: CellValue(edit.Row, edit.Column, number); break;

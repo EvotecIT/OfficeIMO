@@ -20,12 +20,25 @@ namespace OfficeIMO.Excel {
 
         private readonly object _deferredEditsGate = new();
         private readonly List<ExcelDeferredCellEdit> _deferredEdits = new();
-        private Dictionary<ExcelDeferredSheet, bool>? _deferredSheetHasTables;
+        private const string CellMetadataRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "sheetMetadata";
+        private Dictionary<ExcelDeferredSheet, List<(int Row, int First, int Last)>?>? _deferredTableHeaders;
+        private bool? _deferredHasCellMetadata;
 
         /// <summary>Records a plain value for the owned save; false when the sheet needs the model for it.</summary>
         internal bool RecordDeferredCellEdit(in ExcelDeferredCellEdit edit) {
             ExcelDeferredSheet? entry = edit.Sheet.DeferredEntry;
-            if (entry == null || _deferredWorkbook == null || SheetHasTables(entry)) return false;
+            // A value written to a table's header row renames its column, which the model does; styles are plain.
+            if (entry == null || _deferredWorkbook == null) return false;
+            if (edit.Kind != ExcelDeferredCellKind.Style) {
+                if (IsTableHeaderCell(entry, edit.Row, edit.Column)) {
+                    OpenDeferredSdk("Cell value in a table header row on worksheet '" + entry.Name + "'");
+                    return false;
+                }
+                if (WorkbookHasCellMetadata()) {
+                    OpenDeferredSdk("Cell value in a workbook with cell metadata (dynamic arrays or rich values)");
+                    return false;
+                }
+            }
             lock (_deferredEditsGate) {
                 _deferredEdits.Add(edit);
             }
@@ -34,21 +47,64 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        // A value written to a table's header row renames its column, which the model does.
-        private bool SheetHasTables(ExcelDeferredSheet entry) {
-            _deferredSheetHasTables ??= new Dictionary<ExcelDeferredSheet, bool>();
-            if (_deferredSheetHasTables.TryGetValue(entry, out bool known)) return known;
-            bool hasTables = true;
+        // A value written to a table's header row renames its column, which the model does; the header rows of the
+        // sheet's tables are read once.
+        private bool IsTableHeaderCell(ExcelDeferredSheet entry, int row, int column) {
+            _deferredTableHeaders ??= new Dictionary<ExcelDeferredSheet, List<(int Row, int First, int Last)>?>();
+            if (!_deferredTableHeaders.TryGetValue(entry, out var headers)) {
+                headers = ReadTableHeaders(entry);
+                _deferredTableHeaders[entry] = headers;
+            }
+            // A table the owned reader cannot read counts as covering every cell.
+            if (headers == null) return true;
+            foreach ((int headerRow, int first, int last) in headers) {
+                if (row == headerRow && column >= first && column <= last) return true;
+            }
+            return false;
+        }
+
+        private List<(int Row, int First, int Last)>? ReadTableHeaders(ExcelDeferredSheet entry) {
+            var headers = new List<(int Row, int First, int Last)>();
             try {
                 using var source = new MemoryStream(_deferredPackageBytes!, writable: false);
                 using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
-                hasTables = package.GetRelationships(entry.PartName).Any(static relationship =>
-                    string.Equals(relationship.Type, TableRelationshipType, StringComparison.Ordinal));
+                foreach (OfficeOpcRelationship relationship in package.GetRelationships(entry.PartName)) {
+                    if (!string.Equals(relationship.Type, TableRelationshipType, StringComparison.Ordinal)) continue;
+                    if (relationship.IsExternal || relationship.TargetPartName is not { } target || !package.PartExists(target)) return null;
+                    OfficeXmlPullReader reader = package.OpenXml(target, out OfficePooledBytes content, processMarkupCompatibility: false);
+                    using (content) {
+                        while (reader.Read()) {
+                            if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+                            if (!reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "table")) return null;
+                            if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "headerRowCount", out string count) && count == "0") break;
+                            if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "ref", out string reference)
+                                || !ExcelA1.TryParseRange(reference, out int top, out int left, out _, out int right)) {
+                                return null;
+                            }
+                            headers.Add((top, left, right));
+                            break;
+                        }
+                    }
+                }
+                return headers;
             } catch (Exception exception) when (exception is InvalidDataException or XmlException or IOException) {
-                hasTables = true;
+                return null;
             }
-            _deferredSheetHasTables[entry] = hasTables;
-            return hasTables;
+        }
+
+        // Dynamic arrays and rich values live in the cell metadata part, which the model reads before a value is written.
+        private bool WorkbookHasCellMetadata() {
+            if (_deferredHasCellMetadata is { } known) return known;
+            bool found = true;
+            try {
+                using var source = new MemoryStream(_deferredPackageBytes!, writable: false);
+                using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
+                found = package.GetRelatedPartName(_deferredWorkbook!.WorkbookPartName, CellMetadataRelationshipType) != null;
+            } catch (Exception exception) when (exception is InvalidDataException or XmlException or IOException) {
+                found = true;
+            }
+            _deferredHasCellMetadata = found;
+            return found;
         }
 
         /// <summary>Writes the recorded values through the model once the SDK package is open, in their original order.</summary>
@@ -71,7 +127,11 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Saves through the owned path into a stream, or returns false having written nothing.</summary>
         private bool TryWriteDeferredPackageToStream(Stream destination, ExcelSaveOptions? options) {
-            if (!CanSaveDeferredPackage(options) || !TryCreateDeferredPackageBytes(out byte[] bytes)) return false;
+            if (!CanSaveDeferredPackage(options)) return false;
+            if (!TryCreateDeferredPackageBytes(out byte[] bytes, out string? reason)) {
+                OpenDeferredSdk("Save: " + reason);
+                return false;
+            }
             ThrowIfPackageMaterializationExceedsLimit(bytes.LongLength, options);
             PrepareDestinationStreamForWrite(destination);
             destination.Write(bytes, 0, bytes.Length);
@@ -82,7 +142,11 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Saves through the owned path into a file whose extension matches the package type.</summary>
         private bool TryWriteDeferredPackageToFile(string path, ExcelSaveOptions? options) {
-            if (!CanSaveDeferredPackage(options) || !DeferredPackageTypeMatches(path) || !TryCreateDeferredPackageBytes(out byte[] bytes)) return false;
+            if (!CanSaveDeferredPackage(options) || !DeferredPackageTypeMatches(path)) return false;
+            if (!TryCreateDeferredPackageBytes(out byte[] bytes, out string? reason)) {
+                OpenDeferredSdk("Save: " + reason);
+                return false;
+            }
             ThrowIfPackageMaterializationExceedsLimit(bytes.LongLength, options);
             CommitPreparedPackageToFile(path, bytes);
             CompleteDeferredSave(bytes);
@@ -119,14 +183,29 @@ namespace OfficeIMO.Excel {
             }
             // The caller's stream or file has its own copy; the document keeps the array.
             _deferredPackageBytes = bytes;
-            _deferredSheetHasTables = null;
+            _deferredTableHeaders = null;
+            _deferredHasCellMetadata = null;
             MarkPackageClean(bytes);
             ReleaseReadSnapshot();
             LastSaveDiagnostics = ExcelSaveDiagnostics.OwnedPackage();
         }
 
         /// <summary>Builds the saved package, or returns false when something needs the model.</summary>
-        private bool TryCreateDeferredPackageBytes(out byte[] bytes) {
+        private bool TryCreateDeferredPackageBytes(out byte[] bytes, out string? reason) {
+            _deferredSaveDeclineReason = null;
+            bool created = TryCreateDeferredPackageBytesCore(out bytes);
+            reason = _deferredSaveDeclineReason;
+            return created;
+        }
+
+        private string? _deferredSaveDeclineReason;
+
+        private bool Decline(string reason) {
+            _deferredSaveDeclineReason = reason;
+            return false;
+        }
+
+        private bool TryCreateDeferredPackageBytesCore(out byte[] bytes) {
             bytes = Array.Empty<byte>();
             ExcelDeferredWorkbook workbook = _deferredWorkbook!;
             ExcelDeferredCellEdit[] edits;
@@ -141,48 +220,55 @@ namespace OfficeIMO.Excel {
                     sharedStringsPart = package.GetRelatedPartName(workbook.WorkbookPartName, SharedStringsRelationshipType);
                     stylesPart = package.GetRelatedPartName(workbook.WorkbookPartName, StylesRelationshipType);
                     corePart = package.GetRelatedPartName(null, OfficeOpcPackage.CorePropertiesRelationshipType);
-                    if (sharedStringsPart != null && !package.PartExists(sharedStringsPart)) return false;
-                    if (stylesPart != null && !package.PartExists(stylesPart)) return false;
+                    if (sharedStringsPart != null && !package.PartExists(sharedStringsPart)) return Decline("the shared strings relationship has no part");
+                    if (stylesPart != null && !package.PartExists(stylesPart)) return Decline("the styles relationship has no part");
                     // The model's save sets the modification time in the core properties, which it creates when missing.
-                    if (corePart == null || !package.PartExists(corePart)) return false;
+                    if (corePart != null && !package.PartExists(corePart)) return Decline("the core properties relationship has no part");
+                    if (corePart == null && package.PartExists(NewCorePropertiesPartName)) return Decline("the core properties part is not related to the package");
                 }
 
                 using var input = new MemoryStream(_deferredPackageBytes!, writable: false);
                 using OfficeOpcEditablePackage editable = OfficeOpcEditablePackage.Open(input, leaveOpen: true);
                 ExcelDeferredSharedStrings? sharedStrings = ExcelDeferredSharedStrings.Load(editable, sharedStringsPart);
-                if (sharedStrings == null) return false;
-                ExcelDeferredDateStyles? dateStyles = null;
-                bool dateStylesLoaded = false;
+                if (sharedStrings == null) return Decline("the shared strings markup needs the model");
+                ExcelOwnedStyles? styles = null;
+                bool stylesLoaded = false;
 
-                // Values resolve in the order they were written, as the model adds shared strings; the last value wins.
+                // Values resolve in the order they were written, as the model adds shared strings; the last value wins,
+                // and every style change applies in turn.
                 var sheets = new Dictionary<ExcelDeferredSheet, SortedDictionary<int, SortedDictionary<int, ExcelDeferredCellOutput>>>();
                 foreach (ExcelDeferredCellEdit edit in edits) {
                     ExcelDeferredSheet entry = edit.Sheet.DeferredEntry ?? throw new InvalidOperationException("A recorded worksheet is bound to the model.");
-                    ExcelDeferredCellOutput output;
-                    switch (edit.Kind) {
-                        case ExcelDeferredCellKind.Text:
-                            output = sharedStrings.TryGetOrAdd(edit.Text, ExcelSheet.CellValuePlainStringPromotionSharedStringCount, out int index)
-                                ? new ExcelDeferredCellOutput("s", index.ToString(CultureInfo.InvariantCulture), date: false)
-                                : new ExcelDeferredCellOutput("str", Utilities.ExcelSanitizer.EncodeXString(edit.Text), date: false);
-                            break;
-                        case ExcelDeferredCellKind.Number:
-                            output = new ExcelDeferredCellOutput("n", edit.Text, date: false);
-                            break;
-                        case ExcelDeferredCellKind.Boolean:
-                            output = new ExcelDeferredCellOutput("b", edit.Text, date: false);
-                            break;
-                        default:
-                            if (!dateStylesLoaded) {
-                                dateStyles = ExcelDeferredDateStyles.Load(editable, stylesPart);
-                                dateStylesLoaded = true;
-                            }
-                            if (dateStyles == null) return false;
-                            output = new ExcelDeferredCellOutput("n", edit.Text, date: true);
-                            break;
-                    }
                     if (!sheets.TryGetValue(entry, out var rows)) sheets[entry] = rows = new SortedDictionary<int, SortedDictionary<int, ExcelDeferredCellOutput>>();
                     if (!rows.TryGetValue(edit.Row, out var cells)) rows[edit.Row] = cells = new SortedDictionary<int, ExcelDeferredCellOutput>();
-                    cells[edit.Column] = output;
+                    if (!cells.TryGetValue(edit.Column, out ExcelDeferredCellOutput? output)) cells[edit.Column] = output = new ExcelDeferredCellOutput();
+                    if (edit.Kind is ExcelDeferredCellKind.Date or ExcelDeferredCellKind.Style && !stylesLoaded) {
+                        styles = ExcelOwnedStyles.Load(editable, stylesPart);
+                        stylesLoaded = true;
+                    }
+                    switch (edit.Kind) {
+                        case ExcelDeferredCellKind.Text:
+                            if (sharedStrings.TryGetOrAdd(edit.Text, ExcelSheet.CellValuePlainStringPromotionSharedStringCount, out int index)) {
+                                output.SetValue("s", index.ToString(CultureInfo.InvariantCulture), date: false);
+                            } else {
+                                output.SetValue("str", Utilities.ExcelSanitizer.EncodeXString(edit.Text), date: false);
+                            }
+                            break;
+                        case ExcelDeferredCellKind.Number:
+                            output.SetValue("n", edit.Text, date: false);
+                            break;
+                        case ExcelDeferredCellKind.Boolean:
+                            output.SetValue("b", edit.Text, date: false);
+                            break;
+                        case ExcelDeferredCellKind.Date:
+                            if (styles == null) return Decline("the stylesheet needs the model");
+                            output.SetValue("n", edit.Text, date: true);
+                            break;
+                        default:
+                            if (styles == null) return Decline("the stylesheet needs the model");
+                            output.AddStyle(edit.Style!);
+                            break;
+                    }
                 }
 
                 foreach (var sheet in sheets) {
@@ -197,33 +283,51 @@ namespace OfficeIMO.Excel {
                     OfficePooledBytes worksheet = editable.ReadPart(sheet.Key.PartName);
                     using (worksheet) {
                         byte[]? result = ExcelDeferredWorksheetWriter.TryMerge(worksheet.Array, worksheet.Length, sheet.Value,
-                            baseStyle => dateStyles?.DateStyle(baseStyle), out mergedLength, out removedSharedReferences);
-                        if (result == null) return false;
+                            (baseStyle, operation) => styles?.Apply(baseStyle, operation), out mergedLength, out removedSharedReferences, out string? mergeReason);
+                        if (result == null) return Decline(sheet.Key.Name + ": " + mergeReason);
                         merged = result;
                     }
                     sharedStrings.RemovedReferences += removedSharedReferences;
                     editable.ReplacePart(sheet.Key.PartName, merged, mergedLength);
                 }
 
-                if (!sharedStrings.TryWrite(editable, workbook.WorkbookPartName)) return false;
-                dateStyles?.Write();
-                if (!TrySetModifiedTime(editable, corePart)) return false;
+                if (!sharedStrings.TryWrite(editable, workbook.WorkbookPartName)) return Decline("the shared strings part cannot take new items");
+                styles?.Write();
+                if (corePart == null) {
+                    CreateCoreProperties(editable);
+                } else if (!TrySetModifiedTime(editable, corePart)) {
+                    return Decline("the core properties have no modification time to update");
+                }
 
                 using var output2 = new MemoryStream(_deferredPackageBytes!.Length + 4096);
                 editable.Save(output2);
                 bytes = output2.ToArray();
                 return true;
             } catch (Exception exception) when (exception is InvalidDataException or XmlException or FormatException or OverflowException) {
-                return false;
+                return Decline(exception.Message);
             }
         }
 
+        private const string NewCorePropertiesPartName = "/docProps/core.xml";
+
+        private static string ModifiedTimeText() => DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", CultureInfo.InvariantCulture);
+
+        /// <summary>Adds core properties holding the modification time, as a save through the model does for a package without them.</summary>
+        private static void CreateCoreProperties(OfficeOpcEditablePackage package) {
+            string xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?><cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\""
+                + " xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">"
+                + "<dcterms:modified xsi:type=\"dcterms:W3CDTF\">" + ModifiedTimeText() + "</dcterms:modified></cp:coreProperties>";
+            package.CreateBinaryPart(NewCorePropertiesPartName, "application/vnd.openxmlformats-package.core-properties+xml", System.Text.Encoding.UTF8.GetBytes(xml));
+            package.AddRelationship(null, OfficeOpcPackage.CorePropertiesRelationshipType, "docProps/core.xml");
+        }
+
         // System.IO.Packaging writes package dates in UTC with seven fractional digits.
-        private static bool TrySetModifiedTime(OfficeOpcEditablePackage package, string corePart) {
+        private static bool TrySetModifiedTime(OfficeOpcEditablePackage package, string? corePart) {
+            if (corePart == null) return false;
             OfficeXmlTree core = package.GetXml(corePart);
             int modified = core.FindChild(core.Root, OfficeXmlNamespaces.DublinCoreTerms, "modified");
             if (modified == OfficeXmlTree.NoNode) return false;
-            core.SetInnerText(modified, DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", CultureInfo.InvariantCulture));
+            core.SetInnerText(modified, ModifiedTimeText());
             return true;
         }
     }

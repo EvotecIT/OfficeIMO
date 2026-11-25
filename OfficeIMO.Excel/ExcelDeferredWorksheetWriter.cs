@@ -3,20 +3,26 @@ using System.Text;
 using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Excel {
-    /// <summary>A cell value the owned save writes, with its shared-string index or text already resolved.</summary>
+    /// <summary>
+    /// What the owned save writes for one cell: its last value, with the shared-string index or text already resolved,
+    /// and the style changes in the order they were made. A cell with style changes only keeps its value.
+    /// </summary>
     internal sealed class ExcelDeferredCellOutput {
-        internal ExcelDeferredCellOutput(string type, string value, bool date) {
+        /// <summary>The cell type attribute: <c>s</c>, <c>str</c>, <c>n</c> or <c>b</c>; null when the value is unchanged.</summary>
+        internal string? Type { get; private set; }
+        /// <summary>The text of the value element, not yet escaped for XML.</summary>
+        internal string? Value { get; private set; }
+        internal List<ExcelStyleOperation>? Operations { get; private set; }
+
+        internal bool HasValue => Type != null;
+
+        internal void SetValue(string type, string value, bool date) {
             Type = type;
             Value = value;
-            Date = date;
+            if (date) AddStyle(ExcelStyleOperation.Date);
         }
 
-        /// <summary>The cell type attribute: <c>s</c>, <c>str</c>, <c>n</c> or <c>b</c>.</summary>
-        internal string Type { get; }
-        /// <summary>The text of the value element, not yet escaped for XML.</summary>
-        internal string Value { get; }
-        /// <summary>True when the cell takes the automatic date format derived from its base style.</summary>
-        internal bool Date { get; }
+        internal void AddStyle(ExcelStyleOperation operation) => (Operations ??= new List<ExcelStyleOperation>()).Add(operation);
     }
 
     /// <summary>
@@ -30,20 +36,28 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Returns the merged worksheet, or null when it must be written through the model. <paramref name="rows"/>
-        /// maps row numbers to the edited cells of the row by column. <paramref name="dateStyle"/> maps a cell's base
-        /// style to the style its date value takes.
+        /// maps row numbers to the edited cells of the row by column. <paramref name="applyStyle"/> gives the style a
+        /// cell takes from a style change, or null when the model must make it.
         /// </summary>
         internal static byte[]? TryMerge(byte[] xml, int length, SortedDictionary<int, SortedDictionary<int, ExcelDeferredCellOutput>> rows,
-            Func<uint, uint?> dateStyle, out int resultLength, out int removedSharedReferences) {
+            Func<uint, ExcelStyleOperation, uint?> applyStyle, out int resultLength, out int removedSharedReferences, out string? reason) {
             resultLength = 0;
             removedSharedReferences = 0;
+            reason = null;
             var reader = new OfficeXmlPullReader(xml, length, processMarkupCompatibility: false);
-            var merge = new Merge(xml, rows, dateStyle);
+            var merge = new Merge(xml, rows, applyStyle);
             try {
-                if (!merge.Run(reader, out resultLength)) return null;
+                if (!merge.Run(reader, out resultLength)) {
+                    reason = merge.Reason ?? "the worksheet markup needs the model";
+                    return null;
+                }
                 removedSharedReferences = merge.RemovedSharedReferences;
                 return merge.Output;
-            } catch (Exception exception) when (exception is System.Xml.XmlException or DateStyleUnavailableException) {
+            } catch (System.Xml.XmlException exception) {
+                reason = "the worksheet is not well-formed XML: " + exception.Message;
+                return null;
+            } catch (DateStyleUnavailableException) {
+                reason = "a style change needs the model to complete the stylesheet";
                 return null;
             }
         }
@@ -51,7 +65,7 @@ namespace OfficeIMO.Excel {
         private sealed class Merge {
             private readonly byte[] _source;
             private readonly SortedDictionary<int, SortedDictionary<int, ExcelDeferredCellOutput>> _rows;
-            private readonly Func<uint, uint?> _dateStyle;
+            private readonly Func<uint, ExcelStyleOperation, uint?> _applyStyle;
             private readonly List<int> _pendingRows;
             private int _nextPendingRow;
             private byte[] _output;
@@ -62,15 +76,23 @@ namespace OfficeIMO.Excel {
             private bool _columnsSeen;
             private int _minRow = int.MaxValue, _maxRow, _minColumn = int.MaxValue, _maxColumn;
 
-            internal Merge(byte[] source, SortedDictionary<int, SortedDictionary<int, ExcelDeferredCellOutput>> rows, Func<uint, uint?> dateStyle) {
+            internal Merge(byte[] source, SortedDictionary<int, SortedDictionary<int, ExcelDeferredCellOutput>> rows, Func<uint, ExcelStyleOperation, uint?> applyStyle) {
                 _source = source;
                 _rows = rows;
-                _dateStyle = dateStyle;
+                _applyStyle = applyStyle;
                 _pendingRows = new List<int>(rows.Keys);
                 _output = new byte[Math.Max(256, source.Length + 4096)];
             }
 
             internal byte[] Output => _output;
+
+            /// <summary>Why the merge left the worksheet to the model.</summary>
+            internal string? Reason { get; private set; }
+
+            private bool Fail(string reason) {
+                Reason ??= reason;
+                return false;
+            }
 
             /// <summary>Edited cells that held a shared string before the edit.</summary>
             internal int RemovedSharedReferences { get; private set; }
@@ -89,7 +111,7 @@ namespace OfficeIMO.Excel {
                         if (depth == 1) {
                             if (reader.Transcoded || !reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "worksheet")
                                 || reader.ElementUriId != OfficeXmlNamespaces.TransitionalUriId(OfficeXmlNamespaces.SpreadsheetML)) {
-                                return false;
+                                return Fail("the worksheet root is not a Transitional worksheet");
                             }
                             rootSeen = true;
                             mainPrefix = reader.ElementPrefix;
@@ -109,7 +131,7 @@ namespace OfficeIMO.Excel {
                             }
                             if (reader.LocalNameEquals("dimension")) {
                                 // The model removes extra dimensions and adds a missing reference; those stay with it.
-                                if (dimensionSeen || !TryFindAttribute(reader, "ref", out int start, out int valueLength)) return false;
+                                if (dimensionSeen || !TryFindAttribute(reader, "ref", out int start, out int valueLength)) return Fail("the worksheet has more than one dimension or one without a reference");
                                 dimensionSeen = true;
                                 CopyTo(start);
                                 dimensionValueAt = _outputLength;
@@ -123,7 +145,7 @@ namespace OfficeIMO.Excel {
                                 continue;
                             }
                             if (reader.LocalNameEquals("sheetData")) {
-                                if (sheetDataSeen) return false;
+                                if (sheetDataSeen) return Fail("the worksheet has more than one sheetData");
                                 sheetDataSeen = true;
                                 string prefix = reader.ElementPrefix;
                                 if (reader.IsEmptyElement) {
@@ -152,7 +174,7 @@ namespace OfficeIMO.Excel {
                     if (reader.NodeKind == OfficeXmlNodeKind.EndElement && depth == 2) inColumns = false;
                 }
 
-                if (!rootSeen || !sheetDataSeen || inSheetData || _nextPendingRow < _pendingRows.Count) return false;
+                if (!rootSeen || !sheetDataSeen || inSheetData || _nextPendingRow < _pendingRows.Count) return Fail("the worksheet has no sheetData");
                 CopyTo(_source.Length > 0 ? reader.DataLength : 0);
 
                 string reference = _maxRow == 0 || _maxColumn == 0
@@ -162,7 +184,7 @@ namespace OfficeIMO.Excel {
                 if (dimensionSeen) {
                     Splice(dimensionValueAt, dimensionValueLength, referenceBytes);
                 } else {
-                    if (dimensionInsertAt < 0) return false;
+                    if (dimensionInsertAt < 0) return Fail("the worksheet has no place for a dimension");
                     // The insertion point is a source position; everything before it was copied unchanged.
                     byte[] element = Utf8.GetBytes("<" + Qualified(mainPrefix, "dimension") + " ref=\"" + reference + "\" />");
                     Splice(OutputPositionOf(dimensionInsertAt), 0, element);
@@ -202,19 +224,19 @@ namespace OfficeIMO.Excel {
                     if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 3) continue;
                     if (!reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "row")) {
                         // Anything else between rows leaves the place of a new row unclear.
-                        if (_nextPendingRow < _pendingRows.Count) return false;
+                        if (_nextPendingRow < _pendingRows.Count) return Fail("sheetData holds markup other than rows");
                         reader.SkipElement();
                         continue;
                     }
                     int rowNumber;
                     if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "r", out string rowText)) {
                         if (!int.TryParse(rowText, NumberStyles.None, CultureInfo.InvariantCulture, out rowNumber)
-                            || rowNumber < 1 || rowNumber > ExcelA1.MaxRows) return false;
+                            || rowNumber < 1 || rowNumber > ExcelA1.MaxRows) return Fail("a row number is not valid");
                     } else {
                         rowNumber = previousRow + 1;
                     }
                     // Rows out of order leave the place of a new row unclear.
-                    if (rowNumber <= previousRow) return false;
+                    if (rowNumber <= previousRow) return Fail("rows are out of order");
                     previousRow = rowNumber;
 
                     int rowStart = reader.MarkupStart;
@@ -239,7 +261,7 @@ namespace OfficeIMO.Excel {
                 if (edits != null && reader.TryGetAttribute(OfficeXmlNamespaces.None, "customFormat", out string customFormat)
                     && customFormat is "1" or "true"
                     && reader.TryGetAttribute(OfficeXmlNamespaces.None, "s", out string rowStyleText)) {
-                    if (!uint.TryParse(rowStyleText, NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed)) return false;
+                    if (!uint.TryParse(rowStyleText, NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed)) return Fail("a row style is not a number");
                     rowStyle = parsed;
                 }
                 using IEnumerator<KeyValuePair<int, ExcelDeferredCellOutput>>? pending = edits?.GetEnumerator();
@@ -252,7 +274,7 @@ namespace OfficeIMO.Excel {
                     // <row .../> becomes an element holding its new cells.
                     int slash = tagEnd - 2;
                     while (slash > tagStart && _source[slash] != (byte)'/') slash--;
-                    if (_source[slash] != (byte)'/') return false;
+                    if (_source[slash] != (byte)'/') return Fail("an empty row element is malformed");
                     CopyTo(slash);
                     AppendAscii(">");
                     _copied = tagEnd;
@@ -280,7 +302,7 @@ namespace OfficeIMO.Excel {
                     }
                     if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 4) continue;
                     if (!reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "c")) {
-                        if (edits != null) return false;
+                        if (edits != null) return Fail("an edited row holds markup other than cells");
                         reader.SkipElement();
                         continue;
                     }
@@ -304,7 +326,7 @@ namespace OfficeIMO.Excel {
                     // An edited row is merged by column, which needs canonical references in order.
                     if (resolvedRow != rowNumber || resolvedColumn <= previousColumn
                         || reference == null || !string.Equals(reference, ExcelA1.CellReference(rowNumber, resolvedColumn), StringComparison.Ordinal)) {
-                        return false;
+                        return Fail("an edited row has cells without canonical references in order");
                     }
                     previousColumn = resolvedColumn;
 
@@ -322,16 +344,31 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    // The edited cell keeps its style; anything beyond a plain value goes through the model.
-                    if (!TryReadPlainCellStyle(reader, out string? existingStyle)) return false;
+                    ExcelDeferredCellOutput edit = pending.Current.Value;
+                    if (!edit.HasValue) {
+                        // A style change keeps the cell as it is apart from its style attribute.
+                        if (!TryRestyleCell(reader, edit, rowNumber, resolvedColumn)) return false;
+                        hasPending = pending.MoveNext();
+                        continue;
+                    }
+                    // The edited cell keeps its style and formula, as the model does; its cached value and any inline
+                    // string are replaced. Rich-value metadata and extensions need the model.
+                    if (!TryReadEditableCell(reader, out string? existingStyle, out string extraAttributes)) return Fail("an edited cell holds rich-value metadata or unknown attributes");
                     if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "t", out string existingType) && existingType == "s") RemovedSharedReferences++;
                     string cellPrefix = reader.ElementPrefix;
+                    string? formula = null;
                     if (!reader.IsEmptyElement) {
                         while (reader.Read()) {
                             if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == 4) break;
-                            if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == 5) {
-                                if (!reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "v")) return false;
+                            if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 5) continue;
+                            if (reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "f") && formula == null) {
+                                int formulaStart = reader.MarkupStart;
                                 reader.SkipElement();
+                                formula = Utf8.GetString(_source, formulaStart, reader.MarkupEnd - formulaStart);
+                            } else if (reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "v") || reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "is")) {
+                                reader.SkipElement();
+                            } else {
+                                return Fail("an edited cell holds markup other than a formula and a value");
                             }
                         }
                     } else {
@@ -339,28 +376,73 @@ namespace OfficeIMO.Excel {
                     }
                     int cellEnd = reader.MarkupEnd;
                     CopyTo(cellStart);
-                    WriteCell(rowNumber, resolvedColumn, pending.Current.Value, cellPrefix, existingStyle, inheritedStyle: 0U);
+                    WriteCell(rowNumber, resolvedColumn, edit, cellPrefix, existingStyle, inheritedStyle: 0U, extraAttributes, formula);
                     _copied = cellEnd;
                     hasPending = pending.MoveNext();
                 }
                 return false;
             }
 
-            /// <summary>Reads the style of a cell holding only a reference, a style, a type and a value.</summary>
-            private static bool TryReadPlainCellStyle(OfficeXmlPullReader reader, out string? style) {
-                style = null;
+            /// <summary>Rewrites the style attribute of the cell the reader is on, leaving the rest of its markup as it was.</summary>
+            private bool TryRestyleCell(OfficeXmlPullReader reader, ExcelDeferredCellOutput edit, int row, int column) {
+                string? existingStyle = null;
+                int styleStart = -1, styleLength = 0;
                 for (int index = 0; index < reader.AttributeCount; index++) {
-                    int namespaceId = reader.GetAttributeNamespace(index, out _);
-                    string name = reader.GetAttributeLocalName(index);
-                    if (namespaceId == OfficeXmlNamespaces.Xmlns) return false;
-                    if (namespaceId != OfficeXmlNamespaces.None) return false;
-                    switch (name) {
+                    if (reader.GetAttributeNamespace(index, out _) == OfficeXmlNamespaces.None && reader.GetAttributeLocalName(index) == "s") {
+                        existingStyle = reader.GetAttributeValue(index);
+                        if (!uint.TryParse(existingStyle, NumberStyles.None, CultureInfo.InvariantCulture, out _)) return Fail("a cell style is not a number");
+                        reader.GetAttributeRawValue(index, out styleStart, out styleLength);
+                    }
+                }
+                uint style = ResolveStyle(edit, existingStyle != null ? uint.Parse(existingStyle, CultureInfo.InvariantCulture) : 0U)!.Value;
+                string text = style.ToString(CultureInfo.InvariantCulture);
+                if (styleStart >= 0) {
+                    CopyTo(styleStart);
+                    AppendText(text);
+                    _copied = styleStart + styleLength;
+                } else {
+                    // The reference comes first; the style follows it, as the model writes it.
+                    if (!TryFindAttribute(reader, "r", out int referenceStart, out int referenceLength)) return Fail("a restyled cell has no reference");
+                    int afterReference = referenceStart + referenceLength + 1;
+                    CopyTo(afterReference);
+                    AppendText(" s=\"" + text + "\"");
+                }
+                Include(row, column);
+                reader.SkipElement();
+                return true;
+            }
+
+            /// <summary>Applies the cell's style changes to <paramref name="baseStyle"/>; null when there are none.</summary>
+            private uint? ResolveStyle(ExcelDeferredCellOutput edit, uint baseStyle) {
+                if (edit.Operations == null) return null;
+                uint style = baseStyle;
+                foreach (ExcelStyleOperation operation in edit.Operations) {
+                    style = _applyStyle(style, operation) ?? throw new DateStyleUnavailableException();
+                }
+                return style;
+            }
+
+            /// <summary>
+            /// Reads the style of an edited cell and the attributes it keeps (<c>cm</c>, <c>ph</c>) as written; false for
+            /// rich-value metadata, namespaced or unknown attributes.
+            /// </summary>
+            private static bool TryReadEditableCell(OfficeXmlPullReader reader, out string? style, out string extraAttributes) {
+                style = null;
+                extraAttributes = string.Empty;
+                for (int index = 0; index < reader.AttributeCount; index++) {
+                    if (reader.GetAttributeNamespace(index, out _) != OfficeXmlNamespaces.None) return false;
+                    switch (reader.GetAttributeLocalName(index)) {
                         case "r":
                         case "t":
                             break;
                         case "s":
                             style = reader.GetAttributeValue(index);
                             if (!uint.TryParse(style, NumberStyles.None, CultureInfo.InvariantCulture, out _)) return false;
+                            break;
+                        case "cm":
+                        case "ph":
+                            reader.GetAttributeRawValue(index, out int start, out int length);
+                            extraAttributes += " " + reader.GetAttributeLocalName(index) + "=\"" + Utf8.GetString(reader.Data, start, length) + "\"";
                             break;
                         default:
                             return false;
@@ -390,22 +472,31 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            private void WriteCell(int row, int column, ExcelDeferredCellOutput value, string prefix, string? existingStyle, uint inheritedStyle) {
+            private void WriteCell(int row, int column, ExcelDeferredCellOutput value, string prefix, string? existingStyle, uint inheritedStyle,
+                string extraAttributes = "", string? formula = null) {
                 Include(row, column);
                 string cell = Qualified(prefix, "c");
                 var text = new StringBuilder(64);
                 text.Append('<').Append(cell).Append(" r=\"").Append(ExcelA1.CellReference(row, column)).Append('"');
-                if (value.Date) {
-                    uint baseStyle = existingStyle != null ? uint.Parse(existingStyle, CultureInfo.InvariantCulture) : inheritedStyle;
-                    uint style = _dateStyle(baseStyle) ?? throw new DateStyleUnavailableException();
-                    text.Append(" s=\"").Append(style.ToString(CultureInfo.InvariantCulture)).Append('"');
+                uint baseStyle = existingStyle != null ? uint.Parse(existingStyle, CultureInfo.InvariantCulture) : inheritedStyle;
+                uint? style = ResolveStyle(value, baseStyle);
+                if (style.HasValue) {
+                    text.Append(" s=\"").Append(style.Value.ToString(CultureInfo.InvariantCulture)).Append('"');
                 } else if (existingStyle != null) {
                     text.Append(" s=\"").Append(existingStyle).Append('"');
                 } else if (inheritedStyle != 0U) {
                     text.Append(" s=\"").Append(inheritedStyle.ToString(CultureInfo.InvariantCulture)).Append('"');
                 }
-                text.Append(" t=\"").Append(value.Type).Append("\"><").Append(Qualified(prefix, "v")).Append('>');
-                AppendEscaped(text, value.Value);
+                if (!value.HasValue) {
+                    // A new cell that only takes a style has no value.
+                    text.Append(" />");
+                    AppendText(text.ToString());
+                    return;
+                }
+                text.Append(" t=\"").Append(value.Type).Append('"').Append(extraAttributes).Append('>');
+                if (formula != null) text.Append(formula);
+                text.Append('<').Append(Qualified(prefix, "v")).Append('>');
+                AppendEscaped(text, value.Value!);
                 text.Append("</").Append(Qualified(prefix, "v")).Append("></").Append(cell).Append('>');
                 AppendText(text.ToString());
             }
