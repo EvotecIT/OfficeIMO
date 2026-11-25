@@ -157,16 +157,21 @@ internal static class OfficeXmlNamespaces {
         internal ref string? NameSlot(int hash) => ref (_names ??= new string?[NameCacheSize])[hash & (NameCacheSize - 1)];
         private int _lastKnown = -1;
 
-        private OfficeXmlName[] _xmlNames = new OfficeXmlName[64];
+        // Only trees intern qualified names; streaming readers of small parts never allocate these.
+        private OfficeXmlName[] _xmlNames = Array.Empty<OfficeXmlName>();
         private int _xmlNameCount;
         // Open addressing over name ids plus one; zero marks an empty slot.
-        private int[] _xmlNameSlots = new int[128];
+        private int[] _xmlNameSlots = Array.Empty<int>();
 
         /// <summary>
         /// The id of a qualified name as an element or attribute uses it: local name, prefix (null when a writer picks
         /// it), folded namespace and exact URI. Trees of the package share the ids, so nodes store one integer.
         /// </summary>
         internal int GetNameId(string localName, string? prefix, int namespaceId, int uriId) {
+            if (_xmlNameSlots.Length == 0) {
+                _xmlNames = new OfficeXmlName[64];
+                _xmlNameSlots = new int[128];
+            }
             int hash = ((localName.GetHashCode() * 31 + (prefix == null ? 1 : prefix.GetHashCode())) * 31 + namespaceId) * 31 + uriId;
             int mask = _xmlNameSlots.Length - 1;
             int slot = hash & mask;
@@ -191,11 +196,11 @@ internal static class OfficeXmlNamespaces {
         /// <summary>The name behind an id from <see cref="GetNameId"/>.</summary>
         internal ref readonly OfficeXmlName GetName(int id) => ref _xmlNames[id];
 
-        private byte[]?[] _xmlNameUtf8 = new byte[]?[64];
+        private byte[]?[] _xmlNameUtf8 = Array.Empty<byte[]?>();
 
         /// <summary>The UTF-8 bytes of a name's local part, for writers.</summary>
         internal byte[] GetLocalNameUtf8(int id) {
-            if (id >= _xmlNameUtf8.Length) Array.Resize(ref _xmlNameUtf8, System.Math.Max(_xmlNameUtf8.Length * 2, id + 1));
+            if (id >= _xmlNameUtf8.Length) Array.Resize(ref _xmlNameUtf8, System.Math.Max(System.Math.Max(64, _xmlNameUtf8.Length * 2), id + 1));
             return _xmlNameUtf8[id] ??= Encoding.UTF8.GetBytes(_xmlNames[id].LocalName);
         }
 
