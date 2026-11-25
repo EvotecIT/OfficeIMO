@@ -471,7 +471,7 @@ public sealed partial class PdfDocumentReadResult {
     }
 
     /// <summary>
-    /// Tagged tables read from page geometry because their structure tags could not be used, in page order.
+    /// Tagged tables whose structure was not used to rebuild their grid, in page order; geometric detection reads those pages instead.
     /// Empty for untagged files, for files without /MarkInfo /Marked true, and when every tagged table was used.
     /// </summary>
     public IReadOnlyList<PdfTaggedTableDiagnostic> TaggedTableDiagnostics =>

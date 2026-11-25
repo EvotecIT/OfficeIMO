@@ -950,7 +950,6 @@ namespace OfficeIMO.Pdf.Word {
                 WriteRow(rows[rowIndex + rowOffset], data.Rows[rowIndex], data, options.AlignNumericColumns, options, typographyScale,
                     GetRowStyles(styles, sourceRowOffset + rowOffset + rowIndex));
             }
-            MergeSpannedCells(table, sourceTable, data, headerRowIncluded);
 
             if (options.FitTablesToPageWidth) {
                 int[] columnWeights = BuildColumnWeights(sourceTable.Columns);
@@ -962,6 +961,9 @@ namespace OfficeIMO.Pdf.Word {
                     table.DistributeColumnsEvenly();
                 }
             }
+            // Widths are set on the full grid first: a horizontal merge removes cells from its row,
+            // and the width methods size columns from the first row's cells.
+            MergeSpannedCells(table, sourceTable, data, headerRowIncluded);
         }
 
         /// <summary>Merges cells that tagged-PDF RowSpan or ColSpan joined in the source table.</summary>

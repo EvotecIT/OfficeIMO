@@ -426,7 +426,9 @@ internal static class PdfLogicalTableContinuations {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLogicalTableExtraction[] segments = sourceSegments.ToArray();
-        int repeatedBodyHeaderRows = suppressRepeatedBodyHeaderRows
+        // Tagged segments mark their headers explicitly; identical TD rows are data, never repeated headers.
+        bool tagged = segments.Length > 1 && segments.All(static segment => segment.Table.TaggedSegment is not null);
+        int repeatedBodyHeaderRows = suppressRepeatedBodyHeaderRows && !tagged
             ? DetectRepeatedBodyHeaderRows(segments, cancellationToken)
             : 0;
         double confidence = sourceBoundaries.Count == 0 ? 1D : sourceBoundaries.Min(static boundary => boundary.Confidence);

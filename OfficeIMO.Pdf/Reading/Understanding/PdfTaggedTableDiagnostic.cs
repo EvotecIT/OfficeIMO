@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-/// <summary>Why a tagged PDF table was read from page geometry instead of its structure tags.</summary>
+/// <summary>Why tagged reconstruction was skipped for a PDF table; the page is then read by geometric detection, which may or may not find a table.</summary>
 public enum PdfTaggedTableFallbackReason {
     /// <summary>The Table element holds children other than row groups, rows and cells, overlapping spans, or broken parent links.</summary>
     UnsupportedStructure,
@@ -16,7 +16,7 @@ public enum PdfTaggedTableFallbackReason {
     CellOrderConflictsWithLayout
 }
 
-/// <summary>Reports a tagged PDF table whose structure could not be used to rebuild its grid.</summary>
+/// <summary>Reports a tagged PDF table whose structure was not used to rebuild its grid.</summary>
 public sealed class PdfTaggedTableDiagnostic {
     internal PdfTaggedTableDiagnostic(int structureObjectNumber, int pageNumber, PdfTaggedTableFallbackReason reason, string message) {
         StructureObjectNumber = structureObjectNumber;

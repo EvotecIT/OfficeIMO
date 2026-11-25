@@ -161,12 +161,16 @@ internal sealed partial class PdfReadDocument {
             // Revision numbers may follow attribute objects; only dictionaries carry values.
             for (int index = 0; index < array.Items.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (ResolveObject(array.Items[index]) is PdfDictionary item) ApplyTableAttributeDictionary(item, ref rowSpan, ref columnSpan);
+                if (AsAttributeDictionary(ResolveObject(array.Items[index])) is PdfDictionary item) ApplyTableAttributeDictionary(item, ref rowSpan, ref columnSpan);
             }
             return;
         }
-        if (resolved is PdfDictionary dictionary) ApplyTableAttributeDictionary(dictionary, ref rowSpan, ref columnSpan);
+        if (AsAttributeDictionary(resolved) is PdfDictionary dictionary) ApplyTableAttributeDictionary(dictionary, ref rowSpan, ref columnSpan);
     }
+
+    /// <summary>An attribute object is a dictionary or a stream whose dictionary holds the attributes.</summary>
+    private static PdfDictionary? AsAttributeDictionary(PdfObject? value) =>
+        value as PdfDictionary ?? (value as PdfStream)?.Dictionary;
 
     private void ApplyTableAttributeDictionary(PdfDictionary attributes, ref int rowSpan, ref int columnSpan) {
         if (!string.Equals(TryReadName(attributes, "O"), "Table", StringComparison.Ordinal)) return;

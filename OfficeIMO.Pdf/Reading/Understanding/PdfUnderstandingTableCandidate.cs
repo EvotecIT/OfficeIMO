@@ -311,9 +311,9 @@ public sealed class PdfUnderstandingTableCandidate {
     internal PdfTaggedTableSegment? TaggedSegment { get; set; }
 
     /// <summary>A separate instance for another occurrence of the same page in a page selection.</summary>
-    internal PdfUnderstandingTableCandidate CopyForOccurrence() =>
+    internal PdfUnderstandingTableCandidate CopyForOccurrence(Action<long> consumeWork, Action cancellationCheck) =>
         new PdfUnderstandingTableCandidate(DetectionKind, YTop, YBottom, Columns, Rows, SourceLines, SourceKind,
-            CoordinateSpace, _visualBounds, Confidence, Evidence, null, null, NativeSourceRuns, LeadingCaption) {
+            CoordinateSpace, _visualBounds, Confidence, Evidence, consumeWork, cancellationCheck, NativeSourceRuns, LeadingCaption) {
             TaggedSegment = TaggedSegment
         };
 

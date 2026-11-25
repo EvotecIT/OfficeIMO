@@ -400,7 +400,7 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfUnderstandingImageRegion> ImageRegions { get; }
     /// <summary>Stage execution trace.</summary>
     public IReadOnlyList<PdfUnderstandingStageTrace> Trace { get; }
-    /// <summary>Tagged tables on this page that were read from geometry because their structure could not be used.</summary>
+    /// <summary>Tagged tables on this page whose structure was not used; geometric detection reads the page instead.</summary>
     public IReadOnlyList<PdfTaggedTableDiagnostic> TaggedTableDiagnostics { get; internal set; } = Array.Empty<PdfTaggedTableDiagnostic>();
     internal Action<long>? ConsumeWork { get; }
     internal Action? CancellationCheck { get; }

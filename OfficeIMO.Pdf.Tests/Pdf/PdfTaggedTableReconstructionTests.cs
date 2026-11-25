@@ -128,7 +128,7 @@ public sealed class PdfTaggedTableReconstructionTests {
     [Fact]
     public void CellsTaggedAgainstTheirPageOrderFallBackToGeometry() {
         // The second body row tags Count before Item while the page shows Item on the left.
-        byte[] bytes = CreateTaggedDocument(canvas => TablePage(canvas, swappedRow: 1, ("Alpha", "1"), ("Beta", "2"), ("Gamma", "3")));
+        byte[] bytes = CreateTaggedDocument(canvas => TablePage(canvas, new[] { ("Alpha", "1"), ("Beta", "2"), ("Gamma", "3") }, swappedRow: 1));
         using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
         PdfDocumentReadResult read = document.Read();
 
@@ -160,7 +160,7 @@ public sealed class PdfTaggedTableReconstructionTests {
         // spans both pages, so it has no /Pg of its own.
         byte[] bytes = CreateTaggedDocument(
             canvas => TablePage(canvas, ("Alpha", "1"), ("Beta", "2")),
-            canvas => TablePage(canvas, strayParagraph: "Stray", ("Gamma", "3"), ("Delta", "4")));
+            canvas => TablePage(canvas, new[] { ("Gamma", "3"), ("Delta", "4") }, strayParagraph: "Stray"));
         using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
         PdfDocumentReadResult read = document.Read();
 
@@ -168,6 +168,66 @@ public sealed class PdfTaggedTableReconstructionTests {
         Assert.All(read.TaggedTableDiagnostics,
             static item => Assert.Equal(PdfTaggedTableFallbackReason.UnsupportedStructure, item.Reason));
         Assert.DoesNotContain(read.Pages.SelectMany(static page => page.Tables), static table => table.DetectionKind == "tagged-structure");
+    }
+
+    [Fact]
+    public void WordExportSizesEveryColumnWhenTheHeaderRowSpansCells() {
+        byte[] bytes = CreateTaggedDocument(canvas => canvas.Structure(PdfCanvasStructureRole.Table, table => table
+            .Structure(PdfCanvasStructureRole.TableBody, head => head
+                .Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => Lines(cell, 0, 100D, "Region"))
+                    .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => Lines(cell, 1, 100D, "First half"),
+                        new PdfCanvasStructureOptions { ColumnSpan = 2 })),
+                new PdfCanvasStructureOptions { TableRowGroupType = "THead" })
+            .Structure(PdfCanvasStructureRole.TableBody, body => body
+                .Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 0, 120D, "North"))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 1, 120D, "10"))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 2, 120D, "12"))))));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+        PdfDocumentReadResult read = document.Read();
+
+        using OfficeIMO.Word.WordDocument word = read.ConvertToWordWithEvidence().Value;
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
+        Table wordTable = Assert.Single(package.MainDocumentPart!.Document!.Body!.Elements<Table>());
+        TableRow[] wordRows = wordTable.Elements<TableRow>().ToArray();
+        TableCell spanned = wordRows[0].Elements<TableCell>().ElementAt(1);
+        Assert.Equal(2, spanned.TableCellProperties!.GridSpan!.Val!.Value);
+        Assert.Equal("First half", spanned.InnerText);
+        Assert.Equal(new[] { "North", "10", "12" }, wordRows[1].Elements<TableCell>().Select(static cell => cell.InnerText));
+        Assert.All(wordRows[1].Elements<TableCell>(),
+            static cell => Assert.False(string.IsNullOrEmpty(cell.TableCellProperties?.TableCellWidth?.Width?.Value)));
+    }
+
+    [Fact]
+    public void IdenticalFirstRowsOfTaggedPagesStayData() {
+        byte[] bytes = CreateTaggedDocument(
+            canvas => TablePage(canvas, ("Alpha", "Active"), ("Beta", "Paused")),
+            canvas => TablePage(canvas, ("Alpha", "Active"), ("Gamma", "Paused")));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+
+        PdfLogicalTableContinuationGroup group = Assert.Single(document.Read().GetTableContinuationGroups());
+
+        Assert.Equal(new[] { "Item", "Count" }, group.Columns);
+        Assert.Equal(
+            new[] { "Alpha|Active", "Beta|Paused", "Alpha|Active", "Gamma|Paused" },
+            group.Rows.Select(static row => string.Join("|", row)));
+    }
+
+    [Fact]
+    public void SelectedContinuationPageKeepsTheTaggedHeaderNames() {
+        // The header is tagged only on page 1; page 2 continues the same Table element.
+        byte[] bytes = CreateTaggedDocument(
+            canvas => TablePage(canvas, ("Alpha", "1"), ("Beta", "2")),
+            canvas => TablePage(canvas, new[] { ("Gamma", "3"), ("Delta", "4") }, header: false));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+
+        PdfDocumentReadResult read = document.Read(new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) });
+
+        PdfLogicalTable table = Assert.Single(Assert.Single(read.Pages).Tables);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+        Assert.Equal(new[] { "Item", "Count" }, data.Columns);
+        Assert.Equal(new[] { "Gamma|3", "Delta|4" }, data.Rows.Select(static row => string.Join("|", row)));
     }
 
     [Fact]
@@ -185,21 +245,16 @@ public sealed class PdfTaggedTableReconstructionTests {
     }
 
     private static void TablePage(PdfPageCanvas canvas, params (string Item, string Count)[] rows) =>
-        TablePage(canvas, swappedRow: -1, strayParagraph: null, rows);
+        TablePage(canvas, rows, swappedRow: -1);
 
-    private static void TablePage(PdfPageCanvas canvas, int swappedRow, params (string Item, string Count)[] rows) =>
-        TablePage(canvas, swappedRow, strayParagraph: null, rows);
-
-    private static void TablePage(PdfPageCanvas canvas, string strayParagraph, params (string Item, string Count)[] rows) =>
-        TablePage(canvas, swappedRow: -1, strayParagraph, rows);
-
-    private static void TablePage(PdfPageCanvas canvas, int swappedRow, string? strayParagraph, params (string Item, string Count)[] rows) {
+    private static void TablePage(PdfPageCanvas canvas, (string Item, string Count)[] rows, int swappedRow = -1,
+        string? strayParagraph = null, bool header = true) {
         var tableKey = new PdfCanvasStructureOptions { StructureElementKey = "table" };
         var headKey = new PdfCanvasStructureOptions { StructureElementKey = "head", TableRowGroupType = "THead" };
         var headRowKey = new PdfCanvasStructureOptions { StructureElementKey = "head-row" };
         var bodyKey = new PdfCanvasStructureOptions { StructureElementKey = "body" };
         canvas.Structure(PdfCanvasStructureRole.Table, table => {
-            table.Structure(PdfCanvasStructureRole.TableBody, head => head
+            if (header) table.Structure(PdfCanvasStructureRole.TableBody, head => head
                 .Structure(PdfCanvasStructureRole.TableRow, row => row
                     .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => Lines(cell, 0, 300D, "Item"),
                         new PdfCanvasStructureOptions { StructureElementKey = "item" })

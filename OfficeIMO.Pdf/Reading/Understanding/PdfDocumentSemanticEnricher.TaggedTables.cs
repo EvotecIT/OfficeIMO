@@ -60,7 +60,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                     int pageIndex = occurrences[occurrence];
                     List<PdfUnderstandingTableCandidate> additions = additionsByPage[pageIndex] ??=
                         new List<PdfUnderstandingTableCandidate>();
-                    additions.Add(occurrence == 0 ? candidate : candidate.CopyForOccurrence());
+                    additions.Add(occurrence == 0 ? candidate : candidate.CopyForOccurrence(workBudget.Consume, workBudget.ThrowIfCancellationRequested));
                     if (additions.Count > maximumArtifactsPerPage) {
                         throw PdfReadLimitException.Create(
                             PdfReadLimitKind.UnderstandingArtifacts,
@@ -183,22 +183,36 @@ internal static partial class PdfDocumentSemanticEnricher {
             }
         }
         if (pendingHeaders.Count > 0) {
-            // Place each repeated header before the first body row of its page.
+            // Each page's repeated header rows go, in structure order, before that page's first body row.
+            var headersByPage = new SortedDictionary<int, List<TaggedGridRow>>();
+            foreach (TaggedGridRow repeated in pendingHeaders) {
+                workBudget.Consume();
+                if (!headersByPage.TryGetValue(repeated.PageNumber, out List<TaggedGridRow>? pageHeaders)) {
+                    pageHeaders = new List<TaggedGridRow>();
+                    headersByPage.Add(repeated.PageNumber, pageHeaders);
+                }
+                pageHeaders.Add(repeated);
+            }
+            foreach (List<TaggedGridRow> pageHeaders in headersByPage.Values) pageHeaders.Sort(static (left, right) => left.GridIndex.CompareTo(right.GridIndex));
             var ordered = new List<TaggedGridRow>(pagedRows.Count + pendingHeaders.Count);
             int lastPage = 0;
+            void EmitHeadersThrough(int page) {
+                foreach (KeyValuePair<int, List<TaggedGridRow>> pageHeaders in headersByPage) {
+                    if (pageHeaders.Key <= lastPage) continue;
+                    if (pageHeaders.Key > page) break;
+                    workBudget.Consume(pageHeaders.Value.Count);
+                    ordered.AddRange(pageHeaders.Value);
+                }
+            }
             foreach (TaggedGridRow row in pagedRows) {
                 workBudget.Consume();
                 if (row.PageNumber > lastPage) {
-                    foreach (TaggedGridRow repeated in pendingHeaders) {
-                        if (repeated.PageNumber > lastPage && repeated.PageNumber <= row.PageNumber) ordered.Add(repeated);
-                    }
+                    EmitHeadersThrough(row.PageNumber);
                     lastPage = row.PageNumber;
                 }
                 ordered.Add(row);
             }
-            foreach (TaggedGridRow repeated in pendingHeaders) {
-                if (repeated.PageNumber > lastPage) ordered.Add(repeated);
-            }
+            EmitHeadersThrough(int.MaxValue);
             grid = ordered;
         } else {
             grid = pagedRows;
@@ -227,6 +241,10 @@ internal static partial class PdfDocumentSemanticEnricher {
             }
         }
         if (!anySelected) {
+            if (grid.All(static row => row.PageNumber == 0)) {
+                // No cell references any content. The diagnostic goes to the pages the table names, if selected.
+                return new TaggedTableFailure(PdfTaggedTableFallbackReason.NoContent, "The tagged table holds no text.");
+            }
             // The table sits on pages outside the selection; it adds nothing to the selected pages.
             candidates = new List<PdfUnderstandingTableCandidate>();
             return null;
@@ -263,7 +281,7 @@ internal static partial class PdfDocumentSemanticEnricher {
 
         IReadOnlyList<string>? header = keptRows[0].IsHeader
             ? BuildTaggedRowTexts(keptRows[0], columnMap, keptColumnCount)
-            : null;
+            : ResolveHeaderOutsideSelection(document, grid, selectedPageIndexes, columnMap, keptColumnCount, workBudget);
 
         candidates = new List<PdfUnderstandingTableCandidate>();
         int segmentIndex = 0;
@@ -298,7 +316,7 @@ internal static partial class PdfDocumentSemanticEnricher {
 
     /// <summary>
     /// Checks that tagged cell order runs the same horizontal direction as the cells on the page in
-    /// every row. Either direction is accepted, so right-to-left tables pass; rotated text is not judged.
+    /// every row. Either direction is accepted, so right-to-left tables pass; rotated cells are not judged.
     /// </summary>
     private static bool HasConsistentCellOrder(List<TaggedGridRow> grid, PdfUnderstandingWorkBudget workBudget, out int conflictingRow) {
         const double Tolerance = 1D;
@@ -309,7 +327,8 @@ internal static partial class PdfDocumentSemanticEnricher {
             foreach (TaggedGridCell cell in grid[rowIndex].Cells) {
                 workBudget.Consume();
                 if (cell.Resolved is not TaggedTableCell current) continue;
-                if (current.SourceRuns.Any(static run => Math.Abs(run.RotationDegrees) > 0.5D)) return true;
+                // Rotated cells have no horizontal order to judge; they neither set nor break the direction.
+                if (current.SourceRuns.Any(static run => Math.Abs(run.RotationDegrees) > 0.5D)) continue;
                 if (previous is TaggedTableCell before) {
                     double step = current.Left - before.Left;
                     int stepDirection = step > Tolerance ? 1 : step < -Tolerance ? -1 : 0;
@@ -325,6 +344,54 @@ internal static partial class PdfDocumentSemanticEnricher {
             }
         }
         return true;
+    }
+
+    /// <summary>
+    /// Reads the tagged header row's text from its own page when that page is outside the selection,
+    /// so selected continuation pages keep their column names.
+    /// </summary>
+    private static string[]? ResolveHeaderOutsideSelection(
+        PdfReadDocument document,
+        List<TaggedGridRow> grid,
+        Dictionary<int, List<int>> selectedPageIndexes,
+        int[] columnMap,
+        int columnCount,
+        PdfUnderstandingWorkBudget workBudget) {
+        TaggedGridRow? header = grid.FirstOrDefault(static row => row.IsHeader && row.PageNumber != 0);
+        if (header is null || selectedPageIndexes.ContainsKey(header.PageNumber)) return null;
+        IReadOnlyList<PdfTextSpan> spans = document.Pages[header.PageNumber - 1].GetTextSpans(workBudget.CancellationToken);
+        var runsByMcid = new Dictionary<int, List<PdfTextSpan>>();
+        foreach (PdfTextSpan span in spans) {
+            workBudget.Consume();
+            if (span.MarkedContentId is not int mcid) continue;
+            if (!runsByMcid.TryGetValue(mcid, out List<PdfTextSpan>? runs)) runsByMcid.Add(mcid, runs = new List<PdfTextSpan>());
+            runs.Add(span);
+        }
+        var texts = new string[columnCount];
+        for (int index = 0; index < texts.Length; index++) texts[index] = string.Empty;
+        bool any = false;
+        foreach (TaggedGridCell cell in header.Cells) {
+            int column = cell.Column < columnMap.Length ? columnMap[cell.Column] : -1;
+            if (column < 0) continue;
+            PdfTextSpan[] runs = cell.ContentOn(header.PageNumber)
+                .Select(static key => key.MarkedContentId)
+                .Distinct()
+                .Where(runsByMcid.ContainsKey)
+                .SelectMany(mcid => runsByMcid[mcid])
+                .OrderByDescending(static run => run.Y)
+                .ThenBy(static run => run.X)
+                .ToArray();
+            workBudget.Consume(runs.Length + 1L);
+            if (runs.Length == 0) continue;
+            List<TextLayoutEngine.TextLine> lines = TextLayoutEngine.BuildLines(
+                runs,
+                new TextLayoutEngine.Options { ForceSingleColumn = true },
+                workBudget.Consume,
+                workBudget.ThrowIfCancellationRequested);
+            texts[column] = string.Join(" ", lines.Select(static line => line.Text)).Trim();
+            any |= texts[column].Length > 0;
+        }
+        return any ? texts : null;
     }
 
     private static string[] BuildTaggedRowTexts(TaggedGridRow row, int[] columnMap, int columnCount) {
@@ -396,16 +463,14 @@ internal static partial class PdfDocumentSemanticEnricher {
         Dictionary<int, List<int>> selectedPageIndexes,
         List<PdfTaggedTableDiagnostic>?[] diagnostics,
         PdfUnderstandingWorkBudget workBudget) {
+        // Validation can stop before every row's content is read, and a table spanning pages carries no
+        // /Pg of its own, so add the pages named by its descendants and their marked-content references.
         var pagesToReport = new List<int>(touchedPages);
-        if (pagesToReport.Count == 0) {
-            // Structural failures stop before content is read. A table spanning pages carries no /Pg
-            // of its own, so recover its pages from descendants and their marked-content references.
-            foreach (int pageObject in CollectTablePageObjects(graph, table, workBudget)) {
-                if (document.GetPageNumberForObject(pageObject, workBudget.CancellationToken) is int page &&
-                    !pagesToReport.Contains(page)) pagesToReport.Add(page);
-            }
-            pagesToReport.Sort();
+        foreach (int pageObject in CollectTablePageObjects(graph, table, workBudget)) {
+            if (document.GetPageNumberForObject(pageObject, workBudget.CancellationToken) is int page &&
+                !pagesToReport.Contains(page)) pagesToReport.Add(page);
         }
+        pagesToReport.Sort();
         foreach (int pageNumber in pagesToReport) {
             workBudget.Consume();
             if (!selectedPageIndexes.TryGetValue(pageNumber, out List<int>? pageIndexes)) continue;
@@ -531,7 +596,11 @@ internal static partial class PdfDocumentSemanticEnricher {
             for (int index = 0; index < cells.Length; index++) cells[index] = string.Empty;
             foreach (TaggedGridCell cell in row.Cells) {
                 workBudget.Consume();
-                int column = columnMap[cell.Column];
+                // A cell whose first column was dropped anchors on the first retained column it covers.
+                int column = -1;
+                for (int spanned = cell.Column; spanned < cell.Column + cell.ColumnSpan && spanned < columnMap.Length; spanned++) {
+                    if (columnMap[spanned] >= 0) { column = columnMap[spanned]; break; }
+                }
                 if (column < 0) continue;
                 int columnSpan = 0;
                 for (int spanned = cell.Column; spanned < cell.Column + cell.ColumnSpan && spanned < columnMap.Length; spanned++) {
