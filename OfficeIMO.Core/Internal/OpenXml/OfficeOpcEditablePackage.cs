@@ -166,7 +166,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
 
     /// <summary>
     /// Replaces the content of an existing part; with <paramref name="pooled"/>, <paramref name="content"/> was rented from
-    /// <see cref="System.Buffers.ArrayPool{T}.Shared"/> and goes back to it when the package is disposed.
+    /// the shared array pool and goes back to it when the package is disposed (on .NET 8 and later; older targets let it go).
     /// </summary>
     internal void ReplacePart(string partName, byte[] content, int length, bool pooled) {
         Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
@@ -181,7 +181,9 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     }
 
     private static void ReturnContent(Part part) {
+#if NET8_0_OR_GREATER
         if (part.ContentPooled && part.Content != null) System.Buffers.ArrayPool<byte>.Shared.Return(part.Content);
+#endif
         part.ContentPooled = false;
         part.Content = null;
     }
