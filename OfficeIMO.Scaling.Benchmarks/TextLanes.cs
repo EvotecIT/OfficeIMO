@@ -5,6 +5,7 @@ using OfficeIMO.Rtf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
+using OfficeIMO.Word.Rtf;
 
 namespace OfficeIMO.Scaling.Benchmarks;
 
@@ -38,6 +39,36 @@ internal sealed class RtfParseLane : ScalingLane {
 
     public override object? Run() => RtfDocument.Parse(_rtf).Paragraphs.Count;
     public override void Validate(object? result) => Require((int)result! >= Units, "paragraph count");
+}
+
+internal sealed class RtfCommentsToDocxLane : ScalingLane {
+    private string _rtf = string.Empty;
+    public override string Name => "Rtf.CommentsToDocx";
+    public override string Unit => "comment";
+
+    protected override void Prepare(int units) {
+        var document = RtfDocument.Create();
+        for (int i = 0; i < units; i++) {
+            RtfRun run = document.AddParagraph().AddText($"Commented paragraph {i}.");
+            var note = new RtfNote(RtfNoteKind.Annotation) { Author = $"Author {i % 5}" };
+            note.AddParagraph($"Comment {i}");
+            run.Note = note;
+        }
+
+        _rtf = document.ToRtf();
+    }
+
+    public override object? Run() {
+        using WordDocument document = RtfDocument.Parse(_rtf).ToWord();
+        var stream = new MemoryStream();
+        document.Save(stream);
+        return stream.ToArray();
+    }
+
+    public override void Validate(object? result) {
+        using WordDocument loaded = WordDocument.Load(new MemoryStream((byte[])result!));
+        Require(loaded.Comments.Count == Units, "comment count");
+    }
 }
 
 internal abstract class ToDocxLane : ScalingLane {
