@@ -25,6 +25,11 @@ public sealed class DrawingWebpLosslessTests {
         Assert.True(OfficeRasterImageDecoder.TryDecode(bytes, out OfficeRasterImage? image));
         Assert.Equal((width, height), (image!.Width, image.Height));
         Assert.Equal(expected, image.GetPixels());
+
+        // The caller-owned buffer is the one the packed pixels were decoded into.
+        Assert.True(OfficeRasterImageDecoder.TryDecodeRgba32(bytes, out byte[]? pixels, out int rgbaWidth, out int rgbaHeight));
+        Assert.Equal((width, height), (rgbaWidth, rgbaHeight));
+        Assert.Equal(expected, pixels);
     }
 
     [Theory]

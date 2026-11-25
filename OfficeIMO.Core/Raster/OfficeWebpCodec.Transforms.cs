@@ -1,3 +1,9 @@
+#if NET8_0_OR_GREATER
+using Vp8lPixels = System.Span<uint>;
+#else
+using Vp8lPixels = uint[];
+#endif
+
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeWebpCodec {
@@ -55,10 +61,13 @@ public static partial class OfficeWebpCodec {
     /// <summary>
     /// Inverts the transforms row by row so each row stays in cache across every stage. Stages that
     /// follow the predictor run one row behind it, because the predictor reads the previous row in
-    /// its own output state. When <paramref name="rgba"/> is supplied, the last stage writes RGBA bytes.
+    /// its own output state. When <paramref name="rgba"/> is supplied, the last stage writes RGBA bytes,
+    /// and <paramref name="encoded"/> may be the tail of that same buffer: output row y ends where
+    /// encoded row y + 1 starts, so writing a row never overwrites encoded rows still to be restored.
     /// </summary>
     private static bool TryApplyVp8lTransforms(
-        uint[] encoded,
+        Vp8lPixels encoded,
+        uint[]? encodedArray,
         int encodedWidth,
         int height,
         int finalWidth,
@@ -67,12 +76,13 @@ public static partial class OfficeWebpCodec {
         CancellationToken cancellationToken,
         byte[]? rgba,
         out uint[] result) {
-        result = encoded;
+        result = encodedArray ?? Array.Empty<uint>();
         int stageCount = transforms.Count;
-        var buffers = new uint[stageCount + 1][];
+        // A null buffer is the encoded pixels; only a palette that is not the last stage widens into its own.
+        var buffers = new uint[]?[stageCount + 1];
         var widths = new int[stageCount + 1];
         var lags = new int[stageCount + 1];
-        buffers[0] = encoded;
+        buffers[0] = encodedArray;
         widths[0] = encodedWidth;
         int lag = 0;
         bool writesRgba = false;
@@ -98,7 +108,6 @@ public static partial class OfficeWebpCodec {
                     if (rgba != null && stage == stageCount - 1) {
                         // The last stage can map indexes straight to RGBA bytes.
                         writesRgba = true;
-                        buffers[stage + 1] = Array.Empty<uint>();
                         break;
                     }
                     int outputLength = checked(transform.InputWidth * height);
@@ -112,47 +121,67 @@ public static partial class OfficeWebpCodec {
         }
         lags[stageCount] = lag;
         long finalPixels = (long)finalWidth * height;
-        if (widths[stageCount] != finalWidth || !writesRgba && buffers[stageCount].Length != finalPixels ||
-            rgba != null && rgba.Length != finalPixels * 4L) return false;
+        uint[]? finalBuffer = buffers[stageCount];
+        if (widths[stageCount] != finalWidth ||
+            !writesRgba && (finalBuffer != null ? finalBuffer.Length : encoded.Length) != finalPixels ||
+            rgba != null && rgba.Length != finalPixels * 4L ||
+            rgba == null && finalBuffer == null) return false;
         cancellationToken.ThrowIfCancellationRequested();
 
         uint[] palette = Array.Empty<uint>();
-        for (int row = 0; row < height + lag; row++) {
-            if ((row & 15) == 0) cancellationToken.ThrowIfCancellationRequested();
-            for (int stage = 0; stage < stageCount; stage++) {
-                int y = row - lags[stage];
-                if ((uint)y >= (uint)height) continue;
-                Vp8lTransform transform = transforms[stageCount - 1 - stage];
-                uint[] pixels = buffers[stage];
-                int width = widths[stage];
-                switch (transform.Type) {
-                    case 0:
-                        ApplyVp8lPredictorRow(pixels, width, y, transform);
-                        break;
-                    case 1:
-                        ApplyVp8lColorTransformRow(pixels, width, y, transform);
-                        break;
-                    case 2:
-                        AddVp8lGreenRow(pixels, y * width, width);
-                        break;
-                    default:
-                        if (palette.Length == 0) palette = CreateVp8lPalette(transform, writesRgba && stage == stageCount - 1);
-                        if (writesRgba && stage == stageCount - 1) {
-                            ApplyVp8lPaletteRowRgba(pixels, width, rgba!, widths[stage + 1], y, transform, palette);
-                        } else {
-                            ApplyVp8lPaletteRow(pixels, width, buffers[stage + 1], widths[stage + 1], y, transform, palette);
-                        }
-                        break;
+#if NET8_0_OR_GREATER
+        uint[]? paletteRow = null;
+#endif
+        try {
+            for (int row = 0; row < height + lag; row++) {
+                if ((row & 15) == 0) cancellationToken.ThrowIfCancellationRequested();
+                for (int stage = 0; stage < stageCount; stage++) {
+                    int y = row - lags[stage];
+                    if ((uint)y >= (uint)height) continue;
+                    Vp8lTransform transform = transforms[stageCount - 1 - stage];
+                    Vp8lPixels pixels = buffers[stage] ?? encoded;
+                    int width = widths[stage];
+                    switch (transform.Type) {
+                        case 0:
+                            ApplyVp8lPredictorRow(pixels, width, y, transform);
+                            break;
+                        case 1:
+                            ApplyVp8lColorTransformRow(pixels, width, y, transform);
+                            break;
+                        case 2:
+                            AddVp8lGreenRow(pixels, y * width, width);
+                            break;
+                        default:
+                            if (palette.Length == 0) palette = CreateVp8lPalette(transform, writesRgba && stage == stageCount - 1);
+                            if (writesRgba && stage == stageCount - 1) {
+#if NET8_0_OR_GREATER
+                                // Packed indexes can share memory with the output row they expand into.
+                                paletteRow ??= System.Buffers.ArrayPool<uint>.Shared.Rent(width);
+                                CopyVp8lPixels(pixels, y * width, paletteRow, 0, width);
+                                ApplyVp8lPaletteRowRgba(paletteRow, 0, rgba!, widths[stage + 1], y, transform, palette);
+#else
+                                ApplyVp8lPaletteRowRgba(pixels, y * width, rgba!, widths[stage + 1], y, transform, palette);
+#endif
+                            } else {
+                                ApplyVp8lPaletteRow(pixels, width, buffers[stage + 1]!, widths[stage + 1], y, transform, palette);
+                            }
+                            break;
+                    }
+                }
+                if (rgba != null && !writesRgba) {
+                    int y = row - lags[stageCount];
+                    if ((uint)y < (uint)height) {
+                        // Without a palette last, the final words sit at the same offsets as their RGBA bytes.
+                        WriteVp8lRgbaRow(finalBuffer ?? encoded, y * finalWidth, finalWidth, rgba);
+                    }
                 }
             }
-            if (rgba != null && !writesRgba) {
-                int y = row - lags[stageCount];
-                if ((uint)y < (uint)height) {
-                    WriteVp8lRgbaRow(buffers[stageCount], y * finalWidth, finalWidth, rgba);
-                }
-            }
+        } finally {
+#if NET8_0_OR_GREATER
+            if (paletteRow != null) System.Buffers.ArrayPool<uint>.Shared.Return(paletteRow);
+#endif
         }
-        result = buffers[stageCount];
+        result = finalBuffer ?? Array.Empty<uint>();
         return true;
     }
 
@@ -192,9 +221,8 @@ public static partial class OfficeWebpCodec {
         return palette;
     }
 
-    private static void ApplyVp8lPaletteRowRgba(uint[] packed, int packedWidth, byte[] rgba, int outputWidth,
+    private static void ApplyVp8lPaletteRowRgba(Vp8lPixels packed, int source, byte[] rgba, int outputWidth,
         int y, Vp8lTransform transform, uint[] palette) {
-        int source = y * packedWidth;
         int target = y * outputWidth * 4;
         int pixelsPerPacked = 1 << transform.SizeBits;
         int bitsPerIndex = 8 >> transform.SizeBits;
@@ -224,7 +252,7 @@ public static partial class OfficeWebpCodec {
         rgba[offset + 3] = (byte)(value >> 24);
     }
 
-    private static void ApplyVp8lPaletteRow(uint[] packed, int packedWidth, uint[] output, int outputWidth,
+    private static void ApplyVp8lPaletteRow(Vp8lPixels packed, int packedWidth, uint[] output, int outputWidth,
         int y, Vp8lTransform transform, uint[] palette) {
         int source = y * packedWidth;
         int target = y * outputWidth;
@@ -246,7 +274,7 @@ public static partial class OfficeWebpCodec {
         }
     }
 
-    private static void ApplyVp8lColorTransformRow(uint[] pixels, int width, int y, Vp8lTransform transform) {
+    private static void ApplyVp8lColorTransformRow(Vp8lPixels pixels, int width, int y, Vp8lTransform transform) {
         int sizeBits = transform.SizeBits;
         int dataRow = (y >> sizeBits) * transform.Value;
         int row = y * width;
@@ -273,7 +301,7 @@ public static partial class OfficeWebpCodec {
         }
     }
 
-    private static void AddVp8lGreenRow(uint[] pixels, int start, int count) {
+    private static void AddVp8lGreenRow(Vp8lPixels pixels, int start, int count) {
         int index = start;
         int end = start + count;
 #if NET8_0_OR_GREATER
@@ -287,7 +315,7 @@ public static partial class OfficeWebpCodec {
         }
     }
 
-    private static void WriteVp8lRgbaRow(uint[] argb, int start, int count, byte[] rgba) {
+    private static void WriteVp8lRgbaRow(Vp8lPixels argb, int start, int count, byte[] rgba) {
         int index = start;
         int end = start + count;
 #if NET8_0_OR_GREATER
@@ -303,7 +331,7 @@ public static partial class OfficeWebpCodec {
         }
     }
 
-    private static void ApplyVp8lPredictorRow(uint[] pixels, int width, int y, Vp8lTransform transform) {
+    private static void ApplyVp8lPredictorRow(Vp8lPixels pixels, int width, int y, Vp8lTransform transform) {
         int row = y * width;
         if (y == 0) {
             uint left = AddArgb(pixels[0], 0xFF000000U);
@@ -329,7 +357,7 @@ public static partial class OfficeWebpCodec {
     /// Restores one run of pixels that share a predictor mode. The top-right neighbor of the last
     /// column is the first pixel of the current row, which is the next word after the previous row.
     /// </summary>
-    private static void PredictVp8lRun(uint[] p, int mode, int start, int end, int width) {
+    private static void PredictVp8lRun(Vp8lPixels p, int mode, int start, int end, int width) {
         int index = start;
         switch (mode) {
             case 0:

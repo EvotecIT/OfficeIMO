@@ -899,3 +899,5 @@ OfficeIMO.Drawing.OfficeChartValueAxisLayout.IsReversed.get -> bool
 OfficeIMO.Drawing.OfficeChartValueAxisLayout.LogBase.get -> double?
 OfficeIMO.Drawing.OfficeChartValueAxisLayout.WithLogarithmicScale(double? logBase) -> OfficeIMO.Drawing.OfficeChartValueAxisLayout!
 OfficeIMO.Drawing.OfficeChartValueAxisLayout.WithReversedScale(bool reversed) -> OfficeIMO.Drawing.OfficeChartValueAxisLayout!
+static OfficeIMO.Drawing.OfficeRasterImageDecoder.TryDecodeRgba32(byte[]? bytes, OfficeIMO.Drawing.OfficeRasterDecodeOptions? options, out byte[]? pixels, out int width, out int height, out OfficeIMO.Drawing.OfficeRasterDecodeInfo! info) -> bool
+static OfficeIMO.Drawing.OfficeRasterImageDecoder.TryDecodeRgba32(byte[]? bytes, out byte[]? pixels, out int width, out int height) -> bool
