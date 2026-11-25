@@ -57,7 +57,8 @@ try {
         if ($null -eq $python) { throw 'Python 3 is required to serve the site locally; install it as python3 or python.' }
         $serverArguments = @{
             FilePath = $python.Source
-            ArgumentList = @('-m', 'http.server', $port, '--bind', '127.0.0.1', '--directory', $resolvedSiteRoot)
+            # Start-Process joins ArgumentList with spaces on Windows, so a site root with spaces needs explicit quotes there.
+            ArgumentList = @('-m', 'http.server', $port, '--bind', '127.0.0.1', '--directory', $(if ($IsWindows) { '"' + $resolvedSiteRoot + '"' } else { $resolvedSiteRoot }))
             PassThru = $true
             RedirectStandardOutput = $serverStandardOutputPath
             RedirectStandardError = $serverStandardErrorPath
