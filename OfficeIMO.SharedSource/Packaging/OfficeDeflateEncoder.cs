@@ -36,15 +36,18 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
     private static readonly int BackgroundRegions = Environment.ProcessorCount > 1 ? Math.Min(Environment.ProcessorCount - 1, 4) : 0;
     // Background regions of every encoder go through one queue served by at most this many pool workers, so a busy
     // caller wakes a worker only when one went idle rather than once per region.
+    // A part of up to this many regions (about 1 MiB) wakes workers for each one; see Schedule.
+    private const int EagerRegions = 8;
     private static readonly ConcurrentQueue<Region> _work = new();
     private static readonly WaitCallback Work = _ => RunWorker();
     private static int _workers;
     // Regions queued since a worker last took one; it can include regions their caller already encoded.
     private static int _waiting;
 
-    // Enough regions for one part with background encoding: the one being filled, those in flight and the one being
-    // written. They stay across full collections, so a caller that streams large parts repeatedly reuses them.
-    private static readonly Region?[] _retainedRegions = new Region?[BackgroundRegions + 2];
+    // Enough regions for one part with background encoding: the one being filled, those in flight, the one being
+    // written and the one before it, which holds that region's history. They stay across full collections, so a caller
+    // that streams large parts repeatedly reuses them.
+    private static readonly Region?[] _retainedRegions = new Region?[BackgroundRegions + 3];
     // Parts prepared on worker threads, and regions encoded in the background, each hold a region. The extra sets
     // are held weakly, so a burst of parallel work reuses them without the large-object allocations, and a later
     // full collection can still reclaim them. The slots reference the arrays themselves: a weakly held wrapper would
@@ -56,7 +59,10 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
     // Regions this part already used; they are cleared once, when the part is done with them.
     private readonly Stack<Region> _spare = new();
     private Region? _current;
+    // The last region written; the next one may still need its last 32 KiB as history.
+    private Region? _written;
     private int _filled;
+    private int _submitted;
     private bool _finished;
     private uint _crc;
     private long _size;
@@ -85,9 +91,9 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
             _filled += count;
             input = input.Slice(count);
             if (_filled == BufferLength) {
-                // The next region starts from the last 32 KiB of this one.
+                // The next region starts from the last 32 KiB of this one, which it copies when it is encoded.
                 Region next = _spare.Count > 0 ? _spare.Pop() : RentRegion();
-                Buffer.BlockCopy(region.Buffer, BufferLength - HistoryLength, next.Buffer, 0, HistoryLength);
+                next.HistorySource = region;
                 next.Start = HistoryLength;
                 _current = next;
                 _filled = HistoryLength;
@@ -112,16 +118,23 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
             Emit(last);
         } finally {
             ReturnRegion(last);
+            // A region still in the background may be reading its history from the last written one.
+            if (_queued.Count == 0 && _written != null) {
+                ReturnRegion(_written);
+                _written = null;
+            }
             while (_spare.Count > 0) ReturnRegion(_spare.Pop());
         }
     }
 
     public void Dispose() {
-        // Regions still in the background own their arrays until they finish; collect them before returning any.
-        while (_queued.Count > 0) {
-            Region region = _queued.Dequeue();
-            region.Cancel();
-            ReturnRegion(region);
+        // Regions still in the background own their arrays, and read their history from the one before, until they
+        // finish; collect every one before returning any.
+        foreach (Region region in _queued) region.Cancel();
+        while (_queued.Count > 0) ReturnRegion(_queued.Dequeue());
+        if (_written != null) {
+            ReturnRegion(_written);
+            _written = null;
         }
         if (_current != null) {
             _current.End = _filled;
@@ -143,7 +156,7 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
         }
         _queued.Enqueue(region);
         region.MarkQueued();
-        Schedule(region);
+        Schedule(region, eager: ++_submitted <= EagerRegions);
         // Write what has finished, in order, and keep at most the configured number of regions in flight.
         while (_queued.Count > 0 && (_queued.Count > _maximumQueued || _queued.Peek().IsComplete)) WriteOldest();
     }
@@ -166,19 +179,26 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
     }
 
     /// <summary>Keeps a written region for this part's next one; its bytes are overwritten before they are read.</summary>
+    /// <remarks>The region that follows it copies its history when it is encoded, so the region written before this
+    /// one is the one that becomes free.</remarks>
     private void Recycle(Region region) {
-        region.Reset();
-        _spare.Push(region);
+        Region? free = _written;
+        _written = region;
+        if (free == null) return;
+        free.Reset();
+        _spare.Push(free);
     }
 
-    private static void Schedule(Region region) {
+    private static void Schedule(Region region, bool eager) {
         _work.Enqueue(region);
         int waiting = Interlocked.Increment(ref _waiting);
         int workers = Volatile.Read(ref _workers);
-        // A worker starts only once two regions wait, and another only when more wait than the running workers can
-        // take. A caller streaming one large part would otherwise wake a pool thread for almost every region, because
-        // a worker that keeps up with it drains the queue and leaves; a region nobody takes is encoded by its caller.
-        while (workers < BackgroundRegions && waiting > workers + 1) {
+        // The first regions of a part start workers right away, so a part of a few regions compresses them all at once.
+        // Later regions start a worker only once two wait, and another only when more wait than the running workers
+        // can take: a worker that keeps up with a caller streaming one long part drains the queue and leaves, and
+        // waking one per region costs the caller more than the compression it hands over. A region nobody takes is
+        // encoded by its caller.
+        while (workers < BackgroundRegions && (eager || waiting > workers + 1)) {
             if (Interlocked.CompareExchange(ref _workers, workers + 1, workers) == workers) {
                 try {
                     ThreadPool.UnsafeQueueUserWorkItem(Work, null);
@@ -264,6 +284,8 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
         internal byte[] Buffer => _buffer;
         internal byte[] Output => _output;
         internal uint[] Heads => _heads;
+        /// <summary>The region whose last 32 KiB this one copies as its history when it is encoded.</summary>
+        internal Region? HistorySource { get; set; }
         /// <summary>The first byte to encode; the bytes before it are history.</summary>
         internal int Start { get; set; }
         internal int End { get; set; }
@@ -330,9 +352,14 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
             Start = 0;
             End = 0;
             Final = false;
+            HistorySource = null;
         }
 
         internal void Encode() {
+            if (HistorySource is { } history) {
+                System.Buffer.BlockCopy(history._buffer, BufferLength - HistoryLength, _buffer, 0, HistoryLength);
+                HistorySource = null;
+            }
             int start = Start, end = End;
             _crc = OfficePngCrc32.Complete(OfficePngCrc32.Append(OfficePngCrc32.Begin(), _buffer, start, end - start));
             _outputCount = 0;
