@@ -291,10 +291,7 @@ internal static partial class MarkdownReader {
         markerIndex = -1;
         // A blank line is never a term, so the marker has to come before the next one. Most lines
         // have no ':' line below them, which is answered in place.
-        int probe = startIndex;
-        while (probe < lines.Length && !lines.IsBlank(probe) && lines.GetFirstNonWhiteSpaceCharacter(probe) != ':') {
-            probe++;
-        }
+        int probe = lines.FindBlankOrStartingWith(startIndex, ':');
         if (probe >= lines.Length || lines.IsBlank(probe)) {
             return false;
         }

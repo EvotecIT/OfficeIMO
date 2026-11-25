@@ -17,6 +17,12 @@ internal sealed class MarkdownSourceLines : IReadOnlyList<string> {
     // Set once a line may differ from the source text: a line was replaced, or the string array
     // was handed out and may be written to.
     private bool _mayDifferFromText;
+    // Set once every line has a string, so ToArray hands the array out without checking it again.
+    private bool _allLinesCreated;
+    // The last FindBlankOrStartingWith answer: from _probeStart the first matching line is _probeResult.
+    private int _probeStart = -1;
+    private int _probeResult;
+    private char _probeCharacter;
 
     private MarkdownSourceLines(string text, int[] starts, bool hasCarriageReturn) {
         _text = text;
@@ -175,10 +181,13 @@ internal sealed class MarkdownSourceLines : IReadOnlyList<string> {
         }
 
         var strings = _strings ??= new string?[Length];
-        for (int i = 0; i < strings.Length; i++) {
-            if (strings[i] == null) {
-                _ = this[i];
+        if (!_allLinesCreated) {
+            for (int i = 0; i < strings.Length; i++) {
+                if (strings[i] == null) {
+                    _ = this[i];
+                }
             }
+            _allLinesCreated = true;
         }
         return (string[])strings!;
     }
@@ -244,7 +253,29 @@ internal sealed class MarkdownSourceLines : IReadOnlyList<string> {
     /// </summary>
     public bool MayStartListItem(int index) {
         char first = GetFirstNonWhiteSpaceCharacter(index);
-        return first is '-' or '*' or '+' or (>= '0' and <= '9') or (>= 'a' and <= 'z') or (>= 'A' and <= 'Z');
+        // Digits as char.IsDigit reads them, as the ordered-list marker parser does.
+        return first is '-' or '*' or '+' or (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') || char.IsDigit(first);
+    }
+
+    /// <summary>
+    /// The first line from <paramref name="start"/> that is blank or whose first non-white-space character is
+    /// <paramref name="value"/>, or <see cref="Length"/> when there is none. The last answer is kept, so probing
+    /// again from any line it covers costs nothing.
+    /// </summary>
+    public int FindBlankOrStartingWith(int start, char value) {
+        if (!_mayDifferFromText && value == _probeCharacter && _probeStart >= 0 && start >= _probeStart && start <= _probeResult) {
+            return _probeResult;
+        }
+
+        int index = start;
+        while (index < Length && !IsBlank(index) && GetFirstNonWhiteSpaceCharacter(index) != value) {
+            index++;
+        }
+
+        _probeCharacter = value;
+        _probeStart = start;
+        _probeResult = index;
+        return index;
     }
 
 
