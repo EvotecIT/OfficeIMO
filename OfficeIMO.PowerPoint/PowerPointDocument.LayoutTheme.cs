@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint {
         internal void ApplyLayoutTheme(OfficeTheme theme) {
             _baseTheme = theme;
             _layoutTheme = PowerPointLayoutTheme.From(theme);
-            PowerPointLayoutMasterWriter.Apply(_presentationPart, _layoutTheme);
+            PowerPointLayoutMasterWriter.Apply(SdkPresentationPart, _layoutTheme);
         }
 
         /// <summary>
@@ -31,9 +31,9 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(theme);
             SlideMasterPart? selected = masterIndex.HasValue ? GetSlideMasterPart(masterIndex.Value) : null;
-            bool allMasters = selected == null || _presentationPart.SlideMasterParts.Count() == 1;
+            bool allMasters = selected == null || SdkPresentationPart.SlideMasterParts.Count() == 1;
             PowerPointLayoutTheme layout = PowerPointLayoutTheme.From(theme);
-            PowerPointLayoutMasterWriter.Apply(_presentationPart, layout, allMasters ? null : selected, keepMasterContent: !OwnsLayoutTheme);
+            PowerPointLayoutMasterWriter.Apply(SdkPresentationPart, layout, allMasters ? null : selected, keepMasterContent: !OwnsLayoutTheme);
             if (allMasters) SetThemeNameForAllMasters(theme.Name);
             else SetThemeName(theme.Name, masterIndex!.Value);
             if (allMasters && OwnsLayoutTheme) _baseTheme = theme;
@@ -55,7 +55,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Rewrites the theme-derived parts for a designer theme mapped onto the presentation's theme.</summary>
         internal void ApplyLayoutTheme(PowerPointLayoutTheme theme) {
             _layoutTheme = theme;
-            PowerPointLayoutMasterWriter.Apply(_presentationPart, theme);
+            PowerPointLayoutMasterWriter.Apply(SdkPresentationPart, theme);
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>The Latin heading and body typefaces the first master's theme part names now.</summary>
         internal (string? Heading, string? Body) ThemeFontFamilies() {
-            A.FontScheme? fonts = _presentationPart.SlideMasterParts.FirstOrDefault()?.ThemePart?.Theme?.ThemeElements?.FontScheme;
+            A.FontScheme? fonts = SdkPresentationPart.SlideMasterParts.FirstOrDefault()?.ThemePart?.Theme?.ThemeElements?.FontScheme;
             string? heading = fonts?.MajorFont?.LatinFont?.Typeface?.Value;
             string? body = fonts?.MinorFont?.LatinFont?.Typeface?.Value;
             return (string.IsNullOrWhiteSpace(heading) ? null : heading, string.IsNullOrWhiteSpace(body) ? null : body);
@@ -79,7 +79,7 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointLayoutTheme ReadLayoutTheme(int masterIndex = 0,
             A.ColorScheme? colorsOverride = null, A.FontScheme? fontsOverride = null) {
             OfficeTheme theme = _layoutTheme?.Theme ?? _baseTheme ?? OfficeTheme.Default;
-            SlideMasterPart? master = _presentationPart.SlideMasterParts.Skip(masterIndex).FirstOrDefault();
+            SlideMasterPart? master = SdkPresentationPart.SlideMasterParts.Skip(masterIndex).FirstOrDefault();
             A.Theme? nativeTheme = master?.ThemePart?.Theme;
             A.ThemeElements? elements = nativeTheme?.ThemeElements;
             if (elements == null && colorsOverride == null && fontsOverride == null) return PowerPointLayoutTheme.From(theme);

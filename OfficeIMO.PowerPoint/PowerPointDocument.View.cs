@@ -213,14 +213,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private ViewProperties EnsureViewProperties() {
-            ViewPropertiesPart viewPart = _presentationPart.ViewPropertiesPart
-                ?? _presentationPart.AddNewPart<ViewPropertiesPart>();
+            ViewPropertiesPart viewPart = SdkPresentationPart.ViewPropertiesPart
+                ?? SdkPresentationPart.AddNewPart<ViewPropertiesPart>();
             viewPart.ViewProperties ??= new ViewProperties();
             return viewPart.ViewProperties;
         }
 
         private GridSpacing? GetGridSpacing() {
-            return _presentationPart.ViewPropertiesPart?.ViewProperties?.GridSpacing;
+            return SdkPresentationPart.ViewPropertiesPart?.ViewProperties?.GridSpacing;
         }
 
         private GridSpacing EnsureGridSpacing() {
@@ -230,7 +230,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private CommonSlideViewProperties? GetCommonSlideViewProperties() {
-            return _presentationPart.ViewPropertiesPart?
+            return SdkPresentationPart.ViewPropertiesPart?
                 .ViewProperties?
                 .GetFirstChild<SlideViewProperties>()?
                 .GetFirstChild<CommonSlideViewProperties>();

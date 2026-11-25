@@ -110,3 +110,14 @@ The read layer comes first, then a PowerPoint prototype of the model. The protot
 - no SDK in the NativeAOT image of an app that uses only the model.
 
 Engines move only after that, one feature per change, PowerPoint first. The SDK leaves the runtime dependencies in a major version.
+
+### Moving an engine
+
+An engine keeps its SDK package until a feature needs it, then opens it over the bytes it loaded. `PowerPointDocument` works this way:
+
+- **Load.** A plain, unsigned Transitional presentation is checked with `OfficeOpcPackage`. The check covers the main content type, signature markers, the main part's size limit, and slide-list entries that must resolve. Anything else opens the SDK at load, so it fails or succeeds exactly as before.
+- **First use.** The first member that needs the SDK opens it with the load's settings.
+- **Save.** Saving a presentation whose SDK was never opened writes the loaded package through `OfficeOpcEditablePackage`. Only `docProps/app.xml` and `docProps/core.xml` change, with the values a save through the SDK would give them. On .NET 8 and later the unchanged members are copied as stored; older targets recompress them, as described above.
+- **Fallback.** A save that would change more goes through the SDK. That includes footer definitions, legacy slide visibility, a VBA project and missing document properties.
+
+This skips opening and parsing the package with the SDK, but the SDK assembly still loads because the engine references its types, so it does not yet meet the "No hidden SDK" bar above. Each feature that moves widens what the engine does without opening the SDK. An opt-in corpus check (`OFFICEIMO_PPTX_CORPUS`) compares each deck's save with one through the SDK.

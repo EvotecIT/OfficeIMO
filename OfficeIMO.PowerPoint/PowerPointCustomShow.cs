@@ -138,11 +138,11 @@ namespace OfficeIMO.PowerPoint {
                      ?? Enumerable.Empty<P.SlideListEntry>()) {
                 string? relationshipId = entry.Id?.Value;
                 if (string.IsNullOrEmpty(relationshipId)
-                    || !_presentationPart.TryGetPartById(relationshipId!, out OpenXmlPart? part)
+                    || !SdkPresentationPart.TryGetPartById(relationshipId!, out OpenXmlPart? part)
                     || part is not SlidePart slidePart) {
                     continue;
                 }
-                PowerPointSlide? slide = _slides.FirstOrDefault(current =>
+                PowerPointSlide? slide = LoadedSlides.FirstOrDefault(current =>
                     ReferenceEquals(current.SlidePart, slidePart));
                 if (slide != null) entries.Add((entry, slide));
             }
@@ -162,7 +162,7 @@ namespace OfficeIMO.PowerPoint {
             P.SlideList slideList = customShow.SlideList
                 ?? new P.SlideList();
             var entry = new P.SlideListEntry {
-                Id = _presentationPart.GetIdOfPart(resolvedSlide.SlidePart)
+                Id = SdkPresentationPart.GetIdOfPart(resolvedSlide.SlidePart)
             };
             InsertCustomShowEntry(slideList, entry, index, entries);
             if (customShow.SlideList == null) {
@@ -254,7 +254,7 @@ namespace OfficeIMO.PowerPoint {
             var selectedEntries = new List<P.SlideListEntry>(
                 resolvedSlides.Length);
             foreach (PowerPointSlide slide in resolvedSlides) {
-                string relationshipId = _presentationPart.GetIdOfPart(
+                string relationshipId = SdkPresentationPart.GetIdOfPart(
                     slide.SlidePart);
                 P.SlideListEntry entry = entriesByRelationship.TryGetValue(
                         relationshipId, out Queue<P.SlideListEntry>? entries)
@@ -314,7 +314,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException(
                     "A custom show requires at least one slide.", nameof(slides));
             }
-            if (resolved.Any(slide => slide == null || !_slides.Contains(slide))) {
+            if (resolved.Any(slide => slide == null || !LoadedSlides.Contains(slide))) {
                 throw new InvalidOperationException(
                     "Every custom-show slide must belong to this presentation.");
             }
@@ -324,7 +324,7 @@ namespace OfficeIMO.PowerPoint {
         private P.SlideList CreateCustomShowSlideList(
             IEnumerable<PowerPointSlide> slides) => new(slides.Select(slide =>
                 new P.SlideListEntry {
-                    Id = _presentationPart.GetIdOfPart(slide.SlidePart)
+                    Id = SdkPresentationPart.GetIdOfPart(slide.SlidePart)
                 }));
 
         private uint AllocateCustomShowId() {

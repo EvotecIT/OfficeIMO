@@ -77,7 +77,13 @@ public sealed partial class PowerPointDocument {
     private byte[] CaptureReadOnlyPackage(PowerPointSaveOptions? options) {
         ThrowIfDisposed();
         using var package = new MemoryStream();
-        using (_document!.Clone(package)) { }
+        if (_sdkDocument == null && _sdkDeferred && _packageStream is { CanRead: true, CanSeek: true } loaded) {
+            // Nothing has opened the package since it was loaded, so its bytes are the copy.
+            loaded.Position = 0;
+            loaded.CopyTo(package);
+        } else {
+            using (SdkDocument.Clone(package)) { }
+        }
         package.Position = 0;
         using var snapshot = Load(package, new PowerPointLoadOptions {
             MaxInputBytes = package.Length,

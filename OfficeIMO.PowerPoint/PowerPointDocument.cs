@@ -14,9 +14,14 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a PowerPoint presentation providing create, load, and save operations.
     /// </summary>
     public sealed partial class PowerPointDocument : IDisposable, IAsyncDisposable {
-        private PresentationDocument? _document;
-        private PresentationPart _presentationPart;
-        private readonly List<PowerPointSlide> _slides = new();
+        // The Open XML SDK package and the slides built from it. A presentation loaded from an Open XML package opens
+        // them on first use, so loading and saving an unchanged deck never needs them.
+        private PresentationDocument? _sdkDocument;
+        private PresentationPart? _sdkPresentationPart;
+        private readonly List<PowerPointSlide> _sdkSlides = new();
+        private DocumentAccessMode _accessMode;
+        private PowerPointBuiltinDocumentProperties? _properties;
+        private PowerPointApplicationProperties? _applicationProperties;
         private long _slideRelationshipSearchStart = 1;
         private string _filePath;
         private Stream? _packageStream;
@@ -33,12 +38,46 @@ namespace OfficeIMO.PowerPoint {
         private const string DefaultSectionName = "Section 1";
         private const string TableStylesResourceName = "OfficeIMO.PowerPoint.Resources.tableStyles.xml";
         private PowerPointDocument(PresentationDocument document, string filePath, bool isNewDocument) {
-            _document = document;
             _filePath = filePath;
-            _presentationPart = document.PresentationPart ?? document.AddPresentationPart();
-            Properties = new PowerPointBuiltinDocumentProperties(document);
-            ApplicationProperties = new PowerPointApplicationProperties(document);
-            if (isNewDocument || _presentationPart.Presentation == null) {
+            InitializeFromSdk(document, isNewDocument);
+        }
+
+        /// <summary>Whether the Open XML SDK package has been opened for this presentation.</summary>
+        internal bool IsSdkLoaded => _sdkDocument != null;
+
+        private PresentationDocument SdkDocument => EnsureSdk();
+
+        // The package's document type: from the SDK once it is open, otherwise from the main part's content type.
+        private PresentationDocumentType? _loadedDocumentType;
+
+        private PresentationDocumentType? OpenXmlDocumentType => _sdkDocument?.DocumentType ?? _loadedDocumentType;
+
+        private PresentationPart SdkPresentationPart {
+            get {
+                EnsureSdk();
+                return _sdkPresentationPart!;
+            }
+        }
+
+        private List<PowerPointSlide> LoadedSlides {
+            get {
+                EnsureSdk();
+                return _sdkSlides;
+            }
+        }
+
+        private PresentationDocument EnsureSdk() {
+            if (_sdkDocument != null) return _sdkDocument;
+            if (_disposed) throw new ObjectDisposedException(nameof(PowerPointDocument));
+            if (_sdkDeferred) return OpenDeferredSdk();
+            throw new InvalidOperationException("The presentation has no Open XML package to open.");
+        }
+
+        private void InitializeFromSdk(PresentationDocument document, bool isNewDocument) {
+            _sdkDocument = document;
+            _accessMode = document.FileOpenAccess == FileAccess.Read ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite;
+            _sdkPresentationPart = document.PresentationPart ?? document.AddPresentationPart();
+            if (isNewDocument || SdkPresentationPart.Presentation == null) {
                 // New presentation - create with required initial structure
                 PresentationRoot = new Presentation();
                 InitializeDefaultParts();
@@ -48,8 +87,8 @@ namespace OfficeIMO.PowerPoint {
                     foreach (SlideId slideId in PresentationRoot.SlideIdList.Elements<SlideId>()) {
                         string? relId = PowerPointUtils.GetRelationshipIdValue(slideId);
                         if (!string.IsNullOrEmpty(relId)) {
-                            SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
-                            _slides.Add(new PowerPointSlide(slidePart, this));
+                            SlidePart slidePart = (SlidePart)SdkPresentationPart.GetPartById(relId!);
+                            LoadedSlides.Add(new PowerPointSlide(slidePart, this));
                         }
                     }
                 }
@@ -78,7 +117,7 @@ namespace OfficeIMO.PowerPoint {
         public PresentationDocument OpenXmlDocument {
             get {
                 ThrowIfDisposed();
-                return _document!;
+                return SdkDocument!;
             }
         }
 
@@ -89,9 +128,7 @@ namespace OfficeIMO.PowerPoint {
         public DocumentAccessMode AccessMode {
             get {
                 ThrowIfDisposed();
-                return _document!.FileOpenAccess == FileAccess.Read
-                    ? DocumentAccessMode.ReadOnly
-                    : DocumentAccessMode.ReadWrite;
+                return _accessMode;
             }
         }
 
@@ -101,19 +138,19 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointSlide> Slides {
             get {
                 ThrowIfDisposed();
-                return _slides;
+                return LoadedSlides;
             }
         }
 
         /// <summary>
         ///     Built-in package properties for the presentation.
         /// </summary>
-        public PowerPointBuiltinDocumentProperties Properties { get; }
+        public PowerPointBuiltinDocumentProperties Properties => _properties ??= new PowerPointBuiltinDocumentProperties(SdkDocument);
 
         /// <summary>
         ///     Extended application properties for the presentation.
         /// </summary>
-        public PowerPointApplicationProperties ApplicationProperties { get; }
+        public PowerPointApplicationProperties ApplicationProperties => _applicationProperties ??= new PowerPointApplicationProperties(SdkDocument);
 
         /// <summary>
         ///     Slide size information for the presentation.
@@ -121,7 +158,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointSlideSize SlideSize {
             get {
                 ThrowIfDisposed();
-                return _slideSize ??= new PowerPointSlideSize(_presentationPart);
+                return _slideSize ??= new PowerPointSlideSize(SdkPresentationPart);
             }
         }
 
@@ -145,7 +182,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void ThrowIfDisposed() {
-            if (_disposed || _document == null) {
+            if (_disposed) {
                 throw new ObjectDisposedException(nameof(PowerPointDocument));
             }
         }

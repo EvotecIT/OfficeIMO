@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint {
                 return catalog;
             }
 
-            SlideMasterPart firstMasterPart = presentation._presentationPart.SlideMasterParts.First();
+            SlideMasterPart firstMasterPart = presentation.SdkPresentationPart.SlideMasterParts.First();
             ResetLegacyMasterScaffold(firstMasterPart, "Binary Main Master 1");
             var masterParts = new List<SlideMasterPart> { firstMasterPart };
             for (int index = 1; index < mainMasters.Length; index++) {

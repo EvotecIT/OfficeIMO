@@ -94,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
             string? sourceName = sourceLayout.CommonSlideData?.Name?.Value;
             SlideLayoutValues? sourceType = sourceLayout.Type?.Value;
 
-            foreach (SlideMasterPart masterPart in _presentationPart.SlideMasterParts) {
+            foreach (SlideMasterPart masterPart in SdkPresentationPart.SlideMasterParts) {
                 foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
                     SlideLayout? candidateLayout = layoutPart.SlideLayout;
                     if (candidateLayout == null) {
