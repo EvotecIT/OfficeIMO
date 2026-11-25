@@ -18,6 +18,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="layoutIndex">Index of the slide layout.</param>
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
             ThrowIfDisposed();
+            if (TryAddSlideWithoutSdk(masterIndex, layoutIndex) is { } added) return added;
             SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
             return AddSlideCore(layoutPart, GetNextSlideRelationshipId(), GetNextSlideId());
         }

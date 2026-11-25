@@ -152,6 +152,8 @@ namespace OfficeIMO.PowerPoint {
                 }
                 if (sections != null) PowerPointTreeSections.Apply(sections);
                 _deferredSlideCount = ids.Count;
+                // The model searches for new slide relationship ids from the start again after a removal.
+                _slideRelationshipSearchStart = 1;
                 PackageSlidesChanged(slide);
                 _pendingEdits = true;
                 return true;

@@ -74,6 +74,25 @@ internal static class OfficeOpcPartNames {
         || value >= 'a' && value <= 'f' || value >= 'A' && value <= 'F';
 
     /// <summary>The relationships part of a source part, or of the package when the source is null or <c>/</c>.</summary>
+    /// <summary>
+    /// The relationship target that leads from <paramref name="sourcePartName"/> to <paramref name="targetPartName"/>:
+    /// a path relative to the source part's folder, climbing with <c>..</c> as far as the folders differ.
+    /// </summary>
+    internal static string GetRelativeTarget(string sourcePartName, string targetPartName) {
+        string[] source = sourcePartName.Split('/');
+        string[] target = targetPartName.Split('/');
+        // Folders only: the last segment of the source is the part itself.
+        int common = 0;
+        while (common < source.Length - 1 && common < target.Length - 1 && string.Equals(source[common], target[common], StringComparison.Ordinal)) common++;
+        var builder = new System.Text.StringBuilder();
+        for (int index = common; index < source.Length - 1; index++) builder.Append("../");
+        for (int index = common; index < target.Length; index++) {
+            if (index > common) builder.Append('/');
+            builder.Append(target[index]);
+        }
+        return builder.ToString();
+    }
+
     internal static string GetRelationshipsPartName(string? sourcePartName) {
         if (sourcePartName == null || sourcePartName == "/") return "/_rels/.rels";
         int slash = sourcePartName.LastIndexOf('/');

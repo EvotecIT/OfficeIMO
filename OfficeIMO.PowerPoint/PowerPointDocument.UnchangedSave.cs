@@ -174,7 +174,8 @@ namespace OfficeIMO.PowerPoint {
                 // A slide a replacement already parsed is read from its tree; text edits leave its visibility as it was.
                 bool? show;
                 if (parsed?.GetParsedXml(slide) is { } tree) {
-                    if (package.GetPartLength(slide) > SlidePartLimit(maximumSlideXmlCharacters)) return false;
+                    // A slide added without the SDK is not in the loaded bytes, and the model wrote it small.
+                    if (package.PartExists(slide) && package.GetPartLength(slide) > SlidePartLimit(maximumSlideXmlCharacters)) return false;
                     if (!TryParseShow(tree.GetAttribute(tree.Root, OfficeXmlNamespaces.None, "show"), out show)) return false;
                 } else if (!TryReadSlideShow(package, slide, maximumSlideXmlCharacters, out show)) {
                     return false;
@@ -194,14 +195,31 @@ namespace OfficeIMO.PowerPoint {
                     continue;
                 }
                 // A slide still listed keeps its relationships as loaded; a removed slide's notes left with it.
-                if (notesDeclared && package.GetRelatedPartName(slide, NotesSlideRelationshipType) is { } notesPart && package.PartExists(notesPart)
-                    && parsed?.PartExists(notesPart) != false) {
-                    notes++;
-                }
+                if (!notesDeclared) continue;
+                // A slide whose relationships changed without the SDK, or that was added that way, is read from the
+                // pending package; the others keep their relationships as loaded.
+                string slideRelationships = OfficeOpcPartNames.GetRelationshipsPartName(slide);
+                string? notesPart = parsed != null && (!package.PartExists(slide) || parsed.GetParsedXml(slideRelationships) != null)
+                    ? FirstRelatedPart(parsed, slide, NotesSlideRelationshipType)
+                    : package.GetRelatedPartName(slide, NotesSlideRelationshipType);
+                if (notesPart != null && (parsed?.PartExists(notesPart) ?? package.PartExists(notesPart))) notes++;
             }
 
             values = new UnchangedSaveValues(application, core, slideIds.Count, notes, hidden, presentationFormat);
             return true;
+        }
+
+        private static string? FirstRelatedPart(OfficeOpcEditablePackage package, string source, string type) {
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(source);
+            if (!package.PartExists(relationshipsPart)) return null;
+            OfficeXmlTree relationships = package.GetXml(relationshipsPart);
+            for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                 node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                if (string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
+                if (OfficeXmlNamespaces.NormalizeRelationshipType(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type") ?? string.Empty) != type) continue;
+                return OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
+            }
+            return null;
         }
 
         // The pending package's presentation, read as the pull reader reads the loaded one.

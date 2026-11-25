@@ -88,6 +88,54 @@ internal static class PowerPointTreeSections {
         return true;
     }
 
+    /// <summary>
+    /// Puts a new slide in a section as <c>AssignSlideToNearestSection</c> does, then plans the sync: an empty last section
+    /// takes a slide added at the end, otherwise the previous slide's section, the next slide's, or the last section.
+    /// <paramref name="slideIds"/> is the slide list with the new slide at <paramref name="index"/>. Returns false, with
+    /// the tree as it was, when the model has to do it.
+    /// </summary>
+    internal static bool TryPlanAdded(OfficeXmlTree presentation, int p14, IReadOnlyList<uint> slideIds, int index, out Plan? plan, out int added) {
+        plan = null;
+        added = OfficeXmlTree.NoNode;
+        int list = FindSectionList(presentation, p14);
+        if (list == OfficeXmlTree.NoNode) return true;
+        uint id = slideIds[index];
+        var sections = new List<int>();
+        for (int section = presentation.FindChild(list, p14, "section"); section != OfficeXmlTree.NoNode;
+             section = presentation.FindNextSibling(section, p14, "section")) {
+            // The model adds a missing member list; writing it alike is not worth the case.
+            if (presentation.FindChild(section, p14, "sldIdLst") == OfficeXmlTree.NoNode) return false;
+            sections.Add(section);
+        }
+        if (sections.Count == 0 || FindSection(presentation, p14, sections, id) != OfficeXmlTree.NoNode) return false;
+
+        int target = OfficeXmlTree.NoNode;
+        int last = sections[sections.Count - 1];
+        if (index == slideIds.Count - 1 && presentation.FindChild(presentation.FindChild(last, p14, "sldIdLst"), p14, "sldId") == OfficeXmlTree.NoNode) target = last;
+        if (target == OfficeXmlTree.NoNode && index > 0) target = FindSection(presentation, p14, sections, slideIds[index - 1]);
+        if (target == OfficeXmlTree.NoNode && index + 1 < slideIds.Count) target = FindSection(presentation, p14, sections, slideIds[index + 1]);
+        if (target == OfficeXmlTree.NoNode) target = last;
+
+        added = presentation.CreateElement(p14, "sldId");
+        presentation.SetAttribute(added, OfficeXmlNamespaces.None, "id", id.ToString(CultureInfo.InvariantCulture));
+        presentation.Append(presentation.FindChild(target, p14, "sldIdLst"), added);
+        if (TryPlan(presentation, p14, slideIds, out plan)) return true;
+        presentation.Remove(added);
+        added = OfficeXmlTree.NoNode;
+        return false;
+    }
+
+    private static int FindSection(OfficeXmlTree presentation, int p14, List<int> sections, uint id) {
+        foreach (int section in sections) {
+            int members = presentation.FindChild(section, p14, "sldIdLst");
+            for (int entry = presentation.FindChild(members, p14, "sldId"); entry != OfficeXmlTree.NoNode;
+                 entry = presentation.FindNextSibling(entry, p14, "sldId")) {
+                if (TryReadId(presentation, entry, out uint value) && value == id) return section;
+            }
+        }
+        return OfficeXmlTree.NoNode;
+    }
+
     internal static void Apply(Plan plan) {
         OfficeXmlTree tree = plan.Tree;
         foreach ((int section, int members, List<int> entries, List<uint> added) in plan.Sections) {

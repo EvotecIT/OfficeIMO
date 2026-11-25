@@ -20,6 +20,17 @@ public class PowerPointSlideOrderWithoutSdkTests {
         ("remove the first slide, then move the last one first", 3, (presentation, count) => {
             presentation.RemoveSlide(0);
             presentation.MoveSlide(count - 2, 0);
+        }),
+        ("add a slide", 0, (presentation, count) => presentation.AddSlide()),
+        ("add a slide with the second layout", 0, (presentation, count) => presentation.AddSlide(0, 1)),
+        ("remove the last slide, then add two", 1, (presentation, count) => {
+            presentation.RemoveSlide(count - 1);
+            presentation.AddSlide();
+            presentation.AddSlide();
+        }),
+        ("add a slide, then move it first", 1, (presentation, count) => {
+            presentation.AddSlide();
+            presentation.MoveSlide(count, 0);
         })
     };
 

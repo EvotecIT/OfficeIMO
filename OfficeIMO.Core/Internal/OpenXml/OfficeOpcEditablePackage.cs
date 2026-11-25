@@ -114,8 +114,35 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     internal void DeletePart(string partName) {
         Part? part = Find(partName);
         if (part == null) return;
+        part.DeletedContentType = GetContentType(part.Name);
         part.Deleted = true;
         RemoveOverride(part.Name);
+    }
+
+    /// <summary>A part's content type: its override, or the default for its extension; null when neither is declared.</summary>
+    internal string? GetContentType(string partName) {
+        if (Overrides().TryGetValue(Identity(partName), out int node)) return ContentTypes.GetAttribute(node, OfficeXmlNamespaces.None, "ContentType");
+        int dot = partName.LastIndexOf('.');
+        if (dot < 0 || dot < partName.LastIndexOf('/')) return null;
+        string extension = partName.Substring(dot + 1);
+        OfficeXmlTree types = ContentTypes;
+        for (int child = types.FindChild(types.Root, OfficeXmlNamespaces.ContentTypes, "Default"); child != OfficeXmlTree.NoNode;
+            child = types.FindNextSibling(child, OfficeXmlNamespaces.ContentTypes, "Default")) {
+            if (string.Equals(types.GetAttribute(child, OfficeXmlNamespaces.None, "Extension"), extension, StringComparison.OrdinalIgnoreCase)) {
+                return types.GetAttribute(child, OfficeXmlNamespaces.None, "ContentType");
+            }
+        }
+        return null;
+    }
+
+    /// <summary>How many parts have, or had before they were deleted, a content type.</summary>
+    internal int CountParts(string contentType) {
+        int count = 0;
+        foreach (Part part in _parts) {
+            string? type = part.Deleted ? part.DeletedContentType : GetContentType(part.Name);
+            if (string.Equals(type, contentType, StringComparison.OrdinalIgnoreCase)) count++;
+        }
+        return count;
     }
 
     // ---- Content types --------------------------------------------------------------------------------------
@@ -343,6 +370,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         internal byte[]? Content { get; set; }
         internal int ContentLength { get; set; }
         internal bool Deleted { get; set; }
+        internal string? DeletedContentType { get; set; }
         // Stored in the package that was opened, so an unchanged part can be copied as its ZIP member.
         internal bool FromSource { get; set; }
     }
