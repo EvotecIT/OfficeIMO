@@ -14,6 +14,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' != 'net472' ">
+    <!-- Hosts PowerShell in the test process for runspace notebook sessions. PowerShell 7.6 ships only net10 assets. -->
+    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.22" PrivateAssets="all" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Notebook\OfficeIMO.Notebook.csproj" />
     <ProjectReference Include="..\OfficeIMO.Notebook.PowerShell\OfficeIMO.Notebook.PowerShell.csproj" />

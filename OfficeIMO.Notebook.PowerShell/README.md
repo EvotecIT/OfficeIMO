@@ -1,12 +1,20 @@
 # OfficeIMO.Notebook.PowerShell
 
 Run PowerShell cells explicitly and save their results into a Jupyter notebook.
-The package uses an installed PowerShell executable. It defaults to `pwsh` on
-PATH and accepts a full executable path, including Windows PowerShell 5.1.
+By default a session starts an installed PowerShell executable. It defaults to
+`pwsh` on PATH and accepts a full executable path, including Windows PowerShell 5.1.
+Code that already runs inside PowerShell, such as a module cmdlet, can set
+`Isolation = PowerShellNotebookIsolation.Runspace` to run the cells in a new
+runspace of the same process. That skips starting a second PowerShell and the
+message exchange per cell. Runspace cells share the process environment,
+current directory and loaded assemblies with the caller. Stopping a runspace
+cell stops its pipeline but not programs it started in the background, and a
+cell blocked in a call that PowerShell cannot interrupt keeps its thread until
+the call returns. Choose process isolation for those cells.
 
-Only run notebooks you trust. Cells run with your account's permissions in a
-child process. Importing, opening, previewing, and exporting saved notebooks
-remain independent operations.
+Only run notebooks you trust. Cells run with your account's permissions.
+Importing, opening, previewing, and exporting saved notebooks remain
+independent operations.
 
 Add a reference from your application to the PowerShell execution project in
 your OfficeIMO checkout.
@@ -54,4 +62,6 @@ interruption and record an error on the interrupted cell. Start a new session
 to execute more cells after an interruption.
 
 PSWriteOffice exposes the same execution engine through `Invoke-OfficeNotebook`.
+The cmdlet runs cells in a runspace of the current PowerShell by default;
+`-Isolation Process` or `-PowerShellPath` starts a separate process.
 `-OutputPath` saves a copy of the executed notebook.

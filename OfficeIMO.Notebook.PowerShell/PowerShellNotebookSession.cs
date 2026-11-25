@@ -1,40 +1,52 @@
 using System.Text.Json;
-using WorkerConnectionException = OfficeIMO.Notebook.PowerShell.PowerShellNotebookProcess.WorkerConnectionException;
 
 namespace OfficeIMO.Notebook.PowerShell;
 
 /// <summary>Runs PowerShell notebook cells in a persistent, explicitly started PowerShell runspace.</summary>
-/// <remarks>Only run notebooks whose code you trust. Cells execute with the current user's permissions in a child process.
+/// <remarks>Only run notebooks whose code you trust. Cells execute with the current user's permissions, in a child process
+/// or, with <see cref="PowerShellNotebookIsolation.Runspace"/>, in the calling PowerShell process.
 /// Runs submitted to the same session are serialized. Interrupting an active cell closes its session.</remarks>
 public sealed class PowerShellNotebookSession : IDisposable {
     private const int MaximumOutputCharacters = 16 * 1024 * 1024;
     private const int MaximumOutputRecords = 100_000;
-    private readonly PowerShellNotebookProcess _worker;
+    private readonly IPowerShellNotebookWorker _worker;
     private readonly SemaphoreSlim _executionLock = new(1, 1);
     private int _executionCount;
 
-    private PowerShellNotebookSession(PowerShellNotebookProcess worker) {
+    private PowerShellNotebookSession(IPowerShellNotebookWorker worker) {
         _worker = worker;
     }
 
-    /// <summary>Gets the version reported by the running PowerShell executable.</summary>
+    /// <summary>Gets the version reported by the PowerShell that runs the cells.</summary>
     public string PowerShellVersion => _worker.Version;
 
     /// <summary>Gets whether this session can accept another notebook execution.</summary>
     public bool IsUsable => _worker.IsOpen;
 
-    /// <summary>Starts a PowerShell process and waits for its persistent notebook runspace.</summary>
-    /// <param name="options">PowerShell executable, working directory, and startup deadline.</param>
+    /// <summary>Starts a PowerShell process, or a runspace in the calling PowerShell process, and waits for its persistent notebook runspace.</summary>
+    /// <param name="options">Isolation, PowerShell executable, working directory, and startup deadline.</param>
     /// <param name="cancellationToken">Cancels startup and closes any process already started.</param>
     /// <returns>The started session, which the caller must dispose.</returns>
+    /// <exception cref="PlatformNotSupportedException"><see cref="PowerShellNotebookIsolation.Runspace"/> was requested outside a PowerShell host.</exception>
     public static async Task<PowerShellNotebookSession> StartAsync(PowerShellNotebookSessionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        string executable = options?.ExecutablePath ?? "pwsh";
-        ArgumentException.ThrowIfNullOrWhiteSpace(executable);
         string? directory = options?.WorkingDirectory;
         if (directory != null) directory = Path.GetFullPath(directory);
         TimeSpan timeout = options?.StartupTimeout ?? TimeSpan.FromSeconds(30);
         ValidateTimeout(timeout, nameof(PowerShellNotebookSessionOptions.StartupTimeout));
+        PowerShellNotebookIsolation isolation = options?.Isolation ?? PowerShellNotebookIsolation.Process;
+        if (isolation == PowerShellNotebookIsolation.Runspace) {
+            if (options?.ExecutablePath != null) {
+                throw new ArgumentException("A runspace session uses the calling PowerShell. Remove ExecutablePath or choose process isolation.", nameof(options));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            return new PowerShellNotebookSession(PowerShellNotebookRunspaceHost.Start(directory));
+        }
+        if (isolation != PowerShellNotebookIsolation.Process) {
+            throw new ArgumentOutOfRangeException(nameof(options), isolation, "Choose process or runspace isolation.");
+        }
+        string executable = options?.ExecutablePath ?? "pwsh";
+        ArgumentException.ThrowIfNullOrWhiteSpace(executable);
         PowerShellNotebookProcess worker = await PowerShellNotebookProcess.StartAsync(executable, directory, timeout, cancellationToken)
             .ConfigureAwait(false);
         return new PowerShellNotebookSession(worker);
@@ -107,32 +119,27 @@ public sealed class PowerShellNotebookSession : IDisposable {
         using CancellationTokenRegistration interrupt = _worker.InterruptWhenCanceled(deadline.Token);
         bool outputTruncated = false;
         try {
-            await _worker.SendAsync(source, settings.OutputCharactersLimit, settings.OutputRecordsLimit, deadline.Token).ConfigureAwait(false);
+            await _worker.SendAsync(source, executionCount, settings.OutputCharactersLimit, settings.OutputRecordsLimit, deadline.Token).ConfigureAwait(false);
             while (true) {
                 deadline.Token.ThrowIfCancellationRequested();
-                using JsonDocument message = await _worker.ReadAsync().ConfigureAwait(false);
-                JsonElement frame = message.RootElement;
-                string kind = PowerShellNotebookProcess.GetKind(frame);
-                if (kind == "complete") {
+                PowerShellNotebookFrame frame = await _worker.ReadAsync().ConfigureAwait(false);
+                if (frame.Kind == PowerShellNotebookFrameKind.Complete) {
                     deadline.CancelAfter(Timeout.Infinite);
                     interrupt.Dispose();
                     deadline.Token.ThrowIfCancellationRequested();
-                    NotebookCellExecutionStatus status = ReadFlag(frame, "failed")
+                    NotebookCellExecutionStatus status = frame.Failed
                         ? NotebookCellExecutionStatus.Failed : NotebookCellExecutionStatus.Succeeded;
-                    return new NotebookCellExecutionResult(index, cell, executionCount, status, ReadFlag(frame, "truncated") || outputTruncated);
+                    return new NotebookCellExecutionResult(index, cell, executionCount, status, frame.Truncated || outputTruncated);
                 }
-                if (kind == "truncated") {
+                if (frame.Kind == PowerShellNotebookFrameKind.Truncated) {
                     outputTruncated = true;
                     continue;
                 }
-                if (kind == "fatal") {
-                    throw new WorkerConnectionException(ReadText(frame, "text").GetString()!);
-                }
-                NotebookOutput output = ReadOutput(frame, kind, executionCount);
+                NotebookOutput output = frame.Output!;
                 cell.AddOutput(output);
                 settings.OutputReceived?.Invoke(new NotebookExecutionEvent(index, cell.Id, executionCount, output));
             }
-        } catch (Exception error) when (error is OperationCanceledException or WorkerConnectionException) {
+        } catch (Exception error) when (error is OperationCanceledException or PowerShellNotebookConnectionException) {
             _worker.Dispose();
             if (cancellationToken.IsCancellationRequested) {
                 SaveInterruption(cell, "NotebookExecutionCanceled", "The PowerShell notebook execution was canceled.");
@@ -142,7 +149,7 @@ public sealed class PowerShellNotebookSession : IDisposable {
                 SaveInterruption(cell, "NotebookCellTimeout", "The PowerShell cell exceeded its deadline.");
                 return new NotebookCellExecutionResult(index, cell, executionCount, NotebookCellExecutionStatus.TimedOut, outputTruncated);
             }
-            if (error is WorkerConnectionException) {
+            if (error is PowerShellNotebookConnectionException) {
                 SaveInterruption(cell, "NotebookSessionEnded", error.Message);
                 return new NotebookCellExecutionResult(index, cell, executionCount, NotebookCellExecutionStatus.SessionEnded, outputTruncated);
             }
@@ -156,30 +163,6 @@ public sealed class PowerShellNotebookSession : IDisposable {
 
     private static void SaveInterruption(NotebookCell cell, string name, string message) =>
         cell.AddOutput(NotebookOutput.CreateError(name, message, Array.Empty<string>()));
-
-    private static NotebookOutput ReadOutput(JsonElement frame, string kind, int executionCount) {
-        JsonElement text = ReadText(frame, "text");
-        return kind switch {
-            "output" => NotebookOutput.CreateExecuteResult(new Dictionary<string, JsonElement> { ["text/plain"] = text }, executionCount),
-            "stdout" or "stderr" => NotebookOutput.CreateStream(kind, text.GetString()!),
-            "error" => NotebookOutput.CreateError(ReadText(frame, "name").GetString()!, text.GetString()!, ReadTraceback(frame)),
-            _ => throw new WorkerConnectionException("The PowerShell worker returned an unknown notebook output.")
-        };
-    }
-
-    private static string[] ReadTraceback(JsonElement frame) =>
-        frame.TryGetProperty("traceback", out JsonElement traceback) && traceback.ValueKind == JsonValueKind.Array
-            ? traceback.EnumerateArray().Where(static line => line.ValueKind == JsonValueKind.String)
-                .Select(static line => line.GetString()!).ToArray()
-            : Array.Empty<string>();
-
-    private static JsonElement ReadText(JsonElement frame, string name) =>
-        frame.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value :
-        throw new WorkerConnectionException("The PowerShell worker did not send the required notebook output text.");
-
-    private static bool ReadFlag(JsonElement frame, string name) =>
-        frame.TryGetProperty(name, out JsonElement value) && value.ValueKind is JsonValueKind.True or JsonValueKind.False
-            ? value.GetBoolean() : throw new WorkerConnectionException("The PowerShell worker did not send the required notebook result flag.");
 
     private static string? GetNotebookLanguage(NotebookDocument notebook) {
         string? language = notebook.Language;

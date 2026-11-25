@@ -8,7 +8,7 @@ using PSWriteOffice.Foundation;
 namespace PSWriteOffice.Cmdlets.Notebook;
 
 /// <summary>Runs selected PowerShell notebook cells in one persistent session and records their outputs.</summary>
-/// <para>Run notebooks whose code you trust. The child PowerShell process runs under your account. The returned report contains the updated live notebook. Close the notebook when you finish using it.</para>
+/// <para>Run notebooks whose code you trust. Cells run under your account in a new runspace of the current PowerShell process, so they share its environment variables and loaded assemblies but not its variables or functions. Use -Isolation Process or -PowerShellPath to run them in a separate PowerShell process instead. The returned report contains the updated live notebook. Close the notebook when you finish using it.</para>
 /// <para>Use -WhatIf to preview execution and any requested save. Use -Confirm to ask before running the notebook.</para>
 /// <example><summary>Run PowerShell cells and save a separate notebook.</summary><code>
 /// $report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber
@@ -29,6 +29,12 @@ namespace PSWriteOffice.Cmdlets.Notebook;
 /// </code></example>
 /// <example><summary>Run two selected cells in a live notebook.</summary><code>
 /// $notebook | Invoke-OfficeNotebook -CellIndex 0, 2 -TimeoutSeconds 15
+/// </code></example>
+/// <example><summary>Run the cells in Windows PowerShell as a separate process.</summary><code>
+/// $report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -PowerShellPath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+/// if ($null -ne $report) {
+///     $report.Notebook | Close-OfficeNotebook
+/// }
 /// </code></example>
 [Cmdlet(VerbsLifecycle.Invoke, "OfficeNotebook", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(NotebookExecutionReport), typeof(NotebookExecutionEvent))]
@@ -65,7 +71,11 @@ public sealed class InvokeOfficeNotebookCommand : AsyncPSCmdlet {
     [Parameter]
     public SwitchParameter IncludeUnspecifiedLanguage { get; set; }
 
-    /// <summary>Literal path to a PowerShell executable. The default uses the installed executable for this host when available.</summary>
+    /// <summary>Where cells run. Runspace, the default, uses a new runspace in this PowerShell process. Process starts a separate PowerShell, which a timeout or Ctrl+C ends with any programs it started. Choose Process for cells that change process-wide state or can block in calls PowerShell cannot stop.</summary>
+    [Parameter]
+    public PowerShellNotebookIsolation Isolation { get; set; }
+
+    /// <summary>Literal path to the PowerShell executable for a separate process. Implies -Isolation Process. The default uses the installed executable for this host when available.</summary>
     [Parameter, ValidateNotNullOrEmpty]
     public string? PowerShellPath { get; set; }
 
@@ -92,6 +102,9 @@ public sealed class InvokeOfficeNotebookCommand : AsyncPSCmdlet {
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync() {
         string? input = null;
+        bool explicitIsolation = MyInvocation.BoundParameters.ContainsKey(nameof(Isolation));
+        if (explicitIsolation && Isolation == PowerShellNotebookIsolation.Runspace && PowerShellPath != null)
+            throw new PSArgumentException("-PowerShellPath starts a separate process. Remove it or use -Isolation Process.");
         if (ParameterSetName != "Document") {
             bool literal = ParameterSetName == "LiteralPath";
             IReadOnlyList<string> paths = OfficePath.ResolveInputs(this, new[] { literal ? LiteralPath : Path }, literal);
@@ -146,13 +159,15 @@ public sealed class InvokeOfficeNotebookCommand : AsyncPSCmdlet {
     }
 
     private PowerShellNotebookSessionOptions CaptureSessionOptions(string? sourcePath) {
-        string? executable = PowerShellPath == null ? GetHostExecutable() :
-            OfficePath.ResolveInput(SessionState, PowerShellPath, literal: true)[0];
+        PowerShellNotebookIsolation isolation = MyInvocation.BoundParameters.ContainsKey(nameof(Isolation)) ? Isolation
+            : PowerShellPath == null ? PowerShellNotebookIsolation.Runspace : PowerShellNotebookIsolation.Process;
+        string? executable = isolation == PowerShellNotebookIsolation.Runspace ? null
+            : PowerShellPath == null ? GetHostExecutable() : OfficePath.ResolveInput(SessionState, PowerShellPath, literal: true)[0];
         string? notebookDirectory = sourcePath == null ? null : System.IO.Path.GetDirectoryName(sourcePath);
         string? directory = WorkingDirectory == null
             ? (Directory.Exists(notebookDirectory) ? notebookDirectory : SessionState.Path.CurrentFileSystemLocation.ProviderPath)
             : OfficePath.ResolveOutput(SessionState, WorkingDirectory, directory: true);
-        return new PowerShellNotebookSessionOptions { ExecutablePath = executable, WorkingDirectory = directory };
+        return new PowerShellNotebookSessionOptions { Isolation = isolation, ExecutablePath = executable, WorkingDirectory = directory };
     }
 
     private string? GetHostExecutable() {

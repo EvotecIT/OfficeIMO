@@ -6,8 +6,9 @@ using OfficeIMO.Notebook.PowerShell;
 namespace OfficeIMO.Notebook.Tests;
 
 public sealed class NotebookPowerShellExecutionTests {
-    [PowerShellRuntimeFact]
-    public async Task SelectedCellsRetainStateAcrossRunsAndSaveOnlyAttemptedOutputs() {
+    [PowerShellRuntimeTheory]
+    [MemberData(nameof(Isolations))]
+    public async Task SelectedCellsRetainStateAcrossRunsAndSaveOnlyAttemptedOutputs(PowerShellNotebookIsolation isolation) {
         using var notebook = NotebookDocument.Create();
         notebook.SetMetadata("kernelspec", JsonSerializer.SerializeToElement(new { name = "powershell" }));
         notebook.AddMarkdownCell("# Lab");
@@ -18,7 +19,7 @@ public sealed class NotebookPowerShellExecutionTests {
         NotebookCell result = notebook.AddCodeCell("Next-Number", "pwsh");
         result.AddOutput(NotebookOutput.CreateStream("stdout", "old"));
         NotebookCell blank = notebook.AddCodeCell(string.Empty);
-        using PowerShellNotebookSession session = await StartAsync();
+        using PowerShellNotebookSession session = await StartAsync(isolation);
 
         NotebookExecutionReport first = await session.ExecuteAsync(notebook, new NotebookExecutionOptions { CellIndices = new[] { 2, 1, 0, 1 } });
         Assert.True(first.Succeeded);
@@ -37,12 +38,13 @@ public sealed class NotebookPowerShellExecutionTests {
         Assert.Equal("preserved", Assert.Single(saved.Cells[2].Outputs).Text);
     }
 
-    [PowerShellRuntimeFact]
-    public async Task StreamsAndErrorsAreSavedInOrderAndCanContinueWithinTheSession() {
+    [PowerShellRuntimeTheory]
+    [MemberData(nameof(Isolations))]
+    public async Task StreamsAndErrorsAreSavedInOrderAndCanContinueWithinTheSession(PowerShellNotebookIsolation isolation) {
         using var notebook = NotebookDocument.Create();
         NotebookCell error = notebook.AddCodeCell("$n = 5; Write-Host 'begin'; Write-Warning 'warning'; $n; throw 'failed'", "ps1");
         NotebookCell after = notebook.AddCodeCell("$n + 1", "ps1");
-        using PowerShellNotebookSession session = await StartAsync();
+        using PowerShellNotebookSession session = await StartAsync(isolation);
         NotebookExecutionReport report = await session.ExecuteAsync(notebook, new NotebookExecutionOptions { ContinueOnError = true });
 
         Assert.False(report.Succeeded);
@@ -57,15 +59,16 @@ public sealed class NotebookPowerShellExecutionTests {
         Assert.True(session.IsUsable);
     }
 
-    [PowerShellRuntimeFact]
-    public async Task EscapedTextSurvivesExecutionAndNotebookSave() {
+    [PowerShellRuntimeTheory]
+    [MemberData(nameof(Isolations))]
+    public async Task EscapedTextSurvivesExecutionAndNotebookSave(PowerShellNotebookIsolation isolation) {
         const string text = "\"quoted\"\\path\t\b\fline\nreturn\rnull\0\u001b\u2028\u2029\U0001F680";
         string encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
         using var notebook = NotebookDocument.Create();
         notebook.AddCodeCell(
             $"$output = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{encoded}')); $output; Write-Host -NoNewline -Object $output",
             "powershell");
-        using PowerShellNotebookSession session = await StartAsync();
+        using PowerShellNotebookSession session = await StartAsync(isolation);
 
         NotebookExecutionReport report = await session.ExecuteAsync(notebook);
 
@@ -85,12 +88,13 @@ public sealed class NotebookPowerShellExecutionTests {
         }
     }
 
-    [PowerShellRuntimeFact]
-    public async Task TimeoutKeepsSavedPartialOutputAndStopsLaterCells() {
+    [PowerShellRuntimeTheory]
+    [MemberData(nameof(Isolations))]
+    public async Task TimeoutKeepsSavedPartialOutputAndStopsLaterCells(PowerShellNotebookIsolation isolation) {
         using var notebook = NotebookDocument.Create();
         NotebookCell current = notebook.AddCodeCell("'before timeout'; 'omitted'; Start-Sleep -Seconds 30", "powershell");
         NotebookCell later = notebook.AddCodeCell("'untouched'", "powershell");
-        using PowerShellNotebookSession session = await StartAsync();
+        using PowerShellNotebookSession session = await StartAsync(isolation);
 
         NotebookExecutionReport report = await session.ExecuteAsync(notebook,
             new NotebookExecutionOptions { CellTimeout = TimeSpan.FromSeconds(3), ContinueOnError = true, OutputRecordsLimit = 1 });
@@ -122,10 +126,18 @@ public sealed class NotebookPowerShellExecutionTests {
             Start-Sleep -Seconds 30
             """, expectExitedShell: true);
 
-    private static async Task AssertCancellationStopsNativeChildAsync(string source, bool expectExitedShell = false) {
+    [PowerShellRuntimeTheory]
+    [MemberData(nameof(Isolations))]
+    public Task CancellationStopsAForegroundNativeCommand(PowerShellNotebookIsolation isolation) =>
+        AssertCancellationStopsNativeChildAsync($$"""
+            & '{{PowerShellRuntimeFactAttribute.Executable!.Replace("'", "''")}}' -NoProfile -NonInteractive -Command '$PID; Start-Sleep -Seconds 30'
+            """, isolation: isolation);
+
+    private static async Task AssertCancellationStopsNativeChildAsync(string source, bool expectExitedShell = false,
+        PowerShellNotebookIsolation isolation = PowerShellNotebookIsolation.Process) {
         using var notebook = NotebookDocument.Create();
         NotebookCell cell = notebook.AddCodeCell(source, "powershell");
-        using PowerShellNotebookSession session = await StartAsync();
+        using PowerShellNotebookSession session = await StartAsync(isolation);
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         NotebookExecutionEvent? observed = null;
         Process? child = null;
@@ -193,8 +205,9 @@ public sealed class NotebookPowerShellExecutionTests {
         }
     }
 
-    [PowerShellRuntimeFact]
-    public async Task OutputLimitsDoNotDiscardRunspaceState() {
+    [PowerShellRuntimeTheory]
+    [MemberData(nameof(Isolations))]
+    public async Task OutputLimitsDoNotDiscardRunspaceState(PowerShellNotebookIsolation isolation) {
         using var notebook = NotebookDocument.Create();
         NotebookCell bounded = notebook.AddCodeCell("""
             Add-Member -InputObject 'abcd' -NotePropertyName Length -NotePropertyValue 1 -Force -PassThru
@@ -202,7 +215,7 @@ public sealed class NotebookPowerShellExecutionTests {
             $later = 19
             """, "powershell");
         NotebookCell next = notebook.AddCodeCell("$later", "powershell");
-        using PowerShellNotebookSession session = await StartAsync();
+        using PowerShellNotebookSession session = await StartAsync(isolation);
 
         NotebookExecutionReport report = await session.ExecuteAsync(notebook,
             new NotebookExecutionOptions { OutputCharactersLimit = 3, OutputRecordsLimit = 1 });
@@ -213,12 +226,13 @@ public sealed class NotebookPowerShellExecutionTests {
         Assert.Equal("19", Assert.Single(next.Outputs).Data["text/plain"].GetString());
     }
 
-    [PowerShellRuntimeFact]
-    public async Task OmittedCommandErrorStillStopsTheNotebook() {
+    [PowerShellRuntimeTheory]
+    [MemberData(nameof(Isolations))]
+    public async Task OmittedCommandErrorStillStopsTheNotebook(PowerShellNotebookIsolation isolation) {
         using var notebook = NotebookDocument.Create();
         NotebookCell failed = notebook.AddCodeCell("'keep'; 'omit'; Get-OfficeImoNoSuchNotebookCommand", "powershell");
         NotebookCell later = notebook.AddCodeCell("'untouched'", "powershell");
-        using PowerShellNotebookSession session = await StartAsync();
+        using PowerShellNotebookSession session = await StartAsync(isolation);
 
         NotebookExecutionReport report = await session.ExecuteAsync(notebook,
             new NotebookExecutionOptions { OutputRecordsLimit = 1 });
@@ -231,8 +245,25 @@ public sealed class NotebookPowerShellExecutionTests {
         Assert.True(session.IsUsable);
     }
 
-    private static Task<PowerShellNotebookSession> StartAsync() =>
-        PowerShellNotebookSession.StartAsync(new PowerShellNotebookSessionOptions { ExecutablePath = PowerShellRuntimeFactAttribute.Executable });
+    public static TheoryData<PowerShellNotebookIsolation> Isolations() {
+        var isolations = new TheoryData<PowerShellNotebookIsolation> { PowerShellNotebookIsolation.Process };
+#if !NETFRAMEWORK
+        // The test process hosts PowerShell through the SDK package.
+        isolations.Add(PowerShellNotebookIsolation.Runspace);
+#endif
+        return isolations;
+    }
+
+    private static Task<PowerShellNotebookSession> StartAsync(PowerShellNotebookIsolation isolation) =>
+        PowerShellNotebookSession.StartAsync(isolation == PowerShellNotebookIsolation.Runspace
+            ? new PowerShellNotebookSessionOptions { Isolation = isolation }
+            : new PowerShellNotebookSessionOptions { ExecutablePath = PowerShellRuntimeFactAttribute.Executable });
+
+    private sealed class PowerShellRuntimeTheoryAttribute : TheoryAttribute {
+        public PowerShellRuntimeTheoryAttribute() {
+            if (PowerShellRuntimeFactAttribute.Executable == null) Skip = "PowerShell is required to exercise notebook execution.";
+        }
+    }
 
     private sealed class UnixProcessGroupFactAttribute : PowerShellRuntimeFactAttribute {
         public UnixProcessGroupFactAttribute() {

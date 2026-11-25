@@ -18,6 +18,7 @@ if ($officeimoWarmModuleLoaded) {
     $officeimoAssembly = $context.LoadFromAssemblyName([Reflection.AssemblyName]::new('OfficeIMO.Notebook.PowerShell'))
     $officeimoSessionType = $officeimoAssembly.GetType('OfficeIMO.Notebook.PowerShell.PowerShellNotebookSession', $true)
     $officeimoSettingsType = $officeimoAssembly.GetType('OfficeIMO.Notebook.PowerShell.PowerShellNotebookSessionOptions', $true)
+    $officeimoIsolationType = $officeimoAssembly.GetType('OfficeIMO.Notebook.PowerShell.PowerShellNotebookIsolation', $true)
     $officeimoNotebookAssembly = $context.LoadFromAssemblyName([Reflection.AssemblyName]::new('OfficeIMO.Notebook'))
     $officeimoNotebookType = $officeimoNotebookAssembly.GetType('OfficeIMO.Notebook.NotebookDocument', $true)
 }
@@ -97,7 +98,7 @@ New-BenchmarkSuite 'notebook-execution' {
             if ([IO.File]::Exists($run.OutputPath)) {
                 [IO.File]::Delete($run.OutputPath)
             }
-            $manifest = if ($case.Engine -eq 'OfficeIMO') { $moduleManifest } else { $peerManifest }
+            $manifest = if ($case.Engine -like 'OfficeIMO*') { $moduleManifest } else { $peerManifest }
             $run.PowerShellArguments = @('-NoLogo', '-NoProfile', '-NonInteractive', '-File', $childScript,
                 '-Engine', $case.Engine, '-ModuleManifest', $manifest, '-InputPath', $run.Fixture.InputPath,
                 '-OutputPath', $run.OutputPath, '-PowerShellPath', $powerShellPath)
@@ -107,9 +108,13 @@ New-BenchmarkSuite 'notebook-execution' {
         $primeCode = "'notebook-benchmark-ready'"
         try {
             switch ($case.Engine) {
-                'OfficeIMO' {
+                { $_ -in 'OfficeIMO', 'OfficeIMOProcess' } {
                     $settings = [Activator]::CreateInstance($officeimoSettingsType)
-                    $settings.ExecutablePath = $powerShellPath
+                    if ($case.Engine -eq 'OfficeIMO') {
+                        $settings.Isolation = [Enum]::Parse($officeimoIsolationType, 'Runspace')
+                    } else {
+                        $settings.ExecutablePath = $powerShellPath
+                    }
                     $run.Session = $officeimoSessionType::StartAsync($settings).GetAwaiter().GetResult()
                     $prime = $officeimoNotebookType::Create()
                     try {
@@ -164,6 +169,18 @@ New-BenchmarkSuite 'notebook-execution' {
             }
         }
     }
+    Add-BenchmarkEngine OfficeIMOProcess {
+        Add-BenchmarkOperation RunAndSave $runPowerShellFile
+        Add-BenchmarkOperation ExecuteCells {
+            param($case, $run)
+            try {
+                $run.Report = $run.Session.ExecuteAsync($run.Notebook).GetAwaiter().GetResult()
+            } catch {
+                Close-NotebookBenchmarkSession $case $run
+                throw
+            }
+        }
+    }
     Add-BenchmarkEngine PowerShellNotebook {
         Add-BenchmarkOperation RunAndSave $runPowerShellFile
         Add-BenchmarkOperation ExecuteCells {
@@ -204,7 +221,7 @@ New-BenchmarkSuite 'notebook-execution' {
         try {
             $text = if ($mode -eq 'Cold') {
                 @(Read-NotebookExecutionOutput $run.OutputPath $run.Fixture.Count)
-            } elseif ($case.Engine -eq 'OfficeIMO') {
+            } elseif ($case.Engine -like 'OfficeIMO*') {
                 if (-not $run.Report.Succeeded -or ($run.Report.Cells | Where-Object OutputTruncated)) {
                     throw 'OfficeIMO reported an unsuccessful execution or truncated output.'
                 }

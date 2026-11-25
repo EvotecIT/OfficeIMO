@@ -430,6 +430,11 @@
               "mandatory": false
             },
             {
+              "name": "Isolation",
+              "type": "PowerShellNotebookIsolation",
+              "mandatory": false
+            },
+            {
               "name": "PowerShellPath",
               "type": "string",
               "mandatory": false
@@ -495,6 +500,11 @@
               "mandatory": false
             },
             {
+              "name": "Isolation",
+              "type": "PowerShellNotebookIsolation",
+              "mandatory": false
+            },
+            {
               "name": "PowerShellPath",
               "type": "string",
               "mandatory": false
@@ -553,6 +563,11 @@
             {
               "name": "IncludeUnspecifiedLanguage",
               "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Isolation",
+              "type": "PowerShellNotebookIsolation",
               "mandatory": false
             },
             {

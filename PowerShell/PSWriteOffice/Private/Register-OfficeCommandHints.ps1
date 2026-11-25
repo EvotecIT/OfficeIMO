@@ -4,17 +4,23 @@ $officeHintAssembly = [PSWriteOffice.Initialize].Assembly
 $officeHintStream = $officeHintAssembly.GetManifestResourceStream('PSWriteOffice.CommandHints.json')
 if ($null -eq $officeHintStream) { throw 'The PSWriteOffice command-hint resource is missing. Rebuild the module.' }
 $officeHintReader = [IO.StreamReader]::new($officeHintStream)
-try { $officeHintData = $officeHintReader.ReadToEnd() | ConvertFrom-Json } finally { $officeHintReader.Dispose() }
-$officeHints = @{}
-foreach ($entry in $officeHintData.PSObject.Properties) { $officeHints[$entry.Name] = $entry.Value }
+try { $officeHintText = $officeHintReader.ReadToEnd() } finally { $officeHintReader.Dispose() }
+# Parse the hints on the first lookup that names one. Import then needs no JSON cmdlets.
+$officeRegistration = @{ Active = $true; Text = $officeHintText; Hints = $null }
 $officeInvokeCommand = $ExecutionContext.InvokeCommand
 $officePreviousLookup = $officeInvokeCommand.CommandNotFoundAction
-$officeRegistration = @{ Active = $true }
 $officeLookup = [System.EventHandler[System.Management.Automation.CommandLookupEventArgs]]{
     param($name, $eventArgs)
     if ($null -ne $officePreviousLookup) { $officePreviousLookup.Invoke($name, $eventArgs) }
-    if ($officeRegistration.Active -and $null -eq $eventArgs.Command -and $officeHints.ContainsKey($name)) {
-        Microsoft.PowerShell.Utility\Write-Warning "$name is no longer available. $($officeHints[$name])"
+    if (-not $officeRegistration.Active -or $null -ne $eventArgs.Command) { return }
+    if ($null -eq $officeRegistration.Hints) {
+        if ($officeRegistration.Text.IndexOf('"' + $name + '"', [StringComparison]::OrdinalIgnoreCase) -lt 0) { return }
+        $hints = @{}
+        foreach ($entry in (Microsoft.PowerShell.Utility\ConvertFrom-Json -InputObject $officeRegistration.Text).PSObject.Properties) { $hints[$entry.Name] = $entry.Value }
+        $officeRegistration.Hints = $hints
+    }
+    if ($officeRegistration.Hints.ContainsKey($name)) {
+        Microsoft.PowerShell.Utility\Write-Warning "$name is no longer available. $($officeRegistration.Hints[$name])"
     }
 }.GetNewClosure()
 $officeInvokeCommand.CommandNotFoundAction = $officeLookup
