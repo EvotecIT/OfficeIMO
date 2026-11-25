@@ -38,9 +38,19 @@ namespace OfficeIMO.Word {
             }
 
             Exception? persistenceFailure = null;
-            var wordProcessingDocument = this._wordprocessingDocument;
+            if (_ownedModel != null) {
+                if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose && !IsOwnedReadOnly) {
+                    try {
+                        Save();
+                    } catch (Exception ex) {
+                        persistenceFailure = ex;
+                    }
+                }
+                if (FinishDisposeWithoutSdk(persistenceFailure)) return;
+            }
+            var wordProcessingDocument = this._wordprocessingDocumentValue;
             if (wordProcessingDocument != null) {
-                if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
+                if (persistenceFailure == null && _persistenceMode == DocumentPersistenceMode.SaveOnDispose && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
                     try {
                         Save();
                     } catch (Exception ex) {
@@ -109,6 +119,26 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Finishes disposing a document that never opened the SDK package. Returns false when the save on dispose opened
+        /// it, so the usual disposal runs; the persistence policy has been applied either way.
+        /// </summary>
+        private bool FinishDisposeWithoutSdk(Exception? persistenceFailure) {
+            if (_ownedModel == null) {
+                _persistenceMode = DocumentPersistenceMode.Explicit;
+                return false;
+            }
+            _ownedModel.Dispose();
+            _ownedModel = null;
+            _sdkDeferredLoad = null;
+            this._disposed = true;
+            GC.SuppressFinalize(this);
+            if (persistenceFailure != null) {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(persistenceFailure).Throw();
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Releases resources associated with the document asynchronously.
         /// </summary>
         public async ValueTask DisposeAsync() {
@@ -117,9 +147,23 @@ namespace OfficeIMO.Word {
             }
 
             Exception? persistenceFailure = null;
-            var wordProcessingDocument = this._wordprocessingDocument;
+            if (_ownedModel != null) {
+                if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose && !IsOwnedReadOnly) {
+                    try {
+                        if (string.IsNullOrEmpty(FilePath) && OriginalStream != null) {
+                            await SaveAsync(OriginalStream).ConfigureAwait(false);
+                        } else {
+                            await SaveAsync().ConfigureAwait(false);
+                        }
+                    } catch (Exception ex) {
+                        persistenceFailure = ex;
+                    }
+                }
+                if (FinishDisposeWithoutSdk(persistenceFailure)) return;
+            }
+            var wordProcessingDocument = this._wordprocessingDocumentValue;
             if (wordProcessingDocument != null) {
-                if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
+                if (persistenceFailure == null && _persistenceMode == DocumentPersistenceMode.SaveOnDispose && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
                     try {
                         if (string.IsNullOrEmpty(FilePath) && OriginalStream != null) {
                             await SaveAsync(OriginalStream).ConfigureAwait(false);

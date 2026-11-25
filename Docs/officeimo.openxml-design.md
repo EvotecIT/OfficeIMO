@@ -121,3 +121,12 @@ An engine keeps its SDK package until a feature needs it, then opens it over the
 - **Fallback.** A save that would change more goes through the SDK. That includes footer definitions, legacy slide visibility, a VBA project and missing document properties.
 
 This skips opening and parsing the package with the SDK, but the SDK assembly still loads because the engine references its types, so it does not yet meet the "No hidden SDK" bar above. Each feature that moves widens what the engine does without opening the SDK. An opt-in corpus check (`OFFICEIMO_PPTX_CORPUS`) compares each deck's save with one through the SDK.
+
+`WordDocument` goes further, because its target is no SDK at all outside one bridge:
+
+- **Load.** A plain, unsigned Transitional document, whose main part is `/word/document.xml` and parses, loads into `WordPackageModel`: the editable package and the main document part as an element tree. The SDK package is not opened.
+- **Owned members.** Body paragraphs, their runs, text and basic run formatting (bold, italic, underline, strike, size, colour, font, highlight, caps) read and write the owned tree, with the XML the SDK path writes. Equivalence tests run the same steps through both paths.
+- **Bridge.** Every other member reaches the SDK through `OfficeIMO.Word/OpenXmlSdk`. The bridge takes the package bytes as they stand and opens the SDK over them, and the SDK package is the document from then on. Paragraph objects handed out before that resolve their SDK elements by position. `OpenXmlSdkFallbacks` names the member behind each opening. `WordDocument.OpenXmlDocument` keeps working this way, so callers who mix OfficeIMO with SDK edits see both.
+- **Save.** A document that never opened the SDK writes the owned package, applying the changes a load and save through the SDK path make: default section properties for a body without them, revision identifiers on section breaks, the final section properties last, relative relationship targets, and numbering in schema order. Documents with tables still save through the SDK, which repairs and normalises them.
+- **Unmodelled content.** Elements and parts the owned layer doesn't model are kept as read and written back untouched.
+- **Ratchet.** `WordOpenXmlSdkRatchet` counts the source files outside the bridge whose compiled code uses SDK types, read from the assembly and its PDB. The count may only go down; it reaches zero when the engine is off the SDK.

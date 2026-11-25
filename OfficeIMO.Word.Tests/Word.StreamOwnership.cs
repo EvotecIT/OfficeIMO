@@ -48,7 +48,15 @@ namespace OfficeIMO.Tests {
             }
 
             using var source = new MemoryStream(sourceBytes);
-            using WordDocument loaded = await WordDocument.LoadAsync(source);
+            // The package stream belongs to the SDK path; a load without the SDK holds no stream of its own.
+            WordDocument.DisableOwnedOpenXmlForTesting.Value = true;
+            WordDocument loaded;
+            try {
+                loaded = await WordDocument.LoadAsync(source);
+            } finally {
+                WordDocument.DisableOwnedOpenXmlForTesting.Value = false;
+            }
+            using var loadedScope = loaded;
             FieldInfo ownedStreamField = typeof(WordDocument).GetField(
                 "_ownedPackageStream",
                 BindingFlags.Instance | BindingFlags.NonPublic)!;

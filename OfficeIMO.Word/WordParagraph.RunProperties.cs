@@ -15,10 +15,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool Bold {
             get {
+                if (_ownedTree != null && TryGetOwnedOnOff("b", out bool ownedValue)) return ownedValue;
                 var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.Bold);
             }
             set {
+                if (_ownedTree != null && TrySetOwnedOnOffPair("b", "bCs", value)) return;
                 RunProperties runProperties;
                 if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
@@ -36,10 +38,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool Italic {
             get {
+                if (_ownedTree != null && TryGetOwnedOnOff("i", out bool ownedValue)) return ownedValue;
                 var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.Italic);
             }
             set {
+                if (_ownedTree != null && TrySetOwnedOnOffPair("i", "iCs", value)) return;
                 RunProperties runProperties;
                 if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
@@ -57,6 +61,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordUnderlineStyle? Underline {
             get {
+                if (_ownedTree != null && TryGetOwnedUnderline(out WordUnderlineStyle? ownedValue)) return ownedValue;
                 var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.Underline != null) {
                     return runProperties.Underline.Val?.Value.ToOfficeEnum();
@@ -64,6 +69,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedUnderline(value)) return;
                 RunProperties runProperties;
                 if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
@@ -143,10 +149,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool Strikethrough {
             get {
+                if (_ownedTree != null && TryGetOwnedOnOff("strike", out bool ownedValue)) return ownedValue;
                 var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.Strike);
             }
             set {
+                if (_ownedTree != null && TrySetOwnedToggle("strike", value)) return;
                 RunProperties runProperties;
                 if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
@@ -167,10 +175,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool DoubleStrikethrough {
             get {
+                if (_ownedTree != null && TryGetOwnedOnOff("dstrike", out bool ownedValue)) return ownedValue;
                 var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.DoubleStrike);
             }
             set {
+                if (_ownedTree != null && TrySetOwnedToggle("dstrike", value)) return;
                 RunProperties runProperties;
                 if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
@@ -270,6 +280,7 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets native point values without a whole-EMU round trip.</summary>
         internal double? NativeFontSizePoints {
             get {
+                if (_ownedTree != null && TryGetOwnedFontSize(out double? ownedValue)) return ownedValue;
                 var runProperties = ScopedRunProperties;
                 string? value = runProperties?.FontSize?.Val?.Value;
                 return int.TryParse(value, System.Globalization.NumberStyles.Integer,
@@ -278,6 +289,14 @@ namespace OfficeIMO.Word {
                     : (double?)null;
             }
             set {
+                if (_ownedTree != null && OwnedModel != null) {
+                    if (value == null) {
+                        if (TrySetOwnedValue("sz", null)) return;
+                    } else if (!double.IsNaN(value.Value) && !double.IsInfinity(value.Value) && value.Value >= 0D && value.Value <= int.MaxValue / 2D) {
+                        int ownedHalfPoints = checked((int)Math.Round(value.Value * 2D, MidpointRounding.AwayFromZero));
+                        if (TrySetOwnedValue("sz", ownedHalfPoints.ToString(System.Globalization.CultureInfo.InvariantCulture))) return;
+                    }
+                }
                 RunProperties runProperties;
                 if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
@@ -305,8 +324,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets the text color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         public OfficeIMO.OfficeColor? Color {
-            get => WordRunColor.Read(ScopedRunProperties?.Color);
+            get => _ownedTree != null && TryGetOwnedColor(out OfficeIMO.OfficeColor? ownedValue) ? ownedValue : WordRunColor.Read(ScopedRunProperties?.Color);
             set {
+                if (_ownedTree != null && (value == null || !value.Value.IsThemeRole)
+                    && TrySetOwnedValue("color", value?.ToRgbHex())) return;
                 if (value != null) {
                     SetRunColor(value.Value);
                 } else {
@@ -320,6 +341,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal string RunColorValue {
             get {
+                if (_ownedTree != null && TryGetOwnedValue("color", out string? ownedValue)) return ownedValue ?? "";
                 var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.Color != null) {
                     return runProperties.Color.Val?.Value ?? "";
@@ -327,6 +349,8 @@ namespace OfficeIMO.Word {
                 return "";
             }
             set {
+                if (_ownedTree != null && (value == "" || Helpers.NormalizeOpenXmlColor(value) != null)
+                    && TrySetOwnedValue("color", value != "" ? Helpers.NormalizeOpenXmlColor(value) : null)) return;
                 RunProperties runProperties;
                 if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
@@ -384,6 +408,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordHighlightColor? Highlight {
             get {
+                if (_ownedTree != null && TryGetOwnedHighlight(out WordHighlightColor? ownedValue)) return ownedValue;
                 var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.Highlight != null) {
                     return runProperties.Highlight.Val?.Value.ToOfficeEnum();
@@ -391,6 +416,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedHighlight(value)) return;
                 RunProperties? existingRunProperties = ScopedRunProperties;
                 if (!value.HasValue) {
                     existingRunProperties?.Highlight?.Remove();
@@ -416,6 +442,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCapsStyle CapsStyle {
             get {
+                if (_ownedTree != null && TryGetOwnedCaps(out WordCapsStyle ownedValue)) return ownedValue;
                 var runProperties = ScopedRunProperties;
                 if (IsOnOffPropertyEnabled(runProperties?.Caps)) {
                     return WordCapsStyle.Caps;
@@ -426,6 +453,7 @@ namespace OfficeIMO.Word {
                 }
             }
             set {
+                if (_ownedTree != null && TrySetOwnedCaps(value)) return;
                 RunProperties runProperties;
                 if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
@@ -456,6 +484,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? FontFamily {
             get {
+                if (_ownedTree != null && TryGetOwnedFont("ascii", out string? ownedValue)) return ownedValue;
                 var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.RunFonts != null) {
                     return runProperties.RunFonts.Ascii;
@@ -463,6 +492,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedFontFamily(value)) return;
                 RunProperties runProperties;
                 if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;

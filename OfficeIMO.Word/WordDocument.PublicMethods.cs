@@ -11,6 +11,9 @@ namespace OfficeIMO.Word {
         /// <param name="wordParagraph">Optional paragraph to append. When <c>null</c> a new paragraph is created.</param>
         /// <returns>The added <see cref="WordParagraph"/> instance.</returns>
         public WordParagraph AddParagraph(WordParagraph? wordParagraph = null) {
+            if (wordParagraph is null && _ownedModel is { } model) {
+                return OfficeIMO.Word.OpenXml.WordOwnedParagraphs.AddParagraph(this, model, withRun: false);
+            }
             if (wordParagraph is null) {
                 // we create paragraph (and within that add it to document)
                 wordParagraph = new WordParagraph(this, newParagraph: true, newRun: false);
@@ -33,6 +36,14 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordParagraph"/>.</returns>
         public WordParagraph AddParagraph(string text) {
             text ??= string.Empty;
+            if (_ownedModel is { } model) {
+                if (text.IndexOfAny(WordParagraph.SimpleRunUnsupportedCharacters) < 0) {
+                    WordParagraph ownedParagraph = OfficeIMO.Word.OpenXml.WordOwnedParagraphs.AddParagraph(this, model, withRun: true);
+                    ownedParagraph.Text = text;
+                    return ownedParagraph;
+                }
+                return OfficeIMO.Word.OpenXml.WordOwnedParagraphs.AddParagraph(this, model, withRun: false).AddText(text);
+            }
             if (text.IndexOfAny(WordParagraph.SimpleRunUnsupportedCharacters) < 0) {
                 var paragraph = new WordParagraph(this, newParagraph: true, newRun: true);
                 paragraph._run!.AppendChild(new Text(text) { Space = SpaceProcessingModeValues.Preserve });

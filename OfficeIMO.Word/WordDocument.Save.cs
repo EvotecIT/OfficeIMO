@@ -24,6 +24,16 @@ namespace OfficeIMO.Word {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
+            if (_ownedModel != null) {
+                string? ownedTarget = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+                if (ownedTarget != null && TryCreateBytesWithoutSdk(ownedTarget, options, out byte[] ownedBytes)) {
+                    EnsureDestinationFileWritable(ownedTarget);
+                    OfficeFileCommit.WriteAllBytes(ownedTarget, ownedBytes);
+                    FilePath = ownedTarget;
+                    _loadedPassword = null;
+                    return;
+                }
+            }
             ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "Save");
             PreSaving();
 
@@ -236,6 +246,15 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            if (_ownedModel != null) {
+                string? ownedTarget = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+                if (ownedTarget != null && TryCreateBytesWithoutSdk(ownedTarget, options, out byte[] ownedBytes)) {
+                    await OfficeFileCommit.WriteAllBytesAsync(ownedTarget, ownedBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    FilePath = ownedTarget;
+                    _loadedPassword = null;
+                    return;
+                }
+            }
             ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveAsync");
             PreSaving();
 
@@ -338,6 +357,10 @@ namespace OfficeIMO.Word {
                 SaveEncrypted(outputStream, password, options);
                 return;
             }
+            if (format == WordFileFormat.Docx && TryCreateBytesWithoutSdk(null, options, out byte[] ownedBytes)) {
+                OfficeStreamWriter.WriteAllBytes(outputStream, ownedBytes);
+                return;
+            }
             ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "Save");
             PreSaving();
 
@@ -380,6 +403,10 @@ namespace OfficeIMO.Word {
             EnsureSeparateXmlDestination(outputStream);
             if (!outputStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(outputStream));
             if (FileOpenAccess == FileAccess.Read) throw new InvalidOperationException("Document is read only, and cannot be saved.");
+            if (format == WordFileFormat.Docx && TryCreateBytesWithoutSdk(null, options, out byte[] ownedBytes)) {
+                await OfficeStreamWriter.WriteAllBytesAsync(outputStream, ownedBytes, cancellationToken).ConfigureAwait(false);
+                return;
+            }
 
             ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveAsync");
             PreSaving();

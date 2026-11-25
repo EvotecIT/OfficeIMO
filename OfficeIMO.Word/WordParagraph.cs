@@ -24,7 +24,16 @@ namespace OfficeIMO.Word {
     /// </summary>
     public partial class WordParagraph : WordElement {
         internal WordDocument _document = null!;
-        internal Paragraph _paragraph = null!;
+        private Paragraph? _paragraphValue;
+
+        /// <summary>The paragraph element. A paragraph read without the SDK resolves it here, opening the SDK package.</summary>
+        internal Paragraph _paragraph {
+            get {
+                if (_ownedTree != null) ResolveOwnedToSdk();
+                return _paragraphValue!;
+            }
+            set => _paragraphValue = value;
+        }
         private object? _parentElement;
         private bool _parentEvaluated;
 
@@ -155,7 +164,16 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
-        internal Run? _run;
+        private Run? _runValue;
+
+        internal Run? _run {
+            get {
+                if (_ownedTree != null) ResolveOwnedToSdk();
+                return _runValue;
+            }
+            set => _runValue = value;
+        }
+
         internal Run? _visibleRun;
         internal IReadOnlyList<OpenXmlElement>? _visibleRunSourceChildren;
 
@@ -274,7 +292,33 @@ namespace OfficeIMO.Word {
         internal List<Run>? _runs;
         internal Hyperlink? _hyperlink;
         internal SimpleField? _simpleField;
-        internal BookmarkStart? _bookmarkStart;
+        private BookmarkStart? _bookmarkStartValue;
+
+        internal BookmarkStart? _bookmarkStart {
+            get {
+                if (_ownedTree != null) ResolveOwnedToSdk();
+                return _bookmarkStartValue;
+            }
+            set => _bookmarkStartValue = value;
+        }
+
+        /// <summary>
+        /// Finds this paragraph's elements in the SDK package of its document, opening the package when it is still
+        /// held by the owned layer. Positions in the owned tree map one to one onto the SDK tree built from it.
+        /// </summary>
+        private void ResolveOwnedToSdk() {
+            OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree? tree = _ownedTree;
+            if (tree == null) return;
+            int paragraphNode = _ownedParagraphNode, runNode = _ownedRunNode, bookmarkNode = _ownedBookmarkNode;
+            int root = tree.Root;
+            _ownedTree = null;
+            _document.OpenSdkPackage(null);
+            OpenXmlElement sdkRoot = _document._document;
+            _paragraphValue = WordOpenXmlSdkBridge.FindElement(sdkRoot, tree, root, paragraphNode) as Paragraph
+                ?? throw new InvalidOperationException("The paragraph is no longer part of the document.");
+            _runValue = runNode == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode ? null : WordOpenXmlSdkBridge.FindElement(sdkRoot, tree, root, runNode) as Run;
+            _bookmarkStartValue = bookmarkNode == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode ? null : WordOpenXmlSdkBridge.FindElement(sdkRoot, tree, root, bookmarkNode) as BookmarkStart;
+        }
         internal readonly OfficeMath? _officeMath;
         internal readonly SdtRun? _stdRun;
         internal readonly DocumentFormat.OpenXml.Math.Paragraph? _mathParagraph;
