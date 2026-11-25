@@ -80,6 +80,9 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
 
     /// <summary>The XML tree of a part, parsed on first use.</summary>
     /// <exception cref="InvalidDataException">The package has no such part.</exception>
+    /// <summary>The part's tree when it has already been parsed or created, without parsing it; otherwise null.</summary>
+    internal OfficeXmlTree? GetParsedXml(string partName) => Find(partName)?.Tree;
+
     internal OfficeXmlTree GetXml(string partName) {
         Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
         if (part.Tree != null) return part.Tree;

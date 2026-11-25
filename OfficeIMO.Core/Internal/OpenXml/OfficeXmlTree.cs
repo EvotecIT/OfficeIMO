@@ -166,6 +166,21 @@ internal sealed partial class OfficeXmlTree {
 
     // ---- Navigation -------------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Whether the parsed root element holds a comment or processing instruction. The tree keeps them as written
+    /// between nodes rather than as nodes, so a caller that walks siblings as another reader sees them can check first.
+    /// </summary>
+    internal bool HasCommentsOrInstructions() {
+        if (_source == null || Root == NoNode) return false;
+        int end = _epilogStart;
+        for (int index = Array.IndexOf(_source, (byte)'<', _prologEnd, end - _prologEnd); index >= 0 && index + 1 < end;
+             index = Array.IndexOf(_source, (byte)'<', index + 1, end - index - 1)) {
+            byte next = _source[index + 1];
+            if (next == (byte)'?' || next == (byte)'!' && index + 3 < end && _source[index + 2] == (byte)'-' && _source[index + 3] == (byte)'-') return true;
+        }
+        return false;
+    }
+
     internal OfficeXmlTreeNodeKind KindOf(int node) => _nodes[node].Kind;
     internal int ParentOf(int node) => _nodes[node].Parent;
     internal int FirstChildOf(int node) => _nodes[node].FirstChild;

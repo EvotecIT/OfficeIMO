@@ -33,6 +33,8 @@ namespace OfficeIMO.PowerPoint {
         internal int DeferredSdkOpenCount { get; private set; }
 
         private PresentationDocument OpenDeferredSdk() {
+            // The SDK opens the package with any edits made without it.
+            CommitPendingEdits();
             Stream packageStream = _packageStream ?? throw new InvalidOperationException("The presentation has no Open XML package to open.");
             packageStream.Position = 0;
             OpenSettings settings = CreateOpenSettings(_deferredOpenSettings);
@@ -182,6 +184,7 @@ namespace OfficeIMO.PowerPoint {
 
         // A read-only view over the loaded bytes, without copying them; null when the package stream holds none.
         private bool TryGetLoadedPackage(out MemoryStream? package) {
+            CommitPendingEdits();
             package = null;
             ArraySegment<byte> buffer = default;
             bool found = _packageStream switch {

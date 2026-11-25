@@ -11,6 +11,7 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public sealed partial class PowerPointDocument {
         private const string CorePropertiesRelationshipType = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties";
+        private const string NotesSlideContentType = "application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml";
         private const string NotesSlideRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide";
         private const string VbaProjectRelationshipType = "http://schemas.microsoft.com/office/2006/relationships/vbaProject";
         private static readonly string[] ApplicationCounters = { "TotalTime", "Application", "PresentationFormat", "Slides", "Notes", "HiddenSlides" };
@@ -33,15 +34,20 @@ namespace OfficeIMO.PowerPoint {
             UnchangedSaveValues values;
             packageStream.Position = 0;
             using (OfficeOpcPackage package = OfficeOpcPackage.Open(packageStream, leaveOpen: true)) {
-                if (!TryReadUnchangedSaveValues(package, _maximumSlideXmlCharacters, out values)) return false;
+                if (!TryReadUnchangedSaveValues(package, _maximumSlideXmlCharacters, _pendingPackage, out values)) return false;
             }
 
+            // Slide edits made without the SDK are saved with the properties, in one write.
+            OfficeOpcEditablePackage? pending = _pendingPackage;
             packageStream.Position = 0;
-            using (OfficeOpcEditablePackage editable = OfficeOpcEditablePackage.Open(packageStream, leaveOpen: true)) {
+            OfficeOpcEditablePackage editable = pending ?? OfficeOpcEditablePackage.Open(packageStream, leaveOpen: true);
+            MemoryStream? saved = null;
+            try {
                 OfficeXmlTree application = editable.GetXml(values.ApplicationPart);
                 OfficeXmlTree core = editable.GetXml(values.CorePart);
                 int modified = core.FindChild(core.Root, OfficeXmlNamespaces.DublinCoreTerms, "modified");
-                // Everything edited has to be a direct child, as the SDK reads it; nothing has changed yet otherwise.
+                // Everything edited has to be a direct child, as the SDK reads it; nothing has changed yet otherwise,
+                // and pending slide edits stay pending for the SDK save.
                 if (modified == OfficeXmlTree.NoNode) return false;
                 foreach (string counter in ApplicationCounters) {
                     if (application.FindChild(application.Root, OfficeXmlNamespaces.ExtendedProperties, counter) == OfficeXmlTree.NoNode) return false;
@@ -52,14 +58,26 @@ namespace OfficeIMO.PowerPoint {
                 SetChildText(application, "PresentationFormat", values.PresentationFormat);
                 core.SetInnerText(modified, FormatPackageDate(DateTime.UtcNow));
 
-                using var output = new MemoryStream();
-                editable.Save(output);
-                bytes = output.ToArray();
+                // The saved package is about the size of the loaded one, so the buffer starts there instead of doubling.
+                saved = new MemoryStream(checked((int)Math.Min(int.MaxValue / 2, packageStream.Length + 4096)));
+                editable.Save(saved);
+                bytes = saved.ToArray();
+            } catch {
+                saved?.Dispose();
+                throw;
+            } finally {
+                if (pending == null) editable.Dispose();
+            }
+            if (pending != null) {
+                _pendingPackage = null;
+                _pendingEdits = false;
+                pending.Dispose();
             }
             // The document now holds what it saved, as a save through the SDK leaves it: an SDK opened later reads the
             // refreshed properties.
-            // The caller owns the returned array, so the document keeps a copy of its own.
-            _packageStream = OfficeIMO.Core.Internal.OfficePackageLoadSource.CreatePackageStream((byte[])bytes.Clone(), _accessMode);
+            // The caller owns the returned array; the document keeps the buffer it saved into, which is its own.
+            saved!.Position = 0;
+            _packageStream = saved;
             packageStream.Dispose();
             return true;
         }
@@ -97,7 +115,8 @@ namespace OfficeIMO.PowerPoint {
         /// <see cref="PowerPointUtils.UpdateDocumentProperties"/>. Returns false for anything that save would also change
         /// elsewhere or create: footer definitions, legacy slide visibility, a VBA project, or missing property parts.
         /// </summary>
-        private static bool TryReadUnchangedSaveValues(OfficeOpcPackage package, long maximumSlideXmlCharacters, out UnchangedSaveValues values) {
+        private static bool TryReadUnchangedSaveValues(OfficeOpcPackage package, long maximumSlideXmlCharacters,
+            OfficeOpcEditablePackage? parsed, out UnchangedSaveValues values) {
             values = default;
             string? main = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType);
             string? application = package.GetRelatedPartName(null, ExtendedPropertiesRelationshipType);
@@ -144,12 +163,21 @@ namespace OfficeIMO.PowerPoint {
             foreach (string id in slideIds) {
                 OfficeOpcRelationship? relationship = package.FindRelationship(main, id);
                 if (relationship?.TargetPartName is not { } slide || relationship.IsExternal || !package.PartExists(slide)) return false;
-                if (!TryReadSlideShow(package, slide, maximumSlideXmlCharacters, out bool? show)) return false;
+                // A slide a replacement already parsed is read from its tree; text edits leave its visibility as it was.
+                bool? show;
+                if (parsed?.GetParsedXml(slide) is { } tree) {
+                    if (package.GetPartLength(slide) > SlidePartLimit(maximumSlideXmlCharacters)) return false;
+                    if (!TryParseShow(tree.GetAttribute(tree.Root, OfficeXmlNamespaces.None, "show"), out show)) return false;
+                } else if (!TryReadSlideShow(package, slide, maximumSlideXmlCharacters, out show)) {
+                    return false;
+                }
                 if (show == false) hidden++;
             }
 
-            // Notes count slide parts, each once, as the SDK's SlideParts does.
+            // Notes count slide parts, each once, as the SDK's SlideParts does. A notes slide carries its content type, or
+            // the SDK does not open the package, so without one declared no slide's relationships need reading.
             var slideParts = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
+            bool notesDeclared = package.DeclaresContentType(NotesSlideContentType);
             int notes = 0;
             foreach (OfficeOpcRelationship relationship in package.GetRelationships(main)) {
                 if (string.Equals(relationship.Type, VbaProjectRelationshipType, StringComparison.Ordinal)) return false;
@@ -157,7 +185,7 @@ namespace OfficeIMO.PowerPoint {
                     || relationship.TargetPartName is not { } slide || !slideParts.Add(OfficeOpcPackage.GetPartIdentity(slide))) {
                     continue;
                 }
-                if (package.GetRelatedPartName(slide, NotesSlideRelationshipType) is { } notesPart && package.PartExists(notesPart)) notes++;
+                if (notesDeclared && package.GetRelatedPartName(slide, NotesSlideRelationshipType) is { } notesPart && package.PartExists(notesPart)) notes++;
             }
 
             values = new UnchangedSaveValues(application, core, slideIds.Count, notes, hidden, presentationFormat);
@@ -167,28 +195,35 @@ namespace OfficeIMO.PowerPoint {
         // The slide root's show attribute, as PowerPointXmlReader.ReadSlideShow reads it for the SDK save. A part over the
         // size limit, a value XML Schema does not read as a boolean, or markup the pull reader rejects leaves the
         // answer to that save, which fails or succeeds as before.
+        private static long SlidePartLimit(long maximumSlideXmlCharacters) => maximumSlideXmlCharacters > 0
+            ? Math.Min(PowerPointXmlReader.MaximumPackageXmlCharacters, maximumSlideXmlCharacters)
+            : PowerPointXmlReader.MaximumPackageXmlCharacters;
+
         private static bool TryReadSlideShow(OfficeOpcPackage package, string slide, long maximumSlideXmlCharacters, out bool? show) {
             show = null;
-            long limit = maximumSlideXmlCharacters > 0
-                ? Math.Min(PowerPointXmlReader.MaximumPackageXmlCharacters, maximumSlideXmlCharacters)
-                : PowerPointXmlReader.MaximumPackageXmlCharacters;
-            if (package.GetPartLength(slide) > limit) return false;
+            if (package.GetPartLength(slide) > SlidePartLimit(maximumSlideXmlCharacters)) return false;
             try {
                 OfficeXmlPullReader reader = package.OpenXml(slide, out OfficePooledBytes content, processMarkupCompatibility: false);
                 using (content) {
                     while (reader.Read()) {
                         if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
-                        if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "show", out string value)) return true;
-                        switch (value.Trim(' ', '\t', '\r', '\n')) {
-                            case "true": case "1": show = true; return true;
-                            case "false": case "0": show = false; return true;
-                            default: return false;
-                        }
+                        return TryParseShow(reader.TryGetAttribute(OfficeXmlNamespaces.None, "show", out string value) ? value : null, out show);
                     }
                 }
                 return false;
             } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                 return false;
+            }
+        }
+
+        // An absent attribute is no answer; a value XML Schema does not read as a boolean leaves it to the SDK save.
+        private static bool TryParseShow(string? value, out bool? show) {
+            show = null;
+            if (value == null) return true;
+            switch (value.Trim(' ', '\t', '\r', '\n')) {
+                case "true": case "1": show = true; return true;
+                case "false": case "0": show = false; return true;
+                default: return false;
             }
         }
 

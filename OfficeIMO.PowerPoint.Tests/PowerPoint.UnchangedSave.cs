@@ -303,7 +303,7 @@ public class PowerPointUnchangedSaveTests {
         Assert.ThrowsAny<Exception>(() => PowerPointDocument.Load(new MemoryStream(source)));
     }
 
-    private static byte[] SaveThroughSdk(byte[] source) {
+    internal static byte[] SaveThroughSdk(byte[] source) {
         using var presentation = PowerPointDocument.Load(new MemoryStream(source));
         _ = presentation.OpenXmlDocument;
         return presentation.ToBytes();
@@ -312,7 +312,7 @@ public class PowerPointUnchangedSaveTests {
     // Two decks are the same when their parts, content types and relationships match; docProps/app.xml and
     // presentation.xml hold the same XML; core properties differ only in their modification time; and every other part
     // has the loaded bytes.
-    private static void AssertSamePackage(byte[] source, byte[] throughSdk, byte[] withoutSdk, bool keptAsLoaded = true) {
+    internal static void AssertSamePackage(byte[] source, byte[] throughSdk, byte[] withoutSdk, bool keptAsLoaded = true) {
         Dictionary<string, byte[]> expected = ReadParts(throughSdk);
         Dictionary<string, byte[]> actual = ReadParts(withoutSdk);
         Dictionary<string, byte[]> loaded = ReadParts(source);
@@ -435,7 +435,7 @@ public class PowerPointUnchangedSaveTests {
         return document;
     }
 
-    private static Dictionary<string, byte[]> ReadParts(byte[] package) {
+    internal static Dictionary<string, byte[]> ReadParts(byte[] package) {
         var parts = new Dictionary<string, byte[]>(StringComparer.Ordinal);
         using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
         foreach (ZipArchiveEntry entry in archive.Entries) {
@@ -449,9 +449,9 @@ public class PowerPointUnchangedSaveTests {
         return parts;
     }
 
-    private static XDocument ReadXml(byte[] package, string name) => XDocument.Load(new MemoryStream(ReadParts(package)[name]));
+    internal static XDocument ReadXml(byte[] package, string name) => XDocument.Load(new MemoryStream(ReadParts(package)[name]));
 
-    private static byte[] Rewrite(byte[] package, string member, Func<string, string> change) {
+    internal static byte[] Rewrite(byte[] package, string member, Func<string, string> change) {
         var stream = new MemoryStream();
         stream.Write(package, 0, package.Length);
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true)) {
@@ -466,7 +466,7 @@ public class PowerPointUnchangedSaveTests {
     }
 
     // Two slides, the second hidden and with notes, on a 4:3 slide, saved and then given stale counts.
-    private static byte[] CreateDeckWithStaleProperties() {
+    internal static byte[] CreateDeckWithStaleProperties() {
         byte[] deck;
         using (var presentation = PowerPointDocument.Create(new MemoryStream())) {
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen4x3);

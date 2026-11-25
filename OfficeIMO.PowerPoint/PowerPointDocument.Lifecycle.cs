@@ -33,6 +33,7 @@ namespace OfficeIMO.PowerPoint {
             } finally {
                 try {
                     // A closing editable package rewrites its stream, which nothing reads again.
+                    DiscardPendingEdits();
                     OfficePackageLoadSource.AbandonPackageStream(_packageStream);
                     // Over loaded bytes the package holds only managed buffers, so closing it would just recompress
                     // every part that was read before discarding the result.
@@ -87,6 +88,7 @@ namespace OfficeIMO.PowerPoint {
             } finally {
                 try {
                     // A closing editable package rewrites its stream, which nothing reads again.
+                    DiscardPendingEdits();
                     OfficePackageLoadSource.AbandonPackageStream(_packageStream);
                     // Over loaded bytes the package holds only managed buffers, so closing it would just recompress
                     // every part that was read before discarding the result.
