@@ -179,6 +179,37 @@ public class PowerPointUnchangedSaveTests {
         AssertSamePackage(source, SaveThroughSdk(source), saved, keptAsLoaded: false);
     }
 
+    // The SDK reads markup compatibility as written by default, so a wrapped element is not the one it updates or counts.
+    [Fact]
+    public void ReadsTheSaveValuesWithMarkupCompatibilityAsWritten() {
+        const string compatibility = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+        byte[] source = Rewrite(CreateDeckWithStaleProperties(), PresentationPart, xml => Regex.Replace(xml, "<p:sldSz [^>]*/>",
+            match => "<mc:AlternateContent xmlns:mc=\"" + compatibility + "\"><mc:Choice Requires=\"p\">" + match.Value + "</mc:Choice></mc:AlternateContent>"));
+        Assert.Contains("mc:AlternateContent", System.Text.Encoding.UTF8.GetString(ReadParts(source)[PresentationPart]));
+
+        byte[] saved;
+        using (var presentation = PowerPointDocument.Load(new MemoryStream(source))) {
+            saved = presentation.ToBytes();
+            Assert.False(presentation.IsSdkLoaded);
+        }
+
+        AssertSamePackage(source, SaveThroughSdk(source), saved);
+    }
+
+    [Fact]
+    public void UsesTheSdkWhenACounterIsWrappedInMarkupCompatibility() {
+        const string compatibility = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+        byte[] source = Rewrite(CreateDeckWithStaleProperties(), ApplicationPart, xml => Regex.Replace(xml, "<(\\w+:)?Slides>[^<]*</(\\w+:)?Slides>",
+            match => "<mc:AlternateContent xmlns:mc=\"" + compatibility + "\"><mc:Fallback>" + match.Value + "</mc:Fallback></mc:AlternateContent>"));
+        Assert.Contains("mc:Fallback", System.Text.Encoding.UTF8.GetString(ReadParts(source)[ApplicationPart]));
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source));
+        byte[] saved = presentation.ToBytes();
+
+        Assert.True(presentation.IsSdkLoaded);
+        AssertSamePackage(source, SaveThroughSdk(source), saved, keptAsLoaded: false);
+    }
+
     [Fact]
     public void AnSdkOpenedAfterTheSaveReadsWhatWasSaved() {
         using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeckWithStaleProperties()));
@@ -265,6 +296,10 @@ public class PowerPointUnchangedSaveTests {
                     + string.Join(" | ", expectedCore.Except(actualCore)) + "; without the SDK only: " + string.Join(" | ", actualCore.Except(expectedCore)));
                 Assert.True(Regex.IsMatch(Modified(part.Value), ModifiedFormat(expected[part.Key])),
                     "SDK '" + Modified(expected[part.Key]) + "', without the SDK '" + Modified(part.Value) + "'.");
+            } else if (part.Key == "_rels/.rels") {
+                // Nothing in a package refers to its own relationship ids, and .NET Framework's packaging writes them
+                // and their targets in its own spelling; what matters is which parts they reach.
+                Assert.Equal(PackageRelationships(expected[part.Key]), PackageRelationships(part.Value));
             } else if (part.Key == "[Content_Types].xml") {
                 // .NET Framework's packaging lays the catalog out differently; what matters is each part's content type.
                 Assert.Equal(ContentTypes(throughSdk), ContentTypes(withoutSdk));
@@ -282,6 +317,14 @@ public class PowerPointUnchangedSaveTests {
             }
         }
     }
+
+    private static List<string> PackageRelationships(byte[] relationships) =>
+        XDocument.Load(new MemoryStream(relationships)).Root!.Elements()
+            .Where(element => !((string?)element.Attribute("Target") ?? string.Empty).Contains("package/services/metadata/core-properties/"))
+            .Select(element => (string?)element.Attribute("Type") + " " + ((string?)element.Attribute("Target") ?? string.Empty).TrimStart('/')
+                + " " + ((string?)element.Attribute("TargetMode") ?? "Internal"))
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToList();
 
     private static List<string> ContentTypes(byte[] package) {
         using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);

@@ -101,8 +101,9 @@ namespace OfficeIMO.PowerPoint {
             return SlideListResolves(package, main);
         }
 
+        // These reads leave markup compatibility as written, as the SDK's default NoProcess mode reads it.
         private static bool HasDigitalSignatureFlag(OfficeOpcPackage package, string application) {
-            OfficeXmlPullReader reader = package.OpenXml(application, out OfficePooledBytes content);
+            OfficeXmlPullReader reader = package.OpenXml(application, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
                 while (reader.Read()) {
                     if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == 2
@@ -117,7 +118,7 @@ namespace OfficeIMO.PowerPoint {
         // The SDK reads the slide list at load and fails on an entry it cannot resolve or whose part is not a slide; such
         // a package keeps doing so.
         private static bool SlideListResolves(OfficeOpcPackage package, string main) {
-            OfficeXmlPullReader reader = package.OpenXml(main, out OfficePooledBytes content);
+            OfficeXmlPullReader reader = package.OpenXml(main, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
                 bool root = false;
                 while (reader.Read()) {

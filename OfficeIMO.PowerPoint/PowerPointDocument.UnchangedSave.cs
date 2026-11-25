@@ -39,13 +39,17 @@ namespace OfficeIMO.PowerPoint {
             packageStream.Position = 0;
             using (OfficeOpcEditablePackage editable = OfficeOpcEditablePackage.Open(packageStream, leaveOpen: true)) {
                 OfficeXmlTree application = editable.GetXml(values.ApplicationPart);
+                OfficeXmlTree core = editable.GetXml(values.CorePart);
+                int modified = core.FindChild(core.Root, OfficeXmlNamespaces.DublinCoreTerms, "modified");
+                // Everything edited has to be a direct child, as the SDK reads it; nothing has changed yet otherwise.
+                if (modified == OfficeXmlTree.NoNode) return false;
+                foreach (string counter in ApplicationCounters) {
+                    if (application.FindChild(application.Root, OfficeXmlNamespaces.ExtendedProperties, counter) == OfficeXmlTree.NoNode) return false;
+                }
                 SetChildText(application, "Slides", values.Slides.ToString(CultureInfo.InvariantCulture));
                 SetChildText(application, "Notes", values.Notes.ToString(CultureInfo.InvariantCulture));
                 SetChildText(application, "HiddenSlides", values.HiddenSlides.ToString(CultureInfo.InvariantCulture));
                 SetChildText(application, "PresentationFormat", values.PresentationFormat);
-
-                OfficeXmlTree core = editable.GetXml(values.CorePart);
-                int modified = core.FindChild(core.Root, OfficeXmlNamespaces.DublinCoreTerms, "modified");
                 core.SetInnerText(modified, FormatPackageDate(DateTime.UtcNow));
 
                 using var output = new MemoryStream();
@@ -104,7 +108,7 @@ namespace OfficeIMO.PowerPoint {
 
             var slideIds = new List<string>();
             string presentationFormat = "Widescreen";
-            OfficeXmlPullReader reader = package.OpenXml(main, out OfficePooledBytes content);
+            OfficeXmlPullReader reader = package.OpenXml(main, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
                 while (reader.Read()) {
                     if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
@@ -136,7 +140,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             // Notes count slide parts, each once, as the SDK's SlideParts does.
-            var slideParts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var slideParts = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
             int notes = 0;
             foreach (OfficeOpcRelationship relationship in package.GetRelationships(main)) {
                 if (string.Equals(relationship.Type, VbaProjectRelationshipType, StringComparison.Ordinal)) return false;
@@ -182,7 +186,7 @@ namespace OfficeIMO.PowerPoint {
         // The SDK save adds any of these that are missing; this path only replaces their text.
         private static bool HasApplicationCounters(OfficeOpcPackage package, string application) {
             var found = new HashSet<string>(StringComparer.Ordinal);
-            OfficeXmlPullReader reader = package.OpenXml(application, out OfficePooledBytes content);
+            OfficeXmlPullReader reader = package.OpenXml(application, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
                 while (reader.Read()) {
                     if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
@@ -197,7 +201,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool HasModifiedDate(OfficeOpcPackage package, string core) {
-            OfficeXmlPullReader reader = package.OpenXml(core, out OfficePooledBytes content);
+            OfficeXmlPullReader reader = package.OpenXml(core, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
                 while (reader.Read()) {
                     if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == 2
