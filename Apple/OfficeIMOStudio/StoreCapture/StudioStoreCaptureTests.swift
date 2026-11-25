@@ -157,9 +157,10 @@ final class StudioStoreCaptureTests: XCTestCase {
         let language = environment["STUDIO_CAPTURE_LANGUAGE"] ?? "en"
         let region = environment["STUDIO_CAPTURE_REGION"] ?? "en_US"
         app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", region, "-OfficeIMOSkipWelcome"]
-        app.launch()
         let input = URL(fileURLWithPath: path)
         let isWorkbook = environmentKey == "STUDIO_CAPTURE_OFFICE_PATH"
+        // Let XCTest launch iPhone PDFs directly. A running compact browser can ignore the URL handoff.
+        if role != "iphone" || isWorkbook { app.launch() }
         // Both Duo poses keep their compact Files path, as does the iPhone workbook viewer.
         if role == "duo" || (isCompact && isWorkbook) {
             openPhoneDocument(app, input: input)
