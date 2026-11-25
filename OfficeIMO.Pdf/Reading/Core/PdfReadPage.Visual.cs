@@ -2753,7 +2753,11 @@ public sealed partial class PdfReadPage {
         internal bool HasObjectPaint { get; private set; }
         internal bool HasVectorPaint { get; private set; }
 
+        /// <summary>Straight path segments (rectangles and lines) the content constructs, capped once a grid is possible.</summary>
+        internal int StraightSegments { get; private set; }
+
         internal void ObserveOperator(string op) {
+            if (op is "re" or "l" && StraightSegments < 4) StraightSegments++;
             if (op is "Do" or "BI") HasObjectPaint = true;
             if (op is "S" or "s" or "f" or "F" or "f*" or "B" or "B*" or "b" or "b*" or "sh") HasVectorPaint = true;
         }

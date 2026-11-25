@@ -360,10 +360,16 @@ internal static partial class TableDetector {
                 context.ConsumeWork();
                 List<PdfTextSpan>? runs = cells[row * columnCount + column];
                 if (runs is null) { values[row][column] = string.Empty; continue; }
-                List<TextLayoutEngine.TextLine> cellLines = TextLayoutEngine.BuildLines(runs, context.LayoutOptions.ToEngineOptions(),
-                    context.ConsumeWork, context.ThrowIfCancellationRequested);
-                values[row][column] = string.Join(" ", cellLines.Select(static line => line.Text.Trim()).Where(static text => text.Length > 0));
-                foreach (TextLayoutEngine.TextLine line in cellLines) baselines.Add((line.Y, column));
+                if (runs.Count == 1) {
+                    // Most cells hold one run; it is its own line.
+                    values[row][column] = runs[0].Text.Trim();
+                    baselines.Add((runs[0].Y, column));
+                } else {
+                    List<TextLayoutEngine.TextLine> cellLines = TextLayoutEngine.BuildLines(runs, context.LayoutOptions.ToEngineOptions(),
+                        context.ConsumeWork, context.ThrowIfCancellationRequested);
+                    values[row][column] = string.Join(" ", cellLines.Select(static line => line.Text.Trim()).Where(static text => text.Length > 0));
+                    foreach (TextLayoutEngine.TextLine line in cellLines) baselines.Add((line.Y, column));
+                }
                 foreach (PdfTextSpan run in runs) {
                     PdfTextSpan source = fragments.TryGetValue(run, out PdfTextSpan? whole) ? whole : run;
                     if (!ReferenceEquals(source, run) && rowRuns[row].Contains(source)) continue;

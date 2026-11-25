@@ -42,10 +42,14 @@ public sealed partial class PdfReadPage {
         if (content.Length == 0) return Array.Empty<PdfTableRuling>();
         PdfPageInvokedResourceNames invoked = GetRootInvokedResourceNames(content, resources, () => context.ConsumeWork());
         // Borders drawn inside a form object reach the lattice pass only; the strict profile reads root strokes.
-        // A page that only places images (a scan) has no borders to read.
-        if (!invoked.HasVectorPaint && !(collectLattice && invoked.HasObjectPaint && HasFormXObjects(resources))) {
-            return Array.Empty<PdfTableRuling>();
+        // Otherwise a grid needs four straight segments in the page's own content: a scan, or a page that paints
+        // only a background box, has none to read.
+        bool forms = collectLattice && invoked.HasObjectPaint && HasFormXObjects(resources);
+        if (collectLattice && !forms && invoked.StraightSegments < 4) {
+            collectLattice = false;
+            if (!strict) return Array.Empty<PdfTableRuling>();
         }
+        if (!invoked.HasVectorPaint && !forms) return Array.Empty<PdfTableRuling>();
         // The strict profile accepts root strokes only. Decline invoked objects before
         // separate effect/geometry traversals could decode their content twice.
         if (invoked.HasObjectPaint) strict = false;

@@ -191,8 +191,7 @@ public sealed partial class PdfReadPage {
 
         internal IReadOnlyList<PdfTableRuling> Build(PdfUnderstandingPageContext context) {
             if (_overflow || _rules.Count < 4) return Array.Empty<PdfTableRuling>();
-            var fills = new List<Fill>(_fills.Count + context.ImagePlacements.Count);
-            fills.AddRange(_fills);
+            List<Fill> fills = _fills;
             foreach (PdfImagePlacement image in context.ImagePlacements) {
                 context.ConsumeWork();
                 if (!IsFinite(image.X) || !IsFinite(image.Y) || !IsFinite(image.Width) || !IsFinite(image.Height)) continue;
@@ -203,6 +202,7 @@ public sealed partial class PdfReadPage {
             var index = new FillIndex(fills, context);
             var result = new List<PdfTableRuling>();
             var cuts = new List<(double From, double To)>();
+            var candidates = new List<int>();
             foreach (Rule rule in _rules) {
                 context.ConsumeWork();
                 double middle = (rule.Lo + rule.Hi) / 2D;
@@ -213,7 +213,8 @@ public sealed partial class PdfReadPage {
                 double right = rule.Horizontal ? rule.Hi : rule.Position + rule.Half;
                 double bottom = rule.Horizontal ? rule.Position - rule.Half : rule.Lo;
                 double top = rule.Horizontal ? rule.Position + rule.Half : rule.Hi;
-                foreach (int candidate in index.Query(left, bottom, right, top)) {
+                index.Query(left, bottom, right, top, candidates);
+                foreach (int candidate in candidates) {
                     context.ConsumeWork();
                     Fill fill = fills[candidate];
                     if (!fill.Opaque) continue;
@@ -300,8 +301,9 @@ public sealed partial class PdfReadPage {
                 }
             }
 
-            internal IEnumerable<int> Query(double left, double bottom, double right, double top) {
-                if (_stamps.Length == 0) yield break;
+            internal void Query(double left, double bottom, double right, double top, List<int> found) {
+                found.Clear();
+                if (_stamps.Length == 0) return;
                 _stamp++;
                 (int x0, int y0, int x1, int y1) = Cells(left, bottom, right, top);
                 for (int y = y0; y <= y1; y++) {
@@ -311,7 +313,7 @@ public sealed partial class PdfReadPage {
                         foreach (int fill in bucket) {
                             if (_stamps[fill] == _stamp) continue;
                             _stamps[fill] = _stamp;
-                            yield return fill;
+                            found.Add(fill);
                         }
                     }
                 }
