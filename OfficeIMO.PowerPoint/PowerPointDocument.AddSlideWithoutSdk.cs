@@ -152,5 +152,26 @@ namespace OfficeIMO.PowerPoint {
             _packagePartSequence[contentType] = sequence;
             return name;
         }
+
+        // The SDK's name for a part created with a requested name: that name while the package has no part of the content
+        // type, otherwise the name with the content type's next free number appended. Either way the number moves on.
+        private string UniquePartName(OfficeOpcEditablePackage package, string contentType, string requested) {
+            _packagePartSequence ??= new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            if (!_packagePartSequence.TryGetValue(contentType, out int sequence)) sequence = package.CountParts(contentType);
+            if (sequence == 0 && !package.PartExists(requested)) {
+                _packagePartSequence[contentType] = 1;
+                return requested;
+            }
+            int dot = requested.LastIndexOf('.');
+            string stem = dot > requested.LastIndexOf('/') ? requested.Substring(0, dot) : requested;
+            string extension = dot > requested.LastIndexOf('/') ? requested.Substring(dot) : string.Empty;
+            string name;
+            do {
+                sequence++;
+                name = stem + sequence.ToString(CultureInfo.InvariantCulture) + extension;
+            } while (package.PartExists(name));
+            _packagePartSequence[contentType] = sequence;
+            return name;
+        }
     }
 }

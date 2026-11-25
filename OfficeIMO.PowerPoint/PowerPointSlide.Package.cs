@@ -82,6 +82,55 @@ namespace OfficeIMO.PowerPoint {
             return TrackShape(new PowerPointTextBox(this, slide, shape));
         }
 
+        // Adds a picture to the package tree as AddImage writes it, its image part shared with an identical image added
+        // before; null when the slide, the document or the image name is left to the SDK.
+        private PowerPointImage? TryAddPackageImage(byte[] data, OfficeIMO.Drawing.OfficeImageFormat imageType, string extension,
+            long left, long top, long width, long height) {
+            if (imageType == OfficeIMO.Drawing.OfficeImageFormat.Svg || OwnerDocument is not { } document
+                || !TryGetEditablePackageShapeTree(out OfficeXmlTree slide, out int tree) || !TryGetPackageMaxShapeId(out _)
+                || !document.TryAddPackageImagePart(PackagePartName!, data, imageType, extension, out string relationshipId, out int pixelWidth, out int pixelHeight)) {
+                return null;
+            }
+            uint id = AllocateShapeId();
+            string name = GenerateUniqueName("Picture");
+            if (!IsPackageBacked) throw new InvalidOperationException("The slide opened the SDK while a picture was added to its package.");
+
+            // The picture keeps the image's aspect ratio inside the box, as ContainInFrame fits it.
+            if (pixelWidth > 0 && pixelHeight > 0 && width > 0 && height > 0) {
+                double imageAspect = pixelWidth / (double)pixelHeight, boxAspect = width / (double)height;
+                if (Math.Abs(imageAspect / ((width / 12700D) / (height / 12700D)) - 1D) >= 0.005D) {
+                    double newWidth, newHeight;
+                    if (imageAspect > boxAspect) {
+                        newWidth = width;
+                        newHeight = width / imageAspect;
+                    } else {
+                        newHeight = height;
+                        newWidth = height * imageAspect;
+                    }
+                    left += (long)Math.Round((width - newWidth) / 2);
+                    top += (long)Math.Round((height - newHeight) / 2);
+                    width = (long)Math.Round(newWidth);
+                    height = (long)Math.Round(newHeight);
+                }
+            }
+
+            int picture = slide.CreateElement(OfficeXmlNamespaces.PresentationML, "pic");
+            int nonVisual = PowerPointDocument.Append(slide, picture, OfficeXmlNamespaces.PresentationML, "nvPicPr");
+            int drawing = PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvPr");
+            slide.SetAttribute(drawing, OfficeXmlNamespaces.None, "id", id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            slide.SetAttribute(drawing, OfficeXmlNamespaces.None, "name", name);
+            int pictureDrawing = PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvPicPr");
+            slide.SetAttribute(PowerPointDocument.Append(slide, pictureDrawing, OfficeXmlNamespaces.DrawingML, "picLocks"), OfficeXmlNamespaces.None, "noChangeAspect", "1");
+            PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "nvPr");
+            int fill = PowerPointDocument.Append(slide, picture, OfficeXmlNamespaces.PresentationML, "blipFill");
+            slide.SetAttribute(PowerPointDocument.Append(slide, fill, OfficeXmlNamespaces.DrawingML, "blip"), OfficeXmlNamespaces.Relationships, "embed", relationshipId);
+            PowerPointDocument.Append(slide, PowerPointDocument.Append(slide, fill, OfficeXmlNamespaces.DrawingML, "stretch"), OfficeXmlNamespaces.DrawingML, "fillRect");
+            AppendRectangle(slide, PowerPointDocument.Append(slide, picture, OfficeXmlNamespaces.PresentationML, "spPr"), left, top, width, height);
+            slide.Append(tree, picture);
+            document.MarkPackageEdited();
+            return TrackShape(new PowerPointImage(this, slide, picture));
+        }
+
         // A transform and a rectangle preset geometry, as the model writes them into new shapes.
         private static void AppendRectangle(OfficeXmlTree slide, int properties, long left, long top, long width, long height) {
             int transform = PowerPointDocument.Append(slide, properties, OfficeXmlNamespaces.DrawingML, "xfrm");

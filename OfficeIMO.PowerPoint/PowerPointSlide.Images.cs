@@ -30,9 +30,10 @@ namespace OfficeIMO.PowerPoint {
             OfficeIMO.Drawing.OfficeImageFormat imageType = GetImagePartType(imagePath);
             if (imageType == OfficeIMO.Drawing.OfficeImageFormat.Svg) return AddImage(source, imageType, left, top, width, height);
             string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
+            byte[] imageBytes = OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source);
+            if (TryAddPackageImage(imageBytes, imageType, imageExtension, nativeLeft, nativeTop, nativeWidth, nativeHeight) is { } added) return added;
             uint shapeId = AllocateShapeId();
-            (string relationshipId, int pixelWidth, int pixelHeight) = AddSlideImagePart(
-                OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source), imageType, imageExtension);
+            (string relationshipId, int pixelWidth, int pixelHeight) = AddSlideImagePart(imageBytes, imageType, imageExtension);
 
             string name = GenerateUniqueName("Picture");
             DocumentFormat.OpenXml.Presentation.Picture picture = new(
@@ -92,6 +93,9 @@ namespace OfficeIMO.PowerPoint {
             }
             // An SVG picture stores its PNG fallback in the ordinary blip and the SVG in the Office 2016 blip extension.
             byte[] imageBytes = OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(image);
+            if (TryAddPackageImage(imageBytes, imageType, PowerPointPartFactory.GetImageExtension(imageType), nativeLeft, nativeTop, nativeWidth, nativeHeight) is { } added) {
+                return added;
+            }
             uint shapeId = AllocateShapeId();
             string relationshipId;
             int pixelWidth, pixelHeight;

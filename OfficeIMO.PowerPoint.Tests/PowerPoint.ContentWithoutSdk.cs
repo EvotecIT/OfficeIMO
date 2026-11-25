@@ -23,6 +23,20 @@ public class PowerPointContentWithoutSdkTests {
         }),
         ("add a text box to the first slide", presentation => presentation.Slides.Count == 0 ? string.Empty
             : presentation.Slides[0].AddTextBox("Added", OfficeLength.Points(10), OfficeLength.Points(20), OfficeLength.Points(300), OfficeLength.Points(40)).Name ?? string.Empty),
+        ("add images to the first slide", presentation => {
+            if (presentation.Slides.Count == 0) return string.Empty;
+            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointImage wide = slide.AddImage(new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(40, 10)), OfficeIMO.Drawing.OfficeImageFormat.Png,
+                OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(100), OfficeLength.Points(100));
+            PowerPointImage square = slide.AddImage(new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(10, 10)), OfficeIMO.Drawing.OfficeImageFormat.Png);
+            PowerPointImage again = slide.AddImage(new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(40, 10)), OfficeIMO.Drawing.OfficeImageFormat.Png);
+            return string.Join("|", new[] { wide, square, again }.Select(image => image.Name + ":" + image.Left.ToEmus() + "," + image.Top.ToEmus() + "," + image.Width.ToEmus() + "," + image.Height.ToEmus()));
+        }),
+        ("add a slide with a text box and an image", presentation => {
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddTextBox("Caption");
+            return slide.AddImage(new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(10, 30)), OfficeIMO.Drawing.OfficeImageFormat.Png).Name ?? string.Empty;
+        }),
         ("replace the first text box's text", presentation => {
             PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Text.Length > 0);
             if (box == null) return string.Empty;

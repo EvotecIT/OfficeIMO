@@ -432,6 +432,12 @@ public class PowerPointUnchangedSaveTests {
             .Select(element => element.Attribute("Id")).OfType<XAttribute>().Where(id => Regex.IsMatch(id.Value, "^R[0-9a-f]{16}$")).ToList()) {
             id.Value = "R";
         }
+        // Markup refers to those ids through relationship attributes, such as a picture's r:embed.
+        foreach (XAttribute reference in document.Descendants().Attributes()
+            .Where(attribute => attribute.Name.NamespaceName == "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+                && Regex.IsMatch(attribute.Value, "^R[0-9a-f]{16}$")).ToList()) {
+            reference.Value = "R";
+        }
         foreach (XText text in document.DescendantNodes().OfType<XText>().Where(text => string.IsNullOrWhiteSpace(text.Value)).ToList()) text.Remove();
         // The SDK writes attributes in schema order and empty elements in short form.
         foreach (XElement element in document.Descendants().ToList()) {
