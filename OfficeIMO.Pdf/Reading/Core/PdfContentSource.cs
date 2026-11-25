@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Pdf;
 
@@ -131,85 +133,147 @@ internal readonly struct PdfStringContentText : IPdfContentText {
     }
 }
 
-internal readonly struct PdfByteContentText : IPdfContentText {
-    private readonly ReadOnlyMemory<byte> _bytes;
-    // Owned whole arrays are read directly; tokenizers index every character, and going through the memory's span
-    // on each read costs more than the byte itself.
-    private readonly byte[]? _array;
-    private readonly PdfSeekableCursor? _cursor;
+/// <summary>
+/// Bytes of a whole array for loops that read every byte, such as the content-stream reader. Reads need none of the
+/// checks <see cref="PdfByteContentText"/> makes for borrowed views and seekable input; other members delegate to it.
+/// </summary>
+internal readonly struct PdfByteArrayContentText : IPdfContentText {
+    private readonly byte[] _bytes;
 
-    internal PdfByteContentText(byte[] ownedBytes) : this(ownedBytes, ownedBytes) {
+    internal PdfByteArrayContentText(byte[] bytes) => _bytes = bytes;
+
+    public int Length => _bytes.Length;
+    public char this[int index] => (char)_bytes[index];
+    public object Source => _bytes;
+
+    public string Substring(int start, int length) => new PdfByteContentText(_bytes).Substring(start, length);
+
+    public string Substring(int start, int length, System.Threading.CancellationToken cancellationToken) =>
+        new PdfByteContentText(_bytes).Substring(start, length, cancellationToken);
+
+    public bool TryParseDouble(int start, int length, out double value) =>
+        new PdfByteContentText(_bytes).TryParseDouble(start, length, out value);
+
+    public bool TryParseDouble(int start, int length, NumberStyles styles, out double value) =>
+        new PdfByteContentText(_bytes).TryParseDouble(start, length, styles, out value);
+
+    public bool TryParseInt32(int start, int length, out int value) =>
+        new PdfByteContentText(_bytes).TryParseInt32(start, length, out value);
+
+    public int IndexOf(string value, int start, int count) => new PdfByteContentText(_bytes).IndexOf(value, start, count);
+
+    public int LastIndexOf(string value, int start, int count, bool ignoreCase) =>
+        new PdfByteContentText(_bytes).LastIndexOf(value, start, count, ignoreCase);
+}
+
+internal readonly struct PdfByteContentText : IPdfContentText {
+    // Every tokenizer takes this struct by value and indexes every character, so it stays two references wide like
+    // the byte array it wraps: a whole array (owned or borrowed) read directly, and, for other inputs, the borrowed
+    // view or seekable cursor. A wider struct is copied on every tokenizer call.
+    private readonly byte[]? _array;
+    private readonly object? _input;
+
+    internal PdfByteContentText(byte[] ownedBytes) {
         _array = ownedBytes;
+        _input = null;
     }
 
     // Borrowed views each get an identity so reusing a buffer cannot reuse a previous scan's indexes.
-    internal PdfByteContentText(ReadOnlyMemory<byte> bytes) : this(bytes, bytes) {
-    }
-
-    private PdfByteContentText(ReadOnlyMemory<byte> bytes, object source) {
-        _bytes = bytes;
-        _array = null;
-        _cursor = null;
-        Source = source;
+    internal PdfByteContentText(ReadOnlyMemory<byte> bytes) {
+        _array = MemoryMarshal.TryGetArray(bytes, out ArraySegment<byte> segment) &&
+            segment.Offset == 0 && segment.Count == segment.Array!.Length
+                ? segment.Array
+                : null;
+        _input = new BorrowedView(bytes);
     }
 
     internal PdfByteContentText(PdfSeekableInput input, CancellationToken cancellationToken) {
-        _bytes = default;
         _array = null;
-        _cursor = new PdfSeekableCursor(input, cancellationToken);
-        Source = input;
+        _input = new PdfSeekableCursor(input, cancellationToken);
     }
 
-    public int Length => _array?.Length ?? _cursor?.Input.Length ?? _bytes.Length;
+    public int Length => _array is byte[] array ? array.Length : SlowLength(_input);
     public char this[int index] => (char)ReadByte(index);
-    public object Source { get; }
+    public object Source => _input switch {
+        null => _array!,
+        PdfSeekableCursor cursor => cursor.Input,
+        _ => _input
+    };
 
-    internal bool IsSeekable => _cursor is not null;
+    internal bool IsSeekable => _input is PdfSeekableCursor;
 
-    internal byte ReadByte(int index) =>
-        _array is byte[] array ? array[index] : _cursor is null ? _bytes.Span[index] : _cursor.ReadByte(index);
+    /// <summary>Gets the array when the text is a whole array, for loops that read every byte.</summary>
+    internal bool TryGetWholeArray(out byte[]? array) {
+        array = _array;
+        return array is not null;
+    }
+
+    private ReadOnlyMemory<byte> Memory => _input is BorrowedView view ? view.Bytes : _array;
+
+    internal byte ReadByte(int index) => _array is byte[] array ? array[index] : ReadByteSlow(_input, index);
+
+    // Static, so the hot members never take the struct's address and its two fields stay in registers.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static byte ReadByteSlow(object? input, int index) => input switch {
+        PdfSeekableCursor cursor => cursor.ReadByte(index),
+        BorrowedView view => view.Bytes.Span[index],
+        _ => throw new ArgumentOutOfRangeException(nameof(index))
+    };
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int SlowLength(object? input) => input switch {
+        PdfSeekableCursor cursor => cursor.Input.Length,
+        BorrowedView view => view.Bytes.Length,
+        _ => 0
+    };
+
+    private sealed class BorrowedView {
+        internal BorrowedView(ReadOnlyMemory<byte> bytes) => Bytes = bytes;
+
+        internal ReadOnlyMemory<byte> Bytes { get; }
+    }
 
     internal ReadOnlySpan<byte> ReadRange(int start, int length) =>
-        _cursor is null ? _bytes.Span.Slice(start, length) : _cursor.ReadRange(start, length);
+        _input is PdfSeekableCursor cursor ? cursor.ReadRange(start, length) : Memory.Span.Slice(start, length);
 
     internal byte[] CopyRange(int start, int length, CancellationToken cancellationToken) =>
-        _cursor is null ? PdfSyntax.CopyBytes(_bytes, start, length, cancellationToken)
-                        : _cursor.Input.ReadAt(start, length, cancellationToken);
+        _input is PdfSeekableCursor cursor ? cursor.Input.ReadAt(start, length, cancellationToken)
+                                           : PdfSyntax.CopyBytes(Memory, start, length, cancellationToken);
 
     internal int IndexOfByte(byte value, int start, int count) =>
-        _cursor is null ? PdfByteSearch.IndexOf(_bytes.Span, value, start, count)
-                        : _cursor.IndexOf(value, start, count);
+        _input is PdfSeekableCursor cursor ? cursor.IndexOf(value, start, count)
+                                           : PdfByteSearch.IndexOf(Memory.Span, value, start, count);
 
     internal int IndexOfBytes(byte[] value, int start, int count) =>
-        _cursor is null ? PdfSyntax.IndexOfAscii(_bytes.Span, value, start, start + count)
-                        : _cursor.IndexOf(value, start, count);
+        _input is PdfSeekableCursor cursor ? cursor.IndexOf(value, start, count)
+                                           : PdfSyntax.IndexOfAscii(Memory.Span, value, start, start + count);
 
-    internal void BeginRawSecurityScan() => _cursor?.BeginRawSecurityScan();
+    internal void BeginRawSecurityScan() => (_input as PdfSeekableCursor)?.BeginRawSecurityScan();
 
     internal bool TryFindRawSecurityMarker(byte[] marker, int start, out int index) {
         index = -1;
-        return _cursor?.TryFindRawSecurityMarker(marker, start, out index) == true;
+        return _input is PdfSeekableCursor cursor && cursor.TryFindRawSecurityMarker(marker, start, out index);
     }
 
     internal PdfStream CreateStream(PdfDictionary dictionary, int start, int length, bool retainSourceSlices,
         CancellationToken cancellationToken, bool decodingFailed = false, string? decodingError = null) {
-        if (_cursor is not null) {
-            return new PdfStream(dictionary, _cursor.Input, start, length, decodingFailed, decodingError);
+        if (_input is PdfSeekableCursor cursor) {
+            return new PdfStream(dictionary, cursor.Input, start, length, decodingFailed, decodingError);
         }
 
         return retainSourceSlices
-            ? PdfStream.FromOwnedSource(dictionary, _bytes, start, length, decodingFailed, decodingError)
+            ? PdfStream.FromOwnedSource(dictionary, Memory, start, length, decodingFailed, decodingError)
             : new PdfStream(dictionary, CopyRange(start, length, cancellationToken), decodingFailed, decodingError);
     }
     public int IndexOf(string value, int start, int count) {
         if (start < 0 || count < 0 || start > Length - count) throw new ArgumentOutOfRangeException(nameof(start));
         if (count < value.Length) return -1;
-        if (_cursor is not null) {
+        if (_input is PdfSeekableCursor cursor) {
             Span<byte> marker = value.Length <= 64 ? stackalloc byte[value.Length] : new byte[value.Length];
             for (int index = 0; index < marker.Length; index++) marker[index] = (byte)value[index];
-            return _cursor.IndexOf(marker, start, count);
+            return cursor.IndexOf(marker, start, count);
         }
-        ReadOnlySpan<byte> bytes = _bytes.Span;
+        ReadOnlySpan<byte> bytes = Memory.Span;
 #if NET8_0_OR_GREATER
         if (value.Length <= 64) {
             Span<byte> needle = stackalloc byte[value.Length];
@@ -237,8 +301,8 @@ internal readonly struct PdfByteContentText : IPdfContentText {
     public int LastIndexOf(string value, int start, int count, bool ignoreCase) {
         if (start < 0 || count < 0 || start > Length - count) throw new ArgumentOutOfRangeException(nameof(start));
         if (count < value.Length) return -1;
-        if (_cursor is not null) return _cursor.LastIndexOf(value, start, count, ignoreCase);
-        ReadOnlySpan<byte> bytes = _bytes.Span;
+        if (_input is PdfSeekableCursor cursor) return cursor.LastIndexOf(value, start, count, ignoreCase);
+        ReadOnlySpan<byte> bytes = Memory.Span;
 #if NET8_0_OR_GREATER
         if (!ignoreCase && value.Length <= 64) {
             Span<byte> needle = stackalloc byte[value.Length];

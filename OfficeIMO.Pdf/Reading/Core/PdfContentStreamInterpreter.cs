@@ -26,7 +26,7 @@ internal static class PdfContentStreamInterpreter {
             return stopRequested == null || !stopRequested();
         };
         if (content.Bytes is byte[] bytes) {
-            new Reader<PdfByteContentText>(new PdfByteContentText(bytes), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)
+            new Reader<PdfByteArrayContentText>(new PdfByteArrayContentText(bytes), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)
                 .InterpretUntil(visitAll);
         } else {
             new Reader<PdfStringContentText>(new PdfStringContentText(content.Text!), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)
@@ -47,7 +47,7 @@ internal static class PdfContentStreamInterpreter {
         content.ThrowIfNull(nameof(content));
         Guard.NotNull(visit, nameof(visit));
         return content.Bytes is byte[] bytes
-            ? new Reader<PdfByteContentText>(new PdfByteContentText(bytes), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations)
+            ? new Reader<PdfByteArrayContentText>(new PdfByteArrayContentText(bytes), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations)
                 .InterpretUntil(visit)
             : new Reader<PdfStringContentText>(new PdfStringContentText(content.Text!), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations)
                 .InterpretUntil(visit);
