@@ -142,6 +142,85 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AWorkbookCreatedFromATemplateTakesASheetAndSavesWithoutTheSdk() {
+            string folder = Path.Combine(Path.GetTempPath(), "officeimo-template-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try {
+                string template = Path.Combine(folder, "template.xlsx");
+                File.WriteAllBytes(template, CreateWorkbook());
+                string output = Path.Combine(folder, "output.xlsx");
+                using (var document = ExcelDocument.Create(output, new ExcelCreateOptions { Template = template })) {
+                    ExcelSheet added = document.GetOrCreateSheet("Added", ExcelSheetNameValidationMode.Sanitize);
+                    added.Cell(1, 1).SetValue(100);
+                    Assert.True(document.HasWorksheets);
+                    document.Save(output);
+                    Assert.Empty(document.OpenXmlSdkFallbacks);
+                }
+
+                using var reread = ExcelDocument.Load(output);
+                Assert.Equal(new[] { "Data", "Second", "Added" }, reread.Sheets.Select(sheet => sheet.Name));
+                Assert.Equal(100d, reread.Sheets[2].Cell(1, 1).GetValue().Value);
+            } finally {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void TheFirstSdkReadInsideAReadScopeKeepsTheRecordedChanges() {
+            using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
+            document.Sheets[0].Cell(2, 1).SetValue("Changed");
+            int sheets = document.ExecuteReadWithoutMaterializing(() => document.OpenXmlDocument.WorkbookPart!.Workbook.Sheets!.Count());
+
+            Assert.Equal(2, sheets);
+            Assert.Single(document.OpenXmlSdkFallbacks);
+            Assert.Equal("Changed", document.Sheets[0].Cell(2, 1).GetValue().Value);
+        }
+
+        [Theory]
+        [InlineData("<s:sheetData xmlns:s=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"/>")]
+        [InlineData("<sheetData><p:row xmlns:p=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" r=\"2\"><p:c r=\"A2\"><p:v>7</p:v></p:c></p:row></sheetData>")]
+        public void RowsAddedBesideLocallyDeclaredPrefixesStayWellFormed(string sheetData) {
+            byte[] source = WithEntry(CreateWorkbook(), "xl/worksheets/sheet1.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?><worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">" + sheetData + "</worksheet>");
+            byte[] saved = SaveWithoutSdk(source, document => document.Sheets[0].Cell(1, 1).SetValue(5), out bool owned);
+
+            Assert.True(owned);
+            using var reread = ExcelDocument.Load(new MemoryStream(saved));
+            Assert.Equal(5d, reread.Sheets[0].Cell(1, 1).GetValue().Value);
+        }
+
+        [Fact]
+        public void SignatureMetadataInTheApplicationPropertiesKeepsTheSdkLoad() {
+            byte[] source = WithEntry(CreateWorkbook(), "docProps/app.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\" "
+                + "xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\"><DigSig><vt:blob>AA==</vt:blob></DigSig></Properties>");
+            using var document = ExcelDocument.Load(new MemoryStream(source));
+            Assert.False(document.IsSdkDeferred);
+        }
+
+        [Fact]
+        public void DisablingTheFastPackageWriterSavesThroughTheModel() {
+            using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
+            document.Sheets[0].Cell(2, 1).SetValue("Changed");
+            using var output = new MemoryStream();
+            document.Save(output, new ExcelSaveOptions { DisableFastPackageWriter = true });
+
+            Assert.Single(document.OpenXmlSdkFallbacks);
+        }
+
+        [Fact]
+        public async Task AsyncSavesUseTheOwnedPath() {
+            using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
+            document.Sheets[0].Cell(2, 1).SetValue("Changed");
+            using var output = new MemoryStream();
+            await document.SaveAsync(output);
+
+            Assert.Empty(document.OpenXmlSdkFallbacks);
+            using var reread = ExcelDocument.Load(new MemoryStream(output.ToArray()));
+            Assert.Equal("Changed", reread.Sheets[0].Cell(2, 1).GetValue().Value);
+        }
+
+        [Fact]
         public void ASecondSaveStartsFromTheFirst() {
             byte[] source = CreateWorkbook();
             using var document = ExcelDocument.Load(new MemoryStream(source));
@@ -165,7 +244,7 @@ namespace OfficeIMO.Tests {
             foreach (string path in Directory.EnumerateFiles(folder, "*.xlsx", SearchOption.AllDirectories).OrderBy(file => file, StringComparer.Ordinal)) {
                 string? difference = CompareWithSdk(File.ReadAllBytes(path), out bool comparedFile);
                 if (comparedFile) compared++;
-                if (difference != null) failures.Add(Path.GetRelativePath(folder, path) + ": " + difference);
+                if (difference != null) failures.Add(path.Substring(folder.Length).TrimStart(Path.DirectorySeparatorChar) + ": " + difference);
             }
             Assert.True(compared > 100, "Only " + compared + " workbooks were compared.");
             Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures.Take(40)));
@@ -218,7 +297,8 @@ namespace OfficeIMO.Tests {
             var actualCells = CellMapsOf(actual);
             if (expectedCells.Count != actualCells.Count) return "sheet count " + expectedCells.Count + " vs " + actualCells.Count;
             for (int index = 0; index < expectedCells.Count; index++) {
-                foreach (string reference in expectedCells[index].Keys.Union(actualCells[index].Keys)) {
+                // Source references are included, so a cell both saves drop is still compared with what was read.
+                foreach (string reference in expectedCells[index].Keys.Union(actualCells[index].Keys).Union(sourceCells[index].Keys)) {
                     bool edited = index == 0 && (reference == "dimension" || CorpusEditReferences.Contains(reference));
                     var baseline = edited ? expectedCells[index] : sourceCells[index];
                     baseline.TryGetValue(reference, out string? want);
@@ -298,6 +378,19 @@ namespace OfficeIMO.Tests {
             return output.ToArray();
         }
 
+        private static byte[] WithEntry(byte[] package, string name, string xml) {
+            using var stream = new MemoryStream();
+            stream.Write(package, 0, package.Length);
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true)) {
+                ZipArchiveEntry? entry = archive.GetEntry(name);
+                Assert.NotNull(entry);
+                entry!.Delete();
+                using var writer = new StreamWriter(archive.CreateEntry(name).Open(), new UTF8Encoding(false));
+                writer.Write(xml);
+            }
+            return stream.ToArray();
+        }
+
         private static byte[] CreateWorkbook() {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
@@ -324,9 +417,20 @@ namespace OfficeIMO.Tests {
             var changed = new List<string>();
             foreach (ZipArchiveEntry entry in right.Entries) {
                 ZipArchiveEntry? original = left.GetEntry(entry.FullName);
-                if (original == null || original.Crc32 != entry.Crc32 || original.CompressedLength != entry.CompressedLength) changed.Add(entry.FullName);
+                if (original == null || original.CompressedLength != entry.CompressedLength || !ContentOf(original).SequenceEqual(ContentOf(entry))) changed.Add(entry.FullName);
+            }
+            // A part the save dropped counts as changed too.
+            foreach (ZipArchiveEntry entry in left.Entries) {
+                if (right.GetEntry(entry.FullName) == null) changed.Add(entry.FullName);
             }
             return changed;
+        }
+
+        private static byte[] ContentOf(ZipArchiveEntry entry) {
+            using Stream stream = entry.Open();
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return buffer.ToArray();
         }
 
         private static string Flag(string value) => value == "true" ? "1" : value == "false" ? "0" : value;
@@ -428,6 +532,9 @@ namespace OfficeIMO.Tests {
                         string type = (string?)cell.Attribute("t") ?? "n";
                         string? value = cell.Element(Main + "v")?.Value;
                         if (type == "s" && int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int index) && index < strings.Count) value = "'" + strings[index];
+                        if (type == "inlineStr" && cell.Element(Main + "is") is { } inline) {
+                            value = "'" + (inline.Element(Main + "t")?.Value ?? string.Concat(inline.Elements(Main + "r").Select(run => run.Element(Main + "t")?.Value)));
+                        }
                         string style = (string?)cell.Attribute("s") is { } styleText && int.TryParse(styleText, out int styleIndex) && styleIndex < formats.Count
                             ? formats[styleIndex] : (string?)cell.Attribute("s") ?? "";
                         map[(string?)cell.Attribute("r") ?? "?"] = type + " " + value + " " + DescribeFormula(cell.Element(Main + "f")) + StyleSeparator + style;

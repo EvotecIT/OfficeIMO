@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
             string root = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Excel");
             string bridge = Path.Combine(root, "OpenXmlSdk") + Path.DirectorySeparatorChar;
             foreach (string file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)) {
-                string relative = Path.GetRelativePath(root, file);
+                string relative = file.Substring(root.Length).TrimStart(Path.DirectorySeparatorChar);
                 string first = relative.Split(Path.DirectorySeparatorChar)[0];
                 if (first is "bin" or "obj" || file.StartsWith(bridge, StringComparison.Ordinal)) continue;
                 if (File.ReadAllText(file).Contains("DocumentFormat.OpenXml", StringComparison.Ordinal)) yield return relative;

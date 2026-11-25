@@ -462,7 +462,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal SpreadsheetDocument _spreadSheetDocument {
             get {
-                if (_deferredWorkbook != null) OpenDeferredSdk(null);
+                if (_deferredWorkbook != null || _deferredSdkOpening) OpenDeferredSdk(null);
                 FlushPendingPackageEditsIfAny();
                 return _spreadSheetDocumentValue;
             }
@@ -493,7 +493,7 @@ namespace OfficeIMO.Excel {
         internal bool IsOpenXmlDocumentExposed => _openXmlDocumentExposed;
         private WorkbookPart _workBookPart {
             get {
-                if (_deferredWorkbook != null) OpenDeferredSdk(null);
+                if (_deferredWorkbook != null || _deferredSdkOpening) OpenDeferredSdk(null);
                 FlushPendingPackageEditsIfAny();
                 return _workBookPartValue;
             }

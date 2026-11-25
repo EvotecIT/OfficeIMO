@@ -58,6 +58,7 @@ namespace OfficeIMO.Excel {
         private const string WorksheetRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "worksheet";
         private const string DigitalSignatureOriginRelationshipType = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin";
         private const string CustomPropertiesRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "custom-properties";
+        private const string ApplicationPropertiesRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "extended-properties";
 
         // Set while the SDK package has not been opened: what the load read, and how the SDK opens when it is needed.
         private ExcelDeferredWorkbook? _deferredWorkbook;
@@ -139,11 +140,27 @@ namespace OfficeIMO.Excel {
                     || !WorkbookMainContentTypes.Contains(mainType)) {
                     return null;
                 }
+                // Signature metadata in the application properties keeps the save's signature policy, which the SDK applies.
+                string? application = package.GetRelatedPartName(null, ApplicationPropertiesRelationshipType);
+                if (application != null && package.PartExists(application) && HasDigitalSignatureFlag(package, application)) return null;
                 return ReadDeferredSheets(package, main);
             } catch (Exception exception) when (exception is InvalidDataException or XmlException or IOException
                 or ArgumentException or FormatException or NotSupportedException or InvalidOperationException or OverflowException) {
                 return null;
             }
+        }
+
+        private static bool HasDigitalSignatureFlag(OfficeOpcPackage package, string application) {
+            OfficeXmlPullReader reader = package.OpenXml(application, out OfficePooledBytes content, processMarkupCompatibility: false);
+            using (content) {
+                while (reader.Read()) {
+                    if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == 2
+                        && reader.IsElement(OfficeXmlNamespaces.ExtendedProperties, "DigSig")) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         // These reads leave markup compatibility as written, as the SDK's default NoProcess mode reads it.

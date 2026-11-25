@@ -298,6 +298,10 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            if (TryWriteDeferredPackageToFile(target, options)) {
+                return;
+            }
+
             AlignSpreadsheetDocumentTypeWithFilePath(target);
 
             if (TrySaveFileBackedPackageToFile(target, options, cancellationToken)) {
@@ -585,6 +589,10 @@ namespace OfficeIMO.Excel {
 
             if (await TryWriteUnchangedPackageToStreamAsync(destination, options, cancellationToken).ConfigureAwait(false)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.UnchangedPackage();
+                return;
+            }
+
+            if (TryWriteDeferredPackageToStream(destination, options)) {
                 return;
             }
 

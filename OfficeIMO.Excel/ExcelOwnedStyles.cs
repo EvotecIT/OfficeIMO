@@ -157,11 +157,11 @@ namespace OfficeIMO.Excel {
                 key.Append('<').Append(Name);
                 // Attribute order carries no meaning; the model compares entries with their attributes in schema order.
                 foreach ((string name, string value) in Attributes.OrderBy(static attribute => attribute.Name, StringComparer.Ordinal)) {
-                    key.Append(' ').Append(name).Append("=\"").Append(value).Append('"');
+                    key.Append(' ').Append(name).Append("=\"").Append(value.Replace("\\", "\\\\").Replace("\"", "\\\"")).Append('"');
                 }
                 key.Append('>');
                 foreach (Node child in Children) child.AppendKey(key);
-                if (Text != null) key.Append(Text);
+                if (Text != null) key.Append(Text.Replace("\\", "\\\\").Replace("<", "\\<"));
                 key.Append("</>");
             }
 
@@ -257,6 +257,11 @@ namespace OfficeIMO.Excel {
                     if (depth == 2) {
                         // Compatibility markup can hold any section; which one applies is the model's to decide.
                         if (reader.NamespaceId != OfficeXmlNamespaces.SpreadsheetML) return null;
+                        // New entries are written with the stylesheet's own bindings, which a section must not change.
+                        for (int index = 0; index < reader.AttributeCount; index++) {
+                            if (reader.GetAttributeNamespace(index, out _) == OfficeXmlNamespaces.Xmlns) return null;
+                        }
+                        if (!string.Equals(reader.ElementPrefix.Length == 0 ? string.Empty : reader.ElementPrefix + ":", styles._prefix, StringComparison.Ordinal)) return null;
                         section = reader.LocalName;
                         styles._sections.Add((section ?? string.Empty, reader.MarkupStart));
                         current = section switch {

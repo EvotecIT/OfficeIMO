@@ -2,12 +2,16 @@ using System.Collections.Concurrent;
 
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// One style change written to a cell, as one of the model's cell style methods applies it. Operations are shared:
-    /// the same change with the same arguments is one instance, so recording it allocates nothing, and the owned save
-    /// can remember what it derived from each.
+    /// One style change written to a cell, as one of the model's cell style methods applies it. Operations are shared
+    /// up to a bound: the same change with the same arguments is one instance, so recording it allocates nothing, and the
+    /// owned save can remember what it derived from each.
     /// </summary>
     internal sealed class ExcelStyleOperation {
         private static readonly ConcurrentDictionary<Key, ExcelStyleOperation> Cache = new();
+        // Fonts, colors and number formats are open-ended, so past this many shared operations new ones are not kept;
+        // they still apply, and the stylesheet still reuses equal entries.
+        private const int CacheLimit = 4096;
+        private static int _cached;
 
         private ExcelStyleOperation(ExcelStyleOperationKind kind) => Kind = kind;
 
@@ -32,7 +36,12 @@ namespace OfficeIMO.Excel {
             var key = new Key(kind, flag, text, number, color?.Attribute, color?.Value, borders);
             if (Cache.TryGetValue(key, out ExcelStyleOperation? known)) return known;
             var operation = new ExcelStyleOperation(kind) { Flag = flag, Text = text, Number = number, Color = color, Borders = borders, Source = source };
-            return Cache.GetOrAdd(key, operation);
+            if (Volatile.Read(ref _cached) >= CacheLimit) return operation;
+            if (Cache.TryAdd(key, operation)) {
+                Interlocked.Increment(ref _cached);
+                return operation;
+            }
+            return Cache.TryGetValue(key, out known) ? known : operation;
         }
 
         internal static ExcelStyleOperation Flagged(ExcelStyleOperationKind kind, bool flag) => Get(kind, flag);

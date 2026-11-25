@@ -40,6 +40,8 @@ namespace OfficeIMO.Excel {
                 }
             }
             lock (_deferredEditsGate) {
+                // The package may have opened since the checks above; the change then goes through the model.
+                if (_deferredWorkbook == null || !ReferenceEquals(sheet.DeferredEntry, entry)) return false;
                 ExcelDeferredCellStore? store = entry.Cells;
                 if (store == null) {
                     entry.Cells = store = new ExcelDeferredCellStore();
@@ -120,11 +122,62 @@ namespace OfficeIMO.Excel {
                 sheets = _deferredEditedSheets.ToArray();
                 _deferredEditedSheets.Clear();
             }
-            // Every handle to a sheet is bound by now; the one that recorded first applies the sheet's changes.
+            // Every handle to a sheet is bound by now; the one that recorded first applies the sheet's changes. A sheet
+            // whose changes fail does not stop the others from being applied; the first failure is raised after them.
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo? failure = null;
             foreach (ExcelSheet sheet in sheets) {
                 ExcelDeferredCellStore? store = sheet.DeferredCellsForReplay;
                 sheet.DeferredCellsForReplay = null;
-                if (store != null) sheet.ReplayDeferredCells(store);
+                if (store == null) continue;
+                try {
+                    sheet.ReplayDeferredCells(store);
+                } catch (Exception exception) when (failure == null) {
+                    failure = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception);
+                }
+            }
+            failure?.Throw();
+        }
+
+        /// <summary>Takes the recorded changes for a save; changes recorded while it runs start new stores.</summary>
+        private (ExcelSheet Sheet, ExcelDeferredCellStore Store)[] TakeDeferredEdits() {
+            lock (_deferredEditsGate) {
+                var taken = new (ExcelSheet Sheet, ExcelDeferredCellStore Store)[_deferredEditedSheets.Count];
+                for (int index = 0; index < taken.Length; index++) {
+                    ExcelSheet sheet = _deferredEditedSheets[index];
+                    ExcelDeferredSheet entry = sheet.DeferredEntry ?? throw new InvalidOperationException("A recorded worksheet is bound to the model.");
+                    taken[index] = (sheet, entry.Cells!);
+                    entry.Cells = null;
+                }
+                _deferredEditedSheets.Clear();
+                return taken;
+            }
+        }
+
+        /// <summary>Puts back changes a save did not write, ahead of any recorded while it ran.</summary>
+        private void RestoreDeferredEdits((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] taken) {
+            if (taken.Length == 0) return;
+            List<(ExcelSheet Sheet, ExcelDeferredCellStore Store)>? bound = null;
+            lock (_deferredEditsGate) {
+                var later = new List<ExcelSheet>(_deferredEditedSheets);
+                _deferredEditedSheets.Clear();
+                foreach ((ExcelSheet sheet, ExcelDeferredCellStore store) in taken) {
+                    if (sheet.DeferredEntry is not { } entry) {
+                        // The package opened meanwhile; these changes go through the model below.
+                        (bound ??= new()).Add((sheet, store));
+                        continue;
+                    }
+                    if (entry.Cells is { } newer) {
+                        for (int index = 0; index < newer.Count; index++) store.Add(newer[index]);
+                    }
+                    entry.Cells = store;
+                    _deferredEditedSheets.Add(sheet);
+                }
+                foreach (ExcelSheet sheet in later) {
+                    if (!_deferredEditedSheets.Contains(sheet)) _deferredEditedSheets.Add(sheet);
+                }
+            }
+            if (bound != null) {
+                foreach ((ExcelSheet sheet, ExcelDeferredCellStore store) in bound) sheet.ReplayDeferredCells(store);
             }
         }
 
@@ -134,35 +187,53 @@ namespace OfficeIMO.Excel {
             && !_customDocumentPropertiesDirty
             && !HasCalculationSaveWork(options)
             && (options == null || !options.ValidateOpenXml && !options.SafeRepairDefinedNames && !options.SafePreflight
-                && options.Format == ExcelFileFormat.Xlsx);
+                && !options.DisableFastPackageWriter && options.Format == ExcelFileFormat.Xlsx);
 
         /// <summary>Saves through the owned path into a stream, or returns false having written nothing.</summary>
         private bool TryWriteDeferredPackageToStream(Stream destination, ExcelSaveOptions? options) {
             if (!CanSaveDeferredPackage(options)) return false;
-            if (!TryCreateDeferredPackageBytes(out byte[] bytes, out string? reason)) {
-                OpenDeferredSdk("Save: " + reason);
-                return false;
+            var taken = TakeDeferredEdits();
+            bool saved = false;
+            try {
+                if (!TryCreateDeferredPackageBytes(taken, out byte[] bytes, out string? reason)) {
+                    RestoreDeferredEdits(taken);
+                    saved = true;
+                    OpenDeferredSdk("Save: " + reason);
+                    return false;
+                }
+                ThrowIfPackageMaterializationExceedsLimit(bytes.LongLength, options);
+                PrepareDestinationStreamForWrite(destination);
+                destination.Write(bytes, 0, bytes.Length);
+                try { destination.Flush(); } catch (NotSupportedException) { }
+                saved = true;
+                CompleteDeferredSave(bytes);
+                return true;
+            } finally {
+                if (!saved) RestoreDeferredEdits(taken);
             }
-            ThrowIfPackageMaterializationExceedsLimit(bytes.LongLength, options);
-            PrepareDestinationStreamForWrite(destination);
-            destination.Write(bytes, 0, bytes.Length);
-            try { destination.Flush(); } catch (NotSupportedException) { }
-            CompleteDeferredSave(bytes);
-            return true;
         }
 
         /// <summary>Saves through the owned path into a file whose extension matches the package type.</summary>
         private bool TryWriteDeferredPackageToFile(string path, ExcelSaveOptions? options) {
             if (!CanSaveDeferredPackage(options) || !DeferredPackageTypeMatches(path)) return false;
-            if (!TryCreateDeferredPackageBytes(out byte[] bytes, out string? reason)) {
-                OpenDeferredSdk("Save: " + reason);
-                return false;
+            var taken = TakeDeferredEdits();
+            bool saved = false;
+            try {
+                if (!TryCreateDeferredPackageBytes(taken, out byte[] bytes, out string? reason)) {
+                    RestoreDeferredEdits(taken);
+                    saved = true;
+                    OpenDeferredSdk("Save: " + reason);
+                    return false;
+                }
+                ThrowIfPackageMaterializationExceedsLimit(bytes.LongLength, options);
+                CommitPreparedPackageToFile(path, bytes);
+                saved = true;
+                CompleteDeferredSave(bytes);
+                FilePath = path;
+                return true;
+            } finally {
+                if (!saved) RestoreDeferredEdits(taken);
             }
-            ThrowIfPackageMaterializationExceedsLimit(bytes.LongLength, options);
-            CommitPreparedPackageToFile(path, bytes);
-            CompleteDeferredSave(bytes);
-            FilePath = path;
-            return true;
         }
 
         // A save to another extension changes the package type, which the model does.
@@ -189,25 +260,23 @@ namespace OfficeIMO.Excel {
 
         /// <summary>The document now holds what it saved: later reads and saves start from these bytes.</summary>
         private void CompleteDeferredSave(byte[] bytes) {
-            lock (_deferredEditsGate) {
-                foreach (ExcelSheet sheet in _deferredEditedSheets) {
-                    if (sheet.DeferredEntry is { } entry) entry.Cells = null;
-                }
-                _deferredEditedSheets.Clear();
-            }
             // The caller's stream or file has its own copy; the document keeps the array.
             _deferredPackageBytes = bytes;
             foreach (ExcelDeferredSheet entry in _deferredWorkbook?.Sheets ?? new List<ExcelDeferredSheet>()) entry.TableHeadersRead = false;
             _deferredHasCellMetadata = null;
             MarkPackageClean(bytes);
+            bool pending;
+            lock (_deferredEditsGate) pending = _deferredEditedSheets.Count > 0;
+            // Changes recorded while the save ran are still to be saved.
+            if (pending) MarkPackageDirty();
             ReleaseReadSnapshot();
             LastSaveDiagnostics = ExcelSaveDiagnostics.OwnedPackage();
         }
 
         /// <summary>Builds the saved package, or returns false when something needs the model.</summary>
-        private bool TryCreateDeferredPackageBytes(out byte[] bytes, out string? reason) {
+        private bool TryCreateDeferredPackageBytes((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] edits, out byte[] bytes, out string? reason) {
             _deferredSaveDeclineReason = null;
-            bool created = TryCreateDeferredPackageBytesCore(out bytes);
+            bool created = TryCreateDeferredPackageBytesCore(edits, out bytes);
             reason = _deferredSaveDeclineReason;
             return created;
         }
@@ -219,13 +288,9 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private bool TryCreateDeferredPackageBytesCore(out byte[] bytes) {
+        private bool TryCreateDeferredPackageBytesCore((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] edits, out byte[] bytes) {
             bytes = Array.Empty<byte>();
             ExcelDeferredWorkbook workbook = _deferredWorkbook!;
-            ExcelSheet[] editedSheets;
-            lock (_deferredEditsGate) {
-                editedSheets = _deferredEditedSheets.ToArray();
-            }
 
             try {
                 string? sharedStringsPart, stylesPart, corePart;
@@ -250,8 +315,7 @@ namespace OfficeIMO.Excel {
 
                 // Shared strings are added in the order values were written, as the model adds them; a cell's last value
                 // wins and its style changes apply in turn when the worksheet is merged.
-                foreach (ExcelSheet sheet in editedSheets) {
-                    ExcelDeferredCellStore store = sheet.DeferredEntry!.Cells!;
+                foreach ((_, ExcelDeferredCellStore store) in edits) {
                     for (int index = 0; index < store.Count; index++) {
                         ref ExcelDeferredCellEdit edit = ref store[index];
                         if (edit.Kind == ExcelDeferredCellKind.Text) {
@@ -266,9 +330,9 @@ namespace OfficeIMO.Excel {
 
                 ExcelDateSystem dateSystem = DateSystem;
                 long changedBytes = 0;
-                foreach (ExcelSheet sheet in editedSheets) {
+                foreach ((ExcelSheet sheet, ExcelDeferredCellStore store) in edits) {
                     ExcelDeferredSheet entry = sheet.DeferredEntry ?? throw new InvalidOperationException("A recorded worksheet is bound to the model.");
-                    var cells = new ExcelDeferredSheetCells(entry.Cells!, sharedStrings.IndexOf, date => ExcelDateSystemConverter.ToSerial(date, dateSystem));
+                    var cells = new ExcelDeferredSheetCells(store, sharedStrings.IndexOf, date => ExcelDateSystemConverter.ToSerial(date, dateSystem));
                     byte[] merged;
                     int mergedLength;
                     OfficePooledBytes worksheet = editable.ReadPart(entry.PartName);

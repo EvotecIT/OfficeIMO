@@ -66,6 +66,9 @@ namespace OfficeIMO.Excel {
                 reason = "a style change needs the model to complete the stylesheet";
                 merge.ReturnOutput();
                 return null;
+            } catch {
+                merge.ReturnOutput();
+                throw;
             }
         }
 
@@ -201,12 +204,17 @@ namespace OfficeIMO.Excel {
                                 string prefix = reader.ElementPrefix;
                                 if (reader.IsEmptyElement) {
                                     if (HasPending) {
-                                        // <sheetData/> becomes an element holding the new rows.
-                                        CopyTo(reader.MarkupStart);
-                                        AppendTag("<", prefix, "sheetData", ">");
+                                        // <sheetData/> becomes an element holding the new rows; its start tag keeps the
+                                        // namespace declarations it carries.
+                                        int tagStart = reader.MarkupStart, tagEnd = reader.MarkupEnd;
+                                        int slash = tagEnd - 2;
+                                        while (slash > tagStart && _source[slash] != (byte)'/') slash--;
+                                        if (_source[slash] != (byte)'/') return Fail("an empty sheetData element is malformed");
+                                        CopyTo(slash);
+                                        Append((byte)'>');
+                                        _copied = tagEnd;
                                         WritePendingRowsBefore(int.MaxValue, prefix);
                                         AppendTag("</", prefix, "sheetData", ">");
-                                        _copied = reader.MarkupEnd;
                                     }
                                     continue;
                                 }
@@ -282,7 +290,9 @@ namespace OfficeIMO.Excel {
                     string rowPrefix = reader.ElementPrefix;
                     if (HasPending && PendingRow < rowNumber) {
                         CopyTo(reader.MarkupStart);
-                        WritePendingRowsBefore(rowNumber, rowPrefix);
+                        // A new row is a sibling of this one, so it takes the prefix bound where sheetData is, not one
+                        // the row may declare on itself.
+                        WritePendingRowsBefore(rowNumber, sheetDataPrefix);
                     }
                     bool edited = HasPending && PendingRow == rowNumber;
                     if (!ReadRow(reader, rowNumber, rowPrefix, edited)) return false;

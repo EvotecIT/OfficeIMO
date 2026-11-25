@@ -14,17 +14,39 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         // The settings a deferred load opens the SDK package with; set while the SDK has not been opened.
         private OpenSettings? _deferredOpenSettings;
+        private readonly object _deferredOpenGate = new();
+        // Set while one thread opens the package, so the SDK getters on other threads wait for it to finish.
+        private volatile bool _deferredSdkOpening;
 
         /// <summary>
         /// Opens the SDK package of a deferred load over the bytes the load read, with its settings, and binds the
         /// worksheets the document has handed out. Does nothing when the package is already open.
         /// </summary>
         internal void OpenDeferredSdk(string? reason) {
-            ExcelDeferredWorkbook? deferred = _deferredWorkbook;
-            if (deferred == null) {
+            if (_deferredWorkbook == null && !_deferredSdkOpening) {
                 if (_disposed && _spreadSheetDocumentValue == null) throw new ObjectDisposedException(nameof(ExcelDocument));
                 return;
             }
+            // One thread opens the package; others wait here until its recorded changes are in the model. The opening
+            // thread finds the workbook already taken when binding and replay come back through the SDK getters.
+            lock (_deferredOpenGate) {
+                ExcelDeferredWorkbook? deferred = _deferredWorkbook;
+                // Only the opening thread can be inside the gate while it opens; its own reads come back here.
+                if (_deferredSdkOpening) return;
+                if (deferred == null) {
+                    if (_disposed && _spreadSheetDocumentValue == null) throw new ObjectDisposedException(nameof(ExcelDocument));
+                    return;
+                }
+                _deferredSdkOpening = true;
+                try {
+                    OpenDeferredSdkLocked(deferred, reason);
+                } finally {
+                    _deferredSdkOpening = false;
+                }
+            }
+        }
+
+        private void OpenDeferredSdkLocked(ExcelDeferredWorkbook deferred, string? reason) {
             byte[] bytes = _deferredPackageBytes!;
             Stream stream = OfficePackageLoadSource.CreatePackageStream(bytes, DocumentAccessMode.ReadWrite);
             SpreadsheetDocument document;
@@ -37,7 +59,6 @@ namespace OfficeIMO.Excel {
                 throw;
             }
 
-            _deferredWorkbook = null;
             _deferredPackageBytes = null;
             _spreadSheetDocumentValue = document;
             _workBookPartValue = GetWorkbookPartOrThrow(document);
@@ -46,15 +67,23 @@ namespace OfficeIMO.Excel {
             ExcelChartAxisIdGenerator.ReadChartRelationships(document);
             // Binding hides each sheet's workbook entry, so the changes recorded there move to the sheets that replay them.
             lock (_deferredEditsGate) {
+                // Recording checks this under the same gate, so no change lands in an entry after it moves.
+                _deferredWorkbook = null;
                 foreach (ExcelSheet edited in _deferredEditedSheets) {
                     edited.DeferredCellsForReplay = edited.DeferredEntry?.Cells;
                     if (edited.DeferredEntry is { } entry) entry.Cells = null;
                 }
             }
-            BindDeferredSheets(deferred);
-            _openXmlSdkFallbacks.Add(reason ?? DescribeSdkCaller());
-            // Values written before the package opened go through the model now, in the order they were written.
-            ReplayDeferredCellEdits();
+            // A read can open the package (the first SDK read of a workbook with recorded changes). Binding and replay
+            // write to the model, which a read lock cannot be upgraded to; no writer can hold the lock meanwhile, and
+            // other threads wait on the open gate, so they run without taking it.
+            ReaderWriterLockSlim lck = EnsureLock();
+            using (lck.IsReadLockHeld && !lck.IsWriteLockHeld && !lck.IsUpgradeableReadLockHeld ? Locking.EnterNoLockScope() : null) {
+                BindDeferredSheets(deferred);
+                _openXmlSdkFallbacks.Add(reason ?? DescribeSdkCaller());
+                // Values written before the package opened go through the model now, in the order they were written.
+                ReplayDeferredCellEdits();
+            }
         }
 
         /// <summary>Binds each handed-out sheet to its SDK element and part, and rebuilds the sheet cache around them.</summary>

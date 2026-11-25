@@ -67,6 +67,10 @@ namespace OfficeIMO.Excel {
                     case '<': text.Append("&lt;"); break;
                     case '>': text.Append("&gt;"); break;
                     case '"': text.Append("&quot;"); break;
+                    // Written as references so attribute value normalization keeps them as read.
+                    case '\t': text.Append("&#x9;"); break;
+                    case '\r': text.Append("&#xD;"); break;
+                    case '\n': text.Append("&#xA;"); break;
                     default: text.Append(character); break;
                 }
             }
@@ -206,7 +210,8 @@ namespace OfficeIMO.Excel {
                             declaredCount = parsed;
                         }
                         int originalItems = _count - _added.Count;
-                        edits.SetAttribute(reader, "count", Count(declaredCount < 0 ? originalItems : declaredCount, originalItems).ToString(CultureInfo.InvariantCulture));
+                        // Without a declared reference count the workbook's total is unknown, so it stays undeclared.
+                        if (declaredCount >= 0) edits.SetAttribute(reader, "count", Count(declaredCount, originalItems).ToString(CultureInfo.InvariantCulture));
                         edits.SetAttribute(reader, "uniqueCount", _count.ToString(CultureInfo.InvariantCulture));
                         if (reader.IsEmptyElement) {
                             if (_added.Count == 0) continue;

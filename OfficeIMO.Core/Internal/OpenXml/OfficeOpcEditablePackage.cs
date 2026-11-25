@@ -178,6 +178,11 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         part.ContentLength = length;
         part.ContentPooled = pooled;
         part.FromSource = false;
+        if (string.Equals(partName, ContentTypesPartName, StringComparison.OrdinalIgnoreCase)) {
+            // Later content-type changes go to the replacement catalog, not the one read before it.
+            _contentTypes = null;
+            _overrides = null;
+        }
     }
 
     private static void ReturnContent(Part part) {
