@@ -331,7 +331,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Forgets the slide order after the slide list changed; <paramref name="removedPart"/> left the package.</summary>
         private void PackageSlidesChanged(string? removedPart = null) {
             _packageSlideOrder = null;
-            if (removedPart != null) _packageSlides?.Remove(PartIdentity(removedPart));
+            // A slide a caller still holds stops working on the package, so it can't reach a part that later takes its name.
+            if (removedPart != null && _packageSlides != null && _packageSlides.TryGetValue(PartIdentity(removedPart), out PowerPointSlide? removed)) {
+                removed.RemovedFromPackage = true;
+                _packageSlides.Remove(PartIdentity(removedPart));
+            }
         }
 
         /// <summary>Opens the SDK for a package-backed slide and returns the part it is bound to.</summary>

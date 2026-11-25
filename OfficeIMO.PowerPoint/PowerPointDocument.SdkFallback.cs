@@ -34,6 +34,11 @@ namespace OfficeIMO.PowerPoint {
 
         // The outermost frame of this assembly on the stack: the call the user made. The trace is read as text, which
         // needs no method metadata; builds that strip frame names record the finding without a member.
+        private static readonly string[] Plumbing = {
+            "EnsureSdk", "OpenDeferredSdk", "RecordSdkFallback", "BindSdkSlide", "BindPackageElement", "BindSdkElement", "BindSdk",
+            "get_SdkDocument", "get_SdkPresentationPart", "get_LoadedSlides", "get_PresentationRoot", "get_SlidePart", "get_Element"
+        };
+
         private static string? FindPublicCaller() {
             string? found = null;
             try {
@@ -52,8 +57,9 @@ namespace OfficeIMO.PowerPoint {
                     if (type != "OfficeIMO.PowerPoint".Length) continue;
                     string typeName = qualified.Substring(type + 1, method - type - 1);
                     string methodName = qualified.Substring(method + 1);
-                    // Compiler-generated frames (lambdas, iterators, local functions) are not what the caller called.
-                    if (typeName.IndexOf('<') >= 0 || methodName.IndexOf('<') >= 0) continue;
+                    // Compiler-generated frames (lambdas, iterators, local functions) are not what the caller called, and
+                    // neither is the plumbing that opens the SDK, which shows up where the runtime inlined the caller.
+                    if (typeName.IndexOf('<') >= 0 || methodName.IndexOf('<') >= 0 || Array.IndexOf(Plumbing, methodName) >= 0) continue;
                     if (methodName.StartsWith("get_", StringComparison.Ordinal) || methodName.StartsWith("set_", StringComparison.Ordinal)) methodName = methodName.Substring(4);
                     found = typeName.Replace('+', '.') + "." + methodName;
                 }

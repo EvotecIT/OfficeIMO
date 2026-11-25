@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint {
             tree = PackageTree!;
             node = PackageNode;
             // Once the SDK opened the package, the tree is gone and the shape binds to the SDK element instead.
-            return IsPackageBacked && tree != null && OwnerSlide?.OwnerDocument?.IsSdkLoaded == false;
+            return IsPackageBacked && tree != null && OwnerSlide is { RemovedFromPackage: false } && OwnerSlide.OwnerDocument?.IsSdkLoaded == false;
         }
 
         /// <summary>

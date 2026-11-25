@@ -40,7 +40,7 @@ public class PowerPointSlideOrderWithoutSdkTests {
     [MemberData(nameof(CorpusPresentations))]
     public void EditsCorpusPresentationsAsTheModelDoes(string relativePath) {
         byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, relativePath));
-        Assert.Empty(Differences(source));
+        AssertNoDifferences(Differences(source));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class PowerPointSlideOrderWithoutSdkTests {
         Assert.True(text.IndexOf("Fourth", StringComparison.Ordinal) < text.IndexOf("First", StringComparison.Ordinal));
         Assert.DoesNotContain("Second", text);
         Assert.DoesNotContain(ReadParts(saved).Keys, part => part.Contains("notesSlide", StringComparison.Ordinal));
-        Assert.Empty(Differences(source));
+        AssertNoDifferences(Differences(source));
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class PowerPointSlideOrderWithoutSdkTests {
 
         Assert.False(presentation.IsSdkLoaded);
         Assert.Equal(new[] { "Middle", "Opening" }, presentation.GetSections().Select(section => section.Name));
-        Assert.Empty(Differences(source));
+        AssertNoDifferences(Differences(source));
     }
 
     [Fact]
@@ -89,6 +89,27 @@ public class PowerPointSlideOrderWithoutSdkTests {
         Assert.Equal(new[] { "Third slide", "Fourth slide", "Second slide" },
             presentation.Slides.Select(slide => slide.TextBoxes.Single().Text));
         Assert.False(presentation.IsSdkLoaded);
+    }
+
+    [Fact]
+    public void ARemovedSlideACallerKeepsDoesNotReachASlideThatReusesItsPart() {
+        // Slide parts 1, 3 and 4: the next new slide part after removing slide 4 is slide4.xml again.
+        byte[] gapped;
+        using (var source = PowerPointDocument.Load(new MemoryStream(CreateDeck()))) {
+            source.RemoveSlide(1);
+            gapped = source.ToBytes();
+        }
+        using var presentation = PowerPointDocument.Load(new MemoryStream(gapped));
+        PowerPointSlide removed = presentation.Slides[2];
+        presentation.RemoveSlide(2);
+        PowerPointSlide copy = presentation.DuplicateSlide(0);
+        Assert.False(presentation.IsSdkLoaded);
+        Assert.Contains("ppt/slides/slide4.xml", ReadParts(presentation.ToBytes()).Keys);
+
+        Record.Exception(() => removed.Hidden = true);
+
+        Assert.False(copy.Hidden);
+        Assert.Equal("First slide", copy.TextBoxes.Single().Text);
     }
 
     [Theory]
@@ -108,7 +129,7 @@ public class PowerPointSlideOrderWithoutSdkTests {
         presentation.RemoveSlide(0);
 
         Assert.True(presentation.IsSdkLoaded);
-        Assert.Empty(Differences(source, Edits[0]));
+        AssertNoDifferences(Differences(source, Edits[0]));
     }
 
     // Opt-in, as the other corpus checks: OFFICEIMO_PPTX_CORPUS names a folder of presentations.
@@ -167,4 +188,8 @@ public class PowerPointSlideOrderWithoutSdkTests {
         presentation.AddSlide().AddTextBox("Fourth slide");
         return presentation.ToBytes();
     }
+
+    // The whole of each difference, which the collection display would cut short.
+    private static void AssertNoDifferences(List<string> differences) =>
+        Assert.True(differences.Count == 0, string.Join(Environment.NewLine, differences));
 }

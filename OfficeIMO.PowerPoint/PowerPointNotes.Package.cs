@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint {
         private bool TryGetPackageNotesBody(out OfficeXmlTree? tree, out int body) {
             tree = null;
             body = OfficeXmlTree.NoNode;
-            if (_slide is not { IsPackageBacked: true, PackagePartName: { } slidePart, OwnerDocument: { } document }) return false;
+            if (_slide is not { IsPackageBacked: true, RemovedFromPackage: false, PackagePartName: { } slidePart, OwnerDocument: { } document }) return false;
             // Notes the slide doesn't have yet are created, as reading or writing them through the model creates them.
             if ((document.GetPackageNotes(slidePart) ?? document.TryCreatePackageNotes(slidePart)) is not { } notes) return false;
             tree = notes;

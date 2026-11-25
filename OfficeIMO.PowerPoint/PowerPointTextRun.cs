@@ -60,7 +60,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private bool IsPackageBacked => _run == null && _packageTree != null && _packageSlide?.OwnerDocument?.IsSdkLoaded == false;
+        private bool IsPackageBacked => _run == null && _packageTree != null && _packageSlide is { RemovedFromPackage: false } && _packageSlide.OwnerDocument?.IsSdkLoaded == false;
 
         private bool CanEditPackage => IsPackageBacked && _packageSlide!.OwnerDocument!.CanEditPackage;
 

@@ -38,6 +38,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The slide's part name in the package, for a slide created before the SDK opened.</summary>
         internal string? PackagePartName { get; }
 
+        /// <summary>Whether the slide was removed while it worked on the package; it no longer reads or edits a part there.</summary>
+        internal bool RemovedFromPackage { get; set; }
+
         /// <summary>Whether the slide works on the document's package rather than an SDK part.</summary>
         internal bool IsPackageBacked => _slidePart == null;
 

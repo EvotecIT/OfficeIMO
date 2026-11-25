@@ -23,7 +23,7 @@ public class PowerPointTextWithoutSdkTests {
     [MemberData(nameof(CorpusPresentations))]
     public void CountsAndExtractsCorpusPresentationsAsTheModelDoes(string relativePath) {
         byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, relativePath));
-        Assert.Empty(Differences(source));
+        AssertNoDifferences(Differences(source));
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class PowerPointTextWithoutSdkTests {
         Assert.False(presentation.IsSdkLoaded);
         Assert.Contains(chunks, chunk => chunk.Text.Contains("Second slide"));
         Assert.Contains(chunks, chunk => chunk.Text.Contains("Speaker note"));
-        Assert.Empty(Differences(source));
+        AssertNoDifferences(Differences(source));
     }
 
     [Fact]
@@ -157,4 +157,8 @@ public class PowerPointTextWithoutSdkTests {
         presentation.AddSlide().AddTextBox("Third slide");
         return presentation.ToBytes();
     }
+
+    // The whole of each difference, which the collection display would cut short.
+    private static void AssertNoDifferences(List<string> differences) =>
+        Assert.True(differences.Count == 0, string.Join(Environment.NewLine, differences));
 }

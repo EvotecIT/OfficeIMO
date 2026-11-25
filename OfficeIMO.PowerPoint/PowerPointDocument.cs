@@ -115,6 +115,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Gets the underlying Open XML package for advanced integration scenarios.</summary>
         public PresentationDocument OpenXmlDocument {
+            // Kept as its own frame, so a diagnostic of the SDK opening here names this property.
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
             get {
                 ThrowIfDisposed();
                 return SdkDocument!;

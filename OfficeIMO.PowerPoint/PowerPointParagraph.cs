@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private bool IsPackageBacked => _paragraph == null && PackageTree != null && _packageSlide?.OwnerDocument?.IsSdkLoaded == false;
+        private bool IsPackageBacked => _paragraph == null && PackageTree != null && _packageSlide is { RemovedFromPackage: false } && _packageSlide.OwnerDocument?.IsSdkLoaded == false;
         internal OpenXmlPartContainer? OwnerPart => _ownerPart;
 
         /// <summary>
