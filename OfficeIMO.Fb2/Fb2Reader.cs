@@ -95,7 +95,7 @@ public static partial class Fb2Reader {
             AddImages(book, root);
             var navigation = new List<EpubNavigationEntry>();
             string? cover = (string?)titleInfo?.Element(Fb + "coverpage")?.Element(Fb + "image")?.Attribute(Link + "href");
-            if (cover is { Length: > 1 } && cover[0] == '#' && _images.TryGetValue(cover.Substring(1), out EpubManifestItem? image)) {
+            if (GetLocalFragment(cover) is { } coverId && _images.TryGetValue(coverId, out EpubManifestItem? image)) {
                 book.SetCoverImage(image.Id);
                 book.AddChapter("cover", "EPUB/cover.xhtml", "Cover",
                     new XElement("div", new XElement("img", new XAttribute("src", image.Href), new XAttribute("alt", title + " cover")))
@@ -114,6 +114,7 @@ public static partial class Fb2Reader {
                 string path = "EPUB/" + BodyName(i);
                 string label = Value(body, "title") ?? ((string?)body.Attribute("name") is { Length: > 0 } name ? name : title);
                 var content = new XElement("div", body.Nodes().Select(node => Render(node, i, 1)));
+                if (body.Attribute(XNamespace.Xml + "lang") is { } lang) content.Add(new XAttribute(lang));
                 book.AddChapter("body-" + Ordinal(i + 1), path, label, content.ToString(SaveOptions.DisableFormatting));
                 EpubNavigationEntry[] sections = ReadNavigation(body, path).ToArray();
                 if (bodies.Length == 1 && sections.Length != 0) navigation.AddRange(sections);

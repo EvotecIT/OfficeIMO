@@ -31,14 +31,16 @@ public sealed class Fb2ReaderTests {
         Assert.Throws<XmlException>(() => Fb2Reader.Import(source));
     }
 
-    [Fact]
-    public void PreservesNestedContentsAndLinksIntoTheNotesBody() {
-        using var source = new MemoryStream(Encoding.UTF8.GetBytes("""
+    [Theory]
+    [InlineData("#foot")]
+    [InlineData("#%66oot")]
+    public void PreservesNestedContentsAndLinksIntoTheNotesBody(string target) {
+        using var source = new MemoryStream(Encoding.UTF8.GetBytes($$"""
             <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
               <description><title-info><book-title>Notes</book-title><lang>en</lang></title-info></description>
               <body><section id="start"><title><p>Opening</p><p>Signal</p></title><section><title><p>Nested</p></title>
-              <p><a l:href="#foot">Note</a> <a l:href="file:///private/note">Local file</a></p></section></section></body>
-              <body name="notes"><section id="foot"><title><p>Footnote</p></title><p>Note body.</p></section></body>
+              <p><a l:href="{{target}}">Note</a> <a l:href="file:///private/note">Local file</a></p></section></section></body>
+              <body name="notes" xml:lang="fr"><section id="foot"><title><p>Footnote</p></title><p>Note body.</p></section></body>
             </FictionBook>
             """));
         var imported = Fb2Reader.Import(source);
@@ -52,5 +54,6 @@ public sealed class Fb2ReaderTests {
         Assert.Contains("body-2.xhtml#fb2-3", book.Chapters[0].Html);
         Assert.DoesNotContain("file:", book.Chapters[0].Html);
         Assert.Contains("Note body.", book.Chapters[1].Text);
+        Assert.Contains("xml:lang=\"fr\"", book.Chapters[1].Html);
     }
 }

@@ -45,6 +45,9 @@ public static partial class Fb2Reader {
             }
         }
 
+        private static string? GetLocalFragment(string? href) =>
+            href is { Length: > 1 } && href[0] == '#' ? Uri.UnescapeDataString(href.Substring(1)) : null;
+
         private static string BodyName(int body) => "body-" + Ordinal(body + 1) + ".xhtml";
 
         private void IndexAnchors(XElement body, int number) {
@@ -101,7 +104,7 @@ public static partial class Fb2Reader {
             if (source.Attribute(XNamespace.Xml + "lang") is { } lang) target.Add(new XAttribute(lang));
             if (tag == "a") {
                 if ((string?)source.Attribute(Link + "href") is { } href) {
-                    if (href.StartsWith("#", StringComparison.Ordinal) && _targets.TryGetValue(href.Substring(1), out var entry))
+                    if (GetLocalFragment(href) is { } fragment && _targets.TryGetValue(fragment, out var entry))
                         target.SetAttributeValue("href", (entry.Body == body ? "" : BodyName(entry.Body)) + "#" + entry.Id);
                     else if (EpubImportedPublication.IsWebLink(href))
                         target.SetAttributeValue("href", href);
@@ -110,7 +113,7 @@ public static partial class Fb2Reader {
             } else if (tag == "img") {
                 string? href = (string?)source.Attribute(Link + "href");
                 string alt = (string?)source.Attribute("alt") ?? (string?)source.Attribute("title") ?? "";
-                if (href is { Length: > 1 } && href[0] == '#' && _images.TryGetValue(href.Substring(1), out EpubManifestItem? image)) {
+                if (GetLocalFragment(href) is { } imageId && _images.TryGetValue(imageId, out EpubManifestItem? image)) {
                     target.SetAttributeValue("src", image.Href);
                     target.SetAttributeValue("alt", alt);
                     return target;

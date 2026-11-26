@@ -79,6 +79,11 @@ $nativeDrivers = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'OfficeIMO.Fb2'
+        classification = 'managed-cross-platform'
+        evidence = 'The reader and its conversion routes are exercised by managed .NET 8 and 10 contracts. Full-assembly NativeAOT qualification remains open.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Pdf.Testing'
         classification = 'managed-cross-platform'
         evidence = 'The PDF snapshot assertions run inside test hosts; packed xUnit, NUnit and MSTest consumers on .NET 8 and 10 validate them. Test projects are not published as NativeAOT applications.'

@@ -4,6 +4,12 @@ Read FictionBook 2 from an `.fb2` file or an `.fb2.zip` archive with one book.
 The reader builds an EPUB publication from the title and author metadata, body
 sections, notes, links and embedded images.
 
+Install the package from NuGet.
+
+```sh
+dotnet add package OfficeIMO.Fb2
+```
+
 ```csharp
 using OfficeIMO.Fb2;
 

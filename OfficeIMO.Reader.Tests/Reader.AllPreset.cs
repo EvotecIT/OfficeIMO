@@ -22,6 +22,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.epub",
         "officeimo.reader.excel",
         "officeimo.reader.excel.legacy",
+        "officeimo.reader.fb2",
         "officeimo.reader.html",
         "officeimo.reader.image",
         "officeimo.reader.iwork",

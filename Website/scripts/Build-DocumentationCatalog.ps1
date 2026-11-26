@@ -73,6 +73,7 @@ function Get-DocumentationUrl {
         '^OfficeIMO\.Markdown' { return '/docs/markdown/' }
         '^OfficeIMO\.Rtf' { return '/docs/rtf/' }
         '^OfficeIMO\.Epub' { return '/docs/epub/' }
+        '^OfficeIMO\.Fb2$' { return 'https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Fb2/README.md' }
         '^OfficeIMO\.Data\.Conversions' { return '/docs/data-conversions/' }
         '^OfficeIMO\.CSV' { return '/docs/csv/' }
         '^OfficeIMO\.Yaml' { return '/docs/yaml/' }

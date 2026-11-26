@@ -69,7 +69,9 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(
             [
                 "book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "csv-xlsx", "djvu-pdf", "doc-pdf", "docx-epub",
-                "docx-odt", "docx-pdf", "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-epub", "html-pdf",
+                "docx-odt", "docx-pdf",
+                "ebook-fb2-epub", "ebook-fb2-html", "ebook-fb2-markdown", "ebook-fb2-pdf",
+                "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-epub", "html-pdf",
                 "markdown-docx", "markdown-epub", "markdown-pdf", "notebook-docx", "notebook-html", "notebook-markdown", "notebook-pdf", "notebook-source-ipynb",
                 "notebook-source-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf",
                 "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-odp", "pptx-pdf", "publisher-pdf", "rtf-docx",
@@ -132,6 +134,7 @@ public sealed class OfficeWorkflowRunnerTests {
 
     [Theory]
     [InlineData("source.md", "# Runner route marker", "markdown-docx")]
+    [InlineData("source.office.md", "# Runner route marker", "markdown-docx")]
     [InlineData("source.rtf", @"{\rtf1\ansi Runner route marker\par}", "rtf-docx")]
     public async Task RunnerExecutesFrontDoorAndPairRoutesThroughTheSharedConverter(string name, string content, string routeId) {
         using var scope = new TestDirectory();
@@ -228,6 +231,28 @@ public sealed class OfficeWorkflowRunnerTests {
             Assert.Null(OfficeWorkflowCatalog.Find(extension, ".epub", executableOnly: true));
             Assert.Equal("docx-pdf", OfficeWorkflowCatalog.Find(extension, ".pdf", executableOnly: true)?.Id);
         }
+    }
+
+    [Fact]
+    public async Task ImportedMarkdownAppliesOutputLimitToThePublishedArtifact() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "book.fb2");
+        string output = Path.Combine(scope.Path, "book.md");
+        await File.WriteAllTextAsync(input, """
+            <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0"><body>
+            """ + string.Concat(Enumerable.Repeat("<p>word</p>", 1_000)) + "</body></FictionBook>");
+        var options = new OfficeConversionOptions {
+            RouteId = "ebook-fb2-markdown", MaximumOutputBytes = 8 * 1024,
+            FileConflictPolicy = OfficePublicationPolicy.Replace
+        };
+
+        await OfficeConverter.ConvertAsync(input, output, options);
+
+        string markdown = await File.ReadAllTextAsync(output);
+        Assert.Equal(1_000, Regex.Matches(markdown, "word").Count);
+        options.MaximumOutputBytes = 64;
+        await Assert.ThrowsAsync<InvalidDataException>(() => OfficeConverter.ConvertAsync(input, output, options));
+        Assert.Equal(markdown, await File.ReadAllTextAsync(output));
     }
 
     [Fact]

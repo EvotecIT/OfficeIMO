@@ -7,18 +7,27 @@ internal static class EpubImportedPublication {
     private static readonly XNamespace Xhtml = "http://www.w3.org/1999/xhtml";
     internal static EpubDocument Open(EpubPublication publication, CancellationToken token) {
         using var package = new MemoryStream();
-        publication.WriteStaged(package, new EpubSaveOptions(), token);
+        var saveOptions = new EpubSaveOptions();
+        publication.WriteStaged(package, saveOptions, token);
         package.Position = 0;
-        return EpubDocument.Load(package, new EpubLoadOptions {
+        EpubDocument document = EpubDocument.Load(package, new EpubLoadOptions {
             IncludeRawHtml = true,
             IncludeResourceData = true,
+            ResourceDataFilter = static (_, mediaType) => IsRasterMediaType(mediaType),
+            MaxResources = saveOptions.MaxEntries,
             IncludeNonLinearSpineItems = true,
             FallbackToHtmlScan = false,
             MaxChapters = 2_000,
-            MaxChapterBytes = 32L * 1024 * 1024,
+            MaxChapterBytes = new EpubPublicationLoadOptions().MaxEntryBytes,
+            MaxTotalRawHtmlBytes = saveOptions.MaxExpandedBytes,
             MaxResourceBytes = 32L * 1024 * 1024,
             MaxTotalResourceBytes = 192L * 1024 * 1024
         }, token);
+        if (document.Chapters.Count != publication.Spine.Count || document.Chapters.Any(static chapter => chapter.Html == null)) {
+            string? diagnostic = document.Diagnostics.FirstOrDefault(static item => item.Code.StartsWith("epub.chapter.", StringComparison.Ordinal))?.Message;
+            throw new InvalidDataException(diagnostic ?? "The imported ebook could not retain all generated chapters.");
+        }
+        return document;
     }
 
     internal static void WriteHtml(EpubDocument book, Stream destination, List<OfficeDiagnostic> diagnostics,
@@ -31,7 +40,7 @@ internal static class EpubImportedPublication {
         var images = new Dictionary<string, Lazy<string>>(StringComparer.Ordinal);
         foreach (EpubResource image in book.Resources) {
             if (image.Data is { Length: > 0 } bytes && image.MediaType is { } mediaType &&
-                mediaType is "image/jpeg" or "image/png" or "image/gif" or "image/webp" && !images.ContainsKey(image.Path))
+                IsRasterMediaType(mediaType) && !images.ContainsKey(image.Path))
                 images.Add(image.Path, new Lazy<string>(() => "data:" + mediaType + ";base64," + Convert.ToBase64String(bytes)));
         }
         using var writer = XmlWriter.Create(destination, new XmlWriterSettings {
@@ -164,6 +173,9 @@ internal static class EpubImportedPublication {
         "li" or "em" or "strong" or "b" or "i" or "u" or "s" or "sub" or "sup" or "code" or "pre" or "dfn" or "cite" or
         "table" or "thead" or "tbody" or "tfoot" or "tr" or "td" or "th" or "caption" or "img" or "figure" or "figcaption" or
         "dl" or "dt" or "dd" or "q";
+
+    private static bool IsRasterMediaType(string? mediaType) =>
+        mediaType is "image/jpeg" or "image/png" or "image/gif" or "image/webp";
 
     internal static bool TryReadRaster(byte[] data, string? name, CancellationToken token, out OfficeImageInfo image) =>
         OfficeImageReader.TryIdentifyByContent(data, name, token, out image) &&
