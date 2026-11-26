@@ -46,6 +46,7 @@
     <InternalsVisibleTo Include="OfficeIMO" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Epub" />
+    <InternalsVisibleTo Include="OfficeIMO.Comic" />
     <InternalsVisibleTo Include="OfficeIMO.Shared.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
   </ItemGroup>

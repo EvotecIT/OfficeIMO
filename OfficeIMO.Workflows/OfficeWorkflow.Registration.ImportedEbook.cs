@@ -1,8 +1,10 @@
 using System.Text;
+using OfficeIMO.Comic;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Epub;
 using OfficeIMO.Epub.Image;
 using OfficeIMO.Html;
+using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 
 namespace OfficeIMO.Workflows;
@@ -12,6 +14,7 @@ public static partial class OfficeWorkflow {
 
     private static IEnumerable<ImportedEbookRoute> CreateImportedEbookRoutes() {
         var routes = new List<ImportedEbookRoute>();
+        AddImportedEbookRoutes(routes, "cbz", ComicReader.Import);
         return routes;
     }
 
@@ -42,8 +45,11 @@ public static partial class OfficeWorkflow {
                     OfficeConversionReport pdf = EpubPdfExport.Write(book, destination, options.Html, false, cancellationToken);
                     diagnostics.AddRange(pdf.Diagnostics);
                     itemsWritten = pdf.ItemsWritten;
-                    if (book.Metadata.Any(item => item.Kind == EpubMetadataKind.DublinCore &&
-                        item.Name is not ("title" or "creator" or "language" or "identifier")))
+                    if (EpubImportedPublication.MetadataFields(book).Any(item =>
+                        item.Name is not ("dc.title" or "dc.creator" or "dc.language") &&
+                        !(item.Name == "dc.identifier" && imported.Value.HasGeneratedIdentifier &&
+                          item.Value == imported.Value.Identifier)) ||
+                        book.Metadata.Count(item => item.Name == "creator") > 1)
                         AddMetadataLoss(diagnostics, "PDF retains the title, primary creator and language from the publication metadata.");
                 } else {
                     foreach (EpubDiagnostic item in book.Diagnostics)
@@ -56,12 +62,20 @@ public static partial class OfficeWorkflow {
                         EpubImportedPublication.WriteHtml(book, destination, diagnostics, cancellationToken);
                     } else {
                         using var html = new OfficeBoundedMemoryStream(Math.Min(options.MaximumOutputBytes, 128L * 1024 * 1024));
-                        EpubImportedPublication.WriteHtml(book, html, diagnostics, cancellationToken);
+                        EpubImportedPublication.WriteHtml(book, html, diagnostics, cancellationToken, markdownAnchors: true);
                         html.Position = 0;
                         using var text = new StreamReader(html, Encoding.UTF8);
                         var markup = HtmlConversionDocument.Parse(text.ReadToEnd(), null, cancellationToken);
-                        diagnostics.AddRange(markup.SaveAsMarkdown(destination, cancellationToken: cancellationToken).Diagnostics);
-                        AddMetadataLoss(diagnostics, "Markdown carries book content and navigation but omits publication metadata fields.");
+                        var markdownOptions = new HtmlMarkdownExportOptions();
+                        markdownOptions.PassThroughTags.Add("a");
+                        using MarkdownDocument markdown = markup.ToMarkdown(markdownOptions, out OfficeConversionReport converted, cancellationToken);
+                        var metadata = EpubImportedPublication.MetadataFields(book)
+                            .GroupBy(item => item.Name, StringComparer.Ordinal)
+                            .ToDictionary(group => group.Key, group => group.Count() == 1
+                                ? (object)group.First().Value : group.Select(item => item.Value).ToArray(), StringComparer.Ordinal);
+                        if (metadata.Count != 0) markdown.FrontMatter(metadata);
+                        diagnostics.AddRange(converted.Diagnostics);
+                        OfficeStreamWriter.CopyBytes(destination, markdown.ToBytes(cancellationToken: cancellationToken), cancellationToken);
                     }
                 }
             }

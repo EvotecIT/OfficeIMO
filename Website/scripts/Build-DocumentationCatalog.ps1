@@ -46,7 +46,7 @@ function Get-ComponentCategory {
         '^OfficeIMO\.(Word|Excel|PowerPoint)' { return 'Office documents' }
         '^OfficeIMO\.MarkdownRenderer' { return 'Rendering surfaces' }
         '^OfficeIMO\.(Pdf|Html|Markdown|Rtf|AsciiDoc|Latex|Invoicing)' { return 'Publishing and conversion' }
-        '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Yaml|Visio|IWork|Chm|DjVu|Publisher|Access|Project|Xps|Mhtml|Toml|Opml|DocBook|Bibliography)' { return 'Formats and interoperability' }
+        '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Yaml|Visio|IWork|Chm|DjVu|Publisher|Access|Project|Xps|Mhtml|Toml|Opml|DocBook|Bibliography|Comic)' { return 'Formats and interoperability' }
         '^OfficeIMO\.GoogleWorkspace|Google(Docs|Sheets|Slides)$' { return 'Google Workspace' }
         '^OfficeIMO\.(Archives|Drawing|Ocr|Provenance|Security|Zip|Markup|Adf|Confluence)' { return 'Foundations and integrations' }
         default { return 'Specialized components' }

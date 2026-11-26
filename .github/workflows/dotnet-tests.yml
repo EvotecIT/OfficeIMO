@@ -339,6 +339,17 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends cups-ipp-utils
+      - name: Test ebook import contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          foreach ($format in 'Fb2', 'Mobi', 'Comic') {
+            $project = "OfficeIMO.$format.Tests/OfficeIMO.$format.Tests.csproj"
+            if (Test-Path -LiteralPath $project) {
+              dotnet test $project --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger "trx;LogFileName=ebook-$format.trx" --results-directory TestResults/Workflows
+            }
+          }
       - name: Test shared workflows and registered Apple routes
         shell: pwsh
         run: |

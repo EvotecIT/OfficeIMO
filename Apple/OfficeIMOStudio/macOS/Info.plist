@@ -48,6 +48,7 @@
 				<string>public.html</string>
 				<string>com.microsoft.xps</string>
 				<string>com.microsoft.visio.drawing</string>
+				<string>com.evotec.officeimo.cbz</string>
 				<string>com.microsoft.publisher.pub</string>
 				<string>org.oasis-open.opendocument.graphics</string>
 				<string>org.idpf.epub-container</string>
@@ -69,6 +70,25 @@
 	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.evotec.officeimo.cbz</string>
+			<key>UTTypeDescription</key>
+			<string>Comic book ZIP</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>cbz</string>
+				</array>
+				<key>public.mime-type</key>
+				<string>application/vnd.comicbook+zip</string>
+			</dict>
+		</dict>
 		<dict>
 			<key>UTTypeIdentifier</key>
 			<string>net.daringfireball.markdown</string>
