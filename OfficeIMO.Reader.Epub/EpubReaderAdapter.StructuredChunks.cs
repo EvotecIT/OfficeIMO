@@ -17,6 +17,7 @@ internal static partial class EpubReaderAdapter {
         SourceMetadata source,
         ReaderOptions options,
         int firstBlockIndex,
+        ReaderInputKind kind,
         CancellationToken cancellationToken) {
         string virtualPath = BuildVirtualPath(source.Path, chapter.Path);
         string fileName = Path.GetFileName(source.Path);
@@ -47,7 +48,7 @@ internal static partial class EpubReaderAdapter {
 
             var chunk = new ReaderChunk {
                 Id = BuildId(fileName, chapter.Order, chunkPart),
-                Kind = ReaderInputKind.Epub,
+                Kind = kind,
                 Location = MapStructuredChapterLocation(
                     htmlChunk.Location,
                     virtualPath,
@@ -73,6 +74,7 @@ internal static partial class EpubReaderAdapter {
                 source,
                 options,
                 firstBlockIndex,
+                kind,
                 nonContentWarnings));
         }
         return chunks;
@@ -112,6 +114,7 @@ internal static partial class EpubReaderAdapter {
         SourceMetadata source,
         ReaderOptions options,
         int blockIndex,
+        ReaderInputKind kind,
         IEnumerable<string>? warnings) {
         string virtualPath = BuildVirtualPath(source.Path, chapter.Path);
         string? displayHeading = string.IsNullOrWhiteSpace(chapter.Title) ? null : chapter.Title!.Trim();
@@ -125,7 +128,7 @@ internal static partial class EpubReaderAdapter {
         ReaderHeadingPath.SetHierarchyPath(location, ReaderHeadingPath.Combine(new[] { displayHeading }));
         var chunk = new ReaderChunk {
             Id = BuildId(Path.GetFileName(source.Path), chapter.Order, 0),
-            Kind = ReaderInputKind.Epub,
+            Kind = kind,
             Location = location,
             Text = string.Empty,
             Markdown = BuildMarkdown(chapter.Title, string.Empty),

@@ -29,17 +29,21 @@ internal static partial class EpubReaderAdapter {
             EpubDocument book = EpubImportedPublication.Open(converted.Value, token);
             OfficeDocumentReadResult result = BuildEpubDocumentResult(book, source, options, token, kind);
             result.CapabilitiesUsed = result.CapabilitiesUsed.Concat(new[] { "officeimo.reader." + format }).ToArray();
-            result.Diagnostics = result.Diagnostics.Concat(converted.Report.Diagnostics.Select(item => new OfficeDocumentDiagnostic {
-                Code = item.Code,
-                Message = item.Message,
-                Source = item.Format,
-                Location = new ReaderLocation { Path = source.Path, BlockAnchor = item.Location },
-                Severity = item.Severity switch {
-                    OfficeDiagnosticSeverity.Information => OfficeDocumentDiagnosticSeverity.Information,
-                    OfficeDiagnosticSeverity.Error => OfficeDocumentDiagnosticSeverity.Error,
-                    _ => OfficeDocumentDiagnosticSeverity.Warning
-                },
-                Attributes = new Dictionary<string, string> { ["lossKind"] = item.LossKind.ToString() }
+            result.Diagnostics = result.Diagnostics.Concat(converted.Report.Diagnostics.Select(item => {
+                var attributes = new Dictionary<string, string> { ["lossKind"] = item.LossKind.ToString() };
+                if (item.Location is { } location) attributes["sourceLocation"] = location;
+                return new OfficeDocumentDiagnostic {
+                    Code = item.Code,
+                    Message = item.Message,
+                    Source = item.Format,
+                    Location = new ReaderLocation { Path = source.Path },
+                    Severity = item.Severity switch {
+                        OfficeDiagnosticSeverity.Information => OfficeDocumentDiagnosticSeverity.Information,
+                        OfficeDiagnosticSeverity.Error => OfficeDocumentDiagnosticSeverity.Error,
+                        _ => OfficeDocumentDiagnosticSeverity.Warning
+                    },
+                    Attributes = attributes
+                };
             })).ToArray();
             return result;
         }
@@ -48,6 +52,7 @@ internal static partial class EpubReaderAdapter {
             Id = "officeimo.reader." + format,
             Origin = ReaderHandlerOrigin.OfficeIMO,
             Kind = kind,
+            SourceHashBehavior = ReaderSourceHashBehavior.HandlerManaged,
             Extensions = extensions,
             UseDetectedKindFallback = false,
             DefaultMaxInputBytes = maxInputBytes,
