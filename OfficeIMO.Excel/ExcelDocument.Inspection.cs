@@ -11,7 +11,8 @@ namespace OfficeIMO.Excel {
         /// out of the worksheets, so a save that follows keeps them on that writer.
         /// </summary>
         internal bool HasWorksheets => ExecuteReadWithoutMaterializing(() =>
-            _directDataSetSaveCandidate?.Model.Sheets.Count > 0
+            _deferredWorkbook is { } deferred ? deferred.Sheets.Any(sheet => sheet.IsWorksheet)
+            : _directDataSetSaveCandidate?.Model.Sheets.Count > 0
             || _materializedDirectDataSetFastSaveModel?.Sheets.Count > 0
             || ReadSheetElements().Any(sheet => sheet.Id?.Value is string id && WorkbookPartRoot.GetPartById(id) is WorksheetPart));
 

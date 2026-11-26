@@ -9,7 +9,11 @@ namespace OfficeIMO.Excel {
     /// Represents a single worksheet within an <see cref="ExcelDocument"/>.
     /// </summary>
     public partial class ExcelSheet : IDisposable {
-        private Sheet _sheet;
+        private Sheet? _sheetValue;
+        private Sheet _sheet {
+            get => _sheetValue ?? BindDeferredSheet()._sheetValue!;
+            set => _sheetValue = value;
+        }
         internal Sheet SheetElement => _sheet;
 
         /// <summary>
@@ -17,22 +21,29 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string Name {
             get {
+                if (_sheetValue == null && _deferredEntry != null) return _deferredEntry.Name;
                 return _sheet.Name?.Value ?? string.Empty;
             }
             set {
                 _excelDocument.RenameWorksheet(this, value, ExcelSheetNameValidationMode.Strict);
             }
         }
-        private UInt32Value _id;
+        private UInt32Value? _idValue;
+        private UInt32Value _id {
+            get => _idValue ?? BindDeferredSheet()._idValue!;
+            set => _idValue = value;
+        }
         private WorksheetPart _worksheetPart {
             get {
                 _excelDocument.FlushPendingPackageEditsIfAny();
-                return _worksheetPartValue;
+                return _worksheetPartValue ?? BindDeferredSheet()._worksheetPartValue!;
             }
             set => _worksheetPartValue = value;
         }
 
-        private WorksheetPart _worksheetPartValue = null!;
+        private WorksheetPart? _worksheetPartValue;
+        /// <summary>The worksheet part as an identity, without flushing pending package edits.</summary>
+        private WorksheetPart BoundWorksheetPart => _worksheetPartValue ?? BindDeferredSheet()._worksheetPartValue!;
         internal WorksheetPart WorksheetPart {
             get {
                 CaptureOriginalDynamicSpillFingerprintIfSafe();
@@ -48,12 +59,12 @@ namespace OfficeIMO.Excel {
         private SpreadsheetDocument _spreadSheetDocument {
             get {
                 _excelDocument.FlushPendingPackageEditsIfAny();
-                return _spreadSheetDocumentValue;
+                return _spreadSheetDocumentValue ?? BindDeferredSheet()._spreadSheetDocumentValue!;
             }
             set => _spreadSheetDocumentValue = value;
         }
 
-        private SpreadsheetDocument _spreadSheetDocumentValue = null!;
+        private SpreadsheetDocument? _spreadSheetDocumentValue;
         private readonly ExcelDocument _excelDocument;
         private bool _hasWorksheetMutations;
         private Row? _lastAccessedRow;

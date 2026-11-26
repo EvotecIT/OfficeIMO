@@ -16,7 +16,8 @@ namespace OfficeIMO.Excel {
         public ExcelBuiltinDocumentProperties(ExcelDocument document) {
             _document = document ?? throw new ArgumentNullException(nameof(document));
             document.Properties = this;
-            EnsureCorePropertiesPart();
+            // A workbook that has not opened its SDK package reads the core properties when one is first asked for.
+            if (!document.IsSdkDeferred) EnsureCorePropertiesPart();
         }
 
         private void EnsureCorePropertiesPart() {

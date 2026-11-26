@@ -15,9 +15,11 @@ namespace OfficeIMO.Excel {
         internal ExcelDocumentReader CreateCellEnumerationReader(ExcelSheet sheet, ExcelReaderOptions options) {
             if (AcquireUnsavedCellsSnapshot(sheet, options) is { } unsaved) return ExcelDocumentReader.Wrap(unsaved, options);
             MaterializeDeferredDataSetImport();
-            SpreadsheetDocument document = _spreadSheetDocument;
+            // A snapshot reads the bytes the document holds, so a workbook that has not opened its SDK package keeps it closed.
+            FlushPendingPackageEditsIfAny();
             ExcelPackageReadSnapshot? snapshot = AcquireReadSnapshot();
             if (snapshot != null) return ExcelDocumentReader.Wrap(snapshot, options);
+            SpreadsheetDocument document = _spreadSheetDocument;
             ExcelPackageReadSnapshot? baseline = AcquireEditedPackageBaseline();
             return baseline != null
                 ? ExcelDocumentReader.WrapEdited(document, baseline, options, tabular: false)
@@ -47,12 +49,14 @@ namespace OfficeIMO.Excel {
             }
 
             MaterializeDeferredDataSetImport();
-            SpreadsheetDocument document = _spreadSheetDocument;
-            if (options.CellValueConverter != null) return ExcelDocumentReader.Wrap(document, options);
-            ExcelPackageReadSnapshot? snapshot = AcquireReadSnapshot();
+            FlushPendingPackageEditsIfAny();
+            ExcelPackageReadSnapshot? snapshot = options.CellValueConverter == null ? AcquireReadSnapshot() : null;
             if (snapshot != null) {
                 return ExcelDocumentReader.WrapTabular(snapshot, options, () => ExcelDocumentReader.Wrap(_spreadSheetDocument, options));
             }
+
+            SpreadsheetDocument document = _spreadSheetDocument;
+            if (options.CellValueConverter != null) return ExcelDocumentReader.Wrap(document, options);
 
             ExcelPackageReadSnapshot? baseline = AcquireEditedPackageBaseline();
             return baseline != null

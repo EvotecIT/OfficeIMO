@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel {
         private bool TryGetPlainCalculatedRange(ExcelSheet sheet, int r1, int c1, int r2, int c2, out FormulaArgumentValue[] values) {
             values = null!;
             if (_formulaCalculationContext is not { IsDisposed: false } context || _formulaEvaluationCache == null) return false;
-            var key = ((object)sheet._worksheetPartValue, r1, c1, r2, c2);
+            var key = ((object)sheet.BoundWorksheetPart, r1, c1, r2, c2);
             if (context.Ranges.TryGetValue(key, out var range)) {
                 if (range.Depth != 0) return false;
                 values = range.Values;

@@ -216,6 +216,43 @@ namespace OfficeIMO.Excel {
             return document;
         }
 
+        /// <summary>Creates a document over a loaded package whose SDK opens on first use; see <see cref="OpenDeferredSdk"/>.</summary>
+        private static ExcelDocument CreateDeferredDocument(
+            ExcelDeferredWorkbook deferred,
+            byte[] packageBytes,
+            OpenSettings openSettings,
+            bool readOnly,
+            string? filePath,
+            Stream? sourceStream,
+            bool leaveSourceStreamOpen,
+            DocumentPersistenceMode persistenceMode) {
+            var document = new ExcelDocument {
+                FilePath = filePath,
+                _deferredWorkbook = deferred,
+                _deferredPackageBytes = packageBytes,
+                _deferredOpenSettings = openSettings,
+                _deferredReadOnly = readOnly,
+                _sourceStream = sourceStream,
+                _leaveSourceStreamOpen = leaveSourceStreamOpen,
+                _packageContentTypesKnownNormalized = true,
+                _simplePackageContentKnown = false,
+                _requiresSavePreflight = false,
+                _packageDirty = false,
+                _packagePropertiesDirty = false,
+                _unchangedPackageBytes = packageBytes,
+                _persistenceMode = persistenceMode,
+                _sourceMaxCharactersInPart = openSettings.MaxCharactersInPart,
+                _readSnapshotAllowed = true,
+            };
+
+            document.Properties = new ExcelBuiltinDocumentProperties(document);
+            document.ApplicationProperties = new ExcelApplicationProperties(document);
+            document.CustomProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
+            // The load declined packages with custom properties, so there are none to read.
+            document.CustomProperties.ReplaceWith(new Dictionary<string, ExcelCustomProperty>(StringComparer.OrdinalIgnoreCase));
+            return document;
+        }
+
         private static WorkbookPart GetWorkbookPartOrThrow(SpreadsheetDocument document) {
             ArgumentNullException.ThrowIfNull(document);
 
@@ -287,6 +324,16 @@ namespace OfficeIMO.Excel {
                 byte[] unchangedPackageBytes;
                 if (!shouldRetainPackageStream && Utilities.ExcelPackageUtilities.TryNormalizeContentTypes(
                         bytes, effectiveOpenSettings.MaxCharactersInPart, out byte[] normalizedBytes, out _)) {
+                    ExcelDeferredWorkbook? deferred = options.PersistenceMode == DocumentPersistenceMode.Explicit
+                        && !OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(bytes)
+                        && IsPlainOpenSettings(effectiveOpenSettings)
+                        ? TryReadDeferredWorkbook(normalizedBytes)
+                        : null;
+                    if (deferred != null) {
+                        ExcelDocument deferredDocument = CreateDeferredDocument(deferred, normalizedBytes, effectiveOpenSettings, readOnly,
+                            filePath, associatedStream, leaveOriginalStreamOpen, options.PersistenceMode);
+                        return captureSourcePackageSecurity ? WithSourcePackageInspection(deferredDocument, bytes, options) : deferredDocument;
+                    }
                     normalizedStream = OfficePackageLoadSource.CreatePackageStream(normalizedBytes, DocumentAccessMode.ReadWrite);
                     unchangedPackageBytes = normalizedBytes;
                 } else {
