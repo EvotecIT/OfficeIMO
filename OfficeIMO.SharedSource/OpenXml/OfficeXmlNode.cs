@@ -150,6 +150,20 @@ namespace OfficeIMO.OpenXml.Internal {
         /// <summary>The child elements with this name, in document order.</summary>
         internal ChildList Children(int namespaceId, string localName) => new(this, namespaceId, localName);
 
+        /// <summary>The elements with this name below this one, in document order.</summary>
+        internal List<PowerPointXmlNode> Descendants(int namespaceId, string localName) {
+            var found = new List<PowerPointXmlNode>();
+            CollectDescendants(this, namespaceId, localName, found);
+            return found;
+        }
+
+        private static void CollectDescendants(PowerPointXmlNode element, int namespaceId, string localName, List<PowerPointXmlNode> found) {
+            foreach (PowerPointXmlNode child in element.Children()) {
+                if (child.Is(namespaceId, localName)) found.Add(child);
+                CollectDescendants(child, namespaceId, localName, found);
+            }
+        }
+
         /// <summary>Whether this element is <paramref name="ancestor"/> or inside it.</summary>
         internal bool IsInside(OfficeXmlNode ancestor) {
             for (OfficeXmlNode node = this; !node.IsNone; node = node.Parent) {

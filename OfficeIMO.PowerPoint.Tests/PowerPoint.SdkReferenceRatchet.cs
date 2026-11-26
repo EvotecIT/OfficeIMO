@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests;
 /// change that removes files from the list. The engine is off the SDK when it reaches zero.
 /// </summary>
 public class PowerPointSdkReferenceRatchetTests {
-    private const int Baseline = 300;
+    private const int Baseline = 299;
     private readonly ITestOutputHelper _output;
 
     public PowerPointSdkReferenceRatchetTests(ITestOutputHelper output) => _output = output;
