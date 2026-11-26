@@ -23,7 +23,7 @@ internal static class OfficeWorkflowCommandUtilities {
 
     /// <summary>Rejects an explicitly selected single-file codec route before output publication.</summary>
     internal static void EnsureSupportedInput(string input, string output, OfficeConversionOptions options) {
-        string extension = Path.GetExtension(OfficeConverter.ConversionSourceName(input, options));
+        string extension = OfficeConversionCapabilityCatalog.GetSourceExtension(OfficeConverter.ConversionSourceName(input, options));
         EnsureSupportedRoutes(OfficeConverter.Routes.Where(route =>
             (options.RouteId == null || string.Equals(route.Id, options.RouteId, StringComparison.OrdinalIgnoreCase)) &&
             string.Equals(route.TargetExtension, Path.GetExtension(output), StringComparison.OrdinalIgnoreCase) &&
