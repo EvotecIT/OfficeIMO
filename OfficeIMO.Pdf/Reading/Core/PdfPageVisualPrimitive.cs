@@ -341,6 +341,21 @@ internal readonly struct PdfPageVisualPrimitive {
             FillTilingPattern, StrokeTilingPattern, SourceOperatorIndex, ContentOrderKey, IsSelfColoredShading, StrokeDashPattern, FunctionPaint,
             strokeMiterLimit, isHairlineStroke);
 
+    /// <summary>
+    /// <see cref="WithSourceOperatorIndex"/>, then <see cref="WithStrokeStyle"/>, then <see cref="WithContentOrderKey"/>
+    /// when a key is given, as one copy.
+    /// </summary>
+    internal PdfPageVisualPrimitive WithSource(int sourceOperatorIndex, double strokeMiterLimit, bool isHairlineStroke,
+        PdfContentOrderKey? contentOrderKey) =>
+        new PdfPageVisualPrimitive(
+            Kind, X, Y, Width, Height, X1, Y1, X2, Y2, PathCommands,
+            FillColor, FillGradient, FillRadialGradient,
+            StrokeColor, StrokeGradient, StrokeRadialGradient,
+            StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin,
+            FillOpacity, StrokeOpacity, FillRule, ClipPath, PaintOrder,
+            FillTilingPattern, StrokeTilingPattern, sourceOperatorIndex, contentOrderKey ?? ContentOrderKey, IsSelfColoredShading,
+            StrokeDashPattern, FunctionPaint, strokeMiterLimit, isHairlineStroke);
+
     internal PdfPageVisualPrimitive WithContentOrderKey(PdfContentOrderKey contentOrderKey) =>
         new PdfPageVisualPrimitive(
             Kind, X, Y, Width, Height, X1, Y1, X2, Y2, PathCommands,

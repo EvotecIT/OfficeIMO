@@ -72,13 +72,15 @@ internal static partial class PdfPageContentVisualParser {
         Action? operationCheck = null,
         double? initialMiterLimit = null,
         Action<int>? strokeDashProjectionConsumer = null,
-        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth,
+        Func<int, PdfContentOrderKey>? contentOrderKeyForOperator = null) {
         if (content.IsNullOrEmpty) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
         var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern, textClippingBudget, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, initialStrokeDashPattern, operationCheck, initialMiterLimit, maxGraphicsStateDepth);
         parser.SetStrokeDashProjectionConsumer(strokeDashProjectionConsumer);
+        parser.ContentOrderKeyForOperator = contentOrderKeyForOperator;
         return parser.Parse();
     }
 
@@ -474,9 +476,13 @@ internal static partial class PdfPageContentVisualParser {
                 : _primitives.AsReadOnly();
         }
 
+        /// <summary>When set, gives each primitive the content order key of the operator that painted it.</summary>
+        internal Func<int, PdfContentOrderKey>? ContentOrderKeyForOperator { get; set; }
+
         private void AddPrimitive(PdfPageVisualPrimitive primitive) {
-            primitive = primitive.WithSourceOperatorIndex(_currentOperatorIndex)
-                .WithStrokeStyle(_state.MiterLimit, double.IsPositiveInfinity(_state.StrokeWidth));
+            // One copy carries the operator index, stroke style and content order key.
+            primitive = primitive.WithSource(_currentOperatorIndex, _state.MiterLimit, double.IsPositiveInfinity(_state.StrokeWidth),
+                ContentOrderKeyForOperator?.Invoke(_currentOperatorIndex));
             if (_primitiveVisitor != null) {
                 _primitiveVisitor(primitive);
             } else {

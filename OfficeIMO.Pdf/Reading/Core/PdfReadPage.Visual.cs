@@ -1179,9 +1179,9 @@ public sealed partial class PdfReadPage {
                 invokedPatternIntents: invokedPatternIntents)
             : null;
         PdfContentSource transformedContent = WrapReusedContentWithTransform(content, baseTransform, out int transformedContentOffset);
-        Action<PdfPageVisualPrimitive> currentPrimitiveVisitor = contentOrderPrefix == null
-            ? primitiveVisitor
-            : primitive => primitiveVisitor(primitive.WithContentOrderKey(contentOrderPrefix.Append(primitive.SourceOperatorIndex - transformedContentOffset)));
+        Func<int, PdfContentOrderKey>? contentOrderKeyForOperator = contentOrderPrefix == null
+            ? null
+            : operatorIndex => contentOrderPrefix.Append(operatorIndex - transformedContentOffset);
         _ = PdfPageContentVisualParser.Parse(
             transformedContent,
             pageWidth,
@@ -1212,7 +1212,8 @@ public sealed partial class PdfReadPage {
             maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
-            primitiveVisitor: currentPrimitiveVisitor,
+            primitiveVisitor: primitiveVisitor,
+            contentOrderKeyForOperator: contentOrderKeyForOperator,
             retainPrimitiveData: retainPrimitiveData,
             scaleStrokeWidthWithTransform: requireSupportedType3Content || scaleStrokeWidthWithTransform,
             unsupportedShadingTransformVisitor: requireSupportedType3Content
