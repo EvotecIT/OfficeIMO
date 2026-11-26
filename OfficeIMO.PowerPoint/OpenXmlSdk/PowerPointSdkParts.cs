@@ -132,6 +132,18 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
+        /// <summary>The slide parts of the SDK's live slide list, in order.</summary>
+        internal IReadOnlyList<OpenXml.PowerPointPartRef> SdkSlideOrder() {
+            var order = new List<OpenXml.PowerPointPartRef>();
+            PresentationPart? presentation = _sdkDocument?.PresentationPart;
+            DocumentFormat.OpenXml.Presentation.SlideIdList? list = presentation?.Presentation?.SlideIdList;
+            if (presentation == null || list == null) return order;
+            foreach (DocumentFormat.OpenXml.Presentation.SlideId slideId in list.Elements<DocumentFormat.OpenXml.Presentation.SlideId>()) {
+                if (slideId.RelationshipId?.Value is { } id && presentation.TryGetPartById(id, out OpenXmlPart? part)) order.Add(OpenXml.PowerPointPartRef.FromSdk(part));
+            }
+            return order;
+        }
+
         /// <summary>The SDK part with this name once the SDK opened the package, or null.</summary>
         internal object? FindSdkPart(string partName) {
             if (_sdkDocument == null) return null;

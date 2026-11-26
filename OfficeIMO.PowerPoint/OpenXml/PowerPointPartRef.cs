@@ -220,7 +220,8 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             if (!current.TryGetRelationship(id, out PowerPointRelationship relationship)) return;
             if (current.Kind == PowerPointPartKind.NotesSlide && !owningSlide.IsNone && relationship.TargetPart.Equals(owningSlide.Current)
                 && !string.Equals(relationship.Type, HyperlinkRelationshipType, StringComparison.Ordinal)) return;
-            OfficeOpcEditablePackage package = current.EditablePackage();
+            // A read-only presentation can't be saved, so its relationships are left as they are.
+            if (current._document?.EditablePackage is not { } package) return;
             OfficeXmlTree tree = package.GetXml(OfficeOpcPartNames.GetRelationshipsPartName(current._name));
             int node = FindRelationship(tree, id);
             if (node != OfficeXmlTree.NoNode) tree.Remove(node);

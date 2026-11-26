@@ -14,8 +14,8 @@ namespace OfficeIMO.PowerPoint {
         internal static bool TryResolveSlideFragment(SlidePart sourceSlidePart, Uri uri, out SlidePart? targetSlidePart) {
             targetSlidePart = null;
             PowerPointDocument? document = PowerPointPartRef.FromSdk(sourceSlidePart).Document;
-            if (document == null || ResolveSlideFragment(document, uri) is not { } slide) return false;
-            targetSlidePart = slide.SlidePart;
+            if (document == null || ResolveSlideFragment(document, uri).Current.SdkPart is not SlidePart slide) return false;
+            targetSlidePart = slide;
             return true;
         }
     }

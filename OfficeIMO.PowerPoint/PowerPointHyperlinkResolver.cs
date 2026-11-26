@@ -34,12 +34,17 @@ namespace OfficeIMO.PowerPoint {
             return slideNumber == 0 ? null : SlideFragment(slideNumber);
         }
 
-        /// <summary>The slide a <c>#slide-N</c> fragment names, or null.</summary>
-        internal static PowerPointSlide? ResolveSlideFragment(PowerPointDocument document, Uri uri) {
-            if (!TryParseSlideFragment(uri, out int slideNumber)) return null;
-            IReadOnlyList<PowerPointSlide> slides = document.Slides;
-            return slideNumber <= slides.Count ? slides[slideNumber - 1] : null;
+        /// <summary>The slide part a <c>#slide-N</c> fragment names in the current slide order, or none.</summary>
+        internal static PowerPointPartRef ResolveSlideFragment(PowerPointDocument document, Uri uri) {
+            if (!TryParseSlideFragment(uri, out int slideNumber)) return default;
+            IReadOnlyList<PowerPointPartRef> slides = SlideOrder(document);
+            return slideNumber <= slides.Count ? slides[slideNumber - 1] : default;
         }
+
+        // The slide parts in presentation order: the SDK's live slide list once it is open, so order changes made
+        // through it count, and the document's slides otherwise.
+        private static IReadOnlyList<PowerPointPartRef> SlideOrder(PowerPointDocument document) =>
+            document.IsSdkLoaded ? document.SdkSlideOrder() : document.Slides.Select(slide => slide.PartRef).ToList();
 
         /// <summary>A part's path relative to the folder of <paramref name="sourcePartName"/>, as a relationship target.</summary>
         internal static Uri CreatePartRelativeUri(string sourcePartName, string targetPartName) {
@@ -70,9 +75,9 @@ namespace OfficeIMO.PowerPoint {
         // The 1-based position of the slide part in the presentation, or 0 when it is not one of its slides.
         private static int SlideNumberOf(PowerPointDocument? document, PowerPointPartRef slide) {
             if (document == null || slide.IsNone) return 0;
-            IReadOnlyList<PowerPointSlide> slides = document.Slides;
+            IReadOnlyList<PowerPointPartRef> slides = SlideOrder(document);
             for (int index = 0; index < slides.Count; index++) {
-                if (slides[index].PartRef.Equals(slide)) return index + 1;
+                if (slides[index].Equals(slide)) return index + 1;
             }
             return 0;
         }

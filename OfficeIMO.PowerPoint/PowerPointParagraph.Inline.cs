@@ -96,7 +96,16 @@ namespace OfficeIMO.PowerPoint {
             field.Append(field.CreateElement(OfficeXmlNamespaces.DrawingML, "t")).SetInnerText(PowerPointTextContent.ToSingleLine(displayText));
             field = paragraph.InsertBefore(field, paragraph.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr"));
             MarkEdited();
-            configure?.Invoke(RunFor(field));
+            if (configure == null) return this;
+            PowerPointTextRun run = RunFor(field);
+            try {
+                configure(run);
+            } catch {
+                // A failed configuration leaves no field behind, so a retry doesn't add a second one.
+                PowerPointXmlNode added = run.Element;
+                if (!added.Parent.IsNone) PowerPointTextRun.DiscardContent(added, OwnerPartRef);
+                throw;
+            }
             return this;
         }
     }

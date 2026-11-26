@@ -53,7 +53,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The run's element as it is held now: once the SDK opened, a run of a package tree is its SDK element.</summary>
         internal PowerPointXmlNode Element {
             get {
-                if (_element.Tree != null && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true }) {
+                // A removed slide's part name can be reused by a new slide, so its content never binds.
+                if (_element.Tree != null && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }) {
                     // The lines the run continues on bind with it, so formatting keeps reaching them.
                     if (_lineContinuation != null) {
                         for (int index = 0; index < _lineContinuation.Count; index++) {
@@ -405,8 +406,8 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(uri);
             PowerPointPartRef slidePart = SlidePartRef;
             if (!uri.IsAbsoluteUri && !slidePart.IsNone && slidePart.Document is { } document
-                && PowerPointHyperlinkResolver.ResolveSlideFragment(document, uri) is { } target) {
-                SetInternalHyperlink(target.PartRef, tooltip);
+                && PowerPointHyperlinkResolver.ResolveSlideFragment(document, uri) is { IsNone: false } target) {
+                SetInternalHyperlink(target, tooltip);
                 return;
             }
             PowerPointPartRef owner = OwnerPartRef;

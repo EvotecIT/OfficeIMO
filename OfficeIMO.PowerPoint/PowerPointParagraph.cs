@@ -37,7 +37,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The paragraph's element as it is held now: once the SDK opened, a package paragraph is its SDK element.</summary>
         internal PowerPointXmlNode Element {
             get {
-                if (_element.Tree != null && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true }) {
+                // A removed slide's part name can be reused by a new slide, so its content never binds.
+                if (_element.Tree != null && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }) {
                     _element = PowerPointXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, _element.Tree, _element.Node));
                 }
                 return _element;
@@ -80,8 +81,9 @@ namespace OfficeIMO.PowerPoint {
         private void MarkEdited() => OwnerPartRef.MarkEdited();
 
         // A run wrapper for a child of this paragraph, bound the same way the paragraph is.
+        // A node taken from the package tree binds by its place there, even when the SDK opened after it was taken.
         private PowerPointTextRun RunFor(PowerPointXmlNode element) =>
-            _packageSlide != null && element.Tree != null && ReferenceEquals(element.Tree, _element.Tree)
+            _packageSlide != null && element.Tree != null
                 ? new PowerPointTextRun(_packageSlide, element.Tree, element.Node)
                 : new PowerPointTextRun(element, SlidePartRef, OwnerPartRef);
 
