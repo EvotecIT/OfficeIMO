@@ -444,10 +444,12 @@ internal sealed class ProtocolText {
         var tokens = new List<string>();
         foreach (string line in JoinHyphenatedLines(text).Split('\n')) {
             string[] lineTokens = Tokenize(line);
-            if (lineTokens.Length is > 0 and <= 12 && LooksLikeHeading(line)) {
+            string[]? opening = OpensSection(line, out int headingWords);
+            // Every accepted section opening is also heading evidence, including "Primary Outcomes." with its period.
+            if ((lineTokens.Length is > 0 and <= 12 && LooksLikeHeading(line)) || opening is not null) {
                 _headings.Add(lineTokens);
             }
-            if (OpensSection(line, out int headingWords) is { } opening) {
+            if (opening is not null) {
                 // A field matched inside the heading itself ("Treatment" as an arm label) doesn't follow it.
                 _sectionStarts.Add((tokens.Count, tokens.Count + headingWords, opening));
             }
