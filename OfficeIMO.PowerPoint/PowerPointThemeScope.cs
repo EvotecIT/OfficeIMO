@@ -96,8 +96,9 @@ namespace OfficeIMO.PowerPoint {
     /// package and on the SDK alike.
     /// </summary>
     internal readonly struct PowerPointThemeScope {
-        private PowerPointThemeScope(PowerPointPartRef master, OfficeXmlNode theme, OfficeXmlNode colors, OfficeXmlNode fonts, OfficeXmlNode format) {
+        private PowerPointThemeScope(PowerPointPartRef master, OfficeXmlNode theme, OfficeXmlNode colors, OfficeXmlNode fonts, OfficeXmlNode format, OfficeXmlNode colorMap) {
             Master = master;
+            ColorMap = colorMap;
             Theme = theme;
             ColorScheme = colors;
             FontScheme = fonts;
@@ -115,6 +116,11 @@ namespace OfficeIMO.PowerPoint {
         internal OfficeXmlNode FontScheme { get; }
 
         internal OfficeXmlNode FormatScheme { get; }
+
+        /// <summary>
+        /// The color map scheme colors go through: the slide's override, else its layout's, else the master's.
+        /// </summary>
+        internal OfficeXmlNode ColorMap { get; }
 
         internal static PowerPointThemeScope For(PowerPointPartRef part) {
             PowerPointPartRef slide = default, layout = default, master = default;
@@ -139,7 +145,19 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointThemeScope(master, theme,
                 First(slideOverride, layoutOverride, elements, "clrScheme"),
                 First(slideOverride, layoutOverride, elements, "fontScheme"),
-                First(slideOverride, layoutOverride, elements, "fmtScheme"));
+                First(slideOverride, layoutOverride, elements, "fmtScheme"),
+                ColorMapFor(slide, layout, master));
+        }
+
+        private static OfficeXmlNode ColorMapFor(PowerPointPartRef slide, PowerPointPartRef layout, PowerPointPartRef master) {
+            OfficeXmlNode masterMap = master.IsNone ? default : master.Root.Child(OfficeXmlNamespaces.PresentationML, "clrMap");
+            OfficeXmlNode slideOverride = slide.IsNone ? default : slide.Root.Child(OfficeXmlNamespaces.PresentationML, "clrMapOvr");
+            if (!slideOverride.Child(OfficeXmlNamespaces.DrawingML, "masterClrMapping").IsNone) return masterMap;
+            OfficeXmlNode slideMap = slideOverride.Child(OfficeXmlNamespaces.DrawingML, "overrideClrMapping");
+            if (!slideMap.IsNone) return slideMap;
+            OfficeXmlNode layoutMap = layout.IsNone ? default
+                : layout.Root.Child(OfficeXmlNamespaces.PresentationML, "clrMapOvr").Child(OfficeXmlNamespaces.DrawingML, "overrideClrMapping");
+            return layoutMap.IsNone ? masterMap : layoutMap;
         }
 
         private static OfficeXmlNode Override(PowerPointPartRef part) =>

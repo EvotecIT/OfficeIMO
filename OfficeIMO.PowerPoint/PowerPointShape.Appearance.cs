@@ -1,31 +1,37 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
+        private const int D = OfficeXmlNamespaces.DrawingML;
+
+        // The children of a:spPr in sequence order; the fill choices share a rank, as do the geometries and effects.
+        private static readonly OfficeXmlChildOrder ShapePropertyOrder = new(
+            new[] { D, D, D, D, D, D, D, D, D, D, D, D, D, D, D },
+            new[] { "xfrm", "custGeom", "prstGeom", "noFill", "solidFill", "gradFill", "blipFill", "pattFill", "grpFill", "ln", "effectLst", "effectDag", "scene3d", "sp3d", "extLst" },
+            new[] { 0, 1, 1, 2, 2, 2, 2, 2, 2, 3, 4, 4, 5, 6, 7 });
+
+        private static readonly string[] FillChoiceNames = { "noFill", "solidFill", "gradFill", "blipFill", "pattFill", "grpFill" };
+
+        private static readonly string[] ColorChoiceNames = { "scrgbClr", "srgbClr", "hslClr", "sysClr", "schemeClr", "prstClr" };
+
         /// <summary>
         ///     Gets or sets the local fill color, retaining native theme slots and opacity.
         /// </summary>
         public OfficeColor? FillColor {
-            get {
-                ShapeProperties? props = GetShapeProperties();
-                A.SolidFill? solid = props?.GetFirstChild<A.SolidFill>();
-                return PowerPointDrawingColor.Read(solid);
-            }
+            get => PowerPointDrawingColor.Read(ShapePropertiesElement(create: false).Child(D, "solidFill"));
             set {
-                ShapeProperties? props = GetShapeProperties(create: value != null);
-                if (props == null) {
-                    return;
-                }
-
+                OfficeTheme? theme = PowerPointDrawingColor.NeedsTheme(value) ? PowerPointDrawingColor.ThemeFor(OwnerPartRef, OwnerSlide) : null;
+                OfficeXmlNode properties = ShapePropertiesElement(create: value != null);
+                if (properties.IsNone) return;
                 if (value == null) {
-                    props.RemoveAllChildren<A.SolidFill>();
-                    return;
+                    properties.RemoveChildren(D, "solidFill");
+                } else {
+                    RemoveFillChoiceChildren(properties);
+                    properties.InsertOrdered(PowerPointDrawingColor.CreateFill(properties, value.Value, theme), ShapePropertyOrder);
                 }
-                RemoveFillChoiceChildren(props);
-                InsertShapePropertyChild(props,
-                    PowerPointDrawingColor.Fill(value, OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(RelationshipOwnerPart)));
+                OwnerPartRef.MarkEdited();
             }
         }
 
@@ -34,35 +40,18 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int? FillTransparency {
             get {
-                ShapeProperties? props = GetShapeProperties();
-                IReadOnlyList<OpenXmlCompositeElement> localColors = props == null
-                    ? Array.Empty<OpenXmlCompositeElement>()
-                    : GetFillColorChoices(props);
-                if (props != null && HasExplicitFillChoice(props)) {
-                    A.AlphaModulationFixed? imageAlpha = props
-                        .GetFirstChild<A.BlipFill>()?.Blip?
-                        .GetFirstChild<A.AlphaModulationFixed>();
-                    if (imageAlpha?.Amount?.Value is int imageAmount) {
-                        return (int)Math.Round((100000 - imageAmount)
-                            / 1000D);
-                    }
+                OfficeXmlNode properties = ShapePropertiesElement(create: false);
+                if (!properties.IsNone && HasExplicitFillChoice(properties)) {
+                    int? imageAmount = properties.Child(D, "blipFill").Child(D, "blip").Child(D, "alphaModFix").Int32Attribute("amt");
+                    if (imageAmount is int amount) return (int)Math.Round((100000 - amount) / 1000D);
+                    List<OfficeXmlNode> localColors = FillColorChoices(properties);
                     if (localColors.Count == 0) return null;
-                    int? localAlpha = localColors[0]
-                        .GetFirstChild<A.Alpha>()?.Val?.Value;
-                    if (localAlpha == null || localColors.Any(color =>
-                            color.GetFirstChild<A.Alpha>()?.Val?.Value
-                                != localAlpha)) {
-                        return null;
-                    }
-                    return (int)Math.Round((100000 - localAlpha.Value)
-                        / 1000D);
+                    int? localAlpha = AlphaOf(localColors[0]);
+                    if (localAlpha == null || localColors.Any(color => AlphaOf(color) != localAlpha)) return null;
+                    return (int)Math.Round((100000 - localAlpha.Value) / 1000D);
                 }
-                OpenXmlCompositeElement? color =
-                    GetShapeStyleFillColorChoice(createPlaceholder: false);
-                int? alpha = color?.GetFirstChild<A.Alpha>()?.Val?.Value;
-                return alpha == null
-                    ? null
-                    : (int)Math.Round((100000 - alpha.Value) / 1000D);
+                int? alpha = AlphaOf(ShapeStyleFillColorChoice(createPlaceholder: false));
+                return alpha == null ? null : (int)Math.Round((100000 - alpha.Value) / 1000D);
             }
             set {
                 if (value is < 0 or > 100) {
@@ -73,259 +62,242 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void SetFillOpacity(double? opacity) {
-            if (opacity.HasValue &&
-                (double.IsNaN(opacity.Value) || double.IsInfinity(opacity.Value)
-                    || opacity.Value < 0D || opacity.Value > 1D)) {
-                throw new ArgumentOutOfRangeException(nameof(opacity),
-                    "Opacity must be between 0 and 1.");
+            if (opacity.HasValue && (double.IsNaN(opacity.Value) || double.IsInfinity(opacity.Value) || opacity.Value < 0D || opacity.Value > 1D)) {
+                throw new ArgumentOutOfRangeException(nameof(opacity), "Opacity must be between 0 and 1.");
             }
 
-            ShapeProperties? props = GetShapeProperties(create: opacity != null);
-            if (props == null) return;
-            if (opacity.HasValue
-                && props.GetFirstChild<A.GroupFill>() != null) {
+            // The theme fill sits in the theme part; find it before taking the shape's elements to edit.
+            OfficeXmlNode themeFill = ResolveThemeFill();
+            OfficeXmlNode properties = ShapePropertiesElement(create: opacity != null);
+            if (properties.IsNone) return;
+            if (opacity.HasValue && !properties.Child(D, "grpFill").IsNone) {
                 throw new NotSupportedException(
                     "Fill transparency cannot be changed while the shape inherits a group fill. Materialize a local fill first.");
             }
-            A.SolidFill? solid = props.GetFirstChild<A.SolidFill>();
-            if (solid == null) {
-                if (HasExplicitFillChoice(props)) {
-                    A.BlipFill? pictureFill = props
-                        .GetFirstChild<A.BlipFill>();
-                    if (pictureFill != null) {
-                        A.Blip blip = pictureFill.Blip
-                            ?? throw new InvalidOperationException(
-                                "The picture fill has no image reference to receive transparency.");
+            OfficeXmlNode solid = properties.Child(D, "solidFill");
+            if (solid.IsNone) {
+                if (HasExplicitFillChoice(properties)) {
+                    OfficeXmlNode pictureFill = properties.Child(D, "blipFill");
+                    if (!pictureFill.IsNone) {
+                        OfficeXmlNode blip = pictureFill.Child(D, "blip");
+                        if (blip.IsNone) throw new InvalidOperationException("The picture fill has no image reference to receive transparency.");
                         SetBlipAlpha(blip, opacity);
+                        OwnerPartRef.MarkEdited();
                         return;
                     }
-                    foreach (OpenXmlCompositeElement fillColor in
-                             GetFillColorChoices(props)) {
-                        SetColorAlphaOverride(fillColor, opacity);
-                    }
+                    foreach (OfficeXmlNode fillColor in FillColorChoices(properties)) SetColorAlphaOverride(fillColor, opacity);
+                    OwnerPartRef.MarkEdited();
                     return;
                 }
-                OpenXmlElement? themeFill = ResolveThemeFill();
-                if (opacity != null && themeFill is A.BlipFill) {
+                if (opacity != null && themeFill.Is(D, "blipFill")) {
                     throw new NotSupportedException(
                         "Fill transparency cannot be changed while the shape inherits a picture fill. Materialize a local picture fill with a valid image relationship first.");
                 }
-                if (opacity != null && themeFill != null
-                    && HasTransformedPlaceholderColor(themeFill)) {
+                if (opacity != null && !themeFill.IsNone && HasTransformedPlaceholderColor(themeFill)) {
                     throw new NotSupportedException(
                         "Fill transparency cannot be changed while the inherited theme fill applies transparency transforms to phClr. Materialize a local fixed-color fill first.");
                 }
-                if (opacity != null && themeFill != null
-                    && ContainsFixedThemeColor(themeFill)) {
-                    OpenXmlElement materialized = themeFill.CloneNode(true);
-                    RemoveFillChoiceChildren(props);
-                    InsertShapePropertyChild(props, materialized);
-                    foreach (OpenXmlCompositeElement fillColor in
-                             GetFillColorChoices(props)) {
-                        SetColorAlphaOverride(fillColor, opacity);
-                    }
+                if (opacity != null && !themeFill.IsNone && ContainsFixedThemeColor(themeFill)) {
+                    RemoveFillChoiceChildren(properties);
+                    OfficeXmlNode materialized = properties.InsertOrdered(themeFill, ShapePropertyOrder);
+                    foreach (OfficeXmlNode fillColor in FillColorChoices(materialized)) SetColorAlphaOverride(fillColor, opacity);
+                    OwnerPartRef.MarkEdited();
                     return;
                 }
-                OpenXmlCompositeElement? styleColor =
-                    GetShapeStyleFillColorChoice(createPlaceholder: opacity != null);
-                if (styleColor != null) {
+                OfficeXmlNode styleColor = ShapeStyleFillColorChoice(createPlaceholder: opacity != null);
+                if (!styleColor.IsNone) {
                     SetColorAlphaOverride(styleColor, opacity);
+                    OwnerPartRef.MarkEdited();
                     return;
                 }
                 if (opacity == null) return;
-                solid = new A.SolidFill(new A.RgbColorModelHex { Val = "FFFFFF" });
-                InsertShapePropertyChild(props, solid);
+                solid = properties.InsertOrdered(properties.CreateElement(D, "solidFill"), ShapePropertyOrder);
+                solid.Append(solid.CreateElement(D, "srgbClr")).SetAttribute("val", "FFFFFF");
             }
 
-            OpenXmlCompositeElement? color = GetColorChoice(solid);
+            OfficeXmlNode color = ColorChoice(solid);
             if (opacity == null) {
-                color?.GetFirstChild<A.Alpha>()?.Remove();
+                if (!color.IsNone) color.RemoveChildren(D, "alpha");
+                OwnerPartRef.MarkEdited();
                 return;
             }
-            if (color == null) {
-                color = new A.RgbColorModelHex { Val = "FFFFFF" };
-                solid.Append(color);
+            if (color.IsNone) {
+                color = solid.Append(solid.CreateElement(D, "srgbClr"));
+                color.SetAttribute("val", "FFFFFF");
             }
-
             SetColorAlphaOverride(color, opacity);
+            OwnerPartRef.MarkEdited();
         }
 
-        private static void SetBlipAlpha(A.Blip blip, double? opacity) {
-            A.AlphaModulationFixed? alpha = blip
-                .GetFirstChild<A.AlphaModulationFixed>();
-            if (!opacity.HasValue) {
-                alpha?.Remove();
-                return;
-            }
-            foreach (OpenXmlElement transform in blip.ChildElements
-                         .Where(child => child.LocalName.StartsWith("alpha",
-                             StringComparison.Ordinal)).ToArray()) {
-                transform.Remove();
-            }
-            alpha ??= new A.AlphaModulationFixed();
-            alpha.Amount = checked((int)Math.Round(opacity.Value * 100000D,
-                MidpointRounding.AwayFromZero));
-            A.BlipExtensionList? extensions = blip.GetFirstChild<A.BlipExtensionList>();
-            if (extensions != null) blip.InsertBefore(alpha, extensions);
-            else blip.Append(alpha);
-        }
-
-        private OpenXmlElement? ResolveThemeFill() {
-            A.FillReference? reference = Element switch {
-                Shape shape => shape.ShapeStyle?.FillReference,
-                ConnectionShape connector => connector.ShapeStyle?.FillReference,
+        /// <summary>The shape properties of a shape, connector or picture, or none for other elements.</summary>
+        internal OfficeXmlNode ShapePropertiesElement(bool create) {
+            OfficeXmlNode element = XmlElement;
+            if (element.NamespaceId != OfficeXmlNamespaces.PresentationML) return default;
+            OfficeXmlChildOrder? order = element.LocalName switch {
+                "sp" => PShapeView.Order,
+                "cxnSp" => ConnectorOrder,
+                "pic" => PictureOrder,
                 _ => null
             };
-            uint? index = reference?.Index?.Value;
-            if (OwnerSlide == null || !index.HasValue) return null;
-            A.FormatScheme? formatScheme = OwnerSlide.SlidePart
-                .ThemeOverridePart?.ThemeOverride?.FormatScheme
-                ?? OwnerSlide.SlidePart.SlideLayoutPart?.ThemeOverridePart?
-                    .ThemeOverride?.FormatScheme
-                ?? OwnerSlide.SlidePart.SlideLayoutPart?.SlideMasterPart?
-                    .ThemePart?.Theme?.ThemeElements?.FormatScheme;
-            if (formatScheme == null) return null;
-            OpenXmlElementList fills;
+            if (order == null) return default;
+            return create ? element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "spPr", order) : element.Child(OfficeXmlNamespaces.PresentationML, "spPr");
+        }
+
+        private static void SetBlipAlpha(OfficeXmlNode blip, double? opacity) {
+            OfficeXmlNode alpha = blip.Child(D, "alphaModFix");
+            if (!opacity.HasValue) {
+                if (!alpha.IsNone) alpha.Remove();
+                return;
+            }
+            RemoveAlphaTransforms(blip);
+            alpha = blip.CreateElement(D, "alphaModFix");
+            alpha.SetInt32Attribute("amt", checked((int)Math.Round(opacity.Value * 100000D, MidpointRounding.AwayFromZero)));
+            blip.InsertBefore(alpha, blip.Child(D, "extLst"));
+        }
+
+        // The fill the shape's style reference picks from the theme's format scheme, or none.
+        private OfficeXmlNode ResolveThemeFill() {
+            uint? index = ShapeStyleReference("fillRef").UInt32Attribute("idx");
+            if (OwnerSlide == null || !index.HasValue) return default;
+            OfficeXmlNode formatScheme = PowerPointThemeScope.For(OwnerSlide.PartRef).FormatScheme;
+            if (formatScheme.IsNone) return default;
+            OfficeXmlNode fills;
             uint zeroBased;
             if (index.Value >= 1001U) {
-                fills = formatScheme.GetFirstChild<A.BackgroundFillStyleList>()?
-                    .ChildElements ?? default;
+                fills = formatScheme.Child(D, "bgFillStyleLst");
                 zeroBased = index.Value - 1001U;
             } else {
-                if (index.Value < 1U) return null;
-                fills = formatScheme.GetFirstChild<A.FillStyleList>()?
-                    .ChildElements ?? default;
+                if (index.Value < 1U) return default;
+                fills = formatScheme.Child(D, "fillStyleLst");
                 zeroBased = index.Value - 1U;
             }
-            return zeroBased < unchecked((uint)fills.Count)
-                ? fills[unchecked((int)zeroBased)]
-                : null;
+            uint position = 0;
+            for (OfficeXmlNode fill = fills.FirstChild; !fill.IsNone; fill = fill.NextSibling, position++) {
+                if (position == zeroBased) return fill;
+            }
+            return default;
         }
 
-        private OpenXmlCompositeElement? GetShapeStyleFillColorChoice(
-            bool createPlaceholder) {
-            A.FillReference? reference = Element switch {
-                Shape shape => shape.ShapeStyle?.FillReference,
-                ConnectionShape connector => connector.ShapeStyle?.FillReference,
-                _ => null
-            };
-            if (reference == null) return null;
+        // A reference (a:fillRef, a:lnRef, a:effectRef) in the style of a shape or connector, or none.
+        private OfficeXmlNode ShapeStyleReference(string localName) {
+            OfficeXmlNode element = XmlElement;
+            if (!element.Is(OfficeXmlNamespaces.PresentationML, "sp") && !element.Is(OfficeXmlNamespaces.PresentationML, "cxnSp")) return default;
+            return element.Child(OfficeXmlNamespaces.PresentationML, "style").Child(D, localName);
+        }
 
-            OpenXmlCompositeElement? color = GetColorChoice(reference);
-            if (color == null && createPlaceholder) {
-                color = new A.SchemeColor { Val = A.SchemeColorValues.PhColor };
-                reference.Append(color);
+        private OfficeXmlNode ShapeStyleFillColorChoice(bool createPlaceholder) {
+            OfficeXmlNode reference = ShapeStyleReference("fillRef");
+            if (reference.IsNone) return default;
+            OfficeXmlNode color = ColorChoice(reference);
+            if (color.IsNone && createPlaceholder) {
+                color = reference.Append(reference.CreateElement(D, "schemeClr"));
+                color.SetAttribute("val", "phClr");
             }
             return color;
         }
 
-        private static void SetColorAlphaOverride(OpenXmlCompositeElement color,
-            double? opacity) {
+        private static void SetColorAlphaOverride(OfficeXmlNode color, double? opacity) {
             if (!opacity.HasValue) {
-                color.GetFirstChild<A.Alpha>()?.Remove();
+                OfficeXmlNode existing = color.Child(D, "alpha");
+                if (!existing.IsNone) existing.Remove();
                 return;
             }
-
-            foreach (OpenXmlElement transform in color.ChildElements
-                         .Where(child => child.LocalName.StartsWith("alpha",
-                             StringComparison.Ordinal)).ToArray()) {
-                transform.Remove();
-            }
-            var alpha = new A.Alpha();
-            alpha.Val = checked((int)Math.Round(opacity.Value * 100000D,
-                MidpointRounding.AwayFromZero));
-            color.Append(alpha);
+            RemoveAlphaTransforms(color);
+            color.Append(color.CreateElement(D, "alpha"))
+                .SetInt32Attribute("val", checked((int)Math.Round(opacity.Value * 100000D, MidpointRounding.AwayFromZero)));
         }
 
-        private static OpenXmlCompositeElement? GetColorChoice(
-            OpenXmlCompositeElement parent) => parent.ChildElements
-                .OfType<OpenXmlCompositeElement>()
-                .FirstOrDefault(element =>
-                    element is A.RgbColorModelPercentage
-                    || element is A.RgbColorModelHex
-                    || element is A.HslColor
-                    || element is A.SystemColor
-                    || element is A.SchemeColor
-                    || element is A.PresetColor);
-
-        private static bool HasExplicitFillChoice(
-            OpenXmlCompositeElement parent) =>
-            parent.ChildElements.Any(child => child is A.NoFill
-                or A.SolidFill or A.GradientFill or A.BlipFill
-                or A.PatternFill or A.GroupFill);
-
-        private static void RemoveFillChoiceChildren(
-            OpenXmlCompositeElement parent) {
-            parent.RemoveAllChildren<A.NoFill>();
-            parent.RemoveAllChildren<A.SolidFill>();
-            parent.RemoveAllChildren<A.GradientFill>();
-            parent.RemoveAllChildren<A.BlipFill>();
-            parent.RemoveAllChildren<A.PatternFill>();
-            parent.RemoveAllChildren<A.GroupFill>();
+        private static void RemoveAlphaTransforms(OfficeXmlNode element) {
+            OfficeXmlNode child = element.FirstChild;
+            while (!child.IsNone) {
+                OfficeXmlNode next = child.NextSibling;
+                if (child.LocalName.StartsWith("alpha", StringComparison.Ordinal)) child.Remove();
+                child = next;
+            }
         }
 
-        private static IReadOnlyList<OpenXmlCompositeElement>
-            GetFillColorChoices(OpenXmlCompositeElement parent) {
-            A.SolidFill? solid = parent as A.SolidFill
-                ?? parent.GetFirstChild<A.SolidFill>();
-            if (solid != null) {
-                OpenXmlCompositeElement? color = GetColorChoice(solid);
-                return color == null
-                    ? Array.Empty<OpenXmlCompositeElement>()
-                    : new[] { color };
-            }
+        private static int? AlphaOf(OfficeXmlNode color) => color.Child(D, "alpha").Int32Attribute("val");
 
-            A.GradientFill? gradient = parent as A.GradientFill
-                ?? parent.GetFirstChild<A.GradientFill>();
-            if (gradient != null) {
-                return gradient.Descendants<A.GradientStop>()
-                    .Select(GetColorChoice)
-                    .Where(color => color != null)
-                    .Cast<OpenXmlCompositeElement>()
-                    .ToArray();
-            }
+        private static bool IsColorChoice(OfficeXmlNode element) =>
+            element.NamespaceId == D && Array.IndexOf(ColorChoiceNames, element.LocalName) >= 0;
 
-            A.PatternFill? pattern = parent as A.PatternFill
-                ?? parent.GetFirstChild<A.PatternFill>();
-            if (pattern != null) {
-                return pattern.ChildElements
-                    .OfType<OpenXmlCompositeElement>()
-                    .Select(GetColorChoice)
-                    .Where(color => color != null)
-                    .Cast<OpenXmlCompositeElement>()
-                    .ToArray();
+        private static OfficeXmlNode ColorChoice(OfficeXmlNode parent) {
+            for (OfficeXmlNode child = parent.FirstChild; !child.IsNone; child = child.NextSibling) {
+                if (IsColorChoice(child)) return child;
             }
-
-            return Array.Empty<OpenXmlCompositeElement>();
+            return default;
         }
 
-        private static bool ContainsFixedThemeColor(OpenXmlElement fill) =>
-            fill is OpenXmlCompositeElement composite
-            && GetFillColorChoices(composite).Any(color =>
-                color is not A.SchemeColor scheme
-                || scheme.Val?.Value != A.SchemeColorValues.PhColor);
+        private static bool IsFillChoice(OfficeXmlNode element) =>
+            element.NamespaceId == D && Array.IndexOf(FillChoiceNames, element.LocalName) >= 0;
 
-        private static bool HasTransformedPlaceholderColor(
-            OpenXmlElement fill) =>
-            fill is OpenXmlCompositeElement composite
-            && GetFillColorChoices(composite).Any(color =>
-                color is A.SchemeColor scheme
-                && scheme.Val?.Value == A.SchemeColorValues.PhColor
-                && scheme.ChildElements.Any(child =>
-                    child.LocalName.StartsWith("alpha",
-                        StringComparison.Ordinal)));
+        private static bool HasExplicitFillChoice(OfficeXmlNode parent) {
+            for (OfficeXmlNode child = parent.FirstChild; !child.IsNone; child = child.NextSibling) {
+                if (IsFillChoice(child)) return true;
+            }
+            return false;
+        }
+
+        private static void RemoveFillChoiceChildren(OfficeXmlNode parent) {
+            OfficeXmlNode child = parent.FirstChild;
+            while (!child.IsNone) {
+                OfficeXmlNode next = child.NextSibling;
+                if (IsFillChoice(child)) child.Remove();
+                child = next;
+            }
+        }
+
+        // The colors of a solid, gradient or pattern fill: the element itself or its first such fill child.
+        private static List<OfficeXmlNode> FillColorChoices(OfficeXmlNode parent) {
+            var colors = new List<OfficeXmlNode>();
+            OfficeXmlNode solid = parent.Is(D, "solidFill") ? parent : parent.Child(D, "solidFill");
+            if (!solid.IsNone) {
+                OfficeXmlNode color = ColorChoice(solid);
+                if (!color.IsNone) colors.Add(color);
+                return colors;
+            }
+            OfficeXmlNode gradient = parent.Is(D, "gradFill") ? parent : parent.Child(D, "gradFill");
+            if (!gradient.IsNone) {
+                foreach (OfficeXmlNode stop in gradient.Descendants(D, "gs")) {
+                    OfficeXmlNode color = ColorChoice(stop);
+                    if (!color.IsNone) colors.Add(color);
+                }
+                return colors;
+            }
+            OfficeXmlNode pattern = parent.Is(D, "pattFill") ? parent : parent.Child(D, "pattFill");
+            for (OfficeXmlNode child = pattern.FirstChild; !child.IsNone; child = child.NextSibling) {
+                OfficeXmlNode color = ColorChoice(child);
+                if (!color.IsNone) colors.Add(color);
+            }
+            return colors;
+        }
+
+        private static bool IsPlaceholderColor(OfficeXmlNode color) =>
+            color.Is(D, "schemeClr") && string.Equals(color.Attribute("val"), "phClr", StringComparison.Ordinal);
+
+        private static bool ContainsFixedThemeColor(OfficeXmlNode fill) =>
+            FillColorChoices(fill).Any(color => !IsPlaceholderColor(color));
+
+        private static bool HasTransformedPlaceholderColor(OfficeXmlNode fill) =>
+            FillColorChoices(fill).Any(color => {
+                if (!IsPlaceholderColor(color)) return false;
+                for (OfficeXmlNode child = color.FirstChild; !child.IsNone; child = child.NextSibling) {
+                    if (child.LocalName.StartsWith("alpha", StringComparison.Ordinal)) return true;
+                }
+                return false;
+            });
 
         /// <summary>
         ///     Gets or sets rotation in degrees.
         /// </summary>
         public double? Rotation {
             get {
-                int? rotation = GetRotation();
+                int? rotation = TransformElement(create: false).Int32Attribute("rot");
                 return rotation != null ? rotation.Value / 60000d : null;
             }
             set {
                 int? rotation = value != null ? (int)Math.Round(value.Value * 60000d) : null;
-                SetRotation(rotation);
+                SetTransformAttribute("rot", rotation?.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 OnGeometryChanged();
             }
         }
@@ -334,9 +306,9 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets horizontal flip.
         /// </summary>
         public bool? HorizontalFlip {
-            get => GetHorizontalFlip();
+            get => TransformElement(create: false).BooleanAttribute("flipH");
             set {
-                SetHorizontalFlip(value);
+                SetTransformAttribute("flipH", OfficeXmlViewValues.Format(value));
                 OnGeometryChanged();
             }
         }
@@ -345,125 +317,19 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets vertical flip.
         /// </summary>
         public bool? VerticalFlip {
-            get => GetVerticalFlip();
+            get => TransformElement(create: false).BooleanAttribute("flipV");
             set {
-                SetVerticalFlip(value);
+                SetTransformAttribute("flipV", OfficeXmlViewValues.Format(value));
                 OnGeometryChanged();
             }
         }
 
-        private int? GetRotation() {
-            return Element switch {
-                Shape s => s.ShapeProperties?.Transform2D?.Rotation?.Value,
-                ConnectionShape c => c.ShapeProperties?.Transform2D?.Rotation?.Value,
-                Picture p => p.ShapeProperties?.Transform2D?.Rotation?.Value,
-                GraphicFrame g => g.Transform?.Rotation?.Value,
-                GroupShape g => g.GroupShapeProperties?.TransformGroup?.Rotation?.Value,
-                _ => null
-            };
-        }
-
-        private void SetRotation(int? rotation) {
-            switch (Element) {
-                case Shape s:
-                    s.ShapeProperties ??= new ShapeProperties();
-                    s.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    s.ShapeProperties.Transform2D.Rotation = rotation;
-                    break;
-                case ConnectionShape c:
-                    c.ShapeProperties ??= new ShapeProperties();
-                    c.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    c.ShapeProperties.Transform2D.Rotation = rotation;
-                    break;
-                case Picture p:
-                    p.ShapeProperties ??= new ShapeProperties();
-                    p.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    p.ShapeProperties.Transform2D.Rotation = rotation;
-                    break;
-                case GraphicFrame g:
-                    g.Transform ??= new Transform();
-                    g.Transform.Rotation = rotation;
-                    break;
-                case GroupShape g:
-                    EnsureTransformGroup(g).Rotation = rotation;
-                    break;
-            }
-        }
-
-        private bool? GetHorizontalFlip() {
-            return Element switch {
-                Shape s => s.ShapeProperties?.Transform2D?.HorizontalFlip?.Value,
-                ConnectionShape c => c.ShapeProperties?.Transform2D?.HorizontalFlip?.Value,
-                Picture p => p.ShapeProperties?.Transform2D?.HorizontalFlip?.Value,
-                GraphicFrame g => g.Transform?.HorizontalFlip?.Value,
-                GroupShape g => g.GroupShapeProperties?.TransformGroup?.HorizontalFlip?.Value,
-                _ => null
-            };
-        }
-
-        private void SetHorizontalFlip(bool? value) {
-            switch (Element) {
-                case Shape s:
-                    s.ShapeProperties ??= new ShapeProperties();
-                    s.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    s.ShapeProperties.Transform2D.HorizontalFlip = value;
-                    break;
-                case ConnectionShape c:
-                    c.ShapeProperties ??= new ShapeProperties();
-                    c.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    c.ShapeProperties.Transform2D.HorizontalFlip = value;
-                    break;
-                case Picture p:
-                    p.ShapeProperties ??= new ShapeProperties();
-                    p.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    p.ShapeProperties.Transform2D.HorizontalFlip = value;
-                    break;
-                case GraphicFrame g:
-                    g.Transform ??= new Transform();
-                    g.Transform.HorizontalFlip = value;
-                    break;
-                case GroupShape g:
-                    EnsureTransformGroup(g).HorizontalFlip = value;
-                    break;
-            }
-        }
-
-        private bool? GetVerticalFlip() {
-            return Element switch {
-                Shape s => s.ShapeProperties?.Transform2D?.VerticalFlip?.Value,
-                ConnectionShape c => c.ShapeProperties?.Transform2D?.VerticalFlip?.Value,
-                Picture p => p.ShapeProperties?.Transform2D?.VerticalFlip?.Value,
-                GraphicFrame g => g.Transform?.VerticalFlip?.Value,
-                GroupShape g => g.GroupShapeProperties?.TransformGroup?.VerticalFlip?.Value,
-                _ => null
-            };
-        }
-
-        private void SetVerticalFlip(bool? value) {
-            switch (Element) {
-                case Shape s:
-                    s.ShapeProperties ??= new ShapeProperties();
-                    s.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    s.ShapeProperties.Transform2D.VerticalFlip = value;
-                    break;
-                case ConnectionShape c:
-                    c.ShapeProperties ??= new ShapeProperties();
-                    c.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    c.ShapeProperties.Transform2D.VerticalFlip = value;
-                    break;
-                case Picture p:
-                    p.ShapeProperties ??= new ShapeProperties();
-                    p.ShapeProperties.Transform2D ??= new A.Transform2D();
-                    p.ShapeProperties.Transform2D.VerticalFlip = value;
-                    break;
-                case GraphicFrame g:
-                    g.Transform ??= new Transform();
-                    g.Transform.VerticalFlip = value;
-                    break;
-                case GroupShape g:
-                    EnsureTransformGroup(g).VerticalFlip = value;
-                    break;
-            }
+        private void SetTransformAttribute(string localName, string? value) {
+            OfficeXmlNode element = XmlElement;
+            if (element.NamespaceId != OfficeXmlNamespaces.PresentationML
+                || element.LocalName is not ("sp" or "cxnSp" or "pic" or "graphicFrame" or "grpSp")) return;
+            TransformElement(create: true).SetAttribute(localName, value);
+            OwnerPartRef.MarkEdited();
         }
     }
 }
