@@ -2756,6 +2756,16 @@ public sealed partial class PdfReadPage {
         /// <summary>Straight path segments (rectangles and lines) the content constructs, capped once a grid is possible.</summary>
         internal int StraightSegments { get; private set; }
 
+        /// <summary>
+        /// The same answer without object paint, for a pass that reads only the page's own paths: image and
+        /// inline-image invocations add nothing to it, so walking them would only cost content passes.
+        /// </summary>
+        internal PdfPageInvokedResourceNames WithoutObjectPaint() {
+            var copy = new PdfPageInvokedResourceNames { IsComplete = IsComplete, HasVectorPaint = HasVectorPaint, StraightSegments = StraightSegments };
+            copy.ColorSpaces.UnionWith(ColorSpaces);
+            return copy;
+        }
+
         internal void ObserveOperator(string op) {
             if (op is "re" or "l" && StraightSegments < 4) StraightSegments++;
             if (op is "Do" or "BI") HasObjectPaint = true;

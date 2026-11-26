@@ -52,7 +52,12 @@ public sealed partial class PdfReadPage {
         if (!invoked.HasVectorPaint && !forms) return Array.Empty<PdfTableRuling>();
         // The strict profile accepts root strokes only. Decline invoked objects before
         // separate effect/geometry traversals could decode their content twice.
-        if (invoked.HasObjectPaint) strict = false;
+        if (invoked.HasObjectPaint) {
+            strict = false;
+            if (!collectLattice) return Array.Empty<PdfTableRuling>();
+            // Without form objects the only invoked paint is images, which reach the lattice as placements.
+            if (!forms) invoked = invoked.WithoutObjectPaint();
+        }
         if (!strict && !collectLattice) return Array.Empty<PdfTableRuling>();
         if (strict) {
             // This bounded profile declines pages with graphics effects. IsDefault alone
