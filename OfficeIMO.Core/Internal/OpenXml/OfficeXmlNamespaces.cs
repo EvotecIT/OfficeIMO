@@ -125,6 +125,27 @@ internal static class OfficeXmlNamespaces {
     /// </summary>
     internal static bool IsEcma376(int id) => id > None && id < FirstDynamic;
 
+    /// <summary>The fixed id of a namespace URI, transitional or strict, without a table; false for other namespaces.</summary>
+    internal static bool TryGetKnownId(string uri, out int id) {
+        for (int index = 0; index < KnownUris.Length; index++) {
+            if (string.Equals(KnownUris[index].Key, uri, StringComparison.Ordinal)) {
+                id = KnownUris[index].Value;
+                return true;
+            }
+        }
+        id = None;
+        return false;
+    }
+
+    /// <summary>The transitional URI of a fixed namespace id, or null for an id a table assigned.</summary>
+    internal static string? KnownUri(int id) {
+        if (id == None) return string.Empty;
+        foreach (KeyValuePair<string, int> known in KnownUris) {
+            if (known.Value == id) return known.Key;
+        }
+        return null;
+    }
+
     /// <summary>Rewrites a Strict relationship type to its transitional spelling; other types are returned unchanged.</summary>
     internal static string NormalizeRelationshipType(string type) =>
         type.StartsWith(StrictRelationshipTypePrefix, StringComparison.Ordinal)

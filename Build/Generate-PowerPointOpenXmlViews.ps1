@@ -24,4 +24,5 @@ $types = @(
     -Types $types `
     -Namespace 'OfficeIMO.PowerPoint.OpenXml' `
     -OutputPath $OutputPath `
-    -GeneratorName 'Build/Generate-PowerPointOpenXmlViews.ps1'
+    -GeneratorName 'Build/Generate-PowerPointOpenXmlViews.ps1' `
+    -NodeType 'PowerPointXmlNode'

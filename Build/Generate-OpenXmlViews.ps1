@@ -8,10 +8,13 @@ param(
     [Parameter(Mandatory)] [string] $GeneratorName,
     # Groups, as '<prefix>:<group name>', whose choice the schema leaves unordered but Office writes in declaration
     # order, such as WordprocessingML run properties. Their alternatives get one rank each.
-    [string[]] $OrderedChoiceGroups = @()
+    [string[]] $OrderedChoiceGroups = @(),
+    # A node type to build the views over in place of a tree and a node index, such as a handle that reaches both
+    # OfficeIMO's trees and another XML layer. It has the members the generated code calls on it.
+    [string] $NodeType = ''
 )
 
-# Writes typed views over OfficeXmlTree for schema complex types: attribute properties with schema value types, and
+# Writes typed views over OfficeXmlTree (or -NodeType) for schema complex types: attribute properties with schema value types, and
 # child accessors that insert in the type's sequence order. Children whose types have no view still count for order.
 
 $ErrorActionPreference = 'Stop'
@@ -224,13 +227,23 @@ foreach ($type in $requested) {
     $null = $builder.AppendLine()
     $null = $builder.AppendLine("/// <summary>View over an element of schema type <c>$($type.Name)</c>.</summary>")
     $null = $builder.AppendLine("internal readonly partial struct $($type.ViewName) {")
-    $null = $builder.AppendLine("    internal $($type.ViewName)(OfficeXmlTree tree, int node) {")
-    $null = $builder.AppendLine('        Tree = tree;')
-    $null = $builder.AppendLine('        Node = node;')
-    $null = $builder.AppendLine('    }')
-    $null = $builder.AppendLine()
-    $null = $builder.AppendLine('    internal OfficeXmlTree Tree { get; }')
-    $null = $builder.AppendLine('    internal int Node { get; }')
+    if ($NodeType) {
+        $null = $builder.AppendLine("    internal $($type.ViewName)($NodeType element) => Element = element;")
+        $null = $builder.AppendLine()
+        $null = $builder.AppendLine("    internal $($type.ViewName)(OfficeXmlTree tree, int node) : this(new $NodeType(tree, node)) { }")
+        $null = $builder.AppendLine()
+        $null = $builder.AppendLine("    internal $NodeType Element { get; }")
+        $null = $builder.AppendLine('    internal OfficeXmlTree Tree => Element.Tree!;')
+        $null = $builder.AppendLine('    internal int Node => Element.Node;')
+    } else {
+        $null = $builder.AppendLine("    internal $($type.ViewName)(OfficeXmlTree tree, int node) {")
+        $null = $builder.AppendLine('        Tree = tree;')
+        $null = $builder.AppendLine('        Node = node;')
+        $null = $builder.AppendLine('    }')
+        $null = $builder.AppendLine()
+        $null = $builder.AppendLine('    internal OfficeXmlTree Tree { get; }')
+        $null = $builder.AppendLine('    internal int Node { get; }')
+    }
 
     $orderNamespaces = ($children | ForEach-Object { Get-NamespaceExpression $_.Uri }) -join ', '
     $orderNames = ($children | ForEach-Object { '"' + $_.Name + '"' }) -join ', '
@@ -248,13 +261,23 @@ foreach ($type in $requested) {
         $valueType = $attribute.ValueType
         $null = $builder.AppendLine()
         $null = $builder.AppendLine("    internal ${valueType}? $member {")
-        if ($valueType -eq 'string') {
-            $null = $builder.AppendLine("        get => Tree.GetAttribute(Node, $ns, `"$($attribute.Name)`");")
+        $reader = switch ($valueType) { 'bool' { 'Boolean' } 'int' { 'Int32' } 'uint' { 'UInt32' } 'long' { 'Int64' } 'double' { 'Double' } default { '' } }
+        if ($NodeType) {
+            if ($valueType -eq 'string') {
+                $null = $builder.AppendLine("        get => Element.Attribute($ns, `"$($attribute.Name)`");")
+                $null = $builder.AppendLine("        set => Element.SetAttribute($ns, `"$($attribute.Name)`", value);")
+            } else {
+                $null = $builder.AppendLine("        get => OfficeXmlViewValues.Parse$reader(Element.Attribute($ns, `"$($attribute.Name)`"));")
+                $null = $builder.AppendLine("        set => Element.SetAttribute($ns, `"$($attribute.Name)`", OfficeXmlViewValues.Format(value));")
+            }
         } else {
-            $reader = switch ($valueType) { 'bool' { 'ReadBoolean' } 'int' { 'ReadInt32' } 'uint' { 'ReadUInt32' } 'long' { 'ReadInt64' } 'double' { 'ReadDouble' } }
-            $null = $builder.AppendLine("        get => OfficeXmlViewValues.$reader(Tree, Node, $ns, `"$($attribute.Name)`");")
+            if ($valueType -eq 'string') {
+                $null = $builder.AppendLine("        get => Tree.GetAttribute(Node, $ns, `"$($attribute.Name)`");")
+            } else {
+                $null = $builder.AppendLine("        get => OfficeXmlViewValues.Read$reader(Tree, Node, $ns, `"$($attribute.Name)`");")
+            }
+            $null = $builder.AppendLine("        set => OfficeXmlViewValues.Write(Tree, Node, $ns, `"$($attribute.Name)`", value);")
         }
-        $null = $builder.AppendLine("        set => OfficeXmlViewValues.Write(Tree, Node, $ns, `"$($attribute.Name)`", value);")
         $null = $builder.AppendLine('    }')
     }
 
@@ -265,7 +288,30 @@ foreach ($type in $requested) {
         $ns = Get-NamespaceExpression $child.Uri
         $childView = if ($child.Type) { $viewNames[$child.Type.Key] } else { $null }
         $isText = $child.Type -and ($child.Type.Uri -eq $xsdUri -or $simpleTypes.ContainsKey($child.Type.Key))
-        if ($childView) {
+        if ($childView -and $NodeType) {
+            $null = $builder.AppendLine()
+            if ($child.Many) {
+                $null = $builder.AppendLine("    internal $NodeType.ChildList ${member}List => Element.Children($ns, `"$($child.Name)`");")
+                $null = $builder.AppendLine()
+                $null = $builder.AppendLine("    /// <summary>Adds a <c>$($child.Name)</c> after the existing ones, in sequence order.</summary>")
+                $null = $builder.AppendLine("    internal $childView Add$member() => new(Element.AddOrdered($ns, `"$($child.Name)`", Order));")
+            } else {
+                $null = $builder.AppendLine("    internal ${childView}? $member {")
+                $null = $builder.AppendLine('        get {')
+                $null = $builder.AppendLine("            $NodeType child = Element.Child($ns, `"$($child.Name)`");")
+                $null = $builder.AppendLine("            return child.IsNone ? null : new $childView(child);")
+                $null = $builder.AppendLine('        }')
+                $null = $builder.AppendLine('    }')
+                $null = $builder.AppendLine()
+                $null = $builder.AppendLine("    internal $childView GetOrAdd$member() => new(Element.GetOrAddChild($ns, `"$($child.Name)`", Order));")
+            }
+        } elseif ($isText -and -not $child.Many -and $NodeType) {
+            $null = $builder.AppendLine()
+            $null = $builder.AppendLine("    internal string? $member {")
+            $null = $builder.AppendLine("        get => Element.ChildText($ns, `"$($child.Name)`");")
+            $null = $builder.AppendLine("        set => Element.SetChildText($ns, `"$($child.Name)`", value, Order);")
+            $null = $builder.AppendLine('    }')
+        } elseif ($childView) {
             $null = $builder.AppendLine()
             if ($child.Many) {
                 $null = $builder.AppendLine("    internal OfficeXmlElementList ${member}List => new(Tree, Node, $ns, `"$($child.Name)`");")
