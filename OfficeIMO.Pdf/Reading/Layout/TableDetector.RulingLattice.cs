@@ -457,8 +457,9 @@ internal static partial class TableDetector {
                 List<PdfTextSpan>? runs = cells[row * columnCount + column];
                 if (runs is null) { values[row][column] = string.Empty; continue; }
                 if (runs.Count == 1) {
-                    // Most cells hold one run; it is its own line.
-                    values[row][column] = runs[0].Text.Trim();
+                    // Most cells hold one run; it is its own line, read in logical order as line layout reads it.
+                    values[row][column] = PdfTextDirectionAnalysis.RestoreLogicalOrderFromGlyphPaintSequence(
+                        runs[0].Text, runs[0].GlyphSequenceProgressesLeftToRight).Trim();
                     baselines.Add((runs[0].Y, column));
                 } else {
                     List<TextLayoutEngine.TextLine> cellLines = TextLayoutEngine.BuildLines(runs, context.LayoutOptions.ToEngineOptions(),

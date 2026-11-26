@@ -272,6 +272,40 @@ public sealed class PdfRuleLatticeTableTests {
     }
 
     [Fact]
+    public void ArabicCellsPaintedLeftToRightReadInLogicalOrder() {
+        // Each Arabic cell is one run whose glyphs are painted left to right, last letter first; the cell reads
+        // in logical order, as the same run does outside a table.
+        string[] labels = { "Code", "A-01", "B-02", "C-03" };
+        double[] x = { 72, 162, 262 };
+        double[] y = Rows(700, 16, 16, labels.Length - 1);
+        var content = new StringBuilder("0 G 0.75 w\n");
+        foreach (double top in y) Line(content, x[0], top, x[x.Length - 1], top);
+        foreach (double left in x) Line(content, left, y[0], left, y[y.Length - 1]);
+        content.Append("q 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+        for (int row = 0; row < labels.Length; row++) {
+            content.Append("BT /F1 9 Tf 1 0 0 1 75 ").Append(Number(y[row + 1] + 5)).Append(" Tm (").Append(labels[row]).Append(") Tj ET\n");
+            content.Append("BT /F2 9 Tf 1 0 0 1 165 ").Append(Number(y[row + 1] + 5)).Append(" Tm <0001000200030004000500060007> Tj ET\n");
+        }
+        // Glyphs 1 to 7 map to the letters of the word from its last to its first.
+        string[] letters = { "0629", "064A", "0628", "0631", "0639", "0644", "0627" };
+        string cmap = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap 1 begincodespacerange <0000> <FFFF> endcodespacerange\n7 beginbfchar\n" +
+            string.Concat(letters.Select((letter, index) => "<" + (index + 1).ToString("X4", CultureInfo.InvariantCulture) + "> <" + letter + ">\n")) +
+            "endbfchar endcmap CMapName currentdict /CMap defineresource pop end end\n";
+        var fonts = new[] {
+            "<< /Type /Font /Subtype /Type0 /BaseFont /VisualArabic /Encoding /Identity-H /DescendantFonts [8 0 R] /ToUnicode 7 0 R >>",
+            "<< /Length " + Encoding.ASCII.GetByteCount(cmap).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + cmap + "endstream",
+            "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /VisualArabic /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /DW 500 >>"
+        };
+
+        PdfLogicalPage page = Read(content, "Courier", tagged: false, out _, resources: "/Font << /F1 5 0 R /F2 6 0 R >>", structure: fonts);
+
+        // The borders split nothing the text does not, so either reading may stand; it must not reverse the words.
+        PdfLogicalTable table = Assert.Single(page.Tables);
+        Assert.Equal(labels.Length, table.Rows.Count);
+        Assert.All(table.Rows, row => Assert.Contains("العربية", row));
+    }
+
+    [Fact]
     public void NonzeroFilledBoxInsideABoxHidesTheGridUnderIt() {
         // Two boxes wound the same way and filled with the nonzero rule paint the whole outer box: the inner one
         // is not a hole, so the grid it surrounds is painted over.
@@ -521,7 +555,8 @@ public sealed class PdfRuleLatticeTableTests {
         var objects = new List<string> {
             tagged ? "<< /Type /Catalog /Pages 2 0 R /MarkInfo << /Marked true >> /StructTreeRoot 6 0 R >>" : "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> " + resources + " >> /Contents 4 0 R" +
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << " +
+                (resources.Contains("/Font", StringComparison.Ordinal) ? string.Empty : "/Font << /F1 5 0 R >> ") + resources + " >> /Contents 4 0 R" +
                 (tagged ? " /StructParents 0" : string.Empty) + " >>",
             "<< /Length " + Encoding.ASCII.GetByteCount(stream).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + stream + "endstream",
             // Producers write glyph widths into the font; Courier's are all 600.
