@@ -3805,7 +3805,7 @@ _modules.set("13fa96d976e4dec7343dd3a392829567f1fcb574324a98f5a5d3a61c9a0dc27d",
 return _exports;
 })();
 
-const _m38 = _modules.get("15a30fd4245c35b3013a15f5c44196b661d212ec87346bbeaafb389b525a4025") ?? (() => {
+const _m38 = _modules.get("e10fb146e395ded18d8c48217a460eec4834454c342cb5127d86ddefcf97ced3") ?? (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
@@ -3824,7 +3824,7 @@ const { officeRelationshipsNamespace } = _m25;
 
 const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m35;
 
-const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch, normalizeBorder } = _m32;
+const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m32;
 
 const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m39;
 
@@ -3972,9 +3972,6 @@ class Worksheet {
             colorArgb(options.headerFill);
         if (options.headerWrap !== undefined && typeof options.headerWrap !== "boolean")
             throw new TypeError("headerWrap must be boolean.");
-        // Check edges before any column, date or header style is registered for this sheet.
-        if (options.headerBorder !== undefined)
-            normalizeBorder(options.headerBorder);
         if (options.headerStyle !== undefined)
             book.styles.validateStyle(options.headerStyle);
         if (options.alternatingRowStyle !== undefined)
@@ -4543,7 +4540,7 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.nativeCharts.length = 0; this.chartSources.length = 0; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("15a30fd4245c35b3013a15f5c44196b661d212ec87346bbeaafb389b525a4025", _exports);
+_modules.set("e10fb146e395ded18d8c48217a460eec4834454c342cb5127d86ddefcf97ced3", _exports);
 return _exports;
 })();
 
@@ -4965,7 +4962,7 @@ _modules.set("24f1417c3c320a8a41137c28f70b72091256c63010be0c88b684dce85f54950c",
 return _exports;
 })();
 
-const _m24 = _modules.get("af7f987223306f953ce6eaf31274a742224b451c008886d86cb8d47f9b9968b6") ?? (() => {
+const _m24 = _modules.get("dbb530a5a6b057285c46f03c8b8a7e75a8475d4267109f48a277bf8c042593c7") ?? (() => {
 const { beginTask, checkAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -4980,7 +4977,7 @@ const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropert
 
 const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m28;
 
-const { StyleRegistry, spreadsheetNamespace } = _m32;
+const { StyleRegistry, spreadsheetNamespace, normalizeBorder } = _m32;
 
 const { sheetName, assertXlsxValue, copyValue } = _m35;
 
@@ -5021,6 +5018,8 @@ function captureSheet(options, policy) {
     return { ...captured, columns,
         ...(captured.columnOutlines === undefined ? {} : { columnOutlines: captureColumnOutlines(captured.columnOutlines, columns.length) }),
         ...(captured.headerRows === undefined ? {} : { headerRows: captureTableSpans(captured.headerRows, columns.length) }),
+        // Preflight and every header style read this one snapshot of the edges.
+        ...(captured.headerBorder === undefined ? {} : { headerBorder: normalizeBorder(captured.headerBorder) }),
         ...(footer ? { footer: { ...footer,
                 ...(footer.rows === undefined ? {} : { rows: captureTableSpans(footer.rows, columns.length) }),
                 ...(footer.values === undefined ? {} : { values: footer.values.map(copyValue) }) } } : {}),
@@ -5446,7 +5445,7 @@ class Workbook {
     }
 }
 const _exports = Object.freeze({ Workbook: Workbook });
-_modules.set("af7f987223306f953ce6eaf31274a742224b451c008886d86cb8d47f9b9968b6", _exports);
+_modules.set("dbb530a5a6b057285c46f03c8b8a7e75a8475d4267109f48a277bf8c042593c7", _exports);
 return _exports;
 })();
 
@@ -5503,7 +5502,7 @@ _modules.set("62ff1bcbf8ca07e8ab92cd1f6afbd54049346193e18160ab0afec48e03950bba",
 return _exports;
 })();
 
-const _m52 = _modules.get("cb916f3f3c0189635980d620774a34af547c7f668ccc30c6ecb1a55288a97c74") ?? (() => {
+const _m52 = _modules.get("d200abc81279d3a819b1d12931db4e919bcab7d99006450d2f1dd7118c00d799") ?? (() => {
 const { withDestination } = _m3;
 
 const { copyColumns } = _m11;
@@ -5558,7 +5557,7 @@ async function writeXlsxTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
-_modules.set("cb916f3f3c0189635980d620774a34af547c7f668ccc30c6ecb1a55288a97c74", _exports);
+_modules.set("d200abc81279d3a819b1d12931db4e919bcab7d99006450d2f1dd7118c00d799", _exports);
 return _exports;
 })();
 
@@ -5655,7 +5654,7 @@ _modules.set("fcb6e17dcd09373bbb21919b1ef8a2b802dfd97829cc7a0560b76ddbb3d384b0",
 return _exports;
 })();
 
-const _m54 = _modules.get("191fe6f3e3484545648e8a1151f0f426ce5ec4dd932d36c41e48fa17848b6e50") ?? (() => {
+const _m54 = _modules.get("33c2c1b6f9fe99c386841cf8359c91df6375a5e18a643e6a4321331ded80be12") ?? (() => {
 const { groupedReportOperation } = _m8;
 
 const { checkAbort, withAbort } = _m4;
@@ -5828,14 +5827,14 @@ async function writeGroupedXlsxTo(report, destination, options) {
     return withDestination(destination, async (sink) => (await write(report, prepared, sink)).result);
 }
 const _exports = Object.freeze({ addGroupedXlsx: addGroupedXlsx, writeGroupedXlsx: writeGroupedXlsx, writeGroupedXlsxTo: writeGroupedXlsxTo });
-_modules.set("191fe6f3e3484545648e8a1151f0f426ce5ec4dd932d36c41e48fa17848b6e50", _exports);
+_modules.set("33c2c1b6f9fe99c386841cf8359c91df6375a5e18a643e6a4321331ded80be12", _exports);
 return _exports;
 })();
 
-const _m23 = _modules.get("d50eab44c792a399d1acfc170daa54e5ecbf3402713f6fe4d8dd5a631351153a") ?? (() => {
+const _m23 = _modules.get("7ed506ec5e8f88b1e1039f3a8196de3175f10698a367af584fb3befb61059add") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m24.Workbook, writeXlsx: _m52.writeXlsx, writeXlsxTo: _m52.writeXlsxTo, writeGroupedXlsx: _m54.writeGroupedXlsx, writeGroupedXlsxTo: _m54.writeGroupedXlsxTo, addGroupedXlsx: _m54.addGroupedXlsx, createGroupedReport: _m8.createGroupedReport, Worksheet: _m38.Worksheet, Cell: _m35.Cell, FormulaCell: _m36.FormulaCell, StyleRegistry: _m32.StyleRegistry, NumberFormats: _m32.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
-_modules.set("d50eab44c792a399d1acfc170daa54e5ecbf3402713f6fe4d8dd5a631351153a", _exports);
+_modules.set("7ed506ec5e8f88b1e1039f3a8196de3175f10698a367af584fb3befb61059add", _exports);
 return _exports;
 })();
 
@@ -11892,7 +11891,7 @@ _modules.set("09d56e54463cbff00a2b225e10a62b06c881933290525c614bb5e276167e9eac",
 return _exports;
 })();
 
-const _m96 = _modules.get("686cda7fa6371b1ef1db2a80b1c47b69b3651c9ec6cf5811b828fa7aa03c7cee") ?? (() => {
+const _m96 = _modules.get("94e64113c163dc6c805101f389768e25186ef6aa74af6f0edf698da89d40163c") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { canopyPivot, pivotNumberFormat } = _m97;
@@ -11930,39 +11929,6 @@ function canopyIdentityValue(value) {
         return value;
     const original = rawIdentities.get(value);
     return original === undefined ? value.value : original;
-}
-/** Columns read by enabled native rule predicates; malformed declarations are rejected later by the rule compiler.
- * The scan stops where the compiler does (four levels, 64 predicate nodes), and a predicate past 512 filters cannot
- * fit the compiler's 8,192-character formula limit, so a stopped scan never misses an operand of a compiled rule. */
-function predicateColumns(rules) {
-    const columns = new Set();
-    if (!Array.isArray(rules))
-        return columns;
-    for (const rule of rules.slice(0, 1000)) {
-        if (!rule || typeof rule !== "object" || rule.enabled === false)
-            continue;
-        let nodes = 0, filtersSeen = 0;
-        const visit = (predicate, depth) => {
-            if (depth > 4 || ++nodes > 64 || !predicate || typeof predicate !== "object")
-                return false;
-            const { filters, groups } = predicate;
-            if (Array.isArray(filters))
-                for (const filter of filters) {
-                    if (++filtersSeen > 512)
-                        return false;
-                    const column = filter && typeof filter === "object" ? filter.column : undefined;
-                    if (typeof column === "string")
-                        columns.add(column);
-                }
-            if (Array.isArray(groups))
-                for (const group of groups)
-                    if (!visit(group, depth + 1))
-                        return false;
-            return true;
-        };
-        visit(rule.when, 1);
-    }
-    return columns;
 }
 function badgeText(input) {
     if (!Array.isArray(input) || input.length > 64)
@@ -12031,7 +11997,8 @@ function prepareCanopyExport(capture, format, options = {}) {
             fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
         return style;
     };
-    const ruleOperands = format === "xlsx" ? predicateColumns(request.formatRules) : new Set();
+    // The full writer fills this with columns read by the native rules it emits, before any row is enumerated.
+    const ruleOperands = new Set();
     const ids = new Set();
     const specs = (pivot?.columns ?? request.columns).map(input => {
         const fields = captureFields(input, ["id", "title", "kind", "width", "pinned", "format", "wrap", "alignment", "diagnostics"]);
@@ -12129,14 +12096,14 @@ function prepareCanopyExport(capture, format, options = {}) {
             if (rowCount !== null && count !== rowCount)
                 throw new TypeError("Canopy capture did not produce its declared recordCount.");
         } });
-    return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
+    return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot, ruleOperands });
 }
 const _exports = Object.freeze({ canopyBadgeSplit: canopyBadgeSplit, canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("686cda7fa6371b1ef1db2a80b1c47b69b3651c9ec6cf5811b828fa7aa03c7cee", _exports);
+_modules.set("94e64113c163dc6c805101f389768e25186ef6aa74af6f0edf698da89d40163c", _exports);
 return _exports;
 })();
 
-const _m102 = _modules.get("2b0b73e8c376d24e6a5b498c0f710966b00de0eff44f474d7b2aece7af64fa96") ?? (() => {
+const _m102 = _modules.get("5a74a3a4b49b99e91046bdd0ddc125e822d9021341a42f26750395f3d729c95c") ?? (() => {
 const { columnName, excelDate } = _m35;
 
 const { captureFields } = _m10;
@@ -12144,7 +12111,7 @@ const { captureFields } = _m10;
 const { datetime } = _m98;
 
 /** Compile only comparisons whose raw types and native encodings have a faithful bounded mapping. */
-function canopyPredicate(request, grouped, options, root, unsupported, cellTypes) {
+function canopyPredicate(request, grouped, options, root, unsupported, cellTypes, operands) {
     let nodes = 0;
     const operations = { eq: "=", ne: "<>", gt: ">", ge: ">=", lt: "<", le: "<=" };
     const numeric = (value) => {
@@ -12191,6 +12158,7 @@ function canopyPredicate(request, grouped, options, root, unsupported, cellTypes
         const index = request.columns.findIndex(column => column.id === filter.column);
         if (index < 0)
             return unsupported("RULE_COLUMN_NOT_EXPORTED:" + filter.column);
+        operands?.add(filter.column);
         const column = request.columns[index], letter = columnName(index + 1 + (grouped ? 1 : 0));
         const reference = "INDEX($" + letter + ":$" + letter + ",ROW())", present = "NOT(ISBLANK(" + reference + "))";
         if (column.kind === "number")
@@ -12251,11 +12219,11 @@ function canopyPredicate(request, grouped, options, root, unsupported, cellTypes
     return formula;
 }
 const _exports = Object.freeze({ canopyPredicate: canopyPredicate });
-_modules.set("2b0b73e8c376d24e6a5b498c0f710966b00de0eff44f474d7b2aece7af64fa96", _exports);
+_modules.set("5a74a3a4b49b99e91046bdd0ddc125e822d9021341a42f26750395f3d729c95c", _exports);
 return _exports;
 })();
 
-const _m101 = _modules.get("e01b2c108bf292f2e1e04b10530d945b8ee593009b55f3768de20aaf292c3804") ?? (() => {
+const _m101 = _modules.get("9e37b2d273c800b7b2952c298b4c50a1368f06b9192f89d6bc3097e4ccb3bcf8") ?? (() => {
 const { captureFields } = _m10;
 
 const { canopyPredicate } = _m102;
@@ -12267,7 +12235,7 @@ class UnsupportedRule extends Error {
 const unsupported = (message) => { throw new UnsupportedRule(message); };
 /** Compile declarations in source order, then emit native target/aspect priorities.
  * Data-column selectors let grouped writers exclude generated headings, subtotals and grand totals. */
-function canopyRules(request, format, grouped, tones, report, options = {}, cellTypes) {
+function canopyRules(request, format, grouped, tones, report, options = {}, cellTypes, operands) {
     if (request.formatRules === undefined || format === "csv")
         return [];
     if (!Array.isArray(request.formatRules) || request.formatRules.length > 1000)
@@ -12306,7 +12274,7 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
     }
     const priorStops = [];
     const priorRows = [], priorCells = new Map();
-    const requiredCells = new Map();
+    const requiredCells = new Map(), emittedOperands = new Set();
     const column = (id) => {
         const index = columns.findIndex(column => column.id === id);
         if (index < 0)
@@ -12397,8 +12365,8 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
                 const range = rule.target === "row" ? { column: columns[0].id, through: columns.at(-1).id } : { column: rule.column };
                 if (rule.column !== undefined)
                     column(rule.column);
-                const ruleCells = new Map();
-                const ownPredicate = canopyPredicate(request, grouped, options, rule.when, unsupported, ruleCells);
+                const ruleCells = new Map(), ruleOperands = new Set();
+                const ownPredicate = canopyPredicate(request, grouped, options, rule.when, unsupported, ruleCells, ruleOperands);
                 const reachable = priorStops.length ? "AND(" + ownPredicate + ",NOT(OR(" + priorStops.join(",") + ")))" : ownPredicate;
                 const previous = rule.target === "row" ? priorRows : priorCells.get(rule.column) ?? [];
                 const formula = previous.length ? "AND(" + reachable + ",NOT(OR(" + previous.join(",") + ")))" : reachable;
@@ -12410,6 +12378,8 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
                     priorCells.set(rule.column, previous);
                 for (const [column, type] of ruleCells)
                     requiredCells.set(column, type);
+                for (const id of ruleOperands)
+                    emittedOperands.add(id);
                 // A matched declaration still stops the row when an earlier tone on that target already won.
                 if (rule.stopIfTrue)
                     priorStops.push(ownPredicate);
@@ -12425,15 +12395,18 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
     }
     for (const [column, type] of requiredCells)
         cellTypes?.set(column, type);
+    // Only emitted rules read raw cells; a rejected comparison leaves its column free to carry badge labels.
+    for (const id of emittedOperands)
+        operands?.add(id);
     // Canopy paints cell visuals/tones over the row tint. Build masks before changing native priority order.
     return Object.freeze([...visuals, ...cells, ...rows]);
 }
 const _exports = Object.freeze({ canopyRules: canopyRules });
-_modules.set("e01b2c108bf292f2e1e04b10530d945b8ee593009b55f3768de20aaf292c3804", _exports);
+_modules.set("9e37b2d273c800b7b2952c298b4c50a1368f06b9192f89d6bc3097e4ccb3bcf8", _exports);
 return _exports;
 })();
 
-const _m103 = _modules.get("e284a301a356903388f652e7c59f7351e7aed30ed9262b742bd4b9955703d9ce") ?? (() => {
+const _m103 = _modules.get("629b7ff37c67ca72d2055d1ef4a181909ec669ea78e45b85c732978efc9d952a") ?? (() => {
 const { createGroupedReport } = _m8;
 
 const { checkAbort } = _m4;
@@ -12639,7 +12612,7 @@ function canopyGrouped(source, request, options, limits, report, format) {
         ...(options.signal === undefined ? {} : { signal: options.signal }), ...(sourceLimits === undefined ? {} : { limits: sourceLimits }) });
 }
 const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
-_modules.set("e284a301a356903388f652e7c59f7351e7aed30ed9262b742bd4b9955703d9ce", _exports);
+_modules.set("629b7ff37c67ca72d2055d1ef4a181909ec669ea78e45b85c732978efc9d952a", _exports);
 return _exports;
 })();
 
@@ -12702,7 +12675,7 @@ _modules.set("99b23f94e240ecbeee81dbc96909e40786623c7df225f74ae7bd4d719b15d1e8",
 return _exports;
 })();
 
-const _m105 = _modules.get("93d82c52ce5b1c7263672a96e49dbb034c7c8b666662e3c5ed1e3d61d40cf83f") ?? (() => {
+const _m105 = _modules.get("a42f4ab91cecb32d5c9540c8934714b636964842c48706a481154a869aafe8b6") ?? (() => {
 const { Workbook, addGroupedXlsx } = _m23;
 
 const { portableWorkbook } = _m53;
@@ -12759,11 +12732,11 @@ async function writeCanopyWorkbook(source, grouped, destination, options, labels
     });
 }
 const _exports = Object.freeze({ writeCanopyWorkbook: writeCanopyWorkbook });
-_modules.set("93d82c52ce5b1c7263672a96e49dbb034c7c8b666662e3c5ed1e3d61d40cf83f", _exports);
+_modules.set("a42f4ab91cecb32d5c9540c8934714b636964842c48706a481154a869aafe8b6", _exports);
 return _exports;
 })();
 
-const _m107 = _modules.get("44e52f3bfebb769a491964bd3a3c02657c7bbf337e7182f399cd4d72c67aad69") ?? (() => {
+const _m107 = _modules.get("7fb4a6edea15800b4a012a700d696440035456c27815822669ddf980771cbbac") ?? (() => {
 const { ExportCell } = _m1;
 
 const { canopyBadgeSplit } = _m96;
@@ -12888,11 +12861,11 @@ function canopyPdfNumbers(sample, columns) {
     });
 }
 const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
-_modules.set("44e52f3bfebb769a491964bd3a3c02657c7bbf337e7182f399cd4d72c67aad69", _exports);
+_modules.set("7fb4a6edea15800b4a012a700d696440035456c27815822669ddf980771cbbac", _exports);
 return _exports;
 })();
 
-const _m106 = _modules.get("88873a435a476438aa0b7c0aff34a0bc852b036ece6a9203b7635b94d58593b0") ?? (() => {
+const _m106 = _modules.get("72835518101e1bdde3e77e55d66c6cb9a0024e7b5f68c1a6ea9984c76480dd5b") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m1;
 
 const { inputRows, checkAbort, pause, taskYieldDue } = _m4;
@@ -12997,11 +12970,11 @@ async function withCanopyPdfLayout(source, captured, options, write) {
     }
 }
 const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
-_modules.set("88873a435a476438aa0b7c0aff34a0bc852b036ece6a9203b7635b94d58593b0", _exports);
+_modules.set("72835518101e1bdde3e77e55d66c6cb9a0024e7b5f68c1a6ea9984c76480dd5b", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("7fe7884597b797dc9c6319163dbb979a2bd17135eb30af39e38f6d151fe77837") ?? (() => {
+const _m0 = _modules.get("7ad6b759133310babb793c5ce7e78cac21a07d14d3049442847ffccaa66b9ea4") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -13078,7 +13051,7 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
     const stream = { ...(signal ? { signal } : {}), ...progress };
     if (format === "xlsx") {
         const formatLimits = mergeAdapterLimits(xlsx.limits, limits), grouped = pivot ? undefined : canopyGrouped(source, request, { ...selected, xlsx }, formatLimits, report, format);
-        const pinned = canopyPins(request.columns, report), rules = canopyRules(request, format, grouped !== undefined, tones, report, { ...selected, xlsx }, ruleCellTypes);
+        const pinned = canopyPins(request.columns, report), rules = canopyRules(request, format, grouped !== undefined, tones, report, { ...selected, xlsx }, ruleCellTypes, prepared.ruleOperands);
         if (pivot && (xlsx.sheet?.rowOutline !== undefined || xlsx.sheet?.columnOutlines !== undefined || xlsx.sheet?.maxOutlineLevel !== undefined ||
             xlsx.sheet?.outlineSummaryBelow !== undefined || xlsx.sheet?.outlineSummaryRight !== undefined || xlsx.sheet?.table !== undefined || xlsx.sheet?.footer !== undefined))
             throw new TypeError("Captured pivot metadata owns outlines and totals; worksheet overrides cannot regroup or recalculate it.");
@@ -13142,7 +13115,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("7fe7884597b797dc9c6319163dbb979a2bd17135eb30af39e38f6d151fe77837", _exports);
+_modules.set("7ad6b759133310babb793c5ce7e78cac21a07d14d3049442847ffccaa66b9ea4", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

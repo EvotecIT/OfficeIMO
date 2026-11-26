@@ -33,31 +33,6 @@ export function canopyIdentityValue(value: ExportValue): CellValue {
   return original === undefined ? value.value : original;
 }
 
-/** Columns read by enabled native rule predicates; malformed declarations are rejected later by the rule compiler.
- * The scan stops where the compiler does (four levels, 64 predicate nodes), and a predicate past 512 filters cannot
- * fit the compiler's 8,192-character formula limit, so a stopped scan never misses an operand of a compiled rule. */
-function predicateColumns(rules: unknown): ReadonlySet<string> {
-  const columns = new Set<string>();
-  if (!Array.isArray(rules)) return columns;
-  for (const rule of rules.slice(0, 1000)) {
-    if (!rule || typeof rule !== "object" || (rule as { enabled?: unknown }).enabled === false) continue;
-    let nodes = 0, filtersSeen = 0;
-    const visit = (predicate: unknown, depth: number): boolean => {
-      if (depth > 4 || ++nodes > 64 || !predicate || typeof predicate !== "object") return false;
-      const { filters, groups } = predicate as { filters?: unknown; groups?: unknown };
-      if (Array.isArray(filters)) for (const filter of filters) {
-        if (++filtersSeen > 512) return false;
-        const column = filter && typeof filter === "object" ? (filter as { column?: unknown }).column : undefined;
-        if (typeof column === "string") columns.add(column);
-      }
-      if (Array.isArray(groups)) for (const group of groups) if (!visit(group, depth + 1)) return false;
-      return true;
-    };
-    visit((rule as { when?: unknown }).when, 1);
-  }
-  return columns;
-}
-
 function badgeText(input: unknown): string | undefined {
   if (!Array.isArray(input) || input.length > 64) throw new TypeError("Canopy cell badges must be a bounded array of { text, tone?, title? }.");
   const labels: string[] = [];
@@ -82,6 +57,8 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
   readonly report: (diagnostic: CanopyDiagnostic) => void;
   readonly pivot: CanopyPivotMapping | undefined;
   readonly tones: ReadonlyMap<string, Readonly<CellPresentation>>;
+  /** Text columns whose raw scalars must not carry badge labels, because an emitted native rule reads them. */
+  readonly ruleOperands: Set<string>;
 } {
   options = captureFields(options, ["tones", "columnOptions", "unsupportedPresentation", "datetime", "xlsx", "signal", "onDiagnostic"]);
   if (format !== "xlsx" && format !== "csv" && format !== "pdf") throw new TypeError("Canopy export format must be xlsx, csv or pdf.");
@@ -119,7 +96,8 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
     if (!style && name !== "neutral") fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
     return style;
   };
-  const ruleOperands = format === "xlsx" ? predicateColumns(request.formatRules) : new Set<string>();
+  // The full writer fills this with columns read by the native rules it emits, before any row is enumerated.
+  const ruleOperands = new Set<string>();
   const ids = new Set<string>();
   const specs = (pivot?.columns ?? request.columns).map(input => {
     const fields = captureFields(input, ["id", "title", "kind", "width", "pinned", "format", "wrap", "alignment", "diagnostics"]);
@@ -203,5 +181,5 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
     }
     if (rowCount !== null && count !== rowCount) throw new TypeError("Canopy capture did not produce its declared recordCount.");
   } });
-  return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
+  return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot, ruleOperands });
 }

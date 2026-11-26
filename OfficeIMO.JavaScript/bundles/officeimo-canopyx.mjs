@@ -3774,7 +3774,7 @@ const { officeRelationshipsNamespace } = _m25;
 
 const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m35;
 
-const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch, normalizeBorder } = _m32;
+const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m32;
 
 const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m39;
 
@@ -3922,9 +3922,6 @@ class Worksheet {
             colorArgb(options.headerFill);
         if (options.headerWrap !== undefined && typeof options.headerWrap !== "boolean")
             throw new TypeError("headerWrap must be boolean.");
-        // Check edges before any column, date or header style is registered for this sheet.
-        if (options.headerBorder !== undefined)
-            normalizeBorder(options.headerBorder);
         if (options.headerStyle !== undefined)
             book.styles.validateStyle(options.headerStyle);
         if (options.alternatingRowStyle !== undefined)
@@ -4925,7 +4922,7 @@ const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropert
 
 const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m28;
 
-const { StyleRegistry, spreadsheetNamespace } = _m32;
+const { StyleRegistry, spreadsheetNamespace, normalizeBorder } = _m32;
 
 const { sheetName, assertXlsxValue, copyValue } = _m35;
 
@@ -4966,6 +4963,8 @@ function captureSheet(options, policy) {
     return { ...captured, columns,
         ...(captured.columnOutlines === undefined ? {} : { columnOutlines: captureColumnOutlines(captured.columnOutlines, columns.length) }),
         ...(captured.headerRows === undefined ? {} : { headerRows: captureTableSpans(captured.headerRows, columns.length) }),
+        // Preflight and every header style read this one snapshot of the edges.
+        ...(captured.headerBorder === undefined ? {} : { headerBorder: normalizeBorder(captured.headerBorder) }),
         ...(footer ? { footer: { ...footer,
                 ...(footer.rows === undefined ? {} : { rows: captureTableSpans(footer.rows, columns.length) }),
                 ...(footer.values === undefined ? {} : { values: footer.values.map(copyValue) }) } } : {}),
@@ -11826,39 +11825,6 @@ function canopyIdentityValue(value) {
     const original = rawIdentities.get(value);
     return original === undefined ? value.value : original;
 }
-/** Columns read by enabled native rule predicates; malformed declarations are rejected later by the rule compiler.
- * The scan stops where the compiler does (four levels, 64 predicate nodes), and a predicate past 512 filters cannot
- * fit the compiler's 8,192-character formula limit, so a stopped scan never misses an operand of a compiled rule. */
-function predicateColumns(rules) {
-    const columns = new Set();
-    if (!Array.isArray(rules))
-        return columns;
-    for (const rule of rules.slice(0, 1000)) {
-        if (!rule || typeof rule !== "object" || rule.enabled === false)
-            continue;
-        let nodes = 0, filtersSeen = 0;
-        const visit = (predicate, depth) => {
-            if (depth > 4 || ++nodes > 64 || !predicate || typeof predicate !== "object")
-                return false;
-            const { filters, groups } = predicate;
-            if (Array.isArray(filters))
-                for (const filter of filters) {
-                    if (++filtersSeen > 512)
-                        return false;
-                    const column = filter && typeof filter === "object" ? filter.column : undefined;
-                    if (typeof column === "string")
-                        columns.add(column);
-                }
-            if (Array.isArray(groups))
-                for (const group of groups)
-                    if (!visit(group, depth + 1))
-                        return false;
-            return true;
-        };
-        visit(rule.when, 1);
-    }
-    return columns;
-}
 function badgeText(input) {
     if (!Array.isArray(input) || input.length > 64)
         throw new TypeError("Canopy cell badges must be a bounded array of { text, tone?, title? }.");
@@ -11926,7 +11892,8 @@ function prepareCanopyExport(capture, format, options = {}) {
             fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
         return style;
     };
-    const ruleOperands = format === "xlsx" ? predicateColumns(request.formatRules) : new Set();
+    // The full writer fills this with columns read by the native rules it emits, before any row is enumerated.
+    const ruleOperands = new Set();
     const ids = new Set();
     const specs = (pivot?.columns ?? request.columns).map(input => {
         const fields = captureFields(input, ["id", "title", "kind", "width", "pinned", "format", "wrap", "alignment", "diagnostics"]);
@@ -12024,7 +11991,7 @@ function prepareCanopyExport(capture, format, options = {}) {
             if (rowCount !== null && count !== rowCount)
                 throw new TypeError("Canopy capture did not produce its declared recordCount.");
         } });
-    return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
+    return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot, ruleOperands });
 }
 const _exports = Object.freeze({ canopyBadgeSplit: canopyBadgeSplit, canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
 return _exports;
@@ -12038,7 +12005,7 @@ const { captureFields } = _m10;
 const { datetime } = _m98;
 
 /** Compile only comparisons whose raw types and native encodings have a faithful bounded mapping. */
-function canopyPredicate(request, grouped, options, root, unsupported, cellTypes) {
+function canopyPredicate(request, grouped, options, root, unsupported, cellTypes, operands) {
     let nodes = 0;
     const operations = { eq: "=", ne: "<>", gt: ">", ge: ">=", lt: "<", le: "<=" };
     const numeric = (value) => {
@@ -12085,6 +12052,7 @@ function canopyPredicate(request, grouped, options, root, unsupported, cellTypes
         const index = request.columns.findIndex(column => column.id === filter.column);
         if (index < 0)
             return unsupported("RULE_COLUMN_NOT_EXPORTED:" + filter.column);
+        operands?.add(filter.column);
         const column = request.columns[index], letter = columnName(index + 1 + (grouped ? 1 : 0));
         const reference = "INDEX($" + letter + ":$" + letter + ",ROW())", present = "NOT(ISBLANK(" + reference + "))";
         if (column.kind === "number")
@@ -12160,7 +12128,7 @@ class UnsupportedRule extends Error {
 const unsupported = (message) => { throw new UnsupportedRule(message); };
 /** Compile declarations in source order, then emit native target/aspect priorities.
  * Data-column selectors let grouped writers exclude generated headings, subtotals and grand totals. */
-function canopyRules(request, format, grouped, tones, report, options = {}, cellTypes) {
+function canopyRules(request, format, grouped, tones, report, options = {}, cellTypes, operands) {
     if (request.formatRules === undefined || format === "csv")
         return [];
     if (!Array.isArray(request.formatRules) || request.formatRules.length > 1000)
@@ -12199,7 +12167,7 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
     }
     const priorStops = [];
     const priorRows = [], priorCells = new Map();
-    const requiredCells = new Map();
+    const requiredCells = new Map(), emittedOperands = new Set();
     const column = (id) => {
         const index = columns.findIndex(column => column.id === id);
         if (index < 0)
@@ -12290,8 +12258,8 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
                 const range = rule.target === "row" ? { column: columns[0].id, through: columns.at(-1).id } : { column: rule.column };
                 if (rule.column !== undefined)
                     column(rule.column);
-                const ruleCells = new Map();
-                const ownPredicate = canopyPredicate(request, grouped, options, rule.when, unsupported, ruleCells);
+                const ruleCells = new Map(), ruleOperands = new Set();
+                const ownPredicate = canopyPredicate(request, grouped, options, rule.when, unsupported, ruleCells, ruleOperands);
                 const reachable = priorStops.length ? "AND(" + ownPredicate + ",NOT(OR(" + priorStops.join(",") + ")))" : ownPredicate;
                 const previous = rule.target === "row" ? priorRows : priorCells.get(rule.column) ?? [];
                 const formula = previous.length ? "AND(" + reachable + ",NOT(OR(" + previous.join(",") + ")))" : reachable;
@@ -12303,6 +12271,8 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
                     priorCells.set(rule.column, previous);
                 for (const [column, type] of ruleCells)
                     requiredCells.set(column, type);
+                for (const id of ruleOperands)
+                    emittedOperands.add(id);
                 // A matched declaration still stops the row when an earlier tone on that target already won.
                 if (rule.stopIfTrue)
                     priorStops.push(ownPredicate);
@@ -12318,6 +12288,9 @@ function canopyRules(request, format, grouped, tones, report, options = {}, cell
     }
     for (const [column, type] of requiredCells)
         cellTypes?.set(column, type);
+    // Only emitted rules read raw cells; a rejected comparison leaves its column free to carry badge labels.
+    for (const id of emittedOperands)
+        operands?.add(id);
     // Canopy paints cell visuals/tones over the row tint. Build masks before changing native priority order.
     return Object.freeze([...visuals, ...cells, ...rows]);
 }
@@ -12965,7 +12938,7 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
     const stream = { ...(signal ? { signal } : {}), ...progress };
     if (format === "xlsx") {
         const formatLimits = mergeAdapterLimits(xlsx.limits, limits), grouped = pivot ? undefined : canopyGrouped(source, request, { ...selected, xlsx }, formatLimits, report, format);
-        const pinned = canopyPins(request.columns, report), rules = canopyRules(request, format, grouped !== undefined, tones, report, { ...selected, xlsx }, ruleCellTypes);
+        const pinned = canopyPins(request.columns, report), rules = canopyRules(request, format, grouped !== undefined, tones, report, { ...selected, xlsx }, ruleCellTypes, prepared.ruleOperands);
         if (pivot && (xlsx.sheet?.rowOutline !== undefined || xlsx.sheet?.columnOutlines !== undefined || xlsx.sheet?.maxOutlineLevel !== undefined ||
             xlsx.sheet?.outlineSummaryBelow !== undefined || xlsx.sheet?.outlineSummaryRight !== undefined || xlsx.sheet?.table !== undefined || xlsx.sheet?.footer !== undefined))
             throw new TypeError("Captured pivot metadata owns outlines and totals; worksheet overrides cannot regroup or recalculate it.");

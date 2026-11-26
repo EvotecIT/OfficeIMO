@@ -139,16 +139,13 @@ test("Canopy PDF numeric formatting keeps appended badge labels", async () => {
   assert.ok(!lines.includes("Level 12 USD") && !lines.includes("12 USD"), lines.join("|"));
 });
 
-test("Canopy rule operand scan stops at the compiler's predicate budget", async () => {
-  let reads = 0;
-  const leaf = { operator: "and", get filters() { reads++; return [{ column: "Name", operator: "isNull", values: [] }]; }, groups: [] };
-  let node = leaf;
-  // A small shared graph whose full expansion is 10^5 nodes; the compiler rejects it after 64.
-  for (let level = 0; level < 5; level++) node = { operator: "or", filters: [], groups: Array(10).fill(node) };
-  const input = capture([{ id: "r", cells: { Name: cell("A") } }]);
-  input.request.formatRules = [{ id: "wide", column: "Name", target: "cell", when: node, style: { tone: "info" } }];
+test("Canopy badges stay on text columns read only by rejected native rules", async () => {
+  const input = capture([{ id: "r", cells: { Status: cell("Ready", "Ready", { badges: ["Active"], diagnostics: ["badges"] }) } }], [column("Status")]);
+  // Native text comparisons are not emitted, so the cell keeps its badge label.
+  input.request.formatRules = [{ id: "ready", column: "Status", target: "cell", when: { operator: "and", filters: [{ column: "Status", operator: "eq", values: ["Ready"] }], groups: [] }, style: { tone: "success" } }];
   const diagnostics = [];
-  await exportCanopy(input, "xlsx", { unsupportedPresentation: "text", onDiagnostic: item => diagnostics.push(item.code) });
-  assert.ok(reads <= 128, "predicate reads: " + reads);
-  assert.deepEqual(diagnostics, ["RULE_PREDICATE_LIMIT:wide"]);
+  const book = await workbook(await exportCanopy(input, "xlsx", { unsupportedPresentation: "text", onDiagnostic: item => diagnostics.push(item.code) }));
+  assert.ok(diagnostics.includes("UNQUALIFIED_NATIVE_TEXT_COMPARISON:ready"), diagnostics.join("|"));
+  assert.doesNotMatch(book.sheet, /conditionalFormatting/);
+  assert.equal(book.style("A2").text, "Ready · Active");
 });

@@ -10,7 +10,7 @@ import type { PreparedEntry } from "../zip/entry.js";
 import { xmlDeclaration } from "../xml/index.js";
 import { officeRelationshipsNamespace } from "../opc/index.js";
 import { Cell, cellText, columnName, inlineText, excelDate, copyValue } from "./values.js";
-import { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch, normalizeBorder } from "./styles.js";
+import { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } from "./styles.js";
 import type { Workbook } from "./workbook.js";
 import type { SheetOptions, XlsxRows, XlsxColumn } from "./types.js";
 import type { RowStyleContext, RowOutline } from "./types.js";
@@ -140,8 +140,6 @@ export class Worksheet<T = never> {
     if (options.includeHeader === false && (options.freezeHeader || options.autoFilter)) throw new TypeError("A frozen header or autofilter requires a header row.");
     if (options.headerFill !== undefined) colorArgb(options.headerFill);
     if (options.headerWrap !== undefined && typeof options.headerWrap !== "boolean") throw new TypeError("headerWrap must be boolean.");
-    // Check edges before any column, date or header style is registered for this sheet.
-    if (options.headerBorder !== undefined) normalizeBorder(options.headerBorder);
     if (options.headerStyle !== undefined) book.styles.validateStyle(options.headerStyle);
     if (options.alternatingRowStyle !== undefined) book.styles.compose(0, options.alternatingRowStyle);
     for (const callback of [options.rowStyle, options.cellStyle, options.rowOutline]) if (callback !== undefined && typeof callback !== "function") throw new TypeError("Row and style callbacks must be functions.");

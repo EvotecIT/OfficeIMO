@@ -5,7 +5,7 @@ import type { CanopyCapture, CanopyRuleFilter, CanopyRulePredicate, CanopySource
 
 /** Compile only comparisons whose raw types and native encodings have a faithful bounded mapping. */
 export function canopyPredicate(request: CanopyCapture["request"], grouped: boolean, options: CanopySourceOptions,
-  root: CanopyRulePredicate, unsupported: (code: string) => never, cellTypes: Map<number, "number" | "date">): string {
+  root: CanopyRulePredicate, unsupported: (code: string) => never, cellTypes: Map<number, "number" | "date">, operands?: Set<string>): string {
   let nodes = 0;
   const operations: Readonly<Record<string, string>> = { eq: "=", ne: "<>", gt: ">", ge: ">=", lt: "<", le: "<=" };
   const numeric = (value: string | number | boolean): number => {
@@ -42,6 +42,7 @@ export function canopyPredicate(request: CanopyCapture["request"], grouped: bool
     if (Object.keys(filter).some(key => !["column", "operator", "values"].includes(key))) return unsupported("UNSUPPORTED_RULE_FILTER_OPTIONS");
     const index = request.columns.findIndex(column => column.id === filter.column);
     if (index < 0) return unsupported("RULE_COLUMN_NOT_EXPORTED:" + filter.column);
+    operands?.add(filter.column);
     const column = request.columns[index]!, letter = columnName(index + 1 + (grouped ? 1 : 0));
     const reference = "INDEX($" + letter + ":$" + letter + ",ROW())", present = "NOT(ISBLANK(" + reference + "))";
     if (column.kind === "number") cellTypes.set(index, "number");

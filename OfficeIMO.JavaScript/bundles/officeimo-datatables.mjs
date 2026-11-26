@@ -3564,7 +3564,7 @@ const { officeRelationshipsNamespace } = _m22;
 
 const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m32;
 
-const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch, normalizeBorder } = _m29;
+const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m29;
 
 const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m36;
 
@@ -3712,9 +3712,6 @@ class Worksheet {
             colorArgb(options.headerFill);
         if (options.headerWrap !== undefined && typeof options.headerWrap !== "boolean")
             throw new TypeError("headerWrap must be boolean.");
-        // Check edges before any column, date or header style is registered for this sheet.
-        if (options.headerBorder !== undefined)
-            normalizeBorder(options.headerBorder);
         if (options.headerStyle !== undefined)
             book.styles.validateStyle(options.headerStyle);
         if (options.alternatingRowStyle !== undefined)
@@ -4737,7 +4734,7 @@ const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropert
 
 const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m25;
 
-const { StyleRegistry, spreadsheetNamespace } = _m29;
+const { StyleRegistry, spreadsheetNamespace, normalizeBorder } = _m29;
 
 const { sheetName, assertXlsxValue, copyValue } = _m32;
 
@@ -4778,6 +4775,8 @@ function captureSheet(options, policy) {
     return { ...captured, columns,
         ...(captured.columnOutlines === undefined ? {} : { columnOutlines: captureColumnOutlines(captured.columnOutlines, columns.length) }),
         ...(captured.headerRows === undefined ? {} : { headerRows: captureTableSpans(captured.headerRows, columns.length) }),
+        // Preflight and every header style read this one snapshot of the edges.
+        ...(captured.headerBorder === undefined ? {} : { headerBorder: normalizeBorder(captured.headerBorder) }),
         ...(footer ? { footer: { ...footer,
                 ...(footer.rows === undefined ? {} : { rows: captureTableSpans(footer.rows, columns.length) }),
                 ...(footer.values === undefined ? {} : { values: footer.values.map(copyValue) }) } } : {}),

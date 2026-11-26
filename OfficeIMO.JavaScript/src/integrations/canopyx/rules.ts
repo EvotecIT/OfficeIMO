@@ -12,7 +12,7 @@ const unsupported = (message: string): never => { throw new UnsupportedRule(mess
  * Data-column selectors let grouped writers exclude generated headings, subtotals and grand totals. */
 export function canopyRules(request: CanopyCapture["request"], format: CanopyFormat, grouped: boolean,
   tones: ReadonlyMap<string, Readonly<CellPresentation>>, report: (diagnostic: CanopyDiagnostic) => void,
-  options: CanopySourceOptions = {}, cellTypes?: Map<number, "number" | "date">): readonly ConditionalFormat[] {
+  options: CanopySourceOptions = {}, cellTypes?: Map<number, "number" | "date">, operands?: Set<string>): readonly ConditionalFormat[] {
   if (request.formatRules === undefined || format === "csv") return [];
   if (!Array.isArray(request.formatRules) || request.formatRules.length > 1000) throw new TypeError("Canopy formatRules must be a bounded array of at most 1,000 declarations.");
   const visuals: ConditionalFormat[] = [], cells: ConditionalFormat[] = [], rows: ConditionalFormat[] = [], ids = new Set<string>(), columns = request.columns;
@@ -42,7 +42,7 @@ export function canopyRules(request: CanopyCapture["request"], format: CanopyFor
   }
   const priorStops: string[] = [];
   const priorRows: string[] = [], priorCells = new Map<string, string[]>();
-  const requiredCells = new Map<number, "number" | "date">();
+  const requiredCells = new Map<number, "number" | "date">(), emittedOperands = new Set<string>();
   const column = (id: string): number => {
     const index = columns.findIndex(column => column.id === id);
     if (index < 0) return unsupported("RULE_COLUMN_NOT_EXPORTED:" + id);
@@ -109,8 +109,8 @@ export function canopyRules(request: CanopyCapture["request"], format: CanopyFor
         if (rule.target !== undefined && rule.target !== "row" && rule.target !== "cell") unsupported("UNSUPPORTED_RULE_TARGET");
         const range = rule.target === "row" ? { column: columns[0]!.id, through: columns.at(-1)!.id } : { column: rule.column! };
         if (rule.column !== undefined) column(rule.column);
-        const ruleCells = new Map<number, "number" | "date">();
-        const ownPredicate = canopyPredicate(request, grouped, options, rule.when!, unsupported, ruleCells);
+        const ruleCells = new Map<number, "number" | "date">(), ruleOperands = new Set<string>();
+        const ownPredicate = canopyPredicate(request, grouped, options, rule.when!, unsupported, ruleCells, ruleOperands);
         const reachable = priorStops.length ? "AND(" + ownPredicate + ",NOT(OR(" + priorStops.join(",") + ")))" : ownPredicate;
         const previous = rule.target === "row" ? priorRows : priorCells.get(rule.column!) ?? [];
         const formula = previous.length ? "AND(" + reachable + ",NOT(OR(" + previous.join(",") + ")))" : reachable;
@@ -119,6 +119,7 @@ export function canopyRules(request: CanopyCapture["request"], format: CanopyFor
         previous.push(ownPredicate);
         if (rule.target !== "row") priorCells.set(rule.column!, previous);
         for (const [column, type] of ruleCells) requiredCells.set(column, type);
+        for (const id of ruleOperands) emittedOperands.add(id);
         // A matched declaration still stops the row when an earlier tone on that target already won.
         if (rule.stopIfTrue) priorStops.push(ownPredicate);
       }
@@ -129,6 +130,8 @@ export function canopyRules(request: CanopyCapture["request"], format: CanopyFor
     }
   }
   for (const [column, type] of requiredCells) cellTypes?.set(column, type);
+  // Only emitted rules read raw cells; a rejected comparison leaves its column free to carry badge labels.
+  for (const id of emittedOperands) operands?.add(id);
   // Canopy paints cell visuals/tones over the row tint. Build masks before changing native priority order.
   return Object.freeze([...visuals, ...cells, ...rows]);
 }
