@@ -356,6 +356,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ReadsAfterRecordedChangesSeeEveryRecordedCell() {
+            // An empty sheet takes the replayed values into the cell buffer once the SDK opens.
+            using var document = ExcelDocument.Load(new MemoryStream(CreateEmptySheetWorkbook()));
+            ExcelSheet sheet = document.Sheets[0];
+            int before = sheet.EnumerateCells().Count();
+            for (int row = 10; row < 110; row++) {
+                sheet.Cell(row, 1).SetValue("Name " + row);
+                sheet.Cell(row, 2).SetValue(row * 1.5);
+                sheet.Cell(row, 3).SetValue(new DateTime(2024, 1, 1).AddDays(row));
+            }
+
+            Assert.Equal(before + 300, sheet.EnumerateCells().Count());
+            Assert.Equal("A109", sheet.FindFirst("Name 109"));
+        }
+
+        [Fact]
         public async Task ACanceledAsyncSaveWritesNothing() {
             using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
             document.Sheets[0].Cell(2, 1).SetValue("Changed");
@@ -623,6 +639,15 @@ namespace OfficeIMO.Tests {
                 data.Cell(2, 2).SetNumberFormat("#,##0.00");
                 ExcelSheet second = document.AddSheet("Second");
                 second.Cell(1, 1).SetValue("Untouched");
+                document.Save();
+            }
+            return stream.ToArray();
+        }
+
+        private static byte[] CreateEmptySheetWorkbook() {
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                document.AddSheet("Data");
                 document.Save();
             }
             return stream.ToArray();

@@ -159,6 +159,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Reads and edits through the model see recorded changes once the SDK has replayed them, so it opens before they
+        /// look for unsaved cells or move buffered ones into the worksheet: the replay can leave values in the cell buffer.
+        /// </summary>
+        internal void OpenDeferredSdkBeforeReadingRecordedChanges() {
+            if (_deferredWorkbook == null) return;
+            bool recorded;
+            lock (_deferredEditsGate) recorded = _deferredEditedSheets.Count > 0;
+            if (recorded) OpenDeferredSdk("Read after recorded changes");
+        }
+
         /// <summary>Puts back changes a save did not write, ahead of any recorded while it ran.</summary>
         private void RestoreDeferredEdits((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] taken) {
             if (taken.Length == 0) return;

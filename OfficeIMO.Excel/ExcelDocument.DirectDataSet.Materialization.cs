@@ -158,6 +158,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal void MaterializeDeferredDataSetImport(CancellationToken ct) {
+            OpenDeferredSdkBeforeReadingRecordedChanges();
             if (!RequiresDeferredMaterialization) {
                 ct.ThrowIfCancellationRequested();
                 return;
