@@ -221,54 +221,76 @@ public static partial class OfficeWebpCodec {
             Vp8lEncoderSettings settings = Vp8lEncoderSettings.For(effort);
             // A stream no smaller than the literal one is useless, so that size bounds the writer.
             int maximumBytes = checked(rgba.Length + 1024);
-            // Peak, during the cost-based parse: source and residual pixels (8 bytes a pixel), per-pixel
-            // matches (6), path costs and steps (10), the parse (8) and a finished candidate (4), with
-            // margin; the stream writer later needs less. Tile histograms and their clusters, the hash
-            // chain heads and the distance-code table come on top.
-            long entropyTiles = settings.EntropyTiles <= 1 ? 1 :
-                Math.Min(settings.EntropyTiles, (long)DivideRoundUp(width, 4) * DivideRoundUp(height, 4));
-            long compressionBytes = checked(40L * pixelCount + entropyTiles * 17_500L +
-                (4L << GetVp8lMatchHashBits(pixelCount)) + 32L * width + 256L * 1024L);
-            if (!IsEncodingWorkingSetWithinLimit(rgba.LongLength, literalFileLength, compressionBytes,
-                    metadataBytes, additionalRetainedManagedBytes)) return null;
+            bool small = pixelCount <= 1 << 16;
+            if (!FitsWorkingSet(settings)) {
+                // Smallest charges for more entropy tiles; when only that does not fit, Balanced may.
+                if (effort != OfficeImageEncodingEffort.Smallest) return null;
+                effort = OfficeImageEncodingEffort.Balanced;
+                settings = Vp8lEncoderSettings.For(effort);
+                if (!FitsWorkingSet(settings)) return null;
+            }
 
             var pixels = new uint[pixelCount];
             FillVp8lSourcePixels(rgba, pixels, cancellationToken, checkpointObserver);
-            Vp8lPrediction? prediction = ChooseVp8lPrediction(pixels, width, height, settings, cancellationToken);
-            Vp8lLayout layout = prediction.Layout;
-            byte[]? best = EncodeVp8lCandidate(width, height, hasAlpha, settings, prediction, maximumBytes, cancellationToken);
-            prediction = null;
-            if (effort == OfficeImageEncodingEffort.Balanced && pixelCount <= 1 << 16) {
-                // Small images cost little to encode, and their map and header overhead is easy to misjudge,
-                // so the other whole-image candidates are encoded too and the smallest stream kept.
-                foreach (Vp8lLayout other in settings.Layouts) {
-                    if (other == layout) continue;
-                    Keep(EncodeVp8lCandidate(width, height, hasAlpha, settings,
-                        PredictVp8lLayout(pixels, width, height, other, cancellationToken), best?.Length ?? maximumBytes,
-                        cancellationToken));
-                }
-            }
+            byte[]? best = EncodeVp8lEffort(pixels, width, height, hasAlpha, settings,
+                effort == OfficeImageEncodingEffort.Balanced && small, maximumBytes, cancellationToken, out Vp8lLayout layout);
             if (effort == OfficeImageEncodingEffort.Smallest) {
-                // The wider search is estimated, not exact, so Smallest also keeps the unpredicted and the
-                // Balanced streams when they are smaller.
+                // The wider search is estimated, not exact, so Smallest also keeps the unpredicted stream and
+                // every Balanced stream when they are smaller.
                 if (layout != Vp8lLayout.Untransformed) {
                     Keep(EncodeVp8lCandidate(width, height, hasAlpha, settings,
                         PredictVp8lLayout(pixels, width, height, Vp8lLayout.Untransformed, cancellationToken),
                         best?.Length ?? maximumBytes, cancellationToken));
                 }
-                Vp8lEncoderSettings balanced = Vp8lEncoderSettings.For(OfficeImageEncodingEffort.Balanced);
-                Keep(EncodeVp8lCandidate(width, height, hasAlpha, balanced,
-                    ChooseVp8lPrediction(pixels, width, height, balanced, cancellationToken),
-                    best?.Length ?? maximumBytes, cancellationToken));
+                Keep(EncodeVp8lEffort(pixels, width, height, hasAlpha,
+                    Vp8lEncoderSettings.For(OfficeImageEncodingEffort.Balanced), small, best?.Length ?? maximumBytes,
+                    cancellationToken, out _));
             }
             return best;
 
             void Keep(byte[]? candidate) {
                 if (candidate != null && (best == null || candidate.Length < best.Length)) best = candidate;
             }
+
+            bool FitsWorkingSet(Vp8lEncoderSettings candidate) {
+                // Peak, during the cost-based parse: source and residual pixels (8 bytes a pixel), per-pixel
+                // matches (6), path costs and steps (10), the parse (8) and a finished candidate (4), with
+                // margin; the stream writer later needs less. Tile histograms and their clusters, the hash
+                // chain heads and the distance-code table come on top.
+                long entropyTiles = candidate.EntropyTiles <= 1 ? 1 :
+                    Math.Min(candidate.EntropyTiles, (long)DivideRoundUp(width, 4) * DivideRoundUp(height, 4));
+                long compressionBytes = checked(40L * pixelCount + entropyTiles * 17_500L +
+                    (4L << GetVp8lMatchHashBits(pixelCount)) + 32L * width + 256L * 1024L);
+                return IsEncodingWorkingSetWithinLimit(rgba.LongLength, literalFileLength, compressionBytes,
+                    metadataBytes, additionalRetainedManagedBytes);
+            }
         } catch (OverflowException) {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Encodes the layout one effort chooses and, when <paramref name="allLayouts"/> is set, its other
+    /// whole-image layouts too, keeping the smallest stream. <paramref name="layout"/> is the chosen layout.
+    /// </summary>
+    private static byte[]? EncodeVp8lEffort(uint[] pixels, int width, int height, bool hasAlpha,
+        Vp8lEncoderSettings settings, bool allLayouts, int maximumBytes, CancellationToken cancellationToken,
+        out Vp8lLayout layout) {
+        Vp8lPrediction? prediction = ChooseVp8lPrediction(pixels, width, height, settings, cancellationToken);
+        layout = prediction.Layout;
+        byte[]? best = EncodeVp8lCandidate(width, height, hasAlpha, settings, prediction, maximumBytes, cancellationToken);
+        prediction = null;
+        if (!allLayouts) return best;
+        // Small images cost little to encode, and their map and header overhead is easy to misjudge,
+        // so the other whole-image candidates are encoded too and the smallest stream kept.
+        foreach (Vp8lLayout other in settings.Layouts) {
+            if (other == layout) continue;
+            byte[]? candidate = EncodeVp8lCandidate(width, height, hasAlpha, settings,
+                PredictVp8lLayout(pixels, width, height, other, cancellationToken), best?.Length ?? maximumBytes,
+                cancellationToken);
+            if (candidate != null && (best == null || candidate.Length < best.Length)) best = candidate;
+        }
+        return best;
     }
 
     private static byte[]? EncodeVp8lCandidate(int width, int height, bool hasAlpha, Vp8lEncoderSettings settings,

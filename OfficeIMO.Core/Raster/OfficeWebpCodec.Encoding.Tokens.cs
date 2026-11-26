@@ -159,9 +159,13 @@ public static partial class OfficeWebpCodec {
     private static Vp8lTokens CreateVp8lTokens(uint[] pixels, int width, int attempts, CancellationToken cancellationToken) {
         var matcher = new Vp8lMatcher(pixels, width, attempts);
         var tokens = new Vp8lTokens(Math.Min(pixels.Length, 1 << 16));
-        int position = 0;
+        int position = 0, checkpoint = 0;
         while (position < pixels.Length) {
-            if ((position & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            // Copies step over many pixels at once, so the check runs whenever a boundary is passed.
+            if (position >= checkpoint) {
+                cancellationToken.ThrowIfCancellationRequested();
+                checkpoint = position + 1024;
+            }
             int length = matcher.Find(position, out int distance);
             if (length >= 3 || length == 2 && (distance == 1 || distance == width)) {
                 tokens.AddCopy(length, matcher.DistanceCode(distance));
