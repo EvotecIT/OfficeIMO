@@ -7,11 +7,14 @@ internal static partial class PdfAdvancedUnderstandingStages {
         public IReadOnlyList<PdfUnderstandingLine> GroupLines(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingWord> words) {
             var groups = new List<BaselineGroup>();
             var spatialIndex = new Dictionary<(int Angle, int Normal), List<BaselineGroup>>();
-            PdfUnderstandingWord[] sortedWords = CopyAndSort(
+            // Groups per angle bucket; a group keeps its angle, so only new groups change it.
+            var groupsPerAngle = new int[180];
+            PdfUnderstandingWord[] sortedWords = CopyAndSortByKey(
                 context,
                 words,
+                static word => (Angle: NormalizeAngle(word.RotationDegrees), word.BaselineY, word.XStart),
                 static (left, right) => {
-                    int angle = NormalizeAngle(left.RotationDegrees).CompareTo(NormalizeAngle(right.RotationDegrees));
+                    int angle = left.Angle.CompareTo(right.Angle);
                     if (angle != 0) return angle;
                     int baseline = right.BaselineY.CompareTo(left.BaselineY);
                     return baseline != 0 ? baseline : left.XStart.CompareTo(right.XStart);
@@ -25,12 +28,13 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 double tolerance = Math.Max(0.75D, Math.Min(context.LayoutOptions.LineMergeMax.ToPoints(), word.FontSize * context.LayoutOptions.LineMergeToleranceEm));
                 if (selectionAnchor) tolerance = Math.Max(tolerance,
                     Math.Min(context.LayoutOptions.LineMergeMax.ToPoints() * 2D, word.FontSize * 0.2D));
-                BaselineGroup? group = FindIndexedGroup(context, spatialIndex, angle, normal, tolerance, selectionAnchor);
+                BaselineGroup? group = FindIndexedGroup(context, spatialIndex, groupsPerAngle, angle, normal, tolerance, selectionAnchor);
                 (int Angle, int Normal) previousKey = default;
                 if (group is null) {
                     group = new BaselineGroup(angle, normal);
                     groups.Add(group);
                     AddToIndex(spatialIndex, group);
+                    groupsPerAngle[IndexKey(group.Angle, group.Normal).Angle]++;
                 } else {
                     previousKey = IndexKey(group.Angle, group.Normal);
                 }
@@ -50,10 +54,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
                     context.LayoutOptions.ReadingDirection,
                     sourceOrdered.Select(static word => word.Text));
-                PdfUnderstandingWord[] ordered = CopyAndSort(
-                    context,
-                    group.Words,
-                    (left, right) => ProjectAlong(left, radians).CompareTo(ProjectAlong(right, radians)));
+                PdfUnderstandingWord[] ordered = group.OrderedAlong ??= OrderAlong(context, group);
                 var runs = new List<List<PdfUnderstandingWord>> { new List<PdfUnderstandingWord>() };
                 double previousAlongEnd = double.NegativeInfinity;
                 for (int i = 0; i < ordered.Length; i++) {
@@ -146,13 +147,18 @@ internal static partial class PdfAdvancedUnderstandingStages {
             internal readonly Dictionary<(int Angle, long Along), (BaselineGroup First, bool Repeated)> Prose = new();
         }
 
+        /// <summary>A finished group's words ordered by their projection along its baseline.</summary>
+        private static PdfUnderstandingWord[] OrderAlong(PdfUnderstandingPageContext context, BaselineGroup group) {
+            double radians = group.Angle * Math.PI / 180D;
+            return CopyAndSortByKey(context, group.Words, word => ProjectAlong(word, radians), static (left, right) => left.CompareTo(right));
+        }
+
         private static GutterAnchors CollectGutterAnchors(
             PdfUnderstandingPageContext context, List<BaselineGroup> groups) {
             var anchors = new GutterAnchors();
             foreach (BaselineGroup group in groups) {
                 double radians = group.Angle * Math.PI / 180D;
-                PdfUnderstandingWord[] ordered = CopyAndSort(context, group.Words,
-                    (left, right) => ProjectAlong(left, radians).CompareTo(ProjectAlong(right, radians)));
+                PdfUnderstandingWord[] ordered = group.OrderedAlong ??= OrderAlong(context, group);
                 double previousEnd = double.NegativeInfinity;
                 for (int index = 0; index < ordered.Length; index++) {
                     context.ConsumeWork();
@@ -256,6 +262,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
         private static BaselineGroup? FindIndexedGroup(
             PdfUnderstandingPageContext context,
             Dictionary<(int Angle, int Normal), List<BaselineGroup>> index,
+            int[] groupsPerAngle,
             double angle,
             double normal,
             double tolerance, bool selectionAnchor) {
@@ -263,6 +270,8 @@ internal static partial class PdfAdvancedUnderstandingStages {
             int normalRadius = (int)Math.Ceiling(tolerance / 0.75D) + 1;
             for (int angleOffset = -2; angleOffset <= 2; angleOffset++) {
                 int candidateAngle = (angleBucket + angleOffset + 180) % 180;
+                // No group has this angle, so none of its buckets can hold a candidate.
+                if (groupsPerAngle[candidateAngle] == 0) continue;
                 for (int normalOffset = -normalRadius; normalOffset <= normalRadius; normalOffset++) {
                     context.ConsumeWork();
                     if (!index.TryGetValue((candidateAngle, normalBucket + normalOffset), out List<BaselineGroup>? candidates)) continue;

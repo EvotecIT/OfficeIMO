@@ -60,6 +60,26 @@ internal static partial class PdfAdvancedUnderstandingStages {
         return source;
     }
 
+    /// <summary>
+    /// <see cref="CopyAndSort{T}"/> for a comparison that compares a key of each value: the key is worked out once per
+    /// value instead of on every comparison. The order and the work charged are the same.
+    /// </summary>
+    internal static T[] CopyAndSortByKey<T, TKey>(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<T> values,
+        Func<T, TKey> key,
+        Comparison<TKey> comparison) {
+        var keyed = new (T Value, TKey Key)[values.Count];
+        for (int index = 0; index < keyed.Length; index++) {
+            T value = values[index];
+            keyed[index] = (value, key(value));
+        }
+        (T Value, TKey Key)[] sorted = CopyAndSort(context, keyed, (left, right) => comparison(left.Key, right.Key));
+        var result = new T[sorted.Length];
+        for (int index = 0; index < sorted.Length; index++) result[index] = sorted[index].Value;
+        return result;
+    }
+
     internal static PdfUnderstandingLine CreateLineSubset(
         PdfUnderstandingPageContext context,
         PdfUnderstandingLine source,
@@ -1207,6 +1227,8 @@ internal static partial class PdfAdvancedUnderstandingStages {
         internal double Angle { get; }
         internal double Normal { get; set; }
         internal List<PdfUnderstandingWord> Words { get; } = new();
+        /// <summary>The words ordered along the baseline, once grouping has finished; read only.</summary>
+        internal PdfUnderstandingWord[]? OrderedAlong { get; set; }
     }
 
     private static double WordAnchorX(PdfUnderstandingWord word) => (word.XStart + word.XEnd) / 2D;
