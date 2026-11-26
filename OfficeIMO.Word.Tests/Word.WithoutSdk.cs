@@ -457,7 +457,9 @@ public sealed class WordWithoutSdkTests {
             List<string> paragraphs = document.Paragraphs.Select(paragraph =>
                 $"{paragraph.Text}|{paragraph.Bold}|{paragraph.Italic}|{paragraph.Underline}|{paragraph.Strikethrough}|{paragraph.FontSize}"
                 + $"|{paragraph.Color}|{paragraph.FontFamily}|{paragraph.Highlight}|{paragraph.CapsStyle}"
-                + $"|{paragraph.StyleId}|{paragraph.Style}|{paragraph.ParagraphAlignment}").ToList();
+                + $"|{paragraph.StyleId}|{paragraph.Style}|{paragraph.ParagraphAlignment}"
+                + $"|{paragraph.IndentationBefore}|{paragraph.IndentationAfter}|{paragraph.IndentationFirstLine}|{paragraph.IndentationHanging}"
+                + $"|{paragraph.LineSpacingBefore}|{paragraph.LineSpacingAfter}").ToList();
             _lastRunStayedOwned = document.IsSdkDeferred;
             return paragraphs;
         }
@@ -470,7 +472,13 @@ public sealed class WordWithoutSdkTests {
         added.FontFamily = "Arial";
         added.AddText(" second").Strikethrough = true;
         document.AddParagraph("tab\there\nnext line");
-        document.AddParagraph("Centered").ParagraphAlignment = WordParagraphAlignment.Center;
+        WordParagraph centered = document.AddParagraph("Centered");
+        centered.ParagraphAlignment = WordParagraphAlignment.Center;
+        centered.IndentationBefore = OfficeLength.Points(36);
+        centered.IndentationFirstLine = OfficeLength.Points(12);
+        centered.LineSpacingBefore = OfficeLength.Points(6);
+        centered.LineSpacingAfter = OfficeLength.Points(10);
+        centered.IndentationAfter = null;
         List<WordParagraph> paragraphs = document.Paragraphs;
         if (paragraphs.Count > 0) {
             paragraphs[0].Italic = true;
@@ -478,7 +486,11 @@ public sealed class WordWithoutSdkTests {
             paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Right;
             paragraphs[0].Style = WordParagraphStyles.Normal;
         }
-        if (paragraphs.Count > 1) paragraphs[1].ParagraphAlignment = null;
+        if (paragraphs.Count > 1) {
+            paragraphs[1].ParagraphAlignment = null;
+            paragraphs[1].IndentationHanging = OfficeLength.Points(18);
+            paragraphs[1].LineSpacingAfter = null;
+        }
     }
 
     private static byte[]? EditAndSave(byte[] bytes, bool withoutSdk, Action<WordDocument>? edit = null) {

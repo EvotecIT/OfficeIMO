@@ -223,6 +223,41 @@ namespace OfficeIMO.Word {
             return true;
         }
 
+        /// <summary>
+        /// Reads a twips attribute of a paragraph property element, such as <c>w:ind/@w:left</c>, as the SDK path reads it:
+        /// a value that doesn't parse as an integer reads as no value.
+        /// </summary>
+        private bool TryGetOwnedParagraphTwips(string element, string attribute, out OfficeLength? value) {
+            value = null;
+            if (!TryGetOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (properties == NoNode) return true;
+            int child = tree.FindChild(properties, W, element);
+            if (child != NoNode && tree.TryGetAttribute(child, W, attribute, out string text) && !string.IsNullOrEmpty(text)
+                && int.TryParse(text, out int twips)) {
+                value = OfficeLength.Points(twips / 20D);
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Sets or clears a twips attribute of a paragraph property element, adding the element when missing even to clear
+        /// it, as the SDK path's setters do.
+        /// </summary>
+        private bool TrySetOwnedParagraphTwips(string element, string attribute, string? text) {
+            if (!TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            int child = tree.GetOrInsertChild(properties, W, element, WPPrView.Order);
+            if (text == null) tree.RemoveAttribute(child, W, attribute);
+            else tree.SetAttribute(child, W, attribute, text);
+            return true;
+        }
+
+        // Indentation is written with the invariant culture, spacing with the current one, as on the SDK path.
+        private static string? IndentationText(OfficeLength? value) =>
+            checked((int?)value?.ToTwips())?.ToString(CultureInfo.InvariantCulture);
+
+        // Clearing spacing on the SDK path writes an empty value rather than removing the attribute.
+        private static string SpacingText(OfficeLength? value) => checked((int?)value?.ToTwips())?.ToString() ?? string.Empty;
+
         // ---- Run properties ----------------------------------------------------------------------------------------
 
         /// <summary>The run properties when the paragraph is owned; <paramref name="properties"/> is NoNode when the run has none.</summary>
