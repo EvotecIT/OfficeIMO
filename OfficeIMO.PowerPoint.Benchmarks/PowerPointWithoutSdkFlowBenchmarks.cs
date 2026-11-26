@@ -124,7 +124,7 @@ public class PowerPointWithoutSdkFlowBenchmarks {
     private static void Appearance(PowerPointDocument presentation) {
         foreach (PowerPointSlide slide in presentation.Slides) {
             foreach (PowerPointShape shape in slide.Shapes) {
-                if (shape is not PowerPointAutoShape) continue;
+                if (shape is not (PowerPointAutoShape or PowerPointTextBox)) continue;
                 shape.FillColor = OfficeColor.FromRgb(0xDE, 0xEB, 0xF7);
                 shape.FillTransparency = 20;
                 shape.OutlineColor = OfficeColor.FromRgb(0x1F, 0x4E, 0x79);
