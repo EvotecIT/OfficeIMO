@@ -1,4 +1,5 @@
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTextRun {
@@ -12,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
         public string? HyperlinkTooltip {
             get => ClickHyperlinkElement.Attribute("tooltip");
             set {
-                PowerPointXmlNode hyperlink = ClickHyperlinkElement;
+                OfficeXmlNode hyperlink = ClickHyperlinkElement;
                 if (hyperlink.IsNone) {
                     if (value == null) return;
                     throw new InvalidOperationException("A hyperlink must be assigned before setting its tooltip.");

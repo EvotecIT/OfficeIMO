@@ -5,15 +5,16 @@ using OfficeIMO.PowerPoint.OpenXml;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Tests;
 
 /// <summary>
-/// Element edits through <see cref="PowerPointXmlNode"/> give the same markup on OfficeIMO's tree and on the SDK's
+/// Element edits through <see cref="OfficeXmlNode"/> give the same markup on OfficeIMO's tree and on the SDK's
 /// elements, and elements added on the SDK side are the SDK's typed classes, so code holding the SDK package keeps
 /// reading them through its typed members.
 /// </summary>
-public class PowerPointXmlNodeTests {
+public class OfficeXmlNodeTests {
     private const string Slide =
         "<p:sld xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\">"
         + "<p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>"
@@ -23,26 +24,26 @@ public class PowerPointXmlNodeTests {
 
     [Fact]
     public void EditsGiveTheSameMarkupOnTheTreeAndOnTheSdkElements() {
-        (PowerPointXmlNode tree, PowerPointXmlNode sdk, P.Slide slide) = Both();
+        (OfficeXmlNode tree, OfficeXmlNode sdk, P.Slide slide) = Both();
 
-        foreach (PowerPointXmlNode root in new[] { tree, sdk }) {
-            PowerPointXmlNode paragraph = Paragraph(root);
-            PowerPointXmlNode run = paragraph.Child(OfficeXmlNamespaces.DrawingML, "r");
+        foreach (OfficeXmlNode root in new[] { tree, sdk }) {
+            OfficeXmlNode paragraph = Paragraph(root);
+            OfficeXmlNode run = paragraph.Child(OfficeXmlNamespaces.DrawingML, "r");
             Assert.Equal("Hello", run.InnerText);
 
             // Properties go before the text, in schema order.
-            PowerPointXmlNode properties = run.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "rPr", ARegularTextRunView.Order);
+            OfficeXmlNode properties = run.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "rPr", ARegularTextRunView.Order);
             properties.SetBooleanAttribute("b", true);
             properties.SetInt32Attribute("sz", 2400);
             properties.AddOrdered(OfficeXmlNamespaces.DrawingML, "latin", ATextCharacterPropertiesOrder).SetAttribute("typeface", "Aptos");
             run.Child(OfficeXmlNamespaces.DrawingML, "t").SetInnerText("Hi & bye");
 
             // A run built detached, then inserted before the end paragraph properties.
-            PowerPointXmlNode added = root.CreateElement(OfficeXmlNamespaces.DrawingML, "r");
+            OfficeXmlNode added = root.CreateElement(OfficeXmlNamespaces.DrawingML, "r");
             added = paragraph.InsertBefore(BuildRun(added, "second"), paragraph.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr"));
             Assert.Equal("second", added.InnerText);
 
-            PowerPointXmlNode drawing = root.Child(OfficeXmlNamespaces.PresentationML, "cSld").Child(OfficeXmlNamespaces.PresentationML, "spTree")
+            OfficeXmlNode drawing = root.Child(OfficeXmlNamespaces.PresentationML, "cSld").Child(OfficeXmlNamespaces.PresentationML, "spTree")
                 .Child(OfficeXmlNamespaces.PresentationML, "sp").Child(OfficeXmlNamespaces.PresentationML, "nvSpPr").Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
             drawing.SetAttribute("descr", "A title");
             drawing.SetAttribute("name", null);
@@ -69,16 +70,16 @@ public class PowerPointXmlNodeTests {
 
     [Fact]
     public void ChildrenAreElementsInOrderOnBothSides() {
-        (PowerPointXmlNode tree, PowerPointXmlNode sdk, _) = Both();
-        foreach (PowerPointXmlNode root in new[] { tree, sdk }) {
-            PowerPointXmlNode paragraph = Paragraph(root);
+        (OfficeXmlNode tree, OfficeXmlNode sdk, _) = Both();
+        foreach (OfficeXmlNode root in new[] { tree, sdk }) {
+            OfficeXmlNode paragraph = Paragraph(root);
             // The comment before the run is not a child element.
             Assert.Equal(new[] { "r", "endParaRPr" }, paragraph.Children().ToList().Select(child => child.LocalName));
             Assert.Equal(paragraph.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr"), paragraph.LastChild);
             Assert.Equal(paragraph, paragraph.FirstChild.Parent);
             Assert.True(paragraph.FirstChild.IsAttached);
             Assert.True(paragraph.FirstChild.IsInside(root));
-            PowerPointXmlNode copy = paragraph.Clone();
+            OfficeXmlNode copy = paragraph.Clone();
             Assert.False(copy.IsAttached);
             Assert.Equal("Hello", copy.InnerText);
         }
@@ -86,11 +87,11 @@ public class PowerPointXmlNodeTests {
 
     [Fact]
     public void RemovesAndMovesElementsOnBothSides() {
-        (PowerPointXmlNode tree, PowerPointXmlNode sdk, P.Slide slide) = Both();
-        foreach (PowerPointXmlNode root in new[] { tree, sdk }) {
-            PowerPointXmlNode paragraph = Paragraph(root);
-            PowerPointXmlNode run = paragraph.Child(OfficeXmlNamespaces.DrawingML, "r");
-            PowerPointXmlNode copy = run.Clone();
+        (OfficeXmlNode tree, OfficeXmlNode sdk, P.Slide slide) = Both();
+        foreach (OfficeXmlNode root in new[] { tree, sdk }) {
+            OfficeXmlNode paragraph = Paragraph(root);
+            OfficeXmlNode run = paragraph.Child(OfficeXmlNamespaces.DrawingML, "r");
+            OfficeXmlNode copy = run.Clone();
             run.InsertAfterSelf(copy);
             Assert.Equal(2, paragraph.Children(OfficeXmlNamespaces.DrawingML, "r").Count);
             paragraph.RemoveChildren(OfficeXmlNamespaces.DrawingML, "r");
@@ -102,33 +103,33 @@ public class PowerPointXmlNodeTests {
 
     [Fact]
     public void SdkElementsMoveIntoTheTreeAsMarkup() {
-        (PowerPointXmlNode tree, PowerPointXmlNode sdk, _) = Both();
-        PowerPointXmlNode sdkRun = Paragraph(sdk).Child(OfficeXmlNamespaces.DrawingML, "r");
-        PowerPointXmlNode treeParagraph = Paragraph(tree);
-        PowerPointXmlNode inserted = treeParagraph.Append(sdkRun.Clone());
+        (OfficeXmlNode tree, OfficeXmlNode sdk, _) = Both();
+        OfficeXmlNode sdkRun = Paragraph(sdk).Child(OfficeXmlNamespaces.DrawingML, "r");
+        OfficeXmlNode treeParagraph = Paragraph(tree);
+        OfficeXmlNode inserted = treeParagraph.Append(sdkRun.Clone());
         Assert.Same(tree.Tree, inserted.Tree);
         Assert.Equal("Hello", inserted.InnerText);
     }
 
     private static readonly OfficeXmlChildOrder ATextCharacterPropertiesOrder = ATextCharacterPropertiesView.Order;
 
-    private static PowerPointXmlNode BuildRun(PowerPointXmlNode run, string text) {
-        PowerPointXmlNode properties = run.Append(run.CreateElement(OfficeXmlNamespaces.DrawingML, "rPr"));
+    private static OfficeXmlNode BuildRun(OfficeXmlNode run, string text) {
+        OfficeXmlNode properties = run.Append(run.CreateElement(OfficeXmlNamespaces.DrawingML, "rPr"));
         properties.SetAttribute("lang", "en-US");
         run.Append(run.CreateElement(OfficeXmlNamespaces.DrawingML, "t")).SetInnerText(text);
         return run;
     }
 
-    private static PowerPointXmlNode Paragraph(PowerPointXmlNode root) =>
+    private static OfficeXmlNode Paragraph(OfficeXmlNode root) =>
         root.Child(OfficeXmlNamespaces.PresentationML, "cSld").Child(OfficeXmlNamespaces.PresentationML, "spTree")
             .Child(OfficeXmlNamespaces.PresentationML, "sp").Child(OfficeXmlNamespaces.PresentationML, "txBody")
             .Child(OfficeXmlNamespaces.DrawingML, "p");
 
-    private static (PowerPointXmlNode Tree, PowerPointXmlNode Sdk, P.Slide Slide) Both() {
+    private static (OfficeXmlNode Tree, OfficeXmlNode Sdk, P.Slide Slide) Both() {
         byte[] bytes = Encoding.UTF8.GetBytes(Slide);
         OfficeXmlTree tree = OfficeXmlTree.Parse(bytes, bytes.Length, new OfficeXmlNamespaces.Table());
         var slide = new P.Slide(Slide);
-        return (new PowerPointXmlNode(tree, tree.Root), PowerPointXmlNode.FromSdk(slide), slide);
+        return (new OfficeXmlNode(tree, tree.Root), OfficeXmlNode.FromSdk(slide), slide);
     }
 
     // Comments, namespace declaration placement and attribute order (the SDK writes attributes in schema order) are not

@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointParagraph {
@@ -20,22 +21,22 @@ namespace OfficeIMO.PowerPoint {
             bool wholeWords = options?.WholeWords == true;
             int count = 0;
 
-            PowerPointXmlNode child = Element.FirstChild;
+            OfficeXmlNode child = Element.FirstChild;
             while (!child.IsNone) {
                 if (!child.Is(OfficeXmlNamespaces.DrawingML, "r")) {
                     child = child.NextSibling;
                     continue;
                 }
 
-                var runs = new List<PowerPointXmlNode> { child };
-                PowerPointXmlNode next = child.NextSibling;
+                var runs = new List<OfficeXmlNode> { child };
+                OfficeXmlNode next = child.NextSibling;
                 while (next.Is(OfficeXmlNamespaces.DrawingML, "r")) {
                     runs.Add(next);
                     next = next.NextSibling;
                 }
 
                 // Field text affects word boundaries but remains outside the text that can be replaced.
-                PowerPointXmlNode previousSibling = child.PreviousSibling;
+                OfficeXmlNode previousSibling = child.PreviousSibling;
                 string? preceding = wholeWords && previousSibling.Is(OfficeXmlNamespaces.DrawingML, "fld") ? previousSibling.ChildText(OfficeXmlNamespaces.DrawingML, "t") : null;
                 string? following = wholeWords && next.Is(OfficeXmlNamespaces.DrawingML, "fld") ? next.ChildText(OfficeXmlNamespaces.DrawingML, "t") : null;
                 string[] texts = runs.Select(item => item.ChildText(OfficeXmlNamespaces.DrawingML, "t") ?? string.Empty).ToArray();

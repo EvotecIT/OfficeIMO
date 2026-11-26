@@ -14,14 +14,14 @@ internal static partial class PowerPointDrawingColor {
     /// Appends the color element for <paramref name="color"/>: a theme slot as <c>a:schemeClr</c>, anything else as
     /// <c>a:srgbClr</c> with its opacity. <paramref name="theme"/> resolves a theme role without a slot.
     /// </summary>
-    internal static PowerPointXmlNode Append(PowerPointXmlNode parent, OfficeColor color, OfficeTheme? theme) {
+    internal static OfficeXmlNode Append(OfficeXmlNode parent, OfficeColor color, OfficeTheme? theme) {
         if (color.ThemeSlot is string slot) {
-            PowerPointXmlNode scheme = parent.Append(parent.CreateElement(OfficeXmlNamespaces.DrawingML, "schemeClr"));
+            OfficeXmlNode scheme = parent.Append(parent.CreateElement(OfficeXmlNamespaces.DrawingML, "schemeClr"));
             scheme.SetAttribute("val", slot);
             return scheme;
         }
         if (color.IsThemeRole) color = color.Resolve(theme ?? OfficeTheme.Default);
-        PowerPointXmlNode rgb = parent.CreateElement(OfficeXmlNamespaces.DrawingML, "srgbClr");
+        OfficeXmlNode rgb = parent.CreateElement(OfficeXmlNamespaces.DrawingML, "srgbClr");
         rgb.SetAttribute("val", color.ToRgbHex());
         if (color.A < 255) {
             rgb.Append(rgb.CreateElement(OfficeXmlNamespaces.DrawingML, "alpha"))
@@ -31,17 +31,17 @@ internal static partial class PowerPointDrawingColor {
     }
 
     /// <summary>Builds a detached <c>a:solidFill</c> of <paramref name="color"/> in the part of <paramref name="context"/>.</summary>
-    internal static PowerPointXmlNode CreateFill(PowerPointXmlNode context, OfficeColor color, OfficeTheme? theme) {
-        PowerPointXmlNode fill = context.CreateElement(OfficeXmlNamespaces.DrawingML, "solidFill");
+    internal static OfficeXmlNode CreateFill(OfficeXmlNode context, OfficeColor color, OfficeTheme? theme) {
+        OfficeXmlNode fill = context.CreateElement(OfficeXmlNamespaces.DrawingML, "solidFill");
         Append(fill, color, theme);
         return fill;
     }
 
     // These getters expose local formatting. Inherited fills and transformed scheme colors
     // have no exact OfficeColor representation and remain absent rather than being flattened.
-    internal static OfficeColor? Read(PowerPointXmlNode container) {
+    internal static OfficeColor? Read(OfficeXmlNode container) {
         if (container.IsNone) return null;
-        PowerPointXmlNode scheme = container.Child(OfficeXmlNamespaces.DrawingML, "schemeClr");
+        OfficeXmlNode scheme = container.Child(OfficeXmlNamespaces.DrawingML, "schemeClr");
         if (!scheme.IsNone) {
             if (!scheme.FirstChild.IsNone) return null;
             return scheme.Attribute("val") switch {
@@ -56,10 +56,10 @@ internal static partial class PowerPointDrawingColor {
     }
 
     // The color element itself, or the first color child in the order the shared resolver looks for them.
-    private static PowerPointXmlNode FindColorElement(PowerPointXmlNode container) {
+    private static OfficeXmlNode FindColorElement(OfficeXmlNode container) {
         if (container.NamespaceId == OfficeXmlNamespaces.DrawingML && IsColorElement(container.LocalName)) return container;
         foreach (string name in ColorElements) {
-            PowerPointXmlNode color = container.Child(OfficeXmlNamespaces.DrawingML, name);
+            OfficeXmlNode color = container.Child(OfficeXmlNamespaces.DrawingML, name);
             if (!color.IsNone) return color;
         }
         return default;
@@ -70,7 +70,7 @@ internal static partial class PowerPointDrawingColor {
     private static bool IsColorElement(string name) => Array.IndexOf(ColorElements, name) >= 0;
 
     // A color model without a theme: scheme colors have nothing to resolve against and read as null.
-    private static OfficeColor? ReadLiteral(PowerPointXmlNode element) {
+    private static OfficeColor? ReadLiteral(OfficeXmlNode element) {
         if (element.IsNone) return null;
         OfficeColor? color = element.LocalName switch {
             "srgbClr" => OfficeDrawingColorTransforms.ParseRgb(element.Attribute("val")),
@@ -82,7 +82,7 @@ internal static partial class PowerPointDrawingColor {
         };
         if (!color.HasValue) return null;
         var transforms = new OfficeDrawingColorTransforms(color.Value);
-        foreach (PowerPointXmlNode transform in element.Children()) {
+        foreach (OfficeXmlNode transform in element.Children()) {
             string name = transform.LocalName;
             transforms.Apply(name, OfficeDrawingColorTransforms.TakesValue(name) ? transform.Attribute("val") : null);
         }

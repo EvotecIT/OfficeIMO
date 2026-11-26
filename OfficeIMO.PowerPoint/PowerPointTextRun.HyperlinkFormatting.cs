@@ -1,4 +1,5 @@
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -15,7 +16,7 @@ public partial class PowerPointTextRun {
     public bool HyperlinkUsesTextColor {
         get => ClickHyperlinkElement is { IsNone: false } hyperlink && PowerPointTextHyperlinkColor.ReadChoice(hyperlink) == true;
         set {
-            PowerPointXmlNode hyperlink = ClickHyperlinkElement;
+            OfficeXmlNode hyperlink = ClickHyperlinkElement;
             if (hyperlink.IsNone) throw new InvalidOperationException("Set a click hyperlink before its color policy.");
             PowerPointTextHyperlinkColor.SetChoice(hyperlink, value);
             MarkEdited();
