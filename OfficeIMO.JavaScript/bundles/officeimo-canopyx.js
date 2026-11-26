@@ -11884,7 +11884,7 @@ _modules.set("09d56e54463cbff00a2b225e10a62b06c881933290525c614bb5e276167e9eac",
 return _exports;
 })();
 
-const _m96 = _modules.get("3493127c79b8b2438f4c56157c10e242a4ffeef70fed1b7b06415dd2eba7dfd4") ?? (() => {
+const _m96 = _modules.get("0ab8fbaa447123f410fef4d90d39f7f29cfbb0a0efecd949d849fcfe75902894") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { canopyPivot, pivotNumberFormat } = _m97;
@@ -11915,6 +11915,29 @@ function canopyIdentityValue(value) {
         return value;
     const original = rawIdentities.get(value);
     return original === undefined ? value.value : original;
+}
+/** Columns read by enabled native rule predicates; malformed declarations are rejected later by the rule compiler. */
+function predicateColumns(rules) {
+    const columns = new Set();
+    const visit = (predicate, depth) => {
+        if (!predicate || typeof predicate !== "object" || depth > 8)
+            return;
+        const { filters, groups } = predicate;
+        if (Array.isArray(filters))
+            for (const filter of filters) {
+                const column = filter && typeof filter === "object" ? filter.column : undefined;
+                if (typeof column === "string")
+                    columns.add(column);
+            }
+        if (Array.isArray(groups))
+            for (const group of groups)
+                visit(group, depth + 1);
+    };
+    if (Array.isArray(rules))
+        for (const rule of rules.slice(0, 1000))
+            if (rule && typeof rule === "object" && rule.enabled !== false)
+                visit(rule.when, 0);
+    return columns;
 }
 function badgeText(input) {
     if (!Array.isArray(input) || input.length > 64)
@@ -11983,6 +12006,7 @@ function prepareCanopyExport(capture, format, options = {}) {
             fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
         return style;
     };
+    const ruleOperands = format === "xlsx" ? predicateColumns(request.formatRules) : new Set();
     const ids = new Set();
     const specs = (pivot?.columns ?? request.columns).map(input => {
         const fields = captureFields(input, ["id", "title", "kind", "width", "pinned", "format", "wrap", "alignment", "diagnostics"]);
@@ -12045,8 +12069,10 @@ function prepareCanopyExport(capture, format, options = {}) {
                     const badges = cell.badges === undefined ? undefined : badgeText(cell.badges);
                     const text = badges ? cell.text ? cell.text + badgeSeparator + badges : badges : cell.text;
                     // Badges belong to the visible label: text columns export them with the value, typed columns keep their scalar.
+                    // Native rule predicates compare the raw scalar, so their operand columns keep it and carry badges in the text only.
+                    const badgedValue = !!badges && values === "raw" && !relativeLabel && spec.kind === "text" && !ruleOperands.has(spec.id);
                     let value = values === "display" || relativeLabel ? text :
-                        badges && spec.kind === "text" ? (cell.value === null || cell.value === "" ? badges : String(cell.value) + badgeSeparator + badges) : cell.value;
+                        badgedValue ? (cell.value === null || cell.value === "" ? badges : String(cell.value) + badgeSeparator + badges) : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
                     const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
@@ -12062,7 +12088,7 @@ function prepareCanopyExport(capture, format, options = {}) {
                         result.push(value);
                     else {
                         const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
-                        if (relativeLabel || value !== cell.value && badges)
+                        if (relativeLabel || badgedValue)
                             rawIdentities.set(exported, cell.value);
                         result.push(exported);
                     }
@@ -12078,7 +12104,7 @@ function prepareCanopyExport(capture, format, options = {}) {
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
 const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("3493127c79b8b2438f4c56157c10e242a4ffeef70fed1b7b06415dd2eba7dfd4", _exports);
+_modules.set("0ab8fbaa447123f410fef4d90d39f7f29cfbb0a0efecd949d849fcfe75902894", _exports);
 return _exports;
 })();
 
@@ -12379,7 +12405,7 @@ _modules.set("e01b2c108bf292f2e1e04b10530d945b8ee593009b55f3768de20aaf292c3804",
 return _exports;
 })();
 
-const _m103 = _modules.get("ca9ee55cd4f95fd4f81fd5c4f9435c949f2aadf3c34141cd85352ba83e61c514") ?? (() => {
+const _m103 = _modules.get("bd72d62a40b65fc1d37afef65a35a18cc30319279dd9ca535c2da04f478086d4") ?? (() => {
 const { createGroupedReport } = _m8;
 
 const { checkAbort } = _m4;
@@ -12585,7 +12611,7 @@ function canopyGrouped(source, request, options, limits, report, format) {
         ...(options.signal === undefined ? {} : { signal: options.signal }), ...(sourceLimits === undefined ? {} : { limits: sourceLimits }) });
 }
 const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
-_modules.set("ca9ee55cd4f95fd4f81fd5c4f9435c949f2aadf3c34141cd85352ba83e61c514", _exports);
+_modules.set("bd72d62a40b65fc1d37afef65a35a18cc30319279dd9ca535c2da04f478086d4", _exports);
 return _exports;
 })();
 
@@ -12943,7 +12969,7 @@ _modules.set("dab3e04542b3619c5c937162b41068f7cb1c3021b4620987c0fb95d4bd98d8e2",
 return _exports;
 })();
 
-const _m0 = _modules.get("9a5d76e1d6b69430173833b1607e4f66982e39bb3bff173b283f1378b168f158") ?? (() => {
+const _m0 = _modules.get("8b73190d9b652593245233d0f53bab8232515a908169bf379f0e93b28d0c67c8") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -13084,7 +13110,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("9a5d76e1d6b69430173833b1607e4f66982e39bb3bff173b283f1378b168f158", _exports);
+_modules.set("8b73190d9b652593245233d0f53bab8232515a908169bf379f0e93b28d0c67c8", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

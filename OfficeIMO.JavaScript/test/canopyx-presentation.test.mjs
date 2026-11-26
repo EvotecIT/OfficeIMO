@@ -21,10 +21,10 @@ async function workbook(blob) {
   const xfs = [...section("cellXfs").matchAll(/<xf\b([^>]*?)(?:\/>|>([\s\S]*?)<\/xf>)/g)].map(m => m);
   const strings = zip.has("xl/sharedStrings.xml") ? [...zip.get("xl/sharedStrings.xml").content.matchAll(/<si>([\s\S]*?)<\/si>/g)].map(m => m[1].replace(/<[^>]+>/g, "")) : [];
   return { sheet, style(reference) {
-    const element = new RegExp('<c r="' + reference + '"([^>]*)>([\\s\\S]*?)</c>').exec(sheet);
+    const element = new RegExp('<c r="' + reference + '"([^>]*?)(?:/>|>([\\s\\S]*?)</c>)').exec(sheet);
     assert.ok(element, "missing cell " + reference);
     const index = Number(/ s="(\d+)"/.exec(element[1])?.[1] ?? 0), xf = xfs[index], attribute = name => new RegExp(name + '="(\\d+)"').exec(xf[1])?.[1];
-    const text = / t="s"/.test(element[1]) ? strings[Number(/<v>(\d+)<\/v>/.exec(element[2])[1])] : element[2].replace(/<[^>]+>/g, "");
+    const body = element[2] ?? "", text = / t="s"/.test(element[1]) ? strings[Number(/<v>(\d+)<\/v>/.exec(body)[1])] : body.replace(/<[^>]+>/g, "");
     return { text, font: fonts[Number(attribute("fontId"))], fill: fills[Number(attribute("fillId"))],
       border: borders[Number(attribute("borderId"))], alignment: xf[2] ?? "" };
   } };
@@ -104,4 +104,22 @@ test("Canopy XLSX header is shaded, bold, wrapped and ruled like the PDF heading
   assert.match(book.sheet, /<autoFilter ref="A1:B4"\/>/); assert.match(book.sheet, /<pane [^>]*ySplit="1"[^>]*state="frozen"/);
   const plain = await workbook(await exportCanopy(toneCapture(), "xlsx", { xlsx: { sheet: { headerFill: "FFFFFF", headerWrap: false } } }));
   assert.equal(fillColor(plain.style("A1")), "FFFFFF"); assert.doesNotMatch(plain.style("A1").alignment, /wrapText/);
+});
+
+test("Canopy badges leave native rule operands and typed group identities unchanged", async () => {
+  const rule = { id: "locked", column: "Name", target: "cell", when: { operator: "and", filters: [{ column: "Name", operator: "isNull", values: [] }], groups: [] }, style: { tone: "danger" } };
+  const ruled = capture([{ id: "r", cells: { Name: cell(null, "", { badges: ["Locked"], diagnostics: ["badges"] }), Note: cell("n", "n", { badges: ["Seen"] }) } }],
+    [column("Name"), column("Note")]);
+  ruled.request.formatRules = [rule];
+  const book = await workbook(await exportCanopy(ruled, "xlsx"));
+  // The isNull rule still sees a blank operand; columns no rule reads still carry their labels.
+  assert.match(book.sheet, /ISBLANK\(/); assert.equal(book.style("A2").text, ""); assert.equal(book.style("B2").text, "n · Seen");
+
+  const when = ["2026-01-02T03:04:05.000Z", "2026-02-03T04:05:06.000Z"];
+  const grouped = capture(when.map((value, index) => ({ id: "r" + index, cells: { When: cell(value, value, { badges: ["Late"], diagnostics: ["badges"] }), Name: cell("n" + index) } })),
+    [column("When", "datetime"), column("Name")]);
+  grouped.request.grouping = { levels: [{ column: "When", direction: "asc" }], aggregates: [], totals: {},
+    groups: when.map((value, index) => ({ key: "g" + index, value, offset: index, count: 1, aggregates: {} })) };
+  const blob = await exportCanopy(grouped, "xlsx", { datetime: "typed" });
+  assert.ok((await readZip(blob)).get("xl/worksheets/sheet1.xml").content.includes("n1"));
 });

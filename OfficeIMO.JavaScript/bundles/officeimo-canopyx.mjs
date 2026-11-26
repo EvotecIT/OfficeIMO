@@ -11811,6 +11811,29 @@ function canopyIdentityValue(value) {
     const original = rawIdentities.get(value);
     return original === undefined ? value.value : original;
 }
+/** Columns read by enabled native rule predicates; malformed declarations are rejected later by the rule compiler. */
+function predicateColumns(rules) {
+    const columns = new Set();
+    const visit = (predicate, depth) => {
+        if (!predicate || typeof predicate !== "object" || depth > 8)
+            return;
+        const { filters, groups } = predicate;
+        if (Array.isArray(filters))
+            for (const filter of filters) {
+                const column = filter && typeof filter === "object" ? filter.column : undefined;
+                if (typeof column === "string")
+                    columns.add(column);
+            }
+        if (Array.isArray(groups))
+            for (const group of groups)
+                visit(group, depth + 1);
+    };
+    if (Array.isArray(rules))
+        for (const rule of rules.slice(0, 1000))
+            if (rule && typeof rule === "object" && rule.enabled !== false)
+                visit(rule.when, 0);
+    return columns;
+}
 function badgeText(input) {
     if (!Array.isArray(input) || input.length > 64)
         throw new TypeError("Canopy cell badges must be a bounded array of { text, tone?, title? }.");
@@ -11878,6 +11901,7 @@ function prepareCanopyExport(capture, format, options = {}) {
             fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
         return style;
     };
+    const ruleOperands = format === "xlsx" ? predicateColumns(request.formatRules) : new Set();
     const ids = new Set();
     const specs = (pivot?.columns ?? request.columns).map(input => {
         const fields = captureFields(input, ["id", "title", "kind", "width", "pinned", "format", "wrap", "alignment", "diagnostics"]);
@@ -11940,8 +11964,10 @@ function prepareCanopyExport(capture, format, options = {}) {
                     const badges = cell.badges === undefined ? undefined : badgeText(cell.badges);
                     const text = badges ? cell.text ? cell.text + badgeSeparator + badges : badges : cell.text;
                     // Badges belong to the visible label: text columns export them with the value, typed columns keep their scalar.
+                    // Native rule predicates compare the raw scalar, so their operand columns keep it and carry badges in the text only.
+                    const badgedValue = !!badges && values === "raw" && !relativeLabel && spec.kind === "text" && !ruleOperands.has(spec.id);
                     let value = values === "display" || relativeLabel ? text :
-                        badges && spec.kind === "text" ? (cell.value === null || cell.value === "" ? badges : String(cell.value) + badgeSeparator + badges) : cell.value;
+                        badgedValue ? (cell.value === null || cell.value === "" ? badges : String(cell.value) + badgeSeparator + badges) : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
                     const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
@@ -11957,7 +11983,7 @@ function prepareCanopyExport(capture, format, options = {}) {
                         result.push(value);
                     else {
                         const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
-                        if (relativeLabel || value !== cell.value && badges)
+                        if (relativeLabel || badgedValue)
                             rawIdentities.set(exported, cell.value);
                         result.push(exported);
                     }
