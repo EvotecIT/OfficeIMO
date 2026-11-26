@@ -1,4 +1,3 @@
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTextBox {
@@ -32,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(bullets);
 
             return ReplaceParagraphs(bullets, (bullet, templateParagraph) => {
-                PowerPointParagraph paragraph = AppendParagraph(EnsureTextBody(), bullet ?? string.Empty, templateParagraph);
+                PowerPointParagraph paragraph = AppendParagraph(EnsureBody(), bullet ?? string.Empty, templateParagraph, out _);
                 paragraph.SetBullet(bulletChar);
                 if (level > 0) {
                     paragraph.Level = level;
@@ -90,7 +89,7 @@ namespace OfficeIMO.PowerPoint {
 
             bool first = true;
             return ReplaceParagraphs(items, (item, templateParagraph) => {
-                PowerPointParagraph paragraph = AppendParagraph(EnsureTextBody(), item ?? string.Empty, templateParagraph);
+                PowerPointParagraph paragraph = AppendParagraph(EnsureBody(), item ?? string.Empty, templateParagraph, out _);
                 if (first) {
                     paragraph.SetNumbered(style, startAt);
                     first = false;

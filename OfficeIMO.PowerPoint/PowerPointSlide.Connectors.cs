@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -50,13 +52,21 @@ namespace OfficeIMO.PowerPoint {
             ShapeList.FirstOrDefault(shape => shape.Id == id && shape.Element.Parent is ShapeTree);
 
         internal void RerouteConnectorsAttachedTo(PowerPointShape shape) {
-            if (shape is PowerPointConnectionShape || shape.Element.Parent is not ShapeTree) return;
-            _hasGluedConnectors ??= SlideRoot.CommonSlideData?.ShapeTree?.Descendants<NonVisualConnectorShapeDrawingProperties>()
-                .Any(p => p.StartConnection != null || p.EndConnection != null) == true;
+            // Read through the element handle, so a slide without glued connectors stays off the SDK.
+            if (shape is PowerPointConnectionShape || !shape.XmlElement.Parent.Is(OfficeXmlNamespaces.PresentationML, "spTree")) return;
+            _hasGluedConnectors ??= HasGluedConnectors();
             if (_hasGluedConnectors != true || shape.Id is not uint id) return;
             foreach (PowerPointConnectionShape connector in ShapeList.OfType<PowerPointConnectionShape>()) {
                 if (connector.StartShapeId == id || connector.EndShapeId == id) connector.RerouteAfterShapeChange();
             }
+        }
+
+        private bool HasGluedConnectors() {
+            OfficeXmlNode tree = PartRef.Root.Child(OfficeXmlNamespaces.PresentationML, "cSld").Child(OfficeXmlNamespaces.PresentationML, "spTree");
+            foreach (OfficeXmlNode properties in tree.Descendants(OfficeXmlNamespaces.PresentationML, "cNvCxnSpPr")) {
+                if (!properties.Child(OfficeXmlNamespaces.DrawingML, "stCxn").IsNone || !properties.Child(OfficeXmlNamespaces.DrawingML, "endCxn").IsNone) return true;
+            }
+            return false;
         }
 
         private void ValidateGlueTarget(PowerPointShape shape, string parameterName) {

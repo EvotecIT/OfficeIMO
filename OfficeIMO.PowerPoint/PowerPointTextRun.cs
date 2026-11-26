@@ -52,6 +52,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>The run's element as it is held now: once the SDK opened, a run of a package tree is its SDK element.</summary>
+        /// <summary>
+        /// Whether the run is still in <paramref name="paragraph"/>. A package run that was removed answers without
+        /// binding, which would fail once the SDK is open.
+        /// </summary>
+        internal bool BelongsTo(PowerPointParagraph paragraph) {
+            if (_element.Tree != null && !_element.IsAttached) return false;
+            return Element.IsInside(paragraph.Element);
+        }
+
         internal OfficeXmlNode Element {
             get {
                 // A removed slide's part name can be reused by a new slide, so its content never binds.

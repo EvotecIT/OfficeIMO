@@ -57,3 +57,13 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 }
+
+namespace OfficeIMO.PowerPoint {
+    public abstract partial class PowerPointShape {
+        /// <summary>The shape's SDK element as <see cref="object"/>, binding a package shape (which opens the SDK).</summary>
+        internal object SdkElementObject => Element;
+
+        /// <summary>The SDK part relationships of the shape resolve against, as <see cref="object"/>.</summary>
+        internal object? SdkRelationshipOwnerPart => RelationshipOwnerPart;
+    }
+}
