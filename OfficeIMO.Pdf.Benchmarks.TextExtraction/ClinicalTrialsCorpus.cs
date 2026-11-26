@@ -608,7 +608,11 @@ internal sealed class ProtocolText {
         }
         int colon = body.IndexOf(':');
         bool headingLength = words.Length <= 8 || (colon >= 0 && Tokenize(body[..colon]).Length <= 8);
-        return headingLength ? words.Take(nameAt + 1).ToArray() : null;
+        // A joined heading ("Inclusion and exclusion criteria") opens both sections.
+        int last = nameAt + 2 < words.Length && words[nameAt + 1] is "and" or "or" && RegistryField.SectionWords.Contains(words[nameAt + 2])
+            ? nameAt + 2
+            : nameAt;
+        return headingLength ? words.Take(last + 1).ToArray() : null;
     }
 
     private static readonly HashSet<string> SectionQualifiers = new(StringComparer.Ordinal) {
