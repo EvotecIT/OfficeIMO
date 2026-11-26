@@ -1,0 +1,36 @@
+name: Delete this run's transfer artifacts
+description: >-
+  Deletes the artifacts of the current workflow run whose names match a pattern, once the jobs that read them have
+  finished. Needs a token with actions: write; a read-only token (pull requests from forks) only gets a warning.
+inputs:
+  pattern:
+    description: Regular expression the whole artifact name must match.
+    required: true
+  token:
+    description: Token with actions write access.
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: pwsh
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        PATTERN: ${{ inputs.pattern }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $artifacts = (gh api --paginate --slurp "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID/artifacts?per_page=100" | ConvertFrom-Json).artifacts
+        if ($LASTEXITCODE) { throw 'Cannot list the run artifacts.' }
+        $matched = @($artifacts | Where-Object { $_.name -cmatch "^(?:$env:PATTERN)$" })
+        $deleted = 0
+        $freed = 0
+        foreach ($artifact in $matched) {
+            gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$($artifact.id)" 2>$null | Out-Null
+            if ($LASTEXITCODE) {
+                Write-Warning "Cannot delete $($artifact.name); the token may be read-only. It expires on its own."
+                continue
+            }
+            $deleted++
+            $freed += $artifact.size_in_bytes
+            Write-Host "Deleted $($artifact.name)."
+        }
+        Write-Host ('Deleted {0} of {1} matching artifacts, {2:N0} MB.' -f $deleted, $matched.Count, ($freed / 1MB))
