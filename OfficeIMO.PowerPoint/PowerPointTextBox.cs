@@ -1,94 +1,83 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a textbox shape.
     /// </summary>
     public partial class PowerPointTextBox : PowerPointShape {
-        private readonly SlidePart? _initialSlidePart;
-        private SlidePart? _slidePart => Element.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
-        private readonly OpenXmlPartContainer? _initialOwnerPart;
-        private OpenXmlPartContainer? _ownerPart => Shape.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
-            .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
-
-        internal PowerPointTextBox(Shape shape, SlidePart? slidePart = null) : this(shape, slidePart, slidePart) {
-        }
-
-        internal PowerPointTextBox(Shape shape, OpenXmlPartContainer ownerPart) : this(shape, ownerPart as SlidePart, ownerPart) {
-        }
-
-        private PowerPointTextBox(Shape shape, SlidePart? slidePart, OpenXmlPartContainer? ownerPart) : base(shape, ownerPart ?? slidePart) {
-            _initialSlidePart = slidePart;
-            _initialOwnerPart = ownerPart ?? slidePart;
-        }
+        // The children of p:txBody and a:bodyPr, in sequence order.
+        private static readonly OfficeXmlChildOrder BodyOrder = new(
+            new[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new[] { "bodyPr", "lstStyle", "p" });
+        private static readonly OfficeXmlChildOrder BodyPropertiesOrder = new(
+            new[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML },
+            new[] { "prstTxWarp", "noAutofit", "normAutofit", "spAutoFit", "scene3d", "sp3d", "flatTx", "extLst" },
+            new[] { 0, 1, 1, 1, 2, 3, 3, 4 });
+        // The children of p:nvPr, in sequence order.
+        private static readonly OfficeXmlChildOrder ApplicationPropertiesOrder = new(
+            new[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML },
+            new[] { "ph", "audioCd", "wavAudioFile", "audioFile", "videoFile", "quickTimeFile", "extLst", "custDataLst", "extLst" },
+            new[] { 0, 1, 1, 1, 1, 1, 1, 2, 3 });
 
         internal PowerPointTextBox(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
-        private Shape Shape => (Shape)Element;
-        internal SlidePart? SlidePart => _slidePart;
-        internal TextBody? TextBody => Shape.TextBody;
-        internal OpenXmlCompositeElement? MasterTextStyle {
-            get {
-                TextStyles? styles = _slidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles;
-                PlaceholderValues? placeholder = Shape.NonVisualShapeProperties?
-                    .ApplicationNonVisualDrawingProperties?
-                    .GetFirstChild<PlaceholderShape>()?
-                    .Type?.Value;
-                if (placeholder == PlaceholderValues.Title || placeholder == PlaceholderValues.CenteredTitle) return styles?.TitleStyle;
-                if (placeholder == PlaceholderValues.Body || placeholder == PlaceholderValues.Object || placeholder == PlaceholderValues.SubTitle) return styles?.BodyStyle;
-                return styles?.OtherStyle;
-            }
-        }
+        private OfficeXmlNode ShapeElement => XmlElement;
+
+        private OfficeXmlNode BodyElement => ShapeElement.Child(OfficeXmlNamespaces.PresentationML, "txBody");
+
+        private OfficeXmlNode BodyPropertiesElement => BodyElement.Child(OfficeXmlNamespaces.DrawingML, "bodyPr");
+
+        private OfficeXmlNode PlaceholderElement =>
+            ShapeElement.Child(OfficeXmlNamespaces.PresentationML, "nvSpPr").Child(OfficeXmlNamespaces.PresentationML, "nvPr").Child(OfficeXmlNamespaces.PresentationML, "ph");
+
+        private void MarkEdited() => OwnerPartRef.MarkEdited();
 
         /// <summary>
         /// Gets the preset geometry used by this text-bearing shape.
         /// </summary>
-        public OfficePresetShapeType? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value.ToOfficeEnum();
+        public OfficePresetShapeType? ShapeType =>
+            ShapeElement.Child(OfficeXmlNamespaces.PresentationML, "spPr").Child(OfficeXmlNamespaces.DrawingML, "prstGeom").Attribute("prst") is { } token
+            && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out OfficePresetShapeType type) ? type : null;
 
         /// <summary>
         /// Gets whether this shape represents a conventional text box or placeholder rather than a text-bearing preset shape.
         /// </summary>
-        public bool UsesTextBoxGeometry =>
-            Shape.NonVisualShapeProperties?.NonVisualShapeDrawingProperties?.TextBox?.Value == true
-            || Shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.GetFirstChild<PlaceholderShape>() != null;
-
-        private IEnumerable<A.Run> Runs => EnsureTextBody().Elements<A.Paragraph>().SelectMany(p => p.Elements<A.Run>());
+        public bool UsesTextBoxGeometry {
+            get {
+                OfficeXmlNode nonVisual = ShapeElement.Child(OfficeXmlNamespaces.PresentationML, "nvSpPr");
+                return nonVisual.Child(OfficeXmlNamespaces.PresentationML, "cNvSpPr").BooleanAttribute("txBox") == true
+                    || !nonVisual.Child(OfficeXmlNamespaces.PresentationML, "nvPr").Child(OfficeXmlNamespaces.PresentationML, "ph").IsNone;
+            }
+        }
 
         /// <summary>
         ///     Paragraphs contained in the textbox.
         /// </summary>
-        public IReadOnlyList<PowerPointParagraph> Paragraphs =>
-            TryGetPackageParagraphs() ?? EnsureTextBody().Elements<A.Paragraph>().Select(p => new PowerPointParagraph(p, _slidePart ?? OwnerSlide?.SlidePart, _ownerPart)).ToList();
-
-        // The paragraphs on the package tree, as wrappers that bind to the SDK when a member needs it.
-        private List<PowerPointParagraph>? TryGetPackageParagraphs() {
-            if (!TryGetPackageElement(out OfficeXmlTree tree, out int node)) return null;
-            int body = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "txBody");
-            if (body == OfficeXmlTree.NoNode) return null;
-            var paragraphs = new List<PowerPointParagraph>();
-            for (int paragraph = tree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p"); paragraph != OfficeXmlTree.NoNode;
-                 paragraph = tree.FindNextSibling(paragraph, OfficeXmlNamespaces.DrawingML, "p")) {
-                paragraphs.Add(new PowerPointParagraph(OwnerSlide!, tree, paragraph));
+        public IReadOnlyList<PowerPointParagraph> Paragraphs {
+            get {
+                var paragraphs = new List<PowerPointParagraph>();
+                foreach (OfficeXmlNode paragraph in EnsureBody().Children(OfficeXmlNamespaces.DrawingML, "p")) paragraphs.Add(ParagraphFor(paragraph));
+                return paragraphs;
             }
-            return paragraphs;
         }
+
+        // A paragraph wrapper bound the same way the shape is.
+        private PowerPointParagraph ParagraphFor(OfficeXmlNode paragraph) =>
+            paragraph.Tree != null && OwnerSlide != null && TryGetPackageElement(out OfficeXmlTree tree, out _) && ReferenceEquals(tree, paragraph.Tree)
+                ? new PowerPointParagraph(OwnerSlide, paragraph.Tree, paragraph.Node)
+                : new PowerPointParagraph(paragraph, SlidePartRef, OwnerPartRef);
 
         /// <summary>
         ///     Adds a paragraph to the textbox.
         /// </summary>
         public PowerPointParagraph AddParagraph(string text = "", Action<PowerPointParagraph>? configure = null,
             Action<PowerPointTextRun>? run = null) {
-            TextBody textBody = EnsureTextBody();
-            var wrapper = AppendParagraph(textBody, text ?? string.Empty, textBody.Elements<A.Paragraph>().FirstOrDefault(), out PowerPointTextRun authoredRun);
+            OfficeXmlNode body = EnsureBody();
+            PowerPointParagraph wrapper = AppendParagraph(body, text ?? string.Empty, body.Child(OfficeXmlNamespaces.DrawingML, "p"), out PowerPointTextRun authoredRun);
             configure?.Invoke(wrapper);
-            if (run != null) run(authoredRun.Run.Parent != null ? authoredRun : wrapper.AddText(text ?? string.Empty));
-
+            run?.Invoke(authoredRun);
             return wrapper;
         }
 
@@ -117,7 +106,7 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(paragraphs);
 
             return ReplaceParagraphs(paragraphs, (paragraphText, templateParagraph) => {
-                PowerPointParagraph paragraph = AppendParagraph(EnsureTextBody(), paragraphText ?? string.Empty, templateParagraph);
+                PowerPointParagraph paragraph = AppendParagraph(EnsureBody(), paragraphText ?? string.Empty, templateParagraph, out _);
                 configure?.Invoke(paragraph);
                 return paragraph;
             });
@@ -189,189 +178,136 @@ namespace OfficeIMO.PowerPoint {
         ///     Removes all paragraphs from the textbox.
         /// </summary>
         public void Clear() {
-            TextBody textBody = EnsureTextBody();
-            string[] discardedSoundIds = PowerPointEmbeddedSound
-                .GetRelationshipIds(textBody);
-            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
-
-            textBody.RemoveAllChildren<A.Paragraph>();
-            textBody.Append(CreateEmptyParagraph(templateParagraph));
-            PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as OpenXmlPart ?? _slidePart,
-                discardedSoundIds);
+            OfficeXmlNode body = EnsureBody();
+            List<string> soundIds = SoundIds(body);
+            OfficeXmlNode template = body.Child(OfficeXmlNamespaces.DrawingML, "p");
+            OfficeXmlNode empty = CreateEmptyParagraph(body, template);
+            body.RemoveChildren(OfficeXmlNamespaces.DrawingML, "p");
+            body.Append(empty);
+            MarkEdited();
+            RemoveUnusedSounds(soundIds);
         }
 
         /// <summary>
         ///     Text contained in the textbox.
         /// </summary>
         public string Text {
-            get => TryGetPackageText(out string text) ? text : PowerPointParagraph.ReadText(EnsureTextBody());
+            get => PowerPointParagraph.ReadBodyText(EnsureBody());
             set {
-                if (TrySetPackageText(value)) return;
-                string textValue = value ?? string.Empty;
-                TextBody textBody = EnsureTextBody();
-                string[] discardedSoundIds = PowerPointEmbeddedSound
-                    .GetRelationshipIds(textBody);
+                OfficeXmlNode body = EnsureBody();
+                List<string> soundIds = SoundIds(body);
+                OfficeXmlNode template = body.Child(OfficeXmlNamespaces.DrawingML, "p");
+                // Each line becomes a paragraph with copies of the first paragraph's properties, its first run's
+                // formatting and its end properties, taken before the old paragraphs go.
+                OfficeXmlNode paragraphProperties = template.Child(OfficeXmlNamespaces.DrawingML, "pPr");
+                paragraphProperties = paragraphProperties.IsNone ? default : paragraphProperties.Clone();
+                OfficeXmlNode endProperties = template.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr");
+                endProperties = endProperties.IsNone ? default : CloneWithoutSounds(endProperties);
+                OfficeXmlNode runProperties = FirstRunProperties(template);
+                runProperties = runProperties.IsNone ? default : CloneWithoutSounds(runProperties);
 
-                A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
-                A.ParagraphProperties? templateParagraphProperties = templateParagraph?.GetFirstChild<A.ParagraphProperties>();
-                A.EndParagraphRunProperties? templateEndParagraphRunProperties = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
-                A.RunProperties? templateRunProperties = templateParagraph?
-                    .Elements<A.Run>()
-                    .Select(r => r.RunProperties)
-                    .FirstOrDefault(rp => rp != null);
-
-                textBody.RemoveAllChildren<A.Paragraph>();
-
-                foreach (string line in PowerPointTextContent.SplitParagraphs(textValue)) {
-                    A.Paragraph paragraph = new();
-                    if (templateParagraphProperties != null) {
-                        paragraph.Append((A.ParagraphProperties)templateParagraphProperties.CloneNode(true));
-                    }
-
-                    paragraph.Append(PowerPointTextContent.CreateInlineContent(line, templateRunProperties != null
-                        ? CloneRunPropertiesForReplacement(templateRunProperties)
-                        : null));
-
-                    if (templateEndParagraphRunProperties != null) {
-                        paragraph.Append(
-                            CloneEndPropertiesForReplacement(
-                                templateEndParagraphRunProperties));
-                    }
-
-                    textBody.Append(paragraph);
+                body.RemoveChildren(OfficeXmlNamespaces.DrawingML, "p");
+                foreach (string line in PowerPointTextContent.SplitParagraphs(value ?? string.Empty)) {
+                    OfficeXmlNode paragraph = body.Append(body.CreateElement(OfficeXmlNamespaces.DrawingML, "p"));
+                    if (!paragraphProperties.IsNone) paragraph.Append(paragraphProperties.Clone());
+                    PowerPointTextContent.InsertInlineContent(paragraph, line, runProperties, default);
+                    if (!endProperties.IsNone) paragraph.Append(endProperties.Clone());
                 }
-                PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as OpenXmlPart ?? _slidePart,
-                    discardedSoundIds);
+                MarkEdited();
+                RemoveUnusedSounds(soundIds);
             }
         }
 
         /// <summary>
         ///     Returns true if the textbox is tied to a slide placeholder.
         /// </summary>
-        public bool IsPlaceholder {
-            get => GetPlaceholderShape() != null;
-        }
+        public bool IsPlaceholder => !PlaceholderElement.IsNone;
 
         /// <summary>
         ///     Gets or sets the placeholder type for this textbox.
         /// </summary>
         public PowerPointPlaceholderType? PlaceholderType {
-            get {
-                if (TryGetPackageElement(out OfficeXmlTree tree, out int node)) {
-                    int nonVisual = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "nvSpPr");
-                    int application = nonVisual == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(nonVisual, OfficeXmlNamespaces.PresentationML, "nvPr");
-                    int placeholder = application == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(application, OfficeXmlNamespaces.PresentationML, "ph");
-                    string? type = placeholder == OfficeXmlTree.NoNode ? null : tree.GetAttribute(placeholder, OfficeXmlNamespaces.None, "type");
-                    if (type == null) return null;
-                    if (PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(type, out PowerPointPlaceholderType parsed)) return parsed;
-                }
-                return GetPlaceholderShape()?.Type?.Value.ToOfficeEnum();
-            }
-            set {
-                if (value == null) {
-                    PlaceholderShape? placeholder = GetPlaceholderShape();
-                    if (placeholder != null) {
-                        placeholder.Type = null;
-                        if (CanRemovePlaceholder(placeholder)) {
-                            placeholder.Remove();
-                        }
-                    }
-                    return;
-                }
-
-                PlaceholderShape shape = EnsurePlaceholderShape();
-                shape.Type = value.Value.ToOpenXml();
-            }
+            get => PlaceholderElement.Attribute("type") is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointPlaceholderType type) ? type : null;
+            set => SetPlaceholderAttribute("type", value?.ToOpenXmlToken());
         }
 
         /// <summary>
         ///     Gets or sets the placeholder index for this textbox.
         /// </summary>
         public uint? PlaceholderIndex {
-            get => GetPlaceholderShape()?.Index?.Value;
-            set {
-                if (value == null) {
-                    PlaceholderShape? placeholder = GetPlaceholderShape();
-                    if (placeholder != null) {
-                        placeholder.Index = null;
-                        if (CanRemovePlaceholder(placeholder)) {
-                            placeholder.Remove();
-                        }
-                    }
-                    return;
-                }
-
-                PlaceholderShape shape = EnsurePlaceholderShape();
-                shape.Index = value.Value;
-            }
+            get => PlaceholderElement.UInt32Attribute("idx");
+            set => SetPlaceholderAttribute("idx", OfficeXmlViewValues.Format(value));
         }
 
         /// <summary>
         ///     Gets or sets the preferred placeholder size.
         /// </summary>
         public PowerPointPlaceholderSize? PlaceholderSize {
-            get => GetPlaceholderShape()?.Size?.Value.ToOfficeEnum();
-            set {
-                if (value == null) {
-                    PlaceholderShape? placeholder = GetPlaceholderShape();
-                    if (placeholder != null) {
-                        placeholder.Size = null;
-                        if (CanRemovePlaceholder(placeholder)) placeholder.Remove();
-                    }
-                    return;
-                }
-                EnsurePlaceholderShape().Size = value.Value.ToOpenXml();
-            }
+            get => PlaceholderElement.Attribute("sz") is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointPlaceholderSize size) ? size : null;
+            set => SetPlaceholderAttribute("sz", value?.ToOpenXmlToken());
         }
 
         /// <summary>
         ///     Gets or sets the placeholder orientation.
         /// </summary>
         public PowerPointPlaceholderDirection? PlaceholderOrientation {
-            get => GetPlaceholderShape()?.Orientation?.Value.ToOfficeEnum();
-            set {
-                if (value == null) {
-                    PlaceholderShape? placeholder = GetPlaceholderShape();
-                    if (placeholder != null) {
-                        placeholder.Orientation = null;
-                        if (CanRemovePlaceholder(placeholder)) placeholder.Remove();
-                    }
-                    return;
-                }
-                EnsurePlaceholderShape().Orientation = value.Value.ToOpenXml();
+            get => PlaceholderElement.Attribute("orient") is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointPlaceholderDirection direction) ? direction : null;
+            set => SetPlaceholderAttribute("orient", value?.ToOpenXmlToken());
+        }
+
+        // Sets a p:ph attribute, adding the placeholder when needed; clearing the last attribute of an empty placeholder
+        // removes it.
+        private void SetPlaceholderAttribute(string attribute, string? value) {
+            if (value == null) {
+                OfficeXmlNode placeholder = PlaceholderElement;
+                if (placeholder.IsNone) return;
+                placeholder.SetAttribute(attribute, null);
+                if (CanRemovePlaceholder(placeholder)) placeholder.Remove();
+                MarkEdited();
+                return;
             }
+            EnsurePlaceholder().SetAttribute(attribute, value);
+            MarkEdited();
         }
 
         /// <summary>
         ///     Gets or sets the left text margin as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? TextMarginLeft {
-            get => GetBodyProperties()?.LeftInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
-            set => EnsureBodyProperties().LeftInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
+            get => ReadInset("lIns");
+            set => SetBodyAttribute("lIns", OfficeXmlViewValues.Format(ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint)));
         }
 
         /// <summary>
         ///     Gets or sets the right text margin as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? TextMarginRight {
-            get => GetBodyProperties()?.RightInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
-            set => EnsureBodyProperties().RightInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
+            get => ReadInset("rIns");
+            set => SetBodyAttribute("rIns", OfficeXmlViewValues.Format(ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint)));
         }
 
         /// <summary>
         ///     Gets or sets the top text margin as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? TextMarginTop {
-            get => GetBodyProperties()?.TopInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
-            set => EnsureBodyProperties().TopInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
+            get => ReadInset("tIns");
+            set => SetBodyAttribute("tIns", OfficeXmlViewValues.Format(ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint)));
         }
 
         /// <summary>
         ///     Gets or sets the bottom text margin as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? TextMarginBottom {
-            get => GetBodyProperties()?.BottomInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
-            set => EnsureBodyProperties().BottomInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
+            get => ReadInset("bIns");
+            set => SetBodyAttribute("bIns", OfficeXmlViewValues.Format(ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint)));
+        }
+
+        private global::OfficeIMO.OfficeLength? ReadInset(string attribute) =>
+            BodyPropertiesElement.Int32Attribute(attribute) is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
+
+        private void SetBodyAttribute(string attribute, string? value) {
+            EnsureBodyProperties().SetAttribute(attribute, value);
+            MarkEdited();
         }
 
         /// <summary>
@@ -389,16 +325,16 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the vertical anchoring of text inside the textbox.
         /// </summary>
         public PowerPointTextVerticalAlignment? TextVerticalAlignment {
-            get => GetBodyProperties()?.Anchor?.Value.ToOfficeEnum();
-            set => EnsureBodyProperties().Anchor = value?.ToOpenXml();
+            get => BodyPropertiesElement.Attribute("anchor") is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointTextVerticalAlignment anchor) ? anchor : null;
+            set => SetBodyAttribute("anchor", value?.ToOpenXmlToken());
         }
 
         /// <summary>
         ///     Gets or sets the text direction (horizontal/vertical).
         /// </summary>
         public PowerPointTextDirection? TextDirection {
-            get => GetBodyProperties()?.Vertical?.Value.ToOfficeEnum();
-            set => EnsureBodyProperties().Vertical = value?.ToOpenXml();
+            get => BodyPropertiesElement.Attribute("vert") is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointTextDirection direction) ? direction : null;
+            set => SetBodyAttribute("vert", value?.ToOpenXmlToken());
         }
 
         /// <summary>
@@ -406,43 +342,30 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextAutoFit? TextAutoFit {
             get {
-                A.BodyProperties? body = GetBodyProperties();
-                if (body == null) {
-                    return null;
-                }
-                if (body.GetFirstChild<A.NoAutoFit>() != null) {
-                    return PowerPointTextAutoFit.None;
-                }
-                if (body.GetFirstChild<A.NormalAutoFit>() != null) {
-                    return PowerPointTextAutoFit.Normal;
-                }
-                if (body.GetFirstChild<A.ShapeAutoFit>() != null) {
-                    return PowerPointTextAutoFit.Shape;
-                }
+                OfficeXmlNode body = BodyPropertiesElement;
+                if (body.IsNone) return null;
+                if (!body.Child(OfficeXmlNamespaces.DrawingML, "noAutofit").IsNone) return PowerPointTextAutoFit.None;
+                if (!body.Child(OfficeXmlNamespaces.DrawingML, "normAutofit").IsNone) return PowerPointTextAutoFit.Normal;
+                if (!body.Child(OfficeXmlNamespaces.DrawingML, "spAutoFit").IsNone) return PowerPointTextAutoFit.Shape;
                 return null;
             }
             set {
-                A.BodyProperties body = EnsureBodyProperties();
-                body.RemoveAllChildren<A.NoAutoFit>();
-                body.RemoveAllChildren<A.NormalAutoFit>();
-                body.RemoveAllChildren<A.ShapeAutoFit>();
-
-                if (value == null) {
-                    return;
+                OfficeXmlNode body = EnsureBodyProperties();
+                RemoveAutoFit(body, "noAutofit", "normAutofit", "spAutoFit");
+                if (value != null) {
+                    // The model appends the auto-fit element last.
+                    body.Append(body.CreateElement(OfficeXmlNamespaces.DrawingML, value.Value switch {
+                        PowerPointTextAutoFit.None => "noAutofit",
+                        PowerPointTextAutoFit.Normal => "normAutofit",
+                        _ => "spAutoFit"
+                    }));
                 }
-
-                switch (value.Value) {
-                    case PowerPointTextAutoFit.None:
-                        body.Append(new A.NoAutoFit());
-                        break;
-                    case PowerPointTextAutoFit.Normal:
-                        body.Append(new A.NormalAutoFit());
-                        break;
-                    case PowerPointTextAutoFit.Shape:
-                        body.Append(new A.ShapeAutoFit());
-                        break;
-                }
+                MarkEdited();
             }
+        }
+
+        private static void RemoveAutoFit(OfficeXmlNode body, params string[] names) {
+            foreach (string name in names) body.RemoveChildren(OfficeXmlNamespaces.DrawingML, name);
         }
 
         /// <summary>
@@ -450,28 +373,29 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextAutoFitOptions? TextAutoFitOptions {
             get {
-                A.BodyProperties? body = GetBodyProperties();
-                A.NormalAutoFit? normal = body?.GetFirstChild<A.NormalAutoFit>();
-                if (normal == null) {
-                    return null;
-                }
-                return PowerPointTextAutoFitOptions.FromOpenXmlValues(
-                    normal.FontScale?.Value, normal.LineSpaceReduction?.Value);
+                OfficeXmlNode normal = BodyPropertiesElement.Child(OfficeXmlNamespaces.DrawingML, "normAutofit");
+                return normal.IsNone ? null : PowerPointTextAutoFitOptions.FromOpenXmlValues(normal.Int32Attribute("fontScale"), normal.Int32Attribute("lnSpcReduction"));
             }
             set {
                 if (value == null) {
-                    A.BodyProperties? body = GetBodyProperties();
-                    body?.RemoveAllChildren<A.NormalAutoFit>();
+                    OfficeXmlNode existing = BodyPropertiesElement;
+                    if (!existing.IsNone) {
+                        existing.RemoveChildren(OfficeXmlNamespaces.DrawingML, "normAutofit");
+                        MarkEdited();
+                    }
                     return;
                 }
 
-                A.BodyProperties bodyProperties = EnsureBodyProperties();
-                bodyProperties.RemoveAllChildren<A.NoAutoFit>();
-                bodyProperties.RemoveAllChildren<A.ShapeAutoFit>();
-                A.NormalAutoFit normal = bodyProperties.GetFirstChild<A.NormalAutoFit>()
-                    ?? bodyProperties.AppendChild(new A.NormalAutoFit());
-                ApplyNormalAutoFitOptions(normal, value.Value);
+                OfficeXmlNode body = EnsureBodyProperties();
+                RemoveAutoFit(body, "noAutofit", "spAutoFit");
+                ApplyNormalAutoFitOptions(NormalAutoFit(body), value.Value);
+                MarkEdited();
             }
+        }
+
+        private static OfficeXmlNode NormalAutoFit(OfficeXmlNode body) {
+            OfficeXmlNode normal = body.Child(OfficeXmlNamespaces.DrawingML, "normAutofit");
+            return normal.IsNone ? body.Append(body.CreateElement(OfficeXmlNamespaces.DrawingML, "normAutofit")) : normal;
         }
 
         /// <summary>
@@ -480,68 +404,47 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointTextBox SetTextAutoFit(PowerPointTextAutoFit fit, PowerPointTextAutoFitOptions? options = null) {
             TextAutoFit = fit;
             if (fit == PowerPointTextAutoFit.Normal && options != null) {
-                A.BodyProperties body = EnsureBodyProperties();
-                A.NormalAutoFit normal = body.GetFirstChild<A.NormalAutoFit>() ?? body.AppendChild(new A.NormalAutoFit());
-                ApplyNormalAutoFitOptions(normal, options.Value);
+                ApplyNormalAutoFitOptions(NormalAutoFit(EnsureBodyProperties()), options.Value);
+                MarkEdited();
             }
             return this;
         }
 
+        // The a:rPr of the first run of the body's paragraphs, or none.
+        private OfficeXmlNode FirstRunRunProperties {
+            get {
+                foreach (OfficeXmlNode paragraph in BodyElement.Children(OfficeXmlNamespaces.DrawingML, "p")) {
+                    OfficeXmlNode run = paragraph.Child(OfficeXmlNamespaces.DrawingML, "r");
+                    if (!run.IsNone) return run.Child(OfficeXmlNamespaces.DrawingML, "rPr");
+                }
+                return default;
+            }
+        }
+
         /// <summary>
-        ///     Gets or sets a value indicating whether the text is bold.       
+        ///     Gets or sets a value indicating whether the text is bold.
         /// </summary>
         public bool Bold {
-            get {
-                if (TryGetPackageRunFlag("b", out bool packageValue)) return packageValue;
-                A.Run? run = Runs.FirstOrDefault();
-                return run?.RunProperties?.Bold?.Value == true;
-            }
-            set {
-                if (TryFormatPackageRuns((tree, properties) => tree.SetAttribute(properties, OfficeXmlNamespaces.None, "b", value ? "1" : "0"))) return;
-                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => runProps.Bold = value);
-            }
+            get => FirstRunRunProperties.BooleanAttribute("b") == true;
+            set => FormatRuns(properties => properties.SetAttribute("b", value ? "1" : "0"));
         }
 
         /// <summary>
         ///     Gets or sets a value indicating whether the text is italic.
         /// </summary>
         public bool Italic {
-            get {
-                if (TryGetPackageRunFlag("i", out bool packageValue)) return packageValue;
-                A.Run? run = Runs.FirstOrDefault();
-                return run?.RunProperties?.Italic?.Value == true;
-            }
-            set {
-                if (TryFormatPackageRuns((tree, properties) => tree.SetAttribute(properties, OfficeXmlNamespaces.None, "i", value ? "1" : "0"))) return;
-                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => runProps.Italic = value);
-            }
+            get => FirstRunRunProperties.BooleanAttribute("i") == true;
+            set => FormatRuns(properties => properties.SetAttribute("i", value ? "1" : "0"));
         }
 
         /// <summary>
         ///     Gets or sets the font size as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? FontSize {
-            get {
-                if (TryGetPackageRunProperties(out OfficeXmlTree? packageTree, out int packageProperties)) {
-                    string? packageSize = packageProperties == OfficeXmlTree.NoNode ? null : packageTree!.GetAttribute(packageProperties, OfficeXmlNamespaces.None, "sz");
-                    if (packageSize == null) return null;
-                    if (int.TryParse(packageSize, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out int parsedSize)) {
-                        return global::OfficeIMO.OfficeLength.Points(parsedSize / 100D);
-                    }
-                }
-                A.Run? run = Runs.FirstOrDefault();
-                int? size = run?.RunProperties?.FontSize?.Value;
-                return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
-            }
+            get => FirstRunRunProperties.Int32Attribute("sz") is int size ? global::OfficeIMO.OfficeLength.Points(size / 100D) : (global::OfficeIMO.OfficeLength?)null;
             set {
                 int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
-                if (TryFormatPackageRuns((tree, properties) => {
-                        if (drawingSize.HasValue) tree.SetAttribute(properties, OfficeXmlNamespaces.None, "sz", drawingSize.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                        else tree.RemoveAttribute(properties, OfficeXmlNamespaces.None, "sz");
-                    })) {
-                    return;
-                }
-                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => runProps.FontSize = drawingSize);
+                FormatRuns(properties => properties.SetAttribute("sz", OfficeXmlViewValues.Format(drawingSize)));
             }
         }
 
@@ -549,136 +452,44 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the font family.
         /// </summary>
         public string? FontFamily {
-            get {
-                if (TryGetPackageRunProperties(out OfficeXmlTree? packageTree, out int packageProperties)) {
-                    int latin = packageProperties == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : packageTree!.FindChild(packageProperties, OfficeXmlNamespaces.DrawingML, "latin");
-                    return latin == OfficeXmlTree.NoNode ? null : packageTree!.GetAttribute(latin, OfficeXmlNamespaces.None, "typeface");
-                }
-                A.Run? run = Runs.FirstOrDefault();
-                return run?.RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
-            }
-            set {
-                if (TryFormatPackageRuns((tree, properties) => PowerPointTreeText.SetLatin(tree, properties, value), latin: true)) return;
-                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetFontFamily(runProps, value));
-            }
+            get => FirstRunRunProperties.Child(OfficeXmlNamespaces.DrawingML, "latin").Attribute("typeface");
+            set => FormatRuns(properties => PowerPointTextPropertyFormatting.SetFontFamily(properties, value));
         }
 
         /// <summary>
         ///     Gets the first run's RGB text color or sets the color of every run. Alpha below 255 is written as native opacity.
         /// </summary>
         public global::OfficeIMO.OfficeColor? Color {
-            get {
-                A.Run? run = Runs.FirstOrDefault();
-                return PowerPointDrawingColor.Read(run?.RunProperties?.GetFirstChild<A.SolidFill>());
-            }
+            get => PowerPointDrawingColor.Read(FirstRunRunProperties.Child(OfficeXmlNamespaces.DrawingML, "solidFill"));
             set {
-                OfficeTheme theme = OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart);
-                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetColor(runProps, value, theme));
+                // The theme can open the SDK, so it is read before anything is edited.
+                OfficeTheme? theme = PowerPointDrawingColor.NeedsTheme(value) ? PowerPointDrawingColor.ThemeFor(OwnerPartRef, OwnerSlide) : null;
+                FormatRuns(properties => PowerPointTextPropertyFormatting.SetColor(properties, value, theme));
             }
         }
 
-        private static void ApplyNormalAutoFitOptions(A.NormalAutoFit normal, PowerPointTextAutoFitOptions options) {
-            normal.FontScale = options.FontScaleValue;
-            normal.LineSpaceReduction = options.LineSpaceReductionValue;
+        // Applies a change to the properties of every run and line break of the text body.
+        private void FormatRuns(Action<OfficeXmlNode> change) {
+            PowerPointTextContent.FormatRuns(EnsureBody(), change);
+            MarkEdited();
         }
 
-        // The a:rPr of the first run of the text body's paragraphs, NoNode when that run has none; false when the text box
-        // is read through the SDK or has no run.
-        private bool TryGetPackageRunProperties(out OfficeXmlTree? tree, out int properties) {
-            tree = null;
-            properties = OfficeXmlTree.NoNode;
-            if (!TryGetPackageElement(out OfficeXmlTree packageTree, out int node)) return false;
-            int body = packageTree.FindChild(node, OfficeXmlNamespaces.PresentationML, "txBody");
-            if (body == OfficeXmlTree.NoNode) return false;
-            for (int paragraph = packageTree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p"); paragraph != OfficeXmlTree.NoNode;
-                 paragraph = packageTree.FindNextSibling(paragraph, OfficeXmlNamespaces.DrawingML, "p")) {
-                int run = packageTree.FindChild(paragraph, OfficeXmlNamespaces.DrawingML, "r");
-                if (run == OfficeXmlTree.NoNode) continue;
-                tree = packageTree;
-                properties = packageTree.FindChild(run, OfficeXmlNamespaces.DrawingML, "rPr");
-                return true;
-            }
-            // Without a run the model reads no formatting.
-            tree = packageTree;
-            return true;
+        private static void ApplyNormalAutoFitOptions(OfficeXmlNode normal, PowerPointTextAutoFitOptions options) {
+            normal.SetInt32Attribute("fontScale", options.FontScaleValue);
+            normal.SetInt32Attribute("lnSpcReduction", options.LineSpaceReductionValue);
         }
 
-        private bool TryGetPackageRunFlag(string attribute, out bool value) {
-            value = false;
-            if (!TryGetPackageRunProperties(out OfficeXmlTree? tree, out int properties)) return false;
-            if (properties == OfficeXmlTree.NoNode) return true;
-            switch (tree!.GetAttribute(properties, OfficeXmlNamespaces.None, attribute)) {
-                case null: case "0": case "false": return true;
-                case "1": case "true": value = true; return true;
-                default: return false;
-            }
-        }
-
-        // Formats every run and line break on the package tree, as FormatRuns does through the SDK.
-        private bool TryFormatPackageRuns(Action<OfficeXmlTree, int> change, bool latin = false) {
-            if (!TryEditPackage(out OfficeXmlTree tree, out int node)) return false;
-            int body = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "txBody");
-            if (body == OfficeXmlTree.NoNode) return false;
-            if (latin) {
-                bool orderable = true;
-                PowerPointTreeText.FormatRuns(tree, body, properties => orderable &= PowerPointTreeText.CanOrderLatin(tree, properties));
-                if (!orderable) return false;
-            }
-            PowerPointTreeText.FormatRuns(tree, body, properties => change(tree, properties));
-            MarkPackageEdited();
-            return true;
-        }
-
-        // The text body's text on the package tree; a shape without one is left to the SDK, which adds it.
-        private bool TryGetPackageText(out string text) {
-            text = string.Empty;
-            if (!TryGetPackageElement(out OfficeXmlTree tree, out int node)) return false;
-            int body = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "txBody");
-            return body != OfficeXmlTree.NoNode && PowerPointTreeText.TryReadBody(tree, body, out text);
-        }
-
-        // Replaces the paragraphs on the package tree as the Text setter does: each line a paragraph with the first
-        // paragraph's properties, the first run's formatting and its end properties.
-        private bool TrySetPackageText(string? value) {
-            if (!TryEditPackage(out OfficeXmlTree tree, out int node)) return false;
-            int body = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "txBody");
-            // Sounds the old text played are removed from the part by the model when nothing else uses them.
-            if (body == OfficeXmlTree.NoNode || PowerPointTreeText.HasSound(tree, body)) return false;
-            int template = tree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p");
-            int paragraphProperties = OfficeXmlTree.NoNode, endProperties = OfficeXmlTree.NoNode, runProperties = OfficeXmlTree.NoNode;
-            if (template != OfficeXmlTree.NoNode) {
-                paragraphProperties = tree.FindChild(template, OfficeXmlNamespaces.DrawingML, "pPr");
-                endProperties = tree.FindChild(template, OfficeXmlNamespaces.DrawingML, "endParaRPr");
-                for (int run = tree.FindChild(template, OfficeXmlNamespaces.DrawingML, "r"); run != OfficeXmlTree.NoNode && runProperties == OfficeXmlTree.NoNode;
-                     run = tree.FindNextSibling(run, OfficeXmlNamespaces.DrawingML, "r")) {
-                    runProperties = tree.FindChild(run, OfficeXmlNamespaces.DrawingML, "rPr");
-                    // Copies of the run's properties would lose prefixes of foreign namespaces the removed run declares.
-                    if (runProperties != OfficeXmlTree.NoNode && tree.DeclaresForeignNamespaces(run)) return false;
-                }
-                if (tree.DeclaresForeignNamespaces(template)) return false;
-            }
-            for (int paragraph = tree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p"); paragraph != OfficeXmlTree.NoNode;) {
-                int next = tree.FindNextSibling(paragraph, OfficeXmlNamespaces.DrawingML, "p");
-                tree.Remove(paragraph);
-                paragraph = next;
-            }
-            foreach (string line in PowerPointTextContent.SplitParagraphs(value ?? string.Empty)) {
-                int paragraph = PowerPointTreeText.Append(tree, body, "p");
-                if (paragraphProperties != OfficeXmlTree.NoNode) tree.Append(paragraph, tree.CloneElement(paragraphProperties));
-                PowerPointTreeText.AppendInlineContent(tree, paragraph, line, runProperties);
-                if (endProperties != OfficeXmlTree.NoNode) tree.Append(paragraph, tree.CloneElement(endProperties));
-            }
-            MarkPackageEdited();
-            return true;
-        }
-
-        private TextBody EnsureTextBody() {
-            TextBody? existingTextBody = Shape.TextBody;
-            if (existingTextBody == null) {
-                existingTextBody = new TextBody(new A.BodyProperties(), new A.ListStyle());
-                Shape.TextBody = existingTextBody;
-            }
-            return existingTextBody;
+        // The text body, added with empty body properties and list style when the shape has none.
+        private OfficeXmlNode EnsureBody() {
+            OfficeXmlNode shape = ShapeElement;
+            OfficeXmlNode body = shape.Child(OfficeXmlNamespaces.PresentationML, "txBody");
+            if (!body.IsNone) return body;
+            OfficeXmlNode created = shape.CreateElement(OfficeXmlNamespaces.PresentationML, "txBody");
+            created.Append(created.CreateElement(OfficeXmlNamespaces.DrawingML, "bodyPr"));
+            created.Append(created.CreateElement(OfficeXmlNamespaces.DrawingML, "lstStyle"));
+            body = shape.InsertOrdered(created, PShapeView.Order);
+            MarkEdited();
+            return body;
         }
 
         private List<PowerPointParagraph> GetParagraphsForStyling() {
@@ -690,144 +501,115 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private IReadOnlyList<PowerPointParagraph> ReplaceParagraphs<T>(IEnumerable<T> items,
-            Func<T, A.Paragraph?, PowerPointParagraph> addParagraph) {
-            TextBody textBody = EnsureTextBody();
-            string[] discardedSoundIds = PowerPointEmbeddedSound
-                .GetRelationshipIds(textBody);
-            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
-            textBody.RemoveAllChildren<A.Paragraph>();
+            Func<T, OfficeXmlNode, PowerPointParagraph> addParagraph) {
+            OfficeXmlNode body = EnsureBody();
+            List<string> soundIds = SoundIds(body);
+            OfficeXmlNode template = body.Child(OfficeXmlNamespaces.DrawingML, "p");
+            // The template leaves the body with the other paragraphs; the new ones copy from it.
+            if (!template.IsNone) template.Remove();
+            body.RemoveChildren(OfficeXmlNamespaces.DrawingML, "p");
 
             var results = new List<PowerPointParagraph>();
             foreach (T item in items) {
-                results.Add(addParagraph(item, templateParagraph));
+                results.Add(addParagraph(item, template));
             }
 
             if (results.Count == 0) {
-                textBody.Append(CreateEmptyParagraph(templateParagraph));
+                body.Append(CreateEmptyParagraph(body, template));
             }
-
-            PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as OpenXmlPart ?? _slidePart,
-                discardedSoundIds);
+            MarkEdited();
+            RemoveUnusedSounds(soundIds);
 
             return results;
         }
 
-        private PowerPointParagraph AppendParagraph(TextBody textBody, string text, A.Paragraph? templateParagraph) =>
-            AppendParagraph(textBody, text, templateParagraph, out _);
+        private PowerPointParagraph AppendParagraph(OfficeXmlNode body, string text, OfficeXmlNode template, out PowerPointTextRun authoredRun) {
+            OfficeXmlNode paragraph = body.CreateElement(OfficeXmlNamespaces.DrawingML, "p");
+            OfficeXmlNode paragraphProperties = template.Child(OfficeXmlNamespaces.DrawingML, "pPr");
+            if (!paragraphProperties.IsNone) paragraph.Append(paragraphProperties.Clone());
+            OfficeXmlNode endProperties = template.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr");
+            if (!endProperties.IsNone) paragraph.Append(CloneWithoutSounds(endProperties));
+            OfficeXmlNode runProperties = FirstRunProperties(template);
 
-        private PowerPointParagraph AppendParagraph(TextBody textBody, string text, A.Paragraph? templateParagraph, out PowerPointTextRun authoredRun) {
-            A.Paragraph paragraph = new();
-            if (templateParagraph?.ParagraphProperties != null) {
-                paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
-            }
-
-            A.RunProperties? templateRunProps = templateParagraph?
-                .Elements<A.Run>()
-                .Select(existingRun => existingRun.RunProperties)
-                .FirstOrDefault(runProperties => runProperties != null);
-
-            A.EndParagraphRunProperties? templateEnd = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
-            if (templateEnd != null) {
-                paragraph.Append(CloneEndPropertiesForReplacement(
-                    templateEnd));
-            }
-
-            textBody.Append(paragraph);
-            var wrapper = new PowerPointParagraph(paragraph, _slidePart ?? OwnerSlide?.SlidePart, _ownerPart);
-            authoredRun = wrapper.InsertRun(text, templateRunProps != null
-                ? CloneRunPropertiesForReplacement(templateRunProps)
-                : null);
+            paragraph = body.Append(paragraph);
+            MarkEdited();
+            PowerPointParagraph wrapper = ParagraphFor(paragraph);
+            authoredRun = wrapper.InsertRun(text, runProperties.IsNone ? default : CloneWithoutSounds(runProperties));
             return wrapper;
         }
 
-        private static A.Paragraph CreateEmptyParagraph(A.Paragraph? templateParagraph) {
-            A.Paragraph paragraph = new();
-
-            if (templateParagraph?.ParagraphProperties != null) {
-                paragraph.ParagraphProperties =
-                    (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
-            }
-
-            A.Run run = new(new A.Text(string.Empty));
-            A.RunProperties? templateRunProps = templateParagraph?
-                .Elements<A.Run>()
-                .Select(existingRun => existingRun.RunProperties)
-                .FirstOrDefault(runProperties => runProperties != null);
-            if (templateRunProps != null) {
-                run.RunProperties = CloneRunPropertiesForReplacement(
-                    templateRunProps);
-            }
-
-            paragraph.Append(run);
-
-            A.EndParagraphRunProperties? templateEnd =
-                templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
-            if (templateEnd != null) {
-                paragraph.Append(CloneEndPropertiesForReplacement(
-                    templateEnd));
-            }
-
+        // A detached empty paragraph after the template: its properties, one empty run with its first run's formatting,
+        // and its end properties.
+        private static OfficeXmlNode CreateEmptyParagraph(OfficeXmlNode context, OfficeXmlNode template) {
+            OfficeXmlNode paragraph = context.CreateElement(OfficeXmlNamespaces.DrawingML, "p");
+            OfficeXmlNode paragraphProperties = template.Child(OfficeXmlNamespaces.DrawingML, "pPr");
+            if (!paragraphProperties.IsNone) paragraph.Append(paragraphProperties.Clone());
+            OfficeXmlNode run = paragraph.Append(paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "r"));
+            OfficeXmlNode runProperties = FirstRunProperties(template);
+            if (!runProperties.IsNone) run.Append(CloneWithoutSounds(runProperties));
+            run.Append(run.CreateElement(OfficeXmlNamespaces.DrawingML, "t"));
+            OfficeXmlNode endProperties = template.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr");
+            if (!endProperties.IsNone) paragraph.Append(CloneWithoutSounds(endProperties));
             return paragraph;
         }
 
-        private static A.RunProperties CloneRunPropertiesForReplacement(
-            A.RunProperties source) {
-            var clone = (A.RunProperties)source.CloneNode(true);
-            foreach (A.HyperlinkType hyperlink in clone.ChildElements
-                         .OfType<A.HyperlinkType>()) {
-                hyperlink.RemoveAllChildren<A.HyperlinkSound>();
+        // The a:rPr of the first run of a paragraph that has one, or none.
+        private static OfficeXmlNode FirstRunProperties(OfficeXmlNode paragraph) {
+            foreach (OfficeXmlNode run in paragraph.Children(OfficeXmlNamespaces.DrawingML, "r")) {
+                OfficeXmlNode properties = run.Child(OfficeXmlNamespaces.DrawingML, "rPr");
+                if (!properties.IsNone) return properties;
             }
-            return clone;
+            return default;
         }
 
-        private static A.EndParagraphRunProperties
-            CloneEndPropertiesForReplacement(
-                A.EndParagraphRunProperties source) {
-            var clone = (A.EndParagraphRunProperties)source.CloneNode(true);
-            foreach (A.HyperlinkType hyperlink in clone.ChildElements
-                         .OfType<A.HyperlinkType>()) {
-                hyperlink.RemoveAllChildren<A.HyperlinkSound>();
-            }
-            return clone;
-        }
-
-        private A.BodyProperties? GetBodyProperties() {
-            return Shape.TextBody?.GetFirstChild<A.BodyProperties>();
-        }
-
-        private A.BodyProperties EnsureBodyProperties() {
-            TextBody textBody = EnsureTextBody();
-            A.BodyProperties? body = textBody.GetFirstChild<A.BodyProperties>();
-            if (body == null) {
-                body = new A.BodyProperties();
-                OpenXmlElement? first = textBody.FirstChild;
-                if (first != null) {
-                    textBody.InsertBefore(body, first);
-                } else {
-                    textBody.Append(body);
+        // A copy of run or end properties whose hyperlinks no longer play the sounds the original text played.
+        private static OfficeXmlNode CloneWithoutSounds(OfficeXmlNode properties) {
+            OfficeXmlNode copy = properties.Clone();
+            foreach (OfficeXmlNode child in copy.Children().ToList()) {
+                if (child.Is(OfficeXmlNamespaces.DrawingML, "hlinkClick") || child.Is(OfficeXmlNamespaces.DrawingML, "hlinkMouseOver")) {
+                    child.RemoveChildren(OfficeXmlNamespaces.DrawingML, "snd");
                 }
             }
-            return body;
+            return copy;
         }
 
-        private PlaceholderShape? GetPlaceholderShape() {
-            return Shape.NonVisualShapeProperties?
-                .ApplicationNonVisualDrawingProperties?
-                .PlaceholderShape;
+        private static List<string> SoundIds(OfficeXmlNode element) {
+            var ids = new List<string>();
+            CollectSoundIds(element, ids);
+            return ids;
         }
 
-        private PlaceholderShape EnsurePlaceholderShape() {
-            NonVisualShapeProperties nonVisual = Shape.NonVisualShapeProperties ??= new NonVisualShapeProperties();
-            ApplicationNonVisualDrawingProperties app = nonVisual.ApplicationNonVisualDrawingProperties ??
-                                                       new ApplicationNonVisualDrawingProperties();
-            nonVisual.ApplicationNonVisualDrawingProperties ??= app;
-            return app.PlaceholderShape ??= new PlaceholderShape();
+        private static void CollectSoundIds(OfficeXmlNode element, List<string> ids) {
+            foreach (OfficeXmlNode child in element.Children()) {
+                if (child.Is(OfficeXmlNamespaces.DrawingML, "snd") && child.Attribute(OfficeXmlNamespaces.Relationships, "embed") is { Length: > 0 } id && !ids.Contains(id)) ids.Add(id);
+                CollectSoundIds(child, ids);
+            }
         }
 
-        private static bool CanRemovePlaceholder(PlaceholderShape placeholder) =>
-            placeholder.Type == null && placeholder.Index == null
-            && placeholder.Size == null && placeholder.Orientation == null
-            && placeholder.HasCustomPrompt == null && !placeholder.HasChildren;
+        private void RemoveUnusedSounds(List<string> soundIds) {
+            if (soundIds.Count == 0) return;
+            PowerPointPartRef owner = OwnerPartRef;
+            if (owner.IsNone) return;
+            foreach (string id in soundIds) owner.RemoveRelationshipIfUnused(id, default);
+        }
+
+        private OfficeXmlNode EnsureBodyProperties() {
+            OfficeXmlNode body = EnsureBody();
+            OfficeXmlNode properties = body.Child(OfficeXmlNamespaces.DrawingML, "bodyPr");
+            return properties.IsNone ? body.InsertBefore(body.CreateElement(OfficeXmlNamespaces.DrawingML, "bodyPr"), body.FirstChild) : properties;
+        }
+
+        private OfficeXmlNode EnsurePlaceholder() {
+            OfficeXmlNode shape = ShapeElement;
+            OfficeXmlNode nonVisual = shape.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "nvSpPr", PShapeView.Order);
+            OfficeXmlNode application = nonVisual.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "nvPr", PShapeNonVisualView.Order);
+            return application.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "ph", ApplicationPropertiesOrder);
+        }
+
+        private static bool CanRemovePlaceholder(OfficeXmlNode placeholder) =>
+            placeholder.Attribute("type") == null && placeholder.Attribute("idx") == null
+            && placeholder.Attribute("sz") == null && placeholder.Attribute("orient") == null
+            && placeholder.Attribute("hasCustomPrompt") == null && placeholder.FirstChild.IsNone;
 
         private static int? ToEmusInt(double? value, double emusPerUnit) {
             return value != null ? (int)Math.Round(value.Value * emusPerUnit) : null;

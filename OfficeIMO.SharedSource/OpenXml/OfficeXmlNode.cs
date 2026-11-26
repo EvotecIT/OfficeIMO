@@ -370,7 +370,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         /// <summary>A detached deep copy of the element in the same part.</summary>
         internal OfficeXmlNode Clone() {
-            if (_tree != null) return new OfficeXmlNode(_tree, _tree.CloneElement(_node));
+            if (_tree != null) return new OfficeXmlNode(_tree, _tree.CloneElementKeepingPrefixes(_node));
             return _sdk != null ? FromSdk(OfficeSdkXml.Clone(_sdk)) : default;
         }
 

@@ -1,5 +1,7 @@
 using System.Globalization;
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -7,6 +9,30 @@ namespace OfficeIMO.PowerPoint {
     /// can't answer exactly as the SDK element would, and the member then binds the shape and reads it through the SDK.
     /// </summary>
     public abstract partial class PowerPointShape {
+        /// <summary>
+        /// The shape's element as it is held now: a node of its slide's package tree while the shape works there, the SDK
+        /// element otherwise (binding it opens the SDK for a package shape the SDK does not hold yet).
+        /// </summary>
+        internal OfficeXmlNode XmlElement =>
+            TryGetPackageElement(out OfficeXmlTree tree, out int node) ? new OfficeXmlNode(tree, node) : OfficeXmlNode.FromSdk(SdkElementObject);
+
+        /// <summary>The part that holds the shape: its slide's part, or the layout, master or notes part it was read from.</summary>
+        internal PowerPointPartRef OwnerPartRef {
+            get {
+                if (TryGetPackageElement(out _, out _)) return OwnerSlide!.PartRef;
+                PowerPointPartRef current = PowerPointPartRef.FromSdk(OpenXmlSdk.OfficeSdkXml.PartOf(SdkElementObject));
+                return !current.IsNone ? current : PowerPointPartRef.FromSdk(SdkRelationshipOwnerPart ?? OwnerSlide?.SdkSlidePart);
+            }
+        }
+
+        /// <summary>The slide the shape is on, or none for a shape of a layout or master.</summary>
+        internal PowerPointPartRef SlidePartRef {
+            get {
+                PowerPointPartRef owner = OwnerPartRef;
+                return owner.Kind == PowerPointPartKind.Slide ? owner : OwnerSlide?.PartRef ?? default;
+            }
+        }
+
         /// <summary>The shape's package tree and element while it works without the SDK, or false once it is bound.</summary>
         internal bool TryGetPackageElement(out OfficeXmlTree tree, out int node) {
             tree = PackageTree!;

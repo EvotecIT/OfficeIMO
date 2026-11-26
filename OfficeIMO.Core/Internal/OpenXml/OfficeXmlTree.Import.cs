@@ -45,6 +45,13 @@ internal sealed partial class OfficeXmlTree {
         return node;
     }
 
+    /// <summary>
+    /// Creates a detached deep copy of an element that keeps the prefixes it was written with, so attribute values that
+    /// name prefixes (such as <c>mc:Ignorable</c>) stay valid; a prefix the place it is inserted does not bind is declared.
+    /// </summary>
+    internal int CloneElementKeepingPrefixes(int element) =>
+        ImportOrClone(this, element, Namespaces.GetName(_nodes[element].Name));
+
     /// <summary>A new tree whose root is a copy of <paramref name="element"/>, for writing the element on its own.</summary>
     internal static OfficeXmlTree CopyElement(OfficeXmlTree source, int element) {
         ArgumentNullException.ThrowIfNull(source);
