@@ -737,7 +737,7 @@ namespace OfficeIMO.Excel {
                     if (includeRow) {
                         _rowIndexes![_rowCount] = rowIndex;
                         RetainQualifiedRowPosition(_rowCount, indexedRowContentStart, position);
-                        if (_batchSink != null) AddRowToBatch(rowIndex, indexedRowContentStart, position, rowOffset);
+                        if (_batchSink != null) AddRowToBatch(rowIndex, tag.Start, indexedRowContentStart, position, rowOffset);
                         _rowCount++;
                         // Handed-over rows need no retained positions, so the background pass reuses its row slots.
                         if (_batchSink != null && _rowCount == RowBatchRows) _rowCount = 8;

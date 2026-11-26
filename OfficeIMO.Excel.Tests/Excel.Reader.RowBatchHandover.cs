@@ -140,6 +140,85 @@ public partial class Excel {
         }
     }
 
+    /// <summary>A character XML does not allow in a late row's attribute fails the read that reaches that row.</summary>
+    [Fact]
+    public void OpenReader_InvalidCharacterInALateRowAttributeIsNotReturned() {
+        int badRow = HandoverRows - 5_000;
+        string path = CreateHandoverWorkbook(badRow, "Item", dimensionColumns: "B", markupRowAttributes: " spans=\"1:2\u0001\"");
+        try {
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
+            Assert.IsType<XmlException>(ReadUntilError(reader, out int rows));
+            Assert.Equal(ChecksWhileReading ? badRow - 2 : 0, rows);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// When every row waits for the full XML check, as after a formula with attributes, a late XML error still returns
+    /// the rows the check read cleanly before it; the error comes from a read close to it.
+    /// </summary>
+    [Fact]
+    public void OpenReader_LateXmlErrorAfterCheckedRowsKeepsTheRowsBeforeIt() {
+        int badRow = HandoverRows - 5_000;
+        string path = CreateHandoverWorkbook(badRow, "bad\u0001text", dimensionColumns: "B", attributedFormulaRow: 3);
+        try {
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
+            if (!ChecksWhileReading) {
+                Assert.IsType<XmlException>(ReadUntilError(reader, out int none));
+                Assert.Equal(0, none);
+                return;
+            }
+            Assert.True(reader.Read());
+            // A slow consumer holds back the rows still to be copied while the full check reaches the error.
+            Thread.Sleep(500);
+            Assert.IsType<XmlException>(ReadUntilError(reader, out int rows));
+            // The check reads ahead of what it has parsed by at most 64 KB, about 650 of these rows.
+            Assert.InRange(rows + 1, badRow - 2 - 800, badRow - 2);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// A read canceled while the worksheet switches to the general XML reader can be retried: the next read returns the
+    /// same rows as a reader that validated the worksheet first.
+    /// </summary>
+    [Fact]
+    public async Task OpenReader_CanceledReadDuringTheSwitchCanBeRetried() {
+        int markupRow = HandoverRows - 5_000;
+        // Trailing content makes the full check of the switch long enough for the cancellation to land inside it.
+        string path = CreateHandoverWorkbook(markupRow, "<![CDATA[late & cdata]]>", dimensionColumns: "B",
+            trailingWhitespaceBytes: 65 * 1024 * 1024);
+        try {
+            using DbDataReader expected = ExcelDocument.OpenReader(path, new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true });
+            using DbDataReader actual = ExcelDocument.OpenReader(path);
+            int rows = 0;
+            while (expected.Read()) {
+                bool read;
+                if (Math.Abs(rows + 2 - markupRow) <= 2) {
+                    using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(5));
+                    try {
+                        read = await actual.ReadAsync(cancellation.Token);
+                    } catch (OperationCanceledException) {
+                        read = await actual.ReadAsync(CancellationToken.None);
+                    }
+                } else {
+                    read = actual.Read();
+                }
+                Assert.True(read);
+                rows++;
+                for (int ordinal = 0; ordinal < expected.FieldCount; ordinal++) {
+                    Assert.Equal(expected.GetValue(ordinal), actual.GetValue(ordinal));
+                }
+            }
+            Assert.False(actual.Read());
+            Assert.Equal(HandoverRows - 1, rows);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static void AssertReadsLikeValidatingFirst(string path, int markupRow, string expectedText) {
         using DbDataReader expected = ExcelDocument.OpenReader(path, new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true });
         using DbDataReader actual = ExcelDocument.OpenReader(path);
@@ -158,7 +237,8 @@ public partial class Excel {
     }
 
     private static string CreateHandoverWorkbook(int markupRow, string markupText, string dimensionColumns,
-        int trailingWhitespaceBytes = 0, int extraCellRow = 0, int extraRows = 0) {
+        int trailingWhitespaceBytes = 0, int extraCellRow = 0, int extraRows = 0, string markupRowAttributes = "",
+        int attributedFormulaRow = 0) {
         string path = CreateCompactFastPathWorkbook();
         var xml = new StringBuilder(HandoverRows * 120);
         xml.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><dimension ref=\"A1:")
@@ -166,9 +246,11 @@ public partial class Excel {
         for (int row = 1; row <= HandoverRows + extraRows; row++) {
             string r = row.ToString(CultureInfo.InvariantCulture);
             string text = row == 1 ? "Name" : row == markupRow ? markupText : "Item " + r;
-            xml.Append("<row r=\"").Append(r).Append("\"><c r=\"A").Append(r).Append("\" t=\"inlineStr\"><is><t>")
-                .Append(text).Append("</t></is></c><c r=\"B").Append(r).Append("\"><v>")
-                .Append(row == 1 ? "0" : (row * 3).ToString(CultureInfo.InvariantCulture)).Append("</v></c>");
+            xml.Append("<row r=\"").Append(r).Append('"').Append(row == markupRow ? markupRowAttributes : string.Empty)
+                .Append("><c r=\"A").Append(r).Append("\" t=\"inlineStr\"><is><t>")
+                .Append(text).Append("</t></is></c><c r=\"B").Append(r).Append("\">")
+                .Append(row == attributedFormulaRow ? "<f ca=\"1\">" + (row * 3).ToString(CultureInfo.InvariantCulture) + "</f>" : string.Empty)
+                .Append("<v>").Append(row == 1 ? "0" : (row * 3).ToString(CultureInfo.InvariantCulture)).Append("</v></c>");
             if (row == extraCellRow) xml.Append("<c r=\"C").Append(r).Append("\"><v>7</v></c>");
             xml.Append("</row>");
         }

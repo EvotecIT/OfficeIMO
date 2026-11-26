@@ -173,10 +173,10 @@ namespace OfficeIMO.Excel {
             }
 
             /// <summary>Copies one qualified row, whose metadata starts at <paramref name="rowOffset"/>, into the filling batch.</summary>
-            private void AddRowToBatch(int rowIndex, int contentStart, int contentEnd, int rowOffset) {
+            private void AddRowToBatch(int rowIndex, int rowTagStart, int contentStart, int contentEnd, int rowOffset) {
                 // Rows the compact indexer could not prove by itself, such as formulas with attributes, are returned once
-                // the full XML check has read past them.
-                if (!_sheetDataSupportsFastValidation || !RowTextIsValid(contentStart, contentEnd))
+                // the full XML check has read past them. The character check covers the row's own tag and attributes.
+                if (!_sheetDataSupportsFastValidation || !RowTextIsValid(rowTagStart, contentEnd))
                     WaitForRowBatchXmlCheck(GetPartOffset(contentEnd));
                 ThrowIfCellsOutsideDeclaredRange();
                 _batchSink!.AddRow(this, rowIndex, contentStart, contentEnd, rowOffset);
@@ -210,7 +210,8 @@ namespace OfficeIMO.Excel {
                 RowBatchXmlCheck check = _batchXmlCheck ??= StartRowBatchXmlCheck();
                 check.WaitFor(partOffset, _batchCt);
                 // The check found content that needs the SDK; rows from here come from the general reader.
-                if (check.IsCompleted && !check.Result) throw new RowBatchHandoverException();
+                // A failed check is reported by WaitFor once a row reaches the failure.
+                if (check.IsCompleted && !check.IsFaulted && !check.Result) throw new RowBatchHandoverException();
             }
 
             /// <summary>Waits for the full XML check at the end of the worksheet.</summary>
@@ -247,6 +248,8 @@ namespace OfficeIMO.Excel {
 
                 internal bool IsCompleted => _task.IsCompleted;
 
+                internal bool IsFaulted => _task.IsFaulted;
+
                 // Rethrows the check's own XML or validation error.
                 internal bool Result => _task.GetAwaiter().GetResult();
 
@@ -258,7 +261,11 @@ namespace OfficeIMO.Excel {
                         // A failed check is reported below through Result, with its own exception type.
                         else ((IAsyncResult)_task).AsyncWaitHandle.WaitOne(1);
                     }
-                    if (_task.IsCompleted) _ = Result;
+                    if (!_task.IsCompleted) return;
+                    // A failed check stops reading, so content further than the read-ahead behind it parsed cleanly:
+                    // rows ending there are still returned, and the error comes from rows near the fault.
+                    if (IsFaulted && Volatile.Read(ref _read) - ReadAheadSlack >= partOffset) return;
+                    _ = Result;
                 }
 
                 public void Dispose() {

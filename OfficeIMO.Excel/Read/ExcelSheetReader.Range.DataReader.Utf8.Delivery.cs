@@ -39,10 +39,13 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
                 } catch (ExcelUtf8RangeRowSource.RowBatchHandoverException) {
-                    HandOverToXmlRows(cancellationToken);
+                    _utf8Source!.Dispose();
+                    _utf8Source = null;
+                    _handoverPending = true;
                     // The XML reader replays the worksheet up to the next row; it observes this read's token.
                     _activeReadCancellationToken = cancellationToken;
                     try {
+                        CompleteHandover(cancellationToken);
                         if (!TryReadLogicalRow(out row)) return false;
                     } finally {
                         _activeReadCancellationToken = _ct;
@@ -63,21 +66,24 @@ namespace OfficeIMO.Excel {
             /// <summary>
             /// Continues a worksheet whose remaining content the compact indexer does not handle with the general XML
             /// reader, from the next logical row. The whole part is checked first, as the reader would have done before
-            /// the first row; rows already returned keep their columns.
+            /// the first row; rows already returned keep their columns. A canceled read leaves the switch to the next
+            /// read; any other failure is reported by every later read.
             /// </summary>
-            private void HandOverToXmlRows(CancellationToken cancellationToken) {
-                ExcelUtf8RangeRowSource source = _utf8Source!;
-                _utf8Source = null;
-                source.Dispose();
+            private void CompleteHandover(CancellationToken cancellationToken) {
+                if (!_handoverPending) return;
                 try {
                     StartXmlRowsAfterHandover(cancellationToken);
+                } catch (OperationCanceledException) when (!_ct.IsCancellationRequested) {
+                    throw;
                 } catch (Exception exception) {
-                    // The indexed rows are gone and XML mode is not ready: later reads report this failure.
+                    _handoverPending = false;
                     _handoverFailure = ExceptionDispatchInfo.Capture(exception);
                     throw;
                 }
+                _handoverPending = false;
             }
 
+            private bool _handoverPending;
             private ExceptionDispatchInfo? _handoverFailure;
 
             private void ThrowIfHandoverFailed() => _handoverFailure?.Throw();
@@ -126,9 +132,15 @@ namespace OfficeIMO.Excel {
                     }
                     _lastRow = usedLastRow;
                 }
-                _stream = _owner.OpenReaderWorksheetStream(cancellationToken);
-                RewindWorksheetStream(_stream);
-                _reader = OpenWorksheetXmlReader(_stream);
+                Stream stream = _owner.OpenReaderWorksheetStream(cancellationToken);
+                try {
+                    RewindWorksheetStream(stream);
+                    _reader = OpenWorksheetXmlReader(stream);
+                } catch {
+                    stream.Dispose();
+                    throw;
+                }
+                _stream = stream;
                 _xmlTextBudget = new XmlDataReaderTextBudget(_owner._opt.MaxXmlDataReaderBufferedCharacters,
                     ThrowIfReadCancellationRequested);
                 // Indexed rows report presence from their cell index; XML rows track it as the constructor does.
