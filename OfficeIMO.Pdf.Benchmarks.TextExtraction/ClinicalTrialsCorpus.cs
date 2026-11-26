@@ -601,9 +601,12 @@ internal sealed class ProtocolText {
         if (words.Length == 0) {
             return null;
         }
-        int nameAt = RegistryField.SectionWords.Contains(words[0]) ? 0
-            : words.Length > 1 && SectionQualifiers.Contains(words[0]) && RegistryField.SectionWords.Contains(words[1]) ? 1
-            : -1;
+        int nameAt = SectionNameAt(words);
+        if (nameAt < 0) {
+            // "Study/Drug Administration" reads as written, not as "study and drug".
+            words = Tokenize(body);
+            nameAt = SectionNameAt(words);
+        }
         if (nameAt < 0) {
             return null;
         }
@@ -626,6 +629,12 @@ internal sealed class ProtocolText {
             : nameAt;
         return headingLength ? words.Take(last + 1).ToArray() : null;
     }
+
+    private static int SectionNameAt(string[] words) =>
+        words.Length == 0 ? -1
+        : RegistryField.SectionWords.Contains(words[0]) ? 0
+        : words.Length > 1 && SectionQualifiers.Contains(words[0]) && RegistryField.SectionWords.Contains(words[1]) ? 1
+        : -1;
 
     private static readonly HashSet<string> SectionQualifiers = new(StringComparer.Ordinal) {
         "study", "primary", "secondary", "efficacy", "safety", "investigational", "subject", "subjects", "patient", "patients",
