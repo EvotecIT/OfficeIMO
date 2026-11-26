@@ -67,6 +67,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Whether slides and shapes can be edited in the package without the SDK.</summary>
         internal bool CanEditPackage => GetPackage(edit: true) != null;
 
+        /// <summary>The package read without the SDK, or null while the SDK holds the document.</summary>
+        internal OfficeOpcEditablePackage? ReadablePackage => GetPackage(edit: false);
+
+        /// <summary>The package edited without the SDK, or null when the document can't be edited that way.</summary>
+        internal OfficeOpcEditablePackage? EditablePackage => GetPackage(edit: true);
+
         /// <summary>Records an edit made in the package, so the next save or SDK open writes it.</summary>
         internal void MarkPackageEdited() => _pendingEdits = true;
 

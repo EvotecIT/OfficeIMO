@@ -32,6 +32,19 @@ internal sealed partial class OfficeXmlTree {
         return copy;
     }
 
+    /// <summary>
+    /// Creates a detached element in a namespace outside the fixed ones, written with <paramref name="prefix"/> unless
+    /// that prefix is bound to another namespace where it is inserted.
+    /// </summary>
+    internal int CreateElement(string namespaceUri, string localName, string prefix) {
+        int namespaceId = Namespaces.GetId(namespaceUri, out int uriId);
+        int node = NewNode(OfficeXmlTreeNodeKind.Element);
+        ref Node record = ref _nodes[node];
+        record.Name = Namespaces.GetNameId(localName, prefix, namespaceId, uriId);
+        record.Flags = StartTagChanged | ContentChanged | SubtreeChanged;
+        return node;
+    }
+
     /// <summary>A new tree whose root is a copy of <paramref name="element"/>, for writing the element on its own.</summary>
     internal static OfficeXmlTree CopyElement(OfficeXmlTree source, int element) {
         ArgumentNullException.ThrowIfNull(source);
@@ -42,8 +55,10 @@ internal sealed partial class OfficeXmlTree {
     }
 
     private int ImportOrClone(OfficeXmlTree source, int element, OfficeXmlName name) {
-        // Both trees share the table, so the copy keeps every id as it is.
+        // Both trees share the table, so the copy keeps every name id, prefixes included; a prefix the scope where the
+        // copy is written does not bind is declared there.
         int copy = CreateElement(name.NamespaceId, name.LocalName);
+        _nodes[copy].Name = source._nodes[element].Name;
         int first = source._nodes[element].AttrFirst, count = source._nodes[element].AttrCount;
         for (int index = first; index < first + count; index++) {
             OfficeXmlName attribute = source.Namespaces.GetName(source._attrs[index].Name);
@@ -93,6 +108,18 @@ internal sealed partial class OfficeXmlTree {
                 case OfficeXmlTreeNodeKind.Element: AppendDescendantText(child, builder); break;
             }
         }
+    }
+
+    /// <summary>Whether an attribute of the element in the relationships namespace has the value <paramref name="id"/>.</summary>
+    internal bool HasRelationshipAttribute(int element, string id) {
+        int first = _nodes[element].AttrFirst, count = _nodes[element].AttrCount;
+        for (int index = first; index < first + count; index++) {
+            if (Namespaces.GetName(_attrs[index].Name).NamespaceId == OfficeXmlNamespaces.Relationships
+                && string.Equals(AttributeValue(ref _attrs[index]), id, StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // The id this tree's table gives the namespace an id of the source table stands for.

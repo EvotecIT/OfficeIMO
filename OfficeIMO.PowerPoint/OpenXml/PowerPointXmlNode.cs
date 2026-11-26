@@ -257,6 +257,16 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             return new PowerPointXmlNode(scratch, scratch.Root);
         }
 
+        /// <summary>Creates a detached element in a namespace outside the fixed ones, written with <paramref name="prefix"/>.</summary>
+        internal PowerPointXmlNode CreateElement(string namespaceUri, string localName, string prefix) {
+            if (_tree != null) return new PowerPointXmlNode(_tree, _tree.CreateElement(namespaceUri, localName, prefix));
+            var table = new OfficeXmlNamespaces.Table();
+            OfficeXmlTree scratch = OfficeXmlTree.Create(table, OfficeXmlNamespaces.None, "scratch", 8);
+            int node = scratch.CreateElement(namespaceUri, localName, prefix);
+            scratch.Append(scratch.Root, node);
+            return new PowerPointXmlNode(scratch, node);
+        }
+
         /// <summary>Appends a detached element and returns it as it is now held under this element.</summary>
         internal PowerPointXmlNode Append(PowerPointXmlNode child) => InsertBefore(child, default);
 

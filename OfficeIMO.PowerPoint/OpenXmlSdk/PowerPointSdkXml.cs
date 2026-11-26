@@ -53,6 +53,13 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
             return value is OpenXmlPartRootElement;
         }
 
+        /// <summary>The SDK part whose root holds the element, or null for a detached element.</summary>
+        internal static object? PartOf(object element) {
+            OpenXmlElement value = E(element);
+            while (value.Parent != null) value = value.Parent;
+            return (value as OpenXmlPartRootElement)?.OpenXmlPart;
+        }
+
         internal static string? GetAttribute(object element, int namespaceId, string localName) {
             OpenXmlElement value = E(element);
             if (!value.HasAttributes) return null;

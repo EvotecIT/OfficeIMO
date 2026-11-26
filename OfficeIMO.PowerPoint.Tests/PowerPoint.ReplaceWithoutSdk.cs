@@ -93,7 +93,7 @@ public class PowerPointReplaceWithoutSdkTests {
     [InlineData("notes")]
     [InlineData("split text")]
     [InlineData("cdata between runs")]
-    public void LeavesWhatTheModelWritesDifferentlyToTheModel(string variant) {
+    public void ReplacesWhatTheFastPathLeavesAsTheModelDoes(string variant) {
         byte[] source = CreateDeck();
         string replacement = "Opening";
         PowerPointTextSearchOptions? options = null;
@@ -106,8 +106,15 @@ public class PowerPointReplaceWithoutSdkTests {
         using var presentation = PowerPointDocument.Load(new MemoryStream(source));
         int count = presentation.ReplaceAll("First", replacement, options);
 
-        Assert.True(presentation.IsSdkLoaded);
+        // Runs and paragraphs edit the package themselves; notes still go through the SDK.
+        Assert.Equal(variant == "notes", presentation.IsSdkLoaded);
         Assert.Equal(1, count);
+        if (variant == "split text") {
+            // The SDK reads only the text before the CDATA section; the package keeps all of it.
+            using var reopened = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
+            Assert.Contains(reopened.Slides[0].TextBoxes, box => box.Text == "Opening slide");
+            return;
+        }
         AssertNoDifferences(Differences(source, ("First", replacement, options)));
     }
 

@@ -10,6 +10,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The slide's tree in the document's package, or null when the slide has to be read through the SDK.</summary>
         internal OfficeXmlTree? PackageTree => IsPackageBacked && !RemovedFromPackage && PackagePartName != null ? OwnerDocument?.GetPackageXml(PackagePartName) : null;
 
+        /// <summary>The slide's part: in the document's package while it works there, its SDK part otherwise.</summary>
+        internal PowerPointPartRef PartRef => IsPackageBacked && !RemovedFromPackage && PackagePartName != null && OwnerDocument is { IsSdkLoaded: false } document
+            ? PowerPointPartRef.Package(document, PackagePartName)
+            : PowerPointPartRef.FromSdk(SdkSlidePart);
+
         // Whether the shapes were loaded from the package tree, so new shapes can be added there.
         private bool _shapesFromPackage;
 

@@ -1,47 +1,58 @@
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointParagraph {
         internal const int MaximumTabStops = 32;
 
         /// <summary>Gets the paragraph's explicit tab stops as physical lengths.</summary>
-        public IReadOnlyList<PowerPointTabStop> TabStops => Paragraph.ParagraphProperties?
-            .GetFirstChild<A.TabStopList>()?.Elements<A.TabStop>()
-            .Select(tab => new PowerPointTabStop(global::OfficeIMO.OfficeLength.Emus(tab.Position?.Value ?? 0),
-                FromTabAlignment(tab.Alignment?.Value ?? A.TextTabAlignmentValues.Left))).ToArray()
-            ?? Array.Empty<PowerPointTabStop>();
+        public IReadOnlyList<PowerPointTabStop> TabStops {
+            get {
+                PowerPointXmlNode list = Properties.Child(OfficeXmlNamespaces.DrawingML, "tabLst");
+                if (list.IsNone) return Array.Empty<PowerPointTabStop>();
+                var stops = new List<PowerPointTabStop>();
+                foreach (PowerPointXmlNode tab in list.Children(OfficeXmlNamespaces.DrawingML, "tab")) {
+                    stops.Add(new PowerPointTabStop(global::OfficeIMO.OfficeLength.Emus(tab.Int32Attribute("pos") ?? 0), FromTabAlignment(tab.Attribute("algn") ?? "l")));
+                }
+                return stops.ToArray();
+            }
+        }
 
         /// <summary>Replaces up to 32 explicit tab stops. An empty sequence removes locally configured stops.</summary>
         public PowerPointParagraph SetTabStops(IEnumerable<PowerPointTabStop> tabStops) {
             ArgumentNullException.ThrowIfNull(tabStops);
-            var list = new A.TabStopList();
+            var stops = new List<PowerPointTabStop>();
             foreach (PowerPointTabStop tab in tabStops) {
-                if (list.ChildElements.Count == MaximumTabStops)
+                if (stops.Count == MaximumTabStops)
                     throw new ArgumentException("DrawingML paragraphs support at most 32 explicit tab stops.", nameof(tabStops));
                 if (tab == null) throw new ArgumentException("Tab stops cannot contain null.", nameof(tabStops));
-                list.Append(new A.TabStop {
-                    Position = checked((int)tab.Position.ToEmus()),
-                    Alignment = tab.Alignment switch {
-                        PowerPointTabAlignment.Center => A.TextTabAlignmentValues.Center,
-                        PowerPointTabAlignment.Right => A.TextTabAlignmentValues.Right,
-                        PowerPointTabAlignment.Decimal => A.TextTabAlignmentValues.Decimal,
-                        _ => A.TextTabAlignmentValues.Left
-                    }
+                stops.Add(tab);
+            }
+            PowerPointXmlNode properties = EnsureProperties();
+            properties.RemoveChildren(OfficeXmlNamespaces.DrawingML, "tabLst");
+            if (stops.Count == 0) return this;
+            PowerPointXmlNode list = properties.CreateElement(OfficeXmlNamespaces.DrawingML, "tabLst");
+            foreach (PowerPointTabStop tab in stops) {
+                PowerPointXmlNode stop = list.Append(list.CreateElement(OfficeXmlNamespaces.DrawingML, "tab"));
+                stop.SetInt32Attribute("pos", checked((int)tab.Position.ToEmus()));
+                stop.SetAttribute("algn", tab.Alignment switch {
+                    PowerPointTabAlignment.Center => "ctr",
+                    PowerPointTabAlignment.Right => "r",
+                    PowerPointTabAlignment.Decimal => "dec",
+                    _ => "l"
                 });
             }
-            var properties = EnsureParagraphProperties();
-            properties.RemoveAllChildren<A.TabStopList>();
-            if (list.HasChildren) InsertParagraphPropertyChild(properties, list);
+            properties.InsertOrdered(list, ATextParagraphPropertiesView.Order);
             return this;
         }
 
-        private static PowerPointTabAlignment FromTabAlignment(A.TextTabAlignmentValues alignment) {
-            if (alignment == A.TextTabAlignmentValues.Left) return PowerPointTabAlignment.Left;
-            if (alignment == A.TextTabAlignmentValues.Center) return PowerPointTabAlignment.Center;
-            if (alignment == A.TextTabAlignmentValues.Right) return PowerPointTabAlignment.Right;
-            if (alignment == A.TextTabAlignmentValues.Decimal) return PowerPointTabAlignment.Decimal;
-            throw new NotSupportedException("The paragraph contains an unsupported tab alignment.");
-        }
+        private static PowerPointTabAlignment FromTabAlignment(string alignment) => alignment switch {
+            "l" => PowerPointTabAlignment.Left,
+            "ctr" => PowerPointTabAlignment.Center,
+            "r" => PowerPointTabAlignment.Right,
+            "dec" => PowerPointTabAlignment.Decimal,
+            _ => throw new NotSupportedException("The paragraph contains an unsupported tab alignment.")
+        };
     }
 
     /// <summary>Alignment of text at a custom paragraph tab stop.</summary>

@@ -1,114 +1,53 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Packaging;
-using P = DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Resolves DrawingML click hyperlinks to external URIs or stable slide fragments.
     /// </summary>
-    internal static class PowerPointHyperlinkResolver {
-        private const string SlideJumpAction = "ppaction://hlinksldjump";
+    internal static partial class PowerPointHyperlinkResolver {
+        internal const string SlideJumpAction = "ppaction://hlinksldjump";
+        private const string NextSlideAction = "ppaction://hlinkshowjump?jump=nextslide";
 
-        internal static Uri? Resolve(OpenXmlPartContainer ownerPart,
-            SlidePart? sourceSlidePart, A.HyperlinkOnClick? hyperlink) {
-            if (ownerPart == null || hyperlink == null) return null;
-
-            if (string.Equals(hyperlink.Action?.Value, "ppaction://hlinkshowjump?jump=nextslide",
-                    StringComparison.OrdinalIgnoreCase)) {
-                PresentationPart? show = sourceSlidePart?.GetParentPresentationPart();
-                P.SlideIdList? orderedSlides = show?.Presentation?.SlideIdList;
-                if (show != null && orderedSlides != null) {
-                    int position = 0;
-                    foreach (P.SlideId slideId in orderedSlides.Elements<P.SlideId>()) {
-                        position++;
-                        string? id = slideId.RelationshipId?.Value;
-                        if (id != null && show.TryGetPartById(id, out OpenXmlPart? part)
-                            && ReferenceEquals(part, sourceSlidePart)) {
-                            // A final-slide next action has no PDF page target; keep it explicit for omission reporting.
-                            return new Uri("#slide-" + (position + 1).ToString(CultureInfo.InvariantCulture), UriKind.Relative);
-                        }
-                    }
-                }
-                return null;
+        /// <summary>
+        /// The target of a click hyperlink in <paramref name="owner"/>: its external URI, or <c>#slide-N</c> for a jump to
+        /// a slide of the presentation; null when it has neither.
+        /// </summary>
+        internal static Uri? Resolve(PowerPointPartRef owner, PowerPointPartRef sourceSlide, PowerPointXmlNode hyperlink) {
+            if (owner.IsNone || hyperlink.IsNone) return null;
+            string? action = hyperlink.Attribute("action");
+            if (string.Equals(action, NextSlideAction, StringComparison.OrdinalIgnoreCase)) {
+                // A final-slide next action has no PDF page target; keep it explicit for omission reporting.
+                int position = SlideNumberOf(owner.Document, sourceSlide);
+                return position == 0 ? null : SlideFragment(position + 1);
             }
 
-            string? relationshipId = hyperlink.Id?.Value;
-            if (string.IsNullOrWhiteSpace(relationshipId)) return null;
-
-            HyperlinkRelationship? relationship = ownerPart.HyperlinkRelationships
-                .FirstOrDefault(relationship => string.Equals(
-                    relationship.Id, relationshipId, StringComparison.Ordinal));
-            if (relationship?.IsExternal == true) return relationship.Uri;
-
-            if (!string.Equals(hyperlink.Action?.Value, SlideJumpAction,
-                    StringComparison.OrdinalIgnoreCase)) {
-                return null;
+            string? relationshipId = hyperlink.Attribute(OfficeXmlNamespaces.Relationships, "id");
+            if (string.IsNullOrWhiteSpace(relationshipId) || !owner.TryGetRelationship(relationshipId!, out PowerPointRelationship relationship)) return null;
+            bool hyperlinkRelationship = string.Equals(relationship.Type, PowerPointPartRef.HyperlinkRelationshipType, StringComparison.Ordinal);
+            if (hyperlinkRelationship && relationship.IsExternal) {
+                return Uri.TryCreate(relationship.Target, UriKind.RelativeOrAbsolute, out Uri? external) ? external : null;
             }
-
-            PresentationPart? presentationPart = sourceSlidePart?
-                .GetParentPresentationPart();
-            SlidePart? targetSlidePart = null;
-            if (relationship?.IsExternal == false && ownerPart is OpenXmlPart hyperlinkOwner) {
-                Uri targetUri = ResolvePartUri(hyperlinkOwner.Uri, relationship.Uri);
-                targetSlidePart = presentationPart?.SlideParts.FirstOrDefault(candidate =>
-                    candidate.Uri == targetUri);
-            } else if (ownerPart.TryGetPartById(relationshipId!,
-                    out OpenXmlPart? targetPart)) {
-                targetSlidePart = targetPart as SlidePart;
-            }
-
-            P.SlideIdList? slideIds = presentationPart?.Presentation?
-                .SlideIdList;
-            if (presentationPart == null || slideIds == null || targetSlidePart == null) return null;
-
-            int slideNumber = 0;
-            foreach (P.SlideId slideId in slideIds.Elements<P.SlideId>()) {
-                slideNumber++;
-                string? targetRelationshipId = slideId.RelationshipId?.Value;
-                if (string.IsNullOrWhiteSpace(targetRelationshipId)
-                    || !presentationPart.TryGetPartById(targetRelationshipId!,
-                        out OpenXmlPart? candidate)
-                    || !ReferenceEquals(candidate, targetSlidePart)) {
-                    continue;
-                }
-
-                return new Uri("#slide-" + slideNumber.ToString(
-                    CultureInfo.InvariantCulture), UriKind.Relative);
-            }
-
-            return null;
+            if (!string.Equals(action, SlideJumpAction, StringComparison.OrdinalIgnoreCase) || relationship.IsExternal) return null;
+            int slideNumber = SlideNumberOf(owner.Document, relationship.TargetPart);
+            return slideNumber == 0 ? null : SlideFragment(slideNumber);
         }
 
-        internal static Uri CreatePartRelativeUri(OpenXmlPart sourcePart,
-            OpenXmlPart targetPart) {
+        /// <summary>The slide a <c>#slide-N</c> fragment names, or null.</summary>
+        internal static PowerPointSlide? ResolveSlideFragment(PowerPointDocument document, Uri uri) {
+            if (!TryParseSlideFragment(uri, out int slideNumber)) return null;
+            IReadOnlyList<PowerPointSlide> slides = document.Slides;
+            return slideNumber <= slides.Count ? slides[slideNumber - 1] : null;
+        }
+
+        /// <summary>A part's path relative to the folder of <paramref name="sourcePartName"/>, as a relationship target.</summary>
+        internal static Uri CreatePartRelativeUri(string sourcePartName, string targetPartName) {
             Uri packageRoot = new Uri("http://officeimo.invalid/", UriKind.Absolute);
-            Uri sourceUri = new Uri(packageRoot,
-                sourcePart.Uri.OriginalString.TrimStart('/'));
+            Uri sourceUri = new Uri(packageRoot, sourcePartName.TrimStart('/'));
             Uri sourceDirectory = new Uri(sourceUri, ".");
-            Uri targetUri = new Uri(packageRoot,
-                targetPart.Uri.OriginalString.TrimStart('/'));
+            Uri targetUri = new Uri(packageRoot, targetPartName.TrimStart('/'));
             return sourceDirectory.MakeRelativeUri(targetUri);
-        }
-
-        internal static bool TryResolveSlideFragment(SlidePart sourceSlidePart,
-            Uri uri, out SlidePart? targetSlidePart) {
-            targetSlidePart = null;
-            if (!TryParseSlideFragment(uri, out int slideNumber)) return false;
-
-            PresentationPart? presentationPart = sourceSlidePart.GetParentPresentationPart();
-            P.SlideIdList? slideIds = presentationPart?.Presentation?.SlideIdList;
-            P.SlideId? slideId = slideIds?.Elements<P.SlideId>()
-                .Skip(slideNumber - 1).FirstOrDefault();
-            string? relationshipId = slideId?.RelationshipId?.Value;
-            if (presentationPart == null || string.IsNullOrWhiteSpace(relationshipId)
-                || !presentationPart.TryGetPartById(relationshipId!, out OpenXmlPart? targetPart)
-                || targetPart is not SlidePart slidePart) {
-                return false;
-            }
-
-            targetSlidePart = slidePart;
-            return true;
         }
 
         internal static bool TryParseSlideFragment(Uri? uri, out int slideNumber) {
@@ -125,14 +64,17 @@ namespace OfficeIMO.PowerPoint {
         internal static string GetSlideDestinationName(int slideNumber) =>
             "powerpoint-slide-" + slideNumber.ToString(CultureInfo.InvariantCulture);
 
-        private static Uri ResolvePartUri(Uri sourcePartUri,
-            Uri relationshipUri) {
-            Uri packageRoot = new Uri("http://officeimo.invalid/", UriKind.Absolute);
-            Uri sourceUri = new Uri(packageRoot,
-                sourcePartUri.OriginalString.TrimStart('/'));
-            Uri sourceDirectory = new Uri(sourceUri, ".");
-            Uri resolved = new Uri(sourceDirectory, relationshipUri);
-            return new Uri("/" + packageRoot.MakeRelativeUri(resolved), UriKind.Relative);
+        private static Uri SlideFragment(int slideNumber) =>
+            new("#slide-" + slideNumber.ToString(CultureInfo.InvariantCulture), UriKind.Relative);
+
+        // The 1-based position of the slide part in the presentation, or 0 when it is not one of its slides.
+        private static int SlideNumberOf(PowerPointDocument? document, PowerPointPartRef slide) {
+            if (document == null || slide.IsNone) return 0;
+            IReadOnlyList<PowerPointSlide> slides = document.Slides;
+            for (int index = 0; index < slides.Count; index++) {
+                if (slides[index].PartRef.Equals(slide)) return index + 1;
+            }
+            return 0;
         }
     }
 }

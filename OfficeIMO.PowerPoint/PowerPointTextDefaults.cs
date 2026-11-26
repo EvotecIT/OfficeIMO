@@ -1,7 +1,5 @@
-using A = DocumentFormat.OpenXml.Drawing;
-
 namespace OfficeIMO.PowerPoint {
-    internal static class PowerPointTextDefaults {
+    internal static partial class PowerPointTextDefaults {
         internal const double DefaultFontSizePoints = 18D;
         // DrawingML bodyPr defaults: 0.1in horizontally, 0.05in vertically (ECMA-376).
         internal const double DefaultHorizontalInsetPoints = 7.2D;
@@ -16,21 +14,6 @@ namespace OfficeIMO.PowerPoint {
                     "DrawingML font size must be a finite value from 1 through 4000 points.");
             }
             return checked((int)Math.Round(points.Value * 100D, MidpointRounding.AwayFromZero));
-        }
-
-        internal static string ResolveBodyLatinFont(PowerPointSlide? slide) {
-            A.FontScheme? overrideScheme = slide?.SlidePart.ThemeOverridePart?.ThemeOverride?.FontScheme
-                ?? slide?.SlidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.FontScheme;
-            string? overrideTypeface = overrideScheme?.MinorFont?.LatinFont?.Typeface?.Value;
-            if (!string.IsNullOrWhiteSpace(overrideTypeface)) {
-                return overrideTypeface!;
-            }
-
-            string? masterTypeface = slide?.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
-                .ThemeElements?.FontScheme?.MinorFont?.LatinFont?.Typeface?.Value;
-            return string.IsNullOrWhiteSpace(masterTypeface)
-                ? LegacyFallbackFontFamily
-                : masterTypeface!;
         }
     }
 }

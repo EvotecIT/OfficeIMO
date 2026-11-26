@@ -8,7 +8,23 @@ namespace OfficeIMO.PowerPoint {
         /// at the same place: the same element child at each level down from the slide root. Comments and text the SDK
         /// keeps as nodes are not elements of the tree. Binding opens the SDK when it is not open yet.
         /// </summary>
-        internal static DocumentFormat.OpenXml.OpenXmlElement BindPackageElement(PowerPointSlide slide, OfficeXmlTree tree, int node) {
+        internal static DocumentFormat.OpenXml.OpenXmlElement BindPackageElement(PowerPointSlide slide, OfficeXmlTree tree, int node) =>
+            BindPackageElement(() => slide.SlidePart.Slide, tree, node);
+
+        /// <summary>The slide's SDK part as <see cref="object"/>, for code that names no SDK type.</summary>
+        internal object SdkSlidePart => SlidePart;
+
+        /// <summary>
+        /// The SDK element of a node of any part's package tree, found as for a slide; binding opens the SDK when it is
+        /// not open yet. Throws <see cref="InvalidOperationException"/> when the element has no place there.
+        /// </summary>
+        internal static object BindPackageNode(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) =>
+            BindPackageElement(() => {
+                if (part.Current.SdkPart == null && part.Document is { } document) _ = document.OpenXmlDocument;
+                return (part.Current.SdkPart as DocumentFormat.OpenXml.Packaging.OpenXmlPart)?.RootElement;
+            }, tree, node);
+
+        private static DocumentFormat.OpenXml.OpenXmlElement BindPackageElement(Func<DocumentFormat.OpenXml.OpenXmlElement?> root, OfficeXmlTree tree, int node) {
             var path = new List<int>();
             for (int current = node; current != tree.Root; current = tree.ParentOf(current)) {
                 // A node an edit removed from the slide has no place in it.
@@ -20,8 +36,8 @@ namespace OfficeIMO.PowerPoint {
                 path.Add(index);
             }
             string localName = tree.LocalNameOf(node);
-            DocumentFormat.OpenXml.OpenXmlElement element = slide.SlidePart.Slide
-                ?? throw new InvalidOperationException("The slide the SDK opened has no content.");
+            DocumentFormat.OpenXml.OpenXmlElement element = root()
+                ?? throw new InvalidOperationException("The part the SDK opened has no content.");
             for (int level = path.Count - 1; level >= 0; level--) {
                 DocumentFormat.OpenXml.OpenXmlElement? child = null;
                 int remaining = path[level];
