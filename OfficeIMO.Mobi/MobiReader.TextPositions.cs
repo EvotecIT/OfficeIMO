@@ -94,6 +94,28 @@ public static partial class MobiReader {
             return id;
         }
 
+        internal IEnumerable<XElement> OmittedAnchors(IElement root, CancellationToken token, bool includeRoot = true) {
+            var pending = new Stack<INode>();
+            if (includeRoot) pending.Push(root);
+            else PushChildren(root);
+            while (pending.Count > 0) {
+                token.ThrowIfCancellationRequested();
+                INode node = pending.Pop();
+                if (node is IElement element && Anchor(element) is { } id)
+                    yield return new XElement("span", new XAttribute("id", id));
+                if (node is IText text && _textAnchors.TryGetValue(text, out var anchors)) {
+                    foreach (var anchor in anchors)
+                        yield return new XElement("span", new XAttribute("id", anchor.Id));
+                }
+                PushChildren(node);
+            }
+
+            void PushChildren(INode node) {
+                for (INode? child = node.LastChild; child != null; child = child.PreviousSibling)
+                    pending.Push(child);
+            }
+        }
+
         internal IEnumerable<XNode> RenderText(IText text) {
             string value = text.Data;
             int start = 0;

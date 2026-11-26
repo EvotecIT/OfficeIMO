@@ -83,7 +83,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddLatexHandler(configured.Latex)
             .AddMarkdownHandler(configured.Markdown)
             .AddHandler(EpubReaderAdapter.CreateImportHandler("mobi", new[] { ".mobi", ".azw", ".azw3" },
-                ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe))
+                ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe, useDetectedKindFallback: true))
             .AddFallbackHandler(EpubReaderAdapter.CreateImportHandler("mobi-prc", new[] { ".prc" },
                 ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe))
             .AddFallbackHandler(EpubReaderAdapter.CreateImportHandler("palmdoc", new[] { ".pdb" },

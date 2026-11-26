@@ -69,6 +69,23 @@ public sealed class ReaderMobiTests {
         });
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("harbour.ebook")]
+    [InlineData("harbour.pdf")]
+    public void ReadsDetectedKindleBooksWithoutAMatchingExtension(string? sourceName) {
+        string path = Path.Combine(AppContext.BaseDirectory, "EbookFixtures", "harbour.azw3");
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
+        using var input = File.OpenRead(path);
+
+        OfficeDocumentReadResult result = reader.ReadDocument(input, sourceName,
+            new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+        Assert.Equal(ReaderInputKind.Mobi, result.Kind);
+        Assert.Contains("officeimo.reader.mobi", result.CapabilitiesUsed);
+        Assert.Contains(result.Chunks, chunk => chunk.Text.IndexOf("Signal received.", StringComparison.Ordinal) >= 0);
+    }
+
     [Fact]
     public void ImportedChaptersRetainSourceKindAndLogicalPageProvenance() {
         string path = Path.Combine(AppContext.BaseDirectory, "EbookFixtures", "harbour.azw3");

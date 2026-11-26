@@ -527,6 +527,34 @@ public sealed class MobiReaderTests {
         }
     }
 
+    [Theory]
+    [InlineData("<html hidden><body><p>Draft text</p></body></html>", "html", false)]
+    [InlineData("<html><body hidden><p>Draft text</p></body></html>", "body", false)]
+    [InlineData("<html><body><a href='#draft'>Read more</a><p hidden id='draft'>Draft text</p></body></html>", "p", true)]
+    public void ReportsHiddenMarkupAndKeepsItsTextOutOfThePublication(string markup, string hiddenTag, bool hasVisibleLink) {
+        using var input = new MemoryStream(BuildLegacyMobi(markup), writable: false);
+        var imported = MobiReader.Import(input, "draft.mobi");
+
+        using var artifact = new MemoryStream();
+        imported.Value.Save(artifact);
+        artifact.Position = 0;
+        EpubDocument book = EpubDocument.Load(artifact, new EpubLoadOptions { IncludeRawHtml = true });
+        EpubChapter chapter = Assert.Single(book.Chapters);
+        Assert.DoesNotContain("Draft text", chapter.Text);
+        Assert.NotNull(chapter.Html);
+        Assert.DoesNotContain("Draft text", chapter.Html);
+        Assert.Contains(imported.Report.Diagnostics, item => item.Code == "MOBI_HIDDEN_MARKUP_OMITTED" &&
+            item.Location == hiddenTag && item.LossKind == OfficeConversionLossKind.Omission);
+        if (hasVisibleLink) {
+            XElement html = XElement.Parse(chapter.Html);
+            XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+            XElement link = Assert.Single(html.Descendants(xhtml + "a"), anchor => anchor.Value == "Read more");
+            string href = Assert.IsType<string>((string?)link.Attribute("href"));
+            Assert.StartsWith("#", href);
+            Assert.Single(html.Descendants(), element => (string?)element.Attribute("id") == href.Substring(1));
+        }
+    }
+
     [Fact]
     public void HtmlTopFallbackHonorsMatchingIdsFirst() {
         using var source = new MemoryStream(BuildLegacyMobi("""

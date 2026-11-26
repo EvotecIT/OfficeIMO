@@ -20,6 +20,7 @@ recover a unique contiguous raster range matching its declared resource count.
 The conversion reports that inference. External links are kept where supported. Absolute-only
 Kindle navigation opens the identified chapter and reports the approximation.
 The reader reports source text positions it can only place at a nearby anchor.
+Explicitly hidden markup is omitted with a conversion diagnostic. EPUB retains its link targets as empty anchors.
 
 The package covers reading and conversion. MOBI writing, KFX, dictionaries,
 Kindle presentation features and DRM decryption are outside the supported

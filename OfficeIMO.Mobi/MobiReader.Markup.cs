@@ -102,7 +102,15 @@ public static partial class MobiReader {
                 IElement? root = part.Body.ParentElement;
                 if (HasInlineStyle(root)) WarnApproximateMarkup("html");
                 if (HasInlineStyle(part.Body)) WarnApproximateMarkup("body");
-                projected[i] = new XElement("div", part.Body.ChildNodes.Select(node => Render(node, i, parts, kindle)));
+                string? hiddenRoot = root?.HasAttribute("hidden") == true ? "html" :
+                    part.Body.HasAttribute("hidden") ? "body" : null;
+                projected[i] = new XElement("div");
+                if (hiddenRoot != null) {
+                    WarnHiddenMarkup(hiddenRoot);
+                    projected[i].Add(part.OmittedAnchors(part.Body, token, includeRoot: false));
+                } else {
+                    projected[i].Add(part.Body.ChildNodes.Select(node => Render(node, i, parts, kindle)));
+                }
                 if (part.Anchor(part.Body) is { } id) projected[i].SetAttributeValue("id", id);
                 projected[i].SetAttributeValue("dir", TextDirection(part.Body) ?? TextDirection(root));
                 SetMarkupLanguage(projected[i], MarkupLanguage(part.Body) ?? MarkupLanguage(root));
@@ -167,12 +175,19 @@ public static partial class MobiReader {
             Warn("MOBI_MARKUP_APPROXIMATED", "Legacy markup or CSS presentation was approximated.", tag,
                 OfficeConversionLossKind.Approximation);
 
+        private void WarnHiddenMarkup(string tag) =>
+            Warn("MOBI_HIDDEN_MARKUP_OMITTED", "Explicitly hidden markup was omitted from the readable publication.", tag);
+
         private object? Render(INode node, int partIndex, MarkupPart[] parts, Kf8Content? kindle) {
             token.ThrowIfCancellationRequested();
             if (node is IText text) return parts[partIndex].RenderText(text);
             if (node is not IElement source) return null;
             string tag = source.LocalName;
             MarkupPart part = parts[partIndex];
+            if (source.HasAttribute("hidden")) {
+                WarnHiddenMarkup(tag);
+                return part.OmittedAnchors(source, token);
+            }
             if (IsOmittedMarkup(tag)) {
                 if (tag != "style" || !string.IsNullOrWhiteSpace(source.TextContent))
                     Warn("MOBI_ELEMENT_OMITTED", "An unsupported active, media or styling element was omitted.", tag);
