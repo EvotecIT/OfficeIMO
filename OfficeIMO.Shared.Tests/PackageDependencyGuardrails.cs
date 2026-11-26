@@ -540,6 +540,8 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlReadOnlyPackage.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeVbaProjectPartEditor.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeXmlNode.cs",
+                "OfficeIMO.SharedSource/OpenXmlSdk/OfficeSdkXml.cs",
                 "OfficeIMO.SharedSource/Packaging/OfficeCrc32Combine.cs",
                 "OfficeIMO.SharedSource/Packaging/OfficeDeflateEncoder.cs",
                 "OfficeIMO.SharedSource/Packaging/OfficeZipWriter.cs",
