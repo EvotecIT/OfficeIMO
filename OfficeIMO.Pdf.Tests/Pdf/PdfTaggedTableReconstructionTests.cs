@@ -74,6 +74,68 @@ public sealed class PdfTaggedTableReconstructionTests {
     }
 
     [Fact]
+    public void TaggedCellSourceLinesAreTheLinesHoldingItsText() {
+        // Cells far enough apart that each one is its own page line: a cell's source lines are the lines its text
+        // sits on, not every line on the same baseline.
+        byte[] bytes = CreateTaggedDocument(canvas => canvas.Structure(PdfCanvasStructureRole.Table, table => table
+            .Structure(PdfCanvasStructureRole.TableBody, body => {
+                string[][] rows = {
+                    new[] { "Market", "Spot", "Futures", "Options" },
+                    new[] { "Power", "Yes", "No", "Yes" },
+                    new[] { "Gas", "No", "Yes", "No" }
+                };
+                for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
+                    string[] cells = rows[rowIndex];
+                    double top = 120D + (rowIndex * 20D);
+                    body.Structure(PdfCanvasStructureRole.TableRow, row => {
+                        for (int column = 0; column < cells.Length; column++) {
+                            string text = cells[column];
+                            row.Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, column, top, text));
+                        }
+                    });
+                }
+            })));
+
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+        PdfDocumentReadResult read = document.Read();
+
+        PdfUnderstandingTableCandidate table = Assert.Single(read.Pages[0].Analysis.TableCandidates,
+            static candidate => candidate.DetectionKind == "tagged-structure");
+        Assert.Equal(12, table.SourceLines.Count);
+        Assert.Equal(
+            table.Rows.SelectMany(static row => row).OrderBy(static text => text, StringComparer.Ordinal),
+            table.SourceLines.Select(static line => line.Text).OrderBy(static text => text, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void TaggedCellTextOnTwoPageLinesKeepsEachLinesOwnRuns() {
+        // One cell paints two pieces on the same baseline, far enough apart to be two page lines.
+        byte[] bytes = CreateTaggedDocument(canvas => canvas.Structure(PdfCanvasStructureRole.Table, table => table
+            .Structure(PdfCanvasStructureRole.TableBody, body => {
+                body.Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 0, 120D, "Region"))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => {
+                        Lines(cell, 1, 120D, "North");
+                        Lines(cell, 3, 120D, "Coast");
+                    }));
+                body.Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 0, 140D, "Sales"))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 1, 140D, "12")));
+            })));
+
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+        PdfDocumentReadResult read = document.Read();
+
+        PdfUnderstandingTableCandidate table = Assert.Single(read.Pages[0].Analysis.TableCandidates,
+            static candidate => candidate.DetectionKind == "tagged-structure");
+        Assert.Equal("North Coast", table.Rows[0][1]);
+        PdfUnderstandingLine[] split = table.SourceLines
+            .Where(static line => line.Text.Contains("North", StringComparison.Ordinal) || line.Text.Contains("Coast", StringComparison.Ordinal))
+            .ToArray();
+        Assert.Equal(new[] { "Coast", "North" }, split.Select(static line => line.Text).OrderBy(static text => text, StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void TaggedTableOnTwoPagesStaysOneLogicalTable() {
         // Rows sit mid-page, away from the page edges that geometric continuation needs,
         // so only the shared Table element can join the two pages.

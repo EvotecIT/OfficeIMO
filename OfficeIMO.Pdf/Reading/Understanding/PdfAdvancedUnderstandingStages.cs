@@ -1012,11 +1012,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 PdfVisualBounds tableBounds = pageRegions.GetBounds(regionIndex);
                 double tableWidth = tableBounds.Right - tableBounds.Left;
                 if (candidateWidth <= 0D || tableWidth <= 0D || candidateWidth > tableWidth * 1.1D) continue;
-                double[] tableFontSizes = table.Lines
-                    .Select(static line => line.FontSize)
-                    .OrderBy(static size => size)
-                    .ToArray();
-                double tableMedianFontSize = tableFontSizes[(tableFontSizes.Length - 1) / 2];
+                double tableMedianFontSize = pageRegions.GetMedianFontSize(regionIndex);
                 if (candidate.Lines[0].FontSize > tableMedianFontSize * 0.95D) continue;
                 double overlap = Math.Min(candidateBounds.Right, tableBounds.Right) - Math.Max(candidateBounds.Left, tableBounds.Left);
                 if (overlap <= 0D || overlap / candidateWidth < 0.8D) continue;
@@ -1122,6 +1118,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
             private readonly bool[] _hasBounds;
             private int[]? _nonTableIndicesByTop;
             private bool _nonTableIndicesByTopUnavailable;
+            private double?[]? _medianFontSizes;
 
             internal ClassificationRegions(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> regions) {
                 _context = context;
@@ -1148,6 +1145,19 @@ internal static partial class PdfAdvancedUnderstandingStages {
                     _hasBounds[index] = true;
                 }
                 return _bounds[index];
+            }
+
+            /// <summary>The region's median line font size (the lower middle one for an even count), worked out once.</summary>
+            internal double GetMedianFontSize(int index) {
+                _medianFontSizes ??= new double?[Count];
+                if (_medianFontSizes[index] is double cached) return cached;
+                double[] fontSizes = Regions[index].Lines
+                    .Select(static line => line.FontSize)
+                    .OrderBy(static size => size)
+                    .ToArray();
+                double median = fontSizes[(fontSizes.Length - 1) / 2];
+                _medianFontSizes[index] = median;
+                return median;
             }
 
             /// <summary>Non-table region indices ordered by visual top, then page order; null when a top is NaN.</summary>
