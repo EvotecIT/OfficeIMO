@@ -165,12 +165,22 @@ public sealed class PdfUnderstandingLine {
         if (words.Count == 0) throw new ArgumentException("A line requires at least one word.", nameof(words));
         Words = words;
         Text = text;
-        XStart = words.Min(static word => word.XStart);
-        XEnd = words.Max(static word => word.XEnd);
-        BaselineY = words.Average(static word => word.BaselineY);
-        FontSize = words.Max(static word => word.FontSize);
-        RotationDegrees = words.Average(static word => word.RotationDegrees);
-        Confidence = PdfInference.Clamp(confidence ?? words.Average(static word => word.Confidence));
+        PdfDoubleAggregate xStart = default, xEnd = default, baseline = default, fontSize = default, rotation = default, wordConfidence = default;
+        for (int index = 0; index < words.Count; index++) {
+            PdfUnderstandingWord word = words[index];
+            xStart.Add(word.XStart);
+            xEnd.Add(word.XEnd);
+            baseline.Add(word.BaselineY);
+            fontSize.Add(word.FontSize);
+            rotation.Add(word.RotationDegrees);
+            if (confidence is null) wordConfidence.Add(word.Confidence);
+        }
+        XStart = xStart.Minimum;
+        XEnd = xEnd.Maximum;
+        BaselineY = baseline.Average;
+        FontSize = fontSize.Maximum;
+        RotationDegrees = rotation.Average;
+        Confidence = PdfInference.Clamp(confidence ?? wordConfidence.Average);
         Evidence = PdfInference.Snapshot(evidence);
         SourceKind = sourceKind;
         SourceSequence = sourceSequence;
@@ -224,12 +234,20 @@ public sealed class PdfUnderstandingRegion {
         Guard.NotNull(lines, nameof(lines));
         if (lines.Count == 0) throw new ArgumentException("A region requires at least one line.", nameof(lines));
         Lines = lines;
-        Text = string.Join(" ", lines.Select(static line => line.Text));
-        XStart = lines.Min(static line => line.XStart);
-        XEnd = lines.Max(static line => line.XEnd);
-        YTop = lines.Max(static line => line.BaselineY);
-        YBottom = lines.Min(static line => line.BaselineY);
-        Confidence = PdfInference.Clamp(confidence ?? lines.Average(static line => line.Confidence));
+        PdfDoubleAggregate xStart = default, xEnd = default, baseline = default, lineConfidence = default;
+        for (int index = 0; index < lines.Count; index++) {
+            PdfUnderstandingLine line = lines[index];
+            xStart.Add(line.XStart);
+            xEnd.Add(line.XEnd);
+            baseline.Add(line.BaselineY);
+            if (confidence is null) lineConfidence.Add(line.Confidence);
+        }
+        Text = lines.Count == 1 ? lines[0].Text : string.Join(" ", lines.Select(static line => line.Text));
+        XStart = xStart.Minimum;
+        XEnd = xEnd.Maximum;
+        YTop = baseline.Maximum;
+        YBottom = baseline.Minimum;
+        Confidence = PdfInference.Clamp(confidence ?? lineConfidence.Average);
         Evidence = PdfInference.Snapshot(evidence);
     }
     /// <summary>Lines in local region order.</summary>

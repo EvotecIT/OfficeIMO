@@ -946,12 +946,26 @@ internal static partial class PdfDocumentSemanticEnricher {
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
+    /// <summary>Line options for one cell's text; the layout engine only reads them.</summary>
+    private static readonly TextLayoutEngine.Options SingleColumnLines = new() { ForceSingleColumn = true };
+
     private sealed class TaggedPageContentIndex {
         private readonly PdfReadPage _readPage;
         private readonly PdfUnderstandingPageResult _page;
         private readonly PdfUnderstandingWorkBudget _workBudget;
+        private readonly Action<long> _consumeWork;
+        private readonly Action _throwIfCancellationRequested;
         private readonly Dictionary<MarkedContentKey, List<PdfTextSpan>> _runsByKey = new();
         private Dictionary<int, int?>? _textlessPageContent;
+        // Built on the first cell: the page line holding each run (and any further ones), and the line
+        // baselines in ascending order with each one's line index.
+        private Dictionary<PdfTextSpan, int>? _lineOwners;
+        private Dictionary<PdfTextSpan, List<int>>? _moreLineOwners;
+        private double[]? _lineBaselines;
+        private int[]? _lineOrder;
+        private double _maximumLineTolerance;
+        private readonly List<int> _nearLines = new();
+        private readonly List<PdfTextSpan> _lineRuns = new();
 
         internal TaggedPageContentIndex(
             PdfReadPage readPage,
@@ -960,6 +974,8 @@ internal static partial class PdfDocumentSemanticEnricher {
             _readPage = readPage;
             _page = page;
             _workBudget = workBudget;
+            _consumeWork = workBudget.Consume;
+            _throwIfCancellationRequested = workBudget.ThrowIfCancellationRequested;
             for (int runIndex = 0; runIndex < page.DecodedRuns.Count; runIndex++) {
                 workBudget.Consume();
                 PdfTextSpan run = page.DecodedRuns[runIndex];
@@ -1007,46 +1023,64 @@ internal static partial class PdfDocumentSemanticEnricher {
             });
             List<TextLayoutEngine.TextLine> layoutLines = TextLayoutEngine.BuildLines(
                 orderedRuns,
-                new TextLayoutEngine.Options { ForceSingleColumn = true },
-                _workBudget.Consume,
-                _workBudget.ThrowIfCancellationRequested);
-            string text = string.Join(" ", layoutLines.Select(static line => line.Text)).Trim();
+                SingleColumnLines,
+                _consumeWork,
+                _throwIfCancellationRequested);
+            string text = JoinLineTexts(layoutLines);
             if (text.Length == 0) {
                 cell = null;
                 return orderedRuns.All(static run => string.IsNullOrWhiteSpace(run.Text));
             }
 
             var sourceLines = new List<PdfUnderstandingLine>();
-            for (int lineIndex = 0; lineIndex < _page.Lines.Count; lineIndex++) {
+            List<int> candidateLines = FindLinesNear(orderedRuns);
+            for (int candidate = 0; candidate < candidateLines.Count; candidate++) {
                 _workBudget.Consume();
-                PdfUnderstandingLine line = _page.Lines[lineIndex];
-                double tolerance = Math.Max(2.5D, line.FontSize * 0.35D);
-                var matchingRuns = new List<PdfTextSpan>();
+                PdfUnderstandingLine line = _page.Lines[candidateLines[candidate]];
+                double tolerance = LineTolerance(line);
+                _lineRuns.Clear();
                 for (int runIndex = 0; runIndex < orderedRuns.Length; runIndex++) {
                     _workBudget.Consume();
                     PdfTextSpan run = orderedRuns[runIndex];
-                    if (Math.Abs(run.Y - line.BaselineY) <= tolerance) matchingRuns.Add(run);
+                    if (Math.Abs(run.Y - line.BaselineY) <= tolerance) _lineRuns.Add(run);
                 }
-                PdfTextSpan[] lineRuns = matchingRuns.ToArray();
-                if (lineRuns.Length == 0) continue;
-                List<TextLayoutEngine.TextLine> cellLines = TextLayoutEngine.BuildLines(
-                    lineRuns,
-                    new TextLayoutEngine.Options { ForceSingleColumn = true },
-                    _workBudget.Consume,
-                    _workBudget.ThrowIfCancellationRequested);
-                string lineText = string.Join(" ", cellLines.Select(static item => item.Text)).Trim();
-                if (lineText.Length == 0) continue;
+                if (_lineRuns.Count == 0) continue;
+                PdfTextSpan[] lineRuns;
+                string lineText;
+                if (_lineRuns.Count == orderedRuns.Length) {
+                    // Every run of the cell sits on this line, in the same order: its text is the cell's text.
+                    lineRuns = orderedRuns;
+                    lineText = text;
+                } else {
+                    lineRuns = _lineRuns.ToArray();
+                    lineText = JoinLineTexts(TextLayoutEngine.BuildLines(
+                        lineRuns,
+                        SingleColumnLines,
+                        _consumeWork,
+                        _throwIfCancellationRequested));
+                    if (lineText.Length == 0) continue;
+                }
+                PdfDoubleAggregate left = default, right = default, baseline = default, fontSize = default, rotation = default, advance = default;
+                for (int runIndex = 0; runIndex < lineRuns.Length; runIndex++) {
+                    PdfTextSpan run = lineRuns[runIndex];
+                    left.Add(run.X);
+                    right.Add(run.X + Math.Max(0D, run.Advance));
+                    baseline.Add(run.Y);
+                    fontSize.Add(run.FontSize);
+                    rotation.Add(run.RotationDegrees);
+                    advance.Add(Math.Max(0D, run.Advance));
+                }
                 var word = new PdfUnderstandingWord(
                     lineText,
-                    lineRuns.Min(static run => run.X),
-                    lineRuns.Max(static run => run.X + Math.Max(0D, run.Advance)),
-                    lineRuns.Average(static run => run.Y),
-                    lineRuns.Max(static run => run.FontSize),
-                    lineRuns.Average(static run => run.RotationDegrees),
+                    left.Minimum,
+                    right.Maximum,
+                    baseline.Average,
+                    fontSize.Maximum,
+                    rotation.Average,
                     Array.AsReadOnly(lineRuns),
                     line.Confidence,
                     line.Evidence,
-                    lineRuns.Sum(static run => Math.Max(0D, run.Advance)),
+                    advance.Sum,
                     sourceSequence: line.SourceSequence);
                 sourceLines.Add(new PdfUnderstandingLine(
                     new[] { word },
@@ -1064,15 +1098,118 @@ internal static partial class PdfDocumentSemanticEnricher {
                 return false;
             }
 
+            PdfDoubleAggregate cellLeft = default, cellRight = default, cellY = default;
+            for (int runIndex = 0; runIndex < orderedRuns.Length; runIndex++) {
+                PdfTextSpan run = orderedRuns[runIndex];
+                cellLeft.Add(run.X);
+                cellRight.Add(run.X + Math.Max(0D, run.Advance));
+                cellY.Add(run.Y);
+            }
             cell = new TaggedTableCell(
                 text,
-                orderedRuns.Min(static run => run.X),
-                orderedRuns.Max(static run => run.X + Math.Max(0D, run.Advance)),
-                orderedRuns.Max(static run => run.Y),
-                orderedRuns.Min(static run => run.Y),
+                cellLeft.Minimum,
+                cellRight.Maximum,
+                cellY.Maximum,
+                cellY.Minimum,
                 sourceLines.AsReadOnly(),
                 Array.AsReadOnly(orderedRuns));
             return true;
+        }
+
+        /// <summary>The lines' texts joined by spaces and trimmed, as one cell value.</summary>
+        private static string JoinLineTexts(List<TextLayoutEngine.TextLine> lines) {
+            if (lines.Count == 1) return lines[0].Text.Trim();
+            var builder = new System.Text.StringBuilder();
+            for (int index = 0; index < lines.Count; index++) {
+                if (index > 0) builder.Append(' ');
+                builder.Append(lines[index].Text);
+            }
+            return builder.ToString().Trim();
+        }
+
+        private static double LineTolerance(PdfUnderstandingLine line) => Math.Max(2.5D, line.FontSize * 0.35D);
+
+        /// <summary>
+        /// Indexes, in page order, of the page lines a cell's runs sit on: the lines that hold each run, or for a run
+        /// no line holds, every line whose baseline may lie within its tolerance of the run.
+        /// </summary>
+        private List<int> FindLinesNear(PdfTextSpan[] runs) {
+            EnsureLineIndexes();
+            _nearLines.Clear();
+            for (int runIndex = 0; runIndex < runs.Length; runIndex++) {
+                _workBudget.Consume();
+                PdfTextSpan run = runs[runIndex];
+                if (_lineOwners!.TryGetValue(run, out int owner)) {
+                    _nearLines.Add(owner);
+                    if (_moreLineOwners is not null && _moreLineOwners.TryGetValue(run, out List<int>? others)) _nearLines.AddRange(others);
+                    continue;
+                }
+                AddLinesNearBaseline(run.Y);
+            }
+            if (_nearLines.Count > 1) {
+                _nearLines.Sort();
+                int kept = 1;
+                for (int index = 1; index < _nearLines.Count; index++) {
+                    if (_nearLines[index] != _nearLines[kept - 1]) _nearLines[kept++] = _nearLines[index];
+                }
+                _nearLines.RemoveRange(kept, _nearLines.Count - kept);
+            }
+            return _nearLines;
+        }
+
+        private void AddLinesNearBaseline(double y) {
+            if (double.IsNaN(y)) return;
+            double from = y - _maximumLineTolerance;
+            double to = y + _maximumLineTolerance;
+            if (double.IsNaN(from)) from = double.NegativeInfinity;
+            if (double.IsNaN(to)) to = double.PositiveInfinity;
+            double[] keys = _lineBaselines!;
+            int low = 0, high = keys.Length;
+            while (low < high) {
+                int middle = low + ((high - low) >> 1);
+                if (keys[middle] < from) low = middle + 1;
+                else high = middle;
+            }
+            for (int index = low; index < keys.Length && keys[index] <= to; index++) {
+                _workBudget.Consume();
+                _nearLines.Add(_lineOrder![index]);
+            }
+        }
+
+        private void EnsureLineIndexes() {
+            if (_lineOwners is not null) return;
+            var baselines = new List<double>(_page.Lines.Count);
+            var order = new List<int>(_page.Lines.Count);
+            var owners = new Dictionary<PdfTextSpan, int>();
+            double maximumTolerance = 0D;
+            for (int lineIndex = 0; lineIndex < _page.Lines.Count; lineIndex++) {
+                _workBudget.Consume();
+                PdfUnderstandingLine line = _page.Lines[lineIndex];
+                for (int wordIndex = 0; wordIndex < line.Words.Count; wordIndex++) {
+                    IReadOnlyList<PdfTextSpan> wordRuns = line.Words[wordIndex].SourceRuns;
+                    for (int runIndex = 0; runIndex < wordRuns.Count; runIndex++) {
+                        _workBudget.Consume();
+                        PdfTextSpan run = wordRuns[runIndex];
+                        if (!owners.TryGetValue(run, out int owner)) {
+                            owners.Add(run, lineIndex);
+                        } else if (owner != lineIndex) {
+                            _moreLineOwners ??= new Dictionary<PdfTextSpan, List<int>>();
+                            if (!_moreLineOwners.TryGetValue(run, out List<int>? others)) _moreLineOwners.Add(run, others = new List<int>(1));
+                            if (!others.Contains(lineIndex)) others.Add(lineIndex);
+                        }
+                    }
+                }
+                double tolerance = LineTolerance(line);
+                if (double.IsNaN(tolerance) || double.IsNaN(line.BaselineY)) continue;
+                baselines.Add(line.BaselineY);
+                order.Add(lineIndex);
+                maximumTolerance = Math.Max(maximumTolerance, tolerance);
+            }
+            _lineBaselines = baselines.ToArray();
+            _lineOrder = order.ToArray();
+            Array.Sort(_lineBaselines, _lineOrder);
+            _maximumLineTolerance = maximumTolerance;
+            _lineOwners = owners;
         }
 
         private bool IsTextlessPageContent(MarkedContentKey key) {
