@@ -1,14 +1,21 @@
+#if NET
+using OfficeIMO.TestSupport.OpenXml;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace OfficeIMO.Tests {
     /// <summary>
-    /// The Open XML SDK leaves OfficeIMO.Excel one feature area at a time. Its types are allowed in the bridge folder
-    /// (OfficeIMO.Excel/OpenXmlSdk) and in the files that still build on the SDK model; that number may only shrink, and
-    /// the engine's own Open XML layer never references the SDK.
+    /// Tracks how much of OfficeIMO.Excel still uses the Open XML SDK and <c>System.IO.Packaging</c>, the package API the
+    /// SDK brings in. Every use of either belongs in the bridge folder (<c>OfficeIMO.Excel/OpenXmlSdk</c>); these count the
+    /// source files outside it whose code uses their types. The counts may only go down: lower the baseline in the change
+    /// that removes files from a list. The engine's own Open XML layer names neither.
     /// </summary>
     public class ExcelOpenXmlSdkBoundary {
-        // Lower this when a feature area moves off the SDK; it must never rise.
-        private const int Baseline = 580;
+        private const int Baseline = 615;
+        private const int PackagingBaseline = 17;
+        private readonly ITestOutputHelper _output;
+
+        public ExcelOpenXmlSdkBoundary(ITestOutputHelper output) => _output = output;
 
         private static readonly string[] OwnedOpenXmlFiles = {
             "ExcelDeferredPackageParts.cs",
@@ -23,32 +30,46 @@ namespace OfficeIMO.Tests {
         };
 
         [Fact]
-        public void FilesReferencingTheSdkOutsideTheBridgeDoNotGrow() {
-            List<string> files = FilesReferencingTheSdk().ToList();
+        public void FilesOutsideTheBridgeThatUseTheSdkOnlyGoDown() {
+            IReadOnlyList<string> files = FindFiles(OpenXmlSdkReferenceCounter.Dependency.OpenXmlSdk);
+
+            _output.WriteLine($"OfficeIMO.Excel files outside OpenXmlSdk/ that use the Open XML SDK: {files.Count} (baseline {Baseline})");
+            foreach (string file in files) _output.WriteLine(file);
+
             Assert.True(files.Count <= Baseline,
-                files.Count + " files outside OfficeIMO.Excel/OpenXmlSdk reference DocumentFormat.OpenXml; at most " + Baseline + " may.");
-            // A count below the baseline is progress the baseline has to record, so it cannot rise again unnoticed.
-            Assert.True(files.Count == Baseline, "Only " + files.Count + " files reference the SDK now; lower the baseline to " + files.Count + ".");
+                $"{files.Count} files outside OfficeIMO.Excel/OpenXmlSdk use the Open XML SDK, more than the baseline of {Baseline}. Keep new SDK use in the bridge.");
+            Assert.True(files.Count == Baseline,
+                $"Only {files.Count} files outside OfficeIMO.Excel/OpenXmlSdk use the Open XML SDK now. Lower the baseline in {nameof(ExcelOpenXmlSdkBoundary)} to {files.Count}.");
         }
 
         [Fact]
-        public void TheOwnedOpenXmlLayerDoesNotReferenceTheSdk() {
+        public void FilesOutsideTheBridgeThatUseSystemIOPackagingOnlyGoDown() {
+            IReadOnlyList<string> files = FindFiles(OpenXmlSdkReferenceCounter.Dependency.SystemIOPackaging);
+
+            _output.WriteLine($"OfficeIMO.Excel files outside OpenXmlSdk/ that use System.IO.Packaging: {files.Count} (baseline {PackagingBaseline})");
+            foreach (string file in files) _output.WriteLine(file);
+
+            Assert.True(files.Count <= PackagingBaseline,
+                $"{files.Count} files outside OfficeIMO.Excel/OpenXmlSdk use System.IO.Packaging, more than the baseline of {PackagingBaseline}. Use OfficeIMO's own package layer, or keep it in the bridge.");
+            Assert.True(files.Count == PackagingBaseline,
+                $"Only {files.Count} files outside OfficeIMO.Excel/OpenXmlSdk use System.IO.Packaging now. Lower {nameof(PackagingBaseline)} in {nameof(ExcelOpenXmlSdkBoundary)} to {files.Count}.");
+        }
+
+        // The owned files still call engine members whose signatures name SDK types (the replay into the model), so the
+        // counts above include them; their own text names neither namespace.
+        [Fact]
+        public void TheOwnedOpenXmlLayerNamesNeitherTheSdkNorSystemIOPackaging() {
             string root = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Excel");
             foreach (string file in OwnedOpenXmlFiles) {
                 string text = File.ReadAllText(Path.Combine(root, file));
-                Assert.False(text.Contains("DocumentFormat.OpenXml", StringComparison.Ordinal), file + " references the Open XML SDK.");
+                Assert.False(OpenXmlSdkReferenceCounter.Dependency.OpenXmlSdk.NamespaceText.IsMatch(text), file + " names the Open XML SDK.");
+                Assert.False(OpenXmlSdkReferenceCounter.Dependency.SystemIOPackaging.NamespaceText.IsMatch(text), file + " names System.IO.Packaging.");
             }
         }
 
-        private static IEnumerable<string> FilesReferencingTheSdk() {
-            string root = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Excel");
-            string bridge = Path.Combine(root, "OpenXmlSdk") + Path.DirectorySeparatorChar;
-            foreach (string file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)) {
-                string relative = file.Substring(root.Length).TrimStart(Path.DirectorySeparatorChar);
-                string first = relative.Split(Path.DirectorySeparatorChar)[0];
-                if (first is "bin" or "obj" || file.StartsWith(bridge, StringComparison.Ordinal)) continue;
-                if (File.ReadAllText(file).Contains("DocumentFormat.OpenXml", StringComparison.Ordinal)) yield return relative;
-            }
-        }
+        private static IReadOnlyList<string> FindFiles(OpenXmlSdkReferenceCounter.Dependency dependency) =>
+            OpenXmlSdkReferenceCounter.FindFiles(typeof(OfficeIMO.Excel.ExcelDocument).Assembly.Location,
+                Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Excel"), "OpenXmlSdk", dependency);
     }
 }
+#endif
