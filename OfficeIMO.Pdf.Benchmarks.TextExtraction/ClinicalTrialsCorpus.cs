@@ -216,35 +216,49 @@ internal static class ClinicalTrialsCorpus {
         report.AppendLine("# ClinicalTrials.gov protocol reading");
         report.AppendLine();
         report.AppendLine($"{documents.Select(static d => d.NctId).Distinct().Count()} protocols, {scores.Select(static s => (s.NctId, s.Field.Category, s.Field.Index)).Distinct().Count()} registry fields.");
+        report.AppendLine("The engine comparison uses presence and order only, which come straight from the registry record.");
         report.AppendLine("Intact: the field's words appear contiguously. In order: they all appear in order, possibly broken up. Words: at least 90% of its words appear somewhere.");
-        report.AppendLine("Heading: a line that names the field's section exists. In section: an occurrence of the field follows, within 2,000 words, a line that opens with the field's section name, with no other section's opening line in between.");
         report.AppendLine();
 
         string[] classes = documents.Select(static d => d.SponsorClass).Distinct().OrderBy(static c => c, StringComparer.Ordinal).Append("all").ToArray();
         report.AppendLine("## By sponsor class");
         report.AppendLine();
-        report.AppendLine("| Sponsor | Engine | Files | Read | Intact | In order | Words | Heading | In section | ms/page p50 | ms/page p90 |");
-        report.AppendLine("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+        report.AppendLine("| Sponsor | Engine | Files | Read | Intact | In order | Words | ms/page p50 | ms/page p90 |");
+        report.AppendLine("|---|---|---:|---:|---:|---:|---:|---:|---:|");
         foreach (string sponsorClass in classes) {
             foreach (string engine in engines) {
                 List<FieldScore> s = scores.Where(x => x.Engine == engine && (sponsorClass == "all" || x.SponsorClass == sponsorClass)).ToList();
                 List<DocumentScore> d = documents.Where(x => x.Engine == engine && (sponsorClass == "all" || x.SponsorClass == sponsorClass)).ToList();
                 double[] perPage = d.Where(static x => x.Status == "ok" && x.Pages > 0).Select(static x => x.Ms / x.Pages).OrderBy(static x => x).ToArray();
-                List<FieldScore> sectioned = s.Where(static x => x.Field.Section is not null).ToList();
-                report.AppendLine($"| {sponsorClass} | {engine} | {d.Count} | {d.Count(static x => x.Status == "ok")} | {Percent(s, static x => x.Match == Match.Intact)} | {Percent(s, static x => x.Match <= Match.InOrder)} | {Percent(s, static x => x.Match <= Match.Words)} | {Percent(sectioned, static x => x.HeadingFound)} | {Percent(sectioned, static x => x.InSection)} | {Quantile(perPage, 0.5)} | {Quantile(perPage, 0.9)} |");
+                report.AppendLine($"| {sponsorClass} | {engine} | {d.Count} | {d.Count(static x => x.Status == "ok")} | {Percent(s, static x => x.Match == Match.Intact)} | {Percent(s, static x => x.Match <= Match.InOrder)} | {Percent(s, static x => x.Match <= Match.Words)} | {Quantile(perPage, 0.5)} | {Quantile(perPage, 0.9)} |");
             }
         }
 
         report.AppendLine();
         report.AppendLine("## By field");
         report.AppendLine();
-        report.AppendLine("| Field | Engine | Fields | Intact | In order | Words | Heading | In section |");
-        report.AppendLine("|---|---|---:|---:|---:|---:|---:|---:|");
+        report.AppendLine("| Field | Engine | Fields | Intact | In order | Words |");
+        report.AppendLine("|---|---|---:|---:|---:|---:|");
         foreach (string category in RegistryField.Categories) {
             foreach (string engine in engines) {
                 List<FieldScore> s = scores.Where(x => x.Engine == engine && x.Field.Category == category).ToList();
-                bool sectioned = s.Any(static x => x.Field.Section is not null);
-                report.AppendLine($"| {category} | {engine} | {s.Count} | {Percent(s, static x => x.Match == Match.Intact)} | {Percent(s, static x => x.Match <= Match.InOrder)} | {Percent(s, static x => x.Match <= Match.Words)} | {(sectioned ? Percent(s, static x => x.HeadingFound) : "–")} | {(sectioned ? Percent(s, static x => x.InSection) : "–")} |");
+                report.AppendLine($"| {category} | {engine} | {s.Count} | {Percent(s, static x => x.Match == Match.Intact)} | {Percent(s, static x => x.Match <= Match.InOrder)} | {Percent(s, static x => x.Match <= Match.Words)} |");
+            }
+        }
+
+        // Secondary: section placement uses fixed heading rules, the same for every engine (see the README).
+        report.AppendLine();
+        report.AppendLine("## Section placement (secondary)");
+        report.AppendLine();
+        report.AppendLine("Fixed heading rules, the same for every engine, documented in the runner's README. Heading: a heading line names the field's section. In section: an occurrence sits under a line that opens its section (front matter for the NCT number, title and sponsor).");
+        report.AppendLine();
+        report.AppendLine("| Field | Engine | Fields | Heading | In section |");
+        report.AppendLine("|---|---|---:|---:|---:|");
+        foreach (string category in RegistryField.Categories.Append("all")) {
+            foreach (string engine in engines) {
+                List<FieldScore> s = scores.Where(x => x.Engine == engine && (category == "all" || x.Field.Category == category)).ToList();
+                List<FieldScore> sectioned = s.Where(static x => x.Field.Section is not null).ToList();
+                report.AppendLine($"| {category} | {engine} | {s.Count} | {(sectioned.Count > 0 ? Percent(sectioned, static x => x.HeadingFound) : "–")} | {Percent(s, static x => x.InSection)} |");
             }
         }
 
