@@ -24,7 +24,8 @@ public sealed partial class PdfReadPage {
         private readonly double _pageWidth;
         private readonly double _pageHeight;
         private readonly Func<double, double, (double X, double Y)> _toReadingPoint;
-        private readonly List<Rule> _rules = new();
+        // Pages that reach this pass usually paint dozens of border pieces.
+        private readonly List<Rule> _rules = new(64);
         private readonly List<Fill> _fills = new();
         private bool _overflow;
 
@@ -370,8 +371,10 @@ public sealed partial class PdfReadPage {
         private static bool Before(double order, int phase, double otherOrder, int otherPhase) =>
             order < otherOrder || (order == otherOrder && phase < otherPhase);
 
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Auto)]
         private readonly record struct Rule(bool Horizontal, double Position, double Lo, double Hi, double Half, double Order, int Phase, OfficeColor Color, bool Opaque);
 
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Auto)]
         private readonly record struct Fill(double Left, double Bottom, double Right, double Top, double Order, int Phase, OfficeColor? Color, bool Opaque);
 
         /// <summary>A coarse uniform grid over the fills so each border checks only the paint near it.</summary>
