@@ -74,7 +74,8 @@ internal static class OpenXmlSdkReferenceCounter {
             .ToList();
     }
 
-    // Comments that mention the namespace don't use it: line comments and block comments, across lines, are skipped.
+    // Comments that mention the namespace don't use it: line comments and block comments, across lines, are skipped,
+    // while string and character literals are read as code. A verbatim string spanning lines is treated as ending on its line.
     private static bool NamesNamespaceInCode(string path, Dependency dependency) {
         var code = new System.Text.StringBuilder();
         bool inBlock = false;
@@ -83,6 +84,23 @@ internal static class OpenXmlSdkReferenceCounter {
             for (int i = 0; i < line.Length; i++) {
                 if (inBlock) {
                     if (line[i] == '*' && i + 1 < line.Length && line[i + 1] == '/') { inBlock = false; i++; }
+                    continue;
+                }
+                // A literal's text is code, and comment delimiters inside it don't start a comment.
+                if (line[i] == '"' || line[i] == '\'') {
+                    char quote = line[i];
+                    bool verbatim = quote == '"' && i > 0 && line[i - 1] == '@';
+                    code.Append(line[i]);
+                    for (i++; i < line.Length; i++) {
+                        code.Append(line[i]);
+                        if (!verbatim && line[i] == '\\') {
+                            if (i + 1 < line.Length) code.Append(line[++i]);
+                            continue;
+                        }
+                        if (line[i] != quote) continue;
+                        if (verbatim && i + 1 < line.Length && line[i + 1] == '"') { code.Append(line[++i]); continue; }
+                        break;
+                    }
                     continue;
                 }
                 if (line[i] == '/' && i + 1 < line.Length && line[i + 1] == '/') break;
