@@ -79,10 +79,8 @@ internal static partial class MarkdownReader {
         scheme = string.Empty;
         int colon = url.IndexOf(':');
         if (colon <= 0) return false;
-        // If there's a path/query/fragment delimiter before ':', it's not a scheme.
-        int slash = url.IndexOfAny(new[] { '/', '?', '#' });
-        if (slash >= 0 && slash < colon) return false;
-        // URI scheme must start with a letter and be [A-Za-z0-9+.-]*
+        // URI scheme must start with a letter and be [A-Za-z0-9+.-]*. None of those characters is a
+        // path, query or fragment delimiter, so this also rejects a delimiter in front of the colon.
         char first = url[0];
         if (!char.IsLetter(first)) return false;
         for (int i = 1; i < colon; i++) {
@@ -90,9 +88,23 @@ internal static partial class MarkdownReader {
             bool ok = char.IsLetterOrDigit(c) || c == '+' || c == '-' || c == '.';
             if (!ok) return false;
         }
-        scheme = url.Substring(0, colon);
+        scheme = GetSchemeText(url, colon);
         return true;
     }
+
+    // The common schemes come back as shared strings rather than a substring per URL.
+    private static string GetSchemeText(string url, int length) {
+        string? known = length switch {
+            4 => MatchScheme(url, "http") ?? MatchScheme(url, "data") ?? MatchScheme(url, "file"),
+            5 => MatchScheme(url, "https"),
+            6 => MatchScheme(url, "mailto"),
+            _ => null
+        };
+        return known ?? url.Substring(0, length);
+    }
+
+    private static string? MatchScheme(string url, string scheme) =>
+        string.CompareOrdinal(url, 0, scheme, 0, scheme.Length) == 0 ? scheme : null;
 
     private static bool IsWindowsDriveLike(string url) {
         // Treat "C:\..." and "C:/..." as file-like.

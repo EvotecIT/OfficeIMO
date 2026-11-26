@@ -201,10 +201,21 @@ public abstract class MarkdownObject {
         int? indexInParent,
         MarkdownObject? previousSibling,
         MarkdownObject? nextSibling) {
-        Parent = parent;
+        // Binding a parsed tree sets these on every object, and most siblings it writes are null on
+        // objects that never had one; a reference write that changes nothing would still pay the GC
+        // write barrier.
+        if (!ReferenceEquals(Parent, parent)) {
+            Parent = parent;
+        }
+
         _indexInParent = indexInParent ?? -1;
-        PreviousSibling = previousSibling;
-        NextSibling = nextSibling;
+        if (!ReferenceEquals(PreviousSibling, previousSibling)) {
+            PreviousSibling = previousSibling;
+        }
+
+        if (!ReferenceEquals(NextSibling, nextSibling)) {
+            NextSibling = nextSibling;
+        }
     }
 
     internal void SetAttributes(MarkdownAttributeSet? attributes) {

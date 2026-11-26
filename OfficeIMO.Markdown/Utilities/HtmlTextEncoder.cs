@@ -48,10 +48,84 @@ internal static class HtmlTextEncoder {
         builder.Append(System.Net.WebUtility.HtmlEncode(text));
     }
 
-    private static void AppendEscaped(StringBuilder builder, string value, int first) {
-        builder.Append(value, 0, first);
+#if NET8_0_OR_GREATER
+    private static readonly System.Buffers.SearchValues<char> AsciiSpecialCharacterValues =
+        System.Buffers.SearchValues.Create("&<>\"'");
+    // ASCII characters that come out unchanged under either policy.
+    private static readonly System.Buffers.SearchValues<char> UnchangedAsciiCharacterValues = CreateUnchangedAsciiCharacterValues();
+
+    private static System.Buffers.SearchValues<char> CreateUnchangedAsciiCharacterValues() {
+        var characters = new System.Collections.Generic.List<char>(128);
+        for (char value = (char)0; value < (char)128; value++) {
+            if (value is not ('&' or '<' or '>' or '"' or '\'')) {
+                characters.Add(value);
+            }
+        }
+
+        return System.Buffers.SearchValues.Create(characters.ToArray());
+    }
+#endif
+
+    /// <summary>
+    /// Appends the <paramref name="length"/> characters of <paramref name="text"/> at <paramref name="start"/>
+    /// encoded as <see cref="Append(StringBuilder, string?, MarkdownHtmlExportOptions?)"/> encodes them as a string.
+    /// </summary>
+    internal static void Append(StringBuilder builder, string text, int start, int length, MarkdownHtmlExportOptions? options) {
+        if (length <= 0) {
+            return;
+        }
+
+        if (start == 0 && length == text.Length) {
+            Append(builder, text, options);
+            return;
+        }
+
+        int end = start + length;
+        bool escapeNonAscii = options?.EscapeNonAsciiText != false;
+        // The first character that is not plain ASCII text: one of the five special characters, or
+        // with non-ASCII escaping any character from 128 up.
+#if NET8_0_OR_GREATER
+        int found = escapeNonAscii
+            ? text.AsSpan(start, length).IndexOfAnyExcept(UnchangedAsciiCharacterValues)
+            : text.AsSpan(start, length).IndexOfAny(AsciiSpecialCharacterValues);
+        int first = found < 0 ? end : start + found;
+#else
+        int first = start;
+        while (first < end) {
+            char current = text[first];
+            if (current is '&' or '<' or '>' or '"' or '\'' || (escapeNonAscii && current >= 128)) {
+                break;
+            }
+
+            first++;
+        }
+#endif
+        if (first == end) {
+            builder.Append(text, start, length);
+            return;
+        }
+
+        // The five special characters are written the same under both policies, so the range is escaped
+        // in place unless a non-ASCII character needs WebUtility's numeric encoding.
+        if (escapeNonAscii) {
+            for (int i = first; i < end; i++) {
+                if (text[i] >= 128) {
+                    builder.Append(System.Net.WebUtility.HtmlEncode(text.Substring(start, length)));
+                    return;
+                }
+            }
+        }
+
+        AppendEscaped(builder, text, start, end, first);
+    }
+
+    private static void AppendEscaped(StringBuilder builder, string value, int first) =>
+        AppendEscaped(builder, value, 0, value.Length, first);
+
+    private static void AppendEscaped(StringBuilder builder, string value, int start, int end, int first) {
+        builder.Append(value, start, first - start);
         int runStart = first;
-        for (var i = first; i < value.Length; i++) {
+        for (var i = first; i < end; i++) {
             string? replacement = value[i] switch {
                 '&' => "&amp;",
                 '<' => "&lt;",
@@ -72,8 +146,8 @@ internal static class HtmlTextEncoder {
             runStart = i + 1;
         }
 
-        if (runStart < value.Length) {
-            builder.Append(value, runStart, value.Length - runStart);
+        if (runStart < end) {
+            builder.Append(value, runStart, end - runStart);
         }
     }
 }
