@@ -437,7 +437,7 @@ internal sealed class ProtocolText {
     private readonly HashSet<string> _vocabulary;
     private const int SectionReach = 2000;
     private readonly List<string[]> _headings = [];
-    private readonly List<(int Token, string[] Opening)> _sectionStarts = [];
+    private readonly List<(int Token, int HeadingEnd, string[] Opening)> _sectionStarts = [];
     private readonly int _frontMatterEnd;
 
     internal ProtocolText(string text) {
@@ -447,8 +447,9 @@ internal sealed class ProtocolText {
             if (lineTokens.Length is > 0 and <= 12 && LooksLikeHeading(line)) {
                 _headings.Add(lineTokens);
             }
-            if (OpensSection(line) is { } opening) {
-                _sectionStarts.Add((tokens.Count, opening));
+            if (OpensSection(line, out int headingWords) is { } opening) {
+                // A field matched inside the heading itself ("Treatment" as an arm label) doesn't follow it.
+                _sectionStarts.Add((tokens.Count, tokens.Count + headingWords, opening));
             }
             tokens.AddRange(lineTokens);
         }
@@ -574,13 +575,11 @@ internal sealed class ProtocolText {
     /// </summary>
     private string[]? NearestSectionStart(int at) {
         string[]? nearest = null;
-        foreach ((int token, string[] opening) in _sectionStarts) {
+        foreach ((int token, int headingEnd, string[] opening) in _sectionStarts) {
             if (token > at) {
                 break;
             }
-            if (at - token <= SectionReach) {
-                nearest = opening;
-            }
+            nearest = at >= headingEnd && at - token <= SectionReach ? opening : null;
         }
         return nearest;
     }
@@ -591,13 +590,14 @@ internal sealed class ProtocolText {
     /// must be heading-length, or carry a colon early ("Inclusion criteria (all must be met): ..."), so prose that
     /// happens to start with "Treatment" doesn't open a section. Dot-leader table-of-contents lines are ignored.
     /// </summary>
-    private static string[]? OpensSection(string line) {
+    private static string[]? OpensSection(string line, out int headingWords) {
+        headingWords = 0;
         if (line.Contains("....", StringComparison.Ordinal)) {
             return null;
         }
         string body = SectionNumber.Replace(line, string.Empty);
-        // "Inclusion / Exclusion Criteria" and "Inclusion & Exclusion" join names like "and" does.
-        string[] words = Tokenize(body.Replace("/", " and ", StringComparison.Ordinal).Replace("&", " and ", StringComparison.Ordinal));
+        // "Inclusion / Exclusion", "Inclusion & Exclusion" and "Inclusion and/or Exclusion" join names like "and" does.
+        string[] words = Tokenize(Regex.Replace(body, @"\s*(?:and\s*/\s*or|/|&)\s*", " and ", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
         if (words.Length == 0) {
             return null;
         }
@@ -608,9 +608,18 @@ internal sealed class ProtocolText {
             return null;
         }
         int colon = body.IndexOf(':');
-        // Without an early colon, a line must also look like a heading, so a short sentence such as
-        // "Treatment was well tolerated." doesn't open a section.
-        bool headingLength = (colon >= 0 && Tokenize(body[..colon]).Length <= 8) || (words.Length <= 8 && LooksLikeHeading(body));
+        int lineWords = Tokenize(line).Length;
+        // Lengths are counted on the words as written, before a joiner is expanded. Without an early colon, a line
+        // must also look like a heading, so a short sentence such as "Treatment was well tolerated." doesn't open a
+        // section, while a title-case "Primary Outcomes." does.
+        bool headingLength;
+        if (colon >= 0 && Tokenize(body[..colon]).Length <= 8) {
+            headingLength = true;
+            headingWords = lineWords - Tokenize(body[(colon + 1)..]).Length;
+        } else {
+            headingLength = Tokenize(body).Length <= 8 && (LooksLikeHeading(body) || IsTitleCase(body));
+            headingWords = lineWords;
+        }
         // A joined heading ("Inclusion and exclusion criteria") opens both sections.
         int last = nameAt + 2 < words.Length && words[nameAt + 1] is "and" or "or" && RegistryField.SectionWords.Contains(words[nameAt + 2])
             ? nameAt + 2
@@ -624,6 +633,12 @@ internal sealed class ProtocolText {
     };
 
     /// <summary>A short line that does not end like a sentence. Table-of-contents lines count.</summary>
+    /// <summary>Every word of four or more letters starts with a capital, as in "Primary Outcome Measures."</summary>
+    private static bool IsTitleCase(string text) {
+        string[] words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        return words.Any(static w => w.Length >= 4) && words.Where(static w => w.Length >= 4 && char.IsLetter(w[0])).All(static w => char.IsUpper(w[0]));
+    }
+
     private static bool LooksLikeHeading(string line) {
         string trimmed = line.Trim();
         return trimmed.Length > 0 && !(trimmed.EndsWith('.') && !trimmed.EndsWith("..", StringComparison.Ordinal)) && !trimmed.EndsWith(',') && !trimmed.EndsWith(';');
