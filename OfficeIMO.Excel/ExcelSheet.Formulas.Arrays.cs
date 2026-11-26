@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel {
                     && IsSupportedArrayExpression(candidate.FormulaText ?? string.Empty)
                     && TryFixedArrayBounds(candidate.FormulaReference ?? "",
                         out int top, out int left, out int bottom, out int right)) {
-                    bool dynamic = candidate.CellMetaIndex != null && IsDynamicArrayFormula(candidate, ref metadata);
+                    bool dynamic = candidate.HasCellMetaIndex && IsDynamicArrayFormula(candidate, ref metadata);
                     var owner = new FixedArrayOwner { Cell = candidate, Top = top, Left = left,
                         Bottom = bottom, Right = right, Dynamic = dynamic };
                     (dynamic ? index.DynamicOwners : index.Owners).Add(owner);

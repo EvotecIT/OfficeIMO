@@ -34,8 +34,8 @@ namespace OfficeIMO.Excel {
         /// <summary>The range the formula covers (array and shared formula masters).</summary>
         internal string? FormulaReference => SdkFormula?.Reference?.Value;
 
-        /// <summary>Whether the formula asks to be calculated on the next pass.</summary>
-        internal bool? CalculateCell => SdkFormula?.CalculateCell?.Value;
+        /// <summary>Whether the formula asks to be calculated on the next pass; null when the flag is absent or unreadable.</summary>
+        internal bool? CalculateCell => SdkFormula?.CalculateCell is { HasValue: true } flag ? flag.Value : null;
 
         /// <summary>The A1 reference the cell records.</summary>
         internal string? Reference => Sdk?.CellReference?.Value;
@@ -67,6 +67,9 @@ namespace OfficeIMO.Excel {
         /// <summary>The cell metadata index (dynamic array formulas).</summary>
         internal uint? CellMetaIndex => Sdk?.CellMetaIndex?.Value;
 
+        /// <summary>Whether the cell names a cell metadata index, read or not.</summary>
+        internal bool HasCellMetaIndex => Sdk?.CellMetaIndex != null;
+
         /// <summary>The cell's style index.</summary>
         internal uint? StyleIndex => Sdk?.StyleIndex?.Value;
 
@@ -83,7 +86,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Sets whether the formula is calculated on the next pass, leaving an equal value as it is.</summary>
         internal void SetCalculateCell(bool calculate) {
             CellFormula formula = SdkFormula!;
-            if (formula.CalculateCell?.Value != calculate) formula.CalculateCell = calculate;
+            if (formula.CalculateCell is not { HasValue: true } flag || flag.Value != calculate) formula.CalculateCell = calculate;
         }
 
         /// <summary>Whether the cell holds anything a spilled value would cover: a value, text, a formula or metadata.</summary>
