@@ -55,12 +55,15 @@ public sealed class WebpEncoderQualityTests {
         Assert.Equal(pixels, image.GetPixels());
     }
 
+    // Each effort takes its own path through row samples, predictor maps and tile groups; tiles and
+    // bands rarely divide these sizes evenly.
     [Theory]
     [InlineData(1, 129)]
     [InlineData(129, 1)]
     [InlineData(33, 65)]
     [InlineData(97, 67)]
-    public void BlockEdgesAndThinImagesPreserveEveryRgbaSample(int width, int height) {
+    [InlineData(300, 161)]
+    public void EveryEffortPreservesEveryRgbaSampleAtBlockEdgesAndThinImages(int width, int height) {
         var pixels = new byte[width * height * 4];
         uint random = 0x812357E1U;
         for (int y = 0; y < height; y++) {
@@ -76,7 +79,29 @@ public sealed class WebpEncoderQualityTests {
         }
         var image = OfficeRasterImage.FromRgba32(width, height, pixels);
 
-        AssertExact(image, OfficeWebpCodec.Encode(image));
+        foreach (OfficeImageEncodingEffort effort in new[] {
+                     OfficeImageEncodingEffort.Fast, OfficeImageEncodingEffort.Balanced, OfficeImageEncodingEffort.Smallest }) {
+            AssertExact(image, OfficeWebpCodec.Encode(image, new OfficeWebpEncodeOptions { Effort = effort }));
+        }
+    }
+
+    // A pattern that repeats every 256 pixels in both directions, with linear red and green: one simple
+    // predictor keeps every row a copy of an earlier stretch, while per-tile modes or colour multipliers
+    // break the repeats and leave tens of kilobytes of residuals.
+    [Fact]
+    public void PeriodicPatternIsCodedAsCopiesOfItself() {
+        var image = new OfficeRasterImage(512, 512);
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                image.SetPixel(x, y, OfficeColor.FromRgba((byte)((x * 13 + y * 3) & 255), (byte)((x * 5 + y * 11) & 255),
+                    (byte)(((x ^ y) * 7) & 255), (byte)(96 + ((x + y) & 159))));
+            }
+        }
+
+        byte[] encoded = OfficeWebpCodec.Encode(image);
+
+        Assert.True(encoded.Length < 4096, $"Expected the period to be found, got {encoded.Length} bytes.");
+        AssertExact(image, encoded);
     }
 
     [Fact]
