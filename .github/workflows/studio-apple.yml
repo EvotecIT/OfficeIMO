@@ -42,6 +42,12 @@ jobs:
     name: Native Apple qualification
     runs-on: xcode-27
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      engine: ${{ steps.check.outputs.engine }}
+      current: ${{ steps.check.outputs.current }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -57,9 +63,27 @@ jobs:
             Apple/OfficeIMOStudioEngine/link-inputs
           key: studio-apple-engine-${{ github.sha }}
           restore-keys: studio-apple-engine-
-      # Before the first nightly build, or after the cache is evicted, the last released engine stands in.
-      - name: Use the released engine
+      # The cache shares its space with the NuGet caches, so the engine workflow keeps its newest build as an artifact.
+      - name: Use the engine artifact from master
+        id: artifact
         if: steps.engine.outputs.cache-matched-key == ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=studio-apple-engine&per_page=10" \
+            --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master")][0].workflow_run.id // empty')
+          if [ -z "$run" ]; then
+            echo "No engine artifact from master is available."
+            exit 0
+          fi
+          gh run download "$run" --repo "$GITHUB_REPOSITORY" --name studio-apple-engine --dir Apple/OfficeIMOStudioEngine
+          test -d Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework
+          echo "found=true" >> "$GITHUB_OUTPUT"
+      # Without either, the last released engine stands in.
+      - name: Use the released engine
+        if: steps.engine.outputs.cache-matched-key == '' && steps.artifact.outputs.found != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -68,6 +92,27 @@ jobs:
           echo "97e882243fffcdc04074552ea22cdfa249a8691e7c6b1e9b9ea9b6ff6070cbea  $archive" | shasum -a 256 -c -
           unzip -q "$archive" 'OfficeIMOStudioEngine.xcframework/*' -d Apple/OfficeIMOStudioEngine
           test -d Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework
+      # The apps compile against the header inside the engine, so an engine built before a new export fails with a missing
+      # symbol. Say which exports are missing and how to get a current engine.
+      - name: Check the engine against the native header
+        id: check
+        shell: bash
+        env:
+          ENGINE: ${{ steps.engine.outputs.cache-matched-key != '' && 'cache' || steps.artifact.outputs.found == 'true' && 'artifact' || 'release' }}
+        run: |
+          set -euo pipefail
+          echo "engine=$ENGINE" >> "$GITHUB_OUTPUT"
+          header=OfficeIMO.Studio.Native/include/officeimo_studio.h
+          built=$(find Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework -name officeimo_studio.h | head -n 1)
+          exports() { grep -oE 'officeimo_[a-z0-9_]+[[:space:]]*\(' "$1" | tr -d ' (' | sort -u; }
+          missing=$(comm -23 <(exports "$header") <(exports "$built"))
+          if [ -z "$missing" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+            echo "The $ENGINE engine declares every export in $header."
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Studio engine is older than the native header::The $ENGINE engine lacks: $(paste -sd, - <<< "$missing"). A pull request that adds exports compiles once the Studio Apple engine workflow has built them from master."
+          fi
       - name: Swift state contracts
         run: >-
           swift test --package-path Apple --scratch-path "$RUNNER_TEMP/studio-state"
@@ -86,6 +131,23 @@ jobs:
             -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/studio-simulator" CODE_SIGNING_ALLOWED=NO build
       - name: Preserve checked-in source
         run: git diff --exit-code
+
+  # After a merge, an engine that came from the artifact or release, or lacks new exports, is rebuilt from master
+  # straight away rather than at the nightly run. The engine workflow skips the build when its sources are cached.
+  engine-refresh:
+    name: Rebuild a stale engine
+    needs: native
+    if: >-
+      always() && github.event_name == 'push' && github.ref == 'refs/heads/master'
+      && needs.native.outputs.engine != '' && (needs.native.outputs.engine != 'cache' || needs.native.outputs.current != 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run studio-apple-engine.yml --repo "$GITHUB_REPOSITORY" --ref master
 
   ci-validation:
     name: CI validation
