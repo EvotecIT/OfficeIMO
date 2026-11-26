@@ -11,12 +11,29 @@ using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
+        // The package's layouts with their types read as the SDK reads them; null when one has a type the schema doesn't
+        // know, which the model reports when it reads it.
+        private List<(string Name, SlideLayoutValues? Type, string? RelationshipId)>? ReadPackageLayouts(int masterIndex) {
+            if (TryReadPackageLayouts(masterIndex) is not { } layouts) return null;
+            var read = new List<(string, SlideLayoutValues?, string?)>(layouts.Count);
+            foreach ((string name, string? token, string? relationshipId) in layouts) {
+                SlideLayoutValues? type = null;
+                if (token != null) {
+                    var value = new SlideLayoutValues(token);
+                    if (!((IEnumValue)value).IsValid) return null;
+                    type = value;
+                }
+                read.Add((name, type, relationshipId));
+            }
+            return read;
+        }
+
         /// <summary>
         ///     Returns the layouts available for a slide master.
         /// </summary>
         public IReadOnlyList<PowerPointSlideLayoutInfo> GetSlideLayouts(int masterIndex = 0) {
             ThrowIfDisposed();
-            if (TryReadPackageLayouts(masterIndex) is { } packageLayouts) {
+            if (ReadPackageLayouts(masterIndex) is { } packageLayouts) {
                 return packageLayouts.Select((layout, index) => new PowerPointSlideLayoutInfo(masterIndex, index, layout.Name,
                     layout.Type?.ToOfficeIMO(), layout.RelationshipId)).ToList();
             }
@@ -41,7 +58,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int GetLayoutIndex(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
             ThrowIfDisposed();
-            if (TryReadPackageLayouts(masterIndex) is { } packageLayouts) {
+            if (ReadPackageLayouts(masterIndex) is { } packageLayouts) {
                 SlideLayoutValues wanted = layoutType.ToOpenXml();
                 int found = packageLayouts.FindIndex(layout => layout.Type == wanted);
                 if (found >= 0) return found;
@@ -64,7 +81,7 @@ namespace OfficeIMO.PowerPoint {
         public int GetLayoutIndex(string layoutName, int masterIndex = 0, bool ignoreCase = true) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(layoutName);
-            if (TryReadPackageLayouts(masterIndex) is { } packageLayouts) {
+            if (ReadPackageLayouts(masterIndex) is { } packageLayouts) {
                 StringComparison packageComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
                 int found = packageLayouts.FindIndex(layout => string.Equals(layout.Name, layoutName, packageComparison));
                 if (found >= 0) return found;

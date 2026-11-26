@@ -112,12 +112,19 @@ public partial class Excel {
                 options.MaxDataReaderBufferedCells = 12;
                 options.MaxDataReaderChunkRows = 2;
             }
-            using var reader = ExcelDocument.OpenReader(path, options);
             if (invalidTail is not (null or "NormalizedText" or "NamedEntities")) {
-                if (invalidTail == "SharedString") Assert.Throws<InvalidDataException>(() => reader.Read());
-                else Assert.Throws<System.Xml.XmlException>(() => reader.Read());
+                Type expected = invalidTail == "SharedString" ? typeof(InvalidDataException) : typeof(System.Xml.XmlException);
+                // By default the read that reaches the invalid tail reports it.
+                using (var lateReader = ExcelDocument.OpenReader(path, options)) {
+                    Assert.IsType(expected, ReadUntilError(lateReader, out _));
+                }
+                // Validating first reports it before the first row.
+                options.ValidateWorksheetBeforeFirstRow = true;
+                using var strictReader = ExcelDocument.OpenReader(path, options);
+                Assert.IsType(expected, Record.Exception(() => strictReader.Read()));
                 return;
             }
+            using var reader = ExcelDocument.OpenReader(path, options);
             for (int row = 1; row <= count; row++) {
                 Assert.True(reader.Read());
                 string expected = "Label " + row + padding;

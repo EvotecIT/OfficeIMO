@@ -68,12 +68,29 @@ public partial class Excel {
     }
 
     [Fact]
-    public void LargeUniformWorksheetReportsLateInvalidCellBeforeTheFirstRow() {
+    public void LargeUniformWorksheetReportsLateInvalidCellBeforeTheFirstRowWhenValidatingFirst() {
         byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: ParallelIndexRows - 3);
+        // Sequential execution has no background reading thread, so it validates the whole worksheet first.
         InvalidDataException sequential = Assert.Throws<InvalidDataException>(() => ReadFirstParallelIndexRow(workbook, sequential: true));
-        InvalidDataException parallel = Assert.Throws<InvalidDataException>(() => ReadFirstParallelIndexRow(workbook, sequential: false));
+        InvalidDataException parallel = Assert.Throws<InvalidDataException>(() => {
+            using DbDataReader reader = ExcelDocument.OpenReader(new MemoryStream(workbook, writable: false),
+                new ExcelReaderOptions { NumericAsDecimal = true, ValidateWorksheetBeforeFirstRow = true });
+            reader.Read();
+        });
         Assert.Contains($"cell A{ParallelIndexRows - 3} references a missing shared string", parallel.Message);
         Assert.Equal(sequential.Message, parallel.Message);
+    }
+
+    [Fact]
+    public void LargeUniformWorksheetReportsLateInvalidCellAtThatRow() {
+        int invalidRow = ParallelIndexRows - 3;
+        byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: invalidRow);
+        InvalidDataException expected = Assert.Throws<InvalidDataException>(() => ReadFirstParallelIndexRow(workbook, sequential: true));
+        using DbDataReader reader = OpenParallelIndexReader(workbook, numericAsDecimal: true, sequential: false);
+        var failure = Assert.IsType<InvalidDataException>(ReadUntilError(reader, out int rows));
+        Assert.Equal(expected.Message, failure.Message);
+        // Rows 2 to invalidRow - 1 were returned; the header is row 1. .NET Framework validates before the first row.
+        Assert.Equal(ChecksWhileReading ? invalidRow - 2 : 0, rows);
     }
 
     /// <summary>Single-pass reading delivers the same values as the validate-first reader.</summary>

@@ -199,13 +199,12 @@ and factory mapping, with `ExcelReaderOptions` and cancellation. Their
 `cancellationToken` and preserve source order. `OpenReaderAsync` returns
 `Task<ExcelWorkbookDataReader>` on .NET 8 and later.
 
-The reader validates the whole worksheet before returning its first row. For large
-XLSX and XLSB worksheets, `new ExcelReaderOptions { EnableSinglePassReading = true }` returns
-rows while the rest of the sheet is still being read. An invalid cell then raises the same error,
-naming the same cell, but only after the rows before it have been returned, so use it where a
-part-way failure can be discarded. The option applies on .NET 8 and later to worksheets of
-1 MB or more, without `A1Range`, a cell value converter or diagnostics, and when the execution
-policy allows background work; otherwise, and for XLS, the reader always validates first.
+On .NET 8 and later, XLSX worksheets of 1 MB or more that declare their dimension are checked
+while rows are returned, on background threads, so an invalid cell later in the sheet raises
+its error from the `Read` that reaches it, after the rows before it. Set
+`new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true }` to validate the whole worksheet
+before the first row instead, where a part-way failure cannot be discarded. Smaller worksheets,
+worksheets without a dimension, XLSB and XLS always validate first.
 
 XML Spreadsheet import also limits defined names (10,000 by default). Set `ExcelSpreadsheetXmlOptions.MaxNames` for a larger trusted workbook.
 

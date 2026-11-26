@@ -37,6 +37,7 @@
         <!-- Core compiles the shared package writer for .NET 8 and later; older targets compile their own copy. -->
         <Compile Include="..\OfficeIMO.SharedSource\Packaging\*.cs" Link="SharedSource\Packaging\%(Filename)%(Extension)" Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeDrawingColorTransforms.cs" Link="SharedSource\OpenXml\OfficeDrawingColorTransforms.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartThemeWriter.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartThemeWriter.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartTextReader*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />

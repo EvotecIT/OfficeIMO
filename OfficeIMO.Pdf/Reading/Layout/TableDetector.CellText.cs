@@ -32,7 +32,19 @@ internal static partial class TableDetector {
 
     private static string ComposeCell(List<PdfTextSpan> spans, PdfReadingDirection direction) => spans.Count == 0
         ? string.Empty
-        : TextLayoutEngine.BuildLine(spans, new TextLayoutEngine.Options { ReadingDirection = direction }).Text.Trim();
+        : TextLayoutEngine.BuildLineText(spans, CellTextOptions(direction)).Trim();
+
+    private static readonly TextLayoutEngine.Options AutoCellText = new() { ReadingDirection = PdfReadingDirection.Auto };
+    private static readonly TextLayoutEngine.Options LeftToRightCellText = new() { ReadingDirection = PdfReadingDirection.LeftToRight };
+    private static readonly TextLayoutEngine.Options RightToLeftCellText = new() { ReadingDirection = PdfReadingDirection.RightToLeft };
+
+    // The layout engine only reads these options, so one instance per direction serves every cell.
+    private static TextLayoutEngine.Options CellTextOptions(PdfReadingDirection direction) => direction switch {
+        PdfReadingDirection.Auto => AutoCellText,
+        PdfReadingDirection.LeftToRight => LeftToRightCellText,
+        PdfReadingDirection.RightToLeft => RightToLeftCellText,
+        _ => new TextLayoutEngine.Options { ReadingDirection = direction }
+    };
 
     private static double GetCellGapThreshold(PdfTextSpan previous, PdfTextSpan current) =>
         Math.Max(18D, Math.Max(previous.FontSize, current.FontSize) * 2D);

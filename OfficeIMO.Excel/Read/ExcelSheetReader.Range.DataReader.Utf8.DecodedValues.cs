@@ -165,7 +165,7 @@ namespace OfficeIMO.Excel {
 
             /// <summary>Allocates the decoded lane when the first helper chunk is adopted.</summary>
             private void EnsureDecodedValues() {
-                if (_decodedTags != null) return;
+                if (_decodedTags != null || _indexBeyondBudget) return;
                 int capacity = _valueStarts!.Length;
                 _decodedValues = ExcelArrayPool.RentLongs(capacity);
                 _decodedTags = ExcelArrayPool.RentBytes(capacity);

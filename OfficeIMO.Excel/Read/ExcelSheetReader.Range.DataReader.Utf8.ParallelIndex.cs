@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
                 // window; its index metadata is not retained, so helpers would only duplicate work.
                 // Adoption enforces the exact budget, so this estimate only screens clear cases.
                 if (_unknownRowExtent
-                    && (long)expected / averageRowBytes * _fieldCount > Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells) * 5L / 4) return;
+                    && (long)expected / averageRowBytes * _fieldCount > IndexedCellBudget() * 5L / 4) return;
                 helpers = ExcelParallelReadBudget.Reserve(helpers);
                 if (helpers <= 0) return;
                 int chunkBytes = Math.Max(256 * 1024, Math.Min(4 * 1024 * 1024, expected / (helpers * 8)));
@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
                     // A provisional index that would outgrow its cell budget becomes a rolling window;
                     // the sequential indexer performs that promotion.
                     if (_unknownRowExtent
-                        && (long)(_rowCount + rows) * _fieldCount > Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells)) return false;
+                        && (long)(_rowCount + rows) * _fieldCount > IndexedCellBudget()) return false;
                     int end = chunk.RowContentEnds![rows - 1];
                     while (_length < end) {
                         if (!TryAdvanceInflation(ct)) return false;
@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel {
                     Array.Copy(chunk.ValueStarts!, 0, _valueStarts!, rowOffset, cells);
                     Array.Copy(chunk.ValueLengths!, 0, _valueLengths!, rowOffset, cells);
                     Array.Copy(chunk.CellKinds!, 0, _cellKinds!, rowOffset, cells);
-                    if (chunk.DecodedTags != null) {
+                    if (chunk.DecodedTags != null && !_indexBeyondBudget) {
                         EnsureDecodedValues();
                         ClearDecodedValuesThrough(rowOffset);
                         Array.Copy(chunk.DecodedValues!, 0, _decodedValues!, rowOffset, cells);

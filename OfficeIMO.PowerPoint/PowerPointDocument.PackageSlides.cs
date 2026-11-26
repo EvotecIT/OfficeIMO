@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Core.Internal.OpenXml;
 
@@ -23,7 +22,7 @@ namespace OfficeIMO.PowerPoint {
         /// can't be read that way. <paramref name="edit"/> also requires that it can be edited.
         /// </summary>
         private OfficeOpcEditablePackage? GetPackage(bool edit) {
-            if (_disposed || !_sdkDeferred || _sdkDocument != null || edit && _accessMode != DocumentAccessMode.ReadWrite
+            if (_disposed || !_sdkDeferred || IsSdkLoaded || edit && _accessMode != DocumentAccessMode.ReadWrite
                 || _deferredOpenSettings?.MaxCharactersInPart > 0
                 || _packageStream is not { CanRead: true, CanSeek: true } stream) {
                 return null;
@@ -46,14 +45,14 @@ namespace OfficeIMO.PowerPoint {
             List<WeakReference<IPackageSdkBinding>> bindings = _packageBindings ??= new List<WeakReference<IPackageSdkBinding>>();
             // Wrappers read and dropped leave dead entries; they are cleared whenever the list doubles, so it tracks the
             // wrappers still alive rather than every read.
-            if (bindings.Count >= _packageBindingsPruneAt) {
+            if (bindings.Count >= Math.Max(64, _packageBindingsPruneAt)) {
                 bindings.RemoveAll(reference => !reference.TryGetTarget(out _));
                 _packageBindingsPruneAt = Math.Max(64, bindings.Count * 2);
             }
             bindings.Add(new WeakReference<IPackageSdkBinding>(binding));
         }
 
-        private int _packageBindingsPruneAt = 64;
+        private int _packageBindingsPruneAt;
 
         // Binds every object still alive while the slides the SDK opened are as the package wrote them.
         private void BindPackageObjects() {
@@ -67,6 +66,12 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Whether slides and shapes can be edited in the package without the SDK.</summary>
         internal bool CanEditPackage => GetPackage(edit: true) != null;
+
+        /// <summary>The package read without the SDK, or null while the SDK holds the document.</summary>
+        internal OfficeOpcEditablePackage? ReadablePackage => GetPackage(edit: false);
+
+        /// <summary>The package edited without the SDK, or null when the document can't be edited that way.</summary>
+        internal OfficeOpcEditablePackage? EditablePackage => GetPackage(edit: true);
 
         /// <summary>Records an edit made in the package, so the next save or SDK open writes it.</summary>
         internal void MarkPackageEdited() => _pendingEdits = true;
@@ -261,9 +266,6 @@ namespace OfficeIMO.PowerPoint {
             return false;
         }
 
-        /// <summary>The presentation part for a slide size that has to read or edit it through the SDK.</summary>
-        internal DocumentFormat.OpenXml.Packaging.PresentationPart SdkPresentationPartForSize => SdkPresentationPart;
-
         /// <summary>The attributes of the presentation's first p:sldSz in the package, or null when it has none there.</summary>
         internal (string? Width, string? Height, string? Type)? GetPackageSlideSize() {
             if (GetPackage(edit: false) is not { } package) return null;
@@ -329,7 +331,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>The slides in order, read from the package, or null when the SDK has to read them.</summary>
         internal List<PowerPointSlide>? GetPackageSlides() {
-            if (_packageSlideOrder != null && _sdkDocument == null) return _packageSlideOrder;
+            if (_packageSlideOrder != null && !IsSdkLoaded) return _packageSlideOrder;
             if (GetPackage(edit: false) is not { } package) return null;
             PackageSlideList? list;
             try {
@@ -363,23 +365,5 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        /// <summary>Opens the SDK for a package-backed slide and returns the part it is bound to.</summary>
-        internal SlidePart BindSdkSlide(PowerPointSlide slide) {
-            ThrowIfDisposed();
-            EnsureSdk();
-            // Opening the SDK binds every slide still listed; one that is not was removed.
-            return slide.IsPackageBacked
-                ? throw new InvalidOperationException("The slide is no longer part of the presentation.")
-                : slide.SlidePart;
-        }
-
-        /// <summary>The package-backed slide for an SDK slide part, which the SDK load binds instead of creating a new one.</summary>
-        private PowerPointSlide? TakePackageSlide(SlidePart slidePart) {
-            if (_packageSlides == null) return null;
-            string identity = PartIdentity(slidePart.Uri.OriginalString);
-            if (!_packageSlides.TryGetValue(identity, out PowerPointSlide? slide)) return null;
-            slide.BindSdk(slidePart);
-            return slide;
-        }
     }
 }

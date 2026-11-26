@@ -354,7 +354,13 @@ public partial class Excel {
             xml.Append("</sheetData></worksheet>");
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(xml.ToString()));
 
-            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+            // The row with the duplicate attribute is reported by the read that reaches it, or before the first row
+            // when the worksheet is validated first.
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            Assert.Throws<XmlException>(() => {
+                using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true });
+                _ = reader.FieldCount;
+            });
         } finally {
             File.Delete(path);
         }

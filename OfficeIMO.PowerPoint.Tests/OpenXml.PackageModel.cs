@@ -250,17 +250,11 @@ public class OpenXmlPackageModelTests {
     public void NewSlideIdsComeFromTheCurrentSlideList(uint existing, uint expected) {
         using var source = new MemoryStream(CreateDeck(1));
         using PowerPointPackageModel model = PowerPointPackageModel.Open(source);
-        new PSlideIdListEntryView(model.Presentation.Tree, SlideIdNodes(model)[0]).Id = existing;
+        new PSlideIdListEntryView(model.Presentation.SldIdLst!.Value.SldIdList.ToList()[0]).Id = existing;
 
         model.AddSlide();
 
-        Assert.Equal(expected, new PSlideIdListEntryView(model.Presentation.Tree, SlideIdNodes(model)[1]).Id);
-
-        static List<int> SlideIdNodes(PowerPointPackageModel opened) {
-            var nodes = new List<int>();
-            foreach (int node in opened.Presentation.SldIdLst!.Value.SldIdList) nodes.Add(node);
-            return nodes;
-        }
+        Assert.Equal(expected, new PSlideIdListEntryView(model.Presentation.SldIdLst!.Value.SldIdList.ToList()[1]).Id);
     }
 
     [Theory]

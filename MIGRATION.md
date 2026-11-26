@@ -6863,6 +6863,12 @@ To keep the previous stored values, register the handler with
 `ReaderAllOptions.Excel`. Indexes and tests that compared extracted spreadsheet text with raw values need either
 that option or updated expectations.
 
+## Reader transport for comic archives
+
+Reader uses `ReaderInputKind.Comic` (`34`) for CBZ imports. Consumers that validate
+Reader JSON against a packaged schema should accept version 16. OfficeIMO still
+reads versions 5 through 15.
+
 ## TOML Reader identity and transport
 
 Register `.AddTomlHandler()` from `OfficeIMO.Reader.Toml`, or use `AddAllOfficeIMOHandlers()`, to ingest `.toml` files as path, type and value rows.
@@ -10475,8 +10481,16 @@ supported saved outputs and embedded images. Use
 `officeimo read lab.ipynb --format markdown --output lab.md` for the previous
 Reader projection, or pass `--assets` to extract assets separately.
 
-## Reader transport for comic archives
+## Large XLSX worksheets are checked while rows are read
 
-Reader uses `ReaderInputKind.Comic` (`34`) for CBZ imports. Consumers that validate
-Reader JSON against a packaged schema should accept version 16. OfficeIMO still
-reads versions 5 through 15.
+On .NET 8 and later, `ExcelDocument.OpenReader` checks an XLSX worksheet of 1 MB or more that
+declares its dimension while it returns rows, instead of before the first row. Every returned row is
+valid, but an invalid cell or malformed XML later in the worksheet now raises its exception from the
+`Read` that reaches it, after the rows before it were returned. A cell outside the declared dimension
+raises `InvalidDataException` at its row.
+
+If your code applies rows as it reads them and cannot undo a part-way read, set
+`new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true }` to keep the previous behaviour.
+Setting `Execution.Mode = ExcelExecutionMode.Sequential` also validates first, without background
+threads.
+

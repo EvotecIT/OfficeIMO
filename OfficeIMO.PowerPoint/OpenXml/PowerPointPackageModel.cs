@@ -168,8 +168,8 @@ internal sealed class PowerPointPackageModel : IDisposable {
     }
 
     private IEnumerable<uint> SlideIds() {
-        foreach (int node in Presentation.SldIdLst?.SldIdList ?? default) {
-            if (new PSlideIdListEntryView(_presentation, node).Id is { } id) yield return id;
+        foreach (PowerPointXmlNode node in Presentation.SldIdLst?.SldIdList ?? default) {
+            if (new PSlideIdListEntryView(node).Id is { } id) yield return id;
         }
     }
 
@@ -182,9 +182,9 @@ internal sealed class PowerPointPackageModel : IDisposable {
     /// <summary>The part name of the slide at a zero-based position in the slide list.</summary>
     internal string GetSlidePartName(int index) {
         int position = 0;
-        foreach (int node in Presentation.SldIdLst?.SldIdList ?? default) {
+        foreach (PowerPointXmlNode node in Presentation.SldIdLst?.SldIdList ?? default) {
             if (position++ != index) continue;
-            string id = new PSlideIdListEntryView(_presentation, node).RelationshipId ?? throw new InvalidDataException("A slide entry has no relationship id.");
+            string id = new PSlideIdListEntryView(node).RelationshipId ?? throw new InvalidDataException("A slide entry has no relationship id.");
             return _package.GetRelationshipTarget(_presentationPart, id) ?? throw new InvalidDataException("A slide relationship has no target part.");
         }
         throw new ArgumentOutOfRangeException(nameof(index));
@@ -196,15 +196,15 @@ internal sealed class PowerPointPackageModel : IDisposable {
 
     private string FindDefaultLayout() {
         PSlideMasterIdListEntryView? master = null;
-        foreach (int node in Presentation.SldMasterIdLst?.SldMasterIdList ?? default) {
-            master = new PSlideMasterIdListEntryView(_presentation, node);
+        foreach (PowerPointXmlNode node in Presentation.SldMasterIdLst?.SldMasterIdList ?? default) {
+            master = new PSlideMasterIdListEntryView(node);
             break;
         }
         string masterPart = master?.RelationshipId is { } masterId ? _package.GetRelationshipTarget(_presentationPart, masterId) ?? string.Empty : string.Empty;
         if (masterPart.Length == 0) throw new InvalidDataException("The presentation has no slide master.");
         OfficeXmlTree masterTree = _package.GetXml(masterPart);
-        foreach (int node in new PSlideMasterView(masterTree, masterTree.Root).SldLayoutIdLst?.SldLayoutIdList ?? default) {
-            string? layoutId = new PSlideLayoutIdListEntryView(masterTree, node).RelationshipId;
+        foreach (PowerPointXmlNode node in new PSlideMasterView(masterTree, masterTree.Root).SldLayoutIdLst?.SldLayoutIdList ?? default) {
+            string? layoutId = new PSlideLayoutIdListEntryView(node).RelationshipId;
             if (layoutId != null && _package.GetRelationshipTarget(masterPart, layoutId) is { } layout) return layout;
         }
         throw new InvalidDataException("The slide master has no layouts.");
@@ -390,8 +390,8 @@ internal readonly struct PowerPointModelSlide {
     /// <summary>The title placeholder, or null.</summary>
     internal PShapeView? FindTitle() {
         PGroupShapeView shapes = Shapes;
-        foreach (int node in shapes.SpList) {
-            var shape = new PShapeView(shapes.Tree, node);
+        foreach (PowerPointXmlNode node in shapes.SpList) {
+            var shape = new PShapeView(node);
             string? type = shape.NvSpPr?.NvPr?.Ph?.Type;
             if (type == "title" || type == "ctrTitle") return shape;
         }

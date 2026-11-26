@@ -36,6 +36,10 @@ namespace OfficeIMO.Excel {
         /// <summary>Takes ownership of an already open file that nothing else writes to.</summary>
         internal static SharedReadOnlyFileSnapshot Adopt(FileStream stream) => new(stream);
 
+        /// <summary>Returns a factory for further independent views of the snapshot behind <paramref name="stream"/>, or null.</summary>
+        internal static Func<Stream>? GetViewFactory(Stream stream) =>
+            stream is View view ? () => view.Snapshot.CreateView(bufferSize: 1) : null;
+
         internal Stream CreateView(int bufferSize = 4096) {
             ThrowIfDisposed();
             var view = new View(this);
@@ -94,6 +98,8 @@ namespace OfficeIMO.Excel {
             internal View(SharedReadOnlyFileSnapshot snapshot) {
                 _snapshot = snapshot;
             }
+
+            internal SharedReadOnlyFileSnapshot Snapshot => _snapshot;
 
             public override bool CanRead => !_disposed;
             public override bool CanSeek => !_disposed;

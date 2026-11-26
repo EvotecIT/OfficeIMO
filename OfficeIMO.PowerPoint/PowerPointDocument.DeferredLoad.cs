@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml;
 using System.Xml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
@@ -23,12 +21,6 @@ namespace OfficeIMO.PowerPoint {
         // The number of slide list entries the load checked; the slides the SDK would build from them.
         private int _deferredSlideCount;
 
-        private PowerPointDocument(string filePath, DocumentAccessMode accessMode) {
-            _filePath = filePath;
-            _accessMode = accessMode;
-            _loadedDocumentType = PresentationDocumentType.Presentation;
-            _sdkDeferred = true;
-        }
 
         /// <summary>
         /// A new presentation over the default package bytes that works without the SDK: its creation and modification
@@ -88,36 +80,6 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>How many times the SDK package was opened after a deferred load; zero while it was not needed.</summary>
         internal int DeferredSdkOpenCount { get; private set; }
 
-        private PresentationDocument OpenDeferredSdk() {
-            // The SDK opens the package with any edits made without it.
-            CommitPendingEdits();
-            ReleaseLoadedPackage();
-            Stream packageStream = _packageStream ?? throw new InvalidOperationException("The presentation has no Open XML package to open.");
-            packageStream.Position = 0;
-            OpenSettings settings = CreateOpenSettings(_deferredOpenSettings);
-            PresentationDocument document = _accessMode == DocumentAccessMode.ReadWrite
-                ? PresentationDocument.Open(packageStream, true, settings)
-                : OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenPresentation(packageStream, settings);
-            try {
-                InitializeFromSdk(document, isNewDocument: false);
-            } catch {
-                _sdkDocument = null;
-                _sdkPresentationPart = null;
-                _sdkSlides.Clear();
-                document.Dispose();
-                throw;
-            }
-            _sdkDeferred = false;
-            _deferredOpenSettings = null;
-            _packageSlides = null;
-            _packageSlideOrder = null;
-            _packageSlideEntries = null;
-            _packageSlideEntryIndex = null;
-            BindPackageObjects();
-            DeferredSdkOpenCount++;
-            RecordSdkFallback();
-            return document;
-        }
 
         // Settings beyond the defaults change how the SDK reads parts, so those loads open it right away. A part size
         // limit is kept: the SDK gets it when it opens, and the load checks the one part the SDK would read.
@@ -248,7 +210,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal List<PowerPointExtractChunk>? TryExtractChunksWithoutSdk(PowerPointExtractionExtensions.PowerPointExtractOptions extract,
             int maxChars, string? sourcePath, CancellationToken cancellationToken) {
-            if (_disposed || !_sdkDeferred || _sdkDocument != null) return null;
+            if (_disposed || !_sdkDeferred || IsSdkLoaded) return null;
             // The package the load opened still reads the bytes as they are, so the reader shares it.
             if (LoadedPackageForCurrentBytes is { } loadedPackage) {
                 try {

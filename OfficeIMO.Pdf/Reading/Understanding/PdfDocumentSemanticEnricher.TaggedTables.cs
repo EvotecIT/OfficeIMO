@@ -1188,7 +1188,7 @@ internal static partial class PdfDocumentSemanticEnricher {
             if (_lineOwners is not null) return;
             var baselines = new List<double>(_page.Lines.Count);
             var order = new List<int>(_page.Lines.Count);
-            var owners = new Dictionary<PdfTextSpan, int>();
+            var owners = new Dictionary<PdfTextSpan, int>(_page.DecodedRuns.Count);
             double maximumTolerance = 0D;
             for (int lineIndex = 0; lineIndex < _page.Lines.Count; lineIndex++) {
                 _workBudget.Consume();

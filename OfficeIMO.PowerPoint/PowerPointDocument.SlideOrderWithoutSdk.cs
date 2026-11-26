@@ -190,6 +190,9 @@ namespace OfficeIMO.PowerPoint {
         // read once: removing slides walks them for every slide. Only slide removal changes them, and it keeps them current.
         private Dictionary<string, List<(string Id, string Target)>>? _pendingRelationships;
 
+        /// <summary>Drops the cached relationship edges between parts after a relationship was added or removed.</summary>
+        internal void InvalidatePackageRelationships() => _pendingRelationships = null;
+
         private List<(string Id, string Target)> RelationshipsOf(OfficeOpcEditablePackage package, string source) {
             _pendingRelationships ??= new Dictionary<string, List<(string Id, string Target)>>(OfficeAsciiIgnoreCaseComparer.Instance);
             if (_pendingRelationships.TryGetValue(source, out List<(string Id, string Target)>? found)) return found;
