@@ -70,29 +70,49 @@ internal sealed class MarkdownDeferredSourceCapture {
         string markdown,
         MarkdownLoadOptions? options,
         MarkdownObjectSequence objects) {
+        // One pass checks each bound object, defers it and finds the tables. A failed check is rare,
+        // so the objects deferred before it are restored only then.
+        var capture = new MarkdownDeferredSourceCapture(document, markdown, options, objects);
+        List<TableBlock>? tables = null;
         foreach (MarkdownObject markdownObject in objects) {
             if (markdownObject is FrontMatterBlock || (markdownObject.HasMetadata && !markdownObject.Attributes.IsEmpty)) {
+                ClearDeferred(objects);
                 return false;
+            }
+
+            markdownObject.DeferSourceInformation(capture);
+            if (markdownObject is TableBlock table) {
+                (tables ??= new List<TableBlock>()).Add(table);
             }
         }
 
         // Tables keep the inline parse of cells read as blocks outside the object tree, and callers
         // reach it through the table, so those objects are recorded after the tree and defer too.
-        int boundCount = objects.Count;
-        AppendDetachedObjects(objects);
-        int index = 0;
-        foreach (MarkdownObject markdownObject in objects) {
-            if (index++ >= boundCount && markdownObject.HasMetadata && !markdownObject.Attributes.IsEmpty) {
-                return false;
+        if (tables != null) {
+            int boundCount = objects.Count;
+            AppendDetachedObjects(objects, tables);
+            int index = 0;
+            foreach (MarkdownObject markdownObject in objects) {
+                if (index++ < boundCount) {
+                    continue;
+                }
+
+                if (markdownObject.HasMetadata && !markdownObject.Attributes.IsEmpty) {
+                    ClearDeferred(objects);
+                    return false;
+                }
+
+                markdownObject.DeferSourceInformation(capture);
             }
         }
 
-        var capture = new MarkdownDeferredSourceCapture(document, markdown, options, objects);
-        foreach (MarkdownObject markdownObject in objects) {
-            markdownObject.DeferSourceInformation(capture);
-        }
-
         return true;
+    }
+
+    private static void ClearDeferred(MarkdownObjectSequence objects) {
+        foreach (MarkdownObject markdownObject in objects) {
+            markdownObject.ClearDeferredSourceInformation();
+        }
     }
 
     /// <summary>
@@ -107,10 +127,12 @@ internal sealed class MarkdownDeferredSourceCapture {
             }
         }
 
-        if (tables == null) {
-            return;
+        if (tables != null) {
+            AppendDetachedObjects(objects, tables);
         }
+    }
 
+    private static void AppendDetachedObjects(MarkdownObjectSequence objects, List<TableBlock> tables) {
         var visited = new HashSet<MarkdownObject>();
         var pending = new Stack<MarkdownObject>();
         foreach (TableBlock table in tables) {

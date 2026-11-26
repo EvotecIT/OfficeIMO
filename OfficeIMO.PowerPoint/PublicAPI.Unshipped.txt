@@ -752,3 +752,4 @@ OfficeIMO.PowerPoint.PowerPointChart.SaveAsImage(System.IO.Stream! stream, Offic
 OfficeIMO.PowerPoint.PowerPointChart.SaveAsImage(string! path, OfficeIMO.Drawing.OfficeChartImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
 OfficeIMO.PowerPoint.PowerPointChart.ToImage(OfficeIMO.Drawing.OfficeChartImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
 OfficeIMO.PowerPoint.PowerPointSlide.AllCharts.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointChart!>!
+OfficeIMO.PowerPoint.PowerPointDocument.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!

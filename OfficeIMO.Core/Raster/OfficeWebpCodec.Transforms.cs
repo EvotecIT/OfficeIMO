@@ -537,17 +537,22 @@ public static partial class OfficeWebpCodec {
         Math.Abs((int)(first >> 24) - (int)(second >> 24));
 
     private static uint ComponentOperation(uint first, uint second, uint subtract, int half) {
-        uint result = 0;
-        for (int shift = 0; shift <= 24; shift += 8) {
-            int a = (int)(first >> shift) & 255;
-            int b = (int)(second >> shift) & 255;
-            int c = (int)(subtract >> shift) & 255;
-            int value = half == 0 ? a + b - c : a + (a - c) / 2;
-            value = Math.Max(0, Math.Min(255, value));
-            result |= (uint)value << shift;
-        }
-        return result;
+        return half == 0
+            ? ClampChannel((int)(first & 255) + (int)(second & 255) - (int)(subtract & 255)) |
+              ClampChannel((int)((first >> 8) & 255) + (int)((second >> 8) & 255) - (int)((subtract >> 8) & 255)) << 8 |
+              ClampChannel((int)((first >> 16) & 255) + (int)((second >> 16) & 255) - (int)((subtract >> 16) & 255)) << 16 |
+              ClampChannel((int)(first >> 24) + (int)(second >> 24) - (int)(subtract >> 24)) << 24
+            : ClampChannel(HalfStep((int)(first & 255), (int)(subtract & 255))) |
+              ClampChannel(HalfStep((int)((first >> 8) & 255), (int)((subtract >> 8) & 255))) << 8 |
+              ClampChannel(HalfStep((int)((first >> 16) & 255), (int)((subtract >> 16) & 255))) << 16 |
+              ClampChannel(HalfStep((int)(first >> 24), (int)(subtract >> 24))) << 24;
+
+        // Division truncates toward zero, as the format requires.
+        static int HalfStep(int average, int topLeft) => average + (average - topLeft) / 2;
     }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static uint ClampChannel(int value) => (uint)(value < 0 ? 0 : value > 255 ? 255 : value);
 
     private static int ColorTransformDelta(int transform, int color) =>
         (transform * unchecked((sbyte)color)) >> 5;

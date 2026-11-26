@@ -19,7 +19,7 @@ public class OdsCreateComparisonBenchmarks {
         OdsComparisonReport report = OdsComparisonValidation.Validate(Scale);
         foreach (OdsOutputEvidence output in new[] { report.OfficeIMO, report.OpenStandardLibrary }) {
             BenchmarkOutputValidationLog.Passed(output.Implementation,
-                $"Scale={Scale}; cells={output.RecordCount}; characters={output.ContentLength}");
+                $"Scale={Scale}; OfficeIMO reread all {output.RecordCount} cell values by position; characters={output.ContentLength}");
         }
     }
 

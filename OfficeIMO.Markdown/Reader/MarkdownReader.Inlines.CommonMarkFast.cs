@@ -114,16 +114,15 @@ internal static partial class MarkdownReader {
                     break;
 
                 case SimpleInlineTokenKind.Link:
-                    string linkContent = text.Substring(token.ContentStart, token.ContentLength);
                     string target = text.Substring(token.TargetStart, token.TargetLength);
                     string? resolvedTarget = string.IsNullOrWhiteSpace(target)
                         ? string.Empty
                         : ResolveUrl(target, options);
                     if (resolvedTarget == null) {
-                        sequence.AddRaw(new MarkdownTextRun(linkContent));
+                        sequence.AddRaw(new MarkdownTextRun(text, token.ContentStart, token.ContentLength));
                     } else {
                         var label = new InlineSequence { AutoSpacing = false };
-                        label.AddRaw(new MarkdownTextRun(linkContent));
+                        label.AddRaw(new MarkdownTextRun(text, token.ContentStart, token.ContentLength));
                         sequence.AddRaw(new LinkInline(label, resolvedTarget, title: null));
                     }
                     break;
@@ -583,8 +582,11 @@ internal static partial class MarkdownReader {
     }
 
     private static int GetSimpleLiteralBracketLength(string text, int position, MarkdownLoadOptions options, MarkdownReaderState? state) {
-        if (position + 1 < text.Length && (text[position + 1] == '^' || text[position + 1] == '!')) {
-            // Footnote references and linked images.
+        if (position + 1 < text.Length
+            && ((text[position + 1] == '^' && options.Footnotes)
+                || (text[position + 1] == '!' && position + 2 < text.Length && text[position + 2] == '['))) {
+            // Footnote references and linked images. Without footnotes "[^" is an ordinary bracket, and
+            // only "[![" can start a linked image.
             return 0;
         }
 
@@ -640,7 +642,7 @@ internal static partial class MarkdownReader {
 
     private static void AddSimpleTextRun(InlineSequence sequence, string text, int start, int length) {
         if (length > 0) {
-            sequence.AddRaw(new MarkdownTextRun(text.Substring(start, length)));
+            sequence.AddRaw(new MarkdownTextRun(text, start, length));
         }
     }
 }

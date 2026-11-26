@@ -55,6 +55,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Benchmarks\BenchmarkOutputValidationLog.cs" Link="Shared\BenchmarkOutputValidationLog.cs" />
     <Compile Include="..\OfficeIMO.Pdf.Benchmarks.Comparisons\PdfBenchmarkScenarios.cs" Link="Shared\%(Filename)%(Extension)" />
     <Compile Include="..\OfficeIMO.Pdf.Benchmarks.Comparisons\PdfBenchmarkValidation.cs" Link="Shared\%(Filename)%(Extension)" />
     <Compile Include="..\OfficeIMO.Pdf.Benchmarks.Comparisons\PdfManipulationScenarios.cs" Link="Shared\%(Filename)%(Extension)" />

@@ -611,3 +611,4 @@ OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, char?>! s
 OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, decimal?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
 OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, float?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
 OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, ulong?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDocument.OpenXmlSdkFallbacks.get -> System.Collections.Generic.IReadOnlyList<string!>!

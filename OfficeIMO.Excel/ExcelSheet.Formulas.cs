@@ -84,7 +84,7 @@ namespace OfficeIMO.Excel {
         private ExcelDocument.DefinedNameFormulaMarkDeferral DeferDefinedNameFormulaMarksForValueWrite() {
             if (!_excelDocument.HasPendingDefinedNameFormulaMarks) return default;
             // Read through the unguarded field: the guarded one would apply the marks this defers.
-            WorksheetPart part = _worksheetPartValue;
+            WorksheetPart part = BoundWorksheetPart;
             if (!part.IsRootElementLoaded || part.Worksheet is not Worksheet worksheet
                 || worksheet.GetFirstChild<TableParts>() != null) return default;
             return _excelDocument.DeferDefinedNameFormulaMarks();

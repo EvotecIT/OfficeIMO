@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -16,6 +17,9 @@ namespace OfficeIMO.PowerPoint {
             _initialSlidePart = ownerPart as SlidePart;
         }
 
+        internal PowerPointTable(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
+        }
+
         private GraphicFrame Frame => (GraphicFrame)Element;
         internal SlidePart? SlidePart => _slidePart ?? OwnerSlide?.SlidePart;
         internal PowerPointTableCell WrapCell(A.TableCell cell) => new(cell, SlidePart, RelationshipOwnerPart ?? SlidePart);
@@ -24,13 +28,43 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Returns number of rows in the table.
         /// </summary>
-        public int RowCount => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!.Elements<A.TableRow>().Count();
+        public int RowCount => TryGetPackageTable(out OfficeXmlTree tree, out int table)
+            ? CountChildren(tree, table, "tr")
+            : Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!.Elements<A.TableRow>().Count();
 
         /// <summary>
         ///     Returns number of columns in the table.
         /// </summary>
-        public int ColumnCount => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!.TableGrid!.Elements<A.GridColumn>()
-            .Count();
+        public int ColumnCount => TryGetPackageTable(out OfficeXmlTree tree, out int table) && tree.FindChild(table, OfficeXmlNamespaces.DrawingML, "tblGrid") is var grid
+            && grid != OfficeXmlTree.NoNode
+            ? CountChildren(tree, grid, "gridCol")
+            : Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!.TableGrid!.Elements<A.GridColumn>().Count();
+
+        // The a:tbl of the frame on the package tree, as the SDK finds it; false once the table is bound or has none.
+        internal bool TryGetPackageTable(out OfficeXmlTree tree, out int table) {
+            table = OfficeXmlTree.NoNode;
+            if (!TryGetPackageElement(out tree, out int frame)) return false;
+            int graphic = tree.FindChild(frame, OfficeXmlNamespaces.DrawingML, "graphic");
+            int data = graphic == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(graphic, OfficeXmlNamespaces.DrawingML, "graphicData");
+            table = data == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(data, OfficeXmlNamespaces.DrawingML, "tbl");
+            return table != OfficeXmlTree.NoNode;
+        }
+
+        private static int CountChildren(OfficeXmlTree tree, int parent, string localName) {
+            int count = 0;
+            for (int child = tree.FindChild(parent, OfficeXmlNamespaces.DrawingML, localName); child != OfficeXmlTree.NoNode;
+                 child = tree.FindNextSibling(child, OfficeXmlNamespaces.DrawingML, localName)) {
+                count++;
+            }
+            return count;
+        }
+
+        private static int NthChild(OfficeXmlTree tree, int parent, string localName, int index) {
+            if (index < 0) return OfficeXmlTree.NoNode;
+            int child = tree.FindChild(parent, OfficeXmlNamespaces.DrawingML, localName);
+            for (; child != OfficeXmlTree.NoNode && index > 0; index--) child = tree.FindNextSibling(child, OfficeXmlNamespaces.DrawingML, localName);
+            return child;
+        }
 
         /// <summary>
         ///     Row wrappers for the table.

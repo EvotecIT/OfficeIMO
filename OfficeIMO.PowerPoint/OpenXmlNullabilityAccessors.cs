@@ -12,8 +12,8 @@ namespace OfficeIMO.PowerPoint {
 
     public partial class PowerPointSlide {
         private Slide SlideRoot {
-            get => _slidePart.Slide ?? throw new InvalidOperationException("Slide is null.");
-            set => _slidePart.Slide = value;
+            get => SlidePart.Slide ?? throw new InvalidOperationException("Slide is null.");
+            set => SlidePart.Slide = value;
         }
     }
 

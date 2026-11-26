@@ -54,6 +54,36 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(semanticDocument);
     }
 
+    [Theory]
+    [InlineData("> [!NOTE] Timeline with *emphasis*\n> and a second line.")]
+    [InlineData("[^ref]: Nested footnote body with `code` & more")]
+    [InlineData("Caf\u00e9 & \"quotes\" 'here' with **strong** text, a <b>tag</b> and [link](https://example.com/a%20b) z\u0105\u017c\u00f3\u0142\u0107.")]
+    public void ParseSemantic_CommonMark_Text_Runs_Match_SourceBacked_Contract(string markdown) {
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
+
+        var semanticDocument = MarkdownReader.ParseSemantic(markdown, options);
+        var sourceBackedDocument = MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
+
+        foreach (bool escapeNonAscii in new[] { true, false }) {
+            var htmlOptions = CommonMarkHtmlComparison.CreatePlainHtmlOptions();
+            htmlOptions.EscapeNonAsciiText = escapeNonAscii;
+            string semanticHtml = semanticDocument.ToHtml(htmlOptions);
+            Assert.Equal(sourceBackedDocument.ToHtml(htmlOptions), semanticHtml);
+            if (escapeNonAscii) {
+                Assert.Equal(
+                    CommonMarkHtmlComparison.Normalize(System.Net.WebUtility.HtmlDecode(Markdig.Markdown.ToHtml(markdown))),
+                    CommonMarkHtmlComparison.Normalize(System.Net.WebUtility.HtmlDecode(semanticHtml)));
+            }
+        }
+
+        // Reading Text copies a sliced run, so the runs are compared after rendering has written their slices.
+        Assert.Equal(
+            sourceBackedDocument.DescendantObjectsOfType<MarkdownTextRun>().Select(run => run.Text),
+            semanticDocument.DescendantObjectsOfType<MarkdownTextRun>().Select(run => run.Text));
+        Assert.Equal(sourceBackedDocument.ToMarkdown(), semanticDocument.ToMarkdown());
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(semanticDocument);
+    }
+
     [Fact]
     public void ParseWithSyntaxTree_SingleLine_List_FastPath_Preserves_Inline_SourceSlices() {
         const string markdown = "- prefix **bold 中** and [link](https://example.com).\n";

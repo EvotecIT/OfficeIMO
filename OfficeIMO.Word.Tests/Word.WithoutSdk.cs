@@ -50,6 +50,76 @@ public sealed class WordWithoutSdkTests {
     }
 
     [Fact]
+    public void CreatedDocumentsMatchTheSdkPath() {
+        var edits = new Dictionary<string, Action<WordDocument>> {
+            ["empty"] = _ => { },
+            ["standard"] = StandardEdit,
+            ["styled"] = document => {
+                WordParagraph heading = document.AddParagraph("Heading");
+                heading.Style = WordParagraphStyles.Heading1;
+                heading.ParagraphAlignment = WordParagraphAlignment.Center;
+                document.AddParagraph("Title").Style = WordParagraphStyles.Title;
+                document.AddParagraph("Body").Style = WordParagraphStyles.Normal;
+            },
+            ["many"] = document => {
+                for (int index = 0; index < 50; index++) {
+                    WordParagraph paragraph = document.AddParagraph("Paragraph " + index);
+                    paragraph.Bold = index % 2 == 0;
+                    paragraph.FontSize = OfficeLength.Points(10 + index % 5);
+                    paragraph.Color = OfficeColor.FromRgb(0x1F, 0x4E, 0x79);
+                }
+            },
+        };
+        foreach (KeyValuePair<string, Action<WordDocument>> edit in edits) {
+            byte[] sdk = CreateAndSave(withoutSdk: false, edit.Value, out _);
+            byte[] owned = CreateAndSave(withoutSdk: true, edit.Value, out bool stayedOwned);
+            Assert.True(stayedOwned, edit.Key);
+            AssertSamePackage(sdk, owned, "created, " + edit.Key);
+        }
+    }
+
+    private static byte[] CreateAndSave(bool withoutSdk, Action<WordDocument> edit, out bool stayedOwned) {
+        bool previous = WordDocument.DisableOwnedOpenXmlForTesting.Value;
+        WordDocument.DisableOwnedOpenXmlForTesting.Value = !withoutSdk;
+        try {
+            using WordDocument document = WordDocument.Create();
+            edit(document);
+            using var output = new MemoryStream();
+            document.Save(output);
+            stayedOwned = document.IsSdkDeferred;
+            return output.ToArray();
+        } finally {
+            WordDocument.DisableOwnedOpenXmlForTesting.Value = previous;
+        }
+    }
+
+    [Fact]
+    public void StylesResolveToTheDocumentsOwnDefinitionsLikeTheSdkPath() {
+        const string styles = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><w:styles xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
+            + "<w:style w:type=\"paragraph\" w:default=\"1\" w:styleId=\"Standard\"><w:name w:val=\"Normal\"/></w:style>"
+            + "<w:style w:type=\"paragraph\" w:styleId=\"berschrift1\"><w:name w:val=\"heading 1\"/><w:basedOn w:val=\"Standard\"/><w:next w:val=\"Standard\"/></w:style>"
+            + "</w:styles>";
+        const string settings = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><w:settings xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"/>";
+        byte[] source = CreatePackage(BodyXml("<w:p><w:pPr><w:pStyle w:val=\"berschrift1\"/></w:pPr><w:r><w:t>Kapitel</w:t></w:r></w:p>"),
+            extraParts: new Dictionary<string, string> { ["word/styles.xml"] = styles, ["word/settings.xml"] = settings },
+            extraContentTypes: "<Override PartName=\"/word/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml\"/>"
+                + "<Override PartName=\"/word/settings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml\"/>",
+            documentRelationships: "<Relationship Id=\"rStyles\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>"
+                + "<Relationship Id=\"rSettings\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings\" Target=\"settings.xml\"/>");
+        void Edit(WordDocument document) {
+            Assert.Equal(WordParagraphStyles.Heading1, document.Paragraphs[0].Style);
+            document.AddParagraph("Weiter").Style = WordParagraphStyles.Heading1;
+            document.AddParagraph("Text").Style = WordParagraphStyles.Normal;
+        }
+        byte[] sdk = EditAndSave(source, false, Edit)!;
+        byte[] owned = EditAndSave(source, true, Edit)!;
+        Assert.True(_lastRunStayedOwned);
+        AssertSamePackage(sdk, owned, "localized styles");
+        Assert.Equal(new[] { "berschrift1", "berschrift1", "Standard" },
+            ReadPart(owned, "word/document.xml").Descendants(Wn + "pStyle").Select(style => (string?)style.Attribute(Wn + "val")));
+    }
+
+    [Fact]
     public void ReadsMatchTheSdkPathOnTheTestDocuments() {
         int compared = 0;
         foreach (string path in Directory.EnumerateFiles(Documents, "*.docx").OrderBy(file => file, StringComparer.Ordinal)) {
@@ -277,11 +347,12 @@ public sealed class WordWithoutSdkTests {
         Assert.Equal("Second, edited", paragraphs[1].Text);
         Assert.Equal("Added", added.Text);
         Assert.Equal(WordParagraphAlignment.Center, paragraphs[0].ParagraphAlignment);
+        Assert.False(paragraphs[0].KeepWithNext);
         Assert.Equal("Second, edited", paragraphs[1].Text);
 
-        // ParagraphAlignment opened the SDK over the copy; edits through another object for the same run land there too.
+        // KeepWithNext opened the SDK over the copy; edits through another object for the same run land there too.
         sameRun.Bold = true;
-        _ = paragraphs[1].ParagraphAlignment;
+        _ = paragraphs[1].KeepWithNext;
         Assert.True(paragraphs[1].Bold);
     }
 
@@ -311,12 +382,12 @@ public sealed class WordWithoutSdkTests {
         Assert.True(document.IsSdkDeferred);
 
         WordParagraph paragraph = document.Paragraphs[0];
-        paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
+        paragraph.KeepWithNext = true;
 
         Assert.False(document.IsSdkDeferred);
         string reason = Assert.Single(document.OpenXmlSdkFallbacks);
-        Assert.Contains("ParagraphAlignment", reason, StringComparison.Ordinal);
-        Assert.Equal(WordParagraphAlignment.Center, document.Paragraphs[0].ParagraphAlignment);
+        Assert.Contains("KeepWithNext", reason, StringComparison.Ordinal);
+        Assert.True(document.Paragraphs[0].KeepWithNext);
     }
 
     [Fact]
@@ -385,7 +456,10 @@ public sealed class WordWithoutSdkTests {
         using (document) {
             List<string> paragraphs = document.Paragraphs.Select(paragraph =>
                 $"{paragraph.Text}|{paragraph.Bold}|{paragraph.Italic}|{paragraph.Underline}|{paragraph.Strikethrough}|{paragraph.FontSize}"
-                + $"|{paragraph.Color}|{paragraph.FontFamily}|{paragraph.Highlight}|{paragraph.CapsStyle}").ToList();
+                + $"|{paragraph.Color}|{paragraph.FontFamily}|{paragraph.Highlight}|{paragraph.CapsStyle}"
+                + $"|{paragraph.StyleId}|{paragraph.Style}|{paragraph.ParagraphAlignment}"
+                + $"|{paragraph.IndentationBefore}|{paragraph.IndentationAfter}|{paragraph.IndentationFirstLine}|{paragraph.IndentationHanging}"
+                + $"|{paragraph.LineSpacingBefore}|{paragraph.LineSpacingAfter}").ToList();
             _lastRunStayedOwned = document.IsSdkDeferred;
             return paragraphs;
         }
@@ -398,10 +472,24 @@ public sealed class WordWithoutSdkTests {
         added.FontFamily = "Arial";
         added.AddText(" second").Strikethrough = true;
         document.AddParagraph("tab\there\nnext line");
+        WordParagraph centered = document.AddParagraph("Centered");
+        centered.ParagraphAlignment = WordParagraphAlignment.Center;
+        centered.IndentationBefore = OfficeLength.Points(36);
+        centered.IndentationFirstLine = OfficeLength.Points(12);
+        centered.LineSpacingBefore = OfficeLength.Points(6);
+        centered.LineSpacingAfter = OfficeLength.Points(10);
+        centered.IndentationAfter = null;
         List<WordParagraph> paragraphs = document.Paragraphs;
         if (paragraphs.Count > 0) {
             paragraphs[0].Italic = true;
             paragraphs[0].Text = paragraphs[0].Text + " edited";
+            paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Right;
+            paragraphs[0].Style = WordParagraphStyles.Normal;
+        }
+        if (paragraphs.Count > 1) {
+            paragraphs[1].ParagraphAlignment = null;
+            paragraphs[1].IndentationHanging = OfficeLength.Points(18);
+            paragraphs[1].LineSpacingAfter = null;
         }
     }
 
@@ -427,18 +515,55 @@ public sealed class WordWithoutSdkTests {
         Assert.Equal(expectedParts.Keys.OrderBy(key => key, StringComparer.Ordinal), actualParts.Keys.OrderBy(key => key, StringComparer.Ordinal));
         foreach (KeyValuePair<string, byte[]> part in expectedParts) {
             byte[] other = actualParts[part.Key];
-            if (part.Value.AsSpan().SequenceEqual(other)) continue;
-            if (!part.Key.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) && !part.Key.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
-                Assert.Fail($"{name}: binary part {part.Key} differs.");
-            }
-            Assert.True(Canonical(part.Value) == Canonical(other), $"{name}: {part.Key} differs.\nSDK:   {Canonical(part.Value)}\nOwned: {Canonical(other)}");
+            bool xml = part.Key.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) || part.Key.EndsWith(".rels", StringComparison.OrdinalIgnoreCase);
+            Dictionary<string, string> expectedIds = GeneratedRelationshipIds(expectedParts, part.Key);
+            Dictionary<string, string> actualIds = GeneratedRelationshipIds(actualParts, part.Key);
+            // Identical bytes still differ when the same generated identifiers point elsewhere.
+            bool sameIds = expectedIds.Count == actualIds.Count && expectedIds.All(id => actualIds.TryGetValue(id.Key, out string? target) && target == id.Value);
+            if (part.Value.AsSpan().SequenceEqual(other) && (sameIds || !xml)) continue;
+            if (!xml) Assert.Fail($"{name}: binary part {part.Key} differs.");
+            string expectedXml = Canonical(part.Value, expectedIds);
+            string actualXml = Canonical(other, actualIds);
+            if (expectedXml == actualXml) continue;
+            int at = 0;
+            while (at < expectedXml.Length && at < actualXml.Length && expectedXml[at] == actualXml[at]) at++;
+            int from = Math.Max(0, at - 200);
+            Assert.Fail($"{name}: {part.Key} differs at {at}.\nSDK:   {Excerpt(expectedXml)}\nOwned: {Excerpt(actualXml)}");
+            string Excerpt(string xml) => xml.Substring(Math.Min(from, xml.Length), Math.Min(500, xml.Length - Math.Min(from, xml.Length)));
         }
     }
 
     // Element and attribute names with their namespaces, values, and text, in document order; attribute order, prefixes,
-    // namespace declarations and whitespace-only text between child elements don't count. Revision identifiers are random on
-    // both paths.
-    private static string Canonical(byte[] xml) {
+    // namespace declarations and whitespace-only text between child elements don't count. Revision identifiers are random
+    // on both paths, and so are the relationship identifiers the SDK generates for parts it adds: each of those stands for
+    // its relationship's type and target, in the relationships part and in every reference from its source part, so a
+    // consistent renaming matches and two identifiers that swap targets don't.
+    private static readonly System.Text.RegularExpressions.Regex GeneratedRelationshipId = new("^R[0-9a-f]{16}$");
+    private static readonly XNamespace PackageRelationships = "http://schemas.openxmlformats.org/package/2006/relationships";
+
+    private static Dictionary<string, string> GeneratedRelationshipIds(Dictionary<string, byte[]> parts, string partName) {
+        var ids = new Dictionary<string, string>(StringComparer.Ordinal);
+        string relationshipsPart = partName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase) ? partName
+            : partName.Substring(0, partName.LastIndexOf('/') + 1) + "_rels/" + partName.Substring(partName.LastIndexOf('/') + 1) + ".rels";
+        if (!parts.TryGetValue(relationshipsPart, out byte[]? bytes)) return ids;
+        using var stream = new MemoryStream(bytes);
+        foreach (XElement relationship in XDocument.Load(stream).Root!.Elements(PackageRelationships + "Relationship")) {
+            string id = (string?)relationship.Attribute("Id") ?? string.Empty;
+            if (GeneratedRelationshipId.IsMatch(id)) {
+                ids[id] = "rel(" + (string?)relationship.Attribute("Type") + " " + (string?)relationship.Attribute("Target") + ")";
+            }
+        }
+        return ids;
+    }
+
+    private static readonly XNamespace OfficeRelationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+    // A relationship's own identifier, or an attribute in the relationships namespace that refers to one.
+    private static bool IsRelationshipReference(XElement element, XAttribute attribute) =>
+        attribute.Name.Namespace == OfficeRelationships
+        || element.Name == PackageRelationships + "Relationship" && attribute.Name == "Id";
+
+    private static string Canonical(byte[] xml, IReadOnlyDictionary<string, string> generatedIds) {
         XDocument document;
         using (var stream = new MemoryStream(xml)) document = XDocument.Load(stream);
         var builder = new System.Text.StringBuilder();
@@ -447,7 +572,9 @@ public sealed class WordWithoutSdkTests {
             foreach (XAttribute attribute in element.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration)
                          .OrderBy(attribute => attribute.Name.ToString(), StringComparer.Ordinal)) {
                 bool revision = attribute.Name.Namespace == Wn && attribute.Name.LocalName.StartsWith("rsid", StringComparison.Ordinal);
-                string value = revision ? "*" : attribute.Name.Namespace == Mc ? PrefixesAsUris(element, attribute.Value) : attribute.Value;
+                string value = revision ? "*"
+                    : IsRelationshipReference(element, attribute) && generatedIds.TryGetValue(attribute.Value, out string? relationship) ? relationship
+                    : attribute.Name.Namespace == Mc ? PrefixesAsUris(element, attribute.Value) : attribute.Value;
                 builder.Append(' ').Append(attribute.Name.ToString()).Append("=\"").Append(System.Security.SecurityElement.Escape(value)).Append('"');
             }
             builder.Append('>');

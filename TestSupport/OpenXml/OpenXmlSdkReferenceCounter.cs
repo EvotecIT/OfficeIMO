@@ -10,22 +10,47 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.TestSupport.OpenXml;
 
 /// <summary>
-/// Counts the source files of an engine assembly whose code uses Open XML SDK types, outside the folder that holds the
-/// engine's SDK bridge. It reads the compiled assembly and its portable PDB: a file counts when a method compiled from it
+/// Counts the source files of an engine assembly whose code uses Open XML SDK types, or <c>System.IO.Packaging</c> types
+/// (the package API the SDK depends on, which isn't part of .NET), outside the folder that holds the engine's SDK bridge. It reads the compiled assembly and its portable PDB: a file counts when a method compiled from it
 /// names an SDK type or member in its signature, its locals or its IL, or uses an engine field or method whose signature
 /// does. That catches SDK types reached through <c>var</c> and member chains, which a search for <c>using</c> lines
-/// misses. A file that mentions the SDK namespace in its text counts as well, for declarations that compile to no method.
+/// misses. A file that mentions the namespace in its text counts as well, for declarations that compile to no method.
 /// </summary>
 internal static class OpenXmlSdkReferenceCounter {
-    private static readonly Regex SdkNamespaceText = new(@"\bDocumentFormat\.OpenXml\b", RegexOptions.Compiled);
+    /// <summary>An assembly family to count: its assemblies' name and the namespace its types live in.</summary>
+    internal sealed class Dependency {
+        private Dependency(string assemblyName, string namespaceName) {
+            AssemblyName = assemblyName;
+            NamespaceText = new Regex(@"\b" + Regex.Escape(namespaceName) + @"\b", RegexOptions.Compiled);
+        }
 
-    internal static IReadOnlyList<string> FindFiles(string assemblyPath, string projectDirectory, string bridgeFolder) {
+        /// <summary>The Open XML SDK (<c>DocumentFormat.OpenXml</c> and its framework assemblies).</summary>
+        internal static Dependency OpenXmlSdk { get; } = new("DocumentFormat.OpenXml", "DocumentFormat.OpenXml");
+
+        /// <summary><c>System.IO.Packaging</c>, the NuGet package the SDK builds on.</summary>
+        internal static Dependency SystemIOPackaging { get; } = new("System.IO.Packaging", "System.IO.Packaging");
+
+        internal Regex NamespaceText { get; }
+
+        internal bool Matches(string referencedAssembly) =>
+            referencedAssembly.Equals(AssemblyName, StringComparison.Ordinal)
+            || referencedAssembly.StartsWith(AssemblyName + ".", StringComparison.Ordinal);
+
+        private string AssemblyName { get; }
+    }
+
+    /// <summary>The files outside <paramref name="bridgeFolder"/> that use the Open XML SDK.</summary>
+    internal static IReadOnlyList<string> FindFiles(string assemblyPath, string projectDirectory, string bridgeFolder) =>
+        FindFiles(assemblyPath, projectDirectory, bridgeFolder, Dependency.OpenXmlSdk);
+
+    /// <summary>The files outside <paramref name="bridgeFolder"/> that use <paramref name="dependency"/>.</summary>
+    internal static IReadOnlyList<string> FindFiles(string assemblyPath, string projectDirectory, string bridgeFolder, Dependency dependency) {
         string projectRoot = Path.GetFullPath(projectDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
         string bridgeRoot = Path.Combine(projectRoot, bridgeFolder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
         var files = new SortedSet<string>(StringComparer.Ordinal);
 
         string? mappedRoot = FindMappedSourceRoot(projectRoot);
-        foreach (string document in FindDocumentsWithSdkCode(assemblyPath)) {
+        foreach (string document in FindDocumentsUsing(assemblyPath, dependency)) {
             // Deterministic builds record source paths under /_/, the repository root's PathMap.
             string path = mappedRoot != null && document.StartsWith(MappedSourcePrefix, StringComparison.Ordinal)
                 ? Path.Combine(mappedRoot, document.Substring(MappedSourcePrefix.Length))
@@ -40,7 +65,7 @@ internal static class OpenXmlSdkReferenceCounter {
             string relative = full.Substring(projectRoot.Length);
             if (relative.StartsWith("obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
                 || relative.StartsWith("bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal)) continue;
-            if (SdkNamespaceText.IsMatch(File.ReadAllText(full))) files.Add(full);
+            if (dependency.NamespaceText.IsMatch(File.ReadAllText(full))) files.Add(full);
         }
 
         return files
@@ -62,14 +87,14 @@ internal static class OpenXmlSdkReferenceCounter {
     private static string NormalizePath(string path) =>
         Path.GetFullPath(path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar));
 
-    private static IEnumerable<string> FindDocumentsWithSdkCode(string assemblyPath) {
+    private static IEnumerable<string> FindDocumentsUsing(string assemblyPath, Dependency dependency) {
         using var stream = File.OpenRead(assemblyPath);
         using var peReader = new PEReader(stream);
         MetadataReader metadata = peReader.GetMetadataReader();
         MetadataReaderProvider pdbProvider = OpenPdb(peReader, assemblyPath);
         using (pdbProvider) {
             MetadataReader pdb = pdbProvider.GetMetadataReader();
-            var analysis = new Analysis(metadata);
+            var analysis = new Analysis(metadata, dependency);
             var documents = new HashSet<string>(StringComparer.Ordinal);
             foreach (MethodDefinitionHandle handle in metadata.MethodDefinitions) {
                 MethodDefinition method = metadata.GetMethodDefinition(handle);
@@ -110,11 +135,11 @@ internal static class OpenXmlSdkReferenceCounter {
         private readonly HashSet<AssemblyReferenceHandle> _sdkAssemblies = new();
         private readonly Dictionary<EntityHandle, bool> _cache = new();
 
-        internal Analysis(MetadataReader metadata) {
+        internal Analysis(MetadataReader metadata, Dependency dependency) {
             _metadata = metadata;
             foreach (AssemblyReferenceHandle handle in metadata.AssemblyReferences) {
                 string name = metadata.GetString(metadata.GetAssemblyReference(handle).Name);
-                if (name.StartsWith("DocumentFormat.OpenXml", StringComparison.Ordinal)) _sdkAssemblies.Add(handle);
+                if (dependency.Matches(name)) _sdkAssemblies.Add(handle);
             }
         }
 

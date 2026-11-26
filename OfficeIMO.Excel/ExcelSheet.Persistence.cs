@@ -8,8 +8,10 @@ namespace OfficeIMO.Excel {
         // Pending serialization belongs to the package part and must outlive any one wrapper.
         private static readonly ConditionalWeakTable<WorksheetPart, WorksheetPersistenceState> WorksheetPersistenceStates = new();
         private WorksheetPersistenceState? _worksheetPersistence;
-        private WorksheetPersistenceState Persistence => _worksheetPersistence ??=
-            WorksheetPersistenceStates.GetValue(_worksheetPart, static _ => new WorksheetPersistenceState());
+        private WorksheetPersistenceState Persistence => _worksheetPersistence ??= _worksheetPartValue == null && _deferredEntry != null
+            // A sheet whose package the SDK has not opened keeps its state here until it binds to its part.
+            ? new WorksheetPersistenceState()
+            : WorksheetPersistenceStates.GetValue(_worksheetPart, static _ => new WorksheetPersistenceState());
         private HashSet<OpenXmlPart> PendingPartSaves => Persistence.PartSaves;
         private Dictionary<VmlDrawingPart, XDocument> PendingCommentVmlDocuments => Persistence.CommentVmlDocuments;
         private bool _requiresSavePreparation {

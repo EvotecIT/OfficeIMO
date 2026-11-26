@@ -326,6 +326,14 @@ namespace OfficeIMO.Excel {
             // Readers in a no-lock scope (GetPivotTables, for one) rebuild the cache while holding only the shared
             // workbook read lock, so several can arrive together; the rebuild writes shared state, so they take turns.
             lock (_sheetCacheRebuildGate) {
+                if (_deferredWorkbook is { } deferred) {
+                    UpdateDeferredSheetIdCache(deferred);
+                    // The SDK elements are bound into this list when the package opens.
+                    _cachedSheetElements = new List<CachedSheetElement>();
+                    _cachedSheets = SheetCachingEnabled ? MaterializeDeferredSheets(deferred) : null;
+                    _sheetCacheDirty = false;
+                    return;
+                }
                 var elements = ReadSheetElements();
                 UpdateSheetIdCache(elements);
                 _cachedSheetElements = elements.ConvertAll(element => new CachedSheetElement(element));
@@ -364,6 +372,7 @@ namespace OfficeIMO.Excel {
 
         private List<ExcelSheet> BuildSheetsWithoutCaching()
         {
+            if (_deferredWorkbook is { } deferred) return MaterializeDeferredSheets(deferred);
             var elements = ReadSheetElements();
             return MaterializeSheets(elements);
         }
@@ -453,6 +462,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal SpreadsheetDocument _spreadSheetDocument {
             get {
+                if (_deferredWorkbook != null || _deferredSdkOpening) OpenDeferredSdk(null);
                 FlushPendingPackageEditsIfAny();
                 return _spreadSheetDocumentValue;
             }
@@ -483,6 +493,7 @@ namespace OfficeIMO.Excel {
         internal bool IsOpenXmlDocumentExposed => _openXmlDocumentExposed;
         private WorkbookPart _workBookPart {
             get {
+                if (_deferredWorkbook != null || _deferredSdkOpening) OpenDeferredSdk(null);
                 FlushPendingPackageEditsIfAny();
                 return _workBookPartValue;
             }
@@ -533,7 +544,17 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Diagnostics for the most recent save operation.
         /// </summary>
-        internal ExcelSaveDiagnostics LastSaveDiagnostics { get; private set; } = ExcelSaveDiagnostics.Standard("Workbook has not been saved yet.");
+        internal ExcelSaveDiagnostics LastSaveDiagnostics {
+            get => _lastSaveDiagnostics;
+            private set {
+                _lastSaveDiagnostics = value;
+                Interlocked.Increment(ref _saveDiagnosticsVersion);
+            }
+        }
+
+        private ExcelSaveDiagnostics _lastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Workbook has not been saved yet.");
+        // Counts diagnostics updates, so a save that reports after writing can tell whether another save reported meanwhile.
+        private int _saveDiagnosticsVersion;
 
         private const int StreamCopyBufferSize = 81920;
 

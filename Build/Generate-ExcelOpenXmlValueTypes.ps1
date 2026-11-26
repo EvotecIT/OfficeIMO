@@ -50,4 +50,5 @@ $memberNames = @{
     -AssemblyDirectory $AssemblyDirectory `
     -OutputPath $OutputPath `
     -GeneratorName 'Build/Generate-ExcelOpenXmlValueTypes.ps1' `
-    -MemberNames $memberNames
+    -MemberNames $memberNames `
+    -EmitTokenParsers

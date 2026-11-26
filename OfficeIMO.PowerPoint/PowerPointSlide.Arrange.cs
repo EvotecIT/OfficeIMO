@@ -263,7 +263,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private PowerPointShape? CreateShapeFromElement(OpenXmlElement element) {
-            return CreateShapeFromElement(element, _slidePart);
+            return CreateShapeFromElement(element, SlidePart);
         }
 
         internal static PowerPointShape? CreateShapeFromElement(OpenXmlElement element, OpenXmlPartContainer ownerPart) {
@@ -299,7 +299,7 @@ namespace OfficeIMO.PowerPoint {
             C.ChartReference? chartReference = frame.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>();
             string originalRelationshipId = chartReference?.Id?.Value
                 ?? throw new InvalidOperationException("Chart reference not found for duplicated shape.");
-            ChartPart sourceChartPart = (ChartPart)_slidePart.GetPartById(originalRelationshipId);
+            ChartPart sourceChartPart = (ChartPart)SlidePart.GetPartById(originalRelationshipId);
             chartReference!.Id = CloneChartPart(sourceChartPart);
         }
 
@@ -311,14 +311,14 @@ namespace OfficeIMO.PowerPoint {
             string sourceRelationshipId = ole.Id?.Value
                 ?? throw new InvalidOperationException(
                     "OLE object relationship not found for duplicated shape.");
-            EmbeddedObjectPart sourcePart = _slidePart.GetPartById(
+            EmbeddedObjectPart sourcePart = SlidePart.GetPartById(
                 sourceRelationshipId) as EmbeddedObjectPart
                 ?? throw new InvalidOperationException(
                     "The OLE relationship does not target an embedded-object part.");
-            EmbeddedObjectPart targetPart = _slidePart
+            EmbeddedObjectPart targetPart = SlidePart
                 .AddEmbeddedObjectPart(sourcePart.ContentType);
             CopyPartData(sourcePart, targetPart);
-            ole.Id = _slidePart.GetIdOfPart(targetPart);
+            ole.Id = SlidePart.GetIdOfPart(targetPart);
             uint frameId = frame.NonVisualGraphicFrameProperties?
                 .NonVisualDrawingProperties?.Id?.Value
                 ?? throw new InvalidOperationException(
@@ -331,8 +331,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private string CloneChartPart(ChartPart sourceChartPart) {
-            string relationshipId = GetNextRelationshipId(_slidePart);
-            ChartPart targetChartPart = (ChartPart)AddNewPartWithContentType(_slidePart, sourceChartPart, relationshipId);
+            string relationshipId = GetNextRelationshipId(SlidePart);
+            ChartPart targetChartPart = (ChartPart)AddNewPartWithContentType(SlidePart, sourceChartPart, relationshipId);
             try {
                 C.ChartSpace? sourceChartSpace = sourceChartPart.ChartSpace;
                 if (sourceChartSpace != null) {
@@ -350,7 +350,7 @@ namespace OfficeIMO.PowerPoint {
                 return relationshipId;
             } catch {
                 try {
-                    _slidePart.DeletePart(targetChartPart);
+                    SlidePart.DeletePart(targetChartPart);
                 } catch {
                     // Preserve the original clone failure when best-effort cleanup fails.
                 }

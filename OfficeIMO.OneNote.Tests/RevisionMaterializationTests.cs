@@ -2,6 +2,25 @@ namespace OfficeIMO.OneNote.Tests;
 
 public sealed class RevisionMaterializationTests {
     [Fact]
+    public void PropertySetsDecodeWithTheLimitsInEffectWhenTheStoreWasRead() {
+        OneNoteSection section = OneNoteSection.Create();
+        var page = new OneNotePage { Title = "Limits" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "Body" });
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+        byte[] data = section.ToBytes();
+        var options = new OneNoteLoadOptions();
+
+        OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(data, false), options);
+        options.MaxPropertiesPerObject = 1;
+        options.MaxPropertySetDepth = 1;
+
+        int properties = store.Objects.Where(item => item.PropertySet != null).Sum(item => item.PropertySet!.Properties.Count);
+        Assert.True(properties > 1);
+    }
+
+    [Fact]
     public void LaterRoleDeclarationSelectsIncrementalRevisionForActiveView() {
         OneNoteExtendedGuid objectSpaceId = Id(1);
         OneNoteRevisionManifest original = Revision(10, objectSpaceId, null, 1, 0);

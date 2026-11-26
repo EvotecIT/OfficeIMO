@@ -28,6 +28,7 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columns);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
+            if (!automatic && TryAddPackageTable(rows, columns, nativeLeft, nativeTop, nativeWidth, nativeHeight) is { } added) return added;
 
             A.Table table = new();
             A.TableProperties props = new();
@@ -87,7 +88,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
-            PowerPointTable tbl = new(frame, _slidePart);
+            PowerPointTable tbl = new(frame, SlidePart);
             tbl.SetColumnWidthsEvenly();
             tbl.SetRowHeightsEvenly();
             TrackShape(tbl);

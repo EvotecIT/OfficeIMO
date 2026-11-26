@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -12,6 +13,11 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="row">Zero-based row index.</param>
         /// <param name="column">Zero-based column index.</param>
         public PowerPointTableCell GetCell(int row, int column) {
+            if (TryGetPackageTable(out OfficeXmlTree tree, out int packageTable)) {
+                int packageRow = NthChild(tree, packageTable, "tr", row);
+                int packageCell = packageRow == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : NthChild(tree, packageRow, "tc", column);
+                if (packageCell != OfficeXmlTree.NoNode) return new PowerPointTableCell(this, tree, packageCell, row, column);
+            }
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableRow tableRow = table.Elements<A.TableRow>().ElementAt(row);
             A.TableCell cell = tableRow.Elements<A.TableCell>().ElementAt(column);

@@ -68,7 +68,9 @@ public static class OneNoteRevisionStoreReader {
                 lists,
                 objects.Revisions.AsReadOnly(),
                 objects.Objects.AsReadOnly(),
-                objects.FileDataObjects.AsReadOnly());
+                objects.FileDataObjects.AsReadOnly()) {
+                PropertySetScope = objects.PropertySetScope
+            };
         } finally {
             stream.Position = originalPosition;
         }
@@ -91,22 +93,19 @@ public static class OneNoteRevisionStoreReader {
         while (queue.Count > 0) {
             OneNoteFileNodeList parent = queue.Dequeue();
             foreach (OneNoteFileNode node in parent.Nodes) {
-                if (node.BaseType != OneNoteFileNodeBaseType.FileNodeListReference ||
-                    node.ChunkReference == null ||
-                    node.ChunkReference.IsNil ||
-                    node.ChunkReference.IsZero) {
+                if (node.BaseType != OneNoteFileNodeBaseType.FileNodeListReference || !node.HasUsableChunkReference) {
                     continue;
                 }
 
-                ulong childOffset = node.ChunkReference.Offset;
+                ulong childOffset = node.ChunkOffset;
                 if (byOffset.TryGetValue(childOffset, out OneNoteFileNodeList? existing)) {
                     node.ReferencedFileNodeList = existing;
                     continue;
                 }
-                if (node.ChunkReference.Length > uint.MaxValue) {
+                if (node.ChunkLength > uint.MaxValue) {
                     throw new OneNoteFormatException("ONENOTE_FILE_NODE_LIST_SIZE", "A referenced file-node list fragment exceeds the desktop format's 32-bit length range.", node.FileOffset);
                 }
-                var firstFragment = new OneNoteFileChunkReference(childOffset, (uint)node.ChunkReference.Length);
+                var firstFragment = new OneNoteFileChunkReference(childOffset, (uint)node.ChunkLength);
                 OneNoteFileNodeList child = OneNoteFileNodeListReader.Read(stream, firstFragment, declaredFileLength, committedNodeCounts, options);
                 int childNodes = RetainedNodes(child);
                 if (totalNodes > options.MaxFileNodes - childNodes) {

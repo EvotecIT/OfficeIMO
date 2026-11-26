@@ -9,7 +9,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 /// BenchmarkDotNet time one invocation per iteration; every library runs with that same job so the results compare
 /// as one configuration.
 /// </summary>
-[MemoryDiagnoser]
+// No [MemoryDiagnoser]: Chromium renders in its own process, which BenchmarkDotNet does not measure.
 [RankColumn]
 [InvocationCount(1)]
 public class PdfHtmlBenchmarks {

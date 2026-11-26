@@ -2512,7 +2512,11 @@
       ],
       "frameworks": [
         "net10.0"
-      ]
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "Allocation is not comparable: SkiaSharp and Magick.NET decode in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it."
+      }
     },
     {
       "comparisonId": "image-jpeg-decode",
@@ -2537,7 +2541,11 @@
       ],
       "frameworks": [
         "net10.0"
-      ]
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "Allocation is not comparable: SkiaSharp and Magick.NET decode in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it."
+      }
     },
     {
       "comparisonId": "image-png-encode",
@@ -2561,7 +2569,11 @@
       ],
       "frameworks": [
         "net10.0"
-      ]
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "Allocation is not comparable: SkiaSharp and Magick.NET encode in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it."
+      }
     },
     {
       "comparisonId": "image-tiff-lzw",
@@ -2585,12 +2597,16 @@
       ],
       "frameworks": [
         "net10.0"
-      ]
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "Allocation is not comparable: Magick.NET encodes and decodes in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it."
+      }
     },
     {
       "comparisonId": "image-webp-lossless",
       "area": "image",
-      "title": "Lossless WebP encoding and decoding",
+      "title": "Lossless WebP decoding",
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
@@ -2610,55 +2626,7 @@
         }
       ],
       "cases": [
-        "Encode",
         "DecodeExternal"
-      ],
-      "cells": [
-        {
-          "case": "Encode",
-          "library": "OfficeIMO",
-          "parameters": {
-            "Image": "Pattern"
-          }
-        },
-        {
-          "case": "Encode",
-          "library": "Magick.NET",
-          "parameters": {
-            "Image": "Pattern"
-          }
-        },
-        {
-          "case": "Encode",
-          "library": "OneImage",
-          "parameters": {
-            "Image": "Pattern"
-          }
-        },
-        {
-          "case": "DecodeExternal",
-          "parameters": {
-            "Image": "Pattern"
-          }
-        },
-        {
-          "case": "DecodeExternal",
-          "parameters": {
-            "Image": "Photo"
-          }
-        },
-        {
-          "case": "DecodeExternal",
-          "parameters": {
-            "Image": "Screenshot"
-          }
-        },
-        {
-          "case": "DecodeExternal",
-          "parameters": {
-            "Image": "Logo"
-          }
-        }
       ],
       "expectedPlatforms": [
         "windows",
@@ -2668,6 +2636,40 @@
       "frameworks": [
         "net10.0"
       ]
+    },
+    {
+      "comparisonId": "image-webp-lossless-encode",
+      "area": "image",
+      "title": "Lossless WebP encoding",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Magick.NET",
+        "OneImage"
+      ],
+      "axes": [
+        {
+          "name": "Image",
+          "values": [
+            "Pattern"
+          ]
+        }
+      ],
+      "cases": [
+        "Encode"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net10.0"
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "Not equivalent output: for the 512x512 pattern OfficeIMO writes about 80 KB where Magick.NET writes 1.8 KB and OneImage 7.4 KB, so the faster lane does far less compression work."
+      }
     },
     {
       "comparisonId": "image-resize",
@@ -2691,7 +2693,11 @@
       ],
       "frameworks": [
         "net10.0"
-      ]
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "Allocation is not comparable: SkiaSharp and Magick.NET resize in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it."
+      }
     },
     {
       "comparisonId": "pdf-structured-generation",
@@ -2833,7 +2839,11 @@
       ],
       "frameworks": [
         "net10.0"
-      ]
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "Allocation is not comparable: QuestPDF lays out and draws through Skia in native memory that BenchmarkDotNet does not see, so earlier runs compared managed allocation against near-zero managed figures. The suite no longer records allocation; runs are collected unpublished until every platform has one without it."
+      }
     },
     {
       "comparisonId": "pdf-real-world-invoice",
@@ -2941,7 +2951,11 @@
       "frameworks": [
         "net8.0",
         "net10.0"
-      ]
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "Allocation is not comparable: Chromium renders in a separate browser process, so BenchmarkDotNet saw only the client side of that lane. The suite no longer records allocation; runs are collected unpublished until every platform has one without it."
+      }
     },
     {
       "comparisonId": "pdf-html-21k-payload",
@@ -3506,9 +3520,9 @@
       ]
     },
     {
-      "comparisonId": "pdf-split",
+      "comparisonId": "pdf-split-to-bytes",
       "area": "pdf",
-      "title": "PDF splitting",
+      "title": "PDF splitting to bytes",
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
@@ -3561,9 +3575,9 @@
       ]
     },
     {
-      "comparisonId": "pdf-merge",
+      "comparisonId": "pdf-merge-to-bytes",
       "area": "pdf",
-      "title": "PDF merging",
+      "title": "PDF merging to bytes",
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
@@ -3609,9 +3623,9 @@
       ]
     },
     {
-      "comparisonId": "pdf-page-selection",
+      "comparisonId": "pdf-page-selection-to-bytes",
       "area": "pdf",
-      "title": "PDF page selection",
+      "title": "PDF page selection to bytes",
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",

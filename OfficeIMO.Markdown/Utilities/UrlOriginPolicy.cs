@@ -125,8 +125,34 @@ internal static class UrlOriginPolicy {
         int colon = value.IndexOf(':');
         if (colon <= 0) return false;
 
-        int slash = value.IndexOfAny(new[] { '/', '?', '#' });
-        if (slash >= 0 && slash < colon) return false;
+        for (int i = 0; i < colon; i++) {
+            if (value[i] is '/' or '?' or '#') return false;
+        }
+
+        // The scheme is the text before the colon without white space or control characters, lowercased.
+        // Plain lowercase ASCII schemes, the usual case, are checked in place.
+        bool plain = true;
+        for (int i = 0; i < colon; i++) {
+            char current = value[i];
+            if (current is not ((>= 'a' and <= 'z') or (>= '0' and <= '9') or '+' or '-' or '.')) {
+                plain = false;
+                break;
+            }
+        }
+
+        if (plain) {
+            if (value[0] is < 'a' or > 'z') {
+                scheme = string.Empty;
+                return true;
+            }
+
+            scheme = colon switch {
+                4 when string.CompareOrdinal(value, 0, "http", 0, 4) == 0 => "http",
+                5 when string.CompareOrdinal(value, 0, "https", 0, 5) == 0 => "https",
+                _ => value.Substring(0, colon)
+            };
+            return true;
+        }
 
         var builder = new System.Text.StringBuilder(colon);
         for (int i = 0; i < colon; i++) {

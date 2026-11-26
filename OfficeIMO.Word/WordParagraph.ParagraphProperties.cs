@@ -17,6 +17,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? StyleId {
             get {
+                if (_ownedTree != null && TryGetOwnedStyleId(out string? ownedStyleId)) return ownedStyleId;
                 return _paragraphProperties?.GetFirstChild<ParagraphStyleId>()?.Val;
             }
         }
@@ -39,12 +40,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordParagraphAlignment? ParagraphAlignment {
             get {
+                if (_ownedTree != null && TryGetOwnedAlignment(out WordParagraphAlignment? ownedAlignment)) return ownedAlignment;
                 if (_paragraphProperties != null)
                     if (_paragraphProperties.Justification != null)
                         return _paragraphProperties.Justification.Val?.Value.ToOfficeEnum();
                 return null;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedAlignment(value)) return;
                 if (value == null) {
                     _paragraphProperties?.RemoveAllChildren<Justification>();
                     return;
@@ -86,6 +89,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public global::OfficeIMO.OfficeLength? IndentationBefore {
             get {
+                if (_ownedTree != null && TryGetOwnedParagraphTwips("ind", "left", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Left)) {
                         if (int.TryParse(_paragraphProperties.Indentation.Left, out var left)) {
@@ -96,6 +100,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedParagraphTwips("ind", "left", IndentationText(value))) return;
                 var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
@@ -108,6 +113,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public global::OfficeIMO.OfficeLength? IndentationAfter {
             get {
+                if (_ownedTree != null && TryGetOwnedParagraphTwips("ind", "right", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Right)) {
                         if (int.TryParse(_paragraphProperties.Indentation.Right, out var right)) {
@@ -118,6 +124,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedParagraphTwips("ind", "right", IndentationText(value))) return;
                 var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
@@ -202,6 +209,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public global::OfficeIMO.OfficeLength? IndentationFirstLine {
             get {
+                if (_ownedTree != null && TryGetOwnedParagraphTwips("ind", "firstLine", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.FirstLine)) {
                         if (int.TryParse(_paragraphProperties.Indentation.FirstLine, out var firstLine)) {
@@ -212,6 +220,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedParagraphTwips("ind", "firstLine", IndentationText(value))) return;
                 var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
@@ -224,6 +233,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public global::OfficeIMO.OfficeLength? IndentationHanging {
             get {
+                if (_ownedTree != null && TryGetOwnedParagraphTwips("ind", "hanging", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Hanging)) {
                         if (int.TryParse(_paragraphProperties.Indentation.Hanging, out var hanging)) {
@@ -234,6 +244,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedParagraphTwips("ind", "hanging", IndentationText(value))) return;
                 var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
@@ -345,6 +356,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public global::OfficeIMO.OfficeLength? LineSpacingBefore {
             get {
+                if (_ownedTree != null && TryGetOwnedParagraphTwips("spacing", "before", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.Before)) {
                         if (int.TryParse(_paragraphProperties.SpacingBetweenLines.Before, out var before)) {
@@ -355,6 +367,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedParagraphTwips("spacing", "before", SpacingText(value))) return;
                 var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
@@ -367,6 +380,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public global::OfficeIMO.OfficeLength? LineSpacingAfter {
             get {
+                if (_ownedTree != null && TryGetOwnedParagraphTwips("spacing", "after", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.After)) {
                         if (int.TryParse(_paragraphProperties.SpacingBetweenLines.After, out var after)) {
@@ -377,6 +391,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedParagraphTwips("spacing", "after", SpacingText(value))) return;
                 var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();

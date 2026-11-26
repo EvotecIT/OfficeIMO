@@ -8,8 +8,8 @@ param(
     [Parameter(Mandatory)] [string] $GeneratorName,
     [System.Collections.IDictionary] $MemberNames = @{},
     [switch] $SkipMappings,
-    # Also emit TryParseOpenXmlValue methods that map an XML token straight to the OfficeIMO enum, for readers that
-    # parse markup without loading the Open XML SDK.
+    # Also emit TryParseOpenXmlValue and ToOpenXmlToken methods that map between XML tokens and the OfficeIMO enum,
+    # for code that reads or writes markup without loading the Open XML SDK.
     [switch] $EmitTokenParsers
 )
 

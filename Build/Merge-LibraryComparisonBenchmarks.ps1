@@ -14,6 +14,11 @@ Zero or more bundle index.json files, each with its normalized results beside it
 Destination catalog. Defaults to the website's evidence catalog.
 .PARAMETER PowerForgeRoot
 Optional PowerForge source checkout at the pinned commit, used by the shared initializer.
+.PARAMETER WithdrawIneligibleLanes
+Before merging, takes the destination catalog's lanes out of publication when the declarations no longer allow
+them: a lane of a comparison that is now unpublishable keeps its run unpublished, and a lane of a comparison that
+is no longer declared (renamed or removed) is dropped. Without it, such a lane stops the merge. Every withdrawn
+lane is reported with its reason.
 .PARAMETER DryRun
 Returns the merge plan without setup, builds or filesystem writes.
 .EXAMPLE
@@ -26,6 +31,7 @@ param(
     [string[]] $SourcePath = @(),
     [string] $Path = (Join-Path $PSScriptRoot '../Website/static/data/benchmarks/evidence/index.json'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
+    [switch] $WithdrawIneligibleLanes,
     [switch] $DryRun
 )
 
@@ -56,6 +62,7 @@ if ($DryRun) {
         DeclarationPath = $declarationPath
         ResultPathPrefix = $resultPathPrefix
         DeclaredOnly = @($sources).Count -eq 0
+        WithdrawIneligibleLanes = [bool] $WithdrawIneligibleLanes
         PowerForge = & (Join-Path $PSScriptRoot 'Initialize-BenchmarkPowerForge.ps1') -PowerForgeRoot $PowerForgeRoot -PlanOnly
     }
     return
@@ -70,6 +77,15 @@ try {
         $emptySource = Join-Path $temporaryDirectory 'index.json'
         Write-BenchmarkEvidenceResult -Path $emptySource -InputObject ([PowerForge.BenchmarkEvidenceCatalog]::new())
         $sources = @($emptySource)
+    }
+    if ($WithdrawIneligibleLanes -and (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        $withdrawnSource = Join-Path $temporaryDirectory 'destination'
+        $withdrawn = @(Save-BenchmarkCatalogWithoutIneligibleLanes -Path $Path -DeclarationPath $declarationPath `
+                -Destination $withdrawnSource)
+        foreach ($lane in $withdrawn) {
+            Write-Host "Withdrawn $($lane.LaneKey): $($lane.Reason)"
+        }
+        $sources = @($sources | Where-Object { $_ -ne $Path }) + @(Join-Path $withdrawnSource 'index.json')
     }
     New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force | Out-Null
     $merged = Merge-BenchmarkEvidenceCatalog -SourcePath @($sources) -Path $Path -DeclarationPath $declarationPath `

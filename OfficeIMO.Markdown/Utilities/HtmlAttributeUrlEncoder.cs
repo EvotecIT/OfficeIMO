@@ -152,6 +152,19 @@ internal static class HtmlAttributeUrlEncoder {
     }
 
     private static string PercentEncodeRelativeUrl(string value, bool percentEncodeTilde) {
+        // A URL of ASCII characters that are all kept, the usual case, comes back unchanged. '%' is
+        // kept whether or not hex digits follow it.
+        int firstEncoded = 0;
+        while (firstEncoded < value.Length
+            && value[firstEncoded] <= 0x7F
+            && !ShouldPercentEncodeAsciiUrlCharacter(value[firstEncoded], percentEncodeTilde)) {
+            firstEncoded++;
+        }
+
+        if (firstEncoded == value.Length) {
+            return value;
+        }
+
         var builder = new System.Text.StringBuilder(value.Length);
         for (var i = 0; i < value.Length; i++) {
             var current = value[i];

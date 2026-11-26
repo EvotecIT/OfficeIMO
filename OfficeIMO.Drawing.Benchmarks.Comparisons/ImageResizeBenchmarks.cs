@@ -5,7 +5,7 @@ using SkiaSharp;
 namespace OfficeIMO.Drawing.Benchmarks.Comparisons;
 
 /// <summary>Resizes one identical opaque RGBA photo using linear/bilinear sampling.</summary>
-[MemoryDiagnoser]
+// No [MemoryDiagnoser]: SkiaSharp and Magick.NET allocate in native memory, which BenchmarkDotNet does not measure.
 public class ImageResizeBenchmarks {
     private const int TargetWidth = 800;
     private const int TargetHeight = 632;

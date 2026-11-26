@@ -26,10 +26,11 @@ namespace OfficeIMO.Excel {
 
             try {
                 ReleaseReadSnapshot();
-                if (this._spreadSheetDocument != null) {
+                // A workbook that never opened its SDK package has none to close.
+                if (_deferredWorkbook != null || this._spreadSheetDocument != null) {
                     try {
                         if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
-                            bool shouldSave = this._spreadSheetDocument.FileOpenAccess != FileAccess.Read &&
+                            bool shouldSave = FileOpenAccess != FileAccess.Read &&
                                               (IsPackageDirty || _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose);
                             _copyPackageToSourceOnDispose = false;
                             _copyPackageToFilePathOnDispose = false;
@@ -38,11 +39,13 @@ namespace OfficeIMO.Excel {
                             }
                         }
 
-                        ReleasePackage();
+                        if (_deferredWorkbook == null) ReleasePackage();
                     } catch (Exception ex) {
                         persistenceFailure = ex;
                     } finally {
-                        this._spreadSheetDocument = null!;
+                        _deferredWorkbook = null;
+                        _deferredPackageBytes = null;
+                        this._spreadSheetDocumentValue = null!;
                     }
                 }
 
@@ -103,10 +106,11 @@ namespace OfficeIMO.Excel {
             Exception? persistenceFailure = null;
 
             try {
-                if (this._spreadSheetDocument != null) {
+                // A workbook that never opened its SDK package has none to close.
+                if (_deferredWorkbook != null || this._spreadSheetDocument != null) {
                     try {
                         if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
-                            bool shouldSave = this._spreadSheetDocument.FileOpenAccess != FileAccess.Read &&
+                            bool shouldSave = FileOpenAccess != FileAccess.Read &&
                                               (IsPackageDirty || _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose);
                             _copyPackageToSourceOnDispose = false;
                             _copyPackageToFilePathOnDispose = false;
@@ -115,11 +119,13 @@ namespace OfficeIMO.Excel {
                             }
                         }
 
-                        ReleasePackage();
+                        if (_deferredWorkbook == null) ReleasePackage();
                     } catch (Exception ex) {
                         persistenceFailure = ex;
                     } finally {
-                        this._spreadSheetDocument = null!;
+                        _deferredWorkbook = null;
+                        _deferredPackageBytes = null;
+                        this._spreadSheetDocumentValue = null!;
                     }
                 }
 

@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -22,19 +24,29 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents notes for a slide.
     /// </summary>
-    public class PowerPointNotes {
-        private readonly SlidePart _slidePart;
+    public partial class PowerPointNotes {
+        private readonly SlidePart? _ownerSlidePart;
+        private readonly PowerPointSlide? _slide;
         private readonly INotesMasterPartFactory _notesMasterPartFactory;
         private HashSet<string>? _cachedRelationshipIds;
 
         internal PowerPointNotes(SlidePart slidePart, INotesMasterPartFactory? notesMasterPartFactory = null) {
-            _slidePart = slidePart;
+            _ownerSlidePart = slidePart;
             _notesMasterPartFactory = notesMasterPartFactory ?? DefaultNotesMasterPartFactory.Instance;
         }
 
+        // The notes of a slide that may work on the document's package: they read and edit existing notes there, and
+        // anything else opens the SDK through the slide.
+        internal PowerPointNotes(PowerPointSlide slide) {
+            _slide = slide;
+            _notesMasterPartFactory = DefaultNotesMasterPartFactory.Instance;
+        }
+
+        private SlidePart OwnerSlidePart => _ownerSlidePart ?? _slide!.SlidePart;
+
         private NotesSlide NotesSlide {
             get {
-                NotesSlidePart? notesPart = _slidePart.NotesSlidePart;
+                NotesSlidePart? notesPart = OwnerSlidePart.NotesSlidePart;
                 if (notesPart == null) {
                     // Generate a unique relationship ID for the notes part
                     HashSet<string> slideRelationships = GetRelationshipIds();
@@ -46,7 +58,7 @@ namespace OfficeIMO.PowerPoint {
                         notesIdNum++;
                     } while (!slideRelationships.Add(notesRelId));
 
-                    notesPart = _slidePart.AddNewPart<NotesSlidePart>(notesRelId);
+                    notesPart = OwnerSlidePart.AddNewPart<NotesSlidePart>(notesRelId);
 
                     ShapeTree shapeTree = CreateEmptyShapeTree();
                     uint placeholderId = GetNextShapeId(shapeTree);
@@ -76,13 +88,13 @@ namespace OfficeIMO.PowerPoint {
 
         private void EnsureSlideRelationship(NotesSlidePart notesPart) {
             if (!notesPart.Parts.Any(pair => ReferenceEquals(
-                    pair.OpenXmlPart, _slidePart))) {
-                notesPart.AddPart(_slidePart);
+                    pair.OpenXmlPart, OwnerSlidePart))) {
+                notesPart.AddPart(OwnerSlidePart);
             }
         }
 
         private void EnsureNotesMasterRelationship(NotesSlidePart notesPart) {
-            PresentationPart? presentationPart = _slidePart
+            PresentationPart? presentationPart = OwnerSlidePart
                 .GetParentPresentationPart();
 
             if (presentationPart == null) {
@@ -104,6 +116,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string Text {
             get {
+                if (TryGetPackageNotesBody(out OfficeXmlTree? packageTree, out int packageBody)) {
+                    if (packageBody == OfficeXmlTree.NoNode) return string.Empty;
+                    if (PowerPointTreeText.TryReadBody(packageTree!, packageBody, out string packageText)) return packageText;
+                }
                 Shape? shape = GetNotesTextShape(NotesSlide.CommonSlideData?.ShapeTree);
                 if (shape?.TextBody == null) {
                     return string.Empty;
@@ -115,6 +131,7 @@ namespace OfficeIMO.PowerPoint {
                 return paragraphs.Count == 0 ? string.Empty : string.Join(Environment.NewLine, paragraphs);
             }
             set {
+                if (TrySetPackageText(value)) return;
                 SetParagraphs(PowerPointTextContent.SplitParagraphs(value));
             }
         }
@@ -122,10 +139,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Gets the paragraphs in the existing speaker-notes text body without creating a notes part.</summary>
         public IReadOnlyList<PowerPointParagraph> Paragraphs {
             get {
-                NotesSlidePart? notesPart = _slidePart.NotesSlidePart;
+                NotesSlidePart? notesPart = OwnerSlidePart.NotesSlidePart;
                 Shape? shape = GetNotesTextShape(notesPart?.NotesSlide?.CommonSlideData?.ShapeTree);
                 return shape?.TextBody?.Elements<A.Paragraph>()
-                    .Select(paragraph => new PowerPointParagraph(paragraph, _slidePart, notesPart))
+                    .Select(paragraph => new PowerPointParagraph(paragraph, OwnerSlidePart, notesPart))
                     .ToList() ?? (IReadOnlyList<PowerPointParagraph>)Array.Empty<PowerPointParagraph>();
             }
         }
@@ -135,7 +152,7 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(paragraphs);
 
             NotesSlide notesSlide = NotesSlide;
-            NotesSlidePart notesPart = _slidePart.NotesSlidePart
+            NotesSlidePart notesPart = OwnerSlidePart.NotesSlidePart
                 ?? throw new InvalidOperationException("The notes slide part could not be created.");
             CommonSlideData common = notesSlide.CommonSlideData ??= new CommonSlideData(CreateEmptyShapeTree());
             ShapeTree tree = EnsureShapeTree(common);
@@ -157,13 +174,13 @@ namespace OfficeIMO.PowerPoint {
                 A.Paragraph paragraph = CreateParagraph(text ?? string.Empty, templateParagraphProperties,
                     templateRunProperties, templateEndParagraphRunProperties);
                 textBody.Append(paragraph);
-                result.Add(new PowerPointParagraph(paragraph, _slidePart, notesPart));
+                result.Add(new PowerPointParagraph(paragraph, OwnerSlidePart, notesPart));
             }
             if (result.Count == 0) {
                 A.Paragraph paragraph = CreateParagraph(string.Empty, templateParagraphProperties,
                     templateRunProperties, templateEndParagraphRunProperties);
                 textBody.Append(paragraph);
-                result.Add(new PowerPointParagraph(paragraph, _slidePart, notesPart));
+                result.Add(new PowerPointParagraph(paragraph, OwnerSlidePart, notesPart));
             }
             return result;
         }
@@ -172,7 +189,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Reads existing speaker notes without creating notes or notes-master parts when none exist.
         /// </summary>
         public bool TryGetText(out string text) {
-            NotesSlide? notesSlide = _slidePart.NotesSlidePart?.NotesSlide;
+            NotesSlide? notesSlide = OwnerSlidePart.NotesSlidePart?.NotesSlide;
             Shape? shape = GetNotesTextShape(notesSlide?.CommonSlideData?.ShapeTree);
             if (shape?.TextBody == null) {
                 text = string.Empty;
@@ -194,7 +211,7 @@ namespace OfficeIMO.PowerPoint {
         public bool TryGetExistingText(out string text) {
             text = string.Empty;
             try {
-                NotesSlide? notesSlide = _slidePart.NotesSlidePart?.NotesSlide;
+                NotesSlide? notesSlide = OwnerSlidePart.NotesSlidePart?.NotesSlide;
                 ShapeTree? shapeTree = notesSlide?.CommonSlideData?.ShapeTree;
                 if (shapeTree == null) {
                     return false;
@@ -213,7 +230,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void Save() {
-            _slidePart.NotesSlidePart?.NotesSlide?.Save();
+            OwnerSlidePart.NotesSlidePart?.NotesSlide?.Save();
         }
 
         private static ShapeTree CreateEmptyShapeTree() {
@@ -347,11 +364,11 @@ namespace OfficeIMO.PowerPoint {
         private HashSet<string> GetRelationshipIds() {
             if (_cachedRelationshipIds == null) {
                 _cachedRelationshipIds = new HashSet<string>(
-                    _slidePart.Parts.Select(p => p.RelationshipId)
-                        .Concat(_slidePart.DataPartReferenceRelationships
+                    OwnerSlidePart.Parts.Select(p => p.RelationshipId)
+                        .Concat(OwnerSlidePart.DataPartReferenceRelationships
                             .Select(r => r.Id))
-                        .Concat(_slidePart.ExternalRelationships.Select(r => r.Id))
-                        .Concat(_slidePart.HyperlinkRelationships.Select(r => r.Id))
+                        .Concat(OwnerSlidePart.ExternalRelationships.Select(r => r.Id))
+                        .Concat(OwnerSlidePart.HyperlinkRelationships.Select(r => r.Id))
                         .Where(id => !string.IsNullOrEmpty(id)),
                     StringComparer.Ordinal);
             }

@@ -3,7 +3,7 @@ using BenchmarkDotNet.Attributes;
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
 /// <summary>Compares direct PDF composition of the same two-page branded invoice contract.</summary>
-[MemoryDiagnoser]
+// No [MemoryDiagnoser]: QuestPDF allocate in native memory, which BenchmarkDotNet does not measure.
 [RankColumn]
 public class PdfInvoiceGenerationBenchmarks {
     private InvoiceComparisonScenario _scenario = null!;

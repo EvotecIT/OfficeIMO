@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
-            PowerPointTextBox textBox = TrackShape(new PowerPointTextBox(shape, _slidePart));
+            PowerPointTextBox textBox = TrackShape(new PowerPointTextBox(shape, SlidePart));
             ReflowAuthoringContent();
             return textBox;
         }
@@ -62,6 +62,7 @@ namespace OfficeIMO.PowerPoint {
             long nativeWidth = (width ?? OfficeLength.Emus(7772400L)).ToEmus();
             long nativeHeight = (height ?? OfficeLength.Emus(3962400L)).ToEmus();
             ArgumentNullException.ThrowIfNull(text);
+            if (TryAddPackageTextBox(text, nativeLeft, nativeTop, nativeWidth, nativeHeight) is { } added) return added;
 
             string name = GenerateUniqueName("TextBox");
             Shape shape = new(
@@ -84,7 +85,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
-            PowerPointTextBox textBox = TrackShape(new PowerPointTextBox(shape, _slidePart));
+            PowerPointTextBox textBox = TrackShape(new PowerPointTextBox(shape, SlidePart));
             return textBox;
         }
 

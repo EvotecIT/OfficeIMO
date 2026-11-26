@@ -48,6 +48,11 @@ namespace OfficeIMO.Excel {
             return Locking.ExecuteWrite(EnsureLock(), () => {
                 cancellationToken.ThrowIfCancellationRequested();
                 EnsureSheetCacheInitialized(_lock);
+                if (_deferredWorkbook != null) {
+                    string deferredName = ValidateOrSanitizeSheetName(worksheetName, validationMode, currentSheetName: null);
+                    if (TryAddDeferredSheet(deferredName) is { } deferredSheet) return deferredSheet;
+                    OpenDeferredSdk("AddSheet: the workbook part has no sheet list");
+                }
                 if (!SheetCacheMatchesWorkbook()) {
                     // Sheets were added or removed without going through the cache; refresh it and the sheet ids.
                     MarkSheetCacheDirty();
@@ -127,8 +132,11 @@ namespace OfficeIMO.Excel {
         private string ValidateOrSanitizeSheetName(string name, ExcelSheetNameValidationMode mode, string? currentSheetName) {
             // Collect existing names (case-insensitive)
             var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-            foreach (var s in WorkbookRoot.Sheets?.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>() ?? System.Linq.Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Sheet>()) {
-                var existingName = s.Name?.Value;
+            IEnumerable<string?> names = _deferredWorkbook != null
+                ? DeferredSheetNames()
+                : (WorkbookRoot.Sheets?.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>() ?? System.Linq.Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Sheet>())
+                    .Select(static sheet => sheet.Name?.Value);
+            foreach (string? existingName in names) {
                 if (string.IsNullOrEmpty(existingName)) continue;
                 if (!string.IsNullOrEmpty(currentSheetName) && string.Equals(existingName, currentSheetName, StringComparison.OrdinalIgnoreCase)) continue;
                 existing.Add(existingName!);
