@@ -115,7 +115,7 @@ internal static class EpubImportedPublication {
             writer.WriteEndElement();
         }
 
-        void WriteNode(XNode node, string chapterPath) {
+        void WriteNode(XNode node, string chapterPath, bool insideLink = false) {
             token.ThrowIfCancellationRequested();
             if (node is XText text) {
                 writer.WriteString(text.Value);
@@ -127,8 +127,18 @@ internal static class EpubImportedPublication {
                 Omit("EBOOK_HTML_ELEMENT_OMITTED", "An element is outside the static HTML projection.", tag);
                 return;
             }
-            if (markdownAnchors && (string?)element.Attribute("id") is { } id)
-                WriteAnchor(Anchor(chapters[chapterPath], id));
+            string? markdownId = markdownAnchors && !insideLink ? (string?)element.Attribute("id") : null;
+            // The Markdown list converter only visits list items and their contents.
+            if (markdownId != null && tag != "li") WriteAnchor(Anchor(chapters[chapterPath], markdownId));
+            if (markdownAnchors && tag == "a" && !insideLink) {
+                // A second HTML anchor inside a hyperlink closes that hyperlink during HTML parsing.
+                foreach (XElement descendant in element.Descendants()) {
+                    token.ThrowIfCancellationRequested();
+                    if (descendant.Name.Namespace == Xhtml && IsStaticElement(descendant.Name.LocalName) &&
+                        (string?)descendant.Attribute("id") is { } nestedId)
+                        WriteAnchor(Anchor(chapters[chapterPath], nestedId));
+                }
+            }
             writer.WriteStartElement(tag);
             foreach (XAttribute attribute in element.Attributes()) {
                 if (attribute.IsNamespaceDeclaration ||
@@ -158,7 +168,8 @@ internal static class EpubImportedPublication {
                 }
                 if (value != null) writer.WriteAttributeString(name, value);
             }
-            foreach (XNode child in element.Nodes()) WriteNode(child, chapterPath);
+            if (markdownId != null && tag == "li") WriteAnchor(Anchor(chapters[chapterPath], markdownId));
+            foreach (XNode child in element.Nodes()) WriteNode(child, chapterPath, insideLink || tag == "a");
             // XML empty-element syntax is inappropriate for non-void elements in text/html.
             if (element.Name.LocalName is "img" or "br" or "hr" or "wbr") writer.WriteEndElement();
             else writer.WriteFullEndElement();

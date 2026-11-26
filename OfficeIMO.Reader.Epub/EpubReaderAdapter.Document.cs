@@ -77,6 +77,9 @@ internal static partial class EpubReaderAdapter {
                     chapter.Html!,
                     virtualPath,
                     readerOptions,
+                    kind != ReaderInputKind.Epub
+                        ? new ReaderHtmlOptions { ConversionOptions = CreateChapterConversionOptions(kind) }
+                        : null,
                     cancellationToken: cancellationToken);
                 foreach (string capability in htmlResult.CapabilitiesUsed) {
                     if (capability.StartsWith("officeimo.html.", StringComparison.Ordinal)

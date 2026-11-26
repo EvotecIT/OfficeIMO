@@ -24,7 +24,7 @@ internal static partial class EpubReaderAdapter {
         var chunks = new List<ReaderChunk>();
         var nonContentWarnings = new List<string>();
         ReaderHtmlOptions htmlOptions = ReaderHtmlOptions.CreateOfficeIMOProfile();
-        ConfigureEpubMarkdownReferencePolicies(htmlOptions, source.Path, chapter);
+        ConfigureEpubMarkdownReferencePolicies(htmlOptions, source.Path, chapter, kind);
         foreach (ReaderChunk htmlChunk in HtmlReaderAdapter.ReadContent(
                      chapter.Html!,
                      virtualPath,
@@ -83,7 +83,8 @@ internal static partial class EpubReaderAdapter {
     private static void ConfigureEpubMarkdownReferencePolicies(
         ReaderHtmlOptions htmlOptions,
         string sourcePath,
-        EpubChapter chapter) {
+        EpubChapter chapter,
+        ReaderInputKind kind) {
         HtmlMarkdownExportOptions? markdownOptions = htmlOptions.HtmlToMarkdownOptions;
         if (markdownOptions == null) return;
 
@@ -93,10 +94,16 @@ internal static partial class EpubReaderAdapter {
         resourcePolicy.ResolvedUrlTransform = transform;
         markdownOptions.ResourceUrlPolicy = resourcePolicy;
 
-        HtmlConversionDocumentOptions conversionOptions = HtmlConversionDocumentOptions.UntrustedDefaults;
+        HtmlConversionDocumentOptions conversionOptions = CreateChapterConversionOptions(kind);
         AllowEpubVirtualFileLocations(conversionOptions.UrlPolicy);
         AllowEpubVirtualFileLocations(conversionOptions.ResourceUrlPolicy);
         htmlOptions.ConversionOptions = conversionOptions;
+    }
+
+    private static HtmlConversionDocumentOptions CreateChapterConversionOptions(ReaderInputKind kind) {
+        HtmlConversionDocumentOptions options = HtmlConversionDocumentOptions.UntrustedDefaults;
+        if (kind != ReaderInputKind.Epub) options.Limits.MaxHtmlNodes = EpubImportedPublication.MaximumHtmlNodes;
+        return options;
     }
 
     private static void AllowEpubVirtualFileLocations(HtmlUrlPolicy policy) {
