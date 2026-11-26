@@ -194,7 +194,7 @@ other dependencies still restore, and set
 every `OfficeIMO.*` version in its `src/Directory.Packages.props` to the
 candidate version. Point `NUGET_PACKAGES` at a new empty folder for the run, so
 NuGet can't reuse an earlier build of the same version, and run
-`dotnet test src/Verify.OfficeIMO.slnx`. The clone's `global.json` selects its own
+`dotnet test src/Verify.OfficeIMO.slnx` from the clone's root. The clone's `global.json` selects its own
 SDK, which can be newer than the one OfficeIMO pins, so install that SDK first. A compile error or a missing member is
 a release blocker unless the release notes and `MIGRATION.md` already describe
 that break. Changed snapshots are expected when rendering improves and are not
