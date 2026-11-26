@@ -596,7 +596,8 @@ internal sealed class ProtocolText {
             return null;
         }
         string body = SectionNumber.Replace(line, string.Empty);
-        string[] words = Tokenize(body);
+        // "Inclusion / Exclusion Criteria" and "Inclusion & Exclusion" join names like "and" does.
+        string[] words = Tokenize(body.Replace("/", " and ", StringComparison.Ordinal).Replace("&", " and ", StringComparison.Ordinal));
         if (words.Length == 0) {
             return null;
         }
