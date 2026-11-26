@@ -120,6 +120,8 @@ namespace OfficeIMO.Excel {
         }
 
         private void MaterializeDeferredDataSetImportIfNeeded() {
+            // A caller here works on the worksheet next; recorded values reach it, or the cell buffer, through the replay.
+            _excelDocument.OpenDeferredSdkBeforeReadingRecordedChanges();
             if (_excelDocument.IsPreservingDirectDataSetExternalCellMutation
                 && _excelDocument.HasDeferredDirectDataSetImport
                 && !_excelDocument.HasPendingDirectCellValues) {

@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel {
         /// which only the SDK route visits.
         /// </summary>
         internal ExcelDocumentReader CreateCellEnumerationReader(ExcelSheet sheet, ExcelReaderOptions options) {
+            OpenDeferredSdkBeforeReadingRecordedChanges();
             if (AcquireUnsavedCellsSnapshot(sheet, options) is { } unsaved) return ExcelDocumentReader.Wrap(unsaved, options);
             MaterializeDeferredDataSetImport();
             // A snapshot reads the bytes the document holds, so a workbook that has not opened its SDK package keeps it closed.
@@ -41,6 +42,7 @@ namespace OfficeIMO.Excel {
         /// worksheet that does not qualify keeps that route.
         /// </summary>
         internal ExcelDocumentReader CreateTabularReader(ExcelSheet? sheet, ExcelReaderOptions options) {
+            OpenDeferredSdkBeforeReadingRecordedChanges();
             if (sheet != null && AcquireUnsavedCellsSnapshot(sheet, options) is { } unsaved) {
                 return ExcelDocumentReader.WrapTabular(unsaved, options, () => {
                     MaterializeDeferredDataSetImport();
