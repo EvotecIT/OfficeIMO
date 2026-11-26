@@ -157,16 +157,24 @@ internal static partial class PdfDocumentSemanticEnricher {
     /// <summary>A cell with at least this many words reads as prose.</summary>
     private const int ProseCellWords = 8;
 
-    /// <summary>The page's segments of tables whose tagged read passed, in structure-tree order.</summary>
+    /// <summary>
+    /// The page's segments of tables whose tagged read passed, in structure-tree order. The first call indexes every
+    /// page in one pass over the structure tree, so asking for each page doesn't walk the tree again.
+    /// </summary>
     internal static IReadOnlyList<PdfUnderstandingTableCandidate> GetTaggedTables(TaggedTableReads reads, int pageNumber) {
-        var result = new List<PdfUnderstandingTableCandidate>();
-        foreach (PdfStructureElementInfo table in reads.Graph.Tagged.StructureElements) {
-            if (!reads.Tables.TryGetValue(table.ObjectNumber, out var read) || read.Failure is not null || read.Candidates is null) continue;
-            foreach (PdfUnderstandingTableCandidate candidate in read.Candidates) {
-                if (candidate.TaggedSegment!.PageNumber == pageNumber) result.Add(candidate);
+        if (reads.TablesByPage is null) {
+            var byPage = new Dictionary<int, List<PdfUnderstandingTableCandidate>>();
+            foreach (PdfStructureElementInfo table in reads.Graph.Tagged.StructureElements) {
+                if (!reads.Tables.TryGetValue(table.ObjectNumber, out var read) || read.Failure is not null || read.Candidates is null) continue;
+                foreach (PdfUnderstandingTableCandidate candidate in read.Candidates) {
+                    int page = candidate.TaggedSegment!.PageNumber;
+                    if (!byPage.TryGetValue(page, out var list)) byPage[page] = list = new List<PdfUnderstandingTableCandidate>();
+                    list.Add(candidate);
+                }
             }
+            reads.TablesByPage = byPage;
         }
-        return result;
+        return reads.TablesByPage.TryGetValue(pageNumber, out var tables) ? tables : Array.Empty<PdfUnderstandingTableCandidate>();
     }
 
     /// <summary>
@@ -189,6 +197,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         // Which marked content the structure tree binds to roles, built on first use.
         internal bool RolesBuilt { get; set; }
         internal object? Roles { get; set; }
+        // Passing tables' segments by page, built on first use once every table has been read.
+        internal Dictionary<int, List<PdfUnderstandingTableCandidate>>? TablesByPage { get; set; }
     }
 
     private static void ApplyTaggedTableEvidence(
