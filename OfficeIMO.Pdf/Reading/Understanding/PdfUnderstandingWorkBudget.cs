@@ -40,6 +40,9 @@ internal sealed class PdfUnderstandingWorkBudget {
         _consumed = next;
     }
 
+    /// <summary>Returns to an earlier count, for work that is discarded and done again.</summary>
+    internal void Rewind(long consumed) => _consumed = Math.Min(_consumed, Math.Max(0L, consumed));
+
     internal void ThrowIfCancellationRequested() {
         if (Volatile.Read(ref _operationCompleted) == 0) {
             _cancellationToken.ThrowIfCancellationRequested();

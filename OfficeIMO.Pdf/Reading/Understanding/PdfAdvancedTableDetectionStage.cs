@@ -33,7 +33,12 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
         IReadOnlyList<PdfTableRuling> latticeRulings;
         bool canRefineExistingGeometry;
         try {
-            rulings = context.Page.GetTableRulings(context, out canRefineExistingGeometry, out latticeRulings);
+            if (context.SkipPaintedBorders) {
+                rulings = context.Page.GetTableRulings(context, out canRefineExistingGeometry);
+                latticeRulings = Array.Empty<PdfTableRuling>();
+            } else {
+                rulings = context.Page.GetTableRulings(context, out canRefineExistingGeometry, out latticeRulings);
+            }
         } catch (PdfUnsupportedTextMappingException) when (context.InspectionTextRecovery?.FirstMappingFailure is not null) {
             // Text-derived candidates remain available when the optional paint pass cannot resolve widths.
             context.ThrowIfCancellationRequested();

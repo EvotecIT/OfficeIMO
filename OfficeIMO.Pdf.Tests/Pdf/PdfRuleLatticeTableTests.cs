@@ -169,6 +169,21 @@ public sealed class PdfRuleLatticeTableTests {
             table => table.Evidence.Any(evidence => evidence.Code == "table-ruling-lattice"));
     }
 
+    [Fact]
+    public void TaggedTableThatFailsItsChecksLeavesThePageToItsPaintedBorders() {
+        // The structure tree's Table holds a paragraph instead of rows, so the reader rejects it and reads the
+        // page's geometry, painted borders included, as it would without tags.
+        StringBuilder content = GridUnderImage(out string[][] rows, "q 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+        content.Insert(0, "/P << /MCID 0 >> BDC\n").Append("EMC\n");
+
+        PdfLogicalPage page = Read(content, "Courier", tagged: true, out PdfDocumentReadResult read);
+
+        Assert.Contains(read.TaggedTableDiagnostics, diagnostic => diagnostic.Reason == PdfTaggedTableFallbackReason.UnsupportedStructure);
+        PdfLogicalTable table = Assert.Single(page.Tables);
+        Assert.Contains(table.Evidence, evidence => evidence.Code == "table-ruling-lattice");
+        Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
+    }
+
     // A stroked grid whose rows are one string each, so only the borders split them into cells, with an image
     // painted after it. The image also keeps the strict stroke reader out.
     private static StringBuilder GridUnderImage(out string[][] rows, string image) {
@@ -305,28 +320,38 @@ public sealed class PdfRuleLatticeTableTests {
 
     private static string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
-    private static PdfLogicalPage Read(StringBuilder content, string font) {
+    private static PdfLogicalPage Read(StringBuilder content, string font) => Read(content, font, tagged: false, out _);
+
+    // Tagged: a marked catalog whose Table element holds one paragraph over marked content 0.
+    private static PdfLogicalPage Read(StringBuilder content, string font, bool tagged, out PdfDocumentReadResult read) {
         string stream = content.ToString();
-        string[] objects = {
-            "<< /Type /Catalog /Pages 2 0 R >>",
+        var objects = new List<string> {
+            tagged ? "<< /Type /Catalog /Pages 2 0 R /MarkInfo << /Marked true >> /StructTreeRoot 6 0 R >>" : "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R" +
+                (tagged ? " /StructParents 0" : string.Empty) + " >>",
             "<< /Length " + Encoding.ASCII.GetByteCount(stream).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + stream + "endstream",
             // Producers write glyph widths into the font; Courier's are all 600.
             "<< /Type /Font /Subtype /Type1 /BaseFont /" + font + (font == "Courier"
                 ? " /FirstChar 32 /LastChar 126 /Widths [" + string.Join(" ", Enumerable.Repeat("600", 95)) + "]" : string.Empty) + " >>"
         };
+        if (tagged) {
+            objects.Add("<< /Type /StructTreeRoot /K [7 0 R] /ParentTree << /Nums [0 [8 0 R]] >> >>");
+            objects.Add("<< /Type /StructElem /S /Table /P 6 0 R /K [8 0 R] /Pg 3 0 R >>");
+            objects.Add("<< /Type /StructElem /S /P /P 7 0 R /K 0 /Pg 3 0 R >>");
+        }
         var builder = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();
-        for (int index = 0; index < objects.Length; index++) {
+        for (int index = 0; index < objects.Count; index++) {
             offsets.Add(Encoding.ASCII.GetByteCount(builder.ToString()));
             builder.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
         }
         int xref = Encoding.ASCII.GetByteCount(builder.ToString());
-        builder.Append("xref\n0 6\n0000000000 65535 f \n");
+        builder.Append("xref\n0 ").Append(objects.Count + 1).Append("\n0000000000 65535 f \n");
         foreach (int offset in offsets) builder.Append(offset.ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
-        builder.Append("trailer\n<< /Root 1 0 R /Size 6 >>\nstartxref\n").Append(xref.ToString(CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
+        builder.Append("trailer\n<< /Root 1 0 R /Size ").Append(objects.Count + 1).Append(" >>\nstartxref\n").Append(xref.ToString(CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
         using PdfDocument document = PdfDocument.Load(Encoding.ASCII.GetBytes(builder.ToString()));
-        return Assert.Single(document.Read().Pages);
+        read = document.Read();
+        return Assert.Single(read.Pages);
     }
 }

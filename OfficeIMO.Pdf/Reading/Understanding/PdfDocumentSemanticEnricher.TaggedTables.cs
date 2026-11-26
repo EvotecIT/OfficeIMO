@@ -4,6 +4,41 @@ internal static partial class PdfDocumentSemanticEnricher {
     /// <summary>Upper bound on grid columns one tagged table may declare through cells and spans.</summary>
     private const int MaximumTaggedTableColumns = 1024;
 
+    /// <summary>
+    /// Reads the structure tree once, before any page is analysed, for the pages its tagged tables name (in a catalog
+    /// trusted for table structure, see <see cref="ApplyTaggedTableEvidence"/>). Null when there are none.
+    /// </summary>
+    internal static TaggedTableReads? PrepareTaggedTables(PdfReadDocument document, long maxWorkUnits, CancellationToken cancellationToken) {
+        var workBudget = new PdfUnderstandingWorkBudget(maxWorkUnits, cancellationToken);
+        TaggedStructureGraph? graph = BuildTaggedStructureGraph(document, workBudget);
+        if (graph is null || graph.Tagged.Marked != true) return null;
+        var pages = new HashSet<int>();
+        foreach (PdfStructureElementInfo table in graph.Tagged.StructureElements) {
+            workBudget.Consume();
+            if (!graph.ReachableObjectNumbers.Contains(table.ObjectNumber) || !HasResolvedRole(graph.Tagged, table, "Table")) continue;
+            foreach (int pageObject in CollectTablePageObjects(graph, table, workBudget)) {
+                if (document.GetPageNumberForObject(pageObject, cancellationToken) is int page) pages.Add(page);
+            }
+        }
+        return pages.Count == 0 ? null : new TaggedTableReads(graph, pages);
+    }
+
+    /// <summary>
+    /// The structure graph and each tagged table's read, kept across the enrichment passes of one document read. A
+    /// table's read depends only on the structure tree and the pages' text runs and lines, which a later pass reuses.
+    /// </summary>
+    internal sealed class TaggedTableReads {
+        internal TaggedTableReads(TaggedStructureGraph graph, HashSet<int> pages) {
+            Graph = graph;
+            Pages = pages;
+        }
+
+        internal TaggedStructureGraph Graph { get; }
+        /// <summary>Pages a tagged table names.</summary>
+        internal HashSet<int> Pages { get; }
+        internal Dictionary<int, (TaggedTableFailure? Failure, List<PdfUnderstandingTableCandidate>? Candidates, List<int> TouchedPages)> Tables { get; } = new();
+    }
+
     private static void ApplyTaggedTableEvidence(
         PdfReadDocument document,
         int[] selectedPageNumbers,
@@ -13,7 +48,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         TaggedContentRoleIndex? taggedRoles,
         int maximumArtifactsPerPage,
         List<PdfTaggedTableDiagnostic>?[] diagnostics,
-        PdfUnderstandingWorkBudget workBudget) {
+        PdfUnderstandingWorkBudget workBudget,
+        TaggedTableReads? reads) {
         // Only a catalog that declares itself tagged (/MarkInfo /Marked true) is trusted for table
         // structure; untagged and unmarked files keep geometry without walking table elements.
         if (graph is null || graph.Tagged.Marked != true) return;
@@ -36,16 +72,24 @@ internal static partial class PdfDocumentSemanticEnricher {
             if (!graph.ReachableObjectNumbers.Contains(table.ObjectNumber) ||
                 !HasResolvedRole(graph.Tagged, table, "Table")) continue;
 
-            TaggedTableFailure? failure = TryReadTaggedTable(
-                document,
-                graph,
-                table,
-                selectedPageIndexes,
-                pages,
-                contentIndexes,
-                workBudget,
-                out List<PdfUnderstandingTableCandidate>? candidates,
-                out List<int> touchedPages);
+            TaggedTableFailure? failure;
+            List<PdfUnderstandingTableCandidate>? candidates;
+            List<int> touchedPages;
+            if (reads is not null && reads.Tables.TryGetValue(table.ObjectNumber, out var read)) {
+                (failure, candidates, touchedPages) = read;
+            } else {
+                failure = TryReadTaggedTable(
+                    document,
+                    graph,
+                    table,
+                    selectedPageIndexes,
+                    pages,
+                    contentIndexes,
+                    workBudget,
+                    out candidates,
+                    out touchedPages);
+                reads?.Tables.Add(table.ObjectNumber, (failure, candidates, touchedPages));
+            }
             if (failure is TaggedTableFailure reported) {
                 AddTaggedTableDiagnostic(document, graph, table, reported, touchedPages, selectedPageIndexes, diagnostics, workBudget);
                 continue;
@@ -1128,7 +1172,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         List<PdfStructureElementInfo> Cells,
         List<bool> HeaderCells);
 
-    private readonly record struct TaggedTableFailure(PdfTaggedTableFallbackReason Reason, string Message);
+    internal readonly record struct TaggedTableFailure(PdfTaggedTableFallbackReason Reason, string Message);
 
     private sealed class TaggedGridRow {
         internal TaggedGridRow(bool isHeader, int gridIndex) {

@@ -54,21 +54,32 @@ internal static partial class PdfDocumentReadEngine {
         int[] pageNumbers = options.PageSelection?.ToPageNumbers(document.Pages.Count, nameof(options.PageSelection))
             ?? Enumerable.Range(1, document.Pages.Count).ToArray();
         PdfUnderstandingPipelineOptions pipelineOptions = PdfUnderstandingPipelineOptions.Resolve(options.Pipeline);
-        pageAnalyses = new PdfUnderstandingPipeline(
-                options.LayoutOptions,
-                pipelineOptions,
-                options.IncludeImages)
-            .RunPages(document, pageNumbers, cancellationToken);
+        var pipeline = new PdfUnderstandingPipeline(options.LayoutOptions, pipelineOptions, options.IncludeImages);
+        bool structured = options.Profile == PdfReadProfile.Structured;
+        // The structured read takes a page's tables from its tagged structure when that structure passes its checks,
+        // so painted borders there would be read only to be discarded. Those pages skip the border pass; any whose
+        // tagged tables then fall back are analysed again with it, so the result is the same either way.
+        PdfDocumentSemanticEnricher.TaggedTableReads? taggedTables = structured
+            ? PdfDocumentSemanticEnricher.PrepareTaggedTables(document, pipelineOptions.MaxDocumentWorkUnits, cancellationToken)
+            : null;
+        pageAnalyses = pipeline.RunPages(document, pageNumbers, taggedTables?.Pages, cancellationToken);
         IReadOnlyList<PdfUnderstandingPageResult> analyses = pageAnalyses;
-        if (options.Profile == PdfReadProfile.Structured) {
-            analyses = PdfDocumentSemanticEnricher.Enrich(
-                document,
-                pageNumbers,
-                analyses,
-                options.LayoutOptions,
-                pipelineOptions.MaxRegionsPerPage,
-                pipelineOptions.MaxDocumentWorkUnits,
-                cancellationToken);
+        if (structured) {
+            analyses = Enrich(analyses);
+            if (taggedTables is not null) {
+                PdfUnderstandingPageResult[]? redone = null;
+                for (int pageIndex = 0; pageIndex < analyses.Count; pageIndex++) {
+                    PdfUnderstandingPageResult page = analyses[pageIndex];
+                    if (pageAnalyses[pageIndex].RedoWithPaintedBorders is not { } redo ||
+                        page.TaggedTableDiagnostics.Count == 0 && page.TableCandidates.Any(static table => table.TaggedSegment is not null)) continue;
+                    redone ??= pageAnalyses.ToArray();
+                    redone[pageIndex] = redo();
+                }
+                if (redone is not null) {
+                    pageAnalyses = Array.AsReadOnly(redone);
+                    analyses = Enrich(pageAnalyses);
+                }
+            }
         }
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentReadResult result = PdfDocumentReadResult.FromPageNumbers(
@@ -85,5 +96,16 @@ internal static partial class PdfDocumentReadEngine {
             analyses[pageIndex].CompleteOperation();
         }
         return result;
+
+        IReadOnlyList<PdfUnderstandingPageResult> Enrich(IReadOnlyList<PdfUnderstandingPageResult> pages) =>
+            PdfDocumentSemanticEnricher.Enrich(
+                document,
+                pageNumbers,
+                pages,
+                options.LayoutOptions,
+                pipelineOptions.MaxRegionsPerPage,
+                pipelineOptions.MaxDocumentWorkUnits,
+                cancellationToken,
+                taggedTables);
     }
 }
