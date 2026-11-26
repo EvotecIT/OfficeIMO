@@ -161,7 +161,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         internal string AddExternalHyperlink(Uri uri) {
             PowerPointPartRef current = Current;
             if (current._sdk != null) return PowerPointSdkParts.AddHyperlink(current._sdk, uri, external: true);
-            string id = current.EditablePackage().AddRelationship(current._name, HyperlinkRelationshipType, uri.OriginalString, external: true);
+            string id = current.EditablePackage().AddRelationship(current._name, HyperlinkRelationshipType, PowerPointHyperlinkResolver.TargetText(uri), external: true);
             current.MarkRelationshipsEdited();
             return id;
         }

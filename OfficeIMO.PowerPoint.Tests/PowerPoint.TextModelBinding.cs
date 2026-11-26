@@ -99,6 +99,44 @@ public class PowerPointTextModelBindingTests {
         Assert.DoesNotContain(remaining.Parts, pair => pair.OpenXmlPart is SlidePart);
     }
 
+    [Fact]
+    public void AnUnparsedHyperlinkTargetKeepsItsTextWhenAssignedAgain() {
+        byte[] linked;
+        using (var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck(1, paragraph => paragraph.AddText("Link"))))) {
+            presentation.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].SetHyperlink("https://example.com/");
+            linked = RewriteHyperlinkTarget(presentation.ToBytes(), "https://example.com/", "mailto:one@");
+        }
+
+        byte[] saved;
+        using (var presentation = PowerPointDocument.Load(new MemoryStream(linked))) {
+            PowerPointTextRun run = presentation.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0];
+            run.SetHyperlink(run.Hyperlink!);
+            Assert.False(presentation.IsSdkLoaded);
+            saved = presentation.ToBytes();
+        }
+
+        using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(saved));
+        using var reader = new StreamReader(archive.GetEntry("ppt/slides/_rels/slide1.xml.rels")!.Open());
+        string relationships = reader.ReadToEnd();
+        Assert.Contains("Target=\"mailto:one@\"", relationships);
+        Assert.DoesNotContain("rewritten://", relationships);
+    }
+
+    private static byte[] RewriteHyperlinkTarget(byte[] package, string from, string to) {
+        var output = new MemoryStream();
+        output.Write(package, 0, package.Length);
+        using (var archive = new System.IO.Compression.ZipArchive(output, System.IO.Compression.ZipArchiveMode.Update, leaveOpen: true)) {
+            System.IO.Compression.ZipArchiveEntry entry = archive.GetEntry("ppt/slides/_rels/slide1.xml.rels")!;
+            string text;
+            using (var reader = new StreamReader(entry.Open())) text = reader.ReadToEnd();
+            Assert.Contains(from, text);
+            entry.Delete();
+            using var writer = new StreamWriter(archive.CreateEntry("ppt/slides/_rels/slide1.xml.rels").Open());
+            writer.Write(text.Replace(from, to));
+        }
+        return output.ToArray();
+    }
+
     private static byte[] CreateDeck(int slides, Action<PowerPointParagraph>? fill = null) {
         using var presentation = PowerPointDocument.Create();
         for (int index = 0; index < slides; index++) {

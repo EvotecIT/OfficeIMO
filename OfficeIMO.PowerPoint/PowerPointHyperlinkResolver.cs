@@ -74,12 +74,15 @@ namespace OfficeIMO.PowerPoint {
         /// it reads back as the original text.
         /// </summary>
         private sealed class UnparsedTargetUri : Uri {
-            private readonly string _target;
+            internal UnparsedTargetUri(string target) : base("rewritten://" + Guid.NewGuid().ToString("D")) => Target = target;
 
-            internal UnparsedTargetUri(string target) : base("rewritten://" + Guid.NewGuid().ToString("D")) => _target = target;
+            internal string Target { get; }
 
-            public override string ToString() => _target;
+            public override string ToString() => Target;
         }
+
+        /// <summary>The text to write as a relationship target for <paramref name="uri"/>.</summary>
+        internal static string TargetText(Uri uri) => uri is UnparsedTargetUri unparsed ? unparsed.Target : uri.OriginalString;
 
         private static Uri SlideFragment(int slideNumber) =>
             new("#slide-" + slideNumber.ToString(CultureInfo.InvariantCulture), UriKind.Relative);
