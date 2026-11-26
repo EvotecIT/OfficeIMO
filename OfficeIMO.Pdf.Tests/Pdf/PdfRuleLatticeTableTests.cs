@@ -83,6 +83,111 @@ public sealed class PdfRuleLatticeTableTests {
     }
 
     [Fact]
+    public void RunOverflowingPastADividerDrawnOnlyInTheHeaderStaysInItsCell() {
+        // The divider between the second and third columns is drawn through the header only; body text that
+        // runs past it overflows, as spreadsheets let it, rather than starting a new cell.
+        string[][] rows = {
+            new[] { "Code", "Item", "Note" },
+            new[] { "A-01", "Widget assembly", "" },
+            new[] { "B-02", "Sprocket housing", "" },
+            new[] { "C-03", "Flange bracket", "" }
+        };
+        double[] x = { 72, 162, 222, 300 };
+        double[] y = Rows(700, 16, 16, rows.Length - 1);
+        var content = new StringBuilder();
+        content.Append("0 G 0.5 w\n");
+        foreach (double row in y) Line(content, x[0], row, x[x.Length - 1], row);
+        foreach (double column in new[] { x[0], x[1], x[3] }) Line(content, column, y[0], column, y[y.Length - 1]);
+        Line(content, x[2], y[0], x[2], y[1]);
+        for (int column = 0; column < 3; column++) {
+            content.Append("BT /F1 9 Tf 0 g 1 0 0 1 ").Append(Number(x[column] + 3)).Append(' ').Append(Number(y[1] + 5))
+                .Append(" Tm (").Append(rows[0][column]).Append(") Tj ET\n");
+        }
+        for (int row = 1; row < rows.Length; row++) {
+            // One string per row; word spacing carries the item across the first divider.
+            double spacing = x[1] + 3 - (x[0] + 3 + rows[row][0].Length * 5.4) - 5.4;
+            content.Append("BT /F1 9 Tf ").Append(Number(spacing)).Append(" Tw 0 g 1 0 0 1 ").Append(Number(x[0] + 3)).Append(' ')
+                .Append(Number(y[row + 1] + 5)).Append(" Tm (").Append(rows[row][0]).Append(' ')
+                .Append(rows[row][1].Replace(" ", "\\040")).Append(") Tj 0 Tw ET\n");
+        }
+
+        PdfLogicalTable table = Assert.Single(Read(content, "Courier").Tables);
+
+        Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
+    }
+
+    [Fact]
+    public void WhiteBordersOfDarkCellsPaintedWithOneOperatorReadAsAGrid() {
+        // Each cell is one `re B`: a dark fill with a white stroke over it. A logo image keeps the strict stroke
+        // reader out, and each row is one string, so only the white borders can split the rows into cells.
+        string[][] rows = {
+            new[] { "Code", "Item" },
+            new[] { "A-01", "Widget" },
+            new[] { "B-02", "Sprocket" },
+            new[] { "C-03", "Flange" }
+        };
+        double[] x = { 72, 162, 262 };
+        double[] y = Rows(700, 16, 16, rows.Length - 1);
+        var content = new StringBuilder();
+        content.Append("q 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+        content.Append("0.2 0.3 0.5 rg 1 G 0.75 w\n");
+        for (int row = 0; row + 1 < y.Length; row++) {
+            for (int column = 0; column + 1 < x.Length; column++) {
+                content.Append(Number(x[column])).Append(' ').Append(Number(y[row + 1])).Append(' ')
+                    .Append(Number(x[column + 1] - x[column])).Append(' ').Append(Number(y[row] - y[row + 1])).Append(" re B\n");
+            }
+        }
+        for (int row = 0; row < rows.Length; row++) {
+            double spacing = x[1] + 3 - (x[0] + 3 + rows[row][0].Length * 5.4) - 5.4;
+            content.Append("BT /F1 9 Tf ").Append(Number(spacing)).Append(" Tw 1 g 1 0 0 1 ").Append(Number(x[0] + 3)).Append(' ')
+                .Append(Number(y[row + 1] + 5)).Append(" Tm (").Append(rows[row][0]).Append(' ').Append(rows[row][1]).Append(") Tj ET\n");
+        }
+
+        PdfLogicalTable table = Assert.Single(Read(content, "Courier").Tables);
+
+        Assert.Contains(table.Evidence, evidence => evidence.Code == "table-ruling-lattice");
+        Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
+    }
+
+    [Fact]
+    public void ClosedGridWithAWrappedHeaderKeepsItsBodyRows() {
+        // Every header cell wraps to the same three lines; the body rows below are each ruled. The shared
+        // header lines are wrapping, not data rows the producer left unruled.
+        string[][] rows = {
+            new[] { "Annual sales volume", "Average unit price", "Regional market share" },
+            new[] { "1200", "4.50", "12%" },
+            new[] { "900", "5.25", "9%" }
+        };
+        double[] x = { 72, 152, 232, 312 };
+        double[] y = { 700, 664, 648, 632 };
+        string[][] header = {
+            new[] { "Annual", "sales", "volume" },
+            new[] { "Average", "unit", "price" },
+            new[] { "Regional", "market", "share" }
+        };
+        var content = new StringBuilder();
+        content.Append("0 G 0.5 w\n");
+        foreach (double row in y) Line(content, x[0], row, x[x.Length - 1], row);
+        foreach (double column in x) Line(content, column, y[0], column, y[y.Length - 1]);
+        for (int column = 0; column < header.Length; column++) {
+            for (int line = 0; line < 3; line++) {
+                content.Append("BT /F1 9 Tf 0 g 1 0 0 1 ").Append(Number(x[column] + 3)).Append(' ').Append(Number(y[0] - 11 - line * 10))
+                    .Append(" Tm (").Append(header[column][line]).Append(") Tj ET\n");
+            }
+        }
+        for (int row = 1; row < rows.Length; row++) {
+            for (int column = 0; column < 3; column++) {
+                content.Append("BT /F1 9 Tf 0 g 1 0 0 1 ").Append(Number(x[column] + 3)).Append(' ').Append(Number(y[row + 1] + 5))
+                    .Append(" Tm (").Append(rows[row][column]).Append(") Tj ET\n");
+            }
+        }
+
+        PdfLogicalTable table = Assert.Single(Read(content, "Helvetica").Tables);
+
+        Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
+    }
+
+    [Fact]
     public void BoxWithoutRowRulesKeepsEveryRowSeparate() {
         // Column dividers and a header rule, but no rules between body rows: one ruled row holds every data
         // line, so the grid must not fold them into a single row.

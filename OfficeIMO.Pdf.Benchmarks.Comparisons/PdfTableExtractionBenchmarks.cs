@@ -7,9 +7,10 @@ using UglyToad.PdfPig;
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
 /// <summary>
-/// Compares extracting the ruled tables of every page from identical bytes. Both libraries read the tables
-/// from the painted grid: OfficeIMO through its structured read, Tabula through its lattice (ruling-line)
-/// extractor. Each run must return every row of the source scenario with its exact cells.
+/// Compares extracting the ruled tables of every page from identical bytes: OfficeIMO through its structured
+/// read, Tabula through its lattice (ruling-line) extractor. OfficeIMO reads the painted grid, except in
+/// PeachPDF's output, which is tagged: there its structured read takes the tables from the structure tree, as
+/// it does for any tagged file. Each run must return every row of the source scenario with its exact cells.
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]

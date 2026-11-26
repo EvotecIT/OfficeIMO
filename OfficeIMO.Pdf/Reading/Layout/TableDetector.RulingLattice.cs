@@ -194,12 +194,11 @@ internal static partial class TableDetector {
     }
 
     /// <summary>
-    /// Where no rule separates two rows within a column, the cell spans both: its text, which a producer
-    /// often centres vertically, belongs to the span's top cell.
+    /// Splits a run that crosses drawn dividers into its cells, between words only. Boundaries not drawn through
+    /// the run's row (<paramref name="drawn"/>) are overflow: the text stays in the cell to their left.
     /// </summary>
-    /// <summary>Splits a run that crosses drawn dividers into its cells, between words only.</summary>
-    private static bool TrySplitAtColumns(PdfTextSpan span, double[] x, int row, int columnCount, List<PdfTextSpan>?[] cells,
-        Dictionary<PdfTextSpan, PdfTextSpan> fragments) {
+    private static bool TrySplitAtColumns(PdfTextSpan span, double[] x, bool[] drawn, int firstColumn, int row, int columnCount,
+        List<PdfTextSpan>?[] cells, Dictionary<PdfTextSpan, PdfTextSpan> fragments) {
         string text = span.Text;
         if (Math.Abs(span.RotationDegrees) > 0.01D || !PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries) ||
             boundaries.Length != text.Length + 1) return false;
@@ -215,6 +214,8 @@ internal static partial class TableDetector {
             while (last >= first && char.IsWhiteSpace(text[last])) last--;
             if (first <= last) {
                 PdfTextSpan piece = span.WithVisualText(text.Substring(first, last - first + 1)).WithOffset(boundaries[first], 0D);
+                // Line building measures gaps from each piece's own width, not the whole run's.
+                piece.SetLogicalLayoutAdvance(boundaries[last + 1] - boundaries[first]);
                 fragments[piece] = span;
                 (cells[row * columnCount + column] ??= new List<PdfTextSpan>()).Add(piece);
             }
@@ -224,8 +225,10 @@ internal static partial class TableDetector {
 
         int ColumnOf(int index) {
             double centre = span.X + (boundaries[index] + boundaries[index + 1]) / 2D;
-            int column = 0;
-            while (column + 1 < columnCount && centre >= x[column + 1]) column++;
+            int column = firstColumn;
+            for (int next = firstColumn + 1; next < columnCount && centre >= x[next]; next++) {
+                if (drawn[next]) column = next;
+            }
             return column;
         }
     }
@@ -257,6 +260,10 @@ internal static partial class TableDetector {
         return (start, end, true);
     }
 
+    /// <summary>
+    /// Where no rule separates two rows within a column, the cell spans both: its text, which a producer
+    /// often centres vertically, belongs to the span's top cell.
+    /// </summary>
     private static void MergeVerticalSpans(List<PdfTextSpan>?[] cells, double[] x, double[] y, List<PdfTableRuling> horizontals,
         PdfUnderstandingPageContext context) {
         int columnCount = x.Length - 1, rowCount = y.Length - 1;
@@ -306,7 +313,37 @@ internal static partial class TableDetector {
     /// Counts the text baselines most of a row's filled cells share. Folded data rows put a line in nearly
     /// every cell on each baseline; wrapped header cells, centred at different heights, do not.
     /// </summary>
+    /// <summary>
+    /// A body row holding several data rows the producer did not rule apart: most cells share three lines or
+    /// more, or three cells or more all hold a line on each of two shared baselines (values rarely wrap in
+    /// every column at once).
+    /// </summary>
+    private static bool IsFoldedRow(List<(double Y, int Column)> baselines, int filledColumns) {
+        if (filledColumns >= 3 && CountBaselinesInEveryColumn(baselines, filledColumns) >= 2) return true;
+        return CountSharedBaselines(baselines, filledColumns) >= 3;
+    }
+
+    private static int CountBaselinesInEveryColumn(List<(double Y, int Column)> baselines, int filledColumns) {
+        if (baselines.Count < filledColumns * 2) return 0;
+        baselines.Sort(static (a, b) => b.Y.CompareTo(a.Y));
+        var columns = new HashSet<int>();
+        int shared = 0;
+        for (int start = 0; start < baselines.Count;) {
+            int end = start;
+            columns.Clear();
+            while (end < baselines.Count && baselines[start].Y - baselines[end].Y <= LatticeMinimumCellSize) {
+                columns.Add(baselines[end].Column);
+                end++;
+            }
+            if (columns.Count >= filledColumns) shared++;
+            start = end;
+        }
+        return shared;
+    }
+
     private static int CountSharedBaselines(List<(double Y, int Column)> baselines, int filledColumns) {
+        // Fewer lines than three per filled cell is wrapped text in some cells (top-aligned cells share their
+        // first lines), not data folded across the row.
         if (filledColumns < 2 || baselines.Count < filledColumns * 3) return 0;
         baselines.Sort(static (a, b) => b.Y.CompareTo(a.Y));
         int required = Math.Max(2, (int)Math.Ceiling(filledColumns * 0.6D));
@@ -346,6 +383,7 @@ internal static partial class TableDetector {
         var cells = new List<PdfTextSpan>?[rowCount * columnCount];
         // Pieces of runs split at a divider map back to their run, which the table owns as a whole.
         var fragments = new Dictionary<PdfTextSpan, PdfTextSpan>();
+        bool[] drawn = new bool[columnCount + 1];
         int owned = 0;
         foreach (PdfTextSpan span in spans) {
             context.ConsumeWork();
@@ -363,11 +401,15 @@ internal static partial class TableDetector {
             double end = inkEnd;
             if (span.ClipPath is PdfPageClipPath clip && clip.IsRectangle) end = Math.Min(end, clip.X + clip.Width);
             bool crosses = false;
-            for (int boundary = column + 1; reliable && !crosses && boundary < columnCount && x[boundary] < end - LatticeAxisTolerance; boundary++) {
+            Array.Clear(drawn, 0, drawn.Length);
+            for (int boundary = column + 1; reliable && boundary < columnCount && x[boundary] < end - LatticeAxisTolerance; boundary++) {
                 foreach (PdfTableRuling divider in verticals) {
                     context.ConsumeWork();
                     if (Math.Abs(divider.Left - x[boundary]) <= LatticeMinimumCellSize &&
-                        middle >= divider.Bottom - LatticeTouchTolerance && middle <= divider.Top + LatticeTouchTolerance) { crosses = true; break; }
+                        middle >= divider.Bottom - LatticeTouchTolerance && middle <= divider.Top + LatticeTouchTolerance) {
+                        drawn[boundary] = crosses = true;
+                        break;
+                    }
                 }
             }
             owned++;
@@ -375,7 +417,7 @@ internal static partial class TableDetector {
                 (cells[row * columnCount + column] ??= new List<PdfTextSpan>()).Add(span);
                 continue;
             }
-            if (!TrySplitAtColumns(span, x, row, columnCount, cells, fragments)) return null;
+            if (!TrySplitAtColumns(span, x, drawn, column, row, columnCount, cells, fragments)) return null;
         }
         if (owned == 0) return null;
         MergeVerticalSpans(cells, x, y, horizontals, context);
@@ -413,7 +455,8 @@ internal static partial class TableDetector {
                 filled++;
             }
             if (filled >= 2) fullRows++;
-            if (CountSharedBaselines(baselines, filled) >= 3) foldedRows++;
+            // The first row with text is the header, whose cells may all wrap to the same lines.
+            if (textRows > 0 && IsFoldedRow(baselines, filled)) foldedRows++;
             if (filled > 0) textRows++;
         }
         // A boxed paragraph, a frame around a page or a form whose boxes each hold one label is not a table:

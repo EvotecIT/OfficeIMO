@@ -165,7 +165,8 @@ internal static partial class TableDetector {
                 filled++;
             }
             if (filled > 0) textRows++;
-            if (CountSharedBaselines(baselines, filled) >= 3) foldedRows++;
+            // The header row's cells may all wrap to the same lines; only body rows can be folded data.
+            if (table.Rows.Count > 0 && IsFoldedRow(baselines, filled)) foldedRows++;
             table.Rows.Add(values);
             sourceLines.Add(new TextLayoutEngine.TextLine((y[row] + y[row + 1]) / 2D, x[0], x[x.Length - 1],
                 string.Join(" ", values), rowRuns));

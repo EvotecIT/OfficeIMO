@@ -2753,7 +2753,10 @@ public sealed partial class PdfReadPage {
         internal bool HasObjectPaint { get; private set; }
         internal bool HasVectorPaint { get; private set; }
 
-        /// <summary>Straight path segments (rectangles and lines) the content constructs, capped once a grid is possible.</summary>
+        /// <summary>The fewest straight sides that can draw a grid of two by two cells.</summary>
+        internal const int MinimumGridSegments = 6;
+
+        /// <summary>Straight sides the content constructs (a rectangle has four), capped once a grid is possible.</summary>
         internal int StraightSegments { get; private set; }
 
         /// <summary>
@@ -2767,7 +2770,8 @@ public sealed partial class PdfReadPage {
         }
 
         internal void ObserveOperator(string op) {
-            if (op is "re" or "l" && StraightSegments < 4) StraightSegments++;
+            if (op == "re") StraightSegments = Math.Min(MinimumGridSegments, StraightSegments + 4);
+            else if (op == "l" && StraightSegments < MinimumGridSegments) StraightSegments++;
             if (op is "Do" or "BI") HasObjectPaint = true;
             if (op is "S" or "s" or "f" or "F" or "f*" or "B" or "B*" or "b" or "b*" or "sh") HasVectorPaint = true;
         }

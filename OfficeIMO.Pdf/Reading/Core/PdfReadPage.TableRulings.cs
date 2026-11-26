@@ -42,10 +42,10 @@ public sealed partial class PdfReadPage {
         if (content.Length == 0) return Array.Empty<PdfTableRuling>();
         PdfPageInvokedResourceNames invoked = GetRootInvokedResourceNames(content, resources, () => context.ConsumeWork());
         // Borders drawn inside a form object reach the lattice pass only; the strict profile reads root strokes.
-        // Otherwise a grid needs four straight segments in the page's own content: a scan, or a page that paints
-        // only a background box, has none to read.
+        // Otherwise a grid needs the sides of two by two cells in the page's own content: a scan, or a page that
+        // paints only a background box, has too few to read.
         bool forms = collectLattice && invoked.HasObjectPaint && HasFormXObjects(resources);
-        if (collectLattice && !forms && invoked.StraightSegments < 4) {
+        if (collectLattice && !forms && invoked.StraightSegments < PdfPageInvokedResourceNames.MinimumGridSegments) {
             collectLattice = false;
             if (!strict) return Array.Empty<PdfTableRuling>();
         }
@@ -59,20 +59,24 @@ public sealed partial class PdfReadPage {
             if (!forms) invoked = invoked.WithoutObjectPaint();
         }
         if (!strict && !collectLattice) return Array.Empty<PdfTableRuling>();
+        // Primitives arrive with their own colours, so a soft mask or blend mode leaves a border's visibility
+        // unknown: both profiles decline the page. The bounded strict profile also declines graphics state it
+        // does not model (IsDefault alone does not exclude it); the lattice still reads borders there. Pages the
+        // strict profile has already declined are judged from their graphics-state resources, without another
+        // pass over the content.
         if (strict) {
-            // This bounded profile declines pages with graphics effects. IsDefault alone
-            // does not exclude unresolved soft masks or unmodelled graphics-state paint.
             foreach (PdfPageDrawingEffectTransition transition in GetGraphicsEffectTransitions(content, transform, height, pageContentBudget)) {
                 context.ConsumeWork();
                 PdfPageDrawingEffect effect = transition.Effect;
-                if (effect.HasUnsupportedGraphicsState || effect.SoftMask != null ||
-                    effect.HasUnresolvedSoftMask || effect.BlendMode != OfficeBlendMode.Normal) {
+                if (effect.SoftMask != null || effect.HasUnresolvedSoftMask || effect.BlendMode != OfficeBlendMode.Normal) return Array.Empty<PdfTableRuling>();
+                if (effect.HasUnsupportedGraphicsState) {
                     if (!collectLattice) return Array.Empty<PdfTableRuling>();
                     strict = false;
                     break;
                 }
             }
         }
+        if (!strict && HasMaskingGraphicsState(resources)) return Array.Empty<PdfTableRuling>();
         LatticeRulingCollector? lattice = collectLattice ? new LatticeRulingCollector(width, height, ToReadingPoint) : null;
         var rulings = new List<PdfTableRuling>();
         bool uncertain = !strict;
@@ -223,6 +227,22 @@ public sealed partial class PdfReadPage {
                 GetPageBoundaryBox(), GetRotationDegrees(), x, y, GetEffectiveUserUnit());
             return context.ReadingFrame is null ? user : context.ReadingFrame.ToFrame(user.X, user.Y);
         }
+    }
+
+    /// <summary>Whether any graphics state the page declares sets a soft mask or a blend mode other than normal.</summary>
+    private bool HasMaskingGraphicsState(PdfDictionary? resources) {
+        if (resources is null || !resources.Items.TryGetValue("ExtGState", out PdfObject? value) ||
+            ResolveDictionary(value) is not PdfDictionary states) return false;
+        foreach (PdfObject item in states.Items.Values) {
+            if (ResolveDictionary(item) is not PdfDictionary state) continue;
+            if (state.Items.TryGetValue("SMask", out PdfObject? mask) && ResolveObject(mask) is not PdfName { Name: "None" }) return true;
+            if (state.Items.TryGetValue("BM", out PdfObject? blend)) {
+                PdfObject? mode = ResolveObject(blend);
+                if (mode is PdfArray modes && modes.Items.Count > 0) mode = ResolveObject(modes.Items[0]);
+                if (mode is not PdfName { Name: "Normal" or "Compatible" }) return true;
+            }
+        }
+        return false;
     }
 
     private bool HasFormXObjects(PdfDictionary? resources) {
