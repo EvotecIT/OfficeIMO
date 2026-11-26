@@ -11892,7 +11892,7 @@ _modules.set("09d56e54463cbff00a2b225e10a62b06c881933290525c614bb5e276167e9eac",
 return _exports;
 })();
 
-const _m96 = _modules.get("4f9f65d6bbb3e7c6cb635e9875d46aefaf50ffd4be08edc616acece72ddeb738") ?? (() => {
+const _m96 = _modules.get("686cda7fa6371b1ef1db2a80b1c47b69b3651c9ec6cf5811b828fa7aa03c7cee") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { canopyPivot, pivotNumberFormat } = _m97;
@@ -12115,8 +12115,9 @@ function prepareCanopyExport(capture, format, options = {}) {
                         const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
                         if (relativeLabel || badgedValue)
                             rawIdentities.set(exported, cell.value);
-                        if (badges && cell.text)
-                            badgeSuffixes.set(exported, badgeSeparator + badges);
+                        // A badge-only label is all suffix: later passes then see the captured label as empty.
+                        if (badges)
+                            badgeSuffixes.set(exported, cell.text ? badgeSeparator + badges : badges);
                         result.push(exported);
                     }
                 }
@@ -12131,7 +12132,7 @@ function prepareCanopyExport(capture, format, options = {}) {
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
 const _exports = Object.freeze({ canopyBadgeSplit: canopyBadgeSplit, canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("4f9f65d6bbb3e7c6cb635e9875d46aefaf50ffd4be08edc616acece72ddeb738", _exports);
+_modules.set("686cda7fa6371b1ef1db2a80b1c47b69b3651c9ec6cf5811b828fa7aa03c7cee", _exports);
 return _exports;
 })();
 
@@ -12432,7 +12433,7 @@ _modules.set("e01b2c108bf292f2e1e04b10530d945b8ee593009b55f3768de20aaf292c3804",
 return _exports;
 })();
 
-const _m103 = _modules.get("8e8db155b4093beda13a41ff7ac82056a9a71831633fab9125ba83b5e1bca78a") ?? (() => {
+const _m103 = _modules.get("e284a301a356903388f652e7c59f7351e7aed30ed9262b742bd4b9955703d9ce") ?? (() => {
 const { createGroupedReport } = _m8;
 
 const { checkAbort } = _m4;
@@ -12638,7 +12639,7 @@ function canopyGrouped(source, request, options, limits, report, format) {
         ...(options.signal === undefined ? {} : { signal: options.signal }), ...(sourceLimits === undefined ? {} : { limits: sourceLimits }) });
 }
 const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
-_modules.set("8e8db155b4093beda13a41ff7ac82056a9a71831633fab9125ba83b5e1bca78a", _exports);
+_modules.set("e284a301a356903388f652e7c59f7351e7aed30ed9262b742bd4b9955703d9ce", _exports);
 return _exports;
 })();
 
@@ -12762,7 +12763,7 @@ _modules.set("93d82c52ce5b1c7263672a96e49dbb034c7c8b666662e3c5ed1e3d61d40cf83f",
 return _exports;
 })();
 
-const _m107 = _modules.get("f059b98aa962d97126d07cd8318e438843242a29ea4574b272d9429f21e47e9d") ?? (() => {
+const _m107 = _modules.get("44e52f3bfebb769a491964bd3a3c02657c7bbf337e7182f399cd4d72c67aad69") ?? (() => {
 const { ExportCell } = _m1;
 
 const { canopyBadgeSplit } = _m96;
@@ -12887,11 +12888,11 @@ function canopyPdfNumbers(sample, columns) {
     });
 }
 const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
-_modules.set("f059b98aa962d97126d07cd8318e438843242a29ea4574b272d9429f21e47e9d", _exports);
+_modules.set("44e52f3bfebb769a491964bd3a3c02657c7bbf337e7182f399cd4d72c67aad69", _exports);
 return _exports;
 })();
 
-const _m106 = _modules.get("7ca5763d09734252e24f6275b6e8a7f9969d028ca875b58a16bb3c72eb8bc154") ?? (() => {
+const _m106 = _modules.get("88873a435a476438aa0b7c0aff34a0bc852b036ece6a9203b7635b94d58593b0") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m1;
 
 const { inputRows, checkAbort, pause, taskYieldDue } = _m4;
@@ -12996,11 +12997,11 @@ async function withCanopyPdfLayout(source, captured, options, write) {
     }
 }
 const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
-_modules.set("7ca5763d09734252e24f6275b6e8a7f9969d028ca875b58a16bb3c72eb8bc154", _exports);
+_modules.set("88873a435a476438aa0b7c0aff34a0bc852b036ece6a9203b7635b94d58593b0", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("92a448981d74377b446f301545d5cbdccb11ce846e9346c7162e1b4a4a9e3525") ?? (() => {
+const _m0 = _modules.get("7fe7884597b797dc9c6319163dbb979a2bd17135eb30af39e38f6d151fe77837") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -13141,7 +13142,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("92a448981d74377b446f301545d5cbdccb11ce846e9346c7162e1b4a4a9e3525", _exports);
+_modules.set("7fe7884597b797dc9c6319163dbb979a2bd17135eb30af39e38f6d151fe77837", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

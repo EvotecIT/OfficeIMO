@@ -12010,8 +12010,9 @@ function prepareCanopyExport(capture, format, options = {}) {
                         const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
                         if (relativeLabel || badgedValue)
                             rawIdentities.set(exported, cell.value);
-                        if (badges && cell.text)
-                            badgeSuffixes.set(exported, badgeSeparator + badges);
+                        // A badge-only label is all suffix: later passes then see the captured label as empty.
+                        if (badges)
+                            badgeSuffixes.set(exported, cell.text ? badgeSeparator + badges : badges);
                         result.push(exported);
                     }
                 }

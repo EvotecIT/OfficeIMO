@@ -128,10 +128,15 @@ test("Canopy PDF numeric formatting keeps appended badge labels", async () => {
   const amount = { ...column("Amount", "number"), format: { minimumFractionDigits: 0, maximumFractionDigits: 0, suffix: " USD" } };
   const input = capture([
     { id: "a", cells: { Amount: cell(12, "12 USD", { badges: ["Rare"], diagnostics: ["badges"] }) } },
-    { id: "b", cells: { Amount: cell(7, "7 USD") } }
+    { id: "b", cells: { Amount: cell(7, "7 USD") } },
+    { id: "c", cells: { Amount: cell(12, "", { badges: ["Level 2"] }) } },
+    { id: "d", cells: { Amount: cell(12, "", { badges: ["2"] }) } }
   ], [amount]);
   const lines = (await inspectPdf(await exportCanopy(input, "pdf"))).pages.flatMap(page => page.lines);
   assert.ok(lines.includes("12 USD · Rare"), lines.join("|")); assert.ok(lines.includes("7 USD"));
+  // A badge-only label is not a number to re-render: digits inside the badge stay as written.
+  assert.ok(lines.includes("Level 2") && lines.includes("2"), lines.join("|"));
+  assert.ok(!lines.includes("Level 12 USD") && !lines.includes("12 USD"), lines.join("|"));
 });
 
 test("Canopy rule operand scan stops at the compiler's predicate budget", async () => {
