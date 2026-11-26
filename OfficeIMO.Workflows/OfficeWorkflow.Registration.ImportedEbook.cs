@@ -71,26 +71,7 @@ public static partial class OfficeWorkflow {
                     if (target == "html") {
                         EpubImportedPublication.WriteHtml(book, destination, diagnostics, cancellationToken);
                     } else {
-                        // The converter's output limit applies to the final Markdown, which can be smaller than this HTML.
-                        using var html = new OfficeBoundedMemoryStream(MaximumWorkingHtmlBytes);
-                        EpubImportedPublication.WriteHtml(book, html, diagnostics, cancellationToken, markdownAnchors: true);
-                        html.Position = 0;
-                        using var text = new StreamReader(html, Encoding.UTF8);
-                        // Validate the complete projection, including generated navigation and anchors, before exporting Markdown.
-                        var limits = HtmlConversionLimits.UntrustedDefaults;
-                        limits.MaxInputCharacters = MaximumWorkingHtmlBytes;
-                        limits.MaxHtmlNodes = EpubImportedPublication.MaximumHtmlNodes;
-                        HtmlConversionDocument markup;
-                        try {
-                            markup = HtmlConversionDocument.Parse(text.ReadToEnd(),
-                                new HtmlConversionDocumentOptions { Limits = limits }, cancellationToken);
-                        } catch (HtmlDomLimitException error) {
-                            string message = "The combined ebook content exceeds the Markdown HTML limit (" + error.LimitSource + ").";
-                            diagnostics.Add(new OfficeDiagnostic(error.Code, OfficeDiagnosticSeverity.Error, message,
-                                null, "OfficeIMO.Html", OfficeConversionLossKind.Failure));
-                            var rejected = new OfficeConversionReport(options.SourceName!, options.TargetName!, diagnostics: diagnostics);
-                            throw new OfficeConversionException(message, rejected, error);
-                        }
+                        HtmlConversionDocument markup = CreateMarkdownProjection(book, options, diagnostics, cancellationToken);
                         var markdownOptions = new HtmlMarkdownExportOptions();
                         markdownOptions.PassThroughTags.Add("a");
                         using MarkdownDocument markdown = markup.ToMarkdown(markdownOptions, out OfficeConversionReport converted, cancellationToken);
@@ -109,6 +90,34 @@ public static partial class OfficeWorkflow {
             if (options.FailOnLoss || diagnostics.Any(item => item.LossKind == OfficeConversionLossKind.Failure))
                 report.ThrowIfLoss();
             return Task.FromResult(report);
+        }
+
+        private static HtmlConversionDocument CreateMarkdownProjection(EpubDocument book, OfficeConversionOptions options,
+            List<OfficeDiagnostic> diagnostics, CancellationToken token) {
+            // The caller's output limit applies to the final Markdown. The combined HTML has its own safety budget.
+            using var html = new OfficeBoundedMemoryStream(MaximumWorkingHtmlBytes);
+            try {
+                EpubImportedPublication.WriteHtml(book, html, diagnostics, token, markdownAnchors: true);
+                html.Position = 0;
+                using var text = new StreamReader(html, Encoding.UTF8);
+                var limits = HtmlConversionLimits.UntrustedDefaults;
+                limits.MaxInputCharacters = MaximumWorkingHtmlBytes;
+                // Count the complete projection, including generated navigation and anchors.
+                limits.MaxHtmlNodes = EpubImportedPublication.MaximumHtmlNodes;
+                return HtmlConversionDocument.Parse(text.ReadToEnd(), new HtmlConversionDocumentOptions { Limits = limits }, token);
+            } catch (HtmlDomLimitException error) {
+                throw Reject(error.Code, "The combined ebook HTML exceeds the Markdown limit (" + error.LimitSource + ").", error);
+            } catch (InvalidDataException error) when (OfficeOutputLimit.Is(error)) {
+                throw Reject("EBOOK_MARKDOWN_WORKING_HTML_LIMIT",
+                    $"The combined ebook HTML exceeds the Markdown working limit of {MaximumWorkingHtmlBytes} bytes.", error);
+            }
+
+            OfficeConversionException Reject(string code, string message, Exception error) {
+                diagnostics.Add(new OfficeDiagnostic(code, OfficeDiagnosticSeverity.Error, message,
+                    null, "OfficeIMO.Html", OfficeConversionLossKind.Failure));
+                var report = new OfficeConversionReport(options.SourceName!, options.TargetName!, diagnostics: diagnostics);
+                return new OfficeConversionException(message, report, error);
+            }
         }
 
         private static void AddMetadataLoss(List<OfficeDiagnostic> diagnostics, string message) =>

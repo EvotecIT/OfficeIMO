@@ -98,6 +98,8 @@ public static partial class Fb2Reader {
                 book = EpubImportedPublication.Create(title, "und", identifier);
             }
             AddMetadata(book, description, titleInfo);
+            if (root.Elements(Fb + "stylesheet").Any())
+                Report("FB2_STYLE_OMITTED", "FictionBook stylesheets are omitted. Semantic formatting is retained.");
             AddImages(book, root);
             var navigation = new List<EpubNavigationEntry>();
             string? cover = (string?)titleInfo?.Element(Fb + "coverpage")?.Element(Fb + "image")?.Attribute(Link + "href");
@@ -109,8 +111,6 @@ public static partial class Fb2Reader {
             } else if (cover != null) {
                 Report("FB2_COVER_UNAVAILABLE", "The declared cover does not resolve to a supported embedded raster image.", cover);
             }
-            if (root.Elements(Fb + "stylesheet").Any())
-                Report("FB2_STYLE_OMITTED", "FictionBook stylesheets are omitted. Semantic formatting is retained.");
             XElement[] bodies = root.Elements(Fb + "body").Take(129).ToArray();
             if (bodies.Length is 0 or > 128) throw new InvalidDataException("A FictionBook document must contain between 1 and 128 body elements.");
             for (int i = 0; i < bodies.Length; i++) IndexAnchors(bodies[i], i);
