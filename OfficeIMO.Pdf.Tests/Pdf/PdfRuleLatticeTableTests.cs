@@ -184,6 +184,99 @@ public sealed class PdfRuleLatticeTableTests {
         Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
     }
 
+    [Fact]
+    public void UntaggedGridBesideATaggedTableStillReadsFromItsBorders() {
+        // A tagged two-column table at the top right passes its checks; the bordered grid below it is marked as a
+        // paragraph. The geometry finds the grid as a table from its columns, but one row is a single string whose
+        // stretched space crosses the divider: only the border splits it into its two cells.
+        string[][] rows = {
+            new[] { "Code", "Item" },
+            new[] { "A-01", "Widget" },
+            new[] { "B-02", "Sprocket" },
+            new[] { "C-03", "Flange" },
+            new[] { "D-04", "Gasket" }
+        };
+        double[] x = { 72, 162, 262 };
+        double[] y = Rows(700, 16, 16, rows.Length - 1);
+        var content = new StringBuilder("/P << /MCID 6 >> BDC\n0 G 0.75 w\n");
+        foreach (double top in y) Line(content, x[0], top, x[x.Length - 1], top);
+        foreach (double left in x) Line(content, left, y[0], left, y[y.Length - 1]);
+        content.Append("q 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+        for (int row = 0; row < rows.Length; row++) {
+            string baseline = Number(y[row + 1] + 5);
+            if (row == 2) {
+                double spacing = x[1] + 3 - (x[0] + 3 + rows[row][0].Length * 5.4) - 5.4;
+                content.Append("BT /F1 9 Tf ").Append(Number(spacing)).Append(" Tw 0 g 1 0 0 1 ").Append(Number(x[0] + 3)).Append(' ').Append(baseline)
+                    .Append(" Tm (").Append(rows[row][0]).Append(' ').Append(rows[row][1]).Append(") Tj ET\n");
+                continue;
+            }
+            for (int column = 0; column < 2; column++) {
+                content.Append("BT /F1 9 Tf 0 Tw 0 g 1 0 0 1 ").Append(Number(x[column] + 3)).Append(' ').Append(baseline)
+                    .Append(" Tm (").Append(rows[row][column]).Append(") Tj ET\n");
+            }
+        }
+        content.Append("EMC\n");
+        string[][] tagged = { new[] { "Name", "Qty" }, new[] { "Bolt", "4" }, new[] { "Nut", "9" } };
+        var structure = new List<string> { "<< /Type /StructTreeRoot /K [7 0 R 17 0 R] /ParentTree << /Nums [0 [11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R]] >> >>",
+            "<< /Type /StructElem /S /Table /P 6 0 R /K [8 0 R 9 0 R 10 0 R] /Pg 3 0 R >>" };
+        for (int row = 0; row < tagged.Length; row++) {
+            structure.Add("<< /Type /StructElem /S /TR /P 7 0 R /K [" + (11 + row * 2) + " 0 R " + (12 + row * 2) + " 0 R] /Pg 3 0 R >>");
+            for (int column = 0; column < 2; column++) {
+                content.Append("/TD << /MCID ").Append(row * 2 + column).Append(" >> BDC BT /F1 9 Tf 0 g 1 0 0 1 ").Append(320 + column * 100).Append(' ')
+                    .Append(770 - row * 14).Append(" Tm (").Append(tagged[row][column]).Append(") Tj ET EMC\n");
+            }
+        }
+        for (int cell = 0; cell < 6; cell++) structure.Add("<< /Type /StructElem /S /TD /P " + (8 + cell / 2) + " 0 R /K " + cell + " /Pg 3 0 R >>");
+        structure.Add("<< /Type /StructElem /S /P /P 6 0 R /K 6 /Pg 3 0 R >>");
+
+        PdfLogicalPage page = Read(content, "Courier", tagged: true, out PdfDocumentReadResult read, structure: structure);
+
+        Assert.Empty(read.TaggedTableDiagnostics);
+        Assert.Contains(page.Tables, table => table.Rows.Select(row => row.ToArray()).SequenceEqual(tagged, ArrayComparer));
+        Assert.Contains(page.Tables, table => table.Rows.Select(row => row.ToArray()).SequenceEqual(rows, ArrayComparer));
+    }
+
+    [Fact]
+    public void NearlyTransparentBordersAreNotReadAsAGrid() {
+        // Black at 1% opacity on a white page looks white, so it splits nothing.
+        StringBuilder content = GridUnderImage(out _, "q 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+        content.Insert(0, "/GS1 gs\n");
+
+        PdfLogicalPage page = Read(content, "Courier", tagged: false, out _, resources: "/ExtGState << /GS1 << /CA 0.01 >> >>");
+
+        Assert.DoesNotContain(page.Tables, table => table.Evidence.Any(evidence => evidence.Code == "table-ruling-lattice"));
+    }
+
+    [Fact]
+    public void NonzeroFilledBoxInsideABoxHidesTheGridUnderIt() {
+        // Two boxes wound the same way and filled with the nonzero rule paint the whole outer box: the inner one
+        // is not a hole, so the grid it surrounds is painted over.
+        StringBuilder content = GridUnderImage(out _,
+            "q 1 g 40 600 m 300 600 l 300 720 l 40 720 l h 60 620 m 280 620 l 280 710 l 60 710 l h f Q\n" +
+            "q 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+
+        Assert.DoesNotContain(Read(content, "Courier").Tables,
+            table => table.Evidence.Any(evidence => evidence.Code == "table-ruling-lattice"));
+    }
+
+    [Fact]
+    public void SlantedImageCoversOnlyItsOwnStripNotItsBoundingBox() {
+        // A thin opaque image slanted below the grid: its bounding box spans the grid, the image itself does not.
+        StringBuilder content = GridUnderImage(out string[][] rows,
+            "q 600 400 -1.11 1.66 0 400 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+
+        PdfLogicalTable table = Assert.Single(Read(content, "Courier").Tables);
+        Assert.Contains(table.Evidence, evidence => evidence.Code == "table-ruling-lattice");
+        Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
+    }
+
+    private static readonly IEqualityComparer<string[]> ArrayComparer = new SequenceComparer();
+
+    private sealed class SequenceComparer : IEqualityComparer<string[]> {
+        public bool Equals(string[]? x, string[]? y) => x is null ? y is null : y is not null && x.SequenceEqual(y);
+        public int GetHashCode(string[] obj) => obj.Length;
+    }
+
     // A stroked grid whose rows are one string each, so only the borders split them into cells, with an image
     // painted after it. The image also keeps the strict stroke reader out.
     private static StringBuilder GridUnderImage(out string[][] rows, string image) {
@@ -323,19 +416,23 @@ public sealed class PdfRuleLatticeTableTests {
     private static PdfLogicalPage Read(StringBuilder content, string font) => Read(content, font, tagged: false, out _);
 
     // Tagged: a marked catalog whose Table element holds one paragraph over marked content 0.
-    private static PdfLogicalPage Read(StringBuilder content, string font, bool tagged, out PdfDocumentReadResult read) {
+    // Structure, when given, replaces it from object 6 (the StructTreeRoot) on.
+    private static PdfLogicalPage Read(StringBuilder content, string font, bool tagged, out PdfDocumentReadResult read,
+        string resources = "", IReadOnlyList<string>? structure = null) {
         string stream = content.ToString();
         var objects = new List<string> {
             tagged ? "<< /Type /Catalog /Pages 2 0 R /MarkInfo << /Marked true >> /StructTreeRoot 6 0 R >>" : "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R" +
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> " + resources + " >> /Contents 4 0 R" +
                 (tagged ? " /StructParents 0" : string.Empty) + " >>",
             "<< /Length " + Encoding.ASCII.GetByteCount(stream).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + stream + "endstream",
             // Producers write glyph widths into the font; Courier's are all 600.
             "<< /Type /Font /Subtype /Type1 /BaseFont /" + font + (font == "Courier"
                 ? " /FirstChar 32 /LastChar 126 /Widths [" + string.Join(" ", Enumerable.Repeat("600", 95)) + "]" : string.Empty) + " >>"
         };
-        if (tagged) {
+        if (tagged && structure is not null) {
+            objects.AddRange(structure);
+        } else if (tagged) {
             objects.Add("<< /Type /StructTreeRoot /K [7 0 R] /ParentTree << /Nums [0 [8 0 R]] >> >>");
             objects.Add("<< /Type /StructElem /S /Table /P 6 0 R /K [8 0 R] /Pg 3 0 R >>");
             objects.Add("<< /Type /StructElem /S /P /P 7 0 R /K 0 /Pg 3 0 R >>");

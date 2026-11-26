@@ -58,7 +58,7 @@ internal static partial class PdfDocumentReadEngine {
         bool structured = options.Profile == PdfReadProfile.Structured;
         // The structured read takes a page's tables from its tagged structure when that structure passes its checks,
         // so painted borders there would be read only to be discarded. Those pages skip the border pass; any whose
-        // tagged tables then fall back are analysed again with it, so the result is the same either way.
+        // tagged tables then fall back, or that also hold a table found in their geometry, are analysed again with it.
         PdfDocumentSemanticEnricher.TaggedTableReads? taggedTables = structured
             ? PdfDocumentSemanticEnricher.PrepareTaggedTables(document, pipelineOptions.MaxDocumentWorkUnits, cancellationToken)
             : null;
@@ -70,8 +70,11 @@ internal static partial class PdfDocumentReadEngine {
                 PdfUnderstandingPageResult[]? redone = null;
                 for (int pageIndex = 0; pageIndex < analyses.Count; pageIndex++) {
                     PdfUnderstandingPageResult page = analyses[pageIndex];
+                    // A page keeps the skip only when every table on it came from tags; a table found in the
+                    // geometry beside them may still need its borders.
                     if (pageAnalyses[pageIndex].RedoWithPaintedBorders is not { } redo ||
-                        page.TaggedTableDiagnostics.Count == 0 && page.TableCandidates.Any(static table => table.TaggedSegment is not null)) continue;
+                        page.TaggedTableDiagnostics.Count == 0 && page.TableCandidates.Count > 0 &&
+                        page.TableCandidates.All(static table => table.TaggedSegment is not null)) continue;
                     redone ??= pageAnalyses.ToArray();
                     redone[pageIndex] = redo();
                 }
