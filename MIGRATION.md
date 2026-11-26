@@ -6867,7 +6867,7 @@ that option or updated expectations.
 
 Reader uses `ReaderInputKind.Fb2` (`32`) for FB2 and FB2.ZIP imports. Consumers that validate
 Reader JSON against a packaged schema should accept version 16. OfficeIMO still
-reads versions 5 through 15.
+reads versions 5 through 16.
 
 ## TOML Reader identity and transport
 
