@@ -515,12 +515,15 @@ public sealed class WordWithoutSdkTests {
         Assert.Equal(expectedParts.Keys.OrderBy(key => key, StringComparer.Ordinal), actualParts.Keys.OrderBy(key => key, StringComparer.Ordinal));
         foreach (KeyValuePair<string, byte[]> part in expectedParts) {
             byte[] other = actualParts[part.Key];
-            if (part.Value.AsSpan().SequenceEqual(other)) continue;
-            if (!part.Key.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) && !part.Key.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
-                Assert.Fail($"{name}: binary part {part.Key} differs.");
-            }
-            string expectedXml = Canonical(part.Value, GeneratedRelationshipIds(expectedParts, part.Key));
-            string actualXml = Canonical(other, GeneratedRelationshipIds(actualParts, part.Key));
+            bool xml = part.Key.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) || part.Key.EndsWith(".rels", StringComparison.OrdinalIgnoreCase);
+            Dictionary<string, string> expectedIds = GeneratedRelationshipIds(expectedParts, part.Key);
+            Dictionary<string, string> actualIds = GeneratedRelationshipIds(actualParts, part.Key);
+            // Identical bytes still differ when the same generated identifiers point elsewhere.
+            bool sameIds = expectedIds.Count == actualIds.Count && expectedIds.All(id => actualIds.TryGetValue(id.Key, out string? target) && target == id.Value);
+            if (part.Value.AsSpan().SequenceEqual(other) && (sameIds || !xml)) continue;
+            if (!xml) Assert.Fail($"{name}: binary part {part.Key} differs.");
+            string expectedXml = Canonical(part.Value, expectedIds);
+            string actualXml = Canonical(other, actualIds);
             if (expectedXml == actualXml) continue;
             int at = 0;
             while (at < expectedXml.Length && at < actualXml.Length && expectedXml[at] == actualXml[at]) at++;
