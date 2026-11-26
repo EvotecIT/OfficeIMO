@@ -79,7 +79,9 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddJsonHandler(configured.Json)
             .AddLatexHandler(configured.Latex)
             .AddMarkdownHandler(configured.Markdown)
-            .AddHandler(EpubReaderAdapter.CreateImportHandler("mobi", new[] { ".mobi", ".prc", ".azw", ".azw3" },
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("mobi", new[] { ".mobi", ".azw", ".azw3" },
+                ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe))
+            .AddFallbackHandler(EpubReaderAdapter.CreateImportHandler("mobi-prc", new[] { ".prc" },
                 ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe))
             .AddFallbackHandler(EpubReaderAdapter.CreateImportHandler("palmdoc", new[] { ".pdb" },
                 ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe))

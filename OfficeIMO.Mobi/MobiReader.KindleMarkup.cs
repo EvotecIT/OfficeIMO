@@ -68,8 +68,8 @@ public static partial class MobiReader {
                 name = "span";
             }
 
-            // Keep the original opening-tag length and record each inserted close so
-            // Kindle positions can be translated from the original byte offsets.
+            // Keep the original opening-tag length. Record each inserted close to
+            // map Kindle positions to the original byte offsets.
             int end = source.Index;
             expanded.Append(markup, copied, end - 2 - copied).Append(" ></").Append(name).Append('>');
             copied = end;

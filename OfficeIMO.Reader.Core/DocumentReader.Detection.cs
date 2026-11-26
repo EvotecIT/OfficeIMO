@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Text;
 
 namespace OfficeIMO.Reader;
@@ -569,6 +570,15 @@ internal static partial class DocumentReaderEngine {
         return exact;
     }
 
+    private static bool HasPalmEbookHeader(ReadOnlySpan<byte> prefix) {
+        if (prefix.Length < 86) return false;
+        ReadOnlySpan<byte> signature = prefix.Slice(60, 8);
+        if (!signature.SequenceEqual("BOOKMOBI"u8) && !signature.SequenceEqual("TEXtREAd"u8)) return false;
+        int records = BinaryPrimitives.ReadUInt16BigEndian(prefix.Slice(76, 2));
+        uint firstRecord = BinaryPrimitives.ReadUInt32BigEndian(prefix.Slice(78, 4));
+        return records > 0 && firstRecord >= 78 + 8 * records;
+    }
+
     private static DetectionCandidate DetectContent(byte[] prefix) {
         if (prefix.Length == 0) {
             return DetectionCandidate.Unknown("content:empty");
@@ -592,6 +602,9 @@ internal static partial class DocumentReaderEngine {
         }
         if (StartsWith(prefix, new byte[] { 0xA1, 0x2F, 0xFF, 0x43, 0xD9, 0xEF, 0x76, 0x4C, 0x9E, 0xE2, 0x10, 0xEA, 0x57, 0x22, 0x76, 0x5F })) {
             return DetectionCandidate.High(ReaderInputKind.OneNote, "application/onenote", "signature:onenote-toc");
+        }
+        if (HasPalmEbookHeader(prefix)) {
+            return DetectionCandidate.High(ReaderInputKind.Mobi, "application/x-mobipocket-ebook", "signature:palm-ebook");
         }
         if (IndexOfAscii(prefix, "%PDF-", Math.Min(prefix.Length, 1024)) >= 0) {
             return DetectionCandidate.High(ReaderInputKind.Pdf, "application/pdf", "signature:pdf");

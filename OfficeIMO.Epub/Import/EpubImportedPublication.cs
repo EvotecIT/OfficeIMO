@@ -158,11 +158,13 @@ internal static class EpubImportedPublication {
                     Omit("EBOOK_HTML_ATTRIBUTE_OMITTED", "An attribute is outside the static HTML projection.", name);
                     continue;
                 }
-                if (markdownAnchors && listNumbering &&
-                    (name is "reversed" or "value" || (name == "type" && value != "1") ||
-                     value.StartsWith("-", StringComparison.Ordinal) || value.Length > 9) &&
-                    reportedMarkdownNumbering.Add(chapterPath))
-                    Omit("EBOOK_MARKDOWN_LIST_NUMBERING_OMITTED", "Markdown readers may change the authored list numbering.", chapterPath);
+                if (markdownAnchors && listNumbering) {
+                    string numberingValue = value.Trim();
+                    if ((name is "reversed" or "value" || (name == "type" && numberingValue != "1") ||
+                         numberingValue.StartsWith("-", StringComparison.Ordinal) || numberingValue.Length > 9) &&
+                        reportedMarkdownNumbering.Add(chapterPath))
+                        Omit("EBOOK_MARKDOWN_LIST_NUMBERING_OMITTED", "Markdown readers may change the authored list numbering.", chapterPath);
+                }
                 if (markdownAnchors && name == "dir" && reportedMarkdownDirection.Add(chapterPath))
                     Omit("EBOOK_MARKDOWN_DIRECTION_OMITTED", "Explicit text direction is omitted from Markdown.", chapterPath);
                 if ((name == "src" && tag != "img") || (name == "href" && tag != "a")) continue;

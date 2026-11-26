@@ -28,6 +28,21 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(new[] { "fr", "nl" }, paragraphs.Select(node => node.GetAttribute("lang")));
     }
 
+    [Theory]
+    [InlineData(" -2 ", true)]
+    [InlineData("   2       ", false)]
+    public void ImportedMarkdownDiagnosesListStartsByValue(string start, bool expectedLoss) {
+        EpubPublication publication = EpubPublication.Create("A book", "en");
+        publication.AddChapter("body", "EPUB/body.xhtml", "Body", $"<ol start='{start}'><li>Item</li></ol>");
+        EpubDocument book = EpubImportedPublication.Open(publication, CancellationToken.None);
+        var diagnostics = new List<OfficeDiagnostic>();
+        using var output = new MemoryStream();
+
+        EpubImportedPublication.WriteHtml(book, output, diagnostics, CancellationToken.None, markdownAnchors: true);
+
+        Assert.Equal(expectedLoss, diagnostics.Any(item => item.Code == "EBOOK_MARKDOWN_LIST_NUMBERING_OMITTED"));
+    }
+
     [Fact]
     public void PdfLoadOptionsUseTheValidatedWorkflowByteBudget() {
         const long budget = 768L * 1024L * 1024L;
