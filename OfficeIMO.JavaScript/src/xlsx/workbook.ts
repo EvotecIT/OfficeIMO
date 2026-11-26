@@ -7,7 +7,7 @@ import type { ZipEntry } from "../zip/index.js";
 import { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropertiesXml } from "../opc/index.js";
 import { escapeOoxmlAttribute, cleanXml, xmlDeclaration } from "../xml/index.js";
 import type { InvalidCharacterPolicy } from "../xml/index.js";
-import { StyleRegistry, spreadsheetNamespace } from "./styles.js";
+import { StyleRegistry, spreadsheetNamespace, normalizeBorder } from "./styles.js";
 import { sheetName, assertXlsxValue, copyValue } from "./values.js";
 import { copyColumns } from "../internal/rows.js";
 import { captureFields } from "../internal/capture.js";
@@ -39,6 +39,8 @@ function captureSheet(options: SheetOptions, policy: InvalidCharacterPolicy): Sh
   return { ...captured, columns,
     ...(captured.columnOutlines === undefined ? {} : { columnOutlines: captureColumnOutlines(captured.columnOutlines, columns.length)! }),
     ...(captured.headerRows === undefined ? {} : { headerRows: captureTableSpans(captured.headerRows, columns.length) }),
+    // Preflight and every header style read this one snapshot of the edges.
+    ...(captured.headerBorder === undefined ? {} : { headerBorder: normalizeBorder(captured.headerBorder) }),
     ...(footer ? { footer: { ...footer,
       ...(footer.rows === undefined ? {} : { rows: captureTableSpans(footer.rows, columns.length) }),
       ...(footer.values === undefined ? {} : { values: footer.values.map(copyValue) as NonNullable<SheetOptions["footer"]>["values"] & {} }) } } : {}),

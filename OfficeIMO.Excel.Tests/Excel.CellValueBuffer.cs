@@ -80,8 +80,15 @@ namespace OfficeIMO.Tests {
             Assert.True(document.HasPendingDirectCellValues);
         };
 
+        // A new workbook records plain values without the model until its SDK opens; the cell buffer serves the model.
+        private static ExcelDocument CreateBufferedWorkbook() {
+            ExcelDocument document = ExcelDocument.Create();
+            document.OpenDeferredSdk("cell buffer test");
+            return document;
+        }
+
         private static MemoryStream SaveWorkbook(Action<ExcelDocument> write, ExcelSaveOptions? options) {
-            using ExcelDocument document = ExcelDocument.Create();
+            using ExcelDocument document = CreateBufferedWorkbook();
             write(document);
             var output = new MemoryStream();
             document.Save(output, options);
@@ -165,7 +172,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void CellValueBuffer_AutoFitMatchesTheMeasuredDomWidths() {
             static double[] Widths(bool materializeFirst) {
-                using ExcelDocument document = ExcelDocument.Create();
+                using ExcelDocument document = CreateBufferedWorkbook();
                 ExcelSheet sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 5000; row++) {
                     sheet.Cell(row, 1).SetValue("item number " + row + (row % 97 == 0 ? " WWWWWWWW" : string.Empty));

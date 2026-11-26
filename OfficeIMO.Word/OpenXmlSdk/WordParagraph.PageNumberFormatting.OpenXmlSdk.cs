@@ -39,4 +39,19 @@ public partial class WordParagraph {
             if (value != null) properties.AddChild(value.CloneNode(true), true);
         }
     }
+
+    // As above, for a property named by its element; value is null when the property was removed.
+    private void UpdatePageNumberFormatting(OpenXmlElement? value, string localName) {
+        PageNumberFormattingGroup? group = _run?.Annotation<PageNumberFormattingGroup>();
+        if (group == null) return;
+        foreach (Run run in group.Runs) {
+            if (!run.Ancestors<Paragraph>().Any(paragraph => ReferenceEquals(paragraph, _paragraph))) continue;
+            RunProperties properties = run.RunProperties ??= new RunProperties();
+            foreach (OpenXmlElement existing in properties.ChildElements
+                .Where(child => child.LocalName == localName && child.NamespaceUri == WordprocessingNamespace).ToArray()) {
+                existing.Remove();
+            }
+            if (value != null) properties.AddChild(value.CloneNode(true), true);
+        }
+    }
 }

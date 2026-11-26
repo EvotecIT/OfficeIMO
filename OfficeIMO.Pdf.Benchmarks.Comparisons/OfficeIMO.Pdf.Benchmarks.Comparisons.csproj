@@ -95,6 +95,8 @@
     <PackageReference Include="itext.pdfhtml" Version="6.3.3" />
     <PackageReference Include="PeachPDF" Version="$(PeachPdfBenchmarkVersion)" />
     <PackageReference Include="PdfPecker" Version="$(PdfPeckerBenchmarkVersion)" GeneratePathProperty="true" />
+    <!-- Tabula (MIT) is the ruled-table extraction comparison; it reads pages through the PdfPig pinned above. -->
+    <PackageReference Include="Tabula" Version="1.0.1" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

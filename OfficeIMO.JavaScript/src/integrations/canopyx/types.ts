@@ -13,6 +13,8 @@ export interface CanopyExportCell {
   /** Native format; optional for mode=value, whose unformatted integer values stay whole in PDF. */
   readonly numberFormat?: string;
   readonly tone?: string;
+  /** Badge labels drawn beside the cell. Exports append them to the text, for example `Alice · Disabled · Stale`. */
+  readonly badges?: readonly (string | { readonly text: string; readonly tone?: string; readonly title?: string })[];
   readonly link?: ExportLink;
   readonly diagnostics?: readonly string[];
 }
@@ -145,7 +147,8 @@ export interface CanopyDiagnostic {
   readonly columnId?: string;
 }
 export interface CanopySourceOptions {
-  /** Map semantic tones explicitly; canonical neutral defaults to no override. Cell tone overrides row tone. */
+  /** Override semantic tone presentation. info, success, warning, danger and muted default to the document palette;
+   * neutral defaults to no override. An entry here replaces that tone's default. Cell tone overrides row tone. */
   readonly tones?: Readonly<Record<string, CellPresentation>>;
   /** Selected-column overrides. Unselected IDs are ignored. Native format overrides remain literal Excel syntax. */
   readonly columnOptions?: Readonly<Record<string, Omit<Partial<ColumnSettings>, "header" | "type">>>;

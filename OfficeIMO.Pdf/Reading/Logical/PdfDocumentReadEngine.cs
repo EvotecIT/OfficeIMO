@@ -54,21 +54,36 @@ internal static partial class PdfDocumentReadEngine {
         int[] pageNumbers = options.PageSelection?.ToPageNumbers(document.Pages.Count, nameof(options.PageSelection))
             ?? Enumerable.Range(1, document.Pages.Count).ToArray();
         PdfUnderstandingPipelineOptions pipelineOptions = PdfUnderstandingPipelineOptions.Resolve(options.Pipeline);
-        pageAnalyses = new PdfUnderstandingPipeline(
-                options.LayoutOptions,
-                pipelineOptions,
-                options.IncludeImages)
-            .RunPages(document, pageNumbers, cancellationToken);
+        var pipeline = new PdfUnderstandingPipeline(options.LayoutOptions, pipelineOptions, options.IncludeImages);
+        bool structured = options.Profile == PdfReadProfile.Structured;
+        // The structured read takes a page's tables from its tagged structure when that structure passes its checks,
+        // so painted borders there would be read only to be discarded. Those pages skip the border pass; any whose
+        // tagged tables then fall back, or that also hold a table found in their geometry, are analysed again with it.
+        PdfDocumentSemanticEnricher.TaggedTableReads? taggedTables = structured
+            ? PdfDocumentSemanticEnricher.PrepareTaggedTables(document, pipelineOptions.MaxDocumentWorkUnits, cancellationToken)
+            : null;
+        pageAnalyses = pipeline.RunPages(document, pageNumbers, taggedTables?.Pages, cancellationToken);
         IReadOnlyList<PdfUnderstandingPageResult> analyses = pageAnalyses;
-        if (options.Profile == PdfReadProfile.Structured) {
-            analyses = PdfDocumentSemanticEnricher.Enrich(
-                document,
-                pageNumbers,
-                analyses,
-                options.LayoutOptions,
-                pipelineOptions.MaxRegionsPerPage,
-                pipelineOptions.MaxDocumentWorkUnits,
-                cancellationToken);
+        if (structured) {
+            if (taggedTables is not null) {
+                // Pages whose tagged tables fail, or that none supplies, are known before enrichment: the reads
+                // depend only on the pages' text, which the second analysis keeps, so enrichment reuses them.
+                bool[] fallBack = PdfDocumentSemanticEnricher.ReadTaggedTables(
+                    document, pageNumbers, pageAnalyses, taggedTables, pipelineOptions.MaxDocumentWorkUnits, cancellationToken);
+                pageAnalyses = Redo(pageAnalyses, pageIndex => fallBack[pageIndex]) ?? pageAnalyses;
+            }
+            analyses = Enrich(pageAnalyses);
+            if (taggedTables is not null) {
+                // A page keeps the skip only when every table on it came from tags; a table found in the geometry
+                // beside them may still need its borders.
+                IReadOnlyList<PdfUnderstandingPageResult> enriched = analyses;
+                IReadOnlyList<PdfUnderstandingPageResult>? redone = Redo(pageAnalyses, pageIndex =>
+                    enriched[pageIndex].TableCandidates.Any(static table => table.TaggedSegment is null));
+                if (redone is not null) {
+                    pageAnalyses = redone;
+                    analyses = Enrich(pageAnalyses);
+                }
+            }
         }
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentReadResult result = PdfDocumentReadResult.FromPageNumbers(
@@ -85,5 +100,27 @@ internal static partial class PdfDocumentReadEngine {
             analyses[pageIndex].CompleteOperation();
         }
         return result;
+
+        // Analyses again, with the painted-border pass, the pages that skipped it and match; null when none does.
+        static IReadOnlyList<PdfUnderstandingPageResult>? Redo(IReadOnlyList<PdfUnderstandingPageResult> pages, Func<int, bool> needed) {
+            PdfUnderstandingPageResult[]? redone = null;
+            for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+                if (pages[pageIndex].RedoWithPaintedBorders is not { } redo || !needed(pageIndex)) continue;
+                redone ??= pages.ToArray();
+                redone[pageIndex] = redo();
+            }
+            return redone is null ? null : Array.AsReadOnly(redone);
+        }
+
+        IReadOnlyList<PdfUnderstandingPageResult> Enrich(IReadOnlyList<PdfUnderstandingPageResult> pages) =>
+            PdfDocumentSemanticEnricher.Enrich(
+                document,
+                pageNumbers,
+                pages,
+                options.LayoutOptions,
+                pipelineOptions.MaxRegionsPerPage,
+                pipelineOptions.MaxDocumentWorkUnits,
+                cancellationToken,
+                taggedTables);
     }
 }

@@ -280,3 +280,33 @@ test("an installed CompressionStream without deflate-raw support falls back to s
     assert.ok([...(await readZip(await book.toBlob())).values()].every(e => e.method === 0));
   } finally { globalThis.CompressionStream = original; }
 });
+
+test("an invalid header border is rejected before the worksheet registers any style", () => {
+  const book = new Workbook({ limits: { maxStyles: 3 } });
+  assert.throws(() => book.addWorksheet("Rejected", { columns: [{ header: "Note", wrapText: true }], headerBorder: { bottom: { style: "wavy" } } }), /Invalid border style/);
+  assert.equal(book.addWorksheet("Recover", { columns: [{ header: "Value" }] }).name, "Recover");
+});
+
+test("a border edge stores the style and color it validated", () => {
+  const styleReads = [], book = new Workbook();
+  const edge = { get style() { styleReads.push(1); return styleReads.length > 1 ? "invalid" : "thin"; }, color: "A6B4C8" };
+  // The edge is captured on its first read; a later different read cannot reach header style registration.
+  const sheet = book.addWorksheet("Data", { columns: [{ header: "A" }], headerBorder: { bottom: edge } });
+  assert.equal(styleReads.length, 1);
+  assert.equal(sheet.name, "Data");
+});
+
+test("every header cell uses the header border read once at registration", async () => {
+  let reads = 0;
+  const headerBorder = { get bottom() { return reads++ ? undefined : { style: "thin", color: "A6B4C8" }; } };
+  const book = new Workbook();
+  await book.addWorksheet("Data", { columns: [{ header: "A" }, { header: "B" }], headerBorder }).addRows([["a", "b"]]);
+  const zip = await readZip(await book.toBlob()), styles = zip.get("xl/styles.xml").content;
+  const borders = [...styles.match(/<borders[^>]*>([\s\S]*?)<\/borders>/)[1].matchAll(/<border>[\s\S]*?<\/border>|<border\/>/g)].map(m => m[0]);
+  const xfs = [...styles.match(/<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/)[1].matchAll(/<xf [^>]*?(?:\/>|>)/g)].map(m => m[0]);
+  for (const ref of ["A1", "B1"]) {
+    const index = Number(zip.get("xl/worksheets/sheet1.xml").content.match(new RegExp('<c r="' + ref + '"[^>]*\\bs="(\\d+)"'))[1]);
+    assert.match(borders[Number(xfs[index].match(/borderId="(\d+)"/)[1])], /<bottom style="thin"><color rgb="FFA6B4C8"\/><\/bottom>/, ref);
+  }
+  assert.equal(reads, 1);
+});

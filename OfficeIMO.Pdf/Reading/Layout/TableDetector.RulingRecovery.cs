@@ -146,9 +146,14 @@ internal static partial class TableDetector {
         for (int column = 0; column < columnCount; column++) table.Columns.Add(new PdfStructuredTableColumn { From = x[column], To = x[column + 1] });
         var sourceLines = new List<TextLayoutEngine.TextLine>();
         var sourceRuns = new List<PdfTextSpan>();
+        var baselines = new List<(double Y, int Column)>();
+        int foldedRows = 0, textRows = 0;
         for (int row = 0; row < rowCount; row++) {
             var values = new string[columnCount];
             var rowRuns = new List<PdfTextSpan>();
+            int filled = 0;
+            bool wrapped = true;
+            baselines.Clear();
             for (int column = 0; column < columnCount; column++) {
                 context.ConsumeWork();
                 List<PdfTextSpan>? runs = cells[row * columnCount + column];
@@ -156,14 +161,22 @@ internal static partial class TableDetector {
                 List<TextLayoutEngine.TextLine> cellLines = TextLayoutEngine.BuildLines(runs, context.LayoutOptions.ToEngineOptions(),
                     context.ConsumeWork, context.ThrowIfCancellationRequested);
                 values[column] = string.Join(" ", cellLines.Select(static line => line.Text));
+                foreach (TextLayoutEngine.TextLine line in cellLines) baselines.Add((line.Y, column));
+                if (cellLines.Count > 1 && !WrapsInCell(cellLines, x[column], x[column + 1])) wrapped = false;
                 rowRuns.AddRange(runs);
+                filled++;
             }
+            if (filled > 0) textRows++;
+            // The header row's cells may all wrap to the same lines; only body rows can be folded data, and not
+            // those whose every multi-line cell wraps (see RecoverRulingLatticeTables).
+            if (table.Rows.Count > 0 && !wrapped && IsFoldedRow(baselines, filled)) foldedRows++;
             table.Rows.Add(values);
             sourceLines.Add(new TextLayoutEngine.TextLine((y[row] + y[row + 1]) / 2D, x[0], x[x.Length - 1],
                 string.Join(" ", values), rowRuns));
             sourceRuns.AddRange(rowRuns);
         }
-        if (sourceRuns.Count == 0 || !LooksLikeHeaderRow(table.Rows[0])) return null;
+        // Data rows without rules between them would fold into one cell row (see RecoverRulingLatticeTables).
+        if (sourceRuns.Count == 0 || !LooksLikeHeaderRow(table.Rows[0]) || foldedRows * 3 >= textRows) return null;
         table.SourceLines = sourceLines;
         table.SourceRuns = sourceRuns;
         return table;

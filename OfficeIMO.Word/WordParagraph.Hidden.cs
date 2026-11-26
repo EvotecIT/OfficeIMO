@@ -1,4 +1,6 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
+using static OfficeIMO.Word.OpenXml.WordXmlEdits;
 
 namespace OfficeIMO.Word;
 
@@ -10,19 +12,15 @@ public partial class WordParagraph {
     /// </summary>
     public bool? Hidden {
         get {
-            Vanish? hidden = ScopedRunProperties?.Vanish;
-            return hidden == null ? null : hidden.Val?.Value ?? true;
+            OfficeXmlNode hidden = RunPropertiesNode.Child(W, "vanish");
+            return hidden.IsNone ? null : ReadOnOff(hidden);
         }
         set {
             if (value == null) {
-                ScopedRunProperties?.Vanish?.Remove();
+                if (!RunPropertiesNode.Child(W, "vanish").IsNone) RemoveChild(EditRunProperties(), "vanish");
                 return;
             }
-
-            RunProperties properties = IsHyperLink && _stdRun == null
-                ? VerifyRunProperties(Hyperlink!._hyperlink!, Hyperlink._run!, Hyperlink._runProperties)
-                : VerifyRunProperties();
-            properties.Vanish = new Vanish { Val = value.Value };
+            ReplaceChild(EditRunProperties(), "vanish", WRPrView.Order, value.Value ? "true" : "false");
         }
     }
 }

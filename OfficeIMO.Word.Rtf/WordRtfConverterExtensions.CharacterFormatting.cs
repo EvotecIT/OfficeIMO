@@ -62,7 +62,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         wordRun.ApplyDirectEmphasis(run.DirectBold, run.DirectItalic,
-            run.DirectUnderlineStyle.HasValue ? ToWordUnderlineStyle(run.UnderlineStyle) : null);
+            run.DirectUnderlineStyle.HasValue ? ToWordUnderlineStyle(run.UnderlineStyle).ToOfficeEnum() : null);
         if (run.UnderlineStyle != RtfUnderlineStyle.None) {
             wordRun.SetUnderline(ToWordUnderlineStyle(run.UnderlineStyle).ToOfficeEnum());
             if (run.UnderlineColorIndex.HasValue && rtfDocument != null) {

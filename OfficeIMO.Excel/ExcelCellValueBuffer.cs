@@ -238,6 +238,10 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        // Adding runs once per cell, so it is compiled optimized from the first call rather than tiered up.
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal bool CanAdd(int row, int column) {
             if (row <= 0 || row > ExcelA1.MaxRows || column <= 0 || column > ExcelA1.MaxColumns) {
                 return false;
@@ -246,6 +250,9 @@ namespace OfficeIMO.Excel {
             return row > RowCount || (row == RowCount && column > _lastColumn);
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal void Add(int row, int column, in ExcelBufferedCell cell) {
             ExpandBlock();
             Version++;
@@ -278,6 +285,9 @@ namespace OfficeIMO.Excel {
             NoteColumnShape(column, cell.Kind);
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         private long StorePayload(in ExcelBufferedCell cell) {
             if (cell.Reference == null) {
                 return cell.Bits;
@@ -561,6 +571,9 @@ namespace OfficeIMO.Excel {
             => _block!.GetKind(_blockFirstValue + cellIndex - ChunkedCellCount);
 
         /// <summary>Copies the block into the chunks, as if its cells had been added one by one.</summary>
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         private void ExpandBlock() {
             ExcelTabularCellValues? values = _block;
             if (values == null) {

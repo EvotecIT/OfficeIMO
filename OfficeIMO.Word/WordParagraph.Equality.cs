@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
         public bool Equals(WordParagraph? other) {
             if (other is null) return false;
             if (ReferenceEquals(this, other)) return true;
-            if (ReferenceEquals(_paragraph, other._paragraph)) return true;
+            if (ParagraphNode.Equals(other.ParagraphNode)) return true;
 
             if (Text != other.Text) return false;
             if (TabStops.Count != other.TabStops.Count) return false;

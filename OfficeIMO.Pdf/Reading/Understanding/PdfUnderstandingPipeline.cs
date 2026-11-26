@@ -137,7 +137,14 @@ internal sealed partial class PdfUnderstandingPipeline {
     internal IReadOnlyList<PdfUnderstandingPageResult> RunPages(
         PdfReadDocument document,
         int[] pageNumbers,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        RunPages(document, pageNumbers, skipPaintedBorders: null, cancellationToken);
+
+    internal IReadOnlyList<PdfUnderstandingPageResult> RunPages(
+        PdfReadDocument document,
+        int[] pageNumbers,
+        ISet<int>? skipPaintedBorders,
+        CancellationToken cancellationToken) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         if (pageNumbers.Length > _maxPages) throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, _maxPages, pageNumbers.Length);
@@ -145,7 +152,8 @@ internal sealed partial class PdfUnderstandingPipeline {
         for (int i = 0; i < pageNumbers.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageNumbers[i];
-            pages.Add(RunPage(document.Pages[pageNumber - 1], pageNumber, cancellationToken));
+            pages.Add(RunPage(document.Pages[pageNumber - 1], pageNumber, cancellationToken,
+                skipPaintedBorders?.Contains(pageNumber) == true));
         }
         return pages.AsReadOnly();
     }
@@ -248,9 +256,12 @@ internal sealed partial class PdfUnderstandingPipeline {
         }
     }
 
-    private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken) {
+    private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken,
+        bool skipPaintedBorders = false) {
         using PdfReadPage.DecodedContentReuseScope contentReuse = page.ReuseDecodedContent();
-        return RunPage(CreateContext(page, pageNumber, cancellationToken), cancellationToken);
+        PdfUnderstandingPageContext context = CreateContext(page, pageNumber, cancellationToken);
+        context.SkipPaintedBorders = skipPaintedBorders;
+        return RunPage(context, cancellationToken);
     }
 
     internal PdfUnderstandingPageResult RunInspectionPage(PdfReadPage page, int pageNumber, bool recoverDecodableText,
@@ -306,10 +317,25 @@ internal sealed partial class PdfUnderstandingPipeline {
         EnsureCount(lines.Count, _limits.MaxLinesPerPage);
         cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("line-grouping", _lineGrouping.GetType(), words.Count, lines.Count));
+        long consumedBeforeTables = context.WorkUnitsConsumed;
+        List<PdfUnderstandingStageTrace>? traceBeforeTables = context.SkipPaintedBorders ? new List<PdfUnderstandingStageTrace>(trace) : null;
         IReadOnlyList<PdfUnderstandingTableCandidate> tableCandidates = NotNull(
             _tableDetection.DetectTables(context, lines),
             nameof(IPdfTableDetectionStage));
-        return RunFromLines(context, runs, words, lines, tableCandidates, _tableDetection.GetType(), trace, cancellationToken);
+        PdfUnderstandingPageResult result = RunFromLines(context, runs, words, lines, tableCandidates, _tableDetection.GetType(), trace, cancellationToken);
+        if (traceBeforeTables is not null) {
+            result.RedoWithPaintedBorders = () => {
+                using PdfReadPage.DecodedContentReuseScope contentReuse = context.Page.ReuseDecodedContent();
+                context.RewindWork(consumedBeforeTables);
+                context.SkipPaintedBorders = false;
+                var redoTrace = new List<PdfUnderstandingStageTrace>(traceBeforeTables);
+                IReadOnlyList<PdfUnderstandingTableCandidate> tables = NotNull(
+                    _tableDetection.DetectTables(context, lines),
+                    nameof(IPdfTableDetectionStage));
+                return RunFromLines(context, runs, words, lines, tables, _tableDetection.GetType(), redoTrace, cancellationToken);
+            };
+        }
+        return result;
     }
 
     private PdfUnderstandingPageContext CreateContext(

@@ -1376,6 +1376,24 @@ const { DifferentialStyles } = _m18;
 
 
 const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+const borderStyles = ["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"];
+/** @internal Validate and normalize border edges without registering a workbook style. */
+function normalizeBorder(border) {
+    if (!border || typeof border !== "object")
+        throw new TypeError("A border must be an object of edges.");
+    const result = {};
+    for (const side of ["left", "right", "top", "bottom"]) {
+        const edge = border[side];
+        if (edge) {
+            // Read each property once, so the validated edge is the one that is stored.
+            const { style, color } = edge;
+            if (!borderStyles.includes(style))
+                throw new TypeError("Invalid border style.");
+            result[side] = { style, ...(color ? { color: colorArgb(color) } : {}) };
+        }
+    }
+    return result;
+}
 const NumberFormats = { General: "General", Integer: "0", Decimal: "0.00", Percent: "0.00%", Date: "yyyy-mm-dd", DateTime: "yyyy-mm-dd hh:mm:ss" };
 function index(value, count, kind) {
     if (!Number.isInteger(value) || value < 0 || value >= count)
@@ -1448,32 +1466,24 @@ class StyleRegistry {
     /** @internal */
     addDifferentials(styles) { this.checkDifferentials(styles); return this.differential.add(styles); }
     addFont(font) {
-        if (font.name !== undefined && typeof font.name !== "string")
+        const { name: requested, size: requestedSize, bold, italic, underline, strike, color } = font;
+        if (requested !== undefined && typeof requested !== "string")
             throw new TypeError("Font name must be a string.");
-        const name = cleanXml(font.name ?? "Calibri", this.policy), size = font.size ?? 11;
+        const name = cleanXml(requested ?? "Calibri", this.policy), size = requestedSize ?? 11;
         if (typeof name !== "string" || !name || name.length > 31)
             throw new TypeError("Font name must contain 1 through 31 characters.");
         if (!Number.isFinite(size) || size <= 0 || size > 409)
             throw new RangeError("Font size must be positive and at most 409.");
-        return deduplicate(this.fonts, this.fontIndexes, { name, size, bold: !!font.bold, italic: !!font.italic, underline: !!font.underline, strike: !!font.strike, color: font.color ? colorArgb(font.color) : "" }, this.maximum);
+        return deduplicate(this.fonts, this.fontIndexes, { name, size, bold: !!bold, italic: !!italic, underline: !!underline, strike: !!strike, color: color ? colorArgb(color) : "" }, this.maximum);
     }
     addFill(fill) {
-        const pattern = fill.pattern ?? (fill.color ? "solid" : "none");
-        if (!["none", "gray125", "solid"].includes(pattern) || (pattern === "solid" && !fill.color) || (pattern !== "solid" && fill.color))
+        const { color } = fill, pattern = fill.pattern ?? (color ? "solid" : "none");
+        if (!["none", "gray125", "solid"].includes(pattern) || (pattern === "solid" && !color) || (pattern !== "solid" && color))
             throw new TypeError("A solid fill requires a color; none and gray125 have no color.");
-        return deduplicate(this.fills, this.fillIndexes, { pattern, color: fill.color ? colorArgb(fill.color) : "" }, this.maximum + 1);
+        return deduplicate(this.fills, this.fillIndexes, { pattern, color: color ? colorArgb(color) : "" }, this.maximum + 1);
     }
     addBorder(border) {
-        const result = {};
-        for (const side of ["left", "right", "top", "bottom"]) {
-            const edge = border[side];
-            if (edge) {
-                if (!["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"].includes(edge.style))
-                    throw new TypeError("Invalid border style.");
-                result[side] = { style: edge.style, ...(edge.color ? { color: colorArgb(edge.color) } : {}) };
-            }
-        }
-        return deduplicate(this.borders, this.borderIndexes, result, this.maximum);
+        return deduplicate(this.borders, this.borderIndexes, normalizeBorder(border), this.maximum);
     }
     addNumberFormat(format) {
         if (typeof format !== "string" || !format || format.length > 255)
@@ -1539,7 +1549,7 @@ class StyleRegistry {
         return this.compose(base, { numberFormat: this.styles[this.validateStyle(dateStyle)].numberFormat });
     }
     /** @internal Column shorthand and header style composition. */
-    forColumn(column, header = false, fill, date = false) {
+    forColumn(column, header = false, fill, date = false, border) {
         const base = !header && column.style !== undefined ? this.styles[this.validateStyle(column.style)] : undefined;
         const format = column.format !== undefined ? column.format || NumberFormats.General : base?.numberFormat || (column.type === "date" || date ? NumberFormats.DateTime : NumberFormats.General);
         return this.add({
@@ -1548,7 +1558,7 @@ class StyleRegistry {
             wrapText: column.wrapText ?? base?.wrapText ?? false,
             ...(column.alignment ? { alignment: column.alignment } : base?.alignment ? { alignment: base.alignment } : {}),
             ...(base?.verticalAlignment ? { verticalAlignment: base.verticalAlignment } : {}),
-            ...(header ? { font: { bold: true } } : {}), ...(fill ? { fill: { color: fill } } : {})
+            ...(header ? { font: { bold: true } } : {}), ...(fill ? { fill: { color: fill } } : {}), ...(border ? { border } : {})
         });
     }
     toXml() {
@@ -1573,7 +1583,7 @@ class StyleRegistry {
         }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' + this.differential.toXml() + '</styleSheet>';
     }
 }
-const _exports = Object.freeze({ colorArgb: _m17.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
+const _exports = Object.freeze({ colorArgb: _m17.colorArgb, spreadsheetNamespace: spreadsheetNamespace, normalizeBorder: normalizeBorder, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
 return _exports;
 })();
 
@@ -3130,8 +3140,9 @@ class Worksheet {
         book.checkLinks(this.links.length);
         this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
             style: book.styles.forColumn(column), dateStyle: book.styles.forColumn(column, false, undefined, true),
-            headerStyle: this.headerRows ? options.headerStyle ?? book.styles.forColumn({ header: column.header, ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }),
-                ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill) : 0
+            headerStyle: this.headerRows ? options.headerStyle ?? book.styles.forColumn({ header: column.header,
+                ...((options.headerWrap ?? column.wrapText) === undefined ? {} : { wrapText: options.headerWrap ?? column.wrapText }),
+                ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill, false, options.headerBorder) : 0
         }));
         // Register conditional styles only after worksheet construction can no longer reject its options.
         this.conditional = new ConditionalFormats(conditional, book.styles);
@@ -3183,6 +3194,8 @@ class Worksheet {
             throw new TypeError("A frozen header or autofilter requires a header row.");
         if (options.headerFill !== undefined)
             colorArgb(options.headerFill);
+        if (options.headerWrap !== undefined && typeof options.headerWrap !== "boolean")
+            throw new TypeError("headerWrap must be boolean.");
         if (options.headerStyle !== undefined)
             book.styles.validateStyle(options.headerStyle);
         if (options.alternatingRowStyle !== undefined)
@@ -3873,7 +3886,7 @@ const { captureFields } = _m7;
 /** @internal The workbook owner captures these settings before validation or adapter merging. */
 const workbookOptionFields = ["signal", "onProgress", "limits", "sink", "dateMode", "compression", "invalidCharacterPolicy", "appProperties", "cellValueWriters", "oversizedText", "creator", "title", "subject", "description", "created", "modified"];
 /** @internal Worksheet settings also used by the portable sheet owner. */
-const sheetOptionFields = ["columns", "includeHeader", "headerRows", "freezeHeader", "autoFilter", "boldHeader", "headerFill", "headerStyle", "alternatingRowStyle", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel", "outlineSummaryBelow", "outlineSummaryRight", "columnOutlines", "rowHeight", "headerHeight", "defaultColumnWidth", "freezeColumns", "table", "autoSize", "footer", "print", "title", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"];
+const sheetOptionFields = ["columns", "includeHeader", "headerRows", "freezeHeader", "autoFilter", "boldHeader", "headerFill", "headerBorder", "headerWrap", "headerStyle", "alternatingRowStyle", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel", "outlineSummaryBelow", "outlineSummaryRight", "columnOutlines", "rowHeight", "headerHeight", "defaultColumnWidth", "freezeColumns", "table", "autoSize", "footer", "print", "title", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"];
 /** @internal Includes inherited format-specific ceilings before a wrapper combines stream settings. */
 const workbookLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxStyles", "maxSheets", "maxOverflowCharacters", "maxHyperlinks", "maxImageBytes", "maxBufferedCells", "maxBufferedCharacters", "maxMergedRanges", "maxConditionalFormats", "maxDifferentialStyles", "maxCharts", "maxChartPoints", "maxChartTextCharacters", "maxFormulaCharacters", "maxDataValidations", "maxValidationTextCharacters"];
 /** @internal Capture the workbook's known ceilings without dropping supported prototype fields. */
@@ -4205,7 +4218,7 @@ const { OpcPackage, officeRelationshipsNamespace, relationshipTypes, corePropert
 
 const { escapeOoxmlAttribute, cleanXml, xmlDeclaration } = _m11;
 
-const { StyleRegistry, spreadsheetNamespace } = _m16;
+const { StyleRegistry, spreadsheetNamespace, normalizeBorder } = _m16;
 
 const { sheetName, assertXlsxValue, copyValue } = _m19;
 
@@ -4246,6 +4259,8 @@ function captureSheet(options, policy) {
     return { ...captured, columns,
         ...(captured.columnOutlines === undefined ? {} : { columnOutlines: captureColumnOutlines(captured.columnOutlines, columns.length) }),
         ...(captured.headerRows === undefined ? {} : { headerRows: captureTableSpans(captured.headerRows, columns.length) }),
+        // Preflight and every header style read this one snapshot of the edges.
+        ...(captured.headerBorder === undefined ? {} : { headerBorder: normalizeBorder(captured.headerBorder) }),
         ...(footer ? { footer: { ...footer,
                 ...(footer.rows === undefined ? {} : { rows: captureTableSpans(footer.rows, columns.length) }),
                 ...(footer.values === undefined ? {} : { values: footer.values.map(copyValue) }) } } : {}),
@@ -4696,7 +4711,7 @@ function value(result) {
 function portableSheet(options = {}) {
     options = captureFields(options, sheetOptionFields);
     if (options.headerStyle !== undefined)
-        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
+        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader, headerFill, headerBorder and headerWrap.");
     style(options.alternatingRowStyle);
     style(options.title?.style);
     style(options.footer?.style);

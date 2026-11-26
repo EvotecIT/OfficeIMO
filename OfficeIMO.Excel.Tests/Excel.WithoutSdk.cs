@@ -372,6 +372,184 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ANewWorkbookWithAThemeIsCreatedWithoutTheSdk() {
+            OfficeTheme theme = OfficeTheme.Classic;
+            using var output = new MemoryStream();
+            using (var document = ExcelDocument.Create(output, new ExcelCreateOptions { Theme = theme })) {
+                document.AddSheet("Data").Cell(1, 1).SetValue("Themed");
+                document.Save();
+                Assert.Empty(document.OpenXmlSdkFallbacks);
+            }
+
+            XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
+            XElement themeRoot = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(output.ToArray(), "xl/theme/theme1.xml"))).Root!;
+            Assert.Equal(theme.Name, (string?)themeRoot.Attribute("name"));
+            Assert.Equal(theme.Fonts.Body.Family, (string?)themeRoot.Descendants(drawing + "minorFont").Single().Element(drawing + "latin")!.Attribute("typeface"));
+            XElement font = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(output.ToArray(), "xl/styles.xml"))).Root!
+                .Element(Main + "fonts")!.Elements(Main + "font").First();
+            Assert.Equal(theme.Fonts.Body.Family, (string?)font.Element(Main + "name")!.Attribute("val"));
+            Assert.Equal(theme.TypeScale.Body.ToPoints(), double.Parse((string)font.Element(Main + "sz")!.Attribute("val")!, CultureInfo.InvariantCulture));
+        }
+
+        [Fact]
+        public void AThemeAppliedToANewWorkbookSurvivesTheTabularWriter() {
+            using var output = new MemoryStream();
+            using (var document = ExcelDocument.Create(output)) {
+                document.ApplyTheme(OfficeTheme.Dark);
+                ExcelSheet sheet = document.AddSheet("Data");
+                for (int row = 1; row <= 200; row++) sheet.Cell(row, 1).SetValue(row * 1.5);
+                document.Save();
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            XElement themeRoot = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(output.ToArray(), "xl/theme/theme1.xml"))).Root!;
+            Assert.Equal(OfficeTheme.Dark.Name, (string?)themeRoot.Attribute("name"));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ANewWorkbookSavedOnDisposeWritesItsDestinationWithoutTheSdk(bool toFile) {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            using var destination = new MemoryStream();
+            var options = new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose };
+            IReadOnlyList<string> fallbacks;
+            using (ExcelDocument document = toFile ? ExcelDocument.Create(path, options) : ExcelDocument.Create(destination, options)) {
+                document.AddSheet("Data").Cell(1, 1).SetValue("Saved on dispose");
+                fallbacks = document.OpenXmlSdkFallbacks;
+                Assert.Empty(fallbacks);
+            }
+
+            try {
+                byte[] saved = toFile ? File.ReadAllBytes(path) : destination.ToArray();
+                using var reread = ExcelDocument.Load(new MemoryStream(saved));
+                Assert.Equal("Saved on dispose", reread.Sheets[0].Cell(1, 1).GetValue().Value);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void AWorkbookCreatedFromATemplateWithAThemeStaysOffTheSdk() {
+            using var output = new MemoryStream();
+            using (var document = ExcelDocument.Create(output, new ExcelCreateOptions { TemplateStream = new MemoryStream(CreateWorkbook()), Theme = OfficeTheme.Dark })) {
+                Assert.True(document.IsSdkDeferred);
+                document.Sheets[0].Cell(10, 1).SetValue("From template");
+                document.Save();
+                Assert.Empty(document.OpenXmlSdkFallbacks);
+            }
+
+            XElement themeRoot = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(output.ToArray(), "xl/theme/theme1.xml"))).Root!;
+            Assert.Equal(OfficeTheme.Dark.Name, (string?)themeRoot.Attribute("name"));
+            using var reread = ExcelDocument.Load(new MemoryStream(output.ToArray()));
+            Assert.Equal("From template", reread.Sheets[0].Cell(10, 1).GetValue().Value);
+        }
+
+        [Theory]
+        [InlineData(".xlsm", "application/vnd.ms-excel.sheet.macroEnabled.main+xml")]
+        [InlineData(".xltx", "application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml")]
+        [InlineData(".xlam", "application/vnd.ms-excel.addin.macroEnabled.main+xml")]
+        public void ANewWorkbookTakesTheTypeOfItsFileWithoutTheSdk(string extension, string contentType) {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
+            try {
+                using (var document = ExcelDocument.Create(path)) {
+                    // Enough plain values for the tabular writer, which declares an XLSX workbook, so the type must survive it.
+                    ExcelSheet sheet = document.AddSheet("Data");
+                    for (int row = 1; row <= 200; row++) sheet.Cell(row, 1).SetValue(row);
+                    document.Save();
+                    Assert.Empty(document.OpenXmlSdkFallbacks);
+                }
+                XElement types = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(File.ReadAllBytes(path), "[Content_Types].xml"))).Root!;
+                XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
+                Assert.Contains(types.Elements(ct + "Override"), element => (string?)element.Attribute("PartName") == "/xl/workbook.xml"
+                    && (string?)element.Attribute("ContentType") == contentType);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void ANewWorkbookSavesTheSameCellsAsOneBuiltThroughTheSdk() {
+            static byte[] Build(bool throughSdk) {
+                using var output = new MemoryStream();
+                using (var document = ExcelDocument.Create(output)) {
+                    if (throughSdk) document.OpenDeferredSdk("test");
+                    foreach (string name in new[] { "First", "Second" }) {
+                        ExcelSheet sheet = document.AddSheet(name);
+                        sheet.Cell(1, 1).SetValue("Header");
+                        sheet.Cell(1, 1).SetBold();
+                        for (int row = 2; row <= 300; row++) {
+                            sheet.Cell(row, 1).SetValue("Item " + row);
+                            sheet.Cell(row, 2).SetValue(row * 1.5);
+                            sheet.Cell(row, 3).SetValue(new DateTime(2024, 1, 1).AddDays(row));
+                            sheet.Cell(row, 4).SetValue(row % 2 == 0);
+                            sheet.Cell(row, 5).SetValue(row * 0.01m);
+                        }
+                        sheet.Cell(2, 2).SetNumberFormat("#,##0.00");
+                    }
+                    document.Save();
+                }
+                return output.ToArray();
+            }
+
+            Assert.Equal(CellsOf(Build(throughSdk: true)), CellsOf(Build(throughSdk: false)));
+        }
+
+        [Fact]
+        public void AStyleOnANewWorkbookMovesItsBufferedValuesToTheModelInOrder() {
+            static byte[] Build(bool throughSdk) {
+                using var output = new MemoryStream();
+                using (var document = ExcelDocument.Create(output)) {
+                    if (throughSdk) document.OpenDeferredSdk("test");
+                    ExcelSheet sheet = document.AddSheet("Data");
+                    for (int row = 1; row <= 200; row++) {
+                        sheet.Cell(row, 1).SetValue("Item " + row);
+                        sheet.Cell(row, 2).SetValue(row * 0.5m);
+                    }
+                    sheet.Cell(5, 1).SetBold();
+                    sheet.Cell(3, 2).SetValue("Replaced");
+                    sheet.Cell(201, 1).SetValue(new DateTime(2024, 5, 6));
+                    document.Save();
+                    // The style moves the new workbook to the model once; the values written before it come along.
+                    if (!throughSdk) Assert.Single(document.OpenXmlSdkFallbacks);
+                }
+                return output.ToArray();
+            }
+            // Either route may store text as shared or inline strings; the values and the style are what must match.
+            static List<string> Read(byte[] package) {
+                using var document = ExcelDocument.Load(new MemoryStream(package));
+                ExcelSheet sheet = document.Sheets[0];
+                var cells = sheet.EnumerateCells().Select(cell => cell.Row + "," + cell.Column + "=" + Convert.ToString(cell.Value, CultureInfo.InvariantCulture)).ToList();
+                cells.Add("A5 bold=" + sheet.Cell(5, 1).GetStyle().Bold);
+                return cells;
+            }
+
+            Assert.Equal(Read(Build(throughSdk: true)), Read(Build(throughSdk: false)));
+        }
+
+        [Fact]
+        public void ANewSheetOfValuesSavesThroughTheTabularWriterWithoutTheSdk() {
+            using var output = new MemoryStream();
+            using (var document = ExcelDocument.Create(output)) {
+                ExcelSheet sheet = document.AddSheet("Data");
+                for (int row = 1; row <= 200; row++) {
+                    sheet.Cell(row, 1).SetValue(row * 1.25);
+                    sheet.Cell(row, 2).SetValue("Name " + row);
+                }
+                document.Save();
+                Assert.Empty(document.OpenXmlSdkFallbacks);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                // The package the tabular writer produced is the workbook's state, so later edits and saves work on it.
+                sheet.Cell(201, 1).SetValue("After");
+                document.Save();
+            }
+
+            using var reread = ExcelDocument.Load(new MemoryStream(output.ToArray()));
+            Assert.Equal(250d, reread.Sheets[0].Cell(200, 1).GetValue().Value);
+            Assert.Equal("After", reread.Sheets[0].Cell(201, 1).GetValue().Value);
+        }
+
+        [Fact]
         public async Task ACanceledAsyncSaveWritesNothing() {
             using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
             document.Sheets[0].Cell(2, 1).SetValue("Changed");

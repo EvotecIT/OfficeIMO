@@ -97,6 +97,13 @@ public partial class ExcelDocument {
     /// <summary>A known destination extension decides the type on save; other output takes the requested type, kept macro-enabled while VBA is present.</summary>
     private void ApplyCreateDocumentType(string? path, ExcelDocumentType documentType) {
         if (ResolveSpreadsheetDocumentType(path).HasValue) return;
+        if (TryReadDeferredDocumentType(out ExcelDocumentType current, out bool macros)) {
+            ExcelDocumentType wanted = documentType;
+            if (macros && wanted == ExcelDocumentType.Workbook) wanted = ExcelDocumentType.MacroEnabledWorkbook;
+            if (macros && wanted == ExcelDocumentType.Template) wanted = ExcelDocumentType.MacroEnabledTemplate;
+            // A template that already has the type stays deferred; changing it goes through the model.
+            if (current == wanted) return;
+        }
         SpreadsheetDocumentType target = documentType.ToOpenXml();
         if (HasMacros && target == SpreadsheetDocumentType.Workbook) target = SpreadsheetDocumentType.MacroEnabledWorkbook;
         if (HasMacros && target == SpreadsheetDocumentType.Template) target = SpreadsheetDocumentType.MacroEnabledTemplate;

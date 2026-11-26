@@ -262,11 +262,14 @@ namespace OfficeIMO.OpenXml.Internal {
         // ---- Structure ------------------------------------------------------------------------------------------
 
         /// <summary>
-        /// Creates a detached element to fill and then insert under an element of this part. For an SDK element it is
-        /// built in a small tree of its own and becomes an SDK element when it is inserted.
+        /// Creates a detached element to fill and then insert under an element of this part. For an SDK element it is the
+        /// SDK's typed class this element expects as its child, read again if it goes under another parent; one the SDK
+        /// has no class for there is built in a small tree of its own and becomes an SDK element when it is inserted.
         /// </summary>
         internal OfficeXmlNode CreateElement(int namespaceId, string localName) {
             if (_tree != null) return new OfficeXmlNode(_tree, _tree.CreateElement(namespaceId, localName));
+            if (_sdk != null && OfficeXmlNamespaces.KnownUri(namespaceId) != null
+                && OfficeSdkXml.CreateElement(_sdk, namespaceId, localName) is { } typed) return FromSdk(typed);
             OfficeXmlTree scratch = OfficeXmlTree.Create(new OfficeXmlNamespaces.Table(), namespaceId, localName, 8);
             return new OfficeXmlNode(scratch, scratch.Root);
         }
@@ -323,7 +326,10 @@ namespace OfficeIMO.OpenXml.Internal {
             OfficeXmlNode reference = default;
             if (rank >= 0) {
                 for (OfficeXmlNode sibling = FirstChild; !sibling.IsNone; sibling = sibling.NextSibling) {
-                    if (order.RankOf(sibling.NamespaceId, sibling.LocalName) > rank) {
+                    // An element the order doesn't rank, such as an extension or unknown element, comes after the
+                    // ranked ones, as the SDK places them.
+                    int siblingRank = order.RankOf(sibling.NamespaceId, sibling.LocalName);
+                    if (siblingRank > rank || siblingRank < 0) {
                         reference = sibling;
                         break;
                     }
