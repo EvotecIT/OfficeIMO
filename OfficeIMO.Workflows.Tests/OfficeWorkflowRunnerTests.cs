@@ -5,6 +5,7 @@ using System.Xml.Linq;
 using OfficeIMO.Epub;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -231,6 +232,32 @@ public sealed class OfficeWorkflowRunnerTests {
             Assert.Null(OfficeWorkflowCatalog.Find(extension, ".epub", executableOnly: true));
             Assert.Equal("docx-pdf", OfficeWorkflowCatalog.Find(extension, ".pdf", executableOnly: true)?.Id);
         }
+    }
+
+    [Fact]
+    public async Task FictionBookPdfValidationUsesTheRendererCredentials() {
+        string source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "harbour.fb2.zip");
+        using var directory = new TestDirectory();
+        string output = Path.Combine(directory.Path, "encrypted.pdf");
+        var html = new HtmlPdfExportOptions();
+        html.PdfOptions.SetEncryption("reader", "owner");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "ebook-fb2-pdf",
+            InputPath = source,
+            OutputPath = output,
+            ConversionOptions = new OfficeConversionOptions { Html = html }
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Throws<PdfPasswordRequiredException>(() => {
+            using PdfDocument locked = PdfDocument.Load(output);
+            _ = locked.Inspect();
+        });
+        var readOptions = new PdfLoadOptions { Password = "reader" };
+        using PdfDocument reopened = PdfDocument.Load(output, readOptions);
+        Assert.True(reopened.Inspect(readOptions).PageCount > 0);
     }
 
     [Fact]
