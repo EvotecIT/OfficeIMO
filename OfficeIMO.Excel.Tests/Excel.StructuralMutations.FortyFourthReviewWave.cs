@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(started.Wait(TimeSpan.FromSeconds(10)));
                 Assert.True(
                     SpinWait.SpinUntil(
-                        () => workbookLock.WaitingReadCount > 0 || read.IsCompleted,
+                        () => workbookLock.WaitingReadCount + workbookLock.WaitingUpgradeCount > 0 || read.IsCompleted,
                         TimeSpan.FromSeconds(10)),
                     $"The {description} read did not reach the workbook lock (status: {read.Status}).");
                 Assert.False(read.IsCompleted);
