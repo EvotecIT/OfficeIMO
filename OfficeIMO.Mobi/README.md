@@ -27,6 +27,8 @@ can write EPUB, PDF, HTML or Markdown.
 officeimo convert book.mobi book.pdf
 ```
 
-The Reader preset leaves `.pdb` with your own registered handler when you provide one.
+The Reader preset handles PalmDOC `.pdb` and Mobipocket `.prc` files by default.
+Application handlers registered for either extension take precedence. MOBI
+imports check the Palm database signature before reading text.
 
 [Supported features and limits](SUPPORT.md)

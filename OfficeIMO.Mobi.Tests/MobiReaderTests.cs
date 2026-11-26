@@ -106,6 +106,16 @@ public sealed class MobiReaderTests {
     }
 
     [Fact]
+    public void RefusesInvalidUtf8InTheMobipocketBody() {
+        byte[] bytes = BuildLegacyMobi("<html><body><p>Chapter text.</p></body></html>");
+        bytes[RecordOffset(bytes, 1) + 15] = 0xff;
+        using var source = new MemoryStream(bytes, writable: false);
+
+        var error = Assert.Throws<InvalidDataException>(() => MobiReader.Import(source, "invalid-body.mobi"));
+        Assert.Contains("body text", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RefusesAnInvalidUtf8NameInTheKindleSkeletonIndex() {
         byte[] bytes = Fixture("harbour.azw3");
         int header = RecordOffset(bytes, 0);
@@ -410,6 +420,28 @@ public sealed class MobiReaderTests {
 
         Assert.Equal("Ada Reader", book.Creator);
         Assert.Contains(book.Chapters, chapter => chapter.Text.Contains("Signal received."));
+    }
+
+    [Fact]
+    public void WritesThePrimaryIdentifierOnceAndKeepsOtherIdentifiers() {
+        byte[] bytes = Fixture("harbour.azw3");
+        int header = RecordOffset(bytes, 0);
+        int extra = FindExthItem(bytes, header, 113);
+        int extraLength = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(extra + 4)) - 8;
+        string secondary = Encoding.UTF8.GetString(bytes, extra + 8, extraLength);
+        int primary = FindExthItem(bytes, header, 501);
+        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(primary), 104);
+        "I104"u8.CopyTo(bytes.AsSpan(primary + 8));
+        using var source = new MemoryStream(bytes, writable: false);
+
+        EpubDocument book = ReadPublication(source, "harbour.azw3");
+
+        Assert.Collection(book.Metadata.Where(item => item.Name == "identifier"),
+            item => {
+                Assert.Equal("publication-id", item.Id);
+                Assert.Equal("I104", item.Value);
+            },
+            item => Assert.Equal(secondary, item.Value));
     }
 
     [Theory]

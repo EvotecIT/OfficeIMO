@@ -44,7 +44,7 @@ public static partial class MobiReader {
             }
             for (int i = 0; i < inputs.Length; i++) {
                 token.ThrowIfCancellationRequested();
-                string html = selected.Encoding.GetString(inputs[i]);
+                string html = DecodeBody(inputs[i]);
                 List<(int Offset, int Length)>? insertedClosers = null;
                 if (kindle != null) html = ExpandKindleEmptyElements(html, ref remainingXhtmlTokens, out insertedClosers, token);
                 // The bounded XHTML prepass supplies at most one parser token per generated close.

@@ -75,11 +75,11 @@ public static partial class MobiReader {
             }
 
             if (database.IsPalmDoc) {
-                AddLiteralText(book, selected.Encoding.GetString(text));
+                AddLiteralText(book, DecodeBody(text));
                 if (database.Count - 1 > selected.TextRecords)
                     Warn("PALMDOC_BOOKMARKS_OMITTED", "PalmDOC records following the text are outside this reader profile.");
             } else {
-                ApplyMetadata(book);
+                ApplyMetadata(book, identifier);
                 AddImages(book);
                 AddMarkup(book, text);
             }
@@ -99,6 +99,14 @@ public static partial class MobiReader {
             int start = Math.Max(name.LastIndexOf('/'), name.LastIndexOf('\\')) + 1;
             int extension = name.LastIndexOf('.');
             return name.Substring(start, (extension >= start ? extension : name.Length) - start);
+        }
+
+        private string DecodeBody(byte[] bytes) {
+            try {
+                return selected.Encoding.GetString(bytes);
+            } catch (DecoderFallbackException error) {
+                throw new InvalidDataException("The Mobipocket body text is invalid for the declared encoding.", error);
+            }
         }
 
         private void AddLiteralText(EpubPublication book, string body) {
@@ -150,11 +158,13 @@ public static partial class MobiReader {
             return normalized.Length == 0 ? null : normalized;
         }
 
-        private void ApplyMetadata(EpubPublication book) {
+        private void ApplyMetadata(EpubPublication book, string? primaryIdentifier) {
             foreach ((int id, string name) in new[] { (100, "creator"), (101, "publisher"), (103, "description"),
                 (104, "identifier"), (105, "subject"), (106, "date"), (108, "contributor"), (109, "rights"),
                 (112, "source"), (113, "identifier") }) {
-                foreach (string value in TextMetadata(id)) book.AddDublinCoreMetadata(name, value);
+                foreach (string value in TextMetadata(id)) {
+                    if (name != "identifier" || value != primaryIdentifier) book.AddDublinCoreMetadata(name, value);
+                }
             }
             string? progression = TextMetadata(527).FirstOrDefault()?.ToLowerInvariant();
             if (progression is "ltr" or "rtl" or "default")
