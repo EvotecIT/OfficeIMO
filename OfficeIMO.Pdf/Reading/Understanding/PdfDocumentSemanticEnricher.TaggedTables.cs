@@ -24,6 +24,60 @@ internal static partial class PdfDocumentSemanticEnricher {
     }
 
     /// <summary>
+    /// Reads every tagged table from the analysed pages into <paramref name="reads"/>, ahead of enrichment, and says
+    /// which pages none of them supplies: a page a failing table names, or one no table passes on. Enrichment then
+    /// reuses the reads.
+    /// </summary>
+    internal static bool[] ReadTaggedTables(
+        PdfReadDocument document,
+        int[] selectedPageNumbers,
+        IReadOnlyList<PdfUnderstandingPageResult> pages,
+        TaggedTableReads reads,
+        long maxWorkUnits,
+        CancellationToken cancellationToken) {
+        var workBudget = new PdfUnderstandingWorkBudget(maxWorkUnits, cancellationToken);
+        TaggedStructureGraph graph = reads.Graph;
+        var selectedPageIndexes = new Dictionary<int, List<int>>(selectedPageNumbers.Length);
+        for (int pageIndex = 0; pageIndex < selectedPageNumbers.Length; pageIndex++) {
+            workBudget.Consume();
+            if (!selectedPageIndexes.TryGetValue(selectedPageNumbers[pageIndex], out List<int>? pageIndexes)) {
+                pageIndexes = new List<int>(1);
+                selectedPageIndexes.Add(selectedPageNumbers[pageIndex], pageIndexes);
+            }
+            pageIndexes.Add(pageIndex);
+        }
+        var contentIndexes = new TaggedPageContentIndex?[selectedPageNumbers.Length];
+        var failed = new HashSet<int>();
+        var supplied = new HashSet<int>();
+        foreach (PdfStructureElementInfo table in graph.Tagged.StructureElements) {
+            workBudget.Consume();
+            if (!graph.ReachableObjectNumbers.Contains(table.ObjectNumber) || !HasResolvedRole(graph.Tagged, table, "Table")) continue;
+            if (!reads.Tables.TryGetValue(table.ObjectNumber, out var read)) {
+                TaggedTableFailure? failure = TryReadTaggedTable(document, graph, table, selectedPageIndexes, pages, contentIndexes,
+                    workBudget, out List<PdfUnderstandingTableCandidate>? candidates, out List<int> touchedPages);
+                read = (failure, candidates, touchedPages);
+                reads.Tables.Add(table.ObjectNumber, read);
+            }
+            if (read.Failure is not null) {
+                // The same pages its diagnostic will name.
+                failed.UnionWith(read.TouchedPages);
+                foreach (int pageObject in CollectTablePageObjects(graph, table, workBudget)) {
+                    if (document.GetPageNumberForObject(pageObject, cancellationToken) is int page) failed.Add(page);
+                }
+            } else {
+                foreach (PdfUnderstandingTableCandidate candidate in read.Candidates!) supplied.Add(candidate.TaggedSegment!.PageNumber);
+            }
+        }
+        reads.ContentIndexes = (contentIndexes, pages.ToArray());
+        var fallBack = new bool[selectedPageNumbers.Length];
+        for (int pageIndex = 0; pageIndex < fallBack.Length; pageIndex++) {
+            int pageNumber = selectedPageNumbers[pageIndex];
+            fallBack[pageIndex] = failed.Contains(pageNumber) || !supplied.Contains(pageNumber);
+        }
+        return fallBack;
+    }
+
+    /// <summary>
     /// The structure graph and each tagged table's read, kept across the enrichment passes of one document read. A
     /// table's read depends only on the structure tree and the pages' text runs and lines, which a later pass reuses.
     /// </summary>
@@ -37,6 +91,9 @@ internal static partial class PdfDocumentSemanticEnricher {
         /// <summary>Pages a tagged table names.</summary>
         internal HashSet<int> Pages { get; }
         internal Dictionary<int, (TaggedTableFailure? Failure, List<PdfUnderstandingTableCandidate>? Candidates, List<int> TouchedPages)> Tables { get; } = new();
+        // Each page's marked-content index from the read, with the analysis it was built from; enrichment reuses it
+        // while that analysis stands. The entries are the enricher's own index type.
+        internal (object?[] Indexes, PdfUnderstandingPageResult[] Pages)? ContentIndexes { get; set; }
     }
 
     private static void ApplyTaggedTableEvidence(
@@ -56,6 +113,11 @@ internal static partial class PdfDocumentSemanticEnricher {
 
         var selectedPageIndexes = new Dictionary<int, List<int>>(selectedPageNumbers.Length);
         var contentIndexes = new TaggedPageContentIndex?[selectedPageNumbers.Length];
+        if (reads?.ContentIndexes is { } built && built.Indexes.Length == contentIndexes.Length) {
+            for (int pageIndex = 0; pageIndex < contentIndexes.Length; pageIndex++) {
+                if (ReferenceEquals(built.Pages[pageIndex], pages[pageIndex])) contentIndexes[pageIndex] = (TaggedPageContentIndex?)built.Indexes[pageIndex];
+            }
+        }
         for (int pageIndex = 0; pageIndex < selectedPageNumbers.Length; pageIndex++) {
             workBudget.Consume();
             int pageNumber = selectedPageNumbers[pageIndex];
