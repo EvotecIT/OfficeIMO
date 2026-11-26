@@ -375,6 +375,12 @@ PDF conversion through the shared drawing and PDF engines. The
 limits. The reader references only `OfficeIMO.Core` and does not require Publisher.
 The [Reader adapter](../OfficeIMO.Reader.Publisher/README.md) retains complete stories,
 physical page inventory and image descriptors for semantic ingestion.
+#### [OfficeIMO.Comic](../OfficeIMO.Comic/README.md)
+
+Comic book ZIP input through Reader and the Workflows conversions to EPUB, PDF, HTML,
+and Markdown. See the [support matrix](../OfficeIMO.Comic/SUPPORT.md) for the read profile
+and output limits.
+
 #### [OfficeIMO.Chm](../OfficeIMO.Chm/README.md)
 
 Compiled HTML Help reading with exact entry extraction, topics, embedded resources,

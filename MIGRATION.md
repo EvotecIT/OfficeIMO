@@ -6863,9 +6863,10 @@ To keep the previous stored values, register the handler with
 `ReaderAllOptions.Excel`. Indexes and tests that compared extracted spreadsheet text with raw values need either
 that option or updated expectations.
 
-## Reader transport for MOBI and Kindle
+## Reader transport for ebook imports
 
-Reader uses `ReaderInputKind.Mobi` (`33`) for MOBI, PalmDOC and KF8 imports. Consumers that validate
+Reader uses `ReaderInputKind.Mobi` (`33`) for MOBI, PalmDOC and KF8 imports and
+`ReaderInputKind.Comic` (`34`) for CBZ imports. Consumers that validate
 Reader JSON against a packaged schema should accept version 16. OfficeIMO still
 reads versions 5 through 16.
 

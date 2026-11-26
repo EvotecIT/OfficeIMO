@@ -79,6 +79,11 @@ $nativeDrivers = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'OfficeIMO.Comic'
+        classification = 'managed-cross-platform'
+        evidence = 'The reader and its conversion routes are exercised by managed .NET 8 and 10 contracts. Full-assembly NativeAOT qualification remains open.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Mobi'
         classification = 'managed-cross-platform'
         evidence = 'The reader and its conversion routes are exercised by managed .NET 8 and 10 contracts. Full-assembly NativeAOT qualification remains open.'

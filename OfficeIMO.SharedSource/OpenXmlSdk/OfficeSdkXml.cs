@@ -2,14 +2,14 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Core.Internal.OpenXml;
 
-namespace OfficeIMO.PowerPoint.OpenXmlSdk {
+namespace OfficeIMO.OpenXml.Internal {
     /// <summary>
-    /// The SDK side of <see cref="OpenXml.PowerPointXmlNode"/>: the same element operations on the SDK's elements, which
+    /// The SDK side of <see cref="OfficeXmlNode"/>: the same element operations on the SDK's elements, which
     /// it edits in place. Elements are passed as <see cref="object"/>, so callers outside the bridge name no SDK type.
     /// New elements are made through their parent, so they get the SDK's typed classes and the caller's typed access to
     /// them keeps working.
     /// </summary>
-    internal static class PowerPointSdkXml {
+    internal static class OfficeSdkXml {
         private static OpenXmlElement E(object element) => (OpenXmlElement)element;
 
         internal static string LocalName(object element) => E(element).LocalName;

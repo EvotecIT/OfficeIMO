@@ -58,6 +58,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeXmlNode.cs" Link="SharedSource\OpenXml\OfficeXmlNode.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXmlSdk\OfficeSdkXml.cs" Link="OpenXmlSdk\OfficeSdkXml.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeDrawingColorTransforms.cs" Link="SharedSource\OpenXml\OfficeDrawingColorTransforms.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" />

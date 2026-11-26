@@ -1,3 +1,4 @@
+using OfficeIMO.Comic;
 using OfficeIMO.Mobi;
 using OfficeIMO.Reader.AsciiDoc;
 using OfficeIMO.Reader.Csv;
@@ -59,6 +60,8 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddSourceCodeHandler()
             .AddAsciiDocHandler(configured.AsciiDoc)
             .AddCsvHandler(configured.Csv)
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("cbz", new[] { ".cbz" },
+                ReaderInputKind.Comic, ComicReader.MaximumInputBytes, ComicReader.Import, ComicReader.Probe))
             .AddChmHandler(configured.Chm)
             .AddDbfHandler(configured.Dbf)
             .AddDocBookHandler(configured.DocBook)

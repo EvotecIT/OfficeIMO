@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.OpenXml;
 using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -10,13 +11,13 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public partial class PowerPointParagraph {
         internal PowerPointParagraph(A.Paragraph paragraph, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null)
-            : this(PowerPointXmlNode.FromSdk(paragraph), PowerPointPartRef.FromSdk(slidePart ?? ownerPart as SlidePart), PowerPointPartRef.FromSdk(ownerPart as OpenXmlPart ?? slidePart)) {
+            : this(OfficeXmlNode.FromSdk(paragraph), PowerPointPartRef.FromSdk(slidePart ?? ownerPart as SlidePart), PowerPointPartRef.FromSdk(ownerPart as OpenXmlPart ?? slidePart)) {
         }
 
         /// <summary>The SDK paragraph.</summary>
         internal A.Paragraph Paragraph {
             get {
-                PowerPointXmlNode element = Element;
+                OfficeXmlNode element = Element;
                 if (element.SdkElement is A.Paragraph paragraph) return paragraph;
                 if (_packageSlide is { RemovedFromPackage: true }) throw new InvalidOperationException("The slide is no longer part of the presentation.");
                 if (element.Tree != null && !_packagePart.IsNone) return (A.Paragraph)PowerPointSlide.BindPackageNode(_packagePart, element.Tree, element.Node);
@@ -34,11 +35,11 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        internal static string ReadText(A.Paragraph paragraph) => ReadText(PowerPointXmlNode.FromSdk(paragraph));
+        internal static string ReadText(A.Paragraph paragraph) => ReadText(OfficeXmlNode.FromSdk(paragraph));
 
-        internal static string ReadText(OpenXmlElement textBody) => ReadBodyText(PowerPointXmlNode.FromSdk(textBody));
+        internal static string ReadText(OpenXmlElement textBody) => ReadBodyText(OfficeXmlNode.FromSdk(textBody));
 
         internal PowerPointTextRun InsertRun(string? text, A.RunProperties? properties) =>
-            InsertRun(text, PowerPointXmlNode.FromSdk(properties));
+            InsertRun(text, OfficeXmlNode.FromSdk(properties));
     }
 }

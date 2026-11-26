@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointParagraph {
@@ -8,10 +9,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Gets the paragraph's explicit tab stops as physical lengths.</summary>
         public IReadOnlyList<PowerPointTabStop> TabStops {
             get {
-                PowerPointXmlNode list = Properties.Child(OfficeXmlNamespaces.DrawingML, "tabLst");
+                OfficeXmlNode list = Properties.Child(OfficeXmlNamespaces.DrawingML, "tabLst");
                 if (list.IsNone) return Array.Empty<PowerPointTabStop>();
                 var stops = new List<PowerPointTabStop>();
-                foreach (PowerPointXmlNode tab in list.Children(OfficeXmlNamespaces.DrawingML, "tab")) {
+                foreach (OfficeXmlNode tab in list.Children(OfficeXmlNamespaces.DrawingML, "tab")) {
                     stops.Add(new PowerPointTabStop(global::OfficeIMO.OfficeLength.Emus(tab.Int32Attribute("pos") ?? 0), FromTabAlignment(tab.Attribute("algn") ?? "l")));
                 }
                 return stops.ToArray();
@@ -31,10 +32,10 @@ namespace OfficeIMO.PowerPoint {
             // The replacement is built and checked before the existing stops go, so a failure leaves them as they were.
             var positions = new int[stops.Count];
             for (int index = 0; index < stops.Count; index++) positions[index] = checked((int)stops[index].Position.ToEmus());
-            PowerPointXmlNode paragraph = Element;
-            PowerPointXmlNode list = paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "tabLst");
+            OfficeXmlNode paragraph = Element;
+            OfficeXmlNode list = paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "tabLst");
             for (int index = 0; index < stops.Count; index++) {
-                PowerPointXmlNode stop = list.Append(list.CreateElement(OfficeXmlNamespaces.DrawingML, "tab"));
+                OfficeXmlNode stop = list.Append(list.CreateElement(OfficeXmlNamespaces.DrawingML, "tab"));
                 stop.SetInt32Attribute("pos", positions[index]);
                 stop.SetAttribute("algn", stops[index].Alignment switch {
                     PowerPointTabAlignment.Center => "ctr",
@@ -43,7 +44,7 @@ namespace OfficeIMO.PowerPoint {
                     _ => "l"
                 });
             }
-            PowerPointXmlNode properties = EnsureProperties();
+            OfficeXmlNode properties = EnsureProperties();
             properties.RemoveChildren(OfficeXmlNamespaces.DrawingML, "tabLst");
             if (stops.Count == 0) return this;
             properties.InsertOrdered(list, ATextParagraphPropertiesView.Order);

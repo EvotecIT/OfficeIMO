@@ -28,6 +28,9 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId == "epub-pdf") return Targeted(
             "Converter fixtures reopen the PDF and verify spine order, linked stylesheets, images, navigation, tags and mixed page sizes. TextOnly exercises the original Reader projection.",
             "Each chapter begins on a new page and uses the supported HTML print or fixed-viewport subset. Unsupported CSS, missing link targets, publication page totals and requested PDF parity padding have diagnostics. Linked resources resolve inside the EPUB package.");
+        if (routeId.StartsWith("ebook-cbz-", StringComparison.Ordinal)) return Targeted(
+            "An Info-ZIP fixture exercises numbered image order, ComicInfo metadata and bookmarks, cover selection and EPUB page canvases.",
+            "Reads ZIP comic archives with supported raster pages. RAR and 7z comic archives are outside this profile. See OfficeIMO.Comic/SUPPORT.md.");
         if (routeId == "reader-visio-pdf") return Targeted(
             "Reader projection fixtures cover Visio semantic fallback and policy findings in reopened PDF output.",
             "Source-neutral semantic projection only. Attachments, pagination, resources, forms and source layout follow explicit projection policies and diagnostics; this route does not promise native visual equivalence.");

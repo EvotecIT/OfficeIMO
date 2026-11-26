@@ -1,6 +1,7 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -26,15 +27,15 @@ namespace OfficeIMO.PowerPoint {
         /// Inserts one run per line, with <c>a:br</c> between them, before <paramref name="before"/> (last when none),
         /// all carrying a copy of <paramref name="properties"/>, and returns what it inserted in order.
         /// </summary>
-        internal static List<PowerPointXmlNode> InsertInlineContent(PowerPointXmlNode paragraph, string? text, PowerPointXmlNode properties, PowerPointXmlNode before) {
-            var content = new List<PowerPointXmlNode>();
+        internal static List<OfficeXmlNode> InsertInlineContent(OfficeXmlNode paragraph, string? text, OfficeXmlNode properties, OfficeXmlNode before) {
+            var content = new List<OfficeXmlNode>();
             foreach (string line in SplitLines(text)) {
                 if (content.Count > 0) {
-                    PowerPointXmlNode lineBreak = paragraph.InsertBefore(paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "br"), before);
+                    OfficeXmlNode lineBreak = paragraph.InsertBefore(paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "br"), before);
                     ApplyProperties(lineBreak, properties);
                     content.Add(lineBreak);
                 }
-                PowerPointXmlNode run = paragraph.InsertBefore(paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "r"), before);
+                OfficeXmlNode run = paragraph.InsertBefore(paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "r"), before);
                 run.Append(run.CreateElement(OfficeXmlNamespaces.DrawingML, "t")).SetInnerText(line);
                 ApplyProperties(run, properties);
                 content.Add(run);
@@ -43,16 +44,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Applies a change to the properties of every run and line break below <paramref name="container"/>.</summary>
-        internal static void FormatRuns(PowerPointXmlNode container, Action<PowerPointXmlNode> change) {
-            var runs = new List<PowerPointXmlNode>();
-            var breaks = new List<PowerPointXmlNode>();
+        internal static void FormatRuns(OfficeXmlNode container, Action<OfficeXmlNode> change) {
+            var runs = new List<OfficeXmlNode>();
+            var breaks = new List<OfficeXmlNode>();
             Collect(container, runs, breaks);
-            foreach (PowerPointXmlNode run in runs) change(run.GetOrPrependChild(OfficeXmlNamespaces.DrawingML, "rPr"));
-            foreach (PowerPointXmlNode lineBreak in breaks) change(lineBreak.GetOrPrependChild(OfficeXmlNamespaces.DrawingML, "rPr"));
+            foreach (OfficeXmlNode run in runs) change(run.GetOrPrependChild(OfficeXmlNamespaces.DrawingML, "rPr"));
+            foreach (OfficeXmlNode lineBreak in breaks) change(lineBreak.GetOrPrependChild(OfficeXmlNamespaces.DrawingML, "rPr"));
         }
 
-        private static void Collect(PowerPointXmlNode element, List<PowerPointXmlNode> runs, List<PowerPointXmlNode> breaks) {
-            foreach (PowerPointXmlNode child in element.Children()) {
+        private static void Collect(OfficeXmlNode element, List<OfficeXmlNode> runs, List<OfficeXmlNode> breaks) {
+            foreach (OfficeXmlNode child in element.Children()) {
                 if (child.Is(OfficeXmlNamespaces.DrawingML, "r")) runs.Add(child);
                 else if (child.Is(OfficeXmlNamespaces.DrawingML, "br")) breaks.Add(child);
                 Collect(child, runs, breaks);
@@ -60,25 +61,25 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Copies run properties to a run or line break; a break cannot be clicked, so it keeps no interaction.</summary>
-        internal static void ApplyProperties(PowerPointXmlNode node, PowerPointXmlNode properties) {
+        internal static void ApplyProperties(OfficeXmlNode node, OfficeXmlNode properties) {
             node.RemoveChildren(OfficeXmlNamespaces.DrawingML, "rPr");
             if (properties.IsNone) return;
-            PowerPointXmlNode copy = node.InsertBefore(CopyFor(node, properties), node.FirstChild);
+            OfficeXmlNode copy = node.InsertBefore(CopyFor(node, properties), node.FirstChild);
             if (!node.Is(OfficeXmlNamespaces.DrawingML, "br")) return;
-            foreach (PowerPointXmlNode interaction in copy.Children().ToList()) {
+            foreach (OfficeXmlNode interaction in copy.Children().ToList()) {
                 if (interaction.Is(OfficeXmlNamespaces.DrawingML, "hlinkClick") || interaction.Is(OfficeXmlNamespaces.DrawingML, "hlinkMouseOver")) interaction.Remove();
             }
         }
 
         // A detached copy of run properties, renamed a:rPr when they come from elsewhere (end or default properties).
-        private static PowerPointXmlNode CopyFor(PowerPointXmlNode target, PowerPointXmlNode properties) {
-            PowerPointXmlNode copy = properties.Clone();
+        private static OfficeXmlNode CopyFor(OfficeXmlNode target, OfficeXmlNode properties) {
+            OfficeXmlNode copy = properties.Clone();
             if (copy.Is(OfficeXmlNamespaces.DrawingML, "rPr")) return copy;
-            PowerPointXmlNode renamed = target.CreateElement(OfficeXmlNamespaces.DrawingML, "rPr");
+            OfficeXmlNode renamed = target.CreateElement(OfficeXmlNamespaces.DrawingML, "rPr");
             foreach (string attribute in RunPropertyAttributes) {
                 if (copy.Attribute(attribute) is { } value) renamed.SetAttribute(attribute, value);
             }
-            foreach (PowerPointXmlNode child in copy.Children().ToList()) renamed.Append(child.Clone());
+            foreach (OfficeXmlNode child in copy.Children().ToList()) renamed.Append(child.Clone());
             return renamed;
         }
 

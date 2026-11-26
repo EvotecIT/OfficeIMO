@@ -35,6 +35,7 @@ enum ViewerFormats {
         Format(identifier: "public.html", extensions: ["html", "htm"]),
         Format(identifier: "com.microsoft.xps", extensions: ["xps", "oxps"]),
         Format(identifier: "com.microsoft.visio.drawing", extensions: ["vsdx", "vdx", "vtx"]),
+        Format(identifier: "com.evotec.officeimo.cbz", extensions: ["cbz"]),
         Format(identifier: "com.microsoft.publisher.pub", extensions: ["pub"]),
         Format(identifier: "com.evotec.officeimo.mobi", extensions: ["mobi", "azw", "azw3"]),
         Format(identifier: "org.oasis-open.opendocument.graphics", extensions: ["odg"]),
@@ -49,6 +50,7 @@ enum ViewerFormats {
                                                    "org.oasis-open.opendocument.presentation", "com.microsoft.xps",
                                                    "com.evotec.officeimo.mobi",
                                                    "com.microsoft.visio.drawing", "com.microsoft.publisher.pub",
+                                                   "com.evotec.officeimo.cbz",
                                                    "org.oasis-open.opendocument.graphics"]
 
     /// A larger document can take minutes to convert on a phone and exhaust its memory, so it is refused before
