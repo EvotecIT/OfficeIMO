@@ -106,6 +106,7 @@ namespace OfficeIMO.Excel {
             ExcelDocument document = CreateDeferredDocument(deferred, bytes, CreateOpenSettings(null), readOnly: false, filePath, sourceStream,
                 leaveSourceStreamOpen: true, options.PersistenceMode);
             document._deferredCreated = true;
+            document._deferredPackageWrittenHere = true;
             // Its destination receives the workbook on dispose even when a copy was saved elsewhere meanwhile.
             bool saveOnDispose = options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
             document._copyPackageToSourceOnDispose = saveOnDispose && sourceStream != null;

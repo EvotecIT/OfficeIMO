@@ -784,38 +784,6 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        // Plain values recorded out of the order the buffer takes them are put in that order; false for styles.
-        private static bool TryBufferRecordedValues(ExcelDeferredCellStore store, out ExcelCellValueBuffer? buffer) {
-            buffer = null;
-            var cells = new ExcelDeferredSheetCells(store, static _ => -1, static _ => 0D);
-            var values = new ExcelCellValueBuffer();
-            for (int position = 0; position < cells.Count;) {
-                int row = cells.At(position).Row, column = cells.At(position).Column;
-                int last = position;
-                while (last < cells.Count && cells.At(last).Row == row && cells.At(last).Column == column) {
-                    // Styles take the owned save, which writes them into the stylesheet.
-                    if (cells.At(last).Kind == ExcelDeferredCellKind.Style) return false;
-                    last++;
-                }
-                ref ExcelDeferredCellEdit edit = ref cells.At(last - 1);
-                ExcelBufferedCell cell = edit.Kind switch {
-                    ExcelDeferredCellKind.Text => ExcelBufferedCell.Text(edit.Text),
-                    ExcelDeferredCellKind.Number => ExcelBufferedCell.Number(edit.Number),
-                    ExcelDeferredCellKind.Integer => edit.Number >= int.MinValue && edit.Number <= int.MaxValue
-                        ? ExcelBufferedCell.Int32((int)edit.Number) : ExcelBufferedCell.Int64((long)edit.Number),
-                    ExcelDeferredCellKind.Decimal => ExcelBufferedCell.FromValue(decimal.Parse(edit.Text, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture)),
-                    ExcelDeferredCellKind.Boolean => ExcelBufferedCell.Boolean(edit.Number != 0D),
-                    _ => ExcelBufferedCell.DateTimeCell(edit.Date)
-                };
-                if (!values.CanAdd(row, column)) return false;
-                values.Add(row, column, cell);
-                position = last;
-            }
-
-            buffer = values;
-            return true;
-        }
-
         /// <summary>
         /// Writes the package of a new workbook whose only worksheet holds plain values recorded on the empty sheet, with
         /// the tabular writer a new workbook's cell buffer saves through. Returns false, having written nothing, for any
@@ -825,14 +793,16 @@ namespace OfficeIMO.Excel {
             bytes = Array.Empty<byte>();
             ExcelDeferredWorkbook workbook = _deferredWorkbook!;
             if (!_deferredCreated || edits.Length != 1 || workbook.Sheets.Count != 1 || !workbook.Sheets[0].IsWorksheet) return false;
+            // The tabular writer declares an XLSX workbook; templates, macro-enabled workbooks and add-ins keep their own
+            // type through the owned save.
+            if (!string.Equals(ReadDeferredMainContentType(), CreatedMainContentType(ExcelDocumentType.Workbook), StringComparison.OrdinalIgnoreCase)) return false;
             (ExcelSheet sheet, ExcelDeferredCellStore store) = edits[0];
             ExcelDeferredSheet entry = workbook.Sheets[0];
             if (!ReferenceEquals(sheet.DeferredEntry, entry) || store.Count < ExcelSheet.PendingDirectCellValueMinimumCellCount) return false;
             if (!entry.IsNewSheet) return false;
 
-            ExcelCellValueBuffer? buffer = store.Tabular;
-            if (buffer == null && !TryBufferRecordedValues(store, out buffer)) return false;
-            ExcelCellValueBuffer cellsToWrite = buffer!;
+            // A new sheet's values stay in the buffer while they arrive row by row; anything else opened the model.
+            if (store.Tabular is not { } cellsToWrite) return false;
 
             var model = DirectDataSetWorkbookModel.CreateSingle(entry.Name, "Cells", tableName: null, cellsToWrite.TabularRange,
                 DirectDataSetTableModel.FromCellValueBuffer(cellsToWrite), createTable: false, ExcelTableStyle.TableStyleMedium2,
@@ -840,7 +810,8 @@ namespace OfficeIMO.Excel {
                 useCellValueNumberFormats: true, DateSystem, omitBlankCells: true);
             bool disableSharedStrings = !model.Sheets[0].IncludeCellReferences;
             using var output = new LimitedMemoryStream(64 * 1024, limit);
-            string themeXml = _defaultFontTheme != null ? CreateWorkbookThemeXml(_defaultFontTheme) : Encoding.UTF8.GetString(DefaultThemeBytes.Value);
+            // The theme the workbook holds now, which ApplyTheme or SetWorkbookThemeXml may have replaced since it was created.
+            if (ReadDeferredThemeXml() is not { } themeXml) return false;
             DirectDataSetWorkbookWriter.Write(output, model, CancellationToken.None, themeXml,
                 disableSharedStrings, theme: _defaultFontTheme, allowBackgroundCompression: Execution.AllowsBackgroundProcessing);
             bytes = output.ToArray();

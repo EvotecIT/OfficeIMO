@@ -54,6 +54,7 @@ namespace OfficeIMO.Excel {
             var entry = new ExcelDeferredSheet(name, sheetId, relationshipId, partName, isWorksheet: true) { IsNewSheet = _deferredCreated };
             workbook.Sheets.Add(entry);
             _deferredPackageBytes = bytes;
+            _deferredPackageWrittenHere = true;
             id.Add(sheetId);
             MarkPackageDirty();
             var created = new ExcelSheet(this, entry);

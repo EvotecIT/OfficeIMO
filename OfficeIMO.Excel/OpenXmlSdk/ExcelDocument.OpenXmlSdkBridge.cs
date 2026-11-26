@@ -65,8 +65,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        // Set when the deferred bytes are a package OfficeIMO wrote (a new workbook, an added sheet, a theme change or an
+        // owned save) rather than the file that was loaded.
+        private bool _deferredPackageWrittenHere { get; set; }
+
         private void OpenDeferredSdkLocked(ExcelDeferredWorkbook deferred, string? reason) {
             byte[] bytes = _deferredPackageBytes!;
+#if NETFRAMEWORK
+            // .NET Framework's package API updates the ZIP in place and cannot move the blocks of a package that
+            // System.IO.Compression wrote, so it gets the same package written by itself.
+            if (_deferredPackageWrittenHere) bytes = RewriteWithPackageApi(bytes);
+#endif
             Stream stream = OfficePackageLoadSource.CreatePackageStream(bytes, DocumentAccessMode.ReadWrite);
             SpreadsheetDocument document;
             try {
@@ -106,6 +115,31 @@ namespace OfficeIMO.Excel {
                 ReplayDeferredCellEdits();
             }
         }
+
+#if NETFRAMEWORK
+        /// <summary>Copies every part and relationship of <paramref name="bytes"/> into a package System.IO.Packaging writes.</summary>
+        private static byte[] RewriteWithPackageApi(byte[] bytes) {
+            using var source = new MemoryStream(bytes, writable: false);
+            using var target = new MemoryStream(bytes.Length + 4096);
+            using (System.IO.Packaging.Package input = System.IO.Packaging.Package.Open(source, FileMode.Open, FileAccess.Read))
+            using (System.IO.Packaging.Package output = System.IO.Packaging.Package.Open(target, FileMode.Create, FileAccess.ReadWrite)) {
+                foreach (System.IO.Packaging.PackagePart part in input.GetParts()) {
+                    System.IO.Packaging.PackagePart copy = output.CreatePart(part.Uri, part.ContentType, System.IO.Packaging.CompressionOption.Normal);
+                    using (Stream from = part.GetStream(FileMode.Open, FileAccess.Read))
+                    using (Stream to = copy.GetStream(FileMode.Create, FileAccess.Write)) {
+                        from.CopyTo(to);
+                    }
+                    foreach (System.IO.Packaging.PackageRelationship relationship in part.GetRelationships()) {
+                        copy.CreateRelationship(relationship.TargetUri, relationship.TargetMode, relationship.RelationshipType, relationship.Id);
+                    }
+                }
+                foreach (System.IO.Packaging.PackageRelationship relationship in input.GetRelationships()) {
+                    output.CreateRelationship(relationship.TargetUri, relationship.TargetMode, relationship.RelationshipType, relationship.Id);
+                }
+            }
+            return target.ToArray();
+        }
+#endif
 
         /// <summary>Binds each handed-out sheet to its SDK element and part, and rebuilds the sheet cache around them.</summary>
         private void BindDeferredSheets(ExcelDeferredWorkbook deferred) {

@@ -391,6 +391,21 @@ namespace OfficeIMO.Tests {
             Assert.Equal(theme.TypeScale.Body.ToPoints(), double.Parse((string)font.Element(Main + "sz")!.Attribute("val")!, CultureInfo.InvariantCulture));
         }
 
+        [Fact]
+        public void AThemeAppliedToANewWorkbookSurvivesTheTabularWriter() {
+            using var output = new MemoryStream();
+            using (var document = ExcelDocument.Create(output)) {
+                document.ApplyTheme(OfficeTheme.Dark);
+                ExcelSheet sheet = document.AddSheet("Data");
+                for (int row = 1; row <= 200; row++) sheet.Cell(row, 1).SetValue(row * 1.5);
+                document.Save();
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            XElement themeRoot = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(output.ToArray(), "xl/theme/theme1.xml"))).Root!;
+            Assert.Equal(OfficeTheme.Dark.Name, (string?)themeRoot.Attribute("name"));
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
@@ -438,7 +453,9 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
             try {
                 using (var document = ExcelDocument.Create(path)) {
-                    document.AddSheet("Data").Cell(1, 1).SetValue(1);
+                    // Enough plain values for the tabular writer, which declares an XLSX workbook, so the type must survive it.
+                    ExcelSheet sheet = document.AddSheet("Data");
+                    for (int row = 1; row <= 200; row++) sheet.Cell(row, 1).SetValue(row);
                     document.Save();
                     Assert.Empty(document.OpenXmlSdkFallbacks);
                 }

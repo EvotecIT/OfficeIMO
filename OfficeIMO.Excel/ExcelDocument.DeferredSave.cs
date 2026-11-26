@@ -362,6 +362,7 @@ namespace OfficeIMO.Excel {
         private int CompleteDeferredSave(byte[] bytes) {
             // The caller's stream or file has its own copy; the document keeps the array.
             _deferredPackageBytes = bytes;
+            _deferredPackageWrittenHere = true;
             foreach (ExcelDeferredSheet entry in _deferredWorkbook?.Sheets ?? new List<ExcelDeferredSheet>()) {
                 entry.TableHeadersRead = false;
                 entry.IsNewSheet = false;

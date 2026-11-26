@@ -30,8 +30,20 @@ namespace OfficeIMO.Excel {
                 bytes = output.ToArray();
             }
             _deferredPackageBytes = bytes;
+            _deferredPackageWrittenHere = true;
             MarkPackageDirty();
             return true;
+        }
+
+        /// <summary>The theme part of a workbook that has not opened its SDK package, or null when it has none.</summary>
+        private string? ReadDeferredThemeXml() {
+            if (_deferredWorkbook is not { } workbook) return null;
+            using var source = new MemoryStream(_deferredPackageBytes!, writable: false);
+            using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
+            string? themePart = package.GetRelatedPartName(workbook.WorkbookPartName, ThemeRelationshipType);
+            if (themePart == null || !package.PartExists(themePart)) return null;
+            using OfficePooledBytes content = package.ReadPart(themePart);
+            return Encoding.UTF8.GetString(content.Array, 0, content.Length);
         }
 
         /// <summary>
