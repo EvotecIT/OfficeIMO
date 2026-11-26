@@ -10,40 +10,48 @@ namespace OfficeIMO.Excel {
         internal static readonly AsyncLocal<Action?> HandoverStartingForTests = new();
 
         /// <summary>
-        /// Whether the worksheet's rows are in increasing order, and the actual range of its cells, read from the reader's
-        /// own worksheet stream. Used when the validation scan collects no bounds, as for worksheets with tables.
+        /// Whether the worksheet's rows are in increasing order, the actual range of its cells, and the first row with a
+        /// cell outside the given columns or below the given last row (0 when none), read from the reader's own worksheet
+        /// stream. Rows without an index resolve as the XML replay resolves them, and their coordinates are published
+        /// for it. Used when the validation scan collects no bounds, as for worksheets with tables.
         /// </summary>
-        private bool ScanRowOrderAndCellRangeXml(CancellationToken ct, out string? cellRange) {
+        private bool ScanRowOrderAndCellRangeXml(CancellationToken ct, int firstColumn, int lastColumn, int lastRow,
+            out string? cellRange, out int firstRowOutside) {
             cellRange = null;
+            firstRowOutside = 0;
             using Stream stream = OpenReaderWorksheetStream(ct);
             RewindWorksheetStream(stream);
             using XmlReader reader = OpenWorksheetXmlReader(stream);
             var rows = new WorksheetXmlRowSelector();
             var bounds = new WorksheetRangeAccumulator();
-            bool sorted = true;
-            int previousRow = 0;
+            var coordinates = new ImplicitXmlRowIndexBuilder();
             int rowDepth = -1;
+            void EndRow(ref int outside) {
+                bounds.EndRow();
+                coordinates.EndRow();
+                if (outside == 0 && bounds.Exceeds(firstColumn, lastColumn, lastRow)) outside = coordinates.LastRowIndex;
+            }
             while (reader.Read()) {
                 ct.ThrowIfCancellationRequested();
                 if (rowDepth >= 0 && reader.Depth <= rowDepth) {
-                    bounds.EndRow();
+                    EndRow(ref firstRowOutside);
                     rowDepth = -1;
                 }
                 if (rows.IsCellElement(reader)) {
-                    bounds.AddCell(ReadXmlReferenceAttribute(reader).Text);
+                    ReadOnlySpan<char> reference = ReadXmlReferenceAttribute(reader).Text;
+                    bounds.AddCell(reference);
+                    if (coordinates.NeedsCellReference) coordinates.AddCell(reference);
                     continue;
                 }
                 if (!rows.IsRowElement(reader)) continue;
-                int explicitRow = bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text);
-                int row = explicitRow > 0 ? explicitRow : previousRow + 1;
-                if (row <= previousRow) sorted = false;
-                previousRow = row;
-                if (reader.IsEmptyElement) bounds.EndRow();
+                coordinates.BeginRow(reader, bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text));
+                if (reader.IsEmptyElement) EndRow(ref firstRowOutside);
                 else rowDepth = reader.Depth;
             }
-            if (rowDepth >= 0) bounds.EndRow();
+            if (rowDepth >= 0) EndRow(ref firstRowOutside);
             if (bounds.TryGetReference(out string range)) cellRange = range;
-            return sorted;
+            Interlocked.CompareExchange(ref _implicitXmlRowIndexes, coordinates.Indexes, null);
+            return coordinates.RowsStrictlyIncreasing;
         }
 
         private bool RowsAreSortedWithinRangeXmlFast(int firstRow, int lastRow, CancellationToken token) {

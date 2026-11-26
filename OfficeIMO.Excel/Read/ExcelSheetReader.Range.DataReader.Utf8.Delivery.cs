@@ -84,9 +84,18 @@ namespace OfficeIMO.Excel {
             }
 
             private bool _handoverPending;
+            private int _firstRowOutsideDimension;
             private ExceptionDispatchInfo? _handoverFailure;
 
             private void ThrowIfHandoverFailed() => _handoverFailure?.Throw();
+
+            /// <summary>Fails the read that reaches the first row with a cell outside the declared dimension.</summary>
+            private void ThrowIfOutsideDimension() {
+                if (_firstRowOutsideDimension == 0 || _nextLogicalRow < Math.Min(_firstRowOutsideDimension, _lastRow + 1)) return;
+                throw new InvalidDataException(
+                    $"Worksheet '{_owner._sheetName}' has cells outside its declared dimension at row {_firstRowOutsideDimension} " +
+                    "after rows inside it were returned. Read it with ExcelReaderOptions.ValidateWorksheetBeforeFirstRow enabled.");
+            }
 
             private void StartXmlRowsAfterHandover(CancellationToken cancellationToken) {
                 HandoverStartingForTests.Value?.Invoke();
@@ -118,8 +127,11 @@ namespace OfficeIMO.Excel {
                 // as for worksheets with tables, and proved no row order either: a separate scan supplies both. Table
                 // extents may include empty rows, so those keep the declared last row.
                 bool boundsFromCheck = cellRange != null;
-                if (!boundsFromCheck)
-                    rowsStrictlyIncreasing = _owner.ScanRowOrderAndCellRangeXml(cancellationToken, out cellRange);
+                int firstRowOutside = 0;
+                if (!boundsFromCheck) {
+                    rowsStrictlyIncreasing = _owner.ScanRowOrderAndCellRangeXml(cancellationToken,
+                        _firstColumn, _lastColumn, _lastRow, out cellRange, out firstRowOutside);
+                }
                 if (!rowsStrictlyIncreasing) {
                     // Rows before the next one were already returned in file order.
                     throw new InvalidDataException(
@@ -129,11 +141,16 @@ namespace OfficeIMO.Excel {
                 if (cellRange != null) {
                     var (_, usedFirstColumn, usedLastRow, usedLastColumn) = ExcelA1.ParseRange(cellRange);
                     if (usedFirstColumn < _firstColumn || usedLastColumn > _lastColumn || usedLastRow > _lastRow) {
-                        throw new InvalidDataException(
-                            $"Worksheet '{_owner._sheetName}' has cells outside its declared dimension " +
-                            "after rows inside it were returned. Read it with ExcelReaderOptions.ValidateWorksheetBeforeFirstRow enabled.");
+                        // The rows before the first one outside the dimension are still returned; the read that
+                        // reaches it fails.
+                        if (boundsFromCheck) {
+                            _owner.ScanRowOrderAndCellRangeXml(cancellationToken, _firstColumn, _lastColumn, _lastRow,
+                                out _, out firstRowOutside);
+                        }
+                        _firstRowOutsideDimension = Math.Max(firstRowOutside, _nextLogicalRow);
+                    } else if (boundsFromCheck) {
+                        _lastRow = usedLastRow;
                     }
-                    if (boundsFromCheck) _lastRow = usedLastRow;
                 }
                 Stream stream = _owner.OpenReaderWorksheetStream(cancellationToken);
                 try {

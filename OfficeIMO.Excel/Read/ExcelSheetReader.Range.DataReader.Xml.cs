@@ -412,6 +412,7 @@ namespace OfficeIMO.Excel {
 
             private bool TryReadLogicalRow(out object?[] row) {
                 row = Array.Empty<object?>();
+                if (!_closed) ThrowIfOutsideDimension();
                 if (_closed || _nextLogicalRow > _lastRow) {
                     return false;
                 }

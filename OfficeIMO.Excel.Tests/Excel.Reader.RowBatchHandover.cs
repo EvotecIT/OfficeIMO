@@ -96,8 +96,8 @@ public partial class Excel {
     }
 
     /// <summary>
-    /// After a switch to the general XML reader, a row below the declared dimension still fails at that point instead of
-    /// ending the rows early.
+    /// After a switch to the general XML reader, the rows of the declared dimension are returned and a row below it
+    /// fails the read that reaches it instead of ending the rows quietly.
     /// </summary>
     [Fact]
     public void OpenReader_RowBelowTheDeclaredDimensionAfterTheSwitchFails() {
@@ -114,7 +114,8 @@ public partial class Excel {
             }
             Assert.Contains(nameof(ExcelReaderOptions.ValidateWorksheetBeforeFirstRow),
                 Assert.IsType<InvalidDataException>(failure).Message);
-            Assert.True(rows > 0 && rows < markupRow);
+            // Every row of the declared dimension came back; the read past it failed.
+            Assert.Equal(HandoverRows - 1, rows);
 
             using DbDataReader validated = ExcelDocument.OpenReader(path, new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true });
             int validatedRows = 0;
@@ -250,26 +251,90 @@ public partial class Excel {
     }
 
     /// <summary>
-    /// In a worksheet with tables, a cell outside the declared dimension after a late switch to the general XML reader
-    /// fails the read instead of being skipped.
+    /// A cell outside the declared dimension after a late switch to the general XML reader fails the read that reaches
+    /// its row instead of being skipped; the rows before it are returned, with or without tables.
     /// </summary>
-    [Fact]
-    public void OpenReader_TableWorksheetCellOutsideTheDimensionAfterTheSwitchFails() {
+    [Theory]
+    [InlineData("")]
+    [InlineData("<tableParts count=\"0\"/>")]
+    public void OpenReader_CellOutsideTheDimensionAfterTheSwitchFailsAtThatRow(string afterSheetData) {
         int markupRow = HandoverRows - 5_000;
+        int wideRow = HandoverRows - 100;
         string path = CreateHandoverWorkbook(markupRow, "<![CDATA[late & cdata]]>", dimensionColumns: "B",
-            extraCellRow: HandoverRows - 100, afterSheetData: "<tableParts count=\"0\"/>");
+            extraCellRow: wideRow, afterSheetData: afterSheetData);
         try {
             using DbDataReader reader = ExcelDocument.OpenReader(path);
             Exception? failure = ReadUntilError(reader, out int rows);
             if (!ChecksWhileReading) {
-                // Checked before the first row (.NET Framework): the table keeps its declared columns.
+                // Checked before the first row (.NET Framework): every row comes back.
                 Assert.Null(failure);
                 Assert.Equal(HandoverRows - 1, rows);
                 return;
             }
             Assert.Contains(nameof(ExcelReaderOptions.ValidateWorksheetBeforeFirstRow),
                 Assert.IsType<InvalidDataException>(failure).Message);
-            Assert.True(rows > 0 && rows < markupRow);
+            // The header is row 1, so rows 2 to wideRow - 1 came back.
+            Assert.Equal(wideRow - 2, rows);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// A worksheet with tables whose rows omit their index after a late switch reads like validating first, with the
+    /// index of each such row taken from its first cell.
+    /// </summary>
+    [Fact]
+    public void OpenReader_TableWorksheetWithImplicitRowsSwitchingLateKeepsTheSameValues() {
+        int markupRow = HandoverRows - 5_000;
+        string path = CreateHandoverWorkbook(markupRow, "<![CDATA[late & cdata]]>", dimensionColumns: "B",
+            afterSheetData: "<tableParts count=\"0\"/>", omitRowIndexAfter: markupRow);
+        try {
+            AssertReadsLikeValidatingFirst(path, markupRow, "late & cdata");
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// In a worksheet with tables, a row without an index whose first cell places it after later rows makes the rows
+    /// out of order, so the late switch fails instead of returning rows out of sequence.
+    /// </summary>
+    [Fact]
+    public void OpenReader_TableWorksheetImplicitRowOutOfOrderAfterTheSwitchFails() {
+        int markupRow = HandoverRows - 5_000;
+        string path = CreateHandoverWorkbook(markupRow, "<![CDATA[late & cdata]]>", dimensionColumns: "B",
+            afterSheetData: "<tableParts count=\"0\"/>", jumpRow: markupRow + 100);
+        try {
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
+            Exception? failure = ReadUntilError(reader, out int rows);
+            if (!ChecksWhileReading) return;
+            Assert.Contains(nameof(ExcelReaderOptions.ValidateWorksheetBeforeFirstRow),
+                Assert.IsType<InvalidDataException>(failure).Message);
+            Assert.Equal(markupRow - 2, rows);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// <c>sheetData</c> that rebinds the default namespace puts its rows in another namespace, so none of them is
+    /// returned early: the read ends as it does when validating first.
+    /// </summary>
+    [Fact]
+    public void OpenReader_SheetDataInAnotherNamespaceReadsLikeValidatingFirst() {
+        string path = CreateHandoverWorkbook(markupRow: 0, markupText: string.Empty, dimensionColumns: "B",
+            sheetDataAttributes: " xmlns=\"urn:not-spreadsheetml\"");
+        try {
+            Exception? expected;
+            int expectedRows;
+            using (DbDataReader validated = ExcelDocument.OpenReader(path, new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true }))
+                expected = ReadUntilError(validated, out expectedRows);
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
+            Exception? failure = ReadUntilError(reader, out int rows);
+            Assert.Equal(expected?.GetType(), failure?.GetType());
+            Assert.Equal(expectedRows, rows);
+            Assert.Equal(0, rows);
         } finally {
             File.Delete(path);
         }
@@ -295,15 +360,16 @@ public partial class Excel {
     private static string CreateHandoverWorkbook(int markupRow, string markupText, string dimensionColumns,
         int trailingWhitespaceBytes = 0, int extraCellRow = 0, int extraRows = 0, string markupRowAttributes = "",
         int attributedFormulaRow = 0, string worksheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-        string afterSheetData = "") {
+        string afterSheetData = "", int omitRowIndexAfter = 0, int jumpRow = 0, string sheetDataAttributes = "") {
         string path = CreateCompactFastPathWorkbook();
         var xml = new StringBuilder(HandoverRows * 120);
         xml.Append("<worksheet xmlns=\"").Append(worksheetNamespace).Append("\"><dimension ref=\"A1:")
-            .Append(dimensionColumns).Append(HandoverRows.ToString(CultureInfo.InvariantCulture)).Append("\"/><sheetData>");
+            .Append(dimensionColumns).Append(HandoverRows.ToString(CultureInfo.InvariantCulture)).Append("\"/><sheetData").Append(sheetDataAttributes).Append('>');
         for (int row = 1; row <= HandoverRows + extraRows; row++) {
-            string r = row.ToString(CultureInfo.InvariantCulture);
+            string r = (row == jumpRow ? row + 1_000 : row).ToString(CultureInfo.InvariantCulture);
+            bool omitIndex = row == jumpRow || (omitRowIndexAfter > 0 && row > omitRowIndexAfter);
             string text = row == 1 ? "Name" : row == markupRow ? markupText : "Item " + r;
-            xml.Append("<row r=\"").Append(r).Append('"').Append(row == markupRow ? markupRowAttributes : string.Empty)
+            xml.Append(omitIndex ? "<row" : "<row r=\"" + r + "\"").Append(row == markupRow ? markupRowAttributes : string.Empty)
                 .Append("><c r=\"A").Append(r).Append("\" t=\"inlineStr\"><is><t>")
                 .Append(text).Append("</t></is></c><c r=\"B").Append(r).Append("\">")
                 .Append(row == attributedFormulaRow ? "<f ca=\"1\">" + (row * 3).ToString(CultureInfo.InvariantCulture) + "</f>" : string.Empty)
