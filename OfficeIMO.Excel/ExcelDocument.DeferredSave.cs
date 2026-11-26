@@ -10,8 +10,10 @@ namespace OfficeIMO.Excel {
     /// save through the model gives it. Anything this path does not cover opens the SDK and saves as before.
     /// </summary>
     /// <remarks>
-    /// The model's save also runs a workbook preflight that repairs damaged references and adds default views to
-    /// every worksheet. This path leaves parts it did not edit as they were read, as Excel does.
+    /// The model's save can also run a whole-workbook preflight that repairs damaged references and adds default views
+    /// to every worksheet, when workbook state asks for it or <see cref="ExcelSaveOptions.SafePreflight"/> is set. This
+    /// path leaves parts it did not edit as they were read, as Excel does; <see cref="ExcelSaveOptions.SafePreflight"/>
+    /// and the other repair options send the save through the model.
     /// </remarks>
     public partial class ExcelDocument {
         private const string SharedStringsRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "sharedStrings";
@@ -27,14 +29,18 @@ namespace OfficeIMO.Excel {
         /// <summary>Records a plain value for the owned save; false when the sheet needs the model for it.</summary>
         internal bool RecordDeferredCellEdit(ExcelSheet sheet, in ExcelDeferredCellEdit edit) {
             ExcelDeferredSheet? entry = sheet.DeferredEntry;
+            // The checks read the bytes taken here; if the package opens meanwhile, the check under the gate below sends
+            // the change through the model.
+            byte[]? packageBytes = _deferredPackageBytes;
+            ExcelDeferredWorkbook? workbook = _deferredWorkbook;
             // A value written to a table's header row renames its column, which the model does; styles are plain.
-            if (entry == null || _deferredWorkbook == null) return false;
+            if (entry == null || workbook == null || packageBytes == null) return false;
             if (edit.Kind != ExcelDeferredCellKind.Style) {
-                if (IsTableHeaderCell(entry, edit.Row, edit.Column)) {
+                if (IsTableHeaderCell(entry, packageBytes, edit.Row, edit.Column)) {
                     OpenDeferredSdk("Cell value in a table header row on worksheet '" + entry.Name + "'");
                     return false;
                 }
-                if (WorkbookHasCellMetadata()) {
+                if (WorkbookHasCellMetadata(workbook, packageBytes)) {
                     OpenDeferredSdk("Cell value in a workbook with cell metadata (dynamic arrays or rich values)");
                     return false;
                 }
@@ -56,9 +62,9 @@ namespace OfficeIMO.Excel {
 
         // A value written to a table's header row renames its column, which the model does; the header rows of the
         // sheet's tables are read once.
-        private bool IsTableHeaderCell(ExcelDeferredSheet entry, int row, int column) {
+        private static bool IsTableHeaderCell(ExcelDeferredSheet entry, byte[] packageBytes, int row, int column) {
             if (!entry.TableHeadersRead) {
-                entry.TableHeaders = ReadTableHeaders(entry);
+                entry.TableHeaders = ReadTableHeaders(entry, packageBytes);
                 entry.TableHeadersRead = true;
             }
             List<(int Row, int First, int Last)>? headers = entry.TableHeaders;
@@ -71,10 +77,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private List<(int Row, int First, int Last)>? ReadTableHeaders(ExcelDeferredSheet entry) {
+        private static List<(int Row, int First, int Last)>? ReadTableHeaders(ExcelDeferredSheet entry, byte[] packageBytes) {
             var headers = new List<(int Row, int First, int Last)>();
             try {
-                using var source = new MemoryStream(_deferredPackageBytes!, writable: false);
+                using var source = new MemoryStream(packageBytes, writable: false);
                 using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
                 foreach (OfficeOpcRelationship relationship in package.GetRelationships(entry.PartName)) {
                     if (!string.Equals(relationship.Type, TableRelationshipType, StringComparison.Ordinal)) continue;
@@ -101,13 +107,13 @@ namespace OfficeIMO.Excel {
         }
 
         // Dynamic arrays and rich values live in the cell metadata part, which the model reads before a value is written.
-        private bool WorkbookHasCellMetadata() {
+        private bool WorkbookHasCellMetadata(ExcelDeferredWorkbook workbook, byte[] packageBytes) {
             if (_deferredHasCellMetadata is { } known) return known;
             bool found = true;
             try {
-                using var source = new MemoryStream(_deferredPackageBytes!, writable: false);
+                using var source = new MemoryStream(packageBytes, writable: false);
                 using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
-                found = package.GetRelatedPartName(_deferredWorkbook!.WorkbookPartName, CellMetadataRelationshipType) != null;
+                found = package.GetRelatedPartName(workbook.WorkbookPartName, CellMetadataRelationshipType) != null;
             } catch (Exception exception) when (exception is InvalidDataException or XmlException or IOException) {
                 found = true;
             }
@@ -131,8 +137,8 @@ namespace OfficeIMO.Excel {
                 if (store == null) continue;
                 try {
                     sheet.ReplayDeferredCells(store);
-                } catch (Exception exception) when (failure == null) {
-                    failure = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception);
+                } catch (Exception exception) {
+                    failure ??= System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception);
                 }
             }
             failure?.Throw();
@@ -189,51 +195,80 @@ namespace OfficeIMO.Excel {
             && (options == null || !options.ValidateOpenXml && !options.SafeRepairDefinedNames && !options.SafePreflight
                 && !options.DisableFastPackageWriter && options.Format == ExcelFileFormat.Xlsx);
 
+        /// <summary>
+        /// Builds the saved package and makes it the document's state before anything reaches the destination, so a
+        /// destination that reads the document, edits it or fails leaves no taken changes to put back. Opening the SDK
+        /// waits on the same gate, so the package stays deferred while the save builds it.
+        /// </summary>
+        private bool TryPrepareDeferredSave(ExcelSaveOptions? options, string? path, CancellationToken cancellationToken, out byte[] bytes) {
+            byte[] built = Array.Empty<byte>();
+            string? declined = null;
+            bool prepared = WithDeferredOpenGate(() => {
+                if (!CanSaveDeferredPackage(options) || path != null && !DeferredPackageTypeMatches(path)) return false;
+                cancellationToken.ThrowIfCancellationRequested();
+                var taken = TakeDeferredEdits();
+                bool completed = false;
+                try {
+                    if (!TryCreateDeferredPackageBytes(taken, out built, out string? reason)) {
+                        declined = reason ?? "the owned save declined";
+                        return false;
+                    }
+                    ThrowIfPackageMaterializationExceedsLimit(built.LongLength, options);
+                    CompleteDeferredSave(built);
+                    completed = true;
+                    return true;
+                } finally {
+                    if (!completed) RestoreDeferredEdits(taken);
+                }
+            });
+            bytes = built;
+            // The SDK opens outside the gate, taking the document lock first as every opener does.
+            if (declined != null) OpenDeferredSdk("Save: " + declined);
+            return prepared;
+        }
+
         /// <summary>Saves through the owned path into a stream, or returns false having written nothing.</summary>
         private bool TryWriteDeferredPackageToStream(Stream destination, ExcelSaveOptions? options) {
-            if (!CanSaveDeferredPackage(options)) return false;
-            var taken = TakeDeferredEdits();
-            bool saved = false;
+            if (!TryPrepareDeferredSave(options, null, CancellationToken.None, out byte[] bytes)) return false;
             try {
-                if (!TryCreateDeferredPackageBytes(taken, out byte[] bytes, out string? reason)) {
-                    RestoreDeferredEdits(taken);
-                    saved = true;
-                    OpenDeferredSdk("Save: " + reason);
-                    return false;
-                }
-                ThrowIfPackageMaterializationExceedsLimit(bytes.LongLength, options);
                 PrepareDestinationStreamForWrite(destination);
                 destination.Write(bytes, 0, bytes.Length);
                 try { destination.Flush(); } catch (NotSupportedException) { }
-                saved = true;
-                CompleteDeferredSave(bytes);
-                return true;
-            } finally {
-                if (!saved) RestoreDeferredEdits(taken);
+            } catch {
+                // The document holds the saved state; the destination does not, so the next save writes it again.
+                MarkPackageDirty();
+                throw;
             }
+            return true;
+        }
+
+        /// <summary>Saves through the owned path into a stream with asynchronous writes, or returns false having written nothing.</summary>
+        private async Task<bool> TryWriteDeferredPackageToStreamAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken) {
+            if (!TryPrepareDeferredSave(options, null, cancellationToken, out byte[] bytes)) return false;
+            try {
+                cancellationToken.ThrowIfCancellationRequested();
+                PrepareDestinationStreamForWrite(destination);
+                await destination.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+                try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
+            } catch {
+                MarkPackageDirty();
+                throw;
+            }
+            return true;
         }
 
         /// <summary>Saves through the owned path into a file whose extension matches the package type.</summary>
-        private bool TryWriteDeferredPackageToFile(string path, ExcelSaveOptions? options) {
-            if (!CanSaveDeferredPackage(options) || !DeferredPackageTypeMatches(path)) return false;
-            var taken = TakeDeferredEdits();
-            bool saved = false;
+        private bool TryWriteDeferredPackageToFile(string path, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+            if (!TryPrepareDeferredSave(options, path, cancellationToken, out byte[] bytes)) return false;
             try {
-                if (!TryCreateDeferredPackageBytes(taken, out byte[] bytes, out string? reason)) {
-                    RestoreDeferredEdits(taken);
-                    saved = true;
-                    OpenDeferredSdk("Save: " + reason);
-                    return false;
-                }
-                ThrowIfPackageMaterializationExceedsLimit(bytes.LongLength, options);
+                cancellationToken.ThrowIfCancellationRequested();
                 CommitPreparedPackageToFile(path, bytes);
-                saved = true;
-                CompleteDeferredSave(bytes);
-                FilePath = path;
-                return true;
-            } finally {
-                if (!saved) RestoreDeferredEdits(taken);
+            } catch {
+                MarkPackageDirty();
+                throw;
             }
+            FilePath = path;
+            return true;
         }
 
         // A save to another extension changes the package type, which the model does.

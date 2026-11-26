@@ -412,6 +412,8 @@ namespace OfficeIMO.Excel {
         internal uint? Apply(uint baseStyle, ExcelStyleOperation operation) {
             // The same change to the same format always gives the same format, as the model's derived-format cache has it.
             if (_applied.TryGetValue((baseStyle, operation), out uint known)) return known;
+            // A character XML cannot hold fails the model's save too; the change stays with it.
+            if (operation.Text != null && !IsXmlText(operation.Text)) return null;
             uint? result = ApplyCore(baseStyle, operation);
             if (result.HasValue) _applied[(baseStyle, operation)] = result.Value;
             return result;
@@ -520,8 +522,23 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        private static bool IsXmlText(string text) {
+            for (int index = 0; index < text.Length; index++) {
+                char character = text[index];
+                if (char.IsHighSurrogate(character) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) {
+                    index++;
+                    continue;
+                }
+                bool allowed = character is '\t' or '\n' or '\r' || character >= ' ' && character <= '\uD7FF' || character >= '\uE000' && character <= '\uFFFD';
+                if (!allowed) return false;
+            }
+            return true;
+        }
+
         private uint? DeriveAlignment(uint baseStyle, Action<Node> mutate) =>
             DeriveFormat(baseStyle, format => {
+                // Compatibility markup kept as read can supply an alignment of its own.
+                if (format.Children.Exists(static child => child.Raw != null)) return false;
                 Node alignment = format.Child("alignment")?.Clone() ?? Node.Element("alignment");
                 mutate(alignment);
                 format.SetChild("alignment", alignment, FormatChildOrder);

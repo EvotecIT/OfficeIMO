@@ -28,12 +28,14 @@ namespace OfficeIMO.Excel {
         /// <summary>The automatic date format a date value takes.</summary>
         internal static readonly ExcelStyleOperation Date = new(ExcelStyleOperationKind.Date);
 
+        // The caller's argument is part of the key: a theme-role color and a literal one can resolve to the same ARGB and
+        // still replay differently through the model.
         private readonly record struct Key(ExcelStyleOperationKind Kind, bool Flag, string? Text, double Number, string? ColorAttribute,
-            string? ColorValue, ExcelCellBorders Borders);
+            string? ColorValue, ExcelCellBorders Borders, object? Source);
 
         private static ExcelStyleOperation Get(ExcelStyleOperationKind kind, bool flag = false, string? text = null, double number = 0,
             ExcelStyleColor? color = null, ExcelCellBorders borders = ExcelCellBorders.None, object? source = null) {
-            var key = new Key(kind, flag, text, number, color?.Attribute, color?.Value, borders);
+            var key = new Key(kind, flag, text, number, color?.Attribute, color?.Value, borders, source);
             if (Cache.TryGetValue(key, out ExcelStyleOperation? known)) return known;
             var operation = new ExcelStyleOperation(kind) { Flag = flag, Text = text, Number = number, Color = color, Borders = borders, Source = source };
             if (Volatile.Read(ref _cached) >= CacheLimit) return operation;

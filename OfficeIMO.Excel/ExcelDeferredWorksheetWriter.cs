@@ -175,6 +175,10 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
                         if (depth == 2) {
+                            // Compatibility markup ahead of the cells can supply the dimension or the columns.
+                            if (reader.NamespaceId == OfficeXmlNamespaces.MarkupCompatibility && !sheetDataSeen) {
+                                return Fail("compatibility markup precedes the cells");
+                            }
                             if (reader.NamespaceId != OfficeXmlNamespaces.SpreadsheetML) continue;
                             if (reader.LocalNameEquals("sheetPr")) {
                                 if (!reader.IsEmptyElement) reader.SkipElement();
@@ -254,7 +258,7 @@ namespace OfficeIMO.Excel {
                 }
                 uint style = 0U;
                 if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "style", out string styleText)
-                    && !uint.TryParse(styleText, NumberStyles.None, CultureInfo.InvariantCulture, out style)) {
+                    && !uint.TryParse(styleText, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out style)) {
                     style = 0U;
                 }
                 _columns.Add(((int)Math.Min(min, int.MaxValue), (int)Math.Min(max, int.MaxValue), style));
@@ -305,7 +309,7 @@ namespace OfficeIMO.Excel {
                 if (edited && reader.TryGetAttribute(OfficeXmlNamespaces.None, "customFormat", out string customFormat)
                     && customFormat is "1" or "true"
                     && reader.TryGetAttribute(OfficeXmlNamespaces.None, "s", out string rowStyleText)) {
-                    if (!uint.TryParse(rowStyleText, NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed)) return Fail("a row style is not a number");
+                    if (!uint.TryParse(rowStyleText, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out uint parsed)) return Fail("a row style is not a number");
                     rowStyle = parsed;
                 }
 

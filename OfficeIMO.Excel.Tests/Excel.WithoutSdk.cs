@@ -221,6 +221,105 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AnExistingRichTextItemIsReusedAndNewItemsGoBeforeTheExtensionList() {
+            byte[] source = CreateWorkbook();
+            XDocument table = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(source, "xl/sharedStrings.xml")));
+            int existing = table.Root!.Elements(Main + "si").Count();
+            table.Root.Add(new XElement(Main + "si", new XElement(Main + "r", new XElement(Main + "t", "Alpha"))),
+                new XElement(Main + "extLst", new XElement(Main + "ext", new XAttribute("uri", "{00000000-0000-0000-0000-000000000001}"))));
+            source = WithEntry(source, "xl/sharedStrings.xml", table.ToString(SaveOptions.DisableFormatting));
+
+            byte[] saved = SaveWithoutSdk(source, document => {
+                document.Sheets[0].Cell(6, 1).SetValue("Alpha");
+                document.Sheets[0].Cell(7, 1).SetValue("Beta");
+            }, out bool owned);
+
+            Assert.True(owned);
+            XElement root = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(saved, "xl/sharedStrings.xml"))).Root!;
+            Assert.Equal(existing + 2, root.Elements(Main + "si").Count());
+            Assert.Equal(Main + "extLst", root.Elements().Last().Name);
+            XElement sheet = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(saved, "xl/worksheets/sheet1.xml"))).Root!;
+            XElement alpha = sheet.Descendants(Main + "c").Single(cell => (string?)cell.Attribute("r") == "A6");
+            Assert.Equal(existing.ToString(CultureInfo.InvariantCulture), alpha.Element(Main + "v")!.Value);
+        }
+
+        [Fact]
+        public async Task ACanceledAsyncSaveWritesNothing() {
+            using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
+            document.Sheets[0].Cell(2, 1).SetValue("Changed");
+            using var output = new MemoryStream();
+            using var canceled = new CancellationTokenSource();
+            canceled.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.SaveAsync(output, cancellationToken: canceled.Token));
+
+            Assert.Equal(0, output.Length);
+            await document.SaveAsync(output);
+            using var reread = ExcelDocument.Load(new MemoryStream(output.ToArray()));
+            Assert.Equal("Changed", reread.Sheets[0].Cell(2, 1).GetValue().Value);
+        }
+
+        [Fact]
+        public async Task AsyncSavesWriteToDestinationsThatOnlyWriteAsynchronously() {
+            using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
+            document.Sheets[0].Cell(2, 1).SetValue("Changed");
+            var output = new CallbackStream { RejectSynchronousWrites = true };
+            await document.SaveAsync(output);
+
+            Assert.Empty(document.OpenXmlSdkFallbacks);
+            using var reread = ExcelDocument.Load(new MemoryStream(output.Inner.ToArray()));
+            Assert.Equal("Changed", reread.Sheets[0].Cell(2, 1).GetValue().Value);
+        }
+
+        [Fact]
+        public void ADestinationThatOpensTheSdkPackageWhileWritingSeesTheSavedChanges() {
+            using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
+            document.Sheets[0].Cell(2, 1).SetValue("Changed");
+            object? seen = null;
+            var output = new CallbackStream {
+                OnWrite = () => {
+                    _ = document.OpenXmlDocument;
+                    seen = document.Sheets[0].Cell(2, 1).GetValue().Value;
+                }
+            };
+            document.Save(output);
+
+            Assert.Equal("Changed", seen);
+            using var second = new MemoryStream();
+            document.Save(second);
+            using var reread = ExcelDocument.Load(new MemoryStream(second.ToArray()));
+            Assert.Equal("Changed", reread.Sheets[0].Cell(2, 1).GetValue().Value);
+        }
+
+        /// <summary>A seekable destination that can run code on its first write or refuse synchronous writes.</summary>
+        private sealed class CallbackStream : Stream {
+            internal MemoryStream Inner { get; } = new();
+            internal Action? OnWrite { get; set; }
+            internal bool RejectSynchronousWrites { get; set; }
+            public override bool CanRead => true;
+            public override bool CanSeek => true;
+            public override bool CanWrite => true;
+            public override long Length => Inner.Length;
+            public override long Position { get => Inner.Position; set => Inner.Position = value; }
+            public override void Flush() { }
+            public override int Read(byte[] buffer, int offset, int count) => Inner.Read(buffer, offset, count);
+            public override long Seek(long offset, SeekOrigin origin) => Inner.Seek(offset, origin);
+            public override void SetLength(long value) => Inner.SetLength(value);
+            public override void Write(byte[] buffer, int offset, int count) {
+                if (RejectSynchronousWrites) throw new NotSupportedException("Synchronous writes are not supported.");
+                Action? callback = OnWrite;
+                OnWrite = null;
+                callback?.Invoke();
+                Inner.Write(buffer, offset, count);
+            }
+            public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+                Inner.Write(buffer, offset, count);
+                return Task.CompletedTask;
+            }
+            public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        }
+
+        [Fact]
         public void ASecondSaveStartsFromTheFirst() {
             byte[] source = CreateWorkbook();
             using var document = ExcelDocument.Load(new MemoryStream(source));
@@ -281,7 +380,6 @@ namespace OfficeIMO.Tests {
             } catch (Exception) {
                 return null;
             }
-            compared = true;
             byte[] actual;
             bool owned;
             try {
@@ -289,7 +387,9 @@ namespace OfficeIMO.Tests {
             } catch (Exception exception) {
                 return "owned path threw " + exception.GetType().Name + ": " + exception.Message;
             }
+            // Only a workbook the owned path saved counts as compared.
             if (!owned) return null;
+            compared = true;
             // The edited cells and the dimension match the SDK's save; the model's save also repairs damaged cells
             // elsewhere, which the owned save leaves as the source has them.
             var sourceCells = CellMapsOf(source);
@@ -378,6 +478,11 @@ namespace OfficeIMO.Tests {
             return output.ToArray();
         }
 
+        private static byte[] EntryBytes(byte[] package, string name) {
+            using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
+            return ContentOf(archive.GetEntry(name) ?? throw new InvalidOperationException(name + " is missing."));
+        }
+
         private static byte[] WithEntry(byte[] package, string name, string xml) {
             using var stream = new MemoryStream();
             stream.Write(package, 0, package.Length);
@@ -417,7 +522,14 @@ namespace OfficeIMO.Tests {
             var changed = new List<string>();
             foreach (ZipArchiveEntry entry in right.Entries) {
                 ZipArchiveEntry? original = left.GetEntry(entry.FullName);
-                if (original == null || original.CompressedLength != entry.CompressedLength || !ContentOf(original).SequenceEqual(ContentOf(entry))) changed.Add(entry.FullName);
+                if (original == null || !ContentOf(original).SequenceEqual(ContentOf(entry))) {
+                    changed.Add(entry.FullName);
+                    continue;
+                }
+#if NET8_0_OR_GREATER
+                // Only the .NET 8+ writer copies untouched members' compressed bytes; older targets re-deflate them.
+                if (original.CompressedLength != entry.CompressedLength) changed.Add(entry.FullName);
+#endif
             }
             // A part the save dropped counts as changed too.
             foreach (ZipArchiveEntry entry in left.Entries) {
@@ -535,8 +647,9 @@ namespace OfficeIMO.Tests {
                         if (type == "inlineStr" && cell.Element(Main + "is") is { } inline) {
                             value = "'" + (inline.Element(Main + "t")?.Value ?? string.Concat(inline.Elements(Main + "r").Select(run => run.Element(Main + "t")?.Value)));
                         }
-                        string style = (string?)cell.Attribute("s") is { } styleText && int.TryParse(styleText, out int styleIndex) && styleIndex < formats.Count
-                            ? formats[styleIndex] : (string?)cell.Attribute("s") ?? "";
+                        // A cell without a style index takes format 0.
+                        string styleText = (string?)cell.Attribute("s") ?? "0";
+                        string style = int.TryParse(styleText, out int styleIndex) && styleIndex < formats.Count ? formats[styleIndex] : styleText;
                         map[(string?)cell.Attribute("r") ?? "?"] = type + " " + value + " " + DescribeFormula(cell.Element(Main + "f")) + StyleSeparator + style;
                     }
                 }

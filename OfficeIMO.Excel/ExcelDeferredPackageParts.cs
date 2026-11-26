@@ -123,6 +123,9 @@ namespace OfficeIMO.Excel {
                             inItem = true;
                             text = null;
                             runs = null;
+                        } else if (depth == 2 && !reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "extLst")) {
+                            // Compatibility markup can supply items of its own, which would move the indexes after it.
+                            return null;
                         } else if (inItem && depth == 3 && reader.NamespaceId == OfficeXmlNamespaces.SpreadsheetML) {
                             if (reader.LocalNameEquals("t")) {
                                 // The item's own text wins over its runs, as the model reads it.
@@ -152,7 +155,8 @@ namespace OfficeIMO.Excel {
             int depth = reader.Depth;
             while (reader.Read()) {
                 if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth) break;
-                if (reader.NodeKind == OfficeXmlNodeKind.Text && reader.Depth == depth + 1) text.Append(reader.GetText());
+                // Text reports the depth of the element that contains it.
+                if (reader.NodeKind == OfficeXmlNodeKind.Text && reader.Depth == depth) text.Append(reader.GetText());
                 // The model's text stops at its first child element.
                 if (reader.NodeKind == OfficeXmlNodeKind.StartElement) return text.ToString();
             }
@@ -202,6 +206,7 @@ namespace OfficeIMO.Excel {
                 var edits = new ExcelPartEdits();
                 string prefix = string.Empty;
                 int declaredCount = -1;
+                bool inserted = false;
                 while (reader.Read()) {
                     if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == 1) {
                         prefix = reader.ElementPrefix.Length == 0 ? string.Empty : reader.ElementPrefix + ":";
@@ -225,8 +230,12 @@ namespace OfficeIMO.Excel {
                         }
                         continue;
                     }
-                    if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == 1 && _added.Count > 0
-                        && reader.MarkupEnd > reader.MarkupStart) {
+                    // New items go after the last item: before the extension list, which closes the table, or before </sst>.
+                    bool extensions = reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == 2
+                        && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "extLst");
+                    bool end = reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == 1 && reader.MarkupEnd > reader.MarkupStart;
+                    if ((extensions || end) && !inserted && _added.Count > 0) {
+                        inserted = true;
                         var items = new StringBuilder();
                         foreach (string item in _added) AppendItem(items, prefix, item);
                         edits.Insert(reader.MarkupStart, items.ToString());

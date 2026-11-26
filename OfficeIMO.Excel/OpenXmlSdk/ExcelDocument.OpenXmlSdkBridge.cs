@@ -27,22 +27,42 @@ namespace OfficeIMO.Excel {
                 if (_disposed && _spreadSheetDocumentValue == null) throw new ObjectDisposedException(nameof(ExcelDocument));
                 return;
             }
-            // One thread opens the package; others wait here until its recorded changes are in the model. The opening
-            // thread finds the workbook already taken when binding and replay come back through the SDK getters.
-            lock (_deferredOpenGate) {
-                ExcelDeferredWorkbook? deferred = _deferredWorkbook;
-                // Only the opening thread can be inside the gate while it opens; its own reads come back here.
-                if (_deferredSdkOpening) return;
-                if (deferred == null) {
-                    if (_disposed && _spreadSheetDocumentValue == null) throw new ObjectDisposedException(nameof(ExcelDocument));
-                    return;
-                }
-                _deferredSdkOpening = true;
-                try {
-                    OpenDeferredSdkLocked(deferred, reason);
-                } finally {
-                    _deferredSdkOpening = false;
-                }
+            WithDeferredOpenGate(() => {
+                OpenDeferredSdkGated(reason);
+                return true;
+            });
+        }
+
+        /// <summary>
+        /// Runs <paramref name="action"/> under the open gate. A thread holding no document lock takes the write lock
+        /// first, the order every writer takes them in, so replaying recorded values never waits on a writer that is
+        /// itself waiting on the gate.
+        /// </summary>
+        private T WithDeferredOpenGate<T>(Func<T> action) {
+            ReaderWriterLockSlim lck = EnsureLock();
+            if (!Locking.IsNoLock && !lck.IsReadLockHeld && !lck.IsWriteLockHeld && !lck.IsUpgradeableReadLockHeld
+                && !Monitor.IsEntered(_deferredOpenGate)) {
+                return Locking.ExecuteWrite(lck, () => {
+                    lock (_deferredOpenGate) return action();
+                });
+            }
+            lock (_deferredOpenGate) return action();
+        }
+
+        private void OpenDeferredSdkGated(string? reason) {
+            // One thread opens the package; others wait on the gate until its recorded changes are in the model. The
+            // opening thread finds the workbook already taken when binding and replay come back through the SDK getters.
+            ExcelDeferredWorkbook? deferred = _deferredWorkbook;
+            if (_deferredSdkOpening) return;
+            if (deferred == null) {
+                if (_disposed && _spreadSheetDocumentValue == null) throw new ObjectDisposedException(nameof(ExcelDocument));
+                return;
+            }
+            _deferredSdkOpening = true;
+            try {
+                OpenDeferredSdkLocked(deferred, reason);
+            } finally {
+                _deferredSdkOpening = false;
             }
         }
 

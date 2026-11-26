@@ -382,22 +382,29 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
             using var zip = new OfficeZipWriter(destination, _modified);
             // Large replaced parts are deflated side by side first, then appended in package order.
             Dictionary<Part, OfficeZipWriter.PreparedEntry>? prepared = PrepareLargeParts();
-            foreach (Part part in _parts) {
-                if (part.Deleted) continue;
-                if (prepared != null && prepared.TryGetValue(part, out OfficeZipWriter.PreparedEntry? preparedEntry)) {
-                    zip.WritePrepared(part.Member, preparedEntry);
-                    continue;
-                }
-                bool unchanged = part.FromSource && (part.Tree == null || !part.Tree.IsChanged);
-                if (unchanged && _zip!.TryReadStored(part.Member, out OfficeZipStoredMember stored)) {
-                    using (stored) {
-                        zip.WriteStored(part.Member, stored.Method, stored.Flags, stored.DosTime, stored.DosDate, stored.Crc, stored.Size,
-                            stored.Compressed.Array, 0, stored.Compressed.Length);
+            try {
+                foreach (Part part in _parts) {
+                    if (part.Deleted) continue;
+                    if (prepared != null && prepared.TryGetValue(part, out OfficeZipWriter.PreparedEntry? preparedEntry)) {
+                        zip.WritePrepared(part.Member, preparedEntry);
+                        continue;
                     }
-                    continue;
+                    bool unchanged = part.FromSource && (part.Tree == null || !part.Tree.IsChanged);
+                    if (unchanged && _zip!.TryReadStored(part.Member, out OfficeZipStoredMember stored)) {
+                        using (stored) {
+                            zip.WriteStored(part.Member, stored.Method, stored.Flags, stored.DosTime, stored.DosDate, stored.Crc, stored.Size,
+                                stored.Compressed.Array, 0, stored.Compressed.Length);
+                        }
+                        continue;
+                    }
+                    using Stream entry = zip.OpenEntry(part.Member, CompressionLevel.Fastest);
+                    WritePart(part, entry, xml);
                 }
-                using Stream entry = zip.OpenEntry(part.Member, CompressionLevel.Fastest);
-                WritePart(part, entry, xml);
+            } finally {
+                // Entries a failed write never reached go back to the pool too; releasing one twice does nothing.
+                if (prepared != null) {
+                    foreach (OfficeZipWriter.PreparedEntry preparedEntry in prepared.Values) preparedEntry.Content.Release();
+                }
             }
             return;
         }
@@ -421,10 +428,16 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         }
         if (large == null || large.Count < 2) return null;
         var entries = new OfficeZipWriter.PreparedEntry[large.Count];
-        System.Threading.Tasks.Parallel.For(0, large.Count, index => {
-            Part part = large[index];
-            entries[index] = OfficeZipWriter.Prepare(stream => stream.Write(part.Content!, 0, part.ContentLength));
-        });
+        try {
+            System.Threading.Tasks.Parallel.For(0, large.Count, index => {
+                Part part = large[index];
+                entries[index] = OfficeZipWriter.Prepare(stream => stream.Write(part.Content!, 0, part.ContentLength));
+            });
+        } catch {
+            // Parts that finished before another failed are released, not left for the collector.
+            foreach (OfficeZipWriter.PreparedEntry? entry in entries) entry?.Content.Release();
+            throw;
+        }
         var prepared = new Dictionary<Part, OfficeZipWriter.PreparedEntry>(large.Count);
         for (int index = 0; index < large.Count; index++) prepared[large[index]] = entries[index];
         return prepared;

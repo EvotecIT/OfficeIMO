@@ -298,7 +298,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (TryWriteDeferredPackageToFile(target, options)) {
+            if (TryWriteDeferredPackageToFile(target, options, cancellationToken)) {
                 return;
             }
 
@@ -592,7 +592,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (TryWriteDeferredPackageToStream(destination, options)) {
+            if (await TryWriteDeferredPackageToStreamAsync(destination, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }
 
