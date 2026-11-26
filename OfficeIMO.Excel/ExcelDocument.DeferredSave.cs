@@ -464,7 +464,7 @@ namespace OfficeIMO.Excel {
             package.AddRelationship(null, OfficeOpcPackage.CorePropertiesRelationshipType, "docProps/core.xml");
         }
 
-        // System.IO.Packaging writes package dates in UTC with seven fractional digits.
+        // A save through the model writes package dates in UTC with seven fractional digits.
         private static bool TrySetModifiedTime(OfficeOpcEditablePackage package, string? corePart) {
             if (corePart == null) return false;
             OfficeXmlTree core = package.GetXml(corePart);
