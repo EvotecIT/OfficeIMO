@@ -4,7 +4,7 @@ using ImageMagick;
 namespace OfficeIMO.Drawing.Benchmarks.Comparisons;
 
 /// <summary>Equivalent single-frame, lossless TIFF LZW encode comparisons.</summary>
-[MemoryDiagnoser]
+// No [MemoryDiagnoser]: Magick.NET allocate in native memory, which BenchmarkDotNet does not measure.
 public class ImageTiffLzwEncodeBenchmarks {
     private OfficeRasterImage _image = null!;
     private MagickImage _magick = null!;
@@ -48,7 +48,7 @@ public class ImageTiffLzwEncodeBenchmarks {
 }
 
 /// <summary>Equivalent single-frame, lossless TIFF LZW decode comparisons.</summary>
-[MemoryDiagnoser]
+// No [MemoryDiagnoser]: Magick.NET allocate in native memory, which BenchmarkDotNet does not measure.
 public class ImageTiffLzwDecodeBenchmarks {
     private byte[] _magickEncoded = null!;
 

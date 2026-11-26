@@ -32,9 +32,9 @@ $publicQuestPdf = @(
 if ($publicQuestPdf.Count -ne 1 -or
     $publicQuestPdf[0].QuestPdfPackageVersion -ne '2026.5.0' -or
     $publicQuestPdf[0].InternalOnly -or
-    -not $publicQuestPdf[0].CatalogEligible -or
+    -not $publicQuestPdf[0].WillCatalog -or
     $publicQuestPdf[0].ComparisonId -ne 'pdf-structured-generation') {
-    throw 'The public QuestPDF lane is not pinned, labelled, and catalog eligible under the MIT-compatible release.'
+    throw 'The public QuestPDF lane is not pinned, labelled, and recorded in the shared catalog under the MIT-compatible release.'
 }
 
 $domainPlan = @(

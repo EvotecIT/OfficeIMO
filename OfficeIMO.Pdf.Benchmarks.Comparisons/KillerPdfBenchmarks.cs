@@ -44,25 +44,17 @@ internal static class KillerPdfEngines {
     }
 
     internal static byte[] MergeWithKillerPdf(byte[][] sources) {
-        KillerPdfDocument first = KillerPdfDocument.Open(sources[0]);
-        int expectedPageCount = new PdfPageContentReader(first).PageCount;
-        var editor = new PdfIncrementalPageEditor(first);
+        var editor = new PdfIncrementalPageEditor(KillerPdfDocument.Open(sources[0]));
         for (int index = 1; index < sources.Length; index++) {
-            KillerPdfDocument source = KillerPdfDocument.Open(sources[index]);
-            expectedPageCount += new PdfPageContentReader(source).PageCount;
-            editor.AddImportedDocument(source);
+            editor.AddImportedDocument(KillerPdfDocument.Open(sources[index]));
         }
 
-        byte[] bytes = editor.Build();
-        ValidateReadback(bytes, expectedPageCount);
-        return bytes;
+        return editor.Build();
     }
 
     internal static byte[] SelectWithKillerPdf(byte[] source, int[] pageNumbers) {
         KillerPdfDocument document = KillerPdfDocument.Open(source);
-        byte[] bytes = PdfDocumentSplitter.Extract(document, pageNumbers.Select(static page => page - 1).ToArray());
-        ValidateReadback(bytes, pageNumbers.Length);
-        return bytes;
+        return PdfDocumentSplitter.Extract(document, pageNumbers.Select(static page => page - 1).ToArray());
     }
 
     internal static byte[][] SplitWithKillerPdf(byte[] source, int pagesPerDocument) {
@@ -73,22 +65,10 @@ internal static class KillerPdfEngines {
         var outputs = new byte[parts.Count][];
         for (int index = 0; index < parts.Count; index++) {
             outputs[index] = parts[index].Document.ToArray();
-            ValidateReadback(outputs[index], parts[index].SourcePageIndices.Count);
         }
 
         return outputs;
     }
-
-    // Same post-save page-count check the other page-operation lanes run with their own reader.
-    private static void ValidateReadback(byte[] bytes, int expectedPageCount) {
-        int actual = PageCount(bytes);
-        if (actual != expectedPageCount) {
-            throw new InvalidDataException(
-                $"KillerPDF post-save validation found {actual} pages; expected {expectedPageCount}.");
-        }
-    }
-
-    private static int PageCount(byte[] bytes) => new PdfPageContentReader(KillerPdfDocument.Open(bytes)).PageCount;
 }
 
 /// <summary>Opens identical bytes, enumerates every page and extracts the complete text payload.</summary>

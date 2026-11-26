@@ -3,7 +3,7 @@ using BenchmarkDotNet.Attributes;
 namespace OfficeIMO.Drawing.Benchmarks.Comparisons;
 
 /// <summary>Decodes one identical photographic JPEG into a managed RGBA buffer in every engine.</summary>
-[MemoryDiagnoser]
+// No [MemoryDiagnoser]: SkiaSharp and Magick.NET allocate in native memory, which BenchmarkDotNet does not measure.
 public class ImageJpegDecodeBenchmarks {
     private byte[] _encoded = null!;
 
