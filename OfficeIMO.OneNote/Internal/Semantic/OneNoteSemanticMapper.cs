@@ -88,6 +88,18 @@ internal static partial class OneNoteSemanticMapper {
     private const uint MathFormatting = 0x08003401;
 
     public static OneNoteSection MapSection(OneNoteRevisionStore store, OneNoteLoadOptions options) {
+        // Property sets decoded while mapping are dropped after each page, so a large section doesn't keep every
+        // decoded value alive while the rest is read. They are decoded again if saving needs them.
+        OneNotePropertySetDecodeScope? propertySetScope = store.PropertySetScope;
+        propertySetScope?.BeginTracking();
+        try {
+            return MapSection(store, options, propertySetScope);
+        } finally {
+            propertySetScope?.EndTracking();
+        }
+    }
+
+    private static OneNoteSection MapSection(OneNoteRevisionStore store, OneNoteLoadOptions options, OneNotePropertySetDecodeScope? propertySetScope) {
         var materializer = new OneNoteObjectSpaceMaterializer(store);
         var pageMapping = new PageMappingState(options);
         OneNoteMaterializedObjectSpace sectionSpace = materializer.FindCurrentSpaceByRootJcid(
@@ -119,6 +131,7 @@ internal static partial class OneNoteSemanticMapper {
             foreach (OneNoteExtendedGuid objectSpaceId in GetReferences(pageSeries, ChildGraphSpaceElementNodes)) {
                 OneNotePage? page = MapPage(materializer, objectSpaceId, options, pageMapping);
                 if (page != null) section.Pages.Add(page);
+                propertySetScope?.ReleaseTracked();
             }
         }
         PreserveUnknownObjects(section.UnknownObjects, sectionSpace);

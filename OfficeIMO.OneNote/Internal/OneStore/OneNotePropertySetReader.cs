@@ -14,6 +14,21 @@ internal static class OneNotePropertySetReader {
         OneNoteLoadOptions options,
         ulong absoluteOffset) => Read(new Cursor(data, null, compactIds, options, absoluteOffset));
 
+    // Checks a property set the way Read decodes it, raising the same errors, without allocating the decoded values.
+    public static void Validate(
+        byte[] data,
+        Dictionary<uint, Guid> globalIds,
+        OneNoteLoadOptions options,
+        ulong absoluteOffset) {
+        var cursor = new Cursor(data, globalIds, null, options, absoluteOffset);
+        var counts = new ReferenceCounts { Oids = cursor.ScanReferenceStream(out _, out bool osidStreamNotPresent) };
+        if (!osidStreamNotPresent) {
+            counts.Osids = cursor.ScanReferenceStream(out bool osidExtendedStreamsPresent, out _);
+            if (osidExtendedStreamsPresent) counts.Contexts = cursor.ScanReferenceStream(out _, out _);
+        }
+        cursor.ScanPropertySet(ref counts, 0);
+    }
+
     private static OneNotePropertySet Read(Cursor cursor) {
         ReferenceStream oids = cursor.ReadReferenceStream();
         ReferenceStream osids = ReferenceStream.Empty;
@@ -52,6 +67,107 @@ internal static class OneNotePropertySetReader {
             var ids = new List<OneNoteExtendedGuid>(count);
             for (int index = 0; index < count; index++) ids.Add(ReadCompactId());
             return new ReferenceStream(ids.AsReadOnly(), (header & 0x40000000U) != 0, (header & 0x80000000U) != 0);
+        }
+
+        public int ScanReferenceStream(out bool extendedStreamsPresent, out bool osidStreamNotPresent) {
+            uint header = ReadUInt32();
+            int count = (int)(header & 0x00FFFFFFU);
+            if ((header & 0x3F000000U) != 0 || count > _options.MaxObjects) {
+                throw Error("ONENOTE_OBJECT_STREAM_HEADER", "An object-reference stream header is invalid or exceeds the object limit.");
+            }
+            for (int index = 0; index < count; index++) ScanCompactId();
+            extendedStreamsPresent = (header & 0x40000000U) != 0;
+            osidStreamNotPresent = (header & 0x80000000U) != 0;
+            return count;
+        }
+
+        // Mirrors ReadPropertySet step for step so positions, limits and errors match.
+        public void ScanPropertySet(ref ReferenceCounts counts, int depth) {
+            if (depth >= _options.MaxPropertySetDepth) {
+                throw Error("ONENOTE_PROPERTY_DEPTH", "The nested property-set depth limit was exceeded.");
+            }
+            ushort count = ReadUInt16();
+            if (count > _options.MaxPropertiesPerObject || _totalProperties > _options.MaxPropertiesPerObject - count) {
+                throw Error("ONENOTE_PROPERTY_LIMIT", "The property count exceeds the configured per-object limit.");
+            }
+            _totalProperties += count;
+            int rawIdStart = _position;
+            for (int index = 0; index < count; index++) ReadUInt32();
+
+            for (int index = 0; index < count; index++) {
+                uint rawId = OneNoteBinary.ReadUInt32(_data, rawIdStart + index * 4);
+                byte type = (byte)((rawId >> 26) & 0x1FU);
+                switch (type) {
+                    case 0x01:
+                    case 0x02:
+                        break;
+                    case 0x03:
+                        Skip(1);
+                        break;
+                    case 0x04:
+                        Skip(2);
+                        break;
+                    case 0x05:
+                        Skip(4);
+                        break;
+                    case 0x06:
+                        Skip(8);
+                        break;
+                    case 0x07: {
+                        uint length = ReadUInt32();
+                        if (length >= 0x40000000U || length > int.MaxValue) {
+                            throw Error("ONENOTE_PROPERTY_DATA_LENGTH", "A length-prefixed property value is too large.");
+                        }
+                        Skip((int)length);
+                        break;
+                    }
+                    case 0x08:
+                        ReferenceCounts.Take(counts.Oids, ref counts.OidIndex, 1, this, "object");
+                        break;
+                    case 0x09:
+                        ReferenceCounts.Take(counts.Oids, ref counts.OidIndex, ReadReferenceCount(), this, "object");
+                        break;
+                    case 0x0A:
+                        ReferenceCounts.Take(counts.Osids, ref counts.OsidIndex, 1, this, "object-space");
+                        break;
+                    case 0x0B:
+                        ReferenceCounts.Take(counts.Osids, ref counts.OsidIndex, ReadReferenceCount(), this, "object-space");
+                        break;
+                    case 0x0C:
+                        ReferenceCounts.Take(counts.Contexts, ref counts.ContextIndex, 1, this, "context");
+                        break;
+                    case 0x0D:
+                        ReferenceCounts.Take(counts.Contexts, ref counts.ContextIndex, ReadReferenceCount(), this, "context");
+                        break;
+                    case 0x10: {
+                        int childCount = ReadReferenceCount();
+                        if (childCount == 0) break;
+                        uint childPropertyId = ReadUInt32();
+                        if (((childPropertyId >> 26) & 0x1FU) != 0x11U) {
+                            throw Error("ONENOTE_PROPERTY_ARRAY_TYPE", "A property-set array does not declare PropertySet element values.");
+                        }
+                        for (int child = 0; child < childCount; child++) ScanPropertySet(ref counts, depth + 1);
+                        break;
+                    }
+                    case 0x11:
+                        ScanPropertySet(ref counts, depth + 1);
+                        break;
+                    default:
+                        throw Error("ONENOTE_PROPERTY_TYPE", "The property set contains an unsupported representation type 0x" + type.ToString("X2", System.Globalization.CultureInfo.InvariantCulture) + ".");
+                }
+            }
+        }
+
+        private void Skip(int length) {
+            Ensure(length);
+            _position += length;
+        }
+
+        private void ScanCompactId() {
+            uint compact = ReadUInt32();
+            if (!_globalIds!.ContainsKey(compact >> 8)) {
+                throw Error("ONENOTE_COMPACT_ID", "A property reference uses a missing global-identification table entry.");
+            }
         }
 
         public OneNotePropertySet ReadPropertySet(ReferenceCounters counters, int depth) {
@@ -210,6 +326,22 @@ internal static class OneNotePropertySetReader {
         }
     }
 
+    private struct ReferenceCounts {
+        public int Oids;
+        public int Osids;
+        public int Contexts;
+        public int OidIndex;
+        public int OsidIndex;
+        public int ContextIndex;
+
+        public static void Take(int available, ref int index, int count, Cursor cursor, string kind) {
+            if (count < 0 || index > available - count) {
+                throw cursor.Error("ONENOTE_REFERENCE_STREAM", "A property consumes more " + kind + " identifiers than its object stream contains.");
+            }
+            index += count;
+        }
+    }
+
     private sealed class ReferenceCounters {
         private readonly IReadOnlyList<OneNoteExtendedGuid> _oids;
         private readonly IReadOnlyList<OneNoteExtendedGuid> _osids;
@@ -258,5 +390,55 @@ internal static class OneNotePropertySetReader {
         public IReadOnlyList<OneNoteExtendedGuid> Ids { get; }
         public bool ExtendedStreamsPresent { get; }
         public bool OsidStreamNotPresent { get; }
+    }
+}
+
+// Decodes the property sets declared under one global-identification table when they are first read.
+internal sealed class OneNotePropertySetDecoder {
+    private readonly Dictionary<uint, Guid> _globalIds;
+    private readonly OneNotePropertySetDecodeScope _scope;
+
+    internal OneNotePropertySetDecoder(Dictionary<uint, Guid> globalIds, OneNotePropertySetDecodeScope scope) {
+        _globalIds = globalIds;
+        _scope = scope;
+    }
+
+    internal OneNotePropertySet Decode(OneNoteRevisionStoreObject owner, byte[] data) {
+        OneNotePropertySet propertySet = OneNotePropertySetReader.Read(data, _globalIds, _scope.Options, owner.DeclarationNode.ChunkOffset);
+        _scope.Track(owner);
+        return propertySet;
+    }
+}
+
+// Shared by the lazily decoded objects of one store. While the loader maps pages it records which objects were
+// decoded so it can drop their property sets once a page is done.
+internal sealed class OneNotePropertySetDecodeScope {
+    private List<OneNoteRevisionStoreObject>? _decoded;
+
+    internal OneNotePropertySetDecodeScope(OneNoteLoadOptions options) {
+        // Decoding can happen after the read returns, so keep the limits the objects were validated against
+        // rather than the caller's instance, which may change later.
+        Options = new OneNoteLoadOptions {
+            MaxObjects = options.MaxObjects,
+            MaxPropertiesPerObject = options.MaxPropertiesPerObject,
+            MaxPropertySetDepth = options.MaxPropertySetDepth
+        };
+    }
+
+    internal OneNoteLoadOptions Options { get; }
+
+    internal void BeginTracking() => _decoded ??= new List<OneNoteRevisionStoreObject>();
+
+    internal void Track(OneNoteRevisionStoreObject owner) => _decoded?.Add(owner);
+
+    internal void ReleaseTracked() {
+        if (_decoded == null) return;
+        foreach (OneNoteRevisionStoreObject owner in _decoded) owner.ReleaseDecodedPropertySet();
+        _decoded.Clear();
+    }
+
+    internal void EndTracking() {
+        ReleaseTracked();
+        _decoded = null;
     }
 }
