@@ -15,8 +15,8 @@ internal static class EpubPdfExport {
         bool failOnLoss, CancellationToken cancellationToken, int? importedHtmlNodeLimit = null) {
         HtmlPdfExportOptions rendering = options?.ClonePdf() ?? new HtmlPdfExportOptions();
         if (importedHtmlNodeLimit is int maximum) {
-            rendering.MaxHtmlNodes = rendering.MaxHtmlNodes == HtmlConversionLimits.UntrustedDefaults.MaxHtmlNodes
-                ? maximum : Math.Min(rendering.MaxHtmlNodes, maximum);
+            rendering.MaxHtmlNodes = rendering.HasExplicitHtmlNodeLimit
+                ? Math.Min(rendering.MaxHtmlNodes, maximum) : maximum;
         }
         return HtmlRenderEngine.ExecuteWithDeadline(rendering, cancellationToken,
             token => WriteCore(book, destination, rendering, failOnLoss, token, importedHtmlNodeLimit.HasValue));

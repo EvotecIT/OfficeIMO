@@ -4,13 +4,10 @@ namespace OfficeIMO.Epub;
 
 // Keep Reader and the output adapters on the same spine, resource and navigation model.
 internal static class EpubImportedPublication {
-    internal const int MaximumHtmlNodes = 1_000_000;
+    internal const int MaximumHtmlNodes = EpubPublication.MaximumContentValidationNodes;
 
-    internal static EpubPublication Create(string title, string language, string? identifier) {
-        EpubPublication publication = EpubPublication.Create(title, language, identifier);
-        publication.MaximumContentValidationNodes = MaximumHtmlNodes;
-        return publication;
-    }
+    internal static EpubPublication Create(string title, string language, string? identifier) =>
+        EpubPublication.Create(title, language, identifier);
 
     private static readonly XNamespace Xhtml = "http://www.w3.org/1999/xhtml";
     internal static EpubDocument Open(EpubPublication publication, CancellationToken token) {
