@@ -16,9 +16,17 @@ if (args.Length > 0 && string.Equals(args[0], "--bdn", StringComparison.OrdinalI
 }
 
 if (args.Length > 0 && string.Equals(args[0], "--flows-ab", StringComparison.OrdinalIgnoreCase)) {
-    string[] rest = args.Skip(1).Where(argument => !string.Equals(argument, "--no-textbox-check", StringComparison.OrdinalIgnoreCase)).ToArray();
-    return PowerPointWithoutSdkFlowBenchmarks.RunInterleaved(rest.Length > 0 ? int.Parse(rest[0], System.Globalization.CultureInfo.InvariantCulture) : 200,
-        checkTextBoxes: !args.Contains("--no-textbox-check", StringComparer.OrdinalIgnoreCase));
+    // --flows-ab [rounds] [--no-check Flow,Flow]: the flows named after --no-check skip their setup check.
+    var uncheckedFlows = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    int rounds = 200;
+    for (int index = 1; index < args.Length; index++) {
+        if (string.Equals(args[index], "--no-check", StringComparison.OrdinalIgnoreCase) && index + 1 < args.Length) {
+            foreach (string flow in args[++index].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) uncheckedFlows.Add(flow);
+        } else {
+            rounds = int.Parse(args[index], System.Globalization.CultureInfo.InvariantCulture);
+        }
+    }
+    return PowerPointWithoutSdkFlowBenchmarks.RunInterleaved(rounds, uncheckedFlows);
 }
 
 if (args.Length > 0 && string.Equals(args[0], "--probe",
