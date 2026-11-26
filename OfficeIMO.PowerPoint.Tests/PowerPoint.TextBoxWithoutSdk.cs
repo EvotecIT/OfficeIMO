@@ -17,8 +17,8 @@ public class PowerPointTextBoxWithoutSdkTests {
     [Fact]
     public void ReplacingTextKeepsAPrefixTheRunFormattingInherited() {
         byte[] source = Rewrite(CreateDeck(), slide => slide.Replace("<a:r>",
-            "<a:r xmlns:x=\"urn:officeimo:test\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\">", StringComparison.Ordinal)
-            .Replace("<a:t>Text", "<a:rPr lang=\"en-US\" mc:Ignorable=\"x\" x:flag=\"1\"/><a:t>Text", StringComparison.Ordinal));
+            "<a:r xmlns:x=\"urn:officeimo:test\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\">")
+            .Replace("<a:t>Text", "<a:rPr lang=\"en-US\" mc:Ignorable=\"x\" x:flag=\"1\"/><a:t>Text"));
         byte[] saved;
         using (var presentation = PowerPointDocument.Load(new MemoryStream(source))) {
             presentation.Slides[0].TextBoxes.Single().Text = "Replaced";
@@ -34,7 +34,7 @@ public class PowerPointTextBoxWithoutSdkTests {
     [Fact]
     public void AutoFitGoesBeforeTheBodyExtensions() {
         byte[] source = Rewrite(CreateDeck(), slide => slide.Replace("<a:bodyPr/>",
-            "<a:bodyPr><a:scene3d><a:camera prst=\"orthographicFront\"/><a:lightRig rig=\"threePt\" dir=\"t\"/></a:scene3d></a:bodyPr>", StringComparison.Ordinal));
+            "<a:bodyPr><a:scene3d><a:camera prst=\"orthographicFront\"/><a:lightRig rig=\"threePt\" dir=\"t\"/></a:scene3d></a:bodyPr>"));
         byte[] saved;
         using (var presentation = PowerPointDocument.Load(new MemoryStream(source))) {
             PowerPointTextBox box = presentation.Slides[0].TextBoxes.Single();
@@ -61,8 +61,13 @@ public class PowerPointTextBoxWithoutSdkTests {
         PowerPointTextBox box = presentation.Slides[0].TextBoxes.Single();
 
         PowerPointParagraph paragraph = box.AddParagraph("First", configure: added => added.Text = "Second", run: run => run.Bold = true);
+        PowerPointParagraph opened = box.AddParagraph("Third", configure: added => {
+            added.Text = "Fourth";
+            _ = presentation.OpenXmlDocument;
+        }, run: run => run.Bold = true);
 
         Assert.Contains(paragraph.Runs, run => run.Bold);
+        Assert.Contains(opened.Runs, run => run.Bold);
     }
 
     private static byte[] CreateDeck() {

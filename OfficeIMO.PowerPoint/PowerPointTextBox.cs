@@ -79,7 +79,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointParagraph wrapper = AppendParagraph(body, text ?? string.Empty, body.Child(OfficeXmlNamespaces.DrawingML, "p"), out PowerPointTextRun authoredRun);
             configure?.Invoke(wrapper);
             // Configuring the paragraph can replace its runs; the callback then formats a run that is still in it.
-            if (run != null) run(authoredRun.Element.IsInside(wrapper.Element) ? authoredRun : wrapper.AddText(text ?? string.Empty));
+            if (run != null) run(authoredRun.BelongsTo(wrapper) ? authoredRun : wrapper.AddText(text ?? string.Empty));
             return wrapper;
         }
 

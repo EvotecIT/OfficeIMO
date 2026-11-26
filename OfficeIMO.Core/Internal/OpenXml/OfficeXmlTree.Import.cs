@@ -78,7 +78,10 @@ internal sealed partial class OfficeXmlTree {
         int first = _nodes[element].AttrFirst, count = _nodes[element].AttrCount;
         for (int index = first; index < first + count; index++) {
             OfficeXmlName name = Namespaces.GetName(_attrs[index].Name);
-            if (name.NamespaceId != OfficeXmlNamespaces.MarkupCompatibility) continue;
+            // mc:Choice names the prefixes it needs in its unqualified Requires attribute.
+            bool requires = name.NamespaceId == OfficeXmlNamespaces.None && name.LocalName == "Requires"
+                && Namespaces.GetName(_nodes[element].Name) is { NamespaceId: OfficeXmlNamespaces.MarkupCompatibility, LocalName: "Choice" };
+            if (name.NamespaceId != OfficeXmlNamespaces.MarkupCompatibility && !requires) continue;
             foreach (string token in AttributeValue(ref _attrs[index]).Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
                 // ProcessContent and the Preserve lists name prefix:local pairs; Ignorable and MustUnderstand name prefixes.
                 int colon = token.IndexOf(':');
