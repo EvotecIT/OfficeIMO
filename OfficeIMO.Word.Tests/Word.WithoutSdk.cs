@@ -556,6 +556,13 @@ public sealed class WordWithoutSdkTests {
         return ids;
     }
 
+    private static readonly XNamespace OfficeRelationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+    // A relationship's own identifier, or an attribute in the relationships namespace that refers to one.
+    private static bool IsRelationshipReference(XElement element, XAttribute attribute) =>
+        attribute.Name.Namespace == OfficeRelationships
+        || element.Name == PackageRelationships + "Relationship" && attribute.Name == "Id";
+
     private static string Canonical(byte[] xml, IReadOnlyDictionary<string, string> generatedIds) {
         XDocument document;
         using (var stream = new MemoryStream(xml)) document = XDocument.Load(stream);
@@ -566,7 +573,7 @@ public sealed class WordWithoutSdkTests {
                          .OrderBy(attribute => attribute.Name.ToString(), StringComparer.Ordinal)) {
                 bool revision = attribute.Name.Namespace == Wn && attribute.Name.LocalName.StartsWith("rsid", StringComparison.Ordinal);
                 string value = revision ? "*"
-                    : generatedIds.TryGetValue(attribute.Value, out string? relationship) ? relationship
+                    : IsRelationshipReference(element, attribute) && generatedIds.TryGetValue(attribute.Value, out string? relationship) ? relationship
                     : attribute.Name.Namespace == Mc ? PrefixesAsUris(element, attribute.Value) : attribute.Value;
                 builder.Append(' ').Append(attribute.Name.ToString()).Append("=\"").Append(System.Security.SecurityElement.Escape(value)).Append('"');
             }
