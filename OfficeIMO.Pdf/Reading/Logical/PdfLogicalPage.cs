@@ -1132,13 +1132,13 @@ public sealed partial class PdfLogicalPage {
     private sealed class SemanticElementIndex {
         private readonly Dictionary<(long BaselineBucket, long XBucket, string Text), List<SemanticLineBinding>> _byGeometry;
         private readonly Dictionary<(long BaselineY, long XStart, string Text), PdfUnderstandingSemanticElement> _byExactGeometry;
-        private readonly Dictionary<string, HashSet<PdfUnderstandingSemanticElement>> _byText;
+        private readonly PdfOwnerIndex<string, PdfUnderstandingSemanticElement> _byText;
         private readonly PdfSourceRunIndex<PdfUnderstandingSemanticElement> _bySourceRun;
 
         private SemanticElementIndex(
             Dictionary<(long BaselineBucket, long XBucket, string Text), List<SemanticLineBinding>> byGeometry,
             Dictionary<(long BaselineY, long XStart, string Text), PdfUnderstandingSemanticElement> byExactGeometry,
-            Dictionary<string, HashSet<PdfUnderstandingSemanticElement>> byText,
+            PdfOwnerIndex<string, PdfUnderstandingSemanticElement> byText,
             PdfSourceRunIndex<PdfUnderstandingSemanticElement> bySourceRun) {
             _byGeometry = byGeometry;
             _byExactGeometry = byExactGeometry;
@@ -1149,7 +1149,7 @@ public sealed partial class PdfLogicalPage {
         internal static SemanticElementIndex Create(IReadOnlyList<PdfUnderstandingSemanticElement> elements) {
             var byGeometry = new Dictionary<(long BaselineBucket, long XBucket, string Text), List<SemanticLineBinding>>();
             var byExactGeometry = new Dictionary<(long BaselineY, long XStart, string Text), PdfUnderstandingSemanticElement>();
-            var byText = new Dictionary<string, HashSet<PdfUnderstandingSemanticElement>>(StringComparer.Ordinal);
+            var byText = new PdfOwnerIndex<string, PdfUnderstandingSemanticElement>(StringComparer.Ordinal);
             var bySourceRun = new PdfSourceRunIndex<PdfUnderstandingSemanticElement>();
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
                 PdfUnderstandingSemanticElement element = elements[elementIndex];
@@ -1167,11 +1167,7 @@ public sealed partial class PdfLogicalPage {
                         IsBetterSemanticElement(element, currentBest)) {
                         byExactGeometry[exactKey] = element;
                     }
-                    if (!byText.TryGetValue(text, out HashSet<PdfUnderstandingSemanticElement>? textElements)) {
-                        textElements = new HashSet<PdfUnderstandingSemanticElement>();
-                        byText.Add(text, textElements);
-                    }
-                    textElements.Add(element);
+                    byText.Add(text, element);
                     for (int wordIndex = 0; wordIndex < line.Words.Count; wordIndex++) {
                         IReadOnlyList<PdfTextSpan> sourceRuns = line.Words[wordIndex].SourceRuns;
                         for (int runIndex = 0; runIndex < sourceRuns.Count; runIndex++) {
@@ -1220,8 +1216,10 @@ public sealed partial class PdfLogicalPage {
                 }
                 if (sourceMatches.Count > 0) return SelectBestSemanticElement(sourceMatches.ToArray());
             }
-            return _byText.TryGetValue(normalized, out HashSet<PdfUnderstandingSemanticElement>? textMatches) && textMatches.Count == 1
-                ? textMatches.First()
+            // A text owned by one element only identifies it; a second owner makes the text ambiguous.
+            return _byText.TryGet(normalized, out PdfUnderstandingSemanticElement? textMatch, out HashSet<PdfUnderstandingSemanticElement>? textMatches) &&
+                textMatches is null
+                ? textMatch
                 : null;
         }
 

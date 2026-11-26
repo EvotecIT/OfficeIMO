@@ -1,13 +1,15 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// The owners of each source run, as a per-run set that stays a single reference until a run gets a second owner.
+/// The owners of each key, as a per-key set that stays a single reference until a key gets a second owner.
 /// Owners enumerate in the order they were first added, as a <see cref="HashSet{T}"/> without removals does.
 /// </summary>
-internal sealed class PdfSourceRunIndex<TOwner> where TOwner : class {
-    private readonly Dictionary<PdfTextSpan, object> _owners = new();
+internal class PdfOwnerIndex<TKey, TOwner> where TKey : notnull where TOwner : class {
+    private readonly Dictionary<TKey, object> _owners;
 
-    internal void Add(PdfTextSpan run, TOwner owner) {
+    internal PdfOwnerIndex(IEqualityComparer<TKey>? comparer = null) => _owners = new Dictionary<TKey, object>(comparer);
+
+    internal void Add(TKey run, TOwner owner) {
         if (!_owners.TryGetValue(run, out object? existing)) {
             _owners.Add(run, owner);
             return;
@@ -22,7 +24,7 @@ internal sealed class PdfSourceRunIndex<TOwner> where TOwner : class {
     }
 
     /// <summary>The run's owners: one in <paramref name="single"/>, or several in <paramref name="several"/>.</summary>
-    internal bool TryGet(PdfTextSpan run, out TOwner? single, out HashSet<TOwner>? several) {
+    internal bool TryGet(TKey run, out TOwner? single, out HashSet<TOwner>? several) {
         single = null;
         several = null;
         if (!_owners.TryGetValue(run, out object? existing)) return false;
@@ -30,4 +32,8 @@ internal sealed class PdfSourceRunIndex<TOwner> where TOwner : class {
         else single = (TOwner)existing;
         return true;
     }
+}
+
+/// <summary>The owners of each source run; see <see cref="PdfOwnerIndex{TKey, TOwner}"/>.</summary>
+internal sealed class PdfSourceRunIndex<TOwner> : PdfOwnerIndex<PdfTextSpan, TOwner> where TOwner : class {
 }
