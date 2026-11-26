@@ -73,7 +73,7 @@ public sealed class MobiReaderTests {
 
         EpubDocument book = ReadPublication(source, "harbour.azw3");
 
-        Assert.Contains(book.Chapters, chapter => chapter.Text.Contains("Signal received.", StringComparison.Ordinal));
+        Assert.Contains(book.Chapters, chapter => chapter.Text.IndexOf("Signal received.", StringComparison.Ordinal) >= 0);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class MobiReaderTests {
 
         EpubDocument book = ReadPublication(source, "harbour-combo.mobi");
 
-        Assert.Contains(book.Chapters, chapter => chapter.Text.Contains("Signal received.", StringComparison.Ordinal));
+        Assert.Contains(book.Chapters, chapter => chapter.Text.IndexOf("Signal received.", StringComparison.Ordinal) >= 0);
         Assert.DoesNotContain(book.Resources, item => item.Properties == "cover-image");
     }
 
@@ -99,7 +99,7 @@ public sealed class MobiReaderTests {
         int item = FindExthItem(bytes, RecordOffset(bytes, 0), 205);
         Assert.Equal(12, BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(item + 4)));
         BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(item), (uint)tag);
-        Encoding.ASCII.GetBytes("&#9;").CopyTo(bytes, item + 8);
+        Encoding.ASCII.GetBytes(tag == 103 ? "&#9;" : "    ").CopyTo(bytes, item + 8);
         using var source = new MemoryStream(bytes, writable: false);
 
         EpubDocument book = ReadPublication(source, "harbour.azw3");
@@ -107,26 +107,74 @@ public sealed class MobiReaderTests {
         Assert.Equal("Ada Reader", book.Creator);
         Assert.DoesNotContain(book.Metadata, value => value.Name == "description");
         Assert.Equal("c4b5bb5a-5519-44a6-bada-106df8645d5a", book.Identifier);
-        Assert.Contains(book.Chapters, chapter => chapter.Text.Contains("Signal received.", StringComparison.Ordinal));
+        Assert.Contains(book.Chapters, chapter => chapter.Text.IndexOf("Signal received.", StringComparison.Ordinal) >= 0);
     }
 
     [Fact]
     public void UsesLegacyMetadataWhenThePreferredKf8ValueDecodesToWhitespace() {
         byte[] bytes = Fixture("harbour-combo.mobi");
-        int author = FindExthItem(bytes, RecordOffset(bytes, 11), 100);
-        Assert.Equal(18, BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(author + 4)));
-        Encoding.ASCII.GetBytes("&#x0009;  ").CopyTo(bytes, author + 8);
+        int fallback = FindExthItem(bytes, RecordOffset(bytes, 0), 100);
+        int preferred = FindExthItem(bytes, RecordOffset(bytes, 11), 100);
+        Assert.Equal(18, BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(preferred + 4)));
+        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(fallback), 103);
+        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(preferred), 103);
+        Encoding.ASCII.GetBytes("&#x0009;  ").CopyTo(bytes, preferred + 8);
         using var source = new MemoryStream(bytes, writable: false);
 
         EpubDocument book = ReadPublication(source, "harbour-combo.mobi");
 
-        Assert.Equal("Ada Reader", book.Creator);
+        Assert.Contains(book.Metadata, item => item.Name == "description" && item.Value == "Ada Reader");
+    }
+
+    [Fact]
+    public void PreservesLiteralTitleEntitiesInPlainMetadata() {
+        byte[] bytes = Fixture("harbour.azw3");
+        int title = FindExthItem(bytes, RecordOffset(bytes, 0), 503);
+        Assert.Equal(22, BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(title + 4)));
+        Encoding.ASCII.GetBytes("How &lt; Works").CopyTo(bytes, title + 8);
+        using var source = new MemoryStream(bytes, writable: false);
+
+        Assert.Equal("How &lt; Works", ReadPublication(source, "harbour.azw3").Title);
+    }
+
+    [Fact]
+    public void ReadsLegacyMobiWithATextDescriptorOnly() {
+        using var source = new MemoryStream(BuildLegacyMobi(
+            "<html><body><p>Legacy story.</p></body></html>", includeMobiHeader: false), writable: false);
+
+        EpubChapter chapter = Assert.Single(ReadPublication(source, "legacy.mobi").Chapters);
+        Assert.Contains("Legacy story.", chapter.Text);
+    }
+
+    [Fact]
+    public void ProvidesATitleWhenPalmDocHasNoNameOrFilenameStem() {
+        byte[] bytes = Fixture("harbour.pdb");
+        Array.Clear(bytes, 0, 32);
+        using var source = new MemoryStream(bytes, writable: false);
+
+        EpubDocument book = ReadPublication(source, ".pdb");
+        Assert.Equal("Untitled", book.Title);
+        Assert.Contains("Signal received.", Assert.Single(book.Chapters).Text);
+    }
+
+    [Fact]
+    public void ReadsNavigationFromTheTagTablePointer() {
+        byte[] bytes = Fixture("harbour.mobi");
+        int header = RecordOffset(bytes, 0);
+        int index = RecordOffset(bytes, BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(header + 244)));
+        Assert.Equal(192, BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(index + 180)));
+        BinaryPrimitives.WriteInt32BigEndian(bytes.AsSpan(index + 4), 188);
+        using var source = new MemoryStream(bytes, writable: false);
+
+        EpubDocument book = ReadPublication(source, "harbour.mobi");
+        Assert.Equal("Opening Signal", book.TableOfContents[0].Label);
+        Assert.Equal("Closing Signal", book.TableOfContents[1].Label);
     }
 
     [Fact]
     public void ResolvesEscapedLocalHtmlFragments() {
         using var source = new MemoryStream(BuildLegacyMobi("""
-            <html><body><a name="café"></a><a href="#caf%C3%A9">Go to the note</a><p id="café">Note text</p></body></html>
+            <html><body><a name="café"></a><a href="#caf%C3%A9">Go to the note</a><p id="café">Note text</p><a href="#">Back to top</a></body></html>
             """), writable: false);
 
         EpubChapter chapter = Assert.Single(ReadPublication(source, "fragment.mobi").Chapters);
@@ -135,8 +183,12 @@ public sealed class MobiReaderTests {
         XElement html = XElement.Parse(chapter.Html);
         XNamespace xhtml = "http://www.w3.org/1999/xhtml";
         string id = Assert.IsType<string>((string?)Assert.Single(html.Descendants(xhtml + "p")).Attribute("id"));
-        XElement link = Assert.Single(html.Descendants(xhtml + "a"), anchor => anchor.Attribute("href") != null);
+        XElement link = Assert.Single(html.Descendants(xhtml + "a"), anchor => anchor.Value == "Go to the note");
         Assert.Equal("#" + id, (string?)link.Attribute("href"));
+        XElement chapterBody = Assert.Single(html.Descendants(xhtml + "div"));
+        string topId = Assert.IsType<string>((string?)chapterBody.Attribute("id"));
+        XElement top = Assert.Single(html.Descendants(xhtml + "a"), anchor => anchor.Value == "Back to top");
+        Assert.Equal("#" + topId, (string?)top.Attribute("href"));
     }
 
     [Fact]
@@ -147,11 +199,11 @@ public sealed class MobiReaderTests {
         Assert.Contains("aggregate token or element limit", error.Message, StringComparison.Ordinal);
     }
 
-    private static byte[] BuildLegacyMobi(string html) {
+    private static byte[] BuildLegacyMobi(string html, bool includeMobiHeader = true) {
         byte[] existing = Fixture("harbour.mobi");
         int headerStart = RecordOffset(existing, 0);
         int headerEnd = RecordOffset(existing, 1);
-        byte[] header = existing.AsSpan(headerStart, headerEnd - headerStart).ToArray();
+        byte[] header = existing.AsSpan(headerStart, includeMobiHeader ? headerEnd - headerStart : 16).ToArray();
         byte[] text = Encoding.UTF8.GetBytes(html);
         int records = (text.Length + 4095) / 4096;
         int directoryEnd = 78 + (records + 1) * 8;
@@ -163,11 +215,13 @@ public sealed class MobiReaderTests {
         for (int record = 0; record < records; record++)
             BinaryPrimitives.WriteInt32BigEndian(data.AsSpan(86 + 8 * record), newHeader + header.Length + record * 4096);
         BinaryPrimitives.WriteUInt16BigEndian(header, 1);
-        BinaryPrimitives.WriteUInt32BigEndian(header.AsSpan(28), 65001);
         BinaryPrimitives.WriteInt32BigEndian(header.AsSpan(4), text.Length);
         BinaryPrimitives.WriteUInt16BigEndian(header.AsSpan(8), (ushort)records);
-        BinaryPrimitives.WriteUInt32BigEndian(header.AsSpan(108), uint.MaxValue);
-        BinaryPrimitives.WriteUInt16BigEndian(header.AsSpan(242), 0);
+        if (includeMobiHeader) {
+            BinaryPrimitives.WriteUInt32BigEndian(header.AsSpan(28), 65001);
+            BinaryPrimitives.WriteUInt32BigEndian(header.AsSpan(108), uint.MaxValue);
+            BinaryPrimitives.WriteUInt16BigEndian(header.AsSpan(242), 0);
+        }
         header.CopyTo(data, newHeader);
         text.CopyTo(data, newHeader + header.Length);
         return data;

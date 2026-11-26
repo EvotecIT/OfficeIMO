@@ -34,6 +34,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.onenote",
         "officeimo.reader.opendocument",
         "officeimo.reader.opml",
+        "officeimo.reader.palmdoc",
         "officeimo.reader.pdf",
         "officeimo.reader.powerpoint",
         "officeimo.reader.powerpoint.binary",

@@ -40,7 +40,9 @@ public static partial class MobiReader {
             }
 
             var navigation = ReadNavigation(kindle);
-            foreach (Navigation item in navigation) AddPosition(item.Target);
+            foreach (Navigation item in navigation) {
+                if (item.Target is { } target) AddPosition(target);
+            }
             foreach (MarkupPart part in parts) {
                 foreach (IElement element in part.Elements) {
                     token.ThrowIfCancellationRequested();
@@ -127,6 +129,7 @@ public static partial class MobiReader {
                 if (LinkPosition(href, filepos, kindle) is { } position)
                     TryResolvePosition(position, parts, out resolved);
                 if (resolved != null) target.SetAttributeValue("href", resolved);
+                else if (href == "#") target.SetAttributeValue("href", "#" + part.TopAnchor);
                 else if (href is { Length: > 1 } && href[0] == '#' && part.ResolveId(href.Substring(1)) is { } local)
                     target.SetAttributeValue("href", "#" + local);
                 else if (href != null && EpubImportedPublication.IsWebLink(href)) target.SetAttributeValue("href", XmlText(href));
@@ -195,6 +198,7 @@ public static partial class MobiReader {
             }
         }
 
+        internal string TopAnchor => EnsureAnchor(Body);
         internal string File { get; }
         internal IElement Body { get; }
         internal int Length { get; }

@@ -178,17 +178,25 @@ public sealed class OfficeConversionBatchTests {
         Assert.Equal(original, File.ReadAllBytes(Path.Combine(scope.Output, "page.pdf")));
     }
 
-    [Fact]
-    public async Task DirectoryFilteringIsExplicitAndLiteralTextRemainsTheDefault() {
+    [Theory]
+    [InlineData("one.txt", ".txt", "<h1>literal text</h1>", "<h1>literal text</h1>")]
+    [InlineData("one.office.md", ".office.md", "# Compound Markdown", "Compound Markdown")]
+    public async Task DirectoryFiltersSelectFullFilenameSuffixes(string name, string extension, string content, string expectedText) {
         using var scope = new BatchDirectory();
-        File.WriteAllText(Path.Combine(scope.Input, "one.txt"), "<h1>literal text</h1>");
+        File.WriteAllText(Path.Combine(scope.Input, name), content);
         File.WriteAllText(Path.Combine(scope.Input, "two.md"), "# Unselected");
         Directory.CreateDirectory(Path.Combine(scope.Input, "nested"));
         File.WriteAllText(Path.Combine(scope.Input, "nested", "three.txt"), "Nested text");
-        var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), ((new OfficeBatchOptions { InputDirectory = scope.Input } with { OutputDirectory = scope.Output }) with { Recursive = false, Extensions = [".txt"] }));
-        Assert.Equal(1, result.Completed); Assert.Equal(1, result.Skipped);
-        using var pdf = ReadPdf.Open(Path.Combine(scope.Output, "one.pdf"));
-        Assert.Contains("<h1>literal text</h1>", pdf.GetPage(1).Text);
+        var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), new OfficeBatchOptions {
+            InputDirectory = scope.Input,
+            OutputDirectory = scope.Output,
+            Recursive = false,
+            Extensions = [extension]
+        });
+        Assert.Equal(1, result.Completed);
+        Assert.Equal(1, result.Skipped);
+        using var pdf = ReadPdf.Open(Path.Combine(scope.Output, Path.GetFileNameWithoutExtension(name) + ".pdf"));
+        Assert.Contains(expectedText, pdf.GetPage(1).Text);
     }
 
     [Theory]

@@ -46,8 +46,7 @@ internal static partial class EpubReaderAdapter {
 
     private static OfficeDocumentReadResult BuildEpubDocumentResult(EpubDocument document, SourceMetadata source, ReaderOptions readerOptions, CancellationToken cancellationToken,
         ReaderInputKind kind = ReaderInputKind.Epub) {
-        ReaderChunk[] chunks = ReadDocument(document, source, readerOptions, cancellationToken).ToArray();
-        foreach (ReaderChunk chunk in chunks) chunk.Kind = kind;
+        ReaderChunk[] chunks = ReadDocument(document, source, readerOptions, cancellationToken, kind).ToArray();
         List<OfficeDocumentAsset> assets = BuildEpubAssets(document, source.Path).ToList();
         Dictionary<string, OfficeDocumentAsset> assetsByLocation = BuildEpubAssetIndex(assets);
         var blocks = new List<OfficeDocumentBlock>();

@@ -740,6 +740,10 @@ public static partial class OfficeConversionCapabilityCatalog {
     private static (OfficeConversionTextFormattingKind Kind, string Contract) GetTextFormattingContract(
         string source,
         string target) {
+        if (source == "Mobipocket and Kindle") {
+            return (OfficeConversionTextFormattingKind.SyntaxSubset,
+                "Retains supported inline emphasis, decoration and script. Separate Kindle styling and font flows are omitted with a conversion warning.");
+        }
         if (string.Equals(target, "SVG", StringComparison.Ordinal)) {
             return (OfficeConversionTextFormattingKind.VectorAppearance,
                 "Preserves rendered font, color, weight, italic, decoration, and script appearance as SVG text and vector graphics; source-native editable semantics are not retained.");

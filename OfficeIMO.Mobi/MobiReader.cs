@@ -59,15 +59,15 @@ public static partial class MobiReader {
         internal OfficeConversionResult<EpubPublication> Create(byte[] text) {
             string title = TextMetadata(503).FirstOrDefault() ?? NormalizeMetadata(selected.HeaderTitle) ??
                 NormalizeMetadata(first.HeaderTitle) ?? NormalizeMetadata(MobiHeader.Decode(selected.Encoding, database.Name)) ??
-                Path.GetFileNameWithoutExtension(sourceName);
+                NormalizeMetadata(Path.GetFileNameWithoutExtension(sourceName)) ?? "Untitled";
 
             string language = TextMetadata(524).FirstOrDefault() ?? LanguageFromLocale(selected.Locale);
             string? identifier = TextMetadata(104).FirstOrDefault() ?? TextMetadata(113).FirstOrDefault();
             EpubPublication book;
-            try { book = EpubPublication.Create(title, language, identifier); }
+            try { book = EpubImportedPublication.Create(title, language, identifier); }
             catch (ArgumentException) when (language != "und") {
                 Warn("MOBI_LANGUAGE", "The Kindle language was replaced with an undetermined language.", language);
-                book = EpubPublication.Create(title, "und", identifier);
+                book = EpubImportedPublication.Create(title, "und", identifier);
             }
 
             if (database.IsPalmDoc) {
@@ -92,15 +92,16 @@ public static partial class MobiReader {
         }
 
         private IEnumerable<string> TextMetadata(int id) {
-            string[] preferred = selected.Text(id).Select(NormalizeMetadata).OfType<string>().ToArray();
+            string? NormalizeField(string value) => NormalizeMetadata(id == 103 ? WebUtility.HtmlDecode(value) : value);
+            string[] preferred = selected.Text(id).Select(NormalizeField).OfType<string>().ToArray();
             return preferred.Length != 0 || ReferenceEquals(first, selected)
                 ? preferred
-                : first.Text(id).Select(NormalizeMetadata).OfType<string>();
+                : first.Text(id).Select(NormalizeField).OfType<string>();
         }
 
         private static string? NormalizeMetadata(string? value) {
             if (value == null) return null;
-            string normalized = XmlText(WebUtility.HtmlDecode(value)).Trim();
+            string normalized = XmlText(value).Trim();
             return normalized.Length == 0 ? null : normalized;
         }
 

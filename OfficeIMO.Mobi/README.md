@@ -27,4 +27,6 @@ can write EPUB, PDF, HTML or Markdown.
 officeimo convert book.mobi book.pdf
 ```
 
+The Reader preset leaves `.pdb` with your own registered handler when you provide one.
+
 [Supported features and limits](SUPPORT.md)

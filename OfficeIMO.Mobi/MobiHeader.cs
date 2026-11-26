@@ -18,7 +18,8 @@ internal sealed class MobiHeader {
         if (Length > MaximumExpandedText || TextRecords == 0 || TextRecords > db.Count - record - 1 ||
             RecordSize is 0 or > 4096 || Length > TextRecords * RecordSize)
             throw new InvalidDataException("The Mobipocket text size, record count or record size exceeds its bounds.");
-        if (db.IsPalmDoc) {
+        if (db.IsPalmDoc || data.Length == 16) {
+            Version = db.IsPalmDoc ? 0 : 1;
             Encoding = GetEncoding(1252);
             return;
         }

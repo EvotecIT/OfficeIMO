@@ -25,8 +25,16 @@ internal sealed class MobiIndex {
             throw new InvalidDataException("The Mobipocket INDX record counts exceed their bounds.");
         _firstStringRecord = record + records + 1;
         _stringRecords = stringRecords;
-        int tagStart = Number(head, 4);
-        ReadOnlySpan<byte> tag = Slice(head, tagStart, head.Length - tagStart);
+        int headerLength = Number(head, 4);
+        if (headerLength < 56 || headerLength > head.Length - 12)
+            throw new InvalidDataException("The Mobipocket INDX header length is invalid.");
+        int tagStart = headerLength;
+        if (headerLength >= 184) {
+            uint pointer = U32(head, 180);
+            if (pointer >= headerLength && pointer <= head.Length - 12 && HasSignature(head.Slice((int)pointer), "TAGX"))
+                tagStart = (int)pointer;
+        }
+        ReadOnlySpan<byte> tag = head.Slice(tagStart);
         if (!HasSignature(tag, "TAGX")) throw new InvalidDataException("The Mobipocket TAGX control table is missing.");
         int tagLength = Number(tag, 4);
         int controls = Number(tag, 8);

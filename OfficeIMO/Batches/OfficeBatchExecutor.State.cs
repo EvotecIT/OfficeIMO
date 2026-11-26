@@ -174,10 +174,8 @@ internal static partial class OfficeBatchExecutor {
     }
 
     private static OfficeConversionExecutionRoute? SelectRoute(OfficeBatchOptions settings, string input, IReadOnlyList<OfficeConversionExecutionRoute> routes) {
-        string extension = Path.GetExtension(input);
-        if (settings.Extensions != null && !settings.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase) &&
-            !settings.Extensions.Contains(OfficeConversionCapabilityCatalog.GetSourceExtension(input), StringComparer.OrdinalIgnoreCase)) return null;
-        extension = OfficeConversionCapabilityCatalog.GetSourceExtension(OfficeConverter.ConversionSourceName(input, settings.ConversionOptions));
+        if (settings.Extensions != null && !settings.Extensions.Any(extension => input.EndsWith(extension, StringComparison.OrdinalIgnoreCase))) return null;
+        string extension = OfficeConversionCapabilityCatalog.GetSourceExtension(OfficeConverter.ConversionSourceName(input, settings.ConversionOptions));
         if (settings.ConversionRouteId is { } id) {
             var route = routes.First(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
             return route.SourceExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase) ? route : null;

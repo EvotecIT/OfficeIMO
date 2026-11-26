@@ -13,22 +13,29 @@ public static partial class MobiReader {
                 var table = new MobiIndex(database, selected.Record + index, selected.Encoding, token);
                 foreach (MobiIndex.Row row in table.Rows) {
                     token.ThrowIfCancellationRequested();
-                    int? labelOffset = row.Get(3);
-                    if (labelOffset == null) continue;
-                    string label;
-                    try { label = XmlText(table.ReadLabel(labelOffset.Value)); }
-                    catch (Exception error) when (error is InvalidDataException or DecoderFallbackException) {
-                        Warn("MOBI_TOC_ENTRY_OMITTED", error.Message, row.Name);
+                    int level = row.Get(4) ?? 0;
+                    if (level >= 32) {
+                        Warn("MOBI_TOC_ENTRY_OMITTED", "The Mobipocket navigation depth exceeds 32 levels.", row.Name);
                         continue;
                     }
-                    int level = row.Get(4) ?? 0;
+                    string? label = null;
+                    if (row.Get(3) is { } labelOffset) {
+                        try { label = XmlText(table.ReadLabel(labelOffset)); }
+                        catch (Exception error) when (error is InvalidDataException or DecoderFallbackException) {
+                            Warn("MOBI_TOC_ENTRY_OMITTED", error.Message, row.Name);
+                        }
+                    }
                     (int Part, int Offset)? target;
                     if (kindle == null && row.Get(1) is { } position) target = (0, position);
                     else if (kindle != null && row.Get(6) is { } file && row.Get(6, 1) is { } fragmentOffset)
                         target = kindle.Resolve(file, fragmentOffset);
                     else target = null;
-                    if (target is { } address && label.Length > 0 && level < 32) result.Add(new Navigation(label, level, address));
-                    else Warn("MOBI_TOC_ENTRY_OMITTED", "A Mobipocket navigation label, target or depth is outside the supported profile.", row.Name);
+                    if (string.IsNullOrWhiteSpace(label) || target == null) {
+                        Warn("MOBI_TOC_ENTRY_OMITTED", "A Mobipocket navigation label or target is outside the supported profile.", row.Name);
+                        result.Add(new Navigation(null, level, null));
+                    } else {
+                        result.Add(new Navigation(label, level, target));
+                    }
                 }
             } catch (Exception error) when (error is InvalidDataException or DecoderFallbackException) {
                 Warn("MOBI_TOC_UNAVAILABLE", error.Message);
@@ -38,18 +45,23 @@ public static partial class MobiReader {
 
         private IReadOnlyList<EpubNavigationEntry> BuildNavigation(List<Navigation> entries, MarkupPart[] parts) {
             var roots = new List<NavigationNode>();
-            var ancestors = new List<NavigationNode>();
+            var ancestors = new List<(int Level, NavigationNode? Node)>();
             foreach (Navigation entry in entries) {
                 token.ThrowIfCancellationRequested();
-                if (!TryResolvePosition(entry.Target, parts, out string? target)) {
-                    Warn("MOBI_TOC_ENTRY_OMITTED", "A Mobipocket navigation entry has no readable content target.", entry.Label);
-                    continue;
+                while (ancestors.Count > 0 && ancestors[ancestors.Count - 1].Level >= entry.Level)
+                    ancestors.RemoveAt(ancestors.Count - 1);
+                NavigationNode? node = null;
+                if (entry.Label is { } label && entry.Target is { } address) {
+                    if (TryResolvePosition(address, parts, out string? target)) {
+                        node = new NavigationNode(label, "EPUB/" + target);
+                        NavigationNode? parent = ancestors.LastOrDefault(static item => item.Node != null).Node;
+                        if (parent == null) roots.Add(node); else parent.Children.Add(node);
+                    } else {
+                        Warn("MOBI_TOC_ENTRY_OMITTED", "A Mobipocket navigation entry has no readable content target.", label);
+                    }
                 }
-                int depth = Math.Min(entry.Level, ancestors.Count);
-                while (ancestors.Count > depth) ancestors.RemoveAt(ancestors.Count - 1);
-                var node = new NavigationNode(entry.Label, "EPUB/" + target);
-                if (depth == 0) roots.Add(node); else ancestors[depth - 1].Children.Add(node);
-                ancestors.Add(node);
+                // An omitted source entry still owns its depth, so its child cannot inherit a prior sibling.
+                ancestors.Add((entry.Level, node));
             }
             return roots.Select(item => item.ToEntry()).ToArray();
         }
@@ -88,7 +100,7 @@ public static partial class MobiReader {
         }
     }
 
-    private sealed record Navigation(string Label, int Level, (int Part, int Offset) Target);
+    private sealed record Navigation(string? Label, int Level, (int Part, int Offset)? Target);
     private sealed record NavigationNode(string Label, string Target) {
         internal List<NavigationNode> Children { get; } = new();
         internal EpubNavigationEntry ToEntry() => new(Label, Target, Children.Select(child => child.ToEntry()));

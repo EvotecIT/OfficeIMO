@@ -109,6 +109,7 @@
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\**" Link="Documents\IWorkCorpus\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Update="ReaderGolden\**" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Mobi.Tests/Fixtures/harbour.azw3" Link="EbookFixtures/harbour.azw3" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Mobi.Tests/Fixtures/harbour.pdb" Link="EbookFixtures/harbour.pdb" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Publisher.Tests/Fixtures/*.pub" Link="PublisherFixtures/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
