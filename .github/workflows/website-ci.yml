@@ -76,6 +76,27 @@ jobs:
       credential_mode: standard
       use_playwright_cache: true
 
+  # The API docs shards (about 140 MB each) only carry work between jobs of this run; the reports stay. A failed run
+  # keeps them so "Re-run failed jobs" can still collect them.
+  artifact-cleanup:
+    name: Delete transfer artifacts
+    needs: [website-build, website-build-manual]
+    if: always() && (needs.website-build.result == 'success' || needs.website-build-manual.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/actions
+      - uses: ./.github/actions/delete-run-artifacts
+        with:
+          pattern: '.+-apidocs-shard-[0-9]+'
+          token: ${{ github.token }}
+
   ci-validation:
     name: CI validation
     if: always()
