@@ -63,6 +63,42 @@ internal sealed class WordPackageModel : IDisposable {
     /// <summary>Whether the body has been brought to the state an SDK load leaves it in; see <see cref="WordOwnedEdits.PrepareBodyEdit"/>.</summary>
     internal bool BodyPrepared { get; set; }
 
+    private WordOwnedStyles? _styles;
+    // The owned layer never changes the styles part, so packages loaded from the same bytes, such as every new document
+    // made from the default package, share what was read from it.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], WordOwnedStyles> StylesBySource = new();
+
+    /// <summary>The style definitions of the package, read on first use. The owned layer doesn't change them.</summary>
+    internal WordOwnedStyles Styles => _styles ??= StylesBySource.GetValue(SourceBytes, _ => WordOwnedStyles.Read(this));
+
+    private bool? _bodyHasFieldsOrContentControls;
+
+    /// <summary>
+    /// Whether the main part holds a content control or a field, either of which may be a table of contents in the body.
+    /// Checked once: owned edits never add either.
+    /// </summary>
+    internal bool BodyHasFieldsOrContentControls => _bodyHasFieldsOrContentControls ??= ContainsFieldOrContentControl(Document);
+
+    private static bool ContainsFieldOrContentControl(OfficeXmlTree tree) {
+        foreach (int node in ElementsInOrder(tree)) {
+            if (tree.NamespaceOf(node) != OfficeXmlNamespaces.WordprocessingML) continue;
+            if (tree.LocalNameOf(node) is "sdt" or "fldSimple" or "instrText" or "fldChar") return true;
+        }
+        return false;
+    }
+
+    /// <summary>Whether the package has a settings part.</summary>
+    internal bool HasSettings => WordOwnedSave.RelatedParts(this, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "settings").Any();
+
+    /// <summary>Whether the settings part has a top-level element named <paramref name="localName"/>.</summary>
+    internal bool SettingsHave(string localName) {
+        foreach (string part in WordOwnedSave.RelatedParts(this, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "settings")) {
+            OfficeXmlTree settings = Package.GetXml(part);
+            if (settings.FindChild(settings.Root, OfficeXmlNamespaces.WordprocessingML, localName) != OfficeXmlTree.NoNode) return true;
+        }
+        return false;
+    }
+
     /// <summary>Whether paragraph objects were handed out, which may be read after the document is disposed.</summary>
     internal bool ParagraphsHandedOut { get; set; }
 

@@ -74,7 +74,7 @@ namespace OfficeIMO.Security.Tests {
             // Substitute the real faulting SDK package at the existing document boundary, without a production test hook.
             using WordDocument word = WordDocument.Create();
             word.OpenXmlDocument.Dispose();
-            typeof(WordDocument).GetField("_wordprocessingDocument", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(word, package);
+            typeof(WordDocument).GetField("_wordprocessingDocumentValue", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(word, package);
             storage.FailProjectDelete = !failChild; storage.FailDataDelete = failChild;
             // System.IO.Packaging marks the failed physical part deleted before invoking
             // DeletePartCore. Restore the reachable carrier, but require disposal when that

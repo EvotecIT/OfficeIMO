@@ -133,6 +133,131 @@ namespace OfficeIMO.Word {
             return last;
         }
 
+        // ---- Paragraph properties ----------------------------------------------------------------------------------
+
+        /// <summary>The paragraph properties when the paragraph is owned; <paramref name="properties"/> is NoNode when it has none.</summary>
+        private bool TryGetOwnedParagraphProperties(out OfficeXmlTree tree, out int properties) {
+            properties = NoNode;
+            if (OwnedModel == null) {
+                tree = null!;
+                return false;
+            }
+            tree = _ownedTree!;
+            properties = tree.FindChild(_ownedParagraphNode, W, "pPr");
+            return true;
+        }
+
+        /// <summary>The paragraph properties to edit, created as the paragraph's first child when missing, as the SDK path does.</summary>
+        private bool TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties) {
+            properties = NoNode;
+            WordPackageModel? model = OwnedModel;
+            if (model == null) {
+                tree = null!;
+                return false;
+            }
+            tree = _ownedTree!;
+            WordOwnedEdits.PrepareBodyEdit(model);
+            properties = tree.GetOrInsertChild(_ownedParagraphNode, W, "pPr", WPView.Order);
+            model.MarkChanged();
+            return true;
+        }
+
+        private bool TryGetOwnedStyleId(out string? styleId) {
+            styleId = null;
+            if (!TryGetOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (properties == NoNode) return true;
+            int style = tree.FindChild(properties, W, "pStyle");
+            if (style != NoNode) styleId = tree.GetAttribute(style, W, "val");
+            return true;
+        }
+
+        private bool TryGetOwnedStyle(out WordParagraphStyles? style) {
+            style = null;
+            if (!TryGetOwnedStyleId(out string? styleId)) return false;
+            if (styleId != null) style = WordParagraphStyle.GetStyle(OwnedModel!.Styles.GetBuiltInStyleId(styleId) ?? styleId);
+            return true;
+        }
+
+        /// <summary>
+        /// Applies a built-in style when the document already defines it, with what it depends on; a style to add, or a
+        /// heading that may have to refresh a table of contents, is left to the SDK path.
+        /// </summary>
+        private bool TrySetOwnedStyle(WordParagraphStyles? value) {
+            WordPackageModel? model = OwnedModel;
+            if (model == null) return false;
+            if (value == null) return true;
+            string? styleId = _document.TryUseBuiltInStyleWithoutSdk(model, value.Value.ToStringStyle());
+            if (styleId == null) return false;
+            bool heading = value.Value >= WordParagraphStyles.Heading1 && value.Value <= WordParagraphStyles.Heading9;
+            if (heading && !_document.TryHeadingModifiedWithoutSdk(model)) return false;
+            if (!TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            int style = tree.GetOrInsertChild(properties, W, "pStyle", WPPrView.Order);
+            tree.SetAttribute(style, W, "val", styleId);
+            return true;
+        }
+
+        private bool TryGetOwnedAlignment(out WordParagraphAlignment? value) {
+            value = null;
+            if (!TryGetOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (properties == NoNode) return true;
+            int justification = tree.FindChild(properties, W, "jc");
+            if (justification == NoNode || !tree.TryGetAttribute(justification, W, "val", out string token)) return true;
+            // A value the SDK reads differently, or not at all, is left to it.
+            if (!WordParagraphAlignmentTokens.TryParse(token, out WordParagraphAlignment parsed)) return false;
+            value = parsed;
+            return true;
+        }
+
+        private bool TrySetOwnedAlignment(WordParagraphAlignment? value) {
+            if (value == null) {
+                if (!TryGetOwnedParagraphProperties(out OfficeXmlTree current, out int existing)) return false;
+                if (existing == NoNode) return true;
+                if (current.FindChild(existing, W, "jc") == NoNode) return true;
+                if (!TryEditOwnedParagraphProperties(out current, out existing)) return false;
+                // As RemoveAllChildren on the SDK path.
+                while (current.FindChild(existing, W, "jc") != NoNode) WordOwnedEdits.RemoveChild(current, existing, "jc");
+                return true;
+            }
+            if (!TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            WordOwnedEdits.ReplaceChild(tree, properties, "jc", WPPrView.Order).SetValue(W, "val", WordParagraphAlignmentTokens.ToToken(value.Value));
+            return true;
+        }
+
+        /// <summary>
+        /// Reads a twips attribute of a paragraph property element, such as <c>w:ind/@w:left</c>, as the SDK path reads it:
+        /// a value that doesn't parse as an integer reads as no value.
+        /// </summary>
+        private bool TryGetOwnedParagraphTwips(string element, string attribute, out OfficeLength? value) {
+            value = null;
+            if (!TryGetOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (properties == NoNode) return true;
+            int child = tree.FindChild(properties, W, element);
+            if (child != NoNode && tree.TryGetAttribute(child, W, attribute, out string text) && !string.IsNullOrEmpty(text)
+                && int.TryParse(text, out int twips)) {
+                value = OfficeLength.Points(twips / 20D);
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Sets or clears a twips attribute of a paragraph property element, adding the element when missing even to clear
+        /// it, as the SDK path's setters do.
+        /// </summary>
+        private bool TrySetOwnedParagraphTwips(string element, string attribute, string? text) {
+            if (!TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            int child = tree.GetOrInsertChild(properties, W, element, WPPrView.Order);
+            if (text == null) tree.RemoveAttribute(child, W, attribute);
+            else tree.SetAttribute(child, W, attribute, text);
+            return true;
+        }
+
+        // Indentation is written with the invariant culture, spacing with the current one, as on the SDK path.
+        private static string? IndentationText(OfficeLength? value) =>
+            checked((int?)value?.ToTwips())?.ToString(CultureInfo.InvariantCulture);
+
+        // Clearing spacing on the SDK path writes an empty value rather than removing the attribute.
+        private static string SpacingText(OfficeLength? value) => checked((int?)value?.ToTwips())?.ToString() ?? string.Empty;
+
         // ---- Run properties ----------------------------------------------------------------------------------------
 
         /// <summary>The run properties when the paragraph is owned; <paramref name="properties"/> is NoNode when the run has none.</summary>
@@ -310,6 +435,21 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>The XML tokens of <see cref="WordUnderlineStyle"/>, in declaration order.</summary>
+    internal static class WordParagraphAlignmentTokens {
+        private static readonly string[] Tokens = {
+            "left", "start", "center", "right", "end", "both", "mediumKashida", "distribute", "numTab", "highKashida",
+            "lowKashida", "thaiDistribute"
+        };
+
+        internal static string ToToken(WordParagraphAlignment alignment) => Tokens[(int)alignment];
+
+        internal static bool TryParse(string token, out WordParagraphAlignment alignment) {
+            int index = Array.IndexOf(Tokens, token);
+            alignment = index < 0 ? default : (WordParagraphAlignment)index;
+            return index >= 0;
+        }
+    }
+
     internal static class WordUnderlineStyleTokens {
         private static readonly string[] Tokens = {
             "single", "words", "double", "thick", "dotted", "dottedHeavy", "dash", "dashedHeavy", "dashLong", "dashLongHeavy",
