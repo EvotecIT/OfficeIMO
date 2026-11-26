@@ -194,13 +194,15 @@ internal static class ClinicalTrialsCorpus {
         if (nctId is null || docs is null) {
             return null;
         }
-        // The first document that contains the protocol; combined protocol, SAP and consent uploads count.
-        JsonNode? protocol = docs.FirstOrDefault(static d => (bool?)d?["hasProtocol"] == true
-            && ((string?)d?["filename"])?.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) == true);
-        long size = (long?)protocol?["size"] ?? 0;
-        if (protocol is null || size <= 0 || size > maxBytes) {
+        // The first document within the size limit that contains the protocol; combined protocol, SAP and consent
+        // uploads count, and an oversized earlier upload doesn't rule the trial out.
+        JsonNode? protocol = docs.FirstOrDefault(d => (bool?)d?["hasProtocol"] == true
+            && ((string?)d?["filename"])?.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) == true
+            && (long?)d?["size"] is > 0 and var bytes && bytes <= maxBytes);
+        if (protocol is null) {
             return null;
         }
+        long size = (long)protocol["size"]!;
         return new JsonObject {
             ["nctId"] = nctId,
             ["sponsorClass"] = sponsorClass,
