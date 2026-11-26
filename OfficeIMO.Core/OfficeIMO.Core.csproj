@@ -62,6 +62,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Visio" />
     <InternalsVisibleTo Include="OfficeIMO.Epub" />
+    <InternalsVisibleTo Include="OfficeIMO.Mobi" />
     <InternalsVisibleTo Include="OfficeIMO.Security" />
     <InternalsVisibleTo Include="OfficeIMO.Security.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Provenance.C2pa" />

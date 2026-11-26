@@ -223,6 +223,8 @@
   <Project Path="OfficeIMO.Markdown.Pdf/OfficeIMO.Markdown.Pdf.csproj" />
   <Project Path="OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj" />
   <Project Path="OfficeIMO.Markdown/OfficeIMO.Markdown.csproj" />
+  <Project Path="OfficeIMO.Mobi/OfficeIMO.Mobi.csproj" />
+  <Project Path="OfficeIMO.Mobi.Tests/OfficeIMO.Mobi.Tests.csproj" />
   <Project Path="OfficeIMO.MarkdownRenderer.IntelligenceX/OfficeIMO.MarkdownRenderer.IntelligenceX.csproj" />
   <Project Path="OfficeIMO.MarkdownRenderer.SamplePlugin/OfficeIMO.MarkdownRenderer.SamplePlugin.csproj" />
   <Project Path="OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj" />

@@ -36,6 +36,7 @@ enum ViewerFormats {
         Format(identifier: "com.microsoft.xps", extensions: ["xps", "oxps"]),
         Format(identifier: "com.microsoft.visio.drawing", extensions: ["vsdx", "vdx", "vtx"]),
         Format(identifier: "com.microsoft.publisher.pub", extensions: ["pub"]),
+        Format(identifier: "com.evotec.officeimo.mobi", extensions: ["mobi", "azw", "azw3"]),
         Format(identifier: "org.oasis-open.opendocument.graphics", extensions: ["odg"]),
         Format(identifier: "org.idpf.epub-container", extensions: ["epub"]),
     ]
@@ -46,6 +47,7 @@ enum ViewerFormats {
     static let importedIdentifiers: Set<String> = ["net.daringfireball.markdown", "org.oasis-open.opendocument.text",
                                                    "org.oasis-open.opendocument.spreadsheet",
                                                    "org.oasis-open.opendocument.presentation", "com.microsoft.xps",
+                                                   "com.evotec.officeimo.mobi",
                                                    "com.microsoft.visio.drawing", "com.microsoft.publisher.pub",
                                                    "org.oasis-open.opendocument.graphics"]
 

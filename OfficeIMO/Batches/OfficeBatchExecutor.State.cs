@@ -167,15 +167,17 @@ internal static partial class OfficeBatchExecutor {
     private static string NormalizeExtension(string extension) {
         string normalized = extension.Trim().ToLowerInvariant();
         if (!normalized.StartsWith(".", StringComparison.Ordinal)) normalized = "." + normalized;
-        if (normalized.Length is < 2 or > 16 || normalized.Skip(1).Any(character => !(character >= 'a' && character <= 'z' || character >= 'A' && character <= 'Z' || character >= '0' && character <= '9')))
+        if (normalized.Length is < 2 or > 16 || normalized.Skip(1).Any(character => !(character >= 'a' && character <= 'z' || character >= 'A' && character <= 'Z' || character >= '0' && character <= '9')) &&
+            OfficeConversionCapabilityCatalog.FindBySourceExtension(normalized).Count == 0)
             throw new ArgumentException("Use a simple filename extension.");
         return normalized;
     }
 
     private static OfficeConversionExecutionRoute? SelectRoute(OfficeBatchOptions settings, string input, IReadOnlyList<OfficeConversionExecutionRoute> routes) {
         string extension = Path.GetExtension(input);
-        if (settings.Extensions != null && !settings.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase)) return null;
-        extension = Path.GetExtension(OfficeConverter.ConversionSourceName(input, settings.ConversionOptions));
+        if (settings.Extensions != null && !settings.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase) &&
+            !settings.Extensions.Contains(OfficeConversionCapabilityCatalog.GetSourceExtension(input), StringComparer.OrdinalIgnoreCase)) return null;
+        extension = OfficeConversionCapabilityCatalog.GetSourceExtension(OfficeConverter.ConversionSourceName(input, settings.ConversionOptions));
         if (settings.ConversionRouteId is { } id) {
             var route = routes.First(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
             return route.SourceExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase) ? route : null;

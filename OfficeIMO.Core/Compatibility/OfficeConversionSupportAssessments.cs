@@ -22,6 +22,9 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId == "email-pdf") return Targeted(
             "Converter and host fixtures reopen the PDF and find the subject, sender, To and Cc recipients, date, HTML body and attachment list; the TextOnly profile keeps the Reader projection and its email policy finding.",
             "Renders through the HTML-to-PDF engine with the shared email body sanitization, blocked remote resources and bounded inline MIME images. RTF-only bodies are approximated through HTML. Attachment payloads are listed, not embedded or rendered; signed and encrypted payloads are not verified or decrypted. Mail-client visual equivalence is not promised.");
+        if (routeId.StartsWith("ebook-mobi-", StringComparison.Ordinal)) return Targeted(
+            "Calibre-produced PalmDOC, MOBI, AZW3 and dual-format samples exercise decompression, metadata, cover, navigation and links, with encryption rejection controls.",
+            "Reads unencrypted PalmDOC, legacy MOBI and reflowable KF8 with stored or PalmDOC-compressed text. HUFF/CDIC, scripting and Kindle fixed-layout presentation are outside the reader profile. See OfficeIMO.Mobi/SUPPORT.md.");
         if (routeId == "epub-pdf") return Targeted(
             "Converter fixtures reopen the PDF and verify spine order, linked stylesheets, images, navigation, tags and mixed page sizes. TextOnly exercises the original Reader projection.",
             "Each chapter begins on a new page and uses the supported HTML print or fixed-viewport subset. Unsupported CSS, missing link targets, publication page totals and requested PDF parity padding have diagnostics. Linked resources resolve inside the EPUB package.");

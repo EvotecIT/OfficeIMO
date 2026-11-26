@@ -1,3 +1,4 @@
+using OfficeIMO.Mobi;
 using OfficeIMO.Reader.AsciiDoc;
 using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Chm;
@@ -75,6 +76,8 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddJsonHandler(configured.Json)
             .AddLatexHandler(configured.Latex)
             .AddMarkdownHandler(configured.Markdown)
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("mobi", new[] { ".mobi", ".prc", ".pdb", ".azw", ".azw3" },
+                ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe))
             .AddNotebookHandler(configured.Notebook)
             .AddOneNoteHandler(oneNoteOptions)
             .AddOpmlHandler(configured.Opml)
