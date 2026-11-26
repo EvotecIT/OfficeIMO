@@ -78,6 +78,98 @@ internal static partial class PdfDocumentSemanticEnricher {
     }
 
     /// <summary>
+    /// Whether every visible text run on the page is bound to an element of the structure tree: it carries a marked-content
+    /// id that a reachable element with a role references. Artifacts and whitespace are not content. A page with any other
+    /// run holds content the tags don't describe, so its layout can't be taken from them alone.
+    /// </summary>
+    internal static bool IsFullyTagged(
+        PdfReadDocument document,
+        TaggedTableReads reads,
+        int pageNumber,
+        PdfUnderstandingPageResult page,
+        long maxWorkUnits,
+        CancellationToken cancellationToken) {
+        var workBudget = new PdfUnderstandingWorkBudget(maxWorkUnits, cancellationToken);
+        if (!reads.RolesBuilt) {
+            reads.Roles = BuildTaggedContentRoleIndex(document, reads.Graph, workBudget);
+            reads.RolesBuilt = true;
+        }
+        if (reads.Roles is not TaggedContentRoleIndex roles) return false;
+        PdfReadPage readPage = document.Pages[pageNumber - 1];
+        bool anyContent = false;
+        for (int runIndex = 0; runIndex < page.DecodedRuns.Count; runIndex++) {
+            workBudget.Consume();
+            PdfTextSpan run = page.DecodedRuns[runIndex];
+            if (run.IsArtifactContent || string.IsNullOrWhiteSpace(run.Text)) continue;
+            if (run.MarkedContentId is not int mcid ||
+                roles.GetRoles(pageNumber, readPage, new MarkedContentKey(run.ContentStreamObjectNumber, mcid)).Count == 0) return false;
+            anyContent = true;
+        }
+        return anyContent;
+    }
+
+    /// <summary>
+    /// Whether a tagged table segment reads as page layout rather than data: a cell line set noticeably larger than the
+    /// table's usual text (a title placed in a cell), a single row below its headers, or cells that are mostly prose.
+    /// Producers that lay pages out with tables tag those tables like any other, so the tags alone don't tell them apart.
+    /// </summary>
+    internal static bool LooksLikeLayout(PdfUnderstandingTableCandidate table) {
+        PdfTaggedTableSegment segment = table.TaggedSegment!;
+        if (table.Rows.Count - segment.HeaderRowCount <= 1) return true;
+
+        var fontSizes = new List<double>(table.SourceLines.Count);
+        for (int index = 0; index < table.SourceLines.Count; index++) {
+            double size = table.SourceLines[index].FontSize;
+            if (size > 0D && !double.IsInfinity(size)) fontSizes.Add(size);
+        }
+        if (fontSizes.Count > 0) {
+            fontSizes.Sort();
+            double median = fontSizes[(fontSizes.Count - 1) / 2];
+            if (fontSizes[fontSizes.Count - 1] >= median * HeadingSizedLineRatio) return true;
+        }
+
+        int filled = 0;
+        int prose = 0;
+        foreach (IReadOnlyList<string> row in table.Rows) {
+            foreach (string cell in row) {
+                if (string.IsNullOrWhiteSpace(cell)) continue;
+                filled++;
+                if (CountWords(cell) >= ProseCellWords) prose++;
+            }
+        }
+        return filled > 0 && prose * 2 > filled;
+
+        static int CountWords(string text) {
+            int words = 0;
+            bool inWord = false;
+            foreach (char character in text) {
+                bool space = char.IsWhiteSpace(character);
+                if (!space && !inWord) words++;
+                inWord = !space;
+            }
+            return words;
+        }
+    }
+
+    /// <summary>A cell line this much larger than the table's median line reads as a heading.</summary>
+    private const double HeadingSizedLineRatio = 1.25D;
+
+    /// <summary>A cell with at least this many words reads as prose.</summary>
+    private const int ProseCellWords = 8;
+
+    /// <summary>The page's segments of tables whose tagged read passed, in structure-tree order.</summary>
+    internal static IReadOnlyList<PdfUnderstandingTableCandidate> GetTaggedTables(TaggedTableReads reads, int pageNumber) {
+        var result = new List<PdfUnderstandingTableCandidate>();
+        foreach (PdfStructureElementInfo table in reads.Graph.Tagged.StructureElements) {
+            if (!reads.Tables.TryGetValue(table.ObjectNumber, out var read) || read.Failure is not null || read.Candidates is null) continue;
+            foreach (PdfUnderstandingTableCandidate candidate in read.Candidates) {
+                if (candidate.TaggedSegment!.PageNumber == pageNumber) result.Add(candidate);
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
     /// The structure graph and each tagged table's read, kept across the enrichment passes of one document read. A
     /// table's read depends only on the structure tree and the pages' text runs and lines, which a later pass reuses.
     /// </summary>
@@ -94,6 +186,9 @@ internal static partial class PdfDocumentSemanticEnricher {
         // Each page's marked-content index from the read, with the analysis it was built from; enrichment reuses it
         // while that analysis stands. The entries are the enricher's own index type.
         internal (object?[] Indexes, PdfUnderstandingPageResult[] Pages)? ContentIndexes { get; set; }
+        // Which marked content the structure tree binds to roles, built on first use.
+        internal bool RolesBuilt { get; set; }
+        internal object? Roles { get; set; }
     }
 
     private static void ApplyTaggedTableEvidence(

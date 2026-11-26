@@ -443,6 +443,12 @@ public sealed class PdfUnderstandingPageResult {
     /// </summary>
     internal Func<PdfUnderstandingPageResult>? RedoWithPaintedBorders { get; set; }
 
+    /// <summary>
+    /// On a page analysed without table detection: segments it again, from the same text runs and lines, with the given
+    /// tables (its tagged ones) as its table candidates. Null when detection finds a table in the text outside them.
+    /// </summary>
+    internal Func<IReadOnlyList<PdfUnderstandingTableCandidate>, PdfUnderstandingPageResult?>? WithTablesFromTags { get; set; }
+
     internal PdfUnderstandingPageResult WithAdditionalTableCandidates(
         IReadOnlyList<PdfUnderstandingTableCandidate> candidates) {
         if (candidates.Count == 0) return this;

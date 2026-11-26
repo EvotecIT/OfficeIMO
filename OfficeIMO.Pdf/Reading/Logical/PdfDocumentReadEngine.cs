@@ -70,6 +70,7 @@ internal static partial class PdfDocumentReadEngine {
                 // depend only on the pages' text, which the second analysis keeps, so enrichment reuses them.
                 bool[] fallBack = PdfDocumentSemanticEnricher.ReadTaggedTables(
                     document, pageNumbers, pageAnalyses, taggedTables, pipelineOptions.MaxDocumentWorkUnits, cancellationToken);
+                pageAnalyses = TakeTablesFromTags(pageAnalyses, fallBack) ?? pageAnalyses;
                 pageAnalyses = Redo(pageAnalyses, pageIndex => fallBack[pageIndex]) ?? pageAnalyses;
             }
             analyses = Enrich(pageAnalyses);
@@ -100,6 +101,35 @@ internal static partial class PdfDocumentReadEngine {
             analyses[pageIndex].CompleteOperation();
         }
         return result;
+
+        // A page whose tables all pass their tagged checks and read as data, whose every visible run the structure tree
+        // binds and that is selected once is segmented with its tagged tables, without geometric detection. Any other page that held
+        // detection back is marked to be analysed again with it.
+        IReadOnlyList<PdfUnderstandingPageResult>? TakeTablesFromTags(IReadOnlyList<PdfUnderstandingPageResult> pages, bool[] fallBack) {
+            PdfUnderstandingPageResult[]? replaced = null;
+            for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+                PdfUnderstandingPageResult page = pages[pageIndex];
+                if (page.WithTablesFromTags is not { } withTables) continue;
+                int pageNumber = pageNumbers[pageIndex];
+                IReadOnlyList<PdfUnderstandingTableCandidate>? tables = fallBack[pageIndex] ||
+                    Array.IndexOf(pageNumbers, pageNumber) != Array.LastIndexOf(pageNumbers, pageNumber)
+                    ? null
+                    : PdfDocumentSemanticEnricher.GetTaggedTables(taggedTables!, pageNumber);
+                // A tagged table that lays the page out (a title in a cell, a single row, prose cells) leaves the page
+                // to geometry, so its headings and paragraphs are found as on any other page.
+                if (tables is not null && tables.Count > 0 &&
+                    !tables.Any(PdfDocumentSemanticEnricher.LooksLikeLayout) &&
+                    PdfDocumentSemanticEnricher.IsFullyTagged(document, taggedTables!, pageNumber, page,
+                        pipelineOptions.MaxDocumentWorkUnits, cancellationToken) &&
+                    withTables(tables) is { } taken) {
+                    replaced ??= pages.ToArray();
+                    replaced[pageIndex] = taken;
+                } else {
+                    fallBack[pageIndex] = true;
+                }
+            }
+            return replaced is null ? null : Array.AsReadOnly(replaced);
+        }
 
         // Analyses again, with the painted-border pass, the pages that skipped it and match; null when none does.
         static IReadOnlyList<PdfUnderstandingPageResult>? Redo(IReadOnlyList<PdfUnderstandingPageResult> pages, Func<int, bool> needed) {
