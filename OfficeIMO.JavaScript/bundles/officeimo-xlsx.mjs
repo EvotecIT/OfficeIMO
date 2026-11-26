@@ -1376,6 +1376,22 @@ const { DifferentialStyles } = _m18;
 
 
 const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+const borderStyles = ["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"];
+/** @internal Validate and normalize border edges without registering a workbook style. */
+function normalizeBorder(border) {
+    if (!border || typeof border !== "object")
+        throw new TypeError("A border must be an object of edges.");
+    const result = {};
+    for (const side of ["left", "right", "top", "bottom"]) {
+        const edge = border[side];
+        if (edge) {
+            if (!borderStyles.includes(edge.style))
+                throw new TypeError("Invalid border style.");
+            result[side] = { style: edge.style, ...(edge.color ? { color: colorArgb(edge.color) } : {}) };
+        }
+    }
+    return result;
+}
 const NumberFormats = { General: "General", Integer: "0", Decimal: "0.00", Percent: "0.00%", Date: "yyyy-mm-dd", DateTime: "yyyy-mm-dd hh:mm:ss" };
 function index(value, count, kind) {
     if (!Number.isInteger(value) || value < 0 || value >= count)
@@ -1464,16 +1480,7 @@ class StyleRegistry {
         return deduplicate(this.fills, this.fillIndexes, { pattern, color: fill.color ? colorArgb(fill.color) : "" }, this.maximum + 1);
     }
     addBorder(border) {
-        const result = {};
-        for (const side of ["left", "right", "top", "bottom"]) {
-            const edge = border[side];
-            if (edge) {
-                if (!["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"].includes(edge.style))
-                    throw new TypeError("Invalid border style.");
-                result[side] = { style: edge.style, ...(edge.color ? { color: colorArgb(edge.color) } : {}) };
-            }
-        }
-        return deduplicate(this.borders, this.borderIndexes, result, this.maximum);
+        return deduplicate(this.borders, this.borderIndexes, normalizeBorder(border), this.maximum);
     }
     addNumberFormat(format) {
         if (typeof format !== "string" || !format || format.length > 255)
@@ -1573,7 +1580,7 @@ class StyleRegistry {
         }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' + this.differential.toXml() + '</styleSheet>';
     }
 }
-const _exports = Object.freeze({ colorArgb: _m17.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
+const _exports = Object.freeze({ colorArgb: _m17.colorArgb, spreadsheetNamespace: spreadsheetNamespace, normalizeBorder: normalizeBorder, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
 return _exports;
 })();
 
@@ -3038,7 +3045,7 @@ const { officeRelationshipsNamespace } = _m8;
 
 const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m19;
 
-const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m16;
+const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch, normalizeBorder } = _m16;
 
 const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m28;
 
@@ -3186,8 +3193,9 @@ class Worksheet {
             colorArgb(options.headerFill);
         if (options.headerWrap !== undefined && typeof options.headerWrap !== "boolean")
             throw new TypeError("headerWrap must be boolean.");
-        if (options.headerBorder !== undefined && (!options.headerBorder || typeof options.headerBorder !== "object"))
-            throw new TypeError("headerBorder must be a border object.");
+        // Check edges before any column, date or header style is registered for this sheet.
+        if (options.headerBorder !== undefined)
+            normalizeBorder(options.headerBorder);
         if (options.headerStyle !== undefined)
             book.styles.validateStyle(options.headerStyle);
         if (options.alternatingRowStyle !== undefined)

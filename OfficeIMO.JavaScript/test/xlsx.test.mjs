@@ -280,3 +280,9 @@ test("an installed CompressionStream without deflate-raw support falls back to s
     assert.ok([...(await readZip(await book.toBlob())).values()].every(e => e.method === 0));
   } finally { globalThis.CompressionStream = original; }
 });
+
+test("an invalid header border is rejected before the worksheet registers any style", () => {
+  const book = new Workbook({ limits: { maxStyles: 3 } });
+  assert.throws(() => book.addWorksheet("Rejected", { columns: [{ header: "Note", wrapText: true }], headerBorder: { bottom: { style: "wavy" } } }), /Invalid border style/);
+  assert.equal(book.addWorksheet("Recover", { columns: [{ header: "Value" }] }).name, "Recover");
+});

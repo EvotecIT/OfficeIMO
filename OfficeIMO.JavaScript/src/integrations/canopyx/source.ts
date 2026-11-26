@@ -17,6 +17,14 @@ const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "
 const textFallbacks: ReadonlySet<string> = new Set(["relative-link", "history-series", "badges", "custom-class", "custom-renderer"]);
 const badgeSeparator = " \u00b7 ";
 const rawIdentities = new WeakMap<ExportCell, CellValue>();
+// Appended badge labels, kept apart so later passes that re-render a cell's text (PDF numbers) can carry them over.
+const badgeSuffixes = new WeakMap<ExportCell, string>();
+
+/** @internal The text a later pass may re-render, and the badge suffix it must append back unchanged. */
+export function canopyBadgeSplit(cell: ExportCell): { readonly text: string; readonly suffix: string } {
+  const suffix = badgeSuffixes.get(cell), text = cell.text ?? "";
+  return suffix !== undefined && text.endsWith(suffix) ? { text: text.slice(0, text.length - suffix.length), suffix } : { text, suffix: "" };
+}
 
 /** @internal Grouping uses captured identity even when a detail cell displays a relative-link label. */
 export function canopyIdentityValue(value: ExportValue): CellValue {
@@ -25,20 +33,28 @@ export function canopyIdentityValue(value: ExportValue): CellValue {
   return original === undefined ? value.value : original;
 }
 
-/** Columns read by enabled native rule predicates; malformed declarations are rejected later by the rule compiler. */
+/** Columns read by enabled native rule predicates; malformed declarations are rejected later by the rule compiler.
+ * The scan stops where the compiler does (four levels, 64 predicate nodes), and a predicate past 512 filters cannot
+ * fit the compiler's 8,192-character formula limit, so a stopped scan never misses an operand of a compiled rule. */
 function predicateColumns(rules: unknown): ReadonlySet<string> {
   const columns = new Set<string>();
-  const visit = (predicate: unknown, depth: number): void => {
-    if (!predicate || typeof predicate !== "object" || depth > 8) return;
-    const { filters, groups } = predicate as { filters?: unknown; groups?: unknown };
-    if (Array.isArray(filters)) for (const filter of filters) {
-      const column = filter && typeof filter === "object" ? (filter as { column?: unknown }).column : undefined;
-      if (typeof column === "string") columns.add(column);
-    }
-    if (Array.isArray(groups)) for (const group of groups) visit(group, depth + 1);
-  };
-  if (Array.isArray(rules)) for (const rule of rules.slice(0, 1000))
-    if (rule && typeof rule === "object" && (rule as { enabled?: unknown }).enabled !== false) visit((rule as { when?: unknown }).when, 0);
+  if (!Array.isArray(rules)) return columns;
+  for (const rule of rules.slice(0, 1000)) {
+    if (!rule || typeof rule !== "object" || (rule as { enabled?: unknown }).enabled === false) continue;
+    let nodes = 0, filtersSeen = 0;
+    const visit = (predicate: unknown, depth: number): boolean => {
+      if (depth > 4 || ++nodes > 64 || !predicate || typeof predicate !== "object") return false;
+      const { filters, groups } = predicate as { filters?: unknown; groups?: unknown };
+      if (Array.isArray(filters)) for (const filter of filters) {
+        if (++filtersSeen > 512) return false;
+        const column = filter && typeof filter === "object" ? (filter as { column?: unknown }).column : undefined;
+        if (typeof column === "string") columns.add(column);
+      }
+      if (Array.isArray(groups)) for (const group of groups) if (!visit(group, depth + 1)) return false;
+      return true;
+    };
+    visit((rule as { when?: unknown }).when, 1);
+  }
   return columns;
 }
 
@@ -177,6 +193,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         else {
           const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
           if (relativeLabel || badgedValue) rawIdentities.set(exported, cell.value);
+          if (badges && cell.text) badgeSuffixes.set(exported, badgeSeparator + badges);
           result.push(exported);
         }
       }

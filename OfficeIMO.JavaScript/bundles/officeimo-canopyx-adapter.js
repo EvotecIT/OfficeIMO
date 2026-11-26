@@ -12,7 +12,7 @@ const _c3 = _core("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3
 const _c4 = _core("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208");
 const _c5 = _core("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38");
 const _c6 = _core("8f13b484030aa6b921e616d803614fd061f718241692003633375fab4c36045e");
-const _c7 = _core("603e63f363ab246c152f303b17e1aaeba7f4d3773cfe177970b0abc37506b6d1");
+const _c7 = _core("d50eab44c792a399d1acfc170daa54e5ecbf3402713f6fe4d8dd5a631351153a");
 const _c8 = _core("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4");
 const _c9 = _core("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe");
 const _c10 = _core("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc");
@@ -275,7 +275,7 @@ _modules.set("09d56e54463cbff00a2b225e10a62b06c881933290525c614bb5e276167e9eac",
 return _exports;
 })();
 
-const _m13 = _modules.get("0ab8fbaa447123f410fef4d90d39f7f29cfbb0a0efecd949d849fcfe75902894") ?? (() => {
+const _m13 = _modules.get("4f9f65d6bbb3e7c6cb635e9875d46aefaf50ffd4be08edc616acece72ddeb738") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _c0;
 
 const { canopyPivot, pivotNumberFormat } = _m14;
@@ -300,6 +300,13 @@ const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "
 const textFallbacks = new Set(["relative-link", "history-series", "badges", "custom-class", "custom-renderer"]);
 const badgeSeparator = " \u00b7 ";
 const rawIdentities = new WeakMap();
+// Appended badge labels, kept apart so later passes that re-render a cell's text (PDF numbers) can carry them over.
+const badgeSuffixes = new WeakMap();
+/** @internal The text a later pass may re-render, and the badge suffix it must append back unchanged. */
+function canopyBadgeSplit(cell) {
+    const suffix = badgeSuffixes.get(cell), text = cell.text ?? "";
+    return suffix !== undefined && text.endsWith(suffix) ? { text: text.slice(0, text.length - suffix.length), suffix } : { text, suffix: "" };
+}
 /** @internal Grouping uses captured identity even when a detail cell displays a relative-link label. */
 function canopyIdentityValue(value) {
     if (!(value instanceof ExportCell))
@@ -307,27 +314,37 @@ function canopyIdentityValue(value) {
     const original = rawIdentities.get(value);
     return original === undefined ? value.value : original;
 }
-/** Columns read by enabled native rule predicates; malformed declarations are rejected later by the rule compiler. */
+/** Columns read by enabled native rule predicates; malformed declarations are rejected later by the rule compiler.
+ * The scan stops where the compiler does (four levels, 64 predicate nodes), and a predicate past 512 filters cannot
+ * fit the compiler's 8,192-character formula limit, so a stopped scan never misses an operand of a compiled rule. */
 function predicateColumns(rules) {
     const columns = new Set();
-    const visit = (predicate, depth) => {
-        if (!predicate || typeof predicate !== "object" || depth > 8)
-            return;
-        const { filters, groups } = predicate;
-        if (Array.isArray(filters))
-            for (const filter of filters) {
-                const column = filter && typeof filter === "object" ? filter.column : undefined;
-                if (typeof column === "string")
-                    columns.add(column);
-            }
-        if (Array.isArray(groups))
-            for (const group of groups)
-                visit(group, depth + 1);
-    };
-    if (Array.isArray(rules))
-        for (const rule of rules.slice(0, 1000))
-            if (rule && typeof rule === "object" && rule.enabled !== false)
-                visit(rule.when, 0);
+    if (!Array.isArray(rules))
+        return columns;
+    for (const rule of rules.slice(0, 1000)) {
+        if (!rule || typeof rule !== "object" || rule.enabled === false)
+            continue;
+        let nodes = 0, filtersSeen = 0;
+        const visit = (predicate, depth) => {
+            if (depth > 4 || ++nodes > 64 || !predicate || typeof predicate !== "object")
+                return false;
+            const { filters, groups } = predicate;
+            if (Array.isArray(filters))
+                for (const filter of filters) {
+                    if (++filtersSeen > 512)
+                        return false;
+                    const column = filter && typeof filter === "object" ? filter.column : undefined;
+                    if (typeof column === "string")
+                        columns.add(column);
+                }
+            if (Array.isArray(groups))
+                for (const group of groups)
+                    if (!visit(group, depth + 1))
+                        return false;
+            return true;
+        };
+        visit(rule.when, 1);
+    }
     return columns;
 }
 function badgeText(input) {
@@ -481,6 +498,8 @@ function prepareCanopyExport(capture, format, options = {}) {
                         const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
                         if (relativeLabel || badgedValue)
                             rawIdentities.set(exported, cell.value);
+                        if (badges && cell.text)
+                            badgeSuffixes.set(exported, badgeSeparator + badges);
                         result.push(exported);
                     }
                 }
@@ -494,8 +513,8 @@ function prepareCanopyExport(capture, format, options = {}) {
         } });
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
-const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("0ab8fbaa447123f410fef4d90d39f7f29cfbb0a0efecd949d849fcfe75902894", _exports);
+const _exports = Object.freeze({ canopyBadgeSplit: canopyBadgeSplit, canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
+_modules.set("4f9f65d6bbb3e7c6cb635e9875d46aefaf50ffd4be08edc616acece72ddeb738", _exports);
 return _exports;
 })();
 
@@ -796,7 +815,7 @@ _modules.set("e01b2c108bf292f2e1e04b10530d945b8ee593009b55f3768de20aaf292c3804",
 return _exports;
 })();
 
-const _m23 = _modules.get("bd72d62a40b65fc1d37afef65a35a18cc30319279dd9ca535c2da04f478086d4") ?? (() => {
+const _m23 = _modules.get("8e8db155b4093beda13a41ff7ac82056a9a71831633fab9125ba83b5e1bca78a") ?? (() => {
 const { createGroupedReport } = _c13;
 
 const { checkAbort } = _c14;
@@ -1002,7 +1021,7 @@ function canopyGrouped(source, request, options, limits, report, format) {
         ...(options.signal === undefined ? {} : { signal: options.signal }), ...(sourceLimits === undefined ? {} : { limits: sourceLimits }) });
 }
 const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
-_modules.set("bd72d62a40b65fc1d37afef65a35a18cc30319279dd9ca535c2da04f478086d4", _exports);
+_modules.set("8e8db155b4093beda13a41ff7ac82056a9a71831633fab9125ba83b5e1bca78a", _exports);
 return _exports;
 })();
 
@@ -1065,7 +1084,7 @@ _modules.set("99b23f94e240ecbeee81dbc96909e40786623c7df225f74ae7bd4d719b15d1e8",
 return _exports;
 })();
 
-const _m29 = _modules.get("b8719a17ff91b5dd81e9ee537a3c077f7ed3bd1555218abd23c342b757ec2c92") ?? (() => {
+const _m29 = _modules.get("93d82c52ce5b1c7263672a96e49dbb034c7c8b666662e3c5ed1e3d61d40cf83f") ?? (() => {
 const { Workbook, addGroupedXlsx } = _c7;
 
 const { portableWorkbook } = _c17;
@@ -1122,12 +1141,14 @@ async function writeCanopyWorkbook(source, grouped, destination, options, labels
     });
 }
 const _exports = Object.freeze({ writeCanopyWorkbook: writeCanopyWorkbook });
-_modules.set("b8719a17ff91b5dd81e9ee537a3c077f7ed3bd1555218abd23c342b757ec2c92", _exports);
+_modules.set("93d82c52ce5b1c7263672a96e49dbb034c7c8b666662e3c5ed1e3d61d40cf83f", _exports);
 return _exports;
 })();
 
-const _m35 = _modules.get("a0c020124a53cd7be15e3d53388b8393c981c3abc0f8d4aee76a442a2458457f") ?? (() => {
+const _m35 = _modules.get("f059b98aa962d97126d07cd8318e438843242a29ea4574b272d9429f21e47e9d") ?? (() => {
 const { ExportCell } = _c0;
+
+const { canopyBadgeSplit } = _m13;
 
 /** Fixed numeric formats affect PDF text, not the frozen numeric value used by other writers. */
 function numericProfile(format) {
@@ -1176,11 +1197,11 @@ function documentDecimal(sample, columns) {
                 const profile = numericProfile(cell.presentation?.numberFormat ?? column.format);
                 if (!profile)
                     continue;
-                const captured = capturedNumber(cell.text ?? "", profile);
+                const label = canopyBadgeSplit(cell).text, captured = capturedNumber(label, profile);
                 if (!captured)
                     continue;
                 // A literal percent label is a culture signal without requesting numeric scaling.
-                const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
+                const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || label.includes("%");
                 if (percentageSignal !== percent)
                     continue;
                 const match = /([.,])(\d+)$/.exec(captured.number.trimEnd());
@@ -1207,10 +1228,12 @@ function canopyPdfNumbers(sample, columns) {
             return value;
         const format = value.presentation?.numberFormat ?? columns[index].format;
         let profile = numericProfile(format);
-        if (!profile || value.text === "")
+        // Badge labels are not part of the number: format the captured label alone, then append them unchanged.
+        const { text: label, suffix: badges } = canopyBadgeSplit(value);
+        if (!profile || label === "")
             return value;
-        const captured = capturedNumber(value.text ?? "", profile);
-        if (value.text && !captured)
+        const captured = capturedNumber(label, profile);
+        if (label && !captured)
             return value;
         // Undeclared formats normalize only plain numeric labels; a decoration
         // alone does not declare how the raw value was transformed for display.
@@ -1242,16 +1265,16 @@ function canopyPdfNumbers(sample, columns) {
         let suffix = captured?.suffix || profile.suffix;
         if (profile.percent && !profile.suffix)
             suffix = suffix.replace(/%/g, "");
-        return new ExportCell(value.value, { text: leadingSign + prefix + formatted + (profile.percent ? "%" : "") + suffix,
+        return new ExportCell(value.value, { text: leadingSign + prefix + formatted + (profile.percent ? "%" : "") + suffix + badges,
             ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
     });
 }
 const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
-_modules.set("a0c020124a53cd7be15e3d53388b8393c981c3abc0f8d4aee76a442a2458457f", _exports);
+_modules.set("f059b98aa962d97126d07cd8318e438843242a29ea4574b272d9429f21e47e9d", _exports);
 return _exports;
 })();
 
-const _m32 = _modules.get("dab3e04542b3619c5c937162b41068f7cb1c3021b4620987c0fb95d4bd98d8e2") ?? (() => {
+const _m32 = _modules.get("7ca5763d09734252e24f6275b6e8a7f9969d028ca875b58a16bb3c72eb8bc154") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _c0;
 
 const { inputRows, checkAbort, pause, taskYieldDue } = _c14;
@@ -1356,11 +1379,11 @@ async function withCanopyPdfLayout(source, captured, options, write) {
     }
 }
 const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
-_modules.set("dab3e04542b3619c5c937162b41068f7cb1c3021b4620987c0fb95d4bd98d8e2", _exports);
+_modules.set("7ca5763d09734252e24f6275b6e8a7f9969d028ca875b58a16bb3c72eb8bc154", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("8b73190d9b652593245233d0f53bab8232515a908169bf379f0e93b28d0c67c8") ?? (() => {
+const _m0 = _modules.get("92a448981d74377b446f301545d5cbdccb11ce846e9346c7162e1b4a4a9e3525") ?? (() => {
 const { BlobByteSink, ExportCell } = _c0;
 
 const { notifyProgress } = _c1;
@@ -1501,7 +1524,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m13.createCanopyExport, ExportCell: _c11.ExportCell, PdfFont: _c19.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("8b73190d9b652593245233d0f53bab8232515a908169bf379f0e93b28d0c67c8", _exports);
+_modules.set("92a448981d74377b446f301545d5cbdccb11ce846e9346c7162e1b4a4a9e3525", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

@@ -123,3 +123,27 @@ test("Canopy badges leave native rule operands and typed group identities unchan
   const blob = await exportCanopy(grouped, "xlsx", { datetime: "typed" });
   assert.ok((await readZip(blob)).get("xl/worksheets/sheet1.xml").content.includes("n1"));
 });
+
+test("Canopy PDF numeric formatting keeps appended badge labels", async () => {
+  const amount = { ...column("Amount", "number"), format: { minimumFractionDigits: 0, maximumFractionDigits: 0, suffix: " USD" } };
+  const input = capture([
+    { id: "a", cells: { Amount: cell(12, "12 USD", { badges: ["Rare"], diagnostics: ["badges"] }) } },
+    { id: "b", cells: { Amount: cell(7, "7 USD") } }
+  ], [amount]);
+  const lines = (await inspectPdf(await exportCanopy(input, "pdf"))).pages.flatMap(page => page.lines);
+  assert.ok(lines.includes("12 USD · Rare"), lines.join("|")); assert.ok(lines.includes("7 USD"));
+});
+
+test("Canopy rule operand scan stops at the compiler's predicate budget", async () => {
+  let reads = 0;
+  const leaf = { operator: "and", get filters() { reads++; return [{ column: "Name", operator: "isNull", values: [] }]; }, groups: [] };
+  let node = leaf;
+  // A small shared graph whose full expansion is 10^5 nodes; the compiler rejects it after 64.
+  for (let level = 0; level < 5; level++) node = { operator: "or", filters: [], groups: Array(10).fill(node) };
+  const input = capture([{ id: "r", cells: { Name: cell("A") } }]);
+  input.request.formatRules = [{ id: "wide", column: "Name", target: "cell", when: node, style: { tone: "info" } }];
+  const diagnostics = [];
+  await exportCanopy(input, "xlsx", { unsupportedPresentation: "text", onDiagnostic: item => diagnostics.push(item.code) });
+  assert.ok(reads <= 128, "predicate reads: " + reads);
+  assert.deepEqual(diagnostics, ["RULE_PREDICATE_LIMIT:wide"]);
+});

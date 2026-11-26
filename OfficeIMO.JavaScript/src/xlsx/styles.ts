@@ -14,6 +14,20 @@ export interface Fill { readonly pattern?: "none" | "gray125" | "solid"; readonl
 export type BorderLineStyle = "thin" | "medium" | "dashed" | "dotted" | "thick" | "double" | "hair" | "dashDot" | "dashDotDot" | "slantDashDot" | "mediumDashed" | "mediumDashDot" | "mediumDashDotDot";
 export interface BorderEdge { readonly style: BorderLineStyle; readonly color?: string; }
 export interface Border { readonly left?: BorderEdge; readonly right?: BorderEdge; readonly top?: BorderEdge; readonly bottom?: BorderEdge; }
+const borderStyles: readonly string[] = ["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"];
+/** @internal Validate and normalize border edges without registering a workbook style. */
+export function normalizeBorder(border: Border): Border {
+  if (!border || typeof border !== "object") throw new TypeError("A border must be an object of edges.");
+  const result: { left?: BorderEdge; right?: BorderEdge; top?: BorderEdge; bottom?: BorderEdge } = {};
+  for (const side of ["left", "right", "top", "bottom"] as const) {
+    const edge = border[side];
+    if (edge) {
+      if (!borderStyles.includes(edge.style)) throw new TypeError("Invalid border style.");
+      result[side] = { style: edge.style, ...(edge.color ? { color: colorArgb(edge.color) } : {}) };
+    }
+  }
+  return result;
+}
 export interface CellStyle {
   readonly font?: number | Font;
   readonly fill?: number | Fill;
@@ -97,16 +111,7 @@ export class StyleRegistry {
     return deduplicate(this.fills, this.fillIndexes, { pattern, color: fill.color ? colorArgb(fill.color) : "" }, this.maximum + 1);
   }
   addBorder(border: Border): number {
-    const result: { left?: BorderEdge; right?: BorderEdge; top?: BorderEdge; bottom?: BorderEdge } = {};
-    for (const side of ["left", "right", "top", "bottom"] as const) {
-      const edge = border[side];
-      if (edge) {
-        if (!["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"].includes(edge.style))
-          throw new TypeError("Invalid border style.");
-        result[side] = { style: edge.style, ...(edge.color ? { color: colorArgb(edge.color) } : {}) };
-      }
-    }
-    return deduplicate(this.borders, this.borderIndexes, result, this.maximum);
+    return deduplicate(this.borders, this.borderIndexes, normalizeBorder(border), this.maximum);
   }
   addNumberFormat(format: string): number {
     if (typeof format !== "string" || !format || format.length > 255) throw new TypeError("Number format must contain 1 through 255 characters.");

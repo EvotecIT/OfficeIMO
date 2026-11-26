@@ -2409,6 +2409,22 @@ const { DifferentialStyles } = _m34;
 
 
 const spreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+const borderStyles = ["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"];
+/** @internal Validate and normalize border edges without registering a workbook style. */
+function normalizeBorder(border) {
+    if (!border || typeof border !== "object")
+        throw new TypeError("A border must be an object of edges.");
+    const result = {};
+    for (const side of ["left", "right", "top", "bottom"]) {
+        const edge = border[side];
+        if (edge) {
+            if (!borderStyles.includes(edge.style))
+                throw new TypeError("Invalid border style.");
+            result[side] = { style: edge.style, ...(edge.color ? { color: colorArgb(edge.color) } : {}) };
+        }
+    }
+    return result;
+}
 const NumberFormats = { General: "General", Integer: "0", Decimal: "0.00", Percent: "0.00%", Date: "yyyy-mm-dd", DateTime: "yyyy-mm-dd hh:mm:ss" };
 function index(value, count, kind) {
     if (!Number.isInteger(value) || value < 0 || value >= count)
@@ -2497,16 +2513,7 @@ class StyleRegistry {
         return deduplicate(this.fills, this.fillIndexes, { pattern, color: fill.color ? colorArgb(fill.color) : "" }, this.maximum + 1);
     }
     addBorder(border) {
-        const result = {};
-        for (const side of ["left", "right", "top", "bottom"]) {
-            const edge = border[side];
-            if (edge) {
-                if (!["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"].includes(edge.style))
-                    throw new TypeError("Invalid border style.");
-                result[side] = { style: edge.style, ...(edge.color ? { color: colorArgb(edge.color) } : {}) };
-            }
-        }
-        return deduplicate(this.borders, this.borderIndexes, result, this.maximum);
+        return deduplicate(this.borders, this.borderIndexes, normalizeBorder(border), this.maximum);
     }
     addNumberFormat(format) {
         if (typeof format !== "string" || !format || format.length > 255)
@@ -2606,7 +2613,7 @@ class StyleRegistry {
         }).join("") + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' + this.differential.toXml() + '</styleSheet>';
     }
 }
-const _exports = Object.freeze({ colorArgb: _m33.colorArgb, spreadsheetNamespace: spreadsheetNamespace, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
+const _exports = Object.freeze({ colorArgb: _m33.colorArgb, spreadsheetNamespace: spreadsheetNamespace, normalizeBorder: normalizeBorder, NumberFormats: NumberFormats, validateStylePatch: validateStylePatch, copyStylePatch: copyStylePatch, StyleRegistry: StyleRegistry });
 return _exports;
 })();
 
@@ -3767,7 +3774,7 @@ const { officeRelationshipsNamespace } = _m25;
 
 const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m35;
 
-const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m32;
+const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch, normalizeBorder } = _m32;
 
 const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m39;
 
@@ -3915,8 +3922,9 @@ class Worksheet {
             colorArgb(options.headerFill);
         if (options.headerWrap !== undefined && typeof options.headerWrap !== "boolean")
             throw new TypeError("headerWrap must be boolean.");
-        if (options.headerBorder !== undefined && (!options.headerBorder || typeof options.headerBorder !== "object"))
-            throw new TypeError("headerBorder must be a border object.");
+        // Check edges before any column, date or header style is registered for this sheet.
+        if (options.headerBorder !== undefined)
+            normalizeBorder(options.headerBorder);
         if (options.headerStyle !== undefined)
             book.styles.validateStyle(options.headerStyle);
         if (options.alternatingRowStyle !== undefined)
@@ -11804,6 +11812,13 @@ const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "
 const textFallbacks = new Set(["relative-link", "history-series", "badges", "custom-class", "custom-renderer"]);
 const badgeSeparator = " \u00b7 ";
 const rawIdentities = new WeakMap();
+// Appended badge labels, kept apart so later passes that re-render a cell's text (PDF numbers) can carry them over.
+const badgeSuffixes = new WeakMap();
+/** @internal The text a later pass may re-render, and the badge suffix it must append back unchanged. */
+function canopyBadgeSplit(cell) {
+    const suffix = badgeSuffixes.get(cell), text = cell.text ?? "";
+    return suffix !== undefined && text.endsWith(suffix) ? { text: text.slice(0, text.length - suffix.length), suffix } : { text, suffix: "" };
+}
 /** @internal Grouping uses captured identity even when a detail cell displays a relative-link label. */
 function canopyIdentityValue(value) {
     if (!(value instanceof ExportCell))
@@ -11811,27 +11826,37 @@ function canopyIdentityValue(value) {
     const original = rawIdentities.get(value);
     return original === undefined ? value.value : original;
 }
-/** Columns read by enabled native rule predicates; malformed declarations are rejected later by the rule compiler. */
+/** Columns read by enabled native rule predicates; malformed declarations are rejected later by the rule compiler.
+ * The scan stops where the compiler does (four levels, 64 predicate nodes), and a predicate past 512 filters cannot
+ * fit the compiler's 8,192-character formula limit, so a stopped scan never misses an operand of a compiled rule. */
 function predicateColumns(rules) {
     const columns = new Set();
-    const visit = (predicate, depth) => {
-        if (!predicate || typeof predicate !== "object" || depth > 8)
-            return;
-        const { filters, groups } = predicate;
-        if (Array.isArray(filters))
-            for (const filter of filters) {
-                const column = filter && typeof filter === "object" ? filter.column : undefined;
-                if (typeof column === "string")
-                    columns.add(column);
-            }
-        if (Array.isArray(groups))
-            for (const group of groups)
-                visit(group, depth + 1);
-    };
-    if (Array.isArray(rules))
-        for (const rule of rules.slice(0, 1000))
-            if (rule && typeof rule === "object" && rule.enabled !== false)
-                visit(rule.when, 0);
+    if (!Array.isArray(rules))
+        return columns;
+    for (const rule of rules.slice(0, 1000)) {
+        if (!rule || typeof rule !== "object" || rule.enabled === false)
+            continue;
+        let nodes = 0, filtersSeen = 0;
+        const visit = (predicate, depth) => {
+            if (depth > 4 || ++nodes > 64 || !predicate || typeof predicate !== "object")
+                return false;
+            const { filters, groups } = predicate;
+            if (Array.isArray(filters))
+                for (const filter of filters) {
+                    if (++filtersSeen > 512)
+                        return false;
+                    const column = filter && typeof filter === "object" ? filter.column : undefined;
+                    if (typeof column === "string")
+                        columns.add(column);
+                }
+            if (Array.isArray(groups))
+                for (const group of groups)
+                    if (!visit(group, depth + 1))
+                        return false;
+            return true;
+        };
+        visit(rule.when, 1);
+    }
     return columns;
 }
 function badgeText(input) {
@@ -11985,6 +12010,8 @@ function prepareCanopyExport(capture, format, options = {}) {
                         const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
                         if (relativeLabel || badgedValue)
                             rawIdentities.set(exported, cell.value);
+                        if (badges && cell.text)
+                            badgeSuffixes.set(exported, badgeSeparator + badges);
                         result.push(exported);
                     }
                 }
@@ -11998,7 +12025,7 @@ function prepareCanopyExport(capture, format, options = {}) {
         } });
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
-const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
+const _exports = Object.freeze({ canopyBadgeSplit: canopyBadgeSplit, canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
 return _exports;
 })();
 
@@ -12627,6 +12654,8 @@ return _exports;
 const _m107 = (() => {
 const { ExportCell } = _m1;
 
+const { canopyBadgeSplit } = _m96;
+
 /** Fixed numeric formats affect PDF text, not the frozen numeric value used by other writers. */
 function numericProfile(format) {
     // No declared precision: whole values (including counts) stay whole.
@@ -12674,11 +12703,11 @@ function documentDecimal(sample, columns) {
                 const profile = numericProfile(cell.presentation?.numberFormat ?? column.format);
                 if (!profile)
                     continue;
-                const captured = capturedNumber(cell.text ?? "", profile);
+                const label = canopyBadgeSplit(cell).text, captured = capturedNumber(label, profile);
                 if (!captured)
                     continue;
                 // A literal percent label is a culture signal without requesting numeric scaling.
-                const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
+                const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || label.includes("%");
                 if (percentageSignal !== percent)
                     continue;
                 const match = /([.,])(\d+)$/.exec(captured.number.trimEnd());
@@ -12705,10 +12734,12 @@ function canopyPdfNumbers(sample, columns) {
             return value;
         const format = value.presentation?.numberFormat ?? columns[index].format;
         let profile = numericProfile(format);
-        if (!profile || value.text === "")
+        // Badge labels are not part of the number: format the captured label alone, then append them unchanged.
+        const { text: label, suffix: badges } = canopyBadgeSplit(value);
+        if (!profile || label === "")
             return value;
-        const captured = capturedNumber(value.text ?? "", profile);
-        if (value.text && !captured)
+        const captured = capturedNumber(label, profile);
+        if (label && !captured)
             return value;
         // Undeclared formats normalize only plain numeric labels; a decoration
         // alone does not declare how the raw value was transformed for display.
@@ -12740,7 +12771,7 @@ function canopyPdfNumbers(sample, columns) {
         let suffix = captured?.suffix || profile.suffix;
         if (profile.percent && !profile.suffix)
             suffix = suffix.replace(/%/g, "");
-        return new ExportCell(value.value, { text: leadingSign + prefix + formatted + (profile.percent ? "%" : "") + suffix,
+        return new ExportCell(value.value, { text: leadingSign + prefix + formatted + (profile.percent ? "%" : "") + suffix + badges,
             ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
     });
 }
