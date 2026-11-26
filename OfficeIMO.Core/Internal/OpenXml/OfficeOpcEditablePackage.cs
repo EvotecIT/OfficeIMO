@@ -147,6 +147,13 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         RemoveOverride(part.Name);
     }
 
+    /// <summary>The stored length of a part the package has not parsed or replaced; false for any other part.</summary>
+    internal bool TryGetStoredLength(string partName, out long length) {
+        length = 0;
+        Part? part = Find(partName);
+        return part is { Tree: null, Content: null, FromSource: true } && _zip!.TryGetLength(part.Member, out length);
+    }
+
     /// <summary>Whether a part is still the one stored in the package that was opened, neither replaced nor given new content.</summary>
     internal bool IsStoredPart(string partName) => Find(partName) is { FromSource: true, Content: null };
 

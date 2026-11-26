@@ -167,7 +167,7 @@ namespace OfficeIMO.PowerPoint {
             public IEnumerator<PowerPointSlide> GetEnumerator() {
                 owner.ThrowIfDisposed();
                 // A copy, so the slides read while enumerating may change the list.
-                return (owner.GetPackageSlides()?.ToList() ?? owner.LoadedSlides).GetEnumerator();
+                return (owner.GetPackageSlides() ?? owner.LoadedSlides).ToList().GetEnumerator();
             }
 
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();

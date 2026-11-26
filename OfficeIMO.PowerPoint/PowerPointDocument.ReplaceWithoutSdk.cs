@@ -28,6 +28,8 @@ namespace OfficeIMO.PowerPoint {
                 var edits = new List<PowerPointTreeReplace.Edit>();
                 int total = 0;
                 foreach (string slide in slides) {
+                    // A slide over the part size limit is read by the model, which reports it.
+                    if (IsOverPartLimit(package, slide)) return false;
                     int found = PowerPointTreeReplace.PlanSlide(package.GetXml(slide), search, edits);
                     if (found < 0) return false;
                     total += found;

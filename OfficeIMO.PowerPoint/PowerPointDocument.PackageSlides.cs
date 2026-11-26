@@ -73,7 +73,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>A part's tree in the package read without the SDK, or null when the package can't be read that way.</summary>
         internal OfficeXmlTree? GetPackageXml(string partName) {
-            if (GetPackage(edit: false) is not { } package || !package.PartExists(partName)) return null;
+            if (GetPackage(edit: false) is not { } package || !package.PartExists(partName) || IsOverPartLimit(package, partName)) return null;
             try {
                 return package.GetXml(partName);
             } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
@@ -303,19 +303,32 @@ namespace OfficeIMO.PowerPoint {
         internal (OfficeXmlTree Tree, int Node)? GetPackageSlideEntry(string slidePart) {
             if (GetPackage(edit: false) is not { } package) return null;
             try {
-                if (PackageSlideList.Read(package) is not { } slides) return null;
-                string identity = PartIdentity(slidePart);
-                foreach ((int node, _, string part) in slides.Entries) {
-                    if (OfficeAsciiIgnoreCaseComparer.Instance.Equals(PartIdentity(part), identity)) return (slides.Presentation, node);
+                if (_packageSlideEntries == null) {
+                    if (PackageSlideList.Read(package) is not { } slides) return null;
+                    _packageSlideEntries = slides;
+                    _packageSlideEntryIndex = new Dictionary<string, int>(OfficeAsciiIgnoreCaseComparer.Instance);
+                    for (int index = 0; index < slides.Entries.Count; index++) _packageSlideEntryIndex[PartIdentity(slides.Entries[index].Part)] = index;
                 }
-                return null;
+                return _packageSlideEntryIndex!.TryGetValue(PartIdentity(slidePart), out int found)
+                    ? (_packageSlideEntries.Presentation, _packageSlideEntries.Entries[found].Node) : null;
             } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                 return null;
             }
         }
 
+        /// <summary>
+        /// Whether a stored part is larger than the SDK path would read, under the default or configured part size limit,
+        /// so the model reads it and reports it as it always has.
+        /// </summary>
+        internal bool IsOverPartLimit(OfficeOpcEditablePackage package, string partName) =>
+            package.TryGetStoredLength(partName, out long length) && length > _maximumSlideXmlCharacters;
+
+        /// <summary>The slide list and each slide's entry index by part identity, rebuilt after the slide list changes.</summary>
+        private PackageSlideList? _packageSlideEntries;
+        private Dictionary<string, int>? _packageSlideEntryIndex;
+
         /// <summary>The slides in order, read from the package, or null when the SDK has to read them.</summary>
-        private List<PowerPointSlide>? GetPackageSlides() {
+        internal List<PowerPointSlide>? GetPackageSlides() {
             if (_packageSlideOrder != null && _sdkDocument == null) return _packageSlideOrder;
             if (GetPackage(edit: false) is not { } package) return null;
             PackageSlideList? list;
@@ -341,6 +354,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Forgets the slide order after the slide list changed; <paramref name="removedPart"/> left the package.</summary>
         private void PackageSlidesChanged(string? removedPart = null) {
             _packageSlideOrder = null;
+            _packageSlideEntries = null;
+            _packageSlideEntryIndex = null;
             // A slide a caller still holds stops working on the package, so it can't reach a part that later takes its name.
             if (removedPart != null && _packageSlides != null && _packageSlides.TryGetValue(PartIdentity(removedPart), out PowerPointSlide? removed)) {
                 removed.RemovedFromPackage = true;

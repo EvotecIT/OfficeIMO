@@ -7,6 +7,9 @@ public partial class PowerPointSlide {
     /// <summary>Zero-based position in the owning presentation, or -1 for a detached slide.</summary>
     public int Index {
         get {
+            // A slide removed before the SDK opened is no longer in the presentation.
+            if (RemovedFromPackage) return -1;
+            if (IsPackageBacked && OwnerDocument?.GetPackageSlides() is { } packageSlides) return packageSlides.IndexOf(this);
             var presentation = SlidePart.GetParentPresentationPart();
             var ids = presentation?.Presentation?.SlideIdList?.Elements<SlideId>();
             if (ids == null) return -1;
