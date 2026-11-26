@@ -66,59 +66,5 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Deck-level state of the layout system: section titles, numbering and footer text.</summary>
         internal PowerPointLayoutDeck LayoutDeck => _layoutDeck ??= new PowerPointLayoutDeck(this);
-
-        /// <summary>The Latin heading and body typefaces the first master's theme part names now.</summary>
-        internal (string? Heading, string? Body) ThemeFontFamilies() {
-            A.FontScheme? fonts = SdkPresentationPart.SlideMasterParts.FirstOrDefault()?.ThemePart?.Theme?.ThemeElements?.FontScheme;
-            string? heading = fonts?.MajorFont?.LatinFont?.Typeface?.Value;
-            string? body = fonts?.MinorFont?.LatinFont?.Typeface?.Value;
-            return (string.IsNullOrWhiteSpace(heading) ? null : heading, string.IsNullOrWhiteSpace(body) ? null : body);
-        }
-
-        /// <summary>Reads a master's current colours and fonts without restyling its native layouts.</summary>
-        internal PowerPointLayoutTheme ReadLayoutTheme(int masterIndex = 0,
-            A.ColorScheme? colorsOverride = null, A.FontScheme? fontsOverride = null) {
-            OfficeTheme theme = _layoutTheme?.Theme ?? _baseTheme ?? OfficeTheme.Default;
-            SlideMasterPart? master = SdkPresentationPart.SlideMasterParts.Skip(masterIndex).FirstOrDefault();
-            A.Theme? nativeTheme = master?.ThemePart?.Theme;
-            A.ThemeElements? elements = nativeTheme?.ThemeElements;
-            if (elements == null && colorsOverride == null && fontsOverride == null) return PowerPointLayoutTheme.From(theme);
-
-            OfficeColor? Read(DocumentFormat.OpenXml.OpenXmlCompositeElement? slot) {
-                string? hex = slot?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value
-                              ?? slot?.GetFirstChild<A.SystemColor>()?.LastColor?.Value;
-                if (string.IsNullOrWhiteSpace(hex) || hex!.Length != 6) return null;
-                try {
-                    return OfficeColor.ParseHex(hex);
-                } catch (FormatException) {
-                    return null;
-                }
-            }
-
-            A.ColorScheme? colors = colorsOverride ?? elements?.ColorScheme;
-            OfficeThemePalette palette = theme.Palette;
-            OfficeColor? text = Read(colors?.Dark1Color);
-            OfficeColor? background = Read(colors?.Light1Color);
-            palette = palette.With(
-                background: background,
-                text: text,
-                textMuted: Read(colors?.Dark2Color),
-                accent1: Read(colors?.Accent1Color),
-                accent2: Read(colors?.Accent2Color),
-                accent3: Read(colors?.Accent3Color),
-                accent4: Read(colors?.Accent4Color),
-                accent5: Read(colors?.Accent5Color),
-                accent6: Read(colors?.Accent6Color));
-            A.FontScheme? fontScheme = fontsOverride ?? elements?.FontScheme;
-            string? heading = fontScheme?.MajorFont?.LatinFont?.Typeface?.Value;
-            string? body = fontScheme?.MinorFont?.LatinFont?.Typeface?.Value;
-            OfficeThemeFonts fonts = new(
-                string.IsNullOrWhiteSpace(heading) ? theme.Fonts.Heading : theme.Fonts.Heading.With(family: heading),
-                string.IsNullOrWhiteSpace(body) ? theme.Fonts.Body : theme.Fonts.Body.With(family: body));
-            string? name = nativeTheme?.Name?.Value;
-            return PowerPointLayoutTheme.From(theme.WithName(string.IsNullOrWhiteSpace(name) ? theme.Name : name!)
-                .WithPalette(palette).WithFonts(fonts)
-                .WithSurfaces(theme.Surfaces.With(surface: Read(colors?.Light2Color))));
-        }
     }
 }

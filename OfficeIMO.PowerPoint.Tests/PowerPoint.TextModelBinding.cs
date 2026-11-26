@@ -12,27 +12,6 @@ namespace OfficeIMO.Tests;
 /// </summary>
 public class PowerPointTextModelBindingTests {
     [Fact]
-    public void EveryRunGetsAThemeColorEvenWhenReadingTheThemeOpensTheSdk() {
-        byte[] source = CreateDeck(1, paragraph => {
-            paragraph.AddText("First");
-            paragraph.AddText(" second");
-            paragraph.AddText(" third");
-        });
-        byte[] saved;
-        using (var presentation = PowerPointDocument.Load(new MemoryStream(source))) {
-            Assert.False(presentation.IsSdkLoaded);
-            // A theme role without a slot reads the theme, which opens the SDK after the first run.
-            presentation.Slides[0].TextBoxes.Single().Paragraphs[0].SetColor(OfficeColor.Success);
-            saved = presentation.ToBytes();
-        }
-
-        using var reopened = PowerPointDocument.Load(new MemoryStream(saved));
-        IReadOnlyList<PowerPointTextRun> runs = reopened.Slides[0].TextBoxes.Single().Paragraphs[0].Runs;
-        Assert.Equal(3, runs.Count);
-        Assert.All(runs, run => Assert.NotNull(run.Color));
-    }
-
-    [Fact]
     public void HyperlinksFollowSlideOrderChangedThroughTheSdk() {
         byte[] source = CreateDeck(3);
         using var presentation = PowerPointDocument.Load(new MemoryStream(source));

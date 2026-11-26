@@ -7,8 +7,23 @@ namespace OfficeIMO.PowerPoint;
 /// <summary>Encodes explicit DrawingML colors without resolving native theme slots to RGB.</summary>
 internal static partial class PowerPointDrawingColor {
     /// <summary>Whether writing <paramref name="color"/> needs the consuming theme: a theme role without a slot.</summary>
-    /// <remarks>Finding the theme can open the SDK, so callers read it before they take any element to edit.</remarks>
     internal static bool NeedsTheme(OfficeColor? color) => color is { IsThemeRole: true, ThemeSlot: null };
+
+    /// <summary>
+    /// The theme content in <paramref name="part"/> consumes: its slide's authoring theme, or its layout's and master's.
+    /// </summary>
+    internal static OfficeTheme ThemeFor(PowerPointPartRef part, PowerPointSlide? slide) {
+        if (slide != null) return slide.AuthoringTheme;
+        if (part.IsNone || part.Document is not { } document) return OfficeTheme.Default;
+        PowerPointPartRef owner = part.Kind == PowerPointPartKind.NotesSlide ? part.RelatedPart(PowerPointPartRef.SlideRelationshipType) : part;
+        if (owner.Kind == PowerPointPartKind.Slide) {
+            foreach (PowerPointSlide candidate in document.Slides) {
+                if (candidate.PartRef.Equals(owner)) return candidate.AuthoringTheme;
+            }
+        }
+        PowerPointThemeScope scope = PowerPointThemeScope.For(owner);
+        return document.ReadLayoutTheme(scope.Master.IsNone ? document.MasterPartRef(0) : scope.Master, scope.ColorScheme, scope.FontScheme).Theme;
+    }
 
     /// <summary>
     /// Appends the color element for <paramref name="color"/>: a theme slot as <c>a:schemeClr</c>, anything else as
