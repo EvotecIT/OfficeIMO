@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -12,8 +13,8 @@ internal static partial class PowerPointTextHyperlinkColor {
     private static readonly OfficeXmlChildOrder HyperlinkOrder = new(
         new[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new[] { "snd", "extLst" });
 
-    internal static bool? ReadChoice(PowerPointXmlNode hyperlink) {
-        PowerPointXmlNode color = FindExtension(hyperlink).Child(ColorNamespace, "hlinkClr");
+    internal static bool? ReadChoice(OfficeXmlNode hyperlink) {
+        OfficeXmlNode color = FindExtension(hyperlink).Child(ColorNamespace, "hlinkClr");
         return color.Attribute("val") switch {
             "tx" => true,
             "hlink" => false,
@@ -21,29 +22,29 @@ internal static partial class PowerPointTextHyperlinkColor {
         };
     }
 
-    internal static void SetChoice(PowerPointXmlNode hyperlink, bool useTextColor) {
-        PowerPointXmlNode list = hyperlink.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "extLst", HyperlinkOrder);
-        PowerPointXmlNode extension = FindExtension(hyperlink);
+    internal static void SetChoice(OfficeXmlNode hyperlink, bool useTextColor) {
+        OfficeXmlNode list = hyperlink.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "extLst", HyperlinkOrder);
+        OfficeXmlNode extension = FindExtension(hyperlink);
         if (extension.IsNone) {
             extension = list.Append(list.CreateElement(OfficeXmlNamespaces.DrawingML, "ext"));
             extension.SetAttribute("uri", ExtensionUri);
         }
-        foreach (PowerPointXmlNode existing in extension.Children().ToList()) {
+        foreach (OfficeXmlNode existing in extension.Children().ToList()) {
             if (existing.Is(ColorNamespace, "hlinkClr")) existing.Remove();
         }
-        PowerPointXmlNode color = extension.CreateElement(ColorNamespace, "hlinkClr", "ahyp");
+        OfficeXmlNode color = extension.CreateElement(ColorNamespace, "hlinkClr", "ahyp");
         color.SetAttribute("val", useTextColor ? "tx" : "hlink");
         extension.Append(color);
     }
 
-    internal static void UseExplicitTextColor(PowerPointXmlNode properties) {
-        foreach (PowerPointXmlNode child in properties.Children().ToList()) {
+    internal static void UseExplicitTextColor(OfficeXmlNode properties) {
+        foreach (OfficeXmlNode child in properties.Children().ToList()) {
             if (child.Is(OfficeXmlNamespaces.DrawingML, "hlinkClick") || child.Is(OfficeXmlNamespaces.DrawingML, "hlinkMouseOver")) SetChoice(child, true);
         }
     }
 
-    private static PowerPointXmlNode FindExtension(PowerPointXmlNode hyperlink) {
-        foreach (PowerPointXmlNode extension in hyperlink.Child(OfficeXmlNamespaces.DrawingML, "extLst").Children(OfficeXmlNamespaces.DrawingML, "ext")) {
+    private static OfficeXmlNode FindExtension(OfficeXmlNode hyperlink) {
+        foreach (OfficeXmlNode extension in hyperlink.Child(OfficeXmlNamespaces.DrawingML, "extLst").Children(OfficeXmlNamespaces.DrawingML, "ext")) {
             if (string.Equals(extension.Attribute("uri"), ExtensionUri, StringComparison.OrdinalIgnoreCase)) return extension;
         }
         return default;

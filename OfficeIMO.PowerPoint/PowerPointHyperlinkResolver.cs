@@ -1,6 +1,7 @@
 using System.Globalization;
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -14,7 +15,7 @@ namespace OfficeIMO.PowerPoint {
         /// The target of a click hyperlink in <paramref name="owner"/>: its external URI, or <c>#slide-N</c> for a jump to
         /// a slide of the presentation; null when it has neither.
         /// </summary>
-        internal static Uri? Resolve(PowerPointPartRef owner, PowerPointPartRef sourceSlide, PowerPointXmlNode hyperlink) {
+        internal static Uri? Resolve(PowerPointPartRef owner, PowerPointPartRef sourceSlide, OfficeXmlNode hyperlink) {
             if (owner.IsNone || hyperlink.IsNone) return null;
             string? action = hyperlink.Attribute("action");
             if (string.Equals(action, NextSlideAction, StringComparison.OrdinalIgnoreCase)) {
