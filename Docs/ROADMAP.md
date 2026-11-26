@@ -395,7 +395,7 @@ Completion evidence: deliver each capability as an engine-to-Studio slice with r
 
 ### Distribution plan
 
-Every Studio release builds all platforms from one source commit and one Studio version, so the stores and direct downloads carry the same build. Android is not planned; the browser tools on the website cover phones until people ask for an app.
+Every Studio release builds each available platform from one source commit and one Studio version, so the stores and direct downloads carry the same build. Windows and Linux follow this now; the Apple channels join the same release once phase 7 delivers them. Android is not planned; the browser tools on the website cover phones until people ask for an app.
 
 | Platform | Channels | State |
 | --- | --- | --- |
@@ -421,7 +421,7 @@ Every Studio release builds all platforms from one source commit and one Studio 
 - [ ] Register Studio for PDF and its supported conversion inputs in the Windows MSI (ProgID, Open With, and default-program capabilities) and verify that Explorer double-click reaches the running instance. Install a multi-size hicolor icon set (or a scalable SVG) through PowerForge Debian packaging instead of the single 512 px export, and follow the Windows high-contrast setting automatically.
 - [ ] Complete exact-package install, launch, open/edit/save, upgrade, and uninstall evidence for every advertised OS/architecture combination. Preserve preferences deliberately and provide a clear way to remove local history/recovery data. Keep manual updates as the initial channel until a separate feed, signature, rollback, and failure policy is adopted.
 - [ ] Qualify the Windows and Linux direct-download candidate from one Studio version and source commit: verify each asset's checksum and provenance, stage the native and portable packages in one draft release, and test those exact bytes before promotion.
-- [ ] Release Studio with each OfficeIMO library release rather than on its own schedule; the last published build is from September. Each release refreshes the Store, WinGet and Scoop entries from the same signed MSI bytes after the GitHub release is published.
+- [ ] Release Studio with each OfficeIMO library release rather than on its own schedule; the last published build is from September. Each release refreshes the Store and WinGet entries from the same signed MSI bytes, and the Scoop entry from the same signed portable ZIPs, after the GitHub release is published.
 - [ ] Follow the Store, WinGet and Scoop submissions through acceptance, answer reviewer feedback, and record each channel's update path once its first entry is live.
 - [ ] Add a Flatpak for Flathub and an RPM package through PowerForge for x64 and Arm64, with clean-host install, launch, upgrade and removal evidence on Fedora and on a non-Debian Flatpak host. The Flatpak sandbox needs document access through the file-chooser portal and the same MIME associations as the Debian package. Keep the MSI, Debian and portable archive contracts. AppImage and Snap stay out until people ask for them.
 
