@@ -22,8 +22,10 @@ export function normalizeBorder(border: Border): Border {
   for (const side of ["left", "right", "top", "bottom"] as const) {
     const edge = border[side];
     if (edge) {
-      if (!borderStyles.includes(edge.style)) throw new TypeError("Invalid border style.");
-      result[side] = { style: edge.style, ...(edge.color ? { color: colorArgb(edge.color) } : {}) };
+      // Read each property once, so the validated edge is the one that is stored.
+      const { style, color } = edge;
+      if (!borderStyles.includes(style)) throw new TypeError("Invalid border style.");
+      result[side] = { style, ...(color ? { color: colorArgb(color) } : {}) };
     }
   }
   return result;
@@ -98,17 +100,18 @@ export class StyleRegistry {
   /** @internal */
   addDifferentials(styles: readonly ConditionalStyle[]): readonly number[] { this.checkDifferentials(styles); return this.differential.add(styles); }
   addFont(font: Font): number {
-    if (font.name !== undefined && typeof font.name !== "string") throw new TypeError("Font name must be a string.");
-    const name = cleanXml(font.name ?? "Calibri", this.policy), size = font.size ?? 11;
+    const { name: requested, size: requestedSize, bold, italic, underline, strike, color } = font;
+    if (requested !== undefined && typeof requested !== "string") throw new TypeError("Font name must be a string.");
+    const name = cleanXml(requested ?? "Calibri", this.policy), size = requestedSize ?? 11;
     if (typeof name !== "string" || !name || name.length > 31) throw new TypeError("Font name must contain 1 through 31 characters.");
     if (!Number.isFinite(size) || size <= 0 || size > 409) throw new RangeError("Font size must be positive and at most 409.");
-    return deduplicate(this.fonts, this.fontIndexes, { name, size, bold: !!font.bold, italic: !!font.italic, underline: !!font.underline, strike: !!font.strike, color: font.color ? colorArgb(font.color) : "" }, this.maximum);
+    return deduplicate(this.fonts, this.fontIndexes, { name, size, bold: !!bold, italic: !!italic, underline: !!underline, strike: !!strike, color: color ? colorArgb(color) : "" }, this.maximum);
   }
   addFill(fill: Fill): number {
-    const pattern = fill.pattern ?? (fill.color ? "solid" : "none");
-    if (!["none", "gray125", "solid"].includes(pattern) || (pattern === "solid" && !fill.color) || (pattern !== "solid" && fill.color))
+    const { color } = fill, pattern = fill.pattern ?? (color ? "solid" : "none");
+    if (!["none", "gray125", "solid"].includes(pattern) || (pattern === "solid" && !color) || (pattern !== "solid" && color))
       throw new TypeError("A solid fill requires a color; none and gray125 have no color.");
-    return deduplicate(this.fills, this.fillIndexes, { pattern, color: fill.color ? colorArgb(fill.color) : "" }, this.maximum + 1);
+    return deduplicate(this.fills, this.fillIndexes, { pattern, color: color ? colorArgb(color) : "" }, this.maximum + 1);
   }
   addBorder(border: Border): number {
     return deduplicate(this.borders, this.borderIndexes, normalizeBorder(border), this.maximum);

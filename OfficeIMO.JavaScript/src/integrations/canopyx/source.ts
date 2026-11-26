@@ -150,7 +150,8 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         diagnostics(cell.diagnostics, row.id, spec.id);
         // A relative destination is navigation metadata, not the visible label.
         // History captures already carry their frozen latest scalar (or null).
-        const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link");
+        // Columns read by an emitted native rule keep the raw scalar the rule compares, so the label goes to the text only.
+        const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link") && !ruleOperands.has(spec.id);
         const badges = cell.badges === undefined ? undefined : badgeText(cell.badges);
         const text = badges ? cell.text ? cell.text + badgeSeparator + badges : badges : cell.text;
         // Badges belong to the visible label: text columns export them with the value, typed columns keep their scalar.

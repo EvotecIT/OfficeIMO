@@ -139,6 +139,17 @@ test("Canopy PDF numeric formatting keeps appended badge labels", async () => {
   assert.ok(!lines.includes("Level 12 USD") && !lines.includes("12 USD"), lines.join("|"));
 });
 
+test("Canopy relative-link cells read by an emitted native rule keep their raw scalar", async () => {
+  const input = capture([{ id: "r", cells: { Flag: cell(true, "Yes", { diagnostics: ["relative-link"] }), Note: cell("/x", "Open", { diagnostics: ["relative-link"] }) } }],
+    [column("Flag"), column("Note")]);
+  input.request.formatRules = [{ id: "on", column: "Flag", target: "cell", when: { operator: "and", filters: [{ column: "Flag", operator: "eq", values: [true] }], groups: [] }, style: { tone: "success" } }];
+  const book = await workbook(await exportCanopy(input, "xlsx", { unsupportedPresentation: "text" }));
+  // The rule's ISLOGICAL test needs the boolean; columns no rule reads still show the label.
+  assert.match(book.sheet, /ISLOGICAL\(/);
+  assert.match(book.sheet, /<c r="A2"[^>]* t="b"[^>]*><v>1<\/v><\/c>/);
+  assert.equal(book.style("B2").text, "Open");
+});
+
 test("Canopy badges stay on text columns read only by rejected native rules", async () => {
   const input = capture([{ id: "r", cells: { Status: cell("Ready", "Ready", { badges: ["Active"], diagnostics: ["badges"] }) } }], [column("Status")]);
   // Native text comparisons are not emitted, so the cell keeps its badge label.

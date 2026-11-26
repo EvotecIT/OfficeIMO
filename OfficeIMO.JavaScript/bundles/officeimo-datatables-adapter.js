@@ -8,7 +8,7 @@ const _core = key => { const value = _modules && _modules.get(key); if (!value) 
 const _c0 = _core("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00");
 const _c1 = _core("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f");
 const _c2 = _core("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4");
-const _c3 = _core("7ed506ec5e8f88b1e1039f3a8196de3175f10698a367af584fb3befb61059add");
+const _c3 = _core("e5310c591178a3de9292f150e2e6f1477b94b895ef0c90840c72adef00f75974");
 const _c4 = _core("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe");
 const _c5 = _core("62ff1bcbf8ca07e8ab92cd1f6afbd54049346193e18160ab0afec48e03950bba");
 const _c6 = _core("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5");
@@ -436,7 +436,7 @@ _modules.set("bbf637a660bc4dc3fa6fc932009b7b8fb557ad6403af8b5479a1cc857cc020a4",
 return _exports;
 })();
 
-const _m0 = _modules.get("03a9f9c0c557d91d4cbdebe47b9867c895161a4cdd6daeb0b61ad617f2d16762") ?? (() => {
+const _m0 = _modules.get("b37d12c21a5952285ca726c58ce4ecc454fef6f97e4d880e5537fe48cba67ebf") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _c0;
 
 const { notifyProgress } = _c1;
@@ -619,7 +619,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m11.createDataTablesExport, ExportCell: _c6.ExportCell, PdfFont: _c15.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("03a9f9c0c557d91d4cbdebe47b9867c895161a4cdd6daeb0b61ad617f2d16762", _exports);
+_modules.set("b37d12c21a5952285ca726c58ce4ecc454fef6f97e4d880e5537fe48cba67ebf", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

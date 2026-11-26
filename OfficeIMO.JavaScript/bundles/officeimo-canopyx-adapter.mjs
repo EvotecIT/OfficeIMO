@@ -8,7 +8,7 @@ const _c3 = _core("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3
 const _c4 = _core("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208");
 const _c5 = _core("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38");
 const _c6 = _core("8f13b484030aa6b921e616d803614fd061f718241692003633375fab4c36045e");
-const _c7 = _core("7ed506ec5e8f88b1e1039f3a8196de3175f10698a367af584fb3befb61059add");
+const _c7 = _core("e5310c591178a3de9292f150e2e6f1477b94b895ef0c90840c72adef00f75974");
 const _c8 = _core("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4");
 const _c9 = _core("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe");
 const _c10 = _core("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc");
@@ -431,7 +431,8 @@ function prepareCanopyExport(capture, format, options = {}) {
                     diagnostics(cell.diagnostics, row.id, spec.id);
                     // A relative destination is navigation metadata, not the visible label.
                     // History captures already carry their frozen latest scalar (or null).
-                    const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link");
+                    // Columns read by an emitted native rule keep the raw scalar the rule compares, so the label goes to the text only.
+                    const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link") && !ruleOperands.has(spec.id);
                     const badges = cell.badges === undefined ? undefined : badgeText(cell.badges);
                     const text = badges ? cell.text ? cell.text + badgeSeparator + badges : badges : cell.text;
                     // Badges belong to the visible label: text columns export them with the value, typed columns keep their scalar.

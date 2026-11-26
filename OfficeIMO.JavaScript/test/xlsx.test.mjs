@@ -287,6 +287,15 @@ test("an invalid header border is rejected before the worksheet registers any st
   assert.equal(book.addWorksheet("Recover", { columns: [{ header: "Value" }] }).name, "Recover");
 });
 
+test("a border edge stores the style and color it validated", () => {
+  const styleReads = [], book = new Workbook();
+  const edge = { get style() { styleReads.push(1); return styleReads.length > 1 ? "invalid" : "thin"; }, color: "A6B4C8" };
+  // The edge is captured on its first read; a later different read cannot reach header style registration.
+  const sheet = book.addWorksheet("Data", { columns: [{ header: "A" }], headerBorder: { bottom: edge } });
+  assert.equal(styleReads.length, 1);
+  assert.equal(sheet.name, "Data");
+});
+
 test("every header cell uses the header border read once at registration", async () => {
   let reads = 0;
   const headerBorder = { get bottom() { return reads++ ? undefined : { style: "thin", color: "A6B4C8" }; } };
