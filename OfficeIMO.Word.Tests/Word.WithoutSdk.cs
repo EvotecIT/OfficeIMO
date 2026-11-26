@@ -519,7 +519,8 @@ public sealed class WordWithoutSdkTests {
             if (!part.Key.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) && !part.Key.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
                 Assert.Fail($"{name}: binary part {part.Key} differs.");
             }
-            string expectedXml = Canonical(part.Value), actualXml = Canonical(other);
+            string expectedXml = Canonical(part.Value, GeneratedRelationshipIds(expectedParts, part.Key));
+            string actualXml = Canonical(other, GeneratedRelationshipIds(actualParts, part.Key));
             if (expectedXml == actualXml) continue;
             int at = 0;
             while (at < expectedXml.Length && at < actualXml.Length && expectedXml[at] == actualXml[at]) at++;
@@ -530,10 +531,29 @@ public sealed class WordWithoutSdkTests {
     }
 
     // Element and attribute names with their namespaces, values, and text, in document order; attribute order, prefixes,
-    // namespace declarations and whitespace-only text between child elements don't count. Revision identifiers, and the
-    // relationship identifiers the SDK generates for parts it adds, are random on both paths.
+    // namespace declarations and whitespace-only text between child elements don't count. Revision identifiers are random
+    // on both paths, and so are the relationship identifiers the SDK generates for parts it adds: each of those stands for
+    // its relationship's type and target, in the relationships part and in every reference from its source part, so a
+    // consistent renaming matches and two identifiers that swap targets don't.
     private static readonly System.Text.RegularExpressions.Regex GeneratedRelationshipId = new("^R[0-9a-f]{16}$");
-    private static string Canonical(byte[] xml) {
+    private static readonly XNamespace PackageRelationships = "http://schemas.openxmlformats.org/package/2006/relationships";
+
+    private static Dictionary<string, string> GeneratedRelationshipIds(Dictionary<string, byte[]> parts, string partName) {
+        var ids = new Dictionary<string, string>(StringComparer.Ordinal);
+        string relationshipsPart = partName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase) ? partName
+            : partName.Substring(0, partName.LastIndexOf('/') + 1) + "_rels/" + partName.Substring(partName.LastIndexOf('/') + 1) + ".rels";
+        if (!parts.TryGetValue(relationshipsPart, out byte[]? bytes)) return ids;
+        using var stream = new MemoryStream(bytes);
+        foreach (XElement relationship in XDocument.Load(stream).Root!.Elements(PackageRelationships + "Relationship")) {
+            string id = (string?)relationship.Attribute("Id") ?? string.Empty;
+            if (GeneratedRelationshipId.IsMatch(id)) {
+                ids[id] = "rel(" + (string?)relationship.Attribute("Type") + " " + (string?)relationship.Attribute("Target") + ")";
+            }
+        }
+        return ids;
+    }
+
+    private static string Canonical(byte[] xml, IReadOnlyDictionary<string, string> generatedIds) {
         XDocument document;
         using (var stream = new MemoryStream(xml)) document = XDocument.Load(stream);
         var builder = new System.Text.StringBuilder();
@@ -541,9 +561,10 @@ public sealed class WordWithoutSdkTests {
             builder.Append('<').Append(element.Name.ToString());
             foreach (XAttribute attribute in element.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration)
                          .OrderBy(attribute => attribute.Name.ToString(), StringComparer.Ordinal)) {
-                bool revision = attribute.Name.Namespace == Wn && attribute.Name.LocalName.StartsWith("rsid", StringComparison.Ordinal)
-                    || attribute.Name.LocalName == "Id" && GeneratedRelationshipId.IsMatch(attribute.Value);
-                string value = revision ? "*" : attribute.Name.Namespace == Mc ? PrefixesAsUris(element, attribute.Value) : attribute.Value;
+                bool revision = attribute.Name.Namespace == Wn && attribute.Name.LocalName.StartsWith("rsid", StringComparison.Ordinal);
+                string value = revision ? "*"
+                    : generatedIds.TryGetValue(attribute.Value, out string? relationship) ? relationship
+                    : attribute.Name.Namespace == Mc ? PrefixesAsUris(element, attribute.Value) : attribute.Value;
                 builder.Append(' ').Append(attribute.Name.ToString()).Append("=\"").Append(System.Security.SecurityElement.Escape(value)).Append('"');
             }
             builder.Append('>');
