@@ -11,15 +11,18 @@ internal sealed class Kf8Content {
         int markUpEnd = raw.Length;
         if (header.FlowIndex is { } flowRecord) {
             ReadOnlySpan<byte> flow = database.Record(header.Record + flowRecord);
-            if (!HasSignature(flow, "FDST") || Number(flow, 4) != 12)
+            if (!HasSignature(flow, "FDST"))
                 throw new InvalidDataException("The Kindle FDST flow record is malformed.");
+            int tableOffset = Number(flow, 4);
             int count = Number(flow, 8);
-            if (count != header.FlowCount || count > 256 || Number(flow, 12) != 0)
-                throw new InvalidDataException("The Kindle FDST flow count or start offset is invalid.");
-            markUpEnd = Number(flow, 16);
+            if (count != header.FlowCount || count is < 1 or > 256 ||
+                tableOffset < 12 || tableOffset > flow.Length || count > (flow.Length - tableOffset) / 8)
+                throw new InvalidDataException("The Kindle FDST flow count or table bounds are invalid.");
+            markUpEnd = Number(flow, tableOffset + 4);
             int previous = 0;
             for (int i = 0; i < count; i++) {
-                int start = Number(flow, 12 + i * 8), end = Number(flow, 16 + i * 8);
+                int entry = tableOffset + i * 8;
+                int start = Number(flow, entry), end = Number(flow, entry + 4);
                 if (start != previous || end < start || end > raw.Length)
                     throw new InvalidDataException("Kindle flow ranges must be ordered and contained in the decompressed text.");
                 previous = end;

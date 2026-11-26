@@ -59,6 +59,8 @@ public static partial class MobiReader {
         internal OfficeConversionResult<EpubPublication> Create(byte[] text) {
             if (selected.HeaderTitleInvalidEncoding || first.HeaderTitleInvalidEncoding)
                 ReportMetadataEncodingLoss("header title");
+            if (selected.HeaderTitleInvalidRange || first.HeaderTitleInvalidRange)
+                Warn("MOBI_HEADER_TITLE_RANGE_OMITTED", "The optional Mobipocket title is outside its header record.", "header title");
             string title = TextMetadata(503).FirstOrDefault() ?? NormalizeMetadata(selected.HeaderTitle) ??
                 NormalizeMetadata(first.HeaderTitle) ?? ReadDatabaseName() ??
                 NormalizeMetadata(Path.GetFileNameWithoutExtension(sourceName)) ?? "Untitled";
@@ -146,7 +148,7 @@ public static partial class MobiReader {
                     loss: OfficeConversionLossKind.Approximation);
             }
             int count = declaredCount ?? (end - start.Value);
-            if (start.Value >= end || count < 0 || count > end - start.Value)
+            if (start.Value > end || count < 0 || count > end - start.Value)
                 throw new InvalidDataException("The Kindle resource record range is out of bounds.");
             if (count > 2_000) throw new InvalidDataException("The Kindle resource count exceeds 2,000.");
             for (int i = 0; i < count; i++) {

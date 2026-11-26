@@ -141,7 +141,7 @@ public sealed partial class EpubPublication {
     /// <summary>Selected package document path. Other rootfiles and their payloads are preserved.</summary>
     public string PackagePath { get; }
 
-    internal int? MaximumContentValidationNodes { private get; set; }
+    internal const int MaximumContentValidationNodes = 1_000_000;
     /// <summary>Declared package version, preserved when editing.</summary>
     public string PackageVersion => (string?)Root.Attribute("version") ?? string.Empty;
     /// <summary>Typed manifest declarations in package order.</summary>

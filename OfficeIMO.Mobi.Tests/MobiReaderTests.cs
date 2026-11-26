@@ -63,6 +63,65 @@ public sealed class MobiReaderTests {
         Assert.Contains("back-reference", error.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(16, true)]
+    [InlineData(44, false)]
+    public void ValidatesTheDeclaredKindleFlowTableOffset(int offset, bool readable) {
+        byte[] bytes = Fixture("harbour.azw3");
+        int header = RecordOffset(bytes, 0);
+        int index = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(header + 192));
+        int flow = RecordOffset(bytes, index);
+        if (readable) {
+            int insertion = flow + 12;
+            int padding = offset - 12;
+            var padded = new byte[bytes.Length + padding];
+            bytes.AsSpan(0, insertion).CopyTo(padded);
+            bytes.AsSpan(insertion).CopyTo(padded.AsSpan(insertion + padding));
+            int records = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(76));
+            for (int record = index + 1; record < records; record++)
+                BinaryPrimitives.WriteInt32BigEndian(padded.AsSpan(78 + 8 * record), RecordOffset(bytes, record) + padding);
+            bytes = padded;
+        }
+        BinaryPrimitives.WriteInt32BigEndian(bytes.AsSpan(flow + 4), offset);
+        using var source = new MemoryStream(bytes, writable: false);
+
+        if (readable) {
+            EpubDocument book = ReadPublication(source, "padded-flow.azw3");
+            Assert.Contains(book.Chapters, chapter => chapter.Text.Contains("Signal received."));
+        } else {
+            var error = Assert.Throws<InvalidDataException>(() => MobiReader.Import(source, "invalid-flow.azw3"));
+            Assert.Contains("FDST", error.Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void ReadsTextWhenTheResourceRangeStartsAtTheEnd() {
+        byte[] bytes = BuildLegacyMobi("<html><body><p>Text without images.</p></body></html>");
+        int header = RecordOffset(bytes, 0);
+        uint records = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(76));
+        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(header + 108), records);
+        using var source = new MemoryStream(bytes, writable: false);
+
+        EpubDocument book = ReadPublication(source, "text-only.mobi");
+
+        Assert.Contains(book.Chapters, chapter => chapter.Text.Contains("Text without images."));
+        Assert.DoesNotContain(book.Resources, item => item.MediaType?.StartsWith("image/", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void InvalidOptionalTitleRangeKeepsTheExthTitle() {
+        byte[] bytes = Fixture("harbour.mobi");
+        int header = RecordOffset(bytes, 0);
+        int next = RecordOffset(bytes, 1);
+        BinaryPrimitives.WriteInt32BigEndian(bytes.AsSpan(header + 84), next - header - 2);
+        using var source = new MemoryStream(bytes, writable: false);
+
+        var imported = MobiReader.Import(source, "invalid-title-range.mobi");
+
+        Assert.Equal("Harbour Signal", imported.Value.Title);
+        Assert.Contains(imported.Report.Diagnostics, item => item.Code == "MOBI_HEADER_TITLE_RANGE_OMITTED");
+    }
+
     [Fact]
     public void ReadsSingleFlowKf8WithAnUnusedFlowPointer() {
         byte[] bytes = Fixture("harbour.azw3");
@@ -268,6 +327,37 @@ public sealed class MobiReaderTests {
         string topId = Assert.IsType<string>((string?)chapterBody.Attribute("id"));
         XElement top = Assert.Single(html.Descendants(xhtml + "a"), anchor => anchor.Value == "Back to top");
         Assert.Equal("#" + topId, (string?)top.Attribute("href"));
+    }
+
+    [Fact]
+    public void HtmlTopFallbackHonorsMatchingIdsFirst() {
+        using var source = new MemoryStream(BuildLegacyMobi("""
+            <html><body><a href="#%54OP">Back to document top</a><a href="#top">Named target</a><span id="top">Explicit target</span></body></html>
+            """), writable: false);
+
+        string? chapter = Assert.Single(ReadPublication(source, "top-link.mobi").Chapters).Html;
+        Assert.NotNull(chapter);
+        XElement html = XElement.Parse(chapter);
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        XElement body = Assert.Single(html.Descendants(xhtml + "div"));
+        XElement target = Assert.Single(html.Descendants(xhtml + "span"));
+        XElement[] links = html.Descendants(xhtml + "a").ToArray();
+        Assert.Equal("#" + (string?)body.Attribute("id"), (string?)links[0].Attribute("href"));
+        Assert.Equal("#" + (string?)target.Attribute("id"), (string?)links[1].Attribute("href"));
+    }
+
+    [Fact]
+    public void ZeroRowspanIsRetainedAndZeroColspanIsIgnored() {
+        using var source = new MemoryStream(BuildLegacyMobi("""
+            <html><body><table><tbody><tr><td rowspan="0" colspan="0">Shared label</td><td>First row</td></tr><tr><td>Second row</td></tr></tbody></table></body></html>
+            """), writable: false);
+
+        string? chapter = Assert.Single(ReadPublication(source, "rowspan.mobi").Chapters).Html;
+        Assert.NotNull(chapter);
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        XElement cell = Assert.Single(XElement.Parse(chapter).Descendants(xhtml + "td"), element => element.Value == "Shared label");
+        Assert.Equal("0", (string?)cell.Attribute("rowspan"));
+        Assert.Null(cell.Attribute("colspan"));
     }
 
     [Fact]

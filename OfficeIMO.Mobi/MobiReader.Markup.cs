@@ -227,7 +227,8 @@ public static partial class MobiReader {
             if (tag is "img" or "td" or "th") {
                 foreach (string name in tag == "img" ? new[] { "width", "height" } : new[] { "rowspan", "colspan" }) {
                     if (int.TryParse(source.GetAttribute(name), NumberStyles.None, CultureInfo.InvariantCulture, out int value) &&
-                        value > 0 && value <= (tag == "img" ? 10_000 : 100))
+                        (value > 0 || (name == "rowspan" && value == 0)) &&
+                        value <= (tag == "img" ? 10_000 : 100))
                         target.SetAttributeValue(name, Number(value));
                 }
             }
@@ -289,8 +290,12 @@ public static partial class MobiReader {
         internal IReadOnlyList<IElement> Elements => _elements;
         internal string? AnchorAt(int offset) => _positions.TryGetValue(offset, out string? id) ? id : null;
         internal string? Anchor(IElement element) => _anchors.TryGetValue(element, out string? id) ? id : null;
-        internal string? ResolveId(string id) =>
-            FindLocalAnchor(id) ?? (id.IndexOf('%') >= 0 ? FindLocalAnchor(Uri.UnescapeDataString(id)) : null);
+        internal string? ResolveId(string id) {
+            if (FindLocalAnchor(id) is { } anchor) return anchor;
+            string decoded = id.IndexOf('%') >= 0 ? Uri.UnescapeDataString(id) : id;
+            if (decoded != id && FindLocalAnchor(decoded) is { } decodedAnchor) return decodedAnchor;
+            return decoded.Equals("top", StringComparison.OrdinalIgnoreCase) ? TopAnchor : null;
+        }
 
         private string? FindLocalAnchor(string fragment) =>
             _ids.TryGetValue(fragment, out string? anchor) || _names.TryGetValue(fragment, out anchor) ? anchor : null;

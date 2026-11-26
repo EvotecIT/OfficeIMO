@@ -47,10 +47,15 @@ internal sealed class MobiHeader {
             SkeletonIndex = size >= 240 ? ReadReference(data, 252) : null;
         }
         if (size >= 116 && (U32(data, 128) & 0x40) != 0) ReadExth(data.Slice(16 + size), token);
-        if (size >= 76 && U32(data, 88) is > 0 and <= 16_384) {
-            ReadOnlySpan<byte> bytes = Slice(data, Number(data, 84), Number(data, 88));
-            if (TryDecode(Encoding, bytes, out string title)) HeaderTitle = title;
-            else HeaderTitleInvalidEncoding = true;
+        if (size >= 76 && U32(data, 88) is > 0 and var titleLength) {
+            uint titleOffset = U32(data, 84);
+            if (titleLength > 16_384 || titleOffset > data.Length || titleLength > data.Length - titleOffset) {
+                HeaderTitleInvalidRange = true;
+            } else if (TryDecode(Encoding, data.Slice((int)titleOffset, (int)titleLength), out string title)) {
+                HeaderTitle = title;
+            } else {
+                HeaderTitleInvalidEncoding = true;
+            }
         }
     }
 
@@ -67,6 +72,7 @@ internal sealed class MobiHeader {
     internal int ExtraFlags { get; }
     internal string? HeaderTitle { get; }
     internal bool HeaderTitleInvalidEncoding { get; }
+    internal bool HeaderTitleInvalidRange { get; }
     internal int? FirstImage { get; }
     internal int? FlowIndex { get; }
     internal int FlowCount { get; }
