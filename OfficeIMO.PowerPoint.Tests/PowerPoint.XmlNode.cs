@@ -23,6 +23,21 @@ public class OfficeXmlNodeTests {
         + "</p:spTree></p:cSld></p:sld>";
 
     [Fact]
+    public void TypedSdkElementsKeepTheirClassWhereTheSdkCannotTypeThemOutOfContext() {
+        var choice = new DocumentFormat.OpenXml.AlternateContentChoice { Requires = "wps" };
+        var alternate = new DocumentFormat.OpenXml.AlternateContent(choice);
+        var paragraph = new DocumentFormat.OpenXml.Wordprocessing.Paragraph(new DocumentFormat.OpenXml.Wordprocessing.Run(alternate));
+
+        OfficeXmlNode.FromSdk(choice).Append(OfficeXmlNode.FromSdk(new DocumentFormat.OpenXml.Wordprocessing.Run(
+            new DocumentFormat.OpenXml.Wordprocessing.Text("inside"))));
+
+        DocumentFormat.OpenXml.Wordprocessing.Run? run = choice.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Run>();
+        Assert.NotNull(run);
+        Assert.Equal("inside", run!.InnerText);
+        Assert.Same(choice, paragraph.Descendants<DocumentFormat.OpenXml.AlternateContentChoice>().Single());
+    }
+
+    [Fact]
     public void EditsGiveTheSameMarkupOnTheTreeAndOnTheSdkElements() {
         (OfficeXmlNode tree, OfficeXmlNode sdk, P.Slide slide) = Both();
 
