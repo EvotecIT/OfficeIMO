@@ -124,6 +124,8 @@ namespace OfficeIMO.Excel {
             using (System.IO.Packaging.Package input = System.IO.Packaging.Package.Open(source, FileMode.Open, FileAccess.Read))
             using (System.IO.Packaging.Package output = System.IO.Packaging.Package.Open(target, FileMode.Create, FileAccess.ReadWrite)) {
                 foreach (System.IO.Packaging.PackagePart part in input.GetParts()) {
+                    // Relationship parts come back with the parts they belong to and are rebuilt from their relationships.
+                    if (System.IO.Packaging.PackUriHelper.IsRelationshipPartUri(part.Uri)) continue;
                     System.IO.Packaging.PackagePart copy = output.CreatePart(part.Uri, part.ContentType, System.IO.Packaging.CompressionOption.Normal);
                     using (Stream from = part.GetStream(FileMode.Open, FileAccess.Read))
                     using (Stream to = copy.GetStream(FileMode.Create, FileAccess.Write)) {
