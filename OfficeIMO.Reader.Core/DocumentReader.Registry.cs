@@ -29,6 +29,10 @@ internal static partial class DocumentReaderEngine {
     /// such as <c>Dockerfile</c> or <c>Gemfile</c>, routes as the extension that owns its language.
     /// </summary>
     internal static string GetRoutingExtension(string? path) {
+        if (!string.IsNullOrWhiteSpace(path)) {
+            foreach (string compound in GetActiveHandlerRegistry().CompoundExtensions)
+                if (path!.EndsWith(compound, StringComparison.OrdinalIgnoreCase)) return compound;
+        }
         string extension = NormalizeExtension(TryGetExtension(path));
         if (extension.Length > 0 || string.IsNullOrWhiteSpace(path)) return extension;
         return ReaderSourceCodeLanguages.TryGetExtensionFromFileName(ReaderLogicalPath.GetFileName(path!), out string mapped)

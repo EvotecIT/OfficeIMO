@@ -280,6 +280,17 @@ public static partial class OfficeConversionCapabilityCatalog {
             ? null
             : All.FirstOrDefault(route => string.Equals(route.Id, id!.Trim(), StringComparison.OrdinalIgnoreCase));
 
+    private static readonly string[] CompoundSourceExtensions = All.SelectMany(route => route.SourceExtensions)
+        .Where(extension => extension.IndexOf('.', 1) >= 0).Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderByDescending(extension => extension.Length).ToArray();
+
+    internal static string GetSourceExtension(string? name) {
+        if (string.IsNullOrEmpty(name)) return string.Empty;
+        foreach (string extension in CompoundSourceExtensions)
+            if (name!.EndsWith(extension, StringComparison.OrdinalIgnoreCase)) return extension;
+        return Path.GetExtension(name!) ?? string.Empty;
+    }
+
     /// <summary>Returns routes that accept the supplied source extension.</summary>
     public static IReadOnlyList<OfficeConversionCapability> FindBySourceExtension(string extension) {
         string normalized = NormalizeExtension(extension);

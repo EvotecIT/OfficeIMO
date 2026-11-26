@@ -80,12 +80,15 @@ internal sealed class ReaderHandlerRegistry {
 internal sealed class ReaderHandlerRegistrySnapshot {
     private readonly IReadOnlyDictionary<string, ReaderHandlerDescriptor> _handlersById;
     private readonly IReadOnlyDictionary<string, string> _handlerIdByExtension;
+    internal IReadOnlyList<string> CompoundExtensions { get; }
 
     public ReaderHandlerRegistrySnapshot(
         IReadOnlyDictionary<string, ReaderHandlerDescriptor> handlersById,
         IReadOnlyDictionary<string, string> handlerIdByExtension) {
         _handlersById = handlersById;
         _handlerIdByExtension = handlerIdByExtension;
+        CompoundExtensions = handlerIdByExtension.Keys.Where(extension => extension.IndexOf('.', 1) >= 0)
+            .OrderByDescending(extension => extension.Length).ToArray();
     }
 
     public IReadOnlyList<ReaderHandlerDescriptor> Handlers => _handlersById.Values
