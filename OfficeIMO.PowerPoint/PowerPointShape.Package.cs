@@ -51,6 +51,69 @@ namespace OfficeIMO.PowerPoint {
             return TryGetPackageElement(out tree, out node) && OwnerSlide!.OwnerDocument!.CanEditPackage;
         }
 
+        // The non-visual properties container of each drawing element, and the drawing-properties child the model adds
+        // with it.
+        private static string? NonVisualContainer(string localName) => localName switch {
+            "sp" => "nvSpPr",
+            "cxnSp" => "nvCxnSpPr",
+            "pic" => "nvPicPr",
+            "graphicFrame" => "nvGraphicFramePr",
+            "grpSp" => "nvGrpSpPr",
+            _ => null
+        };
+
+        private static string NonVisualDrawingChild(string localName) => localName switch {
+            "sp" => "cNvSpPr",
+            "cxnSp" => "cNvCxnSpPr",
+            "pic" => "cNvPicPr",
+            "graphicFrame" => "cNvGraphicFramePr",
+            _ => "cNvGrpSpPr"
+        };
+
+        /// <summary>
+        /// The shape's <c>p:cNvPr</c>; with <paramref name="create"/> the non-visual properties are added as the model adds
+        /// them when they are missing. None for an element that has no non-visual properties.
+        /// </summary>
+        internal PowerPointXmlNode NonVisualDrawingElement(bool create) {
+            PowerPointXmlNode element = XmlElement;
+            if (element.NamespaceId != OfficeXmlNamespaces.PresentationML || NonVisualContainer(element.LocalName) is not { } containerName) return default;
+            PowerPointXmlNode container = element.Child(OfficeXmlNamespaces.PresentationML, containerName);
+            if (container.IsNone) {
+                if (!create) return default;
+                PowerPointXmlNode created = element.CreateElement(OfficeXmlNamespaces.PresentationML, containerName);
+                created.Append(created.CreateElement(OfficeXmlNamespaces.PresentationML, "cNvPr"));
+                PowerPointXmlNode drawing = created.Append(created.CreateElement(OfficeXmlNamespaces.PresentationML, NonVisualDrawingChild(element.LocalName)));
+                if (element.LocalName == "sp") drawing.Append(drawing.CreateElement(OfficeXmlNamespaces.DrawingML, "spLocks")).SetAttribute("noGrp", "1");
+                created.Append(created.CreateElement(OfficeXmlNamespaces.PresentationML, "nvPr"));
+                container = element.InsertBefore(created, element.FirstChild);
+            }
+            PowerPointXmlNode properties = container.Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
+            if (properties.IsNone && create) properties = container.InsertBefore(container.CreateElement(OfficeXmlNamespaces.PresentationML, "cNvPr"), container.FirstChild);
+            return properties;
+        }
+
+        /// <summary>The shape's <c>p:ph</c>, or none.</summary>
+        internal PowerPointXmlNode ShapePlaceholderElement {
+            get {
+                PowerPointXmlNode element = XmlElement;
+                if (element.NamespaceId != OfficeXmlNamespaces.PresentationML || element.LocalName == "grpSp" || NonVisualContainer(element.LocalName) is not { } containerName) return default;
+                return element.Child(OfficeXmlNamespaces.PresentationML, containerName).Child(OfficeXmlNamespaces.PresentationML, "nvPr").Child(OfficeXmlNamespaces.PresentationML, "ph");
+            }
+        }
+
+        // A picture that plays audio or video from a file.
+        private static bool IsMediaPicture(PowerPointXmlNode picture) {
+            PowerPointXmlNode application = picture.Child(OfficeXmlNamespaces.PresentationML, "nvPicPr").Child(OfficeXmlNamespaces.PresentationML, "nvPr");
+            return ContainsMedia(application);
+        }
+
+        private static bool ContainsMedia(PowerPointXmlNode element) {
+            foreach (PowerPointXmlNode child in element.Children()) {
+                if (child.Is(OfficeXmlNamespaces.DrawingML, "audioFile") || child.Is(OfficeXmlNamespaces.DrawingML, "videoFile") || ContainsMedia(child)) return true;
+            }
+            return false;
+        }
+
         /// <summary>Records that the shape's package tree changed, so the next save or SDK open writes it.</summary>
         internal void MarkPackageEdited() => OwnerSlide?.OwnerDocument?.MarkPackageEdited();
 
