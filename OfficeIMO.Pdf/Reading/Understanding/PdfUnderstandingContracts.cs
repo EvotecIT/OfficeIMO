@@ -71,6 +71,9 @@ public sealed class PdfUnderstandingPageContext {
     /// <summary>Throws when semantic reconstruction has been cancelled.</summary>
     public void ThrowIfCancellationRequested() => _workBudget.ThrowIfCancellationRequested();
     internal void CompleteOperation() => _workBudget.CompleteOperation();
+    /// <summary>Set on pages whose tables a tagged structure tree is expected to supply: the painted-border pass is skipped there.</summary>
+    internal bool SkipPaintedBorders { get; set; }
+    internal void RewindWork(long consumed) => _workBudget.Rewind(consumed);
     internal PdfUnderstandingReadingFrame? ReadingFrame { get; private set; }
     internal void SetReadingFrame(PdfUnderstandingReadingFrame frame) {
         ReadingFrame = frame;
@@ -433,6 +436,12 @@ public sealed class PdfUnderstandingPageResult {
     /// <summary>Whether caller-supplied structural stages make the retained sequence an extraction boundary.</summary>
     internal bool RestrictLogicalProjectionToReadingOrder { get; }
     internal void CompleteOperation() => _completeOperation?.Invoke();
+
+    /// <summary>
+    /// On a page analysed without the painted-border pass: analyses its tables again with it, from the same text runs
+    /// and lines, as if the first analysis had included it.
+    /// </summary>
+    internal Func<PdfUnderstandingPageResult>? RedoWithPaintedBorders { get; set; }
 
     internal PdfUnderstandingPageResult WithAdditionalTableCandidates(
         IReadOnlyList<PdfUnderstandingTableCandidate> candidates) {

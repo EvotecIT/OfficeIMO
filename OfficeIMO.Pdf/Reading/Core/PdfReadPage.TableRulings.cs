@@ -16,10 +16,24 @@ public sealed partial class PdfReadPage {
     /// profile, which repairs incomplete cells while preserving equivalent text
     /// tables' inferred continuation geometry.
     /// </summary>
-    internal IReadOnlyList<PdfTableRuling> GetTableRulings(PdfUnderstandingPageContext context, out bool canRefineExistingGeometry) {
+    internal IReadOnlyList<PdfTableRuling> GetTableRulings(PdfUnderstandingPageContext context, out bool canRefineExistingGeometry) =>
+        CollectTableRulings(context, collectLattice: false, out canRefineExistingGeometry, out _);
+
+    /// <summary>
+    /// Collects the strict ruling profile and, in the same content pass, the painted borders lattice recovery
+    /// reads (see <see cref="LatticeRulingCollector"/>).
+    /// </summary>
+    internal IReadOnlyList<PdfTableRuling> GetTableRulings(PdfUnderstandingPageContext context, out bool canRefineExistingGeometry,
+        out IReadOnlyList<PdfTableRuling> latticeRulings) =>
+        CollectTableRulings(context, collectLattice: true, out canRefineExistingGeometry, out latticeRulings);
+
+    private IReadOnlyList<PdfTableRuling> CollectTableRulings(PdfUnderstandingPageContext context, bool collectLattice,
+        out bool canRefineExistingGeometry, out IReadOnlyList<PdfTableRuling> latticeRulings) {
         canRefineExistingGeometry = false;
+        latticeRulings = Array.Empty<PdfTableRuling>();
         context.ThrowIfCancellationRequested();
-        if (context.ImagePlacements.Count > 0) return Array.Empty<PdfTableRuling>();
+        bool strict = context.ImagePlacements.Count == 0;
+        if (!strict && !collectLattice) return Array.Empty<PdfTableRuling>();
         (double width, double height) = GetVisualPageSize();
         var pageContentBudget = new PageContentBudget(this, context.CancellationToken);
         Matrix2D transform = GetVisualPageTransform();
@@ -27,25 +41,51 @@ public sealed partial class PdfReadPage {
         PdfContentSource content = GetContentStreamSequence(pageContentBudget).Source;
         if (content.Length == 0) return Array.Empty<PdfTableRuling>();
         PdfPageInvokedResourceNames invoked = GetRootInvokedResourceNames(content, resources, () => context.ConsumeWork());
-        // This profile accepts root strokes only. Decline invoked objects before
-        // separate effect/geometry traversals could decode their content twice.
-        if (invoked.HasObjectPaint || !invoked.HasVectorPaint) return Array.Empty<PdfTableRuling>();
-        // This bounded profile declines pages with graphics effects. IsDefault alone
-        // does not exclude unresolved soft masks or unmodelled graphics-state paint.
-        foreach (PdfPageDrawingEffectTransition transition in GetGraphicsEffectTransitions(content, transform, height, pageContentBudget)) {
-            context.ConsumeWork();
-            PdfPageDrawingEffect effect = transition.Effect;
-            if (effect.HasUnsupportedGraphicsState || effect.SoftMask != null ||
-                effect.HasUnresolvedSoftMask || effect.BlendMode != OfficeBlendMode.Normal) return Array.Empty<PdfTableRuling>();
+        // Borders drawn inside a form object reach the lattice pass only; the strict profile reads root strokes.
+        // Otherwise a grid needs the sides of two by two cells in the page's own content: a scan, or a page that
+        // paints only a background box, has too few to read.
+        bool forms = collectLattice && invoked.HasObjectPaint && HasFormXObjects(resources);
+        if (collectLattice && !forms && invoked.StraightSegments < PdfPageInvokedResourceNames.MinimumGridSegments) {
+            collectLattice = false;
+            if (!strict) return Array.Empty<PdfTableRuling>();
         }
+        if (!invoked.HasVectorPaint && !forms) return Array.Empty<PdfTableRuling>();
+        // The strict profile accepts root strokes only. Decline invoked objects before
+        // separate effect/geometry traversals could decode their content twice.
+        if (invoked.HasObjectPaint) {
+            strict = false;
+            if (!collectLattice) return Array.Empty<PdfTableRuling>();
+            // Without form objects the only invoked paint is images, which reach the lattice as placements.
+            if (!forms) invoked = invoked.WithoutObjectPaint();
+        }
+        if (!strict && !collectLattice) return Array.Empty<PdfTableRuling>();
+        // Primitives arrive with their own colours, so a soft mask or blend mode leaves a border's visibility
+        // unknown: both profiles decline the page. The bounded strict profile also declines graphics state it
+        // does not model (IsDefault alone does not exclude it); the lattice still reads borders there. Pages the
+        // strict profile has already declined are judged from their graphics-state resources, without another
+        // pass over the content.
+        if (strict) {
+            foreach (PdfPageDrawingEffectTransition transition in GetGraphicsEffectTransitions(content, transform, height, pageContentBudget)) {
+                context.ConsumeWork();
+                PdfPageDrawingEffect effect = transition.Effect;
+                if (effect.SoftMask != null || effect.HasUnresolvedSoftMask || effect.BlendMode != OfficeBlendMode.Normal) return Array.Empty<PdfTableRuling>();
+                if (effect.HasUnsupportedGraphicsState) {
+                    if (!collectLattice) return Array.Empty<PdfTableRuling>();
+                    strict = false;
+                    break;
+                }
+            }
+        }
+        if (!strict && HasMaskingGraphicsState(resources, forms ? new HashSet<PdfStream>() : null, 0, context)) return Array.Empty<PdfTableRuling>();
+        LatticeRulingCollector? lattice = collectLattice ? new LatticeRulingCollector(width, height, ToReadingPoint) : null;
         var rulings = new List<PdfTableRuling>();
-        bool uncertain = false;
+        bool uncertain = !strict;
         bool firstPaint = true;
-        bool unsupportedTextPaint = false;
+        bool unsupportedTextPaint = !strict;
         PaintedRowRulings? paintedRows = null;
         (OfficeColor Color, double Width, double Opacity)? strokePaint = null;
         OfficeColor? rulePaint = null;
-        if (content.Length > 0) {
+        {
             CollectVisualPrimitivesAndForms(content, resources, transform, width, height, Visit,
                 new HashSet<PdfStream>(), retainPrimitiveData: false,
                 // Opaque paint can hide a ruling. Images/groups are outside this small
@@ -57,6 +97,7 @@ public sealed partial class PdfReadPage {
                 invokedResourceNames: invoked,
                 scaleStrokeWidthWithTransform: true);
         }
+        if (lattice is not null) latticeRulings = lattice.Build(context);
         if (uncertain) return paintedRows?.Build(context, ToReadingPoint) ?? Array.Empty<PdfTableRuling>();
         canRefineExistingGeometry = true;
         return rulings;
@@ -68,6 +109,7 @@ public sealed partial class PdfReadPage {
 
         void Visit(PdfPageVisualPrimitive primitive) {
             context.ConsumeWork();
+            lattice?.Add(primitive, context);
             if (firstPaint) {
                 firstPaint = false;
                 if (!unsupportedTextPaint) paintedRows = PaintedRowRulings.Start(primitive, width, height);
@@ -185,6 +227,67 @@ public sealed partial class PdfReadPage {
                 GetPageBoundaryBox(), GetRotationDegrees(), x, y, GetEffectiveUserUnit());
             return context.ReadingFrame is null ? user : context.ReadingFrame.ToFrame(user.X, user.Y);
         }
+    }
+
+    /// <summary>Whether any graphics state the page declares sets a soft mask or a blend mode other than normal.</summary>
+    // Masking state anywhere a border can come from: the page's own resources and, when its form objects reach
+    // the lattice, theirs (a form's soft mask hides its strokes as surely as the page's does).
+    private bool HasMaskingGraphicsState(PdfDictionary? resources, HashSet<PdfStream>? forms, int depth, PdfUnderstandingPageContext context) {
+        if (resources is null) return false;
+        if (resources.Items.TryGetValue("ExtGState", out PdfObject? value) && ResolveDictionary(value) is PdfDictionary states) {
+            foreach (PdfObject item in states.Items.Values) {
+                context.ConsumeWork();
+                if (ResolveDictionary(item) is not PdfDictionary state) continue;
+                if (state.Items.TryGetValue("SMask", out PdfObject? mask) && ResolveObject(mask) is not PdfName { Name: "None" }) return true;
+                if (state.Items.TryGetValue("BM", out PdfObject? blend)) {
+                    PdfObject? mode = ResolveObject(blend);
+                    if (mode is PdfArray modes && modes.Items.Count > 0) mode = ResolveObject(modes.Items[0]);
+                    if (mode is not PdfName { Name: "Normal" or "Compatible" }) return true;
+                }
+            }
+        }
+        if (forms is null || !resources.Items.TryGetValue("XObject", out PdfObject? objects) ||
+            ResolveDictionary(objects) is not PdfDictionary xobjects) return false;
+        foreach (PdfObject item in xobjects.Items.Values) {
+            context.ConsumeWork();
+            if (ResolveObject(item) is not PdfStream stream || !forms.Add(stream) ||
+                stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "Image" }) continue;
+            // Deeper nesting than a reader can confirm leaves the borders' visibility unknown.
+            if (depth >= MaximumMaskingFormDepth) return true;
+            if (stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) &&
+                HasMaskingGraphicsState(ResolveDictionary(own), forms, depth + 1, context)) return true;
+        }
+        return false;
+    }
+
+    private const int MaximumMaskingFormDepth = 8;
+
+    // An image paints every pixel of its box only without a soft mask, stencil, colour-key or explicit mask.
+    // An image whose dictionary cannot be found is not assumed to.
+    private bool PaintsEveryPixel(PdfImagePlacement image) {
+        if (image.HasSoftMask || image.EffectiveBlendMode != OfficeBlendMode.Normal) return false;
+        PdfDictionary? dictionary = image.InlineImageStream?.Dictionary;
+        if (dictionary is null && image.EffectiveResources is { } resources &&
+            resources.Items.TryGetValue("XObject", out PdfObject? value) && ResolveDictionary(value) is PdfDictionary xobjects &&
+            xobjects.Items.TryGetValue(image.ResourceName, out PdfObject? entry) && ResolveObject(entry) is PdfStream stream) {
+            dictionary = stream.Dictionary;
+        }
+        if (dictionary is null) return false;
+        if (dictionary.Items.TryGetValue("ImageMask", out PdfObject? stencil) && ResolveObject(stencil) is PdfBoolean { Value: true }) return false;
+        if (dictionary.Items.TryGetValue("IM", out PdfObject? inlineStencil) && ResolveObject(inlineStencil) is PdfBoolean { Value: true }) return false;
+        if (dictionary.Items.ContainsKey("Mask") || dictionary.Items.ContainsKey("SMask")) return false;
+        return !dictionary.Items.TryGetValue("SMaskInData", out PdfObject? inData) || ResolveObject(inData) is not PdfNumber { Value: > 0 };
+    }
+
+    private bool HasFormXObjects(PdfDictionary? resources) {
+        if (resources is null || !resources.Items.TryGetValue("XObject", out PdfObject? value) ||
+            ResolveDictionary(value) is not PdfDictionary xobjects) return false;
+        foreach (PdfObject item in xobjects.Items.Values) {
+            // An entry that is not a plain image stream may hold vector paint.
+            if (ResolveObject(item) is not PdfStream stream ||
+                !(stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "Image" })) return true;
+        }
+        return false;
     }
 
     private static bool Contained(double left, double top, double right, double bottom,

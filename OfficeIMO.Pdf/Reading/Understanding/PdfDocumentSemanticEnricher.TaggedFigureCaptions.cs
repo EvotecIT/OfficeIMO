@@ -389,7 +389,7 @@ internal static partial class PdfDocumentSemanticEnricher {
             region.AlternativeText);
     }
 
-    private sealed class TaggedStructureGraph {
+    internal sealed class TaggedStructureGraph {
         internal TaggedStructureGraph(
             PdfTaggedContentInfo tagged,
             Dictionary<int, PdfStructureElementInfo> structuresByObject,

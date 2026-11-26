@@ -507,6 +507,15 @@
       "reason": "Apache-2.0."
     },
     {
+      "id": "tabula",
+      "name": "Tabula",
+      "packages": [ { "id": "Tabula", "version": "1.0.1" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
       "id": "docx",
       "name": "DocX",
       "packages": [ { "id": "DocX", "version": "5.2.0" } ],

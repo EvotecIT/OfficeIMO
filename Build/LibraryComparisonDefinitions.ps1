@@ -941,6 +941,27 @@ function Get-LibraryComparisonDefinitions {
                 }
             )
         }
+        pdftables = [pscustomobject]@{
+            Area = 'pdf'
+            Title = 'PDF ruled table extraction'
+            Libraries = @('OfficeIMO', 'Tabula')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+            Filter = 'OfficeIMO.Pdf.Benchmarks.Comparisons.PdfTableExtractionBenchmarks.*'
+            ComparisonId = 'pdf-table-extraction'
+            Suite = 'OfficeIMO.Pdf.TableExtraction'
+            ExpectedCases = @(
+                foreach ($scale in @('Easy', 'Medium')) {
+                    foreach ($producer in @('PeachPDF', 'MigraDoc', 'IText')) {
+                        foreach ($engine in @('OfficeIMO', 'Tabula')) {
+                            "$engine|Producer=$producer&Scale=$scale"
+                        }
+                    }
+                }
+            )
+        }
         pdfstructuredread = [pscustomobject]@{
             Area = 'pdf'
             Title = 'PDF read profile route health'

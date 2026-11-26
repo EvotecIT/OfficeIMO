@@ -9,7 +9,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         PdfTextLayoutOptions layout,
         int maxElementsPerPage,
         long maxWorkUnits,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        TaggedTableReads? taggedTableReads = null) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         Guard.NotNull(pages, nameof(pages));
@@ -32,7 +33,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         EnsureElementLimits(elements, maxElementsPerPage);
         ApplyOutlineEvidence(document.Outlines, pages, elements, workBudget);
         EnsureElementLimits(elements, maxElementsPerPage);
-        TaggedStructureGraph? taggedGraph = BuildTaggedStructureGraph(document, workBudget);
+        TaggedStructureGraph? taggedGraph = taggedTableReads?.Graph ?? BuildTaggedStructureGraph(document, workBudget);
         TaggedContentRoleIndex? taggedRoles = BuildTaggedContentRoleIndex(document, taggedGraph, workBudget);
         TaggedFigureCaptionIndex? taggedFigureCaptions = imageRegions.Any(static regions => regions.Count > 0)
             ? BuildTaggedFigureCaptionIndex(document, taggedGraph, workBudget)
@@ -47,7 +48,8 @@ internal static partial class PdfDocumentSemanticEnricher {
             taggedRoles,
             maxElementsPerPage,
             taggedTableDiagnostics,
-            workBudget);
+            workBudget,
+            taggedTableReads);
         ApplyTaggedStructureEvidence(document, pageNumbers, pages, elements, taggedRoles, workBudget);
         ApplyTaggedTableHeaderEvidence(document, pageNumbers, tableCandidates, taggedRoles, workBudget);
         ApplyTaggedImageEvidence(document, pageNumbers, imageRegions, taggedRoles, workBudget);

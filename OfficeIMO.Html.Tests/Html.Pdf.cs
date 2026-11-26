@@ -1437,7 +1437,9 @@ public sealed class HtmlPdfTests {
         using var baselinePaint = PdfPigDocument.Open(baselinePdf);
         var matchingWord = Assert.Single(baselinePaint.GetPage(1).GetWords(), word => word.Text == "Ready");
         var matchingLetter = matchingWord.Letters[0];
-        double outsideX = outsideLeft ? 4D : baselineTable.Columns[baselineTable.Columns.Count - 1].To + 18D;
+        // The default style draws cell borders, so text beside the table starts past the drawn right edge (left
+        // margin plus the three column widths), not just past the last column's text.
+        double outsideX = outsideLeft ? 4D : Math.Max(baselineTable.Columns[baselineTable.Columns.Count - 1].To, 36D + 300D) + 18D;
         double outsideY = baselinePage.Height - matchingLetter.StartBaseLine.Y - matchingLetter.FontSize;
 
         byte[] pdf = PdfCore.PdfDocument.Create(pdfOptions)
