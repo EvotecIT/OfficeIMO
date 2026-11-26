@@ -198,7 +198,7 @@ internal static class MarkdownListRendering {
             return string.Empty;
         }
 
-        var content = MarkdownEscaper.EscapeRenderedListItemLineStarts(item.RenderMarkdown());
+        var content = EscapeItemLineStarts(item);
         var syntaxChildren = item.SyntaxChildrenForWriting;
         if (syntaxChildren == null || syntaxChildren.Count == 0) {
             return content;
@@ -223,6 +223,21 @@ internal static class MarkdownListRendering {
         return string.IsNullOrEmpty(content)
             ? prefix
             : prefix + "\n" + content;
+    }
+
+    private static string EscapeItemLineStarts(ListItem item) {
+        string markdown = item.RenderMarkdown();
+        if (item.Content.Nodes.Count == 0 || item.Content.Nodes[0] is not HtmlRawInline anchor ||
+            !anchor.Html.StartsWith("<a ", StringComparison.OrdinalIgnoreCase) ||
+            !anchor.Html.EndsWith("</a>", StringComparison.OrdinalIgnoreCase) ||
+            anchor.Html.IndexOf('\r') >= 0 || anchor.Html.IndexOf('\n') >= 0 ||
+            !markdown.StartsWith(anchor.Html, StringComparison.Ordinal))
+            return MarkdownEscaper.EscapeRenderedListItemLineStarts(markdown);
+
+        // A complete inline anchor stays active. Continue escaping the other lines as usual.
+        int newline = markdown.IndexOf('\n');
+        return newline < 0 ? markdown : markdown.Substring(0, newline + 1) +
+            MarkdownEscaper.EscapeRenderedListItemLineStarts(markdown.Substring(newline + 1));
     }
 
     private static void AppendChildrenMarkdown(System.Text.StringBuilder sb, ListItem item, string baseIndent, string contPrefix) {

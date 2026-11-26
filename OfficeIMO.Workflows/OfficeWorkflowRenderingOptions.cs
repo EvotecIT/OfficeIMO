@@ -29,7 +29,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
     public ExcelPdfExportOptions? Excel { get; set; }
     /// <summary>Existing presentation renderer settings for PPTX input.</summary>
     public PowerPointPdfExportOptions? PowerPoint { get; set; }
-    /// <summary>Existing HTML renderer settings for HTML and CHM topics. Workflow resource access remains scoped to the source.</summary>
+    /// <summary>Existing HTML renderer settings for HTML, CHM topics, and imported ebooks. Workflow resource access remains scoped to the source.</summary>
     public HtmlPdfExportOptions? Html { get; set; }
     /// <summary>CHM topic selection and aggregate conversion budgets.</summary>
     public ChmConversionOptions? Chm { get; set; }
@@ -117,7 +117,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
         if (routeId is not "doc-pdf" and not "docx-pdf") copy.Word = null;
         if (routeId != "xlsx-pdf") { copy.Excel = null; copy.WorksheetLayout = null; }
         if (routeId != "pptx-pdf") copy.PowerPoint = null;
-        if (routeId is not "html-pdf" and not "chm-pdf") copy.Html = null;
+        if (!UsesHtmlPdfSettings(route)) copy.Html = null;
         if (routeId is not "chm-pdf" and not "chm-markdown" and not "chm-epub") copy.Chm = null;
         if (routeId != "markdown-pdf") copy.Markdown = null;
         if (routeId is not ("notebook-pdf" or "notebook-source-pdf")) copy.NotebookPdf = null;
@@ -149,7 +149,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
             throw new ArgumentException("A source password is supported for DOCX, XLSX and PPTX conversion.");
         if ((copy.Word != null && route.Id is not "doc-pdf" and not "docx-pdf") ||
             (copy.Excel != null && route.Id != "xlsx-pdf") || (copy.PowerPoint != null && route.Id != "pptx-pdf") ||
-            (copy.Html != null && route.Id is not "html-pdf" and not "chm-pdf") || (copy.Markdown != null && route.Id != "markdown-pdf") ||
+            (copy.Html != null && !UsesHtmlPdfSettings(route)) || (copy.Markdown != null && route.Id != "markdown-pdf") ||
             (copy.NotebookPdf != null && route.Id is not ("notebook-pdf" or "notebook-source-pdf")) ||
             (copy.Rtf != null && route.Id != "rtf-pdf") || (copy.Draw != null && route.Id != "odg-pdf") ||
             (copy.Visio != null && route.Id != "visio-pdf") || (copy.Xps != null && route.Id != "xps-pdf") || (copy.DjVu != null && route.Id != "djvu-pdf") ||
@@ -191,6 +191,10 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
             throw new ArgumentException("Rendering resolution requires visual PDF pages and must be between 36 and 600 DPI.");
         return copy;
     }
+
+    private static bool UsesHtmlPdfSettings(OfficeWorkflowRoute route) =>
+        route.Id is "html-pdf" or "chm-pdf" ||
+        (route.TargetExtension == ".pdf" && OfficeWorkflow.IsImportedEbookRoute(route.Id));
 
     internal PdfCreateOptions? GetOutputPdfOptions() => Word?.PdfOptions ?? Excel?.PdfOptions ?? PowerPoint?.PdfOptions
         ?? Html?.PdfOptions ?? Markdown?.PdfOptions ?? NotebookPdf?.MarkdownOptions.PdfOptions

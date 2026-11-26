@@ -1,3 +1,4 @@
+using OfficeIMO.Workflows;
 using OfficeIMO.Tool.Commands.Reader;
 using System.Text;
 
@@ -254,9 +255,12 @@ internal sealed class ConvertRoute {
     private static ConvertOutputFormat ParseOutputFormat(string inputPath, string? outputPath, string? assetsPath) {
         if (string.IsNullOrWhiteSpace(outputPath)) return ConvertOutputFormat.Route;
         string extension = Path.GetExtension(outputPath).ToLowerInvariant();
-        string inputExtension = Path.GetExtension(Path.TrimEndingDirectorySeparator(inputPath)).ToLowerInvariant();
+        string inputExtension = OfficeConversionCapabilityCatalog.GetSourceExtension(Path.TrimEndingDirectorySeparator(inputPath)).ToLowerInvariant();
         if (inputExtension.Length > 0 && extension.Length > 0 && ConvertRoutes.FindData(inputExtension, extension) != null) return ConvertOutputFormat.Route;
         if (assetsPath is null && ConvertRoutes.UsesNotebookMarkdown(inputPath, outputPath)) return ConvertOutputFormat.Route;
+        if (assetsPath is null && extension == ".md" && inputExtension.Length > 0 &&
+            OfficeWorkflowCatalog.Find(inputExtension, extension, executableOnly: true)?.Id.StartsWith("ebook-", StringComparison.Ordinal) == true)
+            return ConvertOutputFormat.Route;
         return extension switch {
             ".md" or ".markdown" => ConvertOutputFormat.Markdown,
             ".json" => ConvertOutputFormat.Json,

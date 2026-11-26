@@ -75,6 +75,7 @@ public sealed partial class EpubPublication {
         RequireText(title, nameof(title)); RequireText(language, nameof(language));
         EpubLanguageTag.Require(language, nameof(language));
         if (version != EpubVersion.Epub2 && version != EpubVersion.Epub3) throw new ArgumentOutOfRangeException(nameof(version));
+        bool generatedIdentifier = identifier == null;
         identifier ??= "urn:uuid:" + Guid.NewGuid().ToString("D");
         RequireText(identifier, nameof(identifier));
         var package = new XDocument(new XElement(Opf + "package",
@@ -94,7 +95,7 @@ public sealed partial class EpubPublication {
                     new XElement(container + "rootfile", new XAttribute("full-path", path),
                         new XAttribute("media-type", "application/oebps-package+xml"))))))
         };
-        var publication = new EpubPublication(path, package, entries, limits: limits);
+        var publication = new EpubPublication(path, package, entries, limits: limits) { HasGeneratedIdentifier = generatedIdentifier };
         publication.InitializeNavigation();
         return publication;
     }

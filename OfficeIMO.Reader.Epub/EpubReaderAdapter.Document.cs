@@ -44,8 +44,9 @@ internal static partial class EpubReaderAdapter {
         return OfficeDocumentReadResultJson.Serialize(ReadDocument(epubStream, sourceName, readerOptions, epubOptions, cancellationToken), indented);
     }
 
-    private static OfficeDocumentReadResult BuildEpubDocumentResult(EpubDocument document, SourceMetadata source, ReaderOptions readerOptions, CancellationToken cancellationToken) {
-        ReaderChunk[] chunks = ReadDocument(document, source, readerOptions, cancellationToken).ToArray();
+    private static OfficeDocumentReadResult BuildEpubDocumentResult(EpubDocument document, SourceMetadata source, ReaderOptions readerOptions, CancellationToken cancellationToken,
+        ReaderInputKind kind = ReaderInputKind.Epub) {
+        ReaderChunk[] chunks = ReadDocument(document, source, readerOptions, cancellationToken, kind).ToArray();
         List<OfficeDocumentAsset> assets = BuildEpubAssets(document, source.Path).ToList();
         Dictionary<string, OfficeDocumentAsset> assetsByLocation = BuildEpubAssetIndex(assets);
         var blocks = new List<OfficeDocumentBlock>();
@@ -143,7 +144,7 @@ internal static partial class EpubReaderAdapter {
         };
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
             chunks,
-            ReaderInputKind.Epub,
+            kind,
             documentSource,
             capabilities,
             assets);

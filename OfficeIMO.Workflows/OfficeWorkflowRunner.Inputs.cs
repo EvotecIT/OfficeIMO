@@ -63,7 +63,7 @@ public sealed partial class OfficeWorkflowRunner {
         if (request.Operation == OfficeWorkflowOperation.Convert) {
             route = ConversionRoutes.FirstOrDefault(item => string.Equals(item.Id, request.ConversionRouteId, StringComparison.OrdinalIgnoreCase))
                 ?? throw new ArgumentException("Choose a supported conversion route.", nameof(request));
-            string extension = Path.GetExtension(inputName);
+            string extension = OfficeConversionCapabilityCatalog.GetSourceExtension(inputName);
             if (!route.SourceExtensions.Any(item => string.Equals(NormalizeExtension(item), extension, StringComparison.OrdinalIgnoreCase))) {
                 throw new ArgumentException($"Route '{route.Id}' does not accept '{extension}' input.", nameof(request));
             }

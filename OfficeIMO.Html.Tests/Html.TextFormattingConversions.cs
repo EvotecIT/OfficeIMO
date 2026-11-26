@@ -969,7 +969,10 @@ public class HtmlTextFormattingConversionTests {
                 Assert.Equal(OfficeConversionTextFormattingKind.ReconstructedFromFixedLayout, route.TextFormatting);
             }
             if (route.Target == "PDF") {
-                Assert.Equal(OfficeConversionTextFormattingKind.FixedLayoutAppearance, route.TextFormatting);
+                OfficeConversionTextFormattingKind expected = route.Source == "Comic book ZIP"
+                    ? OfficeConversionTextFormattingKind.FlattenedRaster
+                    : OfficeConversionTextFormattingKind.FixedLayoutAppearance;
+                Assert.Equal(expected, route.TextFormatting);
             }
         });
     }

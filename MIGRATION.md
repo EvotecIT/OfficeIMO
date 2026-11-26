@@ -6863,6 +6863,12 @@ To keep the previous stored values, register the handler with
 `ReaderAllOptions.Excel`. Indexes and tests that compared extracted spreadsheet text with raw values need either
 that option or updated expectations.
 
+## Reader transport for comic archives
+
+Reader uses `ReaderInputKind.Comic` (`34`) for CBZ imports. Consumers that validate
+Reader JSON against a packaged schema should accept version 16. OfficeIMO still
+reads versions 5 through 16.
+
 ## TOML Reader identity and transport
 
 Register `.AddTomlHandler()` from `OfficeIMO.Reader.Toml`, or use `AddAllOfficeIMOHandlers()`, to ingest `.toml` files as path, type and value rows.

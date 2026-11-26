@@ -14,6 +14,21 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficeWorkflowRunnerTests {
     [Fact]
+    public void ImportedHtmlPrefersExplicitHtmlLanguageOverXmlLanguage() {
+        EpubPublication publication = EpubPublication.Create("A book", "en");
+        publication.AddChapter("body", "EPUB/body.xhtml", "Body",
+            "<p lang='fr' xml:lang='de'>Bonjour.</p><p xml:lang='nl'>Hallo.</p>");
+        EpubDocument book = EpubImportedPublication.Open(publication, CancellationToken.None);
+        using var output = new MemoryStream();
+
+        EpubImportedPublication.WriteHtml(book, output, new List<OfficeDiagnostic>(), CancellationToken.None);
+
+        HtmlConversionDocument html = HtmlConversionDocument.Parse(Encoding.UTF8.GetString(output.ToArray()));
+        var paragraphs = html.Document.QuerySelectorAll("p");
+        Assert.Equal(new[] { "fr", "nl" }, paragraphs.Select(node => node.GetAttribute("lang")));
+    }
+
+    [Fact]
     public void PdfLoadOptionsUseTheValidatedWorkflowByteBudget() {
         const long budget = 768L * 1024L * 1024L;
 
@@ -69,7 +84,9 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(
             [
                 "book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "csv-xlsx", "djvu-pdf", "doc-pdf", "docx-epub",
-                "docx-odt", "docx-pdf", "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-epub", "html-pdf",
+                "docx-odt", "docx-pdf",
+                "ebook-cbz-epub", "ebook-cbz-html", "ebook-cbz-markdown", "ebook-cbz-pdf",
+                "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-epub", "html-pdf",
                 "markdown-docx", "markdown-epub", "markdown-pdf", "notebook-docx", "notebook-html", "notebook-markdown", "notebook-pdf", "notebook-source-ipynb",
                 "notebook-source-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf",
                 "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-odp", "pptx-pdf", "publisher-pdf", "rtf-docx",
@@ -132,6 +149,7 @@ public sealed class OfficeWorkflowRunnerTests {
 
     [Theory]
     [InlineData("source.md", "# Runner route marker", "markdown-docx")]
+    [InlineData("source.office.md", "# Runner route marker", "markdown-docx")]
     [InlineData("source.rtf", @"{\rtf1\ansi Runner route marker\par}", "rtf-docx")]
     public async Task RunnerExecutesFrontDoorAndPairRoutesThroughTheSharedConverter(string name, string content, string routeId) {
         using var scope = new TestDirectory();

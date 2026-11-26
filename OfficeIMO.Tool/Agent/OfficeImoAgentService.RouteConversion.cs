@@ -15,7 +15,7 @@ internal sealed partial class OfficeImoAgentService {
         if (!Path.GetExtension(destination).Equals(target, StringComparison.OrdinalIgnoreCase))
             throw new AgentUsageException("The output path extension must match the requested conversion format.");
         var runner = new OfficeWorkflowRunner();
-        string extension = Path.GetExtension(input).ToLowerInvariant();
+        string extension = OfficeConversionCapabilityCatalog.GetSourceExtension(input).ToLowerInvariant();
         OfficeWorkflowRoute route = (extension.Length == 0 ? null : OfficeWorkflowCatalog.Find(extension, target, runner.ConversionRoutes))
             ?? throw new AgentUsageException("No conversion route converts '" + extension + "' to '" + target
                 + "'. Use officeimo_capabilities with operation 'convert' to list the supported routes.");

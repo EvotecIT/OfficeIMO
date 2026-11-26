@@ -429,7 +429,9 @@ internal static partial class DocumentReaderEngine {
 
     private static ReaderDetectionResult BuildExtensionDetection(string sourceName) {
         string extension = NormalizeExtension(TryGetExtension(sourceName));
-        bool conventionalName = extension.Length == 0 && GetRoutingExtension(sourceName).Length > 0;
+        string routing = GetRoutingExtension(sourceName);
+        bool conventionalName = extension.Length == 0 && routing.Length > 0;
+        if (extension.Length > 0) extension = routing;
         ReaderInputKind extensionKind = extension.Length == 0 && !conventionalName ? ReaderInputKind.Unknown : DetectKind(sourceName);
         var evidence = extension.Length > 0
             ? new[] { "extension:" + extension }
@@ -1001,6 +1003,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Chm => "application/vnd.ms-htmlhelp",
             ReaderInputKind.Zip => "application/zip",
             ReaderInputKind.Epub => "application/epub+zip",
+            ReaderInputKind.Comic => "application/vnd.comicbook+zip",
             ReaderInputKind.Visio => "application/vnd.ms-visio.drawing.main+xml",
             ReaderInputKind.Yaml => "application/yaml",
             ReaderInputKind.Toml => "application/toml",

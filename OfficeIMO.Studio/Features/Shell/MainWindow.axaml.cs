@@ -511,7 +511,8 @@ public sealed partial class MainWindow : Window {
                     Patterns = StudioPickerPatterns.CaseInsensitive("*.docx", "*.xlsx", "*.pptx", "*.pdf", "*.html", "*.htm",
                         "*.pages", "*.numbers", "*.key",
                         "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.tif", "*.tiff",
-                        "*.webp", "*.ico", "*.pcx", "*.zip")
+                        "*.webp", "*.ico", "*.pcx", "*.zip",
+                        "*.cbz")
                 }
             ]
         });

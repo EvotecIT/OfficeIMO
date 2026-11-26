@@ -264,12 +264,12 @@ public static partial class OfficeConverter {
     private static OfficeConversionCapability SelectRoute(OfficeConversionOptions settings) {
         if (settings.RouteId is { } requested) {
             OfficeConversionCapability? exact = Routes.SingleOrDefault(route => string.Equals(route.Id, requested, StringComparison.OrdinalIgnoreCase));
-            if (exact == null || !HasSourceExtension(exact, Path.GetExtension(settings.SourceName) ?? string.Empty)
+            if (exact == null || !HasSourceExtension(exact, OfficeConversionCapabilityCatalog.GetSourceExtension(settings.SourceName))
                 || !string.Equals(exact.TargetExtension, Path.GetExtension(settings.TargetName), StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("The explicit conversion route must match the source and target filenames.");
             return exact;
         }
-        string source = Path.GetExtension(settings.SourceName ?? string.Empty), target = Path.GetExtension(settings.TargetName ?? string.Empty);
+        string source = OfficeConversionCapabilityCatalog.GetSourceExtension(settings.SourceName), target = Path.GetExtension(settings.TargetName ?? string.Empty);
         IReadOnlyList<OfficeConversionCapability> routes = Routes;
         string? preferred = OfficeConversionCapabilityCatalog.PreferredRouteId(source, target);
         OfficeConversionCapability? single = null;

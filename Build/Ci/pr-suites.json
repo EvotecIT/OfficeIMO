@@ -109,6 +109,7 @@
       "OfficeIMO.JavaScript.Assets.Tests"
     ],
     "workflow-contracts": [
+      "OfficeIMO.Comic.Tests",
       "OfficeIMO.Workflows.IWork.Tests",
       "OfficeIMO.Workflows.Tests"
     ],

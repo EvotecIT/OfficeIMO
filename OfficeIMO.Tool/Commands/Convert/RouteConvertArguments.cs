@@ -131,7 +131,7 @@ internal sealed class RouteConvertArguments {
             throw new RouteConvertUsageException("The convert command requires an input document.");
         }
 
-        string extension = Path.GetExtension(InputPath).ToLowerInvariant();
+        string extension = OfficeConversionCapabilityCatalog.GetSourceExtension(InputPath).ToLowerInvariant();
         OutputPath ??= Path.ChangeExtension(InputPath, ".pdf");
         string target = Path.GetExtension(OutputPath).ToLowerInvariant();
         OfficeWorkflowRoute? route = extension.Length == 0 || target.Length == 0 ? null : OfficeWorkflowCatalog.Find(extension, target, executableOnly: true);
