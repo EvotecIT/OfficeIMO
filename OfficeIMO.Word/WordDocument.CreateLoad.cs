@@ -500,6 +500,10 @@ namespace OfficeIMO.Word {
                     return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions()), sourceBytes, resolved);
                 }
 
+                if (TryLoadWithoutSdk(sourceBytes, resolved, filePath, originalStream: null) is { } ownedDocument) {
+                    return WithSourcePackageInspection(ownedDocument, sourceBytes, resolved);
+                }
+
                 Stream memoryStream = CreateLegacyValidationPackageStream(
                     sourceBytes,
                     readOnly,
@@ -638,6 +642,10 @@ namespace OfficeIMO.Word {
                     cancellationToken.ThrowIfCancellationRequested();
                 }
                 return document;
+            }
+
+            if (TryLoadWithoutSdk(sourceBytes, resolved, filePath, originalStream: null) is { } ownedDocument) {
+                return WithSourcePackageInspection(ownedDocument, sourceBytes, resolved);
             }
 
             Stream memoryStream = CreateLegacyValidationPackageStream(
@@ -825,6 +833,11 @@ namespace OfficeIMO.Word {
                     cancellationToken.ThrowIfCancellationRequested();
                 }
                 return document;
+            }
+
+            if (packageSettings == null && TryLoadWithoutSdk(sourceBytes, resolved, filePath: null,
+                    OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, resolved.AccessMode)) is { } ownedDocument) {
+                return captureSourcePackageSecurity ? WithSourcePackageInspection(ownedDocument, sourceBytes, resolved) : ownedDocument;
             }
 
             Stream packageStream = CreateLegacyValidationPackageStream(

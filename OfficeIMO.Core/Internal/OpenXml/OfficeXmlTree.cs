@@ -47,19 +47,23 @@ internal sealed partial class OfficeXmlTree {
     /// <summary>Counts edits; a cache built from the tree is current while this has not changed.</summary>
     internal int Version { get; private set; }
 
-    private OfficeXmlTree(OfficeXmlNamespaces.Table namespaces, int nodeCapacity, int attributeCapacity) {
+    // Set when the node, span and attribute arrays come from the shared array pool; ReleasePooledStorage returns them.
+    private readonly bool _pooled;
+
+    private OfficeXmlTree(OfficeXmlNamespaces.Table namespaces, int nodeCapacity, int attributeCapacity, bool pooled = false) {
         Namespaces = namespaces;
-        _nodes = new Node[Math.Max(4, nodeCapacity)];
-        _attrs = new Attr[Math.Max(4, attributeCapacity)];
+        _pooled = pooled;
+        _nodes = Allocate<Node>(Math.Max(4, nodeCapacity));
+        _attrs = Allocate<Attr>(Math.Max(4, attributeCapacity));
         Root = NoNode;
     }
 
-    private OfficeXmlTree(OfficeXmlNamespaces.Table namespaces, OfficeXmlPullReader reader, int nodeCapacity, int attributeCapacity)
-        : this(namespaces, nodeCapacity, attributeCapacity) {
+    private OfficeXmlTree(OfficeXmlNamespaces.Table namespaces, OfficeXmlPullReader reader, int nodeCapacity, int attributeCapacity, bool pooled = false)
+        : this(namespaces, nodeCapacity, attributeCapacity, pooled) {
         _decoder = reader;
         _source = reader.Data;
         _sourceLength = reader.DataLength;
-        _spans = new Span[_nodes.Length];
+        _spans = Allocate<Span>(_nodes.Length);
         Parse(reader, out _prologEnd, out _epilogStart);
         _sourceNodeCount = _nodeCount;
         if (reader.Transcoded) FindDeclaredEncoding(out _encodingStart, out _encodingEnd);
@@ -86,6 +90,74 @@ internal sealed partial class OfficeXmlTree {
         return new OfficeXmlTree(namespaces, reader, length / 40 + 8, length / 40 + 8);
     }
 
+    /// <summary>
+    /// Parses a part into storage rented from the shared array pool, sized from the markup so it doesn't grow while it
+    /// parses. The owner calls <see cref="ReleasePooledStorage"/> when the tree is no longer used; the tree must not be
+    /// read after that.
+    /// </summary>
+    internal static OfficeXmlTree ParsePooled(byte[] data, int length, OfficeXmlNamespaces.Table namespaces) {
+        var reader = new OfficeXmlPullReader(data, length, namespaces, processMarkupCompatibility: false);
+        // Every element and text node starts at or after a '<' of its own or its neighbour, and every attribute has an '='.
+        // Text may hold '=' too, so the attribute estimate is capped at a few per tag and grows past that when needed.
+        int nodes = Count(data, length, (byte)'<') + 8;
+        int attributes = (int)Math.Min(Count(data, length, (byte)'=') + 8L, nodes * 2L);
+        return new OfficeXmlTree(namespaces, reader, nodes, attributes, pooled: true);
+    }
+
+    private static int Count(byte[] data, int length, byte value) {
+#if NET8_0_OR_GREATER
+        return System.MemoryExtensions.Count(new ReadOnlySpan<byte>(data, 0, length), value);
+#else
+        int count = 0;
+        for (int index = 0; index < length; index++) {
+            if (data[index] == value) count++;
+        }
+        return count;
+#endif
+    }
+
+#if NET8_0_OR_GREATER
+    private T[] Allocate<T>(int length) => _pooled ? System.Buffers.ArrayPool<T>.Shared.Rent(length) : new T[length];
+#else
+    // Older targets have no shared array pool here; pooled trees own their arrays like any other.
+    private static T[] Allocate<T>(int length) => new T[length];
+#endif
+
+    private void Grow<T>(ref T[] array, int length) {
+#if NET8_0_OR_GREATER
+        if (_pooled) {
+            T[] larger = System.Buffers.ArrayPool<T>.Shared.Rent(length);
+            Array.Copy(array, larger, array.Length);
+            Return(array, array.Length);
+            array = larger;
+            return;
+        }
+#endif
+        Array.Resize(ref array, length);
+    }
+
+    private static void Return<T>(T[] array, int used) {
+        if (array.Length == 0) return;
+        // Records hold strings, which must not stay reachable from the pool.
+        Array.Clear(array, 0, Math.Min(used, array.Length));
+#if NET8_0_OR_GREATER
+        System.Buffers.ArrayPool<T>.Shared.Return(array);
+#endif
+    }
+
+    /// <summary>Returns pooled storage to the array pool. Does nothing for a tree that owns its arrays.</summary>
+    internal void ReleasePooledStorage() {
+        if (!_pooled || _nodes.Length == 0) return;
+        Return(_nodes, _nodeCount);
+        Return(_spans, _nodeCount);
+        Return(_attrs, _attrCount);
+        _nodes = Array.Empty<Node>();
+        _spans = Array.Empty<Span>();
+        _attrs = Array.Empty<Attr>();
+        _nodeCount = _attrCount = 0;
+        Root = NoNode;
+    }
+
     /// <summary>Creates a tree with only a root element.</summary>
     internal static OfficeXmlTree Create(OfficeXmlNamespaces.Table namespaces, int namespaceId, string localName, int capacity = 32) {
         var tree = new OfficeXmlTree(namespaces, capacity, capacity);
@@ -99,12 +171,13 @@ internal sealed partial class OfficeXmlTree {
         int[] open = new int[16];
         int[] lastEnd = new int[16];
         int depth = 0;
+        var names = new ParseNameCache();
         while (reader.Read()) {
             switch (reader.NodeKind) {
                 case OfficeXmlNodeKind.StartElement: {
                     int node = NewNode(OfficeXmlTreeNodeKind.Element);
                     ref Node record = ref _nodes[node];
-                    record.Name = Namespaces.GetNameId(reader.LocalName, reader.ElementPrefix, reader.NamespaceId, reader.ElementUriId);
+                    record.Name = names.GetNameId(Namespaces, reader.LocalName, reader.ElementPrefix, reader.NamespaceId, reader.ElementUriId);
                     ref Span span = ref SourceSpan(node);
                     span.StartTagStart = reader.MarkupStart;
                     span.StartTagEnd = reader.MarkupEnd;
@@ -117,7 +190,7 @@ internal sealed partial class OfficeXmlTree {
                         for (int index = 0; index < count; index++) {
                             ref Attr attribute = ref _attrs[record.AttrFirst + index];
                             int attributeNamespace = reader.GetAttributeNamespace(index, out int attributeUri);
-                            attribute.Name = Namespaces.GetNameId(reader.GetAttributeLocalName(index), reader.GetAttributePrefix(index), attributeNamespace, attributeUri);
+                            attribute.Name = names.GetNameId(Namespaces, reader.GetAttributeLocalName(index), reader.GetAttributePrefix(index), attributeNamespace, attributeUri);
                             reader.GetAttributeRawValue(index, out attribute.ValueStart, out attribute.ValueLength);
                             attribute.Quote = reader.GetAttributeQuote(index);
                             if (attributeNamespace == OfficeXmlNamespaces.Xmlns) Declare(ref attribute, reader, index);
@@ -190,7 +263,12 @@ internal sealed partial class OfficeXmlTree {
     internal int NextSiblingOf(int node) => _nodes[node].Next;
     internal int PreviousSiblingOf(int node) => _nodes[node].Previous;
     internal string LocalNameOf(int node) => Namespaces.GetName(_nodes[node].Name).LocalName;
+    /// <summary>The number of nodes, so node indices run from 0 to one less than this.</summary>
+    internal int NodeCount => _nodeCount;
+
     internal int NamespaceOf(int node) => Namespaces.GetName(_nodes[node].Name).NamespaceId;
+    /// <summary>The id of the exact namespace URI the element was written with; see <see cref="OfficeXmlNamespaces.TransitionalUriId"/>.</summary>
+    internal int UriIdOf(int node) => Namespaces.GetName(_nodes[node].Name).UriId;
 
     internal bool IsElement(int node, int namespaceId, string localName) {
         ref Node record = ref _nodes[node];
@@ -251,6 +329,44 @@ internal sealed partial class OfficeXmlTree {
         }
         value = AttributeValue(ref _attrs[index]);
         return true;
+    }
+
+    internal bool HasAttribute(int node, int namespaceId, string localName) => FindAttribute(node, namespaceId, localName) >= 0;
+
+    /// <summary>
+    /// Whether the attribute exists and its value is <paramref name="expected"/>. A plain ASCII value is compared as
+    /// written, without decoding it into a string.
+    /// </summary>
+    internal bool AttributeEquals(int node, int namespaceId, string localName, string expected) {
+        int index = FindAttribute(node, namespaceId, localName);
+        if (index < 0) return false;
+        ref Attr attribute = ref _attrs[index];
+        if (attribute.Value == null && _source != null && attribute.ValueLength == expected.Length) {
+            bool plain = true;
+            for (int offset = 0; offset < expected.Length; offset++) {
+                byte value = _source[attribute.ValueStart + offset];
+                if (value == (byte)'&' || value < 0x20 || value >= 0x80) {
+                    plain = false;
+                    break;
+                }
+                if (value != expected[offset]) return false;
+            }
+            if (plain) return true;
+        } else if (attribute.Value == null && _source != null
+            && Array.IndexOf(_source, (byte)'&', attribute.ValueStart, attribute.ValueLength) < 0) {
+            // Without references, an ASCII value of another length can only match after whitespace normalization. A
+            // value with other characters has more bytes than characters, so it is decoded and compared.
+            bool decode = false;
+            for (int offset = 0; offset < attribute.ValueLength; offset++) {
+                byte value = _source[attribute.ValueStart + offset];
+                if (value < 0x20 || value >= 0x80) {
+                    decode = true;
+                    break;
+                }
+            }
+            if (!decode) return false;
+        }
+        return string.Equals(AttributeValue(ref attribute), expected, StringComparison.Ordinal);
     }
 
     internal string? GetAttribute(int node, int namespaceId, string localName) =>
@@ -364,7 +480,7 @@ internal sealed partial class OfficeXmlTree {
     }
 
     private int ReserveAttributes(int count) {
-        if (_attrCount + count > _attrs.Length) Array.Resize(ref _attrs, Math.Max(_attrs.Length * 2, _attrCount + count));
+        if (_attrCount + count > _attrs.Length) Grow(ref _attrs, Math.Max(_attrs.Length * 2, _attrCount + count));
         int first = _attrCount;
         _attrCount += count;
         return first;
@@ -681,7 +797,7 @@ internal sealed partial class OfficeXmlTree {
     }
 
     private int NewNode(OfficeXmlTreeNodeKind kind) {
-        if (_nodeCount == _nodes.Length) Array.Resize(ref _nodes, _nodes.Length * 2);
+        if (_nodeCount == _nodes.Length) Grow(ref _nodes, _nodes.Length * 2);
         int node = _nodeCount++;
         _nodes[node] = new Node {
             Kind = kind,
@@ -706,6 +822,41 @@ internal sealed partial class OfficeXmlTree {
         }
     }
 
+    // The reader returns one string instance per distinct name, so a parse can find a name's id by comparing those
+    // instances, with a hash of a few characters, before the namespace table hashes and compares whole strings.
+    private struct ParseNameCache {
+        private const int Size = 64;
+        private string?[]? _locals;
+        private string?[] _prefixes;
+        private int[] _namespaces;
+        private int[] _uris;
+        private int[] _ids;
+
+        internal int GetNameId(OfficeXmlNamespaces.Table table, string localName, string? prefix, int namespaceId, int uriId) {
+            if (_locals == null) {
+                _locals = new string?[Size];
+                _prefixes = new string?[Size];
+                _namespaces = new int[Size];
+                _uris = new int[Size];
+                _ids = new int[Size];
+            }
+            int length = localName.Length;
+            int hash = length == 0 ? 0 : (length * 31 + localName[0]) * 31 + localName[length - 1];
+            int slot = (hash * 31 + namespaceId * 7 + (prefix?.Length ?? 0)) & (Size - 1);
+            if (ReferenceEquals(_locals[slot], localName) && ReferenceEquals(_prefixes[slot], prefix)
+                && _namespaces[slot] == namespaceId && _uris[slot] == uriId) {
+                return _ids[slot];
+            }
+            int id = table.GetNameId(localName, prefix, namespaceId, uriId);
+            _locals[slot] = localName;
+            _prefixes[slot] = prefix;
+            _namespaces[slot] = namespaceId;
+            _uris[slot] = uriId;
+            _ids[slot] = id;
+            return id;
+        }
+    }
+
     private struct Node {
         internal OfficeXmlTreeNodeKind Kind;
         internal byte Flags;
@@ -723,7 +874,7 @@ internal sealed partial class OfficeXmlTree {
     }
 
     private ref Span SourceSpan(int node) {
-        if (node >= _spans.Length) Array.Resize(ref _spans, _nodes.Length);
+        if (node >= _spans.Length) Grow(ref _spans, _nodes.Length);
         return ref _spans[node];
     }
 

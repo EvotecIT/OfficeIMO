@@ -11,7 +11,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Provides access to the document background settings.
         /// </summary>
-        public WordBackground Background { get; set; } = null!;
+        public WordBackground Background {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _background;
+            }
+            set => _background = value;
+        }
+
+        private WordBackground _background = null!;
 
         /// <summary>
         /// Indicates whether the document passes Open XML validation.
@@ -55,7 +63,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets compatibility settings for the document.
         /// </summary>
-        public WordCompatibilitySettings CompatibilitySettings { get; set; } = null!;
+        public WordCompatibilitySettings CompatibilitySettings {
+            get {
+                if (_ownedModel != null) OpenSdkPackage(null);
+                return _compatibilitySettings;
+            }
+            set => _compatibilitySettings = value;
+        }
+
+        private WordCompatibilitySettings _compatibilitySettings = null!;
 
         internal void NotifyTableOfContentUpdateQueued(bool enabledUpdateFieldsOnOpen = false) {
             _tableOfContentUpdateQueued = true;

@@ -73,6 +73,8 @@ namespace OfficeIMO.Word {
                 bool modified = false;
                 foreach (var relationship in relationships) {
                     var targetAttribute = relationship.Attribute("Target");
+                    // An external target is a location outside the package, not a part name.
+                    if (string.Equals((string?)relationship.Attribute("TargetMode"), "External", StringComparison.Ordinal)) continue;
                     if (targetAttribute != null) {
                         if (removeWordPrefix && targetAttribute.Value.StartsWith("/word/", StringComparison.Ordinal)) {
                             targetAttribute.Value = targetAttribute.Value.Substring(6); // Remove "/word/"

@@ -389,6 +389,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointChartGrouping value) => GetToken(value, PowerPointChartGroupingTokens);
+
     private static readonly string[] PowerPointLineEndLengthTokens = {
         "sm",
         "med",
@@ -413,6 +415,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointLineEndLength value) => GetToken(value, PowerPointLineEndLengthTokens);
+
     private static readonly string[] PowerPointLineEndWidthTokens = {
         "sm",
         "med",
@@ -436,6 +440,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         value = index < 0 ? default : (PowerPointLineEndWidth)index;
         return index >= 0;
     }
+
+    internal static string ToOpenXmlToken(this PowerPointLineEndWidth value) => GetToken(value, PowerPointLineEndWidthTokens);
 
     private static readonly string[] PowerPointLineDashStyleTokens = {
         "solid",
@@ -469,6 +475,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointLineDashStyle value) => GetToken(value, PowerPointLineDashStyleTokens);
+
     private static readonly string[] PowerPointRectangleAlignmentTokens = {
         "tl",
         "t",
@@ -499,6 +507,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointRectangleAlignment value) => GetToken(value, PowerPointRectangleAlignmentTokens);
+
     private static readonly string[] PowerPointTextAlignmentTokens = {
         "l",
         "ctr",
@@ -527,6 +537,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointTextAlignment value) => GetToken(value, PowerPointTextAlignmentTokens);
+
     private static readonly string[] PowerPointTextVerticalAlignmentTokens = {
         "t",
         "ctr",
@@ -550,6 +562,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         value = index < 0 ? default : (PowerPointTextVerticalAlignment)index;
         return index >= 0;
     }
+
+    internal static string ToOpenXmlToken(this PowerPointTextVerticalAlignment value) => GetToken(value, PowerPointTextVerticalAlignmentTokens);
 
     private static readonly string[] PowerPointNumberingSchemeTokens = {
         "alphaLcParenBoth",
@@ -613,6 +627,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointNumberingScheme value) => GetToken(value, PowerPointNumberingSchemeTokens);
+
     private static readonly string[] PowerPointUnderlineStyleTokens = {
         "none",
         "words",
@@ -652,6 +668,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointUnderlineStyle value) => GetToken(value, PowerPointUnderlineStyleTokens);
+
     private static readonly string[] PowerPointTextDirectionTokens = {
         "horz",
         "vert",
@@ -680,6 +698,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointTextDirection value) => GetToken(value, PowerPointTextDirectionTokens);
+
     private static readonly string[] PowerPointAnimationCommandTokens = {
         "evt",
         "call",
@@ -704,6 +724,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointAnimationCommand value) => GetToken(value, PowerPointAnimationCommandTokens);
+
     private static readonly string[] PowerPointPlaceholderDirectionTokens = {
         "horz",
         "vert",
@@ -726,6 +748,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         value = index < 0 ? default : (PowerPointPlaceholderDirection)index;
         return index >= 0;
     }
+
+    internal static string ToOpenXmlToken(this PowerPointPlaceholderDirection value) => GetToken(value, PowerPointPlaceholderDirectionTokens);
 
     private static readonly string[] PowerPointOleFollowColorSchemeTokens = {
         "none",
@@ -751,6 +775,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointOleFollowColorScheme value) => GetToken(value, PowerPointOleFollowColorSchemeTokens);
+
     private static readonly string[] PowerPointPlaceholderSizeTokens = {
         "full",
         "half",
@@ -774,6 +800,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         value = index < 0 ? default : (PowerPointPlaceholderSize)index;
         return index >= 0;
     }
+
+    internal static string ToOpenXmlToken(this PowerPointPlaceholderSize value) => GetToken(value, PowerPointPlaceholderSizeTokens);
 
     private static readonly string[] PowerPointPlaceholderTypeTokens = {
         "title",
@@ -812,6 +840,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointPlaceholderType value) => GetToken(value, PowerPointPlaceholderTypeTokens);
+
     private static readonly string[] PowerPointSlideSizeTypeTokens = {
         "screen4x3",
         "letter",
@@ -849,6 +879,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this PowerPointSlideSizeType value) => GetToken(value, PowerPointSlideSizeTypeTokens);
+
     private static readonly string[] OfficeChartDisplayUnitTokens = {
         "hundreds",
         "thousands",
@@ -879,6 +911,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this OfficeChartDisplayUnit value) => GetToken(value, OfficeChartDisplayUnitTokens);
+
     private static readonly string[] OfficeChartAxisCrossBetweenTokens = {
         "between",
         "midCat",
@@ -901,6 +935,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         value = index < 0 ? default : (OfficeChartAxisCrossBetween)index;
         return index >= 0;
     }
+
+    internal static string ToOpenXmlToken(this OfficeChartAxisCrossBetween value) => GetToken(value, OfficeChartAxisCrossBetweenTokens);
 
     private static readonly string[] OfficeChartAxisCrossingPositionTokens = {
         "autoZero",
@@ -925,6 +961,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         value = index < 0 ? default : (OfficeChartAxisCrossingPosition)index;
         return index >= 0;
     }
+
+    internal static string ToOpenXmlToken(this OfficeChartAxisCrossingPosition value) => GetToken(value, OfficeChartAxisCrossingPositionTokens);
 
     private static readonly string[] OfficeChartDataLabelPositionTokens = {
         "bestFit",
@@ -956,6 +994,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this OfficeChartDataLabelPosition value) => GetToken(value, OfficeChartDataLabelPositionTokens);
+
     private static readonly string[] OfficeChartLegendPositionTokens = {
         "b",
         "tr",
@@ -981,6 +1021,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         value = index < 0 ? default : (OfficeChartLegendPosition)index;
         return index >= 0;
     }
+
+    internal static string ToOpenXmlToken(this OfficeChartLegendPosition value) => GetToken(value, OfficeChartLegendPositionTokens);
 
     private static readonly string[] OfficeChartMarkerShapeTokens = {
         "auto",
@@ -1015,6 +1057,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this OfficeChartMarkerShape value) => GetToken(value, OfficeChartMarkerShapeTokens);
+
     private static readonly string[] OfficeChartAxisTickLabelPositionTokens = {
         "high",
         "low",
@@ -1039,6 +1083,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         value = index < 0 ? default : (OfficeChartAxisTickLabelPosition)index;
         return index >= 0;
     }
+
+    internal static string ToOpenXmlToken(this OfficeChartAxisTickLabelPosition value) => GetToken(value, OfficeChartAxisTickLabelPositionTokens);
 
     private static readonly string[] OfficeChartTrendlineTypeTokens = {
         "exp",
@@ -1067,6 +1113,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         return index >= 0;
     }
 
+    internal static string ToOpenXmlToken(this OfficeChartTrendlineType value) => GetToken(value, OfficeChartTrendlineTypeTokens);
+
     private static readonly string[] OfficeLineMarkerKindTokens = {
         "none",
         "triangle",
@@ -1093,6 +1141,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         value = index < 0 ? default : (OfficeLineMarkerKind)index;
         return index >= 0;
     }
+
+    internal static string ToOpenXmlToken(this OfficeLineMarkerKind value) => GetToken(value, OfficeLineMarkerKindTokens);
 
     private static readonly string[] OfficePresetShapeTypeTokens = {
         "line",
@@ -1301,6 +1351,8 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
         value = index < 0 ? default : (OfficePresetShapeType)index;
         return index >= 0;
     }
+
+    internal static string ToOpenXmlToken(this OfficePresetShapeType value) => GetToken(value, OfficePresetShapeTypeTokens);
 
     private static string GetToken<TEnum>(TEnum value, string[] tokens) where TEnum : struct, Enum {
         int index = Convert.ToInt32(value, CultureInfo.InvariantCulture);
