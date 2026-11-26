@@ -187,24 +187,22 @@ public partial class Excel {
     [Fact]
     public async Task OpenReader_CanceledReadDuringTheSwitchCanBeRetried() {
         int markupRow = HandoverRows - 5_000;
-        // Trailing content makes the full check of the switch long enough for the cancellation to land inside it.
-        string path = CreateHandoverWorkbook(markupRow, "<![CDATA[late & cdata]]>", dimensionColumns: "B",
-            trailingWhitespaceBytes: 65 * 1024 * 1024);
+        string path = CreateHandoverWorkbook(markupRow, "<![CDATA[late & cdata]]>", dimensionColumns: "B");
+        using var cancellation = new CancellationTokenSource();
+        bool canceled = false;
         try {
             using DbDataReader expected = ExcelDocument.OpenReader(path, new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true });
             using DbDataReader actual = ExcelDocument.OpenReader(path);
+            // Cancels the read that starts the switch, inside it.
+            ExcelSheetReader.HandoverStartingForTests.Value = cancellation.Cancel;
             int rows = 0;
             while (expected.Read()) {
                 bool read;
-                if (Math.Abs(rows + 2 - markupRow) <= 2) {
-                    using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(5));
-                    try {
-                        read = await actual.ReadAsync(cancellation.Token);
-                    } catch (OperationCanceledException) {
-                        read = await actual.ReadAsync(CancellationToken.None);
-                    }
-                } else {
-                    read = actual.Read();
+                try {
+                    read = await actual.ReadAsync(canceled ? CancellationToken.None : cancellation.Token);
+                } catch (OperationCanceledException) when (!canceled) {
+                    canceled = true;
+                    read = await actual.ReadAsync(CancellationToken.None);
                 }
                 Assert.True(read);
                 rows++;
@@ -214,6 +212,64 @@ public partial class Excel {
             }
             Assert.False(actual.Read());
             Assert.Equal(HandoverRows - 1, rows);
+            // Only readers that check while reading switch mid-read.
+            Assert.Equal(ChecksWhileReading, canceled);
+        } finally {
+            ExcelSheetReader.HandoverStartingForTests.Value = null;
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// Rows are returned before the worksheet is fully checked only when they are SpreadsheetML rows; a worksheet in
+    /// another namespace fails before the first row, as when validating first.
+    /// </summary>
+    [Fact]
+    public void OpenReader_WorksheetInAnotherNamespaceFailsBeforeTheFirstRow() {
+        string path = CreateHandoverWorkbook(markupRow: 0, markupText: string.Empty, dimensionColumns: "B", worksheetNamespace: "urn:not-spreadsheetml");
+        try {
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
+            Assert.IsType<InvalidDataException>(ReadUntilError(reader, out int rows));
+            Assert.Equal(0, rows);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>A worksheet with tables that switches to the general XML reader late keeps the same values.</summary>
+    [Fact]
+    public void OpenReader_TableWorksheetSwitchingLateKeepsTheSameValues() {
+        int markupRow = HandoverRows - 5_000;
+        string path = CreateHandoverWorkbook(markupRow, "<![CDATA[late & cdata]]>", dimensionColumns: "B",
+            afterSheetData: "<tableParts count=\"0\"/>");
+        try {
+            AssertReadsLikeValidatingFirst(path, markupRow, "late & cdata");
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// In a worksheet with tables, a cell outside the declared dimension after a late switch to the general XML reader
+    /// fails the read instead of being skipped.
+    /// </summary>
+    [Fact]
+    public void OpenReader_TableWorksheetCellOutsideTheDimensionAfterTheSwitchFails() {
+        int markupRow = HandoverRows - 5_000;
+        string path = CreateHandoverWorkbook(markupRow, "<![CDATA[late & cdata]]>", dimensionColumns: "B",
+            extraCellRow: HandoverRows - 100, afterSheetData: "<tableParts count=\"0\"/>");
+        try {
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
+            Exception? failure = ReadUntilError(reader, out int rows);
+            if (!ChecksWhileReading) {
+                // Checked before the first row (.NET Framework): the table keeps its declared columns.
+                Assert.Null(failure);
+                Assert.Equal(HandoverRows - 1, rows);
+                return;
+            }
+            Assert.Contains(nameof(ExcelReaderOptions.ValidateWorksheetBeforeFirstRow),
+                Assert.IsType<InvalidDataException>(failure).Message);
+            Assert.True(rows > 0 && rows < markupRow);
         } finally {
             File.Delete(path);
         }
@@ -238,10 +294,11 @@ public partial class Excel {
 
     private static string CreateHandoverWorkbook(int markupRow, string markupText, string dimensionColumns,
         int trailingWhitespaceBytes = 0, int extraCellRow = 0, int extraRows = 0, string markupRowAttributes = "",
-        int attributedFormulaRow = 0) {
+        int attributedFormulaRow = 0, string worksheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+        string afterSheetData = "") {
         string path = CreateCompactFastPathWorkbook();
         var xml = new StringBuilder(HandoverRows * 120);
-        xml.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><dimension ref=\"A1:")
+        xml.Append("<worksheet xmlns=\"").Append(worksheetNamespace).Append("\"><dimension ref=\"A1:")
             .Append(dimensionColumns).Append(HandoverRows.ToString(CultureInfo.InvariantCulture)).Append("\"/><sheetData>");
         for (int row = 1; row <= HandoverRows + extraRows; row++) {
             string r = row.ToString(CultureInfo.InvariantCulture);
@@ -256,7 +313,7 @@ public partial class Excel {
         }
         xml.Append("</sheetData>");
         byte[] head = Encoding.UTF8.GetBytes(xml.ToString());
-        byte[] tail = Encoding.UTF8.GetBytes("</worksheet>");
+        byte[] tail = Encoding.UTF8.GetBytes(afterSheetData + "</worksheet>");
         using (ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Update)) {
             archive.GetEntry("xl/worksheets/sheet1.xml")!.Delete();
             using Stream destination = archive.CreateEntry("xl/worksheets/sheet1.xml", CompressionLevel.Optimal).Open();

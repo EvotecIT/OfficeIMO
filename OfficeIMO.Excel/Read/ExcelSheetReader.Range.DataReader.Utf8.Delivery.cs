@@ -89,6 +89,7 @@ namespace OfficeIMO.Excel {
             private void ThrowIfHandoverFailed() => _handoverFailure?.Throw();
 
             private void StartXmlRowsAfterHandover(CancellationToken cancellationToken) {
+                HandoverStartingForTests.Value?.Invoke();
                 // The indexed row is complete; XML mode must not skip content for it.
                 ReleaseCurrentValueReferences();
                 _currentRow = null;
@@ -114,9 +115,11 @@ namespace OfficeIMO.Excel {
                     _owner._usedRangeA1 = cachedRange ?? _owner._usedRangeA1;
                 }
                 // Rows were returned, so the worksheet has cells. No bounds means the check could not collect them,
-                // as for worksheets with tables, and proved no row order either.
-                if (cellRange == null)
-                    rowsStrictlyIncreasing = _owner.RowsAreSortedWithinRangeXmlFast(_firstRow, _lastRow, cancellationToken);
+                // as for worksheets with tables, and proved no row order either: a separate scan supplies both. Table
+                // extents may include empty rows, so those keep the declared last row.
+                bool boundsFromCheck = cellRange != null;
+                if (!boundsFromCheck)
+                    rowsStrictlyIncreasing = _owner.ScanRowOrderAndCellRangeXml(cancellationToken, out cellRange);
                 if (!rowsStrictlyIncreasing) {
                     // Rows before the next one were already returned in file order.
                     throw new InvalidDataException(
@@ -130,7 +133,7 @@ namespace OfficeIMO.Excel {
                             $"Worksheet '{_owner._sheetName}' has cells outside its declared dimension " +
                             "after rows inside it were returned. Read it with ExcelReaderOptions.ValidateWorksheetBeforeFirstRow enabled.");
                     }
-                    _lastRow = usedLastRow;
+                    if (boundsFromCheck) _lastRow = usedLastRow;
                 }
                 Stream stream = _owner.OpenReaderWorksheetStream(cancellationToken);
                 try {

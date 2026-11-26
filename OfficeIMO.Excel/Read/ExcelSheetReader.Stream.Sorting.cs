@@ -6,6 +6,46 @@ namespace OfficeIMO.Excel {
     /// Streaming APIs for large ranges.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
+        /// <summary>Runs on a data reader's read that starts a switch to the general XML reader; tests use it to cancel that read.</summary>
+        internal static readonly AsyncLocal<Action?> HandoverStartingForTests = new();
+
+        /// <summary>
+        /// Whether the worksheet's rows are in increasing order, and the actual range of its cells, read from the reader's
+        /// own worksheet stream. Used when the validation scan collects no bounds, as for worksheets with tables.
+        /// </summary>
+        private bool ScanRowOrderAndCellRangeXml(CancellationToken ct, out string? cellRange) {
+            cellRange = null;
+            using Stream stream = OpenReaderWorksheetStream(ct);
+            RewindWorksheetStream(stream);
+            using XmlReader reader = OpenWorksheetXmlReader(stream);
+            var rows = new WorksheetXmlRowSelector();
+            var bounds = new WorksheetRangeAccumulator();
+            bool sorted = true;
+            int previousRow = 0;
+            int rowDepth = -1;
+            while (reader.Read()) {
+                ct.ThrowIfCancellationRequested();
+                if (rowDepth >= 0 && reader.Depth <= rowDepth) {
+                    bounds.EndRow();
+                    rowDepth = -1;
+                }
+                if (rows.IsCellElement(reader)) {
+                    bounds.AddCell(ReadXmlReferenceAttribute(reader).Text);
+                    continue;
+                }
+                if (!rows.IsRowElement(reader)) continue;
+                int explicitRow = bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text);
+                int row = explicitRow > 0 ? explicitRow : previousRow + 1;
+                if (row <= previousRow) sorted = false;
+                previousRow = row;
+                if (reader.IsEmptyElement) bounds.EndRow();
+                else rowDepth = reader.Depth;
+            }
+            if (rowDepth >= 0) bounds.EndRow();
+            if (bounds.TryGetReference(out string range)) cellRange = range;
+            return sorted;
+        }
+
         private bool RowsAreSortedWithinRangeXmlFast(int firstRow, int lastRow, CancellationToken token) {
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);

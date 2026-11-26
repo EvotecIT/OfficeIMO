@@ -166,6 +166,8 @@ namespace OfficeIMO.Excel {
                 // Without a declared dimension the columns are known only after the whole worksheet; such
                 // worksheets are validated before the first row.
                 if (!declared) throw new RowBatchDeclinedException();
+                // The fast checks match element names only; rows are returned early only when they are SpreadsheetML.
+                if (!WorksheetRootBindsSpreadsheetNamespace()) throw new RowBatchDeclinedException();
                 // The batches held at once stay within the buffered-cell and chunk-row limits, so wide sheets flush sooner.
                 int rows = Math.Min(RowBatchRows, _options.MaxDataReaderChunkRows);
                 rows = (int)Math.Max(1L, Math.Min(rows, (long)_options.MaxDataReaderBufferedCells / RowBatchChannel.MaximumBatches / fieldCount));
