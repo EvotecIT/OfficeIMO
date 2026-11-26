@@ -4,7 +4,8 @@ namespace OfficeIMO.Reader.Epub;
 
 internal static partial class EpubReaderAdapter {
     internal static ReaderHandlerRegistration CreateImportHandler(string format, string[] extensions, ReaderInputKind kind,
-        long maxInputBytes, Func<Stream, string, long, CancellationToken, OfficeConversionResult<EpubPublication>> import) {
+        long maxInputBytes, Func<Stream, string, long, CancellationToken, OfficeConversionResult<EpubPublication>> import,
+        Func<Stream, string?, long, CancellationToken, bool> probe) {
         OfficeDocumentReadResult ReadPath(string path, ReaderOptions options, CancellationToken token) {
             using var input = File.OpenRead(path);
             return ReadImport(input, BuildSourceMetadataFromPath(path, options.ComputeHashes), options, token);
@@ -32,6 +33,7 @@ internal static partial class EpubReaderAdapter {
                 Code = item.Code,
                 Message = item.Message,
                 Source = item.Format,
+                Location = new ReaderLocation { Path = source.Path, BlockAnchor = item.Location },
                 Severity = item.Severity switch {
                     OfficeDiagnosticSeverity.Information => OfficeDocumentDiagnosticSeverity.Information,
                     OfficeDiagnosticSeverity.Error => OfficeDocumentDiagnosticSeverity.Error,
@@ -50,6 +52,8 @@ internal static partial class EpubReaderAdapter {
             UseDetectedKindFallback = false,
             DefaultMaxInputBytes = maxInputBytes,
             MaxInputBytesCeiling = maxInputBytes,
+            ExtensionValidationProbeStream = (stream, name, options, token) =>
+                probe(stream, name, Math.Min(options.MaxInputBytes ?? maxInputBytes, maxInputBytes), token),
             ReadDocumentPath = ReadPath,
             ReadDocumentStream = ReadStream,
             ReadPath = (path, options, token) => ReadPath(path, options, token).Chunks,

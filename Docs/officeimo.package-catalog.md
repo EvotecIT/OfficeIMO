@@ -681,6 +681,12 @@ The [notebook support matrix](../OfficeIMO.Notebook/SUPPORT.md) specifies the su
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no third-party EPUB engine.
 
+#### [OfficeIMO.Fb2](../OfficeIMO.Fb2/README.md)
+
+FictionBook 2 input through Reader and the Workflows conversions to EPUB, PDF, HTML,
+and Markdown. See the [support matrix](../OfficeIMO.Fb2/SUPPORT.md) for the read profile
+and output limits.
+
 #### [OfficeIMO.Epub.Image](../OfficeIMO.Epub.Image/README.md)
 
 - [x] Direct chapter-to-image export through the shared HTML rendering scene

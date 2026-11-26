@@ -119,7 +119,9 @@ public enum ReaderInputKind {
     /// <summary>Microsoft Publisher publication.</summary>
     Publisher = 30,
     /// <summary>TOML configuration file, such as pyproject.toml or Cargo.toml.</summary>
-    Toml = 31
+    Toml = 31,
+    /// <summary>FictionBook 2 ebook input.</summary>
+    Fb2 = 32
 }
 
 /// <summary>

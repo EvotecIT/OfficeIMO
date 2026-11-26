@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 379,
-    "productionComponentCount": 180,
-    "testProjectCount": 70,
+    "projectCount": 381,
+    "productionComponentCount": 181,
+    "testProjectCount": 71,
     "benchmarkProjectCount": 49,
     "validationProjectCount": 81,
     "apiReferenceCount": 129,
     "conceptualPageCount": 213,
-    "conceptualWordCount": 122604
+    "conceptualWordCount": 122634
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 35,
       "componentIndexes": [
-        115,
         116,
         117,
         118,
@@ -50,12 +49,13 @@
         146,
         147,
         148,
-        149
+        149,
+        150
       ]
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 41,
+      "componentCount": 42,
       "componentIndexes": [
         1,
         10,
@@ -72,10 +72,10 @@
         32,
         33,
         34,
-        58,
-        73,
+        43,
+        59,
         74,
-        87,
+        75,
         88,
         89,
         90,
@@ -85,19 +85,20 @@
         94,
         95,
         96,
-        111,
-        113,
+        97,
+        112,
         114,
-        157,
+        115,
         158,
         159,
-        161,
+        160,
         162,
-        174,
+        163,
         175,
         176,
         177,
-        178
+        178,
+        179
       ]
     },
     {
@@ -110,25 +111,25 @@
         27,
         28,
         29,
-        69,
         70,
         71,
         72,
-        83,
+        73,
         84,
         85,
-        112,
-        153
+        86,
+        113,
+        154
       ]
     },
     {
       "name": "Google Workspace",
       "componentCount": 4,
       "componentIndexes": [
-        43,
         44,
         45,
-        46
+        46,
+        47
       ]
     },
     {
@@ -143,14 +144,13 @@
         40,
         41,
         42,
-        104,
         105,
         106,
         107,
         108,
         109,
         110,
-        163,
+        111,
         164,
         165,
         166,
@@ -158,14 +158,15 @@
         168,
         169,
         170,
-        171
+        171,
+        172
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        179
+        180
       ]
     },
     {
@@ -175,7 +176,6 @@
         7,
         8,
         9,
-        47,
         48,
         49,
         50,
@@ -186,31 +186,32 @@
         55,
         56,
         57,
-        60,
+        58,
         61,
         62,
         63,
         64,
         65,
-        97,
+        66,
         98,
         99,
         100,
         101,
         102,
         103,
-        150,
+        104,
         151,
-        152
+        152,
+        153
       ]
     },
     {
       "name": "Rendering surfaces",
       "componentCount": 3,
       "componentIndexes": [
-        66,
         67,
-        68
+        68,
+        69
       ]
     },
     {
@@ -228,8 +229,7 @@
         21,
         22,
         23,
-        59,
-        75,
+        60,
         76,
         77,
         78,
@@ -237,13 +237,14 @@
         80,
         81,
         82,
-        86,
-        154,
+        83,
+        87,
         155,
         156,
-        160,
-        172,
-        173
+        157,
+        161,
+        173,
+        174
       ]
     }
   ],
@@ -588,7 +589,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1393,
+      "sourceFileCount": 1395,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -866,7 +867,7 @@
       "description": "Bounded EPUB 2/3 reading, authoring, editing and package preservation for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Epub/OfficeIMO.Epub.csproj",
-      "sourceFileCount": 132,
+      "sourceFileCount": 133,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/epub/",
       "apiUrl": "/api/epub/",
@@ -904,7 +905,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1486,
+      "sourceFileCount": 1499,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -1042,6 +1043,25 @@
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
+    },
+    {
+      "name": "OfficeIMO.Fb2",
+      "packageId": "OfficeIMO.Fb2",
+      "category": "Formats and interoperability",
+      "description": "Read FictionBook 2 XML and FB2.ZIP with bounded EPUB conversion.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Fb2/OfficeIMO.Fb2.csproj",
+      "sourceFileCount": 2,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Fb2",
       "targetFrameworks": [
         "netstandard2.0",
         "net8.0",
@@ -1428,7 +1448,7 @@
       "description": "Markdown builder, typed reader/AST, and HTML renderer for .NET with GitHub-like output and an optional portable reader profile.",
       "kind": "package",
       "projectPath": "OfficeIMO.Markdown/OfficeIMO.Markdown.csproj",
-      "sourceFileCount": 397,
+      "sourceFileCount": 399,
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/markdown/",
       "apiUrl": "/api/markdown/",
@@ -1752,7 +1772,7 @@
       "description": "Run PowerShell cells in an explicitly started Jupyter notebook session.",
       "kind": "package",
       "projectPath": "OfficeIMO.Notebook.PowerShell/OfficeIMO.Notebook.PowerShell.csproj",
-      "sourceFileCount": 5,
+      "sourceFileCount": 8,
       "referencingTestProjectCount": 1,
       "docsUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Notebook.PowerShell/README.md",
       "apiUrl": null,
@@ -2072,7 +2092,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1817,
+      "sourceFileCount": 1819,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -2205,7 +2225,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 576,
+      "sourceFileCount": 592,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -2585,7 +2605,7 @@
       "description": "EPUB adapter for OfficeIMO.Reader modular ingestion.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Epub/OfficeIMO.Reader.Epub.csproj",
-      "sourceFileCount": 9,
+      "sourceFileCount": 10,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-epub/",
@@ -3187,7 +3207,7 @@
       "description": "OfficeIMO Studio document engine with a C interface for native host applications.",
       "kind": "library",
       "projectPath": "OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj",
-      "sourceFileCount": 8,
+      "sourceFileCount": 10,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -3312,7 +3332,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 897,
+      "sourceFileCount": 912,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -3483,7 +3503,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 252,
+      "sourceFileCount": 253,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/workflows/",
@@ -3613,7 +3633,7 @@
       "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
       "kind": "library",
       "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
-      "sourceFileCount": 818,
+      "sourceFileCount": 819,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,

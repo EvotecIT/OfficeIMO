@@ -1,7 +1,10 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Epub;
 
 // Keep Reader and the output adapters on the same spine, resource and navigation model.
 internal static class EpubImportedPublication {
+    private static readonly XNamespace Xhtml = "http://www.w3.org/1999/xhtml";
     internal static EpubDocument Open(EpubPublication publication, CancellationToken token) {
         using var package = new MemoryStream();
         publication.WriteStaged(package, new EpubSaveOptions(), token);
@@ -19,7 +22,7 @@ internal static class EpubImportedPublication {
     }
 
     internal static void WriteHtml(EpubDocument book, Stream destination, List<OfficeDiagnostic> diagnostics,
-        CancellationToken token) {
+        CancellationToken token, bool markdownAnchors = false) {
         var chapters = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (EpubChapter chapter in book.Chapters) {
             if (!chapters.ContainsKey(chapter.Path))
@@ -42,12 +45,11 @@ internal static class EpubImportedPublication {
         writer.WriteAttributeString("charset", "utf-8");
         writer.WriteEndElement();
         writer.WriteElementString("title", book.Title);
-        foreach (EpubMetadataEntry metadata in book.Metadata) {
+        foreach ((string name, string value) in MetadataFields(book)) {
             token.ThrowIfCancellationRequested();
-            if (metadata.Kind != EpubMetadataKind.DublinCore || string.IsNullOrWhiteSpace(metadata.Value)) continue;
             writer.WriteStartElement("meta");
-            writer.WriteAttributeString("name", "dc." + metadata.Name);
-            writer.WriteAttributeString("content", metadata.Value);
+            writer.WriteAttributeString("name", name);
+            writer.WriteAttributeString("content", value);
             writer.WriteEndElement();
         }
         writer.WriteEndElement();
@@ -62,13 +64,14 @@ internal static class EpubImportedPublication {
         foreach (EpubChapter chapter in book.Chapters) {
             token.ThrowIfCancellationRequested();
             writer.WriteStartElement("section");
-            writer.WriteAttributeString("id", chapters[chapter.Path]);
+            if (markdownAnchors) WriteAnchor(chapters[chapter.Path]);
+            else writer.WriteAttributeString("id", chapters[chapter.Path]);
             if (chapter.Html is { Length: > 0 } markup) {
                 using var input = XmlReader.Create(new StringReader(markup), new XmlReaderSettings {
                     DtdProcessing = DtdProcessing.Ignore, XmlResolver = null
                 });
                 XDocument content = XDocument.Load(input, LoadOptions.PreserveWhitespace);
-                XElement? body = content.Root?.Element(XName.Get("body", "http://www.w3.org/1999/xhtml"));
+                XElement? body = content.Root?.Element(Xhtml + "body");
                 foreach (XNode node in body?.Nodes() ?? Enumerable.Empty<XNode>()) WriteNode(node, chapter.Path);
             } else {
                 writer.WriteElementString("p", chapter.Text);
@@ -102,22 +105,36 @@ internal static class EpubImportedPublication {
                 return;
             }
             if (node is not XElement element) return;
-            writer.WriteStartElement(element.Name.LocalName);
+            string tag = element.Name.LocalName;
+            if (element.Name.Namespace != Xhtml || !IsStaticElement(tag)) {
+                Omit("EBOOK_HTML_ELEMENT_OMITTED", "An element is outside the static HTML projection.", tag);
+                return;
+            }
+            if (markdownAnchors && (string?)element.Attribute("id") is { } id)
+                WriteAnchor(Anchor(chapters[chapterPath], id));
+            writer.WriteStartElement(tag);
             foreach (XAttribute attribute in element.Attributes()) {
                 if (attribute.IsNamespaceDeclaration) continue;
                 string name = attribute.Name.LocalName;
                 string? value = attribute.Value;
-                if (name == "id") value = Anchor(chapters[chapterPath], value);
+                if ((attribute.Name.Namespace != XNamespace.None && attribute.Name != XNamespace.Xml + "lang") ||
+                    name is not ("id" or "lang" or "title" or "alt" or "src" or "href" or "width" or "height" or "colspan" or "rowspan")) {
+                    Omit("EBOOK_HTML_ATTRIBUTE_OMITTED", "An attribute is outside the static HTML projection.", name);
+                    continue;
+                }
+                if ((name == "src" && tag != "img") || (name == "href" && tag != "a")) continue;
+                if (name == "id") {
+                    if (markdownAnchors) continue;
+                    value = Anchor(chapters[chapterPath], value);
+                }
                 if (name is "src" or "href") {
                     EpubReference reference = EpubReference.Resolve(chapterPath, value);
                     if (name == "src" && reference.ContainerPath is { } path && images.TryGetValue(path, out var data))
                         value = data.Value;
-                    else if (name == "href" && reference.ContainerPath is { } target && chapters.TryGetValue(target, out string? id))
-                        value = "#" + Anchor(id, reference.Fragment);
+                    else if (name == "href" && reference.ContainerPath is { } target && chapters.TryGetValue(target, out string? destinationId))
+                        value = "#" + Anchor(destinationId, reference.Fragment);
                     else if (name != "href" || !IsWebLink(value)) {
-                        if (diagnostics.Count < 1_000) diagnostics.Add(new OfficeDiagnostic("EBOOK_HTML_REFERENCE_OMITTED",
-                            OfficeDiagnosticSeverity.Warning, "The reference could not be included in the standalone HTML.", value,
-                            "OfficeIMO.Epub", OfficeConversionLossKind.Omission));
+                        Omit("EBOOK_HTML_REFERENCE_OMITTED", "The reference could not be included in the standalone HTML.", value);
                         value = null;
                     }
                 }
@@ -127,6 +144,40 @@ internal static class EpubImportedPublication {
             // XML empty-element syntax is inappropriate for non-void elements in text/html.
             if (element.Name.LocalName is "img" or "br" or "hr" or "wbr") writer.WriteEndElement();
             else writer.WriteFullEndElement();
+        }
+
+        void WriteAnchor(string id) {
+            writer.WriteStartElement("a");
+            writer.WriteAttributeString("id", id);
+            writer.WriteFullEndElement();
+        }
+
+        void Omit(string code, string message, string location) {
+            if (diagnostics.Count < 1_000) diagnostics.Add(new OfficeDiagnostic(code,
+                OfficeDiagnosticSeverity.Warning, message, location, "OfficeIMO.Epub", OfficeConversionLossKind.Omission));
+        }
+    }
+
+    private static bool IsStaticElement(string tag) => tag is
+        "p" or "div" or "span" or "section" or "article" or "aside" or "header" or "footer" or "nav" or
+        "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "a" or "br" or "hr" or "wbr" or "blockquote" or "ul" or "ol" or
+        "li" or "em" or "strong" or "b" or "i" or "u" or "s" or "sub" or "sup" or "code" or "pre" or "dfn" or "cite" or
+        "table" or "thead" or "tbody" or "tfoot" or "tr" or "td" or "th" or "caption" or "img" or "figure" or "figcaption" or
+        "dl" or "dt" or "dd" or "q";
+
+    internal static bool TryReadRaster(byte[] data, string? name, CancellationToken token, out OfficeImageInfo image) =>
+        OfficeImageReader.TryIdentifyByContent(data, name, token, out image) &&
+        image.Format is (OfficeImageFormat.Png or OfficeImageFormat.Jpeg or OfficeImageFormat.Gif or OfficeImageFormat.Webp) &&
+        image.Width > 0 && image.Height > 0 && (long)image.Width * image.Height <= 40_000_000 &&
+        OfficeImageReader.TryValidateContent(data, name, token, out image);
+
+    internal static IEnumerable<(string Name, string Value)> MetadataFields(EpubDocument book) {
+        foreach (EpubMetadataEntry item in book.Metadata) {
+            if (string.IsNullOrWhiteSpace(item.Value)) continue;
+            if (item.Kind == EpubMetadataKind.DublinCore)
+                yield return ("dc." + item.Name, item.Value);
+            else if (item.Property is "belongs-to-collection" or "group-position" or "collection-type")
+                yield return ("epub." + item.Property, item.Value);
         }
     }
 

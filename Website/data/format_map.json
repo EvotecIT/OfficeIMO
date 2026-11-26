@@ -131,6 +131,10 @@
       "family": "books"
     },
     {
+      "name": "FictionBook 2",
+      "family": "books"
+    },
+    {
       "name": "Book project",
       "family": "books"
     },
@@ -1245,6 +1249,62 @@
       ],
       "cmdlet": "Export-OfficeDocumentImage",
       "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Webp"
+    },
+    {
+      "id": "ebook-fb2-epub",
+      "source": "FictionBook 2",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-fb2-html",
+      "source": "FictionBook 2",
+      "target": "HTML",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-fb2-markdown",
+      "source": "FictionBook 2",
+      "target": "Markdown",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-fb2-pdf",
+      "source": "FictionBook 2",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
     },
     {
       "id": "email-eml-msg",

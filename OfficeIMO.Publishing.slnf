@@ -25,6 +25,8 @@
       "OfficeIMO.DocBook.Tests\\OfficeIMO.DocBook.Tests.csproj",
       "OfficeIMO.DocBook\\OfficeIMO.DocBook.csproj",
       "OfficeIMO.Epub.Image\\OfficeIMO.Epub.Image.csproj",
+      "OfficeIMO.Fb2\\OfficeIMO.Fb2.csproj",
+      "OfficeIMO.Fb2.Tests\\OfficeIMO.Fb2.Tests.csproj",
       "OfficeIMO.Epub\\OfficeIMO.Epub.csproj",
       "OfficeIMO.Excel\\OfficeIMO.Excel.csproj",
       "OfficeIMO.Html.AngleSharp\\OfficeIMO.Html.AngleSharp.csproj",

@@ -55,6 +55,7 @@
     <ProjectReference Include="..\OfficeIMO.Excel.Csv\OfficeIMO.Excel.Csv.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub.Image\OfficeIMO.Epub.Image.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Fb2\OfficeIMO.Fb2.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />

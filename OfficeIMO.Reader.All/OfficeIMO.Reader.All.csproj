@@ -32,6 +32,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.DocBook\OfficeIMO.Reader.DocBook.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Email\OfficeIMO.Reader.Email.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Epub\OfficeIMO.Reader.Epub.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Fb2\OfficeIMO.Fb2.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Excel\OfficeIMO.Reader.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.IWork\OfficeIMO.Reader.IWork.csproj" />

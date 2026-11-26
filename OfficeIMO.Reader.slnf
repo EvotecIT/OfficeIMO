@@ -13,6 +13,7 @@
       "OfficeIMO.DocBook\\OfficeIMO.DocBook.csproj",
       "OfficeIMO.Email.Html\\OfficeIMO.Email.Html.csproj",
       "OfficeIMO.Email\\OfficeIMO.Email.csproj",
+      "OfficeIMO.Fb2\\OfficeIMO.Fb2.csproj",
       "OfficeIMO.Epub\\OfficeIMO.Epub.csproj",
       "OfficeIMO.Excel\\OfficeIMO.Excel.csproj",
       "OfficeIMO.Html.AngleSharp\\OfficeIMO.Html.AngleSharp.csproj",

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Read FictionBook 2 XML and FB2.ZIP with bounded EPUB conversion.</Description>
+    <VersionPrefix>3.6.2</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageTags>ebook;fb2;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <LangVersion>Latest</LangVersion>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.All" />
+    <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Archives\OfficeIMO.Archives.csproj" />
+    <None Include="README.md" Pack="True" PackagePath="README.md" />
+    <None Include="SUPPORT.md" Pack="True" PackagePath="SUPPORT.md" />
+  </ItemGroup>
+</Project>

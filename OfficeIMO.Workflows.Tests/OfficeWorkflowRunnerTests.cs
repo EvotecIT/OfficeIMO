@@ -231,6 +231,27 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task ConvertsProviderBookUsingItsCompoundFilename() {
+        using var scope = new TestDirectory();
+        string output = Path.Combine(scope.Path, "book.epub");
+        string fixture = Path.Combine(AppContext.BaseDirectory, "Fixtures", "harbour.fb2.zip");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "ebook-fb2-epub",
+            InputPath = "content://provider/book",
+            InputStream = new OfficeWorkflowStreamInput("book.fb2.zip",
+                _ => Task.FromResult<Stream>(File.OpenRead(fixture))),
+            OutputPath = output
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Contains(result.Diagnostics, finding => finding.Code == "conversion-output-reopened");
+        using var artifact = File.OpenRead(output);
+        Assert.Equal("Harbour Signal", EpubPublication.Load(artifact).Title);
+    }
+
+    [Fact]
     public async Task ManuscriptProviderStreamUsesTheSelectedFilenameForItsTitle() {
         using var scope = new TestDirectory();
         byte[] source = Encoding.UTF8.GetBytes("A manuscript paragraph without a heading.");
