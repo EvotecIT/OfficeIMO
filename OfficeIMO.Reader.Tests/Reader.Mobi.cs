@@ -48,7 +48,8 @@ public sealed class ReaderMobiTests {
     [InlineData("Notes on %PDF- headers")]
     [InlineData("%PDF- headers")]
     [InlineData("ITSF notes")]
-    public void DetectKeepsPalmDocIdentityWhenTheTitleResemblesAnotherFormat(string title) {
+    [InlineData("MSCF notes")]
+    public async Task DetectKeepsPalmDocIdentityWhenTheTitleResemblesAnotherFormat(string title) {
         string path = Path.Combine(AppContext.BaseDirectory, "EbookFixtures", "harbour.pdb");
         byte[] bytes = File.ReadAllBytes(path);
         Array.Clear(bytes, 0, 32);
@@ -56,13 +57,16 @@ public sealed class ReaderMobiTests {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
         using var input = new MemoryStream(bytes, writable: false);
 
-        ReaderDetectionResult detected = reader.Detect(input, "renamed.pdf",
-            new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent });
+        var options = new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent, InspectContainers = true };
+        ReaderDetectionResult detected = reader.Detect(input, "renamed.pdf", options);
+        ReaderDetectionResult detectedAsync = await reader.DetectAsync(input, "renamed.pdf", options);
 
-        Assert.Equal(ReaderInputKind.Pdf, detected.ExtensionKind);
-        Assert.Equal(ReaderInputKind.Mobi, detected.ContentKind);
-        Assert.Equal(ReaderInputKind.Mobi, detected.Kind);
-        Assert.Contains("signature:palm-ebook", detected.Evidence);
+        Assert.All(new[] { detected, detectedAsync }, result => {
+            Assert.Equal(ReaderInputKind.Pdf, result.ExtensionKind);
+            Assert.Equal(ReaderInputKind.Mobi, result.ContentKind);
+            Assert.Equal(ReaderInputKind.Mobi, result.Kind);
+            Assert.Contains("signature:palm-ebook", result.Evidence);
+        });
     }
 
     [Fact]

@@ -352,13 +352,13 @@ internal static partial class DocumentReaderEngine {
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) {
                     candidate = containerCandidate;
                 }
-            } else if (IsOleCompound(prefix) && options.InspectContainers) {
+            } else if (candidate.Kind == ReaderInputKind.Unknown && options.InspectContainers && IsOleCompound(prefix)) {
                 candidate = restorePosition
                     ? InspectOfficeCompound(stream, originalPosition,
                         options.MaxContainerEntries)
                     : InspectOfficeCompound(prefix);
                 containerInspected = true;
-            } else if (IsCabinet(prefix) && options.InspectContainers) {
+            } else if (candidate.Kind == ReaderInputKind.Unknown && options.InspectContainers && IsCabinet(prefix)) {
                 candidate = restorePosition
                     ? InspectCabinetContainer(stream, originalPosition, options.MaxContainerEntries)
                     : InspectCabinetContainer(prefix, options.MaxContainerEntries);
@@ -403,13 +403,13 @@ internal static partial class DocumentReaderEngine {
                     cancellationToken).ConfigureAwait(false);
                 containerInspected = true;
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) candidate = containerCandidate;
-            } else if (IsOleCompound(prefix) && options.InspectContainers) {
+            } else if (candidate.Kind == ReaderInputKind.Unknown && options.InspectContainers && IsOleCompound(prefix)) {
                 candidate = restorePosition
                     ? InspectOfficeCompound(stream, originalPosition,
                         options.MaxContainerEntries, cancellationToken)
                     : InspectOfficeCompound(prefix);
                 containerInspected = true;
-            } else if (IsCabinet(prefix) && options.InspectContainers) {
+            } else if (candidate.Kind == ReaderInputKind.Unknown && options.InspectContainers && IsCabinet(prefix)) {
                 candidate = restorePosition
                     ? await InspectCabinetContainerAsync(
                         stream,
