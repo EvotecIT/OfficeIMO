@@ -115,7 +115,8 @@ namespace OfficeIMO.Excel {
             private CellFormats? _cellFormatsElement;
             private OpenXmlElement? _lastCellFormat;
             private int _numberFormatCount = -1;
-            private uint _nextNumberFormatId;
+            // Held wider than an ID, so the successor of the last one is not kept as a wrapped value.
+            private ulong _nextNumberFormatId;
             private readonly bool _saveOnDispose;
             private Stylesheet? _stylesheet;
             private bool _modified;
@@ -280,10 +281,12 @@ namespace OfficeIMO.Excel {
                         }
                     }
                     _numberFormatCount = formats.ChildElements.Count;
-                    _nextNumberFormatId = _numberFormatCount == 0 ? 164U : checked(maximumId + 1);
+                    _nextNumberFormatId = _numberFormatCount == 0 ? 164UL : maximumId + 1UL;
                 }
                 if (_numberFormatIds.TryGetValue(code, out uint existingId)) return existingId;
-                uint newId = _nextNumberFormatId++;
+                // Past the last ID the allocation throws rather than reuse a built-in one.
+                uint newId = checked((uint)_nextNumberFormatId);
+                _nextNumberFormatId++;
                 formats.Append(new NumberingFormat { NumberFormatId = newId, FormatCode = code });
                 _numberFormatIds.Add(code, newId);
                 formats.Count = (uint)++_numberFormatCount;

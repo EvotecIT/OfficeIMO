@@ -544,7 +544,17 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Diagnostics for the most recent save operation.
         /// </summary>
-        internal ExcelSaveDiagnostics LastSaveDiagnostics { get; private set; } = ExcelSaveDiagnostics.Standard("Workbook has not been saved yet.");
+        internal ExcelSaveDiagnostics LastSaveDiagnostics {
+            get => _lastSaveDiagnostics;
+            private set {
+                _lastSaveDiagnostics = value;
+                Interlocked.Increment(ref _saveDiagnosticsVersion);
+            }
+        }
+
+        private ExcelSaveDiagnostics _lastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Workbook has not been saved yet.");
+        // Counts diagnostics updates, so a save that reports after writing can tell whether another save reported meanwhile.
+        private int _saveDiagnosticsVersion;
 
         private const int StreamCopyBufferSize = 81920;
 

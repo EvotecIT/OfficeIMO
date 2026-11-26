@@ -170,10 +170,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     /// </summary>
     internal void ReplacePart(string partName, byte[] content, int length, bool pooled) {
         Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
-        part.Source?.Dispose();
-        part.Source = null;
-        ReturnContent(part);
-        part.Tree = null;
+        ReleaseStorage(part);
         part.Content = content;
         part.ContentLength = length;
         part.ContentPooled = pooled;
@@ -183,6 +180,15 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
             _contentTypes = null;
             _overrides = null;
         }
+    }
+
+    // Drops a part's tree, source bytes and content, returning whatever came from the array pool.
+    private void ReleaseStorage(Part part) {
+        if (_poolTrees) part.Tree?.ReleasePooledStorage();
+        part.Tree = null;
+        part.Source?.Dispose();
+        part.Source = null;
+        ReturnContent(part);
     }
 
     private static void ReturnContent(Part part) {
@@ -459,12 +465,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     }
 
     public void Dispose() {
-        foreach (Part part in _parts) {
-            if (_poolTrees) part.Tree?.ReleasePooledStorage();
-            part.Source?.Dispose();
-            part.Source = null;
-            ReturnContent(part);
-        }
+        foreach (Part part in _parts) ReleaseStorage(part);
         _zip?.Dispose();
     }
 
@@ -474,6 +475,8 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         if (_byIdentity.TryGetValue(identity, out Part? existing) && !existing.Deleted) throw new InvalidOperationException("The package already has the part '" + partName + "'.");
         var part = new Part(partName, partName.Substring(1));
         if (existing != null) {
+            // The deleted part leaves the list here, so Dispose would no longer return what it holds.
+            ReleaseStorage(existing);
             _parts[_parts.IndexOf(existing)] = part;
             _byIdentity[identity] = part;
         } else {

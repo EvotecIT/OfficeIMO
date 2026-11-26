@@ -244,6 +244,99 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AnItemWhoseTextDependsOnCompatibilityMarkupIsNotReused() {
+            byte[] source = CreateWorkbook();
+            XDocument table = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(source, "xl/sharedStrings.xml")));
+            int existing = table.Root!.Elements(Main + "si").Count();
+            XNamespace mc = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+            table.Root.Add(new XElement(Main + "si", new XAttribute(XNamespace.Xmlns + "mc", mc.NamespaceName),
+                new XElement(Main + "r", new XElement(Main + "t", "Alpha")),
+                new XElement(mc + "AlternateContent", new XElement(mc + "Fallback", new XElement(Main + "r", new XElement(Main + "t", "Beta"))))));
+            source = WithEntry(source, "xl/sharedStrings.xml", table.ToString(SaveOptions.DisableFormatting));
+
+            byte[] saved = SaveWithoutSdk(source, document => document.Sheets[0].Cell(6, 1).SetValue("Alpha"), out bool owned);
+
+            Assert.True(owned);
+            XElement sheet = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(saved, "xl/worksheets/sheet1.xml"))).Root!;
+            XElement alpha = sheet.Descendants(Main + "c").Single(cell => (string?)cell.Attribute("r") == "A6");
+            Assert.Equal((existing + 1).ToString(CultureInfo.InvariantCulture), alpha.Element(Main + "v")!.Value);
+        }
+
+        [Fact]
+        public void ACellReferenceWrittenAsACharacterReferenceKeepsItsColumn() {
+            byte[] source = WithEntry(CreateWorkbook(), "xl/worksheets/sheet1.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?><worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
+                + "<sheetData><row r=\"99\"><c r=\"&#90;99\"><v>7</v></c></row></sheetData></worksheet>");
+            byte[] saved = SaveWithoutSdk(source, document => document.Sheets[0].Cell(1, 1).SetValue(5), out _);
+
+            using var reread = ExcelDocument.Load(new MemoryStream(saved));
+            Assert.Equal(5d, reread.Sheets[0].Cell(1, 1).GetValue().Value);
+            Assert.Equal(7d, reread.Sheets[0].Cell(99, 26).GetValue().Value);
+            XElement sheet = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(saved, "xl/worksheets/sheet1.xml"))).Root!;
+            string? dimension = (string?)sheet.Element(Main + "dimension")?.Attribute("ref");
+            Assert.True(dimension == null || dimension == "A1:Z99", dimension);
+        }
+
+        [Fact]
+        public void ASaveOverTheInMemoryLimitWritesNothingAndKeepsTheChanges() {
+            using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
+            document.Sheets[0].Cell(2, 1).SetValue("Changed");
+            using var output = new MemoryStream();
+
+            Assert.Throws<InvalidDataException>(() => document.Save(output, new ExcelSaveOptions { MaxInMemoryPackageBytes = 1024 }));
+
+            Assert.Equal(0, output.Length);
+            Assert.Empty(document.OpenXmlSdkFallbacks);
+            document.Save(output);
+            Assert.Empty(document.OpenXmlSdkFallbacks);
+            using var reread = ExcelDocument.Load(new MemoryStream(output.ToArray()));
+            Assert.Equal("Changed", reread.Sheets[0].Cell(2, 1).GetValue().Value);
+        }
+
+        [Fact]
+        public void AFailedDestinationDoesNotReportTheOwnedSave() {
+            using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
+            document.Sheets[0].Cell(2, 1).SetValue("Changed");
+            var output = new CallbackStream { OnWrite = () => throw new IOException("The destination is full.") };
+
+            Assert.Throws<IOException>(() => document.Save(output));
+
+            Assert.NotEqual(ExcelSavePackageWriter.OwnedPackage, document.LastSaveDiagnostics.Writer);
+            using var retry = new MemoryStream();
+            document.Save(retry);
+            Assert.Equal(ExcelSavePackageWriter.OwnedPackage, document.LastSaveDiagnostics.Writer);
+        }
+
+        [Fact]
+        public void TheLastCustomNumberFormatIdIsNeverFollowedByGeneral() {
+            byte[] source = CreateWorkbook();
+            XDocument styles = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(source, "xl/styles.xml")));
+            XElement root = styles.Root!;
+            XElement? formats = root.Element(Main + "numFmts");
+            if (formats == null) {
+                formats = new XElement(Main + "numFmts");
+                root.AddFirst(formats);
+            }
+            formats.Add(new XElement(Main + "numFmt", new XAttribute("numFmtId", "4294967294"), new XAttribute("formatCode", "0.000")));
+            formats.SetAttributeValue("count", formats.Elements(Main + "numFmt").Count());
+            source = WithEntry(source, "xl/styles.xml", styles.ToString(SaveOptions.DisableFormatting));
+
+            byte[]? saved = null;
+            try {
+                saved = SaveWithoutSdk(source, document => {
+                    document.Sheets[0].Cell(5, 1).SetValue(1).SetNumberFormat("0.0000");
+                    document.Sheets[0].Cell(6, 1).SetValue(2).SetNumberFormat("0.00000");
+                }, out _);
+            } catch (OverflowException) {
+                // No ID is left for the second format; refusing the save is a valid outcome.
+                return;
+            }
+
+            XElement savedStyles = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(saved, "xl/styles.xml"))).Root!;
+            Assert.DoesNotContain(savedStyles.Descendants(Main + "numFmt"), format => (string?)format.Attribute("numFmtId") == "0");
+        }
+
+        [Fact]
         public async Task ACanceledAsyncSaveWritesNothing() {
             using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
             document.Sheets[0].Cell(2, 1).SetValue("Changed");

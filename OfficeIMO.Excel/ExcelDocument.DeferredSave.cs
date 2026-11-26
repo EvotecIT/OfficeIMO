@@ -200,8 +200,9 @@ namespace OfficeIMO.Excel {
         /// destination that reads the document, edits it or fails leaves no taken changes to put back. Opening the SDK
         /// waits on the same gate, so the package stays deferred while the save builds it.
         /// </summary>
-        private bool TryPrepareDeferredSave(ExcelSaveOptions? options, string? path, CancellationToken cancellationToken, out byte[] bytes) {
+        private bool TryPrepareDeferredSave(ExcelSaveOptions? options, string? path, CancellationToken cancellationToken, out byte[] bytes, out int save) {
             byte[] built = Array.Empty<byte>();
+            int completedSave = 0;
             string? declined = null;
             bool prepared = WithDeferredOpenGate(() => {
                 if (!CanSaveDeferredPackage(options) || path != null && !DeferredPackageTypeMatches(path)) return false;
@@ -209,12 +210,12 @@ namespace OfficeIMO.Excel {
                 var taken = TakeDeferredEdits();
                 bool completed = false;
                 try {
-                    if (!TryCreateDeferredPackageBytes(taken, out built, out string? reason)) {
+                    // The package is built within the in-memory limit; past it the save throws before anything is written.
+                    if (!TryCreateDeferredPackageBytes(taken, GetPackageMaterializationLimit(options), out built, out string? reason)) {
                         declined = reason ?? "the owned save declined";
                         return false;
                     }
-                    ThrowIfPackageMaterializationExceedsLimit(built.LongLength, options);
-                    CompleteDeferredSave(built);
+                    completedSave = CompleteDeferredSave(built);
                     completed = true;
                     return true;
                 } finally {
@@ -222,6 +223,7 @@ namespace OfficeIMO.Excel {
                 }
             });
             bytes = built;
+            save = completedSave;
             // The SDK opens outside the gate, taking the document lock first as every opener does.
             if (declined != null) OpenDeferredSdk("Save: " + declined);
             return prepared;
@@ -229,7 +231,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Saves through the owned path into a stream, or returns false having written nothing.</summary>
         private bool TryWriteDeferredPackageToStream(Stream destination, ExcelSaveOptions? options) {
-            if (!TryPrepareDeferredSave(options, null, CancellationToken.None, out byte[] bytes)) return false;
+            if (!TryPrepareDeferredSave(options, null, CancellationToken.None, out byte[] bytes, out int save)) return false;
             try {
                 PrepareDestinationStreamForWrite(destination);
                 destination.Write(bytes, 0, bytes.Length);
@@ -239,12 +241,13 @@ namespace OfficeIMO.Excel {
                 MarkPackageDirty();
                 throw;
             }
+            PublishDeferredSaveDiagnostics(save);
             return true;
         }
 
         /// <summary>Saves through the owned path into a stream with asynchronous writes, or returns false having written nothing.</summary>
         private async Task<bool> TryWriteDeferredPackageToStreamAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken) {
-            if (!TryPrepareDeferredSave(options, null, cancellationToken, out byte[] bytes)) return false;
+            if (!TryPrepareDeferredSave(options, null, cancellationToken, out byte[] bytes, out int save)) return false;
             try {
                 cancellationToken.ThrowIfCancellationRequested();
                 PrepareDestinationStreamForWrite(destination);
@@ -254,12 +257,13 @@ namespace OfficeIMO.Excel {
                 MarkPackageDirty();
                 throw;
             }
+            PublishDeferredSaveDiagnostics(save);
             return true;
         }
 
         /// <summary>Saves through the owned path into a file whose extension matches the package type.</summary>
         private bool TryWriteDeferredPackageToFile(string path, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
-            if (!TryPrepareDeferredSave(options, path, cancellationToken, out byte[] bytes)) return false;
+            if (!TryPrepareDeferredSave(options, path, cancellationToken, out byte[] bytes, out int save)) return false;
             try {
                 cancellationToken.ThrowIfCancellationRequested();
                 CommitPreparedPackageToFile(path, bytes);
@@ -268,6 +272,7 @@ namespace OfficeIMO.Excel {
                 throw;
             }
             FilePath = path;
+            PublishDeferredSaveDiagnostics(save);
             return true;
         }
 
@@ -293,8 +298,16 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        /// <summary>The document now holds what it saved: later reads and saves start from these bytes.</summary>
-        private void CompleteDeferredSave(byte[] bytes) {
+        /// <summary>Reports the owned save once its destination holds the package, unless another save reported meanwhile.</summary>
+        private void PublishDeferredSaveDiagnostics(int save) {
+            if (Interlocked.CompareExchange(ref _saveDiagnosticsVersion, 0, 0) == save) LastSaveDiagnostics = ExcelSaveDiagnostics.OwnedPackage();
+        }
+
+        /// <summary>
+        /// The document now holds what it saved: later reads and saves start from these bytes. Returns the diagnostics version to report against
+        /// for <see cref="PublishDeferredSaveDiagnostics"/>.
+        /// </summary>
+        private int CompleteDeferredSave(byte[] bytes) {
             // The caller's stream or file has its own copy; the document keeps the array.
             _deferredPackageBytes = bytes;
             foreach (ExcelDeferredSheet entry in _deferredWorkbook?.Sheets ?? new List<ExcelDeferredSheet>()) entry.TableHeadersRead = false;
@@ -305,13 +318,13 @@ namespace OfficeIMO.Excel {
             // Changes recorded while the save ran are still to be saved.
             if (pending) MarkPackageDirty();
             ReleaseReadSnapshot();
-            LastSaveDiagnostics = ExcelSaveDiagnostics.OwnedPackage();
+            return Interlocked.CompareExchange(ref _saveDiagnosticsVersion, 0, 0);
         }
 
         /// <summary>Builds the saved package, or returns false when something needs the model.</summary>
-        private bool TryCreateDeferredPackageBytes((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] edits, out byte[] bytes, out string? reason) {
+        private bool TryCreateDeferredPackageBytes((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] edits, long? limit, out byte[] bytes, out string? reason) {
             _deferredSaveDeclineReason = null;
-            bool created = TryCreateDeferredPackageBytesCore(edits, out bytes);
+            bool created = TryCreateDeferredPackageBytesCore(edits, limit, out bytes);
             reason = _deferredSaveDeclineReason;
             return created;
         }
@@ -323,7 +336,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private bool TryCreateDeferredPackageBytesCore((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] edits, out byte[] bytes) {
+        private bool TryCreateDeferredPackageBytesCore((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] edits, long? limit, out byte[] bytes) {
             bytes = Array.Empty<byte>();
             ExcelDeferredWorkbook workbook = _deferredWorkbook!;
 
@@ -393,16 +406,48 @@ namespace OfficeIMO.Excel {
                 }
 
                 // Deflated XML is a fraction of its size; the package rarely outgrows its source by more than its new parts.
-                using var output2 = new MemoryStream((int)Math.Min(int.MaxValue / 2, _deferredPackageBytes!.Length + changedBytes / 3 + 16 * 1024));
-                editable.Save(output2);
-                bytes = output2.ToArray();
+                long capacity = Math.Min(int.MaxValue / 2, _deferredPackageBytes!.Length + changedBytes / 3 + 16 * 1024);
+                using var output = new LimitedMemoryStream((int)Math.Min(capacity, limit ?? capacity), limit);
+                editable.Save(output);
+                bytes = output.ToArray();
                 return true;
-            } catch (Exception exception) when (exception is InvalidDataException or XmlException or FormatException or OverflowException) {
+            } catch (Exception exception) when (exception is InvalidDataException or XmlException or FormatException or OverflowException
+                && !exception.Data.Contains(PackageMaterializationLimitMarker)) {
                 return Decline(exception.Message);
             }
         }
 
         private const string NewCorePropertiesPartName = "/docProps/core.xml";
+
+        /// <summary>A memory stream that refuses to grow past the in-memory save limit.</summary>
+        private sealed class LimitedMemoryStream : MemoryStream {
+            private readonly long? _limit;
+
+            internal LimitedMemoryStream(int capacity, long? limit) : base(capacity) => _limit = limit;
+
+            private void Reserve(long count) {
+                if (_limit is long limit && Position + count > limit) {
+                    throw CreatePackageMaterializationLimitException($"The Excel package exceeds the {limit}-byte in-memory save limit.");
+                }
+            }
+
+            public override void Write(byte[] buffer, int offset, int count) {
+                Reserve(count);
+                base.Write(buffer, offset, count);
+            }
+
+            public override void WriteByte(byte value) {
+                Reserve(1);
+                base.WriteByte(value);
+            }
+
+#if NETCOREAPP2_1_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+            public override void Write(ReadOnlySpan<byte> buffer) {
+                Reserve(buffer.Length);
+                base.Write(buffer);
+            }
+#endif
+        }
 
         private static string ModifiedTimeText() => DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", CultureInfo.InvariantCulture);
 

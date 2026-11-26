@@ -109,7 +109,7 @@ namespace OfficeIMO.Excel {
                 if (reader.Transcoded) return null;
                 string? text = null;
                 StringBuilder? runs = null;
-                bool inItem = false, inRun = false, root = false;
+                bool inItem = false, inRun = false, root = false, compatibility = false;
                 while (reader.Read()) {
                     int depth = reader.Depth;
                     if (reader.NodeKind == OfficeXmlNodeKind.StartElement) {
@@ -121,11 +121,15 @@ namespace OfficeIMO.Excel {
                             root = true;
                         } else if (depth == 2 && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "si")) {
                             inItem = true;
+                            compatibility = false;
                             text = null;
                             runs = null;
                         } else if (depth == 2 && !reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "extLst")) {
                             // Compatibility markup can supply items of its own, which would move the indexes after it.
                             return null;
+                        } else if (inItem && reader.NamespaceId == OfficeXmlNamespaces.MarkupCompatibility) {
+                            // A reader that takes a choice or fallback can see other text than the one read here.
+                            compatibility = true;
                         } else if (inItem && depth == 3 && reader.NamespaceId == OfficeXmlNamespaces.SpreadsheetML) {
                             if (reader.LocalNameEquals("t")) {
                                 // The item's own text wins over its runs, as the model reads it.
@@ -141,7 +145,9 @@ namespace OfficeIMO.Excel {
                         else if (depth == 2 && inItem) {
                             inItem = false;
                             string value = text != null ? Utilities.ExcelSanitizer.DecodeXString(text) : runs?.ToString() ?? string.Empty;
-                            table._indexes[value] = table._count++;
+                            // An item whose text depends on compatibility markup keeps its index but is never reused.
+                            if (!compatibility) table._indexes[value] = table._count;
+                            table._count++;
                         }
                     }
                 }

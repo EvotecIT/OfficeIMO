@@ -76,11 +76,14 @@ namespace OfficeIMO.Excel {
         private readonly Dictionary<uint, string> _numberFormatCodes = new();
         // The model numbers a new format one past the highest it holds, or 164 in an empty table.
         private uint _highestNumberFormatId;
-        private uint? _nextNumberFormatIdValue;
+        // Held wider than an ID, so the successor of the last one is not cached as a wrapped value.
+        private ulong? _nextNumberFormatIdValue;
         private uint NextNumberFormatId() {
-            uint next = _nextNumberFormatIdValue ?? (_numberFormats.Items.Count == 0 ? 164U : checked(_highestNumberFormatId + 1));
+            ulong next = _nextNumberFormatIdValue ?? (_numberFormats.Items.Count == 0 ? 164UL : _highestNumberFormatId + 1UL);
+            // Past the last ID the allocation throws, which declines the save before the stylesheet is written.
+            uint id = checked((uint)next);
             _nextNumberFormatIdValue = next + 1;
-            return next;
+            return id;
         }
         // Whether the model's completion of the stylesheet is one this class can make, whether it changes anything,
         // and whether a style change asked for it.
@@ -466,7 +469,8 @@ namespace OfficeIMO.Excel {
                 }
                 case ExcelStyleOperationKind.Border: {
                     Node? baseBorder = BaseEntry(_borders, baseStyle, "borderId");
-                    if (baseBorder != null && baseBorder.Raw != null) return null;
+                    // Compatibility markup or anything else held raw can supply an edge of its own beside the one set here.
+                    if (baseBorder != null && (baseBorder.Raw != null || baseBorder.Children.Exists(static child => child.Raw != null))) return null;
                     Node border = baseBorder?.Clone() ?? Node.Element("border");
                     foreach ((ExcelCellBorders flag, string side) in new[] {
                         (ExcelCellBorders.Left, "left"), (ExcelCellBorders.Top, "top"), (ExcelCellBorders.Right, "right"), (ExcelCellBorders.Bottom, "bottom") }) {

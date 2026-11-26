@@ -34,14 +34,13 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Runs <paramref name="action"/> under the open gate. A thread holding no document lock takes the write lock
-        /// first, the order every writer takes them in, so replaying recorded values never waits on a writer that is
-        /// itself waiting on the gate.
+        /// Runs <paramref name="action"/> under the open gate. A thread holding no document lock, or only the upgradeable
+        /// one, takes the write lock first, the order every writer takes them in: replaying recorded values then never
+        /// waits on a writer, or on a reader, that is itself waiting on the gate.
         /// </summary>
         private T WithDeferredOpenGate<T>(Func<T> action) {
             ReaderWriterLockSlim lck = EnsureLock();
-            if (!Locking.IsNoLock && !lck.IsReadLockHeld && !lck.IsWriteLockHeld && !lck.IsUpgradeableReadLockHeld
-                && !Monitor.IsEntered(_deferredOpenGate)) {
+            if (!Locking.IsNoLock && !lck.IsReadLockHeld && !lck.IsWriteLockHeld && !Monitor.IsEntered(_deferredOpenGate)) {
                 return Locking.ExecuteWrite(lck, () => {
                     lock (_deferredOpenGate) return action();
                 });

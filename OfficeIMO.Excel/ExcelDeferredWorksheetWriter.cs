@@ -251,8 +251,8 @@ namespace OfficeIMO.Excel {
             private void ReadColumn(OfficeXmlPullReader reader) {
                 if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "min", out string minText)
                     || !reader.TryGetAttribute(OfficeXmlNamespaces.None, "max", out string maxText)
-                    || !uint.TryParse(minText, NumberStyles.None, CultureInfo.InvariantCulture, out uint min)
-                    || !uint.TryParse(maxText, NumberStyles.None, CultureInfo.InvariantCulture, out uint max)) {
+                    || !uint.TryParse(minText, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out uint min)
+                    || !uint.TryParse(maxText, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out uint max)) {
                     _columns.Add((int.MaxValue, 0, 0U));
                     return;
                 }
@@ -355,6 +355,8 @@ namespace OfficeIMO.Excel {
                             canonical = true;
                         } else {
                             string reference = Utf8.GetString(_source, referenceStart, referenceLength);
+                            // The raw value is parsed as written, so a character reference would read as another cell.
+                            if (reference.IndexOf('&') >= 0) return Fail("a cell reference uses a character reference");
                             if (ExcelA1.TryParseCellReferenceFast(reference, out parsedRow, out parsedColumn)) {
                                 if (parsedRow > 0) resolvedRow = parsedRow;
                                 if (parsedColumn > 0) resolvedColumn = parsedColumn;
