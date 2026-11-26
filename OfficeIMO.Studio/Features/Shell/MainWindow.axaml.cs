@@ -512,7 +512,7 @@ public sealed partial class MainWindow : Window {
                         "*.pages", "*.numbers", "*.key",
                         "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.tif", "*.tiff",
                         "*.webp", "*.ico", "*.pcx", "*.zip",
-                        "*.cbz",
+                        "*.mobi", "*.prc", "*.pdb", "*.azw", "*.azw3", "*.cbz",
                         "*.fb2", "*.fb2.zip")
                 }
             ]

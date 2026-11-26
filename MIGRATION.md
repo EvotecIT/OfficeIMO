@@ -6863,6 +6863,14 @@ To keep the previous stored values, register the handler with
 `ReaderAllOptions.Excel`. Indexes and tests that compared extracted spreadsheet text with raw values need either
 that option or updated expectations.
 
+## Reader transport for Mobipocket and Kindle
+
+Reader uses `ReaderInputKind.Mobi` (`33`) for MOBI, PalmDOC and KF8 imports,
+which require Reader JSON schema version 18. Use
+`OfficeDocumentReadResultSchema.GetJsonSchema()` to validate current output.
+OfficeIMO reads versions 5 through 18.
+
+
 ## Reader transport for FictionBook
 
 Reader uses `ReaderInputKind.Fb2` (`32`) for FB2 and FB2.ZIP imports, which require

@@ -678,6 +678,12 @@ The [notebook support matrix](../OfficeIMO.Notebook/SUPPORT.md) specifies the su
 - [x] Pair saved Jupyter results with Jupytext cells after checking source, order, and available identity
 - [x] Retain supported saved results and report omissions and approximations with source locations
 
+#### [OfficeIMO.Mobi](../OfficeIMO.Mobi/README.md)
+
+Mobipocket and Kindle input through Reader and the Workflows conversions to EPUB, PDF, HTML,
+and Markdown. See the [support matrix](../OfficeIMO.Mobi/SUPPORT.md) for the read profile
+and output limits.
+
 #### [OfficeIMO.Epub](../OfficeIMO.Epub/README.md)
 
 - [x] EPUB container, OPF package, manifest, spine, nav, and NCX parsing

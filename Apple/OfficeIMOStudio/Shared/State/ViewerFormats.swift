@@ -37,6 +37,7 @@ enum ViewerFormats {
         Format(identifier: "com.microsoft.visio.drawing", extensions: ["vsdx", "vdx", "vtx"]),
         Format(identifier: "com.evotec.officeimo.cbz", extensions: ["cbz"]),
         Format(identifier: "com.microsoft.publisher.pub", extensions: ["pub"]),
+        Format(identifier: "com.evotec.officeimo.mobi", extensions: ["mobi", "prc", "pdb", "azw", "azw3"]),
         Format(identifier: "org.oasis-open.opendocument.graphics", extensions: ["odg"]),
         Format(identifier: "com.evotec.officeimo.fb2", extensions: ["fb2"]),
         Format(identifier: "org.idpf.epub-container", extensions: ["epub"]),
@@ -49,6 +50,7 @@ enum ViewerFormats {
                                                    "com.evotec.officeimo.fb2",
                                                    "org.oasis-open.opendocument.spreadsheet",
                                                    "org.oasis-open.opendocument.presentation", "com.microsoft.xps",
+                                                   "com.evotec.officeimo.mobi",
                                                    "com.microsoft.visio.drawing", "com.microsoft.publisher.pub",
                                                    "com.evotec.officeimo.cbz",
                                                    "org.oasis-open.opendocument.graphics"]

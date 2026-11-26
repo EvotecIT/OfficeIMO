@@ -938,9 +938,11 @@ public sealed class PackageDependencyGuardrailTests {
         // The preset supplies these importers to the shared EPUB adapter. Modular EPUB entry points stay independent.
         const string comic = "../OfficeIMO.Comic/OfficeIMO.Comic.csproj";
         const string fb2 = "../OfficeIMO.Fb2/OfficeIMO.Fb2.csproj";
+        const string mobi = "../OfficeIMO.Mobi/OfficeIMO.Mobi.csproj";
         Assert.Contains(comic, references, StringComparer.Ordinal);
         Assert.Contains(fb2, references, StringComparer.Ordinal);
-        Assert.All(references.Where(reference => reference != archives && reference != comic && reference != fb2), reference =>
+        Assert.Contains(mobi, references, StringComparer.Ordinal);
+        Assert.All(references.Where(reference => reference != archives && reference != comic && reference != fb2 && reference != mobi), reference =>
             Assert.StartsWith("../OfficeIMO.Reader.", reference, StringComparison.Ordinal));
         Assert.Contains("../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj", references, StringComparer.Ordinal);
         Assert.Contains("../OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj", references, StringComparer.Ordinal);

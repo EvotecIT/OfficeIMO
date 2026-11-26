@@ -49,7 +49,7 @@ JSON output, from `read --format json`, `reader folder --format json` or `conver
 ```json
 {
   "schemaId": "officeimo.document.read-result",
-  "schemaVersion": 17,
+  "schemaVersion": 18,
   "kind": "Word",
   "source": { "path": "...", "sourceId": "src:...", "sourceHash": "...", "lastWriteUtc": "...", "lengthBytes": 12478 },
   "markdown": "...",

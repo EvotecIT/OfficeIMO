@@ -7,6 +7,7 @@ using OfficeIMO.Fb2;
 using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
+using OfficeIMO.Mobi;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows;
@@ -18,6 +19,8 @@ public static partial class OfficeWorkflow {
         var routes = new List<ImportedEbookRoute>();
         AddImportedEbookRoutes(routes, "cbz", ComicReader.Import, maximumWorkingHtmlBytes: 192 * 1024 * 1024);
         AddImportedEbookRoutes(routes, "fb2", Fb2Reader.Import, maximumWorkingHtmlBytes: 128 * 1024 * 1024,
+            maximumHtmlNodes: EpubImportedPublication.MaximumHtmlNodes);
+        AddImportedEbookRoutes(routes, "mobi", MobiReader.Import, maximumWorkingHtmlBytes: 128 * 1024 * 1024,
             maximumHtmlNodes: EpubImportedPublication.MaximumHtmlNodes);
         return routes;
     }
@@ -46,6 +49,10 @@ public static partial class OfficeWorkflow {
                     new EpubSaveOptions { MaxOutputBytes = options.MaximumOutputBytes }, cancellationToken);
                 diagnostics.AddRange(write.Diagnostics);
             } else {
+                if (imported.Value.PageProgressionDirection is "ltr" or "rtl")
+                    diagnostics.Add(new OfficeDiagnostic("EBOOK_PAGE_PROGRESSION_OMITTED", OfficeDiagnosticSeverity.Warning,
+                        "The target does not carry the ebook's page progression direction.", null, "OfficeIMO.Epub",
+                        OfficeConversionLossKind.Omission));
                 EpubDocument book = EpubImportedPublication.Open(imported.Value, cancellationToken);
                 if (target == "pdf") {
                     OfficeConversionReport pdf;

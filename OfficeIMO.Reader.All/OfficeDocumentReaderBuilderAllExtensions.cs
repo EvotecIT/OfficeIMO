@@ -1,5 +1,6 @@
 using OfficeIMO.Comic;
 using OfficeIMO.Fb2;
+using OfficeIMO.Mobi;
 using OfficeIMO.Reader.AsciiDoc;
 using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Chm;
@@ -81,6 +82,12 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddJsonHandler(configured.Json)
             .AddLatexHandler(configured.Latex)
             .AddMarkdownHandler(configured.Markdown)
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("mobi", new[] { ".mobi", ".azw", ".azw3" },
+                ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe, useDetectedKindFallback: true))
+            .AddFallbackHandler(EpubReaderAdapter.CreateImportHandler("mobi-prc", new[] { ".prc" },
+                ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe))
+            .AddFallbackHandler(EpubReaderAdapter.CreateImportHandler("palmdoc", new[] { ".pdb" },
+                ReaderInputKind.Mobi, MobiReader.MaximumInputBytes, MobiReader.Import, MobiReader.Probe))
             .AddNotebookHandler(configured.Notebook)
             .AddOneNoteHandler(oneNoteOptions)
             .AddOpmlHandler(configured.Opml)

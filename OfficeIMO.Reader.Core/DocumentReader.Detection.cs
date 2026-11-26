@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Text;
 
 namespace OfficeIMO.Reader;
@@ -351,13 +352,13 @@ internal static partial class DocumentReaderEngine {
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) {
                     candidate = containerCandidate;
                 }
-            } else if (IsOleCompound(prefix) && options.InspectContainers) {
+            } else if (candidate.Kind == ReaderInputKind.Unknown && options.InspectContainers && IsOleCompound(prefix)) {
                 candidate = restorePosition
                     ? InspectOfficeCompound(stream, originalPosition,
                         options.MaxContainerEntries)
                     : InspectOfficeCompound(prefix);
                 containerInspected = true;
-            } else if (IsCabinet(prefix) && options.InspectContainers) {
+            } else if (candidate.Kind == ReaderInputKind.Unknown && options.InspectContainers && IsCabinet(prefix)) {
                 candidate = restorePosition
                     ? InspectCabinetContainer(stream, originalPosition, options.MaxContainerEntries)
                     : InspectCabinetContainer(prefix, options.MaxContainerEntries);
@@ -402,13 +403,13 @@ internal static partial class DocumentReaderEngine {
                     cancellationToken).ConfigureAwait(false);
                 containerInspected = true;
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) candidate = containerCandidate;
-            } else if (IsOleCompound(prefix) && options.InspectContainers) {
+            } else if (candidate.Kind == ReaderInputKind.Unknown && options.InspectContainers && IsOleCompound(prefix)) {
                 candidate = restorePosition
                     ? InspectOfficeCompound(stream, originalPosition,
                         options.MaxContainerEntries, cancellationToken)
                     : InspectOfficeCompound(prefix);
                 containerInspected = true;
-            } else if (IsCabinet(prefix) && options.InspectContainers) {
+            } else if (candidate.Kind == ReaderInputKind.Unknown && options.InspectContainers && IsCabinet(prefix)) {
                 candidate = restorePosition
                     ? await InspectCabinetContainerAsync(
                         stream,
@@ -569,9 +570,21 @@ internal static partial class DocumentReaderEngine {
         return exact;
     }
 
+    private static bool HasPalmEbookHeader(ReadOnlySpan<byte> prefix) {
+        if (prefix.Length < 86) return false;
+        ReadOnlySpan<byte> signature = prefix.Slice(60, 8);
+        if (!signature.SequenceEqual("BOOKMOBI"u8) && !signature.SequenceEqual("TEXtREAd"u8)) return false;
+        int records = BinaryPrimitives.ReadUInt16BigEndian(prefix.Slice(76, 2));
+        uint firstRecord = BinaryPrimitives.ReadUInt32BigEndian(prefix.Slice(78, 4));
+        return records > 0 && firstRecord >= 78 + 8 * records;
+    }
+
     private static DetectionCandidate DetectContent(byte[] prefix) {
         if (prefix.Length == 0) {
             return DetectionCandidate.Unknown("content:empty");
+        }
+        if (HasPalmEbookHeader(prefix)) {
+            return DetectionCandidate.High(ReaderInputKind.Mobi, "application/x-mobipocket-ebook", "signature:palm-ebook");
         }
         if (StartsWith(prefix, new byte[] { 0x49, 0x54, 0x53, 0x46 })) {
             return DetectionCandidate.High(ReaderInputKind.Chm, "application/vnd.ms-htmlhelp", "signature:itsf");
@@ -593,6 +606,12 @@ internal static partial class DocumentReaderEngine {
         if (StartsWith(prefix, new byte[] { 0xA1, 0x2F, 0xFF, 0x43, 0xD9, 0xEF, 0x76, 0x4C, 0x9E, 0xE2, 0x10, 0xEA, 0x57, 0x22, 0x76, 0x5F })) {
             return DetectionCandidate.High(ReaderInputKind.OneNote, "application/onenote", "signature:onenote-toc");
         }
+        if (IsOleCompound(prefix)) {
+            return DetectionCandidate.Unknown("signature:ole-compound");
+        }
+        if (IsCabinet(prefix)) {
+            return DetectionCandidate.Unknown("signature:cabinet");
+        }
         if (IndexOfAscii(prefix, "%PDF-", Math.Min(prefix.Length, 1024)) >= 0) {
             return DetectionCandidate.High(ReaderInputKind.Pdf, "application/pdf", "signature:pdf");
         }
@@ -604,13 +623,6 @@ internal static partial class DocumentReaderEngine {
         if (StartsWith(prefix, new byte[] { 0x78, 0x9F, 0x3E, 0x22 })) {
             return DetectionCandidate.High(ReaderInputKind.Email, "application/ms-tnef", "signature:tnef");
         }
-        if (StartsWith(prefix, new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 })) {
-            return DetectionCandidate.Unknown("signature:ole-compound");
-        }
-        if (IsCabinet(prefix)) {
-            return DetectionCandidate.Unknown("signature:cabinet");
-        }
-
         string? text = DecodeTextPrefix(prefix);
         if (text == null) {
             return DetectionCandidate.Unknown("content:binary");
@@ -1003,6 +1015,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Chm => "application/vnd.ms-htmlhelp",
             ReaderInputKind.Zip => "application/zip",
             ReaderInputKind.Epub => "application/epub+zip",
+            ReaderInputKind.Mobi => "application/x-mobipocket-ebook",
             ReaderInputKind.Comic => "application/vnd.comicbook+zip",
             ReaderInputKind.Fb2 => "application/x-fictionbook+xml",
             ReaderInputKind.Visio => "application/vnd.ms-visio.drawing.main+xml",

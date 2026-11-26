@@ -155,6 +155,7 @@ public static partial class OfficeDocumentReadResultExtensions {
             case ReaderInputKind.Visio:
             case ReaderInputKind.OneNote:
             case ReaderInputKind.Epub:
+            case ReaderInputKind.Mobi:
             case ReaderInputKind.Comic:
             case ReaderInputKind.Fb2:
             case ReaderInputKind.IWork:

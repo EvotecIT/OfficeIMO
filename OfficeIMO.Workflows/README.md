@@ -2477,7 +2477,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Edit | 1 | 0 | 0 | 0 | 0 | 0 |
 | Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 0 | 1 | 0 | 0 | 0 | 0 |
-| Convert | 0 | 13 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 17 | 0 | 0 | 0 | 0 |
 | Export | 1 | 5 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Workflows` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

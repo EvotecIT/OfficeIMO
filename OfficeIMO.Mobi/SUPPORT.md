@@ -1,0 +1,30 @@
+# Mobipocket, PalmDOC and Kindle support
+
+| Source or output | Supported profile |
+| --- | --- |
+| PalmDOC | A Palm `TEXt/REAd` record database. Reads literal Windows-1252 text and preserves line boundaries. Additional bookmark records are reported as omitted. |
+| MOBI and AZW | Unencrypted `BOOK/MOBI` versions 1 through 7 with UTF-8 or Windows-1252 text, EXTH metadata, raster resources, embedded index navigation and `filepos` links. |
+| AZW3 / KF8 | Unencrypted standalone or dual-format KF8 with skeleton, fragment and navigation indexes, inline raster images and Kindle position links. Dual-format imports resolve raster images from the shared legacy records. Separate CSS, SVG and font flows and fixed-layout positioning are reported as lost. |
+| Compression | Stored records and PalmDOC compression. The import refuses HUFF/CDIC compression with a `NotSupportedException`. |
+| DRM | Encrypted MOBI and Kindle inputs are refused before extracting text, including an encrypted section of a dual-format book. |
+| Output | Reflowable EPUB with metadata, embedded raster cover, contents and declared page progression. PDF, standalone HTML and Markdown use the shared publication projection and report destination losses, including left-to-right or right-to-left page progression. |
+
+The reader admits at most 64 MiB of input, 16,384 Palm database records,
+16 MiB of decompressed text and 4,096 bytes per decompressed text record.
+PalmDOC text whose XML escapes would exceed the 64 MiB XHTML entry limit
+is rejected with an explicit chapter-size diagnostic.
+The parser also bounds EXTH items, index records and labels, Kindle
+fragments, and HTML nesting. Image loads are restricted to records in the
+source publication. With no first-image pointer, a standalone KF8 import can
+recover a unique contiguous raster range matching its declared resource count.
+The conversion reports that inference. External links are kept where supported. Absolute-only
+Kindle navigation opens the identified chapter and reports the approximation.
+The reader reports source text positions it can only place at a nearby anchor.
+Explicitly hidden markup is omitted with a conversion diagnostic. EPUB retains its link targets as empty anchors.
+
+The package covers reading and conversion. MOBI writing, KFX, dictionaries,
+Kindle presentation features and DRM decryption are outside the supported
+profile. The independently generated fixtures use Calibre. The
+[Mobipocket format description](https://wiki.mobileread.com/wiki/MOBI) and
+[PalmDOC format description](https://wiki.mobileread.com/wiki/PalmDOC) document
+the relevant records.

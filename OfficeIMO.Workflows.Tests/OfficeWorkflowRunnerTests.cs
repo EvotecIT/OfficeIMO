@@ -29,6 +29,21 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(new[] { "fr", "nl" }, paragraphs.Select(node => node.GetAttribute("lang")));
     }
 
+    [Theory]
+    [InlineData(" -2 ", true)]
+    [InlineData("   2       ", false)]
+    public void ImportedMarkdownDiagnosesListStartsByValue(string start, bool expectedLoss) {
+        EpubPublication publication = EpubPublication.Create("A book", "en");
+        publication.AddChapter("body", "EPUB/body.xhtml", "Body", $"<ol start='{start}'><li>Item</li></ol>");
+        EpubDocument book = EpubImportedPublication.Open(publication, CancellationToken.None);
+        var diagnostics = new List<OfficeDiagnostic>();
+        using var output = new MemoryStream();
+
+        EpubImportedPublication.WriteHtml(book, output, diagnostics, CancellationToken.None, markdownAnchors: true);
+
+        Assert.Equal(expectedLoss, diagnostics.Any(item => item.Code == "EBOOK_MARKDOWN_LIST_NUMBERING_OMITTED"));
+    }
+
     [Fact]
     public void PdfLoadOptionsUseTheValidatedWorkflowByteBudget() {
         const long budget = 768L * 1024L * 1024L;
@@ -88,6 +103,7 @@ public sealed class OfficeWorkflowRunnerTests {
                 "docx-odt", "docx-pdf",
                 "ebook-cbz-epub", "ebook-cbz-html", "ebook-cbz-markdown", "ebook-cbz-pdf",
                 "ebook-fb2-epub", "ebook-fb2-html", "ebook-fb2-markdown", "ebook-fb2-pdf",
+                "ebook-mobi-epub", "ebook-mobi-html", "ebook-mobi-markdown", "ebook-mobi-pdf",
                 "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-epub", "html-pdf",
                 "markdown-docx", "markdown-epub", "markdown-pdf", "notebook-docx", "notebook-html", "notebook-markdown", "notebook-pdf", "notebook-source-ipynb",
                 "notebook-source-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf",
