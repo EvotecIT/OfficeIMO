@@ -494,6 +494,11 @@ namespace OfficeIMO.Excel {
             /// <summary>Hands qualified rows from the background pass to the reader, at most three batches at a time.</summary>
             private sealed class RowBatchChannel {
                 internal const int MaximumBatches = 3;
+                /// <summary>
+                /// A batch is handed over once its row text reaches this size, so rows with long strings do not pile up to
+                /// the row limit; a single larger row still forms a batch of its own.
+                /// </summary>
+                internal const int MaximumBatchBytes = 4 * 1024 * 1024;
                 private readonly object _gate = new();
                 private readonly Queue<RowBatch> _ready = new();
                 private readonly Stack<RowBatch> _free = new();
@@ -567,13 +572,14 @@ namespace OfficeIMO.Excel {
 #endif
                     batch.RowIndexes[batch.Count++] = rowIndex;
                     batch.ByteLength += length;
-                    if (batch.Count == _batchRows) Flush();
+                    if (batch.Count == _batchRows || batch.ByteLength >= MaximumBatchBytes) Flush();
                 }
 
                 internal void Flush() {
                     RowBatch? batch = _filling;
                     if (batch == null || batch.Count == 0) return;
                     _filling = null;
+                    RowBatchFlushedForTests.Value?.Invoke(batch.Count, batch.ByteLength);
                     lock (_gate) {
                         _ready.Enqueue(batch);
                         Monitor.PulseAll(_gate);

@@ -340,7 +340,46 @@ public partial class Excel {
         }
     }
 
-    private static void AssertReadsLikeValidatingFirst(string path, int markupRow, string expectedText) {
+    /// <summary>
+    /// Rows with long strings are handed over in batches bounded by their text size, not only by row count, and read
+    /// like validating first.
+    /// </summary>
+    [Fact]
+    public void OpenReader_LongStringRowsAreBatchedByTextSize() {
+        const int rows = 1_000;
+        string longText = new string('x', 20_000);
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            var xml = new StringBuilder(rows * 20_100);
+            xml.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><dimension ref=\"A1:B")
+                .Append(rows.ToString(CultureInfo.InvariantCulture)).Append("\"/><sheetData>");
+            for (int row = 1; row <= rows; row++) {
+                string r = row.ToString(CultureInfo.InvariantCulture);
+                xml.Append("<row r=\"").Append(r).Append("\"><c r=\"A").Append(r).Append("\" t=\"inlineStr\"><is><t>")
+                    .Append(row == 1 ? "Name" : longText).Append("</t></is></c><c r=\"B").Append(r).Append("\"><v>")
+                    .Append(r).Append("</v></c></row>");
+            }
+            xml.Append("</sheetData></worksheet>");
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml.ToString()));
+
+            int largestBatch = 0;
+            ExcelSheetReader.RowBatchFlushedForTests.Value = (_, bytes) => {
+                lock (longText) largestBatch = Math.Max(largestBatch, bytes);
+            };
+            try {
+                AssertReadsLikeValidatingFirst(path, markupRow: 0, expectedText: string.Empty, expectedRows: rows - 1);
+            } finally {
+                ExcelSheetReader.RowBatchFlushedForTests.Value = null;
+            }
+            if (ChecksWhileReading) {
+                Assert.InRange(largestBatch, 1, 4 * 1024 * 1024 + 20_200);
+            }
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    private static void AssertReadsLikeValidatingFirst(string path, int markupRow, string expectedText, int expectedRows = HandoverRows - 1) {
         using DbDataReader expected = ExcelDocument.OpenReader(path, new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true });
         using DbDataReader actual = ExcelDocument.OpenReader(path);
         Assert.Equal(expected.FieldCount, actual.FieldCount);
@@ -354,7 +393,7 @@ public partial class Excel {
             if (rows + 1 == markupRow) Assert.Equal(expectedText, actual.GetString(0));
         }
         Assert.False(actual.Read());
-        Assert.Equal(HandoverRows - 1, rows);
+        Assert.Equal(expectedRows, rows);
     }
 
     private static string CreateHandoverWorkbook(int markupRow, string markupText, string dimensionColumns,

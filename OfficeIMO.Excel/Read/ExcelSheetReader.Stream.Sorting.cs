@@ -9,6 +9,9 @@ namespace OfficeIMO.Excel {
         /// <summary>Runs on a data reader's read that starts a switch to the general XML reader; tests use it to cancel that read.</summary>
         internal static readonly AsyncLocal<Action?> HandoverStartingForTests = new();
 
+        /// <summary>Runs with the row count and text size of each row batch the background check hands over.</summary>
+        internal static readonly AsyncLocal<Action<int, int>?> RowBatchFlushedForTests = new();
+
         /// <summary>
         /// Whether the worksheet's rows are in increasing order, the actual range of its cells, and the first row with a
         /// cell outside the given columns or below the given last row (0 when none), read from the reader's own worksheet
