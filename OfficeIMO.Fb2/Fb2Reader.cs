@@ -138,7 +138,7 @@ public static partial class Fb2Reader {
             foreach (XElement node in info?.Elements() ?? Enumerable.Empty<XElement>()) {
                 token.ThrowIfCancellationRequested();
                 string? text = node.Name == Fb + "date" ? DateValue(node) : node.Value.Trim();
-                if (string.IsNullOrEmpty(text)) continue;
+                if (text == null || text.Length == 0) continue;
                 switch (node.Name.LocalName) {
                     case "author":
                     case "translator":

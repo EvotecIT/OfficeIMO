@@ -740,6 +740,14 @@ public static partial class OfficeConversionCapabilityCatalog {
     private static (OfficeConversionTextFormattingKind Kind, string Contract) GetTextFormattingContract(
         string source,
         string target) {
+        if (source == "FictionBook 2") {
+            if (target == "PDF") {
+                return (OfficeConversionTextFormattingKind.FixedLayoutAppearance,
+                    "Renders supported inline styling as fixed-layout PDF text. Custom FictionBook stylesheets produce a conversion warning.");
+            }
+            return (OfficeConversionTextFormattingKind.SyntaxSubset,
+                "Retains supported inline emphasis, decoration and script. Custom FictionBook stylesheets produce a conversion warning.");
+        }
         if (string.Equals(target, "SVG", StringComparison.Ordinal)) {
             return (OfficeConversionTextFormattingKind.VectorAppearance,
                 "Preserves rendered font, color, weight, italic, decoration, and script appearance as SVG text and vector graphics; source-native editable semantics are not retained.");
