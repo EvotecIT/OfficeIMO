@@ -1036,13 +1036,14 @@ internal static partial class PdfDocumentSemanticEnricher {
             List<int> candidateLines = FindLinesNear(orderedRuns);
             for (int candidate = 0; candidate < candidateLines.Count; candidate++) {
                 _workBudget.Consume();
-                PdfUnderstandingLine line = _page.Lines[candidateLines[candidate]];
+                int lineIndex = candidateLines[candidate];
+                PdfUnderstandingLine line = _page.Lines[lineIndex];
                 double tolerance = LineTolerance(line);
                 _lineRuns.Clear();
                 for (int runIndex = 0; runIndex < orderedRuns.Length; runIndex++) {
                     _workBudget.Consume();
                     PdfTextSpan run = orderedRuns[runIndex];
-                    if (Math.Abs(run.Y - line.BaselineY) <= tolerance) _lineRuns.Add(run);
+                    if (RunSitsOnLine(run, lineIndex, line, tolerance)) _lineRuns.Add(run);
                 }
                 if (_lineRuns.Count == 0) continue;
                 PdfTextSpan[] lineRuns;
@@ -1155,6 +1156,13 @@ internal static partial class PdfDocumentSemanticEnricher {
                 _nearLines.RemoveRange(kept, _nearLines.Count - kept);
             }
             return _nearLines;
+        }
+
+        /// <summary>A run held by page lines sits on those lines only; any other run sits on every line near its baseline.</summary>
+        private bool RunSitsOnLine(PdfTextSpan run, int lineIndex, PdfUnderstandingLine line, double tolerance) {
+            if (!_lineOwners!.TryGetValue(run, out int owner)) return Math.Abs(run.Y - line.BaselineY) <= tolerance;
+            return owner == lineIndex ||
+                _moreLineOwners is not null && _moreLineOwners.TryGetValue(run, out List<int>? others) && others.Contains(lineIndex);
         }
 
         private void AddLinesNearBaseline(double y) {

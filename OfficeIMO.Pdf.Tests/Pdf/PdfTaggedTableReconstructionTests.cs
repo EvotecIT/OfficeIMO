@@ -108,6 +108,34 @@ public sealed class PdfTaggedTableReconstructionTests {
     }
 
     [Fact]
+    public void TaggedCellTextOnTwoPageLinesKeepsEachLinesOwnRuns() {
+        // One cell paints two pieces on the same baseline, far enough apart to be two page lines.
+        byte[] bytes = CreateTaggedDocument(canvas => canvas.Structure(PdfCanvasStructureRole.Table, table => table
+            .Structure(PdfCanvasStructureRole.TableBody, body => {
+                body.Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 0, 120D, "Region"))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => {
+                        Lines(cell, 1, 120D, "North");
+                        Lines(cell, 3, 120D, "Coast");
+                    }));
+                body.Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 0, 140D, "Sales"))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 1, 140D, "12")));
+            })));
+
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+        PdfDocumentReadResult read = document.Read();
+
+        PdfUnderstandingTableCandidate table = Assert.Single(read.Pages[0].Analysis.TableCandidates,
+            static candidate => candidate.DetectionKind == "tagged-structure");
+        Assert.Equal("North Coast", table.Rows[0][1]);
+        PdfUnderstandingLine[] split = table.SourceLines
+            .Where(static line => line.Text.Contains("North", StringComparison.Ordinal) || line.Text.Contains("Coast", StringComparison.Ordinal))
+            .ToArray();
+        Assert.Equal(new[] { "Coast", "North" }, split.Select(static line => line.Text).OrderBy(static text => text, StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void TaggedTableOnTwoPagesStaysOneLogicalTable() {
         // Rows sit mid-page, away from the page edges that geometric continuation needs,
         // so only the shared Table element can join the two pages.
