@@ -264,7 +264,7 @@ public sealed partial class MainWindow {
 
     private bool IsConvertible(string name) => ViewModel.ConversionWorkbench.Routes.Any(route =>
         route.Route.SourceExtensions.Any(extension => string.Equals("." + extension.TrimStart('.'),
-            System.IO.Path.GetExtension(name), StringComparison.OrdinalIgnoreCase)));
+            OfficeConversionCapabilityCatalog.GetSourceExtension(name), StringComparison.OrdinalIgnoreCase)));
 
     private void ShowDropOverlay(DropPlan plan) {
         var text = _services.Localizer;

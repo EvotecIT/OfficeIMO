@@ -14,7 +14,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
         bool hasDirectory = !sourceNamesOnly && inputs.Any(Directory.Exists);
         // Each input's source extension is the same for every route, so it is resolved once.
         string[] inputExtensions = hasDirectory ? Array.Empty<string>()
-            : inputs.Select(input => System.IO.Path.GetExtension(OfficeConverter.ConversionSourceName(input, inputFormat))).ToArray();
+            : inputs.Select(input => OfficeConversionCapabilityCatalog.GetSourceExtension(OfficeConverter.ConversionSourceName(input, inputFormat))).ToArray();
         var routes = selectedRoutes ?? OfficeWorkflowCommandUtilities.SupportedConversionRoutes.Where(route =>
             (Route == null || string.Equals(route.Id, Route, StringComparison.OrdinalIgnoreCase)) &&
             string.Equals(route.TargetExtension, target, StringComparison.OrdinalIgnoreCase) &&

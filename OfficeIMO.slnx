@@ -179,6 +179,8 @@
   <Project Path="OfficeIMO.Email/OfficeIMO.Email.csproj" />
   <Project Path="OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj" />
   <Project Path="OfficeIMO.Epub/OfficeIMO.Epub.csproj" />
+  <Project Path="OfficeIMO.Fb2/OfficeIMO.Fb2.csproj" />
+  <Project Path="OfficeIMO.Fb2.Tests/OfficeIMO.Fb2.Tests.csproj" />
   <Project Path="OfficeIMO.Examples/OfficeIMO.Examples.csproj">
     <BuildDependency Project="OfficeIMO.Word/OfficeIMO.Word.csproj" />
   </Project>

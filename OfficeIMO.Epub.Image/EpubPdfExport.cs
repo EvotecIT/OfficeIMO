@@ -12,14 +12,18 @@ internal static class EpubPdfExport {
         (options?.ResourceUrlPolicy is not { RestrictUrlSchemes: true } policy || policy.AllowedUrlSchemes.Contains("epub"));
 
     internal static OfficeConversionReport Write(EpubDocument book, Stream destination, HtmlPdfExportOptions? options,
-        bool failOnLoss, CancellationToken cancellationToken) {
+        bool failOnLoss, CancellationToken cancellationToken, int? importedHtmlNodeLimit = null) {
         HtmlPdfExportOptions rendering = options?.ClonePdf() ?? new HtmlPdfExportOptions();
+        if (importedHtmlNodeLimit is int maximum) {
+            rendering.MaxHtmlNodes = rendering.HasExplicitHtmlNodeLimit
+                ? Math.Min(rendering.MaxHtmlNodes, maximum) : maximum;
+        }
         return HtmlRenderEngine.ExecuteWithDeadline(rendering, cancellationToken,
-            token => WriteCore(book, destination, rendering, failOnLoss, token));
+            token => WriteCore(book, destination, rendering, failOnLoss, token, importedHtmlNodeLimit.HasValue));
     }
 
     private static OfficeConversionReport WriteCore(EpubDocument book, Stream destination, HtmlPdfExportOptions rendering,
-        bool failOnLoss, CancellationToken cancellationToken) {
+        bool failOnLoss, CancellationToken cancellationToken, bool importedPublication) {
         cancellationToken.ThrowIfCancellationRequested();
         if (book.Chapters.Count == 0) throw new InvalidDataException("The EPUB does not contain any chapters to render.");
         var timer = Stopwatch.StartNew();
@@ -130,7 +134,7 @@ internal static class EpubPdfExport {
                         "Extracted text was rendered because chapter HTML was unavailable.", chapter.Path, "OfficeIMO.Epub", OfficeConversionLossKind.Approximation));
                 }
                 HtmlConversionDocument document = resources.PrepareDocument(chapter, chapterOptions, includeChapterTitle: true, cancellationToken,
-                    allowEmbeddedResources: allowEmbedded);
+                    allowEmbeddedResources: allowEmbedded, maximumHtmlNodes: importedPublication ? chapterOptions.MaxHtmlNodes : null);
                 var profile = HtmlRenderIntentProfile.PrintPaged;
                 if (chapter.IsFixedLayout) {
                     if (EpubFixedLayoutViewport.TryRead(document, out double width, out double height)) {

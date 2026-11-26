@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+<description>
+    <title-info>
+        <genre>antique</genre>
+        <author><first-name>Ada</first-name><last-name>Reader</last-name></author>
+        <book-title>Harbour Signal</book-title>
+        <coverpage><image l:href="#img_0"/></coverpage>
+        <lang>en</lang>
+    </title-info>
+    <document-info>
+        <author><first-name>Ada</first-name><last-name>Reader</last-name></author>
+        <program-used>calibre 9.19.0</program-used>
+        <date>26.11.2026</date>
+        <id>bbd9e10c-9178-4009-aa33-96b434744fe3</id>
+        <version>1.0</version>
+    </document-info>
+    <publish-info>
+        <publisher>Signal Press</publisher>
+    </publish-info>
+</description>
+<body>
+<section>
+<p><strong>Opening Signal</strong></p>
+<p>A small independent ebook by Ada Reader. Read the ending and <a l:href="https://example.org/reference">the reference</a>.</p>
+<p><image l:href="#img_1"/></p>
+</section>
+<section>
+<p><strong>Closing Signal</strong></p>
+<p>Signal received.</p>
+</section>
+</body>
+<binary id="img_0" content-type="image/png">iVBORw0KGgoAAAANSUhEUgAAAGQAAACWCAIAAACn2roRAAAA/UlEQVR4nO3QsQkAIADAMGdn
+z/ZoX9CpCIEeUDLmXrps5AcfBQsWrDxYsGDlwYIFKw8WLFh5sGDByoMFC1YeLFiw8mDBgpUH
+CxasPFiwYOXBggUrDxYsWHmwYMHKgwULVh4sWLDyYMGClQcLFqw8WLBg5cGCBSsPFixYebBg
+wcqDBQtWHixYsPJgwYKVBwsWrDxYsGDlwYIFKw8WLFh5sGDByoMFC1YeLFiw8mDBgpUHCxas
+PFiwYOXBggUrDxYsWHmwYMHKgwULVh4sWLDyYMGClQcLFqw8WLBg5cGCBSsPFixYebBgwcqD
+BQtWHixYsPJgwYKVBwsWrDxYDx3CYOsrNM0AkgAAAABJRU5ErkJggg==</binary>
+<binary id="img_1" content-type="image/png">iVBORw0KGgoAAAANSUhEUgAAAHgAAACgCAIAAABIaz/HAAABLklEQVR4nO3QAQkAIBDAwG9g
+XePbQmEeLMC42bN0oXl+8EmgQbcCDboVaNCtQINuBRp0K9CgW4EG3Qo06FagQbcCDboVaNCt
+QINuBRp0K9CgW4EG3Qo06FagQbcCDboVaNCtQINuBRp0K9CgW4EG3Qo06FagQbcCDboVaNCt
+QINuBRp0K9CgW4EG3Qo06FagQbcCDboVaNCtQINuBRp0K9CgW4EG3Qo06FagQbcCDboVaNCt
+QINuBRp0K9CgW4EG3Qo06FagQbcCDboVaNCtQINuBRp0K9CgW4EG3Qo06FagQbcCDboVaNCt
+QINuBRp0K9CgW4EG3Qo06FagQbcCDboVaNCtQINuBRp0K9CgW4EG3Qo06FagQbcCDboVaNCt
+QINuBRp0K9CgW4EG3eoAtRmPShzi1UwAAAAASUVORK5CYII=</binary>
+</FictionBook>

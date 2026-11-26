@@ -150,6 +150,20 @@ namespace OfficeIMO.OpenXml.Internal {
         /// <summary>The child elements with this name, in document order.</summary>
         internal ChildList Children(int namespaceId, string localName) => new(this, namespaceId, localName);
 
+        /// <summary>The elements with this name below this one, in document order.</summary>
+        internal List<OfficeXmlNode> Descendants(int namespaceId, string localName) {
+            var found = new List<OfficeXmlNode>();
+            CollectDescendants(this, namespaceId, localName, found);
+            return found;
+        }
+
+        private static void CollectDescendants(OfficeXmlNode element, int namespaceId, string localName, List<OfficeXmlNode> found) {
+            foreach (OfficeXmlNode child in element.Children()) {
+                if (child.Is(namespaceId, localName)) found.Add(child);
+                CollectDescendants(child, namespaceId, localName, found);
+            }
+        }
+
         /// <summary>Whether this element is <paramref name="ancestor"/> or inside it.</summary>
         internal bool IsInside(OfficeXmlNode ancestor) {
             for (OfficeXmlNode node = this; !node.IsNone; node = node.Parent) {
@@ -376,7 +390,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         /// <summary>A detached deep copy of the element in the same part.</summary>
         internal OfficeXmlNode Clone() {
-            if (_tree != null) return new OfficeXmlNode(_tree, _tree.CloneElement(_node));
+            if (_tree != null) return new OfficeXmlNode(_tree, _tree.CloneElementKeepingPrefixes(_node));
             return _sdk != null ? FromSdk(OfficeSdkXml.Clone(_sdk)) : default;
         }
 

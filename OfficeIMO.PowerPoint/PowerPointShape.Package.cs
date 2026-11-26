@@ -1,5 +1,7 @@
 using System.Globalization;
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -7,6 +9,30 @@ namespace OfficeIMO.PowerPoint {
     /// can't answer exactly as the SDK element would, and the member then binds the shape and reads it through the SDK.
     /// </summary>
     public abstract partial class PowerPointShape {
+        /// <summary>
+        /// The shape's element as it is held now: a node of its slide's package tree while the shape works there, the SDK
+        /// element otherwise (binding it opens the SDK for a package shape the SDK does not hold yet).
+        /// </summary>
+        internal OfficeXmlNode XmlElement =>
+            TryGetPackageElement(out OfficeXmlTree tree, out int node) ? new OfficeXmlNode(tree, node) : OfficeXmlNode.FromSdk(SdkElementObject);
+
+        /// <summary>The part that holds the shape: its slide's part, or the layout, master or notes part it was read from.</summary>
+        internal PowerPointPartRef OwnerPartRef {
+            get {
+                if (TryGetPackageElement(out _, out _)) return OwnerSlide!.PartRef;
+                PowerPointPartRef current = PowerPointPartRef.FromSdk(OfficeSdkXml.PartOf(SdkElementObject));
+                return !current.IsNone ? current : PowerPointPartRef.FromSdk(SdkRelationshipOwnerPart ?? OwnerSlide?.SdkSlidePart);
+            }
+        }
+
+        /// <summary>The slide the shape is on, or none for a shape of a layout or master.</summary>
+        internal PowerPointPartRef SlidePartRef {
+            get {
+                PowerPointPartRef owner = OwnerPartRef;
+                return owner.Kind == PowerPointPartKind.Slide ? owner : OwnerSlide?.PartRef ?? default;
+            }
+        }
+
         /// <summary>The shape's package tree and element while it works without the SDK, or false once it is bound.</summary>
         internal bool TryGetPackageElement(out OfficeXmlTree tree, out int node) {
             tree = PackageTree!;
@@ -25,86 +51,70 @@ namespace OfficeIMO.PowerPoint {
             return TryGetPackageElement(out tree, out node) && OwnerSlide!.OwnerDocument!.CanEditPackage;
         }
 
+        // The non-visual properties container of each drawing element, and the drawing-properties child the model adds
+        // with it.
+        private static string? NonVisualContainer(string localName) => localName switch {
+            "sp" => "nvSpPr",
+            "cxnSp" => "nvCxnSpPr",
+            "pic" => "nvPicPr",
+            "graphicFrame" => "nvGraphicFramePr",
+            "grpSp" => "nvGrpSpPr",
+            _ => null
+        };
+
+        private static string NonVisualDrawingChild(string localName) => localName switch {
+            "sp" => "cNvSpPr",
+            "cxnSp" => "cNvCxnSpPr",
+            "pic" => "cNvPicPr",
+            "graphicFrame" => "cNvGraphicFramePr",
+            _ => "cNvGrpSpPr"
+        };
+
+        /// <summary>
+        /// The shape's <c>p:cNvPr</c>; with <paramref name="create"/> the non-visual properties are added as the model adds
+        /// them when they are missing. None for an element that has no non-visual properties.
+        /// </summary>
+        internal OfficeXmlNode NonVisualDrawingElement(bool create) {
+            OfficeXmlNode element = XmlElement;
+            if (element.NamespaceId != OfficeXmlNamespaces.PresentationML || NonVisualContainer(element.LocalName) is not { } containerName) return default;
+            OfficeXmlNode container = element.Child(OfficeXmlNamespaces.PresentationML, containerName);
+            if (container.IsNone) {
+                if (!create) return default;
+                OfficeXmlNode created = element.CreateElement(OfficeXmlNamespaces.PresentationML, containerName);
+                created.Append(created.CreateElement(OfficeXmlNamespaces.PresentationML, "cNvPr"));
+                OfficeXmlNode drawing = created.Append(created.CreateElement(OfficeXmlNamespaces.PresentationML, NonVisualDrawingChild(element.LocalName)));
+                if (element.LocalName == "sp") drawing.Append(drawing.CreateElement(OfficeXmlNamespaces.DrawingML, "spLocks")).SetAttribute("noGrp", "1");
+                created.Append(created.CreateElement(OfficeXmlNamespaces.PresentationML, "nvPr"));
+                container = element.InsertBefore(created, element.FirstChild);
+            }
+            OfficeXmlNode properties = container.Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
+            if (properties.IsNone && create) properties = container.InsertBefore(container.CreateElement(OfficeXmlNamespaces.PresentationML, "cNvPr"), container.FirstChild);
+            return properties;
+        }
+
+        /// <summary>The shape's <c>p:ph</c>, or none.</summary>
+        internal OfficeXmlNode ShapePlaceholderElement {
+            get {
+                OfficeXmlNode element = XmlElement;
+                if (element.NamespaceId != OfficeXmlNamespaces.PresentationML || element.LocalName == "grpSp" || NonVisualContainer(element.LocalName) is not { } containerName) return default;
+                return element.Child(OfficeXmlNamespaces.PresentationML, containerName).Child(OfficeXmlNamespaces.PresentationML, "nvPr").Child(OfficeXmlNamespaces.PresentationML, "ph");
+            }
+        }
+
+        // A picture that plays audio or video from a file.
+        private static bool IsMediaPicture(OfficeXmlNode picture) {
+            OfficeXmlNode application = picture.Child(OfficeXmlNamespaces.PresentationML, "nvPicPr").Child(OfficeXmlNamespaces.PresentationML, "nvPr");
+            return ContainsMedia(application);
+        }
+
+        private static bool ContainsMedia(OfficeXmlNode element) {
+            foreach (OfficeXmlNode child in element.Children()) {
+                if (child.Is(OfficeXmlNamespaces.DrawingML, "audioFile") || child.Is(OfficeXmlNamespaces.DrawingML, "videoFile") || ContainsMedia(child)) return true;
+            }
+            return false;
+        }
+
         /// <summary>Records that the shape's package tree changed, so the next save or SDK open writes it.</summary>
         internal void MarkPackageEdited() => OwnerSlide?.OwnerDocument?.MarkPackageEdited();
-
-        // The p:cNvPr of the shape's non-visual properties, as GetNonVisualDrawingProperties finds it without creating it.
-        private static int FindNonVisualDrawing(OfficeXmlTree tree, int node) {
-            string? container = tree.LocalNameOf(node) switch {
-                "sp" => "nvSpPr",
-                "cxnSp" => "nvCxnSpPr",
-                "pic" => "nvPicPr",
-                "graphicFrame" => "nvGraphicFramePr",
-                "grpSp" => "nvGrpSpPr",
-                _ => null
-            };
-            if (container == null || tree.NamespaceOf(node) != OfficeXmlNamespaces.PresentationML) return OfficeXmlTree.NoNode;
-            int properties = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, container);
-            return properties == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(properties, OfficeXmlNamespaces.PresentationML, "cNvPr");
-        }
-
-        private bool TryReadPackageDrawingAttribute(string name, out string? value) {
-            value = null;
-            if (!TryGetPackageElement(out OfficeXmlTree tree, out int node)) return false;
-            int drawing = FindNonVisualDrawing(tree, node);
-            if (drawing != OfficeXmlTree.NoNode) value = tree.GetAttribute(drawing, OfficeXmlNamespaces.None, name);
-            return true;
-        }
-
-        private bool TryGetPackageId(out uint? id) {
-            id = null;
-            if (!TryReadPackageDrawingAttribute("id", out string? value)) return false;
-            if (value == null) return true;
-            if (!uint.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed)) return false;
-            id = parsed;
-            return true;
-        }
-
-        private bool TryGetPackageHidden(out bool hidden) {
-            hidden = false;
-            if (!TryReadPackageDrawingAttribute("hidden", out string? value)) return false;
-            if (value == null) return true;
-            switch (value) {
-                case "1": case "true": hidden = true; return true;
-                case "0": case "false": return true;
-                default: return false;
-            }
-        }
-
-        // The a:off or a:ext of the shape's transform, as PeekOffset and PeekExtents find it.
-        private bool TryGetPackageTransformPoint(string point, out int element) {
-            element = OfficeXmlTree.NoNode;
-            if (!TryGetPackageElement(out OfficeXmlTree tree, out int node) || tree.NamespaceOf(node) != OfficeXmlNamespaces.PresentationML) return false;
-            int transform;
-            switch (tree.LocalNameOf(node)) {
-                case "sp":
-                case "cxnSp":
-                case "pic": {
-                    int properties = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "spPr");
-                    transform = properties == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(properties, OfficeXmlNamespaces.DrawingML, "xfrm");
-                    break;
-                }
-                case "graphicFrame":
-                    transform = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "xfrm");
-                    break;
-                case "grpSp": {
-                    int properties = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "grpSpPr");
-                    transform = properties == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(properties, OfficeXmlNamespaces.DrawingML, "xfrm");
-                    break;
-                }
-                default:
-                    return false;
-            }
-            if (transform != OfficeXmlTree.NoNode) element = tree.FindChild(transform, OfficeXmlNamespaces.DrawingML, point);
-            return true;
-        }
-
-        private bool TryGetPackageCoordinate(string point, string attribute, out long value) {
-            value = 0L;
-            if (!TryGetPackageTransformPoint(point, out int element)) return false;
-            if (element == OfficeXmlTree.NoNode) return true;
-            string? text = PackageTree!.GetAttribute(element, OfficeXmlNamespaces.None, attribute);
-            return text == null || long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
-        }
     }
 }

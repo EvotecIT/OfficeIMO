@@ -110,6 +110,7 @@
     ],
     "workflow-contracts": [
       "OfficeIMO.Comic.Tests",
+      "OfficeIMO.Fb2.Tests",
       "OfficeIMO.Workflows.IWork.Tests",
       "OfficeIMO.Workflows.Tests"
     ],

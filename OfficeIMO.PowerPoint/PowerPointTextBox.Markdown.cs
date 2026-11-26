@@ -1,5 +1,6 @@
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTextBox {
@@ -9,15 +10,14 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointParagraph> SetMarkdown(string markdown) {
             ArgumentNullException.ThrowIfNull(markdown);
 
-            TextBody textBody = EnsureTextBody();
-            string[] discardedSoundIds = PowerPointEmbeddedSound
-                .GetRelationshipIds(textBody);
-            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
-            textBody.RemoveAllChildren<A.Paragraph>();
-            IReadOnlyList<PowerPointParagraph> paragraphs = AppendMarkdown(
-                markdown, templateParagraph);
-            PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as DocumentFormat.OpenXml.Packaging.OpenXmlPart ?? _slidePart,
-                discardedSoundIds);
+            OfficeXmlNode body = EnsureBody();
+            List<string> soundIds = SoundIds(body);
+            OfficeXmlNode templateParagraph = body.Child(OfficeXmlNamespaces.DrawingML, "p");
+            if (!templateParagraph.IsNone) templateParagraph.Remove();
+            body.RemoveChildren(OfficeXmlNamespaces.DrawingML, "p");
+            MarkEdited();
+            IReadOnlyList<PowerPointParagraph> paragraphs = AppendMarkdown(markdown, templateParagraph);
+            RemoveUnusedSounds(soundIds);
             return paragraphs;
         }
 
@@ -27,13 +27,12 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointParagraph> AddMarkdown(string markdown) {
             ArgumentNullException.ThrowIfNull(markdown);
 
-            TextBody textBody = EnsureTextBody();
-            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
+            OfficeXmlNode templateParagraph = EnsureBody().Child(OfficeXmlNamespaces.DrawingML, "p");
             return AppendMarkdown(markdown, templateParagraph);
         }
 
-        private IReadOnlyList<PowerPointParagraph> AppendMarkdown(string markdown, A.Paragraph? templateParagraph) {
-            TextBody textBody = EnsureTextBody();
+        private IReadOnlyList<PowerPointParagraph> AppendMarkdown(string markdown, OfficeXmlNode templateParagraph) {
+            OfficeXmlNode textBody = EnsureBody();
             string[] lines = markdown.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
             var results = new List<PowerPointParagraph>();
 
@@ -45,14 +44,15 @@ namespace OfficeIMO.PowerPoint {
 
                 MarkdownParagraphKind kind = GetMarkdownParagraphKind(line, out string text, out int headingLevel,
                     out int listStart);
-                PowerPointParagraph paragraph = AppendParagraph(textBody, string.Empty, templateParagraph);
+                PowerPointParagraph paragraph = AppendParagraph(textBody, string.Empty, templateParagraph, out _);
                 ApplyMarkdownInline(paragraph, ParseMarkdownInline(text));
                 ApplyMarkdownParagraphKind(paragraph, kind, headingLevel, listStart);
                 results.Add(paragraph);
             }
 
-            if (results.Count == 0 && textBody.Elements<A.Paragraph>().FirstOrDefault() == null) {
-                textBody.Append(CreateEmptyParagraph(templateParagraph));
+            if (results.Count == 0 && textBody.Child(OfficeXmlNamespaces.DrawingML, "p").IsNone) {
+                textBody.Append(CreateEmptyParagraph(textBody, templateParagraph));
+                MarkEdited();
             }
 
             return results;

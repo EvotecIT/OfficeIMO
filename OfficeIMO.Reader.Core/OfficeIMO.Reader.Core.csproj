@@ -28,6 +28,8 @@
     <EmbeddedResource Include="Schemas\officeimo.document.read-result.v15.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v15.schema.json" />
     <None Include="Schemas\officeimo.document.read-result.v16.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v16.schema.json" />
     <EmbeddedResource Include="Schemas\officeimo.document.read-result.v16.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v16.schema.json" />
+    <None Include="Schemas\officeimo.document.read-result.v17.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v17.schema.json" />
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v17.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v17.schema.json" />
     <None Include="Schemas\officeimo.document.read-result.v14.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v14.schema.json" />
     <EmbeddedResource Include="Schemas\officeimo.document.read-result.v14.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v14.schema.json" />
     <None Include="Schemas\officeimo.document.read-result.v13.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v13.schema.json" />

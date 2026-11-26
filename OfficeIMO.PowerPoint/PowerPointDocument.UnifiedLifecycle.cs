@@ -77,7 +77,10 @@ public sealed partial class PowerPointDocument {
     private byte[] CaptureReadOnlyPackage(PowerPointSaveOptions? options) {
         ThrowIfDisposed();
         using var package = new MemoryStream();
-        if (_sdkDocument == null && _sdkDeferred && _packageStream is { CanRead: true, CanSeek: true } loaded) {
+        if (_sdkDocument == null && _sdkDeferred && _pendingEdits && _pendingPackage != null) {
+            // Edits made in the package without the SDK are part of the copy, as they would be through the SDK.
+            _pendingPackage.Save(package);
+        } else if (_sdkDocument == null && _sdkDeferred && _packageStream is { CanRead: true, CanSeek: true } loaded) {
             // Nothing has opened the package since it was loaded, so its bytes are the copy.
             loaded.Position = 0;
             loaded.CopyTo(package);

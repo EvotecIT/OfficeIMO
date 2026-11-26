@@ -16,7 +16,9 @@ if (args.Length > 0 && string.Equals(args[0], "--bdn", StringComparison.OrdinalI
 }
 
 if (args.Length > 0 && string.Equals(args[0], "--flows-ab", StringComparison.OrdinalIgnoreCase)) {
-    return PowerPointWithoutSdkFlowBenchmarks.RunInterleaved(args.Length > 1 ? int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 200);
+    string[] rest = args.Skip(1).Where(argument => !string.Equals(argument, "--no-textbox-check", StringComparison.OrdinalIgnoreCase)).ToArray();
+    return PowerPointWithoutSdkFlowBenchmarks.RunInterleaved(rest.Length > 0 ? int.Parse(rest[0], System.Globalization.CultureInfo.InvariantCulture) : 200,
+        checkTextBoxes: !args.Contains("--no-textbox-check", StringComparer.OrdinalIgnoreCase));
 }
 
 if (args.Length > 0 && string.Equals(args[0], "--probe",

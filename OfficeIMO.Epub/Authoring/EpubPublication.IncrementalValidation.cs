@@ -55,6 +55,7 @@ public sealed partial class EpubPublication {
                 ValidateContent(content, mediaType);
                 string analysisContent = content.ToString(SaveOptions.DisableFormatting);
                 var limits = HtmlConversionLimits.UntrustedDefaults;
+                limits.MaxHtmlNodes = MaximumContentValidationNodes;
                 limits.MaxInputCharacters = (int)Math.Min(Math.Max(_maximumEntryBytes, analysisContent.Length), int.MaxValue);
                 HtmlResourceManifest resources = HtmlResourcePipeline.BuildManifest(
                     HtmlXmlDocumentParser.CreateDocument(content, limits, token, skipProcessingInstructions: true),

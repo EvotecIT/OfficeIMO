@@ -32,6 +32,19 @@ public class OpenXmlXmlTreeTests {
     }
 
     [Fact]
+    public void ACloneDeclaresThePrefixesItsCompatibilityMarkupNamesFromTheScopeItLeft() {
+        OfficeXmlTree tree = Parse("<root xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" xmlns:x=\"urn:x\" xmlns:y=\"urn:y\">"
+            + "<item mc:Ignorable=\"x\"><mc:AlternateContent><mc:Choice Requires=\"y\"/></mc:AlternateContent></item></root>");
+        int item = tree.FirstChildOf(tree.Root);
+
+        int copy = tree.CloneElementKeepingPrefixes(item);
+        XElement written = XElement.Parse(Encoding.UTF8.GetString(tree.WriteElement(copy)));
+
+        Assert.Equal("urn:x", written.GetNamespaceOfPrefix("x")?.NamespaceName);
+        Assert.Equal("urn:y", written.GetNamespaceOfPrefix("y")?.NamespaceName);
+    }
+
+    [Fact]
     public void ComparesAttributeValuesWithOtherCharactersAsDecodedText() {
         OfficeXmlTree tree = Parse("<a name=\"\u00e9t\u00e9\" plain=\"ab\"/>");
         Assert.True(tree.AttributeEquals(tree.Root, OfficeXmlNamespaces.None, "name", "\u00e9t\u00e9"));

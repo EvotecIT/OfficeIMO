@@ -19,12 +19,16 @@ public class PowerPointWithoutSdkFlowBenchmarks {
     [Params(200)]
     public int Slides { get; set; }
 
+    /// <summary>Whether setup checks that the text box flow stays off the SDK; off for revisions where it doesn't yet.</summary>
+    public bool CheckTextBoxes { get; set; } = true;
+
     [GlobalSetup]
     public void Setup() {
         _deck = PowerPointUnchangedSaveWorkload.ReadDeck(Slides);
         _image = CreateImage(640, 480);
         Check(Add);
         Check(Edit);
+        if (CheckTextBoxes) Check(TextBoxes);
         Check(presentation => presentation.ExtractMarkdownChunks().Count());
     }
 
@@ -43,6 +47,14 @@ public class PowerPointWithoutSdkFlowBenchmarks {
     [Benchmark]
     [BenchmarkCategory("Edit")]
     public byte[] EditWithoutSdk() => Run(sdk: false, Edit);
+
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("TextBoxes")]
+    public byte[] TextBoxesWithSdk() => Run(sdk: true, TextBoxes);
+
+    [Benchmark]
+    [BenchmarkCategory("TextBoxes")]
+    public byte[] TextBoxesWithoutSdk() => Run(sdk: false, TextBoxes);
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Extract")]
@@ -84,6 +96,21 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         presentation.MoveSlide(20, 0);
     }
 
+    // Rewrites and formats the text boxes of every slide: two paragraphs, run formatting, a colour, margins and auto-fit.
+    private static void TextBoxes(PowerPointDocument presentation) {
+        foreach (PowerPointSlide slide in presentation.Slides) {
+            foreach (PowerPointTextBox box in slide.TextBoxes) {
+                box.Text = "Summary\nDetails follow";
+                box.Bold = true;
+                box.FontSize = OfficeLength.Points(20);
+                box.Color = OfficeColor.FromRgb(0x1F, 0x4E, 0x79);
+                box.SetTextMargins(OfficeLength.Points(6), OfficeLength.Points(3), OfficeLength.Points(6), OfficeLength.Points(3));
+                box.TextAutoFit = PowerPointTextAutoFit.Shape;
+                box.Paragraphs[1].AddText(" and more").Italic = true;
+            }
+        }
+    }
+
     private void Check(Action<PowerPointDocument> flow) {
         string throughSdk, withoutSdk;
         using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false))) {
@@ -104,15 +131,16 @@ public class PowerPointWithoutSdkFlowBenchmarks {
     /// time and allocation of each with their ratios. <paramref name="rounds"/> pairs follow 20 warm-up pairs; each run
     /// starts after a full collection, so neither pays for the other's garbage.
     /// </summary>
-    public static int RunInterleaved(int rounds) {
-        var benchmark = new PowerPointWithoutSdkFlowBenchmarks { Slides = 200 };
+    public static int RunInterleaved(int rounds, bool checkTextBoxes = true) {
+        var benchmark = new PowerPointWithoutSdkFlowBenchmarks { Slides = 200, CheckTextBoxes = checkTextBoxes };
         benchmark.Setup();
         var flows = new (string Name, Func<object> WithSdk, Func<object> WithoutSdk)[] {
             ("Add", benchmark.AddWithSdk, benchmark.AddWithoutSdk),
             ("Edit", benchmark.EditWithSdk, benchmark.EditWithoutSdk),
+            ("TextBoxes", benchmark.TextBoxesWithSdk, benchmark.TextBoxesWithoutSdk),
             ("Extract", () => benchmark.ExtractWithSdk(), () => benchmark.ExtractWithoutSdk())
         };
-        Console.WriteLine("Flow     | SDK median | without | faster | SDK alloc | without | less allocation");
+        Console.WriteLine("Flow      | SDK median | without | faster | SDK alloc | without | less allocation");
         foreach ((string name, Func<object> withSdk, Func<object> withoutSdk) in flows) {
             var sdkTimes = new List<double>(); var ownTimes = new List<double>();
             var sdkBytes = new List<long>(); var ownBytes = new List<long>();
@@ -137,7 +165,7 @@ public class PowerPointWithoutSdkFlowBenchmarks {
             }
             double sdkTime = Median(sdkTimes), ownTime = Median(ownTimes);
             double sdkAlloc = Median(sdkBytes.Select(value => (double)value).ToList()), ownAlloc = Median(ownBytes.Select(value => (double)value).ToList());
-            Console.WriteLine(FormattableString.Invariant($"{name,-8} | {sdkTime,7:F2} ms | {ownTime,5:F2} ms | {sdkTime / ownTime,5:F2}x | {sdkAlloc / 1048576D,6:F2} MB | {ownAlloc / 1048576D,5:F2} MB | {sdkAlloc / ownAlloc,5:F2}x"));
+            Console.WriteLine(FormattableString.Invariant($"{name,-9} | {sdkTime,7:F2} ms | {ownTime,5:F2} ms | {sdkTime / ownTime,5:F2}x | {sdkAlloc / 1048576D,6:F2} MB | {ownAlloc / 1048576D,5:F2} MB | {sdkAlloc / ownAlloc,5:F2}x"));
         }
         return 0;
     }

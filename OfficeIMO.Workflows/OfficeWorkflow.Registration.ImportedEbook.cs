@@ -3,6 +3,7 @@ using OfficeIMO.Comic;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Epub;
 using OfficeIMO.Epub.Image;
+using OfficeIMO.Fb2;
 using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
@@ -15,21 +16,23 @@ public static partial class OfficeWorkflow {
 
     private static IEnumerable<ImportedEbookRoute> CreateImportedEbookRoutes() {
         var routes = new List<ImportedEbookRoute>();
-        AddImportedEbookRoutes(routes, "cbz", ComicReader.Import);
+        AddImportedEbookRoutes(routes, "cbz", ComicReader.Import, maximumWorkingHtmlBytes: 192 * 1024 * 1024);
+        AddImportedEbookRoutes(routes, "fb2", Fb2Reader.Import, maximumWorkingHtmlBytes: 128 * 1024 * 1024,
+            maximumHtmlNodes: EpubImportedPublication.MaximumHtmlNodes);
         return routes;
     }
 
     private static void AddImportedEbookRoutes(List<ImportedEbookRoute> routes, string format,
-        Func<Stream, string, long, CancellationToken, OfficeConversionResult<EpubPublication>> import) {
+        Func<Stream, string, long, CancellationToken, OfficeConversionResult<EpubPublication>> import,
+        int maximumWorkingHtmlBytes, int? maximumHtmlNodes = null) {
         foreach (string target in new[] { "epub", "pdf", "html", "markdown" })
-            routes.Add(new ImportedEbookRoute("ebook-" + format + "-" + target, target, import));
+            routes.Add(new ImportedEbookRoute("ebook-" + format + "-" + target, target, import, maximumWorkingHtmlBytes, maximumHtmlNodes));
     }
 
     private sealed class ImportedEbookRoute(string id, string target,
-        Func<Stream, string, long, CancellationToken, OfficeConversionResult<EpubPublication>> import)
+        Func<Stream, string, long, CancellationToken, OfficeConversionResult<EpubPublication>> import,
+        int maximumWorkingHtmlBytes, int? maximumHtmlNodes)
         : IOfficeConversionRoute, IOfficeConversionArtifactValidation, IOfficeConversionOutputValidation {
-        private const int MaximumWorkingHtmlBytes = 192 * 1024 * 1024;
-
         public string Id => id;
 
         public Task<OfficeConversionReport> ConvertAsync(Stream source, Stream destination,
@@ -47,7 +50,8 @@ public static partial class OfficeWorkflow {
                 if (target == "pdf") {
                     OfficeConversionReport pdf;
                     try {
-                        pdf = EpubPdfExport.Write(book, destination, options.Html, false, cancellationToken);
+                        pdf = EpubPdfExport.Write(book, destination, options.Html, false, cancellationToken,
+                            importedHtmlNodeLimit: maximumHtmlNodes);
                     } catch (OfficeConversionException error) {
                         diagnostics.AddRange(error.Report.Diagnostics);
                         var combined = new OfficeConversionReport(options.SourceName!, options.TargetName!,
@@ -93,20 +97,20 @@ public static partial class OfficeWorkflow {
             return Task.FromResult(report);
         }
 
-        private static HtmlConversionDocument CreateMarkdownProjection(EpubDocument book, OfficeConversionOptions options,
+        private HtmlConversionDocument CreateMarkdownProjection(EpubDocument book, OfficeConversionOptions options,
             List<OfficeDiagnostic> diagnostics, CancellationToken token) {
             // The caller's output limit applies to the final Markdown. The combined HTML has its own safety budget.
-            using var html = new OfficeBoundedMemoryStream(MaximumWorkingHtmlBytes);
+            using var html = new OfficeBoundedMemoryStream(maximumWorkingHtmlBytes);
             try {
                 EpubImportedPublication.WriteHtml(book, html, diagnostics, token, markdownAnchors: true);
                 html.Position = 0;
                 using var text = new StreamReader(html, Encoding.UTF8);
-                return HtmlConversionDocument.Parse(text.ReadToEnd(), ProjectionHtmlOptions(MaximumWorkingHtmlBytes), token);
+                return HtmlConversionDocument.Parse(text.ReadToEnd(), ProjectionHtmlOptions(maximumWorkingHtmlBytes), token);
             } catch (HtmlDomLimitException error) {
                 throw Reject(error.Code, "The combined ebook HTML exceeds the Markdown limit (" + error.LimitSource + ").", error);
             } catch (InvalidDataException error) when (OfficeOutputLimit.Is(error)) {
                 throw Reject("EBOOK_MARKDOWN_WORKING_HTML_LIMIT",
-                    $"The combined ebook HTML exceeds the Markdown working limit of {MaximumWorkingHtmlBytes} bytes.", error);
+                    $"The combined ebook HTML exceeds the Markdown working limit of {maximumWorkingHtmlBytes} bytes.", error);
             }
 
             OfficeConversionException Reject(string code, string message, Exception error) {
@@ -117,9 +121,11 @@ public static partial class OfficeWorkflow {
             }
         }
 
-        private static HtmlConversionDocumentOptions ProjectionHtmlOptions(int maximumCharacters) {
+        private HtmlConversionDocumentOptions ProjectionHtmlOptions(int maximumCharacters) {
             HtmlConversionDocumentOptions options = HtmlConversionDocumentOptions.UntrustedDefaults;
             options.Limits.MaxInputCharacters = maximumCharacters;
+            // Count the complete projection, including generated navigation and anchors.
+            if (maximumHtmlNodes.HasValue) options.Limits.MaxHtmlNodes = maximumHtmlNodes;
             return options;
         }
 
