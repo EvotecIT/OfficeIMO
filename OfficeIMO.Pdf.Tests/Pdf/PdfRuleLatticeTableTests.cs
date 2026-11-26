@@ -248,6 +248,30 @@ public sealed class PdfRuleLatticeTableTests {
     }
 
     [Fact]
+    public void BordersUnderANearlyOpaqueWhiteFillAreNotReadAsAGrid() {
+        // A 99% white box painted over black borders leaves them a faint grey on white, so they split nothing.
+        StringBuilder content = GridUnderImage(out _,
+            "q /GS1 gs 1 g 60 600 220 120 re f Q\nq 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+
+        PdfLogicalPage page = Read(content, "Courier", tagged: false, out _, resources: "/ExtGState << /GS1 << /ca 0.99 >> >>");
+
+        Assert.DoesNotContain(page.Tables, table => table.Evidence.Any(evidence => evidence.Code == "table-ruling-lattice"));
+    }
+
+    [Fact]
+    public void BordersUnderAFaintTintStillReadAsAGrid() {
+        // A 20% grey box painted over black borders leaves them clearly darker than their surroundings.
+        StringBuilder content = GridUnderImage(out string[][] rows,
+            "q /GS1 gs 0.5 g 60 600 220 120 re f Q\nq 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+
+        PdfLogicalPage page = Read(content, "Courier", tagged: false, out _, resources: "/ExtGState << /GS1 << /ca 0.2 >> >>");
+
+        PdfLogicalTable table = Assert.Single(page.Tables);
+        Assert.Contains(table.Evidence, evidence => evidence.Code == "table-ruling-lattice");
+        Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
+    }
+
+    [Fact]
     public void NonzeroFilledBoxInsideABoxHidesTheGridUnderIt() {
         // Two boxes wound the same way and filled with the nonzero rule paint the whole outer box: the inner one
         // is not a hole, so the grid it surrounds is painted over.

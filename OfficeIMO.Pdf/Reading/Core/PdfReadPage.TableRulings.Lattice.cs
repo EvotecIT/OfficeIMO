@@ -358,11 +358,13 @@ public sealed partial class PdfReadPage {
             var cuts = new List<(double From, double To)>();
             var candidates = new List<int>();
             var under = new List<(double From, double To, Fill Fill)>();
+            var over = new List<(double From, double To, double Alpha)>();
             var breaks = new List<double>();
             foreach (Rule rule in _rules) {
                 context.ConsumeWork();
                 cuts.Clear();
                 under.Clear();
+                over.Clear();
                 double left = rule.Horizontal ? rule.Lo : rule.Position - rule.Half;
                 double right = rule.Horizontal ? rule.Hi : rule.Position + rule.Half;
                 double bottom = rule.Horizontal ? rule.Position - rule.Half : rule.Lo;
@@ -379,11 +381,13 @@ public sealed partial class PdfReadPage {
                         double from = Math.Max(rule.Lo, rule.Horizontal ? fill.Left : fill.Bottom);
                         double to = Math.Min(rule.Hi, rule.Horizontal ? fill.Right : fill.Top);
                         if (rule.Position >= near && rule.Position <= far && to > from) under.Add((from, to, fill));
-                    } else if (fill.Opaque && Before(rule.Order, rule.Phase, fill.Order, fill.Phase)) {
-                        // Opaque paint over the whole thickness hides that stretch of the border.
+                    } else if (fill.Alpha > 0D && Before(rule.Order, rule.Phase, fill.Order, fill.Phase)) {
+                        // Opaque paint over the whole thickness hides that stretch of the border; translucent paint
+                        // fades it against its surroundings.
                         double near = rule.Horizontal ? fill.Bottom : fill.Left, far = rule.Horizontal ? fill.Top : fill.Right;
                         if (near <= rule.Position - rule.Half + 0.05D && far >= rule.Position + rule.Half - 0.05D) {
-                            cuts.Add(rule.Horizontal ? (fill.Left, fill.Right) : (fill.Bottom, fill.Top));
+                            if (fill.Opaque) cuts.Add(rule.Horizontal ? (fill.Left, fill.Right) : (fill.Bottom, fill.Top));
+                            else over.Add(rule.Horizontal ? (fill.Left, fill.Right, fill.Alpha) : (fill.Bottom, fill.Top, fill.Alpha));
                         }
                     }
                 }
@@ -408,10 +412,11 @@ public sealed partial class PdfReadPage {
                 breaks.Add(rule.Lo);
                 breaks.Add(rule.Hi);
                 foreach (var stretch in under) { breaks.Add(stretch.From); breaks.Add(stretch.To); }
+                foreach (var stretch in over) { breaks.Add(Math.Max(rule.Lo, stretch.From)); breaks.Add(Math.Min(rule.Hi, stretch.To)); }
                 breaks.Sort();
                 for (int stop = 0; stop + 1 < breaks.Count; stop++) {
                     // Each stretch compares every backdrop beneath the rule.
-                    context.ConsumeWork(1 + under.Count);
+                    context.ConsumeWork(1 + under.Count + over.Count);
                     double from = breaks[stop], to = breaks[stop + 1];
                     if (to <= from) continue;
                     double middle = (from + to) / 2D;
@@ -422,7 +427,13 @@ public sealed partial class PdfReadPage {
                         backdrop = paint.Opaque ? paint.Color
                             : backdrop is { } below && paint.Color is { } tint ? Composite(tint, paint.Alpha, below) : null;
                     }
-                    if (backdrop is { } colour && !Contrasts(rule.Color, rule.Alpha, colour)) cuts.Add((from, to));
+                    // Uniform paint at alpha a over both the border and its surroundings leaves (1 - a) of the
+                    // difference between them, whatever its colour.
+                    double shown = rule.Alpha;
+                    foreach (var stretch in over) {
+                        if (middle >= stretch.From && middle <= stretch.To) shown *= 1D - stretch.Alpha;
+                    }
+                    if (backdrop is { } colour && !Contrasts(rule.Color, shown, colour)) cuts.Add((from, to));
                 }
                 AddVisible(rule, cuts, result, context);
                 if (result.Count > TableDetector.MaximumRulingSegments) return Array.Empty<PdfTableRuling>();
