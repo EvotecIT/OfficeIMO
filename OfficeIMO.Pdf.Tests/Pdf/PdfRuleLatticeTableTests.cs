@@ -368,6 +368,17 @@ public sealed class PdfRuleLatticeTableTests {
             table => table.Evidence.Any(evidence => evidence.Code == "table-ruling-lattice"));
     }
 
+    [Fact]
+    public void WideSlantedStrokeOverADividerKeepsTheGridFromBeingRead() {
+        // A wide white diagonal stroke painted after the borders hides part of the column divider along a slanted
+        // band, so the borders are not trusted.
+        StringBuilder content = GridUnderImage(out _,
+            "q 1 G 12 w 150 630 m 175 710 l S Q\nq 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+
+        Assert.DoesNotContain(Read(content, "Courier").Tables,
+            table => table.Evidence.Any(evidence => evidence.Code == "table-ruling-lattice"));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

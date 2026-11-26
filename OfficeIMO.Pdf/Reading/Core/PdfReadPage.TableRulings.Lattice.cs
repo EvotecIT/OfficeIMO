@@ -253,15 +253,15 @@ public sealed partial class PdfReadPage {
                 primitive.StrokeDashStyle != OfficeStrokeDashStyle.Solid || primitive.StrokeDashPattern is { Array.Count: > 0 }) return;
             double alpha = Math.Min(opacity, 1D) * (color.A / 255D);
             if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
-                AddClippedRule(primitive.X1, primitive.Y1, primitive.X2, primitive.Y2, width, clip, order, color, alpha);
+                AddClippedRule(primitive.X1, primitive.Y1, primitive.X2, primitive.Y2, width, clip, order, color, alpha, context);
                 return;
             }
             if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
                 double right = primitive.X + primitive.Width, bottom = primitive.Y + primitive.Height;
-                AddClippedRule(primitive.X, primitive.Y, right, primitive.Y, width, clip, order, color, alpha);
-                AddClippedRule(right, primitive.Y, right, bottom, width, clip, order, color, alpha);
-                AddClippedRule(right, bottom, primitive.X, bottom, width, clip, order, color, alpha);
-                AddClippedRule(primitive.X, bottom, primitive.X, primitive.Y, width, clip, order, color, alpha);
+                AddClippedRule(primitive.X, primitive.Y, right, primitive.Y, width, clip, order, color, alpha, context);
+                AddClippedRule(right, primitive.Y, right, bottom, width, clip, order, color, alpha, context);
+                AddClippedRule(right, bottom, primitive.X, bottom, width, clip, order, color, alpha, context);
+                AddClippedRule(primitive.X, bottom, primitive.X, primitive.Y, width, clip, order, color, alpha, context);
                 return;
             }
             OfficePoint? previous = null, start = null;
@@ -269,10 +269,10 @@ public sealed partial class PdfReadPage {
                 context.ConsumeWork();
                 if (command.Kind == OfficePathCommandKind.MoveTo) previous = start = command.Point;
                 else if (command.Kind == OfficePathCommandKind.LineTo && previous.HasValue) {
-                    AddClippedRule(previous.Value.X, previous.Value.Y, command.Point.X, command.Point.Y, width, clip, order, color, alpha);
+                    AddClippedRule(previous.Value.X, previous.Value.Y, command.Point.X, command.Point.Y, width, clip, order, color, alpha, context);
                     previous = command.Point;
                 } else if (command.Kind == OfficePathCommandKind.Close && previous.HasValue && start.HasValue) {
-                    AddClippedRule(previous.Value.X, previous.Value.Y, start.Value.X, start.Value.Y, width, clip, order, color, alpha);
+                    AddClippedRule(previous.Value.X, previous.Value.Y, start.Value.X, start.Value.Y, width, clip, order, color, alpha, context);
                     previous = start;
                 } else {
                     // Curves are artwork; keep the straight pieces already read and skip the rest of the path.
@@ -282,7 +282,7 @@ public sealed partial class PdfReadPage {
         }
 
         private void AddClippedRule(double x1, double y1, double x2, double y2, double thickness, PdfVisualBounds clip,
-            double order, OfficeColor color, double alpha) {
+            double order, OfficeColor color, double alpha, PdfUnderstandingPageContext context) {
             if (!IsFinite(x1) || !IsFinite(y1) || !IsFinite(x2) || !IsFinite(y2)) return;
             if (Math.Abs(y1 - y2) <= TableDetector.RulingTolerance) {
                 if (y1 < clip.Top || y1 > clip.Bottom) return;
@@ -295,6 +295,15 @@ public sealed partial class PdfReadPage {
                 if (to <= from) return;
                 y1 = from; y2 = to; x2 = x1;
             } else {
+                // A wide opaque slanted stroke over an earlier border hides part of it along an outline that is not
+                // modelled, so the page's borders are not trusted. A thin one crosses a border without hiding it.
+                if (thickness > MaximumRuleThickness && alpha >= 1D && _rules.Count > 0) {
+                    double half = thickness / 2D;
+                    var reach = new List<(double Left, double Top, double Right, double Bottom)>(1) {
+                        (Math.Min(x1, x2) - half, Math.Min(y1, y2) - half, Math.Max(x1, x2) + half, Math.Max(y1, y2) + half)
+                    };
+                    if (ReachesEarlierRule(reach, clip, context)) _overflow = true;
+                }
                 return;
             }
             if (thickness > MaximumRuleThickness) {
