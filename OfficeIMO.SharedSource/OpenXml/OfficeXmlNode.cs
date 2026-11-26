@@ -309,7 +309,10 @@ namespace OfficeIMO.OpenXml.Internal {
             OfficeXmlNode reference = default;
             if (rank >= 0) {
                 for (OfficeXmlNode sibling = FirstChild; !sibling.IsNone; sibling = sibling.NextSibling) {
-                    if (order.RankOf(sibling.NamespaceId, sibling.LocalName) > rank) {
+                    // An element the order doesn't rank, such as an extension or unknown element, comes after the
+                    // ranked ones, as the SDK places them.
+                    int siblingRank = order.RankOf(sibling.NamespaceId, sibling.LocalName);
+                    if (siblingRank > rank || siblingRank < 0) {
                         reference = sibling;
                         break;
                     }

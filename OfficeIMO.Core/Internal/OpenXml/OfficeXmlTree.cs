@@ -774,7 +774,9 @@ internal sealed partial class OfficeXmlTree {
             for (int sibling = _nodes[parent].FirstChild; sibling != NoNode; sibling = _nodes[sibling].Next) {
                 if (_nodes[sibling].Kind != OfficeXmlTreeNodeKind.Element) continue;
                 int siblingRank = RankOf(order, sibling);
-                if (siblingRank > rank) {
+                // An element the order doesn't rank, such as an extension or unknown element, comes after the ranked
+                // ones, as the SDK places them.
+                if (siblingRank > rank || siblingRank < 0) {
                     reference = sibling;
                     break;
                 }

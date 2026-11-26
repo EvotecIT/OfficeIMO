@@ -223,6 +223,45 @@ public sealed class WordWithoutSdkTests {
     }
 
     [Fact]
+    public void FormattingSetOnAnSdkDocumentReadsBackThroughTheSdkTypes() {
+        byte[] source = CreatePackage(BodyXml("<w:p><w:r><w:t>Text</w:t></w:r></w:p>"));
+        using WordDocument document = WordDocument.Load(new MemoryStream(source));
+        Body body = document.OpenXmlDocument.MainDocumentPart!.Document!.Body!;
+        WordParagraph paragraph = document.Paragraphs[0];
+        paragraph.Bold = true;
+        paragraph.Hidden = true;
+        paragraph.KerningMinimumFontSize = OfficeLength.Points(12);
+        paragraph.CharacterScale = 150;
+        paragraph.BackgroundColor = OfficeColor.FromRgb(0x11, 0x22, 0x33);
+        paragraph.Highlight = WordHighlightColor.Yellow;
+        paragraph.CapsStyle = WordCapsStyle.SmallCaps;
+        paragraph.FontFamily = "Arial";
+        paragraph.Language = "pl-PL";
+        paragraph.KeepWithNext = true;
+        paragraph.ShadingPattern = WordShadingPattern.Percent10;
+        paragraph.LineSpacing = WordLineSpacing.Exact(OfficeLength.Points(14));
+
+        // Elements the handle adds to an SDK document are the SDK's typed classes, as its typed members made them.
+        Paragraph sdkParagraph = body.Elements<Paragraph>().Single();
+        RunProperties run = sdkParagraph.GetFirstChild<Run>()!.RunProperties!;
+        Assert.True(run.Bold!.Val!.Value);
+        Assert.True(run.Vanish!.Val!.Value);
+        Assert.Equal(24U, run.Kern!.Val!.Value);
+        Assert.Equal(150, run.CharacterScale!.Val!.Value);
+        Assert.Equal("112233", run.Shading!.Fill!.Value);
+        Assert.Equal(ShadingPatternValues.Clear, run.Shading.Val!.Value);
+        Assert.Equal(HighlightColorValues.Yellow, run.Highlight!.Val!.Value);
+        Assert.NotNull(run.SmallCaps);
+        Assert.Equal("Arial", run.RunFonts!.Ascii!.Value);
+        Assert.Equal("pl-PL", run.Languages!.Val!.Value);
+        ParagraphProperties properties = sdkParagraph.ParagraphProperties!;
+        Assert.NotNull(properties.KeepNext);
+        Assert.Equal(ShadingPatternValues.Percent10, properties.Shading!.Val!.Value);
+        Assert.Equal(LineSpacingRuleValues.Exact, properties.SpacingBetweenLines!.LineRule!.Value);
+        Assert.Equal("280", properties.SpacingBetweenLines.Line!.Value);
+    }
+
+    [Fact]
     public void OfficeImoAndSdkEditsMixAndSurviveSave() {
         byte[] source = CreatePackage(BodyXml("<w:p><w:r><w:t>Original</w:t></w:r></w:p>"));
         using var output = new MemoryStream();
@@ -374,12 +413,12 @@ public sealed class WordWithoutSdkTests {
         Assert.Equal("Added", added.Text);
         Assert.Equal(WordParagraphAlignment.Center, paragraphs[0].ParagraphAlignment);
         Assert.False(paragraphs[0].KeepWithNext);
-        Assert.Null(paragraphs[0].KerningMinimumFontSize);
+        Assert.True(paragraphs[0].IsLastRun);
         Assert.Equal("Second, edited", paragraphs[1].Text);
 
-        // KerningMinimumFontSize opened the SDK over the copy; edits through another object for the same run land there too.
+        // IsLastRun opened the SDK over the copy; edits through another object for the same run land there too.
         sameRun.Bold = true;
-        _ = paragraphs[1].KerningMinimumFontSize;
+        _ = paragraphs[1].IsLastRun;
         Assert.True(paragraphs[1].Bold);
     }
 
@@ -418,12 +457,12 @@ public sealed class WordWithoutSdkTests {
         Assert.True(document.IsSdkDeferred);
 
         WordParagraph paragraph = document.Paragraphs[0];
-        paragraph.KerningMinimumFontSize = OfficeLength.Points(14);
+        paragraph.ThemeColor = WordThemeColor.Accent1;
 
         Assert.False(document.IsSdkDeferred);
         string reason = Assert.Single(document.OpenXmlSdkFallbacks);
-        Assert.Contains("KerningMinimumFontSize", reason, StringComparison.Ordinal);
-        Assert.Equal(OfficeLength.Points(14), document.Paragraphs[0].KerningMinimumFontSize);
+        Assert.Contains("ThemeColor", reason, StringComparison.Ordinal);
+        Assert.Equal(WordThemeColor.Accent1, document.Paragraphs[0].ThemeColor);
     }
 
     [Fact]
@@ -522,6 +561,12 @@ public sealed class WordWithoutSdkTests {
         second.FontFamilyEastAsia = "MS Mincho";
         second.FontFamilyComplexScript = "Arial";
         second.FontFamilyHighAnsi = null;
+        second.Hidden = false;
+        second.KerningMinimumFontSize = OfficeLength.Points(12);
+        second.CharacterScale = 150;
+        second.BackgroundColor = OfficeColor.FromRgb(0x11, 0x22, 0x33);
+        second.Highlight = WordHighlightColor.Yellow;
+        second.CapsStyle = WordCapsStyle.SmallCaps;
         document.AddParagraph("tab\there\nnext line");
         WordParagraph centered = document.AddParagraph("Centered");
         centered.ParagraphAlignment = WordParagraphAlignment.Center;
@@ -541,6 +586,8 @@ public sealed class WordWithoutSdkTests {
         rightToLeft.TextDirection = WordTextDirection.TopToBottomRightToLeft;
         rightToLeft.PageBreakBefore = true;
         rightToLeft.LineSpacing = WordLineSpacing.Exact(OfficeLength.Points(14));
+        rightToLeft.ShadingFillColor = OfficeColor.FromRgb(0xAA, 0xBB, 0xCC);
+        rightToLeft.ShadingPattern = WordShadingPattern.Percent10;
         List<WordParagraph> paragraphs = document.Paragraphs;
         if (paragraphs.Count > 0) {
             paragraphs[0].Italic = true;
@@ -563,6 +610,12 @@ public sealed class WordWithoutSdkTests {
             paragraphs[1].Language = "";
             paragraphs[1].CharacterStyleId = null;
             paragraphs[1].DoNotCheckSpellingOrGrammar = false;
+            paragraphs[1].Hidden = null;
+            paragraphs[1].KerningMinimumFontSize = null;
+            paragraphs[1].CharacterScale = null;
+            paragraphs[1].BackgroundColor = null;
+            paragraphs[1].ShadingFillColor = null;
+            paragraphs[1].ClearTabStops();
         }
     }
 

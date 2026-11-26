@@ -1,37 +1,43 @@
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
+using static OfficeIMO.Word.OpenXml.WordXmlEdits;
+
 namespace OfficeIMO.Word {
-    // Manages run property settings. Each member reads and edits OfficeIMO's own package model while the document works
-    // without the Open XML SDK; once the SDK holds the document, the same member goes through the bridge.
+    // Manages run property settings. Each member reads and edits the run properties through their element handle, so it
+    // works the same whether OfficeIMO's own package model or the Open XML SDK holds the document.
     public partial class WordParagraph {
         /// <summary>
         /// Gets or sets a value indicating whether the run is bold. Setting false explicitly overrides inherited bold.
         /// </summary>
         public bool Bold {
-            get => _ownedTree != null && TryGetOwnedOnOff("b", out bool owned) ? owned : SdkBold;
-            set {
-                if (_ownedTree != null && TrySetOwnedOnOffPair("b", "bCs", value)) return;
-                SdkBold = value;
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "b"));
+            set => SetRunOnOffPair("b", "bCs", value);
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run is italic. Setting false explicitly overrides inherited italic.
         /// </summary>
         public bool Italic {
-            get => _ownedTree != null && TryGetOwnedOnOff("i", out bool owned) ? owned : SdkItalic;
-            set {
-                if (_ownedTree != null && TrySetOwnedOnOffPair("i", "iCs", value)) return;
-                SdkItalic = value;
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "i"));
+            set => SetRunOnOffPair("i", "iCs", value);
         }
 
         /// <summary>
         /// Gets or sets the underline style for the run.
         /// </summary>
         public WordUnderlineStyle? Underline {
-            get => _ownedTree != null && TryGetOwnedUnderline(out WordUnderlineStyle? owned) ? owned : SdkUnderline;
+            get {
+                string? token = ChildValue(RunPropertiesNode, "u");
+                return token == null ? null : Token(WordUnderlineStyleTokens.TryParse(token, out WordUnderlineStyle style), style, token);
+            }
             set {
-                if (_ownedTree != null && TrySetOwnedUnderline(value)) return;
-                SdkUnderline = value;
+                OfficeXmlNode properties = EditRunProperties();
+                if (value == null) {
+                    RemoveChild(properties, "u");
+                    return;
+                }
+                // An existing underline keeps its other attributes, such as its colour.
+                properties.GetOrAddChild(W, "u", WRPrView.Order).SetAttribute(W, "val", WordUnderlineStyleTokens.ToToken(value.Value));
             }
         }
 
@@ -39,22 +45,19 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether spelling and grammar checks are disabled.
         /// </summary>
         public bool DoNotCheckSpellingOrGrammar {
-            get => _ownedTree != null && TryGetOwnedOnOff("noProof", out bool owned) ? owned : SdkDoNotCheckSpellingOrGrammar;
-            set {
-                if (_ownedTree != null && TrySetOwnedToggle("noProof", value)) return;
-                SdkDoNotCheckSpellingOrGrammar = value;
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "noProof"));
+            set => SetRunToggle("noProof", value);
         }
 
         /// <summary>
         /// Gets or sets the signed physical character spacing. Null removes the local value.
         /// </summary>
         public OfficeLength? Spacing {
-            get => _ownedTree != null && TryGetOwnedCharacterSpacing(out OfficeLength? owned) ? owned : SdkSpacing;
+            get => int.TryParse(ChildValue(RunPropertiesNode, "spacing"), System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out int twips) ? OfficeLength.Emus((long)twips * 635) : null;
             set {
                 int? nativeSpacing = value.HasValue ? checked((int)value.Value.ToTwips()) : (int?)null;
-                if (_ownedTree != null && TrySetOwnedValue("spacing", nativeSpacing?.ToString(System.Globalization.CultureInfo.InvariantCulture))) return;
-                SdkSpacing = value;
+                SetRunValue("spacing", nativeSpacing?.ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
         }
 
@@ -62,55 +65,40 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the run is struck through.
         /// </summary>
         public bool Strikethrough {
-            get => _ownedTree != null && TryGetOwnedOnOff("strike", out bool owned) ? owned : SdkStrikethrough;
-            set {
-                if (_ownedTree != null && TrySetOwnedToggle("strike", value)) return;
-                SdkStrikethrough = value;
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "strike"));
+            set => SetRunToggle("strike", value);
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run has a double strikethrough.
         /// </summary>
         public bool DoubleStrikethrough {
-            get => _ownedTree != null && TryGetOwnedOnOff("dstrike", out bool owned) ? owned : SdkDoubleStrikethrough;
-            set {
-                if (_ownedTree != null && TrySetOwnedToggle("dstrike", value)) return;
-                SdkDoubleStrikethrough = value;
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "dstrike"));
+            set => SetRunToggle("dstrike", value);
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run text is outlined.
         /// </summary>
         public bool Outline {
-            get => _ownedTree != null && TryGetOwnedOnOff("outline", out bool owned) ? owned : SdkOutline;
-            set {
-                if (_ownedTree != null && TrySetOwnedToggle("outline", value)) return;
-                SdkOutline = value;
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "outline"));
+            set => SetRunToggle("outline", value);
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run has a shadow effect.
         /// </summary>
         public bool Shadow {
-            get => _ownedTree != null && TryGetOwnedOnOff("shadow", out bool owned) ? owned : SdkShadow;
-            set {
-                if (_ownedTree != null && TrySetOwnedToggle("shadow", value)) return;
-                SdkShadow = value;
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "shadow"));
+            set => SetRunToggle("shadow", value);
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run is embossed.
         /// </summary>
         public bool Emboss {
-            get => _ownedTree != null && TryGetOwnedOnOff("emboss", out bool owned) ? owned : SdkEmboss;
-            set {
-                if (_ownedTree != null && TrySetOwnedToggle("emboss", value)) return;
-                SdkEmboss = value;
-            }
+            get => ReadOnOff(RunPropertiesNode.Child(W, "emboss"));
+            set => SetRunToggle("emboss", value);
         }
 
         /// <summary>
@@ -124,17 +112,17 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets or sets native point values without a whole-EMU round trip.</summary>
         internal double? NativeFontSizePoints {
-            get => _ownedTree != null && TryGetOwnedFontSize(out double? owned) ? owned : SdkNativeFontSizePoints;
+            get => int.TryParse(ChildValue(RunPropertiesNode, "sz"), System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out int halfPoints) ? halfPoints / 2D : null;
             set {
-                if (_ownedTree != null && OwnedModel != null) {
-                    if (value == null) {
-                        if (TrySetOwnedValue("sz", null)) return;
-                    } else if (!double.IsNaN(value.Value) && !double.IsInfinity(value.Value) && value.Value >= 0D && value.Value <= int.MaxValue / 2D) {
-                        int ownedHalfPoints = checked((int)Math.Round(value.Value * 2D, MidpointRounding.AwayFromZero));
-                        if (TrySetOwnedValue("sz", ownedHalfPoints.ToString(System.Globalization.CultureInfo.InvariantCulture))) return;
+                string? halfPoints = null;
+                if (value != null) {
+                    if (double.IsNaN(value.Value) || double.IsInfinity(value.Value) || value.Value < 0D || value.Value > int.MaxValue / 2D) {
+                        throw new ArgumentOutOfRangeException(nameof(value));
                     }
+                    halfPoints = checked((int)Math.Round(value.Value * 2D, MidpointRounding.AwayFromZero)).ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
-                SdkNativeFontSizePoints = value;
+                SyncPageNumberFormatting(SetRunValue("sz", halfPoints), "sz");
             }
         }
 
@@ -142,14 +130,16 @@ namespace OfficeIMO.Word {
         /// Gets or sets the text color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         public OfficeIMO.OfficeColor? Color {
-            get => _ownedTree != null && TryGetOwnedColor(out OfficeIMO.OfficeColor? owned) ? owned : SdkColor;
+            get {
+                OfficeXmlNode color = RunPropertiesNode.Child(W, "color");
+                return color.IsNone ? null : WordRunColor.Read(color.Attribute(W, "themeColor"), color.HasAttribute(W, "themeTint"),
+                    color.HasAttribute(W, "themeShade"), color.Attribute(W, "val"));
+            }
             set {
-                if (_ownedTree != null && (value == null || !value.Value.IsThemeRole)
-                    && TrySetOwnedValue("color", value?.ToRgbHex())) return;
-                if (value != null) {
+                if (value != null && value.Value.IsThemeRole) {
                     SetRunColor(value.Value);
                 } else {
-                    RunColorValue = string.Empty;
+                    RunColorValue = value?.ToRgbHex() ?? string.Empty;
                 }
             }
         }
@@ -158,11 +148,17 @@ namespace OfficeIMO.Word {
         /// Gets or sets the native run colour value (hexadecimal or <c>auto</c>); empty removes it.
         /// </summary>
         internal string RunColorValue {
-            get => _ownedTree != null && TryGetOwnedValue("color", out string? owned) ? owned ?? "" : SdkRunColorValue;
+            get => ChildValue(RunPropertiesNode, "color") ?? string.Empty;
             set {
-                if (_ownedTree != null && (value == "" || Helpers.NormalizeOpenXmlColor(value) != null)
-                    && TrySetOwnedValue("color", value != "" ? Helpers.NormalizeOpenXmlColor(value) : null)) return;
-                SdkRunColorValue = value;
+                OfficeXmlNode properties = EditRunProperties();
+                if (value != string.Empty) {
+                    OfficeXmlNode color = ReplaceChild(properties, "color", WRPrView.Order);
+                    string? normalized = Helpers.NormalizeOpenXmlColor(value);
+                    if (normalized != null) color.SetAttribute(W, "val", normalized);
+                } else {
+                    RemoveChild(properties, "color");
+                }
+                SyncPageNumberFormatting(properties, "color");
             }
         }
 
@@ -170,7 +166,11 @@ namespace OfficeIMO.Word {
         /// Gets or sets the theme color applied to the run.
         /// </summary>
         public WordThemeColor? ThemeColor {
-            get => _ownedTree != null && TryGetOwnedThemeColor(out WordThemeColor? owned) ? owned : SdkThemeColor;
+            get {
+                OfficeXmlNode color = RunPropertiesNode.Child(W, "color");
+                string? token = color.IsNone ? null : color.Attribute(W, "themeColor");
+                return token == null ? null : Token(WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordThemeColor parsed), parsed, token);
+            }
             // The colour value caches the theme's colour, which the SDK path reads from the theme.
             set => SdkThemeColor = value;
         }
@@ -179,10 +179,17 @@ namespace OfficeIMO.Word {
         /// Gets or sets the highlight color applied to the run.
         /// </summary>
         public WordHighlightColor? Highlight {
-            get => _ownedTree != null && TryGetOwnedHighlight(out WordHighlightColor? owned) ? owned : SdkHighlight;
+            get {
+                string? token = ChildValue(RunPropertiesNode, "highlight");
+                return token == null ? null : Token(WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordHighlightColor color), color, token);
+            }
             set {
-                if (_ownedTree != null && TrySetOwnedHighlight(value)) return;
-                SdkHighlight = value;
+                // Clearing the highlight leaves a run without properties as it is.
+                if (value == null) {
+                    if (!RunPropertiesNode.Child(W, "highlight").IsNone) RemoveChild(EditRunProperties(), "highlight");
+                    return;
+                }
+                ReplaceChild(EditRunProperties(), "highlight", WRPrView.Order, value.Value.ToOpenXmlToken());
             }
         }
 
@@ -190,10 +197,17 @@ namespace OfficeIMO.Word {
         /// Gets or sets the capitalization style for the run.
         /// </summary>
         public WordCapsStyle CapsStyle {
-            get => _ownedTree != null && TryGetOwnedCaps(out WordCapsStyle owned) ? owned : SdkCapsStyle;
+            get {
+                OfficeXmlNode properties = RunPropertiesNode;
+                return ReadOnOff(properties.Child(W, "caps")) ? WordCapsStyle.Caps
+                    : ReadOnOff(properties.Child(W, "smallCaps")) ? WordCapsStyle.SmallCaps : WordCapsStyle.None;
+            }
             set {
-                if (_ownedTree != null && TrySetOwnedCaps(value)) return;
-                SdkCapsStyle = value;
+                OfficeXmlNode properties = EditRunProperties();
+                if (value == WordCapsStyle.Caps) ReplaceChild(properties, "caps", WRPrView.Order);
+                else RemoveChild(properties, "caps");
+                if (value == WordCapsStyle.SmallCaps) ReplaceChild(properties, "smallCaps", WRPrView.Order);
+                else RemoveChild(properties, "smallCaps");
             }
         }
 
@@ -206,10 +220,20 @@ namespace OfficeIMO.Word {
         /// in proper order (to overwrite given FontFamily)
         /// </summary>
         public string? FontFamily {
-            get => _ownedTree != null && TryGetOwnedFont("ascii", out string? owned) ? owned : SdkFontFamily;
+            get => RunFont("ascii");
             set {
-                if (_ownedTree != null && TrySetOwnedFontFamily(value)) return;
-                SdkFontFamily = value;
+                OfficeXmlNode properties = EditRunProperties();
+                OfficeXmlNode fonts = properties.GetOrAddChild(W, "rFonts", WRPrView.Order);
+                if (string.IsNullOrEmpty(value)) {
+                    fonts.RemoveAttribute(W, "ascii");
+                } else {
+                    // The other scripts get the same font, which special characters usually need.
+                    fonts.SetAttribute(W, "ascii", value!);
+                    fonts.SetAttribute(W, "hAnsi", value!);
+                    fonts.SetAttribute(W, "eastAsia", value!);
+                    fonts.SetAttribute(W, "cs", value!);
+                }
+                SyncPageNumberFormatting(properties, "rFonts");
             }
         }
 
@@ -217,43 +241,43 @@ namespace OfficeIMO.Word {
         /// Gets or sets the HighAnsi font family.
         /// </summary>
         public string? FontFamilyHighAnsi {
-            get => _ownedTree != null && TryGetOwnedFont("hAnsi", out string? owned) ? owned : SdkFontFamilyHighAnsi;
-            set {
-                if (_ownedTree != null && TrySetOwnedFont("hAnsi", value)) return;
-                SdkFontFamilyHighAnsi = value;
-            }
+            get => RunFont("hAnsi");
+            set => SetRunFont("hAnsi", value);
         }
 
         /// <summary>
         /// Gets or sets the East Asia font family.
         /// </summary>
         public string? FontFamilyEastAsia {
-            get => _ownedTree != null && TryGetOwnedFont("eastAsia", out string? owned) ? owned : SdkFontFamilyEastAsia;
-            set {
-                if (_ownedTree != null && TrySetOwnedFont("eastAsia", value)) return;
-                SdkFontFamilyEastAsia = value;
-            }
+            get => RunFont("eastAsia");
+            set => SetRunFont("eastAsia", value);
         }
 
         /// <summary>
         /// Gets or sets the complex script font family.
         /// </summary>
         public string? FontFamilyComplexScript {
-            get => _ownedTree != null && TryGetOwnedFont("cs", out string? owned) ? owned : SdkFontFamilyComplexScript;
-            set {
-                if (_ownedTree != null && TrySetOwnedFont("cs", value)) return;
-                SdkFontFamilyComplexScript = value;
-            }
+            get => RunFont("cs");
+            set => SetRunFont("cs", value);
         }
 
         /// <summary>
         /// Gets or sets the language applied to the run.
         /// </summary>
         public string? Language {
-            get => _ownedTree != null && TryGetOwnedLanguage(out string? owned) ? owned : SdkLanguage;
+            get => ChildValue(RunPropertiesNode, "lang");
             set {
-                if (_ownedTree != null && TrySetOwnedLanguage(value)) return;
-                SdkLanguage = value;
+                OfficeXmlNode properties = EditRunProperties();
+                if (string.IsNullOrWhiteSpace(value)) {
+                    RemoveChild(properties, "lang");
+                    return;
+                }
+                // A language sets the main, East Asian and right-to-left languages of an existing or new element.
+                string language = value!.Trim();
+                OfficeXmlNode element = properties.GetOrAddChild(W, "lang", WRPrView.Order);
+                element.SetAttribute(W, "val", language);
+                element.SetAttribute(W, "eastAsia", language);
+                element.SetAttribute(W, "bidi", language);
             }
         }
 
@@ -262,24 +286,74 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCharacterStyles? CharacterStyle {
             get {
-                if (_ownedTree == null || !TryGetOwnedValue("rStyle", out string? styleId)) return SdkCharacterStyle;
+                string? styleId = ChildValue(RunPropertiesNode, "rStyle");
                 return string.IsNullOrEmpty(styleId) ? null : WordCharacterStyle.GetStyle(styleId!);
             }
-            set {
-                if (_ownedTree != null && TrySetOwnedCharacterStyleId(value == null ? null : WordCharacterStyle.ToStringStyle(value.Value))) return;
-                SdkCharacterStyle = value;
-            }
+            set => ApplyCharacterStyleId(value == null ? null : WordCharacterStyle.ToStringStyle(value.Value));
         }
 
         /// <summary>
         /// Gets or sets the style identifier applied to the run.
         /// </summary>
         public string? CharacterStyleId {
-            get => _ownedTree != null && TryGetOwnedValue("rStyle", out string? owned) ? owned : SdkCharacterStyleId;
-            set {
-                if (_ownedTree != null && TrySetOwnedCharacterStyleId(value)) return;
-                SdkCharacterStyleId = value;
+            get => ChildValue(RunPropertiesNode, "rStyle");
+            set => ApplyCharacterStyleId(value);
+        }
+
+        // ---- Shared edits ------------------------------------------------------------------------------------------
+
+        private void SetRunOnOffPair(string name, string complexScriptName, bool value) {
+            OfficeXmlNode properties = EditRunProperties();
+            string token = value ? "true" : "false";
+            ReplaceChild(properties, name, WRPrView.Order, token);
+            ReplaceChild(properties, complexScriptName, WRPrView.Order, token);
+        }
+
+        // On adds a fresh element without a value; off removes it.
+        private void SetRunToggle(string name, bool value) {
+            OfficeXmlNode properties = EditRunProperties();
+            if (value) ReplaceChild(properties, name, WRPrView.Order);
+            else RemoveChild(properties, name);
+        }
+
+        // A value replaces the element; null removes it. Returns the run properties.
+        private OfficeXmlNode SetRunValue(string name, string? value) {
+            OfficeXmlNode properties = EditRunProperties();
+            if (value == null) RemoveChild(properties, name);
+            else ReplaceChild(properties, name, WRPrView.Order, value);
+            return properties;
+        }
+
+        private string? RunFont(string attribute) {
+            OfficeXmlNode properties = RunPropertiesNode;
+            if (properties.IsNone) return null;
+            OfficeXmlNode fonts = properties.Child(W, "rFonts");
+            return fonts.IsNone ? null : fonts.Attribute(W, attribute);
+        }
+
+        private void SetRunFont(string attribute, string? value) {
+            OfficeXmlNode fonts = EditRunProperties().GetOrAddChild(W, "rFonts", WRPrView.Order);
+            if (string.IsNullOrEmpty(value)) fonts.RemoveAttribute(W, attribute);
+            else fonts.SetAttribute(W, attribute, value!);
+        }
+
+        /// <summary>
+        /// Applies a character style, adding its definition first when the document lacks it or what it depends on.
+        /// Clearing removes the run's style.
+        /// </summary>
+        private void ApplyCharacterStyleId(string? styleId) {
+            if (string.IsNullOrEmpty(styleId)) {
+                RemoveChild(EditRunProperties(), "rStyle");
+                return;
             }
+            // Adding a definition can open the SDK package, so it runs before the run properties are taken to edit.
+            WordPackageModel? model = OwnedModel;
+            if (model == null) {
+                _document?.EnsureStyleDefinition(styleId!);
+            } else if (_document.FileOpenAccess != FileAccess.Read && !model.Styles.DefinesWithDependencies(styleId!)) {
+                _document.EnsureStyleDefinition(styleId!);
+            }
+            EditRunProperties().GetOrAddChild(W, "rStyle", WRPrView.Order).SetAttribute(W, "val", styleId);
         }
     }
 }
