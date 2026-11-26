@@ -1,75 +1,53 @@
+#if NET
 using System.Xml.Linq;
+using OfficeIMO.TestSupport.OpenXml;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace OfficeIMO.Tests;
 
 /// <summary>
-/// The PowerPoint engine is moving off the Open XML SDK. Its remaining SDK use belongs in the bridge folder
-/// <c>OfficeIMO.PowerPoint/OpenXmlSdk</c>, which a later version moves into its own package; every other source file
-/// compiled into the engine, linked shared sources included, should stop naming SDK types. The count of files that still
-/// do may only go down. When a change lowers it, lower <see cref="MaximumFilesReferencingSdk"/> to the new count.
+/// Tracks how much of OfficeIMO.PowerPoint still uses the Open XML SDK. Every SDK use belongs in the bridge folder
+/// (<c>OfficeIMO.PowerPoint/OpenXmlSdk</c>), which a later version moves into its own package; this counts the source
+/// files outside it whose compiled code uses SDK types. The count may only go down: lower <see cref="Baseline"/> in the
+/// change that removes files from the list. The engine is off the SDK when it reaches zero.
 /// </summary>
 public class PowerPointSdkReferenceRatchetTests {
-    private const int MaximumFilesReferencingSdk = 360;
-    private const string BridgeFolder = "OpenXmlSdk";
+    private const int Baseline = 306;
+    private readonly ITestOutputHelper _output;
+
+    public PowerPointSdkReferenceRatchetTests(ITestOutputHelper output) => _output = output;
 
     [Fact]
-    public void FilesOutsideTheBridgeReferencingTheSdkDoNotGrow() {
-        string? project = FindProjectFolder();
-        // Test runs from a published build have no sources; the check runs wherever the repository is checked out.
-        if (project == null) return;
-        List<string> files = EngineSources(project)
-            .Where(file => !IsInBridge(project, file) && ReferencesSdk(file))
-            .Select(file => Relative(Path.GetDirectoryName(project)!, file).Replace('\\', '/'))
-            .OrderBy(file => file, StringComparer.Ordinal)
-            .ToList();
-        Assert.True(files.Count <= MaximumFilesReferencingSdk,
-            files.Count + " files outside the bridge reference the Open XML SDK, more than the " + MaximumFilesReferencingSdk
-            + " allowed; move the new SDK use into " + BridgeFolder + " or the engine's own model.");
+    public void FilesOutsideTheBridgeThatUseTheSdkOnlyGoDown() {
+        string projectDirectory = Path.Combine(FindRepositoryRoot(), "OfficeIMO.PowerPoint");
+        IReadOnlyList<string> files = OpenXmlSdkReferenceCounter.FindFiles(
+            typeof(OfficeIMO.PowerPoint.PowerPointDocument).Assembly.Location, projectDirectory, "OpenXmlSdk");
+
+        _output.WriteLine($"OfficeIMO.PowerPoint files outside OpenXmlSdk/ that use the Open XML SDK: {files.Count} (baseline {Baseline})");
+        foreach (string file in files) _output.WriteLine(file);
+
+        Assert.True(files.Count <= Baseline,
+            $"{files.Count} files outside OfficeIMO.PowerPoint/OpenXmlSdk use the Open XML SDK, more than the baseline of {Baseline}. Keep new SDK use in the bridge.");
+        Assert.True(files.Count == Baseline,
+            $"Only {files.Count} files outside OfficeIMO.PowerPoint/OpenXmlSdk use the Open XML SDK now. Lower the baseline in {nameof(PowerPointSdkReferenceRatchetTests)} to {files.Count}.");
     }
 
     [Fact]
-    public void TheProjectNamesTheSdkNamespaceOnlyInSourceFiles() {
-        string? project = FindProjectFolder();
-        if (project == null) return;
-        // A global using would let any file use SDK types without naming them, which the count above can't see.
-        XDocument csproj = XDocument.Load(Path.Combine(project, "OfficeIMO.PowerPoint.csproj"));
-        Assert.DoesNotContain(csproj.Descendants().Where(element => element.Name.LocalName == "Using"),
+    public void TheProjectDoesNotImportTheSdkNamespaceGlobally() {
+        // A global using would let any file use SDK types without naming them.
+        XDocument project = XDocument.Load(Path.Combine(FindRepositoryRoot(), "OfficeIMO.PowerPoint", "OfficeIMO.PowerPoint.csproj"));
+        Assert.DoesNotContain(project.Descendants().Where(element => element.Name.LocalName == "Using"),
             element => ((string?)element.Attribute("Include") ?? string.Empty).StartsWith("DocumentFormat.OpenXml", StringComparison.Ordinal));
     }
 
-    private static bool ReferencesSdk(string file) => File.ReadAllText(file).IndexOf("DocumentFormat.OpenXml", StringComparison.Ordinal) >= 0;
-
-    private static string Relative(string folder, string file) =>
-        file.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.Ordinal) ? file.Substring(folder.Length + 1) : file;
-
-    private static bool IsInBridge(string project, string file) =>
-        file.StartsWith(Path.Combine(project, BridgeFolder) + Path.DirectorySeparatorChar, StringComparison.Ordinal);
-
-    // The engine's own sources and the shared sources its project links in.
-    private static IEnumerable<string> EngineSources(string project) {
-        foreach (string file in Directory.EnumerateFiles(project, "*.cs", SearchOption.AllDirectories)) {
-            string relative = Relative(project, file);
-            if (relative.StartsWith("obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-                || relative.StartsWith("bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal)) continue;
-            yield return file;
+    private static string FindRepositoryRoot() {
+        string? directory = AppContext.BaseDirectory;
+        while (directory != null) {
+            if (File.Exists(Path.Combine(directory, "OfficeIMO.PowerPoint", "OfficeIMO.PowerPoint.csproj"))) return directory;
+            directory = Path.GetDirectoryName(directory);
         }
-        XDocument csproj = XDocument.Load(Path.Combine(project, "OfficeIMO.PowerPoint.csproj"));
-        foreach (string include in csproj.Descendants().Where(element => element.Name.LocalName == "Compile")
-                     .Select(element => (string?)element.Attribute("Include")).OfType<string>()
-                     .Where(include => include.StartsWith("..", StringComparison.Ordinal))) {
-            string pattern = include.Replace('\\', Path.DirectorySeparatorChar);
-            string folder = Path.GetFullPath(Path.Combine(project, Path.GetDirectoryName(pattern)!));
-            if (!Directory.Exists(folder)) continue;
-            foreach (string file in Directory.EnumerateFiles(folder, Path.GetFileName(pattern))) yield return file;
-        }
-    }
-
-    private static string? FindProjectFolder() {
-        for (DirectoryInfo? directory = new(AppContext.BaseDirectory); directory != null; directory = directory.Parent) {
-            string candidate = Path.Combine(directory.FullName, "OfficeIMO.PowerPoint");
-            if (File.Exists(Path.Combine(candidate, "OfficeIMO.PowerPoint.csproj"))) return candidate;
-        }
-        return null;
+        throw new InvalidOperationException("The repository root was not found above the test output.");
     }
 }
+#endif

@@ -532,6 +532,7 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/Numerics/OfficeRounding.cs",
                 "OfficeIMO.SharedSource/Numerics/OfficeRoundTripNumberText.cs",
                 "OfficeIMO.SharedSource/Numerics/OfficeRoundTripNumberText.Parse.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeDrawingColorTransforms.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlContractMappings.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlHiddenData.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlPackagePayload.cs",

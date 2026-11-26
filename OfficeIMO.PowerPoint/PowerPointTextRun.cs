@@ -1,103 +1,137 @@
 using System.Globalization;
 using OfficeIMO.Drawing;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents a formatted text run within a paragraph.
     /// </summary>
     public partial class PowerPointTextRun : IPackageSdkBinding {
-        private readonly SlidePart? _initialSlidePart;
-        private SlidePart? _slidePart => (_field as DocumentFormat.OpenXml.OpenXmlElement ?? Run).Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
-        private readonly OpenXmlPartContainer? _initialOwnerPart;
-        private OpenXmlPartContainer? _ownerPart => (_field as DocumentFormat.OpenXml.OpenXmlElement ?? Run).Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
-            .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
-        private readonly A.Field? _field;
-        private List<OpenXmlElement>? _lineContinuation;
+        // Children of a:r and of a:fld, in sequence order.
+        private static readonly OfficeXmlChildOrder RunOrder = new(
+            new[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new[] { "rPr", "t" });
+        private static readonly OfficeXmlChildOrder FieldOrder = new(
+            new[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new[] { "rPr", "pPr", "t" });
 
-        internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
-            _run = run;
-            _initialSlidePart = slidePart ?? ownerPart as SlidePart;
-            _initialOwnerPart = ownerPart ?? slidePart;
-        }
-
-        internal PowerPointTextRun(A.Run run, SlidePart? slidePart, OpenXmlPartContainer? ownerPart, List<OpenXmlElement> lineContinuation)
-            : this(run, slidePart, ownerPart) {
-            if (lineContinuation.Count > 0) _lineContinuation = lineContinuation;
-        }
-
-        internal PowerPointTextRun(A.Field field, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
-            _field = field;
-            _run = new A.Run();
-            _initialSlidePart = slidePart ?? ownerPart as SlidePart;
-            _initialOwnerPart = ownerPart ?? slidePart;
-        }
-
-        private A.Run? _run;
+        private PowerPointXmlNode _element;
+        private readonly bool _isField;
+        private readonly PowerPointPartRef _initialSlidePart;
+        private readonly PowerPointPartRef _initialOwnerPart;
         private readonly PowerPointSlide? _packageSlide;
-        private readonly OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree? _packageTree;
-        private readonly int _packageNode;
+        private readonly PowerPointPartRef _packagePart;
+        private List<PowerPointXmlNode>? _lineContinuation;
 
-        // A run of a slide's package tree; anything it does not do there binds it to the same run in the SDK.
-        internal PowerPointTextRun(PowerPointSlide slide, OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree, int node) {
+        /// <summary>
+        /// A run (<c>a:r</c>) or a dynamic field (<c>a:fld</c>) of a part, wherever the part is held.
+        /// <paramref name="slidePart"/> is the slide the text belongs to and <paramref name="ownerPart"/> the part that
+        /// holds it, such as a notes slide or a layout.
+        /// </summary>
+        internal PowerPointTextRun(PowerPointXmlNode element, PowerPointPartRef slidePart, PowerPointPartRef ownerPart, List<PowerPointXmlNode>? lineContinuation = null) {
+            _element = element;
+            _isField = element.Is(OfficeXmlNamespaces.DrawingML, "fld");
+            _initialSlidePart = !slidePart.IsNone ? slidePart : ownerPart.Kind == PowerPointPartKind.Slide ? ownerPart : default;
+            _initialOwnerPart = !ownerPart.IsNone ? ownerPart : slidePart;
+            if (lineContinuation is { Count: > 0 }) _lineContinuation = lineContinuation;
+            // A run of a part's package tree binds to its SDK element when the SDK opens.
+            if (element.Tree != null && !_initialOwnerPart.IsNone && !_initialOwnerPart.IsSdk && element.IsAttached) {
+                _packagePart = _initialOwnerPart;
+                _initialOwnerPart.Document?.RegisterPackageBinding(this);
+            }
+        }
+
+        // A run of a slide's package tree; it binds to the same run in the SDK when the SDK opens.
+        internal PowerPointTextRun(PowerPointSlide slide, OfficeXmlTree tree, int node) {
             _packageSlide = slide;
-            _packageTree = tree;
-            _packageNode = node;
+            _packagePart = slide.PartRef;
+            _element = new PowerPointXmlNode(tree, node);
+            _isField = _element.Is(OfficeXmlNamespaces.DrawingML, "fld");
+            _initialSlidePart = _initialOwnerPart = _packagePart;
             slide.OwnerDocument?.RegisterPackageBinding(this);
         }
 
-        internal A.Run Run => _run ??= (A.Run)PowerPointSlide.BindPackageElement(_packageSlide!, _packageTree!, _packageNode);
+        /// <summary>The run's element as it is held now: once the SDK opened, a run of a package tree is its SDK element.</summary>
+        internal PowerPointXmlNode Element {
+            get {
+                // A removed slide's part name can be reused by a new slide, so its content never binds.
+                if (_element.Tree != null && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }) {
+                    // The lines the run continues on bind with it, so formatting keeps reaching them.
+                    if (_lineContinuation != null) {
+                        for (int index = 0; index < _lineContinuation.Count; index++) {
+                            PowerPointXmlNode line = _lineContinuation[index];
+                            if (line.Tree != null) _lineContinuation[index] = PowerPointXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, line.Tree, line.Node));
+                        }
+                    }
+                    _element = PowerPointXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, _element.Tree, _element.Node));
+                }
+                return _element;
+            }
+        }
 
         void IPackageSdkBinding.BindSdk() {
-            if (_run != null || _packageTree == null) return;
             try {
-                _ = Run;
+                _ = Element;
             } catch (InvalidOperationException) {
                 // A run the opened slide doesn't have where expected reports it when it is used.
             }
         }
 
-        private bool IsPackageBacked => _run == null && _packageTree != null && _packageSlide is { RemovedFromPackage: false } && _packageSlide.OwnerDocument?.IsSdkLoaded == false;
-
-        private bool CanEditPackage => IsPackageBacked && _packageSlide!.OwnerDocument!.CanEditPackage;
-
-        // The run's a:rPr on the package tree, NoNode when it has none.
-        private int PackageProperties => _packageTree!.FindChild(_packageNode, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "rPr");
-
-        private bool TryGetPackageFlag(string attribute, out bool value) {
-            value = false;
-            if (!IsPackageBacked) return false;
-            int properties = PackageProperties;
-            if (properties == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) return true;
-            switch (_packageTree!.GetAttribute(properties, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.None, attribute)) {
-                case null: case "0": case "false": return true;
-                case "1": case "true": value = true; return true;
-                default: return false;
+        /// <summary>The slide the run's text is on, found from where the element is now when it can be.</summary>
+        internal PowerPointPartRef SlidePartRef {
+            get {
+                PowerPointPartRef current = ContainingPart(Element);
+                return current.Kind == PowerPointPartKind.Slide ? current : _initialSlidePart;
             }
         }
 
-        // Sets an attribute of the run's a:rPr on the package tree, adding the a:rPr first in the run when missing.
-        private bool TrySetPackageProperty(string attribute, string? value) {
-            if (!CanEditPackage) return false;
-            OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree = _packageTree!;
-            int properties = PackageProperties;
-            if (properties == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) {
-                properties = tree.CreateElement(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "rPr");
-                tree.InsertBefore(_packageNode, properties, tree.FirstChildOf(_packageNode));
+        /// <summary>The part that holds the run, found from where the element is now when it can be.</summary>
+        internal PowerPointPartRef OwnerPartRef {
+            get {
+                PowerPointPartRef current = ContainingPart(Element);
+                return current.Kind == PowerPointPartKind.Slide ? current : !_initialOwnerPart.IsNone ? _initialOwnerPart : _initialSlidePart;
             }
-            if (value == null) tree.RemoveAttribute(properties, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.None, attribute);
-            else tree.SetAttribute(properties, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.None, attribute, value);
-            _packageSlide!.OwnerDocument!.MarkPackageEdited();
-            return true;
         }
 
-        /// <summary>The last run of the text this wrapper wrote, which is <see cref="Run"/> for a single line.</summary>
-        internal A.Run LastLine => _lineContinuation?.OfType<A.Run>().LastOrDefault() ?? Run;
-        internal A.RunProperties? RunProperties => _field?.RunProperties ?? Run.RunProperties;
-        internal OpenXmlPartContainer? OwnerPart => _ownerPart;
+        // The part an SDK element sits in; a tree node's part is the one the run was made for.
+        private static PowerPointPartRef ContainingPart(PowerPointXmlNode element) =>
+            element.IsSdk ? PowerPointPartRef.FromSdk(OpenXmlSdk.PowerPointSdkXml.PartOf(element.SdkElement!)) : default;
+
+        private PowerPointSlide? Slide => _packageSlide ?? FindSlide(SlidePartRef);
+
+        private static PowerPointSlide? FindSlide(PowerPointPartRef part) {
+            if (part.IsNone || part.Document is not { } document) return null;
+            foreach (PowerPointSlide slide in document.Slides) {
+                if (slide.PartRef.Equals(part)) return slide;
+            }
+            return null;
+        }
+
+        private OfficeXmlChildOrder Order => _isField ? FieldOrder : RunOrder;
+
+        /// <summary>The run's <c>a:rPr</c>, or none.</summary>
+        internal PowerPointXmlNode PropertiesElement => Element.Child(OfficeXmlNamespaces.DrawingML, "rPr");
+
+        /// <summary>The run's <c>a:rPr</c>, added first in the run when it has none.</summary>
+        internal PowerPointXmlNode EnsurePropertiesElement() {
+            PowerPointXmlNode element = Element;
+            PowerPointXmlNode properties = element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "rPr", Order);
+            MarkEdited();
+            return properties;
+        }
+
+        private void MarkEdited() => OwnerPartRef.MarkEdited();
+
+        /// <summary>The last run of the text this wrapper wrote, which is the run itself for a single line.</summary>
+        internal PowerPointXmlNode LastLineElement {
+            get {
+                if (_lineContinuation != null) {
+                    for (int index = _lineContinuation.Count - 1; index >= 0; index--) {
+                        if (_lineContinuation[index].Is(OfficeXmlNamespaces.DrawingML, "r")) return _lineContinuation[index];
+                    }
+                }
+                return Element;
+            }
+        }
 
         /// <summary>
         /// Text content of the run. A line break in the assigned text continues the run with
@@ -106,44 +140,49 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string Text {
             get {
-                if (IsPackageBacked) {
-                    int value = _packageTree!.FindChild(_packageNode, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "t");
-                    if (value == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) return string.Empty;
-                    int child = _packageTree.FirstChildOf(value);
-                    if (child == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) return string.Empty;
-                    if (_packageTree.KindOf(child) == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTreeNodeKind.Text
-                        && _packageTree.NextSiblingOf(child) == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) {
-                        return _packageTree.GetText(child);
-                    }
+                string text = Element.ChildText(OfficeXmlNamespaces.DrawingML, "t") ?? string.Empty;
+                if (_lineContinuation == null) return text;
+                var lines = new List<string> { text };
+                foreach (PowerPointXmlNode line in _lineContinuation) {
+                    if (line.Is(OfficeXmlNamespaces.DrawingML, "r")) lines.Add(line.ChildText(OfficeXmlNamespaces.DrawingML, "t") ?? string.Empty);
                 }
-                string text = (_field?.Text ?? Run.Text)?.Text ?? string.Empty;
-                return _lineContinuation == null
-                    ? text
-                    : string.Join(Environment.NewLine, new[] { text }.Concat(
-                        _lineContinuation.OfType<A.Run>().Select(line => line.Text?.Text ?? string.Empty)));
+                return string.Join(Environment.NewLine, lines);
             }
             set {
-                if (TrySetPackageText(value)) return;
-                if (_field != null) {
-                    _field.Text ??= new A.Text();
-                    _field.Text.Text = PowerPointTextContent.ToSingleLine(value);
+                PowerPointXmlNode element = Element;
+                if (_isField) {
+                    element.SetChildText(OfficeXmlNamespaces.DrawingML, "t", PowerPointTextContent.ToSingleLine(value), FieldOrder);
+                    MarkEdited();
                     return;
                 }
-                _lineContinuation?.ForEach(node => node.Remove());
-                _lineContinuation = null;
-                Run.Text ??= new A.Text();
-                if (Run.Parent == null) {
-                    Run.Text.Text = PowerPointTextContent.ToSingleLine(value);
+                if (_lineContinuation != null) {
+                    foreach (PowerPointXmlNode line in _lineContinuation) {
+                        if (!line.Parent.IsNone) line.Remove();
+                    }
+                    _lineContinuation = null;
+                }
+                string[] lines = PowerPointTextContent.SplitLines(value);
+                PowerPointXmlNode text = element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "t", RunOrder);
+                PowerPointXmlNode parent = element.Parent;
+                if (parent.IsNone) {
+                    text.SetInnerText(PowerPointTextContent.ToSingleLine(value));
+                    MarkEdited();
                     return;
                 }
-                List<OpenXmlElement> lines = PowerPointTextContent.CreateInlineContent(value, Run.RunProperties);
-                Run.Text.Text = ((A.Run)lines[0]).Text!.Text;
-                if (lines.Count == 1) return;
-                _lineContinuation = lines.Skip(1).ToList();
-                OpenXmlElement previous = Run;
-                foreach (OpenXmlElement line in _lineContinuation) {
-                    previous = previous.InsertAfterSelf(line);
+                text.SetInnerText(lines[0]);
+                if (lines.Length > 1) {
+                    // The further lines follow the run, each with a copy of its properties.
+                    string rest = string.Join("\n", lines, 1, lines.Length - 1);
+                    var continuation = new List<PowerPointXmlNode>();
+                    PowerPointXmlNode properties = PropertiesElement;
+                    PowerPointXmlNode before = element.NextSibling;
+                    PowerPointXmlNode lineBreak = parent.InsertBefore(parent.CreateElement(OfficeXmlNamespaces.DrawingML, "br"), before);
+                    PowerPointTextContent.ApplyProperties(lineBreak, properties);
+                    continuation.Add(lineBreak);
+                    continuation.AddRange(PowerPointTextContent.InsertInlineContent(parent, rest, properties, before));
+                    _lineContinuation = continuation;
                 }
+                MarkEdited();
             }
         }
 
@@ -155,30 +194,28 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
+        private bool ReadFlag(string attribute) => PropertiesElement.BooleanAttribute(attribute) == true;
+
+        // Sets an attribute of the run's a:rPr, adding the a:rPr first in the run when missing; null removes it.
+        private void SetProperty(string attribute, string? value) {
+            EnsurePropertiesElement().SetAttribute(attribute, value);
+            SyncLineContinuation();
+        }
+
         /// <summary>
         /// Gets or sets a value indicating whether the run is bold.
         /// </summary>
         public bool Bold {
-            get => TryGetPackageFlag("b", out bool packageValue) ? packageValue : RunProperties?.Bold?.Value == true;
-            set {
-                if (TrySetPackageProperty("b", value ? "1" : "0")) return;
-                A.RunProperties props = EnsureRunProperties();
-                props.Bold = value;
-                SyncLineContinuation();
-            }
+            get => ReadFlag("b");
+            set => SetProperty("b", value ? "1" : "0");
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run is italic.
         /// </summary>
         public bool Italic {
-            get => TryGetPackageFlag("i", out bool packageValue) ? packageValue : RunProperties?.Italic?.Value == true;
-            set {
-                if (TrySetPackageProperty("i", value ? "1" : "0")) return;
-                A.RunProperties props = EnsureRunProperties();
-                props.Italic = value;
-                SyncLineContinuation();
-            }
+            get => ReadFlag("i");
+            set => SetProperty("i", value ? "1" : "0");
         }
 
         /// <summary>
@@ -195,12 +232,9 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets the native DrawingML underline variant.
         /// </summary>
         public PowerPointUnderlineStyle? UnderlineStyle {
-            get => RunProperties?.Underline?.Value.ToOfficeEnum();
-            set {
-                A.RunProperties props = EnsureRunProperties();
-                props.Underline = value?.ToOpenXml();
-                SyncLineContinuation();
-            }
+            get => PropertiesElement.Attribute("u") is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointUnderlineStyle style)
+                ? style : null;
+            set => SetProperty("u", value?.ToOpenXmlToken());
         }
 
         /// <summary>
@@ -217,50 +251,40 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets the native DrawingML strike-through variant.
         /// </summary>
         public PowerPointStrikeStyle? StrikeStyle {
-            get {
-                A.TextStrikeValues? value = RunProperties?.Strike?.Value;
-                if (!value.HasValue) return null;
-                if (value.Value == A.TextStrikeValues.NoStrike) return PowerPointStrikeStyle.None;
-                if (value.Value == A.TextStrikeValues.SingleStrike) return PowerPointStrikeStyle.Single;
-                if (value.Value == A.TextStrikeValues.DoubleStrike) return PowerPointStrikeStyle.Double;
-                throw new InvalidOperationException($"Unsupported DrawingML strike value '{value.Value}'.");
-            }
-            set {
-                A.RunProperties props = EnsureRunProperties();
-                props.Strike = value switch {
-                    null => null,
-                    PowerPointStrikeStyle.None => A.TextStrikeValues.NoStrike,
-                    PowerPointStrikeStyle.Single => A.TextStrikeValues.SingleStrike,
-                    PowerPointStrikeStyle.Double => A.TextStrikeValues.DoubleStrike,
-                    _ => throw new ArgumentOutOfRangeException(nameof(value))
-                };
-                SyncLineContinuation();
-            }
+            get => PropertiesElement.Attribute("strike") switch {
+                null => null,
+                "noStrike" => PowerPointStrikeStyle.None,
+                "sngStrike" => PowerPointStrikeStyle.Single,
+                "dblStrike" => PowerPointStrikeStyle.Double,
+                string other => throw new InvalidOperationException($"Unsupported DrawingML strike value '{other}'.")
+            };
+            set => SetProperty("strike", value switch {
+                null => null,
+                PowerPointStrikeStyle.None => "noStrike",
+                PowerPointStrikeStyle.Single => "sngStrike",
+                PowerPointStrikeStyle.Double => "dblStrike",
+                _ => throw new ArgumentOutOfRangeException(nameof(value))
+            });
         }
 
         /// <summary>
         /// Gets or sets native DrawingML capitalization without changing the stored characters.
         /// </summary>
         public PowerPointCapitalization? Capitalization {
-            get {
-                A.TextCapsValues? value = RunProperties?.Capital?.Value;
-                if (!value.HasValue) return null;
-                if (value.Value == A.TextCapsValues.None) return PowerPointCapitalization.None;
-                if (value.Value == A.TextCapsValues.Small) return PowerPointCapitalization.SmallCaps;
-                if (value.Value == A.TextCapsValues.All) return PowerPointCapitalization.AllCaps;
-                throw new InvalidOperationException($"Unsupported DrawingML capitalization value '{value.Value}'.");
-            }
-            set {
-                A.RunProperties props = EnsureRunProperties();
-                props.Capital = value switch {
-                    null => null,
-                    PowerPointCapitalization.None => A.TextCapsValues.None,
-                    PowerPointCapitalization.SmallCaps => A.TextCapsValues.Small,
-                    PowerPointCapitalization.AllCaps => A.TextCapsValues.All,
-                    _ => throw new ArgumentOutOfRangeException(nameof(value))
-                };
-                SyncLineContinuation();
-            }
+            get => PropertiesElement.Attribute("cap") switch {
+                null => null,
+                "none" => PowerPointCapitalization.None,
+                "small" => PowerPointCapitalization.SmallCaps,
+                "all" => PowerPointCapitalization.AllCaps,
+                string other => throw new InvalidOperationException($"Unsupported DrawingML capitalization value '{other}'.")
+            };
+            set => SetProperty("cap", value switch {
+                null => null,
+                PowerPointCapitalization.None => "none",
+                PowerPointCapitalization.SmallCaps => "small",
+                PowerPointCapitalization.AllCaps => "all",
+                _ => throw new ArgumentOutOfRangeException(nameof(value))
+            });
         }
 
         /// <summary>
@@ -268,18 +292,14 @@ namespace OfficeIMO.PowerPoint {
         /// Positive values create superscript and negative values create subscript.
         /// </summary>
         public double? BaselinePercent {
-            get => RunProperties?.Baseline?.Value is int value ? value / 1000D : null;
+            get => PropertiesElement.Int32Attribute("baseline") is int value ? value / 1000D : null;
             set {
                 if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value)
                     || value.Value < -100D || value.Value > 100D)) {
                     throw new ArgumentOutOfRangeException(nameof(value), "Baseline percent must be between -100 and 100.");
                 }
-
-                A.RunProperties props = EnsureRunProperties();
-                props.Baseline = value.HasValue
-                    ? checked((int)Math.Round(value.Value * 1000D, MidpointRounding.AwayFromZero))
-                    : null;
-                SyncLineContinuation();
+                int? baseline = value.HasValue ? checked((int)Math.Round(value.Value * 1000D, MidpointRounding.AwayFromZero)) : null;
+                SetProperty("baseline", baseline?.ToString(CultureInfo.InvariantCulture));
             }
         }
 
@@ -306,24 +326,10 @@ namespace OfficeIMO.PowerPoint {
         /// Null removes the override; sizes must be from 1 through 4000 points.
         /// </summary>
         public global::OfficeIMO.OfficeLength? FontSize {
-            get {
-                if (IsPackageBacked) {
-                    int properties = PackageProperties;
-                    string? packageSize = properties == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode ? null
-                        : _packageTree!.GetAttribute(properties, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.None, "sz");
-                    if (packageSize == null) return null;
-                    if (int.TryParse(packageSize, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out int parsed)) {
-                        return global::OfficeIMO.OfficeLength.Points(parsed / 100D);
-                    }
-                }
-                int? size = RunProperties?.FontSize?.Value;
-                return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
-            }
+            get => PropertiesElement.Int32Attribute("sz") is int size ? global::OfficeIMO.OfficeLength.Points(size / 100D) : (global::OfficeIMO.OfficeLength?)null;
             set {
                 int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
-                if (TrySetPackageProperty("sz", drawingSize?.ToString(System.Globalization.CultureInfo.InvariantCulture))) return;
-                EnsureRunProperties().FontSize = drawingSize;
-                SyncLineContinuation();
+                SetProperty("sz", drawingSize?.ToString(CultureInfo.InvariantCulture));
             }
         }
 
@@ -331,9 +337,9 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets the font family (Latin).
         /// </summary>
         public string? FontFamily {
-            get => RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
+            get => PropertiesElement.Child(OfficeXmlNamespaces.DrawingML, "latin").Attribute("typeface");
             set {
-                PowerPointTextPropertyFormatting.SetFontFamily(EnsureRunProperties(), value);
+                PowerPointTextPropertyFormatting.SetFontFamily(EnsurePropertiesElement(), value);
                 SyncLineContinuation();
             }
         }
@@ -343,9 +349,11 @@ namespace OfficeIMO.PowerPoint {
         /// Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
         /// </summary>
         public global::OfficeIMO.OfficeColor? Color {
-            get => PowerPointDrawingColor.Read(RunProperties?.GetFirstChild<A.SolidFill>());
+            get => PowerPointDrawingColor.Read(PropertiesElement.Child(OfficeXmlNamespaces.DrawingML, "solidFill"));
             set {
-                PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart));
+                // The theme can open the SDK, so it is read before anything is edited.
+                OfficeTheme? theme = PowerPointDrawingColor.NeedsTheme(value) ? PowerPointDrawingColor.ThemeFor(OwnerPartRef, Slide) : null;
+                PowerPointTextPropertyFormatting.SetColor(EnsurePropertiesElement(), value, theme);
                 SyncLineContinuation();
             }
         }
@@ -354,12 +362,15 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets the run background (DrawingML highlight) color. Alpha below 255 is written as native opacity.
         /// </summary>
         public global::OfficeIMO.OfficeColor? BackgroundColor {
-            get => PowerPointDrawingColor.Read(RunProperties?.GetFirstChild<A.Highlight>());
+            get => PowerPointDrawingColor.Read(PropertiesElement.Child(OfficeXmlNamespaces.DrawingML, "highlight"));
             set {
-                PowerPointTextPropertyFormatting.SetBackgroundColor(EnsureRunProperties(), value, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart));
+                OfficeTheme? theme = PowerPointDrawingColor.NeedsTheme(value) ? PowerPointDrawingColor.ThemeFor(OwnerPartRef, Slide) : null;
+                PowerPointTextPropertyFormatting.SetBackgroundColor(EnsurePropertiesElement(), value, theme);
                 SyncLineContinuation();
             }
         }
+
+        private PowerPointXmlNode ClickHyperlinkElement => PropertiesElement.Child(OfficeXmlNamespaces.DrawingML, "hlinkClick");
 
         /// <summary>
         /// Gets or sets the hyperlink target for this run. Internal slide links are returned as
@@ -367,13 +378,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public Uri? Hyperlink {
             get {
-                if (_ownerPart == null) {
-                    return null;
-                }
-
-                return PowerPointHyperlinkResolver.Resolve(_ownerPart,
-                    _slidePart, RunProperties?
-                        .GetFirstChild<A.HyperlinkOnClick>());
+                PowerPointPartRef owner = OwnerPartRef;
+                return owner.IsNone ? null : PowerPointHyperlinkResolver.Resolve(owner, SlidePartRef, ClickHyperlinkElement);
             }
             set {
                 if (value == null) {
@@ -398,24 +404,19 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetHyperlink(Uri uri, string? tooltip = null) {
             ArgumentNullException.ThrowIfNull(uri);
-            if (!uri.IsAbsoluteUri && _slidePart != null
-                && PowerPointHyperlinkResolver.TryResolveSlideFragment(
-                    _slidePart, uri, out SlidePart? targetSlidePart)) {
-                SetInternalHyperlink(targetSlidePart!, tooltip);
+            PowerPointPartRef slidePart = SlidePartRef;
+            if (!uri.IsAbsoluteUri && !slidePart.IsNone && slidePart.Document is { } document
+                && PowerPointHyperlinkResolver.ResolveSlideFragment(document, uri) is { IsNone: false } target) {
+                SetInternalHyperlink(target, tooltip);
                 return;
             }
-            OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
-            if (ownerPart == null) {
+            PowerPointPartRef owner = OwnerPartRef;
+            if (owner.IsNone) {
                 throw new InvalidOperationException("Hyperlinks require an owning presentation part.");
             }
 
-            HyperlinkRelationship rel = ownerPart.AddHyperlinkRelationship(uri, true);
-            A.RunProperties props = EnsureRunProperties();
-            var hyperlink = new A.HyperlinkOnClick { Id = rel.Id };
-            if (!string.IsNullOrWhiteSpace(tooltip)) {
-                hyperlink.Tooltip = tooltip;
-            }
-            ReplaceClickHyperlink(props, hyperlink);
+            string relationshipId = owner.AddExternalHyperlink(uri);
+            ReplaceClickHyperlink(relationshipId, action: null, tooltip);
         }
 
         /// <summary>
@@ -424,199 +425,110 @@ namespace OfficeIMO.PowerPoint {
         public void SetHyperlink(PowerPointSlide targetSlide,
             string? tooltip = null) {
             ArgumentNullException.ThrowIfNull(targetSlide);
-            SetInternalHyperlink(targetSlide.SlidePart, tooltip);
+            SetInternalHyperlink(targetSlide.PartRef, tooltip);
         }
 
-        private void SetInternalHyperlink(SlidePart targetSlidePart,
-            string? tooltip) {
-            if (_slidePart == null) {
+        private void SetInternalHyperlink(PowerPointPartRef targetSlidePart, string? tooltip) {
+            PowerPointPartRef slidePart = SlidePartRef;
+            if (slidePart.IsNone) {
                 throw new InvalidOperationException(
                     "Hyperlinks require a slide context.");
             }
-            OpenXmlPart ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
-
-            PresentationPart? sourcePresentation = _slidePart.GetParentPresentationPart();
-            PresentationPart? targetPresentation = targetSlidePart
-                .GetParentPresentationPart();
-            if (sourcePresentation == null
-                || !ReferenceEquals(sourcePresentation, targetPresentation)) {
+            PowerPointPartRef owner = !OwnerPartRef.IsNone ? OwnerPartRef : slidePart;
+            if (slidePart.Document is null || !ReferenceEquals(slidePart.Document, targetSlidePart.Document)) {
                 throw new ArgumentException(
                     "The hyperlink target must belong to the same presentation.",
                     "targetSlide");
             }
 
-            string relationshipId;
-            if (ownerPart is SlideLayoutPart or SlideMasterPart
-                || ownerPart is NotesSlidePart && !ReferenceEquals(_slidePart, targetSlidePart)) {
-                Uri targetUri = PowerPointHyperlinkResolver.CreatePartRelativeUri(
-                    ownerPart, targetSlidePart);
-                HyperlinkRelationship relationship = ownerPart.HyperlinkRelationships
-                    .FirstOrDefault(candidate => !candidate.IsExternal
-                        && candidate.Uri == targetUri)
-                    ?? ownerPart.AddHyperlinkRelationship(targetUri, false);
-                relationshipId = relationship.Id;
-            } else {
-                if (!ownerPart.Parts.Any(pair => ReferenceEquals(
-                        pair.OpenXmlPart, targetSlidePart))) {
-                    ownerPart.AddPart(targetSlidePart);
-                }
-                relationshipId = ownerPart.GetIdOfPart(targetSlidePart);
-            }
-
-            A.RunProperties props = EnsureRunProperties();
-            var hyperlink = new A.HyperlinkOnClick {
-                Id = relationshipId,
-                Action = "ppaction://hlinksldjump"
-            };
-            if (!string.IsNullOrWhiteSpace(tooltip)) {
-                hyperlink.Tooltip = tooltip;
-            }
-            ReplaceClickHyperlink(props, hyperlink);
+            PowerPointPartKind ownerKind = owner.Kind;
+            string relationshipId = ownerKind is PowerPointPartKind.SlideLayout or PowerPointPartKind.SlideMaster
+                || ownerKind == PowerPointPartKind.NotesSlide && !slidePart.Equals(targetSlidePart)
+                ? owner.GetOrAddRelativeHyperlink(targetSlidePart)
+                : owner.GetOrAddSlideRelationship(targetSlidePart);
+            ReplaceClickHyperlink(relationshipId, PowerPointHyperlinkResolver.SlideJumpAction, tooltip);
         }
 
         /// <summary>
         /// Removes any hyperlink from this run.
         /// </summary>
         public void ClearHyperlink() {
-            A.RunProperties? props = RunProperties;
-            if (props != null) ReplaceClickHyperlink(props, replacement: null);
+            if (PropertiesElement.IsNone) return;
+            ReplaceClickHyperlink(relationshipId: null, action: null, tooltip: null);
         }
 
-        private void ReplaceClickHyperlink(A.RunProperties properties,
-            A.HyperlinkOnClick? replacement) {
-            A.HyperlinkOnClick[] previous = properties
-                .Elements<A.HyperlinkOnClick>().ToArray();
-            if (replacement != null) {
-                bool? colorChoice = previous.Select(PowerPointTextHyperlinkColor.ReadChoice)
-                    .FirstOrDefault(choice => choice.HasValue);
-                if (colorChoice.HasValue || properties.GetFirstChild<A.SolidFill>() != null) {
+        // Replaces the run's click hyperlinks with one to the relationship (none when null), keeping the color policy
+        // and sound of the previous one, and removes relationships nothing uses any more.
+        private void ReplaceClickHyperlink(string? relationshipId, string? action, string? tooltip) {
+            PowerPointXmlNode properties = relationshipId == null ? PropertiesElement : EnsurePropertiesElement();
+            List<PowerPointXmlNode> previous = properties.Children(OfficeXmlNamespaces.DrawingML, "hlinkClick").ToList();
+            bool? colorChoice = null;
+            PowerPointXmlNode preservedSound = default;
+            bool? preservedEndSound = null;
+            var relationshipIds = new List<string>();
+            var soundRelationshipIds = new List<string>();
+            foreach (PowerPointXmlNode link in previous) {
+                colorChoice ??= PowerPointTextHyperlinkColor.ReadChoice(link);
+                PowerPointXmlNode sound = link.Child(OfficeXmlNamespaces.DrawingML, "snd");
+                if (preservedSound.IsNone && !sound.IsNone) preservedSound = sound.Clone();
+                preservedEndSound ??= link.BooleanAttribute("endSnd");
+                if (link.Attribute(OfficeXmlNamespaces.Relationships, "id") is { Length: > 0 } id && !relationshipIds.Contains(id)) relationshipIds.Add(id);
+                foreach (PowerPointXmlNode linkSound in link.Children(OfficeXmlNamespaces.DrawingML, "snd")) {
+                    if (linkSound.Attribute(OfficeXmlNamespaces.Relationships, "embed") is { Length: > 0 } embed && !soundRelationshipIds.Contains(embed)) soundRelationshipIds.Add(embed);
+                }
+            }
+            foreach (PowerPointXmlNode link in previous) link.Remove();
+            if (relationshipId != null) {
+                PowerPointXmlNode replacement = properties.CreateElement(OfficeXmlNamespaces.DrawingML, "hlinkClick");
+                replacement.SetAttribute(OfficeXmlNamespaces.Relationships, "id", relationshipId);
+                if (action != null) replacement.SetAttribute("action", action);
+                if (!string.IsNullOrWhiteSpace(tooltip)) replacement.SetAttribute("tooltip", tooltip);
+                if (preservedEndSound.HasValue) replacement.SetBooleanAttribute("endSnd", preservedEndSound.Value);
+                replacement = properties.InsertOrdered(replacement, ATextCharacterPropertiesView.Order);
+                if (!preservedSound.IsNone) replacement.InsertBefore(preservedSound, replacement.FirstChild);
+                if (colorChoice.HasValue || !properties.Child(OfficeXmlNamespaces.DrawingML, "solidFill").IsNone) {
                     PowerPointTextHyperlinkColor.SetChoice(replacement, colorChoice ?? true);
                 }
-                A.HyperlinkSound? preservedSound = previous
-                    .SelectMany(link => link.Elements<A.HyperlinkSound>())
-                    .FirstOrDefault();
-                if (preservedSound != null) {
-                    replacement.AddChild((A.HyperlinkSound)preservedSound
-                        .CloneNode(true), true);
-                }
-                bool? preservedEndSound = previous
-                    .Select(link => link.EndSound?.Value)
-                    .FirstOrDefault(value => value.HasValue);
-                if (preservedEndSound.HasValue) {
-                    replacement.EndSound = preservedEndSound.Value;
-                }
             }
-            string[] relationshipIds = previous
-                .Select(link => link.Id?.Value)
-                .Where(id => !string.IsNullOrEmpty(id))
-                .Cast<string>()
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
-            string[] soundRelationshipIds = previous
-                .SelectMany(link => link.Elements<A.HyperlinkSound>())
-                .Select(sound => sound.Embed?.Value)
-                .Where(id => !string.IsNullOrEmpty(id))
-                .Cast<string>()
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
-            foreach (A.HyperlinkOnClick hyperlink in previous) {
-                hyperlink.Remove();
-            }
-            if (replacement != null) properties.AddChild(replacement, true);
+            MarkEdited();
             SyncLineContinuation();
-            OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
-            if (ownerPart == null) return;
-            foreach (string relationshipId in relationshipIds) {
-                RemoveHyperlinkRelationshipIfUnused(ownerPart,
-                    relationshipId, _slidePart);
-            }
-            foreach (string soundRelationshipId in soundRelationshipIds) {
-                PowerPointEmbeddedSound.RemoveIfUnused(ownerPart,
-                    soundRelationshipId);
-            }
+            PowerPointPartRef owner = OwnerPartRef;
+            if (owner.IsNone) return;
+            foreach (string id in relationshipIds) owner.RemoveRelationshipIfUnused(id, SlidePartRef);
+            foreach (string id in soundRelationshipIds) owner.RemoveRelationshipIfUnused(id, default);
         }
 
         /// <summary>Removes a content subtree and the relationships no surviving content uses.</summary>
-        internal static void DiscardContent(DocumentFormat.OpenXml.OpenXmlElement content, OpenXmlPart? ownerPart) {
-            string[] soundIds = PowerPointEmbeddedSound.GetRelationshipIds(content);
-            string[] linkIds = content.Descendants<A.HyperlinkType>()
-                .Select(link => link.Id?.Value).Where(id => !string.IsNullOrEmpty(id))
-                .Cast<string>().Distinct(StringComparer.Ordinal).ToArray();
-            if (content.Parent != null) content.Remove();
-            if (ownerPart == null) return;
-            foreach (string id in linkIds) RemoveHyperlinkRelationshipIfUnused(ownerPart, id, ownerPart as SlidePart);
-            PowerPointEmbeddedSound.RemoveIfUnused(ownerPart, soundIds);
+        internal static void DiscardContent(PowerPointXmlNode content, PowerPointPartRef owner, PowerPointPartRef owningSlide = default) {
+            var ids = new List<string>();
+            CollectRelationshipIds(content, ids);
+            if (!content.Parent.IsNone) content.Remove();
+            if (owner.IsNone) return;
+            owner.MarkEdited();
+            // A notes slide keeps its relationship to the slide it belongs to.
+            PowerPointPartRef slide = owner.Kind == PowerPointPartKind.Slide ? owner : owningSlide;
+            foreach (string id in ids) owner.RemoveRelationshipIfUnused(id, slide);
         }
 
-        private static void RemoveHyperlinkRelationshipIfUnused(
-            OpenXmlPart ownerPart, string relationshipId,
-            SlidePart? owningSlidePart) {
-            if (ReferencesRelationship(ownerPart.RootElement,
-                    relationshipId)) return;
-            if (ownerPart is NotesSlidePart
-                && owningSlidePart != null
-                && ownerPart.Parts.Any(pair => string.Equals(
-                        pair.RelationshipId, relationshipId,
-                        StringComparison.Ordinal)
-                    && ReferenceEquals(pair.OpenXmlPart,
-                        owningSlidePart))) return;
-            HyperlinkRelationship? external = ownerPart
-                .HyperlinkRelationships.FirstOrDefault(relationship =>
-                    string.Equals(relationship.Id, relationshipId,
-                        StringComparison.Ordinal));
-            if (external != null) {
-                ownerPart.DeleteReferenceRelationship(external);
-                return;
-            }
-            if (ownerPart.Parts.Any(pair => string.Equals(
-                    pair.RelationshipId, relationshipId,
-                    StringComparison.Ordinal))) {
-                ownerPart.DeletePart(relationshipId);
+        // The r:id of every hyperlink and the r:embed of every sound below the element, once each.
+        private static void CollectRelationshipIds(PowerPointXmlNode element, List<string> ids) {
+            foreach (PowerPointXmlNode child in element.Children()) {
+                if (child.NamespaceId == OfficeXmlNamespaces.DrawingML) {
+                    string? id = child.LocalName switch {
+                        "hlinkClick" or "hlinkMouseOver" or "hlinkHover" => child.Attribute(OfficeXmlNamespaces.Relationships, "id"),
+                        "snd" => child.Attribute(OfficeXmlNamespaces.Relationships, "embed"),
+                        _ => null
+                    };
+                    if (!string.IsNullOrEmpty(id) && !ids.Contains(id!)) ids.Add(id!);
+                }
+                CollectRelationshipIds(child, ids);
             }
         }
 
-        private static bool ReferencesRelationship(
-            OpenXmlPartRootElement? root,
-            string relationshipId) => root != null
-            && (root.GetAttributes().Any(attribute => string.Equals(
-                    attribute.NamespaceUri,
-                    PowerPointUtils.RelationshipIdNamespace,
-                    StringComparison.Ordinal)
-                && string.Equals(attribute.Value, relationshipId,
-                    StringComparison.Ordinal))
-                || root.Descendants().Any(element => element
-                    .GetAttributes().Any(attribute => string.Equals(
-                            attribute.NamespaceUri,
-                            PowerPointUtils.RelationshipIdNamespace,
-                            StringComparison.Ordinal)
-                        && string.Equals(attribute.Value, relationshipId,
-                            StringComparison.Ordinal))));
-
-        // Sets single-line text on the package tree, adding the a:t after the run properties when missing. Text with a line
-        // break continues the run with more runs, which the model writes.
-        private bool TrySetPackageText(string? value) {
-            if (!CanEditPackage) return false;
-            string[] lines = PowerPointTextContent.SplitLines(value);
-            if (lines.Length != 1) return false;
-            OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree = _packageTree!;
-            int text = tree.FindChild(_packageNode, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "t");
-            if (text == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) {
-                text = tree.CreateElement(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "t");
-                int properties = PackageProperties;
-                tree.InsertBefore(_packageNode, text, properties == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode
-                    ? tree.FirstChildOf(_packageNode) : tree.NextSiblingOf(properties));
-            }
-            tree.SetInnerText(text, lines[0]);
-            _packageSlide!.OwnerDocument!.MarkPackageEdited();
-            return true;
+        private void SyncLineContinuation() {
+            if (_lineContinuation == null) return;
+            PowerPointXmlNode properties = PropertiesElement;
+            foreach (PowerPointXmlNode line in _lineContinuation) PowerPointTextContent.ApplyProperties(line, properties);
         }
-
-        private A.RunProperties EnsureRunProperties() {
-            if (_field != null) return _field.RunProperties ??= new A.RunProperties();
-            return Run.RunProperties ??= new A.RunProperties();
-        }
-
-        private void SyncLineContinuation() =>
-            _lineContinuation?.ForEach(node => PowerPointTextContent.ApplyProperties(node, Run.RunProperties));
     }
 }

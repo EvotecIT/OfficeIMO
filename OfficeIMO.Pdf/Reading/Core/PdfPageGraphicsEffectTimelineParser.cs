@@ -21,6 +21,11 @@ internal static class PdfPageGraphicsEffectTimelineParser {
         if (content.IsNullOrEmpty) {
             return Array.Empty<PdfPageDrawingEffectTransition>();
         }
+        // The effect changes only through a gs operator naming a resource that sets an effect, or through ri; q and Q
+        // alone restore states equal to the initial one. Without either, the timeline is empty.
+        if (!AnySetsEffect(graphicsStates) && content.IndexOf("ri") < 0) {
+            return Array.Empty<PdfPageDrawingEffectTransition>();
+        }
 
         var transitions = new List<PdfPageDrawingEffectTransition>();
         var stack = new Stack<(PdfPageDrawingEffect Effect, Matrix2D Transform)>();
@@ -96,6 +101,20 @@ internal static class PdfPageGraphicsEffectTimelineParser {
             state = updated;
             transitions.Add(new PdfPageDrawingEffectTransition(paintOrder, state, contentOrderKey));
         }
+    }
+
+    /// <summary>
+    /// Whether applying any of the resources can change a drawing effect. One without a blend mode, soft mask,
+    /// rendering intent or unsupported entry gives back an equal effect (see <see cref="SameEffect"/>).
+    /// </summary>
+    private static bool AnySetsEffect(IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates) {
+        if (graphicsStates is null) return false;
+        foreach (KeyValuePair<string, PdfPageGraphicsStateResource> entry in graphicsStates) {
+            PdfPageGraphicsStateResource resource = entry.Value;
+            if (resource.BlendMode.HasValue || resource.SoftMaskEnabled.HasValue || resource.RenderingIntent.HasValue ||
+                resource.HasUnsupportedEntries || resource.HasUnsupportedBlendMode || resource.HasUnsupportedSoftMask) return true;
+        }
+        return false;
     }
 
     private static double NumberAt(IReadOnlyList<object> operands, int index) =>

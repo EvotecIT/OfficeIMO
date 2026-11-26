@@ -6,30 +6,40 @@ namespace OfficeIMO.Core.Internal.OpenXml;
 /// <remarks>Values that don't parse read as null rather than throwing, so a view can still edit a part another
 /// producer wrote loosely; the attribute itself is kept as written until it is set.</remarks>
 internal static class OfficeXmlViewValues {
-    internal static bool? ReadBoolean(OfficeXmlTree tree, int node, int namespaceId, string localName) {
-        if (!tree.TryGetAttribute(node, namespaceId, localName, out string value)) return null;
-        return Trim(value) switch {
-            "1" or "true" => true,
-            "0" or "false" => false,
-            _ => null
-        };
-    }
+    internal static bool? ReadBoolean(OfficeXmlTree tree, int node, int namespaceId, string localName) =>
+        tree.TryGetAttribute(node, namespaceId, localName, out string value) ? ParseBoolean(value) : null;
 
     internal static int? ReadInt32(OfficeXmlTree tree, int node, int namespaceId, string localName) =>
-        tree.TryGetAttribute(node, namespaceId, localName, out string value)
-        && int.TryParse(Trim(value), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int parsed) ? parsed : null;
+        tree.TryGetAttribute(node, namespaceId, localName, out string value) ? ParseInt32(value) : null;
 
     internal static uint? ReadUInt32(OfficeXmlTree tree, int node, int namespaceId, string localName) =>
-        tree.TryGetAttribute(node, namespaceId, localName, out string value)
-        && uint.TryParse(Trim(value), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out uint parsed) ? parsed : null;
+        tree.TryGetAttribute(node, namespaceId, localName, out string value) ? ParseUInt32(value) : null;
 
     internal static long? ReadInt64(OfficeXmlTree tree, int node, int namespaceId, string localName) =>
-        tree.TryGetAttribute(node, namespaceId, localName, out string value)
-        && long.TryParse(Trim(value), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long parsed) ? parsed : null;
+        tree.TryGetAttribute(node, namespaceId, localName, out string value) ? ParseInt64(value) : null;
+
+    internal static double? ReadDouble(OfficeXmlTree tree, int node, int namespaceId, string localName) =>
+        tree.TryGetAttribute(node, namespaceId, localName, out string value) ? ParseDouble(value) : null;
+
+    /// <summary>An <c>xsd:boolean</c> value, or null when <paramref name="value"/> is missing or not one.</summary>
+    internal static bool? ParseBoolean(string? value) => value == null ? null : Trim(value) switch {
+        "1" or "true" => true,
+        "0" or "false" => false,
+        _ => null
+    };
+
+    internal static int? ParseInt32(string? value) =>
+        value != null && int.TryParse(Trim(value), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int parsed) ? parsed : null;
+
+    internal static uint? ParseUInt32(string? value) =>
+        value != null && uint.TryParse(Trim(value), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out uint parsed) ? parsed : null;
+
+    internal static long? ParseInt64(string? value) =>
+        value != null && long.TryParse(Trim(value), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long parsed) ? parsed : null;
 
     // XML Schema spells the infinities INF and -INF and not-a-number NaN; finite values use the invariant culture.
-    internal static double? ReadDouble(OfficeXmlTree tree, int node, int namespaceId, string localName) {
-        if (!tree.TryGetAttribute(node, namespaceId, localName, out string value)) return null;
+    internal static double? ParseDouble(string? value) {
+        if (value == null) return null;
         string text = Trim(value);
         switch (text) {
             case "INF": case "+INF": return double.PositiveInfinity;
@@ -41,31 +51,41 @@ internal static class OfficeXmlViewValues {
         return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ? parsed : null;
     }
 
+    internal static string? Format(bool? value) => value.HasValue ? value.Value ? "1" : "0" : null;
+
+    internal static string? Format(int? value) => value?.ToString(CultureInfo.InvariantCulture);
+
+    internal static string? Format(uint? value) => value?.ToString(CultureInfo.InvariantCulture);
+
+    internal static string? Format(long? value) => value?.ToString(CultureInfo.InvariantCulture);
+
+    internal static string? Format(double? value) => value switch {
+        null => null,
+        double.PositiveInfinity => "INF",
+        double.NegativeInfinity => "-INF",
+        double number when double.IsNaN(number) => "NaN",
+        double number => number.ToString("R", CultureInfo.InvariantCulture)
+    };
+
     internal static void Write(OfficeXmlTree tree, int node, int namespaceId, string localName, string? value) {
         if (value == null) tree.RemoveAttribute(node, namespaceId, localName);
         else tree.SetAttribute(node, namespaceId, localName, value);
     }
 
     internal static void Write(OfficeXmlTree tree, int node, int namespaceId, string localName, bool? value) =>
-        Write(tree, node, namespaceId, localName, value.HasValue ? value.Value ? "1" : "0" : null);
+        Write(tree, node, namespaceId, localName, Format(value));
 
     internal static void Write(OfficeXmlTree tree, int node, int namespaceId, string localName, int? value) =>
-        Write(tree, node, namespaceId, localName, value?.ToString(CultureInfo.InvariantCulture));
+        Write(tree, node, namespaceId, localName, Format(value));
 
     internal static void Write(OfficeXmlTree tree, int node, int namespaceId, string localName, uint? value) =>
-        Write(tree, node, namespaceId, localName, value?.ToString(CultureInfo.InvariantCulture));
+        Write(tree, node, namespaceId, localName, Format(value));
 
     internal static void Write(OfficeXmlTree tree, int node, int namespaceId, string localName, long? value) =>
-        Write(tree, node, namespaceId, localName, value?.ToString(CultureInfo.InvariantCulture));
+        Write(tree, node, namespaceId, localName, Format(value));
 
     internal static void Write(OfficeXmlTree tree, int node, int namespaceId, string localName, double? value) =>
-        Write(tree, node, namespaceId, localName, value switch {
-            null => null,
-            double.PositiveInfinity => "INF",
-            double.NegativeInfinity => "-INF",
-            double number when double.IsNaN(number) => "NaN",
-            double number => number.ToString("R", CultureInfo.InvariantCulture)
-        });
+        Write(tree, node, namespaceId, localName, Format(value));
 
     /// <summary>The text of a child element with simple content, or null when there is no such child.</summary>
     internal static string? ReadChildText(OfficeXmlTree tree, int node, int namespaceId, string localName) {

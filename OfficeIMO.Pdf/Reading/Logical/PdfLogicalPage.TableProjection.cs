@@ -15,21 +15,26 @@ public sealed partial class PdfLogicalPage {
         if (candidates.Count == 0) return lines;
         var tableRuns = new HashSet<PdfTextSpan>();
         var tableWords = new HashSet<PdfUnderstandingWord>();
-        foreach (PdfUnderstandingTableCandidate candidate in candidates) {
-            foreach (PdfUnderstandingLine line in candidate.SourceLines) {
-                foreach (PdfUnderstandingWord word in line.Words) {
+        for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
+            IReadOnlyList<PdfUnderstandingLine> candidateLines = candidates[candidateIndex].SourceLines;
+            for (int lineIndex = 0; lineIndex < candidateLines.Count; lineIndex++) {
+                IReadOnlyList<PdfUnderstandingWord> lineWords = candidateLines[lineIndex].Words;
+                for (int wordIndex = 0; wordIndex < lineWords.Count; wordIndex++) {
+                    PdfUnderstandingWord word = lineWords[wordIndex];
                     cancellationToken.ThrowIfCancellationRequested();
                     analysis.ConsumeWork?.Invoke(1);
                     tableWords.Add(word);
-                    foreach (PdfTextSpan run in word.SourceRuns) {
+                    IReadOnlyList<PdfTextSpan> wordRuns = word.SourceRuns;
+                    for (int runIndex = 0; runIndex < wordRuns.Count; runIndex++) {
                         analysis.ConsumeWork?.Invoke(1);
-                        tableRuns.Add(run);
+                        tableRuns.Add(wordRuns[runIndex]);
                     }
                 }
             }
         }
         var result = new List<PdfUnderstandingLine>(lines.Count);
-        foreach (PdfUnderstandingLine line in lines) {
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            PdfUnderstandingLine line = lines[lineIndex];
             IReadOnlyList<PdfUnderstandingWord> projectionWords = SplitMixedSourceWords(line.Words);
             int segmentStart = 0;
             bool segmentIsTable = IsTableWord(projectionWords[0]);
@@ -63,10 +68,10 @@ public sealed partial class PdfLogicalPage {
                 IReadOnlyList<PdfTextSpan> runs = word.SourceRuns;
                 bool hasTable = false;
                 bool hasProse = false;
-                foreach (PdfTextSpan run in runs) {
+                for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     analysis.ConsumeWork?.Invoke(1);
-                    if (tableRuns.Contains(run)) hasTable = true;
+                    if (tableRuns.Contains(runs[runIndex])) hasTable = true;
                     else hasProse = true;
                 }
                 if (!hasTable || !hasProse) {
@@ -103,10 +108,11 @@ public sealed partial class PdfLogicalPage {
         bool IsTableWord(PdfUnderstandingWord word) {
             cancellationToken.ThrowIfCancellationRequested();
             if (tableWords.Contains(word)) return true;
-            if (word.SourceRuns.Count == 0) return false;
-            foreach (PdfTextSpan run in word.SourceRuns) {
+            IReadOnlyList<PdfTextSpan> runs = word.SourceRuns;
+            if (runs.Count == 0) return false;
+            for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
                 analysis.ConsumeWork?.Invoke(1);
-                if (!tableRuns.Contains(run)) return false;
+                if (!tableRuns.Contains(runs[runIndex])) return false;
             }
             return true;
         }

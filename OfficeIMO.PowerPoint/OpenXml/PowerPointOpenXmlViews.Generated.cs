@@ -8,867 +8,847 @@ namespace OfficeIMO.PowerPoint.OpenXml;
 
 /// <summary>View over an element of schema type <c>CT_Presentation</c>.</summary>
 internal readonly partial struct PPresentationView {
-    internal PPresentationView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PPresentationView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PPresentationView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "sldMasterIdLst", "notesMasterIdLst", "handoutMasterIdLst", "sldIdLst", "sldSz", "notesSz", "smartTags", "embeddedFontLst", "custShowLst", "photoAlbum", "custDataLst", "kinsoku", "defaultTextStyle", "modifyVerifier", "extLst" }, new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 });
 
     internal string? ServerZoom {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "serverZoom");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "serverZoom", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "serverZoom");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "serverZoom", value);
     }
 
     internal int? FirstSlideNum {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "firstSlideNum");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "firstSlideNum", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "firstSlideNum"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "firstSlideNum", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? ShowSpecialPlsOnTitleSld {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "showSpecialPlsOnTitleSld");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "showSpecialPlsOnTitleSld", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "showSpecialPlsOnTitleSld"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "showSpecialPlsOnTitleSld", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? Rtl {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "rtl");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rtl", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "rtl"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "rtl", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? RemovePersonalInfoOnSave {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "removePersonalInfoOnSave");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "removePersonalInfoOnSave", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "removePersonalInfoOnSave"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "removePersonalInfoOnSave", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? CompatMode {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "compatMode");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "compatMode", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "compatMode"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "compatMode", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? StrictFirstAndLastChars {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "strictFirstAndLastChars");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "strictFirstAndLastChars", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "strictFirstAndLastChars"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "strictFirstAndLastChars", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? EmbedTrueTypeFonts {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "embedTrueTypeFonts");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "embedTrueTypeFonts", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "embedTrueTypeFonts"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "embedTrueTypeFonts", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? SaveSubsetFonts {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "saveSubsetFonts");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "saveSubsetFonts", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "saveSubsetFonts"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "saveSubsetFonts", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? AutoCompressPictures {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "autoCompressPictures");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "autoCompressPictures", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "autoCompressPictures"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "autoCompressPictures", OfficeXmlViewValues.Format(value));
     }
 
     internal uint? BookmarkIdSeed {
-        get => OfficeXmlViewValues.ReadUInt32(Tree, Node, OfficeXmlNamespaces.None, "bookmarkIdSeed");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "bookmarkIdSeed", value);
+        get => OfficeXmlViewValues.ParseUInt32(Element.Attribute(OfficeXmlNamespaces.None, "bookmarkIdSeed"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "bookmarkIdSeed", OfficeXmlViewValues.Format(value));
     }
 
     internal string? Conformance {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "conformance");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "conformance", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "conformance");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "conformance", value);
     }
 
     internal PSlideMasterIdListView? SldMasterIdLst {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "sldMasterIdLst");
-            return child == OfficeXmlTree.NoNode ? null : new PSlideMasterIdListView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldMasterIdLst");
+            return child.IsNone ? null : new PSlideMasterIdListView(child);
         }
     }
 
-    internal PSlideMasterIdListView GetOrAddSldMasterIdLst() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "sldMasterIdLst", Order));
+    internal PSlideMasterIdListView GetOrAddSldMasterIdLst() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "sldMasterIdLst", Order));
 
     internal PSlideIdListView? SldIdLst {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "sldIdLst");
-            return child == OfficeXmlTree.NoNode ? null : new PSlideIdListView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldIdLst");
+            return child.IsNone ? null : new PSlideIdListView(child);
         }
     }
 
-    internal PSlideIdListView GetOrAddSldIdLst() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "sldIdLst", Order));
+    internal PSlideIdListView GetOrAddSldIdLst() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "sldIdLst", Order));
 
     internal PSlideSizeView? SldSz {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "sldSz");
-            return child == OfficeXmlTree.NoNode ? null : new PSlideSizeView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldSz");
+            return child.IsNone ? null : new PSlideSizeView(child);
         }
     }
 
-    internal PSlideSizeView GetOrAddSldSz() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "sldSz", Order));
+    internal PSlideSizeView GetOrAddSldSz() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "sldSz", Order));
 
     internal APositiveSize2DView? NotesSz {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "notesSz");
-            return child == OfficeXmlTree.NoNode ? null : new APositiveSize2DView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "notesSz");
+            return child.IsNone ? null : new APositiveSize2DView(child);
         }
     }
 
-    internal APositiveSize2DView GetOrAddNotesSz() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "notesSz", Order));
+    internal APositiveSize2DView GetOrAddNotesSz() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "notesSz", Order));
 
     internal ATextListStyleView? DefaultTextStyle {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "defaultTextStyle");
-            return child == OfficeXmlTree.NoNode ? null : new ATextListStyleView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "defaultTextStyle");
+            return child.IsNone ? null : new ATextListStyleView(child);
         }
     }
 
-    internal ATextListStyleView GetOrAddDefaultTextStyle() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "defaultTextStyle", Order));
+    internal ATextListStyleView GetOrAddDefaultTextStyle() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "defaultTextStyle", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_SlideMasterIdList</c>.</summary>
 internal readonly partial struct PSlideMasterIdListView {
-    internal PSlideMasterIdListView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PSlideMasterIdListView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PSlideMasterIdListView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "sldMasterId" }, new int[] { 0 });
 
-    internal OfficeXmlElementList SldMasterIdList => new(Tree, Node, OfficeXmlNamespaces.PresentationML, "sldMasterId");
+    internal PowerPointXmlNode.ChildList SldMasterIdList => Element.Children(OfficeXmlNamespaces.PresentationML, "sldMasterId");
 
     /// <summary>Adds a <c>sldMasterId</c> after the existing ones, in sequence order.</summary>
-    internal PSlideMasterIdListEntryView AddSldMasterId() {
-        int child = Tree.CreateElement(OfficeXmlNamespaces.PresentationML, "sldMasterId");
-        Tree.InsertOrdered(Node, child, Order);
-        return new PSlideMasterIdListEntryView(Tree, child);
-    }
+    internal PSlideMasterIdListEntryView AddSldMasterId() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "sldMasterId", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_SlideMasterIdListEntry</c>.</summary>
 internal readonly partial struct PSlideMasterIdListEntryView {
-    internal PSlideMasterIdListEntryView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PSlideMasterIdListEntryView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PSlideMasterIdListEntryView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "extLst" }, new int[] { 0 });
 
     internal uint? Id {
-        get => OfficeXmlViewValues.ReadUInt32(Tree, Node, OfficeXmlNamespaces.None, "id");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "id", value);
+        get => OfficeXmlViewValues.ParseUInt32(Element.Attribute(OfficeXmlNamespaces.None, "id"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "id", OfficeXmlViewValues.Format(value));
     }
 
     internal string? RelationshipId {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.Relationships, "id");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.Relationships, "id", value);
+        get => Element.Attribute(OfficeXmlNamespaces.Relationships, "id");
+        set => Element.SetAttribute(OfficeXmlNamespaces.Relationships, "id", value);
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_SlideIdList</c>.</summary>
 internal readonly partial struct PSlideIdListView {
-    internal PSlideIdListView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PSlideIdListView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PSlideIdListView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "sldId" }, new int[] { 0 });
 
-    internal OfficeXmlElementList SldIdList => new(Tree, Node, OfficeXmlNamespaces.PresentationML, "sldId");
+    internal PowerPointXmlNode.ChildList SldIdList => Element.Children(OfficeXmlNamespaces.PresentationML, "sldId");
 
     /// <summary>Adds a <c>sldId</c> after the existing ones, in sequence order.</summary>
-    internal PSlideIdListEntryView AddSldId() {
-        int child = Tree.CreateElement(OfficeXmlNamespaces.PresentationML, "sldId");
-        Tree.InsertOrdered(Node, child, Order);
-        return new PSlideIdListEntryView(Tree, child);
-    }
+    internal PSlideIdListEntryView AddSldId() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "sldId", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_SlideIdListEntry</c>.</summary>
 internal readonly partial struct PSlideIdListEntryView {
-    internal PSlideIdListEntryView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PSlideIdListEntryView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PSlideIdListEntryView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "extLst" }, new int[] { 0 });
 
     internal uint? Id {
-        get => OfficeXmlViewValues.ReadUInt32(Tree, Node, OfficeXmlNamespaces.None, "id");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "id", value);
+        get => OfficeXmlViewValues.ParseUInt32(Element.Attribute(OfficeXmlNamespaces.None, "id"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "id", OfficeXmlViewValues.Format(value));
     }
 
     internal string? RelationshipId {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.Relationships, "id");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.Relationships, "id", value);
+        get => Element.Attribute(OfficeXmlNamespaces.Relationships, "id");
+        set => Element.SetAttribute(OfficeXmlNamespaces.Relationships, "id", value);
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_SlideSize</c>.</summary>
 internal readonly partial struct PSlideSizeView {
-    internal PSlideSizeView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PSlideSizeView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PSlideSizeView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal int? Cx {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "cx");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "cx", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "cx"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "cx", OfficeXmlViewValues.Format(value));
     }
 
     internal int? Cy {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "cy");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "cy", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "cy"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "cy", OfficeXmlViewValues.Format(value));
     }
 
     internal string? Type {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "type");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "type", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "type");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "type", value);
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_PositiveSize2D</c>.</summary>
 internal readonly partial struct APositiveSize2DView {
-    internal APositiveSize2DView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal APositiveSize2DView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal APositiveSize2DView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal long? Cx {
-        get => OfficeXmlViewValues.ReadInt64(Tree, Node, OfficeXmlNamespaces.None, "cx");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "cx", value);
+        get => OfficeXmlViewValues.ParseInt64(Element.Attribute(OfficeXmlNamespaces.None, "cx"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "cx", OfficeXmlViewValues.Format(value));
     }
 
     internal long? Cy {
-        get => OfficeXmlViewValues.ReadInt64(Tree, Node, OfficeXmlNamespaces.None, "cy");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "cy", value);
+        get => OfficeXmlViewValues.ParseInt64(Element.Attribute(OfficeXmlNamespaces.None, "cy"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "cy", OfficeXmlViewValues.Format(value));
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_Slide</c>.</summary>
 internal readonly partial struct PSlideView {
-    internal PSlideView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PSlideView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PSlideView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "cSld", "clrMapOvr", "transition", "timing", "extLst" }, new int[] { 0, 1, 2, 3, 4 });
 
     internal bool? ShowMasterSp {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "showMasterSp");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "showMasterSp", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "showMasterSp"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "showMasterSp", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? ShowMasterPhAnim {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "showMasterPhAnim");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "showMasterPhAnim", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "showMasterPhAnim"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "showMasterPhAnim", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? Show {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "show");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "show", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "show"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "show", OfficeXmlViewValues.Format(value));
     }
 
     internal PCommonSlideDataView? CSld {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "cSld");
-            return child == OfficeXmlTree.NoNode ? null : new PCommonSlideDataView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cSld");
+            return child.IsNone ? null : new PCommonSlideDataView(child);
         }
     }
 
-    internal PCommonSlideDataView GetOrAddCSld() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "cSld", Order));
+    internal PCommonSlideDataView GetOrAddCSld() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "cSld", Order));
 
     internal AColorMappingOverrideView? ClrMapOvr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "clrMapOvr");
-            return child == OfficeXmlTree.NoNode ? null : new AColorMappingOverrideView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "clrMapOvr");
+            return child.IsNone ? null : new AColorMappingOverrideView(child);
         }
     }
 
-    internal AColorMappingOverrideView GetOrAddClrMapOvr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "clrMapOvr", Order));
+    internal AColorMappingOverrideView GetOrAddClrMapOvr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "clrMapOvr", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_SlideLayout</c>.</summary>
 internal readonly partial struct PSlideLayoutView {
-    internal PSlideLayoutView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PSlideLayoutView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PSlideLayoutView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "cSld", "clrMapOvr", "transition", "timing", "hf", "extLst" }, new int[] { 0, 1, 2, 3, 4, 5 });
 
     internal bool? ShowMasterSp {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "showMasterSp");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "showMasterSp", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "showMasterSp"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "showMasterSp", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? ShowMasterPhAnim {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "showMasterPhAnim");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "showMasterPhAnim", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "showMasterPhAnim"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "showMasterPhAnim", OfficeXmlViewValues.Format(value));
     }
 
     internal string? MatchingName {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "matchingName");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "matchingName", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "matchingName");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "matchingName", value);
     }
 
     internal string? Type {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "type");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "type", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "type");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "type", value);
     }
 
     internal bool? Preserve {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "preserve");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "preserve", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "preserve"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "preserve", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? UserDrawn {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "userDrawn");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "userDrawn", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "userDrawn"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "userDrawn", OfficeXmlViewValues.Format(value));
     }
 
     internal PCommonSlideDataView? CSld {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "cSld");
-            return child == OfficeXmlTree.NoNode ? null : new PCommonSlideDataView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cSld");
+            return child.IsNone ? null : new PCommonSlideDataView(child);
         }
     }
 
-    internal PCommonSlideDataView GetOrAddCSld() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "cSld", Order));
+    internal PCommonSlideDataView GetOrAddCSld() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "cSld", Order));
 
     internal AColorMappingOverrideView? ClrMapOvr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "clrMapOvr");
-            return child == OfficeXmlTree.NoNode ? null : new AColorMappingOverrideView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "clrMapOvr");
+            return child.IsNone ? null : new AColorMappingOverrideView(child);
         }
     }
 
-    internal AColorMappingOverrideView GetOrAddClrMapOvr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "clrMapOvr", Order));
+    internal AColorMappingOverrideView GetOrAddClrMapOvr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "clrMapOvr", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_SlideMaster</c>.</summary>
 internal readonly partial struct PSlideMasterView {
-    internal PSlideMasterView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PSlideMasterView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PSlideMasterView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "cSld", "clrMap", "sldLayoutIdLst", "transition", "timing", "hf", "txStyles", "extLst" }, new int[] { 0, 1, 2, 3, 4, 5, 6, 7 });
 
     internal bool? Preserve {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "preserve");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "preserve", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "preserve"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "preserve", OfficeXmlViewValues.Format(value));
     }
 
     internal PCommonSlideDataView? CSld {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "cSld");
-            return child == OfficeXmlTree.NoNode ? null : new PCommonSlideDataView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cSld");
+            return child.IsNone ? null : new PCommonSlideDataView(child);
         }
     }
 
-    internal PCommonSlideDataView GetOrAddCSld() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "cSld", Order));
+    internal PCommonSlideDataView GetOrAddCSld() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "cSld", Order));
 
     internal AColorMappingView? ClrMap {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "clrMap");
-            return child == OfficeXmlTree.NoNode ? null : new AColorMappingView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "clrMap");
+            return child.IsNone ? null : new AColorMappingView(child);
         }
     }
 
-    internal AColorMappingView GetOrAddClrMap() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "clrMap", Order));
+    internal AColorMappingView GetOrAddClrMap() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "clrMap", Order));
 
     internal PSlideLayoutIdListView? SldLayoutIdLst {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "sldLayoutIdLst");
-            return child == OfficeXmlTree.NoNode ? null : new PSlideLayoutIdListView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldLayoutIdLst");
+            return child.IsNone ? null : new PSlideLayoutIdListView(child);
         }
     }
 
-    internal PSlideLayoutIdListView GetOrAddSldLayoutIdLst() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "sldLayoutIdLst", Order));
+    internal PSlideLayoutIdListView GetOrAddSldLayoutIdLst() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "sldLayoutIdLst", Order));
 
     internal PSlideMasterTextStylesView? TxStyles {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "txStyles");
-            return child == OfficeXmlTree.NoNode ? null : new PSlideMasterTextStylesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "txStyles");
+            return child.IsNone ? null : new PSlideMasterTextStylesView(child);
         }
     }
 
-    internal PSlideMasterTextStylesView GetOrAddTxStyles() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "txStyles", Order));
+    internal PSlideMasterTextStylesView GetOrAddTxStyles() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "txStyles", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_SlideLayoutIdList</c>.</summary>
 internal readonly partial struct PSlideLayoutIdListView {
-    internal PSlideLayoutIdListView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PSlideLayoutIdListView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PSlideLayoutIdListView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "sldLayoutId" }, new int[] { 0 });
 
-    internal OfficeXmlElementList SldLayoutIdList => new(Tree, Node, OfficeXmlNamespaces.PresentationML, "sldLayoutId");
+    internal PowerPointXmlNode.ChildList SldLayoutIdList => Element.Children(OfficeXmlNamespaces.PresentationML, "sldLayoutId");
 
     /// <summary>Adds a <c>sldLayoutId</c> after the existing ones, in sequence order.</summary>
-    internal PSlideLayoutIdListEntryView AddSldLayoutId() {
-        int child = Tree.CreateElement(OfficeXmlNamespaces.PresentationML, "sldLayoutId");
-        Tree.InsertOrdered(Node, child, Order);
-        return new PSlideLayoutIdListEntryView(Tree, child);
-    }
+    internal PSlideLayoutIdListEntryView AddSldLayoutId() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "sldLayoutId", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_SlideLayoutIdListEntry</c>.</summary>
 internal readonly partial struct PSlideLayoutIdListEntryView {
-    internal PSlideLayoutIdListEntryView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PSlideLayoutIdListEntryView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PSlideLayoutIdListEntryView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "extLst" }, new int[] { 0 });
 
     internal uint? Id {
-        get => OfficeXmlViewValues.ReadUInt32(Tree, Node, OfficeXmlNamespaces.None, "id");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "id", value);
+        get => OfficeXmlViewValues.ParseUInt32(Element.Attribute(OfficeXmlNamespaces.None, "id"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "id", OfficeXmlViewValues.Format(value));
     }
 
     internal string? RelationshipId {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.Relationships, "id");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.Relationships, "id", value);
+        get => Element.Attribute(OfficeXmlNamespaces.Relationships, "id");
+        set => Element.SetAttribute(OfficeXmlNamespaces.Relationships, "id", value);
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_CommonSlideData</c>.</summary>
 internal readonly partial struct PCommonSlideDataView {
-    internal PCommonSlideDataView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PCommonSlideDataView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PCommonSlideDataView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "bg", "spTree", "custDataLst", "controls", "extLst" }, new int[] { 0, 1, 2, 3, 4 });
 
     internal string? Name {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "name");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "name", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "name");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "name", value);
     }
 
     internal PGroupShapeView? SpTree {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "spTree");
-            return child == OfficeXmlTree.NoNode ? null : new PGroupShapeView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "spTree");
+            return child.IsNone ? null : new PGroupShapeView(child);
         }
     }
 
-    internal PGroupShapeView GetOrAddSpTree() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "spTree", Order));
+    internal PGroupShapeView GetOrAddSpTree() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "spTree", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_GroupShape</c>.</summary>
 internal readonly partial struct PGroupShapeView {
-    internal PGroupShapeView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PGroupShapeView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PGroupShapeView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "nvGrpSpPr", "grpSpPr", "sp", "grpSp", "graphicFrame", "cxnSp", "pic", "contentPart", "extLst" }, new int[] { 0, 1, 2, 2, 2, 2, 2, 2, 3 });
 
     internal PGroupShapeNonVisualView? NvGrpSpPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "nvGrpSpPr");
-            return child == OfficeXmlTree.NoNode ? null : new PGroupShapeNonVisualView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvGrpSpPr");
+            return child.IsNone ? null : new PGroupShapeNonVisualView(child);
         }
     }
 
-    internal PGroupShapeNonVisualView GetOrAddNvGrpSpPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "nvGrpSpPr", Order));
+    internal PGroupShapeNonVisualView GetOrAddNvGrpSpPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "nvGrpSpPr", Order));
 
     internal AGroupShapePropertiesView? GrpSpPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "grpSpPr");
-            return child == OfficeXmlTree.NoNode ? null : new AGroupShapePropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "grpSpPr");
+            return child.IsNone ? null : new AGroupShapePropertiesView(child);
         }
     }
 
-    internal AGroupShapePropertiesView GetOrAddGrpSpPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "grpSpPr", Order));
+    internal AGroupShapePropertiesView GetOrAddGrpSpPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "grpSpPr", Order));
 
-    internal OfficeXmlElementList SpList => new(Tree, Node, OfficeXmlNamespaces.PresentationML, "sp");
+    internal PowerPointXmlNode.ChildList SpList => Element.Children(OfficeXmlNamespaces.PresentationML, "sp");
 
     /// <summary>Adds a <c>sp</c> after the existing ones, in sequence order.</summary>
-    internal PShapeView AddSp() {
-        int child = Tree.CreateElement(OfficeXmlNamespaces.PresentationML, "sp");
-        Tree.InsertOrdered(Node, child, Order);
-        return new PShapeView(Tree, child);
-    }
+    internal PShapeView AddSp() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "sp", Order));
 
-    internal OfficeXmlElementList GrpSpList => new(Tree, Node, OfficeXmlNamespaces.PresentationML, "grpSp");
+    internal PowerPointXmlNode.ChildList GrpSpList => Element.Children(OfficeXmlNamespaces.PresentationML, "grpSp");
 
     /// <summary>Adds a <c>grpSp</c> after the existing ones, in sequence order.</summary>
-    internal PGroupShapeView AddGrpSp() {
-        int child = Tree.CreateElement(OfficeXmlNamespaces.PresentationML, "grpSp");
-        Tree.InsertOrdered(Node, child, Order);
-        return new PGroupShapeView(Tree, child);
-    }
+    internal PGroupShapeView AddGrpSp() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "grpSp", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_GroupShapeNonVisual</c>.</summary>
 internal readonly partial struct PGroupShapeNonVisualView {
-    internal PGroupShapeNonVisualView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PGroupShapeNonVisualView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PGroupShapeNonVisualView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "cNvPr", "cNvGrpSpPr", "nvPr" }, new int[] { 0, 1, 2 });
 
     internal ANonVisualDrawingPropsView? CNvPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "cNvPr");
-            return child == OfficeXmlTree.NoNode ? null : new ANonVisualDrawingPropsView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
+            return child.IsNone ? null : new ANonVisualDrawingPropsView(child);
         }
     }
 
-    internal ANonVisualDrawingPropsView GetOrAddCNvPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "cNvPr", Order));
+    internal ANonVisualDrawingPropsView GetOrAddCNvPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "cNvPr", Order));
 
     internal ANonVisualGroupDrawingShapePropsView? CNvGrpSpPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "cNvGrpSpPr");
-            return child == OfficeXmlTree.NoNode ? null : new ANonVisualGroupDrawingShapePropsView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvGrpSpPr");
+            return child.IsNone ? null : new ANonVisualGroupDrawingShapePropsView(child);
         }
     }
 
-    internal ANonVisualGroupDrawingShapePropsView GetOrAddCNvGrpSpPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "cNvGrpSpPr", Order));
+    internal ANonVisualGroupDrawingShapePropsView GetOrAddCNvGrpSpPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "cNvGrpSpPr", Order));
 
     internal PApplicationNonVisualDrawingPropsView? NvPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "nvPr");
-            return child == OfficeXmlTree.NoNode ? null : new PApplicationNonVisualDrawingPropsView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvPr");
+            return child.IsNone ? null : new PApplicationNonVisualDrawingPropsView(child);
         }
     }
 
-    internal PApplicationNonVisualDrawingPropsView GetOrAddNvPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "nvPr", Order));
+    internal PApplicationNonVisualDrawingPropsView GetOrAddNvPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "nvPr", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_Shape</c>.</summary>
 internal readonly partial struct PShapeView {
-    internal PShapeView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PShapeView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PShapeView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "nvSpPr", "spPr", "style", "txBody", "extLst" }, new int[] { 0, 1, 2, 3, 4 });
 
     internal bool? UseBgFill {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "useBgFill");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "useBgFill", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "useBgFill"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "useBgFill", OfficeXmlViewValues.Format(value));
     }
 
     internal PShapeNonVisualView? NvSpPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "nvSpPr");
-            return child == OfficeXmlTree.NoNode ? null : new PShapeNonVisualView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvSpPr");
+            return child.IsNone ? null : new PShapeNonVisualView(child);
         }
     }
 
-    internal PShapeNonVisualView GetOrAddNvSpPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "nvSpPr", Order));
+    internal PShapeNonVisualView GetOrAddNvSpPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "nvSpPr", Order));
 
     internal AShapePropertiesView? SpPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "spPr");
-            return child == OfficeXmlTree.NoNode ? null : new AShapePropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "spPr");
+            return child.IsNone ? null : new AShapePropertiesView(child);
         }
     }
 
-    internal AShapePropertiesView GetOrAddSpPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "spPr", Order));
+    internal AShapePropertiesView GetOrAddSpPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "spPr", Order));
 
     internal ATextBodyView? TxBody {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "txBody");
-            return child == OfficeXmlTree.NoNode ? null : new ATextBodyView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "txBody");
+            return child.IsNone ? null : new ATextBodyView(child);
         }
     }
 
-    internal ATextBodyView GetOrAddTxBody() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "txBody", Order));
+    internal ATextBodyView GetOrAddTxBody() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "txBody", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_ShapeNonVisual</c>.</summary>
 internal readonly partial struct PShapeNonVisualView {
-    internal PShapeNonVisualView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PShapeNonVisualView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PShapeNonVisualView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "cNvPr", "cNvSpPr", "nvPr" }, new int[] { 0, 1, 2 });
 
     internal ANonVisualDrawingPropsView? CNvPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "cNvPr");
-            return child == OfficeXmlTree.NoNode ? null : new ANonVisualDrawingPropsView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
+            return child.IsNone ? null : new ANonVisualDrawingPropsView(child);
         }
     }
 
-    internal ANonVisualDrawingPropsView GetOrAddCNvPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "cNvPr", Order));
+    internal ANonVisualDrawingPropsView GetOrAddCNvPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "cNvPr", Order));
 
     internal ANonVisualDrawingShapePropsView? CNvSpPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "cNvSpPr");
-            return child == OfficeXmlTree.NoNode ? null : new ANonVisualDrawingShapePropsView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvSpPr");
+            return child.IsNone ? null : new ANonVisualDrawingShapePropsView(child);
         }
     }
 
-    internal ANonVisualDrawingShapePropsView GetOrAddCNvSpPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "cNvSpPr", Order));
+    internal ANonVisualDrawingShapePropsView GetOrAddCNvSpPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "cNvSpPr", Order));
 
     internal PApplicationNonVisualDrawingPropsView? NvPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "nvPr");
-            return child == OfficeXmlTree.NoNode ? null : new PApplicationNonVisualDrawingPropsView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvPr");
+            return child.IsNone ? null : new PApplicationNonVisualDrawingPropsView(child);
         }
     }
 
-    internal PApplicationNonVisualDrawingPropsView GetOrAddNvPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "nvPr", Order));
+    internal PApplicationNonVisualDrawingPropsView GetOrAddNvPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "nvPr", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_ApplicationNonVisualDrawingProps</c>.</summary>
 internal readonly partial struct PApplicationNonVisualDrawingPropsView {
-    internal PApplicationNonVisualDrawingPropsView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PApplicationNonVisualDrawingPropsView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PApplicationNonVisualDrawingPropsView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "ph", "audioCd", "wavAudioFile", "audioFile", "videoFile", "quickTimeFile", "custDataLst", "extLst" }, new int[] { 0, 1, 1, 1, 1, 1, 2, 3 });
 
     internal bool? IsPhoto {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "isPhoto");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "isPhoto", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "isPhoto"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "isPhoto", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? UserDrawn {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "userDrawn");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "userDrawn", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "userDrawn"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "userDrawn", OfficeXmlViewValues.Format(value));
     }
 
     internal PPlaceholderView? Ph {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "ph");
-            return child == OfficeXmlTree.NoNode ? null : new PPlaceholderView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "ph");
+            return child.IsNone ? null : new PPlaceholderView(child);
         }
     }
 
-    internal PPlaceholderView GetOrAddPh() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "ph", Order));
+    internal PPlaceholderView GetOrAddPh() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "ph", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_Placeholder</c>.</summary>
 internal readonly partial struct PPlaceholderView {
-    internal PPlaceholderView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PPlaceholderView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PPlaceholderView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "extLst" }, new int[] { 0 });
 
     internal string? Type {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "type");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "type", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "type");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "type", value);
     }
 
     internal string? Orient {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "orient");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "orient", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "orient");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "orient", value);
     }
 
     internal string? Sz {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "sz");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "sz", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "sz");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "sz", value);
     }
 
     internal uint? Idx {
-        get => OfficeXmlViewValues.ReadUInt32(Tree, Node, OfficeXmlNamespaces.None, "idx");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "idx", value);
+        get => OfficeXmlViewValues.ParseUInt32(Element.Attribute(OfficeXmlNamespaces.None, "idx"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "idx", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? HasCustomPrompt {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "hasCustomPrompt");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "hasCustomPrompt", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "hasCustomPrompt"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "hasCustomPrompt", OfficeXmlViewValues.Format(value));
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_SlideMasterTextStyles</c>.</summary>
 internal readonly partial struct PSlideMasterTextStylesView {
-    internal PSlideMasterTextStylesView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal PSlideMasterTextStylesView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal PSlideMasterTextStylesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "titleStyle", "bodyStyle", "otherStyle", "extLst" }, new int[] { 0, 1, 2, 3 });
 
     internal ATextListStyleView? TitleStyle {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "titleStyle");
-            return child == OfficeXmlTree.NoNode ? null : new ATextListStyleView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "titleStyle");
+            return child.IsNone ? null : new ATextListStyleView(child);
         }
     }
 
-    internal ATextListStyleView GetOrAddTitleStyle() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "titleStyle", Order));
+    internal ATextListStyleView GetOrAddTitleStyle() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "titleStyle", Order));
 
     internal ATextListStyleView? BodyStyle {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "bodyStyle");
-            return child == OfficeXmlTree.NoNode ? null : new ATextListStyleView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "bodyStyle");
+            return child.IsNone ? null : new ATextListStyleView(child);
         }
     }
 
-    internal ATextListStyleView GetOrAddBodyStyle() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "bodyStyle", Order));
+    internal ATextListStyleView GetOrAddBodyStyle() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "bodyStyle", Order));
 
     internal ATextListStyleView? OtherStyle {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.PresentationML, "otherStyle");
-            return child == OfficeXmlTree.NoNode ? null : new ATextListStyleView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "otherStyle");
+            return child.IsNone ? null : new ATextListStyleView(child);
         }
     }
 
-    internal ATextListStyleView GetOrAddOtherStyle() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.PresentationML, "otherStyle", Order));
+    internal ATextListStyleView GetOrAddOtherStyle() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "otherStyle", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_NonVisualDrawingProps</c>.</summary>
 internal readonly partial struct ANonVisualDrawingPropsView {
-    internal ANonVisualDrawingPropsView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ANonVisualDrawingPropsView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ANonVisualDrawingPropsView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "hlinkClick", "hlinkHover", "extLst" }, new int[] { 0, 1, 2 });
 
     internal uint? Id {
-        get => OfficeXmlViewValues.ReadUInt32(Tree, Node, OfficeXmlNamespaces.None, "id");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "id", value);
+        get => OfficeXmlViewValues.ParseUInt32(Element.Attribute(OfficeXmlNamespaces.None, "id"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "id", OfficeXmlViewValues.Format(value));
     }
 
     internal string? Name {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "name");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "name", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "name");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "name", value);
     }
 
     internal string? Descr {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "descr");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "descr", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "descr");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "descr", value);
     }
 
     internal bool? Hidden {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "hidden");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "hidden", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "hidden"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "hidden", OfficeXmlViewValues.Format(value));
     }
 
     internal string? Title {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "title");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "title", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "title");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "title", value);
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_NonVisualDrawingShapeProps</c>.</summary>
 internal readonly partial struct ANonVisualDrawingShapePropsView {
-    internal ANonVisualDrawingShapePropsView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ANonVisualDrawingShapePropsView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ANonVisualDrawingShapePropsView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "spLocks", "extLst" }, new int[] { 0, 1 });
 
     internal bool? TxBox {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "txBox");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "txBox", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "txBox"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "txBox", OfficeXmlViewValues.Format(value));
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_NonVisualGroupDrawingShapeProps</c>.</summary>
 internal readonly partial struct ANonVisualGroupDrawingShapePropsView {
-    internal ANonVisualGroupDrawingShapePropsView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ANonVisualGroupDrawingShapePropsView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ANonVisualGroupDrawingShapePropsView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "grpSpLocks", "extLst" }, new int[] { 0, 1 });
@@ -876,278 +856,278 @@ internal readonly partial struct ANonVisualGroupDrawingShapePropsView {
 
 /// <summary>View over an element of schema type <c>CT_GroupShapeProperties</c>.</summary>
 internal readonly partial struct AGroupShapePropertiesView {
-    internal AGroupShapePropertiesView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal AGroupShapePropertiesView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal AGroupShapePropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "xfrm", "noFill", "solidFill", "gradFill", "blipFill", "pattFill", "grpFill", "effectLst", "effectDag", "scene3d", "extLst" }, new int[] { 0, 1, 1, 1, 1, 1, 1, 2, 2, 3, 4 });
 
     internal string? BwMode {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "bwMode");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "bwMode", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "bwMode");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "bwMode", value);
     }
 
     internal AGroupTransform2DView? Xfrm {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "xfrm");
-            return child == OfficeXmlTree.NoNode ? null : new AGroupTransform2DView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "xfrm");
+            return child.IsNone ? null : new AGroupTransform2DView(child);
         }
     }
 
-    internal AGroupTransform2DView GetOrAddXfrm() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "xfrm", Order));
+    internal AGroupTransform2DView GetOrAddXfrm() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "xfrm", Order));
 
     internal ANoFillPropertiesView? NoFill {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "noFill");
-            return child == OfficeXmlTree.NoNode ? null : new ANoFillPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
+            return child.IsNone ? null : new ANoFillPropertiesView(child);
         }
     }
 
-    internal ANoFillPropertiesView GetOrAddNoFill() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "noFill", Order));
+    internal ANoFillPropertiesView GetOrAddNoFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "noFill", Order));
 
     internal ASolidColorFillPropertiesView? SolidFill {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "solidFill");
-            return child == OfficeXmlTree.NoNode ? null : new ASolidColorFillPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
+            return child.IsNone ? null : new ASolidColorFillPropertiesView(child);
         }
     }
 
-    internal ASolidColorFillPropertiesView GetOrAddSolidFill() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "solidFill", Order));
+    internal ASolidColorFillPropertiesView GetOrAddSolidFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "solidFill", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_GroupTransform2D</c>.</summary>
 internal readonly partial struct AGroupTransform2DView {
-    internal AGroupTransform2DView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal AGroupTransform2DView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal AGroupTransform2DView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "off", "ext", "chOff", "chExt" }, new int[] { 0, 1, 2, 3 });
 
     internal int? Rot {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "rot");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rot", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "rot"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "rot", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? FlipH {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "flipH");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "flipH", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "flipH"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "flipH", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? FlipV {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "flipV");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "flipV", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "flipV"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "flipV", OfficeXmlViewValues.Format(value));
     }
 
     internal APoint2DView? Off {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "off");
-            return child == OfficeXmlTree.NoNode ? null : new APoint2DView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "off");
+            return child.IsNone ? null : new APoint2DView(child);
         }
     }
 
-    internal APoint2DView GetOrAddOff() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "off", Order));
+    internal APoint2DView GetOrAddOff() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "off", Order));
 
     internal APositiveSize2DView? Ext {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "ext");
-            return child == OfficeXmlTree.NoNode ? null : new APositiveSize2DView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "ext");
+            return child.IsNone ? null : new APositiveSize2DView(child);
         }
     }
 
-    internal APositiveSize2DView GetOrAddExt() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "ext", Order));
+    internal APositiveSize2DView GetOrAddExt() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "ext", Order));
 
     internal APoint2DView? ChOff {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "chOff");
-            return child == OfficeXmlTree.NoNode ? null : new APoint2DView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "chOff");
+            return child.IsNone ? null : new APoint2DView(child);
         }
     }
 
-    internal APoint2DView GetOrAddChOff() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "chOff", Order));
+    internal APoint2DView GetOrAddChOff() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "chOff", Order));
 
     internal APositiveSize2DView? ChExt {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "chExt");
-            return child == OfficeXmlTree.NoNode ? null : new APositiveSize2DView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "chExt");
+            return child.IsNone ? null : new APositiveSize2DView(child);
         }
     }
 
-    internal APositiveSize2DView GetOrAddChExt() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "chExt", Order));
+    internal APositiveSize2DView GetOrAddChExt() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "chExt", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_ShapeProperties</c>.</summary>
 internal readonly partial struct AShapePropertiesView {
-    internal AShapePropertiesView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal AShapePropertiesView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal AShapePropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "xfrm", "custGeom", "prstGeom", "noFill", "solidFill", "gradFill", "blipFill", "pattFill", "grpFill", "ln", "effectLst", "effectDag", "scene3d", "sp3d", "extLst" }, new int[] { 0, 1, 1, 2, 2, 2, 2, 2, 2, 3, 4, 4, 5, 6, 7 });
 
     internal string? BwMode {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "bwMode");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "bwMode", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "bwMode");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "bwMode", value);
     }
 
     internal ATransform2DView? Xfrm {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "xfrm");
-            return child == OfficeXmlTree.NoNode ? null : new ATransform2DView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "xfrm");
+            return child.IsNone ? null : new ATransform2DView(child);
         }
     }
 
-    internal ATransform2DView GetOrAddXfrm() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "xfrm", Order));
+    internal ATransform2DView GetOrAddXfrm() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "xfrm", Order));
 
     internal APresetGeometry2DView? PrstGeom {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "prstGeom");
-            return child == OfficeXmlTree.NoNode ? null : new APresetGeometry2DView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "prstGeom");
+            return child.IsNone ? null : new APresetGeometry2DView(child);
         }
     }
 
-    internal APresetGeometry2DView GetOrAddPrstGeom() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "prstGeom", Order));
+    internal APresetGeometry2DView GetOrAddPrstGeom() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "prstGeom", Order));
 
     internal ANoFillPropertiesView? NoFill {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "noFill");
-            return child == OfficeXmlTree.NoNode ? null : new ANoFillPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
+            return child.IsNone ? null : new ANoFillPropertiesView(child);
         }
     }
 
-    internal ANoFillPropertiesView GetOrAddNoFill() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "noFill", Order));
+    internal ANoFillPropertiesView GetOrAddNoFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "noFill", Order));
 
     internal ASolidColorFillPropertiesView? SolidFill {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "solidFill");
-            return child == OfficeXmlTree.NoNode ? null : new ASolidColorFillPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
+            return child.IsNone ? null : new ASolidColorFillPropertiesView(child);
         }
     }
 
-    internal ASolidColorFillPropertiesView GetOrAddSolidFill() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "solidFill", Order));
+    internal ASolidColorFillPropertiesView GetOrAddSolidFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "solidFill", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_Transform2D</c>.</summary>
 internal readonly partial struct ATransform2DView {
-    internal ATransform2DView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ATransform2DView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ATransform2DView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "off", "ext" }, new int[] { 0, 1 });
 
     internal int? Rot {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "rot");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rot", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "rot"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "rot", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? FlipH {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "flipH");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "flipH", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "flipH"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "flipH", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? FlipV {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "flipV");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "flipV", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "flipV"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "flipV", OfficeXmlViewValues.Format(value));
     }
 
     internal APoint2DView? Off {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "off");
-            return child == OfficeXmlTree.NoNode ? null : new APoint2DView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "off");
+            return child.IsNone ? null : new APoint2DView(child);
         }
     }
 
-    internal APoint2DView GetOrAddOff() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "off", Order));
+    internal APoint2DView GetOrAddOff() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "off", Order));
 
     internal APositiveSize2DView? Ext {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "ext");
-            return child == OfficeXmlTree.NoNode ? null : new APositiveSize2DView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "ext");
+            return child.IsNone ? null : new APositiveSize2DView(child);
         }
     }
 
-    internal APositiveSize2DView GetOrAddExt() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "ext", Order));
+    internal APositiveSize2DView GetOrAddExt() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "ext", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_Point2D</c>.</summary>
 internal readonly partial struct APoint2DView {
-    internal APoint2DView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal APoint2DView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal APoint2DView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? X {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "x");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "x", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "x");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "x", value);
     }
 
     internal string? Y {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "y");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "y", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "y");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "y", value);
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_PresetGeometry2D</c>.</summary>
 internal readonly partial struct APresetGeometry2DView {
-    internal APresetGeometry2DView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal APresetGeometry2DView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal APresetGeometry2DView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML }, new string[] { "avLst" }, new int[] { 0 });
 
     internal string? Prst {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "prst");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "prst", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "prst");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "prst", value);
     }
 
     internal AGeomGuideListView? AvLst {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "avLst");
-            return child == OfficeXmlTree.NoNode ? null : new AGeomGuideListView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "avLst");
+            return child.IsNone ? null : new AGeomGuideListView(child);
         }
     }
 
-    internal AGeomGuideListView GetOrAddAvLst() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "avLst", Order));
+    internal AGeomGuideListView GetOrAddAvLst() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "avLst", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_GeomGuideList</c>.</summary>
 internal readonly partial struct AGeomGuideListView {
-    internal AGeomGuideListView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal AGeomGuideListView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal AGeomGuideListView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML }, new string[] { "gd" }, new int[] { 0 });
@@ -1155,13 +1135,13 @@ internal readonly partial struct AGeomGuideListView {
 
 /// <summary>View over an element of schema type <c>CT_NoFillProperties</c>.</summary>
 internal readonly partial struct ANoFillPropertiesView {
-    internal ANoFillPropertiesView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ANoFillPropertiesView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ANoFillPropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
@@ -1169,722 +1149,714 @@ internal readonly partial struct ANoFillPropertiesView {
 
 /// <summary>View over an element of schema type <c>CT_SolidColorFillProperties</c>.</summary>
 internal readonly partial struct ASolidColorFillPropertiesView {
-    internal ASolidColorFillPropertiesView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ASolidColorFillPropertiesView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ASolidColorFillPropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "scrgbClr", "srgbClr", "hslClr", "sysClr", "schemeClr", "prstClr" }, new int[] { 0, 0, 0, 0, 0, 0 });
 
     internal ASRgbColorView? SrgbClr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "srgbClr");
-            return child == OfficeXmlTree.NoNode ? null : new ASRgbColorView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "srgbClr");
+            return child.IsNone ? null : new ASRgbColorView(child);
         }
     }
 
-    internal ASRgbColorView GetOrAddSrgbClr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "srgbClr", Order));
+    internal ASRgbColorView GetOrAddSrgbClr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "srgbClr", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_SRgbColor</c>.</summary>
 internal readonly partial struct ASRgbColorView {
-    internal ASRgbColorView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ASRgbColorView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ASRgbColorView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "tint", "shade", "comp", "inv", "gray", "alpha", "alphaOff", "alphaMod", "hue", "hueOff", "hueMod", "sat", "satOff", "satMod", "lum", "lumOff", "lumMod", "red", "redOff", "redMod", "green", "greenOff", "greenMod", "blue", "blueOff", "blueMod", "gamma", "invGamma" }, new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "val");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "val", value);
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_TextBody</c>.</summary>
 internal readonly partial struct ATextBodyView {
-    internal ATextBodyView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ATextBodyView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ATextBodyView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "bodyPr", "lstStyle", "p" }, new int[] { 0, 1, 2 });
 
     internal ATextBodyPropertiesView? BodyPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "bodyPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextBodyPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "bodyPr");
+            return child.IsNone ? null : new ATextBodyPropertiesView(child);
         }
     }
 
-    internal ATextBodyPropertiesView GetOrAddBodyPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "bodyPr", Order));
+    internal ATextBodyPropertiesView GetOrAddBodyPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "bodyPr", Order));
 
     internal ATextListStyleView? LstStyle {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "lstStyle");
-            return child == OfficeXmlTree.NoNode ? null : new ATextListStyleView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lstStyle");
+            return child.IsNone ? null : new ATextListStyleView(child);
         }
     }
 
-    internal ATextListStyleView GetOrAddLstStyle() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "lstStyle", Order));
+    internal ATextListStyleView GetOrAddLstStyle() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lstStyle", Order));
 
-    internal OfficeXmlElementList PList => new(Tree, Node, OfficeXmlNamespaces.DrawingML, "p");
+    internal PowerPointXmlNode.ChildList PList => Element.Children(OfficeXmlNamespaces.DrawingML, "p");
 
     /// <summary>Adds a <c>p</c> after the existing ones, in sequence order.</summary>
-    internal ATextParagraphView AddP() {
-        int child = Tree.CreateElement(OfficeXmlNamespaces.DrawingML, "p");
-        Tree.InsertOrdered(Node, child, Order);
-        return new ATextParagraphView(Tree, child);
-    }
+    internal ATextParagraphView AddP() => new(Element.AddOrdered(OfficeXmlNamespaces.DrawingML, "p", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_TextBodyProperties</c>.</summary>
 internal readonly partial struct ATextBodyPropertiesView {
-    internal ATextBodyPropertiesView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ATextBodyPropertiesView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ATextBodyPropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "prstTxWarp", "noAutofit", "normAutofit", "spAutoFit", "scene3d", "sp3d", "flatTx", "extLst" }, new int[] { 0, 1, 1, 1, 2, 3, 3, 4 });
 
     internal int? Rot {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "rot");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rot", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "rot"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "rot", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? SpcFirstLastPara {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "spcFirstLastPara");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "spcFirstLastPara", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "spcFirstLastPara"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "spcFirstLastPara", OfficeXmlViewValues.Format(value));
     }
 
     internal string? VertOverflow {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "vertOverflow");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "vertOverflow", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "vertOverflow");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "vertOverflow", value);
     }
 
     internal string? HorzOverflow {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "horzOverflow");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "horzOverflow", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "horzOverflow");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "horzOverflow", value);
     }
 
     internal string? Vert {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "vert");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "vert", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "vert");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "vert", value);
     }
 
     internal string? Wrap {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "wrap");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "wrap", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "wrap");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "wrap", value);
     }
 
     internal string? LIns {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "lIns");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "lIns", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "lIns");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "lIns", value);
     }
 
     internal string? TIns {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "tIns");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "tIns", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "tIns");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "tIns", value);
     }
 
     internal string? RIns {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rIns");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rIns", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "rIns");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "rIns", value);
     }
 
     internal string? BIns {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "bIns");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "bIns", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "bIns");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "bIns", value);
     }
 
     internal int? NumCol {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "numCol");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "numCol", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "numCol"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "numCol", OfficeXmlViewValues.Format(value));
     }
 
     internal int? SpcCol {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "spcCol");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "spcCol", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "spcCol"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "spcCol", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? RtlCol {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "rtlCol");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rtlCol", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "rtlCol"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "rtlCol", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? FromWordArt {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "fromWordArt");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "fromWordArt", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "fromWordArt"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "fromWordArt", OfficeXmlViewValues.Format(value));
     }
 
     internal string? Anchor {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "anchor");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "anchor", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "anchor");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "anchor", value);
     }
 
     internal bool? AnchorCtr {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "anchorCtr");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "anchorCtr", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "anchorCtr"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "anchorCtr", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? ForceAA {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "forceAA");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "forceAA", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "forceAA"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "forceAA", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? Upright {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "upright");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "upright", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "upright"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "upright", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? CompatLnSpc {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "compatLnSpc");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "compatLnSpc", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "compatLnSpc"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "compatLnSpc", OfficeXmlViewValues.Format(value));
     }
 
     internal ATextNormalAutofitView? NormAutofit {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "normAutofit");
-            return child == OfficeXmlTree.NoNode ? null : new ATextNormalAutofitView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "normAutofit");
+            return child.IsNone ? null : new ATextNormalAutofitView(child);
         }
     }
 
-    internal ATextNormalAutofitView GetOrAddNormAutofit() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "normAutofit", Order));
+    internal ATextNormalAutofitView GetOrAddNormAutofit() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "normAutofit", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_TextListStyle</c>.</summary>
 internal readonly partial struct ATextListStyleView {
-    internal ATextListStyleView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ATextListStyleView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ATextListStyleView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "defPPr", "lvl1pPr", "lvl2pPr", "lvl3pPr", "lvl4pPr", "lvl5pPr", "lvl6pPr", "lvl7pPr", "lvl8pPr", "lvl9pPr", "extLst" }, new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 });
 
     internal ATextParagraphPropertiesView? DefPPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "defPPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextParagraphPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "defPPr");
+            return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
-    internal ATextParagraphPropertiesView GetOrAddDefPPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "defPPr", Order));
+    internal ATextParagraphPropertiesView GetOrAddDefPPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "defPPr", Order));
 
     internal ATextParagraphPropertiesView? Lvl1pPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "lvl1pPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextParagraphPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl1pPr");
+            return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
-    internal ATextParagraphPropertiesView GetOrAddLvl1pPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "lvl1pPr", Order));
+    internal ATextParagraphPropertiesView GetOrAddLvl1pPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lvl1pPr", Order));
 
     internal ATextParagraphPropertiesView? Lvl2pPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "lvl2pPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextParagraphPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl2pPr");
+            return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
-    internal ATextParagraphPropertiesView GetOrAddLvl2pPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "lvl2pPr", Order));
+    internal ATextParagraphPropertiesView GetOrAddLvl2pPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lvl2pPr", Order));
 
     internal ATextParagraphPropertiesView? Lvl3pPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "lvl3pPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextParagraphPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl3pPr");
+            return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
-    internal ATextParagraphPropertiesView GetOrAddLvl3pPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "lvl3pPr", Order));
+    internal ATextParagraphPropertiesView GetOrAddLvl3pPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lvl3pPr", Order));
 
     internal ATextParagraphPropertiesView? Lvl4pPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "lvl4pPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextParagraphPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl4pPr");
+            return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
-    internal ATextParagraphPropertiesView GetOrAddLvl4pPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "lvl4pPr", Order));
+    internal ATextParagraphPropertiesView GetOrAddLvl4pPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lvl4pPr", Order));
 
     internal ATextParagraphPropertiesView? Lvl5pPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "lvl5pPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextParagraphPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl5pPr");
+            return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
-    internal ATextParagraphPropertiesView GetOrAddLvl5pPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "lvl5pPr", Order));
+    internal ATextParagraphPropertiesView GetOrAddLvl5pPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lvl5pPr", Order));
 
     internal ATextParagraphPropertiesView? Lvl6pPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "lvl6pPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextParagraphPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl6pPr");
+            return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
-    internal ATextParagraphPropertiesView GetOrAddLvl6pPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "lvl6pPr", Order));
+    internal ATextParagraphPropertiesView GetOrAddLvl6pPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lvl6pPr", Order));
 
     internal ATextParagraphPropertiesView? Lvl7pPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "lvl7pPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextParagraphPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl7pPr");
+            return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
-    internal ATextParagraphPropertiesView GetOrAddLvl7pPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "lvl7pPr", Order));
+    internal ATextParagraphPropertiesView GetOrAddLvl7pPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lvl7pPr", Order));
 
     internal ATextParagraphPropertiesView? Lvl8pPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "lvl8pPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextParagraphPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl8pPr");
+            return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
-    internal ATextParagraphPropertiesView GetOrAddLvl8pPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "lvl8pPr", Order));
+    internal ATextParagraphPropertiesView GetOrAddLvl8pPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lvl8pPr", Order));
 
     internal ATextParagraphPropertiesView? Lvl9pPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "lvl9pPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextParagraphPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl9pPr");
+            return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
-    internal ATextParagraphPropertiesView GetOrAddLvl9pPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "lvl9pPr", Order));
+    internal ATextParagraphPropertiesView GetOrAddLvl9pPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lvl9pPr", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_TextParagraph</c>.</summary>
 internal readonly partial struct ATextParagraphView {
-    internal ATextParagraphView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ATextParagraphView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ATextParagraphView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "pPr", "r", "br", "fld", "endParaRPr" }, new int[] { 0, 1, 1, 1, 2 });
 
     internal ATextParagraphPropertiesView? PPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "pPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextParagraphPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "pPr");
+            return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
-    internal ATextParagraphPropertiesView GetOrAddPPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "pPr", Order));
+    internal ATextParagraphPropertiesView GetOrAddPPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "pPr", Order));
 
-    internal OfficeXmlElementList RList => new(Tree, Node, OfficeXmlNamespaces.DrawingML, "r");
+    internal PowerPointXmlNode.ChildList RList => Element.Children(OfficeXmlNamespaces.DrawingML, "r");
 
     /// <summary>Adds a <c>r</c> after the existing ones, in sequence order.</summary>
-    internal ARegularTextRunView AddR() {
-        int child = Tree.CreateElement(OfficeXmlNamespaces.DrawingML, "r");
-        Tree.InsertOrdered(Node, child, Order);
-        return new ARegularTextRunView(Tree, child);
-    }
+    internal ARegularTextRunView AddR() => new(Element.AddOrdered(OfficeXmlNamespaces.DrawingML, "r", Order));
 
     internal ATextCharacterPropertiesView? EndParaRPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "endParaRPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextCharacterPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr");
+            return child.IsNone ? null : new ATextCharacterPropertiesView(child);
         }
     }
 
-    internal ATextCharacterPropertiesView GetOrAddEndParaRPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "endParaRPr", Order));
+    internal ATextCharacterPropertiesView GetOrAddEndParaRPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "endParaRPr", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_TextParagraphProperties</c>.</summary>
 internal readonly partial struct ATextParagraphPropertiesView {
-    internal ATextParagraphPropertiesView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ATextParagraphPropertiesView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ATextParagraphPropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "lnSpc", "spcBef", "spcAft", "buClrTx", "buClr", "buSzTx", "buSzPct", "buSzPts", "buFontTx", "buFont", "buNone", "buAutoNum", "buChar", "buBlip", "tabLst", "defRPr", "extLst" }, new int[] { 0, 1, 2, 3, 3, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 8, 9 });
 
     internal int? MarL {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "marL");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "marL", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "marL"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "marL", OfficeXmlViewValues.Format(value));
     }
 
     internal int? MarR {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "marR");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "marR", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "marR"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "marR", OfficeXmlViewValues.Format(value));
     }
 
     internal int? Lvl {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "lvl");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "lvl", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "lvl"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "lvl", OfficeXmlViewValues.Format(value));
     }
 
     internal int? Indent {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "indent");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "indent", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "indent"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "indent", OfficeXmlViewValues.Format(value));
     }
 
     internal string? Algn {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "algn");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "algn", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "algn");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "algn", value);
     }
 
     internal string? DefTabSz {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "defTabSz");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "defTabSz", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "defTabSz");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "defTabSz", value);
     }
 
     internal bool? Rtl {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "rtl");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rtl", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "rtl"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "rtl", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? EaLnBrk {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "eaLnBrk");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "eaLnBrk", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "eaLnBrk"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "eaLnBrk", OfficeXmlViewValues.Format(value));
     }
 
     internal string? FontAlgn {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "fontAlgn");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "fontAlgn", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "fontAlgn");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "fontAlgn", value);
     }
 
     internal bool? LatinLnBrk {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "latinLnBrk");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "latinLnBrk", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "latinLnBrk"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "latinLnBrk", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? HangingPunct {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "hangingPunct");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "hangingPunct", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "hangingPunct"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "hangingPunct", OfficeXmlViewValues.Format(value));
     }
 
     internal ATextCharacterPropertiesView? DefRPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "defRPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextCharacterPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "defRPr");
+            return child.IsNone ? null : new ATextCharacterPropertiesView(child);
         }
     }
 
-    internal ATextCharacterPropertiesView GetOrAddDefRPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "defRPr", Order));
+    internal ATextCharacterPropertiesView GetOrAddDefRPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "defRPr", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_RegularTextRun</c>.</summary>
 internal readonly partial struct ARegularTextRunView {
-    internal ARegularTextRunView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ARegularTextRunView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ARegularTextRunView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "rPr", "t" }, new int[] { 0, 1 });
 
     internal ATextCharacterPropertiesView? RPr {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "rPr");
-            return child == OfficeXmlTree.NoNode ? null : new ATextCharacterPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "rPr");
+            return child.IsNone ? null : new ATextCharacterPropertiesView(child);
         }
     }
 
-    internal ATextCharacterPropertiesView GetOrAddRPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "rPr", Order));
+    internal ATextCharacterPropertiesView GetOrAddRPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "rPr", Order));
 
     internal string? T {
-        get => OfficeXmlViewValues.ReadChildText(Tree, Node, OfficeXmlNamespaces.DrawingML, "t");
-        set => OfficeXmlViewValues.WriteChildText(Tree, Node, OfficeXmlNamespaces.DrawingML, "t", value, Order);
+        get => Element.ChildText(OfficeXmlNamespaces.DrawingML, "t");
+        set => Element.SetChildText(OfficeXmlNamespaces.DrawingML, "t", value, Order);
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_TextCharacterProperties</c>.</summary>
 internal readonly partial struct ATextCharacterPropertiesView {
-    internal ATextCharacterPropertiesView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ATextCharacterPropertiesView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ATextCharacterPropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "ln", "noFill", "solidFill", "gradFill", "blipFill", "pattFill", "grpFill", "effectLst", "effectDag", "highlight", "uLnTx", "uLn", "uFillTx", "uFill", "latin", "ea", "cs", "sym", "hlinkClick", "hlinkMouseOver", "rtl", "extLst" }, new int[] { 0, 1, 1, 1, 1, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6, 7, 8, 9, 10, 11, 12, 13 });
 
     internal bool? Kumimoji {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "kumimoji");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "kumimoji", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "kumimoji"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "kumimoji", OfficeXmlViewValues.Format(value));
     }
 
     internal string? Lang {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "lang");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "lang", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "lang");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "lang", value);
     }
 
     internal string? AltLang {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "altLang");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "altLang", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "altLang");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "altLang", value);
     }
 
     internal int? Sz {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "sz");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "sz", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "sz"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "sz", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? B {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "b");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "b", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "b"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "b", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? I {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "i");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "i", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "i"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "i", OfficeXmlViewValues.Format(value));
     }
 
     internal string? U {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "u");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "u", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "u");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "u", value);
     }
 
     internal string? Strike {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "strike");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "strike", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "strike");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "strike", value);
     }
 
     internal int? Kern {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "kern");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "kern", value);
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "kern"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "kern", OfficeXmlViewValues.Format(value));
     }
 
     internal string? Cap {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "cap");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "cap", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "cap");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "cap", value);
     }
 
     internal string? Spc {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "spc");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "spc", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "spc");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "spc", value);
     }
 
     internal bool? NormalizeH {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "normalizeH");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "normalizeH", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "normalizeH"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "normalizeH", OfficeXmlViewValues.Format(value));
     }
 
     internal string? Baseline {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "baseline");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "baseline", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "baseline");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "baseline", value);
     }
 
     internal bool? NoProof {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "noProof");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "noProof", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "noProof"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "noProof", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? Dirty {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "dirty");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "dirty", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "dirty"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "dirty", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? Err {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "err");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "err", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "err"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "err", OfficeXmlViewValues.Format(value));
     }
 
     internal bool? SmtClean {
-        get => OfficeXmlViewValues.ReadBoolean(Tree, Node, OfficeXmlNamespaces.None, "smtClean");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "smtClean", value);
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "smtClean"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "smtClean", OfficeXmlViewValues.Format(value));
     }
 
     internal uint? SmtId {
-        get => OfficeXmlViewValues.ReadUInt32(Tree, Node, OfficeXmlNamespaces.None, "smtId");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "smtId", value);
+        get => OfficeXmlViewValues.ParseUInt32(Element.Attribute(OfficeXmlNamespaces.None, "smtId"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "smtId", OfficeXmlViewValues.Format(value));
     }
 
     internal string? Bmk {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "bmk");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "bmk", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "bmk");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "bmk", value);
     }
 
     internal ANoFillPropertiesView? NoFill {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "noFill");
-            return child == OfficeXmlTree.NoNode ? null : new ANoFillPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
+            return child.IsNone ? null : new ANoFillPropertiesView(child);
         }
     }
 
-    internal ANoFillPropertiesView GetOrAddNoFill() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "noFill", Order));
+    internal ANoFillPropertiesView GetOrAddNoFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "noFill", Order));
 
     internal ASolidColorFillPropertiesView? SolidFill {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "solidFill");
-            return child == OfficeXmlTree.NoNode ? null : new ASolidColorFillPropertiesView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
+            return child.IsNone ? null : new ASolidColorFillPropertiesView(child);
         }
     }
 
-    internal ASolidColorFillPropertiesView GetOrAddSolidFill() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "solidFill", Order));
+    internal ASolidColorFillPropertiesView GetOrAddSolidFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "solidFill", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_TextNormalAutofit</c>.</summary>
 internal readonly partial struct ATextNormalAutofitView {
-    internal ATextNormalAutofitView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal ATextNormalAutofitView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal ATextNormalAutofitView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? FontScale {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "fontScale");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "fontScale", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "fontScale");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "fontScale", value);
     }
 
     internal string? LnSpcReduction {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "lnSpcReduction");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "lnSpcReduction", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "lnSpcReduction");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "lnSpcReduction", value);
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_ColorMapping</c>.</summary>
 internal readonly partial struct AColorMappingView {
-    internal AColorMappingView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal AColorMappingView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal AColorMappingView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML }, new string[] { "extLst" }, new int[] { 0 });
 
     internal string? Bg1 {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "bg1");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "bg1", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "bg1");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "bg1", value);
     }
 
     internal string? Tx1 {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "tx1");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "tx1", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "tx1");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "tx1", value);
     }
 
     internal string? Bg2 {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "bg2");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "bg2", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "bg2");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "bg2", value);
     }
 
     internal string? Tx2 {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "tx2");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "tx2", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "tx2");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "tx2", value);
     }
 
     internal string? Accent1 {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "accent1");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "accent1", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "accent1");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "accent1", value);
     }
 
     internal string? Accent2 {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "accent2");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "accent2", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "accent2");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "accent2", value);
     }
 
     internal string? Accent3 {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "accent3");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "accent3", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "accent3");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "accent3", value);
     }
 
     internal string? Accent4 {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "accent4");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "accent4", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "accent4");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "accent4", value);
     }
 
     internal string? Accent5 {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "accent5");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "accent5", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "accent5");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "accent5", value);
     }
 
     internal string? Accent6 {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "accent6");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "accent6", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "accent6");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "accent6", value);
     }
 
     internal string? Hlink {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "hlink");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "hlink", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "hlink");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "hlink", value);
     }
 
     internal string? FolHlink {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "folHlink");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "folHlink", value);
+        get => Element.Attribute(OfficeXmlNamespaces.None, "folHlink");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "folHlink", value);
     }
 }
 
 /// <summary>View over an element of schema type <c>CT_ColorMappingOverride</c>.</summary>
 internal readonly partial struct AColorMappingOverrideView {
-    internal AColorMappingOverrideView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal AColorMappingOverrideView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal AColorMappingOverrideView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "masterClrMapping", "overrideClrMapping" }, new int[] { 0, 0 });
 
     internal AEmptyElementView? MasterClrMapping {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "masterClrMapping");
-            return child == OfficeXmlTree.NoNode ? null : new AEmptyElementView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "masterClrMapping");
+            return child.IsNone ? null : new AEmptyElementView(child);
         }
     }
 
-    internal AEmptyElementView GetOrAddMasterClrMapping() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "masterClrMapping", Order));
+    internal AEmptyElementView GetOrAddMasterClrMapping() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "masterClrMapping", Order));
 
     internal AColorMappingView? OverrideClrMapping {
         get {
-            int child = Tree.FindChild(Node, OfficeXmlNamespaces.DrawingML, "overrideClrMapping");
-            return child == OfficeXmlTree.NoNode ? null : new AColorMappingView(Tree, child);
+            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "overrideClrMapping");
+            return child.IsNone ? null : new AColorMappingView(child);
         }
     }
 
-    internal AColorMappingView GetOrAddOverrideClrMapping() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.DrawingML, "overrideClrMapping", Order));
+    internal AColorMappingView GetOrAddOverrideClrMapping() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "overrideClrMapping", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_EmptyElement</c>.</summary>
 internal readonly partial struct AEmptyElementView {
-    internal AEmptyElementView(OfficeXmlTree tree, int node) {
-        Tree = tree;
-        Node = node;
-    }
+    internal AEmptyElementView(PowerPointXmlNode element) => Element = element;
 
-    internal OfficeXmlTree Tree { get; }
-    internal int Node { get; }
+    internal AEmptyElementView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+
+    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
