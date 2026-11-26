@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint {
             get {
                 OfficeXmlNode properties = ShapePropertiesElement(create: false);
                 if (!properties.IsNone && HasExplicitFillChoice(properties)) {
-                    int? imageAmount = properties.Child(D, "blipFill").Child(D, "blip").Child(D, "alphaModFix").Int32Attribute("amt");
+                    int? imageAmount = OfficeDrawingColorTransforms.ParsePercentage(properties.Child(D, "blipFill").Child(D, "blip").Child(D, "alphaModFix").Attribute("amt"));
                     if (imageAmount is int amount) return (int)Math.Round((100000 - amount) / 1000D);
                     List<OfficeXmlNode> localColors = FillColorChoices(properties);
                     if (localColors.Count == 0) return null;
@@ -216,7 +216,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static int? AlphaOf(OfficeXmlNode color) => color.Child(D, "alpha").Int32Attribute("val");
+        private static int? AlphaOf(OfficeXmlNode color) => OfficeDrawingColorTransforms.ParsePercentage(color.Child(D, "alpha").Attribute("val"));
 
         private static bool IsColorChoice(OfficeXmlNode element) =>
             element.NamespaceId == D && Array.IndexOf(ColorChoiceNames, element.LocalName) >= 0;

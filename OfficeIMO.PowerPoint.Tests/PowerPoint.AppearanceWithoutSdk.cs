@@ -45,6 +45,24 @@ public class PowerPointAppearanceWithoutSdkTests {
         Assert.Equal(withoutSdk.Slides.SelectMany(slide => slide.Shapes).Select(Describe).ToArray(), read);
     }
 
+    [Fact]
+    public void PercentFormColorValuesReadAsTheirIntegerForm() {
+        byte[] source;
+        using (var presentation = PowerPointDocument.Create()) {
+            presentation.AddSlide().AddShape(OfficePresetShapeType.Rectangle).FillColor = OfficeColor.FromRgb(0x12, 0x34, 0x56);
+            source = presentation.ToBytes();
+        }
+        // Strict documents write percentages with a trailing %; hue stays an angle.
+        source = RewriteSlide(source, "<a:srgbClr val=\"123456\"/>", "<a:hslClr hue=\"0\" sat=\"100%\" lum=\"50%\"><a:alpha val=\"50%\" /></a:hslClr>");
+
+        using var loaded = PowerPointDocument.Load(new MemoryStream(source));
+        PowerPointShape shape = loaded.Slides[0].Shapes.Single();
+
+        Assert.Equal(50, shape.FillTransparency);
+        OfficeColor exported = shape.ResolveFillColorForExport()!.Value;
+        Assert.Equal((255, 0, 0, 128), (exported.R, exported.G, exported.B, exported.A));
+    }
+
     private static void Edit(PowerPointDocument presentation) {
         foreach (PowerPointSlide slide in presentation.Slides) {
             PowerPointShape[] shapes = slide.Shapes.ToArray();
@@ -81,6 +99,21 @@ public class PowerPointAppearanceWithoutSdkTests {
             slide.AddShape(OfficePresetShapeType.Ellipse);
         }
         return presentation.ToBytes();
+    }
+
+    private static byte[] RewriteSlide(byte[] package, string from, string to) {
+        var output = new MemoryStream();
+        output.Write(package, 0, package.Length);
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true)) {
+            ZipArchiveEntry entry = archive.GetEntry("ppt/slides/slide1.xml")!;
+            string text;
+            using (var reader = new StreamReader(entry.Open(), Encoding.UTF8)) text = reader.ReadToEnd();
+            Assert.Contains(from, text);
+            entry.Delete();
+            using var writer = new StreamWriter(archive.CreateEntry("ppt/slides/slide1.xml").Open(), new UTF8Encoding(false));
+            writer.Write(text.Replace(from, to));
+        }
+        return output.ToArray();
     }
 
     private static string[] Slides(byte[] package) {

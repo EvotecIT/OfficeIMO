@@ -63,10 +63,10 @@ namespace OfficeIMO.OpenXml.Internal {
                     color = OfficeDrawingColorTransforms.ParseRgb(colorElement.Attribute("val"));
                     break;
                 case "scrgbClr":
-                    color = OfficeDrawingColorTransforms.ParseScRgb(colorElement.Int32Attribute("r"), colorElement.Int32Attribute("g"), colorElement.Int32Attribute("b"));
+                    color = OfficeDrawingColorTransforms.ParseScRgb(Percentage(colorElement, "r"), Percentage(colorElement, "g"), Percentage(colorElement, "b"));
                     break;
                 case "hslClr":
-                    color = OfficeDrawingColorTransforms.ParseHsl(colorElement.Int32Attribute("hue"), colorElement.Int32Attribute("sat"), colorElement.Int32Attribute("lum"));
+                    color = OfficeDrawingColorTransforms.ParseHsl(colorElement.Int32Attribute("hue"), Percentage(colorElement, "sat"), Percentage(colorElement, "lum"));
                     break;
                 case "sysClr":
                     color = OfficeDrawingColorTransforms.ParseRgb(colorElement.Attribute("lastClr"));
@@ -107,6 +107,8 @@ namespace OfficeIMO.OpenXml.Internal {
             }
             return default;
         }
+
+        private static int? Percentage(OfficeXmlNode element, string localName) => OfficeDrawingColorTransforms.ParsePercentage(element.Attribute(localName));
 
         private static bool IsPlaceholderScheme(string? scheme) =>
             string.Equals(scheme, "Placeholder", StringComparison.OrdinalIgnoreCase)

@@ -91,9 +91,26 @@ internal struct OfficeDrawingColorTransforms {
     /// <summary>A transform value, stored in thousandths of a percent, as a fraction.</summary>
     internal static bool TryReadValue(string? raw, out double value) {
         value = 0D;
-        if (string.IsNullOrWhiteSpace(raw) || !int.TryParse(raw, out int scaled)) return false;
+        if (ParsePercentage(raw) is not int scaled) return false;
         value = scaled / 100000D;
         return true;
+    }
+
+    /// <summary>
+    /// A DrawingML percentage in thousandths of a percent: an integer as written, or a decimal with a trailing
+    /// <c>%</c> (the form strict documents use), so <c>50000</c> and <c>50%</c> read the same.
+    /// </summary>
+    internal static int? ParsePercentage(string? raw) {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        string text = raw!.Trim();
+        if (int.TryParse(text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int scaled)) return scaled;
+        if (text.Length > 1 && text[text.Length - 1] == '%'
+            && double.TryParse(text.Substring(0, text.Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double percent)
+            && !double.IsNaN(percent) && !double.IsInfinity(percent)) {
+            double thousandths = Math.Round(percent * 1000D, MidpointRounding.AwayFromZero);
+            if (thousandths >= int.MinValue && thousandths <= int.MaxValue) return (int)thousandths;
+        }
+        return null;
     }
 
     /// <summary>Reads the DrawingML token, whose dk/lt/med prefixes abbreviate CSS color names.</summary>

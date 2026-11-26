@@ -89,8 +89,8 @@ internal static partial class PowerPointDrawingColor {
         if (element.IsNone) return null;
         OfficeColor? color = element.LocalName switch {
             "srgbClr" => OfficeDrawingColorTransforms.ParseRgb(element.Attribute("val")),
-            "scrgbClr" => OfficeDrawingColorTransforms.ParseScRgb(element.Int32Attribute("r"), element.Int32Attribute("g"), element.Int32Attribute("b")),
-            "hslClr" => OfficeDrawingColorTransforms.ParseHsl(element.Int32Attribute("hue"), element.Int32Attribute("sat"), element.Int32Attribute("lum")),
+            "scrgbClr" => OfficeDrawingColorTransforms.ParseScRgb(Percentage(element, "r"), Percentage(element, "g"), Percentage(element, "b")),
+            "hslClr" => OfficeDrawingColorTransforms.ParseHsl(element.Int32Attribute("hue"), Percentage(element, "sat"), Percentage(element, "lum")),
             "sysClr" => OfficeDrawingColorTransforms.ParseRgb(element.Attribute("lastClr")),
             "prstClr" => OfficeDrawingColorTransforms.ParsePreset(element.Attribute("val")),
             _ => null
@@ -103,4 +103,6 @@ internal static partial class PowerPointDrawingColor {
         }
         return transforms.Result;
     }
+
+    private static int? Percentage(OfficeXmlNode element, string localName) => OfficeDrawingColorTransforms.ParsePercentage(element.Attribute(localName));
 }

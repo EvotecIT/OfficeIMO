@@ -29,7 +29,7 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         Check(Add);
         Check(Edit);
         if (!UncheckedFlows.Contains("TextBoxes")) Check(TextBoxes);
-        if (!UncheckedFlows.Contains("Appearance")) Check(Appearance);
+        if (!UncheckedFlows.Contains("Appearance")) Check(Appearance, compareSlideXml: true);
         Check(presentation => presentation.ExtractMarkdownChunks().Count());
     }
 
@@ -135,16 +135,19 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         }
     }
 
-    private void Check(Action<PowerPointDocument> flow) {
+    // With compareSlideXml the slides' markup is compared, attribute order aside, for flows whose edits the text doesn't show.
+    private void Check(Action<PowerPointDocument> flow, bool compareSlideXml = false) {
         string throughSdk, withoutSdk;
         using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false))) {
             _ = presentation.OpenXmlDocument;
             flow(presentation);
-            throughSdk = Text(presentation.ToBytes());
+            byte[] saved = presentation.ToBytes();
+            throughSdk = compareSlideXml ? SlideXml(saved) : Text(saved);
         }
         using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false))) {
             flow(presentation);
-            withoutSdk = Text(presentation.ToBytes());
+            byte[] saved = presentation.ToBytes();
+            withoutSdk = compareSlideXml ? SlideXml(saved) : Text(saved);
             if (presentation.IsSdkLoaded) throw new InvalidOperationException("The flow opened the Open XML SDK: " + string.Join("; ", presentation.Diagnostics.Select(diagnostic => diagnostic.Message)));
         }
         if (throughSdk != withoutSdk) throw new InvalidOperationException("The saved slides differ.");
@@ -213,6 +216,25 @@ public class PowerPointWithoutSdkFlowBenchmarks {
             }
         }
         return OfficeIMO.Drawing.OfficePngWriter.EncodeRgba(width, height, rgba);
+    }
+
+    private static string SlideXml(byte[] package) {
+        using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(package, writable: false));
+        var builder = new System.Text.StringBuilder();
+        foreach (System.IO.Compression.ZipArchiveEntry entry in archive.Entries
+                     .Where(entry => entry.FullName.StartsWith("ppt/slides/slide", StringComparison.Ordinal))
+                     .OrderBy(entry => entry.FullName, StringComparer.Ordinal)) {
+            using Stream stream = entry.Open();
+            System.Xml.Linq.XElement root = System.Xml.Linq.XElement.Load(stream);
+            foreach (System.Xml.Linq.XElement element in root.DescendantsAndSelf()) {
+                System.Xml.Linq.XAttribute[] attributes = element.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration)
+                    .OrderBy(attribute => attribute.Name.ToString(), StringComparer.Ordinal).ToArray();
+                element.RemoveAttributes();
+                element.Add(attributes);
+            }
+            builder.Append(entry.FullName).Append('\n').Append(root.ToString(System.Xml.Linq.SaveOptions.DisableFormatting)).Append('\n');
+        }
+        return builder.ToString();
     }
 
     private static string Text(byte[] package) {
