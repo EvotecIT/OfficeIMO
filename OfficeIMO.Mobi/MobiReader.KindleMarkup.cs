@@ -1,21 +1,24 @@
+using System.Text;
 using AngleSharp.Html;
 using AngleSharp.Html.Parser;
 using AngleSharp.Html.Parser.Tokens;
 using AngleSharp.Text;
+using OfficeIMO.Html;
 
 namespace OfficeIMO.Mobi;
 
 public static partial class MobiReader {
-    private static string NormalizeKindleEmptyRawElements(string markup, ref int remainingTokens,
-        out HashSet<int>? placeholders, CancellationToken token) {
-        placeholders = null;
+    private static string ExpandKindleEmptyElements(string markup, ref int remainingTokens,
+        out List<(int Offset, int Length)>? insertedClosers, CancellationToken token) {
+        insertedClosers = null;
         if (markup.IndexOf("/>", StringComparison.Ordinal) < 0) return markup;
 
         var source = new TextSource(markup);
-        var tokenizer = new HtmlTokenizer(source, HtmlEntityProvider.ResolverExtended);
+        using var tokenizer = new HtmlTokenizer(source, HtmlEntityProvider.ResolverExtended);
         var transitions = new Stack<(string EndTag, string? PreviousNamespace)>();
         string? foreign = null;
-        char[]? normalized = null;
+        StringBuilder? expanded = null;
+        int copied = 0;
         while (true) {
             token.ThrowIfCancellationRequested();
             if (--remainingTokens < 0)
@@ -42,31 +45,37 @@ public static partial class MobiReader {
             }
             if (foreign != null) continue;
 
-            HtmlParseMode mode = tag.Name switch {
-                "style" or "xmp" or "iframe" or "noembed" or "noframes" => HtmlParseMode.Rawtext,
-                "script" => HtmlParseMode.Script,
-                "textarea" or "title" => HtmlParseMode.RCData,
-                "plaintext" => HtmlParseMode.Plaintext,
-                _ => HtmlParseMode.PCData
-            };
-            if (mode == HtmlParseMode.PCData) continue;
             if (!tag.IsSelfClosing) {
-                tokenizer.State = mode;
+                tokenizer.State = tag.Name switch {
+                    "style" or "xmp" or "iframe" or "noembed" or "noframes" => HtmlParseMode.Rawtext,
+                    "script" => HtmlParseMode.Script,
+                    "textarea" or "title" => HtmlParseMode.RCData,
+                    "plaintext" => HtmlParseMode.Plaintext,
+                    _ => HtmlParseMode.PCData
+                };
                 continue;
             }
+            if (HtmlDomElementFacts.IsVoidElement(tag.Name) || tag.Name is "basefont" or "bgsound" or "frame" or "keygen" or "mbp:pagebreak")
+                continue;
 
-            // A void element retains the ID and source position without starting a raw-text
-            // span. Use a head-safe placeholder for elements that can be parsed in the head.
-            string placeholder = tag.Name is "style" or "title" or "script" or "noframes" ? "link" : "wbr";
-            normalized ??= markup.ToCharArray();
-            int start = tag.Position.Index;
-            int nameStart = start + 1;
-            placeholder.CopyTo(0, normalized, nameStart, placeholder.Length);
-            for (int i = nameStart + placeholder.Length; i < nameStart + tag.Name.Length; i++)
-                normalized[i] = ' ';
-            (placeholders ??= new HashSet<int>()).Add(start);
+            expanded ??= new StringBuilder(markup.Length);
+            string name = tag.Name;
+            if (name == "plaintext") {
+                // HTML's plaintext state cannot be closed. Keep the attributes on an empty span.
+                int nameStart = tag.Position.Index + 1;
+                expanded.Append(markup, copied, nameStart - copied).Append("span").Append(' ', name.Length - "span".Length);
+                copied = nameStart + name.Length;
+                name = "span";
+            }
+
+            // Keep the original opening-tag length and record each inserted close so
+            // Kindle positions can be translated from the original byte offsets.
+            int end = source.Index;
+            expanded.Append(markup, copied, end - 2 - copied).Append(" ></").Append(name).Append('>');
+            copied = end;
+            (insertedClosers ??= new List<(int, int)>()).Add((end, name.Length + 3));
         }
-        return normalized == null ? markup : new string(normalized);
+        return expanded == null ? markup : expanded.Append(markup, copied, markup.Length - copied).ToString();
     }
 
     private static bool IsHtmlIntegrationPoint(string? foreign, HtmlTagToken tag) =>

@@ -23,11 +23,12 @@ public static partial class MobiReader {
             int tokens = 0, elements = 0;
             bool hasMarkup = false;
             int remainingXhtmlTokens = 300_000;
+            int generatedEndTags = 0;
             var parser = new HtmlParser(new HtmlParserOptions {
                 IsKeepingSourceReferences = true,
                 SkipComments = true,
                 OnToken = (markupToken, range) => {
-                    Charge(ref tokens, 300_000);
+                    Charge(ref tokens, 300_000 + generatedEndTags);
                     if (markupToken.Type == HtmlTokenType.StartTag) hasMarkup = true;
                     if (markupToken.Type == HtmlTokenType.Character)
                         currentRuns.Add(new MarkupTextRun(range.Start.Index, range.End.Index, markupToken.Data));
@@ -44,8 +45,10 @@ public static partial class MobiReader {
             for (int i = 0; i < inputs.Length; i++) {
                 token.ThrowIfCancellationRequested();
                 string html = selected.Encoding.GetString(inputs[i]);
-                HashSet<int>? emptyRawElements = null;
-                if (kindle != null) html = NormalizeKindleEmptyRawElements(html, ref remainingXhtmlTokens, out emptyRawElements, token);
+                List<(int Offset, int Length)>? insertedClosers = null;
+                if (kindle != null) html = ExpandKindleEmptyElements(html, ref remainingXhtmlTokens, out insertedClosers, token);
+                // The bounded XHTML prepass supplies at most one parser token per generated close.
+                generatedEndTags += insertedClosers?.Count ?? 0;
                 currentRuns = new List<MarkupTextRun>();
                 pageBreaks.Clear();
                 int tokensBeforePart = tokens, elementsBeforePart = elements;
@@ -67,10 +70,11 @@ public static partial class MobiReader {
                 }
                 originalMarkup[i] = html;
                 textRuns[i] = currentRuns;
-                if (document.Head?.QuerySelector("style,link[rel=stylesheet]") != null)
+                if (document.Head is { } head && (head.QuerySelector("link[rel=stylesheet]") != null ||
+                    head.QuerySelectorAll("style").Any(style => !string.IsNullOrWhiteSpace(style.TextContent))))
                     Warn("MOBI_STYLE_OMITTED", "Source stylesheets are omitted. Semantic formatting is retained.");
                 parts[i] = new MarkupPart(i, document.Body ?? throw new InvalidDataException("Mobipocket markup has no document body."),
-                    XmlText(document.Title ?? string.Empty), inputs[i].Length, emptyRawElements, token);
+                    XmlText(document.Title ?? string.Empty), inputs[i].Length, insertedClosers, token);
                 positions[i] = new HashSet<int>();
             }
 
@@ -159,10 +163,9 @@ public static partial class MobiReader {
             if (node is not IElement source) return null;
             string tag = source.LocalName;
             MarkupPart part = parts[partIndex];
-            if (part.IsEmptyRawPlaceholder(source))
-                return part.Anchor(source) is { } anchor ? new XElement("span", new XAttribute("id", anchor)) : null;
             if (IsOmittedMarkup(tag)) {
-                Warn("MOBI_ELEMENT_OMITTED", "An unsupported active, media or styling element was omitted.", tag);
+                if (tag != "style" || !string.IsNullOrWhiteSpace(source.TextContent))
+                    Warn("MOBI_ELEMENT_OMITTED", "An unsupported active, media or styling element was omitted.", tag);
                 // An omitted subtree can still carry a link target in the reading order.
                 var ids = source.QuerySelectorAll("*").Prepend(source)
                     .Select(part.Anchor).OfType<string>().ToArray();
@@ -274,14 +277,15 @@ public static partial class MobiReader {
         private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
         private readonly Dictionary<int, string> _positions = new();
         private readonly List<IElement> _elements = new();
-        private readonly HashSet<int>? _emptyRawElements;
+        private readonly List<(int Offset, int Length)>? _insertedClosers;
 
-        internal MarkupPart(int index, IElement body, string title, int length, HashSet<int>? emptyRawElements, CancellationToken token) {
+        internal MarkupPart(int index, IElement body, string title, int length,
+            List<(int Offset, int Length)>? insertedClosers, CancellationToken token) {
             Body = body;
             Length = length;
             Title = title;
             File = "part-" + Number(index + 1) + ".xhtml";
-            _emptyRawElements = emptyRawElements;
+            _insertedClosers = insertedClosers;
             if (body.ParentElement?.GetAttribute("id") is { Length: > 0 } rootId)
                 _ids.Add(rootId, TopAnchor);
             var pending = new Stack<(IElement Element, int Depth)>();
@@ -307,8 +311,6 @@ public static partial class MobiReader {
         internal int Length { get; }
         internal string Title { get; }
         internal IReadOnlyList<IElement> Elements => _elements;
-        internal bool IsEmptyRawPlaceholder(IElement element) =>
-            element.SourceReference?.Position.Index is { } position && _emptyRawElements?.Contains(position) == true;
         internal string? AnchorAt(int offset) => _positions.TryGetValue(offset, out string? id) ? id : null;
         internal string? Anchor(IElement element) => _anchors.TryGetValue(element, out string? id) ? id : null;
         internal string? ResolveId(string id) {

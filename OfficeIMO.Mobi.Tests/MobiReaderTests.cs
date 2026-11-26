@@ -33,10 +33,16 @@ public sealed class MobiReaderTests {
     }
 
     [Fact]
-    public void EmptyKindleStylesKeepTextAndLocalLinksAcrossSvgCdata() {
+    public void EmptyKindleXhtmlElementsKeepTextAndLinksAtTheirOriginalPositions() {
         const string fixture = "harbour-empty-style.azw3";
         using var source = new MemoryStream(Fixture(fixture), writable: false);
-        EpubDocument book = ReadPublication(source, fixture);
+        var imported = MobiReader.Import(source, fixture);
+        Assert.DoesNotContain(imported.Report.Diagnostics, item =>
+            item.Code == "MOBI_STYLE_OMITTED" || item.Code == "MOBI_ELEMENT_OMITTED" && item.Location == "style");
+        using var artifact = new MemoryStream();
+        imported.Value.Save(artifact);
+        artifact.Position = 0;
+        EpubDocument book = EpubDocument.Load(artifact, new EpubLoadOptions { IncludeRawHtml = true });
         EpubChapter opening = Assert.Single(book.Chapters, chapter => chapter.Text.Contains("A small independent ebook"));
         var ending = Assert.Single(book.TableOfContents[0].Children);
         Assert.NotNull(ending.Fragment);
@@ -47,6 +53,16 @@ public sealed class MobiReaderTests {
         string svg = FindLinkTarget("SVG marker");
         string local = FindLinkTarget("HTML marker");
         Assert.NotEqual(svg, local);
+        XElement paragraph = Assert.Single(html.Descendants(xhtml + "p"), node => node.Value.Contains("Prølogue target phrase"));
+        Assert.Empty(Assert.Single(paragraph.Elements(xhtml + "em")).Nodes());
+        XElement jump = Assert.Single(paragraph.Elements(xhtml + "a"), link => link.Value == "Jump");
+        string path = Path.GetFileName(opening.Path) + "#";
+        string href = Assert.IsType<string>((string?)jump.Attribute("href"));
+        Assert.StartsWith(path, href);
+        XElement marker = Assert.Single(paragraph.Elements(xhtml + "span"),
+            node => (string?)node.Attribute("id") == href.Substring(path.Length));
+        Assert.Equal("Prølogue ", Assert.IsType<XText>(marker.PreviousNode).Value);
+        Assert.Equal("target phrase", Assert.IsType<XText>(marker.NextNode).Value);
 
         string FindLinkTarget(string label) {
             XElement link = Assert.Single(html.Descendants(xhtml + "a"), element => element.Value == label);

@@ -57,7 +57,7 @@ public sealed class ReaderFormatIdentifierTests {
     [InlineData(ReaderInputKind.Dbf, 13)]
     [InlineData(ReaderInputKind.Publisher, 14)]
     [InlineData(ReaderInputKind.Toml, 15)]
-    [InlineData(ReaderInputKind.Mobi, 16)]
+    [InlineData(ReaderInputKind.Mobi, 17)]
     [InlineData(ReaderInputKind.Comic, 16)]
     public void EarlierSchemasRejectNewKindsInRootsChunksAndNestedDocuments(ReaderInputKind kind, int minimumVersion) {
         string name = kind.ToString();

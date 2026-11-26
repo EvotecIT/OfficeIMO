@@ -23,6 +23,7 @@ public static partial class MobiReader {
                 .OrderBy(element => element.SourceReference!.Position.Index).ToArray();
             var mapped = MatchTextRuns(markup, runs, token);
             int elementIndex = 0, runIndex = 0, previous = 0, characters = 0;
+            int closerIndex = 0, inserted = 0;
             bool approximated = false;
             foreach (int target in targets.OrderBy(item => item)) {
                 token.ThrowIfCancellationRequested();
@@ -35,10 +36,14 @@ public static partial class MobiReader {
                     while (end > previous && end < bytes.Length && (bytes[end] & 0xc0) == 0x80) end--;
                 characters += encoding.GetCharCount(bytes, previous, end - previous);
                 previous = end;
-                while (runIndex < mapped.Count && mapped[runIndex].Range.End <= characters) runIndex++;
-                if (runIndex < mapped.Count && mapped[runIndex].Range.Start <= characters) {
+                while (_insertedClosers != null && closerIndex < _insertedClosers.Count &&
+                    _insertedClosers[closerIndex].Offset <= characters)
+                    inserted += _insertedClosers[closerIndex++].Length;
+                int position = characters + inserted;
+                while (runIndex < mapped.Count && mapped[runIndex].Range.End <= position) runIndex++;
+                if (runIndex < mapped.Count && mapped[runIndex].Range.Start <= position) {
                     var run = mapped[runIndex];
-                    int offset = characters - run.Range.Start;
+                    int offset = position - run.Range.Start;
                     if (!run.CharacterOffsetsMatch && offset != 0) {
                         offset = 0;
                         approximated = true;
@@ -46,10 +51,10 @@ public static partial class MobiReader {
                     _positions.Add(target, AnchorText(run.Node, offset));
                     continue;
                 }
-                while (elementIndex + 1 < elements.Length && elements[elementIndex + 1].SourceReference!.Position.Index <= characters + 1)
+                while (elementIndex + 1 < elements.Length && elements[elementIndex + 1].SourceReference!.Position.Index <= position + 1)
                     elementIndex++;
                 IElement element = elements.Length == 0 ? Body : elements[elementIndex];
-                if (element.SourceReference?.Position.Index != characters && element.SourceReference?.Position.Index != characters + 1)
+                if (element.SourceReference?.Position.Index != position && element.SourceReference?.Position.Index != position + 1)
                     approximated = true;
                 _positions.Add(target, EnsureAnchor(element));
             }
