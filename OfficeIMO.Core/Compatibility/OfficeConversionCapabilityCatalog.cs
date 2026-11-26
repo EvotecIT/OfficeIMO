@@ -741,6 +741,10 @@ public static partial class OfficeConversionCapabilityCatalog {
         string source,
         string target) {
         if (source == "Mobipocket and Kindle") {
+            if (target == "PDF") {
+                return (OfficeConversionTextFormattingKind.FixedLayoutAppearance,
+                    "Renders supported inline styling as fixed-layout PDF text. Separate Kindle styling and font flows produce a conversion warning.");
+            }
             return (OfficeConversionTextFormattingKind.SyntaxSubset,
                 "Retains supported inline emphasis, decoration and script. Separate Kindle styling and font flows are omitted with a conversion warning.");
         }

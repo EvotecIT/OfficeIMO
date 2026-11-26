@@ -51,6 +51,7 @@ internal static class EpubImportedPublication {
                 IsRasterMediaType(mediaType) && !images.ContainsKey(image.Path))
                 images.Add(image.Path, new Lazy<string>(() => "data:" + mediaType + ";base64," + Convert.ToBase64String(bytes)));
         }
+        var reportedMarkdownNumbering = new HashSet<string>(StringComparer.Ordinal);
         using var writer = XmlWriter.Create(destination, new XmlWriterSettings {
             OmitXmlDeclaration = true, Encoding = new UTF8Encoding(false), CloseOutput = false
         });
@@ -131,14 +132,20 @@ internal static class EpubImportedPublication {
                 WriteAnchor(Anchor(chapters[chapterPath], id));
             writer.WriteStartElement(tag);
             foreach (XAttribute attribute in element.Attributes()) {
-                if (attribute.IsNamespaceDeclaration) continue;
+                if (attribute.IsNamespaceDeclaration ||
+                    (attribute.Name == XNamespace.Xml + "lang" && element.Attribute("lang") != null)) continue;
                 string name = attribute.Name.LocalName;
                 string? value = attribute.Value;
+                bool listNumbering = (tag == "ol" && name is "start" or "reversed") || (tag == "li" && name == "value");
                 if ((attribute.Name.Namespace != XNamespace.None && attribute.Name != XNamespace.Xml + "lang") ||
-                    name is not ("id" or "lang" or "title" or "alt" or "src" or "href" or "width" or "height" or "colspan" or "rowspan")) {
+                    (!listNumbering && name is not ("id" or "lang" or "title" or "alt" or "src" or "href" or "width" or "height" or "colspan" or "rowspan"))) {
                     Omit("EBOOK_HTML_ATTRIBUTE_OMITTED", "An attribute is outside the static HTML projection.", name);
                     continue;
                 }
+                if (markdownAnchors && listNumbering &&
+                    (name is "reversed" or "value" || value.StartsWith("-", StringComparison.Ordinal) || value.Length > 9) &&
+                    reportedMarkdownNumbering.Add(chapterPath))
+                    Omit("EBOOK_MARKDOWN_LIST_NUMBERING_OMITTED", "Markdown readers may change the authored list numbering.", chapterPath);
                 if ((name == "src" && tag != "img") || (name == "href" && tag != "a")) continue;
                 if (name == "id") {
                     if (markdownAnchors) continue;

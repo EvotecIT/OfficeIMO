@@ -122,6 +122,17 @@ public static partial class MobiReader {
                 if (source.GetAttribute(name) is { } value) target.SetAttributeValue(name, XmlText(value));
             }
 
+            if (tag is "ol" or "li") {
+                string numberAttribute = tag == "ol" ? "start" : "value";
+                if (source.GetAttribute(numberAttribute) is { } rawNumber) {
+                    if (int.TryParse(rawNumber, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
+                        target.SetAttributeValue(numberAttribute, Number(value));
+                    else
+                        Warn("MOBI_LIST_NUMBERING_OMITTED", "An ordered-list number was outside the supported integer range.", numberAttribute);
+                }
+                if (tag == "ol" && source.HasAttribute("reversed")) target.SetAttributeValue("reversed", "reversed");
+            }
+
             if (tag == "a") {
                 string? href = source.GetAttribute("href");
                 string? filepos = source.GetAttribute("filepos");

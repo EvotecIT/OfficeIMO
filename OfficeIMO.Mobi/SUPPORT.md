@@ -4,7 +4,7 @@
 | --- | --- |
 | PalmDOC | A Palm `TEXt/REAd` record database. Reads literal Windows-1252 text and preserves line boundaries. Additional bookmark records are reported as omitted. |
 | MOBI and AZW | Unencrypted `BOOK/MOBI` versions 1 through 7 with UTF-8 or Windows-1252 text, EXTH metadata, raster resources, embedded index navigation and `filepos` links. |
-| AZW3 / KF8 | Unencrypted standalone or dual-format KF8 with skeleton, fragment and navigation indexes, inline raster images and Kindle position links. Separate CSS, SVG and font flows and fixed-layout positioning are reported as lost. |
+| AZW3 / KF8 | Unencrypted standalone or dual-format KF8 with skeleton, fragment and navigation indexes, inline raster images and Kindle position links. Dual-format imports resolve raster images from the shared legacy records. Separate CSS, SVG and font flows and fixed-layout positioning are reported as lost. |
 | Compression | Stored records and PalmDOC compression. The import refuses HUFF/CDIC compression with a `NotSupportedException`. |
 | DRM | Encrypted MOBI and Kindle inputs are refused before extracting text, including an encrypted section of a dual-format book. |
 | Output | Reflowable EPUB with metadata, embedded raster cover and contents. PDF, standalone HTML and Markdown use the shared publication projection and report destination losses. |

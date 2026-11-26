@@ -192,6 +192,22 @@ public sealed class MobiReaderTests {
     }
 
     [Fact]
+    public void PreservesContinuedAndReversedOrderedListNumbering() {
+        using var source = new MemoryStream(BuildLegacyMobi("""
+            <html><body><ol start="5" reversed><li>Step five</li><li value="10">Step ten</li></ol></body></html>
+            """), writable: false);
+
+        EpubChapter chapter = Assert.Single(ReadPublication(source, "list.mobi").Chapters);
+
+        Assert.NotNull(chapter.Html);
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        XElement list = Assert.Single(XElement.Parse(chapter.Html).Descendants(xhtml + "ol"));
+        Assert.Equal("5", (string?)list.Attribute("start"));
+        Assert.NotNull(list.Attribute("reversed"));
+        Assert.Equal("10", (string?)Assert.Single(list.Elements(xhtml + "li"), element => element.Value == "Step ten").Attribute("value"));
+    }
+
+    [Fact]
     public void RejectsHtmlThatExceedsTheParserElementBudget() {
         string html = "<html><body>" + string.Concat(Enumerable.Repeat("<br>", 155_000)) + "</body></html>";
         using var stream = new MemoryStream(BuildLegacyMobi(html), writable: false);

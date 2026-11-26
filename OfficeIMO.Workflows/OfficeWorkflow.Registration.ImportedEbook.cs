@@ -76,12 +76,21 @@ public static partial class OfficeWorkflow {
                         EpubImportedPublication.WriteHtml(book, html, diagnostics, cancellationToken, markdownAnchors: true);
                         html.Position = 0;
                         using var text = new StreamReader(html, Encoding.UTF8);
-                        // The static projection can generate extra nodes for navigation and anchor targets.
+                        // Validate the complete projection, including generated navigation and anchors, before exporting Markdown.
                         var limits = HtmlConversionLimits.UntrustedDefaults;
                         limits.MaxInputCharacters = MaximumWorkingHtmlBytes;
                         limits.MaxHtmlNodes = EpubImportedPublication.MaximumHtmlNodes;
-                        var markup = HtmlConversionDocument.Parse(text.ReadToEnd(),
-                            new HtmlConversionDocumentOptions { Limits = limits }, cancellationToken);
+                        HtmlConversionDocument markup;
+                        try {
+                            markup = HtmlConversionDocument.Parse(text.ReadToEnd(),
+                                new HtmlConversionDocumentOptions { Limits = limits }, cancellationToken);
+                        } catch (HtmlDomLimitException error) {
+                            string message = "The combined ebook content exceeds the Markdown HTML limit (" + error.LimitSource + ").";
+                            diagnostics.Add(new OfficeDiagnostic(error.Code, OfficeDiagnosticSeverity.Error, message,
+                                null, "OfficeIMO.Html", OfficeConversionLossKind.Failure));
+                            var rejected = new OfficeConversionReport(options.SourceName!, options.TargetName!, diagnostics: diagnostics);
+                            throw new OfficeConversionException(message, rejected, error);
+                        }
                         var markdownOptions = new HtmlMarkdownExportOptions();
                         markdownOptions.PassThroughTags.Add("a");
                         using MarkdownDocument markdown = markup.ToMarkdown(markdownOptions, out OfficeConversionReport converted, cancellationToken);

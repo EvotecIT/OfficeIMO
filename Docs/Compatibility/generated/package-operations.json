@@ -22204,7 +22204,7 @@
       "evidence":"Calibre-produced PalmDOC, MOBI, AZW3 and dual-format samples exercise decompression, metadata, cover, navigation and links, with encryption rejection controls.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".azw",".azw3",".mobi",".pdb",".prc"],
-      "limitation":"Reads unencrypted PalmDOC, legacy MOBI and reflowable KF8 with stored or PalmDOC-compressed text. Separate Kindle styling and font flows are omitted with a conversion warning. HUFF/CDIC, scripting and Kindle fixed-layout presentation are outside the reader profile. See OfficeIMO.Mobi/SUPPORT.md."
+      "limitation":"Reads unencrypted PalmDOC, legacy MOBI and reflowable KF8 with stored or PalmDOC-compressed text. Dual-format books use the shared legacy raster resources. Separate Kindle styling and font flows are omitted with a conversion warning. HUFF/CDIC, scripting and Kindle fixed-layout presentation are outside the reader profile. See OfficeIMO.Mobi/SUPPORT.md."
     },
     {
       "id":"conversion:ebook-mobi-html",
@@ -22218,7 +22218,7 @@
       "evidence":"Calibre-produced PalmDOC, MOBI, AZW3 and dual-format samples exercise decompression, metadata, cover, navigation and links, with encryption rejection controls.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".azw",".azw3",".mobi",".pdb",".prc"],
-      "limitation":"Reads unencrypted PalmDOC, legacy MOBI and reflowable KF8 with stored or PalmDOC-compressed text. Separate Kindle styling and font flows are omitted with a conversion warning. HUFF/CDIC, scripting and Kindle fixed-layout presentation are outside the reader profile. See OfficeIMO.Mobi/SUPPORT.md."
+      "limitation":"Reads unencrypted PalmDOC, legacy MOBI and reflowable KF8 with stored or PalmDOC-compressed text. Dual-format books use the shared legacy raster resources. Separate Kindle styling and font flows are omitted with a conversion warning. HUFF/CDIC, scripting and Kindle fixed-layout presentation are outside the reader profile. See OfficeIMO.Mobi/SUPPORT.md."
     },
     {
       "id":"conversion:ebook-mobi-markdown",
@@ -22232,7 +22232,7 @@
       "evidence":"Calibre-produced PalmDOC, MOBI, AZW3 and dual-format samples exercise decompression, metadata, cover, navigation and links, with encryption rejection controls.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".azw",".azw3",".mobi",".pdb",".prc"],
-      "limitation":"Reads unencrypted PalmDOC, legacy MOBI and reflowable KF8 with stored or PalmDOC-compressed text. Separate Kindle styling and font flows are omitted with a conversion warning. HUFF/CDIC, scripting and Kindle fixed-layout presentation are outside the reader profile. See OfficeIMO.Mobi/SUPPORT.md."
+      "limitation":"Reads unencrypted PalmDOC, legacy MOBI and reflowable KF8 with stored or PalmDOC-compressed text. Dual-format books use the shared legacy raster resources. Separate Kindle styling and font flows are omitted with a conversion warning. HUFF/CDIC, scripting and Kindle fixed-layout presentation are outside the reader profile. See OfficeIMO.Mobi/SUPPORT.md."
     },
     {
       "id":"conversion:ebook-mobi-pdf",
@@ -22246,7 +22246,7 @@
       "evidence":"Calibre-produced PalmDOC, MOBI, AZW3 and dual-format samples exercise decompression, metadata, cover, navigation and links, with encryption rejection controls.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".azw",".azw3",".mobi",".pdb",".prc"],
-      "limitation":"Reads unencrypted PalmDOC, legacy MOBI and reflowable KF8 with stored or PalmDOC-compressed text. Separate Kindle styling and font flows are omitted with a conversion warning. HUFF/CDIC, scripting and Kindle fixed-layout presentation are outside the reader profile. See OfficeIMO.Mobi/SUPPORT.md."
+      "limitation":"Reads unencrypted PalmDOC, legacy MOBI and reflowable KF8 with stored or PalmDOC-compressed text. Dual-format books use the shared legacy raster resources. Separate Kindle styling and font flows are omitted with a conversion warning. HUFF/CDIC, scripting and Kindle fixed-layout presentation are outside the reader profile. See OfficeIMO.Mobi/SUPPORT.md."
     },
     {
       "id":"conversion:project-jpeg",
