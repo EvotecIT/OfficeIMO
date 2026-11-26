@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -46,8 +47,8 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private PowerPointXmlNode RequireNonVisualDrawing() {
-            PowerPointXmlNode drawing = NonVisualDrawingElement(create: true);
+        private OfficeXmlNode RequireNonVisualDrawing() {
+            OfficeXmlNode drawing = NonVisualDrawingElement(create: true);
             return drawing.IsNone ? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.") : drawing;
         }
 
@@ -96,7 +97,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointShapeContentType ShapeContentType {
             get {
-                PowerPointXmlNode element = XmlElement;
+                OfficeXmlNode element = XmlElement;
                 if (element.NamespaceId != OfficeXmlNamespaces.PresentationML) return PowerPointShapeContentType.Unknown;
                 switch (element.LocalName) {
                     case "grpSp":
@@ -104,7 +105,7 @@ namespace OfficeIMO.PowerPoint {
                     case "pic":
                         return IsMediaPicture(element) ? PowerPointShapeContentType.Media : PowerPointShapeContentType.Picture;
                     case "graphicFrame": {
-                        PowerPointXmlNode data = element.Child(OfficeXmlNamespaces.DrawingML, "graphic").Child(OfficeXmlNamespaces.DrawingML, "graphicData");
+                        OfficeXmlNode data = element.Child(OfficeXmlNamespaces.DrawingML, "graphic").Child(OfficeXmlNamespaces.DrawingML, "graphicData");
                         if (!data.Child(OfficeXmlNamespaces.DrawingML, "tbl").IsNone) return PowerPointShapeContentType.Table;
                         if (!data.Child(OfficeXmlNamespaces.Chart, "chart").IsNone) return PowerPointShapeContentType.Chart;
                         if (!data.Child(OfficeXmlNamespaces.Diagram, "relIds").IsNone) return PowerPointShapeContentType.SmartArt;
@@ -126,11 +127,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int DrawingOrder {
             get {
-                PowerPointXmlNode element = XmlElement;
-                PowerPointXmlNode parent = element.Parent;
+                OfficeXmlNode element = XmlElement;
+                OfficeXmlNode parent = element.Parent;
                 if (parent.IsNone) return -1;
                 int order = 0;
-                foreach (PowerPointXmlNode child in parent.Children()) {
+                foreach (OfficeXmlNode child in parent.Children()) {
                     if (!IsDrawingElement(child)) continue;
                     if (child.Equals(element)) return order;
                     order++;
@@ -165,7 +166,7 @@ namespace OfficeIMO.PowerPoint {
 
 
 
-        private static bool IsDrawingElement(PowerPointXmlNode element) =>
+        private static bool IsDrawingElement(OfficeXmlNode element) =>
             element.NamespaceId == OfficeXmlNamespaces.PresentationML && element.LocalName is "sp" or "cxnSp" or "pic" or "graphicFrame" or "grpSp";
     }
 }

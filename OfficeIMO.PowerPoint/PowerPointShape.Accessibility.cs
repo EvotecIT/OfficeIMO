@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
@@ -18,14 +19,14 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Gets or sets whether assistive technology should treat this shape as decorative.</summary>
         public bool Decorative {
             get {
-                PowerPointXmlNode drawing = NonVisualDrawingElement(create: false);
+                OfficeXmlNode drawing = NonVisualDrawingElement(create: false);
                 return !drawing.IsNone && FindDecorative(drawing, all: true).Any(item => OfficeXmlViewValues.ParseBoolean(item.Attribute("val")) != false);
             }
             set {
-                PowerPointXmlNode drawing = RequireNonVisualDrawing();
-                PowerPointXmlNode list = drawing.Child(OfficeXmlNamespaces.DrawingML, "extLst");
-                PowerPointXmlNode extension = default;
-                foreach (PowerPointXmlNode candidate in list.Children(OfficeXmlNamespaces.DrawingML, "ext")) {
+                OfficeXmlNode drawing = RequireNonVisualDrawing();
+                OfficeXmlNode list = drawing.Child(OfficeXmlNamespaces.DrawingML, "extLst");
+                OfficeXmlNode extension = default;
+                foreach (OfficeXmlNode candidate in list.Children(OfficeXmlNamespaces.DrawingML, "ext")) {
                     if (!candidate.Child(DecorativeNamespace, "decorative").IsNone) {
                         extension = candidate;
                         break;
@@ -37,10 +38,10 @@ namespace OfficeIMO.PowerPoint {
                         extension = list.Append(list.CreateElement(OfficeXmlNamespaces.DrawingML, "ext"));
                         extension.SetAttribute("uri", DecorativeExtensionUri);
                     }
-                    foreach (PowerPointXmlNode existing in extension.Children().ToList()) {
+                    foreach (OfficeXmlNode existing in extension.Children().ToList()) {
                         if (existing.Is(DecorativeNamespace, "decorative")) existing.Remove();
                     }
-                    PowerPointXmlNode decorative = extension.CreateElement(DecorativeNamespace, "decorative", "adec");
+                    OfficeXmlNode decorative = extension.CreateElement(DecorativeNamespace, "decorative", "adec");
                     decorative.SetAttribute("val", "1");
                     extension.Append(decorative);
                 } else if (!extension.IsNone) {
@@ -51,13 +52,13 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static List<PowerPointXmlNode> FindDecorative(PowerPointXmlNode element, bool all) {
-            var found = new List<PowerPointXmlNode>();
+        private static List<OfficeXmlNode> FindDecorative(OfficeXmlNode element, bool all) {
+            var found = new List<OfficeXmlNode>();
             Collect(element);
             return found;
 
-            void Collect(PowerPointXmlNode parent) {
-                foreach (PowerPointXmlNode child in parent.Children()) {
+            void Collect(OfficeXmlNode parent) {
+                foreach (OfficeXmlNode child in parent.Children()) {
                     if (child.Is(DecorativeNamespace, "decorative")) {
                         found.Add(child);
                         if (!all) return;
@@ -72,10 +73,10 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Moves the shape to a zero-based shape-tree reading order within its current parent.</summary>
         public void MoveToReadingOrder(int order) {
-            PowerPointXmlNode element = XmlElement;
-            PowerPointXmlNode parent = element.Parent;
+            OfficeXmlNode element = XmlElement;
+            OfficeXmlNode parent = element.Parent;
             if (parent.IsNone) throw new InvalidOperationException("The shape must be attached before changing reading order.");
-            List<PowerPointXmlNode> shapes = parent.Children().ToList().Where(IsDrawingElement).ToList();
+            List<OfficeXmlNode> shapes = parent.Children().ToList().Where(IsDrawingElement).ToList();
             ArgumentOutOfRangeException.ThrowIfNegative(order);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(order, shapes.Count);
             if (shapes[order].Equals(element)) return;
@@ -97,14 +98,14 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointShape SetLanguage(string language) {
             string normalized = PowerPointTextRun.NormalizeLanguage(language)
                 ?? throw new ArgumentException("Language cannot be empty.", nameof(language));
-            PowerPointXmlNode element = XmlElement;
+            OfficeXmlNode element = XmlElement;
             PowerPointTextContent.FormatRuns(element, properties => properties.SetAttribute("lang", normalized));
-            foreach (PowerPointXmlNode paragraph in element.Descendants(OfficeXmlNamespaces.DrawingML, "p")) {
-                PowerPointXmlNode properties = paragraph.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr");
+            foreach (OfficeXmlNode paragraph in element.Descendants(OfficeXmlNamespaces.DrawingML, "p")) {
+                OfficeXmlNode properties = paragraph.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr");
                 if (properties.IsNone) properties = paragraph.Append(paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "endParaRPr"));
                 properties.SetAttribute("lang", normalized);
             }
-            foreach (PowerPointXmlNode properties in element.Descendants(OfficeXmlNamespaces.DrawingML, "defRPr")) {
+            foreach (OfficeXmlNode properties in element.Descendants(OfficeXmlNamespaces.DrawingML, "defRPr")) {
                 properties.SetAttribute("lang", normalized);
             }
             OwnerPartRef.MarkEdited();
@@ -112,9 +113,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private IEnumerable<string> EnumerateLanguageValues() {
-            PowerPointXmlNode element = XmlElement;
+            OfficeXmlNode element = XmlElement;
             foreach (string name in new[] { "rPr", "endParaRPr", "defRPr" }) {
-                foreach (PowerPointXmlNode properties in element.Descendants(OfficeXmlNamespaces.DrawingML, name)) {
+                foreach (OfficeXmlNode properties in element.Descendants(OfficeXmlNamespaces.DrawingML, name)) {
                     string? language = properties.Attribute("lang");
                     if (!string.IsNullOrWhiteSpace(language)) yield return language!;
                 }

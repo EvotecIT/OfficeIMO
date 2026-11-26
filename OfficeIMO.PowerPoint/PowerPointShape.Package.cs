@@ -74,41 +74,41 @@ namespace OfficeIMO.PowerPoint {
         /// The shape's <c>p:cNvPr</c>; with <paramref name="create"/> the non-visual properties are added as the model adds
         /// them when they are missing. None for an element that has no non-visual properties.
         /// </summary>
-        internal PowerPointXmlNode NonVisualDrawingElement(bool create) {
-            PowerPointXmlNode element = XmlElement;
+        internal OfficeXmlNode NonVisualDrawingElement(bool create) {
+            OfficeXmlNode element = XmlElement;
             if (element.NamespaceId != OfficeXmlNamespaces.PresentationML || NonVisualContainer(element.LocalName) is not { } containerName) return default;
-            PowerPointXmlNode container = element.Child(OfficeXmlNamespaces.PresentationML, containerName);
+            OfficeXmlNode container = element.Child(OfficeXmlNamespaces.PresentationML, containerName);
             if (container.IsNone) {
                 if (!create) return default;
-                PowerPointXmlNode created = element.CreateElement(OfficeXmlNamespaces.PresentationML, containerName);
+                OfficeXmlNode created = element.CreateElement(OfficeXmlNamespaces.PresentationML, containerName);
                 created.Append(created.CreateElement(OfficeXmlNamespaces.PresentationML, "cNvPr"));
-                PowerPointXmlNode drawing = created.Append(created.CreateElement(OfficeXmlNamespaces.PresentationML, NonVisualDrawingChild(element.LocalName)));
+                OfficeXmlNode drawing = created.Append(created.CreateElement(OfficeXmlNamespaces.PresentationML, NonVisualDrawingChild(element.LocalName)));
                 if (element.LocalName == "sp") drawing.Append(drawing.CreateElement(OfficeXmlNamespaces.DrawingML, "spLocks")).SetAttribute("noGrp", "1");
                 created.Append(created.CreateElement(OfficeXmlNamespaces.PresentationML, "nvPr"));
                 container = element.InsertBefore(created, element.FirstChild);
             }
-            PowerPointXmlNode properties = container.Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
+            OfficeXmlNode properties = container.Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
             if (properties.IsNone && create) properties = container.InsertBefore(container.CreateElement(OfficeXmlNamespaces.PresentationML, "cNvPr"), container.FirstChild);
             return properties;
         }
 
         /// <summary>The shape's <c>p:ph</c>, or none.</summary>
-        internal PowerPointXmlNode ShapePlaceholderElement {
+        internal OfficeXmlNode ShapePlaceholderElement {
             get {
-                PowerPointXmlNode element = XmlElement;
+                OfficeXmlNode element = XmlElement;
                 if (element.NamespaceId != OfficeXmlNamespaces.PresentationML || element.LocalName == "grpSp" || NonVisualContainer(element.LocalName) is not { } containerName) return default;
                 return element.Child(OfficeXmlNamespaces.PresentationML, containerName).Child(OfficeXmlNamespaces.PresentationML, "nvPr").Child(OfficeXmlNamespaces.PresentationML, "ph");
             }
         }
 
         // A picture that plays audio or video from a file.
-        private static bool IsMediaPicture(PowerPointXmlNode picture) {
-            PowerPointXmlNode application = picture.Child(OfficeXmlNamespaces.PresentationML, "nvPicPr").Child(OfficeXmlNamespaces.PresentationML, "nvPr");
+        private static bool IsMediaPicture(OfficeXmlNode picture) {
+            OfficeXmlNode application = picture.Child(OfficeXmlNamespaces.PresentationML, "nvPicPr").Child(OfficeXmlNamespaces.PresentationML, "nvPr");
             return ContainsMedia(application);
         }
 
-        private static bool ContainsMedia(PowerPointXmlNode element) {
-            foreach (PowerPointXmlNode child in element.Children()) {
+        private static bool ContainsMedia(OfficeXmlNode element) {
+            foreach (OfficeXmlNode child in element.Children()) {
                 if (child.Is(OfficeXmlNamespaces.DrawingML, "audioFile") || child.Is(OfficeXmlNamespaces.DrawingML, "videoFile") || ContainsMedia(child)) return true;
             }
             return false;

@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
@@ -9,8 +10,8 @@ namespace OfficeIMO.PowerPoint {
         public void SetHyperlink(Uri uri, string? tooltip = null) {
             ArgumentNullException.ThrowIfNull(uri);
             if (!uri.IsAbsoluteUri && OwnerSlide?.OwnerDocument is { } document
-                && PowerPointHyperlinkResolver.ResolveSlideFragment(document, uri) is { } target) {
-                SetInternalHyperlink(target.PartRef, tooltip);
+                && PowerPointHyperlinkResolver.ResolveSlideFragment(document, uri) is { IsNone: false } target) {
+                SetInternalHyperlink(target, tooltip);
                 return;
             }
             if (!uri.IsAbsoluteUri) {
@@ -69,28 +70,28 @@ namespace OfficeIMO.PowerPoint {
         // Replaces the shape's click hyperlinks with one to the relationship, keeping the previous one's sound, and
         // removes relationships nothing uses any more.
         private void ReplaceShapeHyperlink(string? relationshipId, string? action, string? tooltip, bool remove) {
-            PowerPointXmlNode properties = NonVisualDrawingElement(create: !remove);
+            OfficeXmlNode properties = NonVisualDrawingElement(create: !remove);
             if (properties.IsNone && remove) return;
             if (properties.IsNone) {
                 throw new NotSupportedException(
                     "This shape type does not expose non-visual drawing properties.");
             }
-            List<PowerPointXmlNode> previous = properties.Children(OfficeXmlNamespaces.DrawingML, "hlinkClick").ToList();
-            PowerPointXmlNode sound = default;
+            List<OfficeXmlNode> previous = properties.Children(OfficeXmlNamespaces.DrawingML, "hlinkClick").ToList();
+            OfficeXmlNode sound = default;
             bool? endSound = null;
             var relationshipIds = new List<string>();
             var soundIds = new List<string>();
-            foreach (PowerPointXmlNode link in previous) {
-                foreach (PowerPointXmlNode linkSound in link.Children(OfficeXmlNamespaces.DrawingML, "snd")) {
+            foreach (OfficeXmlNode link in previous) {
+                foreach (OfficeXmlNode linkSound in link.Children(OfficeXmlNamespaces.DrawingML, "snd")) {
                     if (sound.IsNone) sound = linkSound.Clone();
                     if (linkSound.Attribute(OfficeXmlNamespaces.Relationships, "embed") is { Length: > 0 } embed && !soundIds.Contains(embed)) soundIds.Add(embed);
                 }
                 endSound ??= link.BooleanAttribute("endSnd");
                 if (link.Attribute(OfficeXmlNamespaces.Relationships, "id") is { Length: > 0 } id && !relationshipIds.Contains(id)) relationshipIds.Add(id);
             }
-            foreach (PowerPointXmlNode link in previous) link.Remove();
+            foreach (OfficeXmlNode link in previous) link.Remove();
             if (!remove) {
-                PowerPointXmlNode replacement = properties.CreateElement(OfficeXmlNamespaces.DrawingML, "hlinkClick");
+                OfficeXmlNode replacement = properties.CreateElement(OfficeXmlNamespaces.DrawingML, "hlinkClick");
                 replacement.SetAttribute(OfficeXmlNamespaces.Relationships, "id", relationshipId);
                 if (action != null) replacement.SetAttribute("action", action);
                 if (!string.IsNullOrWhiteSpace(tooltip)) replacement.SetAttribute("tooltip", tooltip);

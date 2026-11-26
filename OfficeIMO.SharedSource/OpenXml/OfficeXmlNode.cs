@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.OpenXml.Internal {
     /// <summary>
@@ -151,14 +152,14 @@ namespace OfficeIMO.OpenXml.Internal {
         internal ChildList Children(int namespaceId, string localName) => new(this, namespaceId, localName);
 
         /// <summary>The elements with this name below this one, in document order.</summary>
-        internal List<PowerPointXmlNode> Descendants(int namespaceId, string localName) {
-            var found = new List<PowerPointXmlNode>();
+        internal List<OfficeXmlNode> Descendants(int namespaceId, string localName) {
+            var found = new List<OfficeXmlNode>();
             CollectDescendants(this, namespaceId, localName, found);
             return found;
         }
 
-        private static void CollectDescendants(PowerPointXmlNode element, int namespaceId, string localName, List<PowerPointXmlNode> found) {
-            foreach (PowerPointXmlNode child in element.Children()) {
+        private static void CollectDescendants(OfficeXmlNode element, int namespaceId, string localName, List<OfficeXmlNode> found) {
+            foreach (OfficeXmlNode child in element.Children()) {
                 if (child.Is(namespaceId, localName)) found.Add(child);
                 CollectDescendants(child, namespaceId, localName, found);
             }

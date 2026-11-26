@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
@@ -193,8 +194,8 @@ namespace OfficeIMO.PowerPoint {
 
         // The shape's transform: a:xfrm in its shape properties (p:xfrm for a graphic frame). Reading must not write an
         // empty transform: a placeholder without one inherits its layout's geometry, and an empty a:off is invalid.
-        private PowerPointXmlNode TransformElement(bool create) {
-            PowerPointXmlNode element = XmlElement;
+        private OfficeXmlNode TransformElement(bool create) {
+            OfficeXmlNode element = XmlElement;
             if (element.NamespaceId != OfficeXmlNamespaces.PresentationML) {
                 return create ? throw new NotSupportedException() : default;
             }
@@ -203,16 +204,16 @@ namespace OfficeIMO.PowerPoint {
                 case "cxnSp":
                 case "pic": {
                     OfficeXmlChildOrder order = element.LocalName == "sp" ? PShapeView.Order : element.LocalName == "cxnSp" ? ConnectorOrder : PictureOrder;
-                    PowerPointXmlNode properties = create ? element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "spPr", order) : element.Child(OfficeXmlNamespaces.PresentationML, "spPr");
+                    OfficeXmlNode properties = create ? element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "spPr", order) : element.Child(OfficeXmlNamespaces.PresentationML, "spPr");
                     return create ? properties.GetOrPrependChild(OfficeXmlNamespaces.DrawingML, "xfrm") : properties.Child(OfficeXmlNamespaces.DrawingML, "xfrm");
                 }
                 case "graphicFrame":
                     return create ? element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "xfrm", GraphicFrameOrder) : element.Child(OfficeXmlNamespaces.PresentationML, "xfrm");
                 case "grpSp": {
-                    PowerPointXmlNode properties = create ? element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "grpSpPr", GroupOrder) : element.Child(OfficeXmlNamespaces.PresentationML, "grpSpPr");
+                    OfficeXmlNode properties = create ? element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "grpSpPr", GroupOrder) : element.Child(OfficeXmlNamespaces.PresentationML, "grpSpPr");
                     if (!create) return properties.Child(OfficeXmlNamespaces.DrawingML, "xfrm");
                     // A group transform carries its child offset and extents as well.
-                    PowerPointXmlNode transform = properties.GetOrPrependChild(OfficeXmlNamespaces.DrawingML, "xfrm");
+                    OfficeXmlNode transform = properties.GetOrPrependChild(OfficeXmlNamespaces.DrawingML, "xfrm");
                     foreach (string point in new[] { "off", "ext", "chOff", "chExt" }) EnsurePoint(transform, point);
                     return transform;
                 }
@@ -222,18 +223,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // a:off, a:ext, a:chOff or a:chExt of a transform, added with zero values when missing.
-        private static PowerPointXmlNode EnsurePoint(PowerPointXmlNode transform, string point) {
-            PowerPointXmlNode existing = transform.Child(OfficeXmlNamespaces.DrawingML, point);
+        private static OfficeXmlNode EnsurePoint(OfficeXmlNode transform, string point) {
+            OfficeXmlNode existing = transform.Child(OfficeXmlNamespaces.DrawingML, point);
             if (!existing.IsNone) return existing;
-            PowerPointXmlNode created = transform.AddOrdered(OfficeXmlNamespaces.DrawingML, point, TransformOrder);
+            OfficeXmlNode created = transform.AddOrdered(OfficeXmlNamespaces.DrawingML, point, TransformOrder);
             bool extents = point is "ext" or "chExt";
             created.SetAttribute(extents ? "cx" : "x", "0");
             created.SetAttribute(extents ? "cy" : "y", "0");
             return created;
         }
 
-        private PowerPointXmlNode TransformPoint(string point, bool create) {
-            PowerPointXmlNode transform = TransformElement(create);
+        private OfficeXmlNode TransformPoint(string point, bool create) {
+            OfficeXmlNode transform = TransformElement(create);
             return create ? EnsurePoint(transform, point) : transform.Child(OfficeXmlNamespaces.DrawingML, point);
         }
 
@@ -244,8 +245,8 @@ namespace OfficeIMO.PowerPoint {
 
         private bool TryGetTransformValues(out long x, out long y, out long cx, out long cy) {
             x = y = cx = cy = 0L;
-            PowerPointXmlNode transform = TransformElement(create: false);
-            PowerPointXmlNode offset = transform.Child(OfficeXmlNamespaces.DrawingML, "off"), extents = transform.Child(OfficeXmlNamespaces.DrawingML, "ext");
+            OfficeXmlNode transform = TransformElement(create: false);
+            OfficeXmlNode offset = transform.Child(OfficeXmlNamespaces.DrawingML, "off"), extents = transform.Child(OfficeXmlNamespaces.DrawingML, "ext");
             if (offset.Int64Attribute("x") is not long offsetX || offset.Int64Attribute("y") is not long offsetY
                 || extents.Int64Attribute("cx") is not long width || extents.Int64Attribute("cy") is not long height) {
                 return false;
