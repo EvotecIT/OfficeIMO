@@ -416,7 +416,13 @@ internal sealed class OneNotePropertySetDecodeScope {
     private List<OneNoteRevisionStoreObject>? _decoded;
 
     internal OneNotePropertySetDecodeScope(OneNoteLoadOptions options) {
-        Options = options;
+        // Decoding can happen after the read returns, so keep the limits the objects were validated against
+        // rather than the caller's instance, which may change later.
+        Options = new OneNoteLoadOptions {
+            MaxObjects = options.MaxObjects,
+            MaxPropertiesPerObject = options.MaxPropertiesPerObject,
+            MaxPropertySetDepth = options.MaxPropertySetDepth
+        };
     }
 
     internal OneNoteLoadOptions Options { get; }
