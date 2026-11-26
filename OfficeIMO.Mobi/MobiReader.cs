@@ -57,6 +57,8 @@ public static partial class MobiReader {
         private readonly HashSet<int> _usedImages = new();
 
         internal OfficeConversionResult<EpubPublication> Create(byte[] text) {
+            if (selected.HeaderTitleInvalidEncoding || first.HeaderTitleInvalidEncoding)
+                ReportMetadataEncodingLoss("header title");
             string title = TextMetadata(503).FirstOrDefault() ?? NormalizeMetadata(selected.HeaderTitle) ??
                 NormalizeMetadata(first.HeaderTitle) ?? ReadDatabaseName() ??
                 NormalizeMetadata(Path.GetFileNameWithoutExtension(sourceName)) ?? "Untitled";
@@ -83,15 +85,12 @@ public static partial class MobiReader {
         }
 
         private string? ReadDatabaseName() {
-            try {
-                try { return NormalizeMetadata(MobiHeader.Decode(selected.Encoding, database.Name)); }
-                catch (DecoderFallbackException) when (selected.Encoding.CodePage == 65001) {
-                    return NormalizeMetadata(MobiHeader.Decode(MobiHeader.GetEncoding(1252), database.Name));
-                }
-            } catch (DecoderFallbackException) {
-                Warn("MOBI_DATABASE_NAME_OMITTED", "The Palm database name could not be decoded.");
-                return null;
-            }
+            if (MobiHeader.TryDecode(selected.Encoding, database.Name, out string name) ||
+                (selected.Encoding.CodePage == 65001 &&
+                 MobiHeader.TryDecode(MobiHeader.GetEncoding(1252), database.Name, out name)))
+                return NormalizeMetadata(name);
+            Warn("MOBI_DATABASE_NAME_OMITTED", "The Palm database name could not be decoded.");
+            return null;
         }
 
         private void AddLiteralText(EpubPublication book, string body) {
@@ -108,11 +107,15 @@ public static partial class MobiReader {
 
         private IEnumerable<string> TextMetadata(int id) {
             string? NormalizeField(string value) => NormalizeMetadata(id == 103 ? WebUtility.HtmlDecode(value) : value);
-            string[] preferred = selected.Text(id).Select(NormalizeField).OfType<string>().ToArray();
+            void ReportLoss() => ReportMetadataEncodingLoss("EXTH " + Number(id));
+            string[] preferred = selected.Text(id, ReportLoss).Select(NormalizeField).OfType<string>().ToArray();
             return preferred.Length != 0 || ReferenceEquals(first, selected)
                 ? preferred
-                : first.Text(id).Select(NormalizeField).OfType<string>();
+                : first.Text(id, ReportLoss).Select(NormalizeField).OfType<string>();
         }
+
+        private void ReportMetadataEncodingLoss(string field) =>
+            Warn("MOBI_METADATA_ENCODING_OMITTED", "An optional Mobipocket metadata value could not be decoded.", field);
 
         private static string? NormalizeMetadata(string? value) {
             if (value == null) return null;

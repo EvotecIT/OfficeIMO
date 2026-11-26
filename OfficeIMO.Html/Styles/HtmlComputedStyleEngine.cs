@@ -602,6 +602,19 @@ public static partial class HtmlComputedStyleEngine {
             properties["text-transform"] = new CascadedProperty("none", false,
                 Specificity.PresentationalHint, -1, source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.PresentationalHint);
         }
+        if (element.LocalName == "ol" && element.NamespaceUri == "http://www.w3.org/1999/xhtml") {
+            string? marker = element.GetAttribute("type") switch {
+                "1" => "decimal",
+                "A" => "upper-alpha",
+                "a" => "lower-alpha",
+                "I" => "upper-roman",
+                "i" => "lower-roman",
+                _ => null
+            };
+            if (marker != null)
+                properties["list-style-type"] = new CascadedProperty(marker, false, Specificity.PresentationalHint, -1,
+                    source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.PresentationalHint);
+        }
         string? directionAttribute = element.GetAttribute("dir")?.Trim();
         if (string.Equals(directionAttribute, "ltr", StringComparison.OrdinalIgnoreCase)
             || string.Equals(directionAttribute, "rtl", StringComparison.OrdinalIgnoreCase)) {

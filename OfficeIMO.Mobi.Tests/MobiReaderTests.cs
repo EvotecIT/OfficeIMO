@@ -170,6 +170,31 @@ public sealed class MobiReaderTests {
     }
 
     [Fact]
+    public void InvalidOptionalUtf8MetadataKeepsTheBookAndReportsTheOmittedValues() {
+        byte[] bytes = Fixture("harbour.mobi");
+        int header = RecordOffset(bytes, 0);
+        int fullName = header + BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(header + 84));
+        bytes[fullName] = 0xff;
+        bytes[FindExthItem(bytes, header, 503) + 8] = 0xff;
+        bytes[FindExthItem(bytes, header, 100) + 8] = 0xff;
+        Array.Clear(bytes, 0, 32);
+        Encoding.ASCII.GetBytes("Recovered title").CopyTo(bytes, 0);
+        using var input = new MemoryStream(bytes, writable: false);
+
+        var imported = MobiReader.Import(input, "damaged-metadata.mobi");
+        using var artifact = new MemoryStream();
+        imported.Value.Save(artifact);
+        artifact.Position = 0;
+        EpubDocument book = EpubDocument.Load(artifact);
+
+        Assert.Equal("Recovered title", book.Title);
+        Assert.Contains(book.Chapters, chapter => chapter.Text.Contains("Signal received."));
+        Assert.Contains(book.Metadata, item => item.Name == "publisher" && item.Value == "Signal Press");
+        Assert.Contains(imported.Report.Diagnostics, item => item.Code == "MOBI_METADATA_ENCODING_OMITTED" && item.Location == "header title");
+        Assert.Contains(imported.Report.Diagnostics, item => item.Code == "MOBI_METADATA_ENCODING_OMITTED" && item.Location == "EXTH 100");
+    }
+
+    [Fact]
     public void StandaloneKindleRecoversTheUniqueDeclaredRasterRangeWithoutAPointer() {
         byte[] bytes = Fixture("harbour.azw3");
         int header = RecordOffset(bytes, 0);

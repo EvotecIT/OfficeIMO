@@ -49,7 +49,8 @@ internal sealed class MobiHeader {
         if (size >= 116 && (U32(data, 128) & 0x40) != 0) ReadExth(data.Slice(16 + size), token);
         if (size >= 76 && U32(data, 88) is > 0 and <= 16_384) {
             ReadOnlySpan<byte> bytes = Slice(data, Number(data, 84), Number(data, 88));
-            HeaderTitle = Decode(Encoding, bytes);
+            if (TryDecode(Encoding, bytes, out string title)) HeaderTitle = title;
+            else HeaderTitleInvalidEncoding = true;
         }
     }
 
@@ -65,6 +66,7 @@ internal sealed class MobiHeader {
     internal uint Locale { get; }
     internal int ExtraFlags { get; }
     internal string? HeaderTitle { get; }
+    internal bool HeaderTitleInvalidEncoding { get; }
     internal int? FirstImage { get; }
     internal int? FlowIndex { get; }
     internal int FlowCount { get; }
@@ -72,9 +74,16 @@ internal sealed class MobiHeader {
     internal int? FragmentIndex { get; }
     internal int? SkeletonIndex { get; }
 
-    internal IEnumerable<string> Text(int id) => _metadata.TryGetValue(id, out List<byte[]>? values)
-        ? values.Select(value => Decode(Encoding, value)).Where(value => value.Length != 0)
-        : Enumerable.Empty<string>();
+    internal IEnumerable<string> Text(int id, Action invalidValue) {
+        if (!_metadata.TryGetValue(id, out List<byte[]>? values)) yield break;
+        foreach (byte[] value in values) {
+            if (TryDecode(Encoding, value, out string text)) {
+                if (text.Length != 0) yield return text;
+            } else {
+                invalidValue();
+            }
+        }
+    }
 
     internal int? Integer(int id) => _metadata.TryGetValue(id, out List<byte[]>? values) && values[0].Length == 4
         ? ReadReference(values[0], 0) : null;
@@ -88,6 +97,11 @@ internal sealed class MobiHeader {
 
     internal static string Decode(Encoding encoding, ReadOnlySpan<byte> value) =>
         encoding.GetString(value.ToArray()).Trim('\0', ' ', '\r', '\n', '\t');
+
+    internal static bool TryDecode(Encoding encoding, ReadOnlySpan<byte> value, out string text) {
+        try { text = Decode(encoding, value); return true; }
+        catch (DecoderFallbackException) { text = string.Empty; return false; }
+    }
 
     private static int? ReadReference(ReadOnlySpan<byte> data, int offset) =>
         U32(data, offset) == uint.MaxValue ? null : Number(data, offset);

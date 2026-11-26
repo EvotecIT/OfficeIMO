@@ -227,6 +227,18 @@ public sealed partial class HtmlRenderingTests {
             rendered.Text.Split('\n'));
     }
 
+    [Fact]
+    public void HtmlRenderingUsesOrderedListTypeUnlessCssOverridesIt() {
+        const string html = "<ol type='A' start='2'><li>Alphabetic</li></ol>"
+            + "<ol type='i' start='4'><li>Roman</li></ol>"
+            + "<ol type='A' start='2' style='list-style-type:decimal'><li>CSS override</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(new[] { "B. ", "Alphabetic", "iv. ", "Roman", "2. ", "CSS override" },
+            rendered.Text.Split('\n'));
+    }
+
     [Theory]
     [InlineData("upper-roman", "IV. ")]
     [InlineData("lower-alpha", "d. ")]
