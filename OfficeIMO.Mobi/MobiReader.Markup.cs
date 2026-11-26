@@ -15,12 +15,22 @@ public static partial class MobiReader {
                 Warn("MOBI_FLOWS_OMITTED", "Separate Kindle flows such as CSS, SVG and fonts are outside the static content projection.");
             byte[][] inputs = kindle?.Parts ?? new[] { text };
             var parts = new MarkupPart[inputs.Length];
+            var originalMarkup = new string[inputs.Length];
+            var textRuns = new List<MarkupTextRun>[inputs.Length];
+            var currentRuns = new List<MarkupTextRun>();
+            var pageBreaks = new List<int>();
             var positions = new HashSet<int>[inputs.Length];
             int tokens = 0, elements = 0;
             var parser = new HtmlParser(new HtmlParserOptions {
                 IsKeepingSourceReferences = true,
                 SkipComments = true,
-                OnToken = (_, _) => Charge(ref tokens, 300_000),
+                OnToken = (markupToken, range) => {
+                    Charge(ref tokens, 300_000);
+                    if (markupToken.Type == HtmlTokenType.Character)
+                        currentRuns.Add(new MarkupTextRun(range.Start.Index, range.End.Index, markupToken.Data));
+                    if (markupToken.Type == HtmlTokenType.StartTag && markupToken.Name == "mbp:pagebreak")
+                        pageBreaks.Add(range.Start.Index);
+                },
                 OnCreated = (_, _) => Charge(ref elements, 150_000)
             });
 
@@ -31,7 +41,23 @@ public static partial class MobiReader {
             for (int i = 0; i < inputs.Length; i++) {
                 token.ThrowIfCancellationRequested();
                 string html = selected.Encoding.GetString(inputs[i]);
+                currentRuns = new List<MarkupTextRun>();
+                pageBreaks.Clear();
+                int tokensBeforePart = tokens, elementsBeforePart = elements;
                 var document = parser.ParseDocument(html);
+                if (pageBreaks.Count != 0) {
+                    // A length-preserving token rewrite keeps filepos and Kindle offsets in the original coordinate space.
+                    html = NormalizePageBreaks(html, pageBreaks);
+                    tokens = tokensBeforePart;
+                    elements = elementsBeforePart;
+                    currentRuns.Clear();
+                    pageBreaks.Clear();
+                    document = parser.ParseDocument(html);
+                    Warn("MOBI_MARKUP_APPROXIMATED", "A Mobipocket page break was retained as a separator.", "mbp:pagebreak",
+                        OfficeConversionLossKind.Approximation);
+                }
+                originalMarkup[i] = html;
+                textRuns[i] = currentRuns;
                 if (document.Head?.QuerySelector("style,link[rel=stylesheet]") != null)
                     Warn("MOBI_STYLE_OMITTED", "Source stylesheets are omitted. Semantic formatting is retained.");
                 parts[i] = new MarkupPart(i, document.Body ?? throw new InvalidDataException("Mobipocket markup has no document body."),
@@ -50,14 +76,19 @@ public static partial class MobiReader {
                         AddPosition(target);
                 }
             }
-            for (int i = 0; i < parts.Length; i++)
-                parts[i].BindPositions(positions[i], inputs[i], selected.Encoding, token);
+            for (int i = 0; i < parts.Length; i++) {
+                MarkupPart part = parts[i];
+                if (part.BindPositions(positions[i], inputs[i], selected.Encoding, originalMarkup[i], textRuns[i], token))
+                    Warn("MOBI_LINK_POSITION_APPROXIMATED", "A Mobipocket text position was moved to the nearest readable anchor.",
+                        part.File, OfficeConversionLossKind.Approximation);
+            }
 
             var projected = new XElement[parts.Length];
             for (int i = 0; i < parts.Length; i++) {
                 MarkupPart part = parts[i];
                 projected[i] = new XElement("div", part.Body.ChildNodes.Select(node => Render(node, i, parts, kindle)));
                 if (part.Anchor(part.Body) is { } id) projected[i].SetAttributeValue("id", id);
+                projected[i].SetAttributeValue("dir", TextDirection(part.Body) ?? TextDirection(part.Body.ParentElement));
             }
 
             int? cover = selected.Integer(201) ?? first.Integer(201);
@@ -89,12 +120,27 @@ public static partial class MobiReader {
             }
         }
 
+        private static readonly string[] LegacyImageAttributes = { "recindex", "hirecindex", "lowrecindex" };
+
+        private int LegacyImageIndex(IElement source) {
+            foreach (string attribute in LegacyImageAttributes) {
+                if (int.TryParse(source.GetAttribute(attribute), NumberStyles.None, CultureInfo.InvariantCulture, out int index) &&
+                    index > 0 && _images.ContainsKey(index)) return index;
+            }
+            return 0;
+        }
+
+        private static string? TextDirection(IElement? element) {
+            string? direction = element?.GetAttribute("dir")?.Trim().ToLowerInvariant();
+            return direction is "ltr" or "rtl" or "auto" ? direction : null;
+        }
+
         private object? Render(INode node, int partIndex, MarkupPart[] parts, Kf8Content? kindle) {
             token.ThrowIfCancellationRequested();
-            if (node is IText text) return new XText(XmlText(text.Data));
+            if (node is IText text) return parts[partIndex].RenderText(text);
             if (node is not IElement source) return null;
             string tag = source.LocalName;
-            if (tag is "script" or "style" or "object" or "iframe" or "svg" or "audio" or "video" or "form" or "template") {
+            if (IsOmittedMarkup(tag)) {
                 Warn("MOBI_ELEMENT_OMITTED", "An unsupported active, media or styling element was omitted.", tag);
                 // An omitted subtree can still carry a link target in the reading order.
                 var ids = source.QuerySelectorAll("*").Prepend(source)
@@ -109,7 +155,7 @@ public static partial class MobiReader {
                 "li" or "em" or "strong" or "b" or "i" or "u" or "s" or "sub" or "sup" or "code" or "pre" or "dfn" or "cite" or
                 "table" or "thead" or "tbody" or "tfoot" or "tr" or "td" or "th" or "caption" or "img" or "figure" or "figcaption" or
                 "dl" or "dt" or "dd" or "q" => tag,
-                "mbp:pagebreak" or "center" => "div",
+                "center" => "div",
                 _ => "span"
             };
             if (tag != targetTag || source.HasAttribute("style"))
@@ -118,6 +164,7 @@ public static partial class MobiReader {
             var target = new XElement(targetTag);
             MarkupPart part = parts[partIndex];
             if (part.Anchor(source) is { } id) target.SetAttributeValue("id", id);
+            target.SetAttributeValue("dir", TextDirection(source));
             foreach (string name in new[] { "lang", "title", "alt" }) {
                 if (source.GetAttribute(name) is { } value) target.SetAttributeValue(name, XmlText(value));
             }
@@ -156,10 +203,10 @@ public static partial class MobiReader {
                     if (end < 0) end = reference.Length;
                     if (end < prefix.Length || !TryBase32(reference.AsSpan(prefix.Length, end - prefix.Length), out index)) index = 0;
                 } else {
-                    int.TryParse(source.GetAttribute("recindex"), NumberStyles.None, CultureInfo.InvariantCulture, out index);
+                    index = LegacyImageIndex(source);
                 }
                 if (index <= 0 || !_images.TryGetValue(index, out EpubManifestItem? image)) {
-                    Warn("MOBI_IMAGE_UNAVAILABLE", "A Mobipocket image does not resolve to a supported embedded raster.", reference ?? source.GetAttribute("recindex"));
+                    Warn("MOBI_IMAGE_UNAVAILABLE", "A Mobipocket image does not resolve to a supported embedded raster.", reference ?? source.GetAttribute("recindex") ?? source.GetAttribute("hirecindex") ?? source.GetAttribute("lowrecindex"));
                     return new XElement("span", target.Attribute("id"), new XText((string?)target.Attribute("alt") ?? ""));
                 }
                 _usedImages.Add(index);
@@ -173,14 +220,28 @@ public static partial class MobiReader {
                         target.SetAttributeValue(name, Number(value));
                 }
             }
-            if (tag == "mbp:pagebreak") target.Add(new XElement("hr"));
             if (tag is not ("img" or "br" or "hr" or "wbr"))
                 target.Add(source.ChildNodes.Select(child => Render(child, partIndex, parts, kindle)));
             return target;
         }
     }
 
-    private sealed class MarkupPart {
+    private static bool IsOmittedMarkup(string tag) =>
+        tag is "script" or "style" or "object" or "iframe" or "svg" or "audio" or "video" or "form" or "template";
+
+    private static string NormalizePageBreaks(string markup, List<int> pageBreaks) {
+        const string tag = "mbp:pagebreak";
+        char[] characters = markup.ToCharArray();
+        foreach (int tagStart in pageBreaks) {
+            characters[tagStart + 1] = 'h';
+            characters[tagStart + 2] = 'r';
+            // Whitespace preserves token positions and retains any attributes on the source tag.
+            for (int index = tagStart + 3; index <= tagStart + tag.Length; index++) characters[index] = ' ';
+        }
+        return new string(characters);
+    }
+
+    private sealed partial class MarkupPart {
         private readonly Dictionary<IElement, string> _anchors = new();
         private readonly Dictionary<string, string> _ids = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
@@ -222,24 +283,6 @@ public static partial class MobiReader {
 
         private string? FindLocalAnchor(string fragment) =>
             _ids.TryGetValue(fragment, out string? anchor) || _names.TryGetValue(fragment, out anchor) ? anchor : null;
-
-        internal void BindPositions(HashSet<int> targets, byte[] bytes, Encoding encoding, CancellationToken token) {
-            if (targets.Count == 0) return;
-            var source = _elements.Where(element => element.SourceReference?.Position.Index >= 0)
-                .OrderBy(element => element.SourceReference!.Position.Index).ToArray();
-            int cursor = 0, previous = 0, characters = 0;
-            foreach (int target in targets.OrderBy(item => item)) {
-                token.ThrowIfCancellationRequested();
-                int end = target;
-                if (encoding.CodePage == 65001)
-                    while (end > previous && end < bytes.Length && (bytes[end] & 0xc0) == 0x80) end--;
-                characters += encoding.GetCharCount(bytes, previous, end - previous);
-                previous = end;
-                while (cursor + 1 < source.Length && source[cursor + 1].SourceReference!.Position.Index <= characters + 1) cursor++;
-                IElement element = source.Length == 0 ? Body : source[cursor];
-                _positions.Add(target, EnsureAnchor(element));
-            }
-        }
 
         private string EnsureAnchor(IElement element) {
             if (!_anchors.TryGetValue(element, out string? id)) {

@@ -208,6 +208,84 @@ public sealed class MobiReaderTests {
     }
 
     [Fact]
+    public void PreservesInheritedAndExplicitTextDirection() {
+        using var source = new MemoryStream(BuildLegacyMobi("""
+            <html dir="RTL"><body><p dir="ltr">ABC 123</p><p dir="auto">שלום 123 ABC</p></body></html>
+            """), writable: false);
+
+        EpubChapter chapter = Assert.Single(ReadPublication(source, "direction.mobi").Chapters);
+
+        Assert.NotNull(chapter.Html);
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        XElement content = Assert.Single(XElement.Parse(chapter.Html).Descendants(xhtml + "div"));
+        Assert.Equal("rtl", (string?)content.Attribute("dir"));
+        Assert.Equal(new[] { "ltr", "auto" }, content.Elements(xhtml + "p").Select(p => (string?)p.Attribute("dir")));
+    }
+
+    [Fact]
+    public void LegacyPageBreaksPreserveFilePositionsInsideText() {
+        string sourceHtml = "<html><body>" + string.Concat(Enumerable.Repeat("<p>Section</p><mbp:pagebreak/>", 80)) +
+            """<p><a filepos="TARGET">Jump</a></p><p>Pré <em>aside</em> after this</p></body></html>""";
+        int textOffset = Encoding.UTF8.GetByteCount(sourceHtml.Substring(0, sourceHtml.IndexOf("after this", StringComparison.Ordinal)));
+        sourceHtml = sourceHtml.Replace("TARGET", textOffset.ToString("D6", System.Globalization.CultureInfo.InvariantCulture));
+        using var source = new MemoryStream(BuildLegacyMobi(sourceHtml), writable: false);
+
+        EpubChapter chapter = Assert.Single(ReadPublication(source, "positions.mobi").Chapters);
+
+        Assert.NotNull(chapter.Html);
+        XElement html = XElement.Parse(chapter.Html);
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        Assert.Equal(80, html.Descendants(xhtml + "hr").Count());
+        string? href = (string?)Assert.Single(html.Descendants(xhtml + "a")).Attribute("href");
+        Assert.NotNull(href);
+        string fragment = href.Substring(href.IndexOf('#') + 1);
+        Assert.NotEqual(href, fragment);
+        XElement anchor = Assert.Single(html.Descendants(), item => (string?)item.Attribute("id") == fragment);
+        Assert.Equal(xhtml + "p", anchor.Parent!.Name);
+        Assert.Equal("after this", Assert.IsType<XText>(anchor.NextNode).Value);
+    }
+
+    [Fact]
+    public void AbsoluteKindleNavigationKeepsTheCorrectChapterWithAnApproximation() {
+        byte[] bytes = Fixture("harbour.azw3");
+        int header = RecordOffset(bytes, 0);
+        int navigationRecord = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(header + 244));
+        int rows = RecordOffset(bytes, navigationRecord + 1);
+        int directory = rows + BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(rows + 20));
+        // The fixture stores tag 6 in the high bit of its single control byte.
+        for (int index = 0; index < 2; index++) {
+            int row = rows + BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(directory + 4 + index * 2));
+            int control = row + 1 + bytes[row];
+            Assert.NotEqual(0, bytes[control] & 0x80);
+            bytes[control] &= 0x7f;
+        }
+        using var source = new MemoryStream(bytes, writable: false);
+
+        var imported = MobiReader.Import(source, "absolute.azw3");
+        using var artifact = new MemoryStream();
+        imported.Value.Save(artifact);
+        artifact.Position = 0;
+        EpubDocument book = EpubDocument.Load(artifact, new EpubLoadOptions { IncludeRawHtml = true });
+
+        var closing = Assert.Single(Assert.Single(book.TableOfContents).Children);
+        Assert.Equal("Closing Signal", closing.Label);
+        Assert.Contains(book.Chapters, chapter => chapter.Path == closing.Target && chapter.Text.Contains("Signal received."));
+        Assert.Contains(imported.Report.Diagnostics, detail => detail.Code == "MOBI_TOC_TARGET_APPROXIMATED");
+    }
+
+    [Theory]
+    [InlineData("Notes\0Old", "Notes")]
+    [InlineData("\0Old", "memo")]
+    public void PalmDocNameStopsAtTheFirstNul(string databaseName, string expected) {
+        byte[] bytes = Fixture("harbour.pdb");
+        Array.Clear(bytes, 0, 32);
+        Encoding.ASCII.GetBytes(databaseName).CopyTo(bytes, 0);
+        using var source = new MemoryStream(bytes, writable: false);
+
+        Assert.Equal(expected, ReadPublication(source, "memo.pdb").Title);
+    }
+
+    [Fact]
     public void RejectsHtmlThatExceedsTheParserElementBudget() {
         string html = "<html><body>" + string.Concat(Enumerable.Repeat("<br>", 155_000)) + "</body></html>";
         using var stream = new MemoryStream(BuildLegacyMobi(html), writable: false);

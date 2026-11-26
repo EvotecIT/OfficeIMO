@@ -5,6 +5,7 @@ namespace OfficeIMO.Mobi;
 
 internal sealed class Kf8Content {
     private readonly (int Part, int Insertion)[] _positions;
+    private readonly (int Start, int End)[] _partRanges;
 
     internal Kf8Content(PalmDatabase database, MobiHeader header, byte[] raw, CancellationToken token) {
         int markUpEnd = raw.Length;
@@ -35,6 +36,7 @@ internal sealed class Kf8Content {
         if (skeletons.Count is < 1 or > 1_000) throw new InvalidDataException("The Kindle skeleton count exceeds its bounds.");
         _positions = new (int, int)[fragments.Count];
         Parts = new byte[skeletons.Count][];
+        _partRanges = new (int, int)[skeletons.Count];
         ReadOnlySpan<byte> markup = raw.AsSpan(0, markUpEnd);
         int fragment = 0;
         int previousEnd = 0;
@@ -75,6 +77,7 @@ internal sealed class Kf8Content {
             part.Write(rest, 0, rest.Length);
             Parts[i] = part.ToArray();
             previousEnd = start + length + fragmentBytes;
+            _partRanges[i] = (start, previousEnd);
         }
         if (fragment != fragments.Count)
             throw new InvalidDataException("The Kindle fragment index contains unassigned fragments.");
@@ -82,6 +85,18 @@ internal sealed class Kf8Content {
 
     internal byte[][] Parts { get; }
     internal bool HasSeparateFlows { get; }
+
+    internal int? ResolveAbsolutePart(int offset) {
+        int start = 0, end = _partRanges.Length - 1;
+        while (start <= end) {
+            int index = start + (end - start) / 2;
+            var range = _partRanges[index];
+            if (offset < range.Start) end = index - 1;
+            else if (offset >= range.End) start = index + 1;
+            else return index;
+        }
+        return null;
+    }
 
     internal (int Part, int Offset)? Resolve(int fragment, int offset) {
         if (fragment < 0 || fragment >= _positions.Length || offset < 0) return null;

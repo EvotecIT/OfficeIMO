@@ -29,7 +29,11 @@ public static partial class MobiReader {
                     if (kindle == null && row.Get(1) is { } position) target = (0, position);
                     else if (kindle != null && row.Get(6) is { } file && row.Get(6, 1) is { } fragmentOffset)
                         target = kindle.Resolve(file, fragmentOffset);
-                    else target = null;
+                    else if (kindle != null && row.Get(1) is { } absolute && kindle.ResolveAbsolutePart(absolute) is { } part) {
+                        target = (part, 0);
+                        Warn("MOBI_TOC_TARGET_APPROXIMATED", "An absolute Kindle navigation target was placed at the start of its chapter.",
+                            row.Name, OfficeConversionLossKind.Approximation);
+                    } else target = null;
                     if (string.IsNullOrWhiteSpace(label) || target == null) {
                         Warn("MOBI_TOC_ENTRY_OMITTED", "A Mobipocket navigation label or target is outside the supported profile.", row.Name);
                         result.Add(new Navigation(null, level, null));

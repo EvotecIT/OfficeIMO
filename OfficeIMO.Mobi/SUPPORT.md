@@ -13,7 +13,9 @@ The reader admits at most 64 MiB of input, 16,384 Palm database records,
 16 MiB of decompressed text and 4,096 bytes per decompressed text record.
 The parser also bounds EXTH items, index records and labels, Kindle
 fragments, and HTML nesting. Image loads are restricted to records in the
-source publication. External links are kept where supported.
+source publication. External links are kept where supported. Absolute-only
+Kindle navigation opens the identified chapter and reports the approximation.
+The reader reports source text positions it can only place at a nearby anchor.
 
 The package covers reading and conversion. MOBI writing, KFX, dictionaries,
 Kindle presentation features and DRM decryption are outside the supported

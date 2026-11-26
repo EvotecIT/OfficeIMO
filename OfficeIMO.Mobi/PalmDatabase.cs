@@ -33,7 +33,13 @@ internal sealed class PalmDatabase {
 
     internal bool IsPalmDoc { get; }
     internal int Count => _offsets.Length - 1;
-    internal ReadOnlySpan<byte> Name => _data.AsSpan(0, 32);
+    internal ReadOnlySpan<byte> Name {
+        get {
+            ReadOnlySpan<byte> name = _data.AsSpan(0, 32);
+            int terminator = name.IndexOf((byte)0);
+            return terminator < 0 ? name : name.Slice(0, terminator);
+        }
+    }
 
     internal ReadOnlySpan<byte> Record(int index) {
         if (index < 0 || index >= Count) throw new InvalidDataException("A Palm database record index is out of range.");

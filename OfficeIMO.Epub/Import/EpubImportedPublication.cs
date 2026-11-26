@@ -52,6 +52,7 @@ internal static class EpubImportedPublication {
                 images.Add(image.Path, new Lazy<string>(() => "data:" + mediaType + ";base64," + Convert.ToBase64String(bytes)));
         }
         var reportedMarkdownNumbering = new HashSet<string>(StringComparer.Ordinal);
+        var reportedMarkdownDirection = new HashSet<string>(StringComparer.Ordinal);
         using var writer = XmlWriter.Create(destination, new XmlWriterSettings {
             OmitXmlDeclaration = true, Encoding = new UTF8Encoding(false), CloseOutput = false
         });
@@ -116,7 +117,7 @@ internal static class EpubImportedPublication {
             writer.WriteEndElement();
         }
 
-        void WriteNode(XNode node, string chapterPath) {
+        void WriteNode(XNode node, string chapterPath, bool insideLink = false) {
             token.ThrowIfCancellationRequested();
             if (node is XText text) {
                 writer.WriteString(text.Value);
@@ -128,8 +129,18 @@ internal static class EpubImportedPublication {
                 Omit("EBOOK_HTML_ELEMENT_OMITTED", "An element is outside the static HTML projection.", tag);
                 return;
             }
-            if (markdownAnchors && (string?)element.Attribute("id") is { } id)
-                WriteAnchor(Anchor(chapters[chapterPath], id));
+            string? markdownId = markdownAnchors && !insideLink ? (string?)element.Attribute("id") : null;
+            // The Markdown list converter only visits list items and their contents.
+            if (markdownId != null && tag != "li") WriteAnchor(Anchor(chapters[chapterPath], markdownId));
+            if (markdownAnchors && tag == "a" && !insideLink) {
+                // A second HTML anchor inside a hyperlink closes that hyperlink during HTML parsing.
+                foreach (XElement descendant in element.Descendants()) {
+                    token.ThrowIfCancellationRequested();
+                    if (descendant.Name.Namespace == Xhtml && IsStaticElement(descendant.Name.LocalName) &&
+                        (string?)descendant.Attribute("id") is { } nestedId)
+                        WriteAnchor(Anchor(chapters[chapterPath], nestedId));
+                }
+            }
             writer.WriteStartElement(tag);
             foreach (XAttribute attribute in element.Attributes()) {
                 if (attribute.IsNamespaceDeclaration ||
@@ -138,7 +149,7 @@ internal static class EpubImportedPublication {
                 string? value = attribute.Value;
                 bool listNumbering = (tag == "ol" && name is "start" or "reversed") || (tag == "li" && name == "value");
                 if ((attribute.Name.Namespace != XNamespace.None && attribute.Name != XNamespace.Xml + "lang") ||
-                    (!listNumbering && name is not ("id" or "lang" or "title" or "alt" or "src" or "href" or "width" or "height" or "colspan" or "rowspan"))) {
+                    (!listNumbering && name is not ("id" or "lang" or "dir" or "title" or "alt" or "src" or "href" or "width" or "height" or "colspan" or "rowspan"))) {
                     Omit("EBOOK_HTML_ATTRIBUTE_OMITTED", "An attribute is outside the static HTML projection.", name);
                     continue;
                 }
@@ -146,6 +157,8 @@ internal static class EpubImportedPublication {
                     (name is "reversed" or "value" || value.StartsWith("-", StringComparison.Ordinal) || value.Length > 9) &&
                     reportedMarkdownNumbering.Add(chapterPath))
                     Omit("EBOOK_MARKDOWN_LIST_NUMBERING_OMITTED", "Markdown readers may change the authored list numbering.", chapterPath);
+                if (markdownAnchors && name == "dir" && reportedMarkdownDirection.Add(chapterPath))
+                    Omit("EBOOK_MARKDOWN_DIRECTION_OMITTED", "Explicit text direction is omitted from Markdown.", chapterPath);
                 if ((name == "src" && tag != "img") || (name == "href" && tag != "a")) continue;
                 if (name == "id") {
                     if (markdownAnchors) continue;
@@ -164,7 +177,8 @@ internal static class EpubImportedPublication {
                 }
                 if (value != null) writer.WriteAttributeString(name, value);
             }
-            foreach (XNode child in element.Nodes()) WriteNode(child, chapterPath);
+            if (markdownId != null && tag == "li") WriteAnchor(Anchor(chapters[chapterPath], markdownId));
+            foreach (XNode child in element.Nodes()) WriteNode(child, chapterPath, insideLink || tag == "a");
             // XML empty-element syntax is inappropriate for non-void elements in text/html.
             if (element.Name.LocalName is "img" or "br" or "hr" or "wbr") writer.WriteEndElement();
             else writer.WriteFullEndElement();
