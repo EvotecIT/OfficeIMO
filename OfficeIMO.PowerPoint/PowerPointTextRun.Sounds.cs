@@ -65,7 +65,7 @@ namespace OfficeIMO.PowerPoint {
 
         private void SetInteractionSound(bool mouseOver, Stream audio,
             string name, string contentType, string extension) {
-            OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
+            OpenXmlPart? ownerPart = SdkOwnerPart;
             if (ownerPart == null) {
                 throw new InvalidOperationException(
                     "Action sounds require a text run attached to a presentation part.");
@@ -98,7 +98,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void ClearInteractionSound(bool mouseOver) {
-            OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
+            OpenXmlPart? ownerPart = SdkOwnerPart;
             if (ownerPart == null) return;
             A.HyperlinkType? hyperlink = GetInteraction(mouseOver);
             string? relationshipId = hyperlink?
@@ -110,7 +110,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private byte[]? GetInteractionSoundBytes(bool mouseOver) {
-            OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
+            OpenXmlPart? ownerPart = SdkOwnerPart;
             if (ownerPart == null) return null;
             return PowerPointEmbeddedSound.Read(ownerPart,
                 GetInteractionSound(mouseOver)?.Embed?.Value);

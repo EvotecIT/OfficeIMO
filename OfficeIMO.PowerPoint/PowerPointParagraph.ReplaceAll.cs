@@ -1,5 +1,5 @@
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointParagraph {
@@ -20,30 +20,30 @@ namespace OfficeIMO.PowerPoint {
             bool wholeWords = options?.WholeWords == true;
             int count = 0;
 
-            OpenXmlElement? child = Paragraph.FirstChild;
-            while (child != null) {
-                if (child is not A.Run run) {
-                    child = child.NextSibling();
+            PowerPointXmlNode child = Element.FirstChild;
+            while (!child.IsNone) {
+                if (!child.Is(OfficeXmlNamespaces.DrawingML, "r")) {
+                    child = child.NextSibling;
                     continue;
                 }
 
-                List<A.Run>? runs = null;
-                OpenXmlElement? next = run.NextSibling();
-                while (next is A.Run adjacent) {
-                    (runs ??= new List<A.Run> { run }).Add(adjacent);
-                    next = adjacent.NextSibling();
+                var runs = new List<PowerPointXmlNode> { child };
+                PowerPointXmlNode next = child.NextSibling;
+                while (next.Is(OfficeXmlNamespaces.DrawingML, "r")) {
+                    runs.Add(next);
+                    next = next.NextSibling;
                 }
 
                 // Field text affects word boundaries but remains outside the text that can be replaced.
-                string? preceding = wholeWords ? (run.PreviousSibling() as A.Field)?.Text?.Text : null;
-                string? following = wholeWords ? (next as A.Field)?.Text?.Text : null;
-                runs ??= new List<A.Run> { run };
-                string[] texts = runs.Select(item => item.Text?.Text ?? string.Empty).ToArray();
+                PowerPointXmlNode previousSibling = child.PreviousSibling;
+                string? preceding = wholeWords && previousSibling.Is(OfficeXmlNamespaces.DrawingML, "fld") ? previousSibling.ChildText(OfficeXmlNamespaces.DrawingML, "t") : null;
+                string? following = wholeWords && next.Is(OfficeXmlNamespaces.DrawingML, "fld") ? next.ChildText(OfficeXmlNamespaces.DrawingML, "t") : null;
+                string[] texts = runs.Select(item => item.ChildText(OfficeXmlNamespaces.DrawingML, "t") ?? string.Empty).ToArray();
                 string?[] updated = new string?[texts.Length];
                 count += PowerPointRunReplace.Plan(texts, text, replacement, comparison, wholeWords, preceding, following, updated);
                 // Assigning text may insert native line breaks.
                 for (int index = 0; index < updated.Length; index++) {
-                    if (updated[index] is { } value) new PowerPointTextRun(runs[index], _slidePart, _ownerPart).Text = value;
+                    if (updated[index] is { } value) RunFor(runs[index]).Text = value;
                 }
 
                 child = next;

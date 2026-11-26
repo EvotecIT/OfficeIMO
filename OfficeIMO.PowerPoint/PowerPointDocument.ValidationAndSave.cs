@@ -226,7 +226,9 @@ namespace OfficeIMO.PowerPoint {
             PresentationDocumentType? destinationType = null) {
             EnsureWritableForSave();
             ApplySignatureMutationPolicy(options);
-            if (TryCreateUnchangedPackageBytes(destinationType, out byte[] unchangedPackageBytes)) return unchangedPackageBytes;
+            if (TryCreateUnchangedPackageBytes(destinationType is not { } type || type == PresentationDocumentType.Presentation, out byte[] unchangedPackageBytes)) {
+                return unchangedPackageBytes;
+            }
             PersistFooterDefinitions();
             RefreshFooterFields();
             foreach (PowerPointSlide slide in LoadedSlides) {

@@ -1,109 +1,112 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents a paragraph within a textbox.
     /// </summary>
     public partial class PowerPointParagraph : IPackageSdkBinding {
-        private readonly SlidePart? _initialSlidePart;
-        private SlidePart? _slidePart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
-        private readonly OpenXmlPartContainer? _initialOwnerPart;
-        private OpenXmlPartContainer? _ownerPart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
-            .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
-
-        private A.Paragraph? _paragraph;
+        private PowerPointXmlNode _element;
+        private readonly PowerPointPartRef _initialSlidePart;
+        private readonly PowerPointPartRef _initialOwnerPart;
         private readonly PowerPointSlide? _packageSlide;
+        private readonly PowerPointPartRef _packagePart;
 
-        internal PowerPointParagraph(A.Paragraph paragraph, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
-            _paragraph = paragraph;
-            _initialSlidePart = slidePart ?? ownerPart as SlidePart;
-            _initialOwnerPart = ownerPart ?? slidePart;
+        /// <summary>
+        /// A paragraph (<c>a:p</c>) of a part, wherever the part is held. <paramref name="slidePart"/> is the slide the
+        /// text belongs to and <paramref name="ownerPart"/> the part that holds it.
+        /// </summary>
+        internal PowerPointParagraph(PowerPointXmlNode paragraph, PowerPointPartRef slidePart, PowerPointPartRef ownerPart) {
+            _element = paragraph;
+            _initialSlidePart = !slidePart.IsNone ? slidePart : ownerPart.Kind == PowerPointPartKind.Slide ? ownerPart : default;
+            _initialOwnerPart = !ownerPart.IsNone ? ownerPart : slidePart;
+            if (paragraph.Tree != null && !_initialOwnerPart.IsNone && !_initialOwnerPart.IsSdk && paragraph.IsAttached) {
+                _packagePart = _initialOwnerPart;
+                _initialOwnerPart.Document?.RegisterPackageBinding(this);
+            }
         }
 
-        // A paragraph of a slide's package tree; anything it does not do there binds it to the same paragraph in the SDK.
-        internal PowerPointParagraph(PowerPointSlide slide, OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree, int node) {
+        // A paragraph of a slide's package tree; it binds to the same paragraph in the SDK when the SDK opens.
+        internal PowerPointParagraph(PowerPointSlide slide, OfficeXmlTree tree, int node) {
             _packageSlide = slide;
-            PackageTree = tree;
-            PackageNode = node;
+            _packagePart = _initialSlidePart = _initialOwnerPart = slide.PartRef;
+            _element = new PowerPointXmlNode(tree, node);
             slide.OwnerDocument?.RegisterPackageBinding(this);
         }
 
-        internal A.Paragraph Paragraph => _paragraph ??= (A.Paragraph)PowerPointSlide.BindPackageElement(_packageSlide!, PackageTree!, PackageNode);
+        /// <summary>The paragraph's element as it is held now: once the SDK opened, a package paragraph is its SDK element.</summary>
+        internal PowerPointXmlNode Element {
+            get {
+                // A removed slide's part name can be reused by a new slide, so its content never binds.
+                if (_element.Tree != null && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }) {
+                    _element = PowerPointXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, _element.Tree, _element.Node));
+                }
+                return _element;
+            }
+        }
 
-        internal OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree? PackageTree { get; }
-        internal int PackageNode { get; }
+        /// <summary>The paragraph's package tree while it works on one, or null.</summary>
+        internal OfficeXmlTree? PackageTree => Element.Tree;
+
+        /// <summary>The paragraph's node in <see cref="PackageTree"/>.</summary>
+        internal int PackageNode => Element.Node;
 
         void IPackageSdkBinding.BindSdk() {
-            if (_paragraph != null || PackageTree == null) return;
             try {
-                _ = Paragraph;
+                _ = Element;
             } catch (InvalidOperationException) {
                 // A paragraph the opened slide doesn't have where expected reports it when it is used.
             }
         }
 
-        private bool IsPackageBacked => _paragraph == null && PackageTree != null && _packageSlide is { RemovedFromPackage: false } && _packageSlide.OwnerDocument?.IsSdkLoaded == false;
-        internal OpenXmlPartContainer? OwnerPart => _ownerPart;
+        /// <summary>The slide the paragraph is on, found from where the element is now when it can be.</summary>
+        internal PowerPointPartRef SlidePartRef {
+            get {
+                PowerPointPartRef current = ContainingPart(Element);
+                return current.Kind == PowerPointPartKind.Slide ? current : _initialSlidePart;
+            }
+        }
+
+        /// <summary>The part that holds the paragraph, found from where the element is now when it can be.</summary>
+        internal PowerPointPartRef OwnerPartRef {
+            get {
+                PowerPointPartRef current = ContainingPart(Element);
+                return current.Kind == PowerPointPartKind.Slide ? current : !_initialOwnerPart.IsNone ? _initialOwnerPart : _initialSlidePart;
+            }
+        }
+
+        private static PowerPointPartRef ContainingPart(PowerPointXmlNode element) =>
+            element.IsSdk ? PowerPointPartRef.FromSdk(OpenXmlSdk.PowerPointSdkXml.PartOf(element.SdkElement!)) : default;
+
+        private void MarkEdited() => OwnerPartRef.MarkEdited();
+
+        // A run wrapper for a child of this paragraph, bound the same way the paragraph is.
+        // A node taken from the package tree binds by its place there, even when the SDK opened after it was taken.
+        private PowerPointTextRun RunFor(PowerPointXmlNode element) =>
+            _packageSlide != null && element.Tree != null
+                ? new PowerPointTextRun(_packageSlide, element.Tree, element.Node)
+                : new PowerPointTextRun(element, SlidePartRef, OwnerPartRef);
 
         /// <summary>
         /// Text content of the paragraph.
         /// </summary>
         public string Text {
-            get => IsPackageBacked && OpenXml.PowerPointTreeText.TryReadParagraph(PackageTree!, PackageNode, out string packageText) ? packageText : ReadText(Paragraph);
+            get => ReadText(Element);
             set {
-                if (TrySetPackageText(value)) return;
                 ClearInlineContent();
                 InsertRun(value ?? string.Empty);
             }
         }
 
-        // Replaces the runs, breaks and fields on the package tree with the new text before the end properties, as the
-        // setter does; a paragraph with hyperlinks or sounds is left to the model, which removes their relationships.
-        private bool TrySetPackageText(string? value) {
-            if (!IsPackageBacked || _packageSlide?.OwnerDocument?.CanEditPackage != true) return false;
-            OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree = PackageTree!;
-            if (HasInteraction(tree, PackageNode)) return false;
-            int end = OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode;
-            for (int child = tree.FirstChildOf(PackageNode); child != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode;) {
-                int next = tree.NextSiblingOf(child);
-                if (tree.KindOf(child) == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTreeNodeKind.Element
-                    && tree.NamespaceOf(child) == OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML) {
-                    string name = tree.LocalNameOf(child);
-                    if (name is "r" or "br" or "fld") tree.Remove(child);
-                    else if (name == "endParaRPr" && end == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) end = child;
-                }
-                child = next;
-            }
-            // The text goes before the end properties, which stay last.
-            if (end != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) tree.Remove(end);
-            OpenXml.PowerPointTreeText.AppendInlineContent(tree, PackageNode, value ?? string.Empty, OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode);
-            if (end != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) tree.Append(PackageNode, end);
-            _packageSlide.OwnerDocument.MarkPackageEdited();
-            return true;
-        }
-
-        private static bool HasInteraction(OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree, int node) {
-            for (int child = tree.FirstChildOf(node); child != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
-                if (tree.KindOf(child) != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTreeNodeKind.Element) continue;
-                if (tree.NamespaceOf(child) == OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML
-                    && tree.LocalNameOf(child) is "hlinkClick" or "hlinkMouseOver" or "snd") return true;
-                if (HasInteraction(tree, child)) return true;
-            }
-            return false;
-        }
-
         /// <summary>Reads the same text as <see cref="InlineNodes" /> without creating run wrappers.</summary>
-        internal static string ReadText(A.Paragraph paragraph) {
+        internal static string ReadText(PowerPointXmlNode paragraph) {
             string? single = null;
             System.Text.StringBuilder? builder = null;
-            foreach (OpenXmlElement child in paragraph.ChildElements) {
-                string? part = child switch {
-                    A.Run run => run.Text?.Text ?? string.Empty,
-                    A.Break => Environment.NewLine,
-                    A.Field field => field.Text?.Text ?? string.Empty,
+            foreach (PowerPointXmlNode child in paragraph.Children()) {
+                if (child.NamespaceId != OfficeXmlNamespaces.DrawingML) continue;
+                string? part = child.LocalName switch {
+                    "r" or "fld" => child.ChildText(OfficeXmlNamespaces.DrawingML, "t") ?? string.Empty,
+                    "br" => Environment.NewLine,
                     _ => null
                 };
                 if (part == null) continue;
@@ -119,10 +122,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Joins paragraph text with line breaks, as the text box and table cell <c>Text</c> getters return it.</summary>
-        internal static string ReadText(OpenXmlElement textBody) {
+        internal static string ReadBodyText(PowerPointXmlNode textBody) {
             string? single = null;
             System.Text.StringBuilder? builder = null;
-            foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
+            foreach (PowerPointXmlNode paragraph in textBody.Children(OfficeXmlNamespaces.DrawingML, "p")) {
                 string text = ReadText(paragraph);
                 if (builder != null) {
                     builder.Append(Environment.NewLine).Append(text);
@@ -136,13 +139,24 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void ClearInlineContent() {
-            string[] discardedSoundIds = PowerPointEmbeddedSound.GetRelationshipIds(Paragraph);
-            Paragraph.RemoveAllChildren<A.Run>();
-            Paragraph.RemoveAllChildren<A.Break>();
-            Paragraph.RemoveAllChildren<A.Field>();
-            PowerPointEmbeddedSound.RemoveIfUnused(
-                _ownerPart as OpenXmlPart ?? _slidePart,
-                discardedSoundIds);
+            PowerPointXmlNode paragraph = Element;
+            var soundIds = new List<string>();
+            foreach (PowerPointXmlNode child in paragraph.Children().ToList()) {
+                if (child.NamespaceId != OfficeXmlNamespaces.DrawingML || child.LocalName is not ("r" or "br" or "fld")) continue;
+                CollectSoundIds(child, soundIds);
+                child.Remove();
+            }
+            MarkEdited();
+            PowerPointPartRef owner = OwnerPartRef;
+            if (owner.IsNone) return;
+            foreach (string id in soundIds) owner.RemoveRelationshipIfUnused(id, default);
+        }
+
+        private static void CollectSoundIds(PowerPointXmlNode element, List<string> ids) {
+            foreach (PowerPointXmlNode child in element.Children()) {
+                if (child.Is(OfficeXmlNamespaces.DrawingML, "snd") && child.Attribute(OfficeXmlNamespaces.Relationships, "embed") is { Length: > 0 } id && !ids.Contains(id)) ids.Add(id);
+                CollectSoundIds(child, ids);
+            }
         }
 
         /// <summary>
@@ -175,40 +189,39 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Runs within the paragraph.
         /// </summary>
-        public IReadOnlyList<PowerPointTextRun> Runs => IsPackageBacked
-            ? PackageRuns()
-            : Paragraph.Elements<A.Run>().Select(r => new PowerPointTextRun(r, _slidePart, _ownerPart)).ToList();
-
-        private List<PowerPointTextRun> PackageRuns() {
-            var runs = new List<PowerPointTextRun>();
-            for (int run = PackageTree!.FindChild(PackageNode, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "r");
-                 run != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode;
-                 run = PackageTree.FindNextSibling(run, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "r")) {
-                runs.Add(new PowerPointTextRun(_packageSlide!, PackageTree, run));
+        public IReadOnlyList<PowerPointTextRun> Runs {
+            get {
+                var runs = new List<PowerPointTextRun>();
+                foreach (PowerPointXmlNode run in Element.Children(OfficeXmlNamespaces.DrawingML, "r")) runs.Add(RunFor(run));
+                return runs;
             }
-            return runs;
         }
+
+        private PowerPointXmlNode Properties => Element.Child(OfficeXmlNamespaces.DrawingML, "pPr");
+
+        private PowerPointXmlNode EnsureProperties() {
+            PowerPointXmlNode properties = Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "pPr", ATextParagraphView.Order);
+            MarkEdited();
+            return properties;
+        }
+
+        private void SetProperty(string attribute, string? value) => EnsureProperties().SetAttribute(attribute, value);
 
         /// <summary>
         /// Gets or sets paragraph alignment.
         /// </summary>
         public PowerPointTextAlignment? Alignment {
-            get => Paragraph.ParagraphProperties?.Alignment?.Value.ToOfficeEnum();
-            set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                props.Alignment = value?.ToOpenXml();
-            }
+            get => Properties.Attribute("algn") is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointTextAlignment alignment)
+                ? alignment : null;
+            set => SetProperty("algn", value?.ToOpenXmlToken());
         }
 
         /// <summary>
         /// Gets or sets the explicit right-to-left paragraph direction.
         /// </summary>
         public bool? RightToLeft {
-            get => Paragraph.ParagraphProperties?.RightToLeft?.Value;
-            set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                props.RightToLeft = value;
-            }
+            get => Properties.BooleanAttribute("rtl");
+            set => SetProperty("rtl", OfficeXmlViewValues.Format(value));
         }
 
         /// <summary>
@@ -223,11 +236,8 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets the bullet/list level (0-8).
         /// </summary>
         public int? Level {
-            get => Paragraph.ParagraphProperties?.Level?.Value;
-            set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                props.Level = value;
-            }
+            get => Properties.Int32Attribute("lvl");
+            set => SetProperty("lvl", OfficeXmlViewValues.Format(value));
         }
 
         /// <summary>
@@ -241,44 +251,41 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Gets the character bullet assigned to this paragraph, when present.
         /// </summary>
-        public string? BulletCharacter => Paragraph.ParagraphProperties?.GetFirstChild<A.CharacterBullet>()?.Char?.Value;
+        public string? BulletCharacter => Properties.Child(OfficeXmlNamespaces.DrawingML, "buChar").Attribute("char");
+
+        private PowerPointXmlNode AutoNumber => Properties.Child(OfficeXmlNamespaces.DrawingML, "buAutoNum");
 
         /// <summary>
         /// Gets whether the paragraph uses PowerPoint auto-numbering.
         /// </summary>
-        public bool IsNumbered => Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>() != null;
+        public bool IsNumbered => !AutoNumber.IsNone;
 
         /// <summary>
         /// Gets the PowerPoint automatic-numbering scheme assigned to this paragraph, when present.
         /// </summary>
         public PowerPointNumberingScheme? NumberingScheme =>
-            Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>()?.Type?.Value.ToOfficeEnum();
+            AutoNumber.Attribute("type") is { } token && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointNumberingScheme scheme)
+                ? scheme : null;
 
         /// <summary>
         /// Gets the explicit PowerPoint numbering start value, when present.
         /// </summary>
-        public int? NumberingStartAt => Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>()?.StartAt?.Value;
+        public int? NumberingStartAt => AutoNumber.Int32Attribute("startAt");
 
         /// <summary>
         /// Gets or sets paragraph indentation as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? Indent {
-            get => FromTextCoordinate(Paragraph.ParagraphProperties?.Indent?.Value);
-            set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                props.Indent = ToTextCoordinate(value);
-            }
+            get => FromTextCoordinate(Properties.Int32Attribute("indent"));
+            set => SetProperty("indent", OfficeXmlViewValues.Format(ToTextCoordinate(value)));
         }
 
         /// <summary>
         /// Gets or sets paragraph left margin as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? LeftMargin {
-            get => FromTextCoordinate(Paragraph.ParagraphProperties?.LeftMargin?.Value);
-            set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                props.LeftMargin = ToTextCoordinate(value);
-            }
+            get => FromTextCoordinate(Properties.Int32Attribute("marL"));
+            set => SetProperty("marL", OfficeXmlViewValues.Format(ToTextCoordinate(value)));
         }
 
         /// <summary>
@@ -303,40 +310,40 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph SetHanging(global::OfficeIMO.OfficeLength value) {
             int margin = checked((int)value.ToEmus());
             int indent = checked(-margin);
-            A.ParagraphProperties props = EnsureParagraphProperties();
-            props.LeftMargin = margin;
-            props.Indent = indent;
+            PowerPointXmlNode properties = EnsureProperties();
+            properties.SetInt32Attribute("marL", margin);
+            properties.SetInt32Attribute("indent", indent);
             return this;
+        }
+
+        // The a:spcPts or a:spcPct value inside a spacing element (a:lnSpc, a:spcBef, a:spcAft).
+        private int? SpacingValue(string spacing, string kind) =>
+            Properties.Child(OfficeXmlNamespaces.DrawingML, spacing).Child(OfficeXmlNamespaces.DrawingML, kind).Int32Attribute("val");
+
+        // Replaces a spacing element with one holding a single a:spcPts or a:spcPct; null removes it.
+        private void SetSpacing(string spacing, string kind, int? value) {
+            PowerPointXmlNode properties = EnsureProperties();
+            properties.RemoveChildren(OfficeXmlNamespaces.DrawingML, spacing);
+            if (value == null) return;
+            PowerPointXmlNode element = properties.CreateElement(OfficeXmlNamespaces.DrawingML, spacing);
+            element.Append(element.CreateElement(OfficeXmlNamespaces.DrawingML, kind)).SetInt32Attribute("val", value);
+            properties.InsertOrdered(element, ATextParagraphPropertiesView.Order);
         }
 
         /// <summary>
         /// Gets or sets line spacing as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? LineSpacing {
-            get => FromSpacingPoints(Paragraph.ParagraphProperties?.LineSpacing?.SpacingPoints?.Val?.Value);
-            set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                if (value == null) {
-                    props.LineSpacing = null;
-                    return;
-                }
-                props.LineSpacing = new A.LineSpacing(new A.SpacingPoints { Val = ToSpacingPoints(value.Value) });
-            }
+            get => FromSpacingPoints(SpacingValue("lnSpc", "spcPts"));
+            set => SetSpacing("lnSpc", "spcPts", value == null ? null : ToSpacingPoints(value.Value));
         }
 
         /// <summary>
         /// Gets or sets line spacing as a multiplier (1.0 = 100%).
         /// </summary>
         public double? LineSpacingMultiplier {
-            get => FromSpacingPercent(Paragraph.ParagraphProperties?.LineSpacing?.SpacingPercent?.Val?.Value);
-            set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                if (value == null) {
-                    props.LineSpacing = null;
-                    return;
-                }
-                props.LineSpacing = new A.LineSpacing(new A.SpacingPercent { Val = ToSpacingPercent(value.Value) });
-            }
+            get => FromSpacingPercent(SpacingValue("lnSpc", "spcPct"));
+            set => SetSpacing("lnSpc", "spcPct", value == null ? null : ToSpacingPercent(value.Value));
         }
 
         /// <summary>
@@ -359,15 +366,8 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets space before the paragraph as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? SpaceBefore {
-            get => FromSpacingPoints(Paragraph.ParagraphProperties?.SpaceBefore?.SpacingPoints?.Val?.Value);
-            set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                if (value == null) {
-                    props.SpaceBefore = null;
-                    return;
-                }
-                props.SpaceBefore = new A.SpaceBefore(new A.SpacingPoints { Val = ToSpacingPoints(value.Value) });
-            }
+            get => FromSpacingPoints(SpacingValue("spcBef", "spcPts"));
+            set => SetSpacing("spcBef", "spcPts", value == null ? null : ToSpacingPoints(value.Value));
         }
 
         /// <summary>
@@ -382,15 +382,8 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets space after the paragraph as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? SpaceAfter {
-            get => FromSpacingPoints(Paragraph.ParagraphProperties?.SpaceAfter?.SpacingPoints?.Val?.Value);
-            set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                if (value == null) {
-                    props.SpaceAfter = null;
-                    return;
-                }
-                props.SpaceAfter = new A.SpaceAfter(new A.SpacingPoints { Val = ToSpacingPoints(value.Value) });
-            }
+            get => FromSpacingPoints(SpacingValue("spcAft", "spcPts"));
+            set => SetSpacing("spcAft", "spcPts", value == null ? null : ToSpacingPoints(value.Value));
         }
 
         /// <summary>
@@ -485,12 +478,12 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets the bullet font name.
         /// </summary>
         public string? BulletFontFamily {
-            get => Paragraph.ParagraphProperties?.GetFirstChild<A.BulletFont>()?.Typeface;
+            get => Properties.Child(OfficeXmlNamespaces.DrawingML, "buFont").Attribute("typeface");
             set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                props.RemoveAllChildren<A.BulletFont>();
+                PowerPointXmlNode properties = EnsureProperties();
+                properties.RemoveChildren(OfficeXmlNamespaces.DrawingML, "buFont");
                 if (!string.IsNullOrWhiteSpace(value)) {
-                    InsertParagraphPropertyChild(props, new A.BulletFont { Typeface = value });
+                    properties.AddOrdered(OfficeXmlNamespaces.DrawingML, "buFont", ATextParagraphPropertiesView.Order).SetAttribute("typeface", value);
                 }
             }
         }
@@ -500,15 +493,15 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public global::OfficeIMO.OfficeLength? BulletSize {
             get {
-                int? size = Paragraph.ParagraphProperties?.GetFirstChild<A.BulletSizePoints>()?.Val?.Value;
+                int? size = Properties.Child(OfficeXmlNamespaces.DrawingML, "buSzPts").Int32Attribute("val");
                 return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                props.RemoveAllChildren<A.BulletSizePoints>();
-                props.RemoveAllChildren<A.BulletSizePercentage>();
+                PowerPointXmlNode properties = EnsureProperties();
+                properties.RemoveChildren(OfficeXmlNamespaces.DrawingML, "buSzPts");
+                properties.RemoveChildren(OfficeXmlNamespaces.DrawingML, "buSzPct");
                 if (value != null) {
-                    InsertParagraphPropertyChild(props, new A.BulletSizePoints { Val = ToSpacingPoints(value.Value) });
+                    properties.AddOrdered(OfficeXmlNamespaces.DrawingML, "buSzPts", ATextParagraphPropertiesView.Order).SetInt32Attribute("val", ToSpacingPoints(value.Value));
                 }
             }
         }
@@ -518,15 +511,15 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int? BulletSizePercent {
             get {
-                int? size = Paragraph.ParagraphProperties?.GetFirstChild<A.BulletSizePercentage>()?.Val?.Value;
+                int? size = Properties.Child(OfficeXmlNamespaces.DrawingML, "buSzPct").Int32Attribute("val");
                 return size != null ? size / 1000 : null;
             }
             set {
-                A.ParagraphProperties props = EnsureParagraphProperties();
-                props.RemoveAllChildren<A.BulletSizePercentage>();
-                props.RemoveAllChildren<A.BulletSizePoints>();
+                PowerPointXmlNode properties = EnsureProperties();
+                properties.RemoveChildren(OfficeXmlNamespaces.DrawingML, "buSzPct");
+                properties.RemoveChildren(OfficeXmlNamespaces.DrawingML, "buSzPts");
                 if (value != null) {
-                    InsertParagraphPropertyChild(props, new A.BulletSizePercentage { Val = value.Value * 1000 });
+                    properties.AddOrdered(OfficeXmlNamespaces.DrawingML, "buSzPct", ATextParagraphPropertiesView.Order).SetInt32Attribute("val", value.Value * 1000);
                 }
             }
         }
@@ -558,28 +551,31 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Applies a character bullet to the paragraph.
         /// </summary>
-        public void SetBullet(char bulletChar = '\u2022') {
-            A.ParagraphProperties props = EnsureParagraphProperties();
-            ClearBulletInternal(props);
-            InsertParagraphPropertyChild(props, new A.CharacterBullet { Char = bulletChar.ToString() });
+        public void SetBullet(char bulletChar = '•') {
+            PowerPointXmlNode properties = EnsureProperties();
+            ClearBulletInternal(properties);
+            properties.AddOrdered(OfficeXmlNamespaces.DrawingML, "buChar", ATextParagraphPropertiesView.Order).SetAttribute("char", bulletChar.ToString());
         }
 
         /// <summary>
         /// Applies an auto-numbered bullet to the paragraph.
         /// </summary>
         public void SetNumbered(PowerPointNumberingScheme style, int startAt = 1) {
-            A.ParagraphProperties props = EnsureParagraphProperties();
-            ClearBulletInternal(props);
-            InsertParagraphPropertyChild(props, new A.AutoNumberedBullet { Type = style.ToOpenXml(), StartAt = startAt });
+            PowerPointXmlNode numbered = SetAutoNumber(style);
+            numbered.SetInt32Attribute("startAt", startAt);
         }
 
         /// <summary>
         /// Applies an auto-numbered bullet to the paragraph without resetting the start value.
         /// </summary>
-        public void SetNumbered(PowerPointNumberingScheme style) {
-            A.ParagraphProperties props = EnsureParagraphProperties();
-            ClearBulletInternal(props);
-            InsertParagraphPropertyChild(props, new A.AutoNumberedBullet { Type = style.ToOpenXml() });
+        public void SetNumbered(PowerPointNumberingScheme style) => SetAutoNumber(style);
+
+        private PowerPointXmlNode SetAutoNumber(PowerPointNumberingScheme style) {
+            PowerPointXmlNode properties = EnsureProperties();
+            ClearBulletInternal(properties);
+            PowerPointXmlNode numbered = properties.AddOrdered(OfficeXmlNamespaces.DrawingML, "buAutoNum", ATextParagraphPropertiesView.Order);
+            numbered.SetAttribute("type", style.ToOpenXmlToken());
+            return numbered;
         }
 
         /// <summary>
@@ -593,9 +589,9 @@ namespace OfficeIMO.PowerPoint {
         /// Clears any bullet/numbering from the paragraph.
         /// </summary>
         public void ClearBullet() {
-            A.ParagraphProperties props = EnsureParagraphProperties();
-            ClearBulletInternal(props);
-            InsertParagraphPropertyChild(props, new A.NoBullet());
+            PowerPointXmlNode properties = EnsureProperties();
+            ClearBulletInternal(properties);
+            properties.AddOrdered(OfficeXmlNamespaces.DrawingML, "buNone", ATextParagraphPropertiesView.Order);
         }
 
         /// <summary>
@@ -603,73 +599,36 @@ namespace OfficeIMO.PowerPoint {
         /// formatted run, as PowerPoint stores an empty formatted line.
         /// </summary>
         internal void FormatRuns(Action<PowerPointTextRun> format) {
-            A.Run[] runs = Paragraph.Elements<A.Run>().ToArray();
-            if (runs.Length == 0) {
+            List<PowerPointXmlNode> runs = Element.Children(OfficeXmlNamespaces.DrawingML, "r").ToList();
+            if (runs.Count == 0) {
                 format(InsertRun(string.Empty));
                 return;
             }
-            foreach (A.Run run in runs) {
-                format(new PowerPointTextRun(run, _slidePart, _ownerPart));
+            foreach (PowerPointXmlNode run in runs) {
+                format(RunFor(run));
             }
         }
 
-        internal PowerPointTextRun InsertRun(string? text, A.RunProperties? properties = null) {
-            A.Run run = new(new A.Text(string.Empty));
+        /// <summary>
+        /// Adds a run with <paramref name="text"/> before the end paragraph properties, carrying a copy of
+        /// <paramref name="properties"/> when given, and returns it.
+        /// </summary>
+        internal PowerPointTextRun InsertRun(string? text, PowerPointXmlNode properties = default) {
+            PowerPointXmlNode paragraph = Element;
+            PowerPointXmlNode run = paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "r");
+            run.Append(run.CreateElement(OfficeXmlNamespaces.DrawingML, "t"));
+            run = paragraph.InsertBefore(run, paragraph.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr"));
             PowerPointTextContent.ApplyProperties(run, properties);
-            A.EndParagraphRunProperties? endProps = Paragraph.GetFirstChild<A.EndParagraphRunProperties>();
-            if (endProps != null) {
-                Paragraph.InsertBefore(run, endProps);
-            } else {
-                Paragraph.Append(run);
-            }
-            return new PowerPointTextRun(run, _slidePart, _ownerPart) { Text = text ?? string.Empty };
+            MarkEdited();
+            PowerPointTextRun wrapper = RunFor(run);
+            wrapper.Text = text ?? string.Empty;
+            return wrapper;
         }
 
-        private static void ClearBulletInternal(A.ParagraphProperties props) {
-            props.RemoveAllChildren<A.BulletFont>();
-            props.RemoveAllChildren<A.BulletSizePoints>();
-            props.RemoveAllChildren<A.BulletSizePercentage>();
-            props.RemoveAllChildren<A.CharacterBullet>();
-            props.RemoveAllChildren<A.AutoNumberedBullet>();
-            props.RemoveAllChildren<A.NoBullet>();
-        }
+        private static readonly string[] BulletElements = { "buFont", "buSzPts", "buSzPct", "buChar", "buAutoNum", "buNone" };
 
-        private static void InsertParagraphPropertyChild(A.ParagraphProperties props, OpenXmlElement child) {
-            int childOrder = GetParagraphPropertyChildOrder(child);
-            OpenXmlElement? insertBefore = props.ChildElements
-                .FirstOrDefault(existing => GetParagraphPropertyChildOrder(existing) > childOrder);
-
-            if (insertBefore == null) {
-                props.Append(child);
-            } else {
-                props.InsertBefore(child, insertBefore);
-            }
-        }
-
-        private static int GetParagraphPropertyChildOrder(OpenXmlElement element) {
-            return element switch {
-                A.LineSpacing => 10,
-                A.SpaceBefore => 20,
-                A.SpaceAfter => 30,
-                A.BulletColorText => 40,
-                A.BulletColor => 50,
-                A.BulletSizeText => 60,
-                A.BulletSizePercentage => 70,
-                A.BulletSizePoints => 80,
-                A.BulletFontText => 90,
-                A.BulletFont => 100,
-                A.NoBullet => 110,
-                A.AutoNumberedBullet => 120,
-                A.CharacterBullet => 130,
-                A.TabStopList => 140,
-                A.DefaultRunProperties => 150,
-                A.ExtensionList => 160,
-                _ => 1000
-            };
-        }
-
-        private A.ParagraphProperties EnsureParagraphProperties() {
-            return Paragraph.ParagraphProperties ??= new A.ParagraphProperties();
+        private static void ClearBulletInternal(PowerPointXmlNode properties) {
+            foreach (string name in BulletElements) properties.RemoveChildren(OfficeXmlNamespaces.DrawingML, name);
         }
 
         private static int? ToTextCoordinate(global::OfficeIMO.OfficeLength? length) {
