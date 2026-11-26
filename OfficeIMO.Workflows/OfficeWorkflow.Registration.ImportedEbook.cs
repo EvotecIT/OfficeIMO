@@ -6,6 +6,7 @@ using OfficeIMO.Epub.Image;
 using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
+using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows;
 
@@ -26,8 +27,7 @@ public static partial class OfficeWorkflow {
 
     private sealed class ImportedEbookRoute(string id, string target,
         Func<Stream, string, long, CancellationToken, OfficeConversionResult<EpubPublication>> import)
-        : IOfficeConversionRoute, IOfficeConversionArtifactValidation {
-        // Up to 120 MiB of comic images can expand to 160 MiB of base64 before adding markup.
+        : IOfficeConversionRoute, IOfficeConversionArtifactValidation, IOfficeConversionOutputValidation {
         private const int MaximumWorkingHtmlBytes = 192 * 1024 * 1024;
 
         public string Id => id;
@@ -72,17 +72,7 @@ public static partial class OfficeWorkflow {
                     if (target == "html") {
                         EpubImportedPublication.WriteHtml(book, destination, diagnostics, cancellationToken);
                     } else {
-                        // The converter's output limit applies to the final Markdown, which can be smaller than this HTML.
-                        using var html = new OfficeBoundedMemoryStream(MaximumWorkingHtmlBytes);
-                        EpubImportedPublication.WriteHtml(book, html, diagnostics, cancellationToken, markdownAnchors: true);
-                        html.Position = 0;
-                        using var text = new StreamReader(html, Encoding.UTF8);
-                        // The static projection can generate extra nodes for navigation and anchor targets.
-                        var limits = HtmlConversionLimits.UntrustedDefaults;
-                        limits.MaxInputCharacters = MaximumWorkingHtmlBytes;
-                        limits.MaxHtmlNodes = 1_000_000;
-                        var markup = HtmlConversionDocument.Parse(text.ReadToEnd(),
-                            new HtmlConversionDocumentOptions { Limits = limits }, cancellationToken);
+                        HtmlConversionDocument markup = CreateMarkdownProjection(book, options, diagnostics, cancellationToken);
                         var markdownOptions = new HtmlMarkdownExportOptions();
                         markdownOptions.PassThroughTags.Add("a");
                         using MarkdownDocument markdown = markup.ToMarkdown(markdownOptions, out OfficeConversionReport converted, cancellationToken);
@@ -103,14 +93,57 @@ public static partial class OfficeWorkflow {
             return Task.FromResult(report);
         }
 
+        private static HtmlConversionDocument CreateMarkdownProjection(EpubDocument book, OfficeConversionOptions options,
+            List<OfficeDiagnostic> diagnostics, CancellationToken token) {
+            // The caller's output limit applies to the final Markdown. The combined HTML has its own safety budget.
+            using var html = new OfficeBoundedMemoryStream(MaximumWorkingHtmlBytes);
+            try {
+                EpubImportedPublication.WriteHtml(book, html, diagnostics, token, markdownAnchors: true);
+                html.Position = 0;
+                using var text = new StreamReader(html, Encoding.UTF8);
+                return HtmlConversionDocument.Parse(text.ReadToEnd(), ProjectionHtmlOptions(MaximumWorkingHtmlBytes), token);
+            } catch (HtmlDomLimitException error) {
+                throw Reject(error.Code, "The combined ebook HTML exceeds the Markdown limit (" + error.LimitSource + ").", error);
+            } catch (InvalidDataException error) when (OfficeOutputLimit.Is(error)) {
+                throw Reject("EBOOK_MARKDOWN_WORKING_HTML_LIMIT",
+                    $"The combined ebook HTML exceeds the Markdown working limit of {MaximumWorkingHtmlBytes} bytes.", error);
+            }
+
+            OfficeConversionException Reject(string code, string message, Exception error) {
+                diagnostics.Add(new OfficeDiagnostic(code, OfficeDiagnosticSeverity.Error, message,
+                    null, "OfficeIMO.Html", OfficeConversionLossKind.Failure));
+                var report = new OfficeConversionReport(options.SourceName!, options.TargetName!, diagnostics: diagnostics);
+                return new OfficeConversionException(message, report, error);
+            }
+        }
+
+        private static HtmlConversionDocumentOptions ProjectionHtmlOptions(int maximumCharacters) {
+            HtmlConversionDocumentOptions options = HtmlConversionDocumentOptions.UntrustedDefaults;
+            options.Limits.MaxInputCharacters = maximumCharacters;
+            return options;
+        }
+
         private static void AddMetadataLoss(List<OfficeDiagnostic> diagnostics, string message) =>
             diagnostics.Add(new OfficeDiagnostic("EBOOK_OUTPUT_METADATA_OMITTED", OfficeDiagnosticSeverity.Warning,
                 message, null, "OfficeIMO.Epub", OfficeConversionLossKind.Omission));
 
+        public PdfCreateOptions? GetOutputCreationOptions(OfficeConversionOptions options) =>
+            target == "pdf" ? options.Html?.PdfOptions : null;
+
+        public PdfLoadOptions? CreateOutputPdfLoadOptions(OfficeConversionOptions options) =>
+            ReadEncryptedOutput(GetOutputCreationOptions(options));
+
         public async Task<bool> TryValidateArtifactAsync(Stream output, OfficeConversionOptions options, CancellationToken token) {
-            if (target != "epub") return false;
-            output.Position = 0;
-            await ValidateManuscriptArtifactAsync(output, options.MaximumOutputBytes, null, token).ConfigureAwait(false);
+            if (target == "epub") {
+                output.Position = 0;
+                await ValidateManuscriptArtifactAsync(output, options.MaximumOutputBytes, null, token).ConfigureAwait(false);
+            } else if (target == "html") {
+                output.Position = 0;
+                int maximumCharacters = (int)Math.Min(options.MaximumOutputBytes, int.MaxValue);
+                await HtmlConversionDocument.LoadAsync(output, ProjectionHtmlOptions(maximumCharacters), cancellationToken: token).ConfigureAwait(false);
+            } else {
+                return false;
+            }
             output.Position = output.Length;
             return true;
         }

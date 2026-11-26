@@ -97,12 +97,14 @@ public static partial class OfficeWorkflow {
             };
         }
 
-        public PdfLoadOptions? CreateOutputPdfLoadOptions(OfficeConversionOptions options) {
-            PdfCreateOptions? creation = GetOutputCreationOptions(options);
-            if (creation?.Encryption == null) return null;
-            var load = new PdfLoadOptions { Password = creation.Encryption.OwnerPassword ?? creation.Encryption.UserPassword };
-            return creation.Encryption.AesCryptographyProvider is { } provider
-                ? PdfLoadOptions.WithAesCryptographyProvider(load, provider) : load;
-        }
+        public PdfLoadOptions? CreateOutputPdfLoadOptions(OfficeConversionOptions options) =>
+            ReadEncryptedOutput(GetOutputCreationOptions(options));
+    }
+
+    private static PdfLoadOptions? ReadEncryptedOutput(PdfCreateOptions? creation) {
+        if (creation?.Encryption == null) return null;
+        var load = new PdfLoadOptions { Password = creation.Encryption.OwnerPassword ?? creation.Encryption.UserPassword };
+        return creation.Encryption.AesCryptographyProvider is { } provider
+            ? PdfLoadOptions.WithAesCryptographyProvider(load, provider) : load;
     }
 }
