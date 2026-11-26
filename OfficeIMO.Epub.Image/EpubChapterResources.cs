@@ -19,7 +19,7 @@ internal sealed class EpubChapterResources {
     }
 
     internal HtmlConversionDocument PrepareDocument(EpubChapter chapter, HtmlRenderOptions options,
-        bool includeChapterTitle, CancellationToken cancellationToken, bool allowEmbeddedResources = true) {
+        bool includeChapterTitle, CancellationToken cancellationToken, bool allowEmbeddedResources = true, int? maximumHtmlNodes = null) {
         Uri baseUri = CreateChapterUri(chapter);
         options.BaseUri = baseUri;
         if (allowEmbeddedResources) Configure(options);
@@ -29,6 +29,7 @@ internal sealed class EpubChapterResources {
             ResourceUrlPolicy = options.GetResourceUrlPolicy().Clone(),
             UseBodyContentsOnly = false
         };
+        if (maximumHtmlNodes.HasValue) documentOptions.Limits.MaxHtmlNodes = maximumHtmlNodes;
         if (string.IsNullOrWhiteSpace(chapter.Html))
             return HtmlConversionDocument.Parse(CreatePlainTextChapter(chapter, includeChapterTitle), documentOptions, cancellationToken);
         return string.Equals(chapter.MediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase)

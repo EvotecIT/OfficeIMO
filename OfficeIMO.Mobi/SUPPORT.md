@@ -13,7 +13,9 @@ The reader admits at most 64 MiB of input, 16,384 Palm database records,
 16 MiB of decompressed text and 4,096 bytes per decompressed text record.
 The parser also bounds EXTH items, index records and labels, Kindle
 fragments, and HTML nesting. Image loads are restricted to records in the
-source publication. External links are kept where supported. Absolute-only
+source publication. With no first-image pointer, a standalone KF8 import can
+recover a unique contiguous raster range matching its declared resource count.
+The conversion reports that inference. External links are kept where supported. Absolute-only
 Kindle navigation opens the identified chapter and reports the approximation.
 The reader reports source text positions it can only place at a nearby anchor.
 

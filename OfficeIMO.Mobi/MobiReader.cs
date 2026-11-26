@@ -58,7 +58,7 @@ public static partial class MobiReader {
 
         internal OfficeConversionResult<EpubPublication> Create(byte[] text) {
             string title = TextMetadata(503).FirstOrDefault() ?? NormalizeMetadata(selected.HeaderTitle) ??
-                NormalizeMetadata(first.HeaderTitle) ?? NormalizeMetadata(MobiHeader.Decode(selected.Encoding, database.Name)) ??
+                NormalizeMetadata(first.HeaderTitle) ?? ReadDatabaseName() ??
                 NormalizeMetadata(Path.GetFileNameWithoutExtension(sourceName)) ?? "Untitled";
 
             string language = TextMetadata(524).FirstOrDefault() ?? LanguageFromLocale(selected.Locale);
@@ -71,16 +71,7 @@ public static partial class MobiReader {
             }
 
             if (database.IsPalmDoc) {
-                string body = selected.Encoding.GetString(text);
-                var literal = new XElement("div");
-                using var lines = new StringReader(body);
-                int count = 0;
-                while (lines.ReadLine() is { } line) {
-                    token.ThrowIfCancellationRequested();
-                    if (++count > 150_000) throw new InvalidDataException("PalmDOC text exceeds the paragraph limit.");
-                    literal.Add(new XElement("p", XmlText(line)));
-                }
-                book.AddChapter("text", "EPUB/book.xhtml", title, literal.ToString(SaveOptions.DisableFormatting));
+                AddLiteralText(book, selected.Encoding.GetString(text));
                 if (database.Count - 1 > selected.TextRecords)
                     Warn("PALMDOC_BOOKMARKS_OMITTED", "PalmDOC records following the text are outside this reader profile.");
             } else {
@@ -89,6 +80,30 @@ public static partial class MobiReader {
                 AddMarkup(book, text);
             }
             return new OfficeConversionResult<EpubPublication>(book, new OfficeConversionReport(sourceName, "EPUB", diagnostics: _diagnostics));
+        }
+
+        private string? ReadDatabaseName() {
+            try {
+                try { return NormalizeMetadata(MobiHeader.Decode(selected.Encoding, database.Name)); }
+                catch (DecoderFallbackException) when (selected.Encoding.CodePage == 65001) {
+                    return NormalizeMetadata(MobiHeader.Decode(MobiHeader.GetEncoding(1252), database.Name));
+                }
+            } catch (DecoderFallbackException) {
+                Warn("MOBI_DATABASE_NAME_OMITTED", "The Palm database name could not be decoded.");
+                return null;
+            }
+        }
+
+        private void AddLiteralText(EpubPublication book, string body) {
+            var literal = new XElement("div");
+            using var lines = new StringReader(body);
+            int count = 0;
+            while (lines.ReadLine() is { } line) {
+                token.ThrowIfCancellationRequested();
+                if (++count > 150_000) throw new InvalidDataException("The Mobipocket plain text exceeds the paragraph limit.");
+                literal.Add(new XElement("p", XmlText(line)));
+            }
+            book.AddChapter("text", "EPUB/book.xhtml", book.Title, literal.ToString(SaveOptions.DisableFormatting));
         }
 
         private IEnumerable<string> TextMetadata(int id) {
@@ -116,21 +131,24 @@ public static partial class MobiReader {
         }
 
         private void AddImages(EpubPublication book) {
-            int? start = selected.Record != 0 ? first.FirstImage : selected.FirstImage;
-            if (!start.HasValue || start.Value == 0) return;
             int end = selected.Record != 0 ? selected.Record - 1 : database.Count;
             int? declaredCount = (selected.Record == 0 ? selected : first).Integer(125);
             if (declaredCount == 0) return;
+            int? start = selected.Record != 0 ? first.FirstImage : selected.FirstImage;
+            if (start is null or 0) {
+                if (!selected.IsKf8 || selected.Record != 0 || declaredCount is not (>= 1 and <= 2_000)) return;
+                start = FindStandaloneRasterRange(declaredCount.Value, end);
+                if (!start.HasValue) return;
+                Warn("MOBI_RESOURCE_RANGE_INFERRED", "The Kindle raster range was inferred from its declared resource count.",
+                    loss: OfficeConversionLossKind.Approximation);
+            }
             int count = declaredCount ?? (end - start.Value);
             if (start.Value >= end || count < 0 || count > end - start.Value)
                 throw new InvalidDataException("The Kindle resource record range is out of bounds.");
             if (count > 2_000) throw new InvalidDataException("The Kindle resource count exceeds 2,000.");
             for (int i = 0; i < count; i++) {
                 token.ThrowIfCancellationRequested();
-                ReadOnlySpan<byte> record = database.Record(start.Value + i);
-                if (record.Length < 4 || record.Length > 8 * 1024 * 1024) continue;
-                byte[] bytes = record.ToArray();
-                if (!EpubImportedPublication.TryReadRaster(bytes, null, token, out OfficeImageInfo image)) continue;
+                if (!TryReadRasterRecord(start.Value + i, out byte[] bytes, out OfficeImageInfo image)) continue;
                 string id = "image-" + Number(i + 1);
                 string extension = OfficeImageInfo.GetDefaultExtension(image.Format);
                 string path = "EPUB/" + id + (extension.StartsWith(".", StringComparison.Ordinal) ? extension : "." + extension);
@@ -138,8 +156,44 @@ public static partial class MobiReader {
             }
         }
 
+        private int? FindStandaloneRasterRange(int count, int end) {
+            // Infer a range only when one contiguous raster block matches the number declared by the book.
+            int? found = null;
+            int consecutive = 0;
+            for (int index = selected.TextRecords + 1; index <= end; index++) {
+                token.ThrowIfCancellationRequested();
+                if (index < end && TryReadRasterRecord(index, out _, out _)) {
+                    consecutive++;
+                    continue;
+                }
+                if (consecutive == count) {
+                    if (found.HasValue) return null;
+                    found = index - consecutive;
+                }
+                consecutive = 0;
+            }
+            return found;
+        }
+
+        private bool TryReadRasterRecord(int index, out byte[] data, out OfficeImageInfo image) {
+            ReadOnlySpan<byte> record = database.Record(index);
+            if (record.Length is >= 4 and <= 8 * 1024 * 1024) {
+                data = record.ToArray();
+                return EpubImportedPublication.TryReadRaster(data, null, token, out image);
+            }
+            data = Array.Empty<byte>();
+            image = null!;
+            return false;
+        }
+
         private void Warn(string code, string message, string? location = null, OfficeConversionLossKind loss = OfficeConversionLossKind.Omission) {
             if (_diagnostics.Count >= 1_000 || !_reported.Add(code + ":" + location)) return;
+            if (_diagnostics.Count == 999) {
+                _diagnostics.Add(new OfficeDiagnostic("MOBI_DIAGNOSTICS_TRUNCATED", OfficeDiagnosticSeverity.Warning,
+                    "Additional distinct Mobipocket diagnostics were omitted after reaching the report limit.",
+                    null, Component, OfficeConversionLossKind.Omission));
+                return;
+            }
             _diagnostics.Add(new OfficeDiagnostic(code, OfficeDiagnosticSeverity.Warning, message, location, Component, loss));
         }
     }

@@ -21,11 +21,13 @@ public static partial class MobiReader {
             var pageBreaks = new List<int>();
             var positions = new HashSet<int>[inputs.Length];
             int tokens = 0, elements = 0;
+            bool hasMarkup = false;
             var parser = new HtmlParser(new HtmlParserOptions {
                 IsKeepingSourceReferences = true,
                 SkipComments = true,
                 OnToken = (markupToken, range) => {
                     Charge(ref tokens, 300_000);
+                    if (markupToken.Type == HtmlTokenType.StartTag) hasMarkup = true;
                     if (markupToken.Type == HtmlTokenType.Character)
                         currentRuns.Add(new MarkupTextRun(range.Start.Index, range.End.Index, markupToken.Data));
                     if (markupToken.Type == HtmlTokenType.StartTag && markupToken.Name == "mbp:pagebreak")
@@ -45,6 +47,10 @@ public static partial class MobiReader {
                 pageBreaks.Clear();
                 int tokensBeforePart = tokens, elementsBeforePart = elements;
                 var document = parser.ParseDocument(html);
+                if (selected.IsHeaderless && !hasMarkup) {
+                    AddLiteralText(book, html);
+                    return;
+                }
                 if (pageBreaks.Count != 0) {
                     // A length-preserving token rewrite keeps filepos and Kindle offsets in the original coordinate space.
                     html = NormalizePageBreaks(html, pageBreaks);
@@ -177,7 +183,12 @@ public static partial class MobiReader {
                     else
                         Warn("MOBI_LIST_NUMBERING_OMITTED", "An ordered-list number was outside the supported integer range.", numberAttribute);
                 }
-                if (tag == "ol" && source.HasAttribute("reversed")) target.SetAttributeValue("reversed", "reversed");
+                if (tag == "ol") {
+                    if (source.HasAttribute("reversed")) target.SetAttributeValue("reversed", "reversed");
+                    string? markerType = source.GetAttribute("type");
+                    if (markerType is "1" or "A" or "a" or "I" or "i")
+                        target.SetAttributeValue("type", markerType);
+                }
             }
 
             if (tag == "a") {

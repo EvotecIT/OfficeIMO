@@ -137,13 +137,67 @@ public sealed class MobiReaderTests {
         Assert.Equal("How &lt; Works", ReadPublication(source, "harbour.azw3").Title);
     }
 
-    [Fact]
-    public void ReadsLegacyMobiWithATextDescriptorOnly() {
-        using var source = new MemoryStream(BuildLegacyMobi(
-            "<html><body><p>Legacy story.</p></body></html>", includeMobiHeader: false), writable: false);
+    [Theory]
+    [InlineData("<html><body><p>Legacy story.</p></body></html>", "Legacy story.", null)]
+    [InlineData("First paragraph\r Second paragraph", "First paragraph", "Second paragraph")]
+    public void ReadsLegacyMobiWithATextDescriptorOnly(string input, string first, string? second) {
+        using var source = new MemoryStream(BuildLegacyMobi(input, includeMobiHeader: false), writable: false);
 
         EpubChapter chapter = Assert.Single(ReadPublication(source, "legacy.mobi").Chapters);
-        Assert.Contains("Legacy story.", chapter.Text);
+        Assert.NotNull(chapter.Html);
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        string[] expected = second == null ? new[] { first } : new[] { first, second };
+        Assert.Equal(expected, XElement.Parse(chapter.Html).Descendants(xhtml + "p").Select(paragraph => paragraph.Value.Trim()));
+    }
+
+    [Fact]
+    public void Utf8BookReadsThePalmNameWhenNativeTitleFieldsAreEmpty() {
+        byte[] bytes = Fixture("harbour.mobi");
+        int header = RecordOffset(bytes, 0);
+        int title = FindExthItem(bytes, header, 503);
+        int titleSize = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(title + 4)) - 8;
+        Array.Clear(bytes, title + 8, titleSize);
+        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(header + 88), 0);
+        Array.Clear(bytes, 0, 32);
+        Encoding.ASCII.GetBytes("Caf").CopyTo(bytes, 0);
+        bytes[3] = 0xe9;
+        using var source = new MemoryStream(bytes, writable: false);
+
+        EpubDocument book = ReadPublication(source, "untitled.mobi");
+
+        Assert.Equal("Café", book.Title);
+        Assert.Contains(book.Chapters, chapter => chapter.Text.Contains("Signal received."));
+    }
+
+    [Fact]
+    public void StandaloneKindleRecoversTheUniqueDeclaredRasterRangeWithoutAPointer() {
+        byte[] bytes = Fixture("harbour.azw3");
+        int header = RecordOffset(bytes, 0);
+        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(header + 108), uint.MaxValue);
+        using var source = new MemoryStream(bytes, writable: false);
+
+        var imported = MobiReader.Import(source, "no-raster-pointer.azw3");
+        using var artifact = new MemoryStream();
+        imported.Value.Save(artifact);
+        artifact.Position = 0;
+        EpubDocument book = EpubDocument.Load(artifact, new EpubLoadOptions { IncludeResourceData = true });
+
+        Assert.Contains(book.Resources, item => item.Id == "image-3" && item.Data?.Length > 0);
+        Assert.Contains(book.Resources, item => item.Properties == "cover-image" && item.Data?.Length > 0);
+        Assert.Contains(imported.Report.Diagnostics, item => item.Code == "MOBI_RESOURCE_RANGE_INFERRED");
+        Assert.DoesNotContain(imported.Report.Diagnostics, item => item.Code == "MOBI_IMAGE_UNAVAILABLE");
+    }
+
+    [Fact]
+    public void ReportsWhenDistinctDiagnosticsExceedTheLimit() {
+        string images = string.Concat(Enumerable.Range(1, 1001).Select(index => $"<img recindex=\"{index}\"/>"));
+        using var source = new MemoryStream(BuildLegacyMobi("<html><body>" + images + "</body></html>"), writable: false);
+
+        OfficeConversionReport report = MobiReader.Import(source, "missing-images.mobi").Report;
+
+        Assert.Equal(1_000, report.Diagnostics.Count);
+        Assert.Equal("MOBI_DIAGNOSTICS_TRUNCATED", report.Diagnostics[report.Diagnostics.Count - 1].Code);
+        Assert.True(report.HasLoss);
     }
 
     [Fact]
@@ -194,7 +248,7 @@ public sealed class MobiReaderTests {
     [Fact]
     public void PreservesContinuedAndReversedOrderedListNumbering() {
         using var source = new MemoryStream(BuildLegacyMobi("""
-            <html><body><ol start="5" reversed><li>Step five</li><li value="10">Step ten</li></ol></body></html>
+            <html><body><ol type="A" start="5" reversed><li>Step five</li><li value="10">Step ten</li></ol></body></html>
             """), writable: false);
 
         EpubChapter chapter = Assert.Single(ReadPublication(source, "list.mobi").Chapters);
@@ -202,6 +256,7 @@ public sealed class MobiReaderTests {
         Assert.NotNull(chapter.Html);
         XNamespace xhtml = "http://www.w3.org/1999/xhtml";
         XElement list = Assert.Single(XElement.Parse(chapter.Html).Descendants(xhtml + "ol"));
+        Assert.Equal("A", (string?)list.Attribute("type"));
         Assert.Equal("5", (string?)list.Attribute("start"));
         Assert.NotNull(list.Attribute("reversed"));
         Assert.Equal("10", (string?)Assert.Single(list.Elements(xhtml + "li"), element => element.Value == "Step ten").Attribute("value"));

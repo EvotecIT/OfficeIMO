@@ -147,14 +147,15 @@ internal static class EpubImportedPublication {
                     (attribute.Name == XNamespace.Xml + "lang" && element.Attribute("lang") != null)) continue;
                 string name = attribute.Name.LocalName;
                 string? value = attribute.Value;
-                bool listNumbering = (tag == "ol" && name is "start" or "reversed") || (tag == "li" && name == "value");
+                bool listNumbering = (tag == "ol" && name is "start" or "reversed" or "type") || (tag == "li" && name == "value");
                 if ((attribute.Name.Namespace != XNamespace.None && attribute.Name != XNamespace.Xml + "lang") ||
                     (!listNumbering && name is not ("id" or "lang" or "dir" or "title" or "alt" or "src" or "href" or "width" or "height" or "colspan" or "rowspan"))) {
                     Omit("EBOOK_HTML_ATTRIBUTE_OMITTED", "An attribute is outside the static HTML projection.", name);
                     continue;
                 }
                 if (markdownAnchors && listNumbering &&
-                    (name is "reversed" or "value" || value.StartsWith("-", StringComparison.Ordinal) || value.Length > 9) &&
+                    (name is "reversed" or "value" || (name == "type" && value != "1") ||
+                     value.StartsWith("-", StringComparison.Ordinal) || value.Length > 9) &&
                     reportedMarkdownNumbering.Add(chapterPath))
                     Omit("EBOOK_MARKDOWN_LIST_NUMBERING_OMITTED", "Markdown readers may change the authored list numbering.", chapterPath);
                 if (markdownAnchors && name == "dir" && reportedMarkdownDirection.Add(chapterPath))

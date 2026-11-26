@@ -47,7 +47,8 @@ public static partial class OfficeWorkflow {
                 if (target == "pdf") {
                     OfficeConversionReport pdf;
                     try {
-                        pdf = EpubPdfExport.Write(book, destination, options.Html, false, cancellationToken);
+                        pdf = EpubPdfExport.Write(book, destination, options.Html, false, cancellationToken,
+                            importedHtmlNodeLimit: EpubImportedPublication.MaximumHtmlNodes);
                     } catch (OfficeConversionException error) {
                         diagnostics.AddRange(error.Report.Diagnostics);
                         var combined = new OfficeConversionReport(options.SourceName!, options.TargetName!,

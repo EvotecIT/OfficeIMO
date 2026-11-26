@@ -20,6 +20,7 @@ internal sealed class MobiHeader {
             throw new InvalidDataException("The Mobipocket text size, record count or record size exceeds its bounds.");
         if (db.IsPalmDoc || data.Length == 16) {
             Version = db.IsPalmDoc ? 0 : 1;
+            IsHeaderless = !db.IsPalmDoc;
             Encoding = GetEncoding(1252);
             return;
         }
@@ -59,6 +60,7 @@ internal sealed class MobiHeader {
     internal int RecordSize { get; }
     internal int Version { get; }
     internal bool IsKf8 => Version == 8;
+    internal bool IsHeaderless { get; }
     internal Encoding Encoding { get; }
     internal uint Locale { get; }
     internal int ExtraFlags { get; }
