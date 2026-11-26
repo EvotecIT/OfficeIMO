@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint.OpenXml;
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Shapes of a slide whose SDK part is not open, read from the slide's tree in the document's package, as
-    /// <see cref="CreateShapeFromElement(DocumentFormat.OpenXml.OpenXmlElement)"/> reads the SDK's shape tree.
+    /// CreateShapeFromElement reads the SDK's shape tree.
     /// </summary>
     public partial class PowerPointSlide {
         /// <summary>The slide's tree in the document's package, or null when the slide has to be read through the SDK.</summary>
@@ -84,13 +84,13 @@ namespace OfficeIMO.PowerPoint {
 
         // Adds a picture to the package tree as AddImage writes it, its image part shared with an identical image added
         // before; null when the slide, the document or the image name is left to the SDK.
-        private PowerPointImage? TryAddPackageImage(byte[] data, OfficeIMO.Drawing.OfficeImageFormat imageType, string extension,
+        private PowerPointImage? TryAddPackageImage(byte[] data, OfficeIMO.Drawing.OfficeImageFormat imageType, string contentType, string extension,
             long left, long top, long width, long height) {
             if (imageType == OfficeIMO.Drawing.OfficeImageFormat.Svg || OwnerDocument is not { } document
                 || !TryGetEditablePackageShapeTree(out OfficeXmlTree slide, out int tree) || !TryGetPackageMaxShapeId(out uint maxShapeId)
                 // A slide out of shape ids makes the model fail before it adds the image part, so nothing is added here.
                 || maxShapeId == uint.MaxValue
-                || !document.TryAddPackageImagePart(PackagePartName!, data, imageType, extension, out string relationshipId, out int pixelWidth, out int pixelHeight)) {
+                || !document.TryAddPackageImagePart(PackagePartName!, data, contentType, extension, out string relationshipId, out int pixelWidth, out int pixelHeight)) {
                 return null;
             }
             uint id = AllocateShapeId();
@@ -249,42 +249,6 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDocument.Append(slide, geometry, OfficeXmlNamespaces.DrawingML, "avLst");
         }
 
-        /// <summary>
-        /// The SDK element of a node of a slide's package tree. The SDK reads the bytes the tree wrote, so the element sits
-        /// at the same place: the same element child at each level down from the slide root. Comments and text the SDK
-        /// keeps as nodes are not elements of the tree. Binding opens the SDK when it is not open yet.
-        /// </summary>
-        internal static DocumentFormat.OpenXml.OpenXmlElement BindPackageElement(PowerPointSlide slide, OfficeXmlTree tree, int node) {
-            var path = new List<int>();
-            for (int current = node; current != tree.Root; current = tree.ParentOf(current)) {
-                // A node an edit removed from the slide has no place in it.
-                if (current == OfficeXmlTree.NoNode) throw new InvalidOperationException("The element is no longer part of the slide.");
-                int index = 0;
-                for (int sibling = tree.PreviousSiblingOf(current); sibling != OfficeXmlTree.NoNode; sibling = tree.PreviousSiblingOf(sibling)) {
-                    if (tree.KindOf(sibling) == OfficeXmlTreeNodeKind.Element) index++;
-                }
-                path.Add(index);
-            }
-            string localName = tree.LocalNameOf(node);
-            DocumentFormat.OpenXml.OpenXmlElement element = slide.SlidePart.Slide
-                ?? throw new InvalidOperationException("The slide the SDK opened has no content.");
-            for (int level = path.Count - 1; level >= 0; level--) {
-                DocumentFormat.OpenXml.OpenXmlElement? child = null;
-                int remaining = path[level];
-                foreach (DocumentFormat.OpenXml.OpenXmlElement candidate in element.ChildElements) {
-                    if (candidate is DocumentFormat.OpenXml.OpenXmlMiscNode) continue;
-                    if (remaining-- == 0) {
-                        child = candidate;
-                        break;
-                    }
-                }
-                element = child ?? throw new InvalidOperationException("The element is not where the slide the SDK opened has it.");
-            }
-            if (!string.Equals(element.LocalName, localName, StringComparison.Ordinal)) {
-                throw new InvalidOperationException("The element is not where the slide the SDK opened has it.");
-            }
-            return element;
-        }
 
         // The slide's visibility on the package: the slide root's show flag, or else the legacy flag on its slide list entry.
         private bool TryGetPackageHidden(out bool hidden) {

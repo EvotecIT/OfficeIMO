@@ -75,9 +75,9 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>
         /// The layouts of a master read from the package, in relationship order as the SDK lists them, with each one's
-        /// name, type and relationship id; null when the model has to read them, or reports a missing master.
+        /// name, type token and relationship id; null when the model has to read them, or reports a missing master.
         /// </summary>
-        private List<(string Name, DocumentFormat.OpenXml.Presentation.SlideLayoutValues? Type, string? RelationshipId)>? TryReadPackageLayouts(int masterIndex) {
+        private List<(string Name, string? Type, string? RelationshipId)>? TryReadPackageLayouts(int masterIndex) {
             if (GetPackage(edit: false) is not { } package) return null;
             try {
                 PackageSlideList? slides = PackageSlideList.Read(package);
@@ -86,19 +86,13 @@ namespace OfficeIMO.PowerPoint {
                 if (masterIndex < 0 || masterIndex >= masters.Count) return null;
                 string master = masters[masterIndex];
                 string masterRelationships = OfficeOpcPartNames.GetRelationshipsPartName(master);
-                var layouts = new List<(string, DocumentFormat.OpenXml.Presentation.SlideLayoutValues?, string?)>();
+                var layouts = new List<(string, string?, string?)>();
                 foreach (string layout in RelatedParts(package, master, SlideLayoutRelationshipType)) {
                     OfficeXmlTree tree = package.GetXml(layout);
                     if (!tree.IsElement(tree.Root, OfficeXmlNamespaces.PresentationML, "sldLayout")) return null;
                     int data = tree.FindChild(tree.Root, OfficeXmlNamespaces.PresentationML, "cSld");
                     string name = data == OfficeXmlTree.NoNode ? string.Empty : tree.GetAttribute(data, OfficeXmlNamespaces.None, "name") ?? string.Empty;
-                    DocumentFormat.OpenXml.Presentation.SlideLayoutValues? type = null;
-                    if (tree.GetAttribute(tree.Root, OfficeXmlNamespaces.None, "type") is { } token) {
-                        var value = new DocumentFormat.OpenXml.Presentation.SlideLayoutValues(token);
-                        // A type the schema doesn't know is reported by the model when it reads it.
-                        if (!((DocumentFormat.OpenXml.IEnumValue)value).IsValid) return null;
-                        type = value;
-                    }
+                    string? type = tree.GetAttribute(tree.Root, OfficeXmlNamespaces.None, "type");
                     layouts.Add((name, type, FirstRelationshipIdTo(package.GetXml(masterRelationships), masterRelationships, layout)));
                 }
                 return layouts;
