@@ -164,7 +164,7 @@ public static partial class OfficeWebpCodec {
         int columns = DivideRoundUp(width, size), rows = DivideRoundUp(height, size);
         var map = new uint[columns * rows];
         var counts = new int[256];
-        var samples = new uint[size * size];
+        var samples = new uint[Math.Min(size, width) * Math.Min(size, height)];
         double savings = 0;
         for (int tileY = 0; tileY < rows; tileY++) {
             cancellationToken.ThrowIfCancellationRequested();

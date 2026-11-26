@@ -119,10 +119,14 @@ public static partial class OfficeWebpCodec {
         Action<int, ulong, int> visit) {
         uint[] cache = cacheBits == 0 ? Array.Empty<uint>() : new uint[1 << cacheBits];
         int shift = 32 - cacheBits;
-        int position = 0;
+        int position = 0, checkpoint = 0;
         int tokenCount = tokens?.Count ?? pixels.Length;
         for (int index = 0; index < tokenCount; index++) {
-            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            // Checked by pixels walked, since one copy can cover thousands of them.
+            if (position >= checkpoint) {
+                cancellationToken.ThrowIfCancellationRequested();
+                checkpoint = position + 4096;
+            }
             ulong token = tokens == null ? pixels[index] : tokens[index];
             if (Vp8lTokens.IsCopy(token)) {
                 int length = Vp8lTokens.Length(token);
@@ -171,10 +175,14 @@ public static partial class OfficeWebpCodec {
             histograms[bits] = new Vp8lHistogram(simulated ? bits : 0);
             caches[bits] = bits == 0 || !simulated ? Array.Empty<uint>() : new uint[1 << bits];
         }
-        int position = 0;
+        int position = 0, checkpoint = 0;
         int tokenCount = tokens?.Count ?? pixels.Length;
         for (int index = 0; index < tokenCount; index++) {
-            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            // Checked by pixels walked, since one copy can cover thousands of them.
+            if (position >= checkpoint) {
+                cancellationToken.ThrowIfCancellationRequested();
+                checkpoint = position + 4096;
+            }
             ulong token = tokens == null ? pixels[index] : tokens[index];
             if (Vp8lTokens.IsCopy(token)) {
                 int length = Vp8lTokens.Length(token);
