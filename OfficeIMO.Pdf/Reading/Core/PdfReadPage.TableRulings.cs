@@ -76,7 +76,7 @@ public sealed partial class PdfReadPage {
                 }
             }
         }
-        if (!strict && HasMaskingGraphicsState(resources)) return Array.Empty<PdfTableRuling>();
+        if (!strict && HasMaskingGraphicsState(resources, forms ? new HashSet<PdfStream>() : null, 0, context)) return Array.Empty<PdfTableRuling>();
         LatticeRulingCollector? lattice = collectLattice ? new LatticeRulingCollector(width, height, ToReadingPoint) : null;
         var rulings = new List<PdfTableRuling>();
         bool uncertain = !strict;
@@ -230,19 +230,53 @@ public sealed partial class PdfReadPage {
     }
 
     /// <summary>Whether any graphics state the page declares sets a soft mask or a blend mode other than normal.</summary>
-    private bool HasMaskingGraphicsState(PdfDictionary? resources) {
-        if (resources is null || !resources.Items.TryGetValue("ExtGState", out PdfObject? value) ||
-            ResolveDictionary(value) is not PdfDictionary states) return false;
-        foreach (PdfObject item in states.Items.Values) {
-            if (ResolveDictionary(item) is not PdfDictionary state) continue;
-            if (state.Items.TryGetValue("SMask", out PdfObject? mask) && ResolveObject(mask) is not PdfName { Name: "None" }) return true;
-            if (state.Items.TryGetValue("BM", out PdfObject? blend)) {
-                PdfObject? mode = ResolveObject(blend);
-                if (mode is PdfArray modes && modes.Items.Count > 0) mode = ResolveObject(modes.Items[0]);
-                if (mode is not PdfName { Name: "Normal" or "Compatible" }) return true;
+    // Masking state anywhere a border can come from: the page's own resources and, when its form objects reach
+    // the lattice, theirs (a form's soft mask hides its strokes as surely as the page's does).
+    private bool HasMaskingGraphicsState(PdfDictionary? resources, HashSet<PdfStream>? forms, int depth, PdfUnderstandingPageContext context) {
+        if (resources is null) return false;
+        if (resources.Items.TryGetValue("ExtGState", out PdfObject? value) && ResolveDictionary(value) is PdfDictionary states) {
+            foreach (PdfObject item in states.Items.Values) {
+                context.ConsumeWork();
+                if (ResolveDictionary(item) is not PdfDictionary state) continue;
+                if (state.Items.TryGetValue("SMask", out PdfObject? mask) && ResolveObject(mask) is not PdfName { Name: "None" }) return true;
+                if (state.Items.TryGetValue("BM", out PdfObject? blend)) {
+                    PdfObject? mode = ResolveObject(blend);
+                    if (mode is PdfArray modes && modes.Items.Count > 0) mode = ResolveObject(modes.Items[0]);
+                    if (mode is not PdfName { Name: "Normal" or "Compatible" }) return true;
+                }
             }
         }
+        if (forms is null || !resources.Items.TryGetValue("XObject", out PdfObject? objects) ||
+            ResolveDictionary(objects) is not PdfDictionary xobjects) return false;
+        foreach (PdfObject item in xobjects.Items.Values) {
+            context.ConsumeWork();
+            if (ResolveObject(item) is not PdfStream stream || !forms.Add(stream) ||
+                stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "Image" }) continue;
+            // Deeper nesting than a reader can confirm leaves the borders' visibility unknown.
+            if (depth >= MaximumMaskingFormDepth) return true;
+            if (stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) &&
+                HasMaskingGraphicsState(ResolveDictionary(own), forms, depth + 1, context)) return true;
+        }
         return false;
+    }
+
+    private const int MaximumMaskingFormDepth = 8;
+
+    // An image paints every pixel of its box only without a soft mask, stencil, colour-key or explicit mask.
+    // An image whose dictionary cannot be found is not assumed to.
+    private bool PaintsEveryPixel(PdfImagePlacement image) {
+        if (image.HasSoftMask || image.EffectiveBlendMode != OfficeBlendMode.Normal) return false;
+        PdfDictionary? dictionary = image.InlineImageStream?.Dictionary;
+        if (dictionary is null && image.EffectiveResources is { } resources &&
+            resources.Items.TryGetValue("XObject", out PdfObject? value) && ResolveDictionary(value) is PdfDictionary xobjects &&
+            xobjects.Items.TryGetValue(image.ResourceName, out PdfObject? entry) && ResolveObject(entry) is PdfStream stream) {
+            dictionary = stream.Dictionary;
+        }
+        if (dictionary is null) return false;
+        if (dictionary.Items.TryGetValue("ImageMask", out PdfObject? stencil) && ResolveObject(stencil) is PdfBoolean { Value: true }) return false;
+        if (dictionary.Items.TryGetValue("IM", out PdfObject? inlineStencil) && ResolveObject(inlineStencil) is PdfBoolean { Value: true }) return false;
+        if (dictionary.Items.ContainsKey("Mask") || dictionary.Items.ContainsKey("SMask")) return false;
+        return !dictionary.Items.TryGetValue("SMaskInData", out PdfObject? inData) || ResolveObject(inData) is not PdfNumber { Value: > 0 };
     }
 
     private bool HasFormXObjects(PdfDictionary? resources) {

@@ -2771,7 +2771,8 @@ public sealed partial class PdfReadPage {
 
         internal void ObserveOperator(string op) {
             if (op == "re") StraightSegments = Math.Min(MinimumGridSegments, StraightSegments + 4);
-            else if (op == "l" && StraightSegments < MinimumGridSegments) StraightSegments++;
+            // A closing operator may draw the last side (m l l l h is a frame of four).
+            else if (op is "l" or "h" or "s" or "b" or "b*" && StraightSegments < MinimumGridSegments) StraightSegments++;
             if (op is "Do" or "BI") HasObjectPaint = true;
             if (op is "S" or "s" or "f" or "F" or "f*" or "B" or "B*" or "b" or "b*" or "sh") HasVectorPaint = true;
         }

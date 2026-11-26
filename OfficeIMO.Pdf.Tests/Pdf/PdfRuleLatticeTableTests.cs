@@ -150,6 +150,49 @@ public sealed class PdfRuleLatticeTableTests {
     }
 
     [Fact]
+    public void StencilImagePaintedOverAGridLeavesItsBordersVisible() {
+        // A stencil paints only where its samples say; the rest of its box shows the grid beneath it.
+        PdfLogicalTable table = Assert.Single(Read(GridUnderImage(out string[][] rows,
+            "q 200 0 0 80 60 630 cm BI /W 1 /H 1 /IM true /BPC 1 /F /AHx ID 00> EI Q\n"), "Courier").Tables);
+
+        Assert.Contains(table.Evidence, evidence => evidence.Code == "table-ruling-lattice");
+        Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
+    }
+
+    [Fact]
+    public void OpaqueImageClippedOverAGridHidesItsBorders() {
+        // The image's box reaches above the clip; the clip alone, over the table, decides what shows.
+        StringBuilder content = GridUnderImage(out _,
+            "q 60 620 240 90 re W n 240 0 0 120 60 600 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+
+        Assert.DoesNotContain(Read(content, "Courier").Tables,
+            table => table.Evidence.Any(evidence => evidence.Code == "table-ruling-lattice"));
+    }
+
+    // A stroked grid whose rows are one string each, so only the borders split them into cells, with an image
+    // painted after it. The image also keeps the strict stroke reader out.
+    private static StringBuilder GridUnderImage(out string[][] rows, string image) {
+        rows = new[] {
+            new[] { "Code", "Item" },
+            new[] { "A-01", "Widget" },
+            new[] { "B-02", "Sprocket" },
+            new[] { "C-03", "Flange" }
+        };
+        double[] x = { 72, 162, 262 };
+        double[] y = Rows(700, 16, 16, rows.Length - 1);
+        var content = new StringBuilder("0 G 0.75 w\n");
+        foreach (double top in y) Line(content, x[0], top, x[x.Length - 1], top);
+        foreach (double left in x) Line(content, left, y[0], left, y[y.Length - 1]);
+        content.Append(image);
+        for (int row = 0; row < rows.Length; row++) {
+            double spacing = x[1] + 3 - (x[0] + 3 + rows[row][0].Length * 5.4) - 5.4;
+            content.Append("BT /F1 9 Tf ").Append(Number(spacing)).Append(" Tw 0 g 1 0 0 1 ").Append(Number(x[0] + 3)).Append(' ')
+                .Append(Number(y[row + 1] + 5)).Append(" Tm (").Append(rows[row][0]).Append(' ').Append(rows[row][1]).Append(") Tj ET\n");
+        }
+        return content;
+    }
+
+    [Fact]
     public void ClosedGridWithAWrappedHeaderKeepsItsBodyRows() {
         // Every header cell wraps to the same three lines; the body rows below are each ruled. The shared
         // header lines are wrapping, not data rows the producer left unruled.

@@ -107,6 +107,19 @@ public sealed partial class PdfReadPage {
                 if (Math.Min(candidate.Right - candidate.Left, candidate.Bottom - candidate.Top) > MaximumRuleThickness) cellSized++;
             }
             bool cover = cellSized <= 1 || (cellSized <= MaximumCompoundBoxes && !HasNestedBox(boxes));
+            if (!cover && opaque) {
+                // An opaque frame paints the ring around its hole. One hole is four bands; with more, the painted
+                // area is not modelled, so a border drawn before it may be hidden and the page is not read.
+                if (cellSized == 2 && TryFrame(boxes, out var outer, out var hole)) {
+                    AddFilledBox(outer.Left, outer.Top, outer.Right, hole.Top, clip, order, FillPhase, color, opaque);
+                    AddFilledBox(outer.Left, hole.Bottom, outer.Right, outer.Bottom, clip, order, FillPhase, color, opaque);
+                    AddFilledBox(outer.Left, hole.Top, hole.Left, hole.Bottom, clip, order, FillPhase, color, opaque);
+                    AddFilledBox(hole.Right, hole.Top, outer.Right, hole.Bottom, clip, order, FillPhase, color, opaque);
+                } else if (_rules.Count > 0) {
+                    _overflow = true;
+                    return;
+                }
+            }
             foreach (var found in boxes) {
                 context.ConsumeWork();
                 bool rule = Math.Min(found.Right - found.Left, found.Bottom - found.Top) <= MaximumRuleThickness;
@@ -117,6 +130,19 @@ public sealed partial class PdfReadPage {
             void CloseBox() {
                 if (open && box && Orthogonal(previous, first) && corners is >= 4 and <= 5) boxes.Add((left, top, right, bottom));
                 open = box = false;
+            }
+
+            static bool TryFrame(List<(double Left, double Top, double Right, double Bottom)> boxes,
+                out (double Left, double Top, double Right, double Bottom) outer, out (double Left, double Top, double Right, double Bottom) hole) {
+                outer = hole = default;
+                bool found = false;
+                foreach (var box in boxes) {
+                    if (Math.Min(box.Right - box.Left, box.Bottom - box.Top) <= MaximumRuleThickness) continue;
+                    if (!found) { outer = box; found = true; continue; }
+                    if (box.Left <= outer.Left && box.Right >= outer.Right && box.Top <= outer.Top && box.Bottom >= outer.Bottom) { hole = outer; outer = box; }
+                    else hole = box;
+                }
+                return hole.Left >= outer.Left && hole.Right <= outer.Right && hole.Top >= outer.Top && hole.Bottom <= outer.Bottom;
             }
 
             static bool HasNestedBox(List<(double Left, double Top, double Right, double Bottom)> boxes) {
@@ -234,20 +260,25 @@ public sealed partial class PdfReadPage {
         internal IReadOnlyList<PdfTableRuling> Build(PdfUnderstandingPageContext context) {
             if (_overflow || _rules.Count < 4) return Array.Empty<PdfTableRuling>();
             List<Fill> fills = _fills;
+            double? sourceHeight = null;
             foreach (PdfImagePlacement image in context.ImagePlacements) {
                 context.ConsumeWork();
                 if (!IsFinite(image.X) || !IsFinite(image.Y) || !IsFinite(image.Width) || !IsFinite(image.Height)) continue;
-                double left = image.X, top = image.Y, right = image.X + image.Width, bottom = image.Y + image.Height;
+                // Placements are bottom-origin page space; clip paths are top-origin, measured from the page height.
+                double left = image.X, low = image.Y, right = image.X + image.Width, high = image.Y + image.Height;
                 // An image shows only inside its clip.
                 if (image.ClipPath is PdfPageClipPath clip) {
                     if (!IsFinite(clip.X) || !IsFinite(clip.Y) || !IsFinite(clip.Width) || !IsFinite(clip.Height)) continue;
-                    left = Math.Max(left, clip.X); top = Math.Max(top, clip.Y);
-                    right = Math.Min(right, clip.X + clip.Width); bottom = Math.Min(bottom, clip.Y + clip.Height);
-                    if (right <= left || bottom <= top) continue;
+                    sourceHeight ??= context.Page.GetPageSize().Height;
+                    left = Math.Max(left, clip.X); right = Math.Min(right, clip.X + clip.Width);
+                    low = Math.Max(low, sourceHeight.Value - (clip.Y + clip.Height)); high = Math.Min(high, sourceHeight.Value - clip.Y);
+                    if (right <= left || high <= low) continue;
                 }
-                (double X, double Y) a = ToFrame(left, top), b = ToFrame(right, bottom);
-                // An image clipped to anything but an exact rectangle may show less than its box: it is not cover.
-                bool opaque = image.Opacity >= 1D && (image.ClipPath is not PdfPageClipPath shape || (shape.IsRectangle && shape.IsExact));
+                (double X, double Y) a = ToFrame(left, low), b = ToFrame(right, high);
+                // An image clipped to anything but an exact rectangle, or with transparent pixels, may show less
+                // than its box: it is not cover.
+                bool opaque = image.Opacity >= 1D && (image.ClipPath is not PdfPageClipPath shape || (shape.IsRectangle && shape.IsExact)) &&
+                    context.Page.PaintsEveryPixel(image);
                 fills.Add(new Fill(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Max(a.X, b.X), Math.Max(a.Y, b.Y),
                     image.PaintOrder, FillPhase, null, opaque));
             }
@@ -311,7 +342,8 @@ public sealed partial class PdfReadPage {
                 foreach (var stretch in under) { breaks.Add(stretch.From); breaks.Add(stretch.To); }
                 breaks.Sort();
                 for (int stop = 0; stop + 1 < breaks.Count; stop++) {
-                    context.ConsumeWork();
+                    // Each stretch compares every backdrop beneath the rule.
+                    context.ConsumeWork(1 + under.Count);
                     double from = breaks[stop], to = breaks[stop + 1];
                     if (to <= from) continue;
                     double middle = (from + to) / 2D;
