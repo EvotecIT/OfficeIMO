@@ -37,6 +37,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
   <PropertyGroup Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' == 'false' ">
     <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
   </PropertyGroup>

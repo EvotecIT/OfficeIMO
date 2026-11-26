@@ -281,7 +281,7 @@ public static partial class OfficeConversionCapabilityCatalog {
             ? null
             : All.FirstOrDefault(route => string.Equals(route.Id, id!.Trim(), StringComparison.OrdinalIgnoreCase));
 
-    private static readonly string[] CompoundSourceExtensions = All.SelectMany(route => route.SourceExtensions)
+    private static readonly string[] CompoundSourceExtensions = All.Where(static route => route.HostExecutable).SelectMany(static route => route.SourceExtensions)
         .Where(extension => extension.IndexOf('.', 1) >= 0).Distinct(StringComparer.OrdinalIgnoreCase)
         .OrderByDescending(extension => extension.Length).ToArray();
 

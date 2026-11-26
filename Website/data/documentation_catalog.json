@@ -9,7 +9,7 @@
     "validationProjectCount": 81,
     "apiReferenceCount": 129,
     "conceptualPageCount": 213,
-    "conceptualWordCount": 122635
+    "conceptualWordCount": 122640
   },
   "categories": [
     {
@@ -572,7 +572,7 @@
       "projectPath": "OfficeIMO.Comic/OfficeIMO.Comic.csproj",
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Comic/README.md",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Comic",
       "targetFrameworks": [

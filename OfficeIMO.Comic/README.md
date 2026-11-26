@@ -3,6 +3,12 @@
 Read a CBZ as a sequence of numbered page images. An optional `ComicInfo.xml`
 provides the title, contributors, cover and page bookmarks.
 
+Install the package from NuGet.
+
+```sh
+dotnet add package OfficeIMO.Comic
+```
+
 ```csharp
 using OfficeIMO.Comic;
 

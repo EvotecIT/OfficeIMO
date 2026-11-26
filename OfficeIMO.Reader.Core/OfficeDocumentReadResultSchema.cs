@@ -15,17 +15,17 @@ public static partial class OfficeDocumentReadResultSchema {
     /// <summary>
     /// Current schema version emitted and accepted by this package.
     /// </summary>
-    public const int CurrentVersion = 15;
+    public const int CurrentVersion = 16;
 
     /// <summary>
-    /// Stable JSON Schema identifier for current version 15 payloads.
+    /// Stable JSON Schema identifier for current version 16 payloads.
     /// </summary>
-    public const string JsonSchemaId = "urn:officeimo:schema:document-read-result:15";
+    public const string JsonSchemaId = "urn:officeimo:schema:document-read-result:16";
 
     /// <summary>
     /// File name used for the packaged current JSON Schema artifact.
     /// </summary>
-    public const string JsonSchemaFileName = "officeimo.document.read-result.v15.schema.json";
+    public const string JsonSchemaFileName = "officeimo.document.read-result.v16.schema.json";
 
     /// <summary>
     /// Returns true when a schema header can be consumed by this package.
