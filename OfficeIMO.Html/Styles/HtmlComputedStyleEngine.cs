@@ -613,6 +613,7 @@ public static partial class HtmlComputedStyleEngine {
             };
             if (marker != null)
                 properties["list-style-type"] = new CascadedProperty(marker, false, Specificity.PresentationalHint, -1,
+                    layerOrder: PresentationalHintLayerOrder,
                     source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.PresentationalHint);
         }
         string? directionAttribute = element.GetAttribute("dir")?.Trim();
