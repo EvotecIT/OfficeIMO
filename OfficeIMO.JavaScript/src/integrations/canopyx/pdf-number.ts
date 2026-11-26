@@ -1,5 +1,6 @@
 import { ExportCell } from "../../core/index.js";
 import type { ExportValue, ColumnSettings } from "../../core/index.js";
+import { canopyBadgeSplit } from "./source.js";
 
 /** Fixed numeric formats affect PDF text, not the frozen numeric value used by other writers. */
 function numericProfile(format: string | undefined): { minimumFractionDigits: number; maximumFractionDigits: number; percent: boolean; grouping: boolean; prefix: string; suffix: string } | undefined {
@@ -43,10 +44,10 @@ function documentDecimal(sample: readonly (readonly ExportValue[])[], columns: r
       if (!(cell instanceof ExportCell) || typeof cell.value !== "number") continue;
       const profile = numericProfile(cell.presentation?.numberFormat ?? column.format);
       if (!profile) continue;
-      const captured = capturedNumber(cell.text ?? "", profile);
+      const label = canopyBadgeSplit(cell).text, captured = capturedNumber(label, profile);
       if (!captured) continue;
       // A literal percent label is a culture signal without requesting numeric scaling.
-      const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
+      const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || label.includes("%");
       if (percentageSignal !== percent) continue;
       const match = /([.,])(\d+)$/.exec(captured.number.trimEnd());
       if (match) {
@@ -70,9 +71,11 @@ export function canopyPdfNumbers(sample: readonly (readonly ExportValue[])[], co
     if (!(value instanceof ExportCell) || typeof value.value !== "number") return value;
     const format = value.presentation?.numberFormat ?? columns[index]!.format;
     let profile = numericProfile(format);
-    if (!profile || value.text === "") return value;
-    const captured = capturedNumber(value.text ?? "", profile);
-    if (value.text && !captured) return value;
+    // Badge labels are not part of the number: format the captured label alone, then append them unchanged.
+    const { text: label, suffix: badges } = canopyBadgeSplit(value);
+    if (!profile || label === "") return value;
+    const captured = capturedNumber(label, profile);
+    if (label && !captured) return value;
     // Undeclared formats normalize only plain numeric labels; a decoration
     // alone does not declare how the raw value was transformed for display.
     if ((format === undefined || format === "General") && captured && (captured.prefix.trim() || captured.suffix.trim())) return value;
@@ -95,7 +98,7 @@ export function canopyPdfNumbers(sample: readonly (readonly ExportValue[])[], co
     const prefix = captured?.prefix || profile.prefix;
     let suffix = captured?.suffix || profile.suffix;
     if (profile.percent && !profile.suffix) suffix = suffix.replace(/%/g, "");
-    return new ExportCell(value.value, { text: leadingSign + prefix + formatted + (profile.percent ? "%" : "") + suffix,
+    return new ExportCell(value.value, { text: leadingSign + prefix + formatted + (profile.percent ? "%" : "") + suffix + badges,
       ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
   });
 }

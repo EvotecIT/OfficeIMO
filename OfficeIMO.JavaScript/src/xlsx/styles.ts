@@ -14,6 +14,22 @@ export interface Fill { readonly pattern?: "none" | "gray125" | "solid"; readonl
 export type BorderLineStyle = "thin" | "medium" | "dashed" | "dotted" | "thick" | "double" | "hair" | "dashDot" | "dashDotDot" | "slantDashDot" | "mediumDashed" | "mediumDashDot" | "mediumDashDotDot";
 export interface BorderEdge { readonly style: BorderLineStyle; readonly color?: string; }
 export interface Border { readonly left?: BorderEdge; readonly right?: BorderEdge; readonly top?: BorderEdge; readonly bottom?: BorderEdge; }
+const borderStyles: readonly string[] = ["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"];
+/** @internal Validate and normalize border edges without registering a workbook style. */
+export function normalizeBorder(border: Border): Border {
+  if (!border || typeof border !== "object") throw new TypeError("A border must be an object of edges.");
+  const result: { left?: BorderEdge; right?: BorderEdge; top?: BorderEdge; bottom?: BorderEdge } = {};
+  for (const side of ["left", "right", "top", "bottom"] as const) {
+    const edge = border[side];
+    if (edge) {
+      // Read each property once, so the validated edge is the one that is stored.
+      const { style, color } = edge;
+      if (!borderStyles.includes(style)) throw new TypeError("Invalid border style.");
+      result[side] = { style, ...(color ? { color: colorArgb(color) } : {}) };
+    }
+  }
+  return result;
+}
 export interface CellStyle {
   readonly font?: number | Font;
   readonly fill?: number | Fill;
@@ -84,29 +100,21 @@ export class StyleRegistry {
   /** @internal */
   addDifferentials(styles: readonly ConditionalStyle[]): readonly number[] { this.checkDifferentials(styles); return this.differential.add(styles); }
   addFont(font: Font): number {
-    if (font.name !== undefined && typeof font.name !== "string") throw new TypeError("Font name must be a string.");
-    const name = cleanXml(font.name ?? "Calibri", this.policy), size = font.size ?? 11;
+    const { name: requested, size: requestedSize, bold, italic, underline, strike, color } = font;
+    if (requested !== undefined && typeof requested !== "string") throw new TypeError("Font name must be a string.");
+    const name = cleanXml(requested ?? "Calibri", this.policy), size = requestedSize ?? 11;
     if (typeof name !== "string" || !name || name.length > 31) throw new TypeError("Font name must contain 1 through 31 characters.");
     if (!Number.isFinite(size) || size <= 0 || size > 409) throw new RangeError("Font size must be positive and at most 409.");
-    return deduplicate(this.fonts, this.fontIndexes, { name, size, bold: !!font.bold, italic: !!font.italic, underline: !!font.underline, strike: !!font.strike, color: font.color ? colorArgb(font.color) : "" }, this.maximum);
+    return deduplicate(this.fonts, this.fontIndexes, { name, size, bold: !!bold, italic: !!italic, underline: !!underline, strike: !!strike, color: color ? colorArgb(color) : "" }, this.maximum);
   }
   addFill(fill: Fill): number {
-    const pattern = fill.pattern ?? (fill.color ? "solid" : "none");
-    if (!["none", "gray125", "solid"].includes(pattern) || (pattern === "solid" && !fill.color) || (pattern !== "solid" && fill.color))
+    const { color } = fill, pattern = fill.pattern ?? (color ? "solid" : "none");
+    if (!["none", "gray125", "solid"].includes(pattern) || (pattern === "solid" && !color) || (pattern !== "solid" && color))
       throw new TypeError("A solid fill requires a color; none and gray125 have no color.");
-    return deduplicate(this.fills, this.fillIndexes, { pattern, color: fill.color ? colorArgb(fill.color) : "" }, this.maximum + 1);
+    return deduplicate(this.fills, this.fillIndexes, { pattern, color: color ? colorArgb(color) : "" }, this.maximum + 1);
   }
   addBorder(border: Border): number {
-    const result: { left?: BorderEdge; right?: BorderEdge; top?: BorderEdge; bottom?: BorderEdge } = {};
-    for (const side of ["left", "right", "top", "bottom"] as const) {
-      const edge = border[side];
-      if (edge) {
-        if (!["thin", "medium", "dashed", "dotted", "thick", "double", "hair", "dashDot", "dashDotDot", "slantDashDot", "mediumDashed", "mediumDashDot", "mediumDashDotDot"].includes(edge.style))
-          throw new TypeError("Invalid border style.");
-        result[side] = { style: edge.style, ...(edge.color ? { color: colorArgb(edge.color) } : {}) };
-      }
-    }
-    return deduplicate(this.borders, this.borderIndexes, result, this.maximum);
+    return deduplicate(this.borders, this.borderIndexes, normalizeBorder(border), this.maximum);
   }
   addNumberFormat(format: string): number {
     if (typeof format !== "string" || !format || format.length > 255) throw new TypeError("Number format must contain 1 through 255 characters.");
@@ -159,7 +167,7 @@ export class StyleRegistry {
     return this.compose(base, { numberFormat: this.styles[this.validateStyle(dateStyle)]!.numberFormat });
   }
   /** @internal Column shorthand and header style composition. */
-  forColumn(column: XlsxColumn, header = false, fill?: string, date = false): number {
+  forColumn(column: XlsxColumn, header = false, fill?: string, date = false, border?: Border): number {
     const base = !header && column.style !== undefined ? this.styles[this.validateStyle(column.style)] : undefined;
     const format = column.format !== undefined ? column.format || NumberFormats.General : base?.numberFormat || (column.type === "date" || date ? NumberFormats.DateTime : NumberFormats.General);
     return this.add({
@@ -168,7 +176,7 @@ export class StyleRegistry {
       wrapText: column.wrapText ?? base?.wrapText ?? false,
       ...(column.alignment ? { alignment: column.alignment } : base?.alignment ? { alignment: base.alignment as Alignment } : {}),
       ...(base?.verticalAlignment ? { verticalAlignment: base.verticalAlignment as CellStyle["verticalAlignment"] & string } : {}),
-      ...(header ? { font: { bold: true } } : {}), ...(fill ? { fill: { color: fill } } : {})
+      ...(header ? { font: { bold: true } } : {}), ...(fill ? { fill: { color: fill } } : {}), ...(border ? { border } : {})
     });
   }
   toXml(): string {
