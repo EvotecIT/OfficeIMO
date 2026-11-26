@@ -188,7 +188,8 @@ public consumer of their API, so a break there means a break for other
 applications too. Build the unsigned packages with `./Build/Build-Release.ps1`
 and clone Verify.OfficeIMO outside this repository. In the clone's
 `src/nuget.config`, add the package output folder as a source, map
-`OfficeIMO.*` to it with package source mapping, and set
+`OfficeIMO.*` to it with package source mapping, map `*` to nuget.org so the
+other dependencies still restore, and set
 `signatureValidationMode` to `accept`, because the candidates are unsigned. Set
 every `OfficeIMO.*` version in its `src/Directory.Packages.props` to the
 candidate version. Point `NUGET_PACKAGES` at a new empty folder for the run, so
