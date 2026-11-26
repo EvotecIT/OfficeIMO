@@ -1,35 +1,15 @@
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word {
-    // Manages run property settings.
+    // Manages run property settings. Each member reads and edits OfficeIMO's own package model while the document works
+    // without the Open XML SDK; once the SDK holds the document, the same member goes through the bridge.
     public partial class WordParagraph {
-        internal RunProperties? ScopedRunProperties => _stdRun != null
-            ? _stdRun.SdtContentRun?.Descendants<Run>().FirstOrDefault()?.GetFirstChild<RunProperties>()
-            : IsHyperLink ? Hyperlink?._runProperties : _runProperties;
-        private static bool IsOnOffPropertyEnabled(OnOffType? property) {
-            return property != null && (property.Val == null || property.Val.Value);
-        }
-
         /// <summary>
         /// Gets or sets a value indicating whether the run is bold. Setting false explicitly overrides inherited bold.
         /// </summary>
         public bool Bold {
-            get {
-                if (_ownedTree != null && TryGetOwnedOnOff("b", out bool ownedValue)) return ownedValue;
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Bold);
-            }
+            get => _ownedTree != null && TryGetOwnedOnOff("b", out bool owned) ? owned : SdkBold;
             set {
                 if (_ownedTree != null && TrySetOwnedOnOffPair("b", "bCs", value)) return;
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                runProperties.Bold = new Bold { Val = value };
-                runProperties.BoldComplexScript = new BoldComplexScript { Val = value };
+                SdkBold = value;
             }
         }
 
@@ -37,22 +17,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the run is italic. Setting false explicitly overrides inherited italic.
         /// </summary>
         public bool Italic {
-            get {
-                if (_ownedTree != null && TryGetOwnedOnOff("i", out bool ownedValue)) return ownedValue;
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Italic);
-            }
+            get => _ownedTree != null && TryGetOwnedOnOff("i", out bool owned) ? owned : SdkItalic;
             set {
                 if (_ownedTree != null && TrySetOwnedOnOffPair("i", "iCs", value)) return;
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                runProperties.Italic = new Italic { Val = value };
-                runProperties.ItalicComplexScript = new ItalicComplexScript { Val = value };
+                SdkItalic = value;
             }
         }
 
@@ -60,32 +28,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets the underline style for the run.
         /// </summary>
         public WordUnderlineStyle? Underline {
-            get {
-                if (_ownedTree != null && TryGetOwnedUnderline(out WordUnderlineStyle? ownedValue)) return ownedValue;
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.Underline != null) {
-                    return runProperties.Underline.Val?.Value.ToOfficeEnum();
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedUnderline(out WordUnderlineStyle? owned) ? owned : SdkUnderline;
             set {
                 if (_ownedTree != null && TrySetOwnedUnderline(value)) return;
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != null) {
-                    if (runProperties.Underline == null) {
-                        runProperties.Underline = new Underline();
-                    }
-
-                    runProperties.Underline.Val = value.Value.ToOpenXml();
-                } else {
-                    if (runProperties.Underline != null) runProperties.Underline.Remove();
-                }
+                SdkUnderline = value;
             }
         }
 
@@ -93,23 +39,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether spelling and grammar checks are disabled.
         /// </summary>
         public bool DoNotCheckSpellingOrGrammar {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.NoProof);
-            }
+            get => _ownedTree != null && TryGetOwnedOnOff("noProof", out bool owned) ? owned : SdkDoNotCheckSpellingOrGrammar;
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.NoProof != null) runProperties.NoProof.Remove();
-                } else {
-                    runProperties.NoProof = new NoProof();
-                }
+                if (_ownedTree != null && TrySetOwnedToggle("noProof", value)) return;
+                SdkDoNotCheckSpellingOrGrammar = value;
             }
         }
 
@@ -117,30 +50,11 @@ namespace OfficeIMO.Word {
         /// Gets or sets the signed physical character spacing. Null removes the local value.
         /// </summary>
         public OfficeLength? Spacing {
-            get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.Spacing != null) {
-                    return runProperties.Spacing.Val?.Value is int nativeSpacing
-                        ? OfficeLength.Emus((long)nativeSpacing * 635) : (OfficeLength?)null;
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedCharacterSpacing(out OfficeLength? owned) ? owned : SdkSpacing;
             set {
                 int? nativeSpacing = value.HasValue ? checked((int)value.Value.ToTwips()) : (int?)null;
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != null) {
-                    Spacing spacing = new Spacing();
-                    spacing.Val = nativeSpacing;
-                    runProperties.Spacing = spacing;
-                } else {
-                    if (runProperties.Spacing != null) runProperties.Spacing.Remove();
-                }
+                if (_ownedTree != null && TrySetOwnedValue("spacing", nativeSpacing?.ToString(System.Globalization.CultureInfo.InvariantCulture))) return;
+                SdkSpacing = value;
             }
         }
 
@@ -148,25 +62,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the run is struck through.
         /// </summary>
         public bool Strikethrough {
-            get {
-                if (_ownedTree != null && TryGetOwnedOnOff("strike", out bool ownedValue)) return ownedValue;
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Strike);
-            }
+            get => _ownedTree != null && TryGetOwnedOnOff("strike", out bool owned) ? owned : SdkStrikethrough;
             set {
                 if (_ownedTree != null && TrySetOwnedToggle("strike", value)) return;
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.Strike != null) runProperties.Strike.Remove();
-                } else {
-                    runProperties.Strike = new Strike();
-                }
+                SdkStrikethrough = value;
             }
         }
 
@@ -174,25 +73,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the run has a double strikethrough.
         /// </summary>
         public bool DoubleStrikethrough {
-            get {
-                if (_ownedTree != null && TryGetOwnedOnOff("dstrike", out bool ownedValue)) return ownedValue;
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.DoubleStrike);
-            }
+            get => _ownedTree != null && TryGetOwnedOnOff("dstrike", out bool owned) ? owned : SdkDoubleStrikethrough;
             set {
                 if (_ownedTree != null && TrySetOwnedToggle("dstrike", value)) return;
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.DoubleStrike != null) runProperties.DoubleStrike.Remove();
-                } else {
-                    runProperties.DoubleStrike = new DoubleStrike();
-                }
+                SdkDoubleStrikethrough = value;
             }
         }
 
@@ -200,23 +84,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the run text is outlined.
         /// </summary>
         public bool Outline {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Outline);
-            }
+            get => _ownedTree != null && TryGetOwnedOnOff("outline", out bool owned) ? owned : SdkOutline;
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.Outline != null) runProperties.Outline.Remove();
-                } else {
-                    runProperties.Outline = new Outline();
-                }
+                if (_ownedTree != null && TrySetOwnedToggle("outline", value)) return;
+                SdkOutline = value;
             }
         }
 
@@ -224,23 +95,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the run has a shadow effect.
         /// </summary>
         public bool Shadow {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Shadow);
-            }
+            get => _ownedTree != null && TryGetOwnedOnOff("shadow", out bool owned) ? owned : SdkShadow;
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.Shadow != null) runProperties.Shadow.Remove();
-                } else {
-                    runProperties.Shadow = new Shadow();
-                }
+                if (_ownedTree != null && TrySetOwnedToggle("shadow", value)) return;
+                SdkShadow = value;
             }
         }
 
@@ -248,23 +106,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets a value indicating whether the run is embossed.
         /// </summary>
         public bool Emboss {
-            get {
-                var runProperties = ScopedRunProperties;
-                return IsOnOffPropertyEnabled(runProperties?.Emboss);
-            }
+            get => _ownedTree != null && TryGetOwnedOnOff("emboss", out bool owned) ? owned : SdkEmboss;
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != true) {
-                    if (runProperties.Emboss != null) runProperties.Emboss.Remove();
-                } else {
-                    runProperties.Emboss = new Emboss();
-                }
+                if (_ownedTree != null && TrySetOwnedToggle("emboss", value)) return;
+                SdkEmboss = value;
             }
         }
 
@@ -279,15 +124,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets or sets native point values without a whole-EMU round trip.</summary>
         internal double? NativeFontSizePoints {
-            get {
-                if (_ownedTree != null && TryGetOwnedFontSize(out double? ownedValue)) return ownedValue;
-                var runProperties = ScopedRunProperties;
-                string? value = runProperties?.FontSize?.Val?.Value;
-                return int.TryParse(value, System.Globalization.NumberStyles.Integer,
-                    System.Globalization.CultureInfo.InvariantCulture, out int halfPoints)
-                    ? halfPoints / 2D
-                    : (double?)null;
-            }
+            get => _ownedTree != null && TryGetOwnedFontSize(out double? owned) ? owned : SdkNativeFontSizePoints;
             set {
                 if (_ownedTree != null && OwnedModel != null) {
                     if (value == null) {
@@ -297,26 +134,7 @@ namespace OfficeIMO.Word {
                         if (TrySetOwnedValue("sz", ownedHalfPoints.ToString(System.Globalization.CultureInfo.InvariantCulture))) return;
                     }
                 }
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != null) {
-                    if (double.IsNaN(value.Value) || double.IsInfinity(value.Value) ||
-                        value.Value < 0D || value.Value > int.MaxValue / 2D) {
-                        throw new ArgumentOutOfRangeException(nameof(value));
-                    }
-                    int halfPoints = checked((int)Math.Round(value.Value * 2D, MidpointRounding.AwayFromZero));
-                    runProperties.FontSize = new FontSize {
-                        Val = halfPoints.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                    };
-                } else {
-                    if (runProperties.FontSize != null) runProperties.FontSize.Remove();
-                }
-                UpdatePageNumberFormatting(runProperties.FontSize);
+                SdkNativeFontSizePoints = value;
             }
         }
 
@@ -324,7 +142,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the text color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         public OfficeIMO.OfficeColor? Color {
-            get => _ownedTree != null && TryGetOwnedColor(out OfficeIMO.OfficeColor? ownedValue) ? ownedValue : WordRunColor.Read(ScopedRunProperties?.Color);
+            get => _ownedTree != null && TryGetOwnedColor(out OfficeIMO.OfficeColor? owned) ? owned : SdkColor;
             set {
                 if (_ownedTree != null && (value == null || !value.Value.IsThemeRole)
                     && TrySetOwnedValue("color", value?.ToRgbHex())) return;
@@ -340,32 +158,11 @@ namespace OfficeIMO.Word {
         /// Gets or sets the native run colour value (hexadecimal or <c>auto</c>); empty removes it.
         /// </summary>
         internal string RunColorValue {
-            get {
-                if (_ownedTree != null && TryGetOwnedValue("color", out string? ownedValue)) return ownedValue ?? "";
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.Color != null) {
-                    return runProperties.Color.Val?.Value ?? "";
-                }
-                return "";
-            }
+            get => _ownedTree != null && TryGetOwnedValue("color", out string? owned) ? owned ?? "" : SdkRunColorValue;
             set {
                 if (_ownedTree != null && (value == "" || Helpers.NormalizeOpenXmlColor(value) != null)
                     && TrySetOwnedValue("color", value != "" ? Helpers.NormalizeOpenXmlColor(value) : null)) return;
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != "") {
-                    var color = new DocumentFormat.OpenXml.Wordprocessing.Color();
-                    color.Val = Helpers.NormalizeOpenXmlColor(value);
-                    runProperties.Color = color;
-                } else {
-                    if (runProperties.Color != null) runProperties.Color.Remove();
-                }
-                UpdatePageNumberFormatting(runProperties.Color);
+                SdkRunColorValue = value;
             }
         }
 
@@ -373,67 +170,19 @@ namespace OfficeIMO.Word {
         /// Gets or sets the theme color applied to the run.
         /// </summary>
         public WordThemeColor? ThemeColor {
-            get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.Color != null && runProperties.Color.ThemeColor != null) {
-                    return runProperties.Color.ThemeColor?.Value.ToOfficeEnum();
-                }
-                return null;
-            }
-            set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value != null) {
-                    var color = new DocumentFormat.OpenXml.Wordprocessing.Color {
-                        ThemeColor = new EnumValue<ThemeColorValues> {
-                            Value = value.Value.ToOpenXml()
-                        }
-                    };
-                    // w:val is required; it caches the theme colour for applications that ignore the theme.
-                    color.Val = WordRunFormatting.ResolveColorHex(color, _document) ?? "auto";
-                    runProperties.Color = color;
-                } else {
-                    if (runProperties.Color != null) runProperties.Color.Remove();
-                }
-            }
+            get => _ownedTree != null && TryGetOwnedThemeColor(out WordThemeColor? owned) ? owned : SdkThemeColor;
+            // The colour value caches the theme's colour, which the SDK path reads from the theme.
+            set => SdkThemeColor = value;
         }
 
         /// <summary>
         /// Gets or sets the highlight color applied to the run.
         /// </summary>
         public WordHighlightColor? Highlight {
-            get {
-                if (_ownedTree != null && TryGetOwnedHighlight(out WordHighlightColor? ownedValue)) return ownedValue;
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.Highlight != null) {
-                    return runProperties.Highlight.Val?.Value.ToOfficeEnum();
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedHighlight(out WordHighlightColor? owned) ? owned : SdkHighlight;
             set {
                 if (_ownedTree != null && TrySetOwnedHighlight(value)) return;
-                RunProperties? existingRunProperties = ScopedRunProperties;
-                if (!value.HasValue) {
-                    existingRunProperties?.Highlight?.Remove();
-                    return;
-                }
-
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                var highlight = new Highlight {
-                    Val = value.Value.ToOpenXml()
-                };
-                runProperties.Highlight = highlight;
+                SdkHighlight = value;
             }
         }
 
@@ -441,36 +190,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets the capitalization style for the run.
         /// </summary>
         public WordCapsStyle CapsStyle {
-            get {
-                if (_ownedTree != null && TryGetOwnedCaps(out WordCapsStyle ownedValue)) return ownedValue;
-                var runProperties = ScopedRunProperties;
-                if (IsOnOffPropertyEnabled(runProperties?.Caps)) {
-                    return WordCapsStyle.Caps;
-                } else if (IsOnOffPropertyEnabled(runProperties?.SmallCaps)) {
-                    return WordCapsStyle.SmallCaps;
-                } else {
-                    return WordCapsStyle.None;
-                }
-            }
+            get => _ownedTree != null && TryGetOwnedCaps(out WordCapsStyle owned) ? owned : SdkCapsStyle;
             set {
                 if (_ownedTree != null && TrySetOwnedCaps(value)) return;
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (value == WordCapsStyle.None) {
-                    runProperties.Caps = null;
-                    runProperties.SmallCaps = null;
-                } else if (value == WordCapsStyle.Caps) {
-                    runProperties.Caps = new Caps();
-                    runProperties.SmallCaps = null;
-                } else if (value == WordCapsStyle.SmallCaps) {
-                    runProperties.SmallCaps = new SmallCaps();
-                    runProperties.Caps = null;
-                }
+                SdkCapsStyle = value;
             }
         }
 
@@ -483,39 +206,10 @@ namespace OfficeIMO.Word {
         /// in proper order (to overwrite given FontFamily)
         /// </summary>
         public string? FontFamily {
-            get {
-                if (_ownedTree != null && TryGetOwnedFont("ascii", out string? ownedValue)) return ownedValue;
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.RunFonts != null) {
-                    return runProperties.RunFonts.Ascii;
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedFont("ascii", out string? owned) ? owned : SdkFontFamily;
             set {
                 if (_ownedTree != null && TrySetOwnedFontFamily(value)) return;
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-
-                if (runProperties.RunFonts == null) {
-                    runProperties.RunFonts = new RunFonts { };
-                }
-
-                if (string.IsNullOrEmpty(value)) {
-                    runProperties.RunFonts.Ascii = null;
-                } else {
-                    runProperties.RunFonts.Ascii = value;
-                    // we set the same font for HighAnsi as well, because in 90% cases it's required for special characters
-                    // and it should be the same
-                    runProperties.RunFonts.HighAnsi = value;
-                    runProperties.RunFonts.ComplexScript = value;
-                    runProperties.RunFonts.EastAsia = value;
-                }
-                UpdatePageNumberFormatting(runProperties.RunFonts);
+                SdkFontFamily = value;
             }
         }
 
@@ -523,30 +217,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets the HighAnsi font family.
         /// </summary>
         public string? FontFamilyHighAnsi {
-            get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.RunFonts != null) {
-                    return runProperties.RunFonts.HighAnsi;
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedFont("hAnsi", out string? owned) ? owned : SdkFontFamilyHighAnsi;
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (runProperties.RunFonts == null) {
-                    runProperties.RunFonts = new RunFonts { };
-                }
-
-                if (string.IsNullOrEmpty(value)) {
-                    runProperties.RunFonts.HighAnsi = null;
-                } else {
-                    runProperties.RunFonts.HighAnsi = value;
-                }
+                if (_ownedTree != null && TrySetOwnedFont("hAnsi", value)) return;
+                SdkFontFamilyHighAnsi = value;
             }
         }
 
@@ -554,30 +228,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets the East Asia font family.
         /// </summary>
         public string? FontFamilyEastAsia {
-            get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.RunFonts != null) {
-                    return runProperties.RunFonts.EastAsia;
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedFont("eastAsia", out string? owned) ? owned : SdkFontFamilyEastAsia;
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (runProperties.RunFonts == null) {
-                    runProperties.RunFonts = new RunFonts { };
-                }
-
-                if (string.IsNullOrEmpty(value)) {
-                    runProperties.RunFonts.EastAsia = null;
-                } else {
-                    runProperties.RunFonts.EastAsia = value;
-                }
+                if (_ownedTree != null && TrySetOwnedFont("eastAsia", value)) return;
+                SdkFontFamilyEastAsia = value;
             }
         }
 
@@ -585,30 +239,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets the complex script font family.
         /// </summary>
         public string? FontFamilyComplexScript {
-            get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.RunFonts != null) {
-                    return runProperties.RunFonts.ComplexScript;
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedFont("cs", out string? owned) ? owned : SdkFontFamilyComplexScript;
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-                if (runProperties.RunFonts == null) {
-                    runProperties.RunFonts = new RunFonts { };
-                }
-
-                if (string.IsNullOrEmpty(value)) {
-                    runProperties.RunFonts.ComplexScript = null;
-                } else {
-                    runProperties.RunFonts.ComplexScript = value;
-                }
+                if (_ownedTree != null && TrySetOwnedFont("cs", value)) return;
+                SdkFontFamilyComplexScript = value;
             }
         }
 
@@ -616,29 +250,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets the language applied to the run.
         /// </summary>
         public string? Language {
-            get {
-                var runProperties = ScopedRunProperties;
-                return runProperties?.Languages?.Val;
-            }
+            get => _ownedTree != null && TryGetOwnedLanguage(out string? owned) ? owned : SdkLanguage;
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-
-                if (string.IsNullOrWhiteSpace(value)) {
-                    runProperties.Languages?.Remove();
-                } else {
-                    var language = value!.Trim();
-                    var languages = runProperties.Languages ?? new Languages();
-                    runProperties.Languages = languages;
-                    languages.Val = language;
-                    languages.EastAsia = language;
-                    languages.Bidi = language;
-                }
+                if (_ownedTree != null && TrySetOwnedLanguage(value)) return;
+                SdkLanguage = value;
             }
         }
 
@@ -647,32 +262,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCharacterStyles? CharacterStyle {
             get {
-                var runProperties = ScopedRunProperties;
-                if (runProperties != null && runProperties.RunStyle != null) {
-                    var styleId = runProperties.RunStyle.Val;
-                    if (!string.IsNullOrEmpty(styleId)) {
-                        return WordCharacterStyle.GetStyle(styleId!);
-                    }
-                }
-                return null;
+                if (_ownedTree == null || !TryGetOwnedValue("rStyle", out string? styleId)) return SdkCharacterStyle;
+                return string.IsNullOrEmpty(styleId) ? null : WordCharacterStyle.GetStyle(styleId!);
             }
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-
-                if (value == null) {
-                    if (runProperties.RunStyle != null) runProperties.RunStyle.Remove();
-                } else {
-                    if (runProperties.RunStyle == null) runProperties.RunStyle = new RunStyle();
-                    string styleId = WordCharacterStyle.ToStringStyle(value.Value);
-                    _document?.EnsureStyleDefinition(styleId);
-                    runProperties.RunStyle.Val = styleId;
-                }
+                if (_ownedTree != null && TrySetOwnedCharacterStyleId(value == null ? null : WordCharacterStyle.ToStringStyle(value.Value))) return;
+                SdkCharacterStyle = value;
             }
         }
 
@@ -680,26 +275,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets the style identifier applied to the run.
         /// </summary>
         public string? CharacterStyleId {
-            get {
-                var runProperties = ScopedRunProperties;
-                return runProperties?.RunStyle?.Val;
-            }
+            get => _ownedTree != null && TryGetOwnedValue("rStyle", out string? owned) ? owned : SdkCharacterStyleId;
             set {
-                RunProperties runProperties;
-                if (IsHyperLink && _stdRun == null) {
-                    var hyperlink = this.Hyperlink!;
-                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
-                } else {
-                    runProperties = VerifyRunProperties();
-                }
-
-                if (string.IsNullOrEmpty(value)) {
-                    if (runProperties.RunStyle != null) runProperties.RunStyle.Remove();
-                } else {
-                    if (runProperties.RunStyle == null) runProperties.RunStyle = new RunStyle();
-                    _document?.EnsureStyleDefinition(value!);
-                    runProperties.RunStyle.Val = value;
-                }
+                if (_ownedTree != null && TrySetOwnedCharacterStyleId(value)) return;
+                SdkCharacterStyleId = value;
             }
         }
     }

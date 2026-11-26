@@ -120,6 +120,32 @@ public sealed class WordWithoutSdkTests {
     }
 
     [Fact]
+    public void CharacterStylesTheDocumentDefinesApplyLikeTheSdkPath() {
+        const string styles = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><w:styles xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
+            + "<w:style w:type=\"paragraph\" w:default=\"1\" w:styleId=\"Normal\"><w:name w:val=\"Normal\"/></w:style>"
+            + "<w:style w:type=\"character\" w:styleId=\"Heading1Char\"><w:name w:val=\"Heading 1 Char\"/></w:style>"
+            + "</w:styles>";
+        byte[] source = CreatePackage(BodyXml("<w:p><w:r><w:rPr><w:rStyle w:val=\"Heading1Char\"/></w:rPr><w:t>Styled</w:t></w:r></w:p>"),
+            extraParts: new Dictionary<string, string> { ["word/styles.xml"] = styles },
+            extraContentTypes: "<Override PartName=\"/word/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml\"/>",
+            documentRelationships: "<Relationship Id=\"rStyles\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>");
+        void Defined(WordDocument document) {
+            Assert.Equal(WordCharacterStyles.Heading1Char, document.Paragraphs[0].CharacterStyle);
+            document.AddParagraph("More").CharacterStyleId = "Heading1Char";
+            document.Paragraphs[0].CharacterStyle = null;
+        }
+        byte[] sdk = EditAndSave(source, false, Defined)!;
+        byte[] owned = EditAndSave(source, true, Defined)!;
+        Assert.True(_lastRunStayedOwned);
+        AssertSamePackage(sdk, owned, "defined character style");
+
+        // A style the document lacks comes from the library, which the SDK path adds.
+        void Missing(WordDocument document) => document.AddParagraph("Heading").CharacterStyle = WordCharacterStyles.Heading2Char;
+        AssertSamePackage(EditAndSave(source, false, Missing)!, EditAndSave(source, true, Missing)!, "missing character style");
+        Assert.False(_lastRunStayedOwned);
+    }
+
+    [Fact]
     public void ReadsMatchTheSdkPathOnTheTestDocuments() {
         int compared = 0;
         foreach (string path in Directory.EnumerateFiles(Documents, "*.docx").OrderBy(file => file, StringComparer.Ordinal)) {
@@ -348,11 +374,12 @@ public sealed class WordWithoutSdkTests {
         Assert.Equal("Added", added.Text);
         Assert.Equal(WordParagraphAlignment.Center, paragraphs[0].ParagraphAlignment);
         Assert.False(paragraphs[0].KeepWithNext);
+        Assert.Null(paragraphs[0].KerningMinimumFontSize);
         Assert.Equal("Second, edited", paragraphs[1].Text);
 
-        // KeepWithNext opened the SDK over the copy; edits through another object for the same run land there too.
+        // KerningMinimumFontSize opened the SDK over the copy; edits through another object for the same run land there too.
         sameRun.Bold = true;
-        _ = paragraphs[1].KeepWithNext;
+        _ = paragraphs[1].KerningMinimumFontSize;
         Assert.True(paragraphs[1].Bold);
     }
 
@@ -376,18 +403,27 @@ public sealed class WordWithoutSdkTests {
     }
 
     [Fact]
+    public void TextDirectionTokensMatchTheSdk() {
+        foreach (WordTextDirection direction in Enum.GetValues(typeof(WordTextDirection))) {
+            Assert.Equal(((IEnumValue)direction.ToOpenXml()).Value, WordTextDirectionTokens.ToToken(direction));
+            Assert.True(WordTextDirectionTokens.TryParse(WordTextDirectionTokens.ToToken(direction), out WordTextDirection parsed));
+            Assert.Equal(direction, parsed);
+        }
+    }
+
+    [Fact]
     public void MembersTheOwnedLayerLacksOpenTheSdkAndSayWhy() {
         byte[] source = CreatePackage(BodyXml("<w:p><w:r><w:t>Text</w:t></w:r></w:p>"));
         using WordDocument document = WordDocument.Load(new MemoryStream(source));
         Assert.True(document.IsSdkDeferred);
 
         WordParagraph paragraph = document.Paragraphs[0];
-        paragraph.KeepWithNext = true;
+        paragraph.KerningMinimumFontSize = OfficeLength.Points(14);
 
         Assert.False(document.IsSdkDeferred);
         string reason = Assert.Single(document.OpenXmlSdkFallbacks);
-        Assert.Contains("KeepWithNext", reason, StringComparison.Ordinal);
-        Assert.True(document.Paragraphs[0].KeepWithNext);
+        Assert.Contains("KerningMinimumFontSize", reason, StringComparison.Ordinal);
+        Assert.Equal(OfficeLength.Points(14), document.Paragraphs[0].KerningMinimumFontSize);
     }
 
     [Fact]
@@ -459,7 +495,12 @@ public sealed class WordWithoutSdkTests {
                 + $"|{paragraph.Color}|{paragraph.FontFamily}|{paragraph.Highlight}|{paragraph.CapsStyle}"
                 + $"|{paragraph.StyleId}|{paragraph.Style}|{paragraph.ParagraphAlignment}"
                 + $"|{paragraph.IndentationBefore}|{paragraph.IndentationAfter}|{paragraph.IndentationFirstLine}|{paragraph.IndentationHanging}"
-                + $"|{paragraph.LineSpacingBefore}|{paragraph.LineSpacingAfter}").ToList();
+                + $"|{paragraph.LineSpacingBefore}|{paragraph.LineSpacingAfter}|{paragraph.LineSpacing?.Rule} {paragraph.LineSpacing?.MultipleValue} {paragraph.LineSpacing?.Height}|{paragraph.VerticalCharacterAlignmentOnLine}"
+                + $"|{paragraph.KeepWithNext}|{paragraph.KeepLinesTogether}|{paragraph.PageBreakBefore}|{paragraph.AvoidWidowAndOrphan}"
+                + $"|{paragraph.BiDi}|{paragraph.TextDirection}|{paragraph.VerticalTextAlignment}"
+                + $"|{paragraph.DoNotCheckSpellingOrGrammar}|{paragraph.Spacing}|{paragraph.Outline}|{paragraph.Shadow}|{paragraph.Emboss}"
+                + $"|{paragraph.FontFamilyHighAnsi}|{paragraph.FontFamilyEastAsia}|{paragraph.FontFamilyComplexScript}|{paragraph.Language}"
+                + $"|{paragraph.CharacterStyleId}|{paragraph.ThemeColor}").ToList();
             _lastRunStayedOwned = document.IsSdkDeferred;
             return paragraphs;
         }
@@ -470,7 +511,17 @@ public sealed class WordWithoutSdkTests {
         added.Bold = true;
         added.Underline = WordUnderlineStyle.Double;
         added.FontFamily = "Arial";
-        added.AddText(" second").Strikethrough = true;
+        WordParagraph second = added.AddText(" second");
+        second.Strikethrough = true;
+        second.Outline = true;
+        second.Shadow = true;
+        second.Emboss = true;
+        second.Spacing = OfficeLength.Points(1.5);
+        second.Language = " pl-PL ";
+        second.DoNotCheckSpellingOrGrammar = true;
+        second.FontFamilyEastAsia = "MS Mincho";
+        second.FontFamilyComplexScript = "Arial";
+        second.FontFamilyHighAnsi = null;
         document.AddParagraph("tab\there\nnext line");
         WordParagraph centered = document.AddParagraph("Centered");
         centered.ParagraphAlignment = WordParagraphAlignment.Center;
@@ -479,6 +530,17 @@ public sealed class WordWithoutSdkTests {
         centered.LineSpacingBefore = OfficeLength.Points(6);
         centered.LineSpacingAfter = OfficeLength.Points(10);
         centered.IndentationAfter = null;
+        centered.KeepWithNext = true;
+        centered.KeepLinesTogether = true;
+        centered.AvoidWidowAndOrphan = false;
+        centered.LineSpacing = WordLineSpacing.Multiple(1.5);
+        centered.VerticalCharacterAlignmentOnLine = WordVerticalCharacterAlignment.Center;
+        centered.VerticalTextAlignment = WordVerticalTextPosition.Superscript;
+        WordParagraph rightToLeft = document.AddParagraph("Right to left");
+        rightToLeft.BiDi = true;
+        rightToLeft.TextDirection = WordTextDirection.TopToBottomRightToLeft;
+        rightToLeft.PageBreakBefore = true;
+        rightToLeft.LineSpacing = WordLineSpacing.Exact(OfficeLength.Points(14));
         List<WordParagraph> paragraphs = document.Paragraphs;
         if (paragraphs.Count > 0) {
             paragraphs[0].Italic = true;
@@ -490,6 +552,17 @@ public sealed class WordWithoutSdkTests {
             paragraphs[1].ParagraphAlignment = null;
             paragraphs[1].IndentationHanging = OfficeLength.Points(18);
             paragraphs[1].LineSpacingAfter = null;
+            paragraphs[1].LineSpacing = null;
+            paragraphs[1].KeepWithNext = false;
+            paragraphs[1].BiDi = false;
+            paragraphs[1].PageBreakBefore = false;
+            paragraphs[1].VerticalTextAlignment = null;
+            paragraphs[1].VerticalCharacterAlignmentOnLine = null;
+            paragraphs[1].Emboss = false;
+            paragraphs[1].Spacing = null;
+            paragraphs[1].Language = "";
+            paragraphs[1].CharacterStyleId = null;
+            paragraphs[1].DoNotCheckSpellingOrGrammar = false;
         }
     }
 

@@ -14,7 +14,7 @@ namespace OfficeIMO.TestSupport.OpenXml;
 /// (the package API the SDK depends on, which isn't part of .NET), outside the folder that holds the engine's SDK bridge. It reads the compiled assembly and its portable PDB: a file counts when a method compiled from it
 /// names an SDK type or member in its signature, its locals or its IL, or uses an engine field or method whose signature
 /// does. That catches SDK types reached through <c>var</c> and member chains, which a search for <c>using</c> lines
-/// misses. A file that mentions the namespace in its text counts as well, for declarations that compile to no method.
+/// misses. A file whose code (not its comments) names the namespace counts as well, for declarations that compile to no method.
 /// </summary>
 internal static class OpenXmlSdkReferenceCounter {
     /// <summary>An assembly family to count: its assemblies' name and the namespace its types live in.</summary>
@@ -65,13 +65,69 @@ internal static class OpenXmlSdkReferenceCounter {
             string relative = full.Substring(projectRoot.Length);
             if (relative.StartsWith("obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
                 || relative.StartsWith("bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal)) continue;
-            if (dependency.NamespaceText.IsMatch(File.ReadAllText(full))) files.Add(full);
+            if (NamesNamespaceInCode(full, dependency)) files.Add(full);
         }
 
         return files
             .Where(file => !file.StartsWith(bridgeRoot, StringComparison.Ordinal) && File.Exists(file))
             .Select(file => file.Substring(projectRoot.Length).Replace(Path.DirectorySeparatorChar, '/'))
             .ToList();
+    }
+
+    // Comments that mention the namespace don't use it: line comments and block comments, across lines, are skipped,
+    // while string and character literals, including verbatim strings across lines, are read as code.
+    private static bool NamesNamespaceInCode(string path, Dependency dependency) {
+        var code = new System.Text.StringBuilder();
+        bool inBlock = false, inVerbatim = false;
+        foreach (string line in File.ReadLines(path)) {
+            code.Clear();
+            int i = 0;
+            if (inVerbatim) i = ReadVerbatim(line, 0, code, out inVerbatim);
+            for (; i < line.Length; i++) {
+                if (inBlock) {
+                    if (line[i] == '*' && i + 1 < line.Length && line[i + 1] == '/') { inBlock = false; i++; }
+                    continue;
+                }
+                if (line[i] == '"' && i > 0 && line[i - 1] == '@') {
+                    code.Append('"');
+                    i = ReadVerbatim(line, i + 1, code, out inVerbatim) - 1;
+                    continue;
+                }
+                // A literal's text is code, and comment delimiters inside it don't start a comment.
+                if (line[i] == '"' || line[i] == '\'') {
+                    char quote = line[i];
+                    code.Append(quote);
+                    for (i++; i < line.Length; i++) {
+                        code.Append(line[i]);
+                        if (line[i] == '\\') {
+                            if (i + 1 < line.Length) code.Append(line[++i]);
+                            continue;
+                        }
+                        if (line[i] == quote) break;
+                    }
+                    continue;
+                }
+                if (line[i] == '/' && i + 1 < line.Length && line[i + 1] == '/') break;
+                if (line[i] == '/' && i + 1 < line.Length && line[i + 1] == '*') { inBlock = true; i++; continue; }
+                code.Append(line[i]);
+            }
+            if (dependency.NamespaceText.IsMatch(code.ToString())) return true;
+        }
+        return false;
+    }
+
+    // Reads verbatim string text from start up to and including its closing quote; a doubled quote is part of the text.
+    // Returns the index after the string, and whether the string continues on the next line.
+    private static int ReadVerbatim(string line, int start, System.Text.StringBuilder code, out bool continues) {
+        for (int i = start; i < line.Length; i++) {
+            code.Append(line[i]);
+            if (line[i] != '"') continue;
+            if (i + 1 < line.Length && line[i + 1] == '"') { code.Append(line[++i]); continue; }
+            continues = false;
+            return i + 1;
+        }
+        continues = true;
+        return line.Length;
     }
 
     private const string MappedSourcePrefix = "/_/";
