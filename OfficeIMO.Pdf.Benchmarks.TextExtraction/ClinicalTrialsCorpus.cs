@@ -469,7 +469,7 @@ internal sealed class ProtocolText {
     internal FieldScore Score(string nctId, string sponsorClass, string engine, RegistryField field) {
         string[] f = field.Tokens;
         double wordShare = f.Count(_vocabulary.Contains) / (double)f.Length;
-        (Match match, List<int> at) = Find(f);
+        (Match match, List<(int Start, int End)> at) = Find(f);
         if (match == Match.Missing && wordShare >= 0.9) {
             match = Match.Words;
         }
@@ -478,10 +478,12 @@ internal sealed class ProtocolText {
         if (field.Section is null) {
             // Identifier, title and sponsor belong on the title page or in the synopsis at the front.
             headingFound = false;
-            inSection = match <= Match.InOrder && at.Any(position => position < _frontMatterEnd);
+            inSection = match <= Match.InOrder && at.Any(position => position.Start < _frontMatterEnd);
         } else {
             headingFound = _headings.Any(h => h.Any(field.Section.Contains));
-            inSection = match <= Match.InOrder && at.Any(position => NearestSectionStart(position) is { } opening && opening.Any(field.Section.Contains));
+            // The whole placement must sit in one section: no other section may open between its first and last word.
+            inSection = match <= Match.InOrder && at.Any(position => NearestSectionStart(position.Start) is { } opening
+                && opening.Any(field.Section.Contains) && !OpensBetween(position.Start, position.End));
         }
         return new FieldScore(nctId, sponsorClass, engine, field, match, headingFound, inSection, wordShare);
     }
@@ -491,7 +493,7 @@ internal sealed class ProtocolText {
     /// all of its words appear in order within a window of three times its length. The search starts at each occurrence
     /// of the field's rarest word, so a field that appears in the synopsis and again in its section is found in both.
     /// </summary>
-    private (Match Match, List<int> At) Find(string[] f) {
+    private (Match Match, List<(int Start, int End)> At) Find(string[] f) {
         // At lists every qualifying occurrence, intact or in order, so a field intact in the synopsis and broken up
         // under its section still counts as placed in its section.
         int anchor = 0;
@@ -507,14 +509,14 @@ internal sealed class ProtocolText {
             }
         }
         List<int> starts = _positions[f[anchor]];
-        var intact = new List<int>();
-        var inOrder = new List<int>();
+        var intact = new List<(int, int)>();
+        var inOrder = new List<(int, int)>();
         for (int s = 0; s < Math.Min(starts.Count, MaxStarts); s++) {
             int start = starts[s] - anchor;
             if (start >= 0 && start + f.Length <= _tokens.Length && Contiguous(f, start)) {
-                intact.Add(start);
-            } else if (InOrder(f, anchor, starts[s]) is int first and >= 0) {
-                inOrder.Add(first);
+                intact.Add((start, start + f.Length - 1));
+            } else if (InOrder(f, anchor, starts[s]) is { First: >= 0 } placement) {
+                inOrder.Add(placement);
             }
         }
         if (intact.Count == 0) {
@@ -535,26 +537,38 @@ internal sealed class ProtocolText {
 
     /// <summary>
     /// Places the field's other words around one occurrence of its anchor word, each as close as possible, and
-    /// returns where the placement starts, or -1 when the words from first to last span more than three times the
-    /// field's length.
+    /// returns its first and last word positions, or -1 when the words from first to last span more than three times
+    /// the field's length.
     /// </summary>
-    private int InOrder(string[] f, int anchor, int anchorPosition) {
+    private (int First, int Last) InOrder(string[] f, int anchor, int anchorPosition) {
         int window = 3 * f.Length;
         int first = anchorPosition;
         for (int i = anchor - 1; i >= 0; i--) {
             first = Previous(f[i], first, anchorPosition - window + 1);
             if (first < 0) {
-                return -1;
+                return (-1, -1);
             }
         }
         int last = anchorPosition;
         for (int i = anchor + 1; i < f.Length; i++) {
             last = Next(f[i], last, first + window - 1);
             if (last < 0) {
-                return -1;
+                return (-1, -1);
             }
         }
-        return first;
+        return (first, last);
+    }
+
+    private bool OpensBetween(int start, int end) {
+        foreach ((int token, _, _) in _sectionStarts) {
+            if (token > end) {
+                break;
+            }
+            if (token > start) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private int Next(string token, int after, int limit) {
