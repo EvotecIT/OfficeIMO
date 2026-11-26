@@ -121,7 +121,9 @@ public enum ReaderInputKind {
     /// <summary>TOML configuration file, such as pyproject.toml or Cargo.toml.</summary>
     Toml = 31,
     /// <summary>FictionBook 2 ebook input.</summary>
-    Fb2 = 32
+    Fb2 = 32,
+    /// <summary>Comic book ZIP ebook input.</summary>
+    Comic = 34
 }
 
 /// <summary>

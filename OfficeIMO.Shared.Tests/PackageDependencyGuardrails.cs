@@ -540,6 +540,8 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlReadOnlyPackage.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeVbaProjectPartEditor.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeXmlNode.cs",
+                "OfficeIMO.SharedSource/OpenXmlSdk/OfficeSdkXml.cs",
                 "OfficeIMO.SharedSource/Packaging/OfficeCrc32Combine.cs",
                 "OfficeIMO.SharedSource/Packaging/OfficeDeflateEncoder.cs",
                 "OfficeIMO.SharedSource/Packaging/OfficeZipWriter.cs",
@@ -933,10 +935,12 @@ public sealed class PackageDependencyGuardrailTests {
         // ReaderAllOptions exposes ArchiveTraversalOptions directly; the owning package
         // must remain a visible dependency rather than relying on an adapter's transitives.
         Assert.Contains(archives, references, StringComparer.Ordinal);
-        // The preset supplies this importer to the shared EPUB adapter. Modular EPUB entry points stay independent.
-        const string importer = "../OfficeIMO.Fb2/OfficeIMO.Fb2.csproj";
-        Assert.Contains(importer, references, StringComparer.Ordinal);
-        Assert.All(references.Where(reference => reference != archives && reference != importer), reference =>
+        // The preset supplies these importers to the shared EPUB adapter. Modular EPUB entry points stay independent.
+        const string comic = "../OfficeIMO.Comic/OfficeIMO.Comic.csproj";
+        const string fb2 = "../OfficeIMO.Fb2/OfficeIMO.Fb2.csproj";
+        Assert.Contains(comic, references, StringComparer.Ordinal);
+        Assert.Contains(fb2, references, StringComparer.Ordinal);
+        Assert.All(references.Where(reference => reference != archives && reference != comic && reference != fb2), reference =>
             Assert.StartsWith("../OfficeIMO.Reader.", reference, StringComparison.Ordinal));
         Assert.Contains("../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj", references, StringComparer.Ordinal);
         Assert.Contains("../OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj", references, StringComparer.Ordinal);

@@ -3,16 +3,17 @@
 // </auto-generated>
 #nullable enable
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint.OpenXml;
 
 /// <summary>View over an element of schema type <c>CT_Presentation</c>.</summary>
 internal readonly partial struct PPresentationView {
-    internal PPresentationView(PowerPointXmlNode element) => Element = element;
+    internal PPresentationView(OfficeXmlNode element) => Element = element;
 
-    internal PPresentationView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PPresentationView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -81,7 +82,7 @@ internal readonly partial struct PPresentationView {
 
     internal PSlideMasterIdListView? SldMasterIdLst {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldMasterIdLst");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldMasterIdLst");
             return child.IsNone ? null : new PSlideMasterIdListView(child);
         }
     }
@@ -90,7 +91,7 @@ internal readonly partial struct PPresentationView {
 
     internal PSlideIdListView? SldIdLst {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldIdLst");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldIdLst");
             return child.IsNone ? null : new PSlideIdListView(child);
         }
     }
@@ -99,7 +100,7 @@ internal readonly partial struct PPresentationView {
 
     internal PSlideSizeView? SldSz {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldSz");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldSz");
             return child.IsNone ? null : new PSlideSizeView(child);
         }
     }
@@ -108,7 +109,7 @@ internal readonly partial struct PPresentationView {
 
     internal APositiveSize2DView? NotesSz {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "notesSz");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "notesSz");
             return child.IsNone ? null : new APositiveSize2DView(child);
         }
     }
@@ -117,7 +118,7 @@ internal readonly partial struct PPresentationView {
 
     internal ATextListStyleView? DefaultTextStyle {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "defaultTextStyle");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "defaultTextStyle");
             return child.IsNone ? null : new ATextListStyleView(child);
         }
     }
@@ -127,18 +128,18 @@ internal readonly partial struct PPresentationView {
 
 /// <summary>View over an element of schema type <c>CT_SlideMasterIdList</c>.</summary>
 internal readonly partial struct PSlideMasterIdListView {
-    internal PSlideMasterIdListView(PowerPointXmlNode element) => Element = element;
+    internal PSlideMasterIdListView(OfficeXmlNode element) => Element = element;
 
-    internal PSlideMasterIdListView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PSlideMasterIdListView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "sldMasterId" }, new int[] { 0 });
 
-    internal PowerPointXmlNode.ChildList SldMasterIdList => Element.Children(OfficeXmlNamespaces.PresentationML, "sldMasterId");
+    internal OfficeXmlNode.ChildList SldMasterIdList => Element.Children(OfficeXmlNamespaces.PresentationML, "sldMasterId");
 
     /// <summary>Adds a <c>sldMasterId</c> after the existing ones, in sequence order.</summary>
     internal PSlideMasterIdListEntryView AddSldMasterId() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "sldMasterId", Order));
@@ -146,11 +147,11 @@ internal readonly partial struct PSlideMasterIdListView {
 
 /// <summary>View over an element of schema type <c>CT_SlideMasterIdListEntry</c>.</summary>
 internal readonly partial struct PSlideMasterIdListEntryView {
-    internal PSlideMasterIdListEntryView(PowerPointXmlNode element) => Element = element;
+    internal PSlideMasterIdListEntryView(OfficeXmlNode element) => Element = element;
 
-    internal PSlideMasterIdListEntryView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PSlideMasterIdListEntryView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -170,18 +171,18 @@ internal readonly partial struct PSlideMasterIdListEntryView {
 
 /// <summary>View over an element of schema type <c>CT_SlideIdList</c>.</summary>
 internal readonly partial struct PSlideIdListView {
-    internal PSlideIdListView(PowerPointXmlNode element) => Element = element;
+    internal PSlideIdListView(OfficeXmlNode element) => Element = element;
 
-    internal PSlideIdListView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PSlideIdListView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "sldId" }, new int[] { 0 });
 
-    internal PowerPointXmlNode.ChildList SldIdList => Element.Children(OfficeXmlNamespaces.PresentationML, "sldId");
+    internal OfficeXmlNode.ChildList SldIdList => Element.Children(OfficeXmlNamespaces.PresentationML, "sldId");
 
     /// <summary>Adds a <c>sldId</c> after the existing ones, in sequence order.</summary>
     internal PSlideIdListEntryView AddSldId() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "sldId", Order));
@@ -189,11 +190,11 @@ internal readonly partial struct PSlideIdListView {
 
 /// <summary>View over an element of schema type <c>CT_SlideIdListEntry</c>.</summary>
 internal readonly partial struct PSlideIdListEntryView {
-    internal PSlideIdListEntryView(PowerPointXmlNode element) => Element = element;
+    internal PSlideIdListEntryView(OfficeXmlNode element) => Element = element;
 
-    internal PSlideIdListEntryView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PSlideIdListEntryView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -213,11 +214,11 @@ internal readonly partial struct PSlideIdListEntryView {
 
 /// <summary>View over an element of schema type <c>CT_SlideSize</c>.</summary>
 internal readonly partial struct PSlideSizeView {
-    internal PSlideSizeView(PowerPointXmlNode element) => Element = element;
+    internal PSlideSizeView(OfficeXmlNode element) => Element = element;
 
-    internal PSlideSizeView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PSlideSizeView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -242,11 +243,11 @@ internal readonly partial struct PSlideSizeView {
 
 /// <summary>View over an element of schema type <c>CT_PositiveSize2D</c>.</summary>
 internal readonly partial struct APositiveSize2DView {
-    internal APositiveSize2DView(PowerPointXmlNode element) => Element = element;
+    internal APositiveSize2DView(OfficeXmlNode element) => Element = element;
 
-    internal APositiveSize2DView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal APositiveSize2DView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -266,11 +267,11 @@ internal readonly partial struct APositiveSize2DView {
 
 /// <summary>View over an element of schema type <c>CT_Slide</c>.</summary>
 internal readonly partial struct PSlideView {
-    internal PSlideView(PowerPointXmlNode element) => Element = element;
+    internal PSlideView(OfficeXmlNode element) => Element = element;
 
-    internal PSlideView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PSlideView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -294,7 +295,7 @@ internal readonly partial struct PSlideView {
 
     internal PCommonSlideDataView? CSld {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cSld");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cSld");
             return child.IsNone ? null : new PCommonSlideDataView(child);
         }
     }
@@ -303,7 +304,7 @@ internal readonly partial struct PSlideView {
 
     internal AColorMappingOverrideView? ClrMapOvr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "clrMapOvr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "clrMapOvr");
             return child.IsNone ? null : new AColorMappingOverrideView(child);
         }
     }
@@ -313,11 +314,11 @@ internal readonly partial struct PSlideView {
 
 /// <summary>View over an element of schema type <c>CT_SlideLayout</c>.</summary>
 internal readonly partial struct PSlideLayoutView {
-    internal PSlideLayoutView(PowerPointXmlNode element) => Element = element;
+    internal PSlideLayoutView(OfficeXmlNode element) => Element = element;
 
-    internal PSlideLayoutView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PSlideLayoutView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -356,7 +357,7 @@ internal readonly partial struct PSlideLayoutView {
 
     internal PCommonSlideDataView? CSld {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cSld");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cSld");
             return child.IsNone ? null : new PCommonSlideDataView(child);
         }
     }
@@ -365,7 +366,7 @@ internal readonly partial struct PSlideLayoutView {
 
     internal AColorMappingOverrideView? ClrMapOvr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "clrMapOvr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "clrMapOvr");
             return child.IsNone ? null : new AColorMappingOverrideView(child);
         }
     }
@@ -375,11 +376,11 @@ internal readonly partial struct PSlideLayoutView {
 
 /// <summary>View over an element of schema type <c>CT_SlideMaster</c>.</summary>
 internal readonly partial struct PSlideMasterView {
-    internal PSlideMasterView(PowerPointXmlNode element) => Element = element;
+    internal PSlideMasterView(OfficeXmlNode element) => Element = element;
 
-    internal PSlideMasterView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PSlideMasterView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -393,7 +394,7 @@ internal readonly partial struct PSlideMasterView {
 
     internal PCommonSlideDataView? CSld {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cSld");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cSld");
             return child.IsNone ? null : new PCommonSlideDataView(child);
         }
     }
@@ -402,7 +403,7 @@ internal readonly partial struct PSlideMasterView {
 
     internal AColorMappingView? ClrMap {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "clrMap");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "clrMap");
             return child.IsNone ? null : new AColorMappingView(child);
         }
     }
@@ -411,7 +412,7 @@ internal readonly partial struct PSlideMasterView {
 
     internal PSlideLayoutIdListView? SldLayoutIdLst {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldLayoutIdLst");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldLayoutIdLst");
             return child.IsNone ? null : new PSlideLayoutIdListView(child);
         }
     }
@@ -420,7 +421,7 @@ internal readonly partial struct PSlideMasterView {
 
     internal PSlideMasterTextStylesView? TxStyles {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "txStyles");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "txStyles");
             return child.IsNone ? null : new PSlideMasterTextStylesView(child);
         }
     }
@@ -430,18 +431,18 @@ internal readonly partial struct PSlideMasterView {
 
 /// <summary>View over an element of schema type <c>CT_SlideLayoutIdList</c>.</summary>
 internal readonly partial struct PSlideLayoutIdListView {
-    internal PSlideLayoutIdListView(PowerPointXmlNode element) => Element = element;
+    internal PSlideLayoutIdListView(OfficeXmlNode element) => Element = element;
 
-    internal PSlideLayoutIdListView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PSlideLayoutIdListView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "sldLayoutId" }, new int[] { 0 });
 
-    internal PowerPointXmlNode.ChildList SldLayoutIdList => Element.Children(OfficeXmlNamespaces.PresentationML, "sldLayoutId");
+    internal OfficeXmlNode.ChildList SldLayoutIdList => Element.Children(OfficeXmlNamespaces.PresentationML, "sldLayoutId");
 
     /// <summary>Adds a <c>sldLayoutId</c> after the existing ones, in sequence order.</summary>
     internal PSlideLayoutIdListEntryView AddSldLayoutId() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "sldLayoutId", Order));
@@ -449,11 +450,11 @@ internal readonly partial struct PSlideLayoutIdListView {
 
 /// <summary>View over an element of schema type <c>CT_SlideLayoutIdListEntry</c>.</summary>
 internal readonly partial struct PSlideLayoutIdListEntryView {
-    internal PSlideLayoutIdListEntryView(PowerPointXmlNode element) => Element = element;
+    internal PSlideLayoutIdListEntryView(OfficeXmlNode element) => Element = element;
 
-    internal PSlideLayoutIdListEntryView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PSlideLayoutIdListEntryView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -473,11 +474,11 @@ internal readonly partial struct PSlideLayoutIdListEntryView {
 
 /// <summary>View over an element of schema type <c>CT_CommonSlideData</c>.</summary>
 internal readonly partial struct PCommonSlideDataView {
-    internal PCommonSlideDataView(PowerPointXmlNode element) => Element = element;
+    internal PCommonSlideDataView(OfficeXmlNode element) => Element = element;
 
-    internal PCommonSlideDataView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PCommonSlideDataView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -491,7 +492,7 @@ internal readonly partial struct PCommonSlideDataView {
 
     internal PGroupShapeView? SpTree {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "spTree");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "spTree");
             return child.IsNone ? null : new PGroupShapeView(child);
         }
     }
@@ -501,11 +502,11 @@ internal readonly partial struct PCommonSlideDataView {
 
 /// <summary>View over an element of schema type <c>CT_GroupShape</c>.</summary>
 internal readonly partial struct PGroupShapeView {
-    internal PGroupShapeView(PowerPointXmlNode element) => Element = element;
+    internal PGroupShapeView(OfficeXmlNode element) => Element = element;
 
-    internal PGroupShapeView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PGroupShapeView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -514,7 +515,7 @@ internal readonly partial struct PGroupShapeView {
 
     internal PGroupShapeNonVisualView? NvGrpSpPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvGrpSpPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvGrpSpPr");
             return child.IsNone ? null : new PGroupShapeNonVisualView(child);
         }
     }
@@ -523,19 +524,19 @@ internal readonly partial struct PGroupShapeView {
 
     internal AGroupShapePropertiesView? GrpSpPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "grpSpPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "grpSpPr");
             return child.IsNone ? null : new AGroupShapePropertiesView(child);
         }
     }
 
     internal AGroupShapePropertiesView GetOrAddGrpSpPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "grpSpPr", Order));
 
-    internal PowerPointXmlNode.ChildList SpList => Element.Children(OfficeXmlNamespaces.PresentationML, "sp");
+    internal OfficeXmlNode.ChildList SpList => Element.Children(OfficeXmlNamespaces.PresentationML, "sp");
 
     /// <summary>Adds a <c>sp</c> after the existing ones, in sequence order.</summary>
     internal PShapeView AddSp() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "sp", Order));
 
-    internal PowerPointXmlNode.ChildList GrpSpList => Element.Children(OfficeXmlNamespaces.PresentationML, "grpSp");
+    internal OfficeXmlNode.ChildList GrpSpList => Element.Children(OfficeXmlNamespaces.PresentationML, "grpSp");
 
     /// <summary>Adds a <c>grpSp</c> after the existing ones, in sequence order.</summary>
     internal PGroupShapeView AddGrpSp() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "grpSp", Order));
@@ -543,11 +544,11 @@ internal readonly partial struct PGroupShapeView {
 
 /// <summary>View over an element of schema type <c>CT_GroupShapeNonVisual</c>.</summary>
 internal readonly partial struct PGroupShapeNonVisualView {
-    internal PGroupShapeNonVisualView(PowerPointXmlNode element) => Element = element;
+    internal PGroupShapeNonVisualView(OfficeXmlNode element) => Element = element;
 
-    internal PGroupShapeNonVisualView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PGroupShapeNonVisualView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -556,7 +557,7 @@ internal readonly partial struct PGroupShapeNonVisualView {
 
     internal ANonVisualDrawingPropsView? CNvPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
             return child.IsNone ? null : new ANonVisualDrawingPropsView(child);
         }
     }
@@ -565,7 +566,7 @@ internal readonly partial struct PGroupShapeNonVisualView {
 
     internal ANonVisualGroupDrawingShapePropsView? CNvGrpSpPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvGrpSpPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvGrpSpPr");
             return child.IsNone ? null : new ANonVisualGroupDrawingShapePropsView(child);
         }
     }
@@ -574,7 +575,7 @@ internal readonly partial struct PGroupShapeNonVisualView {
 
     internal PApplicationNonVisualDrawingPropsView? NvPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvPr");
             return child.IsNone ? null : new PApplicationNonVisualDrawingPropsView(child);
         }
     }
@@ -584,11 +585,11 @@ internal readonly partial struct PGroupShapeNonVisualView {
 
 /// <summary>View over an element of schema type <c>CT_Shape</c>.</summary>
 internal readonly partial struct PShapeView {
-    internal PShapeView(PowerPointXmlNode element) => Element = element;
+    internal PShapeView(OfficeXmlNode element) => Element = element;
 
-    internal PShapeView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PShapeView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -602,7 +603,7 @@ internal readonly partial struct PShapeView {
 
     internal PShapeNonVisualView? NvSpPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvSpPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvSpPr");
             return child.IsNone ? null : new PShapeNonVisualView(child);
         }
     }
@@ -611,7 +612,7 @@ internal readonly partial struct PShapeView {
 
     internal AShapePropertiesView? SpPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "spPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "spPr");
             return child.IsNone ? null : new AShapePropertiesView(child);
         }
     }
@@ -620,7 +621,7 @@ internal readonly partial struct PShapeView {
 
     internal ATextBodyView? TxBody {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "txBody");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "txBody");
             return child.IsNone ? null : new ATextBodyView(child);
         }
     }
@@ -630,11 +631,11 @@ internal readonly partial struct PShapeView {
 
 /// <summary>View over an element of schema type <c>CT_ShapeNonVisual</c>.</summary>
 internal readonly partial struct PShapeNonVisualView {
-    internal PShapeNonVisualView(PowerPointXmlNode element) => Element = element;
+    internal PShapeNonVisualView(OfficeXmlNode element) => Element = element;
 
-    internal PShapeNonVisualView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PShapeNonVisualView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -643,7 +644,7 @@ internal readonly partial struct PShapeNonVisualView {
 
     internal ANonVisualDrawingPropsView? CNvPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
             return child.IsNone ? null : new ANonVisualDrawingPropsView(child);
         }
     }
@@ -652,7 +653,7 @@ internal readonly partial struct PShapeNonVisualView {
 
     internal ANonVisualDrawingShapePropsView? CNvSpPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvSpPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvSpPr");
             return child.IsNone ? null : new ANonVisualDrawingShapePropsView(child);
         }
     }
@@ -661,7 +662,7 @@ internal readonly partial struct PShapeNonVisualView {
 
     internal PApplicationNonVisualDrawingPropsView? NvPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvPr");
             return child.IsNone ? null : new PApplicationNonVisualDrawingPropsView(child);
         }
     }
@@ -671,11 +672,11 @@ internal readonly partial struct PShapeNonVisualView {
 
 /// <summary>View over an element of schema type <c>CT_ApplicationNonVisualDrawingProps</c>.</summary>
 internal readonly partial struct PApplicationNonVisualDrawingPropsView {
-    internal PApplicationNonVisualDrawingPropsView(PowerPointXmlNode element) => Element = element;
+    internal PApplicationNonVisualDrawingPropsView(OfficeXmlNode element) => Element = element;
 
-    internal PApplicationNonVisualDrawingPropsView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PApplicationNonVisualDrawingPropsView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -694,7 +695,7 @@ internal readonly partial struct PApplicationNonVisualDrawingPropsView {
 
     internal PPlaceholderView? Ph {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "ph");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "ph");
             return child.IsNone ? null : new PPlaceholderView(child);
         }
     }
@@ -704,11 +705,11 @@ internal readonly partial struct PApplicationNonVisualDrawingPropsView {
 
 /// <summary>View over an element of schema type <c>CT_Placeholder</c>.</summary>
 internal readonly partial struct PPlaceholderView {
-    internal PPlaceholderView(PowerPointXmlNode element) => Element = element;
+    internal PPlaceholderView(OfficeXmlNode element) => Element = element;
 
-    internal PPlaceholderView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PPlaceholderView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -743,11 +744,11 @@ internal readonly partial struct PPlaceholderView {
 
 /// <summary>View over an element of schema type <c>CT_SlideMasterTextStyles</c>.</summary>
 internal readonly partial struct PSlideMasterTextStylesView {
-    internal PSlideMasterTextStylesView(PowerPointXmlNode element) => Element = element;
+    internal PSlideMasterTextStylesView(OfficeXmlNode element) => Element = element;
 
-    internal PSlideMasterTextStylesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal PSlideMasterTextStylesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -756,7 +757,7 @@ internal readonly partial struct PSlideMasterTextStylesView {
 
     internal ATextListStyleView? TitleStyle {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "titleStyle");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "titleStyle");
             return child.IsNone ? null : new ATextListStyleView(child);
         }
     }
@@ -765,7 +766,7 @@ internal readonly partial struct PSlideMasterTextStylesView {
 
     internal ATextListStyleView? BodyStyle {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "bodyStyle");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "bodyStyle");
             return child.IsNone ? null : new ATextListStyleView(child);
         }
     }
@@ -774,7 +775,7 @@ internal readonly partial struct PSlideMasterTextStylesView {
 
     internal ATextListStyleView? OtherStyle {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "otherStyle");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "otherStyle");
             return child.IsNone ? null : new ATextListStyleView(child);
         }
     }
@@ -784,11 +785,11 @@ internal readonly partial struct PSlideMasterTextStylesView {
 
 /// <summary>View over an element of schema type <c>CT_NonVisualDrawingProps</c>.</summary>
 internal readonly partial struct ANonVisualDrawingPropsView {
-    internal ANonVisualDrawingPropsView(PowerPointXmlNode element) => Element = element;
+    internal ANonVisualDrawingPropsView(OfficeXmlNode element) => Element = element;
 
-    internal ANonVisualDrawingPropsView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ANonVisualDrawingPropsView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -823,11 +824,11 @@ internal readonly partial struct ANonVisualDrawingPropsView {
 
 /// <summary>View over an element of schema type <c>CT_NonVisualDrawingShapeProps</c>.</summary>
 internal readonly partial struct ANonVisualDrawingShapePropsView {
-    internal ANonVisualDrawingShapePropsView(PowerPointXmlNode element) => Element = element;
+    internal ANonVisualDrawingShapePropsView(OfficeXmlNode element) => Element = element;
 
-    internal ANonVisualDrawingShapePropsView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ANonVisualDrawingShapePropsView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -842,11 +843,11 @@ internal readonly partial struct ANonVisualDrawingShapePropsView {
 
 /// <summary>View over an element of schema type <c>CT_NonVisualGroupDrawingShapeProps</c>.</summary>
 internal readonly partial struct ANonVisualGroupDrawingShapePropsView {
-    internal ANonVisualGroupDrawingShapePropsView(PowerPointXmlNode element) => Element = element;
+    internal ANonVisualGroupDrawingShapePropsView(OfficeXmlNode element) => Element = element;
 
-    internal ANonVisualGroupDrawingShapePropsView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ANonVisualGroupDrawingShapePropsView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -856,11 +857,11 @@ internal readonly partial struct ANonVisualGroupDrawingShapePropsView {
 
 /// <summary>View over an element of schema type <c>CT_GroupShapeProperties</c>.</summary>
 internal readonly partial struct AGroupShapePropertiesView {
-    internal AGroupShapePropertiesView(PowerPointXmlNode element) => Element = element;
+    internal AGroupShapePropertiesView(OfficeXmlNode element) => Element = element;
 
-    internal AGroupShapePropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal AGroupShapePropertiesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -874,7 +875,7 @@ internal readonly partial struct AGroupShapePropertiesView {
 
     internal AGroupTransform2DView? Xfrm {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "xfrm");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "xfrm");
             return child.IsNone ? null : new AGroupTransform2DView(child);
         }
     }
@@ -883,7 +884,7 @@ internal readonly partial struct AGroupShapePropertiesView {
 
     internal ANoFillPropertiesView? NoFill {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
             return child.IsNone ? null : new ANoFillPropertiesView(child);
         }
     }
@@ -892,7 +893,7 @@ internal readonly partial struct AGroupShapePropertiesView {
 
     internal ASolidColorFillPropertiesView? SolidFill {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
             return child.IsNone ? null : new ASolidColorFillPropertiesView(child);
         }
     }
@@ -902,11 +903,11 @@ internal readonly partial struct AGroupShapePropertiesView {
 
 /// <summary>View over an element of schema type <c>CT_GroupTransform2D</c>.</summary>
 internal readonly partial struct AGroupTransform2DView {
-    internal AGroupTransform2DView(PowerPointXmlNode element) => Element = element;
+    internal AGroupTransform2DView(OfficeXmlNode element) => Element = element;
 
-    internal AGroupTransform2DView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal AGroupTransform2DView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -930,7 +931,7 @@ internal readonly partial struct AGroupTransform2DView {
 
     internal APoint2DView? Off {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "off");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "off");
             return child.IsNone ? null : new APoint2DView(child);
         }
     }
@@ -939,7 +940,7 @@ internal readonly partial struct AGroupTransform2DView {
 
     internal APositiveSize2DView? Ext {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "ext");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "ext");
             return child.IsNone ? null : new APositiveSize2DView(child);
         }
     }
@@ -948,7 +949,7 @@ internal readonly partial struct AGroupTransform2DView {
 
     internal APoint2DView? ChOff {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "chOff");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "chOff");
             return child.IsNone ? null : new APoint2DView(child);
         }
     }
@@ -957,7 +958,7 @@ internal readonly partial struct AGroupTransform2DView {
 
     internal APositiveSize2DView? ChExt {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "chExt");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "chExt");
             return child.IsNone ? null : new APositiveSize2DView(child);
         }
     }
@@ -967,11 +968,11 @@ internal readonly partial struct AGroupTransform2DView {
 
 /// <summary>View over an element of schema type <c>CT_ShapeProperties</c>.</summary>
 internal readonly partial struct AShapePropertiesView {
-    internal AShapePropertiesView(PowerPointXmlNode element) => Element = element;
+    internal AShapePropertiesView(OfficeXmlNode element) => Element = element;
 
-    internal AShapePropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal AShapePropertiesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -985,7 +986,7 @@ internal readonly partial struct AShapePropertiesView {
 
     internal ATransform2DView? Xfrm {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "xfrm");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "xfrm");
             return child.IsNone ? null : new ATransform2DView(child);
         }
     }
@@ -994,7 +995,7 @@ internal readonly partial struct AShapePropertiesView {
 
     internal APresetGeometry2DView? PrstGeom {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "prstGeom");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "prstGeom");
             return child.IsNone ? null : new APresetGeometry2DView(child);
         }
     }
@@ -1003,7 +1004,7 @@ internal readonly partial struct AShapePropertiesView {
 
     internal ANoFillPropertiesView? NoFill {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
             return child.IsNone ? null : new ANoFillPropertiesView(child);
         }
     }
@@ -1012,7 +1013,7 @@ internal readonly partial struct AShapePropertiesView {
 
     internal ASolidColorFillPropertiesView? SolidFill {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
             return child.IsNone ? null : new ASolidColorFillPropertiesView(child);
         }
     }
@@ -1022,11 +1023,11 @@ internal readonly partial struct AShapePropertiesView {
 
 /// <summary>View over an element of schema type <c>CT_Transform2D</c>.</summary>
 internal readonly partial struct ATransform2DView {
-    internal ATransform2DView(PowerPointXmlNode element) => Element = element;
+    internal ATransform2DView(OfficeXmlNode element) => Element = element;
 
-    internal ATransform2DView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ATransform2DView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1050,7 +1051,7 @@ internal readonly partial struct ATransform2DView {
 
     internal APoint2DView? Off {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "off");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "off");
             return child.IsNone ? null : new APoint2DView(child);
         }
     }
@@ -1059,7 +1060,7 @@ internal readonly partial struct ATransform2DView {
 
     internal APositiveSize2DView? Ext {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "ext");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "ext");
             return child.IsNone ? null : new APositiveSize2DView(child);
         }
     }
@@ -1069,11 +1070,11 @@ internal readonly partial struct ATransform2DView {
 
 /// <summary>View over an element of schema type <c>CT_Point2D</c>.</summary>
 internal readonly partial struct APoint2DView {
-    internal APoint2DView(PowerPointXmlNode element) => Element = element;
+    internal APoint2DView(OfficeXmlNode element) => Element = element;
 
-    internal APoint2DView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal APoint2DView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1093,11 +1094,11 @@ internal readonly partial struct APoint2DView {
 
 /// <summary>View over an element of schema type <c>CT_PresetGeometry2D</c>.</summary>
 internal readonly partial struct APresetGeometry2DView {
-    internal APresetGeometry2DView(PowerPointXmlNode element) => Element = element;
+    internal APresetGeometry2DView(OfficeXmlNode element) => Element = element;
 
-    internal APresetGeometry2DView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal APresetGeometry2DView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1111,7 +1112,7 @@ internal readonly partial struct APresetGeometry2DView {
 
     internal AGeomGuideListView? AvLst {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "avLst");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "avLst");
             return child.IsNone ? null : new AGeomGuideListView(child);
         }
     }
@@ -1121,11 +1122,11 @@ internal readonly partial struct APresetGeometry2DView {
 
 /// <summary>View over an element of schema type <c>CT_GeomGuideList</c>.</summary>
 internal readonly partial struct AGeomGuideListView {
-    internal AGeomGuideListView(PowerPointXmlNode element) => Element = element;
+    internal AGeomGuideListView(OfficeXmlNode element) => Element = element;
 
-    internal AGeomGuideListView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal AGeomGuideListView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1135,11 +1136,11 @@ internal readonly partial struct AGeomGuideListView {
 
 /// <summary>View over an element of schema type <c>CT_NoFillProperties</c>.</summary>
 internal readonly partial struct ANoFillPropertiesView {
-    internal ANoFillPropertiesView(PowerPointXmlNode element) => Element = element;
+    internal ANoFillPropertiesView(OfficeXmlNode element) => Element = element;
 
-    internal ANoFillPropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ANoFillPropertiesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1149,11 +1150,11 @@ internal readonly partial struct ANoFillPropertiesView {
 
 /// <summary>View over an element of schema type <c>CT_SolidColorFillProperties</c>.</summary>
 internal readonly partial struct ASolidColorFillPropertiesView {
-    internal ASolidColorFillPropertiesView(PowerPointXmlNode element) => Element = element;
+    internal ASolidColorFillPropertiesView(OfficeXmlNode element) => Element = element;
 
-    internal ASolidColorFillPropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ASolidColorFillPropertiesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1162,7 +1163,7 @@ internal readonly partial struct ASolidColorFillPropertiesView {
 
     internal ASRgbColorView? SrgbClr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "srgbClr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "srgbClr");
             return child.IsNone ? null : new ASRgbColorView(child);
         }
     }
@@ -1172,11 +1173,11 @@ internal readonly partial struct ASolidColorFillPropertiesView {
 
 /// <summary>View over an element of schema type <c>CT_SRgbColor</c>.</summary>
 internal readonly partial struct ASRgbColorView {
-    internal ASRgbColorView(PowerPointXmlNode element) => Element = element;
+    internal ASRgbColorView(OfficeXmlNode element) => Element = element;
 
-    internal ASRgbColorView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ASRgbColorView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1191,11 +1192,11 @@ internal readonly partial struct ASRgbColorView {
 
 /// <summary>View over an element of schema type <c>CT_TextBody</c>.</summary>
 internal readonly partial struct ATextBodyView {
-    internal ATextBodyView(PowerPointXmlNode element) => Element = element;
+    internal ATextBodyView(OfficeXmlNode element) => Element = element;
 
-    internal ATextBodyView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ATextBodyView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1204,7 +1205,7 @@ internal readonly partial struct ATextBodyView {
 
     internal ATextBodyPropertiesView? BodyPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "bodyPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "bodyPr");
             return child.IsNone ? null : new ATextBodyPropertiesView(child);
         }
     }
@@ -1213,14 +1214,14 @@ internal readonly partial struct ATextBodyView {
 
     internal ATextListStyleView? LstStyle {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lstStyle");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lstStyle");
             return child.IsNone ? null : new ATextListStyleView(child);
         }
     }
 
     internal ATextListStyleView GetOrAddLstStyle() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lstStyle", Order));
 
-    internal PowerPointXmlNode.ChildList PList => Element.Children(OfficeXmlNamespaces.DrawingML, "p");
+    internal OfficeXmlNode.ChildList PList => Element.Children(OfficeXmlNamespaces.DrawingML, "p");
 
     /// <summary>Adds a <c>p</c> after the existing ones, in sequence order.</summary>
     internal ATextParagraphView AddP() => new(Element.AddOrdered(OfficeXmlNamespaces.DrawingML, "p", Order));
@@ -1228,11 +1229,11 @@ internal readonly partial struct ATextBodyView {
 
 /// <summary>View over an element of schema type <c>CT_TextBodyProperties</c>.</summary>
 internal readonly partial struct ATextBodyPropertiesView {
-    internal ATextBodyPropertiesView(PowerPointXmlNode element) => Element = element;
+    internal ATextBodyPropertiesView(OfficeXmlNode element) => Element = element;
 
-    internal ATextBodyPropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ATextBodyPropertiesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1336,7 +1337,7 @@ internal readonly partial struct ATextBodyPropertiesView {
 
     internal ATextNormalAutofitView? NormAutofit {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "normAutofit");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "normAutofit");
             return child.IsNone ? null : new ATextNormalAutofitView(child);
         }
     }
@@ -1346,11 +1347,11 @@ internal readonly partial struct ATextBodyPropertiesView {
 
 /// <summary>View over an element of schema type <c>CT_TextListStyle</c>.</summary>
 internal readonly partial struct ATextListStyleView {
-    internal ATextListStyleView(PowerPointXmlNode element) => Element = element;
+    internal ATextListStyleView(OfficeXmlNode element) => Element = element;
 
-    internal ATextListStyleView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ATextListStyleView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1359,7 +1360,7 @@ internal readonly partial struct ATextListStyleView {
 
     internal ATextParagraphPropertiesView? DefPPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "defPPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "defPPr");
             return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
@@ -1368,7 +1369,7 @@ internal readonly partial struct ATextListStyleView {
 
     internal ATextParagraphPropertiesView? Lvl1pPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl1pPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl1pPr");
             return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
@@ -1377,7 +1378,7 @@ internal readonly partial struct ATextListStyleView {
 
     internal ATextParagraphPropertiesView? Lvl2pPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl2pPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl2pPr");
             return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
@@ -1386,7 +1387,7 @@ internal readonly partial struct ATextListStyleView {
 
     internal ATextParagraphPropertiesView? Lvl3pPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl3pPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl3pPr");
             return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
@@ -1395,7 +1396,7 @@ internal readonly partial struct ATextListStyleView {
 
     internal ATextParagraphPropertiesView? Lvl4pPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl4pPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl4pPr");
             return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
@@ -1404,7 +1405,7 @@ internal readonly partial struct ATextListStyleView {
 
     internal ATextParagraphPropertiesView? Lvl5pPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl5pPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl5pPr");
             return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
@@ -1413,7 +1414,7 @@ internal readonly partial struct ATextListStyleView {
 
     internal ATextParagraphPropertiesView? Lvl6pPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl6pPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl6pPr");
             return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
@@ -1422,7 +1423,7 @@ internal readonly partial struct ATextListStyleView {
 
     internal ATextParagraphPropertiesView? Lvl7pPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl7pPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl7pPr");
             return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
@@ -1431,7 +1432,7 @@ internal readonly partial struct ATextListStyleView {
 
     internal ATextParagraphPropertiesView? Lvl8pPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl8pPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl8pPr");
             return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
@@ -1440,7 +1441,7 @@ internal readonly partial struct ATextListStyleView {
 
     internal ATextParagraphPropertiesView? Lvl9pPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl9pPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lvl9pPr");
             return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
@@ -1450,11 +1451,11 @@ internal readonly partial struct ATextListStyleView {
 
 /// <summary>View over an element of schema type <c>CT_TextParagraph</c>.</summary>
 internal readonly partial struct ATextParagraphView {
-    internal ATextParagraphView(PowerPointXmlNode element) => Element = element;
+    internal ATextParagraphView(OfficeXmlNode element) => Element = element;
 
-    internal ATextParagraphView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ATextParagraphView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1463,21 +1464,21 @@ internal readonly partial struct ATextParagraphView {
 
     internal ATextParagraphPropertiesView? PPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "pPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "pPr");
             return child.IsNone ? null : new ATextParagraphPropertiesView(child);
         }
     }
 
     internal ATextParagraphPropertiesView GetOrAddPPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "pPr", Order));
 
-    internal PowerPointXmlNode.ChildList RList => Element.Children(OfficeXmlNamespaces.DrawingML, "r");
+    internal OfficeXmlNode.ChildList RList => Element.Children(OfficeXmlNamespaces.DrawingML, "r");
 
     /// <summary>Adds a <c>r</c> after the existing ones, in sequence order.</summary>
     internal ARegularTextRunView AddR() => new(Element.AddOrdered(OfficeXmlNamespaces.DrawingML, "r", Order));
 
     internal ATextCharacterPropertiesView? EndParaRPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr");
             return child.IsNone ? null : new ATextCharacterPropertiesView(child);
         }
     }
@@ -1487,11 +1488,11 @@ internal readonly partial struct ATextParagraphView {
 
 /// <summary>View over an element of schema type <c>CT_TextParagraphProperties</c>.</summary>
 internal readonly partial struct ATextParagraphPropertiesView {
-    internal ATextParagraphPropertiesView(PowerPointXmlNode element) => Element = element;
+    internal ATextParagraphPropertiesView(OfficeXmlNode element) => Element = element;
 
-    internal ATextParagraphPropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ATextParagraphPropertiesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1555,7 +1556,7 @@ internal readonly partial struct ATextParagraphPropertiesView {
 
     internal ATextCharacterPropertiesView? DefRPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "defRPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "defRPr");
             return child.IsNone ? null : new ATextCharacterPropertiesView(child);
         }
     }
@@ -1565,11 +1566,11 @@ internal readonly partial struct ATextParagraphPropertiesView {
 
 /// <summary>View over an element of schema type <c>CT_RegularTextRun</c>.</summary>
 internal readonly partial struct ARegularTextRunView {
-    internal ARegularTextRunView(PowerPointXmlNode element) => Element = element;
+    internal ARegularTextRunView(OfficeXmlNode element) => Element = element;
 
-    internal ARegularTextRunView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ARegularTextRunView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1578,7 +1579,7 @@ internal readonly partial struct ARegularTextRunView {
 
     internal ATextCharacterPropertiesView? RPr {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "rPr");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "rPr");
             return child.IsNone ? null : new ATextCharacterPropertiesView(child);
         }
     }
@@ -1593,11 +1594,11 @@ internal readonly partial struct ARegularTextRunView {
 
 /// <summary>View over an element of schema type <c>CT_TextCharacterProperties</c>.</summary>
 internal readonly partial struct ATextCharacterPropertiesView {
-    internal ATextCharacterPropertiesView(PowerPointXmlNode element) => Element = element;
+    internal ATextCharacterPropertiesView(OfficeXmlNode element) => Element = element;
 
-    internal ATextCharacterPropertiesView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ATextCharacterPropertiesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1701,7 +1702,7 @@ internal readonly partial struct ATextCharacterPropertiesView {
 
     internal ANoFillPropertiesView? NoFill {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
             return child.IsNone ? null : new ANoFillPropertiesView(child);
         }
     }
@@ -1710,7 +1711,7 @@ internal readonly partial struct ATextCharacterPropertiesView {
 
     internal ASolidColorFillPropertiesView? SolidFill {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
             return child.IsNone ? null : new ASolidColorFillPropertiesView(child);
         }
     }
@@ -1720,11 +1721,11 @@ internal readonly partial struct ATextCharacterPropertiesView {
 
 /// <summary>View over an element of schema type <c>CT_TextNormalAutofit</c>.</summary>
 internal readonly partial struct ATextNormalAutofitView {
-    internal ATextNormalAutofitView(PowerPointXmlNode element) => Element = element;
+    internal ATextNormalAutofitView(OfficeXmlNode element) => Element = element;
 
-    internal ATextNormalAutofitView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal ATextNormalAutofitView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1744,11 +1745,11 @@ internal readonly partial struct ATextNormalAutofitView {
 
 /// <summary>View over an element of schema type <c>CT_ColorMapping</c>.</summary>
 internal readonly partial struct AColorMappingView {
-    internal AColorMappingView(PowerPointXmlNode element) => Element = element;
+    internal AColorMappingView(OfficeXmlNode element) => Element = element;
 
-    internal AColorMappingView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal AColorMappingView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1818,11 +1819,11 @@ internal readonly partial struct AColorMappingView {
 
 /// <summary>View over an element of schema type <c>CT_ColorMappingOverride</c>.</summary>
 internal readonly partial struct AColorMappingOverrideView {
-    internal AColorMappingOverrideView(PowerPointXmlNode element) => Element = element;
+    internal AColorMappingOverrideView(OfficeXmlNode element) => Element = element;
 
-    internal AColorMappingOverrideView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal AColorMappingOverrideView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 
@@ -1831,7 +1832,7 @@ internal readonly partial struct AColorMappingOverrideView {
 
     internal AEmptyElementView? MasterClrMapping {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "masterClrMapping");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "masterClrMapping");
             return child.IsNone ? null : new AEmptyElementView(child);
         }
     }
@@ -1840,7 +1841,7 @@ internal readonly partial struct AColorMappingOverrideView {
 
     internal AColorMappingView? OverrideClrMapping {
         get {
-            PowerPointXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "overrideClrMapping");
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "overrideClrMapping");
             return child.IsNone ? null : new AColorMappingView(child);
         }
     }
@@ -1850,11 +1851,11 @@ internal readonly partial struct AColorMappingOverrideView {
 
 /// <summary>View over an element of schema type <c>CT_EmptyElement</c>.</summary>
 internal readonly partial struct AEmptyElementView {
-    internal AEmptyElementView(PowerPointXmlNode element) => Element = element;
+    internal AEmptyElementView(OfficeXmlNode element) => Element = element;
 
-    internal AEmptyElementView(OfficeXmlTree tree, int node) : this(new PowerPointXmlNode(tree, node)) { }
+    internal AEmptyElementView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
 
-    internal PowerPointXmlNode Element { get; }
+    internal OfficeXmlNode Element { get; }
     internal OfficeXmlTree Tree => Element.Tree!;
     internal int Node => Element.Node;
 

@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXmlSdk;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint.OpenXml {
     /// <summary>What a part is to the presentation, as far as content in it cares.</summary>
@@ -114,12 +115,12 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         }
 
         /// <summary>The part's root element, or none when the part has no XML.</summary>
-        internal PowerPointXmlNode Root {
+        internal OfficeXmlNode Root {
             get {
                 PowerPointPartRef current = Current;
-                if (current._sdk != null) return PowerPointXmlNode.FromSdk(PowerPointSdkParts.Root(current._sdk));
+                if (current._sdk != null) return OfficeXmlNode.FromSdk(PowerPointSdkParts.Root(current._sdk));
                 OfficeXmlTree? tree = current._document?.GetPackageXml(current._name!);
-                return tree == null ? default : new PowerPointXmlNode(tree, tree.Root);
+                return tree == null ? default : new OfficeXmlNode(tree, tree.Root);
             }
         }
 
@@ -244,7 +245,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         }
 
         // Whether an r: attribute on the element or below it carries the relationship id.
-        private static bool References(PowerPointXmlNode element, string id) {
+        private static bool References(OfficeXmlNode element, string id) {
             if (element.IsNone) return false;
             if (element.IsSdk) return PowerPointSdkParts.ReferencesRelationship(element.SdkElement!, id);
             OfficeXmlTree tree = element.Tree!;

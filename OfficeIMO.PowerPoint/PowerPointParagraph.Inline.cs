@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Kind of authored inline node in a DrawingML paragraph.</summary>
@@ -49,7 +50,7 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointParagraphInline> InlineNodes {
             get {
                 var result = new List<PowerPointParagraphInline>();
-                foreach (PowerPointXmlNode child in Element.Children()) {
+                foreach (OfficeXmlNode child in Element.Children()) {
                     if (child.NamespaceId != OfficeXmlNamespaces.DrawingML) continue;
                     switch (child.LocalName) {
                         case "r":
@@ -74,7 +75,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Adds an explicit DrawingML line break in paragraph order.</summary>
         public PowerPointParagraph AddLineBreak() {
-            PowerPointXmlNode paragraph = Element;
+            OfficeXmlNode paragraph = Element;
             paragraph.InsertBefore(paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "br"), paragraph.Child(OfficeXmlNamespaces.DrawingML, "endParaRPr"));
             MarkEdited();
             return this;
@@ -89,8 +90,8 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph AddField(string displayText, string fieldType, string? fieldId,
             Action<PowerPointTextRun>? configure) {
             ArgumentException.ThrowIfNullOrWhiteSpace(fieldType);
-            PowerPointXmlNode paragraph = Element;
-            PowerPointXmlNode field = paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "fld");
+            OfficeXmlNode paragraph = Element;
+            OfficeXmlNode field = paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "fld");
             field.SetAttribute("id", string.IsNullOrWhiteSpace(fieldId) ? Guid.NewGuid().ToString("B").ToUpperInvariant() : fieldId);
             field.SetAttribute("type", fieldType);
             field.Append(field.CreateElement(OfficeXmlNamespaces.DrawingML, "t")).SetInnerText(PowerPointTextContent.ToSingleLine(displayText));
@@ -102,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
                 configure(run);
             } catch {
                 // A failed configuration leaves no field behind, so a retry doesn't add a second one.
-                PowerPointXmlNode added = run.Element;
+                OfficeXmlNode added = run.Element;
                 if (!added.Parent.IsNone) PowerPointTextRun.DiscardContent(added, OwnerPartRef, SlidePartRef);
                 throw;
             }

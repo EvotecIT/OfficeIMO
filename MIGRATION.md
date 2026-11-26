@@ -6865,9 +6865,14 @@ that option or updated expectations.
 
 ## Reader transport for FictionBook
 
-Reader uses `ReaderInputKind.Fb2` (`32`) for FB2 and FB2.ZIP imports. Consumers that validate
-Reader JSON against a packaged schema should accept version 16. OfficeIMO still
-reads versions 5 through 16.
+Reader uses `ReaderInputKind.Fb2` (`32`) for FB2 and FB2.ZIP imports, which require
+Reader JSON schema version 17. OfficeIMO also reads earlier schemas, including
+version 16 for `ReaderInputKind.Comic` (`34`) in CBZ imports.
+
+## Reader transport for comic archives
+
+Reader uses `ReaderInputKind.Comic` (`34`) for CBZ imports. Version 16 introduced this
+kind and remains readable.
 
 ## TOML Reader identity and transport
 

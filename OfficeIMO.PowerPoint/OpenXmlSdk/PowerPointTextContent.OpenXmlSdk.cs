@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
 using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>The SDK forms of the inline text helpers, for code that still builds SDK elements.</summary>
@@ -29,6 +30,6 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Copies run properties to a run or line break; a break cannot be clicked, so it keeps no interaction.</summary>
         internal static void ApplyProperties(OpenXmlElement node, A.RunProperties? properties) =>
-            ApplyProperties(PowerPointXmlNode.FromSdk(node), PowerPointXmlNode.FromSdk(properties));
+            ApplyProperties(OfficeXmlNode.FromSdk(node), OfficeXmlNode.FromSdk(properties));
     }
 }

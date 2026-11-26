@@ -142,6 +142,8 @@
   <Project Path="OfficeIMO.Chm.Pdf/OfficeIMO.Chm.Pdf.csproj" />
   <Project Path="OfficeIMO.Chm.Tests/OfficeIMO.Chm.Tests.csproj" />
   <Project Path="OfficeIMO.Chm/OfficeIMO.Chm.csproj" />
+  <Project Path="OfficeIMO.Comic/OfficeIMO.Comic.csproj" />
+  <Project Path="OfficeIMO.Comic.Tests/OfficeIMO.Comic.Tests.csproj" />
   <Project Path="OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj" />
   <Project Path="OfficeIMO.Confluence/OfficeIMO.Confluence.csproj" />
   <Project Path="OfficeIMO.Core/OfficeIMO.Core.csproj" />

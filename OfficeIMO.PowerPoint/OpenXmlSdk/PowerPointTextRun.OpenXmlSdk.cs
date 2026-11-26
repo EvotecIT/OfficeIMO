@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.OpenXml;
 using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -10,16 +11,16 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public partial class PowerPointTextRun {
         internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null)
-            : this(PowerPointXmlNode.FromSdk(run), PowerPointPartRef.FromSdk(slidePart ?? ownerPart as SlidePart), PowerPointPartRef.FromSdk(ownerPart as OpenXmlPart ?? slidePart)) {
+            : this(OfficeXmlNode.FromSdk(run), PowerPointPartRef.FromSdk(slidePart ?? ownerPart as SlidePart), PowerPointPartRef.FromSdk(ownerPart as OpenXmlPart ?? slidePart)) {
         }
 
         internal PowerPointTextRun(A.Run run, SlidePart? slidePart, OpenXmlPartContainer? ownerPart, List<OpenXmlElement> lineContinuation)
-            : this(PowerPointXmlNode.FromSdk(run), PowerPointPartRef.FromSdk(slidePart ?? ownerPart as SlidePart), PowerPointPartRef.FromSdk(ownerPart as OpenXmlPart ?? slidePart),
-                lineContinuation.Select(PowerPointXmlNode.FromSdk).ToList()) {
+            : this(OfficeXmlNode.FromSdk(run), PowerPointPartRef.FromSdk(slidePart ?? ownerPart as SlidePart), PowerPointPartRef.FromSdk(ownerPart as OpenXmlPart ?? slidePart),
+                lineContinuation.Select(OfficeXmlNode.FromSdk).ToList()) {
         }
 
         internal PowerPointTextRun(A.Field field, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null)
-            : this(PowerPointXmlNode.FromSdk(field), PowerPointPartRef.FromSdk(slidePart ?? ownerPart as SlidePart), PowerPointPartRef.FromSdk(ownerPart as OpenXmlPart ?? slidePart)) {
+            : this(OfficeXmlNode.FromSdk(field), PowerPointPartRef.FromSdk(slidePart ?? ownerPart as SlidePart), PowerPointPartRef.FromSdk(ownerPart as OpenXmlPart ?? slidePart)) {
         }
 
         private A.Run? _detachedFieldRun;
@@ -53,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
         private OpenXmlElement EnsurePropertiesSdkElement() => ToSdk(EnsurePropertiesElement());
 
         // An element as an SDK element, opening the SDK for one held in a package tree.
-        private OpenXmlElement ToSdk(PowerPointXmlNode node) {
+        private OpenXmlElement ToSdk(OfficeXmlNode node) {
             if (node.SdkElement is OpenXmlElement element) return element;
             if (_packageSlide is { RemovedFromPackage: true }) throw new InvalidOperationException("The slide is no longer part of the presentation.");
             if (node.Tree != null && !_packagePart.IsNone) return (OpenXmlElement)PowerPointSlide.BindPackageNode(_packagePart, node.Tree, node.Node);
@@ -68,6 +69,6 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Removes a content subtree and the relationships no surviving content uses.</summary>
         internal static void DiscardContent(OpenXmlElement content, OpenXmlPart? ownerPart) =>
-            DiscardContent(PowerPointXmlNode.FromSdk(content), PowerPointPartRef.FromSdk(ownerPart));
+            DiscardContent(OfficeXmlNode.FromSdk(content), PowerPointPartRef.FromSdk(ownerPart));
     }
 }

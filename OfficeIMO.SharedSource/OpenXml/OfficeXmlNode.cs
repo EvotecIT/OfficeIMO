@@ -1,40 +1,40 @@
 using OfficeIMO.Core.Internal.OpenXml;
-using OfficeIMO.PowerPoint.OpenXmlSdk;
 
-namespace OfficeIMO.PowerPoint.OpenXml {
+namespace OfficeIMO.OpenXml.Internal {
     /// <summary>
     /// An element of a part, wherever the part is held: in OfficeIMO's own tree while the document works without the
-    /// Open XML SDK, or in the SDK package after <see cref="PowerPointDocument.OpenXmlDocument"/> opened it, where edits
-    /// go to the SDK's elements in place so references the caller holds stay current. Engine code reads and edits
-    /// elements through this type only, so it has one path for both; the SDK side lives in the bridge.
+    /// Open XML SDK, or in the SDK package once the engine's <c>OpenXmlDocument</c> opened it, where edits go to the
+    /// SDK's elements in place so references the caller holds stay current. Engine code reads and edits elements through
+    /// this type only, so it has one path for both. The SDK side is <c>OfficeSdkXml</c>, which each engine compiles into
+    /// its SDK bridge folder.
     /// </summary>
     /// <remarks>
     /// Children are elements only: text is read and written through <see cref="InnerText"/>, and comments and
     /// processing instructions are skipped. Namespaces are the fixed ids of <see cref="OfficeXmlNamespaces"/>; a namespace
     /// outside them is named by its URI.
     /// </remarks>
-    internal readonly struct PowerPointXmlNode : IEquatable<PowerPointXmlNode> {
+    internal readonly struct OfficeXmlNode : IEquatable<OfficeXmlNode> {
         private readonly OfficeXmlTree? _tree;
         private readonly int _node;
         private readonly object? _sdk;
 
-        internal PowerPointXmlNode(OfficeXmlTree tree, int node) {
+        internal OfficeXmlNode(OfficeXmlTree tree, int node) {
             _tree = node == OfficeXmlTree.NoNode ? null : tree;
             _node = node;
             _sdk = null;
         }
 
-        private PowerPointXmlNode(object element) {
+        private OfficeXmlNode(object element) {
             _tree = null;
             _node = OfficeXmlTree.NoNode;
             _sdk = element;
         }
 
         /// <summary>An element of the SDK package, passed as <see cref="object"/> so engine code names no SDK type.</summary>
-        internal static PowerPointXmlNode FromSdk(object? element) => element == null ? default : new PowerPointXmlNode(element);
+        internal static OfficeXmlNode FromSdk(object? element) => element == null ? default : new OfficeXmlNode(element);
 
         /// <summary>No element: what a lookup returns when nothing matches.</summary>
-        internal static PowerPointXmlNode None => default;
+        internal static OfficeXmlNode None => default;
 
         internal bool IsNone => _tree == null && _sdk == null;
         internal bool Exists => !IsNone;
@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
 
         // ---- Name -----------------------------------------------------------------------------------------------
 
-        internal string LocalName => _tree != null ? _tree.LocalNameOf(_node) : _sdk != null ? PowerPointSdkXml.LocalName(_sdk) : string.Empty;
+        internal string LocalName => _tree != null ? _tree.LocalNameOf(_node) : _sdk != null ? OfficeSdkXml.LocalName(_sdk) : string.Empty;
 
         /// <summary>The fixed namespace id, or <see cref="OfficeXmlNamespaces.None"/> for a namespace outside them.</summary>
         internal int NamespaceId {
@@ -61,53 +61,53 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                     int id = _tree.NamespaceOf(_node);
                     return OfficeXmlNamespaces.IsEcma376(id) ? id : OfficeXmlNamespaces.None;
                 }
-                return _sdk != null ? PowerPointSdkXml.NamespaceId(_sdk) : OfficeXmlNamespaces.None;
+                return _sdk != null ? OfficeSdkXml.NamespaceId(_sdk) : OfficeXmlNamespaces.None;
             }
         }
 
-        internal string NamespaceUri => _tree != null ? _tree.Namespaces.GetUri(_tree.NamespaceOf(_node)) : _sdk != null ? PowerPointSdkXml.NamespaceUri(_sdk) : string.Empty;
+        internal string NamespaceUri => _tree != null ? _tree.Namespaces.GetUri(_tree.NamespaceOf(_node)) : _sdk != null ? OfficeSdkXml.NamespaceUri(_sdk) : string.Empty;
 
         internal bool Is(int namespaceId, string localName) =>
             _tree != null ? _tree.IsElement(_node, namespaceId, localName)
-            : _sdk != null && PowerPointSdkXml.Is(_sdk, namespaceId, localName);
+            : _sdk != null && OfficeSdkXml.Is(_sdk, namespaceId, localName);
 
         internal bool Is(string namespaceUri, string localName) =>
             !IsNone && string.Equals(LocalName, localName, StringComparison.Ordinal) && string.Equals(NamespaceUri, namespaceUri, StringComparison.Ordinal);
 
         // ---- Navigation -----------------------------------------------------------------------------------------
 
-        internal PowerPointXmlNode Parent {
+        internal OfficeXmlNode Parent {
             get {
-                if (_tree != null) return new PowerPointXmlNode(_tree, _tree.ParentOf(_node));
-                return _sdk != null ? FromSdk(PowerPointSdkXml.Parent(_sdk)) : default;
+                if (_tree != null) return new OfficeXmlNode(_tree, _tree.ParentOf(_node));
+                return _sdk != null ? FromSdk(OfficeSdkXml.Parent(_sdk)) : default;
             }
         }
 
-        internal PowerPointXmlNode FirstChild {
+        internal OfficeXmlNode FirstChild {
             get {
-                if (_tree != null) return new PowerPointXmlNode(_tree, SkipToElement(_tree, _tree.FirstChildOf(_node), forward: true));
-                return _sdk != null ? FromSdk(PowerPointSdkXml.FirstChild(_sdk)) : default;
+                if (_tree != null) return new OfficeXmlNode(_tree, SkipToElement(_tree, _tree.FirstChildOf(_node), forward: true));
+                return _sdk != null ? FromSdk(OfficeSdkXml.FirstChild(_sdk)) : default;
             }
         }
 
-        internal PowerPointXmlNode LastChild {
+        internal OfficeXmlNode LastChild {
             get {
-                if (_tree != null) return new PowerPointXmlNode(_tree, SkipToElement(_tree, _tree.LastChildOf(_node), forward: false));
-                return _sdk != null ? FromSdk(PowerPointSdkXml.LastChild(_sdk)) : default;
+                if (_tree != null) return new OfficeXmlNode(_tree, SkipToElement(_tree, _tree.LastChildOf(_node), forward: false));
+                return _sdk != null ? FromSdk(OfficeSdkXml.LastChild(_sdk)) : default;
             }
         }
 
-        internal PowerPointXmlNode NextSibling {
+        internal OfficeXmlNode NextSibling {
             get {
-                if (_tree != null) return new PowerPointXmlNode(_tree, SkipToElement(_tree, _tree.NextSiblingOf(_node), forward: true));
-                return _sdk != null ? FromSdk(PowerPointSdkXml.NextSibling(_sdk)) : default;
+                if (_tree != null) return new OfficeXmlNode(_tree, SkipToElement(_tree, _tree.NextSiblingOf(_node), forward: true));
+                return _sdk != null ? FromSdk(OfficeSdkXml.NextSibling(_sdk)) : default;
             }
         }
 
-        internal PowerPointXmlNode PreviousSibling {
+        internal OfficeXmlNode PreviousSibling {
             get {
-                if (_tree != null) return new PowerPointXmlNode(_tree, SkipToElement(_tree, _tree.PreviousSiblingOf(_node), forward: false));
-                return _sdk != null ? FromSdk(PowerPointSdkXml.PreviousSibling(_sdk)) : default;
+                if (_tree != null) return new OfficeXmlNode(_tree, SkipToElement(_tree, _tree.PreviousSiblingOf(_node), forward: false));
+                return _sdk != null ? FromSdk(OfficeSdkXml.PreviousSibling(_sdk)) : default;
             }
         }
 
@@ -119,26 +119,26 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         }
 
         /// <summary>The first child element with this name, or <see cref="None"/>.</summary>
-        internal PowerPointXmlNode Child(int namespaceId, string localName) {
-            if (_tree != null) return new PowerPointXmlNode(_tree, _tree.FindChild(_node, namespaceId, localName));
+        internal OfficeXmlNode Child(int namespaceId, string localName) {
+            if (_tree != null) return new OfficeXmlNode(_tree, _tree.FindChild(_node, namespaceId, localName));
             if (_sdk == null) return default;
-            for (PowerPointXmlNode child = FirstChild; !child.IsNone; child = child.NextSibling) {
+            for (OfficeXmlNode child = FirstChild; !child.IsNone; child = child.NextSibling) {
                 if (child.Is(namespaceId, localName)) return child;
             }
             return default;
         }
 
-        internal PowerPointXmlNode Child(string namespaceUri, string localName) {
-            for (PowerPointXmlNode child = FirstChild; !child.IsNone; child = child.NextSibling) {
+        internal OfficeXmlNode Child(string namespaceUri, string localName) {
+            for (OfficeXmlNode child = FirstChild; !child.IsNone; child = child.NextSibling) {
                 if (child.Is(namespaceUri, localName)) return child;
             }
             return default;
         }
 
         /// <summary>The next sibling element with this name, or <see cref="None"/>.</summary>
-        internal PowerPointXmlNode NextSiblingNamed(int namespaceId, string localName) {
-            if (_tree != null) return new PowerPointXmlNode(_tree, _tree.FindNextSibling(_node, namespaceId, localName));
-            for (PowerPointXmlNode sibling = NextSibling; !sibling.IsNone; sibling = sibling.NextSibling) {
+        internal OfficeXmlNode NextSiblingNamed(int namespaceId, string localName) {
+            if (_tree != null) return new OfficeXmlNode(_tree, _tree.FindNextSibling(_node, namespaceId, localName));
+            for (OfficeXmlNode sibling = NextSibling; !sibling.IsNone; sibling = sibling.NextSibling) {
                 if (sibling.Is(namespaceId, localName)) return sibling;
             }
             return default;
@@ -151,16 +151,16 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         internal ChildList Children(int namespaceId, string localName) => new(this, namespaceId, localName);
 
         /// <summary>Whether this element is <paramref name="ancestor"/> or inside it.</summary>
-        internal bool IsInside(PowerPointXmlNode ancestor) {
-            for (PowerPointXmlNode node = this; !node.IsNone; node = node.Parent) {
+        internal bool IsInside(OfficeXmlNode ancestor) {
+            for (OfficeXmlNode node = this; !node.IsNone; node = node.Parent) {
                 if (node.Equals(ancestor)) return true;
             }
             return false;
         }
 
         /// <summary>The nearest ancestor with this name, this element included, or <see cref="None"/>.</summary>
-        internal PowerPointXmlNode AncestorOrSelf(int namespaceId, string localName) {
-            for (PowerPointXmlNode node = this; !node.IsNone; node = node.Parent) {
+        internal OfficeXmlNode AncestorOrSelf(int namespaceId, string localName) {
+            for (OfficeXmlNode node = this; !node.IsNone; node = node.Parent) {
                 if (node.Is(namespaceId, localName)) return node;
             }
             return default;
@@ -174,7 +174,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                     while (_tree.ParentOf(node) != OfficeXmlTree.NoNode) node = _tree.ParentOf(node);
                     return node == _tree.Root;
                 }
-                return _sdk != null && PowerPointSdkXml.IsAttached(_sdk);
+                return _sdk != null && OfficeSdkXml.IsAttached(_sdk);
             }
         }
 
@@ -184,7 +184,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
 
         internal string? Attribute(int namespaceId, string localName) =>
             _tree != null ? _tree.GetAttribute(_node, namespaceId, localName)
-            : _sdk != null ? PowerPointSdkXml.GetAttribute(_sdk, namespaceId, localName) : null;
+            : _sdk != null ? OfficeSdkXml.GetAttribute(_sdk, namespaceId, localName) : null;
 
         internal bool HasAttribute(string localName) => Attribute(OfficeXmlNamespaces.None, localName) != null;
 
@@ -199,7 +199,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                 if (value == null) _tree.RemoveAttribute(_node, namespaceId, localName);
                 else _tree.SetAttribute(_node, namespaceId, localName, value);
             } else if (_sdk != null) {
-                PowerPointSdkXml.SetAttribute(_sdk, namespaceId, localName, value);
+                OfficeSdkXml.SetAttribute(_sdk, namespaceId, localName, value);
             } else {
                 throw new InvalidOperationException("There is no element to set the attribute on.");
             }
@@ -229,19 +229,19 @@ namespace OfficeIMO.PowerPoint.OpenXml {
 
         /// <summary>The text of the element and its descendants.</summary>
         internal string InnerText =>
-            _tree != null ? _tree.GetDescendantText(_node) : _sdk != null ? PowerPointSdkXml.InnerText(_sdk) : string.Empty;
+            _tree != null ? _tree.GetDescendantText(_node) : _sdk != null ? OfficeSdkXml.InnerText(_sdk) : string.Empty;
 
         /// <summary>Replaces the element's content with text, as for <c>a:t</c>.</summary>
         internal void SetInnerText(string text) {
             ArgumentNullException.ThrowIfNull(text);
             if (_tree != null) _tree.SetInnerText(_node, text);
-            else if (_sdk != null) PowerPointSdkXml.SetInnerText(_sdk, text);
+            else if (_sdk != null) OfficeSdkXml.SetInnerText(_sdk, text);
             else throw new InvalidOperationException("There is no element to set the text of.");
         }
 
         /// <summary>The text of a child element, or null when there is no such child.</summary>
         internal string? ChildText(int namespaceId, string localName) {
-            PowerPointXmlNode child = Child(namespaceId, localName);
+            OfficeXmlNode child = Child(namespaceId, localName);
             return child.IsNone ? null : child.InnerText;
         }
 
@@ -251,31 +251,31 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         /// Creates a detached element to fill and then insert under an element of this part. For an SDK element it is
         /// built in a small tree of its own and becomes an SDK element when it is inserted.
         /// </summary>
-        internal PowerPointXmlNode CreateElement(int namespaceId, string localName) {
-            if (_tree != null) return new PowerPointXmlNode(_tree, _tree.CreateElement(namespaceId, localName));
+        internal OfficeXmlNode CreateElement(int namespaceId, string localName) {
+            if (_tree != null) return new OfficeXmlNode(_tree, _tree.CreateElement(namespaceId, localName));
             OfficeXmlTree scratch = OfficeXmlTree.Create(new OfficeXmlNamespaces.Table(), namespaceId, localName, 8);
-            return new PowerPointXmlNode(scratch, scratch.Root);
+            return new OfficeXmlNode(scratch, scratch.Root);
         }
 
         /// <summary>Creates a detached element in a namespace outside the fixed ones, written with <paramref name="prefix"/>.</summary>
-        internal PowerPointXmlNode CreateElement(string namespaceUri, string localName, string prefix) {
-            if (_tree != null) return new PowerPointXmlNode(_tree, _tree.CreateElement(namespaceUri, localName, prefix));
+        internal OfficeXmlNode CreateElement(string namespaceUri, string localName, string prefix) {
+            if (_tree != null) return new OfficeXmlNode(_tree, _tree.CreateElement(namespaceUri, localName, prefix));
             var table = new OfficeXmlNamespaces.Table();
             OfficeXmlTree scratch = OfficeXmlTree.Create(table, OfficeXmlNamespaces.None, "scratch", 8);
             int node = scratch.CreateElement(namespaceUri, localName, prefix);
             scratch.Append(scratch.Root, node);
-            return new PowerPointXmlNode(scratch, node);
+            return new OfficeXmlNode(scratch, node);
         }
 
         /// <summary>Appends a detached element and returns it as it is now held under this element.</summary>
-        internal PowerPointXmlNode Append(PowerPointXmlNode child) => InsertBefore(child, default);
+        internal OfficeXmlNode Append(OfficeXmlNode child) => InsertBefore(child, default);
 
         /// <summary>
         /// Inserts a detached element before <paramref name="reference"/>, or last when it is <see cref="None"/>, and
         /// returns it as it is now held under this element: the same node in the same tree, or a new element made from
         /// a copy of it otherwise.
         /// </summary>
-        internal PowerPointXmlNode InsertBefore(PowerPointXmlNode child, PowerPointXmlNode reference) {
+        internal OfficeXmlNode InsertBefore(OfficeXmlNode child, OfficeXmlNode reference) {
             if (child.IsNone) throw new ArgumentException("There is no element to insert.", nameof(child));
             if (_tree != null) {
                 int node;
@@ -285,30 +285,30 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                     node = _tree.ImportElement(child._tree, child._node);
                 } else {
                     // An SDK element into a tree: its markup is read into the tree.
-                    byte[] markup = PowerPointSdkXml.OuterXml(child._sdk!);
+                    byte[] markup = OfficeSdkXml.OuterXml(child._sdk!);
                     OfficeXmlTree parsed = OfficeXmlTree.Parse(markup, markup.Length, _tree.Namespaces);
                     node = _tree.ImportElement(parsed, parsed.Root);
                 }
                 _tree.InsertBefore(_node, node, reference.Node);
-                return new PowerPointXmlNode(_tree, node);
+                return new OfficeXmlNode(_tree, node);
             }
             if (_sdk == null) throw new InvalidOperationException("There is no element to insert into.");
             return FromSdk(child._sdk != null
-                ? PowerPointSdkXml.InsertBefore(_sdk, child._sdk, reference._sdk)
-                : PowerPointSdkXml.InsertMarkupBefore(_sdk, child._tree!.WriteElement(child._node), reference._sdk));
+                ? OfficeSdkXml.InsertBefore(_sdk, child._sdk, reference._sdk)
+                : OfficeSdkXml.InsertMarkupBefore(_sdk, child._tree!.WriteElement(child._node), reference._sdk));
         }
 
         /// <summary>Inserts a detached element right after this one and returns it as it is now held.</summary>
-        internal PowerPointXmlNode InsertAfterSelf(PowerPointXmlNode sibling) => Parent.InsertBefore(sibling, NextSibling);
+        internal OfficeXmlNode InsertAfterSelf(OfficeXmlNode sibling) => Parent.InsertBefore(sibling, NextSibling);
 
         /// <summary>Inserts a detached element among the children in schema order and returns it as it is now held.</summary>
-        internal PowerPointXmlNode InsertOrdered(PowerPointXmlNode child, OfficeXmlChildOrder order) {
+        internal OfficeXmlNode InsertOrdered(OfficeXmlNode child, OfficeXmlChildOrder order) {
             string localName = child.LocalName;
             int namespaceId = child.NamespaceId;
             int rank = order.RankOf(namespaceId, localName);
-            PowerPointXmlNode reference = default;
+            OfficeXmlNode reference = default;
             if (rank >= 0) {
-                for (PowerPointXmlNode sibling = FirstChild; !sibling.IsNone; sibling = sibling.NextSibling) {
+                for (OfficeXmlNode sibling = FirstChild; !sibling.IsNone; sibling = sibling.NextSibling) {
                     if (order.RankOf(sibling.NamespaceId, sibling.LocalName) > rank) {
                         reference = sibling;
                         break;
@@ -319,31 +319,31 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         }
 
         /// <summary>Adds a new empty child element in schema order and returns it.</summary>
-        internal PowerPointXmlNode AddOrdered(int namespaceId, string localName, OfficeXmlChildOrder order) {
+        internal OfficeXmlNode AddOrdered(int namespaceId, string localName, OfficeXmlChildOrder order) {
             if (_tree != null) {
                 int node = _tree.CreateElement(namespaceId, localName);
                 _tree.InsertOrdered(_node, node, order);
-                return new PowerPointXmlNode(_tree, node);
+                return new OfficeXmlNode(_tree, node);
             }
             return InsertOrdered(CreateElement(namespaceId, localName), order);
         }
 
         /// <summary>The child element with this name, created in schema order when it is missing.</summary>
-        internal PowerPointXmlNode GetOrAddChild(int namespaceId, string localName, OfficeXmlChildOrder order) {
-            if (_tree != null) return new PowerPointXmlNode(_tree, _tree.GetOrInsertChild(_node, namespaceId, localName, order));
-            PowerPointXmlNode child = Child(namespaceId, localName);
+        internal OfficeXmlNode GetOrAddChild(int namespaceId, string localName, OfficeXmlChildOrder order) {
+            if (_tree != null) return new OfficeXmlNode(_tree, _tree.GetOrInsertChild(_node, namespaceId, localName, order));
+            OfficeXmlNode child = Child(namespaceId, localName);
             return child.IsNone ? AddOrdered(namespaceId, localName, order) : child;
         }
 
         /// <summary>The child element with this name, created first among the children when it is missing.</summary>
-        internal PowerPointXmlNode GetOrPrependChild(int namespaceId, string localName) {
-            PowerPointXmlNode child = Child(namespaceId, localName);
+        internal OfficeXmlNode GetOrPrependChild(int namespaceId, string localName) {
+            OfficeXmlNode child = Child(namespaceId, localName);
             return child.IsNone ? InsertBefore(CreateElement(namespaceId, localName), FirstChild) : child;
         }
 
         /// <summary>Sets the text of a child element, creating it in schema order; null removes the child.</summary>
         internal void SetChildText(int namespaceId, string localName, string? value, OfficeXmlChildOrder order) {
-            PowerPointXmlNode child = Child(namespaceId, localName);
+            OfficeXmlNode child = Child(namespaceId, localName);
             if (value == null) {
                 if (!child.IsNone) child.Remove();
                 return;
@@ -355,49 +355,49 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         /// <summary>Detaches the element and its subtree.</summary>
         internal void Remove() {
             if (_tree != null) _tree.Remove(_node);
-            else if (_sdk != null) PowerPointSdkXml.Remove(_sdk);
+            else if (_sdk != null) OfficeSdkXml.Remove(_sdk);
         }
 
         /// <summary>Removes every child element with this name.</summary>
         internal void RemoveChildren(int namespaceId, string localName) {
-            PowerPointXmlNode child = Child(namespaceId, localName);
+            OfficeXmlNode child = Child(namespaceId, localName);
             while (!child.IsNone) {
-                PowerPointXmlNode next = child.NextSiblingNamed(namespaceId, localName);
+                OfficeXmlNode next = child.NextSiblingNamed(namespaceId, localName);
                 child.Remove();
                 child = next;
             }
         }
 
         /// <summary>A detached deep copy of the element in the same part.</summary>
-        internal PowerPointXmlNode Clone() {
-            if (_tree != null) return new PowerPointXmlNode(_tree, _tree.CloneElement(_node));
-            return _sdk != null ? FromSdk(PowerPointSdkXml.Clone(_sdk)) : default;
+        internal OfficeXmlNode Clone() {
+            if (_tree != null) return new OfficeXmlNode(_tree, _tree.CloneElement(_node));
+            return _sdk != null ? FromSdk(OfficeSdkXml.Clone(_sdk)) : default;
         }
 
         /// <summary>The element's markup as UTF-8, every prefix it uses declared on it.</summary>
         internal byte[] OuterXml() =>
-            _tree != null ? _tree.WriteElement(_node) : _sdk != null ? PowerPointSdkXml.OuterXml(_sdk) : Array.Empty<byte>();
+            _tree != null ? _tree.WriteElement(_node) : _sdk != null ? OfficeSdkXml.OuterXml(_sdk) : Array.Empty<byte>();
 
         // ---- Identity -------------------------------------------------------------------------------------------
 
-        public bool Equals(PowerPointXmlNode other) =>
+        public bool Equals(OfficeXmlNode other) =>
             ReferenceEquals(_tree, other._tree) && ReferenceEquals(_sdk, other._sdk) && (_tree == null || _node == other._node);
 
-        public override bool Equals(object? obj) => obj is PowerPointXmlNode other && Equals(other);
+        public override bool Equals(object? obj) => obj is OfficeXmlNode other && Equals(other);
 
         public override int GetHashCode() =>
             _tree != null ? (_tree.GetHashCode() * 397) ^ _node : _sdk != null ? System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_sdk) : 0;
 
-        public static bool operator ==(PowerPointXmlNode left, PowerPointXmlNode right) => left.Equals(right);
-        public static bool operator !=(PowerPointXmlNode left, PowerPointXmlNode right) => !left.Equals(right);
+        public static bool operator ==(OfficeXmlNode left, OfficeXmlNode right) => left.Equals(right);
+        public static bool operator !=(OfficeXmlNode left, OfficeXmlNode right) => !left.Equals(right);
 
         /// <summary>Child elements, all of them or those of one name, enumerated without allocating.</summary>
         internal readonly struct ChildList {
-            private readonly PowerPointXmlNode _parent;
+            private readonly OfficeXmlNode _parent;
             private readonly int _namespaceId;
             private readonly string? _localName;
 
-            internal ChildList(PowerPointXmlNode parent, int namespaceId, string? localName) {
+            internal ChildList(OfficeXmlNode parent, int namespaceId, string? localName) {
                 _parent = parent;
                 _namespaceId = namespaceId;
                 _localName = localName;
@@ -408,36 +408,36 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             internal int Count {
                 get {
                     int count = 0;
-                    foreach (PowerPointXmlNode _ in this) count++;
+                    foreach (OfficeXmlNode _ in this) count++;
                     return count;
                 }
             }
 
-            internal PowerPointXmlNode First() {
-                foreach (PowerPointXmlNode child in this) return child;
+            internal OfficeXmlNode First() {
+                foreach (OfficeXmlNode child in this) return child;
                 return default;
             }
 
-            internal PowerPointXmlNode Last() {
-                PowerPointXmlNode last = default;
-                foreach (PowerPointXmlNode child in this) last = child;
+            internal OfficeXmlNode Last() {
+                OfficeXmlNode last = default;
+                foreach (OfficeXmlNode child in this) last = child;
                 return last;
             }
 
-            internal List<PowerPointXmlNode> ToList() {
-                var list = new List<PowerPointXmlNode>();
-                foreach (PowerPointXmlNode child in this) list.Add(child);
+            internal List<OfficeXmlNode> ToList() {
+                var list = new List<OfficeXmlNode>();
+                foreach (OfficeXmlNode child in this) list.Add(child);
                 return list;
             }
 
             internal struct Enumerator {
-                private readonly PowerPointXmlNode _parent;
+                private readonly OfficeXmlNode _parent;
                 private readonly int _namespaceId;
                 private readonly string? _localName;
-                private PowerPointXmlNode _current;
+                private OfficeXmlNode _current;
                 private bool _started;
 
-                internal Enumerator(PowerPointXmlNode parent, int namespaceId, string? localName) {
+                internal Enumerator(OfficeXmlNode parent, int namespaceId, string? localName) {
                     _parent = parent;
                     _namespaceId = namespaceId;
                     _localName = localName;
@@ -445,7 +445,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                     _started = false;
                 }
 
-                public PowerPointXmlNode Current => _current;
+                public OfficeXmlNode Current => _current;
 
                 public bool MoveNext() {
                     _current = _started ? _current.NextSibling : _parent.FirstChild;

@@ -1,12 +1,13 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
 /// <summary>
 /// The SDK forms of the color helpers, for code that still builds SDK elements; they go once that code works on
-/// <see cref="OpenXml.PowerPointXmlNode"/>.
+/// <see cref="OfficeXmlNode"/>.
 /// </summary>
 internal static partial class PowerPointDrawingColor {
     internal static OpenXmlElement Create(OfficeColor color, OfficeTheme theme) {
@@ -58,5 +59,5 @@ internal static partial class PowerPointDrawingColor {
         return ThemeFor(sdk as OpenXmlPartContainer);
     }
 
-    internal static OfficeColor? Read(OpenXmlElement? container) => Read(OpenXml.PowerPointXmlNode.FromSdk(container));
+    internal static OfficeColor? Read(OpenXmlElement? container) => Read(OfficeXmlNode.FromSdk(container));
 }

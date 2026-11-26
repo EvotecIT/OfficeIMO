@@ -10,13 +10,13 @@
     "Website/data/format_map.json"
   ],
   "summary": {
-    "packageCount": 168,
+    "packageCount": 170,
     "commandCount": 535,
     "cliCount": 17,
     "toolCount": 21,
     "skillCount": 2,
-    "studioFeatures": 54,
-    "routeCount": 322
+    "studioFeatures": 55,
+    "routeCount": 330
   },
   "surfaces": [
     {
@@ -352,7 +352,7 @@
       "cells": {
         "dotnet": {
           "guide": "/compatibility/",
-          "extra": "322 conversion routes",
+          "extra": "330 conversion routes",
           "items": [
             {
               "label": "OfficeIMO.Workflows",
@@ -392,7 +392,7 @@
         },
         "agents": {
           "guide": "/cli/",
-          "extra": "52 routes in the CLI",
+          "extra": "60 routes in the CLI",
           "items": [
             {
               "label": "officeimo convert",

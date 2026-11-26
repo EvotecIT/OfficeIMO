@@ -163,6 +163,7 @@ The [package catalog](Docs/officeimo.package-catalog.md) lists every package, wh
 - [PSWriteOffice](PowerShell/PSWriteOffice/README.MD): PowerShell commands for every format, from `Install-Module PSWriteOffice`.
 - [OfficeIMO.Tool](OfficeIMO.Tool/README.md): the `officeimo` command line, from `dotnet tool install --global OfficeIMO.Tool`. It also serves conversions, extraction and search to AI agents over MCP; the [Document Tools plugin](.agents/plugins/officeimo-document-tools/README.md) installs it in Claude Code, Codex, VS Code and Cursor.
 - [OfficeIMO Studio](https://officeimo.com/studio/): an app for reading, marking up, filling, converting, protecting and signing documents on Windows and Linux ([README](OfficeIMO.Studio/README.md)), with native Mac, iPad and iPhone apps in development ([README](Apple/OfficeIMOStudio/README.md)).
+- [Verify.OfficeIMO](https://github.com/VerifyTests/Verify.OfficeIMO): snapshot tests for documents your code generates, from the [Verify](https://github.com/VerifyTests/Verify) project. It turns Word, Excel, PowerPoint, PDF, email, Visio and other OfficeIMO documents into text and page images that Verify compares with approved snapshots.
 
 ## Platforms
 
