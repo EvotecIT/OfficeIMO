@@ -70,12 +70,14 @@ namespace OfficeIMO.Excel {
                     || fields > _options.MaxDataReaderBufferedCells || _options.MaxDataReaderChunkRows <= 0) return false;
                 InitializeRange(firstRow, lastRow, firstColumn, fields);
                 if (_windowedPart) EnterWindowedCellMode();
+                PublishRowBatchRange(firstRow, lastRow, firstColumn, fields, declared);
                 if (!TryIndexRows(firstRow, lastRow, ct)) return false;
                 // A row-like token in trailing comments may publish sheetData's end
                 // before the root XML is complete. Global proof needs the full part.
                 if (_inflation != null) _length = _inflation.WaitForCompletion(ct);
                 else if (_windowedPart && !CompleteWindowedQualification(ct)) return false;
-                if (!_validatedIndexedXml && !IsCanonicalWorksheetXmlFullyValidated(ct) && !ValidateBufferedWorksheetXml(ct)) return false;
+                if (!_validatedIndexedXml && !IsCanonicalWorksheetXmlFullyValidated(ct)
+                    && !(_batchSink != null ? CompleteRowBatchXmlCheck(ct) : ValidateBufferedWorksheetXml(ct))) return false;
                 ct.ThrowIfCancellationRequested();
                 _mappingRowsQualified = true;
                 declaredFirstColumn = firstColumn;

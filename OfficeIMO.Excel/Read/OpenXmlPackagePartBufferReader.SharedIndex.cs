@@ -13,6 +13,13 @@ namespace OfficeIMO.Excel {
             _archiveEntryCount = source._archiveEntryCount;
             _sharedEntryIndex = true;
             AllowsPipelining = allowPipelining;
+            _openSiblingStream = source._openSiblingStream;
+        }
+
+        /// <summary>Opens a reader over the same package with its own archive cursor, so another thread can read parts.</summary>
+        internal OpenXmlPackagePartBufferReader? TryOpenSibling() {
+            if (_disposed || _openSiblingStream == null) return null;
+            return TryOpenIndependent(_openSiblingStream());
         }
 
         /// <summary>Shares immutable entry metadata while keeping the same snapshot's worksheet cursor independent.</summary>

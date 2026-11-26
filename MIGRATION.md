@@ -10474,3 +10474,17 @@ HTML imported into Word now indents a block quote directly only when neither the
 supported saved outputs and embedded images. Use
 `officeimo read lab.ipynb --format markdown --output lab.md` for the previous
 Reader projection, or pass `--assets` to extract assets separately.
+
+## Large XLSX worksheets are checked while rows are read
+
+On .NET 8 and later, `ExcelDocument.OpenReader` checks an XLSX worksheet of 1 MB or more that
+declares its dimension while it returns rows, instead of before the first row. Every returned row is
+valid, but an invalid cell or malformed XML later in the worksheet now raises its exception from the
+`Read` that reaches it, after the rows before it were returned. A cell outside the declared dimension
+raises `InvalidDataException` at its row.
+
+If your code applies rows as it reads them and cannot undo a part-way read, set
+`new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true }` to keep the previous behaviour.
+Setting `Execution.Mode = ExcelExecutionMode.Sequential` also validates first, without background
+threads.
+

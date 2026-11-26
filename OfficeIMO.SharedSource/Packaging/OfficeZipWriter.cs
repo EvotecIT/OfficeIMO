@@ -59,6 +59,44 @@ internal sealed class OfficeZipWriter : IDisposable {
         return _current = new PartStream(this, part, background);
     }
 
+    /// <summary>
+    /// Starts an entry opened with <see cref="CompressionLevel.Fastest"/> with <paramref name="bytes"/> in a stored deflate
+    /// block, so they can be rewritten in place with <see cref="PatchPrefix"/> after the entry completes. Returns false,
+    /// writing nothing, on a forward-only destination or once the entry has content.
+    /// </summary>
+    internal bool TryWritePatchablePrefix(Stream entry, byte[] bytes, out PatchablePrefix? prefix) {
+        prefix = null;
+        if (!_seekable || entry is not PartStream stream || !ReferenceEquals(stream, _current) || bytes.Length > ushort.MaxValue) return false;
+        return stream.TryWritePatchablePrefix(bytes, out prefix);
+    }
+
+    /// <summary>Rewrites a completed entry's patchable prefix with bytes of the same length and updates its CRC-32.</summary>
+    internal void PatchPrefix(PatchablePrefix prefix, byte[] bytes) {
+        if (_closed || _faulted) throw new InvalidOperationException("The archive can no longer be changed.");
+        var part = (Part)prefix.Entry;
+        if (bytes.Length != prefix.Length || !_parts.Contains(part)) throw new InvalidOperationException("The prefix must keep its length and belong to a completed entry.");
+        Overwrite(prefix.Offset, bytes);
+        uint prefixCrc = OfficePngCrc32.Complete(OfficePngCrc32.Append(OfficePngCrc32.Begin(), bytes, 0, bytes.Length));
+        part.Crc = OfficeCrc32Combine.Combine(prefixCrc, part.RestCrc, part.RestSize);
+        byte[] crc = new byte[4];
+        BinaryPrimitives.WriteUInt32LittleEndian(crc, part.Crc);
+        Overwrite(part.DescriptorOffset >= 0 ? part.DescriptorOffset + 4 : part.HeaderOffset + 14, crc);
+    }
+
+    /// <summary>The position and length of an entry's patchable stored prefix.</summary>
+    internal sealed class PatchablePrefix {
+        internal PatchablePrefix(object entry, long offset, int length) {
+            Entry = entry;
+            Offset = offset;
+            Length = length;
+        }
+
+        // The writer's own record of the entry.
+        internal object Entry { get; }
+        internal long Offset { get; }
+        internal int Length { get; }
+    }
+
 #if NET8_0_OR_GREATER
     /// <summary>
     /// Deflates the bytes <paramref name="write"/> produces, as a <see cref="CompressionLevel.Fastest"/> entry would be,
@@ -317,6 +355,7 @@ internal sealed class OfficeZipWriter : IDisposable {
             Overwrite(part.HeaderOffset + 4, versionAndFlags);
         }
         if ((part.Flags & DescriptorFlag) != 0) {
+            part.DescriptorOffset = _offset;
             byte[] descriptor = new byte[large ? 24 : 16];
             BinaryPrimitives.WriteUInt32LittleEndian(descriptor, 0x0807_4B50);
             BinaryPrimitives.WriteUInt32LittleEndian(descriptor.AsSpan(4), part.Crc);
@@ -442,6 +481,10 @@ internal sealed class OfficeZipWriter : IDisposable {
         internal ushort? DosDate { get; set; }
         internal long HeaderOffset { get; set; } = -1;
         internal uint Crc { get; set; }
+        // With a patchable prefix: the CRC-32 and length of the content after it, and where a data descriptor starts.
+        internal uint RestCrc { get; set; }
+        internal long RestSize { get; set; }
+        internal long DescriptorOffset { get; set; } = -1;
         internal long CompressedSize { get; set; }
         internal long Size { get; set; }
         // The local header was written with the CRC and sizes, so completing the entry changes nothing.
@@ -482,6 +525,35 @@ internal sealed class OfficeZipWriter : IDisposable {
         private long _contentStart;
         private bool _failed;
         private bool _disposed;
+        private uint _prefixCrc;
+        private int _prefixLength = -1;
+
+        internal bool TryWritePatchablePrefix(byte[] bytes, out PatchablePrefix? prefix) {
+            prefix = null;
+            if (_disposed || _failed || part.HeaderOffset >= 0 || part.Level != CompressionLevel.Fastest) return false;
+            try {
+                owner.WriteLocalHeader(part);
+                _contentStart = owner._offset;
+                // A non-final stored block (RFC 1951 section 3.2.4): its bytes appear unchanged in the entry.
+                byte[] header = new byte[5];
+                header[1] = (byte)bytes.Length;
+                header[2] = (byte)(bytes.Length >> 8);
+                header[3] = (byte)~header[1];
+                header[4] = (byte)~header[2];
+                owner._sink.Write(header, 0, header.Length);
+                long offset = owner._offset;
+                owner._sink.Write(bytes, 0, bytes.Length);
+                _prefixCrc = OfficePngCrc32.Complete(OfficePngCrc32.Append(OfficePngCrc32.Begin(), bytes, 0, bytes.Length));
+                _prefixLength = bytes.Length;
+                // The encoder continues byte-aligned after the stored block and never refers back into it.
+                _encoder = new OfficeDeflateEncoder(owner._sink, background);
+                prefix = new PatchablePrefix(part, offset, bytes.Length);
+                return true;
+            } catch {
+                _failed = true;
+                throw;
+            }
+        }
 
 #if NET8_0_OR_GREATER
         public override void Write(byte[] buffer, int offset, int count) {
@@ -553,6 +625,12 @@ internal sealed class OfficeZipWriter : IDisposable {
                 }
                 part.Crc = _encoder?.Crc ?? OfficePngCrc32.Complete(_crc);
                 part.Size = _encoder?.Size ?? _size;
+                if (_prefixLength >= 0) {
+                    part.RestCrc = part.Crc;
+                    part.RestSize = part.Size;
+                    part.Crc = OfficeCrc32Combine.Combine(_prefixCrc, part.RestCrc, part.RestSize);
+                    part.Size += _prefixLength;
+                }
                 part.CompressedSize = owner._offset - _contentStart;
                 owner.CompletePart(part);
             } finally {
