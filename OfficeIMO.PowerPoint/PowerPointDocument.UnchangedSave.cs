@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml;
 using System.Globalization;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Core.Internal.OpenXml;
 
@@ -15,19 +13,22 @@ namespace OfficeIMO.PowerPoint {
         private const string NotesSlideContentType = "application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml";
         private const string NotesSlideRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide";
         private const string VbaProjectRelationshipType = "http://schemas.microsoft.com/office/2006/relationships/vbaProject";
-        private static readonly string[] ApplicationCounters = { "TotalTime", "Application", "PresentationFormat", "Slides", "Notes", "HiddenSlides" };
-        private static readonly HashSet<string> SlideSizeTypes = new(StringComparer.Ordinal) {
-            "screen4x3", "letter", "A4", "35mm", "overhead", "banner", "custom", "ledger", "A3", "B4ISO", "B5ISO", "B4JIS", "B5JIS",
-            "hagakiCard", "screen16x9", "screen16x10"
-        };
+        // Kept in their own type, so the document's static constructor, which the SDK-bound statics share, doesn't carry them.
+        private static class UnchangedSaveNames {
+            internal static readonly string[] ApplicationCounters = { "TotalTime", "Application", "PresentationFormat", "Slides", "Notes", "HiddenSlides" };
+            internal static readonly HashSet<string> SlideSizeTypes = new(StringComparer.Ordinal) {
+                "screen4x3", "letter", "A4", "35mm", "overhead", "banner", "custom", "ledger", "A3", "B4ISO", "B5ISO", "B4JIS", "B5JIS",
+                "hagakiCard", "screen16x9", "screen16x10"
+            };
+        }
 
         /// <summary>
         /// Writes the loaded package with refreshed document properties when the SDK was never opened and the save
         /// needs nothing else; returns false, having changed nothing, when it must go through the SDK.
         /// </summary>
-        private bool TryCreateUnchangedPackageBytes(PresentationDocumentType? destinationType, out byte[] bytes) {
+        private bool TryCreateUnchangedPackageBytes(bool presentationDestination, out byte[] bytes) {
             bytes = Array.Empty<byte>();
-            if (!_sdkDeferred || _sdkDocument != null || destinationType is { } type && type != PresentationDocumentType.Presentation
+            if (!_sdkDeferred || IsSdkLoaded || !presentationDestination
                 || _packageStream is not { CanRead: true, CanSeek: true } packageStream) {
                 return false;
             }
@@ -55,7 +56,7 @@ namespace OfficeIMO.PowerPoint {
                 // Everything edited has to be a direct child, as the SDK reads it; nothing has changed yet otherwise,
                 // and pending slide edits stay pending for the SDK save.
                 if (modified == OfficeXmlTree.NoNode) return false;
-                foreach (string counter in ApplicationCounters) {
+                foreach (string counter in UnchangedSaveNames.ApplicationCounters) {
                     if (application.FindChild(application.Root, OfficeXmlNamespaces.ExtendedProperties, counter) == OfficeXmlTree.NoNode) return false;
                 }
                 SetChildText(application, "Slides", values.Slides.ToString(CultureInfo.InvariantCulture));
@@ -158,7 +159,7 @@ namespace OfficeIMO.PowerPoint {
                             slideIds.Add(id);
                         } else if (reader.Depth == 2 && reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldSz")) {
                             if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "type", out string sizeType)) {
-                                if (!SlideSizeTypes.Contains(sizeType)) return false;
+                                if (!UnchangedSaveNames.SlideSizeTypes.Contains(sizeType)) return false;
                                 presentationFormat = sizeType == "screen4x3" ? "Standard" : sizeType == "custom" ? "Custom" : "Widescreen";
                             }
                         } else if (reader.Depth == 3 && inExtensionList && reader.IsElement(OfficeXmlNamespaces.PresentationML, "ext")
@@ -259,7 +260,7 @@ namespace OfficeIMO.PowerPoint {
             for (int child = presentation.FirstChildOf(root); child != OfficeXmlTree.NoNode; child = presentation.NextSiblingOf(child)) {
                 if (presentation.IsElement(child, OfficeXmlNamespaces.PresentationML, "sldSz")) {
                     if (presentation.TryGetAttribute(child, OfficeXmlNamespaces.None, "type", out string sizeType)) {
-                        if (!SlideSizeTypes.Contains(sizeType)) return false;
+                        if (!UnchangedSaveNames.SlideSizeTypes.Contains(sizeType)) return false;
                         presentationFormat = sizeType == "screen4x3" ? "Standard" : sizeType == "custom" ? "Custom" : "Widescreen";
                     }
                 } else if (presentation.IsElement(child, OfficeXmlNamespaces.PresentationML, "extLst")) {
@@ -352,7 +353,7 @@ namespace OfficeIMO.PowerPoint {
                     if (reader.Depth == 2 && reader.NamespaceId == OfficeXmlNamespaces.ExtendedProperties) found.Add(reader.LocalName);
                 }
             }
-            foreach (string counter in ApplicationCounters) {
+            foreach (string counter in UnchangedSaveNames.ApplicationCounters) {
                 if (!found.Contains(counter)) return false;
             }
             return true;

@@ -513,7 +513,8 @@ internal static partial class TextContentParser {
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
         bool retainEditingEvidence = true,
         FormInvocationCollector? formInvocations = null,
-        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth,
+        Action<string>? operatorVisitor = null) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
 
@@ -677,6 +678,7 @@ internal static partial class TextContentParser {
         }
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
             cancellationCheck?.Invoke();
+            operatorVisitor?.Invoke(operation.Name);
             // The form collector reads this operation's operands before the text visitor consumes them.
             formInvocations?.Visit(operation);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);

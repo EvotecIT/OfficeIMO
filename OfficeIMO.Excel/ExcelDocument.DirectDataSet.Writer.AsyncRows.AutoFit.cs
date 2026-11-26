@@ -29,8 +29,13 @@ namespace OfficeIMO.Excel {
                 spool.Position = 0;
                 using var stream = archive.OpenEntry("xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml", CompressionLevel.Fastest, background: true);
                 using (var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true)) {
-                    writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                    writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
+                    writer.Write(StreamingWorksheetRoot);
+                    // The rows are already spooled, so the dimension is known before the worksheet is written.
+                    if (GetStreamingDimension(sheet, count) is string dimension) {
+                        writer.Write("<dimension ref=\"");
+                        writer.Write(dimension);
+                        writer.Write("\"/>");
+                    }
                     if (sheet.StreamingLayout != null) writer.Write(sheet.StreamingLayout.ViewsXml);
                     WriteDeclaredColumns(writer, widths, declaredStyles, sheet.StreamingLayout?.FirstColumn ?? 1);
                     writer.Flush();

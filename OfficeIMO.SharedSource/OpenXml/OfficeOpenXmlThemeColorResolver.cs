@@ -248,106 +248,12 @@ internal static class OfficeOpenXmlThemeColorResolver {
     /// <summary>Applies DrawingML color transforms in child order, retaining each transform's alpha semantics.</summary>
     /// <remarks>Tint and shade retain the specified input proportion in linear sRGB, independently of encoded-RGB helpers.</remarks>
     internal static OfficeColor ApplyTransforms(OfficeColor color, OpenXmlElement colorElement) {
-        OfficeColor resolved = color;
-        bool pendingHsl = false;
-        double hue = 0D, saturation = 0D, luminance = 0D;
+        var transforms = new OfficeDrawingColorTransforms(color);
         foreach (OpenXmlElement transform in colorElement.ChildElements) {
             string name = transform.LocalName;
-            if (name is "comp" or "lumMod" or "lumOff" or "hueOff" or "hueMod" or "satOff" or "satMod") {
-                double amount = 0D;
-                if (name != "comp" && !TryReadTransformValue(transform, out amount)) continue;
-                if (!pendingHsl) {
-                    OfficeColorTransforms.ToHsl(resolved, out hue, out saturation, out luminance);
-                    pendingHsl = true;
-                }
-                switch (name) {
-                    case "comp": hue = (hue + 180D) % 360D; break;
-                    case "lumMod": luminance = ClampUnit(luminance * Math.Max(0D, amount)); break;
-                    case "lumOff": luminance = ClampUnit(luminance + amount); break;
-                    case "hueOff": hue = ((hue + amount * 100000D / 60000D) % 360D + 360D) % 360D; break;
-                    case "hueMod": hue = hue * Math.Max(0D, amount) % 360D; break;
-                    case "satOff": saturation = ClampUnit(saturation + amount); break;
-                    case "satMod": saturation = ClampUnit(saturation * Math.Max(0D, amount)); break;
-                }
-                continue;
-            }
-            // Alpha does not change the HSL channels. Other color-space operations must
-            // observe the completed HSL sequence; do not round between HSL modifiers.
-            if (pendingHsl && name is not ("alpha" or "alphaMod" or "alphaOff")) {
-                resolved = OfficeColorTransforms.FromHsl(hue, saturation, luminance, resolved.A);
-                pendingHsl = false;
-            }
-            switch (name) {
-                case "inv":
-                    resolved = OfficeColor.FromRgba(
-                        (byte)(255 - resolved.R),
-                        (byte)(255 - resolved.G),
-                        (byte)(255 - resolved.B),
-                        resolved.A);
-                    continue;
-                case "gray":
-                    byte gray = ToChannel((resolved.R * 0.299D) + (resolved.G * 0.587D) + (resolved.B * 0.114D));
-                    resolved = OfficeColor.FromRgba(gray, gray, gray, resolved.A);
-                    continue;
-            }
-
-            if (!TryReadTransformValue(transform, out double value)) {
-                continue;
-            }
-
-            switch (transform.LocalName) {
-                case "alpha":
-                    resolved = OfficeColorTransforms.WithAlpha(resolved, ClampUnit(value));
-                    break;
-                case "alphaMod":
-                    resolved = OfficeColorTransforms.ModulateAlpha(resolved, Math.Max(0D, value));
-                    break;
-                case "alphaOff":
-                    resolved = OfficeColorTransforms.OffsetAlpha(resolved, value);
-                    break;
-                case "tint":
-                    resolved = OfficeGradientColors.Interpolate(
-                        OfficeColor.FromRgba(255, 255, 255, resolved.A), resolved,
-                        ClampUnit(value), OfficeGradientColorInterpolation.LinearRgb);
-                    break;
-                case "shade":
-                    resolved = OfficeGradientColors.Interpolate(
-                        OfficeColor.FromRgba(0, 0, 0, resolved.A), resolved,
-                        ClampUnit(value), OfficeGradientColorInterpolation.LinearRgb);
-                    break;
-                case "red":
-                    resolved = OfficeColor.FromRgba(ToChannel(255D * value), resolved.G, resolved.B, resolved.A);
-                    break;
-                case "redMod":
-                    resolved = OfficeColor.FromRgba(ToChannel(resolved.R * value), resolved.G, resolved.B, resolved.A);
-                    break;
-                case "redOff":
-                    resolved = OfficeColor.FromRgba(ToChannel(resolved.R + (255D * value)), resolved.G, resolved.B, resolved.A);
-                    break;
-                case "green":
-                    resolved = OfficeColor.FromRgba(resolved.R, ToChannel(255D * value), resolved.B, resolved.A);
-                    break;
-                case "greenMod":
-                    resolved = OfficeColor.FromRgba(resolved.R, ToChannel(resolved.G * value), resolved.B, resolved.A);
-                    break;
-                case "greenOff":
-                    resolved = OfficeColor.FromRgba(resolved.R, ToChannel(resolved.G + (255D * value)), resolved.B, resolved.A);
-                    break;
-                case "blue":
-                    resolved = OfficeColor.FromRgba(resolved.R, resolved.G, ToChannel(255D * value), resolved.A);
-                    break;
-                case "blueMod":
-                    resolved = OfficeColor.FromRgba(resolved.R, resolved.G, ToChannel(resolved.B * value), resolved.A);
-                    break;
-                case "blueOff":
-                    resolved = OfficeColor.FromRgba(resolved.R, resolved.G, ToChannel(resolved.B + (255D * value)), resolved.A);
-                    break;
-            }
+            transforms.Apply(name, OfficeDrawingColorTransforms.TakesValue(name) ? transform.GetAttribute("val", string.Empty).Value : null);
         }
-
-        return pendingHsl
-            ? OfficeColorTransforms.FromHsl(hue, saturation, luminance, resolved.A)
-            : resolved;
+        return transforms.Result;
     }
 
     private static OpenXmlElement? FindColorElement(OpenXmlElement? container) {
@@ -377,72 +283,15 @@ internal static class OfficeOpenXmlThemeColorResolver {
             colorScheme: null, placeholderColor: null);
     }
 
-    /// <summary>Reads the DrawingML token, whose dk/lt/med prefixes abbreviate CSS color names.</summary>
-    private static OfficeColor? ParsePreset(string? token) {
-        if (string.IsNullOrWhiteSpace(token)) return null;
-        string name = token!;
-        if (name.StartsWith("dk", StringComparison.OrdinalIgnoreCase)) name = "dark" + name.Substring(2);
-        else if (name.StartsWith("lt", StringComparison.OrdinalIgnoreCase)) name = "light" + name.Substring(2);
-        else if (name.StartsWith("med", StringComparison.OrdinalIgnoreCase)) name = "medium" + name.Substring(3);
-        return OfficeColor.TryParse(name, out OfficeColor color) ? color : (OfficeColor?)null;
-    }
+    private static OfficeColor? ParsePreset(string? token) => OfficeDrawingColorTransforms.ParsePreset(token);
 
-    private static OfficeColor? ParseRgb(string? value) =>
-        OfficeColor.TryParseHex(value, out OfficeColor color) ? color : (OfficeColor?)null;
+    private static OfficeColor? ParseRgb(string? value) => OfficeDrawingColorTransforms.ParseRgb(value);
 
-    private static OfficeColor? ParseScRgb(A.RgbColorModelPercentage color) {
-        if (color.RedPortion?.Value is not int red
-            || color.GreenPortion?.Value is not int green
-            || color.BluePortion?.Value is not int blue) {
-            return null;
-        }
-        return OfficeColor.FromRgb(
-            ToChannel(255D * LinearScRgbToSrgb(red / 100000D)),
-            ToChannel(255D * LinearScRgbToSrgb(green / 100000D)),
-            ToChannel(255D * LinearScRgbToSrgb(blue / 100000D)));
-    }
+    private static OfficeColor? ParseScRgb(A.RgbColorModelPercentage color) =>
+        OfficeDrawingColorTransforms.ParseScRgb(color.RedPortion?.Value, color.GreenPortion?.Value, color.BluePortion?.Value);
 
-    private static double LinearScRgbToSrgb(double value) {
-        double linear = ClampUnit(value);
-        return linear <= 0.0031308D
-            ? 12.92D * linear
-            : 1.055D * Math.Pow(linear, 1D / 2.4D) - 0.055D;
-    }
-
-    private static OfficeColor? ParseHsl(A.HslColor color) {
-        if (color.HueValue?.Value is not int hue
-            || color.SatValue?.Value is not int saturation
-            || color.LumValue?.Value is not int luminance) {
-            return null;
-        }
-        double normalizedHue = ((hue / 60000D) % 360D + 360D) % 360D;
-        double normalizedSaturation = ClampUnit(saturation / 100000D);
-        double normalizedLuminance = ClampUnit(luminance / 100000D);
-        double chroma = (1D - Math.Abs(2D * normalizedLuminance - 1D))
-            * normalizedSaturation;
-        double sector = normalizedHue / 60D;
-        double intermediate = chroma * (1D - Math.Abs(sector % 2D - 1D));
-        double red;
-        double green;
-        double blue;
-        if (sector < 1D) {
-            red = chroma; green = intermediate; blue = 0D;
-        } else if (sector < 2D) {
-            red = intermediate; green = chroma; blue = 0D;
-        } else if (sector < 3D) {
-            red = 0D; green = chroma; blue = intermediate;
-        } else if (sector < 4D) {
-            red = 0D; green = intermediate; blue = chroma;
-        } else if (sector < 5D) {
-            red = intermediate; green = 0D; blue = chroma;
-        } else {
-            red = chroma; green = 0D; blue = intermediate;
-        }
-        double match = normalizedLuminance - chroma / 2D;
-        return OfficeColor.FromRgb(ToChannel(255D * (red + match)),
-            ToChannel(255D * (green + match)),
-            ToChannel(255D * (blue + match)));
-    }
+    private static OfficeColor? ParseHsl(A.HslColor color) =>
+        OfficeDrawingColorTransforms.ParseHsl(color.HueValue?.Value, color.SatValue?.Value, color.LumValue?.Value);
 
     private static string? GetSchemeValue(A.SchemeColor? schemeColor) {
         string? attribute = schemeColor?.GetAttribute("val", string.Empty).Value;
@@ -467,8 +316,4 @@ internal static class OfficeOpenXmlThemeColorResolver {
         return true;
     }
 
-    private static byte ToChannel(double value) =>
-        (byte)Math.Max(0D, Math.Min(255D, Math.Round(value, MidpointRounding.ToEven)));
-
-    private static double ClampUnit(double value) => Math.Max(0D, Math.Min(1D, value));
 }

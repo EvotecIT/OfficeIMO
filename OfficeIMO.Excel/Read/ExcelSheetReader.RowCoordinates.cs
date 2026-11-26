@@ -55,6 +55,7 @@ namespace OfficeIMO.Excel {
             private int _previousRowIndex;
             internal bool NeedsCellReference { get; private set; }
             internal bool RowsStrictlyIncreasing { get; private set; } = true;
+            internal int LastRowIndex => _previousRowIndex;
 
             internal void BeginRow(XmlReader reader, int declaredRowIndex) {
                 _rowIndex = declaredRowIndex;

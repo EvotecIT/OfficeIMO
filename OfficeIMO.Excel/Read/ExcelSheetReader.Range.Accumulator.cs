@@ -50,6 +50,9 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            internal bool Exceeds(int firstColumn, int lastColumn, int lastRow) =>
+                _maxColumn > 0 && (_minColumn < firstColumn || _maxColumn > lastColumn || _maxRow > lastRow);
+
             internal void EndRow() {
                 if (_rowMaxColumn <= 0) return;
                 if (_rowMaxRow <= 0) {

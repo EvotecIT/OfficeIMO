@@ -16,12 +16,11 @@ namespace OfficeIMO.PowerPoint {
         /// Links a slide to an image part holding <paramref name="data"/>, adding the part unless an identical image was added
         /// before; false, having changed nothing, when the model has to add it.
         /// </summary>
-        internal bool TryAddPackageImagePart(string slidePart, byte[] data, OfficeIMO.Drawing.OfficeImageFormat imageType, string extension,
+        internal bool TryAddPackageImagePart(string slidePart, byte[] data, string contentType, string extension,
             out string relationshipId, out int width, out int height) {
             relationshipId = string.Empty;
             width = height = 0;
             if (GetPackage(edit: true) is not { } package) return false;
-            string contentType = imageType.ToPartTypeInfo().ContentType;
             string key = CreateImageContentKey(contentType, data);
             string partName;
             if (_packageImageParts != null && _packageImageParts.TryGetValue(key, out var reused) && package.PartExists(reused.Part)) {
