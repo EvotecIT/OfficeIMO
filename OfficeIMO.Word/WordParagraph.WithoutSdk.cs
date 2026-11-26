@@ -251,6 +251,151 @@ namespace OfficeIMO.Word {
             return true;
         }
 
+        /// <summary>Reads a paragraph on/off property, such as <c>w:keepNext</c>, as the SDK path does.</summary>
+        private bool TryGetOwnedParagraphOnOff(string name, out bool value) {
+            value = false;
+            if (!TryGetOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (properties == NoNode) return true;
+            return WordOwnedEdits.TryReadOnOff(tree, tree.FindChild(properties, W, name), out value);
+        }
+
+        /// <summary>
+        /// Turns a paragraph on/off property on by keeping its element without a value, or off by removing it, adding the
+        /// paragraph properties either way, as the SDK path's setters do.
+        /// </summary>
+        private bool TrySetOwnedParagraphFlag(string name, bool value) {
+            if (!TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (value) tree.RemoveAttribute(tree.GetOrInsertChild(properties, W, name, WPPrView.Order), W, "val");
+            else WordOwnedEdits.RemoveChild(tree, properties, name);
+            return true;
+        }
+
+        /// <summary>Reads the <c>w:val</c> token of a paragraph property element; <paramref name="present"/> says whether the element exists.</summary>
+        private bool TryGetOwnedParagraphToken(string name, out string? token, out bool present) {
+            token = null;
+            present = false;
+            if (!TryGetOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (properties == NoNode) return true;
+            int child = tree.FindChild(properties, W, name);
+            if (child == NoNode) return true;
+            present = true;
+            token = tree.GetAttribute(child, W, "val");
+            return true;
+        }
+
+        private bool TryGetOwnedVerticalCharacterAlignment(out WordVerticalCharacterAlignment? value) {
+            value = null;
+            if (!TryGetOwnedParagraphToken("textAlignment", out string? token, out _)) return false;
+            if (token == null) return true;
+            if (!WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordVerticalCharacterAlignment parsed)) return false;
+            value = parsed;
+            return true;
+        }
+
+        private bool TrySetOwnedVerticalCharacterAlignment(WordVerticalCharacterAlignment? value) {
+            if (value == null) {
+                if (!TryGetOwnedParagraphProperties(out OfficeXmlTree current, out int existing)) return false;
+                if (existing == NoNode || current.FindChild(existing, W, "textAlignment") == NoNode) return true;
+                if (!TryEditOwnedParagraphProperties(out current, out existing)) return false;
+                while (current.FindChild(existing, W, "textAlignment") != NoNode) WordOwnedEdits.RemoveChild(current, existing, "textAlignment");
+                return true;
+            }
+            if (!TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            WordOwnedEdits.ReplaceChild(tree, properties, "textAlignment", WPPrView.Order).SetValue(W, "val", value.Value.ToOpenXmlToken());
+            return true;
+        }
+
+        // Widow control is on unless it says otherwise; turning it off writes an explicit false, as the SDK path does.
+        private bool TrySetOwnedWidowControl(bool value) {
+            if (value) return TrySetOwnedParagraphFlag("widowControl", true);
+            if (!TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            WordOwnedEdits.ReplaceChild(tree, properties, "widowControl", WPPrView.Order).SetValue(W, "val", "false");
+            return true;
+        }
+
+        // Page break before is replaced by a bare element when set, as assigning a new SDK element does.
+        private bool TrySetOwnedPageBreakBefore(bool value) {
+            if (!TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (value) WordOwnedEdits.ReplaceChild(tree, properties, "pageBreakBefore", WPPrView.Order);
+            else WordOwnedEdits.RemoveChild(tree, properties, "pageBreakBefore");
+            return true;
+        }
+
+        // Turning right-to-left on keeps an existing element as it is, as the SDK path's ??= does.
+        private bool TrySetOwnedBiDi(bool value) {
+            if (!TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (value) tree.GetOrInsertChild(properties, W, "bidi", WPPrView.Order);
+            else WordOwnedEdits.RemoveChild(tree, properties, "bidi");
+            return true;
+        }
+
+        private bool TryGetOwnedTextDirection(out WordTextDirection? value) {
+            value = null;
+            if (!TryGetOwnedParagraphToken("textDirection", out string? token, out _)) return false;
+            if (token == null) return true;
+            if (!WordTextDirectionTokens.TryParse(token, out WordTextDirection parsed)) return false;
+            value = parsed;
+            return true;
+        }
+
+        // Setting no direction still writes the element, without a value, as the SDK path does.
+        private bool TrySetOwnedTextDirection(WordTextDirection? value) {
+            if (!TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            WordOwnedElement direction = WordOwnedEdits.ReplaceChild(tree, properties, "textDirection", WPPrView.Order);
+            if (value != null) direction.SetValue(W, "val", WordTextDirectionTokens.ToToken(value.Value));
+            return true;
+        }
+
+        /// <summary>The <c>w:spacing</c> line attributes, read as the SDK path reads them.</summary>
+        private bool TryGetOwnedLineAttributes(out string? line, out string? rule) {
+            line = rule = null;
+            if (!TryGetOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (properties == NoNode) return true;
+            int spacing = tree.FindChild(properties, W, "spacing");
+            if (spacing == NoNode) return true;
+            line = tree.GetAttribute(spacing, W, "line");
+            rule = tree.GetAttribute(spacing, W, "lineRule");
+            return true;
+        }
+
+        private bool TryGetOwnedLineSpacing(out WordLineSpacing? value) {
+            value = null;
+            if (!TryGetOwnedLineAttributes(out string? line, out string? rule)) return false;
+            value = WordLineSpacing.Read(line, rule);
+            return true;
+        }
+
+        /// <summary>
+        /// Sets or clears <c>w:spacing</c> line attributes. Clearing leaves a paragraph without spacing as it is; setting adds
+        /// the paragraph properties and the spacing element when missing, as the SDK path does.
+        /// </summary>
+        private bool TrySetOwnedLineAttributes(bool setLine, string? line, bool setRule, string? rule) {
+            if (line == null && rule == null && (setLine || setRule)) {
+                if (!TryGetOwnedParagraphProperties(out OfficeXmlTree current, out int existing)) return false;
+                int existingSpacing = existing == NoNode ? NoNode : current.FindChild(existing, W, "spacing");
+                if (existingSpacing == NoNode) return setLine && setRule || TryEditOwnedLineAttributes(setLine, null, setRule, null);
+                if (!TryEditOwnedParagraphProperties(out current, out existing)) return false;
+                if (setLine) current.RemoveAttribute(existingSpacing, W, "line");
+                if (setRule) current.RemoveAttribute(existingSpacing, W, "lineRule");
+                return true;
+            }
+            return TryEditOwnedLineAttributes(setLine, line, setRule, rule);
+        }
+
+        private bool TryEditOwnedLineAttributes(bool setLine, string? line, bool setRule, string? rule) {
+            if (!TryEditOwnedParagraphProperties(out OfficeXmlTree tree, out int properties)) return false;
+            int spacing = tree.GetOrInsertChild(properties, W, "spacing", WPPrView.Order);
+            if (setLine) {
+                if (line == null) tree.RemoveAttribute(spacing, W, "line");
+                else tree.SetAttribute(spacing, W, "line", line);
+            }
+            if (setRule) {
+                if (rule == null) tree.RemoveAttribute(spacing, W, "lineRule");
+                else tree.SetAttribute(spacing, W, "lineRule", rule);
+            }
+            return true;
+        }
+
         // Indentation is written with the invariant culture, spacing with the current one, as on the SDK path.
         private static string? IndentationText(OfficeLength? value) =>
             checked((int?)value?.ToTwips())?.ToString(CultureInfo.InvariantCulture);
@@ -405,6 +550,75 @@ namespace OfficeIMO.Word {
             return true;
         }
 
+        private bool TrySetOwnedFont(string attribute, string? value) {
+            if (!TryEditOwnedRunProperties(out OfficeXmlTree tree, out int properties)) return false;
+            int fonts = tree.GetOrInsertChild(properties, W, "rFonts", WRPrView.Order);
+            if (string.IsNullOrEmpty(value)) tree.RemoveAttribute(fonts, W, attribute);
+            else tree.SetAttribute(fonts, W, attribute, value!);
+            return true;
+        }
+
+        private bool TryGetOwnedCharacterSpacing(out OfficeLength? value) {
+            value = null;
+            if (!TryGetOwnedValue("spacing", out string? token)) return false;
+            if (token != null && int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out int twips)) {
+                value = OfficeLength.Emus((long)twips * 635);
+            }
+            return true;
+        }
+
+        private bool TryGetOwnedLanguage(out string? value) {
+            value = null;
+            if (!TryGetOwnedRunProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (properties == NoNode) return true;
+            int language = tree.FindChild(properties, W, "lang");
+            if (language != NoNode) value = tree.GetAttribute(language, W, "val");
+            return true;
+        }
+
+        // A language sets the main, East Asian and right-to-left languages of an existing or new element, as on the SDK path.
+        private bool TrySetOwnedLanguage(string? value) {
+            if (!TryEditOwnedRunProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (string.IsNullOrWhiteSpace(value)) {
+                WordOwnedEdits.RemoveChild(tree, properties, "lang");
+                return true;
+            }
+            string language = value!.Trim();
+            int element = tree.GetOrInsertChild(properties, W, "lang", WRPrView.Order);
+            tree.SetAttribute(element, W, "val", language);
+            tree.SetAttribute(element, W, "eastAsia", language);
+            tree.SetAttribute(element, W, "bidi", language);
+            return true;
+        }
+
+        private bool TryGetOwnedThemeColor(out WordThemeColor? value) {
+            value = null;
+            if (!TryGetOwnedRunProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (properties == NoNode) return true;
+            int color = tree.FindChild(properties, W, "color");
+            if (color == NoNode || !tree.TryGetAttribute(color, W, "themeColor", out string token)) return true;
+            if (!WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordThemeColor parsed)) return false;
+            value = parsed;
+            return true;
+        }
+
+        /// <summary>
+        /// Applies a character style the document already defines, with what it depends on; a style the library has to add
+        /// is left to the SDK path. Clearing removes the run's style.
+        /// </summary>
+        private bool TrySetOwnedCharacterStyleId(string? styleId) {
+            WordPackageModel? model = OwnedModel;
+            if (model == null) return false;
+            if (!string.IsNullOrEmpty(styleId) && _document.FileOpenAccess != FileAccess.Read && !model.Styles.DefinesWithDependencies(styleId!)) return false;
+            if (!TryEditOwnedRunProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (string.IsNullOrEmpty(styleId)) {
+                WordOwnedEdits.RemoveChild(tree, properties, "rStyle");
+                return true;
+            }
+            tree.SetAttribute(tree.GetOrInsertChild(properties, W, "rStyle", WRPrView.Order), W, "val", styleId!);
+            return true;
+        }
+
         private bool TryGetOwnedColor(out OfficeColor? value) {
             value = null;
             if (!TryGetOwnedRunProperties(out OfficeXmlTree tree, out int properties)) return false;
@@ -415,6 +629,23 @@ namespace OfficeIMO.Word {
             if (tree.TryGetAttribute(color, W, "themeColor", out _)) return false;
             value = OfficeColor.TryParseHex(tree.GetAttribute(color, W, "val"), out OfficeColor parsed) ? parsed : null;
             return true;
+        }
+
+        private bool TryGetOwnedVerticalTextPosition(out WordVerticalTextPosition? value) {
+            value = null;
+            if (!TryGetOwnedValue("vertAlign", out string? token)) return false;
+            if (token == null) return true;
+            if (!WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordVerticalTextPosition parsed)) return false;
+            value = parsed;
+            return true;
+        }
+
+        // Clearing leaves a run without the property as it is, as on the SDK path.
+        private bool TrySetOwnedVerticalTextPosition(WordVerticalTextPosition? value) {
+            if (value != null) return TrySetOwnedValue("vertAlign", value.Value.ToOpenXmlToken());
+            if (!TryGetOwnedRunProperties(out OfficeXmlTree tree, out int properties)) return false;
+            if (properties == NoNode || tree.FindChild(properties, W, "vertAlign") == NoNode) return true;
+            return TrySetOwnedValue("vertAlign", null);
         }
 
         private bool TryGetOwnedCaps(out WordCapsStyle value) {
@@ -446,6 +677,21 @@ namespace OfficeIMO.Word {
         internal static bool TryParse(string token, out WordParagraphAlignment alignment) {
             int index = Array.IndexOf(Tokens, token);
             alignment = index < 0 ? default : (WordParagraphAlignment)index;
+            return index >= 0;
+        }
+    }
+
+    /// <summary>The <c>ST_TextDirection</c> tokens for <see cref="WordTextDirection"/>, in enum order.</summary>
+    internal static class WordTextDirectionTokens {
+        private static readonly string[] Tokens = {
+            "lrTb", "tb", "tbRl", "rl", "btLr", "lr", "lrTbV", "tbV", "tbRlV", "rlV", "tbLrV", "lrV"
+        };
+
+        internal static string ToToken(WordTextDirection direction) => Tokens[(int)direction];
+
+        internal static bool TryParse(string token, out WordTextDirection direction) {
+            int index = Array.IndexOf(Tokens, token);
+            direction = (WordTextDirection)Math.Max(index, 0);
             return index >= 0;
         }
     }

@@ -238,12 +238,22 @@ namespace OfficeIMO.Word {
                     if (line.IndexOf("OpenSdkPackage", StringComparison.Ordinal) >= 0
                         || line.IndexOf("ResolveOwned", StringComparison.Ordinal) >= 0
                         || line.IndexOf(".get__", StringComparison.Ordinal) >= 0
-                        || line.IndexOf("RequireSdk", StringComparison.Ordinal) >= 0) continue;
+                        || line.IndexOf("RequireSdk", StringComparison.Ordinal) >= 0
+                        || IsSdkSideHelper(line.Substring(line.LastIndexOf('.') + 1))) continue;
                     return line;
                 }
             } catch (Exception exception) when (exception is not OutOfMemoryException) {
             }
             return "OfficeIMO.Word";
+        }
+
+        // The SDK side of a member (its bridge counterpart, named Sdk..., GetSdk... or SetSdk...) and the shared run
+        // property helpers aren't what the caller used; the public member above them is.
+        private static bool IsSdkSideHelper(string method) {
+            if (method.StartsWith("get_", StringComparison.Ordinal) || method.StartsWith("set_", StringComparison.Ordinal)) method = method.Substring(4);
+            return method.StartsWith("Sdk", StringComparison.Ordinal) || method.StartsWith("GetSdk", StringComparison.Ordinal)
+                || method.StartsWith("SetSdk", StringComparison.Ordinal) || method.StartsWith("VerifyRun", StringComparison.Ordinal)
+                || method == "ScopedRunProperties";
         }
     }
 }

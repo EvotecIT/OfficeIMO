@@ -1,11 +1,10 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
 /// <summary>Word line spacing expressed as a line multiple or a physical line height.</summary>
 /// <remarks>Default is an explicit zero multiple. Native quantization occurs when assigned to a paragraph.</remarks>
-public readonly struct WordLineSpacing : IEquatable<WordLineSpacing> {
+public readonly partial struct WordLineSpacing : IEquatable<WordLineSpacing> {
     private readonly double _multiple;
     private readonly global::OfficeIMO.OfficeLength _length;
     private WordLineSpacing(WordLineSpacingRule rule, double multiple, global::OfficeIMO.OfficeLength length) {
@@ -35,11 +34,10 @@ public readonly struct WordLineSpacing : IEquatable<WordLineSpacing> {
     internal int ToNativeValue() => Rule == WordLineSpacingRule.Auto
         ? checked((int)Math.Round(_multiple * 240d, MidpointRounding.AwayFromZero))
         : checked((int)_length.ToTwips());
-    internal static WordLineSpacing? Read(SpacingBetweenLines? spacing) {
-        if (!int.TryParse(spacing?.Line?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int line) || line < 0)
+    /// <summary>Reads <c>w:spacing</c>'s <c>w:line</c> and <c>w:lineRule</c> as written; an unknown rule reads as no spacing.</summary>
+    internal static WordLineSpacing? Read(string? lineText, string? rule) {
+        if (!int.TryParse(lineText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int line) || line < 0)
             return null;
-        // Read the lexical token: accessing EnumValue.Value can throw on a future/unknown token.
-        string? rule = spacing?.LineRule?.InnerText;
         if (rule == null || rule == "auto") return Multiple(line / 240d);
         var height = global::OfficeIMO.OfficeLength.Emus(checked((long)line * 635));
         if (rule == "exact") return Exact(height);

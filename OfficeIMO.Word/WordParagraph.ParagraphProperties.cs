@@ -1,7 +1,6 @@
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word {
-    // Provides accessors for paragraph formatting.
+    // Provides accessors for paragraph formatting. Each reads and edits OfficeIMO's own package model while the document
+    // works without the Open XML SDK; once the SDK holds the document, the same member goes through the bridge.
     public partial class WordParagraph {
         /// <summary>
         /// Provides access to the borders applied to this paragraph.
@@ -15,12 +14,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the identifier of the paragraph style, if any.
         /// </summary>
-        public string? StyleId {
-            get {
-                if (_ownedTree != null && TryGetOwnedStyleId(out string? ownedStyleId)) return ownedStyleId;
-                return _paragraphProperties?.GetFirstChild<ParagraphStyleId>()?.Val;
-            }
-        }
+        public string? StyleId => _ownedTree != null && TryGetOwnedStyleId(out string? owned) ? owned : SdkStyleId;
 
         /// <summary>
         /// The English identifier of the built-in style this paragraph uses, such as <c>Quote</c> for a French
@@ -39,25 +33,10 @@ namespace OfficeIMO.Word {
         /// Setting this property to <see langword="null"/> removes direct alignment and restores style inheritance.
         /// </summary>
         public WordParagraphAlignment? ParagraphAlignment {
-            get {
-                if (_ownedTree != null && TryGetOwnedAlignment(out WordParagraphAlignment? ownedAlignment)) return ownedAlignment;
-                if (_paragraphProperties != null)
-                    if (_paragraphProperties.Justification != null)
-                        return _paragraphProperties.Justification.Val?.Value.ToOfficeEnum();
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedAlignment(out WordParagraphAlignment? owned) ? owned : SdkParagraphAlignment;
             set {
                 if (_ownedTree != null && TrySetOwnedAlignment(value)) return;
-                if (value == null) {
-                    _paragraphProperties?.RemoveAllChildren<Justification>();
-                    return;
-                }
-                if (_paragraphProperties == null) {
-                    _paragraph.ParagraphProperties = new ParagraphProperties();
-                }
-                _paragraph.ParagraphProperties!.Justification = new Justification {
-                    Val = value.Value.ToOpenXml()
-                };
+                SdkParagraphAlignment = value;
             }
         }
 
@@ -67,84 +46,41 @@ namespace OfficeIMO.Word {
         /// Setting this property to <see langword="null"/> removes direct alignment and restores style inheritance.
         /// </summary>
         public WordVerticalCharacterAlignment? VerticalCharacterAlignmentOnLine {
-            get {
-                if (_paragraphProperties != null)
-                    if (_paragraphProperties.TextAlignment != null)
-                        return _paragraphProperties.TextAlignment.Val?.Value.ToOfficeEnum();
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedVerticalCharacterAlignment(out WordVerticalCharacterAlignment? owned) ? owned : SdkVerticalCharacterAlignment;
             set {
-                if (value == null) {
-                    _paragraphProperties?.RemoveAllChildren<TextAlignment>();
-                    return;
-                }
-                if (_paragraphProperties == null) {
-                    _paragraph.ParagraphProperties = new ParagraphProperties();
-                }
-                _paragraph.ParagraphProperties!.TextAlignment = new TextAlignment { Val = value.Value.ToOpenXml() };
+                if (_ownedTree != null && TrySetOwnedVerticalCharacterAlignment(value)) return;
+                SdkVerticalCharacterAlignment = value;
             }
         }
+
         /// <summary>
         /// Gets or sets the indentation before the paragraph as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? IndentationBefore {
-            get {
-                if (_ownedTree != null && TryGetOwnedParagraphTwips("ind", "left", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
-                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
-                    if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Left)) {
-                        if (int.TryParse(_paragraphProperties.Indentation.Left, out var left)) {
-                            return global::OfficeIMO.OfficeLength.Points((left) / 20D);
-                        }
-                    }
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedParagraphTwips("ind", "left", out global::OfficeIMO.OfficeLength? owned) ? owned : GetSdkParagraphTwips("ind", "left");
             set {
                 if (_ownedTree != null && TrySetOwnedParagraphTwips("ind", "left", IndentationText(value))) return;
-                var wordNativeValue = checked((int?)(value?.ToTwips()));
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                var indentation = props.Indentation ?? new Indentation();
-                indentation.Left = wordNativeValue.HasValue ? new StringValue(wordNativeValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
-                props.Indentation = indentation;
+                SetSdkParagraphTwips("ind", "left", value);
             }
         }
+
         /// <summary>
         /// Gets or sets the indentation after the paragraph as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? IndentationAfter {
-            get {
-                if (_ownedTree != null && TryGetOwnedParagraphTwips("ind", "right", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
-                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
-                    if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Right)) {
-                        if (int.TryParse(_paragraphProperties.Indentation.Right, out var right)) {
-                            return global::OfficeIMO.OfficeLength.Points((right) / 20D);
-                        }
-                    }
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedParagraphTwips("ind", "right", out global::OfficeIMO.OfficeLength? owned) ? owned : GetSdkParagraphTwips("ind", "right");
             set {
                 if (_ownedTree != null && TrySetOwnedParagraphTwips("ind", "right", IndentationText(value))) return;
-                var wordNativeValue = checked((int?)(value?.ToTwips()));
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                var indentation = props.Indentation ?? new Indentation();
-                indentation.Right = wordNativeValue.HasValue ? new StringValue(wordNativeValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
-                props.Indentation = indentation;
+                SetSdkParagraphTwips("ind", "right", value);
             }
         }
 
         /// <summary>Gets or sets a directly authored page-break-before value; this does not resolve inherited paragraph styles.</summary>
         public bool PageBreakBefore {
-            get {
-                return ReadParagraphOnOff(_paragraphProperties?.PageBreakBefore);
-            }
+            get => _ownedTree != null && TryGetOwnedParagraphOnOff("pageBreakBefore", out bool owned) ? owned : GetSdkParagraphOnOff("pageBreakBefore");
             set {
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                if (value == true) {
-                    props.PageBreakBefore = new PageBreakBefore();
-                } else {
-                    props.PageBreakBefore = null;
-                }
+                if (_ownedTree != null && TrySetOwnedPageBreakBefore(value)) return;
+                SetSdkParagraphOnOff("pageBreakBefore", value);
             }
         }
 
@@ -152,17 +88,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets directly authored keep-with-next formatting without resolving paragraph styles.
         /// </summary>
         public bool KeepWithNext {
-            get {
-                return ReadParagraphOnOff(_paragraphProperties?.KeepNext);
-            }
+            get => _ownedTree != null && TryGetOwnedParagraphOnOff("keepNext", out bool owned) ? owned : GetSdkParagraphOnOff("keepNext");
             set {
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                if (value) {
-                    props.KeepNext ??= new KeepNext();
-                    props.KeepNext.Val = null;
-                } else {
-                    props.KeepNext?.Remove();
-                }
+                if (_ownedTree != null && TrySetOwnedParagraphFlag("keepNext", value)) return;
+                SetSdkParagraphOnOff("keepNext", value);
             }
         }
 
@@ -170,17 +99,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets directly authored keep-lines-together formatting without resolving paragraph styles.
         /// </summary>
         public bool KeepLinesTogether {
-            get {
-                return ReadParagraphOnOff(_paragraphProperties?.KeepLines);
-            }
+            get => _ownedTree != null && TryGetOwnedParagraphOnOff("keepLines", out bool owned) ? owned : GetSdkParagraphOnOff("keepLines");
             set {
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                if (value) {
-                    props.KeepLines ??= new KeepLines();
-                    props.KeepLines.Val = null;
-                } else {
-                    props.KeepLines?.Remove();
-                }
+                if (_ownedTree != null && TrySetOwnedParagraphFlag("keepLines", value)) return;
+                SetSdkParagraphOnOff("keepLines", value);
             }
         }
 
@@ -188,86 +110,43 @@ namespace OfficeIMO.Word {
         /// Gets or sets directly authored widow and orphan control without resolving paragraph styles.
         /// </summary>
         public bool AvoidWidowAndOrphan {
-            get {
-                WidowControl? widowControl = _paragraphProperties?.WidowControl;
-                return widowControl?.Val?.Value ?? widowControl is not null;
-            }
+            get => _ownedTree != null && TryGetOwnedParagraphOnOff("widowControl", out bool owned) ? owned : GetSdkParagraphOnOff("widowControl");
             set {
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                if (value) {
-                    props.WidowControl ??= new WidowControl();
-                    props.WidowControl.Val = null;
-                } else {
-                    props.WidowControl = new WidowControl {
-                        Val = false
-                    };
-                }
+                if (_ownedTree != null && TrySetOwnedWidowControl(value)) return;
+                SetSdkParagraphOnOff("widowControl", value);
             }
         }
+
         /// <summary>
         /// Gets or sets the first line indentation as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? IndentationFirstLine {
-            get {
-                if (_ownedTree != null && TryGetOwnedParagraphTwips("ind", "firstLine", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
-                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
-                    if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.FirstLine)) {
-                        if (int.TryParse(_paragraphProperties.Indentation.FirstLine, out var firstLine)) {
-                            return global::OfficeIMO.OfficeLength.Points((firstLine) / 20D);
-                        }
-                    }
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedParagraphTwips("ind", "firstLine", out global::OfficeIMO.OfficeLength? owned) ? owned : GetSdkParagraphTwips("ind", "firstLine");
             set {
                 if (_ownedTree != null && TrySetOwnedParagraphTwips("ind", "firstLine", IndentationText(value))) return;
-                var wordNativeValue = checked((int?)(value?.ToTwips()));
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                var indentation = props.Indentation ?? new Indentation();
-                indentation.FirstLine = wordNativeValue.HasValue ? new StringValue(wordNativeValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
-                props.Indentation = indentation;
+                SetSdkParagraphTwips("ind", "firstLine", value);
             }
         }
+
         /// <summary>
         /// Gets or sets the hanging indentation as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? IndentationHanging {
-            get {
-                if (_ownedTree != null && TryGetOwnedParagraphTwips("ind", "hanging", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
-                if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
-                    if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Hanging)) {
-                        if (int.TryParse(_paragraphProperties.Indentation.Hanging, out var hanging)) {
-                            return global::OfficeIMO.OfficeLength.Points((hanging) / 20D);
-                        }
-                    }
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedParagraphTwips("ind", "hanging", out global::OfficeIMO.OfficeLength? owned) ? owned : GetSdkParagraphTwips("ind", "hanging");
             set {
                 if (_ownedTree != null && TrySetOwnedParagraphTwips("ind", "hanging", IndentationText(value))) return;
-                var wordNativeValue = checked((int?)(value?.ToTwips()));
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                var indentation = props.Indentation ?? new Indentation();
-                indentation.Hanging = wordNativeValue.HasValue ? new StringValue(wordNativeValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
-                props.Indentation = indentation;
+                SetSdkParagraphTwips("ind", "hanging", value);
             }
         }
+
         /// <summary>
         /// Gets or sets the text flow direction for the paragraph.
         /// </summary>
         public WordTextDirection? TextDirection {
-            get {
-                if (_paragraphProperties != null && _paragraphProperties.TextDirection != null) {
-                    return _paragraphProperties.TextDirection.Val?.Value.ToOfficeEnum();
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedTextDirection(out WordTextDirection? owned) ? owned : SdkTextDirection;
             set {
-                var textDirection = new TextDirection { Val = value?.ToOpenXml() };
-                if (_paragraphProperties == null) {
-                    _paragraph.ParagraphProperties = new ParagraphProperties();
-                }
-                _paragraph.ParagraphProperties!.TextDirection = textDirection;
+                if (_ownedTree != null && TrySetOwnedTextDirection(value)) return;
+                SdkTextDirection = value;
             }
         }
 
@@ -275,29 +154,12 @@ namespace OfficeIMO.Word {
         /// Gets or sets directly authored right-to-left layout without resolving paragraph styles.
         /// </summary>
         public bool BiDi {
-            get {
-                return ReadParagraphOnOff(_paragraphProperties?.BiDi);
-            }
+            get => _ownedTree != null && TryGetOwnedParagraphOnOff("bidi", out bool owned) ? owned : GetSdkParagraphOnOff("bidi");
             set {
-                if (_paragraphProperties == null) {
-                    _paragraph.ParagraphProperties = new ParagraphProperties();
-                }
-
-                var paragraphProps = _paragraph.ParagraphProperties!;
-
-                if (value) {
-                    paragraphProps.BiDi ??= new BiDi();
-                } else {
-                    paragraphProps.BiDi?.Remove();
-                }
+                if (_ownedTree != null && TrySetOwnedBiDi(value)) return;
+                SetSdkParagraphOnOff("bidi", value);
             }
         }
-
-        private static bool ReadParagraphOnOff(OnOffType? value) =>
-            value?.Val?.Value ?? value is not null;
-
-        internal static bool HasPageBreakBefore(Paragraph paragraph) =>
-            ReadParagraphOnOff(paragraph.GetFirstChild<ParagraphProperties>()?.PageBreakBefore);
 
         /// <summary>
         /// Gets or sets directly authored line spacing as a multiplier, exact height, or minimum height.
@@ -309,45 +171,46 @@ namespace OfficeIMO.Word {
         /// An omitted rule with a numeric line value uses automatic line multiples.
         /// </remarks>
         public WordLineSpacing? LineSpacing {
-            get => WordLineSpacing.Read(_paragraph.GetFirstChild<ParagraphProperties>()?.SpacingBetweenLines);
+            get {
+                if (_ownedTree != null && TryGetOwnedLineSpacing(out WordLineSpacing? owned)) return owned;
+                GetSdkLineAttributes(out string? line, out string? rule);
+                return WordLineSpacing.Read(line, rule);
+            }
             set {
-                if (!value.HasValue) {
-                    var existing = _paragraph.GetFirstChild<ParagraphProperties>()?.SpacingBetweenLines;
-                    if (existing != null) { existing.Line = null; existing.LineRule = null; }
-                    return;
-                }
                 // Validate and quantize before changing the document.
-                string line = value.Value.ToNativeValue().ToString(System.Globalization.CultureInfo.InvariantCulture);
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                var spacing = props.SpacingBetweenLines ??= new SpacingBetweenLines();
-                spacing.Line = line;
-                spacing.LineRule = value.Value.Rule.ToOpenXml();
+                string? line = value?.ToNativeValue().ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string? rule = value?.Rule.ToOpenXmlToken();
+                if (_ownedTree != null && TrySetOwnedLineAttributes(true, line, true, rule)) return;
+                SetSdkLineAttributes(true, line, true, rule);
             }
         }
 
         // Native declaration access is intentionally internal. Codecs and native fixtures must
         // retain rule-only/value-only declarations rather than synthesize effective formatting.
         internal int? NativeLineSpacingValue {
-            get => int.TryParse(_paragraph.GetFirstChild<ParagraphProperties>()?.SpacingBetweenLines?.Line?.Value,
-                System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture,
-                out int line) ? line : null;
+            get {
+                string? line;
+                if (_ownedTree == null || !TryGetOwnedLineAttributes(out line, out _)) GetSdkLineAttributes(out line, out _);
+                return int.TryParse(line, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int value) ? value : null;
+            }
             set {
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                var spacing = props.SpacingBetweenLines ??= new SpacingBetweenLines();
-                spacing.Line = value?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string? line = value?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (_ownedTree != null && TrySetOwnedLineAttributes(true, line, false, null)) return;
+                SetSdkLineAttributes(true, line, false, null);
             }
         }
 
         internal WordLineSpacingRule? NativeLineSpacingRule {
             get {
-                string? rule = _paragraph.GetFirstChild<ParagraphProperties>()?.SpacingBetweenLines?.LineRule?.InnerText;
+                string? rule;
+                if (_ownedTree == null || !TryGetOwnedLineAttributes(out _, out rule)) GetSdkLineAttributes(out _, out rule);
                 return rule == "auto" ? WordLineSpacingRule.Auto : rule == "exact" ? WordLineSpacingRule.Exact
                     : rule == "atLeast" ? WordLineSpacingRule.AtLeast : null;
             }
             set {
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                var spacing = props.SpacingBetweenLines ??= new SpacingBetweenLines();
-                spacing.LineRule = value?.ToOpenXml();
+                string? rule = value?.ToOpenXmlToken();
+                if (_ownedTree != null && TrySetOwnedLineAttributes(false, null, true, rule)) return;
+                SetSdkLineAttributes(false, null, true, rule);
             }
         }
 
@@ -355,48 +218,21 @@ namespace OfficeIMO.Word {
         /// Gets or sets the spacing before the paragraph as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? LineSpacingBefore {
-            get {
-                if (_ownedTree != null && TryGetOwnedParagraphTwips("spacing", "before", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
-                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
-                    if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.Before)) {
-                        if (int.TryParse(_paragraphProperties.SpacingBetweenLines.Before, out var before)) {
-                            return global::OfficeIMO.OfficeLength.Points((before) / 20D);
-                        }
-                    }
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedParagraphTwips("spacing", "before", out global::OfficeIMO.OfficeLength? owned) ? owned : GetSdkParagraphTwips("spacing", "before");
             set {
                 if (_ownedTree != null && TrySetOwnedParagraphTwips("spacing", "before", SpacingText(value))) return;
-                var wordNativeValue = checked((int?)(value?.ToTwips()));
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
-                spacing.Before = wordNativeValue?.ToString();
-                props.SpacingBetweenLines = spacing;
+                SetSdkParagraphTwips("spacing", "before", value);
             }
         }
+
         /// <summary>
         /// Gets or sets the spacing after the paragraph as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? LineSpacingAfter {
-            get {
-                if (_ownedTree != null && TryGetOwnedParagraphTwips("spacing", "after", out global::OfficeIMO.OfficeLength? ownedValue)) return ownedValue;
-                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
-                    if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.After)) {
-                        if (int.TryParse(_paragraphProperties.SpacingBetweenLines.After, out var after)) {
-                            return global::OfficeIMO.OfficeLength.Points((after) / 20D);
-                        }
-                    }
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedParagraphTwips("spacing", "after", out global::OfficeIMO.OfficeLength? owned) ? owned : GetSdkParagraphTwips("spacing", "after");
             set {
                 if (_ownedTree != null && TrySetOwnedParagraphTwips("spacing", "after", SpacingText(value))) return;
-                var wordNativeValue = checked((int?)(value?.ToTwips()));
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
-                spacing.After = wordNativeValue?.ToString();
-                props.SpacingBetweenLines = spacing;
+                SetSdkParagraphTwips("spacing", "after", value);
             }
         }
 
@@ -404,32 +240,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets the vertical text alignment - the alignment of the text in the paragraph with respect to the line height.
         /// </summary>
         public WordVerticalTextPosition? VerticalTextAlignment {
-            get {
-                RunProperties? runProperties = ScopedRunProperties;
-                if (runProperties?.VerticalTextAlignment != null) {
-                    return runProperties.VerticalTextAlignment.Val?.Value.ToOfficeEnum();
-                }
-                return null;
-            }
+            get => _ownedTree != null && TryGetOwnedVerticalTextPosition(out WordVerticalTextPosition? owned) ? owned : SdkVerticalTextAlignment;
             set {
-                RunProperties? runProperties = ScopedRunProperties;
-                if (value == null) {
-                    if (runProperties?.VerticalTextAlignment == null) {
-                        return;
-                    }
-                    runProperties.VerticalTextAlignment = null;
-                } else {
-                    if (IsHyperLink && _stdRun == null) {
-                        WordHyperLink hyperlink = Hyperlink!;
-                        runProperties = VerifyRunProperties(
-                            hyperlink._hyperlink!,
-                            hyperlink._run!,
-                            hyperlink._runProperties);
-                    } else {
-                        runProperties = VerifyRunProperties();
-                    }
-                    runProperties.VerticalTextAlignment = new VerticalTextAlignment { Val = value.Value.ToOpenXml() };
-                }
+                if (_ownedTree != null && TrySetOwnedVerticalTextPosition(value)) return;
+                SdkVerticalTextAlignment = value;
             }
         }
     }

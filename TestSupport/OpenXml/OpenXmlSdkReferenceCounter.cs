@@ -14,7 +14,7 @@ namespace OfficeIMO.TestSupport.OpenXml;
 /// (the package API the SDK depends on, which isn't part of .NET), outside the folder that holds the engine's SDK bridge. It reads the compiled assembly and its portable PDB: a file counts when a method compiled from it
 /// names an SDK type or member in its signature, its locals or its IL, or uses an engine field or method whose signature
 /// does. That catches SDK types reached through <c>var</c> and member chains, which a search for <c>using</c> lines
-/// misses. A file that mentions the namespace in its text counts as well, for declarations that compile to no method.
+/// misses. A file whose code (not its comments) names the namespace counts as well, for declarations that compile to no method.
 /// </summary>
 internal static class OpenXmlSdkReferenceCounter {
     /// <summary>An assembly family to count: its assemblies' name and the namespace its types live in.</summary>
@@ -65,13 +65,26 @@ internal static class OpenXmlSdkReferenceCounter {
             string relative = full.Substring(projectRoot.Length);
             if (relative.StartsWith("obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
                 || relative.StartsWith("bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal)) continue;
-            if (dependency.NamespaceText.IsMatch(File.ReadAllText(full))) files.Add(full);
+            if (NamesNamespaceInCode(full, dependency)) files.Add(full);
         }
 
         return files
             .Where(file => !file.StartsWith(bridgeRoot, StringComparison.Ordinal) && File.Exists(file))
             .Select(file => file.Substring(projectRoot.Length).Replace(Path.DirectorySeparatorChar, '/'))
             .ToList();
+    }
+
+    // Comments that mention the namespace don't use it.
+    private static bool NamesNamespaceInCode(string path, Dependency dependency) {
+        foreach (string line in File.ReadLines(path)) {
+            string code = line.TrimStart();
+            if (code.StartsWith("//", StringComparison.Ordinal) || code.StartsWith("*", StringComparison.Ordinal)
+                || code.StartsWith("/*", StringComparison.Ordinal)) continue;
+            int comment = code.IndexOf("//", StringComparison.Ordinal);
+            if (comment >= 0) code = code.Substring(0, comment);
+            if (dependency.NamespaceText.IsMatch(code)) return true;
+        }
+        return false;
     }
 
     private const string MappedSourcePrefix = "/_/";

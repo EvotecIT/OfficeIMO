@@ -6,22 +6,6 @@ namespace OfficeIMO.Word {
     /// </summary>
     internal static class WordPackageCompatibility {
         /// <summary>
-        /// Adjusts relationship targets so that the document can be opened by OpenOffice.
-        /// </summary>
-        /// <param name="filePath">Path to the document package.</param>
-        public static void NormalizeOpenOfficeRelationships(string filePath) {
-            using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.ReadWrite)) {
-                // Fix relationships in /_rels/.rels
-                Uri globalRelsUri = new Uri("/_rels/.rels", UriKind.Relative);
-                FixPartIfExists(package, globalRelsUri, false);
-
-                // Fix relationships in /word/_rels/document.xml.rels (remove /word/)
-                Uri documentRelsUri = new Uri("/word/_rels/document.xml.rels", UriKind.Relative);
-                FixPartIfExists(package, documentRelsUri, true);
-            }
-        }
-
-        /// <summary>
         /// Adjusts relationship targets for a document provided as a stream.
         /// </summary>
         /// <param name="fileStream">Stream containing the document package.</param>
