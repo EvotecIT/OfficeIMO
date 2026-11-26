@@ -123,7 +123,8 @@ internal static class EpubImportedPublication {
                 WriteAnchor(Anchor(chapters[chapterPath], id));
             writer.WriteStartElement(tag);
             foreach (XAttribute attribute in element.Attributes()) {
-                if (attribute.IsNamespaceDeclaration) continue;
+                if (attribute.IsNamespaceDeclaration ||
+                    (attribute.Name == XNamespace.Xml + "lang" && element.Attribute("lang") != null)) continue;
                 string name = attribute.Name.LocalName;
                 string? value = attribute.Value;
                 if ((attribute.Name.Namespace != XNamespace.None && attribute.Name != XNamespace.Xml + "lang") ||

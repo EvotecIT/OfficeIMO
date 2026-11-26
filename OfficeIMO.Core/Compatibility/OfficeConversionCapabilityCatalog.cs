@@ -740,6 +740,10 @@ public static partial class OfficeConversionCapabilityCatalog {
     private static (OfficeConversionTextFormattingKind Kind, string Contract) GetTextFormattingContract(
         string source,
         string target) {
+        if (source == "Comic book ZIP") {
+            return (OfficeConversionTextFormattingKind.FlattenedRaster,
+                "Preserves lettering as part of the raster pages in every output.");
+        }
         if (string.Equals(target, "SVG", StringComparison.Ordinal)) {
             return (OfficeConversionTextFormattingKind.VectorAppearance,
                 "Preserves rendered font, color, weight, italic, decoration, and script appearance as SVG text and vector graphics; source-native editable semantics are not retained.");

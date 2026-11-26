@@ -27,7 +27,8 @@ public static partial class OfficeWorkflow {
     private sealed class ImportedEbookRoute(string id, string target,
         Func<Stream, string, long, CancellationToken, OfficeConversionResult<EpubPublication>> import)
         : IOfficeConversionRoute, IOfficeConversionArtifactValidation {
-        private const int MaximumWorkingHtmlBytes = 128 * 1024 * 1024;
+        // Up to 120 MiB of comic images can expand to 160 MiB of base64 before adding markup.
+        private const int MaximumWorkingHtmlBytes = 192 * 1024 * 1024;
 
         public string Id => id;
 
