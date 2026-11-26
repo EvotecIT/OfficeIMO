@@ -310,10 +310,6 @@ internal static partial class TableDetector {
 
 
     /// <summary>
-    /// Counts the text baselines most of a row's filled cells share. Folded data rows put a line in nearly
-    /// every cell on each baseline; wrapped header cells, centred at different heights, do not.
-    /// </summary>
-    /// <summary>
     /// A body row holding several data rows the producer did not rule apart: most cells share three lines or
     /// more, or three cells or more all hold a line on each of two shared baselines (values rarely wrap in
     /// every column at once).
@@ -321,6 +317,29 @@ internal static partial class TableDetector {
     private static bool IsFoldedRow(List<(double Y, int Column)> baselines, int filledColumns) {
         if (filledColumns >= 3 && CountBaselinesInEveryColumn(baselines, filledColumns) >= 2) return true;
         return CountSharedBaselines(baselines, filledColumns) >= 3;
+    }
+
+    /// <summary>
+    /// Whether each line of a cell ends because the next line's first word would not fit beside it: text wrapped
+    /// inside its cell, not separate values stacked in it.
+    /// </summary>
+    private static bool WrapsInCell(List<TextLayoutEngine.TextLine> lines, double left, double right) {
+        for (int index = 0; index + 1 < lines.Count; index++) {
+            TextLayoutEngine.TextLine line = lines[index], next = lines[index + 1];
+            string text = line.Text.Trim(), following = next.Text.Trim();
+            // A paragraph line that wraps holds several words; one value per line is stacked data.
+            if (text.Length == 0 || following.Length == 0 || text.IndexOf(' ') < 0) return false;
+            double lineWidth = line.XEnd - line.XStart, nextWidth = next.XEnd - next.XStart;
+            if (lineWidth <= 0D || nextWidth <= 0D) return false;
+            int wordLength = following.IndexOf(' ');
+            if (wordLength < 0) wordLength = following.Length;
+            double space = lineWidth / text.Length, word = nextWidth * wordLength / following.Length;
+            // The cell's padding is taken as the inset of its text from the left border, on both sides, but no
+            // more than two characters: centred or right-aligned text sits further in without wrapping sooner.
+            double padding = Math.Min(Math.Max(0D, line.XStart - left), space * 2D);
+            if (line.XEnd + space + word <= right - padding) return false;
+        }
+        return true;
     }
 
     private static int CountBaselinesInEveryColumn(List<(double Y, int Column)> baselines, int filledColumns) {
@@ -431,6 +450,7 @@ internal static partial class TableDetector {
             values[row] = new string[columnCount];
             rowRuns[row] = new List<PdfTextSpan>();
             int filled = 0;
+            bool wrapped = true;
             baselines.Clear();
             for (int column = 0; column < columnCount; column++) {
                 context.ConsumeWork();
@@ -445,6 +465,7 @@ internal static partial class TableDetector {
                         context.ConsumeWork, context.ThrowIfCancellationRequested);
                     values[row][column] = string.Join(" ", cellLines.Select(static line => line.Text.Trim()).Where(static text => text.Length > 0));
                     foreach (TextLayoutEngine.TextLine line in cellLines) baselines.Add((line.Y, column));
+                    if (cellLines.Count > 1 && !WrapsInCell(cellLines, x[column], x[column + 1])) wrapped = false;
                 }
                 foreach (PdfTextSpan run in runs) {
                     PdfTextSpan source = fragments.TryGetValue(run, out PdfTextSpan? whole) ? whole : run;
@@ -455,8 +476,9 @@ internal static partial class TableDetector {
                 filled++;
             }
             if (filled >= 2) fullRows++;
-            // The first row with text is the header, whose cells may all wrap to the same lines.
-            if (textRows > 0 && IsFoldedRow(baselines, filled)) foldedRows++;
+            // The first row with text is the header, whose cells may all wrap to the same lines; a body row whose
+            // every multi-line cell wraps is one row of long values, not several rows folded together.
+            if (textRows > 0 && !wrapped && IsFoldedRow(baselines, filled)) foldedRows++;
             if (filled > 0) textRows++;
         }
         // A boxed paragraph, a frame around a page or a form whose boxes each hold one label is not a table:

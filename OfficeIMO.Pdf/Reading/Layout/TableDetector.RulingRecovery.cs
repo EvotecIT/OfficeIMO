@@ -152,6 +152,7 @@ internal static partial class TableDetector {
             var values = new string[columnCount];
             var rowRuns = new List<PdfTextSpan>();
             int filled = 0;
+            bool wrapped = true;
             baselines.Clear();
             for (int column = 0; column < columnCount; column++) {
                 context.ConsumeWork();
@@ -161,12 +162,14 @@ internal static partial class TableDetector {
                     context.ConsumeWork, context.ThrowIfCancellationRequested);
                 values[column] = string.Join(" ", cellLines.Select(static line => line.Text));
                 foreach (TextLayoutEngine.TextLine line in cellLines) baselines.Add((line.Y, column));
+                if (cellLines.Count > 1 && !WrapsInCell(cellLines, x[column], x[column + 1])) wrapped = false;
                 rowRuns.AddRange(runs);
                 filled++;
             }
             if (filled > 0) textRows++;
-            // The header row's cells may all wrap to the same lines; only body rows can be folded data.
-            if (table.Rows.Count > 0 && IsFoldedRow(baselines, filled)) foldedRows++;
+            // The header row's cells may all wrap to the same lines; only body rows can be folded data, and not
+            // those whose every multi-line cell wraps (see RecoverRulingLatticeTables).
+            if (table.Rows.Count > 0 && !wrapped && IsFoldedRow(baselines, filled)) foldedRows++;
             table.Rows.Add(values);
             sourceLines.Add(new TextLayoutEngine.TextLine((y[row] + y[row + 1]) / 2D, x[0], x[x.Length - 1],
                 string.Join(" ", values), rowRuns));

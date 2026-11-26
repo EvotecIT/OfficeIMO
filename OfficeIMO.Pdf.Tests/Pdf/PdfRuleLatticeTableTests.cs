@@ -310,6 +310,40 @@ public sealed class PdfRuleLatticeTableTests {
             table => table.Evidence.Any(evidence => evidence.Code == "table-ruling-lattice"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RuledRowsWhoseCellsAllWrapStayOneRowEach(bool image) {
+        // Every body cell wraps onto two lines because its next word does not fit; each row has its own rules.
+        // That is one row of long values, not two data rows the producer left unruled. With an image on the
+        // page the painted-border reader takes it; without, the strict grid does.
+        string[][] lines = {
+            new[] { "Item", "Area", "Status" },
+            new[] { "Quarterly revenue|summary", "Regional growth|estimates", "Approved budget|allocations" },
+            new[] { "Projected hiring|targets", "Marketing spend|forecast", "Customer churn|analysis" }
+        };
+        double[] x = { 72, 192, 312, 432 };
+        double[] y = { 700, 684, 656, 628 };
+        var content = new StringBuilder("0 G 0.75 w\n");
+        foreach (double top in y) Line(content, x[0], top, x[x.Length - 1], top);
+        foreach (double left in x) Line(content, left, y[0], left, y[y.Length - 1]);
+        if (image) content.Append("q 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+        for (int row = 0; row < lines.Length; row++) {
+            for (int column = 0; column < 3; column++) {
+                string[] parts = lines[row][column].Split('|');
+                for (int part = 0; part < parts.Length; part++) {
+                    content.Append("BT /F1 9 Tf 0 g 1 0 0 1 ").Append(Number(x[column] + 3)).Append(' ').Append(Number(y[row] - 11 - part * 11))
+                        .Append(" Tm (").Append(parts[part]).Append(") Tj ET\n");
+                }
+            }
+        }
+        string[][] expected = lines.Select(row => row.Select(cell => cell.Replace('|', ' ')).ToArray()).ToArray();
+
+        PdfLogicalPage page = Read(content, "Courier");
+
+        Assert.Contains(page.Tables, table => table.Rows.Select(row => row.ToArray()).SequenceEqual(expected, ArrayComparer));
+    }
+
     private static readonly IEqualityComparer<string[]> ArrayComparer = new SequenceComparer();
 
     private sealed class SequenceComparer : IEqualityComparer<string[]> {
