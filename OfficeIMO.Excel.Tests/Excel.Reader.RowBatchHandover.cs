@@ -76,7 +76,9 @@ public partial class Excel {
         int wideRow = HandoverRows - 100;
         string path = CreateHandoverWorkbook(markupRow: 0, markupText: string.Empty, dimensionColumns: "B", extraCellRow: wideRow);
         try {
-            using (DbDataReader reader = ExcelDocument.OpenReader(path)) {
+            // Where the sheet is checked before the first row (.NET Framework), the default read finds the actual range.
+            if (ChecksWhileReading) {
+                using DbDataReader reader = ExcelDocument.OpenReader(path);
                 Exception? failure = ReadUntilError(reader, out int rows);
                 Assert.Contains(nameof(ExcelReaderOptions.ValidateWorksheetBeforeFirstRow),
                     Assert.IsType<InvalidDataException>(failure).Message);
@@ -104,9 +106,20 @@ public partial class Excel {
         try {
             using DbDataReader reader = ExcelDocument.OpenReader(path);
             Exception? failure = ReadUntilError(reader, out int rows);
+            if (!ChecksWhileReading) {
+                // Checked before the first row (.NET Framework): every row of the actual range is returned.
+                Assert.Null(failure);
+                Assert.Equal(HandoverRows, rows);
+                return;
+            }
             Assert.Contains(nameof(ExcelReaderOptions.ValidateWorksheetBeforeFirstRow),
                 Assert.IsType<InvalidDataException>(failure).Message);
             Assert.True(rows > 0 && rows < markupRow);
+
+            using DbDataReader validated = ExcelDocument.OpenReader(path, new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true });
+            int validatedRows = 0;
+            while (validated.Read()) validatedRows++;
+            Assert.Equal(HandoverRows, validatedRows);
         } finally {
             File.Delete(path);
         }
