@@ -106,6 +106,43 @@ test("Canopy XLSX header is shaded, bold, wrapped and ruled like the PDF heading
   assert.equal(fillColor(plain.style("A1")), "FFFFFF"); assert.doesNotMatch(plain.style("A1").alignment, /wrapText/);
 });
 
+test("Canopy cell composition picks value or label per column kind, rule and writer", async () => {
+  const columns = [column("Plain"), column("Badged"), column("Ruled"), column("Link"), column("LinkRuled"), column("Count", "number")];
+  const row = { id: "r", cells: {
+    Plain: cell("pending", "Awaiting approval"),
+    Badged: cell("pending", "Awaiting approval", { badges: ["Active"] }),
+    Ruled: cell("pending", "Awaiting approval", { badges: ["Active"] }),
+    Link: cell("/users/1", "Alice", { diagnostics: ["relative-link"] }),
+    LinkRuled: cell("/users/2", "Bob", { diagnostics: ["relative-link"] }),
+    Count: cell(12, "12", { badges: ["Rare"], tone: "danger" }) } };
+  const label = "Awaiting approval · Active";
+  // Expected written cell per writer: XLSX and CSV write the value, PDF prints the text.
+  const cases = [
+    { values: "raw", xlsx: ["pending", label, "pending", "Alice", "/users/2", "12"], csv: ["pending", label, label, "Alice", "Bob", "12"] },
+    { values: "display", xlsx: ["Awaiting approval", label, label, "Alice", "Bob", "12 · Rare"], csv: ["Awaiting approval", label, label, "Alice", "Bob", "12 · Rare"] }
+  ];
+  const pdf = ["Awaiting approval", label, label, "Alice", "Bob", "12 · Rare"];
+  for (const { values, xlsx, csv } of cases) {
+    const input = () => {
+      const result = capture([row], columns);
+      result.request.values = values;
+      // Only XLSX emits these rules, and only for raw values; they protect Ruled and LinkRuled.
+      result.request.formatRules = ["Ruled", "LinkRuled"].map(id => ({ id: "rule-" + id, column: id, target: "cell",
+        when: { operator: "and", filters: [{ column: id, operator: "isNotNull", values: [] }], groups: [] }, style: { tone: "info" } }));
+      return result;
+    };
+    const options = { unsupportedPresentation: "text" };
+    const book = await workbook(await exportCanopy(input(), "xlsx", options));
+    assert.deepEqual(columns.map((_, i) => book.style(String.fromCharCode(65 + i) + "2").text), xlsx, "xlsx " + values);
+    assert.equal(fillColor(book.style("F2")), "FFC7CE", "tone fill " + values);
+    if (values === "raw") assert.match(book.sheet, /<c r="F2"[^>]*><v>12<\/v><\/c>/);
+    const text = await (await exportCanopy(input(), "csv", options)).text();
+    assert.deepEqual(text.split("\r\n")[1].split(","), csv, "csv " + values);
+    const lines = (await inspectPdf(await exportCanopy(input(), "pdf", options))).pages.flatMap(page => page.lines);
+    for (const expected of pdf) assert.ok(lines.includes(expected), "pdf " + values + ": " + expected + " in " + lines.join("|"));
+  }
+});
+
 test("Canopy badges leave native rule operands and typed group identities unchanged", async () => {
   const rule = { id: "locked", column: "Name", target: "cell", when: { operator: "and", filters: [{ column: "Name", operator: "isNull", values: [] }], groups: [] }, style: { tone: "danger" } };
   const ruled = capture([{ id: "r", cells: { Name: cell(null, "", { badges: ["Locked"], diagnostics: ["badges"] }), Note: cell("n", "n", { badges: ["Seen"] }) } }],

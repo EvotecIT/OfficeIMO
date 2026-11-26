@@ -154,11 +154,10 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link") && !ruleOperands.has(spec.id);
         const badges = cell.badges === undefined ? undefined : badgeText(cell.badges);
         const text = badges ? cell.text ? cell.text + badgeSeparator + badges : badges : cell.text;
-        // Badges belong to the visible label: text columns export them with the value, typed columns keep their scalar.
-        // Native rule predicates compare the raw scalar, so their operand columns keep it and carry badges in the text only.
+        // Badges belong to the visible label, so a badged text cell exports that composed label rather than a raw/label hybrid.
+        // Typed columns keep their scalar, and native rule operands keep the raw value the rule compares; both carry badges in the text only.
         const badgedValue = !!badges && values === "raw" && !relativeLabel && spec.kind === "text" && !ruleOperands.has(spec.id);
-        let value: import("../../core/index.js").CellValue = values === "display" || relativeLabel ? text :
-          badgedValue ? (cell.value === null || cell.value === "" ? badges : String(cell.value) + badgeSeparator + badges) : cell.value;
+        let value: import("../../core/index.js").CellValue = values === "display" || relativeLabel || badgedValue ? text : cell.value;
         if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string") value = datetime(value, dateMode, clock);
         const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
         const nativeFormat = spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
