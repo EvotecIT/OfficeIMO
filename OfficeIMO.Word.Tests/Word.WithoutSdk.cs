@@ -495,7 +495,7 @@ public sealed class WordWithoutSdkTests {
                 + $"|{paragraph.Color}|{paragraph.FontFamily}|{paragraph.Highlight}|{paragraph.CapsStyle}"
                 + $"|{paragraph.StyleId}|{paragraph.Style}|{paragraph.ParagraphAlignment}"
                 + $"|{paragraph.IndentationBefore}|{paragraph.IndentationAfter}|{paragraph.IndentationFirstLine}|{paragraph.IndentationHanging}"
-                + $"|{paragraph.LineSpacingBefore}|{paragraph.LineSpacingAfter}|{paragraph.LineSpacing}|{paragraph.VerticalCharacterAlignmentOnLine}"
+                + $"|{paragraph.LineSpacingBefore}|{paragraph.LineSpacingAfter}|{paragraph.LineSpacing?.Rule} {paragraph.LineSpacing?.MultipleValue} {paragraph.LineSpacing?.Height}|{paragraph.VerticalCharacterAlignmentOnLine}"
                 + $"|{paragraph.KeepWithNext}|{paragraph.KeepLinesTogether}|{paragraph.PageBreakBefore}|{paragraph.AvoidWidowAndOrphan}"
                 + $"|{paragraph.BiDi}|{paragraph.TextDirection}|{paragraph.VerticalTextAlignment}"
                 + $"|{paragraph.DoNotCheckSpellingOrGrammar}|{paragraph.Spacing}|{paragraph.Outline}|{paragraph.Shadow}|{paragraph.Emboss}"

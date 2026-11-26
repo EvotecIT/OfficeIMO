@@ -74,15 +74,22 @@ internal static class OpenXmlSdkReferenceCounter {
             .ToList();
     }
 
-    // Comments that mention the namespace don't use it.
+    // Comments that mention the namespace don't use it: line comments and block comments, across lines, are skipped.
     private static bool NamesNamespaceInCode(string path, Dependency dependency) {
+        var code = new System.Text.StringBuilder();
+        bool inBlock = false;
         foreach (string line in File.ReadLines(path)) {
-            string code = line.TrimStart();
-            if (code.StartsWith("//", StringComparison.Ordinal) || code.StartsWith("*", StringComparison.Ordinal)
-                || code.StartsWith("/*", StringComparison.Ordinal)) continue;
-            int comment = code.IndexOf("//", StringComparison.Ordinal);
-            if (comment >= 0) code = code.Substring(0, comment);
-            if (dependency.NamespaceText.IsMatch(code)) return true;
+            code.Clear();
+            for (int i = 0; i < line.Length; i++) {
+                if (inBlock) {
+                    if (line[i] == '*' && i + 1 < line.Length && line[i + 1] == '/') { inBlock = false; i++; }
+                    continue;
+                }
+                if (line[i] == '/' && i + 1 < line.Length && line[i + 1] == '/') break;
+                if (line[i] == '/' && i + 1 < line.Length && line[i + 1] == '*') { inBlock = true; i++; continue; }
+                code.Append(line[i]);
+            }
+            if (dependency.NamespaceText.IsMatch(code.ToString())) return true;
         }
         return false;
     }
