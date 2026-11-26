@@ -78,7 +78,8 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlNode body = EnsureBody();
             PowerPointParagraph wrapper = AppendParagraph(body, text ?? string.Empty, body.Child(OfficeXmlNamespaces.DrawingML, "p"), out PowerPointTextRun authoredRun);
             configure?.Invoke(wrapper);
-            run?.Invoke(authoredRun);
+            // Configuring the paragraph can replace its runs; the callback then formats a run that is still in it.
+            if (run != null) run(authoredRun.Element.IsInside(wrapper.Element) ? authoredRun : wrapper.AddText(text ?? string.Empty));
             return wrapper;
         }
 
@@ -354,12 +355,11 @@ namespace OfficeIMO.PowerPoint {
                 OfficeXmlNode body = EnsureBodyProperties();
                 RemoveAutoFit(body, "noAutofit", "normAutofit", "spAutoFit");
                 if (value != null) {
-                    // The model appends the auto-fit element last.
-                    body.Append(body.CreateElement(OfficeXmlNamespaces.DrawingML, value.Value switch {
+                    body.InsertOrdered(body.CreateElement(OfficeXmlNamespaces.DrawingML, value.Value switch {
                         PowerPointTextAutoFit.None => "noAutofit",
                         PowerPointTextAutoFit.Normal => "normAutofit",
                         _ => "spAutoFit"
-                    }));
+                    }), BodyPropertiesOrder);
                 }
                 MarkEdited();
             }
@@ -396,7 +396,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static OfficeXmlNode NormalAutoFit(OfficeXmlNode body) {
             OfficeXmlNode normal = body.Child(OfficeXmlNamespaces.DrawingML, "normAutofit");
-            return normal.IsNone ? body.Append(body.CreateElement(OfficeXmlNamespaces.DrawingML, "normAutofit")) : normal;
+            return normal.IsNone ? body.InsertOrdered(body.CreateElement(OfficeXmlNamespaces.DrawingML, "normAutofit"), BodyPropertiesOrder) : normal;
         }
 
         /// <summary>
@@ -503,6 +503,9 @@ namespace OfficeIMO.PowerPoint {
 
         private IReadOnlyList<PowerPointParagraph> ReplaceParagraphs<T>(IEnumerable<T> items,
             Func<T, OfficeXmlNode, PowerPointParagraph> addParagraph) {
+            // The items are read before anything is removed: a source that opens the SDK while it is read then does so
+            // before the body below is taken.
+            List<T> list = items as List<T> ?? items.ToList();
             OfficeXmlNode body = EnsureBody();
             List<string> soundIds = SoundIds(body);
             OfficeXmlNode template = body.Child(OfficeXmlNamespaces.DrawingML, "p");
@@ -511,7 +514,7 @@ namespace OfficeIMO.PowerPoint {
             body.RemoveChildren(OfficeXmlNamespaces.DrawingML, "p");
 
             var results = new List<PowerPointParagraph>();
-            foreach (T item in items) {
+            foreach (T item in list) {
                 results.Add(addParagraph(item, template));
             }
 

@@ -49,8 +49,46 @@ internal sealed partial class OfficeXmlTree {
     /// Creates a detached deep copy of an element that keeps the prefixes it was written with, so attribute values that
     /// name prefixes (such as <c>mc:Ignorable</c>) stay valid; a prefix the place it is inserted does not bind is declared.
     /// </summary>
-    internal int CloneElementKeepingPrefixes(int element) =>
-        ImportOrClone(this, element, Namespaces.GetName(_nodes[element].Name));
+    internal int CloneElementKeepingPrefixes(int element) {
+        int copy = ImportOrClone(this, element, Namespaces.GetName(_nodes[element].Name));
+        DeclareInheritedCompatibilityPrefixes(element, copy);
+        return copy;
+    }
+
+    // Prefixes named in markup-compatibility attribute values (mc:Ignorable and the like) inside the element mean nothing
+    // unless they are bound; one the element inherited from an ancestor is declared on the copy, which can be written
+    // where that ancestor is not.
+    private void DeclareInheritedCompatibilityPrefixes(int element, int copy) {
+        HashSet<string>? prefixes = null;
+        CollectCompatibilityPrefixes(element, ref prefixes);
+        if (prefixes == null) return;
+        foreach (string prefix in prefixes) {
+            if (FindAttribute(copy, OfficeXmlNamespaces.Xmlns, prefix) >= 0) continue;
+            for (int scope = _nodes[element].Parent; scope != NoNode && scope >= 0; scope = _nodes[scope].Parent) {
+                if (_nodes[scope].Kind != OfficeXmlTreeNodeKind.Element) continue;
+                int declaration = FindAttribute(scope, OfficeXmlNamespaces.Xmlns, prefix);
+                if (declaration < 0) continue;
+                DeclareNamespace(copy, prefix, AttributeValue(ref _attrs[declaration]));
+                break;
+            }
+        }
+    }
+
+    private void CollectCompatibilityPrefixes(int element, ref HashSet<string>? prefixes) {
+        int first = _nodes[element].AttrFirst, count = _nodes[element].AttrCount;
+        for (int index = first; index < first + count; index++) {
+            OfficeXmlName name = Namespaces.GetName(_attrs[index].Name);
+            if (name.NamespaceId != OfficeXmlNamespaces.MarkupCompatibility) continue;
+            foreach (string token in AttributeValue(ref _attrs[index]).Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+                // ProcessContent and the Preserve lists name prefix:local pairs; Ignorable and MustUnderstand name prefixes.
+                int colon = token.IndexOf(':');
+                (prefixes ??= new HashSet<string>(StringComparer.Ordinal)).Add(colon < 0 ? token : token.Substring(0, colon));
+            }
+        }
+        for (int child = _nodes[element].FirstChild; child != NoNode; child = _nodes[child].Next) {
+            if (_nodes[child].Kind == OfficeXmlTreeNodeKind.Element) CollectCompatibilityPrefixes(child, ref prefixes);
+        }
+    }
 
     /// <summary>A new tree whose root is a copy of <paramref name="element"/>, for writing the element on its own.</summary>
     internal static OfficeXmlTree CopyElement(OfficeXmlTree source, int element) {
@@ -69,7 +107,17 @@ internal sealed partial class OfficeXmlTree {
         int first = source._nodes[element].AttrFirst, count = source._nodes[element].AttrCount;
         for (int index = first; index < first + count; index++) {
             OfficeXmlName attribute = source.Namespaces.GetName(source._attrs[index].Name);
-            SetAttribute(copy, attribute.NamespaceId, attribute.LocalName, source.AttributeValue(ref source._attrs[index]));
+            string value = source.AttributeValue(ref source._attrs[index]);
+            if (attribute.NamespaceId == OfficeXmlNamespaces.Xmlns) {
+                SetAttribute(copy, attribute.NamespaceId, attribute.LocalName, value);
+                continue;
+            }
+            // The attribute keeps its name id, prefix included, as the element does.
+            int added = AppendAttribute(copy);
+            _attrs[added].Name = source._attrs[index].Name;
+            _attrs[added].Value = value;
+            _attrs[added].ValueStart = -1;
+            _attrs[added].Changed = true;
         }
         for (int child = source._nodes[element].FirstChild; child != NoNode; child = source._nodes[child].Next) {
             switch (source._nodes[child].Kind) {

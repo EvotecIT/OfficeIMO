@@ -103,8 +103,8 @@ namespace OfficeIMO.PowerPoint {
             if (OwnerSlide == null) return;
 
             PowerPointPartRef owner = HyperlinkOwnerPart;
-            foreach (string id in relationshipIds) owner.RemoveRelationshipIfUnused(id, default);
-            foreach (string id in soundIds) owner.RemoveRelationshipIfUnused(id, default);
+            foreach (string id in relationshipIds) owner.RemoveRelationshipIfUnused(id, SlidePartRef);
+            foreach (string id in soundIds) owner.RemoveRelationshipIfUnused(id, SlidePartRef);
         }
     }
 }
