@@ -14,6 +14,7 @@ namespace OfficeIMO.Tests;
 /// </summary>
 public class PowerPointSdkReferenceRatchetTests {
     private const int Baseline = 297;
+    private const int PackagingBaseline = 1;
     private readonly ITestOutputHelper _output;
 
     public PowerPointSdkReferenceRatchetTests(ITestOutputHelper output) => _output = output;
@@ -31,6 +32,22 @@ public class PowerPointSdkReferenceRatchetTests {
             $"{files.Count} files outside OfficeIMO.PowerPoint/OpenXmlSdk use the Open XML SDK, more than the baseline of {Baseline}. Keep new SDK use in the bridge.");
         Assert.True(files.Count == Baseline,
             $"Only {files.Count} files outside OfficeIMO.PowerPoint/OpenXmlSdk use the Open XML SDK now. Lower the baseline in {nameof(PowerPointSdkReferenceRatchetTests)} to {files.Count}.");
+    }
+
+    [Fact]
+    public void FilesOutsideTheBridgeThatUseSystemIOPackagingOnlyGoDown() {
+        string projectDirectory = Path.Combine(FindRepositoryRoot(), "OfficeIMO.PowerPoint");
+        IReadOnlyList<string> files = OpenXmlSdkReferenceCounter.FindFiles(
+            typeof(OfficeIMO.PowerPoint.PowerPointDocument).Assembly.Location, projectDirectory, "OpenXmlSdk",
+            OpenXmlSdkReferenceCounter.Dependency.SystemIOPackaging);
+
+        _output.WriteLine($"OfficeIMO.PowerPoint files outside OpenXmlSdk/ that use System.IO.Packaging: {files.Count} (baseline {PackagingBaseline})");
+        foreach (string file in files) _output.WriteLine(file);
+
+        Assert.True(files.Count <= PackagingBaseline,
+            $"{files.Count} files outside OfficeIMO.PowerPoint/OpenXmlSdk use System.IO.Packaging, more than the baseline of {PackagingBaseline}. Use OfficeIMO's own package layer, or keep it in the bridge.");
+        Assert.True(files.Count == PackagingBaseline,
+            $"Only {files.Count} files outside OfficeIMO.PowerPoint/OpenXmlSdk use System.IO.Packaging now. Lower {nameof(PackagingBaseline)} in {nameof(PowerPointSdkReferenceRatchetTests)} to {files.Count}.");
     }
 
     [Fact]
