@@ -117,7 +117,7 @@ internal static class ClinicalTrialsCorpus {
                     Console.Error.WriteLine($"{nctId}: registry record updated on {updated} (manifest has {(string?)trial["lastUpdatePosted"]}).");
                 }
                 File.WriteAllText(Path.Combine(records, nctId + ".json"), record.ToJsonString(JsonOptions));
-            } catch (HttpRequestException exception) {
+            } catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException) {
                 Console.Error.WriteLine($"{nctId}: {exception.Message}");
                 failed++;
             }
@@ -163,7 +163,10 @@ internal static class ClinicalTrialsCorpus {
                     continue;
                 }
                 string textPath = Path.Combine(output, "texts", engine, suite, nctId + ".pdf.txt");
-                bool ok = timing.Status == "ok" && File.Exists(textPath);
+                bool ok = timing.Status == "ok";
+                if (ok && !File.Exists(textPath)) {
+                    throw new FileNotFoundException($"{engine} read {nctId} but its text is missing. Run the corpus with --write-text, or run it again for this file.", textPath);
+                }
                 documents.Add(new DocumentScore(nctId, sponsorClass, engine, timing.Status, pages, timing.Ms));
                 ProtocolText? text = ok ? new ProtocolText(File.ReadAllText(textPath)) : null;
                 foreach (RegistryField field in fields) {
@@ -485,6 +488,8 @@ internal sealed class ProtocolText {
     /// of the field's rarest word, so a field that appears in the synopsis and again in its section is found in both.
     /// </summary>
     private (Match Match, List<int> At) Find(string[] f) {
+        // At lists every qualifying occurrence, intact or in order, so a field intact in the synopsis and broken up
+        // under its section still counts as placed in its section.
         int anchor = 0;
         int anchorCount = int.MaxValue;
         for (int i = 0; i < f.Length; i++) {
@@ -504,11 +509,15 @@ internal sealed class ProtocolText {
             int start = starts[s] - anchor;
             if (start >= 0 && start + f.Length <= _tokens.Length && Contiguous(f, start)) {
                 intact.Add(start);
-            } else if (intact.Count == 0 && InOrder(f, anchor, starts[s])) {
-                inOrder.Add(Math.Max(0, start));
+            } else if (InOrder(f, anchor, starts[s]) is int first and >= 0) {
+                inOrder.Add(first);
             }
         }
-        return intact.Count > 0 ? (Match.Intact, intact) : inOrder.Count > 0 ? (Match.InOrder, inOrder) : (Match.Missing, []);
+        if (intact.Count == 0) {
+            return inOrder.Count > 0 ? (Match.InOrder, inOrder) : (Match.Missing, []);
+        }
+        intact.AddRange(inOrder);
+        return (Match.Intact, intact);
     }
 
     private bool Contiguous(string[] f, int start) {
@@ -520,23 +529,28 @@ internal sealed class ProtocolText {
         return true;
     }
 
-    private bool InOrder(string[] f, int anchor, int anchorPosition) {
-        int window = 3 * f.Length + 10;
-        int position = anchorPosition;
+    /// <summary>
+    /// Places the field's other words around one occurrence of its anchor word, each as close as possible, and
+    /// returns where the placement starts, or -1 when the words from first to last span more than three times the
+    /// field's length.
+    /// </summary>
+    private int InOrder(string[] f, int anchor, int anchorPosition) {
+        int window = 3 * f.Length;
+        int first = anchorPosition;
         for (int i = anchor - 1; i >= 0; i--) {
-            position = Previous(f[i], position, anchorPosition - window);
-            if (position < 0) {
-                return false;
+            first = Previous(f[i], first, anchorPosition - window + 1);
+            if (first < 0) {
+                return -1;
             }
         }
-        position = anchorPosition;
+        int last = anchorPosition;
         for (int i = anchor + 1; i < f.Length; i++) {
-            position = Next(f[i], position, anchorPosition + window);
-            if (position < 0) {
-                return false;
+            last = Next(f[i], last, first + window - 1);
+            if (last < 0) {
+                return -1;
             }
         }
-        return true;
+        return first;
     }
 
     private int Next(string token, int after, int limit) {
