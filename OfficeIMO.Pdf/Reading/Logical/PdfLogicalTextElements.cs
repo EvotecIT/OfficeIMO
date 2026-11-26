@@ -88,7 +88,10 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
             return Array.Empty<PdfLogicalTextRun>();
         }
 
-        var runs = new List<PdfLogicalTextRun>();
+        // Runs cover contiguous ranges of the text: each starts where the previous one ended, a run that
+        // continues the previous style extends it, and the last one takes any text after the final span.
+        // The ranges are cut into strings once at the end.
+        var runs = new List<(int Start, int End, PdfTextSpan Span)>();
         int cursor = 0;
         for (int i = 0; i < spans.Count && cursor < text.Length; i++) {
             PdfTextSpan span = spans[i];
@@ -100,12 +103,11 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
                 continue;
             }
 
-            string runText = text.Substring(cursor, end - cursor);
-            if (runs.Count > 0 && StylesMatch(runs[runs.Count - 1].SourceSpan, span)) {
-                PdfLogicalTextRun previous = runs[runs.Count - 1];
-                runs[runs.Count - 1] = new PdfLogicalTextRun(previous.Text + runText, previous.SourceSpan);
+            if (runs.Count > 0 && StylesMatch(runs[runs.Count - 1].Span, span)) {
+                (int Start, int End, PdfTextSpan Span) previous = runs[runs.Count - 1];
+                runs[runs.Count - 1] = (previous.Start, end, previous.Span);
             } else {
-                runs.Add(new PdfLogicalTextRun(runText, span));
+                runs.Add((cursor, end, span));
             }
             cursor = end;
         }
@@ -115,16 +117,16 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         }
 
         if (cursor < text.Length) {
-            PdfLogicalTextRun last = runs[runs.Count - 1];
-            var combined = new System.Text.StringBuilder(last.Text.Length + text.Length - cursor);
-            combined.Append(last.Text);
-            combined.Append(text, cursor, text.Length - cursor);
-            runs[runs.Count - 1] = new PdfLogicalTextRun(
-                combined.ToString(),
-                last.SourceSpan);
+            (int Start, int End, PdfTextSpan Span) last = runs[runs.Count - 1];
+            runs[runs.Count - 1] = (last.Start, text.Length, last.Span);
         }
 
-        return Array.AsReadOnly(runs.ToArray());
+        var result = new PdfLogicalTextRun[runs.Count];
+        for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+            (int start, int end, PdfTextSpan span) = runs[runIndex];
+            result[runIndex] = new PdfLogicalTextRun(text.Substring(start, end - start), span);
+        }
+        return Array.AsReadOnly(result);
     }
 
     internal static bool TryFindNormalizedSpan(
