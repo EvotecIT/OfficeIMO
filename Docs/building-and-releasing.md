@@ -182,6 +182,18 @@ bootstrapper. Development imports prefer Debug, then Release;
 The build synchronizes the compiled module's project version with the manifest
 and derives command exports and help from the binary and XML comments.
 
+Before publishing, build [Verify.OfficeIMO](https://github.com/VerifyTests/Verify.OfficeIMO)
+against the candidate packages. It references most OfficeIMO packages and is a
+public consumer of their API, so a break there means a break for other
+applications too. Build the unsigned packages with `./Build/Build-Release.ps1`,
+clone Verify.OfficeIMO outside this repository, add the package output folder
+as the first source in its `src/nuget.config`, set every `OfficeIMO.*` version
+in its `src/Directory.Packages.props` to the candidate version, and run
+`dotnet test src/Verify.OfficeIMO.slnx`. A compile error or a missing member is
+a release blocker unless the release notes and `MIGRATION.md` already describe
+that break. Changed snapshots are expected when rendering improves and are not
+a blocker. Delete the clone afterwards.
+
 After the candidate has passed its required tests and reviews, an authorized
 release operator runs:
 
