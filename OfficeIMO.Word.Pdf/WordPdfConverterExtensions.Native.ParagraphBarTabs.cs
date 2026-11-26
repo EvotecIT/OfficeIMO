@@ -79,7 +79,7 @@ public static partial class WordPdfConverterExtensions {
         WordSection section, WordPdfExportOptions? options) {
         if (paragraph._paragraph.Ancestors<W.TableCell>().Any())
             return paragraph._paragraph.Ancestors<W.TextBoxContent>().Any();
-        if (WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) return true;
+        if (IsSectionMarkOnly(paragraph._paragraph)) return true;
         var runs = GetNativeRuns(paragraph);
         if (GetNativeVisibleTextBoxes(paragraph, runs).Count > 0)
             return !HasNativeMixedTextBoxOwnContent(paragraph, runs, section, options);

@@ -29,29 +29,20 @@ public partial class WordParagraph {
         }
     }
 
-    private void UpdatePageNumberFormatting<T>(T? value) where T : OpenXmlElement {
+    // Copies a run property the paragraph just set, named by its element, to the runs of a page number field built from
+    // this run; a property the paragraph removed is removed there too.
+    private void SdkSyncPageNumberFormatting(object properties, string localName) {
         PageNumberFormattingGroup? group = _run?.Annotation<PageNumberFormattingGroup>();
         if (group == null) return;
+        OpenXmlElement? value = ((OpenXmlElement)properties).ChildElements.FirstOrDefault(child => IsWordProperty(child, localName));
         foreach (Run run in group.Runs) {
             if (!run.Ancestors<Paragraph>().Any(paragraph => ReferenceEquals(paragraph, _paragraph))) continue;
-            RunProperties properties = run.RunProperties ??= new RunProperties();
-            properties.RemoveAllChildren<T>();
-            if (value != null) properties.AddChild(value.CloneNode(true), true);
+            RunProperties target = run.RunProperties ??= new RunProperties();
+            foreach (OpenXmlElement existing in target.ChildElements.Where(child => IsWordProperty(child, localName)).ToArray()) existing.Remove();
+            if (value != null) target.AddChild(value.CloneNode(true), true);
         }
     }
 
-    // As above, for a property named by its element; value is null when the property was removed.
-    private void UpdatePageNumberFormatting(OpenXmlElement? value, string localName) {
-        PageNumberFormattingGroup? group = _run?.Annotation<PageNumberFormattingGroup>();
-        if (group == null) return;
-        foreach (Run run in group.Runs) {
-            if (!run.Ancestors<Paragraph>().Any(paragraph => ReferenceEquals(paragraph, _paragraph))) continue;
-            RunProperties properties = run.RunProperties ??= new RunProperties();
-            foreach (OpenXmlElement existing in properties.ChildElements
-                .Where(child => child.LocalName == localName && child.NamespaceUri == WordprocessingNamespace).ToArray()) {
-                existing.Remove();
-            }
-            if (value != null) properties.AddChild(value.CloneNode(true), true);
-        }
-    }
+    private static bool IsWordProperty(OpenXmlElement element, string localName) =>
+        element.LocalName == localName && element.NamespaceUri == "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 }

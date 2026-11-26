@@ -3,6 +3,11 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {
+    /// <summary>Recognizes a section terminator with no body content, while retaining its editable properties and anchors.</summary>
+    internal static bool IsSectionMarkOnly(W.Paragraph paragraph) =>
+        paragraph.ParagraphProperties?.SectionProperties != null &&
+        paragraph.ChildElements.All(element => element is W.ParagraphProperties or W.BookmarkStart or W.BookmarkEnd or W.ProofError);
+
     /// <summary>Retains the paragraph line of an otherwise empty authored section.</summary>
     private static bool TryRenderNativeEmptySectionMark(INativePdfFlow flow, WordSection section,
         IReadOnlyList<WordElement> elements, NativeDocumentDefaults defaults, NativeFontMap fonts,
@@ -24,9 +29,9 @@ public static partial class WordPdfConverterExtensions {
     /// <summary>Shares the exact otherwise-empty section admission between paint and navigation projection.</summary>
     private static W.Paragraph? GetNativeEmptySectionMarkSource(WordSection section, IReadOnlyList<WordElement> elements) {
         if (elements.Any(element => element is not WordParagraph paragraph ||
-                !WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) ||
+                !IsSectionMarkOnly(paragraph._paragraph)) ||
             section._sectionProperties.Parent is not W.ParagraphProperties properties ||
-            properties.Parent is not W.Paragraph source || !WordParagraph.IsSectionMarkOnly(source)) return null;
+            properties.Parent is not W.Paragraph source || !IsSectionMarkOnly(source)) return null;
         return source;
     }
 }

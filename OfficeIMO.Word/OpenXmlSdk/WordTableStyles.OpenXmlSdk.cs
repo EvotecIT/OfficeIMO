@@ -2,20 +2,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
-// The SDK side of the built-in table styles: the elements the SDK path adds to documents.
+// The SDK side of the built-in table styles: the definitions the SDK path adds to styles parts, until styles move to
+// the owned model.
 internal static partial class WordTableStyles {
-    /// <summary>Creates a <see cref="TableStyle"/> element that applies the specified table style.</summary>
-    internal static TableStyle GetStyle(WordTableStyle style) => new TableStyle { Val = GetStyleId(style) };
-
-    /// <summary>Whether the styles part already defines the table style.</summary>
-    internal static bool IsAvailableStyle(Styles styles, WordTableStyle style) {
-        string styleId = GetStyleId(style);
-        foreach (Style current in styles.OfType<Style>()) {
-            if (current.StyleId == styleId) return true;
-        }
-        return false;
-    }
-
     /// <summary>The <see cref="Style"/> definition of a built-in table style, ready to add to a styles part.</summary>
     internal static Style GetStyleDefinition(WordTableStyle style) {
         if (style == WordTableStyle.OfficeIMOModern) return WordThemeDefaults.CreateTableStyle(OfficeTheme.Default);

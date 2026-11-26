@@ -80,7 +80,7 @@ public static partial class WordPdfConverterExtensions {
         bool balanceColumns, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
         if (!balanceColumns || !UsesModernNativeWordLayout(section._document) || elements.Count < 2 ||
             elements[elements.Count - 1] is not WordParagraph paragraph ||
-            elements[elements.Count - 2] is not WordTable || !WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) return 0D;
+            elements[elements.Count - 2] is not WordTable || !IsSectionMarkOnly(paragraph._paragraph)) return 0D;
         // Modern Word lays out the table's trailing section mark after balancing its row fragments.
         return MeasureNativeEmptyParagraphHeight(paragraph,
             CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap), nativeDefaults, nativeFontMap);

@@ -75,7 +75,7 @@ namespace OfficeIMO.Word {
                     _tableProperties?.TableStyle?.Remove();
                     return;
                 }
-                SetStyleId(WordTableStyles.GetStyle(value.Value).Val!.Value!);
+                SetStyleId(WordTableStyles.GetStyleId(value.Value));
             }
         }
 
@@ -326,12 +326,12 @@ namespace OfficeIMO.Word {
         private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle, int textWidthTwips) {
             string columnWidth = GetDefaultColumnWidthTwips(textWidthTwips, columns).ToString(System.Globalization.CultureInfo.InvariantCulture);
             document.MarkTableNormalizationRequired();
-            document.EnsureStyleDefinition(WordTableStyles.GetStyle(tableStyle).Val!.Value!);
+            document.EnsureStyleDefinition(WordTableStyles.GetStyleId(tableStyle));
             Table table = new Table();
             table.AddAnnotation(new DerivedGrid());
 
             TableProperties tableProperties1 = new TableProperties();
-            TableStyle tableStyle1 = WordTableStyles.GetStyle(tableStyle);
+            TableStyle tableStyle1 = new TableStyle { Val = WordTableStyles.GetStyleId(tableStyle) };
             TableWidth tableWidth1 = new TableWidth() { Width = "0", Type = TableWidthUnitValues.Auto };
             TableLook tableLook1 = CreateTableLook(firstRow: true, lastRow: false, firstColumn: true, lastColumn: false, noHorizontalBand: false, noVerticalBand: true);
 
