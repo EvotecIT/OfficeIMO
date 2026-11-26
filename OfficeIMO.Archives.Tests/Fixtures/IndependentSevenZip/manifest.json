@@ -45,6 +45,13 @@
       "file": "mixed-lzma2.7z",
       "command": "7zz a -t7z -m0=LZMA2 -mhc=off -mmt=off -mtm=off mixed-lzma2.7z mixed.bin",
       "sha256": "40b2f50353c5a1784a455a61c5237d79e46694b39c28af7b082939b3b350cdf3"
+    },
+    {
+      "file": "split-encoded-header.7z",
+      "source": "solid-lzma2.7z",
+      "verification": "7-Zip 26.06 t checked the supplemental metadata variant after Python changed only the next header.",
+      "changes": "One encoded header folder split after its first output byte, with CRCs computed for both extents, nonzero presence flag 2, and rebuilt next/start header checksums.",
+      "sha256": "dcda315c0e457eaca501e7e15bc9b4f633f3121a3bfcd1c67ed7edf8f9ccebfe"
     }
   ]
 }

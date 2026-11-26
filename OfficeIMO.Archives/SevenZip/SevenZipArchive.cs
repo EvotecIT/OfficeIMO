@@ -61,10 +61,10 @@ internal sealed partial class SevenZipArchive {
         var record = new SevenZipInput(header);
         byte type = record.Byte();
         if (type == 0x17) {
-            SevenZipFolder[] encoded = ReadStreams(record, payloadEnd, 1, token);
+            SevenZipFolder[] encoded = ReadStreams(record, payloadEnd, maximumFolders: 1, limits.Entries, token);
             record.Finish();
-            if (encoded.Length != 1 || encoded[0].Extents.Length != 1)
-                throw SevenZipInput.Invalid("The 7z encoded header must have one folder and one output stream.");
+            if (encoded.Length != 1)
+                throw SevenZipInput.Invalid("The 7z encoded header must have one folder.");
             payloadEnd = encoded[0].Offset;
             record = new SevenZipInput(encoded[0].Decode(source, maximumMetadata - size, nameof(ArchiveExtractionOptions.MaxMetadataBytes), budget, token));
             type = record.Byte();
@@ -81,7 +81,7 @@ internal sealed partial class SevenZipArchive {
         if (type == 3) throw new NotSupportedException("External 7z metadata streams are unsupported.");
         SevenZipFolder[] folders = Array.Empty<SevenZipFolder>();
         if (type == 4) {
-            folders = ReadStreams(record, payloadEnd, limits.Entries, token);
+            folders = ReadStreams(record, payloadEnd, limits.Entries, limits.Entries, token);
             type = record.Byte();
         }
         Member[] members = Array.Empty<Member>();
@@ -114,6 +114,7 @@ internal sealed partial class SevenZipArchive {
             else (groups[member.Folder] ??= new List<Member>()).Add(member);
         }
 
+        token.ThrowIfCancellationRequested();
         long expanded = 0;
         for (int i = 0; i < groups.Length; i++) {
             if (groups[i] != null) ArchiveLimits.Add(ref expanded, _folders[i].Size, _limits.Expanded,
@@ -132,6 +133,7 @@ internal sealed partial class SevenZipArchive {
                 consume(member.Entry.RelativePath, decoded, (int)member.Offset, (int)member.Entry.Length);
             }
         }
+        token.ThrowIfCancellationRequested();
     }
 
     private readonly struct Member {

@@ -26,7 +26,8 @@ public sealed class ArchiveExtractionOptions {
     /// its complete CFDATA record size, and its expanded size plus any MSZIP dictionary replay.
     /// This bounds processing work rather than measuring exact CPU time.</summary>
     public long MaxDecompressionWorkBytes { get; set; } = 2L * 1024 * 1024 * 1024;
-    /// <summary>Maximum aggregate MSI or 7z metadata stream bytes. Defaults to 64 MiB.</summary>
+    /// <summary>Maximum metadata bytes. Defaults to 64 MiB. Applies to MSI metadata streams, and separately
+    /// to decoded 7z headers and the retained 7z portable-path index.</summary>
     public long MaxMetadataBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum rows per MSI metadata table.</summary>
     public int MaxTableRows { get; set; } = 200000;

@@ -101,11 +101,7 @@ internal sealed class SevenZipInput {
         return result;
     }
 
-    internal bool[]? Defined(int count) => Byte() switch {
-        0 => Bits(count),
-        1 => null,
-        _ => throw Invalid("A 7z digest or metadata presence flag is invalid.")
-    };
+    internal bool[]? Defined(int count) => Byte() == 0 ? Bits(count) : null;
 
     internal uint?[] Checksums(int count) {
         bool[]? defined = Defined(count);

@@ -135,6 +135,39 @@ public sealed class SevenZipArchiveTests {
         Assert.False(Directory.Exists(fixture.Destination));
     }
 
+    [Fact]
+    public void ChecksBothEncodedHeaderSubstreamsWhenThePresenceFlagIsNonzero() {
+        byte[] bytes = ReadFixture("split-encoded-header.7z");
+        using var good = new MemoryStream(bytes, writable: false);
+        var list = ArchiveReader.ListSevenZip(good);
+        Assert.Contains(list, entry => entry.RelativePath == "notes/café.txt" && entry.Length == 23200);
+
+        RewriteNextHeader(bytes, (data, start) => {
+            // The second substream digest follows the producer's folder descriptor and a one-byte split.
+            Assert.Equal(2, data[start + 40]);
+            data[start + 45] ^= 1;
+        });
+        using var bad = new MemoryStream(bytes, writable: false);
+        var error = Assert.Throws<InvalidDataException>(() => ArchiveReader.ListSevenZip(bad));
+        Assert.Contains("member checksum", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnEmptySelectionStillObservesCancellationFromTheLastSelector() {
+        byte[] bytes = ReadFixture("stored.7z");
+        Assert.Empty(ArchiveReader.ReadSevenZip(bytes, new ArchiveReadOptions { IncludeFile = _ => false }));
+
+        using var cancellation = new CancellationTokenSource();
+        var options = new ArchiveReadOptions {
+            IncludeFile = _ => {
+                cancellation.Cancel();
+                return false;
+            }
+        };
+
+        Assert.Throws<OperationCanceledException>(() => ArchiveReader.ReadSevenZip(bytes, options, cancellation.Token));
+    }
+
     private static string ContentHash(byte[] data) {
         using var sha = SHA256.Create();
         return BitConverter.ToString(sha.ComputeHash(data)).Replace("-", "").ToLowerInvariant();

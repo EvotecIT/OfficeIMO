@@ -5,6 +5,7 @@ namespace OfficeIMO.Archives;
 
 /// <summary>Extracts one managed archive container into a fresh directory without executing its contents.</summary>
 public static partial class ArchiveExtractor {
+    private const int StagingCopyBufferSize = 81920;
     /// <summary>Verifies and extracts selected files from a ZIP, 7z, CAB, ordinary MSI, TAR, .tar.gz or single-file gzip package.
     /// TAR symbolic links, hard links and device records are never created; selecting one fails the extraction.
     /// A gzip file is extracted under its stored name, or the package name without ".gz".
@@ -131,7 +132,7 @@ public static partial class ArchiveExtractor {
         WriteStream(staging, path, memory, bytes.LongLength, limits, files, ref total, token);
     }
     private static void WriteStream(string staging, string path, Stream payload, long length, ArchiveLimits limits,
-        List<ExtractedArchiveFile> files, ref long total, CancellationToken token) {
+        List<ExtractedArchiveFile> files, ref long total, CancellationToken token, byte[]? stagingCopyBuffer = null) {
         limits.CheckEntry(length);
         ArchiveLimits.Add(ref total, length, limits.Expanded, "MaxExpandedBytes");
         string target = Path.GetFullPath(Path.Combine(staging, path.Replace('/', Path.DirectorySeparatorChar)));
@@ -143,7 +144,7 @@ public static partial class ArchiveExtractor {
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
         ArchivePaths.RejectLinks(target, staging);
         using var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-        byte[] buffer = new byte[81920];
+        byte[] buffer = stagingCopyBuffer ?? new byte[StagingCopyBufferSize];
         long written = 0;
         while (written < length) {
             token.ThrowIfCancellationRequested();

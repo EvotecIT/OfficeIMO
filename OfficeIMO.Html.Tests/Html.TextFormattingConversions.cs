@@ -969,7 +969,7 @@ public class HtmlTextFormattingConversionTests {
                 Assert.Equal(OfficeConversionTextFormattingKind.ReconstructedFromFixedLayout, route.TextFormatting);
             }
             if (route.Target == "PDF") {
-                OfficeConversionTextFormattingKind expected = route.Source == "Comic book ZIP"
+                OfficeConversionTextFormattingKind expected = route.Source is "Comic book ZIP" or "Comic book 7z"
                     ? OfficeConversionTextFormattingKind.FlattenedRaster
                     : OfficeConversionTextFormattingKind.FixedLayoutAppearance;
                 Assert.Equal(expected, route.TextFormatting);

@@ -1,13 +1,13 @@
 namespace OfficeIMO.Archives.SevenZip;
 
 internal sealed partial class SevenZipArchive {
-    private static SevenZipFolder[] ReadStreams(SevenZipInput input, long payloadEnd, int maximum, CancellationToken token) {
+    private static SevenZipFolder[] ReadStreams(SevenZipInput input, long payloadEnd, int maximumFolders, int maximumSubStreams, CancellationToken token) {
         byte type = input.Byte();
         if (type == 0) return Array.Empty<SevenZipFolder>();
         if (type != 6) throw SevenZipInput.Invalid("The 7z stream index is missing PackInfo.");
         long relativeOffset = input.Size();
         if (relativeOffset > payloadEnd - SignatureSize) throw SevenZipInput.Invalid("The 7z packed stream offset is outside the payload region.");
-        int packedCount = input.Count(maximum, nameof(ArchiveExtractionOptions.MaxEntryCount));
+        int packedCount = input.Count(maximumFolders, nameof(ArchiveExtractionOptions.MaxEntryCount));
         input.Expect(9);
         if (packedCount > input.Remaining) throw SevenZipInput.Invalid("The 7z packed size table is truncated.");
         var sizes = new long[packedCount];
@@ -25,7 +25,7 @@ internal sealed partial class SevenZipArchive {
 
         input.Expect(7);
         input.Expect(11);
-        int folderCount = input.Count(maximum, nameof(ArchiveExtractionOptions.MaxEntryCount));
+        int folderCount = input.Count(maximumFolders, nameof(ArchiveExtractionOptions.MaxEntryCount));
         input.RequireInline("folder");
         if (folderCount > input.Remaining / 3) throw SevenZipInput.Invalid("The 7z folder table is truncated.");
         var folders = new SevenZipFolder[folderCount];
@@ -55,7 +55,7 @@ internal sealed partial class SevenZipArchive {
 
         type = input.Byte();
         if (type == 8) {
-            ReadSubStreams(input, folders, maximum, token);
+            ReadSubStreams(input, folders, maximumSubStreams, token);
             type = input.Byte();
         } else {
             foreach (SevenZipFolder folder in folders)
