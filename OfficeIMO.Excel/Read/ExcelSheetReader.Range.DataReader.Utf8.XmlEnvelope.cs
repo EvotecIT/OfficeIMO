@@ -11,6 +11,17 @@ namespace OfficeIMO.Excel {
             /// indexed and character proof for a consistently qualified sheetData subtree.
             /// </summary>
             private Stream CreateWorksheetXmlValidationStream(CancellationToken ct) {
+                Stream? envelope = TryCreateWorksheetXmlEnvelope(ct);
+                if (envelope != null) return envelope;
+                if (_windowedPart) return OpenWindowedValidationStream(ct);
+                return new MemoryStream(_buffer!, 0, _length, writable: false, publiclyVisible: false);
+            }
+
+            /// <summary>
+            /// The worksheet without its sheetData body when every row passed the fast checks, or null when the whole
+            /// part needs the XML reader.
+            /// </summary>
+            private Stream? TryCreateWorksheetXmlEnvelope(CancellationToken ct) {
 #if NET8_0_OR_GREATER
                 const int maximumEnvelopeBytes = 64 * 1024;
                 int prefixLength = _sheetDataContentStart;
@@ -36,8 +47,7 @@ namespace OfficeIMO.Excel {
                     return new MemoryStream(envelope, writable: false);
                 }
 #endif
-                if (_windowedPart) return OpenWindowedValidationStream(ct);
-                return new MemoryStream(_buffer!, 0, _length, writable: false, publiclyVisible: false);
+                return null;
             }
 
             /// <summary>A windowed source no longer holds the whole part, so complete XML proof reads it again.</summary>

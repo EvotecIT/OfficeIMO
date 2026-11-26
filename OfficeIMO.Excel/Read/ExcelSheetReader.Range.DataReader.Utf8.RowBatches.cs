@@ -39,6 +39,7 @@ namespace OfficeIMO.Excel {
                     || reader?.AllowsPipelining != true
                     || !reader.TryGetLength(owner._worksheetPartName, out long length)
                     || length < MinimumRowBatchPartBytes || length > int.MaxValue
+                    || HeadHasNoDimension(reader, owner._worksheetPartName, ct)
                     || !reader.TryOpenExactPartStream(owner._worksheetPartName, ct, out Stream? stream)) return false;
 
                 // The background pass validates styles; load them here so only this thread builds them.
@@ -81,6 +82,41 @@ namespace OfficeIMO.Excel {
                 declaredFirstColumn = range.FirstColumn;
                 source = consumer;
                 return true;
+            }
+
+            private const int DimensionProbeBytes = 16 * 1024;
+
+            /// <summary>
+            /// Reads the start of the worksheet: rows that begin without a declared dimension are validated before the
+            /// first row, so no background pass is started for them. A head too long to probe is left to that pass.
+            /// </summary>
+            private static bool HeadHasNoDimension(OpenXmlPackagePartBufferReader reader, string partName, CancellationToken ct) {
+                if (!reader.TryOpenExactPartStream(partName, ct, out Stream? stream)) return false;
+                byte[] head = ArrayPool<byte>.Shared.Rent(DimensionProbeBytes);
+                try {
+                    int read = 0;
+                    using (stream) {
+                        int count;
+                        while (read < DimensionProbeBytes && (count = stream!.Read(head, read, DimensionProbeBytes - read)) > 0) read += count;
+                    }
+                    int rows = IndexOfElement(head, read, "sheetData"u8);
+                    return rows >= 0 && IndexOfElement(head, rows, "dimension"u8) < 0;
+                } finally {
+                    ArrayPool<byte>.Shared.Return(head);
+                }
+            }
+
+            // The first start tag with this local name, with or without a prefix, before `end`.
+            private static int IndexOfElement(byte[] bytes, int end, ReadOnlySpan<byte> localName) {
+                for (int position = 1; position + localName.Length < end; position++) {
+                    byte before = bytes[position - 1];
+                    if ((before == (byte)'<' || before == (byte)':') && bytes.AsSpan(position, localName.Length).SequenceEqual(localName)) {
+                        byte after = bytes[position + localName.Length];
+                        if (after == (byte)'>' || after == (byte)'/' || after == (byte)' ' || after == (byte)'\t'
+                            || after == (byte)'\r' || after == (byte)'\n') return position;
+                    }
+                }
+                return -1;
             }
 
             private void RunRowBatchProducer(RowBatchChannel channel, CancellationToken ct) {
@@ -153,6 +189,11 @@ namespace OfficeIMO.Excel {
 
             /// <summary>Waits for the full XML check at the end of the worksheet.</summary>
             private bool CompleteRowBatchXmlCheck(CancellationToken ct) {
+                // Rows that all passed the fast checks need only the markup around them, as when validating first.
+                if (_batchXmlCheck == null) {
+                    using Stream? envelope = TryCreateWorksheetXmlEnvelope(ct);
+                    if (envelope != null) return ValidateWorksheetXmlStream(envelope, ct);
+                }
                 RowBatchXmlCheck check = _batchXmlCheck ??= StartRowBatchXmlCheck();
                 check.WaitFor(long.MaxValue, ct);
                 return check.Result;
