@@ -76,11 +76,12 @@ jobs:
       credential_mode: standard
       use_playwright_cache: true
 
-  # The API docs shards (about 140 MB each) only carry work between jobs of this run; the reports stay.
+  # The API docs shards (about 140 MB each) only carry work between jobs of this run; the reports stay. A failed run
+  # keeps them so "Re-run failed jobs" can still collect them.
   artifact-cleanup:
     name: Delete transfer artifacts
     needs: [website-build, website-build-manual]
-    if: always() && (needs.website-build.result != 'skipped' || needs.website-build-manual.result != 'skipped')
+    if: always() && (needs.website-build.result == 'success' || needs.website-build-manual.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

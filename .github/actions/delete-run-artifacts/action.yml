@@ -1,7 +1,7 @@
 name: Delete this run's transfer artifacts
 description: >-
   Deletes the artifacts of the current workflow run whose names match a pattern, once the jobs that read them have
-  finished. Needs a token with actions: write; a read-only token (pull requests from forks) only gets a warning.
+  succeeded. Needs a token with actions: write; a read-only token (pull requests from forks) only gets a warning.
 inputs:
   pattern:
     description: Regular expression the whole artifact name must match.
@@ -34,3 +34,5 @@ runs:
             Write-Host "Deleted $($artifact.name)."
         }
         Write-Host ('Deleted {0} of {1} matching artifacts, {2:N0} MB.' -f $deleted, $matched.Count, ($freed / 1MB))
+        # A tolerated delete failure leaves a nonzero native exit code that the pwsh wrapper would turn into a failure.
+        exit 0
