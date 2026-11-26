@@ -103,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
             } catch {
                 // A failed configuration leaves no field behind, so a retry doesn't add a second one.
                 PowerPointXmlNode added = run.Element;
-                if (!added.Parent.IsNone) PowerPointTextRun.DiscardContent(added, OwnerPartRef);
+                if (!added.Parent.IsNone) PowerPointTextRun.DiscardContent(added, OwnerPartRef, SlidePartRef);
                 throw;
             }
             return this;

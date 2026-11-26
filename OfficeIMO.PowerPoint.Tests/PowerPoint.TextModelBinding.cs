@@ -80,6 +80,25 @@ public class PowerPointTextModelBindingTests {
         Assert.Null(run.Hyperlink);
     }
 
+    [Fact]
+    public void RemovingALinkedSlideAfterAnEarlierRemovalLeavesNoDanglingLink() {
+        byte[] saved;
+        using (var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck(3)))) {
+            presentation.RemoveSlide(2);
+            presentation.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].SetHyperlink(presentation.Slides[1]);
+            presentation.RemoveSlide(1);
+            saved = presentation.ToBytes();
+        }
+
+        using PresentationDocument document = PresentationDocument.Open(new MemoryStream(saved), false);
+        SlidePart remaining = document.PresentationPart!.SlideParts.Single();
+        foreach (A.HyperlinkOnClick link in remaining.Slide!.Descendants<A.HyperlinkOnClick>()) {
+            Assert.True(remaining.Parts.Any(pair => pair.RelationshipId == link.Id)
+                || remaining.HyperlinkRelationships.Any(relationship => relationship.Id == link.Id), "A hyperlink points at a removed relationship.");
+        }
+        Assert.DoesNotContain(remaining.Parts, pair => pair.OpenXmlPart is SlidePart);
+    }
+
     private static byte[] CreateDeck(int slides, Action<PowerPointParagraph>? fill = null) {
         using var presentation = PowerPointDocument.Create();
         for (int index = 0; index < slides; index++) {

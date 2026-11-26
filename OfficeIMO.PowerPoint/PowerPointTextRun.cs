@@ -499,13 +499,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Removes a content subtree and the relationships no surviving content uses.</summary>
-        internal static void DiscardContent(PowerPointXmlNode content, PowerPointPartRef owner) {
+        internal static void DiscardContent(PowerPointXmlNode content, PowerPointPartRef owner, PowerPointPartRef owningSlide = default) {
             var ids = new List<string>();
             CollectRelationshipIds(content, ids);
             if (!content.Parent.IsNone) content.Remove();
             if (owner.IsNone) return;
             owner.MarkEdited();
-            PowerPointPartRef slide = owner.Kind == PowerPointPartKind.Slide ? owner : default;
+            // A notes slide keeps its relationship to the slide it belongs to.
+            PowerPointPartRef slide = owner.Kind == PowerPointPartKind.Slide ? owner : owningSlide;
             foreach (string id in ids) owner.RemoveRelationshipIfUnused(id, slide);
         }
 

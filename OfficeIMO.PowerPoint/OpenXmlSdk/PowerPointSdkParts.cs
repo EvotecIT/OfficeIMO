@@ -26,13 +26,15 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
             _ => PowerPointPartKind.Other
         };
 
-        internal static bool TryGetRelationship(object part, string id, out string type, out string target, out bool external, out object? targetPart) {
+        internal static bool TryGetRelationship(object part, string id, out string type, out string target, out bool external, out object? targetPart, out Uri? uri) {
             OpenXmlPart owner = P(part);
             type = target = string.Empty;
             external = false;
             targetPart = null;
+            uri = null;
             foreach (HyperlinkRelationship hyperlink in owner.HyperlinkRelationships) {
                 if (!string.Equals(hyperlink.Id, id, StringComparison.Ordinal)) continue;
+                uri = hyperlink.Uri;
                 type = hyperlink.RelationshipType;
                 target = hyperlink.Uri.OriginalString;
                 external = hyperlink.IsExternal;
@@ -41,6 +43,7 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
             }
             foreach (ExternalRelationship relationship in owner.ExternalRelationships) {
                 if (!string.Equals(relationship.Id, id, StringComparison.Ordinal)) continue;
+                uri = relationship.Uri;
                 type = relationship.RelationshipType;
                 target = relationship.Uri.OriginalString;
                 external = true;

@@ -14,13 +14,20 @@ namespace OfficeIMO.PowerPoint.OpenXml {
 
     /// <summary>A relationship of a part: its id, type and target, and the part it targets when it is internal.</summary>
     internal readonly struct PowerPointRelationship {
-        internal PowerPointRelationship(string id, string type, string target, bool external, PowerPointPartRef targetPart) {
+        internal PowerPointRelationship(string id, string type, string target, bool external, PowerPointPartRef targetPart, Uri? uri = null) {
             Id = id;
             Type = type;
             Target = target;
             IsExternal = external;
             TargetPart = targetPart;
+            Uri = uri;
         }
+
+        /// <summary>
+        /// The target as the SDK holds it, for an SDK relationship: a target the runtime can't parse is stored under a
+        /// placeholder, and this URI still reads back as the original text.
+        /// </summary>
+        internal Uri? Uri { get; }
 
         internal string Id { get; }
         internal string Type { get; }
@@ -119,6 +126,12 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         /// <summary>Records an edit of the part's content, so the document writes it.</summary>
         internal void MarkEdited() => Current._document?.MarkPackageEdited();
 
+        // Records a relationship change, so cached edges between parts are read again.
+        private void MarkRelationshipsEdited() {
+            MarkEdited();
+            Current._document?.InvalidatePackageRelationships();
+        }
+
         // ---- Relationships ------------------------------------------------------------------------------------
 
         internal bool TryGetRelationship(string id, out PowerPointRelationship relationship) {
@@ -126,8 +139,8 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             if (string.IsNullOrEmpty(id)) return false;
             PowerPointPartRef current = Current;
             if (current._sdk != null) {
-                if (!PowerPointSdkParts.TryGetRelationship(current._sdk, id, out string type, out string target, out bool external, out object? targetPart)) return false;
-                relationship = new PowerPointRelationship(id, type, target, external, FromSdk(targetPart));
+                if (!PowerPointSdkParts.TryGetRelationship(current._sdk, id, out string type, out string target, out bool external, out object? targetPart, out Uri? uri)) return false;
+                relationship = new PowerPointRelationship(id, type, target, external, FromSdk(targetPart), uri);
                 return true;
             }
             if (current._document?.ReadablePackage is not { } package) return false;
@@ -149,7 +162,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             PowerPointPartRef current = Current;
             if (current._sdk != null) return PowerPointSdkParts.AddHyperlink(current._sdk, uri, external: true);
             string id = current.EditablePackage().AddRelationship(current._name, HyperlinkRelationshipType, uri.OriginalString, external: true);
-            current.MarkEdited();
+            current.MarkRelationshipsEdited();
             return id;
         }
 
@@ -176,7 +189,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                 }
             }
             string id = package.AddRelationship(current._name, HyperlinkRelationshipType, OfficeOpcPartNames.GetRelativeTarget(current._name!, target.Name));
-            current.MarkEdited();
+            current.MarkRelationshipsEdited();
             return id;
         }
 
@@ -201,7 +214,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                 }
             }
             string id = package.AddRelationship(current._name, SlideRelationshipType, OfficeOpcPartNames.GetRelativeTarget(current._name!, target.Name));
-            current.MarkEdited();
+            current.MarkRelationshipsEdited();
             return id;
         }
 
@@ -225,7 +238,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             OfficeXmlTree tree = package.GetXml(OfficeOpcPartNames.GetRelationshipsPartName(current._name));
             int node = FindRelationship(tree, id);
             if (node != OfficeXmlTree.NoNode) tree.Remove(node);
-            current.MarkEdited();
+            current.MarkRelationshipsEdited();
             // Media used only through this relationship leaves with it; slides and other parts stay.
             if (relationship.TargetPart._name is { } target && IsMedia(package, target) && !IsTargeted(package, target)) package.DeletePart(target);
         }

@@ -28,20 +28,24 @@ namespace OfficeIMO.PowerPoint {
                 if (tab == null) throw new ArgumentException("Tab stops cannot contain null.", nameof(tabStops));
                 stops.Add(tab);
             }
-            PowerPointXmlNode properties = EnsureProperties();
-            properties.RemoveChildren(OfficeXmlNamespaces.DrawingML, "tabLst");
-            if (stops.Count == 0) return this;
-            PowerPointXmlNode list = properties.CreateElement(OfficeXmlNamespaces.DrawingML, "tabLst");
-            foreach (PowerPointTabStop tab in stops) {
+            // The replacement is built and checked before the existing stops go, so a failure leaves them as they were.
+            var positions = new int[stops.Count];
+            for (int index = 0; index < stops.Count; index++) positions[index] = checked((int)stops[index].Position.ToEmus());
+            PowerPointXmlNode paragraph = Element;
+            PowerPointXmlNode list = paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "tabLst");
+            for (int index = 0; index < stops.Count; index++) {
                 PowerPointXmlNode stop = list.Append(list.CreateElement(OfficeXmlNamespaces.DrawingML, "tab"));
-                stop.SetInt32Attribute("pos", checked((int)tab.Position.ToEmus()));
-                stop.SetAttribute("algn", tab.Alignment switch {
+                stop.SetInt32Attribute("pos", positions[index]);
+                stop.SetAttribute("algn", stops[index].Alignment switch {
                     PowerPointTabAlignment.Center => "ctr",
                     PowerPointTabAlignment.Right => "r",
                     PowerPointTabAlignment.Decimal => "dec",
                     _ => "l"
                 });
             }
+            PowerPointXmlNode properties = EnsureProperties();
+            properties.RemoveChildren(OfficeXmlNamespaces.DrawingML, "tabLst");
+            if (stops.Count == 0) return this;
             properties.InsertOrdered(list, ATextParagraphPropertiesView.Order);
             return this;
         }

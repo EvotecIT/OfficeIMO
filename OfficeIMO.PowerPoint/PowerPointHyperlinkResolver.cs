@@ -27,7 +27,7 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(relationshipId) || !owner.TryGetRelationship(relationshipId!, out PowerPointRelationship relationship)) return null;
             bool hyperlinkRelationship = string.Equals(relationship.Type, PowerPointPartRef.HyperlinkRelationshipType, StringComparison.Ordinal);
             if (hyperlinkRelationship && relationship.IsExternal) {
-                return Uri.TryCreate(relationship.Target, UriKind.RelativeOrAbsolute, out Uri? external) ? external : null;
+                return relationship.Uri ?? (Uri.TryCreate(relationship.Target, UriKind.RelativeOrAbsolute, out Uri? external) ? external : new UnparsedTargetUri(relationship.Target));
             }
             if (!string.Equals(action, SlideJumpAction, StringComparison.OrdinalIgnoreCase) || relationship.IsExternal) return null;
             int slideNumber = SlideNumberOf(owner.Document, relationship.TargetPart);
@@ -68,6 +68,18 @@ namespace OfficeIMO.PowerPoint {
 
         internal static string GetSlideDestinationName(int slideNumber) =>
             "powerpoint-slide-" + slideNumber.ToString(CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// A target the runtime can't parse, such as <c>mailto:one@</c>, held under a placeholder as the SDK holds it:
+        /// it reads back as the original text.
+        /// </summary>
+        private sealed class UnparsedTargetUri : Uri {
+            private readonly string _target;
+
+            internal UnparsedTargetUri(string target) : base("rewritten://" + Guid.NewGuid().ToString("D")) => _target = target;
+
+            public override string ToString() => _target;
+        }
 
         private static Uri SlideFragment(int slideNumber) =>
             new("#slide-" + slideNumber.ToString(CultureInfo.InvariantCulture), UriKind.Relative);
