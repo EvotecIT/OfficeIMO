@@ -60,7 +60,9 @@ public sealed partial class PdfReadPage {
                 primitive.FillGradient is null && primitive.FillRadialGradient is null &&
                 primitive.FillTilingPattern is null && primitive.FunctionPaint is null && !primitive.IsSelfColoredShading;
             OfficeColor? color = solid ? primitive.FillColor : null;
-            double alpha = Math.Min(opacity, 1D) * (primitive.FillColor is { } paint ? paint.A / 255D : 1D);
+            // A tiling pattern may leave gaps between its cells, so it neither covers nor sets a known backdrop.
+            double alpha = primitive.FillTilingPattern is not null ? 0D
+                : Math.Min(opacity, 1D) * (primitive.FillColor is { } paint ? paint.A / 255D : 1D);
             if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
                 AddFilledBox(primitive.X, primitive.Y, primitive.X + primitive.Width, primitive.Y + primitive.Height,
                     clip, order, FillPhase, color, alpha);
@@ -71,7 +73,9 @@ public sealed partial class PdfReadPage {
             // Which way each box winds (the sign of its area), so the fill rule can tell a hole from more paint.
             var windings = new List<int>();
             // Producers fill many borders as one path of box subpaths. Each axis-aligned box counts on its own;
-            // curved or slanted subpaths are artwork and are skipped.
+            // curved or slanted subpaths are artwork. Their outline is not modelled, so where an opaque one
+            // reaches a border painted before it the page is not read (see below).
+            var shapes = new List<(double Left, double Top, double Right, double Bottom)>();
             OfficePoint first = default, previous = default;
             int corners = 0;
             double left = 0D, top = 0D, right = 0D, bottom = 0D, area = 0D;
@@ -98,12 +102,25 @@ public sealed partial class PdfReadPage {
                     case OfficePathCommandKind.Close when open:
                         CloseBox();
                         break;
+                    case OfficePathCommandKind.QuadraticBezierTo when open:
+                    case OfficePathCommandKind.CubicBezierTo when open:
+                        // The curve lies inside the hull of its points.
+                        Extend(command.ControlPoint1);
+                        if (command.Kind == OfficePathCommandKind.CubicBezierTo) Extend(command.ControlPoint2);
+                        Extend(command.Point);
+                        previous = command.Point;
+                        box = false;
+                        break;
                     default:
                         box = false;
                         break;
                 }
             }
             CloseBox();
+            if (alpha >= 1D && shapes.Count > 0 && _rules.Count > 0 && ReachesEarlierRule(shapes, clip, context)) {
+                _overflow = true;
+                return;
+            }
             // A box inside another box of the same path is a hole (a frame), not more paint: such a path still
             // draws its thin bars as borders but covers nothing.
             int cellSized = 0;
@@ -143,8 +160,15 @@ public sealed partial class PdfReadPage {
                 if (open && box && Orthogonal(previous, first) && corners is >= 4 and <= 5) {
                     boxes.Add((left, top, right, bottom));
                     windings.Add(Math.Sign(area + previous.X * first.Y - first.X * previous.Y));
+                } else if (open && right > left && bottom > top) {
+                    shapes.Add((left, top, right, bottom));
                 }
                 open = box = false;
+            }
+
+            void Extend(OfficePoint point) {
+                left = Math.Min(left, point.X); right = Math.Max(right, point.X);
+                top = Math.Min(top, point.Y); bottom = Math.Max(bottom, point.Y);
             }
 
             static bool TryFrame(List<(double Left, double Top, double Right, double Bottom)> boxes, out int outer, out int hole) {
@@ -177,6 +201,26 @@ public sealed partial class PdfReadPage {
             }
         }
 
+        // Whether the box around any of these shapes (cut to the clip) touches a border collected so far.
+        private bool ReachesEarlierRule(List<(double Left, double Top, double Right, double Bottom)> shapes, PdfVisualBounds clip,
+            PdfUnderstandingPageContext context) {
+            foreach (var shape in shapes) {
+                double left = Math.Max(shape.Left, clip.Left), right = Math.Min(shape.Right, clip.Right);
+                double top = Math.Max(shape.Top, clip.Top), bottom = Math.Min(shape.Bottom, clip.Bottom);
+                if (!IsFinite(left) || !IsFinite(right) || !IsFinite(top) || !IsFinite(bottom) || right <= left || bottom <= top) continue;
+                (double X, double Y) a = _toReadingPoint(left, top), b = _toReadingPoint(right, bottom);
+                double x0 = Math.Min(a.X, b.X), x1 = Math.Max(a.X, b.X), y0 = Math.Min(a.Y, b.Y), y1 = Math.Max(a.Y, b.Y);
+                foreach (Rule rule in _rules) {
+                    context.ConsumeWork();
+                    bool reaches = rule.Horizontal
+                        ? rule.Lo < x1 && rule.Hi > x0 && rule.Position + rule.Half > y0 && rule.Position - rule.Half < y1
+                        : rule.Lo < y1 && rule.Hi > y0 && rule.Position + rule.Half > x0 && rule.Position - rule.Half < x1;
+                    if (reaches) return true;
+                }
+            }
+            return false;
+        }
+
         private void AddFilledBox(double x1, double y1, double x2, double y2, PdfVisualBounds clip, double order, int phase,
             OfficeColor? color, double alpha) {
             double left = Math.Max(Math.Min(x1, x2), clip.Left), right = Math.Min(Math.Max(x1, x2), clip.Right);
@@ -194,7 +238,7 @@ public sealed partial class PdfReadPage {
             if (thickness <= MaximumRuleThickness) return;
             if (_fills.Count >= MaximumFills) { _overflow = true; return; }
             (double X, double Y) a = _toReadingPoint(left, top), b = _toReadingPoint(right, bottom);
-            _fills.Add(new Fill(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), order, phase, color, alpha >= 1D));
+            _fills.Add(new Fill(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), order, phase, color, alpha));
         }
 
         private void AddStroke(PdfPageVisualPrimitive primitive, PdfVisualBounds clip, double order, PdfUnderstandingPageContext context) {
@@ -300,7 +344,7 @@ public sealed partial class PdfReadPage {
                 bool opaque = image.Opacity >= 1D && (image.ClipPath is not PdfPageClipPath shape || (shape.IsRectangle && shape.IsExact)) &&
                     AxisAligned(image) && context.Page.PaintsEveryPixel(image);
                 fills.Add(new Fill(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Max(a.X, b.X), Math.Max(a.Y, b.Y),
-                    image.PaintOrder, FillPhase, null, opaque));
+                    image.PaintOrder, FillPhase, null, opaque ? 1D : 0D));
             }
             var index = new FillIndex(fills, context);
             // Rules by orientation and whole-point position, so a rule finds the later rules painted over it.
@@ -327,15 +371,16 @@ public sealed partial class PdfReadPage {
                 foreach (int candidate in candidates) {
                     context.ConsumeWork();
                     Fill fill = fills[candidate];
-                    if (!fill.Opaque) continue;
                     if (Before(fill.Order, fill.Phase, rule.Order, rule.Phase)) {
-                        // Paint beneath the rule's centre line is its backdrop over that stretch.
+                        // Paint beneath the rule's centre line is its backdrop over that stretch. Translucent paint
+                        // of a known colour tints it; translucent paint of unknown colour is left out.
+                        if (!fill.Opaque && (fill.Color is null || fill.Alpha <= 0D)) continue;
                         double near = rule.Horizontal ? fill.Bottom : fill.Left, far = rule.Horizontal ? fill.Top : fill.Right;
                         double from = Math.Max(rule.Lo, rule.Horizontal ? fill.Left : fill.Bottom);
                         double to = Math.Min(rule.Hi, rule.Horizontal ? fill.Right : fill.Top);
                         if (rule.Position >= near && rule.Position <= far && to > from) under.Add((from, to, fill));
-                    } else if (Before(rule.Order, rule.Phase, fill.Order, fill.Phase)) {
-                        // Paint over the whole thickness hides that stretch of the border.
+                    } else if (fill.Opaque && Before(rule.Order, rule.Phase, fill.Order, fill.Phase)) {
+                        // Opaque paint over the whole thickness hides that stretch of the border.
                         double near = rule.Horizontal ? fill.Bottom : fill.Left, far = rule.Horizontal ? fill.Top : fill.Right;
                         if (near <= rule.Position - rule.Half + 0.05D && far >= rule.Position + rule.Half - 0.05D) {
                             cuts.Add(rule.Horizontal ? (fill.Left, fill.Right) : (fill.Bottom, fill.Top));
@@ -357,6 +402,9 @@ public sealed partial class PdfReadPage {
                 // A border shows only where it stands out from what lies beneath it (white on a white page does not);
                 // each stretch over a different backdrop is judged on its own.
                 breaks.Clear();
+                // Backdrops in paint order, so each stretch composites them from the page up.
+                if (under.Count > 1) under.Sort(static (a, b) => Before(a.Fill.Order, a.Fill.Phase, b.Fill.Order, b.Fill.Phase) ? -1
+                    : Before(b.Fill.Order, b.Fill.Phase, a.Fill.Order, a.Fill.Phase) ? 1 : 0);
                 breaks.Add(rule.Lo);
                 breaks.Add(rule.Hi);
                 foreach (var stretch in under) { breaks.Add(stretch.From); breaks.Add(stretch.To); }
@@ -368,14 +416,11 @@ public sealed partial class PdfReadPage {
                     if (to <= from) continue;
                     double middle = (from + to) / 2D;
                     OfficeColor? backdrop = OfficeColor.White;
-                    double backdropOrder = double.NegativeInfinity;
-                    int backdropPhase = 0;
                     foreach (var stretch in under) {
-                        if (middle < stretch.From || middle > stretch.To ||
-                            !Before(backdropOrder, backdropPhase, stretch.Fill.Order, stretch.Fill.Phase)) continue;
-                        backdropOrder = stretch.Fill.Order;
-                        backdropPhase = stretch.Fill.Phase;
-                        backdrop = stretch.Fill.Color;
+                        if (middle < stretch.From || middle > stretch.To) continue;
+                        Fill paint = stretch.Fill;
+                        backdrop = paint.Opaque ? paint.Color
+                            : backdrop is { } below && paint.Color is { } tint ? Composite(tint, paint.Alpha, below) : null;
                     }
                     if (backdrop is { } colour && !Contrasts(rule.Color, rule.Alpha, colour)) cuts.Add((from, to));
                 }
@@ -416,6 +461,13 @@ public sealed partial class PdfReadPage {
             (horizontal ? 1L << 40 : 0L) + (long)Math.Floor(position);
 
         // A translucent border is judged by how it looks over its backdrop: black at 1% opacity on white reads as white.
+        // Translucent paint over what lies beneath it.
+        private static OfficeColor Composite(OfficeColor paint, double alpha, OfficeColor below) {
+            return new OfficeColor(Mix(paint.R, below.R), Mix(paint.G, below.G), Mix(paint.B, below.B));
+
+            byte Mix(byte top, byte bottom) => (byte)Math.Round(bottom + (top - bottom) * alpha);
+        }
+
         private static bool Contrasts(OfficeColor ink, double alpha, OfficeColor backdrop) =>
             Math.Abs(ink.R - backdrop.R) * alpha >= MinimumContrast || Math.Abs(ink.G - backdrop.G) * alpha >= MinimumContrast ||
             Math.Abs(ink.B - backdrop.B) * alpha >= MinimumContrast;
@@ -436,7 +488,9 @@ public sealed partial class PdfReadPage {
         }
 
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Auto)]
-        private readonly record struct Fill(double Left, double Bottom, double Right, double Top, double Order, int Phase, OfficeColor? Color, bool Opaque);
+        private readonly record struct Fill(double Left, double Bottom, double Right, double Top, double Order, int Phase, OfficeColor? Color, double Alpha) {
+            internal bool Opaque => Alpha >= 1D;
+        }
 
         /// <summary>A coarse uniform grid over the fills so each border checks only the paint near it.</summary>
         private sealed class FillIndex {

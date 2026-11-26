@@ -270,6 +270,46 @@ public sealed class PdfRuleLatticeTableTests {
         Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
     }
 
+    [Fact]
+    public void WhiteBordersOverATranslucentDarkFillReadAsAGrid() {
+        // A 90% black cell fill shows as dark grey, so white borders over it stand out.
+        StringBuilder content = GridUnderImage(out string[][] rows, "q 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+        content.Replace("0 G 0.75 w", "q /GS1 gs 0 g 60 600 220 120 re f Q\n1 G 0.75 w");
+
+        PdfLogicalPage page = Read(content, "Courier", tagged: false, out _, resources: "/ExtGState << /GS1 << /ca 0.9 >> >>");
+
+        PdfLogicalTable table = Assert.Single(page.Tables);
+        Assert.Contains(table.Evidence, evidence => evidence.Code == "table-ruling-lattice");
+        Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
+    }
+
+    [Fact]
+    public void PatternFilledBoxOverAGridLeavesItsBordersVisible() {
+        // A sparse dot pattern painted over the grid leaves most of it showing between its cells.
+        StringBuilder content = GridUnderImage(out string[][] rows,
+            "q /Pattern cs /P1 scn 60 600 220 120 re f Q\nq 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+        const string Dot = "0 g 0 0 1 1 re f\n";
+        var pattern = new[] { "<< /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 1 1] /XStep 40 /YStep 40 /Resources << >> /Length " +
+            Dot.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + Dot + "endstream" };
+
+        PdfLogicalPage page = Read(content, "Courier", tagged: false, out _, resources: "/Pattern << /P1 6 0 R >>", structure: pattern);
+
+        PdfLogicalTable table = Assert.Single(page.Tables);
+        Assert.Contains(table.Evidence, evidence => evidence.Code == "table-ruling-lattice");
+        Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
+    }
+
+    [Fact]
+    public void OpaqueSlantedShapeOverADividerKeepsTheGridFromBeingRead() {
+        // A white triangle painted after the borders hides part of the column divider; its outline is not
+        // modelled, so the borders are not trusted.
+        StringBuilder content = GridUnderImage(out _,
+            "1 g 150 630 m 175 630 l 162 710 l h f\nq 60 0 0 24 72 740 cm BI /W 1 /H 1 /CS /G /BPC 8 /F /AHx ID 80> EI Q\n");
+
+        Assert.DoesNotContain(Read(content, "Courier").Tables,
+            table => table.Evidence.Any(evidence => evidence.Code == "table-ruling-lattice"));
+    }
+
     private static readonly IEqualityComparer<string[]> ArrayComparer = new SequenceComparer();
 
     private sealed class SequenceComparer : IEqualityComparer<string[]> {
@@ -416,7 +456,7 @@ public sealed class PdfRuleLatticeTableTests {
     private static PdfLogicalPage Read(StringBuilder content, string font) => Read(content, font, tagged: false, out _);
 
     // Tagged: a marked catalog whose Table element holds one paragraph over marked content 0.
-    // Structure, when given, replaces it from object 6 (the StructTreeRoot) on.
+    // Structure, when given, replaces it from object 6 (the StructTreeRoot) on; untagged, it is extra objects from 6 on.
     private static PdfLogicalPage Read(StringBuilder content, string font, bool tagged, out PdfDocumentReadResult read,
         string resources = "", IReadOnlyList<string>? structure = null) {
         string stream = content.ToString();
@@ -430,7 +470,7 @@ public sealed class PdfRuleLatticeTableTests {
             "<< /Type /Font /Subtype /Type1 /BaseFont /" + font + (font == "Courier"
                 ? " /FirstChar 32 /LastChar 126 /Widths [" + string.Join(" ", Enumerable.Repeat("600", 95)) + "]" : string.Empty) + " >>"
         };
-        if (tagged && structure is not null) {
+        if (structure is not null) {
             objects.AddRange(structure);
         } else if (tagged) {
             objects.Add("<< /Type /StructTreeRoot /K [7 0 R] /ParentTree << /Nums [0 [8 0 R]] >> >>");
