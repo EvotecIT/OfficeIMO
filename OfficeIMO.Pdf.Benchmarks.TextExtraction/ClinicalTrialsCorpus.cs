@@ -607,7 +607,9 @@ internal sealed class ProtocolText {
             return null;
         }
         int colon = body.IndexOf(':');
-        bool headingLength = words.Length <= 8 || (colon >= 0 && Tokenize(body[..colon]).Length <= 8);
+        // Without an early colon, a line must also look like a heading, so a short sentence such as
+        // "Treatment was well tolerated." doesn't open a section.
+        bool headingLength = (colon >= 0 && Tokenize(body[..colon]).Length <= 8) || (words.Length <= 8 && LooksLikeHeading(body));
         // A joined heading ("Inclusion and exclusion criteria") opens both sections.
         int last = nameAt + 2 < words.Length && words[nameAt + 1] is "and" or "or" && RegistryField.SectionWords.Contains(words[nameAt + 2])
             ? nameAt + 2
