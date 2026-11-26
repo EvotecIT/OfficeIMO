@@ -63,6 +63,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Visio" />
     <InternalsVisibleTo Include="OfficeIMO.Epub" />
     <InternalsVisibleTo Include="OfficeIMO.Comic" />
+    <InternalsVisibleTo Include="OfficeIMO.Fb2" />
     <InternalsVisibleTo Include="OfficeIMO.Mobi" />
     <InternalsVisibleTo Include="OfficeIMO.Security" />
     <InternalsVisibleTo Include="OfficeIMO.Security.Tests" />

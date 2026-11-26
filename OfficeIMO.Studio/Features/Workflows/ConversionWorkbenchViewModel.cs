@@ -191,7 +191,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     internal bool QueueForTarget(string path, string targetExtension) {
         if (IsBusy || !CanEditQueue) return false;
         string name = _storage?.Describe(path).Name ?? Path.GetFileName(path);
-        var preferred = OfficeWorkflowCatalog.Find(Path.GetExtension(name), targetExtension, executableOnly: true);
+        var preferred = OfficeWorkflowCatalog.Find(OfficeConversionCapabilityCatalog.GetSourceExtension(name), targetExtension, executableOnly: true);
         ConversionRouteChoice? route = Routes.FirstOrDefault(choice => choice.Route.Id == preferred?.Id);
         if (route is null) return false;
         SelectedRoute = route;
@@ -200,12 +200,12 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     }
 
     private static ConversionRouteChoice? PreferredRoute(IReadOnlyList<ConversionRouteChoice> matches, string fileName, string targetExtension) {
-        var preferred = OfficeWorkflowCatalog.Find(Path.GetExtension(fileName), targetExtension, executableOnly: true);
+        var preferred = OfficeWorkflowCatalog.Find(OfficeConversionCapabilityCatalog.GetSourceExtension(fileName), targetExtension, executableOnly: true);
         return matches.FirstOrDefault(choice => choice.Route.Id == preferred?.Id);
     }
 
     private bool Accepts(ConversionRouteChoice route, string path) {
-        string extension = Path.GetExtension(_storage?.Describe(path).Name ?? Path.GetFileName(path));
+        string extension = OfficeConversionCapabilityCatalog.GetSourceExtension(_storage?.Describe(path).Name ?? Path.GetFileName(path));
         return route.Route.SourceExtensions.Any(item => string.Equals(NormalizeExtension(item), extension, StringComparison.OrdinalIgnoreCase));
     }
 

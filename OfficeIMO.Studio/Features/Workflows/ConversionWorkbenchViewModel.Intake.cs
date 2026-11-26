@@ -16,7 +16,7 @@ public sealed partial class ConversionWorkbenchViewModel {
 
     public IReadOnlyList<ConversionRouteChoice> MatchingInputRoutes => Routes.Where(route =>
         _unmatchedInputs.Any(path => route.Route.SourceExtensions.Any(extension =>
-            string.Equals(NormalizeExtension(extension), Path.GetExtension(_storage?.Describe(path).Name ?? path),
+            string.Equals(NormalizeExtension(extension), OfficeConversionCapabilityCatalog.GetSourceExtension(_storage?.Describe(path).Name ?? path),
                 StringComparison.OrdinalIgnoreCase)))).ToArray();
 
     private void SetUnmatchedInputs(IReadOnlyList<string> paths) {

@@ -41,7 +41,10 @@ enum DocumentConversion {
 
     static func types(for extensions: Set<String>) -> [UTType] {
         var seen = Set<String>()
-        return extensions.sorted().compactMap { UTType(filenameExtension: $0) }.filter { seen.insert($0.identifier).inserted }
+        return extensions.sorted().compactMap { suffix in
+            guard let extensionName = suffix.split(separator: ".").last else { return nil as UTType? }
+            return UTType(filenameExtension: String(extensionName))
+        }.filter { seen.insert($0.identifier).inserted }
     }
 
     /// Converts a document to a new PDF named after it.

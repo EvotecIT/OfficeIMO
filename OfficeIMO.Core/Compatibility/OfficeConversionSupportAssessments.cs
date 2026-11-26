@@ -10,6 +10,9 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId.StartsWith("native-", StringComparison.Ordinal)) return Targeted(
             "Native format conversion fixtures exercise package types, source carriers, compatibility modes, encryption, loss rejection and reopened artifacts through the owning format codecs.",
             "The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.");
+        if (routeId.StartsWith("ebook-fb2-", StringComparison.Ordinal)) return Targeted(
+            "Calibre FB2 and Info-ZIP fixtures exercise metadata, cover, images and links, with separate note and entity controls.",
+            "Single FictionBook 2 XML document or a ZIP with one FB2 member. Uses static semantic markup and embedded raster images. Unsupported styling is reported. See OfficeIMO.Fb2/SUPPORT.md.");
         if (routeId == "word-xml-docx") return Targeted(
             "Word XML fixture controls cover standalone package admission, editable content and reopened DOCX.",
             "DOCX output accepts ordinary Word documents. Macro-enabled and template Flat OPC packages require a matching native package destination through the Word API. Word 2003 XML import reports unsupported features.");

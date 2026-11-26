@@ -259,6 +259,7 @@ public static partial class OfficeConversionCapabilityCatalog {
         "docx-epub", "markdown-epub", "html-epub", "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx",
         "csv-xlsx", "xlsx-csv",
         "ebook-cbz-epub", "ebook-cbz-pdf", "ebook-cbz-html", "ebook-cbz-markdown",
+        "ebook-fb2-epub", "ebook-fb2-pdf", "ebook-fb2-html", "ebook-fb2-markdown",
         "ebook-mobi-epub", "ebook-mobi-pdf", "ebook-mobi-html", "ebook-mobi-markdown"
     };
 
@@ -411,6 +412,10 @@ public static partial class OfficeConversionCapabilityCatalog {
         Route("ebook-cbz-markdown", "Comic book ZIP", "Markdown", OfficeConversionInputKind.File, new[] { ".cbz" }, ".md", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book ZIP content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("djvu-pdf", "DjVu", "PDF", OfficeConversionInputKind.File, new[] { ".djvu", ".djv" }, ".pdf", "OfficeIMO.DjVu.Pdf", "DjVuDocument.Load(stream).SaveAsPdf(output, options)", "Convert scanned pages with source physical size, stored searchable text and navigation, with explicit fidelity reports.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("xps-pdf", "XPS/OpenXPS", "PDF", OfficeConversionInputKind.File, new[] { ".xps", ".oxps" }, ".pdf", "OfficeIMO.Xps.Pdf", "XpsDocument.Load(stream).SaveAsPdf(output, options)", "Preserve supported native page paint, searchable Unicode, reading order and navigation in PDF.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-fb2-epub", "FictionBook 2", "EPUB", OfficeConversionInputKind.File, new[] { ".fb2", ".fb2.zip" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported FictionBook 2 content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-fb2-pdf", "FictionBook 2", "PDF", OfficeConversionInputKind.File, new[] { ".fb2", ".fb2.zip" }, ".pdf", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported FictionBook 2 content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-fb2-html", "FictionBook 2", "HTML", OfficeConversionInputKind.File, new[] { ".fb2", ".fb2.zip" }, ".html", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported FictionBook 2 content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-fb2-markdown", "FictionBook 2", "Markdown", OfficeConversionInputKind.File, new[] { ".fb2", ".fb2.zip" }, ".md", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported FictionBook 2 content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("chm-pdf", "Compiled HTML Help", "PDF", OfficeConversionInputKind.File, new[] { ".chm" }, ".pdf", "OfficeIMO.Chm.Pdf", "ChmDocument.Load(stream).SaveAsPdf(output, options)", "Render selected help topics independently with embedded resources and explicit fidelity evidence.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("chm-markdown", "Compiled HTML Help", "Markdown", OfficeConversionInputKind.File, new[] { ".chm" }, ".md", "OfficeIMO.Chm.Markdown", "ChmDocument.Load(stream).SaveAsMarkdown(output, options)", "Recover a linked topic book through the canonical HTML-to-Markdown engine.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("chm-epub", "Compiled HTML Help", "EPUB", OfficeConversionInputKind.File, new[] { ".chm" }, ".epub", "OfficeIMO.Chm.Epub", "ChmDocument.Load(stream).SaveAsEpub(output, options)", "Publish selected topics and embedded resources as a reflowable EPUB with contents hierarchy and conversion reports.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
@@ -748,6 +753,14 @@ public static partial class OfficeConversionCapabilityCatalog {
         if (source == "Comic book ZIP") {
             return (OfficeConversionTextFormattingKind.FlattenedRaster,
                 "Preserves lettering as part of the raster pages in every output.");
+        }
+        if (source == "FictionBook 2") {
+            if (target == "PDF") {
+                return (OfficeConversionTextFormattingKind.FixedLayoutAppearance,
+                    "Renders supported inline styling as fixed-layout PDF text. Custom FictionBook stylesheets produce a conversion warning.");
+            }
+            return (OfficeConversionTextFormattingKind.SyntaxSubset,
+                "Retains supported inline emphasis, decoration and script. Custom FictionBook stylesheets produce a conversion warning.");
         }
         if (source == "Mobipocket and Kindle") {
             if (target == "PDF") {

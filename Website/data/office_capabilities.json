@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 144,
     "packageCount": 90,
-    "operationCount": 1612
+    "operationCount": 1616
   },
   "fidelityStates": [
     {
@@ -6263,13 +6263,14 @@
     {
       "id": "OfficeIMO.Workflows",
       "slug": "workflows",
-      "capabilityCount": 24,
+      "capabilityCount": 28,
       "formats": [
         "Book project",
         "Book.Project",
         "Comic book ZIP",
         "DOCX",
         "EPUB",
+        "FictionBook 2",
         "HTML",
         "JPEG",
         "Markdown",
@@ -6294,7 +6295,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 13
+              "count": 17
             }
           ]
         },

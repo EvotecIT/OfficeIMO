@@ -102,7 +102,7 @@ internal static partial class EpubReaderAdapter {
 
     private static HtmlConversionDocumentOptions CreateChapterConversionOptions(ReaderInputKind kind) {
         HtmlConversionDocumentOptions options = HtmlConversionDocumentOptions.UntrustedDefaults;
-        if (kind == ReaderInputKind.Mobi) options.Limits.MaxHtmlNodes = EpubImportedPublication.MaximumHtmlNodes;
+        if (kind != ReaderInputKind.Epub) options.Limits.MaxHtmlNodes = EpubImportedPublication.MaximumHtmlNodes;
         return options;
     }
 

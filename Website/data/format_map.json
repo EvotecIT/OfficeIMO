@@ -131,11 +131,15 @@
       "family": "books"
     },
     {
-      "name": "Mobipocket and Kindle",
+      "name": "Comic book ZIP",
       "family": "books"
     },
     {
-      "name": "Comic book ZIP",
+      "name": "FictionBook 2",
+      "family": "books"
+    },
+    {
+      "name": "Mobipocket and Kindle",
       "family": "books"
     },
     {
@@ -1299,6 +1303,62 @@
     {
       "id": "ebook-cbz-pdf",
       "source": "Comic book ZIP",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-fb2-epub",
+      "source": "FictionBook 2",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-fb2-html",
+      "source": "FictionBook 2",
+      "target": "HTML",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-fb2-markdown",
+      "source": "FictionBook 2",
+      "target": "Markdown",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-fb2-pdf",
+      "source": "FictionBook 2",
       "target": "PDF",
       "package": "OfficeIMO.Workflows",
       "support": "Targeted",

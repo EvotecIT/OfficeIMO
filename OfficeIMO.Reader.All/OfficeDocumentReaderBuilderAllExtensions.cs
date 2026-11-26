@@ -1,4 +1,5 @@
 using OfficeIMO.Comic;
+using OfficeIMO.Fb2;
 using OfficeIMO.Mobi;
 using OfficeIMO.Reader.AsciiDoc;
 using OfficeIMO.Reader.Csv;
@@ -68,6 +69,8 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddDjVuHandler(configured.DjVu)
             .AddEmailHandlers(configured.Email)
             .AddEpubHandler(configured.Epub)
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("fb2", new[] { ".fb2", ".fb2.zip" },
+                ReaderInputKind.Fb2, Fb2Reader.MaximumInputBytes, Fb2Reader.Import, Fb2Reader.Probe))
             .AddExcelHandler(configured.Excel);
         if (configured.IncludeLegacySpreadsheet) {
             builder.AddLegacySpreadsheetHandler(configured.LegacySpreadsheet, configured.Excel);

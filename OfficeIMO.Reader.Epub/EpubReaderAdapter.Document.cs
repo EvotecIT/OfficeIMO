@@ -77,7 +77,7 @@ internal static partial class EpubReaderAdapter {
                     chapter.Html!,
                     virtualPath,
                     readerOptions,
-                    kind == ReaderInputKind.Mobi
+                    kind != ReaderInputKind.Epub
                         ? new ReaderHtmlOptions { ConversionOptions = CreateChapterConversionOptions(kind) }
                         : null,
                     cancellationToken: cancellationToken);
