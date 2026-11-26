@@ -261,6 +261,33 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task FictionBookMarkdownRetainsLinksIntoCodeAndReportsTheMovedTarget() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "code.fb2");
+        string output = Path.Combine(scope.Path, "code.md");
+        await File.WriteAllTextAsync(input, """
+            <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+              <body>
+                <p><a l:href="#example">Code target</a></p>
+                <p><code><style id="example" name="inline">inline code</style></code></p>
+              </body>
+            </FictionBook>
+            """);
+
+        OfficeConversionReport report = await OfficeConverter.ConvertAsync(input, output, new OfficeConversionOptions {
+            RouteId = "ebook-fb2-markdown"
+        });
+
+        string markdown = await File.ReadAllTextAsync(output);
+        Match link = Regex.Match(markdown, """<a href="#([^"]+)">Code target</a>""");
+        Assert.True(link.Success);
+        Assert.Contains($"""<a id="{link.Groups[1].Value}"></a>""", markdown);
+        Assert.Contains("`inline code`", markdown);
+        Assert.Contains(report.Diagnostics, item => item.Code == "EBOOK_MARKDOWN_ANCHOR_RELOCATED" &&
+            item.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
     public async Task ImportedMarkdownAppliesOutputLimitToThePublishedArtifact() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "book.fb2");

@@ -51,6 +51,7 @@ internal static class EpubImportedPublication {
                 IsRasterMediaType(mediaType) && !images.ContainsKey(image.Path))
                 images.Add(image.Path, new Lazy<string>(() => "data:" + mediaType + ";base64," + Convert.ToBase64String(bytes)));
         }
+        var reportedMarkdownAnchorMoves = new HashSet<string>(StringComparer.Ordinal);
         using var writer = XmlWriter.Create(destination, new XmlWriterSettings {
             OmitXmlDeclaration = true, Encoding = new UTF8Encoding(false), CloseOutput = false
         });
@@ -115,7 +116,7 @@ internal static class EpubImportedPublication {
             writer.WriteEndElement();
         }
 
-        void WriteNode(XNode node, string chapterPath, bool insideLink = false) {
+        void WriteNode(XNode node, string chapterPath, bool childAnchorsAlreadyWritten = false) {
             token.ThrowIfCancellationRequested();
             if (node is XText text) {
                 writer.WriteString(text.Value);
@@ -127,16 +128,23 @@ internal static class EpubImportedPublication {
                 Omit("EBOOK_HTML_ELEMENT_OMITTED", "An element is outside the static HTML projection.", tag);
                 return;
             }
-            string? markdownId = markdownAnchors && !insideLink ? (string?)element.Attribute("id") : null;
+            string? markdownId = markdownAnchors && !childAnchorsAlreadyWritten ? (string?)element.Attribute("id") : null;
             // The Markdown list converter only visits list items and their contents.
             if (markdownId != null && tag != "li") WriteAnchor(Anchor(chapters[chapterPath], markdownId));
-            if (markdownAnchors && tag == "a" && !insideLink) {
-                // A second HTML anchor inside a hyperlink closes that hyperlink during HTML parsing.
+            bool writeChildAnchorsHere = markdownAnchors && !childAnchorsAlreadyWritten &&
+                tag is "a" or "pre" or "code" or "table" or "dl" or "figure";
+            if (writeChildAnchorsHere) {
+                // Markdown flattens some containers into text or a different block structure.
+                // A nested anchor also closes an open hyperlink during HTML parsing.
                 foreach (XElement descendant in element.Descendants()) {
                     token.ThrowIfCancellationRequested();
                     if (descendant.Name.Namespace == Xhtml && IsStaticElement(descendant.Name.LocalName) &&
-                        (string?)descendant.Attribute("id") is { } nestedId)
+                        (string?)descendant.Attribute("id") is { } nestedId) {
                         WriteAnchor(Anchor(chapters[chapterPath], nestedId));
+                        if (reportedMarkdownAnchorMoves.Add(chapterPath))
+                            Omit("EBOOK_MARKDOWN_ANCHOR_RELOCATED", "A link target moved to the start of its enclosing Markdown content.",
+                                chapterPath, OfficeConversionLossKind.Approximation);
+                    }
                 }
             }
             writer.WriteStartElement(tag);
@@ -169,7 +177,7 @@ internal static class EpubImportedPublication {
                 if (value != null) writer.WriteAttributeString(name, value);
             }
             if (markdownId != null && tag == "li") WriteAnchor(Anchor(chapters[chapterPath], markdownId));
-            foreach (XNode child in element.Nodes()) WriteNode(child, chapterPath, insideLink || tag == "a");
+            foreach (XNode child in element.Nodes()) WriteNode(child, chapterPath, childAnchorsAlreadyWritten || writeChildAnchorsHere);
             // XML empty-element syntax is inappropriate for non-void elements in text/html.
             if (element.Name.LocalName is "img" or "br" or "hr" or "wbr") writer.WriteEndElement();
             else writer.WriteFullEndElement();
@@ -181,9 +189,9 @@ internal static class EpubImportedPublication {
             writer.WriteFullEndElement();
         }
 
-        void Omit(string code, string message, string location) {
+        void Omit(string code, string message, string location, OfficeConversionLossKind loss = OfficeConversionLossKind.Omission) {
             if (diagnostics.Count < 1_000) diagnostics.Add(new OfficeDiagnostic(code,
-                OfficeDiagnosticSeverity.Warning, message, location, "OfficeIMO.Epub", OfficeConversionLossKind.Omission));
+                OfficeDiagnosticSeverity.Warning, message, location, "OfficeIMO.Epub", loss));
         }
     }
 
