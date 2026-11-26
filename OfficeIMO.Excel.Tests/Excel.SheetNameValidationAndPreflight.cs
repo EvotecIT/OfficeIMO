@@ -104,9 +104,7 @@ namespace OfficeIMO.Tests {
                 var sheet = doc.AddSheet("Preflight");
 
                 // Use reflection to access internal WorksheetPart and Worksheet to simulate problematic structures
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 // 1) Empty Hyperlinks
@@ -154,9 +152,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Preflight");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 var dataValidations = new DataValidations();
@@ -196,9 +192,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("CommentsPreflight");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 var commentsPart = wsPart.AddNewPart<WorksheetCommentsPart>();
@@ -247,9 +241,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("HeaderFooterPreflight");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 ws.AppendChild(new HeaderFooter {
@@ -292,9 +284,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("ConditionalFormattingPreflight");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 var conditional = new ConditionalFormatting();
@@ -329,9 +319,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("ConditionalFormattingPriority");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 var first = new ConditionalFormatting {
@@ -382,9 +370,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("DrawingPreflight");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 var drawingPart = wsPart.AddNewPart<DrawingsPart>();
@@ -417,9 +403,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("BrokenDrawing");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 var drawingPart = wsPart.AddNewPart<DrawingsPart>();
@@ -547,9 +531,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(3, 2).SetValue(2d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 ws.AppendChild(new AutoFilter {
@@ -592,9 +574,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(4, 2).SetValue(3d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 ws.AppendChild(new AutoFilter {
@@ -628,9 +608,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Filters");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 var autoFilter = new AutoFilter();
@@ -671,9 +649,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(3, 2).SetValue(2d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var tablePart = wsPart.TableDefinitionParts.Single();
                 var autoFilter = tablePart.Table!.AutoFilter!;
                 autoFilter.Reference = "A1:A3";
@@ -724,9 +700,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(3, 2).SetValue(2d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var tableParts = wsPart.Worksheet.Elements<TableParts>().FirstOrDefault();
                 Assert.NotNull(tableParts);
                 wsPart.Worksheet.RemoveChild(tableParts!);
@@ -765,9 +739,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(3, 2).SetValue(2d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var tablePart = wsPart.TableDefinitionParts.Single();
                 tablePart.Table!.Reference = "BadRange";
                 tablePart.Table.Save();
@@ -807,9 +779,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(3, 3).SetValue("Two");
                 sheet.AddTable("A1:C3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var tablePart = wsPart.TableDefinitionParts.Single();
                 tablePart.Table!.TableColumns = new TableColumns(
                     new TableColumn { Id = 0U, Name = string.Empty },
@@ -848,9 +818,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Protection");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 ws.AppendChild(new ProtectedRanges(
@@ -886,9 +854,7 @@ namespace OfficeIMO.Tests {
                 var sheet = doc.AddSheet("Protection");
                 sheet.Protect();
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 var protectedRanges = new ProtectedRanges(
@@ -947,9 +913,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Protection");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 ws.AppendChild(new SheetProtection {
@@ -990,9 +954,7 @@ namespace OfficeIMO.Tests {
                 var sheet = doc.AddSheet("Links");
                 sheet.SetHyperlink(1, 1, "https://example.com", display: "Example");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var hyperlink = wsPart.Worksheet.Elements<Hyperlinks>().Single().Elements<Hyperlink>().Single();
                 var relationship = wsPart.HyperlinkRelationships.Single();
                 wsPart.DeleteReferenceRelationship(relationship);
@@ -1024,9 +986,7 @@ namespace OfficeIMO.Tests {
                 var sheet = doc.AddSheet("Links");
                 sheet.SetHyperlink(1, 1, "https://example.com/one", display: "One");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 wsPart.AddHyperlinkRelationship(new Uri("https://example.com/orphan"), true, "rId999");
                 wsPart.Worksheet.Save();
 
@@ -1058,9 +1018,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetHyperlink(1, 1, "https://example.com/one", display: "One");
                 sheet.SetHyperlink(1, 2, "https://example.com/two", display: "Two");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var hyperlinks = wsPart.Worksheet.Elements<Hyperlinks>().Single();
                 var a1 = hyperlinks.Elements<Hyperlink>().First(hyperlink => hyperlink.Reference!.Value == "A1");
                 var b1 = hyperlinks.Elements<Hyperlink>().First(hyperlink => hyperlink.Reference!.Value == "B1");
@@ -1187,9 +1145,7 @@ namespace OfficeIMO.Tests {
                         }) { Count = 1U });
                 stylesPart.Stylesheet.Save();
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var cell = wsPart.Worksheet.Descendants<Cell>().Single();
                 cell.StyleIndex = 42U;
                 wsPart.Worksheet.Save();
@@ -1393,9 +1349,7 @@ namespace OfficeIMO.Tests {
                     workbook.RemoveChild(workbookViews);
                 }
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
                 sheetView.WorkbookViewId = 8U;
                 wsPart.Worksheet.Save();
@@ -1431,9 +1385,7 @@ namespace OfficeIMO.Tests {
                 var sheet = doc.AddSheet("View");
                 sheet.View.ShowGridlines = false;
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
                 sheetView.Append(new Selection {
                     Pane = PaneValues.TopRight,
@@ -1477,9 +1429,7 @@ namespace OfficeIMO.Tests {
                 var sheet = doc.AddSheet("Freeze");
                 sheet.View.Freeze(topRows: 1, leftColumns: 1);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
                 var pane = sheetView.GetFirstChild<Pane>()!;
                 pane.TopLeftCell = "NotACell";
@@ -1531,9 +1481,7 @@ namespace OfficeIMO.Tests {
                 var sheet = doc.AddSheet("Print");
                 sheet.Cell(1, 1).SetValue("Value");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 ws.Append(new RowBreaks(
@@ -1604,9 +1552,7 @@ namespace OfficeIMO.Tests {
                 sheet.AddManualColumnPageBreak(2, save: false);
                 sheet.AddManualColumnPageBreak(4, save: false);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 RowBreaks rowBreaks = wsPart.Worksheet.GetFirstChild<RowBreaks>()!;
                 rowBreaks.Append(new Break { Id = 9U, Min = 0U, Max = 16383U, ManualPageBreak = false });
                 rowBreaks.Count = 3U;
@@ -1642,9 +1588,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(1, 1).SetValue("Value");
                 sheet.AddManualRowPageBreak(3, save: false);
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 RowBreaks rowBreaks = wsPart.Worksheet.GetFirstChild<RowBreaks>()!;
                 rowBreaks.Append(new Break {
                     Id = 10U,
@@ -1676,9 +1620,7 @@ namespace OfficeIMO.Tests {
                 var sheet = doc.AddSheet("Print");
                 sheet.Cell(1, 1).SetValue("Value");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 ws.Append(new PrintOptions());
@@ -1734,9 +1676,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(2, 2).SetValue("Value");
                 sheet.Cell(4, 3).SetValue("Other");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
 
                 var firstDimension = ws.GetFirstChild<SheetDimension>();
@@ -1775,9 +1715,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Dimension");
 
-                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
-                Assert.NotNull(wsPartField);
-                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var wsPart = sheet.WorksheetPart;
                 var ws = wsPart.Worksheet;
                 var sheetData = ws.GetFirstChild<SheetData>()!;
                 sheetData.RemoveAllChildren<Row>();

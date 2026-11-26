@@ -40,6 +40,10 @@ namespace OfficeIMO.Excel {
             ArgumentException.ThrowIfNullOrWhiteSpace(themeXml);
 
             XDocument.Parse(themeXml);
+            if (TrySetDeferredWorkbookThemeXml(themeXml)) {
+                _creationTheme = null;
+                return this;
+            }
 
             var workbookPart = _spreadSheetDocument?.WorkbookPart ?? _workBookPart;
             ThemePart themePart = workbookPart.GetPartsOfType<ThemePart>().FirstOrDefault() ?? workbookPart.AddNewPart<ThemePart>();

@@ -211,6 +211,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanPreservesPendingDirectCellBuffer() {
             using var document = ExcelDocument.Create(new MemoryStream());
+            // The cell buffer serves the model, which a new workbook opens on first use.
+            document.OpenDeferredSdk("cell buffer test");
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue(1);
             sheet.Cell(2, 1).SetValue(2);

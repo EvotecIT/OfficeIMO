@@ -21,10 +21,13 @@ namespace OfficeIMO.Excel {
         internal List<(int Row, int First, int Last)>? TableHeaders { get; set; }
         internal bool TableHeadersRead { get; set; }
 
+        /// <summary>True for a sheet a new workbook added and has not saved: its part is still the empty worksheet.</summary>
+        internal bool IsNewSheet { get; set; }
+
         /// <summary>The changes recorded on this sheet while the SDK package is not open, shared by every handle to it.</summary>
         internal ExcelDeferredCellStore? Cells { get; set; }
-        internal string RelationshipId { get; }
-        internal string PartName { get; }
+        internal string RelationshipId { get; set; }
+        internal string PartName { get; set; }
         internal bool IsWorksheet { get; }
     }
 
@@ -54,6 +57,7 @@ namespace OfficeIMO.Excel {
             "application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml",
             "application/vnd.ms-excel.sheet.macroEnabled.main+xml",
             "application/vnd.ms-excel.template.macroEnabled.main+xml",
+            "application/vnd.ms-excel.addin.macroEnabled.main+xml",
         };
         private const string WorksheetRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "worksheet";
         private const string DigitalSignatureOriginRelationshipType = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin";

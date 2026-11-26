@@ -731,6 +731,13 @@ namespace OfficeIMO.Excel {
                         return;
                     }
                 }
+#if NET8_0_OR_GREATER
+                Ensure(32);
+                if (value.TryFormat(_output.AsSpan(_outputLength), out int utf8Written, "R", CultureInfo.InvariantCulture)) {
+                    _outputLength += utf8Written;
+                    return;
+                }
+#endif
 #if NETCOREAPP3_0_OR_GREATER
                 Span<char> characters = stackalloc char[32];
                 if (value.TryFormat(characters, out int written, "R", CultureInfo.InvariantCulture)) {

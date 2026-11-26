@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
     /// that removes files from a list. The engine's own Open XML layer names neither.
     /// </summary>
     public class ExcelOpenXmlSdkBoundary {
-        private const int Baseline = 615;
+        private const int Baseline = 614;
         private const int PackagingBaseline = 17;
         private readonly ITestOutputHelper _output;
 
@@ -20,6 +20,7 @@ namespace OfficeIMO.Tests {
         private static readonly string[] OwnedOpenXmlFiles = {
             "ExcelDeferredPackageParts.cs",
             "ExcelDeferredWorksheetWriter.cs",
+            "ExcelDocument.CreateShell.cs",
             "ExcelDocument.DeferredLoad.cs",
             "ExcelDocument.DeferredSave.cs",
             "ExcelDocument.DeferredSheets.cs",
