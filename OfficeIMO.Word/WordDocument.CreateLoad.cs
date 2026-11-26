@@ -170,6 +170,10 @@ namespace OfficeIMO.Word {
             // The implicit native defaults are deterministic, so reuse a package that already carries them instead of
             // parsing, cloning and reserializing the style catalog and theme part for every new document.
             bool themeApplied = theme == null;
+            if (themeApplied && documentType == WordprocessingDocumentType.Document
+                && TryCreateWithoutSdk(filePath, stream, persistenceMode, GetDefaultThemedPackageBytes(documentType)) is { } owned) {
+                return owned;
+            }
             return CreateInternal(filePath, stream, documentType, persistenceMode, theme,
                 themeApplied ? GetDefaultThemedPackageBytes(documentType) : GetDefaultPackageBytes(documentType),
                 themeApplied);

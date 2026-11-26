@@ -73,7 +73,7 @@ internal static class WordOwnedSave {
         return false;
     }
 
-    private static IEnumerable<string> RelatedParts(WordPackageModel model, params string[] types) {
+    internal static IEnumerable<string> RelatedParts(WordPackageModel model, params string[] types) {
         // Asking the package for a relationships part it lacks would add an empty one.
         if (!model.Package.PartExists(OfficeOpcPartNames.GetRelationshipsPartName(model.MainPartName))) yield break;
         OfficeXmlTree relationships = model.Package.GetRelationships(model.MainPartName);

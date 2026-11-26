@@ -6,13 +6,17 @@ using OfficeIMO.Word.OpenXml;
 namespace OfficeIMO.Word {
     /// <summary>How a document loaded without the Open XML SDK opens the SDK package when it needs it.</summary>
     internal sealed class WordSdkDeferredLoad {
-        internal WordSdkDeferredLoad(bool readOnly, OfficeOpenXmlLoadSettings? openSettings) {
+        internal WordSdkDeferredLoad(bool readOnly, OfficeOpenXmlLoadSettings? openSettings, bool created = false) {
             ReadOnly = readOnly;
             OpenSettings = openSettings;
+            Created = created;
         }
 
         internal bool ReadOnly { get; }
         internal OfficeOpenXmlLoadSettings? OpenSettings { get; }
+
+        /// <summary>Whether the document was created from the default package, so the SDK opens it as a new document.</summary>
+        internal bool Created { get; }
     }
 
     /// <summary>
@@ -101,6 +105,57 @@ namespace OfficeIMO.Word {
                 _ownedModel = model,
                 _sdkDeferredLoad = new WordSdkDeferredLoad(readOnly, options.OpenSettings),
             };
+        }
+
+        /// <summary>
+        /// Creates a document over <paramref name="defaultPackage"/>, the default package of a plain document with the default
+        /// theme, without the SDK; returns null for the SDK path to create it exactly as before. The SDK opens over the same
+        /// package later as it does for a new document.
+        /// </summary>
+        private static WordDocument? TryCreateWithoutSdk(string? filePath, Stream? stream, DocumentPersistenceMode persistenceMode,
+            byte[] defaultPackage) {
+            if (DisableOwnedOpenXmlForTesting.Value || RequiresLegacyRuntimeSignatureSnapshot()) return null;
+            WordPackageModel? model = WordPackageModel.TryOpen(defaultPackage, 0);
+            if (model == null) return null;
+            return new WordDocument {
+                FilePath = filePath,
+                OriginalStream = stream,
+                _persistenceMode = persistenceMode,
+                _packageContentTypesAdvertiseXmlSignatures = false,
+                _normalizeOpenOfficeRelationshipsOnSave = false,
+                _tableNormalizationRequired = false,
+                _creationTheme = OfficeTheme.Default,
+                _ownedModel = model,
+                _sdkDeferredLoad = new WordSdkDeferredLoad(readOnly: false, openSettings: null, created: true),
+            };
+        }
+
+        /// <summary>
+        /// The identifier to store for a built-in style, as <see cref="UseBuiltInStyle"/> returns it, when applying the
+        /// style adds no definition; otherwise null, and the SDK path adds it.
+        /// </summary>
+        internal string? TryUseBuiltInStyleWithoutSdk(WordPackageModel model, string builtInStyleId) {
+            WordOwnedStyles styles = model.Styles;
+            string? styleId = styles.FindBuiltInStyleId(builtInStyleId);
+            if (styleId != null && !string.Equals(styleId, builtInStyleId, StringComparison.Ordinal)) return styleId;
+            if (FileOpenAccess == FileAccess.Read) return builtInStyleId;
+            return styles.DefinesWithDependencies(builtInStyleId) ? builtInStyleId : null;
+        }
+
+        /// <summary>
+        /// Does what <see cref="HeadingModified"/> does after a heading style is applied, when that is nothing: a settings
+        /// part without a field update requested on open, and no content control or field in the body that could be a table
+        /// of contents. Returns false for the SDK path to handle it.
+        /// </summary>
+        internal bool TryHeadingModifiedWithoutSdk(WordPackageModel model) {
+            if (_deferHeadingModified) {
+                _headingModifiedWhileDeferred = true;
+                return true;
+            }
+            // Reading the settings on the SDK path adds a settings part to a package without one.
+            if (_tableOfContentUpdateQueued || !model.HasSettings || model.SettingsHave("updateFields")) return false;
+            // The SDK path finds a table of contents in a content control or in a TOC field of a body paragraph.
+            return !model.BodyHasFieldsOrContentControls;
         }
 
         private static bool IsPlainOpenSettings(OfficeOpenXmlLoadSettings? settings) =>

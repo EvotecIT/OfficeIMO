@@ -263,11 +263,13 @@ namespace OfficeIMO.Word {
         /// </remarks>
         public WordParagraphStyles? Style {
             get {
+                if (_ownedTree != null && TryGetOwnedStyle(out WordParagraphStyles? ownedStyle)) return ownedStyle;
                 string? styleId = _paragraphProperties?.GetFirstChild<ParagraphStyleId>()?.Val?.Value;
                 if (styleId == null) return null;
                 return WordParagraphStyle.GetStyle(_document?.GetBuiltInStyleId(styleId) ?? styleId);
             }
             set {
+                if (_ownedTree != null && TrySetOwnedStyle(value)) return;
                 if (value != null) {
                     string styleId = _document?.UseBuiltInStyle(value.Value.ToStringStyle()) ?? value.Value.ToStringStyle();
                     if (_paragraphProperties == null) {

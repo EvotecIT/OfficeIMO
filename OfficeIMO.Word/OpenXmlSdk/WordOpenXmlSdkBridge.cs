@@ -62,15 +62,27 @@ namespace OfficeIMO.Word {
                 _ownedZipPackage = zipPackage;
                 _wordprocessingDocument = wordDocument;
                 _document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
-                LoadDocument();
-                WordChart.InitializeAxisIdSeed(wordDocument);
-                WordListStyles.InitializeAbstractNumberId(wordDocument);
+                if (load.Created) {
+                    // As CreateInternal sets up a document over the default package; the identifier state is still the
+                    // fresh one it would reset. The owned layer doesn't edit the styles or theme parts, so they are still
+                    // the default package's and its cached catalogs apply.
+                    InitializeNewDocumentFacade(this);
+                    _defaultPackageThemePart = wordDocument.MainDocumentPart?.ThemePart;
+                    _defaultPackageStylesPart = wordDocument.MainDocumentPart?.StyleDefinitionsPart;
+                    _defaultPackageType = WordprocessingDocumentType.Document;
+                } else {
+                    LoadDocument();
+                    WordChart.InitializeAxisIdSeed(wordDocument);
+                    WordListStyles.InitializeAbstractNumberId(wordDocument);
+                }
             } catch {
                 packageStream.Dispose();
                 _ownedPackageStream = null;
                 _ownedZipPackage = null;
                 _wordprocessingDocumentValue = null;
                 _documentValue = null;
+                _defaultPackageThemePart = null;
+                _defaultPackageStylesPart = null;
                 _sections.Clear();
                 throw;
             }

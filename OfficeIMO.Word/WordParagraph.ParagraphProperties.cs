@@ -17,6 +17,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? StyleId {
             get {
+                if (_ownedTree != null && TryGetOwnedStyleId(out string? ownedStyleId)) return ownedStyleId;
                 return _paragraphProperties?.GetFirstChild<ParagraphStyleId>()?.Val;
             }
         }
@@ -39,12 +40,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordParagraphAlignment? ParagraphAlignment {
             get {
+                if (_ownedTree != null && TryGetOwnedAlignment(out WordParagraphAlignment? ownedAlignment)) return ownedAlignment;
                 if (_paragraphProperties != null)
                     if (_paragraphProperties.Justification != null)
                         return _paragraphProperties.Justification.Val?.Value.ToOfficeEnum();
                 return null;
             }
             set {
+                if (_ownedTree != null && TrySetOwnedAlignment(value)) return;
                 if (value == null) {
                     _paragraphProperties?.RemoveAllChildren<Justification>();
                     return;
