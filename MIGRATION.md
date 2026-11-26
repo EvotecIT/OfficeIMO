@@ -10474,3 +10474,9 @@ HTML imported into Word now indents a block quote directly only when neither the
 supported saved outputs and embedded images. Use
 `officeimo read lab.ipynb --format markdown --output lab.md` for the previous
 Reader projection, or pass `--assets` to extract assets separately.
+
+## Reader transport for MOBI and Kindle
+
+Reader uses `ReaderInputKind.Mobi` (`33`) for MOBI, PalmDOC and KF8 imports. Consumers that validate
+Reader JSON against a packaged schema should accept version 16. OfficeIMO still
+reads versions 5 through 15.

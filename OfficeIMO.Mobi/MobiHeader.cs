@@ -36,7 +36,11 @@ internal sealed class MobiHeader {
         NavigationIndex = size >= 232 ? ReadReference(data, 244) : null;
         ExtraFlags = size >= 228 ? U16(data, 242) : 0;
         if (Version == 8) {
-            FlowIndex = size >= 184 ? ReadReference(data, 192) : null;
+            FlowCount = size >= 184 ? Number(data, 196) : 0;
+            if (FlowCount > 1) {
+                FlowIndex = ReadReference(data, 192)
+                    ?? throw new InvalidDataException("The Kindle book declares multiple flows without an FDST record.");
+            }
             FragmentIndex = size >= 236 ? ReadReference(data, 248) : null;
             SkeletonIndex = size >= 240 ? ReadReference(data, 252) : null;
         }
@@ -60,6 +64,7 @@ internal sealed class MobiHeader {
     internal string? HeaderTitle { get; }
     internal int? FirstImage { get; }
     internal int? FlowIndex { get; }
+    internal int FlowCount { get; }
     internal int? NavigationIndex { get; }
     internal int? FragmentIndex { get; }
     internal int? SkeletonIndex { get; }

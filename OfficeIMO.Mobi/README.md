@@ -3,6 +3,12 @@
 Read PalmDOC, Mobipocket and Kindle Format 8 ebooks. The reader selects the
 KF8 section when a dual-format file contains MOBI and KF8.
 
+Install the package from NuGet.
+
+```sh
+dotnet add package OfficeIMO.Mobi
+```
+
 ```csharp
 using OfficeIMO.Mobi;
 

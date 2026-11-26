@@ -11,8 +11,8 @@ public sealed class ReaderFormatIdentifierTests {
             + "Yaml Rtf OpenDocument AsciiDoc Latex Email OneNote Calendar VCard Opml DocBook IWork Xps Chm DjVu Dbf Publisher").Split(' ');
         for (int value = 0; value < published.Length; value++)
             Assert.Equal(value, (int)(ReaderInputKind)Enum.Parse(typeof(ReaderInputKind), published[value]));
-        ReaderInputKind[] formats = { ReaderInputKind.Chm, ReaderInputKind.DjVu, ReaderInputKind.Dbf, ReaderInputKind.Publisher, ReaderInputKind.Toml };
-        Assert.Equal(new[] { 27, 28, 29, 30, 31 }, formats.Select(kind => (int)kind));
+        ReaderInputKind[] formats = { ReaderInputKind.Chm, ReaderInputKind.DjVu, ReaderInputKind.Dbf, ReaderInputKind.Publisher, ReaderInputKind.Toml, ReaderInputKind.Mobi };
+        Assert.Equal(new[] { 27, 28, 29, 30, 31, 33 }, formats.Select(kind => (int)kind));
         var builder = new OfficeDocumentReaderBuilder();
         foreach (ReaderInputKind kind in formats) builder.AddHandler(new ReaderHandlerRegistration {
             Id = "wire-test-" + kind, Kind = kind, Extensions = new[] { "." + kind.ToString().ToLowerInvariant() },
@@ -33,6 +33,7 @@ public sealed class ReaderFormatIdentifierTests {
     [InlineData(ReaderInputKind.Dbf, "Dbf")]
     [InlineData(ReaderInputKind.Publisher, "Publisher")]
     [InlineData(ReaderInputKind.Toml, "Toml")]
+    [InlineData(ReaderInputKind.Mobi, "Mobi")]
     public void CurrentSchemaDeclaresAndRoundTripsEachKindAtEveryDocumentLevel(ReaderInputKind kind, string name) {
         var source = new OfficeDocumentReadResult { Kind = kind, Chunks = new[] { new ReaderChunk { Kind = kind } },
             NestedDocuments = new[] { new OfficeDocumentNestedResult { Path = "nested", Document = new() { Kind = kind } } } };
@@ -55,6 +56,7 @@ public sealed class ReaderFormatIdentifierTests {
     [InlineData(ReaderInputKind.Dbf, 13)]
     [InlineData(ReaderInputKind.Publisher, 14)]
     [InlineData(ReaderInputKind.Toml, 15)]
+    [InlineData(ReaderInputKind.Mobi, 16)]
     public void EarlierSchemasRejectNewKindsInRootsChunksAndNestedDocuments(ReaderInputKind kind, int minimumVersion) {
         string name = kind.ToString();
         for (int version = 5; version < minimumVersion; version++) {

@@ -15,6 +15,8 @@ internal static partial class DocumentReaderEngine {
 
     private static string? TryGetExtension(string? path) {
         if (string.IsNullOrWhiteSpace(path)) return null;
+        string logicalExtension = ReaderLogicalPath.GetExtension(path!);
+        if (logicalExtension.Length > 1) return logicalExtension;
         try {
             return Path.GetExtension(path);
         } catch (ArgumentException) {

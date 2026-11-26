@@ -168,6 +168,7 @@ public static partial class MobiReader {
 
     private sealed class MarkupPart {
         private readonly Dictionary<IElement, string> _anchors = new();
+        private readonly Dictionary<string, string> _ids = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
         private readonly Dictionary<int, string> _positions = new();
         private readonly List<IElement> _elements = new();
@@ -185,8 +186,10 @@ public static partial class MobiReader {
                 if (depth > 64 || _elements.Count >= 150_000)
                     throw new InvalidDataException("Mobipocket HTML exceeds its nesting or node count limit.");
                 _elements.Add(element);
-                string? id = element.GetAttribute("id") ?? (element.LocalName == "a" ? element.GetAttribute("name") : null);
-                if (!string.IsNullOrEmpty(id) && !_names.ContainsKey(id!)) _names.Add(id!, EnsureAnchor(element));
+                string? id = element.GetAttribute("id");
+                if (!string.IsNullOrEmpty(id) && !_ids.ContainsKey(id!)) _ids.Add(id!, EnsureAnchor(element));
+                string? name = element.LocalName == "a" ? element.GetAttribute("name") : null;
+                if (!string.IsNullOrEmpty(name) && !_names.ContainsKey(name!)) _names.Add(name!, EnsureAnchor(element));
                 for (IElement? child = element.LastElementChild; child != null; child = child.PreviousElementSibling)
                     pending.Push((child, depth + 1));
             }
@@ -199,7 +202,11 @@ public static partial class MobiReader {
         internal IReadOnlyList<IElement> Elements => _elements;
         internal string? AnchorAt(int offset) => _positions.TryGetValue(offset, out string? id) ? id : null;
         internal string? Anchor(IElement element) => _anchors.TryGetValue(element, out string? id) ? id : null;
-        internal string? ResolveId(string id) => _names.TryGetValue(id, out string? anchor) ? anchor : null;
+        internal string? ResolveId(string id) =>
+            FindLocalAnchor(id) ?? (id.IndexOf('%') >= 0 ? FindLocalAnchor(Uri.UnescapeDataString(id)) : null);
+
+        private string? FindLocalAnchor(string fragment) =>
+            _ids.TryGetValue(fragment, out string? anchor) || _names.TryGetValue(fragment, out anchor) ? anchor : null;
 
         internal void BindPositions(HashSet<int> targets, byte[] bytes, Encoding encoding, CancellationToken token) {
             if (targets.Count == 0) return;

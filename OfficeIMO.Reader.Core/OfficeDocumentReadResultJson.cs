@@ -278,7 +278,8 @@ public static partial class OfficeDocumentReadResultJson {
             schemaVersion < 12 && requiresVersion12 ||
             schemaVersion < 13 && requiresVersion13 ||
             schemaVersion < 14 && requiresVersion14 ||
-            schemaVersion < 15 && requiresVersion15) {
+            schemaVersion < 15 && requiresVersion15 ||
+            schemaVersion < 16 && kind == ReaderInputKind.Mobi) {
             throw new JsonException(
                 $"Reader input kind '{kind}' is not supported by document read result schema version {schemaVersion}.");
         }

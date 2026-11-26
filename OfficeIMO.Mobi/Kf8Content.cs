@@ -4,7 +4,7 @@ using static OfficeIMO.Mobi.PalmDatabase;
 namespace OfficeIMO.Mobi;
 
 internal sealed class Kf8Content {
-    private readonly (int Part, int Insertion, int Length)[] _positions;
+    private readonly (int Part, int Insertion)[] _positions;
 
     internal Kf8Content(PalmDatabase database, MobiHeader header, byte[] raw, CancellationToken token) {
         int markUpEnd = raw.Length;
@@ -13,7 +13,7 @@ internal sealed class Kf8Content {
             if (!HasSignature(flow, "FDST") || Number(flow, 4) != 12)
                 throw new InvalidDataException("The Kindle FDST flow record is malformed.");
             int count = Number(flow, 8);
-            if (count is < 1 or > 256 || Number(flow, 12) != 0)
+            if (count != header.FlowCount || count > 256 || Number(flow, 12) != 0)
                 throw new InvalidDataException("The Kindle FDST flow count or start offset is invalid.");
             markUpEnd = Number(flow, 16);
             int previous = 0;
@@ -33,7 +33,7 @@ internal sealed class Kf8Content {
         var skeletons = new MobiIndex(database, header.Record + skeletonRecord, header.Encoding, token).Rows;
         var fragments = new MobiIndex(database, header.Record + fragmentRecord, header.Encoding, token).Rows;
         if (skeletons.Count is < 1 or > 1_000) throw new InvalidDataException("The Kindle skeleton count exceeds its bounds.");
-        _positions = new (int, int, int)[fragments.Count];
+        _positions = new (int, int)[fragments.Count];
         Parts = new byte[skeletons.Count][];
         ReadOnlySpan<byte> markup = raw.AsSpan(0, markUpEnd);
         int fragment = 0;
@@ -67,7 +67,7 @@ internal sealed class Kf8Content {
                 part.Write(before, 0, before.Length);
                 byte[] bytes = Slice(markup, start + length + fragmentBytes, size).ToArray();
                 part.Write(bytes, 0, bytes.Length);
-                _positions[fragment] = (i, insertion, size);
+                _positions[fragment] = (i, insertion);
                 consumed = split;
                 fragmentBytes += size;
             }
@@ -86,6 +86,6 @@ internal sealed class Kf8Content {
     internal (int Part, int Offset)? Resolve(int fragment, int offset) {
         if (fragment < 0 || fragment >= _positions.Length || offset < 0) return null;
         var entry = _positions[fragment];
-        return offset <= entry.Length ? (entry.Part, entry.Insertion + offset) : null;
+        return offset <= Parts[entry.Part].Length - entry.Insertion ? (entry.Part, entry.Insertion + offset) : null;
     }
 }

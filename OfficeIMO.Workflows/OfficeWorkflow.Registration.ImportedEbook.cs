@@ -42,7 +42,15 @@ public static partial class OfficeWorkflow {
             } else {
                 EpubDocument book = EpubImportedPublication.Open(imported.Value, cancellationToken);
                 if (target == "pdf") {
-                    OfficeConversionReport pdf = EpubPdfExport.Write(book, destination, options.Html, false, cancellationToken);
+                    OfficeConversionReport pdf;
+                    try {
+                        pdf = EpubPdfExport.Write(book, destination, options.Html, false, cancellationToken);
+                    } catch (OfficeConversionException error) {
+                        diagnostics.AddRange(error.Report.Diagnostics);
+                        var combined = new OfficeConversionReport(options.SourceName!, options.TargetName!,
+                            itemsWritten: error.Report.ItemsWritten, diagnostics: diagnostics);
+                        throw new OfficeConversionException(error.Message, combined, error);
+                    }
                     diagnostics.AddRange(pdf.Diagnostics);
                     itemsWritten = pdf.ItemsWritten;
                     if (EpubImportedPublication.MetadataFields(book).Any(item =>
@@ -61,7 +69,8 @@ public static partial class OfficeWorkflow {
                     if (target == "html") {
                         EpubImportedPublication.WriteHtml(book, destination, diagnostics, cancellationToken);
                     } else {
-                        using var html = new OfficeBoundedMemoryStream(Math.Min(options.MaximumOutputBytes, 128L * 1024 * 1024));
+                        // The converter's output limit applies to the final Markdown, which can be smaller than this HTML.
+                        using var html = new OfficeBoundedMemoryStream(128L * 1024 * 1024);
                         EpubImportedPublication.WriteHtml(book, html, diagnostics, cancellationToken, markdownAnchors: true);
                         html.Position = 0;
                         using var text = new StreamReader(html, Encoding.UTF8);

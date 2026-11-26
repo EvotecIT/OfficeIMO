@@ -57,10 +57,9 @@ public static partial class MobiReader {
         private readonly HashSet<int> _usedImages = new();
 
         internal OfficeConversionResult<EpubPublication> Create(byte[] text) {
-            string title = TextMetadata(503).FirstOrDefault() ?? selected.HeaderTitle ?? first.HeaderTitle ??
-                MobiHeader.Decode(selected.Encoding, database.Name);
-            title = XmlText(WebUtility.HtmlDecode(title));
-            if (string.IsNullOrWhiteSpace(title)) title = Path.GetFileNameWithoutExtension(sourceName);
+            string title = TextMetadata(503).FirstOrDefault() ?? NormalizeMetadata(selected.HeaderTitle) ??
+                NormalizeMetadata(first.HeaderTitle) ?? NormalizeMetadata(MobiHeader.Decode(selected.Encoding, database.Name)) ??
+                Path.GetFileNameWithoutExtension(sourceName);
 
             string language = TextMetadata(524).FirstOrDefault() ?? LanguageFromLocale(selected.Locale);
             string? identifier = TextMetadata(104).FirstOrDefault() ?? TextMetadata(113).FirstOrDefault();
@@ -93,15 +92,23 @@ public static partial class MobiReader {
         }
 
         private IEnumerable<string> TextMetadata(int id) {
-            string[] preferred = selected.Text(id).ToArray();
-            return preferred.Length != 0 || ReferenceEquals(first, selected) ? preferred : first.Text(id);
+            string[] preferred = selected.Text(id).Select(NormalizeMetadata).OfType<string>().ToArray();
+            return preferred.Length != 0 || ReferenceEquals(first, selected)
+                ? preferred
+                : first.Text(id).Select(NormalizeMetadata).OfType<string>();
+        }
+
+        private static string? NormalizeMetadata(string? value) {
+            if (value == null) return null;
+            string normalized = XmlText(WebUtility.HtmlDecode(value)).Trim();
+            return normalized.Length == 0 ? null : normalized;
         }
 
         private void ApplyMetadata(EpubPublication book) {
             foreach ((int id, string name) in new[] { (100, "creator"), (101, "publisher"), (103, "description"),
                 (104, "identifier"), (105, "subject"), (106, "date"), (108, "contributor"), (109, "rights"),
                 (112, "source"), (113, "identifier") }) {
-                foreach (string value in TextMetadata(id)) book.AddDublinCoreMetadata(name, XmlText(WebUtility.HtmlDecode(value)));
+                foreach (string value in TextMetadata(id)) book.AddDublinCoreMetadata(name, value);
             }
             if (TextMetadata(122).Any(value => value.Equals("true", StringComparison.OrdinalIgnoreCase)))
                 Warn("MOBI_FIXED_LAYOUT_OMITTED", "The Kindle book was imported as reflowable content. Fixed-layout positioning was omitted.");
@@ -111,7 +118,9 @@ public static partial class MobiReader {
             int? start = selected.Record != 0 ? first.FirstImage : selected.FirstImage;
             if (!start.HasValue || start.Value == 0) return;
             int end = selected.Record != 0 ? selected.Record - 1 : database.Count;
-            int count = (selected.Record == 0 ? selected : first).Integer(125) ?? (end - start.Value);
+            int? declaredCount = (selected.Record == 0 ? selected : first).Integer(125);
+            if (declaredCount == 0) return;
+            int count = declaredCount ?? (end - start.Value);
             if (start.Value >= end || count < 0 || count > end - start.Value)
                 throw new InvalidDataException("The Kindle resource record range is out of bounds.");
             if (count > 2_000) throw new InvalidDataException("The Kindle resource count exceeds 2,000.");
