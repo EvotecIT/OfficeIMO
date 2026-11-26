@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
@@ -12,11 +13,16 @@ namespace OfficeIMO.PowerPoint {
             "application/vnd.openxmlformats-officedocument.oleObject";
         internal const int MaximumStorageBytes = 64 * 1024 * 1024;
 
-        private readonly SlidePart _slidePart;
+        private readonly SlidePart? _initialSlidePart;
+        // An embedded object read from the package belongs to its slide's part once the SDK opens.
+        private SlidePart _slidePart => _initialSlidePart ?? OwnerSlide!.SlidePart;
+
+        internal PowerPointOleObject(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
+        }
 
         internal PowerPointOleObject(P.GraphicFrame frame,
             SlidePart slidePart) : base(frame) {
-            _slidePart = slidePart
+            _initialSlidePart = slidePart
                 ?? throw new ArgumentNullException(nameof(slidePart));
         }
 

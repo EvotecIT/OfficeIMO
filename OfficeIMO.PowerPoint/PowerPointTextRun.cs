@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents a formatted text run within a paragraph.
     /// </summary>
-    public partial class PowerPointTextRun {
+    public partial class PowerPointTextRun : IPackageSdkBinding {
         private readonly SlidePart? _initialSlidePart;
         private SlidePart? _slidePart => (_field as DocumentFormat.OpenXml.OpenXmlElement ?? Run).Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
         private readonly OpenXmlPartContainer? _initialOwnerPart;
@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint {
         private List<OpenXmlElement>? _lineContinuation;
 
         internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
-            Run = run;
+            _run = run;
             _initialSlidePart = slidePart ?? ownerPart as SlidePart;
             _initialOwnerPart = ownerPart ?? slidePart;
         }
@@ -31,12 +31,68 @@ namespace OfficeIMO.PowerPoint {
 
         internal PowerPointTextRun(A.Field field, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             _field = field;
-            Run = new A.Run();
+            _run = new A.Run();
             _initialSlidePart = slidePart ?? ownerPart as SlidePart;
             _initialOwnerPart = ownerPart ?? slidePart;
         }
 
-        internal A.Run Run { get; }
+        private A.Run? _run;
+        private readonly PowerPointSlide? _packageSlide;
+        private readonly OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree? _packageTree;
+        private readonly int _packageNode;
+
+        // A run of a slide's package tree; anything it does not do there binds it to the same run in the SDK.
+        internal PowerPointTextRun(PowerPointSlide slide, OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree, int node) {
+            _packageSlide = slide;
+            _packageTree = tree;
+            _packageNode = node;
+            slide.OwnerDocument?.RegisterPackageBinding(this);
+        }
+
+        internal A.Run Run => _run ??= (A.Run)PowerPointSlide.BindPackageElement(_packageSlide!, _packageTree!, _packageNode);
+
+        void IPackageSdkBinding.BindSdk() {
+            if (_run != null || _packageTree == null) return;
+            try {
+                _ = Run;
+            } catch (InvalidOperationException) {
+                // A run the opened slide doesn't have where expected reports it when it is used.
+            }
+        }
+
+        private bool IsPackageBacked => _run == null && _packageTree != null && _packageSlide is { RemovedFromPackage: false } && _packageSlide.OwnerDocument?.IsSdkLoaded == false;
+
+        private bool CanEditPackage => IsPackageBacked && _packageSlide!.OwnerDocument!.CanEditPackage;
+
+        // The run's a:rPr on the package tree, NoNode when it has none.
+        private int PackageProperties => _packageTree!.FindChild(_packageNode, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "rPr");
+
+        private bool TryGetPackageFlag(string attribute, out bool value) {
+            value = false;
+            if (!IsPackageBacked) return false;
+            int properties = PackageProperties;
+            if (properties == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) return true;
+            switch (_packageTree!.GetAttribute(properties, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.None, attribute)) {
+                case null: case "0": case "false": return true;
+                case "1": case "true": value = true; return true;
+                default: return false;
+            }
+        }
+
+        // Sets an attribute of the run's a:rPr on the package tree, adding the a:rPr first in the run when missing.
+        private bool TrySetPackageProperty(string attribute, string? value) {
+            if (!CanEditPackage) return false;
+            OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree = _packageTree!;
+            int properties = PackageProperties;
+            if (properties == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) {
+                properties = tree.CreateElement(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "rPr");
+                tree.InsertBefore(_packageNode, properties, tree.FirstChildOf(_packageNode));
+            }
+            if (value == null) tree.RemoveAttribute(properties, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.None, attribute);
+            else tree.SetAttribute(properties, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.None, attribute, value);
+            _packageSlide!.OwnerDocument!.MarkPackageEdited();
+            return true;
+        }
 
         /// <summary>The last run of the text this wrapper wrote, which is <see cref="Run"/> for a single line.</summary>
         internal A.Run LastLine => _lineContinuation?.OfType<A.Run>().LastOrDefault() ?? Run;
@@ -50,6 +106,16 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string Text {
             get {
+                if (IsPackageBacked) {
+                    int value = _packageTree!.FindChild(_packageNode, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "t");
+                    if (value == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) return string.Empty;
+                    int child = _packageTree.FirstChildOf(value);
+                    if (child == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) return string.Empty;
+                    if (_packageTree.KindOf(child) == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTreeNodeKind.Text
+                        && _packageTree.NextSiblingOf(child) == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) {
+                        return _packageTree.GetText(child);
+                    }
+                }
                 string text = (_field?.Text ?? Run.Text)?.Text ?? string.Empty;
                 return _lineContinuation == null
                     ? text
@@ -57,6 +123,7 @@ namespace OfficeIMO.PowerPoint {
                         _lineContinuation.OfType<A.Run>().Select(line => line.Text?.Text ?? string.Empty)));
             }
             set {
+                if (TrySetPackageText(value)) return;
                 if (_field != null) {
                     _field.Text ??= new A.Text();
                     _field.Text.Text = PowerPointTextContent.ToSingleLine(value);
@@ -92,8 +159,9 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets a value indicating whether the run is bold.
         /// </summary>
         public bool Bold {
-            get => RunProperties?.Bold?.Value == true;
+            get => TryGetPackageFlag("b", out bool packageValue) ? packageValue : RunProperties?.Bold?.Value == true;
             set {
+                if (TrySetPackageProperty("b", value ? "1" : "0")) return;
                 A.RunProperties props = EnsureRunProperties();
                 props.Bold = value;
                 SyncLineContinuation();
@@ -104,8 +172,9 @@ namespace OfficeIMO.PowerPoint {
         /// Gets or sets a value indicating whether the run is italic.
         /// </summary>
         public bool Italic {
-            get => RunProperties?.Italic?.Value == true;
+            get => TryGetPackageFlag("i", out bool packageValue) ? packageValue : RunProperties?.Italic?.Value == true;
             set {
+                if (TrySetPackageProperty("i", value ? "1" : "0")) return;
                 A.RunProperties props = EnsureRunProperties();
                 props.Italic = value;
                 SyncLineContinuation();
@@ -238,11 +307,21 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public global::OfficeIMO.OfficeLength? FontSize {
             get {
+                if (IsPackageBacked) {
+                    int properties = PackageProperties;
+                    string? packageSize = properties == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode ? null
+                        : _packageTree!.GetAttribute(properties, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.None, "sz");
+                    if (packageSize == null) return null;
+                    if (int.TryParse(packageSize, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out int parsed)) {
+                        return global::OfficeIMO.OfficeLength.Points(parsed / 100D);
+                    }
+                }
                 int? size = RunProperties?.FontSize?.Value;
                 return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
                 int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
+                if (TrySetPackageProperty("sz", drawingSize?.ToString(System.Globalization.CultureInfo.InvariantCulture))) return;
                 EnsureRunProperties().FontSize = drawingSize;
                 SyncLineContinuation();
             }
@@ -512,6 +591,25 @@ namespace OfficeIMO.PowerPoint {
                             StringComparison.Ordinal)
                         && string.Equals(attribute.Value, relationshipId,
                             StringComparison.Ordinal))));
+
+        // Sets single-line text on the package tree, adding the a:t after the run properties when missing. Text with a line
+        // break continues the run with more runs, which the model writes.
+        private bool TrySetPackageText(string? value) {
+            if (!CanEditPackage) return false;
+            string[] lines = PowerPointTextContent.SplitLines(value);
+            if (lines.Length != 1) return false;
+            OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree = _packageTree!;
+            int text = tree.FindChild(_packageNode, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "t");
+            if (text == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) {
+                text = tree.CreateElement(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "t");
+                int properties = PackageProperties;
+                tree.InsertBefore(_packageNode, text, properties == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode
+                    ? tree.FirstChildOf(_packageNode) : tree.NextSiblingOf(properties));
+            }
+            tree.SetInnerText(text, lines[0]);
+            _packageSlide!.OwnerDocument!.MarkPackageEdited();
+            return true;
+        }
 
         private A.RunProperties EnsureRunProperties() {
             if (_field != null) return _field.RunProperties ??= new A.RunProperties();

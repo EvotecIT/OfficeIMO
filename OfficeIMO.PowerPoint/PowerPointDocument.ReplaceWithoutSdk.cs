@@ -17,20 +17,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Replaces text without the SDK, or returns false, having changed nothing, for the model to replace it.</summary>
         private bool TryReplaceAllWithoutSdk(string text, string replacement, PowerPointTextSearchOptions? options, out int count) {
             count = 0;
-            // Notes are rewritten whole by the model, and a part size limit is the SDK's to enforce.
-            if (_disposed || !_sdkDeferred || _sdkDocument != null || _accessMode != DocumentAccessMode.ReadWrite
-                || options?.IncludeNotes == true || _deferredOpenSettings?.MaxCharactersInPart > 0
-                || _packageStream is not { CanRead: true, CanSeek: true } stream) {
-                return false;
-            }
-
-            OfficeOpcEditablePackage package;
-            if (_pendingPackage != null) {
-                package = _pendingPackage;
-            } else {
-                stream.Position = 0;
-                package = _pendingPackage = OfficeOpcEditablePackage.Open(stream, leaveOpen: true);
-            }
+            // Notes are rewritten whole by the model.
+            if (options?.IncludeNotes == true || GetPackage(edit: true) is not { } package) return false;
             try {
                 List<string>? slides = ReadSlideParts(package);
                 if (slides == null) return false;
@@ -40,6 +28,8 @@ namespace OfficeIMO.PowerPoint {
                 var edits = new List<PowerPointTreeReplace.Edit>();
                 int total = 0;
                 foreach (string slide in slides) {
+                    // A slide over the part size limit is read by the model, which reports it.
+                    if (IsOverPartLimit(package, slide)) return false;
                     int found = PowerPointTreeReplace.PlanSlide(package.GetXml(slide), search, edits);
                     if (found < 0) return false;
                     total += found;
@@ -55,61 +45,54 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // The slide parts of the first slide list, in order; null when one is missing, external or listed twice.
-        private static List<string>? ReadSlideParts(OfficeOpcEditablePackage package) {
-            string? main = null;
-            OfficeXmlTree packageRelationships = package.GetRelationships(null);
-            for (int node = packageRelationships.FindChild(packageRelationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship");
-                 node != OfficeXmlTree.NoNode;
-                 node = packageRelationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
-                string? type = packageRelationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
-                if (type != null && OfficeXmlNamespaces.NormalizeRelationshipType(type) == OfficeOpcPackage.OfficeDocumentRelationshipType) {
-                    main = OfficeOpcPartNames.ResolveRelationshipTarget("/_rels/.rels", packageRelationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
-                    break;
-                }
-            }
-            if (main == null || !package.PartExists(main)) return null;
-            OfficeXmlTree presentation = package.GetXml(main);
-            int list = presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldIdLst");
-            var slides = new List<string>();
-            if (list == OfficeXmlTree.NoNode) return slides;
-            var seen = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
-            for (int entry = presentation.FindChild(list, OfficeXmlNamespaces.PresentationML, "sldId"); entry != OfficeXmlTree.NoNode;
-                 entry = presentation.FindNextSibling(entry, OfficeXmlNamespaces.PresentationML, "sldId")) {
-                string? id = presentation.GetAttribute(entry, OfficeXmlNamespaces.Relationships, "id");
-                string? slide = id == null ? null : package.GetRelationshipTarget(main, id);
-                if (slide == null || !package.PartExists(slide) || !seen.Add(OfficeOpcPackage.GetPartIdentity(slide))) return null;
-                slides.Add(slide);
-            }
-            return slides;
-        }
+        private static List<string>? ReadSlideParts(OfficeOpcEditablePackage package) =>
+            PackageSlideList.Read(package)?.Entries.Select(entry => entry.Part).ToList();
 
-        /// <summary>Writes pending slide edits into the package bytes, so whatever reads them next sees the edits.</summary>
-        private void CommitPendingEdits() {
+        /// <summary>
+        /// Writes pending edits into the package bytes, so whatever reads them next sees them. With
+        /// <paramref name="keepPackage"/> the package stays open, so slides and shapes read from it keep working;
+        /// otherwise it is closed, as before the SDK opens the bytes.
+        /// </summary>
+        private void CommitPendingEdits(bool keepPackage = false) {
             OfficeOpcEditablePackage? pending = _pendingPackage;
             if (pending == null) return;
-            _pendingPackage = null;
-            bool edited = _pendingEdits;
-            _pendingEdits = false;
-            if (!edited) {
-                pending.Dispose();
-                return;
-            }
-            byte[] bytes;
-            using (pending) {
+            if (_pendingEdits) {
                 using var output = new MemoryStream();
                 pending.Save(output);
-                bytes = output.ToArray();
+                ReplacePackageStream(OfficePackageLoadSource.CreatePackageStream(output.ToArray(), _accessMode));
+                // Cleared only once the edited bytes are in place, so a failed write leaves the edits pending.
+                _pendingEdits = false;
             }
-            Stream? previous = _packageStream;
-            _packageStream = OfficePackageLoadSource.CreatePackageStream(bytes, _accessMode);
-            previous?.Dispose();
+            if (!keepPackage) ReleasePendingPackage();
         }
 
         /// <summary>Drops pending edits without writing them, when the document closes.</summary>
         private void DiscardPendingEdits() {
+            _pendingEdits = false;
+            ReleasePendingPackage();
+        }
+
+        // The stream the pending package was opened on, which it reads parts it has not parsed from; it stays open
+        // while the package does, even after the document moved on to newer bytes.
+        private Stream? _pendingSource;
+
+        /// <summary>Makes <paramref name="next"/> the document's package bytes, closing the previous stream unless the
+        /// pending package still reads from it.</summary>
+        private void ReplacePackageStream(Stream next) {
+            // The package the load checked reads the previous bytes.
+            ReleaseLoadedPackage();
+            Stream? previous = _packageStream;
+            _packageStream = next;
+            if (previous != null && !ReferenceEquals(previous, _pendingSource)) previous.Dispose();
+        }
+
+        private void ReleasePendingPackage() {
             _pendingPackage?.Dispose();
             _pendingPackage = null;
-            _pendingEdits = false;
+            _pendingRelationships = null;
+            Stream? source = _pendingSource;
+            _pendingSource = null;
+            if (source != null && !ReferenceEquals(source, _packageStream)) source.Dispose();
         }
     }
 }

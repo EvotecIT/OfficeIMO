@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
                 return shapes;
             }
 
-            SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
+            SlideLayoutPart? layoutPart = SlidePart.SlideLayoutPart;
             SlideMasterPart? masterPart = layoutPart?.SlideMasterPart;
             List<PowerPointShape> layoutShapes = CreateInheritedShapes(layoutPart?.SlideLayout?.CommonSlideData?.ShapeTree, layoutPart);
 

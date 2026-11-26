@@ -218,7 +218,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private PowerPointLayoutBox GetSlideBounds() {
-            PresentationDocument? document = _slidePart.OpenXmlPackage as PresentationDocument;
+            PresentationDocument? document = SlidePart.OpenXmlPackage as PresentationDocument;
             PresentationPart? presentationPart = document?.PresentationPart;
             if (presentationPart == null) {
                 return GetSelectionBounds(ShapeList);

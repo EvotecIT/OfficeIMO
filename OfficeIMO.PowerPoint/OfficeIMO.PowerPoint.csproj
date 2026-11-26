@@ -93,7 +93,6 @@
         <Using Include="System.Collections" />
         <Using Include="OfficeIMO.Drawing" />
         <Using Include="OfficeIMO.OpenXml.Internal" />
-        <Using Include="DocumentFormat.OpenXml" />
     </ItemGroup>
 
 

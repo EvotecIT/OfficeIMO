@@ -58,7 +58,7 @@ namespace OfficeIMO.PowerPoint {
                 ShapeList.Remove(shape);
             }
 
-            PowerPointGroupShape grouped = new PowerPointGroupShape(group, _slidePart);
+            PowerPointGroupShape grouped = new PowerPointGroupShape(group, SlidePart);
             InsertTrackedShape(insertIndex, grouped);
             return grouped;
         }

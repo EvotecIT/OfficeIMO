@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Packaging;
 
@@ -8,6 +9,9 @@ namespace OfficeIMO.PowerPoint {
     public class PowerPointGroupShape : PowerPointShape {
         internal PowerPointGroupShape(GroupShape groupShape, OpenXmlPartContainer? ownerPart = null) : base(groupShape) {
             OwnerPart = ownerPart;
+        }
+
+        internal PowerPointGroupShape(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
         internal GroupShape GroupShape => (GroupShape)Element;

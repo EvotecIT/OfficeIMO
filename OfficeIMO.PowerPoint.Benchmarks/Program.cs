@@ -15,6 +15,10 @@ if (args.Length > 0 && string.Equals(args[0], "--bdn", StringComparison.OrdinalI
     return 0;
 }
 
+if (args.Length > 0 && string.Equals(args[0], "--flows-ab", StringComparison.OrdinalIgnoreCase)) {
+    return PowerPointWithoutSdkFlowBenchmarks.RunInterleaved(args.Length > 1 ? int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 200);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "--probe",
         StringComparison.OrdinalIgnoreCase)) {
     return PowerPointBaselineRunner.RunProbe(args.Skip(1).ToArray());

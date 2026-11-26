@@ -23,7 +23,7 @@ public class PowerPointReplaceWithoutSdkTests {
     [MemberData(nameof(CorpusPresentations))]
     public void ReplacesInCorpusPresentationsAsTheModelDoes(string relativePath) {
         byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, relativePath));
-        Assert.Empty(Differences(source));
+        AssertNoDifferences(Differences(source));
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class PowerPointReplaceWithoutSdkTests {
 
         byte[] saved = presentation.ToBytes();
         Assert.False(presentation.IsSdkLoaded);
-        Assert.Empty(Differences(source, ("first slide", "Opening", null)));
+        AssertNoDifferences(Differences(source, ("first slide", "Opening", null)));
         using var reopened = PowerPointDocument.Load(new MemoryStream(saved));
         Assert.Contains("Opening", string.Concat(reopened.ExtractMarkdownChunks().Select(chunk => chunk.Text)));
     }
@@ -52,7 +52,7 @@ public class PowerPointReplaceWithoutSdkTests {
         Assert.Contains("Centre slide", string.Concat(presentation.ExtractMarkdownChunks().Select(chunk => chunk.Text)));
         Assert.False(presentation.IsSdkLoaded);
         Assert.Contains(presentation.Slides[1].TextBoxes, box => box.Text == "Centre slide");
-        Assert.True(presentation.IsSdkLoaded);
+        Assert.False(presentation.IsSdkLoaded);
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class PowerPointReplaceWithoutSdkTests {
 
         Assert.True(presentation.IsSdkLoaded);
         Assert.Equal(1, count);
-        Assert.Empty(Differences(source, ("First", replacement, options)));
+        AssertNoDifferences(Differences(source, ("First", replacement, options)));
     }
 
     // Opt-in, as the other corpus checks: OFFICEIMO_PPTX_CORPUS names a folder of presentations.
@@ -164,4 +164,8 @@ public class PowerPointReplaceWithoutSdkTests {
         presentation.AddSlide().AddTextBox("Third slide");
         return presentation.ToBytes();
     }
+
+    // The whole of each difference, which the collection display would cut short.
+    private static void AssertNoDifferences(List<string> differences) =>
+        Assert.True(differences.Count == 0, string.Join(Environment.NewLine, differences));
 }

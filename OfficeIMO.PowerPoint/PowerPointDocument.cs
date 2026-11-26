@@ -115,6 +115,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Gets the underlying Open XML package for advanced integration scenarios.</summary>
         public PresentationDocument OpenXmlDocument {
+            // Kept as its own frame, so a diagnostic of the SDK opening here names this property.
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
             get {
                 ThrowIfDisposed();
                 return SdkDocument!;
@@ -145,8 +147,8 @@ namespace OfficeIMO.PowerPoint {
 
         private DeferredSlideList? _slideView;
 
-        /// <summary>The slides of a presentation whose SDK package is not open yet: counting them keeps it closed, and
-        /// reading a slide opens it.</summary>
+        /// <summary>The slides of a presentation whose SDK package is not open yet, read from its package; when the
+        /// package can't be read without the SDK, reading a slide opens it.</summary>
         private sealed class DeferredSlideList(PowerPointDocument owner) : IReadOnlyList<PowerPointSlide> {
             public int Count {
                 get {
@@ -155,9 +157,18 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            public PowerPointSlide this[int index] => owner.LoadedSlides[index];
+            public PowerPointSlide this[int index] {
+                get {
+                    owner.ThrowIfDisposed();
+                    return (owner.GetPackageSlides() ?? owner.LoadedSlides)[index];
+                }
+            }
 
-            public IEnumerator<PowerPointSlide> GetEnumerator() => owner.LoadedSlides.GetEnumerator();
+            public IEnumerator<PowerPointSlide> GetEnumerator() {
+                owner.ThrowIfDisposed();
+                // A copy, so the slides read while enumerating may change the list.
+                return (owner.GetPackageSlides() ?? owner.LoadedSlides).ToList().GetEnumerator();
+            }
 
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
@@ -178,7 +189,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointSlideSize SlideSize {
             get {
                 ThrowIfDisposed();
-                return _slideSize ??= new PowerPointSlideSize(SdkPresentationPart);
+                return _slideSize ??= _sdkDocument == null && _sdkDeferred ? new PowerPointSlideSize(this) : new PowerPointSlideSize(SdkPresentationPart);
             }
         }
 

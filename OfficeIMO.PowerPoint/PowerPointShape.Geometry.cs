@@ -5,7 +5,7 @@ namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
         /// <summary>Left of the shape.</summary>
         public OfficeLength Left {
-            get => OfficeLength.Emus(PeekOffset()?.X?.Value ?? 0L);
+            get => OfficeLength.Emus(TryGetPackageCoordinate("off", "x", out long x) ? x : PeekOffset()?.X?.Value ?? 0L);
             set {
                 GetOffset().X = value.ToEmus();
                 OnGeometryChanged();
@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
         }
         /// <summary>Top of the shape.</summary>
         public OfficeLength Top {
-            get => OfficeLength.Emus(PeekOffset()?.Y?.Value ?? 0L);
+            get => OfficeLength.Emus(TryGetPackageCoordinate("off", "y", out long y) ? y : PeekOffset()?.Y?.Value ?? 0L);
             set {
                 GetOffset().Y = value.ToEmus();
                 OnGeometryChanged();
@@ -21,7 +21,7 @@ namespace OfficeIMO.PowerPoint {
         }
         /// <summary>Width of the shape.</summary>
         public OfficeLength Width {
-            get => OfficeLength.Emus(PeekExtents()?.Cx?.Value ?? 0L);
+            get => OfficeLength.Emus(TryGetPackageCoordinate("ext", "cx", out long cx) ? cx : PeekExtents()?.Cx?.Value ?? 0L);
             set {
                 GetExtents().Cx = value.ToEmus();
                 OnGeometryChanged();
@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint {
         }
         /// <summary>Height of the shape.</summary>
         public OfficeLength Height {
-            get => OfficeLength.Emus(PeekExtents()?.Cy?.Value ?? 0L);
+            get => OfficeLength.Emus(TryGetPackageCoordinate("ext", "cy", out long cy) ? cy : PeekExtents()?.Cy?.Value ?? 0L);
             set {
                 GetExtents().Cy = value.ToEmus();
                 OnGeometryChanged();

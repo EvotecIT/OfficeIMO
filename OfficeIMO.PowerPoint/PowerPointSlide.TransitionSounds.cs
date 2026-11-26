@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
             }
             string[] previousRelationshipIds =
                 GetTransitionSoundRelationshipIds();
-            string relationshipId = PowerPointEmbeddedSound.Add(_slidePart,
+            string relationshipId = PowerPointEmbeddedSound.Add(SlidePart,
                 audio, contentType, extension);
             foreach (Transition transition in
                      GetOrCreateTransitionElements()) {
@@ -84,7 +84,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Returns the exact embedded transition sound bytes, when present.</summary>
         public byte[]? GetTransitionSoundBytes() {
             string? relationshipId = GetTransitionStartSound()?.Sound?.Embed?.Value;
-            return PowerPointEmbeddedSound.Read(_slidePart, relationshipId);
+            return PowerPointEmbeddedSound.Read(SlidePart, relationshipId);
         }
 
         private StartSoundAction? GetTransitionStartSound() =>

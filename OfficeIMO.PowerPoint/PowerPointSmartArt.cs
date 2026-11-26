@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using System.Globalization;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
@@ -17,10 +18,15 @@ namespace OfficeIMO.PowerPoint {
             "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1";
         private const string AccentOneColorStyleId =
             "urn:microsoft.com/office/officeart/2005/8/colors/accent1_2";
-        private readonly SlidePart _slidePart;
+        private readonly SlidePart? _initialSlidePart;
+        // A diagram read from the package belongs to its slide's part once the SDK opens.
+        private SlidePart _slidePart => _initialSlidePart ?? OwnerSlide!.SlidePart;
+
+        internal PowerPointSmartArt(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
+        }
 
         internal PowerPointSmartArt(GraphicFrame graphicFrame, SlidePart slidePart) : base(graphicFrame) {
-            _slidePart = slidePart;
+            _initialSlidePart = slidePart;
         }
 
         private GraphicFrame GraphicFrame => (GraphicFrame)Element;

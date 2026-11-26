@@ -119,7 +119,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            if (options?.IncludeNotes == true && _slidePart.NotesSlidePart != null) {
+            if (options?.IncludeNotes == true && SlidePart.NotesSlidePart != null) {
                 string notesText = Notes.Text ?? string.Empty;
                 int occurrences = 0;
                 string updated = OfficeTextSearch.Replace(notesText, text, replacement, OfficeTextSearch.GetComparison(options), options.WholeWords, ref occurrences);
@@ -157,12 +157,12 @@ namespace OfficeIMO.PowerPoint {
 
             EnsureShapeOnSlide(shape);
             var knownRelationshipIds = new HashSet<string>(
-                _slidePart.Parts.Select(pair => pair.RelationshipId)
-                    .Concat(_slidePart.DataPartReferenceRelationships
+                SlidePart.Parts.Select(pair => pair.RelationshipId)
+                    .Concat(SlidePart.DataPartReferenceRelationships
                         .Select(relationship => relationship.Id))
-                    .Concat(_slidePart.ExternalRelationships.Select(
+                    .Concat(SlidePart.ExternalRelationships.Select(
                         relationship => relationship.Id))
-                    .Concat(_slidePart.HyperlinkRelationships.Select(
+                    .Concat(SlidePart.HyperlinkRelationships.Select(
                         relationship => relationship.Id)),
                 StringComparer.Ordinal);
             string[] relationshipIds = new[] { shape.Element }
@@ -207,39 +207,39 @@ namespace OfficeIMO.PowerPoint {
                             StringComparison.Ordinal)))) {
                 return;
             }
-            DataPartReferenceRelationship? dataRelationship = _slidePart
+            DataPartReferenceRelationship? dataRelationship = SlidePart
                 .DataPartReferenceRelationships.FirstOrDefault(
                     relationship => string.Equals(relationship.Id,
                         relationshipId, StringComparison.Ordinal));
             if (dataRelationship != null) {
                 DataPart dataPart = dataRelationship.DataPart;
-                _slidePart.DeleteReferenceRelationship(dataRelationship);
+                SlidePart.DeleteReferenceRelationship(dataRelationship);
                 if (!dataPart.GetDataPartReferenceRelationships().Any()
-                    && _slidePart.OpenXmlPackage is PresentationDocument
+                    && SlidePart.OpenXmlPackage is PresentationDocument
                         document) {
                     document.DeletePart(dataPart);
                 }
                 return;
             }
-            ExternalRelationship? external = _slidePart
+            ExternalRelationship? external = SlidePart
                 .ExternalRelationships.FirstOrDefault(relationship =>
                     string.Equals(relationship.Id, relationshipId,
                         StringComparison.Ordinal));
             if (external != null) {
-                _slidePart.DeleteReferenceRelationship(external);
+                SlidePart.DeleteReferenceRelationship(external);
                 return;
             }
-            HyperlinkRelationship? hyperlink = _slidePart
+            HyperlinkRelationship? hyperlink = SlidePart
                 .HyperlinkRelationships.FirstOrDefault(relationship =>
                     string.Equals(relationship.Id, relationshipId,
                         StringComparison.Ordinal));
             if (hyperlink != null) {
-                _slidePart.DeleteReferenceRelationship(hyperlink);
+                SlidePart.DeleteReferenceRelationship(hyperlink);
                 return;
             }
-            if (_slidePart.TryGetPartById(relationshipId,
+            if (SlidePart.TryGetPartById(relationshipId,
                     out _)) {
-                _slidePart.DeletePart(relationshipId);
+                SlidePart.DeletePart(relationshipId);
             }
         }
 

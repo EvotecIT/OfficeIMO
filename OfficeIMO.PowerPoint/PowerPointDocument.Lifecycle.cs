@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Core.Internal;
 using System.Runtime.ExceptionServices;
 using DocumentFormat.OpenXml;
@@ -34,6 +35,7 @@ namespace OfficeIMO.PowerPoint {
                 try {
                     // A closing editable package rewrites its stream, which nothing reads again.
                     DiscardPendingEdits();
+                    ReleaseLoadedPackage();
                     OfficePackageLoadSource.AbandonPackageStream(_packageStream);
                     // Over loaded bytes the package holds only managed buffers, so closing it would just recompress
                     // every part that was read before discarding the result.
@@ -89,6 +91,7 @@ namespace OfficeIMO.PowerPoint {
                 try {
                     // A closing editable package rewrites its stream, which nothing reads again.
                     DiscardPendingEdits();
+                    ReleaseLoadedPackage();
                     OfficePackageLoadSource.AbandonPackageStream(_packageStream);
                     // Over loaded bytes the package holds only managed buffers, so closing it would just recompress
                     // every part that was read before discarding the result.
@@ -168,6 +171,10 @@ namespace OfficeIMO.PowerPoint {
             OfficeTheme? theme = applyTheme ? options.Theme ?? OfficeTheme.Default : null;
             bool themeApplied = ReferenceEquals(theme, OfficeTheme.Default);
             byte[] packageBytes = themeApplied ? DefaultThemedPackage.Value : DefaultPackage.Value;
+            // A presentation with the default scaffold and theme starts without the SDK, as a loaded one does.
+            if ((themeApplied || theme == null) && TryCreateWithoutSdk(packageBytes, filePath, sourceStream, options, themeApplied ? theme : null) is { } created) {
+                return created;
+            }
             var packageStream = new MemoryStream(packageBytes.Length + StreamBufferSize);
             PresentationDocument? document = null;
             try {
@@ -561,8 +568,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointDocument OpenPackage(Stream packageStream, string? filePath,
             Stream? associatedStream, PowerPointLoadOptions options, bool allowDeferredSdk = false) {
-            if (allowDeferredSdk && CanDeferSdk(packageStream, options, out int slideCount)) {
+            if (allowDeferredSdk && CanDeferSdk(packageStream, options, out int slideCount, out OfficeOpcPackage? loadedPackage)) {
                 return new PowerPointDocument(filePath ?? string.Empty, options.AccessMode) {
+                    _loadedPackage = loadedPackage,
                     _deferredSlideCount = slideCount,
                     _packageStream = packageStream,
                     _sourceStream = associatedStream,
@@ -595,6 +603,7 @@ namespace OfficeIMO.PowerPoint {
             if (hasSignature) {
                 presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
             }
+            presentation.RecordSdkAtLoad();
             return presentation;
         }
 

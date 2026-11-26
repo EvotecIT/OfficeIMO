@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -9,10 +10,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Represents a chart on a slide.
         /// </summary>
         public partial class PowerPointChart : PowerPointShape {
-        private readonly OpenXmlPartContainer _initialOwnerPart;
-        private OpenXmlPartContainer _ownerPart => _initialOwnerPart is SlidePart
-            ? Element.Ancestors<Slide>().FirstOrDefault()?.SlidePart ?? _initialOwnerPart
+        private readonly OpenXmlPartContainer? _initialOwnerPart;
+        // A chart read from the package belongs to its slide's part once the SDK opens.
+        private OpenXmlPartContainer _ownerPart => _initialOwnerPart is null or SlidePart
+            ? Element.Ancestors<Slide>().FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? OwnerSlide!.SlidePart
             : _initialOwnerPart;
+
+        internal PowerPointChart(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
+        }
 
         internal PowerPointChart(GraphicFrame frame, SlidePart slidePart) : base(frame) {
             _initialOwnerPart = slidePart ?? throw new ArgumentNullException(nameof(slidePart));

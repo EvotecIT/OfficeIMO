@@ -96,6 +96,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string RtfWordMergeCompleted = "rtf-word-merge-completed";
     /// <summary>Stable code: <c>scalar-type-dropped</c>.</summary>
     public const string ScalarTypeDropped = "scalar-type-dropped";
+    /// <summary>Stable code: <c>sdk-fallback</c>.</summary>
+    public const string SdkFallback = "sdk-fallback";
     /// <summary>Stable code: <c>section-layout-flattened</c>.</summary>
     public const string SectionLayoutFlattened = "section-layout-flattened";
     /// <summary>Stable code: <c>security-provider-required</c>.</summary>

@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int LayoutIndex {
             get {
-                SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
+                SlideLayoutPart? layoutPart = SlidePart.SlideLayoutPart;
                 if (layoutPart == null) {
                     return -1;
                 }
@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the slide layout using master and layout indexes.
         /// </summary>
         public void SetLayout(int masterIndex, int layoutIndex) {
-            PresentationPart presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().First();
+            PresentationPart presentationPart = SlidePart.GetParentParts().OfType<PresentationPart>().First();
 
             SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
             ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
@@ -45,13 +45,13 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(layoutIndex, layouts.Length);
 
             SlideLayoutPart layoutPart = layouts[layoutIndex];
-            SlideLayoutPart? current = _slidePart.SlideLayoutPart;
+            SlideLayoutPart? current = SlidePart.SlideLayoutPart;
             if (current != null) {
-                string relId = _slidePart.GetIdOfPart(current);
-                _slidePart.DeletePart(relId);
+                string relId = SlidePart.GetIdOfPart(current);
+                SlidePart.DeletePart(relId);
             }
 
-            _slidePart.AddPart(layoutPart);
+            SlidePart.AddPart(layoutPart);
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointSlideLayout? Layout {
             get {
-                SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
+                SlideLayoutPart? layoutPart = SlidePart.SlideLayoutPart;
                 return layoutPart == null || OwnerDocument == null ? null : OwnerDocument.GetLayout(layoutPart);
             }
         }
@@ -75,13 +75,13 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("The layout belongs to a different presentation.", nameof(layout));
             }
 
-            SlideLayoutPart? current = _slidePart.SlideLayoutPart;
+            SlideLayoutPart? current = SlidePart.SlideLayoutPart;
             if (ReferenceEquals(current, layout.LayoutPart)) return;
             if (current != null) {
-                _slidePart.DeletePart(_slidePart.GetIdOfPart(current));
+                SlidePart.DeletePart(SlidePart.GetIdOfPart(current));
             }
 
-            _slidePart.AddPart(layout.LayoutPart);
+            SlidePart.AddPart(layout.LayoutPart);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private int GetLayoutIndex(SlideLayoutValues layoutType, int masterIndex) {
-            PresentationPart presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().First();
+            PresentationPart presentationPart = SlidePart.GetParentParts().OfType<PresentationPart>().First();
             SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
             ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(masterIndex, masters.Length);
@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
         private int GetLayoutIndex(string layoutName, int masterIndex, bool ignoreCase) {
             ArgumentNullException.ThrowIfNull(layoutName);
 
-            PresentationPart presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().First();
+            PresentationPart presentationPart = SlidePart.GetParentParts().OfType<PresentationPart>().First();
             SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
             ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(masterIndex, masters.Length);
@@ -161,7 +161,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves placeholders defined by the slide layout.
         /// </summary>
         public IReadOnlyList<PowerPointLayoutPlaceholderInfo> GetLayoutPlaceholders() {
-            SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
+            SlideLayoutPart? layoutPart = SlidePart.SlideLayoutPart;
             ShapeTree? shapeTree = layoutPart?.SlideLayout?.CommonSlideData?.ShapeTree;
             if (shapeTree == null) {
                 return Array.Empty<PowerPointLayoutPlaceholderInfo>();

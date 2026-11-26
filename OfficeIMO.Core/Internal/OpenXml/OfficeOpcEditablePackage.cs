@@ -88,6 +88,25 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     /// <summary>The part's tree when it has already been parsed or created, without parsing it; otherwise null.</summary>
     internal OfficeXmlTree? GetParsedXml(string partName) => Find(partName)?.Tree;
 
+    /// <summary>
+    /// A pull reader over a part the package has not parsed, edited or replaced, reading its stored bytes without building
+    /// a tree; false for any other part, which <see cref="GetXml"/> reads. The caller disposes <paramref name="content"/>.
+    /// </summary>
+    internal bool TryReadUnparsed(string partName, out OfficeXmlPullReader reader, out OfficePooledBytes content) {
+        reader = default!;
+        content = default;
+        Part? part = Find(partName);
+        if (part == null || part.Tree != null || part.Content != null || !part.FromSource || !_zip!.TryRead(part.Member, out content)) return false;
+        try {
+            reader = new OfficeXmlPullReader(content.Array, content.Length, Namespaces);
+        } catch {
+            content.Dispose();
+            content = default;
+            throw;
+        }
+        return true;
+    }
+
     internal OfficeXmlTree GetXml(string partName) {
         Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
         if (part.Tree != null) return part.Tree;
@@ -111,6 +130,15 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         return tree;
     }
 
+    /// <summary>A part's bytes as the package would save them: its tree written out, its content, or its stored bytes.</summary>
+    /// <exception cref="InvalidDataException">The package has no such part.</exception>
+    internal byte[] ReadPartBytes(string partName) {
+        Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
+        using var output = new MemoryStream();
+        WritePart(part, output, new OfficeXmlUtf8Writer());
+        return output.ToArray();
+    }
+
     /// <summary>Adds a part with binary content, such as an image.</summary>
     internal void CreateBinaryPart(string partName, string? contentType, byte[] content) {
         Part part = AddPart(partName, contentType);
@@ -122,8 +150,45 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     internal void DeletePart(string partName) {
         Part? part = Find(partName);
         if (part == null) return;
+        part.DeletedContentType = GetContentType(part.Name);
         part.Deleted = true;
         RemoveOverride(part.Name);
+    }
+
+    /// <summary>The stored length of a part the package has not parsed or replaced; false for any other part.</summary>
+    internal bool TryGetStoredLength(string partName, out long length) {
+        length = 0;
+        Part? part = Find(partName);
+        return part is { Tree: null, Content: null, FromSource: true } && _zip!.TryGetLength(part.Member, out length);
+    }
+
+    /// <summary>Whether a part is still the one stored in the package that was opened, neither replaced nor given new content.</summary>
+    internal bool IsStoredPart(string partName) => Find(partName) is { FromSource: true, Content: null };
+
+    /// <summary>A part's content type: its override, or the default for its extension; null when neither is declared.</summary>
+    internal string? GetContentType(string partName) {
+        if (Overrides().TryGetValue(Identity(partName), out int node)) return ContentTypes.GetAttribute(node, OfficeXmlNamespaces.None, "ContentType");
+        int dot = partName.LastIndexOf('.');
+        if (dot < 0 || dot < partName.LastIndexOf('/')) return null;
+        string extension = partName.Substring(dot + 1);
+        OfficeXmlTree types = ContentTypes;
+        for (int child = types.FindChild(types.Root, OfficeXmlNamespaces.ContentTypes, "Default"); child != OfficeXmlTree.NoNode;
+            child = types.FindNextSibling(child, OfficeXmlNamespaces.ContentTypes, "Default")) {
+            if (string.Equals(types.GetAttribute(child, OfficeXmlNamespaces.None, "Extension"), extension, StringComparison.OrdinalIgnoreCase)) {
+                return types.GetAttribute(child, OfficeXmlNamespaces.None, "ContentType");
+            }
+        }
+        return null;
+    }
+
+    /// <summary>How many parts have, or had before they were deleted, a content type.</summary>
+    internal int CountParts(string contentType) {
+        int count = 0;
+        foreach (Part part in _parts) {
+            string? type = part.Deleted ? part.DeletedContentType : GetContentType(part.Name);
+            if (string.Equals(type, contentType, StringComparison.OrdinalIgnoreCase)) count++;
+        }
+        return count;
     }
 
     // ---- Content types --------------------------------------------------------------------------------------
@@ -352,6 +417,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         internal byte[]? Content { get; set; }
         internal int ContentLength { get; set; }
         internal bool Deleted { get; set; }
+        internal string? DeletedContentType { get; set; }
         // Stored in the package that was opened, so an unchanged part can be copied as its ZIP member.
         internal bool FromSource { get; set; }
     }
