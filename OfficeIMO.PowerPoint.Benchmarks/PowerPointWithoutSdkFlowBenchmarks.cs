@@ -30,7 +30,7 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         if (!UncheckedFlows.Contains("Edit")) Check(Edit);
         if (!UncheckedFlows.Contains("TextBoxes")) Check(TextBoxes);
         if (!UncheckedFlows.Contains("Appearance")) Check(Appearance, compareSlideXml: true);
-        if (!UncheckedFlows.Contains("Extract")) Check(presentation => presentation.ExtractMarkdownChunks().Count());
+        if (!UncheckedFlows.Contains("Extract")) CheckExtract();
     }
 
     [Benchmark(Baseline = true)]
@@ -151,6 +151,21 @@ public class PowerPointWithoutSdkFlowBenchmarks {
             if (presentation.IsSdkLoaded) throw new InvalidOperationException("The flow opened the Open XML SDK: " + string.Join("; ", presentation.Diagnostics.Select(diagnostic => diagnostic.Message)));
         }
         if (throughSdk != withoutSdk) throw new InvalidOperationException("The saved slides differ.");
+    }
+
+    // Extraction saves nothing, so its check compares the chunks each path extracts.
+    private void CheckExtract() {
+        string throughSdk, withoutSdk;
+        using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false))) {
+            _ = presentation.OpenXmlDocument;
+            throughSdk = string.Join("\n", presentation.ExtractMarkdownChunks().Select(chunk => chunk.Text));
+        }
+        using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false))) {
+            withoutSdk = string.Join("\n", presentation.ExtractMarkdownChunks().Select(chunk => chunk.Text));
+            if (presentation.IsSdkLoaded) throw new InvalidOperationException("Extraction opened the Open XML SDK: " + string.Join("; ", presentation.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        }
+        if (throughSdk.Length == 0) throw new InvalidOperationException("Extraction found no text.");
+        if (throughSdk != withoutSdk) throw new InvalidOperationException("The extracted chunks differ.");
     }
 
     /// <summary>
