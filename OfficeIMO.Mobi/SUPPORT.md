@@ -11,6 +11,8 @@
 
 The reader admits at most 64 MiB of input, 16,384 Palm database records,
 16 MiB of decompressed text and 4,096 bytes per decompressed text record.
+PalmDOC text whose XML escapes would exceed the 64 MiB XHTML entry limit
+is rejected with an explicit chapter-size diagnostic.
 The parser also bounds EXTH items, index records and labels, Kindle
 fragments, and HTML nesting. Image loads are restricted to records in the
 source publication. With no first-image pointer, a standalone KF8 import can

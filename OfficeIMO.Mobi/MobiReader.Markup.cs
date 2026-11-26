@@ -99,10 +99,13 @@ public static partial class MobiReader {
             var projected = new XElement[parts.Length];
             for (int i = 0; i < parts.Length; i++) {
                 MarkupPart part = parts[i];
+                IElement? root = part.Body.ParentElement;
+                if (HasInlineStyle(root)) WarnApproximateMarkup("html");
+                if (HasInlineStyle(part.Body)) WarnApproximateMarkup("body");
                 projected[i] = new XElement("div", part.Body.ChildNodes.Select(node => Render(node, i, parts, kindle)));
                 if (part.Anchor(part.Body) is { } id) projected[i].SetAttributeValue("id", id);
-                projected[i].SetAttributeValue("dir", TextDirection(part.Body) ?? TextDirection(part.Body.ParentElement));
-                SetMarkupLanguage(projected[i], MarkupLanguage(part.Body) ?? MarkupLanguage(part.Body.ParentElement));
+                projected[i].SetAttributeValue("dir", TextDirection(part.Body) ?? TextDirection(root));
+                SetMarkupLanguage(projected[i], MarkupLanguage(part.Body) ?? MarkupLanguage(root));
             }
 
             int? cover = selected.Integer(201) ?? first.Integer(201);
@@ -157,6 +160,13 @@ public static partial class MobiReader {
             target.SetAttributeValue(XNamespace.Xml + "lang", language);
         }
 
+        private static bool HasInlineStyle(IElement? element) =>
+            !string.IsNullOrWhiteSpace(element?.GetAttribute("style"));
+
+        private void WarnApproximateMarkup(string tag) =>
+            Warn("MOBI_MARKUP_APPROXIMATED", "Legacy markup or CSS presentation was approximated.", tag,
+                OfficeConversionLossKind.Approximation);
+
         private object? Render(INode node, int partIndex, MarkupPart[] parts, Kf8Content? kindle) {
             token.ThrowIfCancellationRequested();
             if (node is IText text) return parts[partIndex].RenderText(text);
@@ -182,8 +192,7 @@ public static partial class MobiReader {
                 "center" => "div",
                 _ => "span"
             };
-            if (tag != targetTag || source.HasAttribute("style"))
-                Warn("MOBI_MARKUP_APPROXIMATED", "Legacy markup or CSS presentation was approximated.", tag, OfficeConversionLossKind.Approximation);
+            if (tag != targetTag || HasInlineStyle(source)) WarnApproximateMarkup(tag);
 
             var target = new XElement(targetTag);
             if (part.Anchor(source) is { } id) target.SetAttributeValue("id", id);

@@ -606,6 +606,12 @@ internal static partial class DocumentReaderEngine {
         if (StartsWith(prefix, new byte[] { 0xA1, 0x2F, 0xFF, 0x43, 0xD9, 0xEF, 0x76, 0x4C, 0x9E, 0xE2, 0x10, 0xEA, 0x57, 0x22, 0x76, 0x5F })) {
             return DetectionCandidate.High(ReaderInputKind.OneNote, "application/onenote", "signature:onenote-toc");
         }
+        if (IsOleCompound(prefix)) {
+            return DetectionCandidate.Unknown("signature:ole-compound");
+        }
+        if (IsCabinet(prefix)) {
+            return DetectionCandidate.Unknown("signature:cabinet");
+        }
         if (IndexOfAscii(prefix, "%PDF-", Math.Min(prefix.Length, 1024)) >= 0) {
             return DetectionCandidate.High(ReaderInputKind.Pdf, "application/pdf", "signature:pdf");
         }
@@ -617,13 +623,6 @@ internal static partial class DocumentReaderEngine {
         if (StartsWith(prefix, new byte[] { 0x78, 0x9F, 0x3E, 0x22 })) {
             return DetectionCandidate.High(ReaderInputKind.Email, "application/ms-tnef", "signature:tnef");
         }
-        if (StartsWith(prefix, new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 })) {
-            return DetectionCandidate.Unknown("signature:ole-compound");
-        }
-        if (IsCabinet(prefix)) {
-            return DetectionCandidate.Unknown("signature:cabinet");
-        }
-
         string? text = DecodeTextPrefix(prefix);
         if (text == null) {
             return DetectionCandidate.Unknown("content:binary");

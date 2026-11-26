@@ -122,11 +122,15 @@ internal sealed class MobiHeader {
         int cursor = 12;
         for (int i = 0; i < count; i++) {
             token.ThrowIfCancellationRequested();
-            int id = Number(source, cursor);
+            uint id = U32(source, cursor);
             int length = Number(source, cursor + 4);
             if (length < 8) throw new InvalidDataException("An EXTH item has an invalid length.");
-            if (!_metadata.TryGetValue(id, out List<byte[]>? values)) _metadata.Add(id, values = new());
-            values.Add(Slice(source, cursor + 8, length - 8).ToArray());
+            ReadOnlySpan<byte> payload = Slice(source, cursor + 8, length - 8);
+            if (id <= int.MaxValue) {
+                int key = (int)id;
+                if (!_metadata.TryGetValue(key, out List<byte[]>? values)) _metadata.Add(key, values = new());
+                values.Add(payload.ToArray());
+            }
             cursor += length;
         }
     }

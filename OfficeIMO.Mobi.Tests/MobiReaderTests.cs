@@ -374,15 +374,42 @@ public sealed class MobiReaderTests {
         Assert.True(report.HasLoss);
     }
 
-    [Fact]
-    public void ProvidesATitleWhenPalmDocHasNoNameOrFilenameStem() {
+    [Theory]
+    [InlineData(".pdb", "Untitled")]
+    [InlineData("ordinary.pdb", "ordinary")]
+    [InlineData("folder/Shelf | Notes.pdb", "Shelf | Notes")]
+    [InlineData(@"C:\Books\Display.pdb", "Display")]
+    public void UsesTheDisplayNameWhenPalmDocHasNoNativeTitle(string sourceName, string expectedTitle) {
         byte[] bytes = Fixture("harbour.pdb");
         Array.Clear(bytes, 0, 32);
         using var source = new MemoryStream(bytes, writable: false);
 
-        EpubDocument book = ReadPublication(source, ".pdb");
-        Assert.Equal("Untitled", book.Title);
+        EpubDocument book = ReadPublication(source, sourceName);
+        Assert.Equal(expectedTitle, book.Title);
         Assert.Contains("Signal received.", Assert.Single(book.Chapters).Text);
+    }
+
+    [Fact]
+    public void RejectsPalmDocWhenItsEscapedTextWouldExceedTheChapterLimit() {
+        byte[] bytes = BuildLegacyMobi(new string('&', 14 * 1024 * 1024), includeMobiHeader: false);
+        "TEXtREAd"u8.CopyTo(bytes.AsSpan(60));
+        using var source = new MemoryStream(bytes, writable: false);
+
+        var error = Assert.Throws<InvalidDataException>(() => MobiReader.Import(source, "escaped.pdb"));
+        Assert.Contains("escaped XHTML chapter limit", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SkipsUnknownUnsignedExthTypesAndReadsLaterMetadata() {
+        byte[] bytes = Fixture("harbour.azw3");
+        int item = FindExthItem(bytes, RecordOffset(bytes, 0), 524);
+        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(item), 0x80000000);
+        using var source = new MemoryStream(bytes, writable: false);
+
+        EpubDocument book = ReadPublication(source, "harbour.azw3");
+
+        Assert.Equal("Ada Reader", book.Creator);
+        Assert.Contains(book.Chapters, chapter => chapter.Text.Contains("Signal received."));
     }
 
     [Theory]
@@ -446,6 +473,26 @@ public sealed class MobiReaderTests {
         Assert.Collection(paragraph.Elements(xhtml + "a"),
             root => Assert.Equal(fragment, (string?)root.Attribute("href")),
             body => Assert.Equal(fragment, (string?)body.Attribute("href")));
+    }
+
+    [Theory]
+    [InlineData(" style='direction:rtl'", "", "html")]
+    [InlineData("", " style='direction:rtl'", "body")]
+    [InlineData(" style=' '", " style=' '", null)]
+    public void ReportsOnlyNonemptyStylesOmittedFromTheChapterRoots(string root, string body, string? location) {
+        byte[] input = BuildLegacyMobi($"<html{root}><body{body}><p>Chapter text.</p></body></html>");
+        int header = RecordOffset(input, 0);
+        BinaryPrimitives.WriteUInt32BigEndian(input.AsSpan(header + 128), 0);
+        BinaryPrimitives.WriteUInt32BigEndian(input.AsSpan(header + 244), uint.MaxValue);
+        using var source = new MemoryStream(input, writable: false);
+
+        OfficeConversionReport report = MobiReader.Import(source, "root-style.mobi").Report;
+
+        Assert.Equal(location != null, report.HasLoss);
+        if (location != null) {
+            Assert.Contains(report.Diagnostics, item => item.Code == "MOBI_MARKUP_APPROXIMATED" &&
+                item.Location == location && item.LossKind == OfficeConversionLossKind.Approximation);
+        }
     }
 
     [Fact]
