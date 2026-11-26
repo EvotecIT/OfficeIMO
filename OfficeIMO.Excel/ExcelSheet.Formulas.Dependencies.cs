@@ -1,7 +1,5 @@
 using System.Globalization;
 using System.Text;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -68,24 +66,22 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class FormulaDependencyInspectionContext {
-            private readonly Dictionary<string, IReadOnlyList<Cell>> _formulaCells =
-                new Dictionary<string, IReadOnlyList<Cell>>(StringComparer.OrdinalIgnoreCase);
+            private readonly Dictionary<string, IReadOnlyList<ExcelFormulaCell>> _formulaCells =
+                new Dictionary<string, IReadOnlyList<ExcelFormulaCell>>(StringComparer.OrdinalIgnoreCase);
             private readonly Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>> _sharedFormulaDefinitions =
                 new Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>(StringComparer.OrdinalIgnoreCase);
 
             internal FormulaDependencyInspectionContext(
                 ExcelSheet sourceSheet,
-                IReadOnlyList<Cell> sourceFormulaCells,
+                IReadOnlyList<ExcelFormulaCell> sourceFormulaCells,
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sourceSharedFormulaDefinitions) {
                 _formulaCells.Add(sourceSheet.Name, sourceFormulaCells);
                 _sharedFormulaDefinitions.Add(sourceSheet.Name, sourceSharedFormulaDefinitions);
             }
 
-            internal IReadOnlyList<Cell> GetFormulaCells(ExcelSheet sheet) {
-                if (!_formulaCells.TryGetValue(sheet.Name, out IReadOnlyList<Cell>? cells)) {
-                    cells = ExcelWorksheetScan.Cells(sheet.WorksheetRoot)
-                        .Where(cell => ExcelWorksheetScan.FindFormula(cell) != null)
-                        .ToList();
+            internal IReadOnlyList<ExcelFormulaCell> GetFormulaCells(ExcelSheet sheet) {
+                if (!_formulaCells.TryGetValue(sheet.Name, out IReadOnlyList<ExcelFormulaCell>? cells)) {
+                    cells = sheet.EnumerateFormulaCells().ToList();
                     _formulaCells.Add(sheet.Name, cells);
                 }
 
@@ -218,17 +214,17 @@ namespace OfficeIMO.Excel {
         private FormulaDependencyAliasCatalog GetFormulaDependencyAliases() {
             var aliases = new List<FormulaDependencyAlias>();
             var aliasKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            DefinedNames? definedNames = WorkbookRoot.DefinedNames;
-            List<Sheet> sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
-            int currentSheetIndex = sheets.FindIndex(sheet => string.Equals(sheet.Name?.Value, Name, StringComparison.OrdinalIgnoreCase));
-            if (definedNames != null) {
-                foreach (DefinedName definedName in definedNames.Elements<DefinedName>()) {
-                    string? name = definedName.Name?.Value;
+            List<ExcelFormulaDefinedName> definedNames = ReadFormulaDefinedNames();
+            List<string?> sheets = ReadFormulaSheetNames();
+            int currentSheetIndex = sheets.FindIndex(sheet => string.Equals(sheet, Name, StringComparison.OrdinalIgnoreCase));
+            if (definedNames.Count != 0) {
+                foreach (ExcelFormulaDefinedName definedName in definedNames) {
+                    string? name = definedName.Name;
                     if (!IsFormulaDefinedNameToken(name ?? string.Empty) || IsBuiltInFormulaDefinedName(name)) {
                         continue;
                     }
 
-                    if (definedName.LocalSheetId?.Value is uint localSheetIndex) {
+                    if (definedName.LocalSheetId is uint localSheetIndex) {
                         if (localSheetIndex >= (uint)sheets.Count) {
                             continue;
                         }
@@ -237,7 +233,7 @@ namespace OfficeIMO.Excel {
                             AddFormulaDependencyAlias(aliases, aliasKeys, name!, allowStructuredSuffix: false);
                         }
 
-                        if (sheets[(int)localSheetIndex].Name?.Value is string scopedSheetName) {
+                        if (sheets[(int)localSheetIndex] is string scopedSheetName) {
                             AddFormulaDependencyAlias(aliases, aliasKeys, scopedSheetName + "!" + name, allowStructuredSuffix: false);
                             AddFormulaDependencyAlias(
                                 aliases,
@@ -253,18 +249,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            WorkbookPart? workbookPart = _spreadSheetDocument.WorkbookPart;
-            if (workbookPart != null) {
-                foreach (WorksheetPart worksheetPart in workbookPart.WorksheetParts) {
-                    foreach (Table table in worksheetPart.TableDefinitionParts.Select(part => part.Table).OfType<Table>()) {
-                        IEnumerable<string> tableAliases = new[] { table.Name?.Value, table.DisplayName?.Value }
-                            .OfType<string>()
-                            .Where(alias => !string.IsNullOrWhiteSpace(alias))
-                            .Distinct(StringComparer.OrdinalIgnoreCase);
-                        foreach (string alias in tableAliases) {
-                            AddFormulaDependencyAlias(aliases, aliasKeys, alias, allowStructuredSuffix: true);
-                        }
-                    }
+            foreach (ExcelFormulaTable table in ReadWorkbookFormulaTables()) {
+                IEnumerable<string> tableAliases = new[] { table.Name, table.DisplayName }
+                    .OfType<string>()
+                    .Where(alias => !string.IsNullOrWhiteSpace(alias))
+                    .Distinct(StringComparer.OrdinalIgnoreCase);
+                foreach (string alias in tableAliases) {
+                    AddFormulaDependencyAlias(aliases, aliasKeys, alias, allowStructuredSuffix: true);
                 }
             }
 
@@ -526,8 +517,8 @@ namespace OfficeIMO.Excel {
                     issues.Add($"Dependency '{dependency}' references its own formula cell.");
                 }
 
-                foreach (Cell dependencyCell in inspectionContext.GetFormulaCells(dependencySheet)) {
-                    string? dependencyReference = NormalizeFormulaCellReference(dependencyCell.CellReference?.Value);
+                foreach (ExcelFormulaCell dependencyCell in inspectionContext.GetFormulaCells(dependencySheet)) {
+                    string? dependencyReference = NormalizeFormulaCellReference(dependencyCell.Reference);
                     if (dependencyReference == null
                         || !TryParseCellReference(dependencyReference, out int dependencyRow, out int dependencyColumn)
                         || dependencyRow < r1 || dependencyRow > r2 || dependencyColumn < c1 || dependencyColumn > c2) {
@@ -540,7 +531,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (ExcelWorksheetScan.FindValue(dependencyCell) == null) {
+                    if (!dependencyCell.HasValue) {
                         issues.Add($"Dependency '{formattedDependencyCell}' is a formula without a cached result.");
                     }
 

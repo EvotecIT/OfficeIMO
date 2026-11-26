@@ -1,9 +1,7 @@
-using DocumentFormat.OpenXml.Spreadsheet;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private readonly struct FormulaDependencyTableRange {
-            internal FormulaDependencyTableRange(Table table, int firstRow, int firstColumn, int lastRow, int lastColumn) {
+            internal FormulaDependencyTableRange(ExcelFormulaTable table, int firstRow, int firstColumn, int lastRow, int lastColumn) {
                 Table = table;
                 FirstRow = firstRow;
                 FirstColumn = firstColumn;
@@ -11,7 +9,7 @@ namespace OfficeIMO.Excel {
                 LastColumn = lastColumn;
             }
 
-            internal Table Table { get; }
+            internal ExcelFormulaTable Table { get; }
             internal int FirstRow { get; }
             internal int FirstColumn { get; }
             internal int LastRow { get; }
@@ -22,7 +20,7 @@ namespace OfficeIMO.Excel {
             private readonly List<FormulaDependencyTableRange> _ranges;
             private readonly int[] _prefixMaximumLastRows;
 
-            internal FormulaDependencyTableCatalog(IEnumerable<Table> tables) {
+            internal FormulaDependencyTableCatalog(IEnumerable<ExcelFormulaTable> tables) {
                 _ranges = tables
                     .Select(TryCreateRange)
                     .Where(range => range.HasValue)
@@ -38,7 +36,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            internal bool TryGetContainingTable(int row, int column, out Table table) {
+            internal bool TryGetContainingTable(int row, int column, out ExcelFormulaTable table) {
                 int low = 0;
                 int high = _ranges.Count - 1;
                 int candidate = -1;
@@ -66,10 +64,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            private static FormulaDependencyTableRange? TryCreateRange(Table table) {
-                if (table.Reference?.Value == null
+            private static FormulaDependencyTableRange? TryCreateRange(ExcelFormulaTable table) {
+                if (table.Reference == null
                     || !ExcelA1.TryParseRange(
-                        table.Reference.Value.Replace("$", string.Empty),
+                        table.Reference.Replace("$", string.Empty),
                         out int firstRow,
                         out int firstColumn,
                         out int lastRow,
@@ -82,10 +80,7 @@ namespace OfficeIMO.Excel {
         }
 
         private FormulaDependencyTableCatalog GetFormulaDependencyTables() {
-            return new FormulaDependencyTableCatalog(
-                _worksheetPart.TableDefinitionParts
-                    .Select(part => part.Table)
-                    .OfType<Table>());
+            return new FormulaDependencyTableCatalog(ReadFormulaTables());
         }
 
         private void AddUnqualifiedCurrentRowDependencyMatches(
@@ -95,7 +90,7 @@ namespace OfficeIMO.Excel {
             FormulaDependencyTableCatalog tables,
             ICollection<FormulaDependencyReferenceMatch> dependencyMatches) {
             if (formula.IndexOf('[') < 0
-                || !tables.TryGetContainingTable(sourceRow, sourceColumn, out Table table)) {
+                || !tables.TryGetContainingTable(sourceRow, sourceColumn, out ExcelFormulaTable table)) {
                 return;
             }
 
@@ -236,7 +231,7 @@ namespace OfficeIMO.Excel {
                 || !currentColumn.HasValue
                 || !StartsWithBracket(token)
                 || !TryGetUnqualifiedCurrentRowReference(token, out FormulaStructuredTableReference structuredReference)
-                || !TryGetContainingFormulaTable(currentRow.Value, currentColumn.Value, out Table table)) {
+                || !TryGetContainingFormulaTable(currentRow.Value, currentColumn.Value, out ExcelFormulaTable table)) {
                 return false;
             }
 
@@ -257,29 +252,5 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private bool TryGetContainingFormulaTable(int row, int column, out Table table) {
-            table = null!;
-            if (!HasTableDefinitions) return false;
-            foreach (DocumentFormat.OpenXml.Packaging.TableDefinitionPart part in _worksheetPart.TableDefinitionParts) {
-                if (part.Table is not Table candidate) continue;
-                if (candidate.Reference?.Value != null
-                    && ExcelA1.TryParseRange(
-                        candidate.Reference.Value.Replace("$", string.Empty),
-                        out int firstRow,
-                        out int firstColumn,
-                        out int lastRow,
-                        out int lastColumn)
-                    && row >= firstRow
-                    && row <= lastRow
-                    && column >= firstColumn
-                    && column <= lastColumn) {
-                    table = candidate;
-                    return true;
-                }
-            }
-
-            table = null!;
-            return false;
-        }
     }
 }

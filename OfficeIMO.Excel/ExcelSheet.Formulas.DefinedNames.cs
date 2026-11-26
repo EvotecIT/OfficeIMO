@@ -1,5 +1,4 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -72,43 +71,36 @@ namespace OfficeIMO.Excel {
         }
 
         internal sealed class FormulaDefinedNameResolutionCatalog {
-            private readonly List<Sheet> _sheets;
+            private readonly List<ExcelFormulaSheetEntry> _sheets;
             private readonly HashSet<int> _validSheetIndexes = new HashSet<int>();
             private readonly Dictionary<string, int> _sheetIndexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            private readonly Dictionary<string, DefinedName> _definedNames = new Dictionary<string, DefinedName>(StringComparer.OrdinalIgnoreCase);
+            private readonly Dictionary<string, ExcelFormulaDefinedName> _definedNames = new Dictionary<string, ExcelFormulaDefinedName>(StringComparer.OrdinalIgnoreCase);
 
             internal FormulaDefinedNameResolutionCatalog(ExcelSheet owner) {
-                _sheets = owner.WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
-                var worksheetRelationshipIds = new HashSet<string>(
-                    owner.WorkbookPartRoot.Parts
-                        .Where(pair => pair.OpenXmlPart is DocumentFormat.OpenXml.Packaging.WorksheetPart)
-                        .Select(pair => pair.RelationshipId),
-                    StringComparer.Ordinal);
+                _sheets = owner.ReadFormulaSheetEntries();
                 for (int index = 0; index < _sheets.Count; index++) {
-                    string? sheetName = _sheets[index].Name?.Value;
-                    string? relationshipId = _sheets[index].Id?.Value;
-                    bool validWorksheet = !string.IsNullOrWhiteSpace(relationshipId)
-                        && worksheetRelationshipIds.Contains(relationshipId!);
+                    string? sheetName = _sheets[index].Name;
+                    bool validWorksheet = _sheets[index].IsWorksheet;
                     if (validWorksheet) _validSheetIndexes.Add(index);
                     if (validWorksheet && !string.IsNullOrWhiteSpace(sheetName) && !_sheetIndexes.ContainsKey(sheetName!)) {
                         _sheetIndexes.Add(sheetName!, index);
                     }
                 }
 
-                foreach (DefinedName definedName in owner.WorkbookRoot.DefinedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>()) {
-                    string? name = definedName.Name?.Value;
+                foreach (ExcelFormulaDefinedName definedName in owner.ReadFormulaDefinedNames()) {
+                    string? name = definedName.Name;
                     if (!IsFormulaDefinedNameToken(name ?? string.Empty) || IsBuiltInFormulaDefinedName(name)) {
                         continue;
                     }
 
-                    string key = CreateDefinedNameIdentity(definedName.LocalSheetId?.Value, name!);
+                    string key = CreateDefinedNameIdentity(definedName.LocalSheetId, name!);
                     if (!_definedNames.ContainsKey(key)) {
                         _definedNames.Add(key, definedName);
                     }
                 }
             }
 
-            internal bool TryGetSheet(string name, out int index, out Sheet sheet) {
+            internal bool TryGetSheet(string name, out int index, out ExcelFormulaSheetEntry sheet) {
                 if (_sheetIndexes.TryGetValue(name, out index)) {
                     sheet = _sheets[index];
                     return true;
@@ -118,7 +110,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            internal bool TryGetSheet(uint index, out Sheet sheet) {
+            internal bool TryGetSheet(uint index, out ExcelFormulaSheetEntry sheet) {
                 if (index < (uint)_sheets.Count && _validSheetIndexes.Contains((int)index)) {
                     sheet = _sheets[(int)index];
                     return true;
@@ -132,7 +124,7 @@ namespace OfficeIMO.Excel {
                 int? localSheetIndex,
                 string name,
                 bool allowGlobal,
-                out DefinedName definedName,
+                out ExcelFormulaDefinedName definedName,
                 out string identity) {
                 if (localSheetIndex.HasValue) {
                     identity = CreateDefinedNameIdentity((uint)localSheetIndex.Value, name);
@@ -278,7 +270,7 @@ namespace OfficeIMO.Excel {
 
             int? localSheetIndex = null;
             if (sheetName != null) {
-                if (!catalog.TryGetSheet(sheetName, out int index, out Sheet sheetElement)) {
+                if (!catalog.TryGetSheet(sheetName, out int index, out ExcelFormulaSheetEntry sheetElement)) {
                     return false;
                 }
 
@@ -294,7 +286,7 @@ namespace OfficeIMO.Excel {
                 localSheetIndex,
                 name,
                 allowGlobal: sheetName == null,
-                out DefinedName definedName,
+                out ExcelFormulaDefinedName definedName,
                 out identity)) {
                 return false;
             }
@@ -311,9 +303,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (definedName.LocalSheetId?.Value is uint scopedIndex
-                && catalog.TryGetSheet(scopedIndex, out Sheet scopedSheet)
-                && scopedSheet.Name?.Value is string scopedSheetName
+            if (definedName.LocalSheetId is uint scopedIndex
+                && catalog.TryGetSheet(scopedIndex, out ExcelFormulaSheetEntry scopedSheet)
+                && scopedSheet.Name is string scopedSheetName
                 && !string.Equals(scopedSheetName, Name, StringComparison.OrdinalIgnoreCase)) {
                 defaultSheet = CreateDefinedNameResolutionSheet(scopedSheet);
             }
@@ -321,20 +313,20 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private ExcelSheet CreateDefinedNameResolutionSheet(Sheet sheetElement) {
-            if (string.Equals(Name, sheetElement.Name?.Value, StringComparison.OrdinalIgnoreCase)) {
+        private ExcelSheet CreateDefinedNameResolutionSheet(ExcelFormulaSheetEntry sheetElement) {
+            if (string.Equals(Name, sheetElement.Name, StringComparison.OrdinalIgnoreCase)) {
                 return this;
             }
 
-            return new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement) {
-                _formulaEvaluationCache = _formulaEvaluationCache,
-                _formulaCalculationContext = _formulaCalculationContext,
-                _formulaEvaluationCellReference = _formulaEvaluationCellReference,
-                _formulaEvaluationDepthCache = _formulaEvaluationDepthCache,
-                _formulaEvaluationStack = _formulaEvaluationStack,
-                _formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames,
-                _formulaEvaluationGuardState = _formulaEvaluationGuardState
-            };
+            ExcelSheet sheet = CreateFormulaSheetWrapper(sheetElement);
+            sheet._formulaEvaluationCache = _formulaEvaluationCache;
+            sheet._formulaCalculationContext = _formulaCalculationContext;
+            sheet._formulaEvaluationCellReference = _formulaEvaluationCellReference;
+            sheet._formulaEvaluationDepthCache = _formulaEvaluationDepthCache;
+            sheet._formulaEvaluationStack = _formulaEvaluationStack;
+            sheet._formulaEvaluationDepthFrames = _formulaEvaluationDepthFrames;
+            sheet._formulaEvaluationGuardState = _formulaEvaluationGuardState;
+            return sheet;
         }
 
         private static bool IsFormulaDefinedNameToken(string token) {

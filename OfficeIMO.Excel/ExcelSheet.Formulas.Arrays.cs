@@ -1,8 +1,12 @@
-using DocumentFormat.OpenXml.Spreadsheet;
-
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FormulaEvaluationResults, ArrayCalculationContext> ArrayCalculationContexts = new System.Runtime.CompilerServices.ConditionalWeakTable<FormulaEvaluationResults, ArrayCalculationContext>();
+        private static System.Runtime.CompilerServices.ConditionalWeakTable<FormulaEvaluationResults, ArrayCalculationContext> ArrayCalculationContexts =>
+            ArrayCalculationContextStore.Contexts;
+
+        // A holder keeps the table out of the sheet's static constructor.
+        private static class ArrayCalculationContextStore {
+            internal static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FormulaEvaluationResults, ArrayCalculationContext> Contexts = new();
+        }
 
         private sealed class ArrayCalculationContext {
             internal readonly Dictionary<string, FixedArraySheetIndex> Sheets = new Dictionary<string, FixedArraySheetIndex>(StringComparer.OrdinalIgnoreCase);
@@ -10,11 +14,11 @@ namespace OfficeIMO.Excel {
             internal readonly Dictionary<long, DynamicArrayPlan> DynamicPlans = new Dictionary<long, DynamicArrayPlan>();
         }
 
-        private bool TryGetCalculatedArray(Cell cell, out FormulaArrayValue array) {
+        private bool TryGetCalculatedArray(ExcelFormulaCell cell, out FormulaArrayValue array) {
             array = null!;
-            return ExcelWorksheetScan.FindFormula(cell)?.FormulaType?.Value == CellFormulaValues.Array && _formulaEvaluationCache != null
+            return cell.FormulaKind == ExcelFormulaKind.Array && _formulaEvaluationCache != null
                 && ArrayCalculationContexts.GetOrCreateValue(_formulaEvaluationCache).Results.TryGetValue(
-                    GetFormulaEvaluationCacheKey(cell.CellReference!.Value!), out array!);
+                    GetFormulaEvaluationCacheKey(cell.Reference!), out array!);
         }
 
         private sealed class FixedArraySheetIndex {
@@ -24,13 +28,13 @@ namespace OfficeIMO.Excel {
             internal bool DynamicOwnersPlanned;
             internal readonly List<FixedArrayOwner> Owners = new List<FixedArrayOwner>();
             internal readonly List<FixedArrayOwner> DynamicOwners = new List<FixedArrayOwner>();
-            internal readonly Dictionary<Cell, FixedArrayOwner> DynamicByCell = new Dictionary<Cell, FixedArrayOwner>();
-            internal List<Cell> FormulaCells = new List<Cell>();
-            internal readonly Dictionary<long, Cell> Cells = new Dictionary<long, Cell>();
+            internal readonly Dictionary<ExcelFormulaCell, FixedArrayOwner> DynamicByCell = new Dictionary<ExcelFormulaCell, FixedArrayOwner>();
+            internal List<ExcelFormulaCell> FormulaCells = new List<ExcelFormulaCell>();
+            internal readonly Dictionary<long, ExcelFormulaCell> Cells = new Dictionary<long, ExcelFormulaCell>();
         }
 
         private sealed class FixedArrayOwner {
-            internal Cell Cell = null!;
+            internal ExcelFormulaCell Cell;
             internal int Top, Left, Bottom, Right;
             internal bool Dynamic;
         }
@@ -50,7 +54,7 @@ namespace OfficeIMO.Excel {
 
         /// <param name="formulaCells">The sheet's formula cells in document order when the caller has just listed
         /// them; the index keeps that list rather than walking the worksheet again.</param>
-        private FixedArraySheetIndex GetFixedArraySheetIndex(List<Cell>? formulaCells = null) {
+        private FixedArraySheetIndex GetFixedArraySheetIndex(List<ExcelFormulaCell>? formulaCells = null) {
             var sheets = ArrayCalculationContexts.GetOrCreateValue(_formulaEvaluationCache!).Sheets;
             if (!sheets.TryGetValue(Name, out FixedArraySheetIndex? index)) {
                 index = BuildFixedArraySheetIndex(formulaCells);
@@ -59,25 +63,18 @@ namespace OfficeIMO.Excel {
             return index;
         }
 
-        private FixedArraySheetIndex BuildFixedArraySheetIndex(List<Cell>? formulaCells = null) {
+        private FixedArraySheetIndex BuildFixedArraySheetIndex(List<ExcelFormulaCell>? formulaCells = null) {
             var index = new FixedArraySheetIndex();
-            Metadata? metadata = null;
+            object? metadata = null;
             if (formulaCells != null) index.FormulaCells = formulaCells;
             // Array owners and formula cells are DOM cells, so the walk leaves stored cells where they are.
-            foreach (Cell candidate in formulaCells ?? ExcelWorksheetScan.FormulaCells(WorksheetRoot)) {
+            foreach (ExcelFormulaCell candidate in formulaCells ?? EnumerateFormulaCells()) {
                 if (formulaCells == null) index.FormulaCells.Add(candidate);
-                if (ExcelWorksheetScan.FindFormula(candidate)?.FormulaType?.Value == CellFormulaValues.Array
-                    && IsSupportedArrayExpression(ExcelWorksheetScan.FindFormula(candidate)!.Text)
-                    && TryFixedArrayBounds(ExcelWorksheetScan.FindFormula(candidate)!.Reference?.Value ?? "",
+                if (candidate.FormulaKind == ExcelFormulaKind.Array
+                    && IsSupportedArrayExpression(candidate.FormulaText ?? string.Empty)
+                    && TryFixedArrayBounds(candidate.FormulaReference ?? "",
                         out int top, out int left, out int bottom, out int right)) {
-                    bool dynamic = false;
-                    if (candidate.CellMetaIndex != null) {
-                        var part = _excelDocument.WorkbookPartRoot.CellMetadataPart;
-                        if (part != null && !part.IsRootElementLoaded)
-                            ValidateInCellImageMetadataPart(part, "Cell metadata");
-                        metadata ??= part?.Metadata;
-                        dynamic = CreateFormulaArrayInfo(candidate, metadata)?.IsDynamic == true;
-                    }
+                    bool dynamic = candidate.CellMetaIndex != null && IsDynamicArrayFormula(candidate, ref metadata);
                     var owner = new FixedArrayOwner { Cell = candidate, Top = top, Left = left,
                         Bottom = bottom, Right = right, Dynamic = dynamic };
                     (dynamic ? index.DynamicOwners : index.Owners).Add(owner);
@@ -85,8 +82,8 @@ namespace OfficeIMO.Excel {
                 }
             }
             if (index.DynamicOwners.Count > 0)
-                foreach (Cell candidate in ExcelWorksheetScan.Cells(WorksheetRoot))
-                    if (TryParseCellReference(candidate.CellReference?.Value ?? "", out int row, out int column))
+                foreach (ExcelFormulaCell candidate in EnumerateStoredFormulaCells())
+                    if (TryParseCellReference(candidate.Reference ?? "", out int row, out int column))
                         index.Cells[DynamicCellKey(row, column)] = candidate;
             return index;
         }
@@ -111,9 +108,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool TryEvaluateAuthoredFormulaCell(Cell cell, string formula, out FormulaArgumentValue result) {
+        private bool TryEvaluateAuthoredFormulaCell(ExcelFormulaCell cell, string formula, out FormulaArgumentValue result) {
             result = default;
-            if (ExcelWorksheetScan.FindFormula(cell)?.FormulaType?.Value != CellFormulaValues.Array)
+            if (cell.FormulaKind != ExcelFormulaKind.Array)
                 return TryEvaluateFormulaValue(formula, out result);
             if (!IsSupportedArrayExpression(formula)) return TryEvaluateFormulaValue(formula, out result);
             FormulaArgumentValue previousError = _formulaReferenceError;
@@ -125,12 +122,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool TryEvaluateAuthoredArrayFormulaCell(Cell cell, string formula, out FormulaArgumentValue result) {
+        private bool TryEvaluateAuthoredArrayFormulaCell(ExcelFormulaCell cell, string formula, out FormulaArgumentValue result) {
             result = default;
-            string? reference = ExcelWorksheetScan.FindFormula(cell)?.Reference?.Value;
+            string? reference = cell.FormulaReference;
             if (reference == null || !TryFixedArrayBounds(reference,
                 out int r1, out int c1, out int r2, out int c2)
-                || !TryParseCellReference(cell.CellReference?.Value ?? "", out int row, out int column)
+                || !TryParseCellReference(cell.Reference ?? "", out int row, out int column)
                 || row != r1 || column != c1
                 || !TryGetFormulaRangeCellCount(r1, c1, r2, c2, out _)
                 || !TryEvaluateArrayValue(formula, 0, out FormulaArrayValue array))
@@ -150,22 +147,22 @@ namespace OfficeIMO.Excel {
             if (array.Rows != r2 - r1 + 1 || array.Columns != c2 - c1 + 1) return false;
             // Imported or subsequently edited ranges can contain another formula.
             // Never replace that formula with an array cache.
-            IEnumerable<Cell> formulaCells = _formulaEvaluationCache == null
-                ? ExcelWorksheetScan.FormulaCells(WorksheetRoot)
+            IEnumerable<ExcelFormulaCell> formulaCells = _formulaEvaluationCache == null
+                ? EnumerateFormulaCells()
                 : GetFixedArraySheetIndex().FormulaCells;
-            foreach (Cell occupied in formulaCells) {
-                if (occupied == cell || ExcelWorksheetScan.FindFormula(occupied) == null) continue;
-                if (TryParseCellReference(occupied.CellReference?.Value ?? "", out int rr, out int cc)
+            foreach (ExcelFormulaCell occupied in formulaCells) {
+                if (occupied.Equals(cell) || !occupied.HasFormula) continue;
+                if (TryParseCellReference(occupied.Reference ?? "", out int rr, out int cc)
                     && rr >= r1 && rr <= r2 && cc >= c1 && cc <= c2) return false;
             }
-            foreach (MergeCell merge in WorksheetRoot.Elements<MergeCells>().SelectMany(m => m.Elements<MergeCell>())) {
-                if (TryFixedArrayBounds(merge.Reference?.Value ?? "", out int mr1, out int mc1, out int mr2, out int mc2)
+            foreach (string mergedRange in EnumerateMergedRanges()) {
+                if (TryFixedArrayBounds(mergedRange, out int mr1, out int mc1, out int mr2, out int mc2)
                     && RangesOverlapInclusive((r1, c1, r2, c2), (mr1, mc1, mr2, mc2))) return false;
             }
             result = array.Values[0];
             if (_formulaEvaluationCache != null)
                 ArrayCalculationContexts.GetOrCreateValue(_formulaEvaluationCache).Results[
-                    GetFormulaEvaluationCacheKey(cell.CellReference!.Value!)] = array;
+                    GetFormulaEvaluationCacheKey(cell.Reference!)] = array;
             return true;
         }
 
@@ -175,18 +172,6 @@ namespace OfficeIMO.Excel {
             if (TryParseCellReference(reference, out top, out left)) { bottom = top; right = left; return true; }
             bottom = right = 0;
             return false;
-        }
-
-        private void WriteFixedArrayFormulaCache(Cell owner, FormulaArrayValue array) {
-            var (row, column) = ExcelA1.ParseCellRef(owner.CellReference!.Value!);
-            for (int r = 0; r < array.Rows; r++) {
-                for (int c = 0; c < array.Columns; c++) {
-                    Cell cell = r == 0 && c == 0 ? owner : GetCell(row + r, column + c);
-                    cell.InlineString = null;
-                    cell.ValueMetaIndex = null;
-                    SetFormulaCachedValue(cell, array.Values[r * array.Columns + c]);
-                }
-            }
         }
 
         private static bool IsSupportedArrayCall(string expression) {
