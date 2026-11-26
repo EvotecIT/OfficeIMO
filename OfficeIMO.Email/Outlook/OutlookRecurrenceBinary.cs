@@ -7,7 +7,9 @@ public static class OutlookRecurrenceBinary {
     private const int MaximumInstances = 100000;
 
     static OutlookRecurrenceBinary() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     /// <summary>Decodes an AppointmentRecurrencePattern while retaining invalid input for lossless round trips.</summary>

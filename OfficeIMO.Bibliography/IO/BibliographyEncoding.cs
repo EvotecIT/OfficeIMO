@@ -253,7 +253,9 @@ internal static class BibliographyEncoding {
 
     private static Encoding ResolveEncodingName(string name, Encoding fallback, bool allowFallback = true) {
         try {
+#if !NETFRAMEWORK
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
             return Encoding.GetEncoding(name, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
         } catch (ArgumentException) when (allowFallback) {
             return fallback;

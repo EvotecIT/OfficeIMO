@@ -12,7 +12,9 @@ internal static class MimeTextCodec {
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     static MimeTextCodec() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     internal static bool ContainsEncodedWord(string value) =>

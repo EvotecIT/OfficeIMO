@@ -5,7 +5,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private const ushort WindowsCodePageMarker = 32769;
 
         static BiffCodePageEncoding() {
+#if !NETFRAMEWORK
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
         }
 
         internal static Encoding Resolve(BiffCodePageState declarations) {

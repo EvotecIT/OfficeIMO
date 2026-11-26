@@ -29,7 +29,9 @@ public static class OutlookEntryIdCodec {
     };
 
     static OutlookEntryIdCodec() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     /// <summary>Creates a Unicode MAPI One-Off EntryID.</summary>

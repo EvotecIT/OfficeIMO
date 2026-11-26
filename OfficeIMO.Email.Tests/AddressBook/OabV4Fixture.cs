@@ -9,7 +9,9 @@ internal sealed class OabV4Fixture {
     private readonly List<Dictionary<uint, object>> _entries = new List<Dictionary<uint, object>>();
 
     static OabV4Fixture() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     internal OabV4Fixture() {

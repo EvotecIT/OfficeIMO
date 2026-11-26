@@ -7,7 +7,9 @@ internal static class OutlookUserPropertyDefinitionCodec {
     private const int MaximumSkipBlocksPerDefinition = 1024;
 
     static OutlookUserPropertyDefinitionCodec() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     internal static ParseResult Parse(byte[]? bytes, int codePage) {

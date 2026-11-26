@@ -5,7 +5,9 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class MapiStringEncodingTests {
     static MapiStringEncodingTests() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     [Fact]

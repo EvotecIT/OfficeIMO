@@ -89,7 +89,9 @@ public sealed class CompressedRtfTests {
 
     [Fact]
     public void MsgRoundTripProjectsRtfAndIsReadableByMsgReaderOracle() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
         const string rtf = "{\\rtf1\\ansi\\ansicpg1252\\pard OfficeIMO RTF body\\par}";
         var source = new EmailDocument {
             Format = EmailFileFormat.OutlookMsg,

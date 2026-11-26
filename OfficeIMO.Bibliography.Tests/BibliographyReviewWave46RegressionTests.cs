@@ -28,7 +28,9 @@ public sealed class BibliographyReviewWave46RegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void EndNote_byte_loading_scans_the_complete_XML_declaration_for_legacy_encoding(bool longDeclaration) {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
         Encoding windows1252 = Encoding.GetEncoding(1252, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
         string title = longDeclaration ? "Café €" : "Café";
         string source = "<?xml version=\"1.0\"" + new string(' ', longDeclaration ? 8192 : 1) + "encoding=\"windows-1252\"?><xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>" + title + "</title></titles></record></records></xml>";
@@ -44,7 +46,9 @@ public sealed class BibliographyReviewWave46RegressionTests {
 
     [Fact]
     public void EndNote_text_preservation_scans_the_complete_XML_declaration_for_legacy_encoding() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
         Encoding windows1252 = Encoding.GetEncoding(1252, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
         string source = "<?xml version=\"1.0\"" + new string(' ', 8192) + "encoding=\"windows-1252\"?><xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Café €</title></titles></record></records></xml>";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;

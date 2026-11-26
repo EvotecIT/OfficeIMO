@@ -9,7 +9,9 @@ internal static partial class RtfAnsiCodePage {
     public const int DefaultWindowsCodePage = 1252;
 
     static RtfAnsiCodePage() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     public static bool IsSupported(int codePage) =>

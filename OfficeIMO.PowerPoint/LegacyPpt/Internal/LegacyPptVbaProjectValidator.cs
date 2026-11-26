@@ -9,7 +9,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private const long MaximumModuleValidationBytes = 64L * 1024L * 1024L;
 
         static LegacyPptVbaProjectValidator() {
+#if !NETFRAMEWORK
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
         }
 
         internal static bool TryValidate(

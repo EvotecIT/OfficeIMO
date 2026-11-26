@@ -8,7 +8,9 @@ internal static class OutlookVotingCodec {
     private const int MaximumOptions = 255;
 
     static OutlookVotingCodec() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     internal static bool TryDecode(byte[] value, int codePage, IList<OutlookVoteOption> options,

@@ -96,7 +96,11 @@ internal sealed class TextSpreadsheetReader : IDisposable {
         if (OfficeLegacyImportBuffer.StartsWith(data, 0, 0, 0xFE, 0xFF)) { offset = 4; return new UTF32Encoding(true, false, true); }
         if (OfficeLegacyImportBuffer.StartsWith(data, 0xFF, 0xFE)) { offset = 2; return new UnicodeEncoding(false, false, true); }
         if (OfficeLegacyImportBuffer.StartsWith(data, 0xFE, 0xFF)) { offset = 2; return new UnicodeEncoding(true, false, true); }
+#if NETFRAMEWORK
+        var encoding = (Encoding)(configured ?? Encoding.GetEncoding(1252)).Clone();
+#else
         var encoding = (Encoding)(configured ?? CodePagesEncodingProvider.Instance.GetEncoding(1252)!).Clone();
+#endif
         encoding.DecoderFallback = DecoderFallback.ExceptionFallback;
         return encoding;
     }

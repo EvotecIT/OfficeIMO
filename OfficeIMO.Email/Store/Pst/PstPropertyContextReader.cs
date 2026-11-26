@@ -8,7 +8,9 @@ internal sealed class PstPropertyContextReader {
     private readonly CancellationToken _cancellationToken;
 
     static PstPropertyContextReader() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     internal PstPropertyContextReader(PstHeap heap, EmailStoreReaderOptions options,

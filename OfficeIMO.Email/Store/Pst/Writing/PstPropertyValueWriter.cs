@@ -4,7 +4,9 @@ namespace OfficeIMO.Email.Store;
 
 internal static class PstPropertyValueWriter {
     static PstPropertyValueWriter() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     internal static bool IsInline(MapiPropertyType type) =>

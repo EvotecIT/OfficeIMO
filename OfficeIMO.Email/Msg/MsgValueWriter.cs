@@ -2,7 +2,9 @@ namespace OfficeIMO.Email;
 
 internal static class MsgValueWriter {
     static MsgValueWriter() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     internal static bool IsVariable(MapiPropertyType type) {

@@ -298,9 +298,9 @@ public sealed class PackageDependencyGuardrailTests {
             })
             .ToArray();
 
-        var reference = Assert.Single(references);
-        Assert.Equal("System.Text.Encoding.CodePages", reference.Id);
+        var reference = Assert.Single(references, static item => item.Id == "System.Text.Encoding.CodePages");
         Assert.Equal("8.0.0", reference.Version);
+        Assert.Equal(new[] { "System.Memory", "System.Text.Encoding.CodePages" }, references.Select(static item => item.Id).OrderBy(static id => id, StringComparer.Ordinal).ToArray());
     }
 
     [Theory]

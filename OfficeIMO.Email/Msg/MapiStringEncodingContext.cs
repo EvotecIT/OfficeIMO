@@ -7,7 +7,9 @@ internal sealed class MapiStringEncodingContext {
     private readonly int[] _candidateCodePages;
 
     static MapiStringEncodingContext() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     private MapiStringEncodingContext(IEnumerable<int> candidateCodePages) {

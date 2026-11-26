@@ -12,9 +12,15 @@ public sealed class EmailPackagingContractTests {
         XDocument project = XDocument.Load(projectPath);
         XNamespace ns = project.Root?.Name.Namespace ?? XNamespace.None;
 
-        var packageReference = Assert.Single(project.Descendants(ns + "PackageReference"));
-        Assert.Equal("System.Text.Encoding.CodePages", (string?)packageReference.Attribute("Include"));
-        Assert.Equal("8.0.0", (string?)packageReference.Attribute("Version"));
+        var packageReferences = project.Descendants(ns + "PackageReference")
+            .Select(element => ((string?)element.Attribute("Include"), (string?)element.Attribute("Version"), (string?)element.Attribute("Condition")))
+            .ToArray();
+        Assert.Equal(
+            new[] {
+                ("System.Text.Encoding.CodePages", "8.0.0", "'$(TargetFramework)' == 'netstandard2.0'"),
+                ("System.Memory", "4.6.3", "'$(TargetFramework)' == 'net472'")
+            },
+            packageReferences);
         string[] projectReferences = project.Descendants(ns + "ProjectReference")
             .Select(element => ((string?)element.Attribute("Include") ?? string.Empty).Replace('\\', '/'))
             .ToArray();
@@ -44,7 +50,11 @@ public sealed class EmailPackagingContractTests {
         Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Rtf", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Core", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, name => string.Equals(name, "OfficeIMO.Security", StringComparison.OrdinalIgnoreCase));
+#if NETFRAMEWORK
+        Assert.DoesNotContain(references, name => string.Equals(name, "System.Text.Encoding.CodePages", StringComparison.OrdinalIgnoreCase));
+#else
         Assert.Contains(references, name => string.Equals(name, "System.Text.Encoding.CodePages", StringComparison.OrdinalIgnoreCase));
+#endif
     }
 
     [Fact]

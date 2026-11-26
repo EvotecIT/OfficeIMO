@@ -6,7 +6,9 @@ internal static class OabV4RecordReader {
     private static readonly Encoding StrictUtf8 = new UTF8Encoding(false, true);
 
     static OabV4RecordReader() {
+#if !NETFRAMEWORK
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
     }
 
     internal static OabRecordEnvelope ReadEnvelope(OabSource source, Stream stream,
