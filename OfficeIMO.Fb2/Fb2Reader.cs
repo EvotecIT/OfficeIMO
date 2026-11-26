@@ -73,6 +73,12 @@ public static partial class Fb2Reader {
         return string.IsNullOrEmpty(value) ? null : value;
     }
 
+    private static string? DateValue(XElement? date) {
+        string? value = ((string?)date?.Attribute("value"))?.Trim();
+        if (string.IsNullOrEmpty(value)) value = date?.Value.Trim();
+        return string.IsNullOrEmpty(value) ? null : value;
+    }
+
     private static string Ordinal(int number) => number.ToString(CultureInfo.InvariantCulture);
 
     private sealed partial class Projection(string sourceName, CancellationToken token) {
@@ -86,10 +92,10 @@ public static partial class Fb2Reader {
             string language = Value(titleInfo, "lang") ?? "und";
             string? identifier = Value(description?.Element(Fb + "document-info"), "id");
             EpubPublication book;
-            try { book = EpubPublication.Create(title, language, identifier); }
+            try { book = EpubImportedPublication.Create(title, language, identifier); }
             catch (ArgumentException) when (language != "und") {
                 Report("FB2_LANGUAGE", "An invalid FictionBook language was replaced with an undetermined language.", language);
-                book = EpubPublication.Create(title, "und", identifier);
+                book = EpubImportedPublication.Create(title, "und", identifier);
             }
             AddMetadata(book, description, titleInfo);
             AddImages(book, root);
@@ -115,6 +121,8 @@ public static partial class Fb2Reader {
                 string label = Value(body, "title") ?? ((string?)body.Attribute("name") is { Length: > 0 } name ? name : title);
                 var content = new XElement("div", body.Nodes().Select(node => Render(node, i, 1)));
                 if (body.Attribute(XNamespace.Xml + "lang") is { } lang) content.Add(new XAttribute(lang));
+                if (_elementIds.TryGetValue(body, out string? anchor)) content.SetAttributeValue("id", anchor);
+                ReportDroppedAttributes(body, content);
                 book.AddChapter("body-" + Ordinal(i + 1), path, label, content.ToString(SaveOptions.DisableFormatting));
                 EpubNavigationEntry[] sections = ReadNavigation(body, path).ToArray();
                 if (bodies.Length == 1 && sections.Length != 0) navigation.AddRange(sections);
@@ -129,8 +137,8 @@ public static partial class Fb2Reader {
             XElement? print = description?.Element(Fb + "publish-info");
             foreach (XElement node in info?.Elements() ?? Enumerable.Empty<XElement>()) {
                 token.ThrowIfCancellationRequested();
-                string text = node.Value.Trim();
-                if (text.Length == 0) continue;
+                string? text = node.Name == Fb + "date" ? DateValue(node) : node.Value.Trim();
+                if (string.IsNullOrEmpty(text)) continue;
                 switch (node.Name.LocalName) {
                     case "author":
                     case "translator":
@@ -142,12 +150,12 @@ public static partial class Fb2Reader {
                     case "genre":
                     case "keywords": book.AddDublinCoreMetadata("subject", text); break;
                     case "annotation": book.AddDublinCoreMetadata("description", text); break;
-                    case "date": book.AddDublinCoreMetadata("date", (string?)node.Attribute("value") ?? text); break;
+                    case "date": book.AddDublinCoreMetadata("date", text); break;
                 }
             }
             if (Value(print, "publisher") is { } publisher) book.AddDublinCoreMetadata("publisher", publisher);
             if (Value(print, "isbn") is { } isbn) book.AddDublinCoreMetadata("identifier", isbn);
-            if (Value(print, "year") is { } year && Value(info, "date") == null) book.AddDublinCoreMetadata("date", year);
+            if (Value(print, "year") is { } year && DateValue(info?.Element(Fb + "date")) == null) book.AddDublinCoreMetadata("date", year);
             if (description?.Elements().Any(node => node.Name.LocalName is "custom-info" or "output" or "src-title-info") == true ||
                 info?.Elements(Fb + "sequence").Any() == true)
                 Report("FB2_METADATA_OMITTED", "Custom, original-title, distribution and series metadata are outside this projection.");

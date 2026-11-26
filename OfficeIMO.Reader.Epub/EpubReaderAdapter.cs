@@ -51,7 +51,8 @@ internal static partial class EpubReaderAdapter {
         return ReadDocument(document, source, options, cancellationToken);
     }
 
-    private static IEnumerable<ReaderChunk> ReadDocument(EpubDocument document, SourceMetadata source, ReaderOptions options, CancellationToken cancellationToken) {
+    private static IEnumerable<ReaderChunk> ReadDocument(EpubDocument document, SourceMetadata source, ReaderOptions options,
+        CancellationToken cancellationToken, ReaderInputKind kind = ReaderInputKind.Epub) {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(options);
@@ -63,7 +64,7 @@ internal static partial class EpubReaderAdapter {
         int warningIndex = 0;
         foreach (var warning in document.Warnings) {
             cancellationToken.ThrowIfCancellationRequested();
-            var warningChunk = EnrichChunk(BuildWarningChunk(sourcePath, warning, warningIndex++), source, options.ComputeHashes);
+            var warningChunk = EnrichChunk(BuildWarningChunk(sourcePath, warning, warningIndex++, kind), source, options.ComputeHashes);
             ApplyVirtualSourceMetadata(warningChunk, warningChunk.Location.Path, options.ComputeHashes);
             yield return warningChunk;
         }
@@ -78,6 +79,7 @@ internal static partial class EpubReaderAdapter {
                     source,
                     options,
                     blockIndex,
+                    kind,
                     cancellationToken);
                 if (structuredChunks.Count > 0) {
                     foreach (ReaderChunk structuredChunk in structuredChunks) {
@@ -108,7 +110,7 @@ internal static partial class EpubReaderAdapter {
                     ReaderHeadingPath.Combine(new[] { chapterTitle }));
                 var chunk = EnrichChunk(new ReaderChunk {
                     Id = chunkId,
-                    Kind = ReaderInputKind.Epub,
+                    Kind = kind,
                     Location = location,
                     Text = piece,
                     Markdown = BuildMarkdown(chapter.Title, piece),
@@ -126,6 +128,7 @@ internal static partial class EpubReaderAdapter {
                     source,
                     options,
                     blockIndex,
+                    kind,
                     warnings: null);
                 blockIndex++;
             }
@@ -181,12 +184,12 @@ internal static partial class EpubReaderAdapter {
             chunkPart.ToString("D4", CultureInfo.InvariantCulture));
     }
 
-    private static ReaderChunk BuildWarningChunk(string epubPath, string warning, int warningIndex) {
+    private static ReaderChunk BuildWarningChunk(string epubPath, string warning, int warningIndex, ReaderInputKind kind) {
         var warningPath = ResolveWarningPath(epubPath, warning);
 
         return new ReaderChunk {
             Id = $"epub-warning-{warningIndex.ToString("D4", CultureInfo.InvariantCulture)}",
-            Kind = ReaderInputKind.Epub,
+            Kind = kind,
             Location = new ReaderLocation {
                 Path = warningPath,
                 BlockIndex = warningIndex

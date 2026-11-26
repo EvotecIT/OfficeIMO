@@ -119,6 +119,7 @@ public sealed partial class EpubPublication {
                     ValidateContent(content, item.MediaType);
                     string analysisContent = content.ToString(SaveOptions.DisableFormatting);
                     var limits = OfficeIMO.Html.HtmlConversionLimits.UntrustedDefaults;
+                    if (MaximumContentValidationNodes.HasValue) limits.MaxHtmlNodes = MaximumContentValidationNodes;
                     // ParseXml already bounded the retained bytes; canonical escaping can enlarge this snapshot.
                     limits.MaxInputCharacters = (int)Math.Min(Math.Max(_maximumEntryBytes, analysisContent.Length), int.MaxValue);
                     var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(

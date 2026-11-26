@@ -112,13 +112,17 @@ public static partial class Fb2Reader {
                 }
             } else if (tag == "img") {
                 string? href = (string?)source.Attribute(Link + "href");
-                string alt = (string?)source.Attribute("alt") ?? (string?)source.Attribute("title") ?? "";
+                string? title = (string?)source.Attribute("title");
+                string alt = (string?)source.Attribute("alt") ?? title ?? "";
+                if (title != null) target.SetAttributeValue("title", title);
                 if (GetLocalFragment(href) is { } imageId && _images.TryGetValue(imageId, out EpubManifestItem? image)) {
                     target.SetAttributeValue("src", image.Href);
                     target.SetAttributeValue("alt", alt);
+                    ReportDroppedAttributes(source, target);
                     return target;
                 }
                 Report("FB2_IMAGE_UNAVAILABLE", "An image reference does not resolve to a supported embedded raster image.", href);
+                ReportDroppedAttributes(source, target);
                 return new XElement("span", target.Attributes(), new XText(alt));
             }
             if (tag is "td" or "th") {
@@ -127,6 +131,7 @@ public static partial class Fb2Reader {
                         target.SetAttributeValue(span, Ordinal(count));
             }
             if (name == "style") Report("FB2_STYLE_OMITTED", "FictionBook named styles are omitted. Semantic formatting is retained.");
+            ReportDroppedAttributes(source, target);
             if (name == "title") {
                 bool previousParagraph = false;
                 foreach (XNode child in source.Nodes()) {
@@ -139,6 +144,22 @@ public static partial class Fb2Reader {
                 target.Add(source.Nodes().Select(child => Render(child, body, level + (name == "section" ? 1 : 0))));
             }
             return target;
+        }
+
+        private void ReportDroppedAttributes(XElement source, XElement target) {
+            foreach (XAttribute attribute in source.Attributes()) {
+                token.ThrowIfCancellationRequested();
+                if (attribute.IsNamespaceDeclaration || target.Attribute(attribute.Name) != null ||
+                    (attribute.Name == Link + "href" && target.Name.LocalName is "a" or "img") ||
+                    (attribute.Name == "alt" && target.Name.LocalName == "img") ||
+                    (attribute.Name == "name" && source.Name == Fb + "body")) continue;
+
+                string location = source.Name.LocalName + "/@" + attribute.Name.LocalName;
+                if (attribute.Name == "style" || (source.Name == Fb + "style" && attribute.Name == "name"))
+                    Report("FB2_STYLE_OMITTED", "FictionBook named styles are omitted. Semantic formatting is retained.", location);
+                else
+                    Report("FB2_ATTRIBUTE_OMITTED", "A FictionBook attribute is outside the EPUB projection.", location);
+            }
         }
     }
 }
