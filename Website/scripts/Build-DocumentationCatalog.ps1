@@ -46,7 +46,7 @@ function Get-ComponentCategory {
         '^OfficeIMO\.(Word|Excel|PowerPoint)' { return 'Office documents' }
         '^OfficeIMO\.MarkdownRenderer' { return 'Rendering surfaces' }
         '^OfficeIMO\.(Pdf|Html|Markdown|Rtf|AsciiDoc|Latex|Invoicing)' { return 'Publishing and conversion' }
-        '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Yaml|Visio|IWork|Chm|DjVu|Publisher|Access|Project|Xps|Mhtml|Toml|Opml|DocBook|Bibliography|Comic)' { return 'Formats and interoperability' }
+        '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Yaml|Visio|IWork|Chm|DjVu|Publisher|Access|Project|Xps|Mhtml|Toml|Opml|DocBook|Bibliography|Comic|Fb2)' { return 'Formats and interoperability' }
         '^OfficeIMO\.GoogleWorkspace|Google(Docs|Sheets|Slides)$' { return 'Google Workspace' }
         '^OfficeIMO\.(Archives|Drawing|Ocr|Provenance|Security|Zip|Markup|Adf|Confluence)' { return 'Foundations and integrations' }
         default { return 'Specialized components' }
@@ -74,6 +74,7 @@ function Get-DocumentationUrl {
         '^OfficeIMO\.Rtf' { return '/docs/rtf/' }
         '^OfficeIMO\.Epub' { return '/docs/epub/' }
         '^OfficeIMO\.Comic$' { return 'https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Comic/README.md' }
+        '^OfficeIMO\.Fb2$' { return 'https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Fb2/README.md' }
         '^OfficeIMO\.Data\.Conversions' { return '/docs/data-conversions/' }
         '^OfficeIMO\.CSV' { return '/docs/csv/' }
         '^OfficeIMO\.Yaml' { return '/docs/yaml/' }

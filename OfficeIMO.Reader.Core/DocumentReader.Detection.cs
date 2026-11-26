@@ -1004,6 +1004,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Zip => "application/zip",
             ReaderInputKind.Epub => "application/epub+zip",
             ReaderInputKind.Comic => "application/vnd.comicbook+zip",
+            ReaderInputKind.Fb2 => "application/x-fictionbook+xml",
             ReaderInputKind.Visio => "application/vnd.ms-visio.drawing.main+xml",
             ReaderInputKind.Yaml => "application/yaml",
             ReaderInputKind.Toml => "application/toml",

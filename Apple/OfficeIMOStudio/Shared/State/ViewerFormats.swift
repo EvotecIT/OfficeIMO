@@ -38,6 +38,7 @@ enum ViewerFormats {
         Format(identifier: "com.evotec.officeimo.cbz", extensions: ["cbz"]),
         Format(identifier: "com.microsoft.publisher.pub", extensions: ["pub"]),
         Format(identifier: "org.oasis-open.opendocument.graphics", extensions: ["odg"]),
+        Format(identifier: "com.evotec.officeimo.fb2", extensions: ["fb2"]),
         Format(identifier: "org.idpf.epub-container", extensions: ["epub"]),
     ]
 
@@ -45,6 +46,7 @@ enum ViewerFormats {
 
     /// Types that not every system release declares, so the Info.plists import them with these extensions.
     static let importedIdentifiers: Set<String> = ["net.daringfireball.markdown", "org.oasis-open.opendocument.text",
+                                                   "com.evotec.officeimo.fb2",
                                                    "org.oasis-open.opendocument.spreadsheet",
                                                    "org.oasis-open.opendocument.presentation", "com.microsoft.xps",
                                                    "com.microsoft.visio.drawing", "com.microsoft.publisher.pub",

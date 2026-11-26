@@ -5,6 +5,7 @@ using System.Xml.Linq;
 using OfficeIMO.Epub;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -86,6 +87,7 @@ public sealed class OfficeWorkflowRunnerTests {
                 "book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "csv-xlsx", "djvu-pdf", "doc-pdf", "docx-epub",
                 "docx-odt", "docx-pdf",
                 "ebook-cbz-epub", "ebook-cbz-html", "ebook-cbz-markdown", "ebook-cbz-pdf",
+                "ebook-fb2-epub", "ebook-fb2-html", "ebook-fb2-markdown", "ebook-fb2-pdf",
                 "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-epub", "html-pdf",
                 "markdown-docx", "markdown-epub", "markdown-pdf", "notebook-docx", "notebook-html", "notebook-markdown", "notebook-pdf", "notebook-source-ipynb",
                 "notebook-source-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf",
@@ -246,6 +248,102 @@ public sealed class OfficeWorkflowRunnerTests {
             Assert.Null(OfficeWorkflowCatalog.Find(extension, ".epub", executableOnly: true));
             Assert.Equal("docx-pdf", OfficeWorkflowCatalog.Find(extension, ".pdf", executableOnly: true)?.Id);
         }
+    }
+
+    [Fact]
+    public async Task FictionBookPdfValidationUsesTheRendererCredentials() {
+        string source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "harbour.fb2.zip");
+        using var directory = new TestDirectory();
+        string output = Path.Combine(directory.Path, "encrypted.pdf");
+        var html = new HtmlPdfExportOptions();
+        html.PdfOptions.SetEncryption("reader", "owner");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "ebook-fb2-pdf",
+            InputPath = source,
+            OutputPath = output,
+            ConversionOptions = new OfficeConversionOptions { Html = html }
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Throws<PdfPasswordRequiredException>(() => {
+            using PdfDocument locked = PdfDocument.Load(output);
+            _ = locked.Inspect();
+        });
+        var readOptions = new PdfLoadOptions { Password = "reader" };
+        using PdfDocument reopened = PdfDocument.Load(output, readOptions);
+        Assert.True(reopened.Inspect(readOptions).PageCount > 0);
+    }
+
+    [Fact]
+    public async Task FictionBookMarkdownRetainsLinksIntoCodeAndReportsTheMovedTarget() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "code.fb2");
+        string output = Path.Combine(scope.Path, "code.md");
+        await File.WriteAllTextAsync(input, """
+            <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+              <body>
+                <p><a l:href="#example">Code target</a></p>
+                <p><code><style id="example" name="inline">inline code</style></code></p>
+              </body>
+            </FictionBook>
+            """);
+
+        OfficeConversionReport report = await OfficeConverter.ConvertAsync(input, output, new OfficeConversionOptions {
+            RouteId = "ebook-fb2-markdown"
+        });
+
+        string markdown = await File.ReadAllTextAsync(output);
+        Match link = Regex.Match(markdown, """<a href="#([^"]+)">Code target</a>""");
+        Assert.True(link.Success);
+        Assert.Contains($"""<a id="{link.Groups[1].Value}"></a>""", markdown);
+        Assert.Contains("`inline code`", markdown);
+        Assert.Contains(report.Diagnostics, item => item.Code == "EBOOK_MARKDOWN_ANCHOR_RELOCATED" &&
+            item.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
+    public async Task ImportedMarkdownAppliesOutputLimitToThePublishedArtifact() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "book.fb2");
+        string output = Path.Combine(scope.Path, "book.md");
+        await File.WriteAllTextAsync(input, """
+            <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0"><body>
+            """ + string.Concat(Enumerable.Repeat("<p>word</p>", 1_000)) + "</body></FictionBook>");
+        var options = new OfficeConversionOptions {
+            RouteId = "ebook-fb2-markdown", MaximumOutputBytes = 8 * 1024,
+            FileConflictPolicy = OfficePublicationPolicy.Replace
+        };
+
+        await OfficeConverter.ConvertAsync(input, output, options);
+
+        string markdown = await File.ReadAllTextAsync(output);
+        Assert.Equal(1_000, Regex.Matches(markdown, "word").Count);
+        options.MaximumOutputBytes = 64;
+        await Assert.ThrowsAsync<InvalidDataException>(() => OfficeConverter.ConvertAsync(input, output, options));
+        Assert.Equal(markdown, await File.ReadAllTextAsync(output));
+    }
+
+    [Fact]
+    public async Task ConvertsProviderBookUsingItsCompoundFilename() {
+        using var scope = new TestDirectory();
+        string output = Path.Combine(scope.Path, "book.epub");
+        string fixture = Path.Combine(AppContext.BaseDirectory, "Fixtures", "harbour.fb2.zip");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "ebook-fb2-epub",
+            InputPath = "content://provider/book",
+            InputStream = new OfficeWorkflowStreamInput("book.fb2.zip",
+                _ => Task.FromResult<Stream>(File.OpenRead(fixture))),
+            OutputPath = output
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Contains(result.Diagnostics, finding => finding.Code == "conversion-output-reopened");
+        using var artifact = File.OpenRead(output);
+        Assert.Equal("Harbour Signal", EpubPublication.Load(artifact).Title);
     }
 
     [Fact]

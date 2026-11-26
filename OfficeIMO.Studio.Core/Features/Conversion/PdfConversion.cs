@@ -32,7 +32,7 @@ internal static class PdfConversion {
     /// HTML or Markdown, then any that lists it.
     /// </summary>
     internal static PdfConversionSource? RouteFor(string path) {
-        string extension = Path.GetExtension(path);
+        string extension = OfficeConversionCapabilityCatalog.GetSourceExtension(path);
         if (string.IsNullOrEmpty(extension)) return null;
         return Sources.FirstOrDefault(source => string.Equals(source.Extensions.FirstOrDefault(), extension, StringComparison.OrdinalIgnoreCase))
             ?? Sources.FirstOrDefault(source => source.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase));
