@@ -122,6 +122,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet data = document.AddSheet("Data");
             document.AddSheet("Summary");
             document.AddSheet("Archive");
+            // The first plan opens the package of the new workbook, which registers the sheets nobody holds once.
+            data.PlanInsertRows(5);
             int registeredBefore = document.RegisteredSheetWrapperCountForTests;
 
             for (int iteration = 0; iteration < 5; iteration++) {
