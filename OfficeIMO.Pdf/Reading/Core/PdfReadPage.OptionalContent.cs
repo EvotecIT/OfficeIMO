@@ -80,14 +80,24 @@ public sealed partial class PdfReadPage {
 
     /// <summary>
     /// True when page content can hold no optional-content usage, without interpreting it: no <c>/OC</c> marked-content
-    /// tag can be written (the bytes hold neither <c>OC</c> nor a <c>#</c> name escape), and the resources name nothing the
-    /// content pass would follow into another stream (form or pattern streams, soft-mask groups, Type 3 glyphs, or a font
-    /// chosen through a graphics state).
+    /// tag can be written (the bytes hold neither <c>OC</c> nor a <c>#</c> name escape), no image resource carries
+    /// <c>/OC</c>, and the resources name nothing the content pass would follow into another stream (form or pattern
+    /// streams, soft-mask groups, Type 3 glyphs, or a font chosen through a graphics state).
     /// </summary>
     private bool CannotReachOptionalContent(PdfContentSource content, PdfDictionary? resources) {
         if (content.IndexOf("OC") >= 0 || content.IndexOf("#") >= 0) return false;
         if (resources is null) return true;
-        if (HasEntries(resources, "XObject") || HasEntries(resources, "Pattern")) return false;
+        if (HasEntries(resources, "Pattern")) return false;
+        if (ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? xObjectsObject) ? xObjectsObject : null) is PdfDictionary xObjects) {
+            // An invoked image counts only through its own /OC entry; forms would need their content read.
+            foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items) {
+                if (PdfObjectLookup.ResolveChain(_objects, entry.Value) is not PdfStream xObject ||
+                    PdfObjectLookup.ResolveChain(_objects, xObject.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null)
+                        is not PdfName { Name: "Image" } ||
+                    xObject.Dictionary.Items.ContainsKey("PatternType") ||
+                    HasEffectiveOptionalContentEntry(xObject.Dictionary)) return false;
+            }
+        }
         if (ResolveDictionary(resources.Items.TryGetValue("ExtGState", out PdfObject? statesObject) ? statesObject : null) is PdfDictionary states) {
             foreach (KeyValuePair<string, PdfObject> entry in states.Items) {
                 if (ResolveDictionary(entry.Value) is PdfDictionary state &&

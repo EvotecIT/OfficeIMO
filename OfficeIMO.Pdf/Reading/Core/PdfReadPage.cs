@@ -336,6 +336,9 @@ public sealed partial class PdfReadPage {
         PageContentStreamSequence contentSequence = GetContentStreamSequence(pageContentBudget);
         PdfContentSource content = contentSequence.Source;
         if (content.Length > 0) {
+            PdfPageInvokedResourceNames? rootInvokedNames = skipUndecodableContentStreams
+                ? null
+                : CreateRootInvokedResourceNamesFromOperators(content, pageResources);
             CollectTextAndForms(
                 content,
                 pageResources,
@@ -359,10 +362,34 @@ public sealed partial class PdfReadPage {
                 visibleColorSpaceNames: () => GetRootVisibleColorSpaceNames(content, pageResources,
                     cancellationToken.CanBeCanceled ? cancellationToken.ThrowIfCancellationRequested : null),
                 onUnmappableText: onUnmappableText,
-                retainEditingEvidence: retainEditingEvidence);
+                retainEditingEvidence: retainEditingEvidence,
+                operatorVisitor: rootInvokedNames is null ? null : rootInvokedNames.ObserveOperator);
+            if (rootInvokedNames is not null) {
+                lock (RootInvokedResourceNamesSync) {
+                    if (!_rootInvokedResourceNamesInitialized) {
+                        _rootInvokedResourceNames = rootInvokedNames;
+                        _rootInvokedResourceNamesInitialized = true;
+                    }
+                }
+            }
         }
 
         return spans;
+    }
+
+    /// <summary>
+    /// A record of the root content's invoked resources that the text pass can fill from the operators it reads, so
+    /// the separate invocation parse is not needed. That holds when the parse could report no visible color space:
+    /// the page declares none, and the content has no <c>cs</c>/<c>CS</c> operator naming one and no inline image.
+    /// The paint flags then depend only on which operators occur. Null when that cannot be shown from the bytes, or
+    /// when the record already exists.
+    /// </summary>
+    private PdfPageInvokedResourceNames? CreateRootInvokedResourceNamesFromOperators(PdfContentSource content, PdfDictionary? resources) {
+        if (_rootInvokedResourceNamesInitialized) return null;
+        if (resources is not null &&
+            ResolveDictionary(resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaces) ? colorSpaces : null) is { Items.Count: > 0 }) return null;
+        if (content.IndexOf("cs") >= 0 || content.IndexOf("CS") >= 0 || content.IndexOf("BI") >= 0) return null;
+        return new PdfPageInvokedResourceNames();
     }
 
     internal (double X, double Y) GetPageBoundaryOrigin() {
@@ -1012,7 +1039,8 @@ public sealed partial class PdfReadPage {
         Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null,
         int initialStrokeLineCap = 0,
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
-        bool retainEditingEvidence = true) {
+        bool retainEditingEvidence = true,
+        Action<string>? operatorVisitor = null) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -1243,7 +1271,8 @@ public sealed partial class PdfReadPage {
             onCompletedDrawingActualText: onCompletedDrawingActualText,
             twoByteFontForResource: ResolveTwoByteFont,
             retainEditingEvidence: retainEditingEvidence,
-            formInvocations: formInvocations));
+            formInvocations: formInvocations,
+            operatorVisitor: operatorVisitor));
 
         if (formInvocations is null) return;
 
