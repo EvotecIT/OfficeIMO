@@ -106,10 +106,42 @@ namespace OfficeIMO.OpenXml.Internal {
 
         internal static byte[] OuterXml(object element) => Encoding.UTF8.GetBytes(E(element).OuterXml);
 
+        // One parsed element per parent type and name. New elements are clones of it, so they get the typed class the
+        // parent expects there without parsing markup each time.
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<(Type Parent, string Uri, string LocalName), OpenXmlElement> Prototypes = new();
+
+        private static OpenXmlElement Prototype(OpenXmlElement parent, string namespaceUri, string localName, string prefix) {
+            var key = (parent.GetType(), namespaceUri, localName);
+            if (Prototypes.TryGetValue(key, out OpenXmlElement? prototype)) return prototype;
+            OpenXmlElement probe = parent.CloneNode(false);
+            probe.InnerXml = prefix.Length == 0
+                ? "<" + localName + " xmlns=\"" + namespaceUri + "\"/>"
+                : "<" + prefix + ":" + localName + " xmlns:" + prefix + "=\"" + namespaceUri + "\"/>";
+            prototype = probe.FirstChild ?? throw new InvalidOperationException("The markup holds no element.");
+            prototype.Remove();
+            // The parent's part declares the namespace; the element keeps none of its own, as a typed member makes it.
+            if (prototype.NamespaceDeclarations.Any()) prototype.RemoveNamespaceDeclaration(prefix);
+            return Prototypes.GetOrAdd(key, prototype);
+        }
+
+        /// <summary>
+        /// A new, detached element with the typed class <paramref name="context"/> expects as its child, or null when the
+        /// SDK has no typed class for it there.
+        /// </summary>
+        internal static object? CreateElement(object context, int namespaceId, string localName) {
+            OpenXmlElement prototype = Prototype(E(context), Uri(namespaceId), localName, OfficeXmlPrefixes.Canonical(namespaceId));
+            return prototype is OpenXmlUnknownElement ? null : prototype.CloneNode(true);
+        }
+
         /// <summary>Inserts an SDK element, moving it out of a detached copy, and returns it.</summary>
         internal static object InsertBefore(object parent, object child, object? reference) {
             OpenXmlElement target = E(parent), value = E(child);
             if (value.Parent != null) value = value.CloneNode(true);
+            // An element made for another parent may have a typed class this one doesn't take; read it again here.
+            if (value is not OpenXmlUnknownElement && value.NamespaceUri.Length > 0
+                && value.GetType() != Prototype(target, value.NamespaceUri, value.LocalName, value.Prefix).GetType()) {
+                return InsertMarkupBefore(parent, OuterXml(value), reference);
+            }
             if (reference == null) target.AppendChild(value);
             else target.InsertBefore(value, E(reference));
             return value;
