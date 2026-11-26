@@ -43,6 +43,10 @@ public static partial class OfficeWorkflow {
                     new EpubSaveOptions { MaxOutputBytes = options.MaximumOutputBytes }, cancellationToken);
                 diagnostics.AddRange(write.Diagnostics);
             } else {
+                if (imported.Value.PageProgressionDirection is "ltr" or "rtl")
+                    diagnostics.Add(new OfficeDiagnostic("EBOOK_PAGE_PROGRESSION_OMITTED", OfficeDiagnosticSeverity.Warning,
+                        "The target does not carry the ebook's page progression direction.", null, "OfficeIMO.Epub",
+                        OfficeConversionLossKind.Omission));
                 EpubDocument book = EpubImportedPublication.Open(imported.Value, cancellationToken);
                 if (target == "pdf") {
                     OfficeConversionReport pdf;

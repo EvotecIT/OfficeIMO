@@ -26,7 +26,7 @@ public static partial class MobiReader {
         var first = new MobiHeader(database, 0, cancellationToken);
         MobiHeader selected = first;
         if (!database.IsPalmDoc && !first.IsKf8 && first.Integer(121) is { } boundary) {
-            if (boundary <= first.TextRecords || !PalmDatabase.HasSignature(database.Record(boundary - 1), "BOUNDARY"))
+            if (boundary <= first.TextRecords + 1 || !PalmDatabase.HasSignature(database.Record(boundary - 1), "BOUNDARY"))
                 throw new InvalidDataException("The dual-format Kindle book has no valid KF8 boundary.");
             selected = new MobiHeader(database, boundary, cancellationToken);
             if (!selected.IsKf8) throw new InvalidDataException("The dual-format Kindle book does not contain its declared KF8 section.");
@@ -131,6 +131,11 @@ public static partial class MobiReader {
                 (112, "source"), (113, "identifier") }) {
                 foreach (string value in TextMetadata(id)) book.AddDublinCoreMetadata(name, value);
             }
+            string? progression = TextMetadata(527).FirstOrDefault()?.ToLowerInvariant();
+            if (progression is "ltr" or "rtl" or "default")
+                book.PageProgressionDirection = progression;
+            else if (progression != null)
+                Warn("MOBI_PAGE_PROGRESSION_OMITTED", "The Kindle page progression direction is not recognized.", "EXTH 527");
             if (TextMetadata(122).Any(value => value.Equals("true", StringComparison.OrdinalIgnoreCase)))
                 Warn("MOBI_FIXED_LAYOUT_OMITTED", "The Kindle book was imported as reflowable content. Fixed-layout positioning was omitted.");
         }

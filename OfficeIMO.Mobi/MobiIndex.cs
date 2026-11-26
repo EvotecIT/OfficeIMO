@@ -28,14 +28,18 @@ internal sealed class MobiIndex {
         int headerLength = Number(head, 4);
         if (headerLength < 56 || headerLength > head.Length - 12)
             throw new InvalidDataException("The Mobipocket INDX header length is invalid.");
-        int tagStart = headerLength;
+        int tagStart = -1;
         if (headerLength >= 184) {
             uint pointer = U32(head, 180);
             if (pointer >= headerLength && pointer <= head.Length - 12 && HasSignature(head.Slice((int)pointer), "TAGX"))
                 tagStart = (int)pointer;
         }
+        if (tagStart < 0) {
+            int signature = head.Slice(headerLength, head.Length - headerLength - 8).IndexOf("TAGX"u8);
+            if (signature < 0) throw new InvalidDataException("The Mobipocket TAGX control table is missing.");
+            tagStart = headerLength + signature;
+        }
         ReadOnlySpan<byte> tag = head.Slice(tagStart);
-        if (!HasSignature(tag, "TAGX")) throw new InvalidDataException("The Mobipocket TAGX control table is missing.");
         int tagLength = Number(tag, 4);
         int controls = Number(tag, 8);
         if (tagLength is < 16 or > 512 || tagLength % 4 != 0 || controls is < 1 or > 32)

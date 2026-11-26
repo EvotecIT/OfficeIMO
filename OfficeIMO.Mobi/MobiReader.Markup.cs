@@ -22,6 +22,7 @@ public static partial class MobiReader {
             var positions = new HashSet<int>[inputs.Length];
             int tokens = 0, elements = 0;
             bool hasMarkup = false;
+            int remainingXhtmlTokens = 300_000;
             var parser = new HtmlParser(new HtmlParserOptions {
                 IsKeepingSourceReferences = true,
                 SkipComments = true,
@@ -43,6 +44,8 @@ public static partial class MobiReader {
             for (int i = 0; i < inputs.Length; i++) {
                 token.ThrowIfCancellationRequested();
                 string html = selected.Encoding.GetString(inputs[i]);
+                HashSet<int>? emptyRawElements = null;
+                if (kindle != null) html = NormalizeKindleEmptyRawElements(html, ref remainingXhtmlTokens, out emptyRawElements, token);
                 currentRuns = new List<MarkupTextRun>();
                 pageBreaks.Clear();
                 int tokensBeforePart = tokens, elementsBeforePart = elements;
@@ -67,7 +70,7 @@ public static partial class MobiReader {
                 if (document.Head?.QuerySelector("style,link[rel=stylesheet]") != null)
                     Warn("MOBI_STYLE_OMITTED", "Source stylesheets are omitted. Semantic formatting is retained.");
                 parts[i] = new MarkupPart(i, document.Body ?? throw new InvalidDataException("Mobipocket markup has no document body."),
-                    XmlText(document.Title ?? string.Empty), inputs[i].Length, token);
+                    XmlText(document.Title ?? string.Empty), inputs[i].Length, emptyRawElements, token);
                 positions[i] = new HashSet<int>();
             }
 
@@ -95,6 +98,7 @@ public static partial class MobiReader {
                 projected[i] = new XElement("div", part.Body.ChildNodes.Select(node => Render(node, i, parts, kindle)));
                 if (part.Anchor(part.Body) is { } id) projected[i].SetAttributeValue("id", id);
                 projected[i].SetAttributeValue("dir", TextDirection(part.Body) ?? TextDirection(part.Body.ParentElement));
+                SetMarkupLanguage(projected[i], MarkupLanguage(part.Body) ?? MarkupLanguage(part.Body.ParentElement));
             }
 
             int? cover = selected.Integer(201) ?? first.Integer(201);
@@ -141,16 +145,27 @@ public static partial class MobiReader {
             return direction is "ltr" or "rtl" or "auto" ? direction : null;
         }
 
+        private static string? MarkupLanguage(IElement? element) =>
+            (element?.GetAttribute("lang") ?? element?.GetAttribute("xml:lang")) is { } language ? XmlText(language) : null;
+
+        private static void SetMarkupLanguage(XElement target, string? language) {
+            target.SetAttributeValue("lang", language);
+            target.SetAttributeValue(XNamespace.Xml + "lang", language);
+        }
+
         private object? Render(INode node, int partIndex, MarkupPart[] parts, Kf8Content? kindle) {
             token.ThrowIfCancellationRequested();
             if (node is IText text) return parts[partIndex].RenderText(text);
             if (node is not IElement source) return null;
             string tag = source.LocalName;
+            MarkupPart part = parts[partIndex];
+            if (part.IsEmptyRawPlaceholder(source))
+                return part.Anchor(source) is { } anchor ? new XElement("span", new XAttribute("id", anchor)) : null;
             if (IsOmittedMarkup(tag)) {
                 Warn("MOBI_ELEMENT_OMITTED", "An unsupported active, media or styling element was omitted.", tag);
                 // An omitted subtree can still carry a link target in the reading order.
                 var ids = source.QuerySelectorAll("*").Prepend(source)
-                    .Select(parts[partIndex].Anchor).OfType<string>().ToArray();
+                    .Select(part.Anchor).OfType<string>().ToArray();
                 return ids.Length == 0 ? null : new XElement("span",
                     ids.Select(id => new XElement("span", new XAttribute("id", id))));
             }
@@ -168,10 +183,10 @@ public static partial class MobiReader {
                 Warn("MOBI_MARKUP_APPROXIMATED", "Legacy markup or CSS presentation was approximated.", tag, OfficeConversionLossKind.Approximation);
 
             var target = new XElement(targetTag);
-            MarkupPart part = parts[partIndex];
             if (part.Anchor(source) is { } id) target.SetAttributeValue("id", id);
             target.SetAttributeValue("dir", TextDirection(source));
-            foreach (string name in new[] { "lang", "title", "alt" }) {
+            SetMarkupLanguage(target, MarkupLanguage(source));
+            foreach (string name in new[] { "title", "alt" }) {
                 if (source.GetAttribute(name) is { } value) target.SetAttributeValue(name, XmlText(value));
             }
 
@@ -259,12 +274,16 @@ public static partial class MobiReader {
         private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
         private readonly Dictionary<int, string> _positions = new();
         private readonly List<IElement> _elements = new();
+        private readonly HashSet<int>? _emptyRawElements;
 
-        internal MarkupPart(int index, IElement body, string title, int length, CancellationToken token) {
+        internal MarkupPart(int index, IElement body, string title, int length, HashSet<int>? emptyRawElements, CancellationToken token) {
             Body = body;
             Length = length;
             Title = title;
             File = "part-" + Number(index + 1) + ".xhtml";
+            _emptyRawElements = emptyRawElements;
+            if (body.ParentElement?.GetAttribute("id") is { Length: > 0 } rootId)
+                _ids.Add(rootId, TopAnchor);
             var pending = new Stack<(IElement Element, int Depth)>();
             pending.Push((body, 1));
             while (pending.Count > 0) {
@@ -288,6 +307,8 @@ public static partial class MobiReader {
         internal int Length { get; }
         internal string Title { get; }
         internal IReadOnlyList<IElement> Elements => _elements;
+        internal bool IsEmptyRawPlaceholder(IElement element) =>
+            element.SourceReference?.Position.Index is { } position && _emptyRawElements?.Contains(position) == true;
         internal string? AnchorAt(int offset) => _positions.TryGetValue(offset, out string? id) ? id : null;
         internal string? Anchor(IElement element) => _anchors.TryGetValue(element, out string? id) ? id : null;
         internal string? ResolveId(string id) {

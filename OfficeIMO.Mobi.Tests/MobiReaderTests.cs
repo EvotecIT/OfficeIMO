@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.Epub;
@@ -29,6 +30,31 @@ public sealed class MobiReaderTests {
         Assert.Contains("Signal received.", destination.Text);
         Assert.Contains(book.Resources, item => item.Properties == "cover-image" && item.Data?.Length > 0);
         Assert.Contains(book.Resources, item => item.Id == "image-3" && item.Data?.Length > 0);
+    }
+
+    [Fact]
+    public void EmptyKindleStylesKeepTextAndLocalLinksAcrossSvgCdata() {
+        const string fixture = "harbour-empty-style.azw3";
+        using var source = new MemoryStream(Fixture(fixture), writable: false);
+        EpubDocument book = ReadPublication(source, fixture);
+        EpubChapter opening = Assert.Single(book.Chapters, chapter => chapter.Text.Contains("A small independent ebook"));
+        var ending = Assert.Single(book.TableOfContents[0].Children);
+        Assert.NotNull(ending.Fragment);
+        Assert.Contains("href=\"" + Path.GetFileName(ending.Target) + "#" + ending.Fragment + "\">Read the ending", opening.Html);
+
+        XElement html = XElement.Parse(opening.Html!);
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        string svg = FindLinkTarget("SVG marker");
+        string local = FindLinkTarget("HTML marker");
+        Assert.NotEqual(svg, local);
+
+        string FindLinkTarget(string label) {
+            XElement link = Assert.Single(html.Descendants(xhtml + "a"), element => element.Value == label);
+            string target = Assert.IsType<string>((string?)link.Attribute("href"));
+            Assert.StartsWith("#", target);
+            Assert.Single(html.Descendants(), element => (string?)element.Attribute("id") == target.Substring(1));
+            return target;
+        }
     }
 
     [Fact]
@@ -148,6 +174,38 @@ public sealed class MobiReaderTests {
 
         Assert.Contains(book.Chapters, chapter => chapter.Text.IndexOf("Signal received.", StringComparison.Ordinal) >= 0);
         Assert.DoesNotContain(book.Resources, item => item.Properties == "cover-image");
+    }
+
+    [Fact]
+    public void RefusesTheKf8BoundaryInsideLegacyText() {
+        byte[] bytes = Fixture("harbour-combo.mobi");
+        int header = RecordOffset(bytes, 0);
+        int legacyText = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(header + 8));
+        int item = FindExthItem(bytes, header, 121);
+        BinaryPrimitives.WriteInt32BigEndian(bytes.AsSpan(item + 8), legacyText + 1);
+        "BOUNDARY"u8.CopyTo(bytes.AsSpan(RecordOffset(bytes, legacyText)));
+        using var source = new MemoryStream(bytes, writable: false);
+
+        var error = Assert.Throws<InvalidDataException>(() => MobiReader.Import(source, "harbour-combo.mobi"));
+        Assert.Contains("valid KF8 boundary", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WritesKindlePageProgressionToTheEpubSpine() {
+        byte[] bytes = Fixture("harbour.azw3");
+        int item = FindExthItem(bytes, RecordOffset(bytes, 0), 501);
+        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(item), 527);
+        "rtl "u8.CopyTo(bytes.AsSpan(item + 8));
+        using var source = new MemoryStream(bytes, writable: false);
+        using var artifact = new MemoryStream();
+        MobiReader.Import(source, "harbour.azw3").Value.Save(artifact);
+        artifact.Position = 0;
+
+        using var package = new ZipArchive(artifact);
+        using Stream opf = Assert.Single(package.Entries, entry => entry.Name.EndsWith(".opf", StringComparison.Ordinal)).Open();
+        XNamespace opfNamespace = "http://www.idpf.org/2007/opf";
+        XElement spine = Assert.Single(XDocument.Load(opf).Descendants(opfNamespace + "spine"));
+        Assert.Equal("rtl", (string?)spine.Attribute("page-progression-direction"));
     }
 
     [Theory]
@@ -295,13 +353,16 @@ public sealed class MobiReaderTests {
         Assert.Contains("Signal received.", Assert.Single(book.Chapters).Text);
     }
 
-    [Fact]
-    public void ReadsNavigationFromTheTagTablePointer() {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ReadsNavigationFromTheTagTableAfterPaddedHeaders(bool usePointer) {
         byte[] bytes = Fixture("harbour.mobi");
         int header = RecordOffset(bytes, 0);
         int index = RecordOffset(bytes, BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(header + 244)));
         Assert.Equal(192, BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(index + 180)));
         BinaryPrimitives.WriteInt32BigEndian(bytes.AsSpan(index + 4), 188);
+        if (!usePointer) BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(index + 180), uint.MaxValue);
         using var source = new MemoryStream(bytes, writable: false);
 
         EpubDocument book = ReadPublication(source, "harbour.mobi");
@@ -327,6 +388,32 @@ public sealed class MobiReaderTests {
         string topId = Assert.IsType<string>((string?)chapterBody.Attribute("id"));
         XElement top = Assert.Single(html.Descendants(xhtml + "a"), anchor => anchor.Value == "Back to top");
         Assert.Equal("#" + topId, (string?)top.Attribute("href"));
+    }
+
+    [Theory]
+    [InlineData("", "fr")]
+    [InlineData(" lang=\"de\"", "de")]
+    public void RetainsRootAndBodyLinksAndInheritedLanguage(string bodyLanguage, string expectedLanguage) {
+        using var source = new MemoryStream(BuildLegacyMobi($"""
+            <html id="root" xml:lang="fr"><body id="chapter"{bodyLanguage}>
+              <p xml:lang="es"><a href="#root">Root</a><a href="#chapter">Chapter</a></p>
+            </body></html>
+            """), writable: false);
+
+        string? chapter = Assert.Single(ReadPublication(source, "root.mobi").Chapters).Html;
+        Assert.NotNull(chapter);
+        XElement html = XElement.Parse(chapter);
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        XElement content = Assert.Single(html.Descendants(xhtml + "div"));
+        XElement paragraph = Assert.Single(content.Elements(xhtml + "p"));
+        Assert.Equal(expectedLanguage, (string?)content.Attribute("lang"));
+        Assert.Equal(expectedLanguage, (string?)content.Attribute(XNamespace.Xml + "lang"));
+        Assert.Equal("es", (string?)paragraph.Attribute("lang"));
+        Assert.Equal("es", (string?)paragraph.Attribute(XNamespace.Xml + "lang"));
+        string fragment = "#" + Assert.IsType<string>((string?)content.Attribute("id"));
+        Assert.Collection(paragraph.Elements(xhtml + "a"),
+            root => Assert.Equal(fragment, (string?)root.Attribute("href")),
+            body => Assert.Equal(fragment, (string?)body.Attribute("href")));
     }
 
     [Fact]

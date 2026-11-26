@@ -7,7 +7,7 @@
 | AZW3 / KF8 | Unencrypted standalone or dual-format KF8 with skeleton, fragment and navigation indexes, inline raster images and Kindle position links. Dual-format imports resolve raster images from the shared legacy records. Separate CSS, SVG and font flows and fixed-layout positioning are reported as lost. |
 | Compression | Stored records and PalmDOC compression. The import refuses HUFF/CDIC compression with a `NotSupportedException`. |
 | DRM | Encrypted MOBI and Kindle inputs are refused before extracting text, including an encrypted section of a dual-format book. |
-| Output | Reflowable EPUB with metadata, embedded raster cover and contents. PDF, standalone HTML and Markdown use the shared publication projection and report destination losses. |
+| Output | Reflowable EPUB with metadata, embedded raster cover, contents and declared page progression. PDF, standalone HTML and Markdown use the shared publication projection and report destination losses, including left-to-right or right-to-left page progression. |
 
 The reader admits at most 64 MiB of input, 16,384 Palm database records,
 16 MiB of decompressed text and 4,096 bytes per decompressed text record.
