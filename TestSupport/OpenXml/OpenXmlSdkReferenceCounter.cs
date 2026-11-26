@@ -75,31 +75,35 @@ internal static class OpenXmlSdkReferenceCounter {
     }
 
     // Comments that mention the namespace don't use it: line comments and block comments, across lines, are skipped,
-    // while string and character literals are read as code. A verbatim string spanning lines is treated as ending on its line.
+    // while string and character literals, including verbatim strings across lines, are read as code.
     private static bool NamesNamespaceInCode(string path, Dependency dependency) {
         var code = new System.Text.StringBuilder();
-        bool inBlock = false;
+        bool inBlock = false, inVerbatim = false;
         foreach (string line in File.ReadLines(path)) {
             code.Clear();
-            for (int i = 0; i < line.Length; i++) {
+            int i = 0;
+            if (inVerbatim) i = ReadVerbatim(line, 0, code, out inVerbatim);
+            for (; i < line.Length; i++) {
                 if (inBlock) {
                     if (line[i] == '*' && i + 1 < line.Length && line[i + 1] == '/') { inBlock = false; i++; }
+                    continue;
+                }
+                if (line[i] == '"' && i > 0 && line[i - 1] == '@') {
+                    code.Append('"');
+                    i = ReadVerbatim(line, i + 1, code, out inVerbatim) - 1;
                     continue;
                 }
                 // A literal's text is code, and comment delimiters inside it don't start a comment.
                 if (line[i] == '"' || line[i] == '\'') {
                     char quote = line[i];
-                    bool verbatim = quote == '"' && i > 0 && line[i - 1] == '@';
-                    code.Append(line[i]);
+                    code.Append(quote);
                     for (i++; i < line.Length; i++) {
                         code.Append(line[i]);
-                        if (!verbatim && line[i] == '\\') {
+                        if (line[i] == '\\') {
                             if (i + 1 < line.Length) code.Append(line[++i]);
                             continue;
                         }
-                        if (line[i] != quote) continue;
-                        if (verbatim && i + 1 < line.Length && line[i + 1] == '"') { code.Append(line[++i]); continue; }
-                        break;
+                        if (line[i] == quote) break;
                     }
                     continue;
                 }
@@ -110,6 +114,20 @@ internal static class OpenXmlSdkReferenceCounter {
             if (dependency.NamespaceText.IsMatch(code.ToString())) return true;
         }
         return false;
+    }
+
+    // Reads verbatim string text from start up to and including its closing quote; a doubled quote is part of the text.
+    // Returns the index after the string, and whether the string continues on the next line.
+    private static int ReadVerbatim(string line, int start, System.Text.StringBuilder code, out bool continues) {
+        for (int i = start; i < line.Length; i++) {
+            code.Append(line[i]);
+            if (line[i] != '"') continue;
+            if (i + 1 < line.Length && line[i + 1] == '"') { code.Append(line[++i]); continue; }
+            continues = false;
+            return i + 1;
+        }
+        continues = true;
+        return line.Length;
     }
 
     private const string MappedSourcePrefix = "/_/";
