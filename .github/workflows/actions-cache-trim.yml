@@ -1,0 +1,47 @@
+name: Trim Actions caches
+
+# Every project or package change saves a new NuGet cache of about 3 GB for each runner OS, and the older ones stay until
+# GitHub evicts something to stay under the repository's 10 GB cache limit. Restores only use the newest cache for each
+# OS, so the older ones are removed once a newer one exists.
+on:
+  workflow_run:
+    workflows: [Test .NET Libraries]
+    types: [completed]
+    branches: [master]
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: actions-cache-trim
+  cancel-in-progress: false
+
+jobs:
+  trim:
+    name: Remove superseded NuGet caches
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Every page, so recently used caches of other kinds can't hide the NuGet ones.
+          $caches = (gh api --paginate --slurp "repos/$env:GITHUB_REPOSITORY/actions/caches?ref=refs/heads/master&per_page=100" | ConvertFrom-Json).actions_caches
+          if ($LASTEXITCODE) { throw 'Cannot list the caches.' }
+          # Keys look like <os>-<arch>-nuget-v2-<hash>; the newest master cache for each <os>-<arch> stays.
+          $nuget = $caches | Where-Object { $_.key -match '^(.+-nuget-v2)-[0-9a-f]+$' }
+          foreach ($family in $nuget | Group-Object { $_.key -replace '-[0-9a-f]+$', '' }) {
+              $sorted = @($family.Group | Sort-Object { [datetime]$_.created_at } -Descending)
+              Write-Host "Keeping $($sorted[0].key)."
+              foreach ($cache in $sorted | Select-Object -Skip 1) {
+                  gh cache delete $cache.id --repo $env:GITHUB_REPOSITORY
+                  if ($LASTEXITCODE) { throw "Cannot delete cache $($cache.key)." }
+                  Write-Host "Removed $($cache.key)."
+              }
+          }
