@@ -23,7 +23,7 @@ internal sealed class PdfStructureTreePruning {
             elements.Add(new PdfStructureElementInfo(element.ObjectNumber, element.StructureType, element.ParentObjectNumber,
                 element.PageObjectNumber, element.Language, element.AlternateText,
                 element.ChildElementObjectNumbers.Where(child => !RemovedStructureElements.Contains(child)).ToArray(),
-                element.MarkedContentReferences, element.ObjectReferenceCount - removedReferences));
+                element.MarkedContentReferences, element.ObjectReferenceCount - removedReferences, element.RowSpan, element.ColumnSpan));
         }
         return new PdfTaggedContentInfo(original.Marked, original.Suspects, original.UserProperties, original.StructTreeRootObjectNumber,
             original.ParentTreeObjectNumber, original.ParentTreeNextKey, original.RoleMap,
