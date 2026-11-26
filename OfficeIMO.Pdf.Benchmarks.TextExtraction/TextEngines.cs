@@ -2,6 +2,9 @@ using System.Text;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Docnet.Core.Readers;
+using Tabula;
+using Tabula.Extractors;
+using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 
 namespace OfficeIMO.Pdf.Benchmarks.TextExtraction;
 
@@ -10,7 +13,7 @@ namespace OfficeIMO.Pdf.Benchmarks.TextExtraction;
 /// Each delegate is the cheapest public whole-document text call the engine offers.
 /// </summary>
 internal static class TextEngines {
-    internal static readonly string[] All = ["officeimo", "officeimo-read", "pdfoxide", "pdfium", "pdfpig"];
+    internal static readonly string[] All = ["officeimo", "officeimo-read", "pdfoxide", "pdfium", "pdfpig", "pdfpig-tabula"];
 
     internal static Func<string, string> Resolve(string engine) => engine switch {
         "officeimo" => OfficeImoExtractText,
@@ -18,6 +21,7 @@ internal static class TextEngines {
         "pdfoxide" => PdfOxideExtractText,
         "pdfium" => PdfiumExtractText,
         "pdfpig" => PdfPigExtractText,
+        "pdfpig-tabula" => PdfPigTabulaExtractText,
         _ => throw new ArgumentException($"Unknown engine '{engine}'. Known engines: {string.Join(", ", All)}.")
     };
 
@@ -68,6 +72,28 @@ internal static class TextEngines {
         var text = new StringBuilder();
         foreach (UglyToad.PdfPig.Content.Page page in document.GetPages()) {
             text.Append(page.Text).Append("\n\n");
+        }
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// The usual .NET open-source pairing for structured reading: PdfPig's line-preserving
+    /// <c>ContentOrderTextExtractor</c> for page text, then Tabula's lattice extractor for ruled tables, with each
+    /// table row appended after the page text as tab-separated cells.
+    /// </summary>
+    private static string PdfPigTabulaExtractText(string path) {
+        using UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(path, new UglyToad.PdfPig.ParsingOptions { ClipPaths = true });
+        var text = new StringBuilder();
+        var lattice = new SpreadsheetExtractionAlgorithm();
+        for (int pageNumber = 1; pageNumber <= document.NumberOfPages; pageNumber++) {
+            text.Append(ContentOrderTextExtractor.GetText(document.GetPage(pageNumber))).Append('\n');
+            PageArea page = ObjectExtractor.Extract(document, pageNumber);
+            foreach (Table table in lattice.Extract(page)) {
+                foreach (IReadOnlyList<Cell> row in table.Rows) {
+                    text.AppendJoin('\t', row.Select(static cell => cell.GetText())).Append('\n');
+                }
+            }
+            text.Append('\n');
         }
         return text.ToString();
     }

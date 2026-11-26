@@ -1,6 +1,6 @@
 # OfficeIMO PDF text extraction over public corpora
 
-This opt-in runner measures whole-document plain-text extraction over directories of real PDFs, such as the veraPDF, pdf.js and SafeDocs test corpora. It is outside `OfficeIMO.slnx` and is never packed. PDFium (through Docnet.Core), PdfPig and PdfOxide are measurement references only.
+This opt-in runner measures whole-document plain-text extraction over directories of real PDFs, such as the veraPDF, pdf.js and SafeDocs test corpora, and scores reading quality on trial protocols from ClinicalTrials.gov. It is outside `OfficeIMO.slnx` and is never packed. PDFium (through Docnet.Core), PdfPig, Tabula and PdfOxide are measurement references only.
 
 ## What it measures
 
@@ -13,6 +13,7 @@ For every file, each engine opens the PDF from disk and returns the text of ever
 | `pdfoxide` | `PdfDocument.Open(path)`, then `ExtractText(page)` for every page. `ExtractAllText()` silently drops the text of a failing page, so the per-page call keeps failures visible. |
 | `pdfium` | `GetDocReader(path)`, then `GetPageReader(page).GetText()` for every page. |
 | `pdfpig` | `PdfDocument.Open(path)`, then `Page.Text` for every page. |
+| `pdfpig-tabula` | PdfPig `ContentOrderTextExtractor.GetText(page)` for every page, then Tabula's lattice extractor (`SpreadsheetExtractionAlgorithm`) on the same page, with each table row appended as tab-separated cells. This is the usual open-source .NET pairing for structured reading. |
 
 Every engine runs in its own child process, single-threaded, with a 60-second limit per file. Engines are interleaved per file, so load changes on the machine affect all of them equally. There are two modes:
 
@@ -49,3 +50,31 @@ dotnet $runner parity --output <out>
   - **`lax_category`:** reproduces PdfOxide's own published equivalence check, which accepts any output whose character set covers the reference or whose length is within 0.8–1.2×. Read it next to `similarity`, which is stricter.
 
 Results depend on the machine and its load; record both with any published numbers.
+
+## ClinicalTrials.gov protocols
+
+Sponsors upload trial protocols to ClinicalTrials.gov next to the structured registry record. The record is ground truth for what the protocol must say: its official title, NCT number, lead sponsor, primary outcome measures, arm labels, intervention names and eligibility criteria. The corpus scores how much of that each engine's text keeps intact and in order, and whether it sits under the right section heading.
+
+`ClinicalTrials/manifest.json` lists the sample: 200 trials spread across the registry's sponsor classes (industry 50, other 50, NIH 25, other federal 25, other government 20, network 20, individual 10). Within each class the trials with a protocol PDF of at most 25 MB are ranked by SHA-256 of the seed and NCT number, and the lowest ranks are kept, which is a reproducible uniform sample. The manifest pins each protocol's file name and SHA-256. The PDFs and registry records are downloaded to a local folder and never committed.
+
+```powershell
+$runner = 'OfficeIMO.Pdf.Benchmarks.TextExtraction/bin/Release/net10.0/OfficeIMO.Pdf.Benchmarks.TextExtraction.dll'
+$manifest = 'OfficeIMO.Pdf.Benchmarks.TextExtraction/ClinicalTrials/manifest.json'
+dotnet $runner ctgov-fetch --manifest $manifest --root <corpus>
+dotnet $runner run --mode warm --write-text --engines officeimo-read,pdfpig-tabula --output <out> --suite ctgov=<corpus>/pdfs
+dotnet $runner ctgov-score --manifest $manifest --root <corpus> --output <out>
+```
+
+- `ctgov-fetch` downloads `<corpus>/pdfs/<NCT>.pdf` and the current record to `<corpus>/records/<NCT>.json`, keeps files that already match the pinned hash and leaves out any protocol whose bytes changed. It reports records updated since the sample was drawn, because a changed record changes the expected fields.
+- `ctgov-sample` draws a new sample and `ctgov-fetch --record-hashes` pins it. Only use them to replace the manifest.
+- `ctgov-score` writes `ctgov-fields.csv` (one row per field and engine) and `ctgov-summary.md`, broken down by sponsor class and by field, with time per page and the protocols with the lowest intact share.
+
+Scoring:
+
+- **Matching:** text and fields are NFKC-normalised and lower-cased, hyphens are removed (so a word hyphenated across a line break joins up) and everything that isn't a letter or digit separates words.
+- **Intact:** the field's words appear contiguously. **In order:** they all appear in order within three times the field's length. **Words:** at least 90% of them appear somewhere, which points at order rather than missing text. Eligibility criteria become one field per criterion of five or more words.
+- **Heading:** some line of twelve words or fewer, not ending like a sentence, names the field's section (outcomes or endpoints, arms or design, interventions or study drug, inclusion or exclusion). Table-of-contents lines count, so this is generous.
+- **In section:** some occurrence of the field follows, within 2,000 words, a line that opens with the field's section name once its numbering (`5.2.1`, `A.`, `IV.`, `(b)`) is removed, with no line opening with another section's name in between. Dot-leader table-of-contents lines don't count. Protocol headings range from `5.2 Inclusion Criteria` to `A. Inclusion criteria (all must be met): ...`, so this reads a line's opening words rather than its layout. For the NCT number, title and sponsor, it means the field appears in the front matter (the first 5% of the text, at least 2,000 words).
+- **Time per page:** the run's time to open and read each protocol, divided by PdfPig's page count.
+
+Every engine is scored on its own text output by the same rules, so the score measures text order and completeness, not each engine's own heading detection.

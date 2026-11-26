@@ -7,8 +7,11 @@ if (args.Length == 0) {
               [--timeout 60] [--shard i/n] [--write-text]
           parity --output directory [--pairs left:right,...]
           summary --output directory [--pattern results-*.csv]
+          ctgov-sample --manifest file [--per-class INDUSTRY=50,...] [--seed text] [--max-file-bytes n]
+          ctgov-fetch --manifest file --root directory [--record-hashes]
+          ctgov-score --manifest file --root directory --output directory [--suite ctgov]
           worker --engine name      (internal: one engine child process)
-        Engines: officeimo, officeimo-read, pdfoxide, pdfium, pdfpig
+        Engines: officeimo, officeimo-read, pdfoxide, pdfium, pdfpig, pdfpig-tabula
         """);
     return 2;
 }
@@ -17,6 +20,9 @@ return args[0] switch {
     "run" => CorpusRunner.Run(args[1..]),
     "parity" => TextParity.Run(args[1..]),
     "summary" => ResultSummary.Run(args[1..]),
+    "ctgov-sample" => ClinicalTrialsCorpus.Sample(args[1..]),
+    "ctgov-fetch" => ClinicalTrialsCorpus.Fetch(args[1..]),
+    "ctgov-score" => ClinicalTrialsCorpus.Score(args[1..]),
     "worker" => ExtractionWorker.Run(Options.Get(args, "--engine") ?? throw new ArgumentException("--engine is required.")),
     _ => throw new ArgumentException($"Unknown command '{args[0]}'.")
 };
