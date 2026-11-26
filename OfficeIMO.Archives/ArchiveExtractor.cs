@@ -1,10 +1,11 @@
+using OfficeIMO.Archives.SevenZip;
 using OfficeIMO.Core.Internal.Cabinet;
 
 namespace OfficeIMO.Archives;
 
 /// <summary>Extracts one managed archive container into a fresh directory without executing its contents.</summary>
 public static partial class ArchiveExtractor {
-    /// <summary>Verifies and extracts selected files from a ZIP, CAB, ordinary MSI, TAR, .tar.gz or single-file gzip package.
+    /// <summary>Verifies and extracts selected files from a ZIP, 7z, CAB, ordinary MSI, TAR, .tar.gz or single-file gzip package.
     /// TAR symbolic links, hard links and device records are never created; selecting one fails the extraction.
     /// A gzip file is extracted under its stored name, or the package name without ".gz".
     /// The destination must be absent or empty. A completed staging directory is published by a same-volume move.</summary>
@@ -39,6 +40,7 @@ public static partial class ArchiveExtractor {
             switch (format) {
                 case ArchiveFormat.Cab: ExtractCab(source, staging, limits, files, ref total, cancellationToken); break;
                 case ArchiveFormat.Msi: ExtractMsi(source, staging, limits, files, ref total, cancellationToken); break;
+                case ArchiveFormat.SevenZip: ExtractSevenZip(source, staging, limits, files, ref total, cancellationToken); break;
                 case ArchiveFormat.Zip: ExtractZip(source, staging, limits, files, ref total, cancellationToken); break;
                 case ArchiveFormat.Tar:
                 case ArchiveFormat.TarGZip: ExtractTar(source, staging, limits, files, ref total, cancellationToken); break;
@@ -79,7 +81,7 @@ public static partial class ArchiveExtractor {
             if (TryDetectMagic(header, headerLength, out ArchiveFormat format)) return format;
             if (headerLength == 8) headerLength = Fill(source, header, header.Length, token, start: 8);
             if (LooksLikeTar(header, headerLength)) return ArchiveFormat.Tar;
-            throw new NotSupportedException("The package is not a supported ZIP, Cabinet, Windows Installer, TAR or gzip container.");
+            throw new NotSupportedException("The package is not a supported ZIP, 7z, Cabinet, Windows Installer, TAR or gzip container.");
         } finally {
             source.Position = originalPosition;
         }
@@ -95,6 +97,7 @@ public static partial class ArchiveExtractor {
         return length;
     }
     private static bool TryDetectMagic(byte[] bytes, int length, out ArchiveFormat format) {
+        if (SevenZipArchive.HasSignature(bytes, length)) { format = ArchiveFormat.SevenZip; return true; }
         format = ArchiveFormat.Zip;
         if (length >= 4 && bytes[0] == 'M' && bytes[1] == 'S' && bytes[2] == 'C' && bytes[3] == 'F') { format = ArchiveFormat.Cab; return true; }
         byte[] compound = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };

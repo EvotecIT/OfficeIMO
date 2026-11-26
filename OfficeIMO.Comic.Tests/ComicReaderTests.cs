@@ -4,10 +4,12 @@ using OfficeIMO.Epub;
 namespace OfficeIMO.Comic.Tests;
 
 public sealed class ComicReaderTests {
-    [Fact]
-    public void ImportsInfoZipComicInNumericOrderWithBookmarksAndCanvases() {
-        using Stream source = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Fixtures", "harbour.cbz"));
-        var imported = ComicReader.Import(source);
+    [Theory]
+    [InlineData("harbour.cbz")]
+    [InlineData("harbour.cb7")]
+    public void ImportsProducerComicsInNumericOrderWithBookmarksAndCanvases(string name) {
+        using Stream source = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
+        var imported = ComicReader.Import(source, name);
         using var artifact = new MemoryStream();
         imported.Value.Save(artifact);
         artifact.Position = 0;

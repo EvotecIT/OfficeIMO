@@ -16,7 +16,7 @@
     "toolCount": 21,
     "skillCount": 2,
     "studioFeatures": 55,
-    "routeCount": 334
+    "routeCount": 338
   },
   "surfaces": [
     {
@@ -352,7 +352,7 @@
       "cells": {
         "dotnet": {
           "guide": "/compatibility/",
-          "extra": "334 conversion routes",
+          "extra": "338 conversion routes",
           "items": [
             {
               "label": "OfficeIMO.Workflows",
@@ -392,7 +392,7 @@
         },
         "agents": {
           "guide": "/cli/",
-          "extra": "64 routes in the CLI",
+          "extra": "68 routes in the CLI",
           "items": [
             {
               "label": "officeimo convert",

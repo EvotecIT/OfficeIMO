@@ -15,7 +15,11 @@ public enum ArchiveCompression {
     /// <summary>An unrecognized or unsupported compression method.</summary>
     Unknown,
     /// <summary>ZIP Deflate compression.</summary>
-    Deflate
+    Deflate,
+    /// <summary>7z LZMA compression.</summary>
+    Lzma,
+    /// <summary>7z LZMA2 compression.</summary>
+    Lzma2
 }
 
 /// <summary>A passive inventory diagnostic. Inventory support does not verify payload integrity.</summary>

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Archives;
 
-/// <summary>Finite limits for verified, in-memory ZIP member reads.</summary>
+/// <summary>Finite limits for verified in-memory archive member reads.</summary>
 public sealed class ArchiveReadOptions {
     internal const int DefaultMaxEntryBytes = 16 * 1024 * 1024;
     /// <summary>Optional cumulative budget shared with related and nested archive operations.</summary>
@@ -15,8 +15,10 @@ public sealed class ArchiveReadOptions {
     public int MaxEntryCount { get; set; } = 10000;
     /// <summary>Maximum declared size of any member, selected or not. Defaults to 16 MiB. Selected in-memory members are also bounded by Int32.MaxValue.</summary>
     public long MaxEntryBytes { get; set; } = DefaultMaxEntryBytes;
-    /// <summary>Maximum aggregate selected content retained in the result. Defaults to 64 MiB.</summary>
+    /// <summary>Maximum expanded data, including siblings in a selected solid folder. Defaults to 64 MiB.</summary>
     public long MaxExpandedBytes { get; set; } = 64L * 1024 * 1024;
+    /// <summary>Maximum decompression work for 7z. Defaults to 2 GiB.</summary>
+    public long MaxDecompressionWorkBytes { get; set; } = 2L * 1024 * 1024 * 1024;
     /// <summary>Maximum member path segments.</summary>
     public int MaxPathDepth { get; set; } = 64;
     /// <summary>Maximum characters in an authored relative member path.</summary>
@@ -27,7 +29,7 @@ public sealed class ArchiveReadOptions {
 
     internal ArchiveLimits Limits() => new(new ArchiveExtractionOptions {
         OperationBudget = OperationBudget, ZipLegacyCodePage = ZipLegacyCodePage, MaxInputBytes = MaxInputBytes, MaxEntryCount = MaxEntryCount, MaxEntryBytes = MaxEntryBytes,
-        MaxExpandedBytes = MaxExpandedBytes, MaxPathDepth = MaxPathDepth, MaxPathLength = MaxPathLength,
+        MaxExpandedBytes = MaxExpandedBytes, MaxDecompressionWorkBytes = MaxDecompressionWorkBytes, MaxPathDepth = MaxPathDepth, MaxPathLength = MaxPathLength,
         IncludeFile = IncludeFile
     });
 }

@@ -1,0 +1,50 @@
+{
+  "producer": "7-Zip 26.06 (arm64 macOS)",
+  "source": "https://www.7-zip.org/download.html",
+  "verification": "7zz t -pfixture applied to each untouched archive.",
+  "inputs": {
+    "notes/café.txt": "800 repetitions of UTF-8 Harbour lights, chapter two. followed by LF.",
+    "notes/second.txt": "800 repetitions of UTF-8 Harbour lights, chapter ten. followed by LF.",
+    "notes/empty.txt": "Zero-length file.",
+    "notes/empty-dir": "Empty directory.",
+    "multi.txt": "128 repetitions of 677 copies of UTF-8 Bright buoys mark the channel. and LF followed by bytes 0 through 255.",
+    "mixed.bin": "2000 repetitions of UTF-8 Tide returns to the harbour. followed by LF, then the first 100,000 bytes of Python Random(1234).randbytes(120000), then 4000 repetitions of the same text and LF."
+  },
+  "fixtures": [
+    {
+      "file": "solid-lzma2.7z",
+      "command": "7zz a -t7z -m0=LZMA2 -ms=on -mhc=on -mmt=off -mtm=off solid-lzma2.7z notes multi.txt",
+      "sha256": "c31c6681c9e57dec0cad7645ec4ca0c31aa8463fe166dce27c061731b8ac73c6"
+    },
+    {
+      "file": "independent-lzma.7z",
+      "command": "7zz a -t7z -m0=LZMA -ms=off -mhc=off -mmt=off -mtm=off independent-lzma.7z notes",
+      "sha256": "ea08cb90d39f0269215b1f0c8d493367c7bc37be411eba73ee360de023c903b1"
+    },
+    {
+      "file": "copy.7z",
+      "command": "7zz a -t7z -mx=0 -ms=off -mhc=off -mtm=off copy.7z notes/empty.txt",
+      "sha256": "7fa816db02d70340c5392faccee4efa1ca880aec67d74a1114a32fc26b5f7ae0"
+    },
+    {
+      "file": "stored.7z",
+      "command": "7zz a -t7z -mx=0 -ms=off -mhc=off -mtm=off stored.7z notes/café.txt",
+      "sha256": "9d25a2f3b87ea5b811f55f03f256c7e396c6cf3a5fbb9b3afcf7f3650eeec90f"
+    },
+    {
+      "file": "encrypted-header.7z",
+      "command": "7zz a -t7z -m0=LZMA2 -mhc=on -mhe=on -pfixture encrypted-header.7z notes/café.txt",
+      "sha256": "18c4f8d9d22119ba24486b59719afceaa04092bbd9347695bca53f1d7e17cd2e"
+    },
+    {
+      "file": "encrypted-member.7z",
+      "command": "7zz a -t7z -m0=LZMA2 -mhc=off -mhe=off -pfixture encrypted-member.7z notes/café.txt",
+      "sha256": "6ba111c2b69caaf84f06853abcc298376b6d7ead9769cf605e7df5be551da581"
+    },
+    {
+      "file": "mixed-lzma2.7z",
+      "command": "7zz a -t7z -m0=LZMA2 -mhc=off -mmt=off -mtm=off mixed-lzma2.7z mixed.bin",
+      "sha256": "40b2f50353c5a1784a455a61c5237d79e46694b39c28af7b082939b3b350cdf3"
+    }
+  ]
+}

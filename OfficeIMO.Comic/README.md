@@ -1,6 +1,6 @@
 # OfficeIMO.Comic
 
-Read a CBZ as a sequence of numbered page images. An optional `ComicInfo.xml`
+Read CBZ and CB7 comics as sequences of numbered page images. An optional `ComicInfo.xml`
 provides the title, contributors, cover and page bookmarks.
 
 Install the package from NuGet.
@@ -24,7 +24,7 @@ The EPUB retains the page dimensions in a fixed-layout spine. Use
 convert the comic to EPUB, PDF, HTML or Markdown.
 
 ```sh
-officeimo convert comic.cbz comic.pdf
+officeimo convert comic.cb7 comic.pdf
 ```
 
 [Supported features and limits](SUPPORT.md)

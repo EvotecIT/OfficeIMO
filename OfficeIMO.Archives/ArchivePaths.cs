@@ -8,20 +8,31 @@ internal sealed class ArchivePaths {
     private readonly Dictionary<string, string> _directories = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _explicitDirectories = new(StringComparer.OrdinalIgnoreCase);
     private readonly ArchiveLimits _limits;
-    internal ArchivePaths(ArchiveLimits limits) => _limits = limits;
+    private readonly long? _maximumIndexBytes;
+    private long _indexBytes;
+
+    internal ArchivePaths(ArchiveLimits limits, long? maximumIndexBytes = null) {
+        _limits = limits;
+        _maximumIndexBytes = maximumIndexBytes;
+    }
     internal string Add(string authored) {
         string path = Validate(authored);
         string key = path.Normalize(NormalizationForm.FormC);
-        if (!_files.Add(key) || _directories.ContainsKey(key)) throw new InvalidDataException("Archive member paths collide: " + authored);
+        if (_files.Contains(key) || _directories.ContainsKey(key)) throw new InvalidDataException("Archive member paths collide: " + authored);
+        ChargeIndex(key, 0);
+        _files.Add(key);
         AddParents(path, authored);
         return path;
     }
     /// <summary>Registers an explicit directory record, such as a ZIP entry ending in '/', without publishing a file.</summary>
-    internal void AddDirectory(string authored) {
+    internal string AddDirectory(string authored) {
         string path = Validate(authored);
-        if (!_explicitDirectories.Add(path.Normalize(NormalizationForm.FormC)))
-            throw new InvalidDataException("Archive directory records collide: " + authored);
+        string key = path.Normalize(NormalizationForm.FormC);
+        if (_explicitDirectories.Contains(key)) throw new InvalidDataException("Archive directory records collide: " + authored);
+        ChargeIndex(key, 0);
+        _explicitDirectories.Add(key);
         AddParents(path + "/", authored);
+        return path;
     }
     private string Validate(string authored) {
         string path = authored.Replace('\\', '/');
@@ -41,10 +52,20 @@ internal sealed class ArchivePaths {
             if (_files.Contains(parentKey)) throw new InvalidDataException("An archive file is also a parent directory: " + authored);
             if (_directories.TryGetValue(parentKey, out string? existing)) {
                 if (!string.Equals(existing, parent, StringComparison.Ordinal)) throw new InvalidDataException("Archive directory paths collide by case or Unicode normalization: " + authored);
-            } else _directories.Add(parentKey, parent);
+            } else {
+                ChargeIndex(parentKey, parent.Length);
+                _directories.Add(parentKey, parent);
+            }
             separator = path.IndexOf('/', separator + 1);
         }
     }
+    private void ChargeIndex(string key, int originalLength) {
+        if (!_maximumIndexBytes.HasValue) return;
+        // Count retained UTF-16 strings and reserve space per hash-table entry, including resizes.
+        long bytes = 128 + 2L * (key.Length + (long)originalLength);
+        ArchiveLimits.Add(ref _indexBytes, bytes, _maximumIndexBytes.Value, nameof(ArchiveExtractionOptions.MaxMetadataBytes));
+    }
+
     internal static void ValidateSegment(string part) {
         if (part.Length == 0 || part.Length > 255 || Encoding.UTF8.GetByteCount(part) > 255)
             throw new InvalidDataException("Archive member has an empty or oversized path segment.");

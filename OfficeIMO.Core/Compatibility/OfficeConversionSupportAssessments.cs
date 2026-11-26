@@ -31,6 +31,9 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId == "epub-pdf") return Targeted(
             "Converter fixtures reopen the PDF and verify spine order, linked stylesheets, images, navigation, tags and mixed page sizes. TextOnly exercises the original Reader projection.",
             "Each chapter begins on a new page and uses the supported HTML print or fixed-viewport subset. Unsupported CSS, missing link targets, publication page totals and requested PDF parity padding have diagnostics. Linked resources resolve inside the EPUB package.");
+        if (routeId.StartsWith("ebook-cb7-", StringComparison.Ordinal)) return Targeted(
+            "A 7-Zip-produced solid archive verifies numeric page order, ComicInfo metadata, bookmarks, cover selection and fixed EPUB and PDF page sizes.",
+            "Reads unencrypted 7z comic archives with Copy, LZMA or LZMA2 and supported raster pages. See OfficeIMO.Comic/SUPPORT.md.");
         if (routeId.StartsWith("ebook-cbz-", StringComparison.Ordinal)) return Targeted(
             "An Info-ZIP fixture exercises numbered image order, ComicInfo metadata and bookmarks, cover selection and EPUB page canvases.",
             "Reads ZIP comic archives with supported raster pages. RAR and 7z comic archives are outside this profile. See OfficeIMO.Comic/SUPPORT.md.");

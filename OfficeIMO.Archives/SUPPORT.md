@@ -6,7 +6,8 @@
 | `ArchiveReader.ReadZip` | ZIP | Strict metadata/path preflight and complete selected-content length, framing and CRC verification; selected arrays belong to the caller. Input streams stay open. No partial result or filesystem output. |
 | `ArchiveInspector.Open` / `PlanRead` / `OpenRead` / `ReadMembers` | ZIP, CAB, MSI | Raw ordinal-preserving inventory, complete verified member reads and atomic grouped reads. |
 | `ArchiveInspection.Verify` / `CopyTo` | ZIP, CAB, MSI | Structured integrity outcomes; verified copying uses a private decoded spool for every format. CAB/MSI verify the complete containing folder. |
-| `ArchiveExtractor.Extract` | ZIP, CAB, MSI, TAR, .tar.gz, gzip | Strict verified extraction through a sibling staging directory and completed-directory publication. TAR links and device records are never created; selecting one fails the extraction. |
+| `ArchiveReader.ListSevenZip` / `ReadSevenZip` | 7z | Validated file table and portable paths. Selected reads verify each complete containing folder and return caller-owned arrays. |
+| `ArchiveExtractor.Extract` | ZIP, 7z, CAB, MSI, TAR, .tar.gz, gzip | Strict verified extraction through a sibling staging directory and completed-directory publication. TAR links and device records are never created; selecting one fails the extraction. |
 | `ArchiveReader.ReadTar` / `ListTar` | TAR, .tar.gz | Header checksums, numeric fields, extended headers and content bounds are verified; `ReadTar` applies extraction path checks and returns selected regular files, `ListTar` returns every member's metadata including link targets. |
 | `GZipArchive.Decompress` / `Compress` / `CreateWriter` | gzip | Concatenated members, per-member CRC-32 and length, optional header CRC; output is bounded by the smaller of `MaxEntryBytes` and `MaxExpandedBytes` and charged as selected bytes; writing uses the deterministic managed Deflate encoder. |
 | `ZipArchiveWriter` | ZIP | Stored or Deflate members, UTF-8 names, ZIP64 when sizes, offsets or counts require it, optional data descriptors; byte-identical output across platforms and target frameworks. |
@@ -17,6 +18,7 @@ In-memory reading defaults to 64 MiB compressed input, 10,000 physical members, 
 | Container | Supported read profile | Boundaries |
 | --- | --- | --- |
 | ZIP | Single-disk archives with stored or Deflate members | Prepended self-extracting stubs, encryption, patched data sets, enhanced Deflate and reserved flag profiles, compression-level flags on stored members, other compression methods, multi-disk archives, ambiguous directory layouts (including distant ZIP64 locators with saturated classic counts), unflagged non-ASCII names require an explicit `ZipLegacyCodePage`, and flagged invalid UTF-8 names are rejected; central-directory member count, ZIP64 coordinates, matching local names/flags/methods, exact Deflate framing, actual decoded EOF, declared lengths, CRC-32 and expansion bounds are enforced; directory members must have verified empty payloads |
+| 7z | Copy, LZMA and LZMA2; encoded headers, UTF-16 names, non-solid and solid folders | Encryption, external metadata, anti-items, multi-coder filter chains, split and self-extracting archives are unsupported. |
 | CAB | Single cabinets with Store, MSZIP and the shared LZX decoder; passive CFFILE/folder inventory, complete member reads and grouped ordinal reads | Cabinet sets and continuation/spanning are rejected; unsupported compression is visible in inventory and rejected for reads/extraction; finite entry/folder/output bounds and available checksums are enforced during reads |
 | TAR | POSIX ustar and pax (`x`, `g`), GNU (`L`, `K`, base-256 numbers, `D` directories) and v7 headers; regular files, directories, symbolic and hard links and device records; optional gzip wrapping | Sparse (`S`, `GNU.sparse.*`), multi-volume (`M`, `N`) and unknown member types are rejected, as are non-UTF-8 names and pax `hdrcharset` values other than UTF-8. Duplicate member names are collisions, not later-member updates. A lone zero block or EOF at a header boundary ends the archive |
 | gzip | RFC 1952 Deflate members, concatenated members, FEXTRA, FNAME, FCOMMENT and FHCRC | Other compression methods, reserved flags and non-zero trailing data are rejected |
@@ -76,3 +78,25 @@ The checked-in independent ZIP corpus includes 7-Zip 26.04 UTF-8 and unflagged U
 A pinned Windows-labelled ZIP from the .NET runtime-assets corpus passes complete verification and byte/hash comparison for all four members on macOS. Its producer version is unspecified and its ASCII names do not qualify Windows Explorer Polish-name behavior. Packed consumer runs cover .NET 8 and 10 on macOS and Windows. The Windows net472 consumer runs on .NET Framework 4.8.9345.0; an installed .NET Framework 4.7.2 runtime has not been exercised. Each Windows target passes the five independent ZIP cases, all 106 pinned native MSI payload comparisons and native makecab verified copying. Windows Shell production of the Polish-name fixture remains unqualified and is an opt-in run on a suitable Windows machine, separate from required runtime CI and interactive Explorer UI acceptance. Reproducible run inputs and qualification boundaries are recorded under [Build/Archives](../Build/Archives/README.md).
 
 ZIP, TAR and gzip writing use a managed Deflate encoder (hash chains with lazy matching; each block takes the smallest of dynamic Huffman, fixed Huffman and stored encodings) instead of the runtime's zlib, whose output differs between .NET versions and operating systems. Tests pin the SHA-256 of reference ZIP, TAR and .tar.gz archives on .NET 8 and .NET 10, and an opt-in check (`OFFICEIMO_RUN_ARCHIVE_TOOL_INTEROP=1`) runs `unzip -t`, CPython `zipfile`, `tar -tvf`/`tar -xOf` and `gzip -t` against the output. The checked-in independent TAR corpus covers bsdtar 3.5.3 ustar and pax (.tar.gz) archives with long and NFD Unicode names and symbolic links, CPython 3.9.6 GNU-format archives with `././@LongLink` names and hard links, and a two-member Apple gzip file; `Fixtures/IndependentTar/manifest.json` records producers, commands and hashes.
+
+
+## 7z reading
+
+The reader applies the same portable-path checks to every file-table record
+before selection. It checks the start header and next header CRCs. Reading
+any member of a solid folder decodes that whole folder once and checks its
+declared packed, folder and member CRCs, including unselected siblings.
+Selected links and special files are refused. Listing decodes encoded
+metadata and leaves file payloads alone.
+
+Sizes, entry counts and expansion obey the reader or extraction limits.
+A decoded folder is capped at 256 MiB and combined encoded-header metadata
+at 64 MiB. The retained portable-path index also observes MaxMetadataBytes. Work accounting includes compressed input, decoded output and
+LZMA and LZMA2 probability-table initialization and resets. The reader rejects both encrypted headers
+and encrypted payloads. There is no 7z writer. BCJ, BCJ2 and Delta are outside
+the current single-coder profile.
+
+The [7-Zip producer fixtures](../OfficeIMO.Archives.Tests/Fixtures/IndependentSevenZip/manifest.json)
+cover plain and encoded headers, solid LZMA2, non-solid LZMA, Copy and encryption refusal.
+The [7z format description](https://github.com/ip7z/7zip/blob/main/DOC/7zFormat.txt)
+and [XZ format description](https://tukaani.org/xz/xz-file-format.txt) document the container and LZMA2 dictionary properties.

@@ -21,12 +21,12 @@ public sealed class ArchiveExtractionOptions {
     public long MaxEntryBytes { get; set; } = 256L * 1024 * 1024;
     /// <summary>Maximum aggregate expanded bytes. CAB folder decoding also observes this bound.</summary>
     public long MaxExpandedBytes { get; set; } = 1024L * 1024 * 1024;
-    /// <summary>Maximum aggregate CAB decompression work bytes across all folders and embedded MSI cabinets.
+    /// <summary>Maximum aggregate decompression work bytes for CAB folders, embedded MSI cabinets and 7z folders.
     /// Defaults to 2 GiB, independently of expanded content. Each frame charges the greatest of 32 KiB,
     /// its complete CFDATA record size, and its expanded size plus any MSZIP dictionary replay.
     /// This bounds processing work rather than measuring exact CPU time.</summary>
     public long MaxDecompressionWorkBytes { get; set; } = 2L * 1024 * 1024 * 1024;
-    /// <summary>Maximum aggregate MSI metadata stream bytes. Defaults to 64 MiB.</summary>
+    /// <summary>Maximum aggregate MSI or 7z metadata stream bytes. Defaults to 64 MiB.</summary>
     public long MaxMetadataBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum rows per MSI metadata table.</summary>
     public int MaxTableRows { get; set; } = 200000;
