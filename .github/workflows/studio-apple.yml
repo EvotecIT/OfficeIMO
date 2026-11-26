@@ -71,16 +71,30 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=studio-apple-engine&per_page=10" \
-            --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master")][0].workflow_run.id // empty')
-          if [ -z "$run" ]; then
-            echo "No engine artifact from master is available."
-            exit 0
-          fi
-          gh run download "$run" --repo "$GITHUB_REPOSITORY" --name studio-apple-engine --dir Apple/OfficeIMOStudioEngine
-          test -d Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework
-          echo "found=true" >> "$GITHUB_OUTPUT"
+          set -uo pipefail
+          # Only a scheduled or manual run of the engine workflow in this repository counts. A fork can name its branch
+          # master and upload an artifact with the same name from a pull request.
+          for _ in 1 2; do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=studio-apple-engine&per_page=10" \
+              --jq '.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master"
+                and .workflow_run.head_repository_id == .workflow_run.repository_id) | .workflow_run.id') || runs=
+            for run in $runs; do
+              origin=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '"\(.path) \(.event)"') || continue
+              case "$origin" in
+                ".github/workflows/studio-apple-engine.yml schedule"|".github/workflows/studio-apple-engine.yml workflow_dispatch") ;;
+                *) continue ;;
+              esac
+              # A newer engine run can delete this copy between the lookup and the download, so look again once.
+              if gh run download "$run" --repo "$GITHUB_REPOSITORY" --name studio-apple-engine --dir Apple/OfficeIMOStudioEngine \
+                && test -d Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework; then
+                echo "found=true" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              rm -rf Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework Apple/OfficeIMOStudioEngine/link-inputs
+              break
+            done
+          done
+          echo "No engine artifact from master is available."
       # Without either, the last released engine stands in.
       - name: Use the released engine
         if: steps.engine.outputs.cache-matched-key == '' && steps.artifact.outputs.found != 'true'

@@ -31,14 +31,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $caches = gh cache list --repo $env:GITHUB_REPOSITORY --limit 500 --json id,key,ref,createdAt | ConvertFrom-Json
+          # Every page, so recently used caches of other kinds can't hide the NuGet ones.
+          $caches = (gh api --paginate --slurp "repos/$env:GITHUB_REPOSITORY/actions/caches?ref=refs/heads/master&per_page=100" | ConvertFrom-Json).actions_caches
           if ($LASTEXITCODE) { throw 'Cannot list the caches.' }
           # Keys look like <os>-<arch>-nuget-v2-<hash>; the newest master cache for each <os>-<arch> stays.
-          $nuget = $caches | Where-Object { $_.ref -eq 'refs/heads/master' -and $_.key -match '^(.+-nuget-v2)-[0-9a-f]+$' }
+          $nuget = $caches | Where-Object { $_.key -match '^(.+-nuget-v2)-[0-9a-f]+$' }
           foreach ($family in $nuget | Group-Object { $_.key -replace '-[0-9a-f]+$', '' }) {
-              $newest, $older = @($family.Group | Sort-Object { [datetime]$_.createdAt } -Descending)
-              Write-Host "Keeping $($newest.key)."
-              foreach ($cache in $older) {
+              $sorted = @($family.Group | Sort-Object { [datetime]$_.created_at } -Descending)
+              Write-Host "Keeping $($sorted[0].key)."
+              foreach ($cache in $sorted | Select-Object -Skip 1) {
                   gh cache delete $cache.id --repo $env:GITHUB_REPOSITORY
                   if ($LASTEXITCODE) { throw "Cannot delete cache $($cache.key)." }
                   Write-Host "Removed $($cache.key)."
