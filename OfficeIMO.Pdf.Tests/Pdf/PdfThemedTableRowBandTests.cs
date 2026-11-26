@@ -44,8 +44,12 @@ public sealed class PdfThemedTableRowBandTests {
     [Fact]
     public void WrappedCandidateDoesNotDiscardThePrecedingFormIdentityRow() {
         using var pdf = Open("form-layout.pdf");
-        Assert.Contains(pdf.Read().Pages[0].Tables,
-            table => table.Rows.Any(row => row.Contains("KOWALSKI") && row.Contains("ANNA MARIA")));
+        PdfDocumentReadResult read = pdf.Read();
+        // The form is tagged: each TD holds its label and value, and spanning cells keep their grid position.
+        Assert.Collection(read.Pages[0].Tables,
+            applicant => Assert.Equal(new[] { "1. Surname KOWALSKI", "", "2. Given names ANNA MARIA", "" }, applicant.Rows[0]),
+            equipment => Assert.Equal("8. Start date 02/03/2026", equipment.Rows[0][0]));
+        Assert.Contains(read.Headings, static heading => heading.Text == "Section B — Equipment");
     }
 
     private static PdfDocument Open(string name) => PdfDocument.Load(Path.Combine(AppContext.BaseDirectory,

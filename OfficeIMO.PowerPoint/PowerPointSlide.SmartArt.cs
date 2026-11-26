@@ -75,7 +75,7 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.Append(frame);
 
-            return TrackShape(new PowerPointSmartArt(frame, _slidePart));
+            return TrackShape(new PowerPointSmartArt(frame, SlidePart));
         }
 
         /// <summary>
@@ -113,21 +113,21 @@ namespace OfficeIMO.PowerPoint {
         private (string layoutRelId, string colorsRelId, string styleRelId, string dataRelId)
             AddSemanticSmartArtParts(PowerPointSmartArtType type,
                 IReadOnlyList<string> nodeTexts, long width, long height) {
-            DiagramLayoutDefinitionPart layoutPart = _slidePart.AddNewPart<DiagramLayoutDefinitionPart>();
+            DiagramLayoutDefinitionPart layoutPart = SlidePart.AddNewPart<DiagramLayoutDefinitionPart>();
             PopulateSmartArtLayout(layoutPart, type, nodeTexts.Count,
                 width / (double)height);
-            DiagramColorsPart colorsPart = _slidePart.AddNewPart<DiagramColorsPart>();
+            DiagramColorsPart colorsPart = SlidePart.AddNewPart<DiagramColorsPart>();
             PopulateSmartArtColors(colorsPart);
-            DiagramStylePart stylePart = _slidePart.AddNewPart<DiagramStylePart>();
+            DiagramStylePart stylePart = SlidePart.AddNewPart<DiagramStylePart>();
             PopulateSmartArtStyle(stylePart);
-            DiagramDataPart dataPart = _slidePart.AddNewPart<DiagramDataPart>();
+            DiagramDataPart dataPart = SlidePart.AddNewPart<DiagramDataPart>();
             PopulateSmartArtData(dataPart, type, nodeTexts);
 
             return (
-                _slidePart.GetIdOfPart(layoutPart)!,
-                _slidePart.GetIdOfPart(colorsPart)!,
-                _slidePart.GetIdOfPart(stylePart)!,
-                _slidePart.GetIdOfPart(dataPart)!);
+                SlidePart.GetIdOfPart(layoutPart)!,
+                SlidePart.GetIdOfPart(colorsPart)!,
+                SlidePart.GetIdOfPart(stylePart)!,
+                SlidePart.GetIdOfPart(dataPart)!);
         }
 
         private static GraphicFrame CreateSmartArtFrame(uint id, string name, string layoutRelId, string colorsRelId,

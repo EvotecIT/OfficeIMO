@@ -54,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static string[] SplitLines(string? text) =>
+        internal static string[] SplitLines(string? text) =>
             LegacyPptXmlText.SanitizeAttributeValue(NormalizeBreaks(text))!.Split('\n');
     }
 }

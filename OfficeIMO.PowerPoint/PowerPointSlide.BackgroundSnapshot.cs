@@ -54,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
             A.BlipFill? blipFill = properties.GetFirstChild<A.BlipFill>();
             if (blipFill != null) {
                 return includeImageData
-                    ? GetBackgroundImage(blipFill, ownerPart ?? _slidePart, imageReadLimit?.Invoke() ?? maximumImageBytes)
+                    ? GetBackgroundImage(blipFill, ownerPart ?? SlidePart, imageReadLimit?.Invoke() ?? maximumImageBytes)
                     : PowerPointSlideBackground.None();
             }
 
@@ -71,10 +71,10 @@ namespace OfficeIMO.PowerPoint {
             Background? slideBackground = SlideRoot.CommonSlideData?.Background;
             BackgroundProperties? slideProperties = slideBackground?.BackgroundProperties;
             if (slideBackground?.BackgroundStyleReference != null || slideProperties?.HasChildren == true) {
-                return (slideProperties, _slidePart);
+                return (slideProperties, SlidePart);
             }
 
-            SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
+            SlideLayoutPart? layoutPart = SlidePart.SlideLayoutPart;
             Background? layoutBackground = layoutPart?.SlideLayout?.CommonSlideData?.Background;
             BackgroundProperties? layoutProperties = layoutBackground?.BackgroundProperties;
             if (layoutBackground?.BackgroundStyleReference != null || layoutProperties?.HasChildren == true) {
@@ -93,10 +93,10 @@ namespace OfficeIMO.PowerPoint {
         private (BackgroundStyleReference? StyleReference, OpenXmlPart? OwnerPart) GetResolvedBackgroundStyleReference() {
             BackgroundStyleReference? slideReference = SlideRoot.CommonSlideData?.Background?.BackgroundStyleReference;
             if (slideReference != null) {
-                return (slideReference, _slidePart);
+                return (slideReference, SlidePart);
             }
 
-            SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
+            SlideLayoutPart? layoutPart = SlidePart.SlideLayoutPart;
             BackgroundStyleReference? layoutReference = layoutPart?.SlideLayout?.CommonSlideData?.Background?.BackgroundStyleReference;
             if (layoutReference != null) {
                 return (layoutReference, layoutPart);

@@ -75,7 +75,7 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointLayoutBox GetSlideContentBounds(OfficeLength margin) {
             if (margin < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(margin));
-            PresentationDocument? document = _slidePart.OpenXmlPackage as PresentationDocument;
+            PresentationDocument? document = SlidePart.OpenXmlPackage as PresentationDocument;
             PresentationPart? presentationPart = document?.PresentationPart;
             if (presentationPart == null) {
                 return GetSelectionBounds(ShapeList);

@@ -793,23 +793,23 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointChart AddChartInternal(byte[] workbookBytes, Action<ChartPart, string> populateChart,
             long left, long top, long width, long height) {
-            PowerPointChartAxisIdGenerator.EnsureSeeded(_slidePart.OpenXmlPackage);
+            PowerPointChartAxisIdGenerator.EnsureSeeded(SlidePart.OpenXmlPackage);
             uint shapeId = AllocateShapeId();
             string chartPartUri = PowerPointPartFactory.GetIndexedPartUri(
-                _slidePart.OpenXmlPackage,
+                SlidePart.OpenXmlPackage,
                 "ppt/charts",
                 "chart",
                 ".xml",
                 allowBaseWithoutIndex: false);
             ChartPart chartPart = PowerPointPartFactory.CreatePart<ChartPart>(
-                _slidePart,
+                SlidePart,
                 contentType: null,
                 chartPartUri);
-            string chartRelId = _slidePart.GetIdOfPart(chartPart);
+            string chartRelId = SlidePart.GetIdOfPart(chartPart);
 
             // Embed workbook + styles/colors exactly like the template
             string stylePartUri = PowerPointPartFactory.GetIndexedPartUri(
-                _slidePart.OpenXmlPackage,
+                SlidePart.OpenXmlPackage,
                 "ppt/charts",
                 "style",
                 ".xml",
@@ -820,7 +820,7 @@ namespace OfficeIMO.PowerPoint {
                 stylePartUri);
             PowerPointUtils.PopulateChartStyle(stylePart);
             string colorStylePartUri = PowerPointPartFactory.GetIndexedPartUri(
-                _slidePart.OpenXmlPackage,
+                SlidePart.OpenXmlPackage,
                 "ppt/charts",
                 "colors",
                 ".xml",
@@ -832,7 +832,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointUtils.PopulateChartColorStyle(colorStylePart);
 
             string embeddedPartUri = PowerPointPartFactory.GetIndexedPartUri(
-                _slidePart.OpenXmlPackage,
+                SlidePart.OpenXmlPackage,
                 "ppt/embeddings",
                 "Microsoft_Excel_Worksheet",
                 ".xlsx",
@@ -866,7 +866,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData dataElement = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = dataElement.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
-            PowerPointChart chart = TrackShape(new PowerPointChart(frame, _slidePart));
+            PowerPointChart chart = TrackShape(new PowerPointChart(frame, SlidePart));
             return chart;
         }
 

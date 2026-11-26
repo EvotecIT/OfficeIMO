@@ -12,8 +12,11 @@ namespace OfficeIMO.PowerPoint {
             long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
             long nativeWidth = (width ?? OfficeLength.Emus(914400L)).ToEmus();
             long nativeHeight = (height ?? OfficeLength.Emus(914400L)).ToEmus();
-            string shapeName = name ?? GenerateUniqueName(shapeType.ToString());
             A.ShapeTypeValues openXmlShapeType = shapeType.ToOpenXml();
+            if (TryAddPackageShape(shapeType, ((DocumentFormat.OpenXml.IEnumValue)openXmlShapeType).Value, nativeLeft, nativeTop, nativeWidth, nativeHeight, name) is { } added) {
+                return added;
+            }
+            string shapeName = name ?? GenerateUniqueName(shapeType.ToString());
 
             ShapeProperties shapeProperties = new(
                 new A.Transform2D(new A.Offset { X = nativeLeft, Y = nativeTop }, new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),

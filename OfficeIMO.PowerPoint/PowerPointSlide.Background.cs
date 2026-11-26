@@ -94,14 +94,14 @@ namespace OfficeIMO.PowerPoint {
             string? previousRelationshipId = previousBlip?.Embed?.Value;
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
             string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
-                _slidePart.OpenXmlPackage,
+                SlidePart.OpenXmlPackage,
                 "ppt/media",
                 "image",
                 imageExtension,
                 allowBaseWithoutIndex: false);
 
             ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(
-                _slidePart,
+                SlidePart,
                 partTypeInfo.ContentType,
                 imagePartUri);
 
@@ -109,7 +109,7 @@ namespace OfficeIMO.PowerPoint {
                 image.Position = 0;
             }
             imagePart.FeedData(image);
-            string relationshipId = _slidePart.GetIdOfPart(imagePart);
+            string relationshipId = SlidePart.GetIdOfPart(imagePart);
 
             CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             Background background = common.Background ?? new Background();
@@ -213,7 +213,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             try {
-                _slidePart.DeletePart(resolvedRelationshipId);
+                SlidePart.DeletePart(resolvedRelationshipId);
             } catch (ArgumentOutOfRangeException) {
                 // The previous relationship may already be absent on damaged input.
             }

@@ -18,6 +18,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="layoutIndex">Index of the slide layout.</param>
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
             ThrowIfDisposed();
+            if (TryAddSlideWithoutSdk(masterIndex, layoutIndex) is { } added) return added;
             SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
             return AddSlideCore(layoutPart, GetNextSlideRelationshipId(), GetNextSlideId());
         }
@@ -89,6 +90,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Index of the slide to remove.</param>
         public void RemoveSlide(int index) {
+            if (TryRemoveSlideWithoutSdk(index)) return;
             ArgumentOutOfRangeException.ThrowIfNegative(index);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, LoadedSlides.Count);
 
@@ -260,6 +262,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="fromIndex">Current index of the slide.</param>
         /// <param name="toIndex">Destination index of the slide.</param>
         public void MoveSlide(int fromIndex, int toIndex) {
+            if (TryMoveSlideWithoutSdk(fromIndex, toIndex)) return;
             ArgumentOutOfRangeException.ThrowIfNegative(fromIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(fromIndex, LoadedSlides.Count);
 
@@ -300,6 +303,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="insertAt">Index where the duplicate should be inserted. Defaults to index + 1.</param>
         public PowerPointSlide DuplicateSlide(int index, int? insertAt = null) {
             ThrowIfDisposed();
+            if (TryDuplicateSlideWithoutSdk(index, insertAt) is { } duplicated) return duplicated;
             ArgumentOutOfRangeException.ThrowIfNegative(index);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, LoadedSlides.Count);
 

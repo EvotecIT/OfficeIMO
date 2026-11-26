@@ -15,14 +15,14 @@ namespace OfficeIMO.PowerPoint {
             foreach (var child in box.Element.ChildElements) {
                 // Paragraphs and table rows bind individually: detached later slices still own source IDs.
                 if (child is TextBody || box is PowerPointTable && child is A.Graphic) continue;
-                PowerPointLayoutNativeText.RehomeRelationships(child, box.RelationshipOwnerPart, _slidePart);
+                PowerPointLayoutNativeText.RehomeRelationships(child, box.RelationshipOwnerPart, SlidePart);
             }
             box.OwnerSlide?.ShapeList.Remove(box);
             if (box.Element.Parent != null) box.Element.Remove();
             drawing.Id = AllocateShapeId();
             drawing.Name = GenerateUniqueName(box.Name ?? "Content");
             SlideRoot.CommonSlideData!.ShapeTree!.Append(box.Element);
-            box.AttachTo(this, _slidePart);
+            box.AttachTo(this, SlidePart);
             ShapeList.Add(box);
         }
     }

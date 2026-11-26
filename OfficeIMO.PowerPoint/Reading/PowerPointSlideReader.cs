@@ -26,6 +26,8 @@ namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointSlideReader : IDisposable {
         private readonly OfficeOpcPackage _package;
         private readonly Stream? _ownedStream;
+        // A reader over a package someone else keeps open leaves it open.
+        private bool _borrowedPackage;
         private readonly IReadOnlyList<SlideEntry> _slides;
         private readonly Dictionary<string, int> _slideNumbers;
         private readonly long _maximumCharacters;
@@ -113,6 +115,13 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>A reader over a package a loaded presentation already opened and checked, which stays open after it.</summary>
+        internal static PowerPointSlideReader OpenLoaded(OfficeOpcPackage package, long maximumCharacters, CancellationToken cancellationToken) {
+            string presentationPart = GetPresentationPart(package);
+            IReadOnlyList<SlideEntry> slides = ReadSlideList(package, presentationPart, maximumCharacters, cancellationToken);
+            return new PowerPointSlideReader(package, null, slides, maximumCharacters) { _borrowedPackage = true };
+        }
+
         private static PowerPointSlideReader Open(Stream stream, bool ownsStream, PowerPointLoadOptions? options,
             CancellationToken cancellationToken) {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
@@ -196,7 +205,7 @@ namespace OfficeIMO.PowerPoint {
             if (_disposed) return;
             _disposed = true;
             try {
-                _package.Dispose();
+                if (!_borrowedPackage) _package.Dispose();
             } finally {
                 _ownedStream?.Dispose();
             }

@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;

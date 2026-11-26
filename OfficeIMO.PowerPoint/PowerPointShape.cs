@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml;
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -11,14 +13,52 @@ namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
         private const int EmusPerPoint = 12700;
 
+        private OpenXmlElement? _element;
+        private OpenXmlPart? _relationshipOwnerPart;
+
         internal PowerPointShape(OpenXmlElement element, OpenXmlPartContainer? ownerPart = null) {
-            Element = element;
+            _element = element;
             RelationshipOwnerPart = ownerPart as OpenXmlPart;
         }
 
-        internal OpenXmlElement Element { get; }
+        // A shape of a slide whose SDK part is not open: it reads and edits its element in the slide's package tree, and
+        // anything it does not do there opens the SDK and binds the shape to the same element there.
+        internal PowerPointShape(PowerPointSlide slide, OfficeXmlTree tree, int node) {
+            OwnerSlide = slide;
+            PackageTree = tree;
+            PackageNode = node;
+        }
+
+        internal OpenXmlElement Element => _element ?? BindSdkElement();
+
+        /// <summary>Binds a package-backed shape to its SDK element now, while the slide the SDK opened is unchanged.</summary>
+        internal void BindSdk() {
+            if (_element != null || PackageTree == null) return;
+            try {
+                BindSdkElement();
+            } catch (InvalidOperationException) {
+                // A shape the opened slide doesn't have where expected reports it when it is used, not while the SDK opens.
+            }
+        }
         internal PowerPointSlide? OwnerSlide { get; private set; }
-        internal OpenXmlPart? RelationshipOwnerPart { get; private set; }
+
+        internal OpenXmlPart? RelationshipOwnerPart {
+            get => _relationshipOwnerPart ?? (PackageTree != null ? OwnerSlide?.SlidePart : null);
+            private set => _relationshipOwnerPart = value;
+        }
+
+        /// <summary>The slide tree that holds the shape while it works without the SDK, and its element there.</summary>
+        internal OfficeXmlTree? PackageTree { get; }
+        internal int PackageNode { get; }
+
+        /// <summary>Whether the shape works on its slide's package tree rather than an SDK element.</summary>
+        internal bool IsPackageBacked => _element == null;
+
+        private OpenXmlElement BindSdkElement() {
+            OpenXmlElement element = PowerPointSlide.BindPackageElement(OwnerSlide!, PackageTree!, PackageNode);
+            _element = element;
+            return element;
+        }
 
         internal PowerPointShape AttachTo(PowerPointSlide slide, OpenXmlPartContainer? ownerPart = null) {
             OwnerSlide = slide;
@@ -30,14 +70,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Numeric shape identifier stored in the PowerPoint non-visual drawing properties.
         /// </summary>
         public uint? Id {
-            get => GetNonVisualDrawingProperties(create: false)?.Id?.Value;
+            get => TryGetPackageId(out uint? id) ? id : GetNonVisualDrawingProperties(create: false)?.Id?.Value;
         }
 
         /// <summary>
         ///     Name assigned to the shape.
         /// </summary>
         public string? Name {
-            get => GetNonVisualDrawingProperties(create: false)?.Name?.Value;
+            get => TryReadPackageDrawingAttribute("name", out string? name) ? name : GetNonVisualDrawingProperties(create: false)?.Name?.Value;
             set {
                 NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
                     ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");
@@ -49,7 +89,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Alternative text description assigned to the shape.
         /// </summary>
         public string? AltText {
-            get => GetNonVisualDrawingProperties(create: false)?.Description?.Value;
+            get => TryReadPackageDrawingAttribute("descr", out string? description) ? description : GetNonVisualDrawingProperties(create: false)?.Description?.Value;
             set {
                 NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
                     ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");
@@ -63,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets whether the shape is hidden.
         /// </summary>
         public bool Hidden {
-            get => GetNonVisualDrawingProperties(create: false)?.Hidden?.Value == true;
+            get => TryGetPackageHidden(out bool hidden) ? hidden : GetNonVisualDrawingProperties(create: false)?.Hidden?.Value == true;
             set {
                 NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
                     ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");

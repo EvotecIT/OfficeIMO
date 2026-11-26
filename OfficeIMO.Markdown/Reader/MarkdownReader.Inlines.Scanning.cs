@@ -17,6 +17,53 @@ internal static partial class MarkdownReader {
         return lookup;
     }
 
+    // Characters at which a plain text run may end: the potential inline starts, line feeds,
+    // backslash escapes, entities and angle brackets.
+    private static readonly char[] PlainTextRunStops = { '[', '!', '`', '*', '_', '~', '=', '+', '^', '\n', '\\', '&', '<' };
+
+    /// <summary>
+    /// Finds where a text run that started before <paramref name="position"/> ends when no autolink,
+    /// abbreviation or parser extension can start inside it: at the first potential inline start, line feed,
+    /// escaped character, entity, or angle bracket that starts inline HTML or an angle autolink.
+    /// </summary>
+    private static int FindPlainTextRunEnd(string text, int position, bool allowInlineHtml, bool allowLinks, bool allowImages) {
+        while (position < text.Length) {
+            int next = text.IndexOfAny(PlainTextRunStops, position);
+            if (next < 0) {
+                return text.Length;
+            }
+
+            position = next;
+            char value = text[position];
+            switch (value) {
+                case '\\':
+                    if (position + 1 < text.Length && IsBackslashEscapable(text[position + 1])) {
+                        return position;
+                    }
+                    break;
+                case '&':
+                    if (TryConsumeHtmlEntityText(text, position, out _, out _)) {
+                        return position;
+                    }
+                    break;
+                case '<':
+                    if (allowInlineHtml || IsAngleAutolinkStart(text, position)) {
+                        return position;
+                    }
+                    break;
+                case '[' when !allowLinks:
+                case '!' when !allowImages:
+                    break;
+                default:
+                    return position;
+            }
+
+            position++;
+        }
+
+        return position;
+    }
+
     private static bool IsBackslashEscapable(char c) {
         // CommonMark backslash-escapable ASCII punctuation.
         return c switch {

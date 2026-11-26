@@ -16,6 +16,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointSlideLayoutInfo> GetSlideLayouts(int masterIndex = 0) {
             ThrowIfDisposed();
+            if (TryReadPackageLayouts(masterIndex) is { } packageLayouts) {
+                return packageLayouts.Select((layout, index) => new PowerPointSlideLayoutInfo(masterIndex, index, layout.Name,
+                    layout.Type?.ToOfficeIMO(), layout.RelationshipId)).ToList();
+            }
             SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
             SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
             var results = new List<PowerPointSlideLayoutInfo>(layouts.Length);
@@ -37,6 +41,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int GetLayoutIndex(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
             ThrowIfDisposed();
+            if (TryReadPackageLayouts(masterIndex) is { } packageLayouts) {
+                SlideLayoutValues wanted = layoutType.ToOpenXml();
+                int found = packageLayouts.FindIndex(layout => layout.Type == wanted);
+                if (found >= 0) return found;
+            }
             SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
             SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
             for (int i = 0; i < layouts.Length; i++) {
@@ -55,6 +64,11 @@ namespace OfficeIMO.PowerPoint {
         public int GetLayoutIndex(string layoutName, int masterIndex = 0, bool ignoreCase = true) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(layoutName);
+            if (TryReadPackageLayouts(masterIndex) is { } packageLayouts) {
+                StringComparison packageComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+                int found = packageLayouts.FindIndex(layout => string.Equals(layout.Name, layoutName, packageComparison));
+                if (found >= 0) return found;
+            }
 
             SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
             SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();

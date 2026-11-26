@@ -101,6 +101,8 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
     internal IReadOnlyList<PdfUnderstandingLine> SourceLines { get; }
     internal string? LeadingCaption { get; }
+    /// <summary>Tagged table and page segment the rows were rebuilt from; null for geometric tables.</summary>
+    internal PdfTaggedTableSegment? TaggedSegment { get; init; }
 
     /// <summary>Per-row, per-column visible cell styling read from the source page, when it was analyzed.</summary>
     internal IReadOnlyList<IReadOnlyList<PdfLogicalTableCellStyle?>>? CellStyles { get; set; }
@@ -144,10 +146,30 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
             cellCount = checked(cellCount + rows[rowIndex].Count);
         }
         var cells = new List<PdfLogicalTableCell>(cellCount);
+        Dictionary<(int Row, int Column), PdfTaggedTableCellSpan>? spanOrigins = null;
+        HashSet<(int Row, int Column)>? covered = null;
+        if (table.TaggedSegment is { Spans.Count: > 0 } segment) {
+            spanOrigins = new Dictionary<(int Row, int Column), PdfTaggedTableCellSpan>(segment.Spans.Count);
+            covered = new HashSet<(int Row, int Column)>();
+            foreach (PdfTaggedTableCellSpan span in segment.Spans) {
+                spanOrigins[(span.Row, span.Column)] = span;
+                for (int row = span.Row; row < span.Row + span.RowSpan; row++) {
+                    for (int column = span.Column; column < span.Column + span.ColumnSpan; column++) {
+                        if (row != span.Row || column != span.Column) covered.Add((row, column));
+                    }
+                }
+            }
+        }
         for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
             for (int columnIndex = 0; columnIndex < rows[rowIndex].Count; columnIndex++) {
                 PdfLogicalTableColumn? column = columnIndex < columns.Length ? columns[columnIndex] : null;
-                cells.Add(new PdfLogicalTableCell(pageNumber, rowIndex, columnIndex, rows[rowIndex][columnIndex], column));
+                if (spanOrigins is not null && spanOrigins.TryGetValue((rowIndex, columnIndex), out PdfTaggedTableCellSpan span)) {
+                    cells.Add(new PdfLogicalTableCell(pageNumber, rowIndex, columnIndex, rows[rowIndex][columnIndex], column,
+                        span.RowSpan, span.ColumnSpan));
+                } else {
+                    cells.Add(new PdfLogicalTableCell(pageNumber, rowIndex, columnIndex, rows[rowIndex][columnIndex], column,
+                        isCoveredBySpan: covered?.Contains((rowIndex, columnIndex)) == true));
+                }
             }
         }
         return new PdfLogicalTable(
@@ -164,7 +186,7 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
             table.Confidence,
             table.Evidence,
             table.SourceLines,
-            table.LeadingCaption);
+            table.LeadingCaption) { TaggedSegment = table.TaggedSegment };
     }
 
 }
@@ -173,12 +195,16 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
 /// Extracted table cell with row and column indexes.
 /// </summary>
 public sealed class PdfLogicalTableCell {
-    internal PdfLogicalTableCell(int pageNumber, int rowIndex, int columnIndex, string text, PdfLogicalTableColumn? column) {
+    internal PdfLogicalTableCell(int pageNumber, int rowIndex, int columnIndex, string text, PdfLogicalTableColumn? column,
+        int rowSpan = 1, int columnSpan = 1, bool isCoveredBySpan = false) {
         PageNumber = pageNumber;
         RowIndex = rowIndex;
         ColumnIndex = columnIndex;
         Text = text;
         Column = column;
+        RowSpan = rowSpan;
+        ColumnSpan = columnSpan;
+        IsCoveredBySpan = isCoveredBySpan;
     }
 
     /// <summary>One-based source page number.</summary>
@@ -195,6 +221,15 @@ public sealed class PdfLogicalTableCell {
 
     /// <summary>Detected column geometry when available.</summary>
     public PdfLogicalTableColumn? Column { get; }
+
+    /// <summary>Rows this cell occupies, from tagged-PDF RowSpan; 1 for ordinary cells.</summary>
+    public int RowSpan { get; }
+
+    /// <summary>Columns this cell occupies, from tagged-PDF ColSpan; 1 for ordinary cells.</summary>
+    public int ColumnSpan { get; }
+
+    /// <summary>True for an empty grid position covered by a cell spanning from above or from the left.</summary>
+    public bool IsCoveredBySpan { get; }
 }
 
 /// <summary>

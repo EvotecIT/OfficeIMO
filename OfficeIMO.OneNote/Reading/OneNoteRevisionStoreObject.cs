@@ -197,7 +197,18 @@ public sealed class OneNoteRevisionStoreObject {
     public OneNoteFileNode DeclarationNode { get; }
 
     /// <summary>Decoded property-set data.</summary>
-    public OneNotePropertySet? PropertySet { get; internal set; }
+    public OneNotePropertySet? PropertySet {
+        get {
+            OneNotePropertySet? propertySet = _propertySet;
+            if (propertySet != null || _propertySetDecoder == null) return propertySet;
+            propertySet = _propertySetDecoder.Decode(this, _rawPropertyBytes!);
+            return Interlocked.CompareExchange(ref _propertySet, propertySet, null) ?? propertySet;
+        }
+        internal set {
+            _propertySet = value;
+            _propertySetDecoder = null;
+        }
+    }
 
     /// <summary>Exact encoded property-stream bytes retained for loss-aware round trips.</summary>
     public OneNoteBinaryPayload? RawPropertyData {
@@ -206,9 +217,27 @@ public sealed class OneNoteRevisionStoreObject {
             return _rawPropertyData;
         }
         internal set {
+            if (_propertySetDecoder != null) PropertySet = PropertySet;
             _rawPropertyData = value;
             _rawPropertyBytes = null;
         }
+    }
+
+    private OneNotePropertySet? _propertySet;
+    private OneNotePropertySetDecoder? _propertySetDecoder;
+
+    // The property set is decoded from the retained object bytes on first use. A loaded store keeps only the bytes,
+    // which keeps the graph the garbage collector traces small for large sections.
+    internal void SetLazyPropertySet(byte[] bytes, OneNotePropertySetDecoder decoder) {
+        _rawPropertyData = null;
+        _rawPropertyBytes = bytes;
+        _propertySet = null;
+        _propertySetDecoder = decoder;
+    }
+
+    // Drops a lazily decoded property set so it can be collected; the next read decodes it again.
+    internal void ReleaseDecodedPropertySet() {
+        if (_propertySetDecoder != null) _propertySet = null;
     }
 
     private OneNoteBinaryPayload? _rawPropertyData;
@@ -223,6 +252,7 @@ public sealed class OneNoteRevisionStoreObject {
     }
 
     internal void SetRawPropertyBytes(byte[] bytes) {
+        if (_propertySetDecoder != null) PropertySet = PropertySet;
         _rawPropertyData = null;
         _rawPropertyBytes = bytes;
     }

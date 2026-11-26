@@ -901,3 +901,4 @@ OfficeIMO.Drawing.OfficeChartValueAxisLayout.WithLogarithmicScale(double? logBas
 OfficeIMO.Drawing.OfficeChartValueAxisLayout.WithReversedScale(bool reversed) -> OfficeIMO.Drawing.OfficeChartValueAxisLayout!
 static OfficeIMO.Drawing.OfficeRasterImageDecoder.TryDecodeRgba32(byte[]? bytes, OfficeIMO.Drawing.OfficeRasterDecodeOptions? options, out byte[]? pixels, out int width, out int height, out OfficeIMO.Drawing.OfficeRasterDecodeInfo! info) -> bool
 static OfficeIMO.Drawing.OfficeRasterImageDecoder.TryDecodeRgba32(byte[]? bytes, out byte[]? pixels, out int width, out int height) -> bool
+const OfficeIMO.OfficeDiagnosticCodes.SdkFallback = "sdk-fallback" -> string!

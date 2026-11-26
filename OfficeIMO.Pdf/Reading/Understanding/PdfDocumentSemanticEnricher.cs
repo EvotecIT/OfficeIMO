@@ -37,6 +37,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         TaggedFigureCaptionIndex? taggedFigureCaptions = imageRegions.Any(static regions => regions.Count > 0)
             ? BuildTaggedFigureCaptionIndex(document, taggedGraph, workBudget)
             : null;
+        var taggedTableDiagnostics = new List<PdfTaggedTableDiagnostic>?[pages.Count];
         ApplyTaggedTableEvidence(
             document,
             pageNumbers,
@@ -45,6 +46,7 @@ internal static partial class PdfDocumentSemanticEnricher {
             taggedGraph,
             taggedRoles,
             maxElementsPerPage,
+            taggedTableDiagnostics,
             workBudget);
         ApplyTaggedStructureEvidence(document, pageNumbers, pages, elements, taggedRoles, workBudget);
         ApplyTaggedTableHeaderEvidence(document, pageNumbers, tableCandidates, taggedRoles, workBudget);
@@ -113,7 +115,11 @@ internal static partial class PdfDocumentSemanticEnricher {
                 RemapImageCaptions(imageRegions[pageIndex], elements[pageIndex]),
                 page.MaxWorkUnitsPerPage,
                 BuildTaggedListSources(document.Pages[pageNumbers[pageIndex] - 1], page, taggedRoles, maxElementsPerPage, workBudget), page.TextDecodingDiagnostics,
-                contentsEntries[pageIndex]);
+                contentsEntries[pageIndex]) {
+                TaggedTableDiagnostics = taggedTableDiagnostics[pageIndex] is { } pageDiagnostics
+                    ? pageDiagnostics.AsReadOnly()
+                    : page.TaggedTableDiagnostics
+            };
         }
         return Array.AsReadOnly(result);
     }

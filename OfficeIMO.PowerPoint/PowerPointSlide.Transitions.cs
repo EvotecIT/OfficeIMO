@@ -131,7 +131,7 @@ namespace OfficeIMO.PowerPoint {
         private void RemoveUnusedTransitionSounds(
             IEnumerable<string> relationshipIds) {
             foreach (string relationshipId in relationshipIds) {
-                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                PowerPointEmbeddedSound.RemoveIfUnused(SlidePart,
                     relationshipId);
             }
         }

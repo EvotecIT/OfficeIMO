@@ -7,31 +7,92 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents a paragraph within a textbox.
     /// </summary>
-    public partial class PowerPointParagraph {
+    public partial class PowerPointParagraph : IPackageSdkBinding {
         private readonly SlidePart? _initialSlidePart;
         private SlidePart? _slidePart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
         private readonly OpenXmlPartContainer? _initialOwnerPart;
         private OpenXmlPartContainer? _ownerPart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
             .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
 
+        private A.Paragraph? _paragraph;
+        private readonly PowerPointSlide? _packageSlide;
+
         internal PowerPointParagraph(A.Paragraph paragraph, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
-            Paragraph = paragraph;
+            _paragraph = paragraph;
             _initialSlidePart = slidePart ?? ownerPart as SlidePart;
             _initialOwnerPart = ownerPart ?? slidePart;
         }
 
-        internal A.Paragraph Paragraph { get; }
+        // A paragraph of a slide's package tree; anything it does not do there binds it to the same paragraph in the SDK.
+        internal PowerPointParagraph(PowerPointSlide slide, OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree, int node) {
+            _packageSlide = slide;
+            PackageTree = tree;
+            PackageNode = node;
+            slide.OwnerDocument?.RegisterPackageBinding(this);
+        }
+
+        internal A.Paragraph Paragraph => _paragraph ??= (A.Paragraph)PowerPointSlide.BindPackageElement(_packageSlide!, PackageTree!, PackageNode);
+
+        internal OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree? PackageTree { get; }
+        internal int PackageNode { get; }
+
+        void IPackageSdkBinding.BindSdk() {
+            if (_paragraph != null || PackageTree == null) return;
+            try {
+                _ = Paragraph;
+            } catch (InvalidOperationException) {
+                // A paragraph the opened slide doesn't have where expected reports it when it is used.
+            }
+        }
+
+        private bool IsPackageBacked => _paragraph == null && PackageTree != null && _packageSlide is { RemovedFromPackage: false } && _packageSlide.OwnerDocument?.IsSdkLoaded == false;
         internal OpenXmlPartContainer? OwnerPart => _ownerPart;
 
         /// <summary>
         /// Text content of the paragraph.
         /// </summary>
         public string Text {
-            get => ReadText(Paragraph);
+            get => IsPackageBacked && OpenXml.PowerPointTreeText.TryReadParagraph(PackageTree!, PackageNode, out string packageText) ? packageText : ReadText(Paragraph);
             set {
+                if (TrySetPackageText(value)) return;
                 ClearInlineContent();
                 InsertRun(value ?? string.Empty);
             }
+        }
+
+        // Replaces the runs, breaks and fields on the package tree with the new text before the end properties, as the
+        // setter does; a paragraph with hyperlinks or sounds is left to the model, which removes their relationships.
+        private bool TrySetPackageText(string? value) {
+            if (!IsPackageBacked || _packageSlide?.OwnerDocument?.CanEditPackage != true) return false;
+            OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree = PackageTree!;
+            if (HasInteraction(tree, PackageNode)) return false;
+            int end = OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode;
+            for (int child = tree.FirstChildOf(PackageNode); child != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode;) {
+                int next = tree.NextSiblingOf(child);
+                if (tree.KindOf(child) == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTreeNodeKind.Element
+                    && tree.NamespaceOf(child) == OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML) {
+                    string name = tree.LocalNameOf(child);
+                    if (name is "r" or "br" or "fld") tree.Remove(child);
+                    else if (name == "endParaRPr" && end == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) end = child;
+                }
+                child = next;
+            }
+            // The text goes before the end properties, which stay last.
+            if (end != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) tree.Remove(end);
+            OpenXml.PowerPointTreeText.AppendInlineContent(tree, PackageNode, value ?? string.Empty, OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode);
+            if (end != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode) tree.Append(PackageNode, end);
+            _packageSlide.OwnerDocument.MarkPackageEdited();
+            return true;
+        }
+
+        private static bool HasInteraction(OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree tree, int node) {
+            for (int child = tree.FirstChildOf(node); child != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
+                if (tree.KindOf(child) != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTreeNodeKind.Element) continue;
+                if (tree.NamespaceOf(child) == OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML
+                    && tree.LocalNameOf(child) is "hlinkClick" or "hlinkMouseOver" or "snd") return true;
+                if (HasInteraction(tree, child)) return true;
+            }
+            return false;
         }
 
         /// <summary>Reads the same text as <see cref="InlineNodes" /> without creating run wrappers.</summary>
@@ -114,8 +175,19 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Runs within the paragraph.
         /// </summary>
-        public IReadOnlyList<PowerPointTextRun> Runs =>
-            Paragraph.Elements<A.Run>().Select(r => new PowerPointTextRun(r, _slidePart, _ownerPart)).ToList();
+        public IReadOnlyList<PowerPointTextRun> Runs => IsPackageBacked
+            ? PackageRuns()
+            : Paragraph.Elements<A.Run>().Select(r => new PowerPointTextRun(r, _slidePart, _ownerPart)).ToList();
+
+        private List<PowerPointTextRun> PackageRuns() {
+            var runs = new List<PowerPointTextRun>();
+            for (int run = PackageTree!.FindChild(PackageNode, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "r");
+                 run != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode;
+                 run = PackageTree.FindNextSibling(run, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "r")) {
+                runs.Add(new PowerPointTextRun(_packageSlide!, PackageTree, run));
+            }
+            return runs;
+        }
 
         /// <summary>
         /// Gets or sets paragraph alignment.

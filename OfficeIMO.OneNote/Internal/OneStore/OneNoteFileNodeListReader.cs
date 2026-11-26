@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace OfficeIMO.OneNote;
 
 internal static class OneNoteFileNodeListReader {
@@ -13,7 +15,9 @@ internal static class OneNoteFileNodeListReader {
         IReadOnlyDictionary<uint, int> committedNodeCounts,
         OneNoteLoadOptions options) {
         var fragments = new List<OneNoteFileNodeListFragment>();
-        var nodes = new List<OneNoteFileNode>();
+        // Logical nodes are counted here and only copied into their own array when a list spans
+        // fragments or ends a fragment with a ChunkTerminatorFND; most lists reuse the fragment's array.
+        int logicalNodeCount = 0;
         int retainedNodes = 0;
         var visitedOffsets = new HashSet<ulong>();
         OneNoteFileChunkReference current = firstFragment;
@@ -66,15 +70,16 @@ internal static class OneNoteFileNodeListReader {
 
             listId = currentListId;
             int nodeLimit = data.Length - FragmentTrailerLength;
-            int remainingNodes = committedNodeCount!.Value - nodes.Count;
+            int remainingNodes = committedNodeCount!.Value - logicalNodeCount;
             if (remainingNodes <= 0) break;
             var fragmentNodes = ReadNodes(data, FragmentHeaderLength, nodeLimit, current.Offset, declaredFileLength, options, retainedNodes, remainingNodes);
             if (retainedNodes > options.MaxFileNodes - fragmentNodes.Count) {
                 throw new OneNoteFormatException("ONENOTE_FILE_NODE_LIMIT", "The file-node limit was exceeded.", ToOffset(current.Offset));
             }
             // ChunkTerminatorFND only ends a fragment; the transaction log does not count it.
-            nodes.AddRange(fragmentNodes.Where(node => node.RawId != (ushort)OneNoteFileNodeId.ChunkTerminator));
-            retainedNodes += fragmentNodes.Count;
+            OneNoteFileNode[] fragmentArray = fragmentNodes.ToArray();
+            logicalNodeCount += CountLogicalNodes(fragmentArray);
+            retainedNodes += fragmentArray.Length;
 
             OneNoteFileChunkReference next = OneNoteBinary.ReadFileChunkReference64x32(data, data.Length - FragmentTrailerLength);
             fragments.Add(new OneNoteFileNodeListFragment(
@@ -83,20 +88,43 @@ internal static class OneNoteFileNodeListReader {
                 currentListId,
                 sequence,
                 next,
-                fragmentNodes.AsReadOnly()));
+                new ReadOnlyCollection<OneNoteFileNode>(fragmentArray)));
 
             current = next;
             expectedSequence++;
-            if (nodes.Count == committedNodeCount.Value) break;
+            if (logicalNodeCount == committedNodeCount.Value) break;
         }
 
         if (!listId.HasValue) {
             throw new OneNoteFormatException("ONENOTE_FILE_NODE_LIST_EMPTY", "The file-node list contains no fragments.");
         }
-        if (nodes.Count != committedNodeCount) {
+        if (logicalNodeCount != committedNodeCount) {
             throw new OneNoteFormatException("ONENOTE_FILE_NODE_COUNT", "The file-node list ended before its committed transaction-log count was reached.", ToOffset(firstFragment.Offset));
         }
-        return new OneNoteFileNodeList(listId.Value, fragments.AsReadOnly(), nodes.AsReadOnly());
+        return new OneNoteFileNodeList(listId.Value, new ReadOnlyCollection<OneNoteFileNodeListFragment>(fragments.ToArray()), LogicalNodes(fragments, logicalNodeCount));
+    }
+
+    private static int CountLogicalNodes(OneNoteFileNode[] nodes) {
+        int count = 0;
+        foreach (OneNoteFileNode node in nodes) {
+            if (node.RawId != (ushort)OneNoteFileNodeId.ChunkTerminator) count++;
+        }
+        return count;
+    }
+
+    private static IReadOnlyList<OneNoteFileNode> LogicalNodes(List<OneNoteFileNodeListFragment> fragments, int logicalNodeCount) {
+        if (fragments.Count == 1 && fragments[0].Nodes.Count == logicalNodeCount) {
+            return fragments[0].Nodes;
+        }
+
+        var nodes = new OneNoteFileNode[logicalNodeCount];
+        int index = 0;
+        foreach (OneNoteFileNodeListFragment fragment in fragments) {
+            foreach (OneNoteFileNode node in fragment.Nodes) {
+                if (node.RawId != (ushort)OneNoteFileNodeId.ChunkTerminator) nodes[index++] = node;
+            }
+        }
+        return new ReadOnlyCollection<OneNoteFileNode>(nodes);
     }
 
     private static List<OneNoteFileNode> ReadNodes(
@@ -136,28 +164,27 @@ internal static class OneNoteFileNodeListReader {
             }
 
             int dataLength = size - 4;
-            var encodedData = new byte[dataLength];
-            if (dataLength > 0) Buffer.BlockCopy(data, offset + 4, encodedData, 0, dataLength);
-            OneNoteFileNodeChunkReference? chunkReference = null;
             var baseType = (OneNoteFileNodeBaseType)rawBaseType;
-            if (baseType != OneNoteFileNodeBaseType.Inline) {
-                chunkReference = ReadChunkReference(encodedData, stpFormat, cbFormat, fragmentOffset + (ulong)offset + 4);
-                if (!chunkReference.IsNil && !chunkReference.IsZero) {
-                    ValidateBounds(chunkReference.Offset, chunkReference.Length, declaredFileLength, "file-node chunk reference");
-                }
-            } else if (cbFormat != 0) {
-                throw new OneNoteFormatException("ONENOTE_INLINE_CB_FORMAT", "An inline file node has a nonzero byte-count format.", ToOffset(fragmentOffset + (ulong)offset));
-            }
-
-            nodes.Add(new OneNoteFileNode(
+            var node = new OneNoteFileNode(
                 rawId,
                 size,
                 stpFormat,
                 cbFormat,
                 baseType,
                 ToOffset(fragmentOffset + (ulong)offset),
-                chunkReference,
-                encodedData));
+                data,
+                offset + 4,
+                dataLength);
+            if (baseType != OneNoteFileNodeBaseType.Inline) {
+                ReadChunkReference(node, data, offset + 4, dataLength, stpFormat, cbFormat, fragmentOffset + (ulong)offset + 4);
+                if (!node.ChunkIsNil && (node.ChunkOffset != 0 || node.ChunkLength != 0)) {
+                    ValidateBounds(node.ChunkOffset, node.ChunkLength, declaredFileLength, "file-node chunk reference");
+                }
+            } else if (cbFormat != 0) {
+                throw new OneNoteFormatException("ONENOTE_INLINE_CB_FORMAT", "An inline file node has a nonzero byte-count format.", ToOffset(fragmentOffset + (ulong)offset));
+            }
+
+            nodes.Add(node);
             offset += size;
 
             if (rawId == (ushort)OneNoteFileNodeId.ChunkTerminator) break;
@@ -166,18 +193,18 @@ internal static class OneNoteFileNodeListReader {
         return nodes;
     }
 
-    private static OneNoteFileNodeChunkReference ReadChunkReference(byte[] data, byte stpFormat, byte cbFormat, ulong absoluteOffset) {
+    private static void ReadChunkReference(OneNoteFileNode node, byte[] data, int start, int available, byte stpFormat, byte cbFormat, ulong absoluteOffset) {
         int stpBytes = stpFormat == 0 ? 8 : stpFormat == 2 ? 2 : 4;
         int cbBytes = cbFormat == 0 ? 4 : cbFormat == 1 ? 8 : cbFormat == 2 ? 1 : 2;
-        OneNoteBinary.EnsureRange(data, 0, stpBytes + cbBytes);
-        ulong rawOffset = ReadUnsigned(data, 0, stpBytes);
-        ulong rawLength = ReadUnsigned(data, stpBytes, cbBytes);
+        if (available < stpBytes + cbBytes) throw new OneNoteFormatException("ONENOTE_TRUNCATED_STRUCTURE", "The OneNote file ended before a required structure could be read.", 0);
+        ulong rawOffset = ReadUnsigned(data, start, stpBytes);
+        ulong rawLength = ReadUnsigned(data, start + stpBytes, cbBytes);
         bool compressedOffset = stpFormat >= 2;
         bool compressedLength = cbFormat >= 2;
         bool isNil = rawOffset == MaxValue(stpBytes) && rawLength == 0;
         ulong offset = compressedOffset && !isNil ? CheckedMultiplyByEight(rawOffset, absoluteOffset) : rawOffset;
         ulong length = compressedLength ? CheckedMultiplyByEight(rawLength, absoluteOffset + (ulong)stpBytes) : rawLength;
-        return new OneNoteFileNodeChunkReference(offset, length, isNil, stpBytes + cbBytes);
+        node.SetChunkReference(offset, length, isNil, stpBytes + cbBytes);
     }
 
     private static ulong ReadUnsigned(byte[] data, int offset, int length) {
