@@ -20,7 +20,7 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointPartRef OwnerPartRef {
             get {
                 if (TryGetPackageElement(out _, out _)) return OwnerSlide!.PartRef;
-                PowerPointPartRef current = PowerPointPartRef.FromSdk(OpenXmlSdk.OfficeSdkXml.PartOf(SdkElementObject));
+                PowerPointPartRef current = PowerPointPartRef.FromSdk(OfficeSdkXml.PartOf(SdkElementObject));
                 return !current.IsNone ? current : PowerPointPartRef.FromSdk(SdkRelationshipOwnerPart ?? OwnerSlide?.SdkSlidePart);
             }
         }

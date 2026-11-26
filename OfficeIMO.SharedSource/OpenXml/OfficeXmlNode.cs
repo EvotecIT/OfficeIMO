@@ -1,5 +1,4 @@
 using OfficeIMO.Core.Internal.OpenXml;
-using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.OpenXml.Internal {
     /// <summary>
