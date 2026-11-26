@@ -26,11 +26,11 @@ public class PowerPointWithoutSdkFlowBenchmarks {
     public void Setup() {
         _deck = PowerPointUnchangedSaveWorkload.ReadDeck(Slides);
         _image = CreateImage(640, 480);
-        Check(Add);
-        Check(Edit);
+        if (!UncheckedFlows.Contains("Add")) Check(Add);
+        if (!UncheckedFlows.Contains("Edit")) Check(Edit);
         if (!UncheckedFlows.Contains("TextBoxes")) Check(TextBoxes);
         if (!UncheckedFlows.Contains("Appearance")) Check(Appearance, compareSlideXml: true);
-        Check(presentation => presentation.ExtractMarkdownChunks().Count());
+        if (!UncheckedFlows.Contains("Extract")) Check(presentation => presentation.ExtractMarkdownChunks().Count());
     }
 
     [Benchmark(Baseline = true)]
