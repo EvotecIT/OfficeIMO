@@ -47,7 +47,8 @@ public sealed class ReaderMobiTests {
     [Theory]
     [InlineData("Notes on %PDF- headers")]
     [InlineData("%PDF- headers")]
-    public void DetectKeepsPalmDocIdentityWhenTheNameContainsAPdfMarker(string title) {
+    [InlineData("ITSF notes")]
+    public void DetectKeepsPalmDocIdentityWhenTheTitleResemblesAnotherFormat(string title) {
         string path = Path.Combine(AppContext.BaseDirectory, "EbookFixtures", "harbour.pdb");
         byte[] bytes = File.ReadAllBytes(path);
         Array.Clear(bytes, 0, 32);

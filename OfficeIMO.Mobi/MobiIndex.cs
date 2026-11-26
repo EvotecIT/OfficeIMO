@@ -85,7 +85,8 @@ internal sealed class MobiIndex {
 
     private Row ReadRow(ReadOnlySpan<byte> data, ReadOnlySpan<byte> tags, int controls) {
         int nameLength = data[0];
-        string name = MobiHeader.Decode(_encoding, Slice(data, 1, nameLength));
+        if (!MobiHeader.TryDecode(_encoding, Slice(data, 1, nameLength), out string name))
+            throw new InvalidDataException("A Mobipocket index entry name is invalid for the declared text encoding.");
         ReadOnlySpan<byte> control = Slice(data, 1 + nameLength, controls);
         int position = 1 + nameLength + controls;
         int controlIndex = 0;

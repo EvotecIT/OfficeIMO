@@ -105,6 +105,22 @@ public sealed class MobiReaderTests {
         Assert.Contains("back-reference", error.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void RefusesAnInvalidUtf8NameInTheKindleSkeletonIndex() {
+        byte[] bytes = Fixture("harbour.azw3");
+        int header = RecordOffset(bytes, 0);
+        int skeleton = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(header + 252));
+        int index = RecordOffset(bytes, skeleton + 1);
+        int directory = BinaryPrimitives.ReadInt32BigEndian(bytes.AsSpan(index + 20));
+        int row = index + BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(index + directory + 4));
+        Assert.True(bytes[row] > 0);
+        bytes[row + 1] = 0xff;
+        using var source = new MemoryStream(bytes, writable: false);
+
+        var error = Assert.Throws<InvalidDataException>(() => MobiReader.Import(source, "harbour.azw3"));
+        Assert.Contains("index entry name", error.Message, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(16, true)]
     [InlineData(44, false)]

@@ -106,6 +106,8 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>mobi</string>
+					<string>prc</string>
+					<string>pdb</string>
 					<string>azw</string>
 					<string>azw3</string>
 				</array>
