@@ -46,8 +46,10 @@ public sealed partial class PdfReadPage {
         var activeStreams = new HashSet<PdfStream>();
         var budget = new PageContentBudget(this, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
-        if (ContentUsesOptionalContent(
-                GetContentStreamSequence(budget).Source,
+        PdfContentSource content = GetContentStreamSequence(budget).Source;
+        if (!(!hiddenOnly && !unsupportedOnly && CannotReachOptionalContent(content, resources)) &&
+            ContentUsesOptionalContent(
+                content,
                 resources,
                 activeStreams,
                 budget,
@@ -74,6 +76,35 @@ public sealed partial class PdfReadPage {
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// True when page content can hold no optional-content usage, without interpreting it: no <c>/OC</c> marked-content
+    /// tag can be written (the bytes hold neither <c>OC</c> nor a <c>#</c> name escape), and the resources name nothing the
+    /// content pass would follow into another stream (form or pattern streams, soft-mask groups, Type 3 glyphs, or a font
+    /// chosen through a graphics state).
+    /// </summary>
+    private bool CannotReachOptionalContent(PdfContentSource content, PdfDictionary? resources) {
+        if (content.IndexOf("OC") >= 0 || content.IndexOf("#") >= 0) return false;
+        if (resources is null) return true;
+        if (HasEntries(resources, "XObject") || HasEntries(resources, "Pattern")) return false;
+        if (ResolveDictionary(resources.Items.TryGetValue("ExtGState", out PdfObject? statesObject) ? statesObject : null) is PdfDictionary states) {
+            foreach (KeyValuePair<string, PdfObject> entry in states.Items) {
+                if (ResolveDictionary(entry.Value) is PdfDictionary state &&
+                    (state.Items.ContainsKey("SMask") || state.Items.ContainsKey("Font"))) return false;
+            }
+        }
+        if (ResolveDictionary(resources.Items.TryGetValue("Font", out PdfObject? fontsObject) ? fontsObject : null) is PdfDictionary fonts) {
+            foreach (KeyValuePair<string, PdfObject> entry in fonts.Items) {
+                if (ResolveDictionary(entry.Value) is not PdfDictionary font) continue;
+                if (PdfObjectLookup.ResolveChain(_objects, font.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null)
+                    is not PdfName { Name: not "Type3" }) return false;
+            }
+        }
+        return true;
+
+        bool HasEntries(PdfDictionary dictionary, string key) =>
+            ResolveDictionary(dictionary.Items.TryGetValue(key, out PdfObject? value) ? value : null) is { Items.Count: > 0 };
     }
 
     private bool IsPrintableAnnotation(PdfDictionary annotation) {

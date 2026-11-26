@@ -350,6 +350,31 @@ internal static partial class TextLayoutEngine {
         double? baseY = baselineSpans is { Count: > 0 } ? GetLeftmostLogicalLayoutY(baselineSpans) : null;
         double? baseNormal = baselineSpans is { Count: > 0 }
             ? baselineSpans.Average(new PdfTextBaselineCoordinates(RotationKey(baselineSpans[0]), useLogicalLayoutBaseline: true).Normal) : null;
+        string outText = BuildLineText(spans, options, direction, coordinates);
+        double xs = double.PositiveInfinity;
+        double xe = double.NaN;
+        for (int index = 0; index < spans.Count; index++) {
+            double start = spans[index].X;
+            xs = MinimumKeepingNaN(xs, start);
+            xe = MaximumSkippingNaN(xe, start + Math.Max(0D, spans[index].LogicalLayoutAdvance));
+        }
+        return new TextLine(baseY ?? spans[0].LogicalLayoutY, xs, xe, outText, new List<PdfTextSpan>(spans),
+            options?.ReadingDirection ?? PdfReadingDirection.Auto, baseNormal);
+    }
+
+    /// <summary>
+    /// The text <see cref="BuildLine"/> gives these spans, without the rest of the line. Like it, sorts
+    /// <paramref name="spans"/> by X.
+    /// </summary>
+    internal static string BuildLineText(List<PdfTextSpan> spans, Options? options) {
+        PdfReadingDirection direction = PdfTextDirectionAnalysis.ResolveInSourceOrder(
+            options?.ReadingDirection ?? PdfReadingDirection.Auto, spans);
+        var coordinates = new PdfTextBaselineCoordinates(spans[0].RotationDegrees, useLogicalLayoutBaseline: true);
+        return BuildLineText(spans, options, direction, coordinates);
+    }
+
+    private static string BuildLineText(List<PdfTextSpan> spans, Options? options, PdfReadingDirection direction,
+        PdfTextBaselineCoordinates coordinates) {
         spans.Sort(static (left, right) => left.X.CompareTo(right.X));
         List<PdfTextSpan> visualOrder = OrderAlongBaseline(spans, coordinates);
         // Left-to-right text without right-to-left fragments keeps its visual order, so it is read in place.
@@ -358,13 +383,6 @@ internal static partial class TextLayoutEngine {
             !PdfTextDirectionAnalysis.HasRightToLeftFragment(visualOrder, static span => span.Text, default)
             ? visualOrder
             : PdfTextDirectionAnalysis.RestoreLogicalFragmentOrder(visualOrder, static span => span.Text, direction);
-        double xs = double.PositiveInfinity;
-        double xe = double.NaN;
-        for (int index = 0; index < spans.Count; index++) {
-            double start = spans[index].X;
-            xs = MinimumKeepingNaN(xs, start);
-            xe = MaximumSkippingNaN(xe, start + Math.Max(0D, spans[index].LogicalLayoutAdvance));
-        }
         StringBuilder text = t_lineText ?? new StringBuilder();
         t_lineText = null;
         for (int i = 0; i < textSpans.Count; i++) {
@@ -440,8 +458,7 @@ internal static partial class TextLayoutEngine {
             // intra-word fracture. Keep word boundaries here; geometric grouping owns gap decisions.
             outText = CollapseWhitespace(outText);
         }
-        return new TextLine(baseY ?? spans[0].LogicalLayoutY, xs, xe, outText, new List<PdfTextSpan>(spans),
-            options?.ReadingDirection ?? PdfReadingDirection.Auto, baseNormal);
+        return outText;
     }
 
     // One line builder per thread; a nested build takes a fresh one while it is in use.

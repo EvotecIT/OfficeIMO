@@ -2689,9 +2689,13 @@ public sealed partial class PdfReadPage {
 
     internal bool IsPageContentStreamObjectNumber(int? objectNumber) {
         if (!objectNumber.HasValue) return true;
-        List<PageContentStreamEntry> streams = GetContentStreamObjects();
-        for (int index = 0; index < streams.Count; index++) {
-            if (streams[index].ObjectNumber == objectNumber) return true;
+        // Same streams as GetContentStreamObjects, without building the list: this runs once per marked-content lookup.
+        PdfObject? contents = PageDictionary.Items.TryGetValue("Contents", out PdfObject? value) ? value : null;
+        if (TryResolvePageContentStream(contents, out PageContentStreamEntry single)) return single.ObjectNumber == objectNumber;
+        PdfArray? contentArray = ResolveArray(contents);
+        if (contentArray is null) return false;
+        foreach (PdfObject item in contentArray.Items) {
+            if (TryResolvePageContentStream(item, out PageContentStreamEntry stream) && stream.ObjectNumber == objectNumber) return true;
         }
         return false;
     }
