@@ -8,9 +8,14 @@ import { copyColumns } from "../../internal/rows.js";
 import { copyCellPresentation } from "../../core/presentation.js";
 import { canopyDiagnostics } from "./diagnostics.js";
 import { canopyNumberFormat, canopyXlsxWidth } from "./presentation.js";
+import { canopyDefaultTones } from "./tones.js";
 import type { CanopyCapture, CanopyDiagnostic, CanopyExport, CanopyFormat, CanopySourceOptions } from "./types.js";
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"] as const;
+// Captured presentations whose cell text already carries the readable content (badge labels are appended below).
+// Their visual loss is reported, never treated as an unsupported export.
+const textFallbacks: ReadonlySet<string> = new Set(["relative-link", "history-series", "badges", "custom-class", "custom-renderer"]);
+const badgeSeparator = " \u00b7 ";
 const rawIdentities = new WeakMap<ExportCell, CellValue>();
 
 /** @internal Grouping uses captured identity even when a detail cell displays a relative-link label. */
@@ -18,6 +23,18 @@ export function canopyIdentityValue(value: ExportValue): CellValue {
   if (!(value instanceof ExportCell)) return value;
   const original = rawIdentities.get(value);
   return original === undefined ? value.value : original;
+}
+
+function badgeText(input: unknown): string | undefined {
+  if (!Array.isArray(input) || input.length > 64) throw new TypeError("Canopy cell badges must be a bounded array of { text, tone?, title? }.");
+  const labels: string[] = [];
+  for (const badge of input) {
+    const text = typeof badge === "string" ? badge : badge && typeof badge === "object" ? (badge as { text?: unknown }).text : undefined;
+    if (typeof text !== "string") throw new TypeError("Canopy cell badges must be a bounded array of { text, tone?, title? }.");
+    const label = text.trim();
+    if (label) labels.push(label);
+  }
+  return labels.length ? labels.join(badgeSeparator) : undefined;
 }
 
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
@@ -54,7 +71,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
     if (!Array.isArray(items) || items.some(item => typeof item !== "string")) throw new TypeError("Canopy presentation diagnostics must be strings.");
     for (const code of items) {
       const diagnostic = { code, ...(rowId === undefined ? {} : { rowId }), ...(columnId === undefined ? {} : { columnId }) };
-      (code === "relative-link" || code === "history-series" ? fallback : report)(diagnostic);
+      (textFallbacks.has(code) ? fallback : report)(diagnostic);
     }
   };
   if (request.presentation !== "text" && request.presentation !== "semantic") throw new TypeError("Canopy captures must declare text or semantic presentation.");
@@ -65,7 +82,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
   const tone = (name: string | undefined, rowId: string, columnId?: string): Readonly<CellPresentation> | undefined => {
     if (name === undefined) return undefined;
     if (typeof name !== "string") throw new TypeError("Canopy tones must be strings.");
-    const style = tones.get(name);
+    const style = tones.get(name) ?? canopyDefaultTones.get(name);
     if (!style && name !== "neutral") fallback({ code: "UNMAPPED_TONE:" + name, rowId, ...(columnId === undefined ? {} : { columnId }) });
     return style;
   };
@@ -122,7 +139,11 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         // A relative destination is navigation metadata, not the visible label.
         // History captures already carry their frozen latest scalar (or null).
         const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link");
-        let value: import("../../core/index.js").CellValue = values === "display" || relativeLabel ? cell.text : cell.value;
+        const badges = cell.badges === undefined ? undefined : badgeText(cell.badges);
+        const text = badges ? cell.text ? cell.text + badgeSeparator + badges : badges : cell.text;
+        // Badges belong to the visible label: text columns export them with the value, typed columns keep their scalar.
+        let value: import("../../core/index.js").CellValue = values === "display" || relativeLabel ? text :
+          badges && spec.kind === "text" ? (cell.value === null || cell.value === "" ? badges : String(cell.value) + badgeSeparator + badges) : cell.value;
         if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string") value = datetime(value, dateMode, clock);
         const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
         const nativeFormat = spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
@@ -134,8 +155,8 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         // This also avoids a frozen wrapper for every cell in large CSV captures.
         if (format === "csv") result.push(value);
         else {
-          const exported = new ExportCell(value, { text: cell.text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
-          if (relativeLabel) rawIdentities.set(exported, cell.value);
+          const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(cell.link === undefined ? {} : { link: cell.link }) });
+          if (relativeLabel || value !== cell.value && badges) rawIdentities.set(exported, cell.value);
           result.push(exported);
         }
       }

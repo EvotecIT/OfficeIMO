@@ -94,8 +94,9 @@ export class Worksheet<T = never> {
     book.checkLinks(this.links.length);
     this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
       style: book.styles.forColumn(column), dateStyle: book.styles.forColumn(column, false, undefined, true),
-      headerStyle: this.headerRows ? options.headerStyle ?? book.styles.forColumn({ header: column.header, ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }),
-        ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill) : 0
+      headerStyle: this.headerRows ? options.headerStyle ?? book.styles.forColumn({ header: column.header,
+        ...((options.headerWrap ?? column.wrapText) === undefined ? {} : { wrapText: options.headerWrap ?? column.wrapText }),
+        ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill, false, options.headerBorder) : 0
     }));
     // Register conditional styles only after worksheet construction can no longer reject its options.
     this.conditional = new ConditionalFormats(conditional, book.styles);
@@ -138,6 +139,8 @@ export class Worksheet<T = never> {
     if (columns.length > 16384) throw new RangeError("Excel supports at most 16,384 columns.");
     if (options.includeHeader === false && (options.freezeHeader || options.autoFilter)) throw new TypeError("A frozen header or autofilter requires a header row.");
     if (options.headerFill !== undefined) colorArgb(options.headerFill);
+    if (options.headerWrap !== undefined && typeof options.headerWrap !== "boolean") throw new TypeError("headerWrap must be boolean.");
+    if (options.headerBorder !== undefined && (!options.headerBorder || typeof options.headerBorder !== "object")) throw new TypeError("headerBorder must be a border object.");
     if (options.headerStyle !== undefined) book.styles.validateStyle(options.headerStyle);
     if (options.alternatingRowStyle !== undefined) book.styles.compose(0, options.alternatingRowStyle);
     for (const callback of [options.rowStyle, options.cellStyle, options.rowOutline]) if (callback !== undefined && typeof callback !== "function") throw new TypeError("Row and style callbacks must be functions.");

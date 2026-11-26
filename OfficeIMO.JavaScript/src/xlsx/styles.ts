@@ -159,7 +159,7 @@ export class StyleRegistry {
     return this.compose(base, { numberFormat: this.styles[this.validateStyle(dateStyle)]!.numberFormat });
   }
   /** @internal Column shorthand and header style composition. */
-  forColumn(column: XlsxColumn, header = false, fill?: string, date = false): number {
+  forColumn(column: XlsxColumn, header = false, fill?: string, date = false, border?: Border): number {
     const base = !header && column.style !== undefined ? this.styles[this.validateStyle(column.style)] : undefined;
     const format = column.format !== undefined ? column.format || NumberFormats.General : base?.numberFormat || (column.type === "date" || date ? NumberFormats.DateTime : NumberFormats.General);
     return this.add({
@@ -168,7 +168,7 @@ export class StyleRegistry {
       wrapText: column.wrapText ?? base?.wrapText ?? false,
       ...(column.alignment ? { alignment: column.alignment } : base?.alignment ? { alignment: base.alignment as Alignment } : {}),
       ...(base?.verticalAlignment ? { verticalAlignment: base.verticalAlignment as CellStyle["verticalAlignment"] & string } : {}),
-      ...(header ? { font: { bold: true } } : {}), ...(fill ? { fill: { color: fill } } : {})
+      ...(header ? { font: { bold: true } } : {}), ...(fill ? { fill: { color: fill } } : {}), ...(border ? { border } : {})
     });
   }
   toXml(): string {

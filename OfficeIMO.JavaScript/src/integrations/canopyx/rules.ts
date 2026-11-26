@@ -2,15 +2,9 @@ import type { CellPresentation } from "../../core/index.js";
 import type { ConditionalFormat, ConditionalStyle, ConditionalThreshold, ConditionalColorStop } from "../../xlsx/index.js";
 import { captureFields } from "../../internal/capture.js";
 import { canopyPredicate } from "./rule-predicates.js";
+import { canopyDefaultTones, canopyTonePalette as palette } from "./tones.js";
 import type { CanopyCapture, CanopyDiagnostic, CanopyFormat, CanopyFormatRule, CanopySourceOptions } from "./types.js";
 
-// Stable document palette. Browser CSS variables and resolved cell.format are never interpreted.
-const palette: Readonly<Record<string, { readonly color: string; readonly background: string; readonly foreground: string }>> = {
-  info: { color: "4472C4", background: "DDEBF7", foreground: "1F4E78" },
-  success: { color: "70AD47", background: "E2F0D9", foreground: "375623" },
-  warning: { color: "FFC000", background: "FFF2CC", foreground: "9C6500" },
-  danger: { color: "C00000", background: "FFC7CE", foreground: "9C0006" }
-};
 class UnsupportedRule extends Error {}
 const unsupported = (message: string): never => { throw new UnsupportedRule(message); };
 
@@ -63,8 +57,7 @@ export function canopyRules(request: CanopyCapture["request"], format: CanopyFor
     return value;
   };
   const style = (name: string): ConditionalStyle => {
-    const defaults = palette[name];
-    const mapping: Readonly<CellPresentation> | undefined = tones.get(name) ?? (defaults ? { background: defaults.background, color: defaults.foreground } : undefined);
+    const mapping: Readonly<CellPresentation> | undefined = tones.get(name) ?? canopyDefaultTones.get(name);
     if (!mapping) return unsupported("UNMAPPED_RULE_TONE:" + name);
     if ("alignment" in mapping || "wrapText" in mapping) return unsupported("UNSUPPORTED_RULE_TONE_STYLE:" + name);
     return {

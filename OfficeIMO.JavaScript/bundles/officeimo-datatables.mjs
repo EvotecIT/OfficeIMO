@@ -2362,7 +2362,7 @@ class StyleRegistry {
         return this.compose(base, { numberFormat: this.styles[this.validateStyle(dateStyle)].numberFormat });
     }
     /** @internal Column shorthand and header style composition. */
-    forColumn(column, header = false, fill, date = false) {
+    forColumn(column, header = false, fill, date = false, border) {
         const base = !header && column.style !== undefined ? this.styles[this.validateStyle(column.style)] : undefined;
         const format = column.format !== undefined ? column.format || NumberFormats.General : base?.numberFormat || (column.type === "date" || date ? NumberFormats.DateTime : NumberFormats.General);
         return this.add({
@@ -2371,7 +2371,7 @@ class StyleRegistry {
             wrapText: column.wrapText ?? base?.wrapText ?? false,
             ...(column.alignment ? { alignment: column.alignment } : base?.alignment ? { alignment: base.alignment } : {}),
             ...(base?.verticalAlignment ? { verticalAlignment: base.verticalAlignment } : {}),
-            ...(header ? { font: { bold: true } } : {}), ...(fill ? { fill: { color: fill } } : {})
+            ...(header ? { font: { bold: true } } : {}), ...(fill ? { fill: { color: fill } } : {}), ...(border ? { border } : {})
         });
     }
     toXml() {
@@ -3649,8 +3649,9 @@ class Worksheet {
         book.checkLinks(this.links.length);
         this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
             style: book.styles.forColumn(column), dateStyle: book.styles.forColumn(column, false, undefined, true),
-            headerStyle: this.headerRows ? options.headerStyle ?? book.styles.forColumn({ header: column.header, ...(column.wrapText === undefined ? {} : { wrapText: column.wrapText }),
-                ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill) : 0
+            headerStyle: this.headerRows ? options.headerStyle ?? book.styles.forColumn({ header: column.header,
+                ...((options.headerWrap ?? column.wrapText) === undefined ? {} : { wrapText: options.headerWrap ?? column.wrapText }),
+                ...(column.alignment === undefined ? {} : { alignment: column.alignment }) }, options.boldHeader !== false, options.headerFill, false, options.headerBorder) : 0
         }));
         // Register conditional styles only after worksheet construction can no longer reject its options.
         this.conditional = new ConditionalFormats(conditional, book.styles);
@@ -3702,6 +3703,10 @@ class Worksheet {
             throw new TypeError("A frozen header or autofilter requires a header row.");
         if (options.headerFill !== undefined)
             colorArgb(options.headerFill);
+        if (options.headerWrap !== undefined && typeof options.headerWrap !== "boolean")
+            throw new TypeError("headerWrap must be boolean.");
+        if (options.headerBorder !== undefined && (!options.headerBorder || typeof options.headerBorder !== "object"))
+            throw new TypeError("headerBorder must be a border object.");
         if (options.headerStyle !== undefined)
             book.styles.validateStyle(options.headerStyle);
         if (options.alternatingRowStyle !== undefined)
@@ -4392,7 +4397,7 @@ const { captureFields } = _m10;
 /** @internal The workbook owner captures these settings before validation or adapter merging. */
 const workbookOptionFields = ["signal", "onProgress", "limits", "sink", "dateMode", "compression", "invalidCharacterPolicy", "appProperties", "cellValueWriters", "oversizedText", "creator", "title", "subject", "description", "created", "modified"];
 /** @internal Worksheet settings also used by the portable sheet owner. */
-const sheetOptionFields = ["columns", "includeHeader", "headerRows", "freezeHeader", "autoFilter", "boldHeader", "headerFill", "headerStyle", "alternatingRowStyle", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel", "outlineSummaryBelow", "outlineSummaryRight", "columnOutlines", "rowHeight", "headerHeight", "defaultColumnWidth", "freezeColumns", "table", "autoSize", "footer", "print", "title", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"];
+const sheetOptionFields = ["columns", "includeHeader", "headerRows", "freezeHeader", "autoFilter", "boldHeader", "headerFill", "headerBorder", "headerWrap", "headerStyle", "alternatingRowStyle", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel", "outlineSummaryBelow", "outlineSummaryRight", "columnOutlines", "rowHeight", "headerHeight", "defaultColumnWidth", "freezeColumns", "table", "autoSize", "footer", "print", "title", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"];
 /** @internal Includes inherited format-specific ceilings before a wrapper combines stream settings. */
 const workbookLimitFields = ["maxRows", "maxCells", "maxTextCharacters", "maxOutputBytes", "maxStyles", "maxSheets", "maxOverflowCharacters", "maxHyperlinks", "maxImageBytes", "maxBufferedCells", "maxBufferedCharacters", "maxMergedRanges", "maxConditionalFormats", "maxDifferentialStyles", "maxCharts", "maxChartPoints", "maxChartTextCharacters", "maxFormulaCharacters", "maxDataValidations", "maxValidationTextCharacters"];
 /** @internal Capture the workbook's known ceilings without dropping supported prototype fields. */
@@ -5215,7 +5220,7 @@ function value(result) {
 function portableSheet(options = {}) {
     options = captureFields(options, sheetOptionFields);
     if (options.headerStyle !== undefined)
-        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader and headerFill.");
+        throw new TypeError("Workbook-local header styles require the advanced Workbook API; use boldHeader, headerFill, headerBorder and headerWrap.");
     style(options.alternatingRowStyle);
     style(options.title?.style);
     style(options.footer?.style);
