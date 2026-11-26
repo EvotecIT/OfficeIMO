@@ -344,6 +344,7 @@ namespace OfficeIMO.Excel {
                     if (_closed) {
                         return false;
                     }
+                    ThrowIfHandoverFailed();
                     ThrowIfXmlTextBufferingFailed();
 
                     if (TryReadLogicalRow(out var row)) {

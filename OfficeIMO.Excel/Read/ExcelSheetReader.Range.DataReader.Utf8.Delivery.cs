@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
@@ -39,7 +40,13 @@ namespace OfficeIMO.Excel {
                     }
                 } catch (ExcelUtf8RangeRowSource.RowBatchHandoverException) {
                     HandOverToXmlRows(cancellationToken);
-                    if (!TryReadLogicalRow(out row)) return false;
+                    // The XML reader replays the worksheet up to the next row; it observes this read's token.
+                    _activeReadCancellationToken = cancellationToken;
+                    try {
+                        if (!TryReadLogicalRow(out row)) return false;
+                    } finally {
+                        _activeReadCancellationToken = _ct;
+                    }
                     _currentRow = row;
                     return true;
                 }
@@ -62,6 +69,20 @@ namespace OfficeIMO.Excel {
                 ExcelUtf8RangeRowSource source = _utf8Source!;
                 _utf8Source = null;
                 source.Dispose();
+                try {
+                    StartXmlRowsAfterHandover(cancellationToken);
+                } catch (Exception exception) {
+                    // The indexed rows are gone and XML mode is not ready: later reads report this failure.
+                    _handoverFailure = ExceptionDispatchInfo.Capture(exception);
+                    throw;
+                }
+            }
+
+            private ExceptionDispatchInfo? _handoverFailure;
+
+            private void ThrowIfHandoverFailed() => _handoverFailure?.Throw();
+
+            private void StartXmlRowsAfterHandover(CancellationToken cancellationToken) {
                 // The indexed row is complete; XML mode must not skip content for it.
                 ReleaseCurrentValueReferences();
                 _currentRow = null;
@@ -86,29 +107,32 @@ namespace OfficeIMO.Excel {
                 } finally {
                     _owner._usedRangeA1 = cachedRange ?? _owner._usedRangeA1;
                 }
+                // Rows were returned, so the worksheet has cells. No bounds means the check could not collect them,
+                // as for worksheets with tables, and proved no row order either.
+                if (cellRange == null)
+                    rowsStrictlyIncreasing = _owner.RowsAreSortedWithinRangeXmlFast(_firstRow, _lastRow, cancellationToken);
                 if (!rowsStrictlyIncreasing) {
                     // Rows before the next one were already returned in file order.
                     throw new InvalidDataException(
                         $"Worksheet '{_owner._sheetName}' lists row {_nextLogicalRow} or later out of order after earlier rows were returned. " +
                         "Read it with ExcelReaderOptions.ValidateWorksheetBeforeFirstRow enabled.");
                 }
-                if (cellRange == null) {
-                    // An empty sheetData leaves no more rows to return.
-                    _lastRow = _nextLogicalRow - 1;
-                    return;
+                if (cellRange != null) {
+                    var (_, usedFirstColumn, usedLastRow, usedLastColumn) = ExcelA1.ParseRange(cellRange);
+                    if (usedFirstColumn < _firstColumn || usedLastColumn > _lastColumn || usedLastRow > _lastRow) {
+                        throw new InvalidDataException(
+                            $"Worksheet '{_owner._sheetName}' has cells outside its declared dimension " +
+                            "after rows inside it were returned. Read it with ExcelReaderOptions.ValidateWorksheetBeforeFirstRow enabled.");
+                    }
+                    _lastRow = usedLastRow;
                 }
-                var (_, usedFirstColumn, usedLastRow, usedLastColumn) = ExcelA1.ParseRange(cellRange);
-                if (usedFirstColumn < _firstColumn || usedLastColumn > _lastColumn) {
-                    throw new NotSupportedException(
-                        $"Worksheet '{_owner._sheetName}' has cells outside columns {ExcelA1.ColumnIndexToLetters(_firstColumn)}:{ExcelA1.ColumnIndexToLetters(_lastColumn)} " +
-                        "after rows with those columns were returned. Read it with ExcelReaderOptions.ValidateWorksheetBeforeFirstRow enabled.");
-                }
-                _lastRow = Math.Min(_lastRow, usedLastRow);
                 _stream = _owner.OpenReaderWorksheetStream(cancellationToken);
                 RewindWorksheetStream(_stream);
                 _reader = OpenWorksheetXmlReader(_stream);
                 _xmlTextBudget = new XmlDataReaderTextBudget(_owner._opt.MaxXmlDataReaderBufferedCharacters,
                     ThrowIfReadCancellationRequested);
+                // Indexed rows report presence from their cell index; XML rows track it as the constructor does.
+                if (_trackCellPresence) _currentCellPresence ??= new bool[_fieldCount];
             }
         }
     }

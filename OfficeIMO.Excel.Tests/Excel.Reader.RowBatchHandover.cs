@@ -2,6 +2,7 @@ using System.Data.Common;
 using System.Globalization;
 using System.IO.Compression;
 using System.Text;
+using System.Xml;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;
@@ -92,6 +93,40 @@ public partial class Excel {
         }
     }
 
+    /// <summary>
+    /// After a switch to the general XML reader, a row below the declared dimension still fails at that point instead of
+    /// ending the rows early.
+    /// </summary>
+    [Fact]
+    public void OpenReader_RowBelowTheDeclaredDimensionAfterTheSwitchFails() {
+        int markupRow = HandoverRows - 5_000;
+        string path = CreateHandoverWorkbook(markupRow, "<![CDATA[late & cdata]]>", dimensionColumns: "B", extraRows: 1);
+        try {
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
+            Exception? failure = ReadUntilError(reader, out int rows);
+            Assert.Contains(nameof(ExcelReaderOptions.ValidateWorksheetBeforeFirstRow),
+                Assert.IsType<InvalidDataException>(failure).Message);
+            Assert.True(rows > 0 && rows < markupRow);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>A character XML does not allow in a late cell fails the read that reaches it; that row is not returned.</summary>
+    [Fact]
+    public void OpenReader_InvalidCharacterInALateCellIsNotReturned() {
+        int badRow = HandoverRows - 5_000;
+        string path = CreateHandoverWorkbook(badRow, "bad\u0001text", dimensionColumns: "B");
+        try {
+            using DbDataReader reader = ExcelDocument.OpenReader(path);
+            Assert.IsType<XmlException>(ReadUntilError(reader, out int rows));
+            // The header is row 1, so rows 2 to badRow - 1 came back.
+            Assert.Equal(ChecksWhileReading ? badRow - 2 : 0, rows);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static void AssertReadsLikeValidatingFirst(string path, int markupRow, string expectedText) {
         using DbDataReader expected = ExcelDocument.OpenReader(path, new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true });
         using DbDataReader actual = ExcelDocument.OpenReader(path);
@@ -110,12 +145,12 @@ public partial class Excel {
     }
 
     private static string CreateHandoverWorkbook(int markupRow, string markupText, string dimensionColumns,
-        int trailingWhitespaceBytes = 0, int extraCellRow = 0) {
+        int trailingWhitespaceBytes = 0, int extraCellRow = 0, int extraRows = 0) {
         string path = CreateCompactFastPathWorkbook();
         var xml = new StringBuilder(HandoverRows * 120);
         xml.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><dimension ref=\"A1:")
             .Append(dimensionColumns).Append(HandoverRows.ToString(CultureInfo.InvariantCulture)).Append("\"/><sheetData>");
-        for (int row = 1; row <= HandoverRows; row++) {
+        for (int row = 1; row <= HandoverRows + extraRows; row++) {
             string r = row.ToString(CultureInfo.InvariantCulture);
             string text = row == 1 ? "Name" : row == markupRow ? markupText : "Item " + r;
             xml.Append("<row r=\"").Append(r).Append("\"><c r=\"A").Append(r).Append("\" t=\"inlineStr\"><is><t>")

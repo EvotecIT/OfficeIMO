@@ -30,6 +30,7 @@ namespace OfficeIMO.Excel {
                     && prefixLength >= sheetDataTagLength
                     && _sheetDataEndTagStart >= prefixLength
                     && _sheetDataEndTagStart <= _length
+                    && IsSheetDataEndTagAt(_sheetDataEndTagStart)
                     && prefixLength <= maximumEnvelopeBytes
                     && _length - _sheetDataEndTagStart <= maximumEnvelopeBytes - prefixLength
                     && (_worksheetPrefixLength == 0
@@ -49,6 +50,14 @@ namespace OfficeIMO.Excel {
 #endif
                 return null;
             }
+
+#if NET8_0_OR_GREATER
+            // A window move or delivery restart can leave the recorded offset pointing at other bytes.
+            private bool IsSheetDataEndTagAt(int position) =>
+                position + 12 + _worksheetPrefixLength <= _length
+                && _buffer![position] == (byte)'<' && _buffer[position + 1] == (byte)'/'
+                && _buffer.AsSpan(position + 2 + _worksheetPrefixLength, 10).SequenceEqual("sheetData>"u8);
+#endif
 
             /// <summary>A windowed source no longer holds the whole part, so complete XML proof reads it again.</summary>
             private Stream OpenWindowedValidationStream(CancellationToken ct) {

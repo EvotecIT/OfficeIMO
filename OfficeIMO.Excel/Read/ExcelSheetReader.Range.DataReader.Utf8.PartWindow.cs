@@ -252,6 +252,8 @@ namespace OfficeIMO.Excel {
                 _windowShift += delta;
                 _windowFilled = filled;
                 _length = Math.Max(head + pinnedLength, _length - delta);
+                // The envelope check copies the markup after sheetData from this offset.
+                if (_sheetDataEndTagStart >= keepFrom) _sheetDataEndTagStart -= delta;
 #if NET8_0_OR_GREATER
                 _validatedCanonicalTextLength = Math.Max(head + pinnedLength, _validatedCanonicalTextLength - delta);
 #endif

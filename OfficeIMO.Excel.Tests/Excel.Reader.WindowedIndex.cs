@@ -45,15 +45,15 @@ public partial class Excel {
         try {
             var options = new ExcelReaderOptions { HasHeaderRow = false, ValidateWorksheetBeforeFirstRow = validateFirst };
             Type expected = malformedXml ? typeof(XmlException) : typeof(InvalidDataException);
-            if (validateFirst) {
+            if (validateFirst || !ChecksWhileReading) {
                 Assert.IsType(expected, Record.Exception(() => {
                     using var reader = ExcelDocument.OpenReader(path, options); _ = reader.FieldCount;
                 }));
             } else {
-                // The rows before the invalid content are returned first.
+                // Every row before the invalid content is returned first.
                 using var reader = ExcelDocument.OpenReader(path, options);
                 Assert.IsType(expected, ReadUntilError(reader, out int rows));
-                Assert.True(rows > 0);
+                Assert.Equal(malformedXml ? 1_001 : 1_000, rows);
             }
         } finally {
             File.Delete(path);

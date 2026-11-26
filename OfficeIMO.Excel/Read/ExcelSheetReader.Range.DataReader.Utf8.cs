@@ -1368,7 +1368,7 @@ namespace OfficeIMO.Excel {
                         if (estimatedRows * _fieldCount > RegularIndexedCellBudget) EnterIndexBeyondBudget();
                         nextCapacity = (int)estimatedRows;
                     }
-                    nextCapacity = (int)Math.Min(nextCapacity, budgetRows);
+                    nextCapacity = (int)Math.Min(ExcelA1.MaxRows, Math.Min(nextCapacity, budgetRows));
                     GrowRowArray(ref _rowContentStarts, nextCapacity, _rowCount);
                     GrowRowArray(ref _rowContentEnds, nextCapacity, _rowCount);
                 }

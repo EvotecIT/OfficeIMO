@@ -39,11 +39,10 @@ namespace OfficeIMO.Excel {
                     || reader?.AllowsPipelining != true
                     || !reader.TryGetLength(owner._worksheetPartName, out long length)
                     || length < MinimumRowBatchPartBytes || length > int.MaxValue
-                    || HeadHasNoDimension(reader, owner._worksheetPartName, ct)
-                    || !reader.TryOpenExactPartStream(owner._worksheetPartName, ct, out Stream? stream)) return false;
-
+                    || HeadHasNoDimension(reader, owner._worksheetPartName, ct)) return false;
                 // The background pass validates styles; load them here so only this thread builds them.
                 _ = owner.Styles;
+                if (!reader.TryOpenExactPartStream(owner._worksheetPartName, ct, out Stream? stream)) return false;
                 byte[]? window = null;
                 ExcelUtf8RangeRowSource producer;
                 try {
@@ -60,12 +59,17 @@ namespace OfficeIMO.Excel {
                 producer._batchSink = channel;
                 var stop = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 Task task = Task.Run(() => producer.RunRowBatchProducer(channel, stop.Token), CancellationToken.None);
-                if (!channel.WaitForFirstRows(ct, out RowBatchRange range)) {
+                bool started;
+                RowBatchRange range;
+                try {
+                    started = channel.WaitForFirstRows(ct, out range);
+                } catch {
+                    StopProducer(channel, stop, task, producer);
+                    throw;
+                }
+                if (!started) {
                     // Nothing was returned yet, so the ordinary readers still decide this worksheet.
-                    stop.Cancel();
-                    try { task.GetAwaiter().GetResult(); } catch { }
-                    stop.Dispose();
-                    producer.Dispose();
+                    StopProducer(channel, stop, task, producer);
                     return false;
                 }
 
@@ -119,6 +123,15 @@ namespace OfficeIMO.Excel {
                 return -1;
             }
 
+            private static void StopProducer(RowBatchChannel channel, CancellationTokenSource stop, Task task, ExcelUtf8RangeRowSource producer) {
+                stop.Cancel();
+                channel.Cancel();
+                try { task.GetAwaiter().GetResult(); } catch { }
+                stop.Dispose();
+                producer.Dispose();
+                channel.Release();
+            }
+
             private void RunRowBatchProducer(RowBatchChannel channel, CancellationToken ct) {
                 _batchCt = ct;
                 try {
@@ -153,19 +166,32 @@ namespace OfficeIMO.Excel {
                 // Without a declared dimension the columns are known only after the whole worksheet; such
                 // worksheets are validated before the first row.
                 if (!declared) throw new RowBatchDeclinedException();
-                _batchSink.PublishRange(new RowBatchRange(firstRow, lastRow, firstColumn, fieldCount, declared));
+                // The batches held at once stay within the buffered-cell and chunk-row limits, so wide sheets flush sooner.
+                int rows = Math.Min(RowBatchRows, _options.MaxDataReaderChunkRows);
+                rows = (int)Math.Max(1L, Math.Min(rows, (long)_options.MaxDataReaderBufferedCells / RowBatchChannel.MaximumBatches / fieldCount));
+                _batchSink.PublishRange(new RowBatchRange(firstRow, lastRow, firstColumn, fieldCount, declared), rows);
             }
 
             /// <summary>Copies one qualified row, whose metadata starts at <paramref name="rowOffset"/>, into the filling batch.</summary>
             private void AddRowToBatch(int rowIndex, int contentStart, int contentEnd, int rowOffset) {
                 // Rows the compact indexer could not prove by itself, such as formulas with attributes, are returned once
                 // the full XML check has read past them.
-                if (!_sheetDataSupportsFastValidation) WaitForRowBatchXmlCheck(GetPartOffset(contentEnd));
+                if (!_sheetDataSupportsFastValidation || !RowTextIsValid(contentStart, contentEnd))
+                    WaitForRowBatchXmlCheck(GetPartOffset(contentEnd));
                 ThrowIfCellsOutsideDeclaredRange();
                 _batchSink!.AddRow(this, rowIndex, contentStart, contentEnd, rowOffset);
             }
 
             private RowBatchXmlCheck? _batchXmlCheck;
+
+            // After the character check finds text it cannot prove, such as malformed UTF-8, each row's own text is
+            // checked; a row it cannot prove waits for the XML check like markup, and the rows before it still return.
+#if NET8_0_OR_GREATER
+            private bool RowTextIsValid(int start, int end) =>
+                !_canonicalTextNeedsXmlReader || IsCanonicalDocumentTextValid(_buffer.AsSpan(start, end - start));
+#else
+            private static bool RowTextIsValid(int start, int end) => true;
+#endif
             private CancellationToken _batchCt;
 
             /// <summary>Starts the full XML check of the worksheet on another thread, over its own read of the part.</summary>
@@ -296,11 +322,12 @@ namespace OfficeIMO.Excel {
 
             private bool TakeNextBatch(CancellationToken readCt) {
                 RowBatchChannel channel = _batchSource!;
+                // The current row still refers to this batch until a replacement arrives; a canceled wait keeps it.
+                RowBatch? next = channel.Take(readCt);
                 if (_currentBatch != null) {
                     channel.Recycle(_currentBatch);
                     _currentBatch = null;
                 }
-                RowBatch? next = channel.Take(readCt);
                 if (next == null) return false;
                 _currentBatch = next;
                 _batchCursor = 0;
@@ -391,15 +418,18 @@ namespace OfficeIMO.Excel {
                 internal bool HasFormulas;
                 internal bool HasNonSimpleText;
 
-                internal void Reset(int fieldCount) {
-                    int cells = RowBatchRows * fieldCount;
+                internal void Reset(int fieldCount, int rows) {
+                    int cells = rows * fieldCount;
                     if (ValueStarts.Length < cells) {
                         ReturnCells();
                         ValueStarts = ArrayPool<int>.Shared.Rent(cells);
                         ValueLengths = ArrayPool<int>.Shared.Rent(cells);
                         CellKinds = ArrayPool<byte>.Shared.Rent(cells);
                     }
-                    if (RowIndexes.Length < RowBatchRows) RowIndexes = ArrayPool<int>.Shared.Rent(RowBatchRows);
+                    if (RowIndexes.Length < rows) {
+                        if (RowIndexes.Length != 0) ArrayPool<int>.Shared.Return(RowIndexes);
+                        RowIndexes = ArrayPool<int>.Shared.Rent(rows);
+                    }
                     if (Bytes.Length == 0) Bytes = ArrayPool<byte>.Shared.Rent(1024 * 1024);
                     ByteLength = 0;
                     Count = 0;
@@ -415,9 +445,9 @@ namespace OfficeIMO.Excel {
                     Bytes = larger;
                 }
 
-                internal void EnsureFormulas(int fieldCount) {
+                internal void EnsureFormulas(int fieldCount, int rows) {
                     if (HasFormulas) return;
-                    int cells = RowBatchRows * fieldCount;
+                    int cells = rows * fieldCount;
                     if (FormulaStarts.Length < cells) {
                         if (FormulaStarts.Length != 0) {
                             ArrayPool<int>.Shared.Return(FormulaStarts);
@@ -454,7 +484,7 @@ namespace OfficeIMO.Excel {
 
             /// <summary>Hands qualified rows from the background pass to the reader, at most three batches at a time.</summary>
             private sealed class RowBatchChannel {
-                private const int MaximumBatches = 3;
+                internal const int MaximumBatches = 3;
                 private readonly object _gate = new();
                 private readonly Queue<RowBatch> _ready = new();
                 private readonly Stack<RowBatch> _free = new();
@@ -467,12 +497,14 @@ namespace OfficeIMO.Excel {
                 private bool _complete;
                 private bool _canceled;
                 private int _fieldCount;
+                private int _batchRows;
                 private ExceptionDispatchInfo? _fault;
 
-                internal void PublishRange(RowBatchRange range) {
+                internal void PublishRange(RowBatchRange range, int batchRows) {
                     lock (_gate) {
                         _range = range;
                         _fieldCount = range.FieldCount;
+                        _batchRows = batchRows;
                         _rangePublished = true;
                     }
                 }
@@ -512,7 +544,7 @@ namespace OfficeIMO.Excel {
                         batch.CellKinds[target + ordinal] = kinds[source];
                     }
                     if (producer._formulaStarts != null) {
-                        batch.EnsureFormulas(fields);
+                        batch.EnsureFormulas(fields, _batchRows);
                         for (int ordinal = 0; ordinal < fields; ordinal++) {
                             int source = rowOffset + ordinal;
                             int formulaLength = producer._formulaLengths![source];
@@ -526,7 +558,7 @@ namespace OfficeIMO.Excel {
 #endif
                     batch.RowIndexes[batch.Count++] = rowIndex;
                     batch.ByteLength += length;
-                    if (batch.Count == RowBatchRows) Flush();
+                    if (batch.Count == _batchRows) Flush();
                 }
 
                 internal void Flush() {
@@ -545,14 +577,14 @@ namespace OfficeIMO.Excel {
                             if (_canceled) throw new OperationCanceledException();
                             if (_free.Count > 0) {
                                 RowBatch batch = _free.Pop();
-                                batch.Reset(_fieldCount);
+                                batch.Reset(_fieldCount, _batchRows);
                                 return batch;
                             }
                             if (_created < MaximumBatches) {
                                 _created++;
                                 var batch = new RowBatch();
                                 _all.Add(batch);
-                                batch.Reset(_fieldCount);
+                                batch.Reset(_fieldCount, _batchRows);
                                 return batch;
                             }
                             Monitor.Wait(_gate, 20);

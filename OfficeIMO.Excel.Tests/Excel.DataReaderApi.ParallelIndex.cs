@@ -89,8 +89,8 @@ public partial class Excel {
         using DbDataReader reader = OpenParallelIndexReader(workbook, numericAsDecimal: true, sequential: false);
         var failure = Assert.IsType<InvalidDataException>(ReadUntilError(reader, out int rows));
         Assert.Equal(expected.Message, failure.Message);
-        // Rows 2 to invalidRow - 1 were returned; the header is row 1.
-        Assert.Equal(invalidRow - 2, rows);
+        // Rows 2 to invalidRow - 1 were returned; the header is row 1. .NET Framework validates before the first row.
+        Assert.Equal(ChecksWhileReading ? invalidRow - 2 : 0, rows);
     }
 
     /// <summary>Single-pass reading delivers the same values as the validate-first reader.</summary>

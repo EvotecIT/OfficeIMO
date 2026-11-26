@@ -55,9 +55,10 @@ namespace OfficeIMO.Excel {
             private long RegularIndexedCellBudget => Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells);
 
             /// <summary>
-            /// While the whole worksheet XML is held in memory anyway, a compact whole-sheet index up to a quarter of
-            /// its size replaces the rolling window, so rows are not indexed a second time. A lower configured
-            /// MaxDataReaderBufferedCells keeps its limit.
+            /// While the whole worksheet XML is held in memory anyway, a compact whole-sheet index of up to a quarter of
+            /// its size replaces the rolling window, so rows are not indexed a second time. Formula offsets, when the
+            /// sheet has formulas, add 8 bytes per cell, so such sheets index up to about half the XML size. A lower
+            /// configured MaxDataReaderBufferedCells keeps its limit.
             /// </summary>
             private long IndexedCellBudget() {
                 long budget = RegularIndexedCellBudget;

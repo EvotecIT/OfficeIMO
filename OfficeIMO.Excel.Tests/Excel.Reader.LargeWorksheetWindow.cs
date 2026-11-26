@@ -56,9 +56,9 @@ public partial class Excel {
             ExcelReaderOptions options = WorksheetWindowOptions(windowed: true);
             options.ValidateWorksheetBeforeFirstRow = validateFirst;
             Type expected = malformedXml ? typeof(XmlException) : typeof(InvalidDataException);
-            if (validateFirst || !dimension) {
+            if (validateFirst || !dimension || !ChecksWhileReading) {
                 // Without a declared dimension the columns are known only after the whole worksheet, so it is
-                // validated before the first row, as it is when that is requested.
+                // validated before the first row, as it is when that is requested and on .NET Framework.
                 Assert.IsType(expected, Record.Exception(() => {
                     using var reader = ExcelDocument.OpenReader(path, options); _ = reader.FieldCount;
                 }));
@@ -67,12 +67,20 @@ public partial class Excel {
                 Exception? failure = ReadUntilError(reader, out int rows);
                 Assert.IsType(expected, failure);
                 if (!malformedXml) Assert.Contains("missing cell style", failure!.Message);
-                Assert.True(rows > 0);
+                // Every valid row comes before the error: the bad last row is not returned, the broken footer follows all rows.
+                Assert.Equal(malformedXml ? LargeWorksheetRows : LargeWorksheetRows - 1, rows);
             }
         } finally {
             File.Delete(path);
         }
     }
+
+    /// <summary>Whether this target checks large worksheets while rows are read; .NET Framework validates first.</summary>
+#if NET8_0_OR_GREATER
+    internal static bool ChecksWhileReading => true;
+#else
+    internal static bool ChecksWhileReading => false;
+#endif
 
     /// <summary>Reads rows until a read fails and returns that failure with the number of rows returned before it.</summary>
     internal static Exception? ReadUntilError(System.Data.Common.DbDataReader reader, out int rows) {

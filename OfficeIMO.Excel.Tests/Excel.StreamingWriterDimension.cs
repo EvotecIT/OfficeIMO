@@ -56,7 +56,9 @@ public partial class Excel {
                 using var content = new MemoryStream();
                 using (Stream input = entry.Open()) input.CopyTo(content);
                 uint crc = StreamedEntryCrc32(content.ToArray());
+#if NET8_0_OR_GREATER
                 Assert.Equal(entry.Crc32, crc);
+#endif
                 // Readers that trust the local header must see the same value as the central directory.
                 if (localCrcs.TryGetValue(entry.FullName, out uint localCrc)) Assert.Equal(crc, localCrc);
             }
