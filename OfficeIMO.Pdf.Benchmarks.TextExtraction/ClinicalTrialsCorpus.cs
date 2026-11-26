@@ -88,15 +88,19 @@ internal static class ClinicalTrialsCorpus {
 
         using HttpClient http = CreateClient();
         int downloaded = 0, kept = 0, mismatched = 0, failed = 0, changedRecords = 0;
+        bool hashesAssigned = false;
         foreach (JsonObject trial in Trials(manifest)) {
             string nctId = (string)trial["nctId"]!;
             string pdfPath = Path.Combine(pdfs, nctId + ".pdf");
             string? pinned = (string?)trial["sha256"];
             try {
                 if (!(File.Exists(pdfPath) && pinned is not null && Sha256(File.ReadAllBytes(pdfPath)) == pinned)) {
+                    // A cached file that doesn't match must not survive a failed download and be scored.
+                    File.Delete(pdfPath);
                     byte[] bytes = GetBytes(http, $"{DocumentBase}/{nctId[^2..]}/{nctId}/{(string)trial["file"]!}");
                     string hash = Sha256(bytes);
                     if (pinned is null || recordHashes) {
+                        hashesAssigned |= hash != pinned;
                         trial["sha256"] = hash;
                     } else if (hash != pinned) {
                         Console.Error.WriteLine($"{nctId}: the protocol no longer matches the pinned hash; left out.");
@@ -122,7 +126,7 @@ internal static class ClinicalTrialsCorpus {
                 failed++;
             }
         }
-        if (recordHashes || Trials(manifest).Any(static t => t["sha256"] is null)) {
+        if (hashesAssigned) {
             File.WriteAllText(manifestPath, manifest.ToJsonString(JsonOptions) + "\n");
         }
         Console.WriteLine($"Downloaded {downloaded}, already present {kept}, hash mismatches {mismatched}, failures {failed}, records updated since sampling {changedRecords}.");
@@ -443,11 +447,8 @@ internal sealed class ProtocolText {
             if (lineTokens.Length is > 0 and <= 12 && LooksLikeHeading(line)) {
                 _headings.Add(lineTokens);
             }
-            if (!line.Contains("....", StringComparison.Ordinal)) {
-                string[] opening = Tokenize(SectionNumber.Replace(line, string.Empty)).Take(4).ToArray();
-                if (opening.Any(RegistryField.SectionWords.Contains)) {
-                    _sectionStarts.Add((tokens.Count, opening));
-                }
+            if (OpensSection(line) is { } opening) {
+                _sectionStarts.Add((tokens.Count, opening));
             }
             tokens.AddRange(lineTokens);
         }
@@ -474,7 +475,7 @@ internal sealed class ProtocolText {
         if (field.Section is null) {
             // Identifier, title and sponsor belong on the title page or in the synopsis at the front.
             headingFound = false;
-            inSection = match <= Match.InOrder && at[0] < _frontMatterEnd;
+            inSection = match <= Match.InOrder && at.Any(position => position < _frontMatterEnd);
         } else {
             headingFound = _headings.Any(h => h.Any(field.Section.Contains));
             inSection = match <= Match.InOrder && at.Any(position => NearestSectionStart(position) is { } opening && opening.Any(field.Section.Contains));
@@ -583,6 +584,37 @@ internal sealed class ProtocolText {
         }
         return nearest;
     }
+
+    /// <summary>
+    /// The opening words of a line that starts a section: once numbering is removed, it starts with a section name,
+    /// or with a qualifier such as "study" or "primary" followed by one ("Study drug", "Primary endpoints"). The line
+    /// must be heading-length, or carry a colon early ("Inclusion criteria (all must be met): ..."), so prose that
+    /// happens to start with "Treatment" doesn't open a section. Dot-leader table-of-contents lines are ignored.
+    /// </summary>
+    private static string[]? OpensSection(string line) {
+        if (line.Contains("....", StringComparison.Ordinal)) {
+            return null;
+        }
+        string body = SectionNumber.Replace(line, string.Empty);
+        string[] words = Tokenize(body);
+        if (words.Length == 0) {
+            return null;
+        }
+        int nameAt = RegistryField.SectionWords.Contains(words[0]) ? 0
+            : words.Length > 1 && SectionQualifiers.Contains(words[0]) && RegistryField.SectionWords.Contains(words[1]) ? 1
+            : -1;
+        if (nameAt < 0) {
+            return null;
+        }
+        int colon = body.IndexOf(':');
+        bool headingLength = words.Length <= 8 || (colon >= 0 && Tokenize(body[..colon]).Length <= 8);
+        return headingLength ? words.Take(nameAt + 1).ToArray() : null;
+    }
+
+    private static readonly HashSet<string> SectionQualifiers = new(StringComparer.Ordinal) {
+        "study", "primary", "secondary", "efficacy", "safety", "investigational", "subject", "subjects", "patient", "patients",
+        "participant", "participants", "trial", "clinical", "planned", "experimental"
+    };
 
     /// <summary>A short line that does not end like a sentence. Table-of-contents lines count.</summary>
     private static bool LooksLikeHeading(string line) {

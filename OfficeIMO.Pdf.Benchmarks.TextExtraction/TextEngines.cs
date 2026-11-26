@@ -86,8 +86,10 @@ internal static class TextEngines {
         var text = new StringBuilder();
         var lattice = new SpreadsheetExtractionAlgorithm();
         for (int pageNumber = 1; pageNumber <= document.NumberOfPages; pageNumber++) {
-            text.Append(ContentOrderTextExtractor.GetText(document.GetPage(pageNumber))).Append('\n');
-            PageArea page = ObjectExtractor.Extract(document, pageNumber);
+            // One parse of the page serves both extractors.
+            UglyToad.PdfPig.Content.Page pdfPage = document.GetPage(pageNumber);
+            text.Append(ContentOrderTextExtractor.GetText(pdfPage)).Append('\n');
+            PageArea page = ObjectExtractor.ExtractPage(pdfPage);
             foreach (Table table in lattice.Extract(page)) {
                 foreach (IReadOnlyList<Cell> row in table.Rows) {
                     text.AppendJoin('\t', row.Select(static cell => cell.GetText())).Append('\n');
