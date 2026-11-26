@@ -39,11 +39,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $key = "studio-apple-engine-$(./Build/Studio/Apple/Build-StudioEngine.ps1 -PrintSourceKey)"
-          $existing = [int](gh cache list --repo $env:GITHUB_REPOSITORY --key $key --ref refs/heads/master --json key --jq 'length')
+          $cached = [int](gh cache list --repo $env:GITHUB_REPOSITORY --key $key --ref refs/heads/master --json key --jq 'length')
           if ($LASTEXITCODE) { throw 'Cannot list the engine caches.' }
+          # The artifact is the copy the Studio Apple job falls back to when the cache is evicted, so both must exist.
+          $artifacts = [int](gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?name=studio-apple-engine&per_page=10" --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master" and .workflow_run.head_repository_id == .workflow_run.repository_id)] | length')
+          if ($LASTEXITCODE) { throw 'Cannot list the engine artifacts.' }
+          $built = $cached -gt 0 -and $artifacts -gt 0
           "key=$key" >> $env:GITHUB_OUTPUT
-          "built=$(($existing -gt 0).ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
-          Write-Host ($existing -gt 0 ? "An engine for these sources is already cached ($key)." : "Building $key.")
+          "built=$($built.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          Write-Host ($built ? "An engine for these sources is already cached ($key)." : "Building $key.")
 
   engine:
     name: Build the engine
@@ -64,6 +68,19 @@ jobs:
       - name: Build all four slices
         shell: pwsh
         run: ./Build/Studio/Apple/Build-StudioEngine.ps1 -WorkDirectory (Join-Path $env:RUNNER_TEMP 'studio-engine')
+      # The cache is shared with the NuGet caches and can be evicted. This copy lives outside it, so the Studio Apple
+      # job keeps compiling against a current engine until the next build. It's uploaded before the cache is saved, so a
+      # cached engine always has a matching copy and a failed upload leaves the next run to build again.
+      - name: Keep a copy outside the cache
+        id: artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: studio-apple-engine
+          path: |
+            Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework
+            Apple/OfficeIMOStudioEngine/link-inputs
+          if-no-files-found: error
+          retention-days: 90
       # Saved under the key computed above, so the next check finds it whichever SDK this runner rolled forward to.
       - uses: actions/cache/save@v6
         with:
@@ -71,16 +88,23 @@ jobs:
             Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework
             Apple/OfficeIMOStudioEngine/link-inputs
           key: ${{ needs.sources.outputs.key }}
-      # Each engine is large, and the Studio Apple job only uses the newest, so older ones would just crowd the cache.
+      # Each engine is large, and the Studio Apple job only uses the newest, so older ones would just take up space.
       - name: Remove older engines
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           KEEP: ${{ needs.sources.outputs.key }}
+          KEEP_ARTIFACT: ${{ steps.artifact.outputs.artifact-id }}
         run: |
           $old = gh cache list --repo $env:GITHUB_REPOSITORY --key studio-apple-engine- --limit 100 --json id,key --jq ".[] | select(.key != `"$env:KEEP`") | .id"
           if ($LASTEXITCODE) { throw 'Cannot list the engine caches.' }
           foreach ($id in $old) {
               gh cache delete $id --repo $env:GITHUB_REPOSITORY
               if ($LASTEXITCODE) { throw "Cannot delete engine cache $id." }
+          }
+          $oldArtifacts = gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?name=studio-apple-engine&per_page=100" --jq ".artifacts[] | select((.id | tostring) != `"$env:KEEP_ARTIFACT`") | .id"
+          if ($LASTEXITCODE) { throw 'Cannot list the engine artifacts.' }
+          foreach ($id in $oldArtifacts) {
+              gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$id" | Out-Null
+              if ($LASTEXITCODE) { throw "Cannot delete engine artifact $id." }
           }

@@ -214,13 +214,16 @@ jobs:
 
           ./OfficeIMO.Markup.VSCode/scripts/package-vsix.ps1 @params
 
+      # Only the release and Marketplace jobs read the VSIX. It's about 450 MB, so pushes and pull requests build and
+      # check it without storing a copy.
       - name: Upload VSIX
+        if: ${{ github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v7
         with:
           name: officeimo-markup-vsix
           path: OfficeIMO.Markup.VSCode/dist/*.vsix
           if-no-files-found: error
-          retention-days: ${{ (github.event_name == 'push' || github.event_name == 'pull_request') && '1' || '7' }}
+          retention-days: 7
 
   publish-marketplace:
     name: Publish VSIX Marketplace

@@ -19,6 +19,7 @@
       "OfficeIMO.Epub.Image\\OfficeIMO.Epub.Image.csproj",
       "OfficeIMO.Comic\\OfficeIMO.Comic.csproj",
       "OfficeIMO.Fb2\\OfficeIMO.Fb2.csproj",
+      "OfficeIMO.Mobi\\OfficeIMO.Mobi.csproj",
       "OfficeIMO.Epub\\OfficeIMO.Epub.csproj",
       "OfficeIMO.Excel.Csv\\OfficeIMO.Excel.Csv.csproj",
       "OfficeIMO.Excel.IWork\\OfficeIMO.Excel.IWork.csproj",

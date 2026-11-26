@@ -122,6 +122,8 @@ public enum ReaderInputKind {
     Toml = 31,
     /// <summary>FictionBook 2 ebook input.</summary>
     Fb2 = 32,
+    /// <summary>Mobipocket and Kindle ebook input.</summary>
+    Mobi = 33,
     /// <summary>Comic book ZIP ebook input.</summary>
     Comic = 34
 }

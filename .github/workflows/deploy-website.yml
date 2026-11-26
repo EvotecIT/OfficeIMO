@@ -100,3 +100,24 @@ jobs:
       indexnow_key: ${{ secrets.INDEXNOW_KEY }}
       cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID_OFFICEIMO }}
+
+  # The API docs shards and the Pages upload (about 540 MB) only carry work between jobs of this run; the reports stay.
+  # A failed run keeps them so "Re-run failed jobs" can still deploy.
+  artifact-cleanup:
+    name: Delete transfer artifacts
+    needs: website-deploy
+    if: needs.website-deploy.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/actions
+      - uses: ./.github/actions/delete-run-artifacts
+        with:
+          pattern: '(.+-apidocs-shard-[0-9]+|github-pages)'
+          token: ${{ github.token }}

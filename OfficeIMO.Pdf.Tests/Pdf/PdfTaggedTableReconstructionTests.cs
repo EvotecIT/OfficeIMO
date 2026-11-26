@@ -136,6 +136,63 @@ public sealed class PdfTaggedTableReconstructionTests {
     }
 
     [Fact]
+    public void FullyTaggedDataTablePageTakesItsTablesFromTheTags() {
+        byte[] bytes = CreateTaggedDocument(canvas => TablePage(canvas, ("Alpha", "1"), ("Beta", "2"), ("Gamma", "3")));
+
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+        PdfDocumentReadResult read = document.Read();
+
+        PdfLogicalTable table = Assert.Single(read.Pages[0].Tables);
+        Assert.Equal("tagged-structure", table.DetectionKind);
+        Assert.Equal(new[] { "Item|Count", "Alpha|1", "Beta|2", "Gamma|3" }, table.Rows.Select(static row => string.Join("|", row)));
+        Assert.Equal("PdfDocumentSemanticEnricher", TableStageProvider(read.Pages[0]));
+    }
+
+    [Fact]
+    public void PageWithUntaggedTextKeepsGeometricTableDetection() {
+        // The note's marked content is renumbered after writing, so no structure element binds it.
+        byte[] bytes = RenumberLastContentMcid(CreateTaggedDocument(canvas => {
+            TablePage(canvas, ("Alpha", "1"), ("Beta", "2"), ("Gamma", "3"));
+            canvas.Structure(PdfCanvasStructureRole.Paragraph, paragraph => Lines(paragraph, 0, 600D, "Loose note"));
+        }));
+
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+        PdfDocumentReadResult read = document.Read();
+
+        Assert.Equal("tagged-structure", Assert.Single(read.Pages[0].Tables).DetectionKind);
+        Assert.Equal("PdfAdvancedTableDetectionStage", TableStageProvider(read.Pages[0]));
+    }
+
+    [Fact]
+    public void LayoutTableWithHeadingSizedCellKeepsGeometricTableDetection() {
+        // A title set in a cell, as spreadsheet exports lay out their page headers, makes the table read as layout.
+        byte[] bytes = CreateTaggedDocument(canvas => canvas.Structure(PdfCanvasStructureRole.Table, table => table
+            .Structure(PdfCanvasStructureRole.TableBody, body => {
+                body.Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quarterly report",
+                        OfficeIMO.OfficeLength.Points(Left), OfficeIMO.OfficeLength.Points(100D), OfficeIMO.OfficeLength.Points(300D),
+                        OfficeIMO.OfficeLength.Points(24D), fontSize: OfficeIMO.OfficeLength.Points(18D)))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 3, 100D, "2026")));
+                string[][] rows = { new[] { "North", "10" }, new[] { "South", "12" }, new[] { "East", "14" } };
+                for (int index = 0; index < rows.Length; index++) {
+                    string[] cells = rows[index];
+                    double top = 140D + (index * 20D);
+                    body.Structure(PdfCanvasStructureRole.TableRow, row => row
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 0, top, cells[0]))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 3, top, cells[1])));
+                }
+            })));
+
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+        PdfDocumentReadResult read = document.Read();
+
+        Assert.Equal("PdfAdvancedTableDetectionStage", TableStageProvider(read.Pages[0]));
+    }
+
+    private static string TableStageProvider(PdfLogicalPage page) =>
+        Assert.Single(page.Analysis.Trace, static stage => stage.Stage == "table-detection").ProviderType.Name;
+
+    [Fact]
     public void TaggedTableOnTwoPagesStaysOneLogicalTable() {
         // Rows sit mid-page, away from the page edges that geometric continuation needs,
         // so only the shared Table element can join the two pages.

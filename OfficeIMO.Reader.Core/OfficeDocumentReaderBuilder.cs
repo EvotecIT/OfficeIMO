@@ -35,6 +35,11 @@ public sealed partial class OfficeDocumentReaderBuilder {
         return this;
     }
 
+    internal OfficeDocumentReaderBuilder AddFallbackHandler(ReaderHandlerRegistration registration) {
+        _handlers.Register(registration, replaceExisting: false, fallback: true);
+        return this;
+    }
+
     /// <summary>
     /// Sets the maximum number of asynchronous read operations allowed in flight for the built reader.
     /// </summary>

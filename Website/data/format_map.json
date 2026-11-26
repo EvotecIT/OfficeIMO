@@ -139,6 +139,10 @@
       "family": "books"
     },
     {
+      "name": "Mobipocket and Kindle",
+      "family": "books"
+    },
+    {
       "name": "Book project",
       "family": "books"
     },
@@ -1355,6 +1359,62 @@
     {
       "id": "ebook-fb2-pdf",
       "source": "FictionBook 2",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-mobi-epub",
+      "source": "Mobipocket and Kindle",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-mobi-html",
+      "source": "Mobipocket and Kindle",
+      "target": "HTML",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-mobi-markdown",
+      "source": "Mobipocket and Kindle",
+      "target": "Markdown",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-mobi-pdf",
+      "source": "Mobipocket and Kindle",
       "target": "PDF",
       "package": "OfficeIMO.Workflows",
       "support": "Targeted",
