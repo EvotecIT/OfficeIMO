@@ -406,6 +406,7 @@ public sealed partial class PdfLogicalPage {
         structured.LinesDetailed.Clear();
         var spans = new List<PdfTextSpan>();
         var seenSpans = new HashSet<PdfTextSpan>();
+        (PdfPageBox Box, int RotationDegrees, double UserUnit)? visualMapping = null;
         for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfUnderstandingLine sourceLine = sourceLines[lineIndex];
@@ -429,13 +430,13 @@ public sealed partial class PdfLogicalPage {
                 Confidence = sourceLine.Confidence,
                 Spans = Array.AsReadOnly(spans.ToArray()),
                 SourceKind = sourceLine.SourceKind,
-                VisualBounds = sourceLine.VisualBounds ?? CreateLineVisualBounds(page, sourceLine, spans)
+                VisualBounds = sourceLine.VisualBounds ?? CreateLineVisualBounds(visualMapping ??= page.GetVisualMapping(), sourceLine, spans)
             });
         }
     }
 
     private static PdfLogicalVisualBounds? CreateLineVisualBounds(
-        PdfReadPage page,
+        (PdfPageBox Box, int RotationDegrees, double UserUnit) visualMapping,
         PdfUnderstandingLine line,
         List<PdfTextSpan> spans) {
         double left = double.MaxValue;
@@ -464,7 +465,8 @@ public sealed partial class PdfLogicalPage {
             }
         }
         if (left == double.MaxValue || right <= left || top <= bottom) return null;
-        PdfVisualBounds visual = page.TransformBoundsToVisual(left, bottom, right, top);
+        PdfVisualBounds visual = PdfVisualCoordinateMapper.TransformBounds(
+            visualMapping.Box, visualMapping.RotationDegrees, left, bottom, right, top, visualMapping.UserUnit);
         return visual.Right > visual.Left && visual.Bottom > visual.Top
             ? new PdfLogicalVisualBounds(visual.Left, visual.Top, visual.Right, visual.Bottom)
             : null;
