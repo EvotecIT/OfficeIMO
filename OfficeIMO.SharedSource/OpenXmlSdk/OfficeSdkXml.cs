@@ -137,10 +137,14 @@ namespace OfficeIMO.OpenXml.Internal {
         internal static object InsertBefore(object parent, object child, object? reference) {
             OpenXmlElement target = E(parent), value = E(child);
             if (value.Parent != null) value = value.CloneNode(true);
-            // An element made for another parent may have a typed class this one doesn't take; read it again here.
-            if (value is not OpenXmlUnknownElement && value.NamespaceUri.Length > 0
-                && value.GetType() != Prototype(target, value.NamespaceUri, value.LocalName, value.Prefix).GetType()) {
-                return InsertMarkupBefore(parent, OuterXml(value), reference);
+            // An element made for another parent may have a typed class this one doesn't take; read it again here. Where
+            // the SDK has no typed class for it under this parent out of context, such as under a detached mc:Choice,
+            // the element stays as it is.
+            if (value is not OpenXmlUnknownElement && value.NamespaceUri.Length > 0) {
+                OpenXmlElement expected = Prototype(target, value.NamespaceUri, value.LocalName, value.Prefix);
+                if (expected is not OpenXmlUnknownElement && value.GetType() != expected.GetType()) {
+                    return InsertMarkupBefore(parent, OuterXml(value), reference);
+                }
             }
             if (reference == null) target.AppendChild(value);
             else target.InsertBefore(value, E(reference));
