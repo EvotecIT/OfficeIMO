@@ -125,6 +125,32 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        internal bool TryGetExportBoundsPoints(out double left, out double top, out double width, out double height) {
+            bool found = TryGetBoundsPoints(out left, out top, out width, out height);
+            if (found && width > 0D && height > 0D) return true;
+            if (OwnerSlide != null && GetPlaceholderShape() is { } placeholder) {
+                PowerPointLayoutBox? bounds = OwnerSlide.GetExportPlaceholderBounds(placeholder);
+                if (bounds.HasValue) {
+                    left = bounds.Value.Left.ToPoints();
+                    top = bounds.Value.Top.ToPoints();
+                    width = bounds.Value.Width.ToPoints();
+                    height = bounds.Value.Height.ToPoints();
+                    return width > 0D && height > 0D;
+                }
+            }
+            return found;
+        }
+
+        private static A.TransformGroup EnsureTransformGroup(GroupShape group) {
+            group.GroupShapeProperties ??= new GroupShapeProperties();
+            A.TransformGroup transform = group.GroupShapeProperties.TransformGroup ??= new A.TransformGroup();
+            transform.Offset ??= new A.Offset();
+            transform.Extents ??= new A.Extents();
+            transform.ChildOffset ??= new A.ChildOffset();
+            transform.ChildExtents ??= new A.ChildExtents();
+            return transform;
+        }
+
         internal bool HasPlaceholderShape => GetPlaceholderShape() != null;
 
         private PlaceholderShape? GetPlaceholderShape() {
