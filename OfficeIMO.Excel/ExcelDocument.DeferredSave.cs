@@ -426,9 +426,13 @@ namespace OfficeIMO.Excel {
             internal LimitedMemoryStream(int capacity, long? limit) : base(capacity) => _limit = limit;
 
             private void Reserve(long count) {
-                if (_limit is long limit && Position + count > limit) {
+                if (_limit is not long limit) return;
+                long needed = Position + count;
+                if (needed > limit) {
                     throw CreatePackageMaterializationLimitException($"The Excel package exceeds the {limit}-byte in-memory save limit.");
                 }
+                // The stream doubles its buffer when it grows; the buffer stops at the limit instead.
+                if (needed > Capacity) Capacity = (int)Math.Min(limit, Math.Max(needed, Math.Min(int.MaxValue, 2L * Capacity)));
             }
 
             public override void Write(byte[] buffer, int offset, int count) {

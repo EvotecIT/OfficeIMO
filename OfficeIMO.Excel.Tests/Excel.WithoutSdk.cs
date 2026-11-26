@@ -278,6 +278,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ABorderWithAnEdgeInCompatibilityMarkupIsChangedThroughTheModel() {
+            byte[] source = CreateWorkbook();
+            XDocument styles = XDocument.Parse(Encoding.UTF8.GetString(EntryBytes(source, "xl/styles.xml")));
+            XNamespace mc = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+            // Declared on the root, so the wrapper is kept inside the border rather than refused with the stylesheet.
+            styles.Root!.SetAttributeValue(XNamespace.Xmlns + "mc", mc.NamespaceName);
+            XElement border = styles.Root.Element(Main + "borders")!.Elements(Main + "border").First();
+            border.AddFirst(new XElement(mc + "AlternateContent",
+                new XElement(mc + "Fallback", new XElement(Main + "left", new XAttribute("style", "thick")))));
+            source = WithEntry(source, "xl/styles.xml", styles.ToString(SaveOptions.DisableFormatting));
+
+            byte[] saved = SaveWithoutSdk(source, document => document.Sheets[0].Cell(1, 1).SetBorder(ExcelBorderStyle.Thin), out bool owned);
+
+            Assert.False(owned);
+            using var reread = ExcelDocument.Load(new MemoryStream(saved));
+            Assert.Equal("Name", reread.Sheets[0].Cell(1, 1).GetValue().Value);
+        }
+
+        [Fact]
         public void ASaveOverTheInMemoryLimitWritesNothingAndKeepsTheChanges() {
             using var document = ExcelDocument.Load(new MemoryStream(CreateWorkbook()));
             document.Sheets[0].Cell(2, 1).SetValue("Changed");
