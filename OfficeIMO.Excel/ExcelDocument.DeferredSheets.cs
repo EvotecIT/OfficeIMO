@@ -26,12 +26,20 @@ namespace OfficeIMO.Excel {
             using (OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(input, leaveOpen: true)) {
                 OfficeXmlTree tree = package.GetXml(workbook.WorkbookPartName);
                 int sheets = tree.FindChild(tree.Root, OfficeXmlNamespaces.SpreadsheetML, "sheets");
-                if (sheets == OfficeXmlTree.NoNode) return null;
+                if (sheets == OfficeXmlTree.NoNode) {
+                    // An empty workbook part takes the view and sheet list the model adds with its first sheet.
+                    if (tree.FirstChildOf(tree.Root) != OfficeXmlTree.NoNode) return null;
+                    int views = tree.CreateElement(OfficeXmlNamespaces.SpreadsheetML, "bookViews");
+                    tree.Append(views, tree.CreateElement(OfficeXmlNamespaces.SpreadsheetML, "workbookView"));
+                    tree.Append(tree.Root, views);
+                    sheets = tree.CreateElement(OfficeXmlNamespaces.SpreadsheetML, "sheets");
+                    tree.Append(tree.Root, sheets);
+                }
                 int number = workbook.Sheets.Count + 1;
                 string directory = workbook.WorkbookPartName.Substring(0, workbook.WorkbookPartName.LastIndexOf('/') + 1);
                 while (package.PartExists(directory + "worksheets/sheet" + number.ToString(CultureInfo.InvariantCulture) + ".xml")) number++;
                 partName = directory + "worksheets/sheet" + number.ToString(CultureInfo.InvariantCulture) + ".xml";
-                package.CreateBinaryPart(partName, WorksheetContentType, Encoding.UTF8.GetBytes(NewWorksheetXml));
+                package.CreateBinaryPart(partName, WorksheetContentType, Encoding.UTF8.GetBytes(_deferredCreated ? CreatedWorksheetXml : NewWorksheetXml));
                 relationshipId = package.AddRelationship(workbook.WorkbookPartName, WorksheetRelationshipType, partName.Substring(directory.Length));
                 int sheet = tree.CreateElement(OfficeXmlNamespaces.SpreadsheetML, "sheet");
                 tree.SetAttribute(sheet, OfficeXmlNamespaces.None, "name", name);
@@ -43,7 +51,7 @@ namespace OfficeIMO.Excel {
                 bytes = output.ToArray();
             }
 
-            var entry = new ExcelDeferredSheet(name, sheetId, relationshipId, partName, isWorksheet: true);
+            var entry = new ExcelDeferredSheet(name, sheetId, relationshipId, partName, isWorksheet: true) { IsNewSheet = _deferredCreated };
             workbook.Sheets.Add(entry);
             _deferredPackageBytes = bytes;
             id.Add(sheetId);

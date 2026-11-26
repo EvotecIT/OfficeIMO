@@ -27,6 +27,10 @@ namespace OfficeIMO.Excel {
         private bool? _deferredHasCellMetadata;
 
         /// <summary>Records a plain value for the owned save; false when the sheet needs the model for it.</summary>
+        // Runs for every recorded cell, so it is compiled optimized from the first call rather than tiered up.
+#if NETCOREAPP3_0_OR_GREATER
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+#endif
         internal bool RecordDeferredCellEdit(ExcelSheet sheet, in ExcelDeferredCellEdit edit) {
             ExcelDeferredSheet? entry = sheet.DeferredEntry;
             // The checks read the bytes taken here; if the package opens meanwhile, the check under the gate below sends
@@ -35,7 +39,8 @@ namespace OfficeIMO.Excel {
             ExcelDeferredWorkbook? workbook = _deferredWorkbook;
             // A value written to a table's header row renames its column, which the model does; styles are plain.
             if (entry == null || workbook == null || packageBytes == null) return false;
-            if (edit.Kind != ExcelDeferredCellKind.Style) {
+            // A sheet a new workbook just added has no tables, and the workbook has no cell metadata.
+            if (edit.Kind != ExcelDeferredCellKind.Style && !entry.IsNewSheet) {
                 if (IsTableHeaderCell(entry, packageBytes, edit.Row, edit.Column)) {
                     OpenDeferredSdk("Cell value in a table header row on worksheet '" + entry.Name + "'");
                     return false;
@@ -45,15 +50,31 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
             }
+            string? modelReason = null;
             lock (_deferredEditsGate) {
                 // The package may have opened since the checks above; the change then goes through the model.
                 if (_deferredWorkbook == null || !ReferenceEquals(sheet.DeferredEntry, entry)) return false;
                 ExcelDeferredCellStore? store = entry.Cells;
-                if (store == null) {
-                    entry.Cells = store = new ExcelDeferredCellStore();
-                    _deferredEditedSheets.Add(sheet);
+                if (entry.IsNewSheet) {
+                    // A new workbook stays off the model while it holds plain values on one sheet, written row by row,
+                    // which the tabular writer saves. Anything else (a style, a second sheet, an earlier cell) goes to
+                    // the model and its cell buffer, which write those workbooks faster than recording them does.
+                    if (edit.Kind == ExcelDeferredCellKind.Style) modelReason = "Style on a new workbook's sheet";
+                    else if (store == null && _deferredEditedSheets.Count > 0) modelReason = "Values on a second sheet of a new workbook";
+                    else if (store != null && !store.TakesTabular(edit)) modelReason = "Value out of row order on a new workbook's sheet";
                 }
-                store.Add(edit);
+                if (modelReason == null) {
+                    if (store == null) {
+                        entry.Cells = store = new ExcelDeferredCellStore(tabular: entry.IsNewSheet);
+                        _deferredEditedSheets.Add(sheet);
+                    }
+                    store.Add(edit);
+                }
+            }
+            if (modelReason != null) {
+                // Opened outside the gate, after the document lock, as every opener takes them.
+                OpenDeferredSdk(modelReason);
+                return false;
             }
             if (!_packageDirty) MarkPackageDirty();
             MarkFormulaInputMutation();
@@ -170,6 +191,18 @@ namespace OfficeIMO.Excel {
             if (recorded) OpenDeferredSdk("Read after recorded changes");
         }
 
+        /// <summary>
+        /// The owned save writes XLSX packages only. A save to XLS or XLSB opens the SDK before the binary writers look at
+        /// the workbook, so the replay puts the recorded values where those writers read them.
+        /// </summary>
+        private void OpenDeferredSdkForBinaryTarget(bool binaryTarget) {
+            if (binaryTarget && _deferredWorkbook != null) OpenDeferredSdk("Save: the target is a binary workbook");
+        }
+
+        private static bool IsBinaryWorkbookPath(string path) =>
+            ExcelDocumentLoadRouting.HasLegacyXlsExtension(path)
+            || string.Equals(Path.GetExtension(path), ".xlsb", StringComparison.OrdinalIgnoreCase);
+
         /// <summary>Puts back changes a save did not write, ahead of any recorded while it ran.</summary>
         private void RestoreDeferredEdits((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] taken) {
             if (taken.Length == 0) return;
@@ -222,11 +255,15 @@ namespace OfficeIMO.Excel {
                 bool completed = false;
                 try {
                     // The package is built within the in-memory limit; past it the save throws before anything is written.
-                    if (!TryCreateDeferredPackageBytes(taken, GetPackageMaterializationLimit(options), out built, out string? reason)) {
+                    long? limit = GetPackageMaterializationLimit(options);
+                    // A new workbook's single sheet of plain values saves through the tabular writer its cell buffer uses.
+                    bool tabular = TryCreateTabularPackageBytes(taken, limit, out built) && TryRebindDeferredSheets(built);
+                    if (!tabular && !TryCreateDeferredPackageBytes(taken, limit, out built, out string? reason)) {
                         declined = reason ?? "the owned save declined";
                         return false;
                     }
                     completedSave = CompleteDeferredSave(built);
+                    _deferredSaveDiagnostics = tabular ? ExcelSaveDiagnostics.DirectDataSetPackage() : ExcelSaveDiagnostics.OwnedPackage();
                     completed = true;
                     return true;
                 } finally {
@@ -296,6 +333,7 @@ namespace OfficeIMO.Excel {
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml" => extension.Equals(".xltx", StringComparison.OrdinalIgnoreCase),
                 "application/vnd.ms-excel.sheet.macroEnabled.main+xml" => extension.Equals(".xlsm", StringComparison.OrdinalIgnoreCase),
                 "application/vnd.ms-excel.template.macroEnabled.main+xml" => extension.Equals(".xltm", StringComparison.OrdinalIgnoreCase),
+                "application/vnd.ms-excel.addin.macroEnabled.main+xml" => extension.Equals(".xlam", StringComparison.OrdinalIgnoreCase),
                 _ => false
             };
         }
@@ -311,8 +349,11 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Reports the owned save once its destination holds the package, unless another save reported meanwhile.</summary>
         private void PublishDeferredSaveDiagnostics(int save) {
-            if (Interlocked.CompareExchange(ref _saveDiagnosticsVersion, 0, 0) == save) LastSaveDiagnostics = ExcelSaveDiagnostics.OwnedPackage();
+            if (Interlocked.CompareExchange(ref _saveDiagnosticsVersion, 0, 0) == save) LastSaveDiagnostics = _deferredSaveDiagnostics;
         }
+
+        // The writer the last prepared owned save used, reported once the destination holds its package.
+        private ExcelSaveDiagnostics _deferredSaveDiagnostics = ExcelSaveDiagnostics.OwnedPackage();
 
         /// <summary>
         /// The document now holds what it saved: later reads and saves start from these bytes. Returns the diagnostics version to report against
@@ -321,7 +362,10 @@ namespace OfficeIMO.Excel {
         private int CompleteDeferredSave(byte[] bytes) {
             // The caller's stream or file has its own copy; the document keeps the array.
             _deferredPackageBytes = bytes;
-            foreach (ExcelDeferredSheet entry in _deferredWorkbook?.Sheets ?? new List<ExcelDeferredSheet>()) entry.TableHeadersRead = false;
+            foreach (ExcelDeferredSheet entry in _deferredWorkbook?.Sheets ?? new List<ExcelDeferredSheet>()) {
+                entry.TableHeadersRead = false;
+                entry.IsNewSheet = false;
+            }
             _deferredHasCellMetadata = null;
             MarkPackageClean(bytes);
             bool pending;
@@ -353,11 +397,13 @@ namespace OfficeIMO.Excel {
 
             try {
                 string? sharedStringsPart, stylesPart, corePart;
+                bool applicationPropertiesRelated;
                 using (var source = new MemoryStream(_deferredPackageBytes!, writable: false))
                 using (OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true)) {
                     sharedStringsPart = package.GetRelatedPartName(workbook.WorkbookPartName, SharedStringsRelationshipType);
                     stylesPart = package.GetRelatedPartName(workbook.WorkbookPartName, StylesRelationshipType);
                     corePart = package.GetRelatedPartName(null, OfficeOpcPackage.CorePropertiesRelationshipType);
+                    applicationPropertiesRelated = package.GetRelatedPartName(null, ApplicationPropertiesRelationshipType) != null;
                     if (sharedStringsPart != null && !package.PartExists(sharedStringsPart)) return Decline("the shared strings relationship has no part");
                     if (stylesPart != null && !package.PartExists(stylesPart)) return Decline("the styles relationship has no part");
                     // The model's save sets the modification time in the core properties, which it creates when missing.
@@ -410,6 +456,7 @@ namespace OfficeIMO.Excel {
 
                 if (!sharedStrings.TryWrite(editable, workbook.WorkbookPartName)) return Decline("the shared strings part cannot take new items");
                 styles?.Write();
+                if (_deferredCreated) CreateApplicationPropertiesIfMissing(editable, applicationPropertiesRelated);
                 if (corePart == null) {
                     CreateCoreProperties(editable);
                 } else if (!TrySetModifiedTime(editable, corePart)) {
@@ -430,38 +477,124 @@ namespace OfficeIMO.Excel {
 
         private const string NewCorePropertiesPartName = "/docProps/core.xml";
 
-        /// <summary>A memory stream that refuses to grow past the in-memory save limit.</summary>
-        private sealed class LimitedMemoryStream : MemoryStream {
+        /// <summary>
+        /// A seekable in-memory stream that grows through the shared array pool and refuses to grow past the in-memory
+        /// save limit. Only <see cref="ToArray"/> allocates, once, at the package's size.
+        /// </summary>
+        private sealed class LimitedMemoryStream : Stream {
             private readonly long? _limit;
+            private byte[] _buffer;
+            private int _length;
+            private int _position;
 
-            internal LimitedMemoryStream(int capacity, long? limit) : base(capacity) => _limit = limit;
+            internal LimitedMemoryStream(int capacity, long? limit) {
+                _limit = limit;
+                _buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(Math.Max(capacity, 4096));
+            }
+
+            public override bool CanRead => true;
+            public override bool CanSeek => true;
+            public override bool CanWrite => true;
+            public override long Length => _length;
+
+            public override long Position {
+                get => _position;
+                set => Seek(value, SeekOrigin.Begin);
+            }
 
             private void Reserve(long count) {
-                if (_limit is not long limit) return;
-                long needed = Position + count;
-                if (needed > limit) {
+                long needed = _position + count;
+                if (_limit is long limit && needed > limit) {
                     throw CreatePackageMaterializationLimitException($"The Excel package exceeds the {limit}-byte in-memory save limit.");
                 }
-                // The stream doubles its buffer when it grows; the buffer stops at the limit instead.
-                if (needed > Capacity) Capacity = (int)Math.Min(limit, Math.Max(needed, Math.Min(int.MaxValue, 2L * Capacity)));
+                if (needed > int.MaxValue) throw CreatePackageMaterializationLimitException("The Excel package is too large to materialize as one byte array.");
+                if (needed <= _buffer.Length) return;
+                long grown = Math.Max(needed, Math.Min(int.MaxValue, 2L * _buffer.Length));
+                if (_limit is long cap) grown = Math.Min(grown, cap);
+                byte[] larger = System.Buffers.ArrayPool<byte>.Shared.Rent((int)grown);
+                Buffer.BlockCopy(_buffer, 0, larger, 0, _length);
+                System.Buffers.ArrayPool<byte>.Shared.Return(_buffer);
+                _buffer = larger;
             }
 
             public override void Write(byte[] buffer, int offset, int count) {
                 Reserve(count);
-                base.Write(buffer, offset, count);
+                Buffer.BlockCopy(buffer, offset, _buffer, _position, count);
+                Advance(count);
             }
 
             public override void WriteByte(byte value) {
                 Reserve(1);
-                base.WriteByte(value);
+                _buffer[_position] = value;
+                Advance(1);
             }
 
 #if NETCOREAPP2_1_OR_GREATER || NETSTANDARD2_1_OR_GREATER
             public override void Write(ReadOnlySpan<byte> buffer) {
                 Reserve(buffer.Length);
-                base.Write(buffer);
+                buffer.CopyTo(_buffer.AsSpan(_position));
+                Advance(buffer.Length);
             }
 #endif
+
+            private void Advance(int count) {
+                _position += count;
+                if (_position > _length) _length = _position;
+            }
+
+            public override int Read(byte[] buffer, int offset, int count) {
+                int available = Math.Max(0, Math.Min(count, _length - _position));
+                Buffer.BlockCopy(_buffer, _position, buffer, offset, available);
+                _position += available;
+                return available;
+            }
+
+            public override long Seek(long offset, SeekOrigin origin) {
+                long target = origin switch {
+                    SeekOrigin.Begin => offset,
+                    SeekOrigin.Current => _position + offset,
+                    _ => _length + offset
+                };
+                if (target < 0 || target > int.MaxValue) throw new IOException("The position is outside the stream.");
+                if (target > _length) {
+                    _position = _length;
+                    Reserve(target - _length);
+                    Array.Clear(_buffer, _length, (int)target - _length);
+                    _length = (int)target;
+                }
+                _position = (int)target;
+                return _position;
+            }
+
+            public override void SetLength(long value) {
+                if (value < 0 || value > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(value));
+                if (value > _length) {
+                    int position = _position;
+                    _position = _length;
+                    Reserve(value - _length);
+                    Array.Clear(_buffer, _length, (int)value - _length);
+                    _position = position;
+                }
+                _length = (int)value;
+                if (_position > _length) _position = _length;
+            }
+
+            public override void Flush() {
+            }
+
+            internal byte[] ToArray() {
+                byte[] bytes = new byte[_length];
+                Buffer.BlockCopy(_buffer, 0, bytes, 0, _length);
+                return bytes;
+            }
+
+            protected override void Dispose(bool disposing) {
+                if (disposing && _buffer.Length > 0) {
+                    System.Buffers.ArrayPool<byte>.Shared.Return(_buffer);
+                    _buffer = Array.Empty<byte>();
+                }
+                base.Dispose(disposing);
+            }
         }
 
         private static string ModifiedTimeText() => DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", CultureInfo.InvariantCulture);

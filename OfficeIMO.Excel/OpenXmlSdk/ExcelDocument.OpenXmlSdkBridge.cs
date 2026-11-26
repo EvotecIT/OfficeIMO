@@ -99,6 +99,8 @@ namespace OfficeIMO.Excel {
             ReaderWriterLockSlim lck = EnsureLock();
             using (lck.IsReadLockHeld && !lck.IsWriteLockHeld && !lck.IsUpgradeableReadLockHeld ? Locking.EnterNoLockScope() : null) {
                 BindDeferredSheets(deferred);
+                // A new workbook keeps the save preparation the model gives one it creates, before replay buffers any value.
+                if (_deferredCreated) MarkRequiresSavePreflight();
                 _openXmlSdkFallbacks.Add(reason ?? DescribeSdkCaller());
                 // Values written before the package opened go through the model now, in the order they were written.
                 ReplayDeferredCellEdits();
@@ -123,6 +125,7 @@ namespace OfficeIMO.Excel {
                     if (entry == null || !byRelationship.TryGetValue(entry.RelationshipId, out Sheet? element)) continue;
                     if (_workBookPartValue.GetPartById(entry.RelationshipId) is WorksheetPart part) {
                         wrapper.BindToSdk(_spreadSheetDocumentValue, element, part);
+                        if (_deferredCreated) wrapper.MarkAsNewWorksheet();
                     }
                 }
             }

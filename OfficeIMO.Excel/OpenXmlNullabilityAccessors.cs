@@ -54,14 +54,17 @@ namespace OfficeIMO.Excel {
         }
 
         private void LoadWorksheetRoot() {
-            CaptureOriginalDynamicSpillFingerprintIfSafe();
-            if (_worksheetPart.IsRootElementLoaded || !_excelDocument.AllowsWorksheetGridLoader) return;
+            // A part read from a package stream can be opened by one reader at a time, so threads load the root in turn.
             lock (_worksheetPart) {
-                if (!_worksheetPart.IsRootElementLoaded
+                if (_worksheetPart.IsRootElementLoaded) return;
+                CaptureOriginalDynamicSpillFingerprintIfSafe();
+                if (_excelDocument.AllowsWorksheetGridLoader
                     && ExcelWorksheetGridLoader.TryLoad(_worksheetPart, storeCells: true, out int emptyStyleCells, out string? firstEmptyStyleCell)) {
                     Persistence.UsesCellStore = true;
                     if (emptyStyleCells > 0) RecordEmptyCellStyleRepair(emptyStyleCells, firstEmptyStyleCell);
+                    return;
                 }
+                _ = _worksheetPart.Worksheet;
             }
         }
 
