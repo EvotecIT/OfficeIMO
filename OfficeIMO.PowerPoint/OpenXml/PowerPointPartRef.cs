@@ -215,25 +215,24 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                 return;
             }
             OfficeOpcEditablePackage package = current.EditablePackage();
-            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(current._name);
-            if (package.PartExists(relationshipsPart)) {
-                OfficeXmlTree tree = package.GetXml(relationshipsPart);
-                for (int node = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;) {
-                    int next = tree.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship");
-                    string? type = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
-                    if (type != null && string.Equals(OfficeXmlNamespaces.NormalizeRelationshipType(type), relationshipType, StringComparison.Ordinal)) tree.Remove(node);
-                    node = next;
-                }
-            }
-            package.AddRelationship(current._name, relationshipType, OfficeOpcPartNames.GetRelativeTarget(current._name!, related._name!),
+            // The new relationship goes in first, so a failure there keeps the old one.
+            string added = package.AddRelationship(current._name, relationshipType, OfficeOpcPartNames.GetRelativeTarget(current._name!, related._name!),
                 id: "R" + Guid.NewGuid().ToString("N").Substring(0, 16));
+            OfficeXmlTree tree = package.GetXml(OfficeOpcPartNames.GetRelationshipsPartName(current._name));
+            for (int node = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;) {
+                int next = tree.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship");
+                string? type = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
+                if (type != null && string.Equals(OfficeXmlNamespaces.NormalizeRelationshipType(type), relationshipType, StringComparison.Ordinal)
+                    && !string.Equals(tree.GetAttribute(node, OfficeXmlNamespaces.None, "Id"), added, StringComparison.Ordinal)) tree.Remove(node);
+                node = next;
+            }
             current.MarkRelationshipsEdited();
         }
 
-        /// <summary>The id of the first internal relationship to <paramref name="target"/>, or null.</summary>
-        internal string? RelationshipIdOf(PowerPointPartRef target) {
+        /// <summary>The id of the first internal relationship of <paramref name="relationshipType"/> to <paramref name="target"/>, or null.</summary>
+        internal string? RelationshipIdOf(PowerPointPartRef target, string relationshipType) {
             PowerPointPartRef current = Current, wanted = target.Current;
-            if (current._sdk != null) return wanted._sdk == null ? null : PowerPointSdkParts.IdOfPart(current._sdk, wanted._sdk);
+            if (current._sdk != null) return wanted._sdk == null ? null : PowerPointSdkParts.IdOfPart(current._sdk, wanted._sdk, relationshipType);
             if (current._document?.ReadablePackage is not { } package) return null;
             string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(current._name);
             if (!package.PartExists(relationshipsPart)) return null;
@@ -241,6 +240,8 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             for (int node = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
                 node = tree.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
                 if (string.Equals(tree.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
+                string? type = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
+                if (type == null || !string.Equals(OfficeXmlNamespaces.NormalizeRelationshipType(type), relationshipType, StringComparison.Ordinal)) continue;
                 string? partName = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, tree.GetAttribute(node, OfficeXmlNamespaces.None, "Target") ?? string.Empty);
                 if (partName != null && Package(current._document, partName).Equals(wanted)) return tree.GetAttribute(node, OfficeXmlNamespaces.None, "Id");
             }

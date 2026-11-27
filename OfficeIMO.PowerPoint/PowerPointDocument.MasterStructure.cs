@@ -90,7 +90,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal PowerPointSlideLayout DuplicateLayout(PowerPointSlideLayout source) {
             var sourcePart = (SlideLayoutPart)SdkPartOf(source);
-            var copy = (SlideLayout)sourcePart.SlideLayout!.CloneNode(true);
+            var copy = (SlideLayout)(sourcePart.SlideLayout ??= new SlideLayout()).CloneNode(true);
             copy.Preserve = true;
             copy.UserDrawn = true;
             return GetLayout(PowerPointPartRef.FromSdk(AttachLayout(SdkMasterPart(source.Master), copy, sourcePart)));
@@ -143,6 +143,18 @@ namespace OfficeIMO.PowerPoint {
                 if (element.SdkElement is OpenXmlElement sdk && PowerPointSlide.CreateShapeFromElement(sdk, part) is { } shape) shapes.Add(shape);
             }
             return shapes;
+        }
+
+        /// <summary>A text box wrapper for a placeholder shape of a master or layout the SDK holds.</summary>
+        internal PowerPointTextBox CreateSdkSurfaceTextBox(PowerPointMasterSurface surface, OfficeXmlNode element) =>
+            new PowerPointTextBox((Shape)element.SdkElement!, SdkPartOf(surface));
+
+        /// <summary>The root of a master's or layout's empty part, added through the SDK as the model added it.</summary>
+        internal OfficeXmlNode EnsureSdkSurfaceRoot(PowerPointMasterSurface surface) {
+            OpenXmlPart part = SdkPartOf(surface);
+            if (part is SlideLayoutPart layout) layout.SlideLayout ??= new SlideLayout();
+            else if (part is SlideMasterPart master) master.SlideMaster ??= new SlideMaster();
+            return surface.PartRef.Root;
         }
 
         /// <summary>The wrapper of an element just added to a master or layout the SDK holds.</summary>

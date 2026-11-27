@@ -36,6 +36,6 @@ public partial class PowerPointSlide {
         PowerPointSlideLayoutType? type = PowerPointSlideLayoutTypeTokens.TryParse(root.Attribute("type"), out PowerPointSlideLayoutType parsed) ? parsed : null;
         return new PowerPointSlideLayoutInfo(masterIndex, LayoutIndex,
             root.Child(OfficeXmlNamespaces.PresentationML, "cSld").Attribute("name") ?? string.Empty, type,
-            master.IsNone ? null : master.RelationshipIdOf(layout));
+            master.IsNone ? null : master.RelationshipIdOf(layout, PowerPointPartRef.SlideLayoutRelationshipType));
     }
 }

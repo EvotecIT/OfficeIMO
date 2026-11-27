@@ -30,6 +30,14 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The part's root element (<c>p:sldMaster</c> or <c>p:sldLayout</c>).</summary>
         internal OfficeXmlNode Root => PartRef.Root;
 
+        /// <summary>The root element for an edit: an empty part gets one first, as the model added it.</summary>
+        internal OfficeXmlNode EditableRoot {
+            get {
+                OfficeXmlNode root = Root;
+                return root.IsNone ? Document.EnsureSdkSurfaceRoot(this) : root;
+            }
+        }
+
         /// <summary>The children of the root element, in sequence order.</summary>
         private protected abstract OfficeXmlChildOrder RootOrder { get; }
 
@@ -38,7 +46,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The common slide data, added with a shape tree when missing.</summary>
         internal OfficeXmlNode CommonSlideData {
             get {
-                OfficeXmlNode root = Root;
+                OfficeXmlNode root = EditableRoot;
                 OfficeXmlNode data = root.Child(P, "cSld");
                 if (!data.IsNone) return data;
                 data = root.AddOrdered(P, "cSld", RootOrder);
@@ -114,6 +122,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The wrapper for a shape element of this surface.</summary>
         internal PowerPointShape WrapShape(OfficeXmlNode element) =>
             element.Tree != null ? CreatePackageShape(element)! : Document.CreateSdkSurfaceShape(this, element);
+
+        /// <summary>A text box wrapper for a placeholder shape, with or without a text body, of this surface.</summary>
+        internal PowerPointTextBox WrapTextBox(OfficeXmlNode element) =>
+            element.Tree != null ? new PowerPointTextBox(_part, element.Tree, element.Node) : Document.CreateSdkSurfaceTextBox(this, element);
 
         /// <summary>Placeholders defined on this master or layout.</summary>
         public IReadOnlyList<PowerPointTextBox> Placeholders =>

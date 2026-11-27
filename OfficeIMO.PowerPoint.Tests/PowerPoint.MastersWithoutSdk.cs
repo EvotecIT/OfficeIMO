@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using System.Xml.Linq;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -63,6 +64,71 @@ public class PowerPointMastersWithoutSdkTests {
         Assert.Single(master2.ImageParts);
         Assert.Single(master2.SlideLayoutParts.ElementAt(1).ImageParts);
         Assert.IsType<PowerPointImage>(reopened.SlideMasters[0].Shapes.Last());
+    }
+
+    [Fact]
+    public void ALayoutPlaceholderWithoutATextBodyIsStillATextBox() {
+        byte[] source = RewritePart(CreateDeck(), "ppt/slideLayouts/slideLayout2.xml", root => {
+            XElement title = root.Descendants().First(element => element.Name.LocalName == "ph" && (string?)element.Attribute("type") == "title")
+                .Ancestors().First(element => element.Name.LocalName == "sp");
+            title.Elements().Where(element => element.Name.LocalName == "txBody").Remove();
+        });
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source));
+        PowerPointTextBox? title = presentation.GetLayoutPlaceholderTextBox(0, 1, PowerPointPlaceholderType.Title);
+        Assert.NotNull(title);
+        presentation.SetLayoutPlaceholderBounds(0, 1, PowerPointPlaceholderType.Title,
+            new PowerPointLayoutBox(OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(400), OfficeLength.Points(50)));
+        Assert.False(presentation.IsSdkLoaded);
+    }
+
+    [Fact]
+    public void LayoutInfoReportsTheLayoutRelationshipEvenAfterAnotherToTheSamePart() {
+        byte[] source = RewritePart(CreateDeck(), "ppt/slideMasters/_rels/slideMaster1.xml.rels", root => {
+            XElement layout = root.Elements().First(element => ((string?)element.Attribute("Type"))?.EndsWith("/slideLayout", StringComparison.Ordinal) == true);
+            root.AddFirst(new XElement(root.GetDefaultNamespace() + "Relationship", new XAttribute("Id", "rId900"),
+                new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"),
+                new XAttribute("Target", (string)layout.Attribute("Target")!)));
+        });
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source));
+        string? read = presentation.GetSlideLayouts()[0].RelationshipId;
+        Assert.NotEqual("rId900", read);
+        _ = presentation.OpenXmlDocument;
+        Assert.Equal(presentation.GetSlideLayouts()[0].RelationshipId, read);
+    }
+
+    [Fact]
+    public void AnEmptyLayoutPartGetsARootWhenEdited() {
+        byte[] source = RewritePart(CreateDeck(), "ppt/slideLayouts/slideLayout2.xml", (string _) => string.Empty);
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source));
+        presentation.EnsureLayoutFooterPlaceholderTextBox(0, 1, "Footer");
+        PowerPointSlideLayout copy = presentation.SlideMasters[0].Layouts[1].Duplicate("Copy");
+        Assert.Equal("Copy", copy.Name);
+        using var reopened = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
+        Assert.Equal("Footer", reopened.GetLayoutPlaceholderTextBox(0, 1, PowerPointPlaceholderType.Footer)!.Text);
+    }
+
+    private static byte[] RewritePart(byte[] package, string name, Action<XElement> change) =>
+        RewritePart(package, name, (string text) => {
+            XElement root = XElement.Parse(text);
+            change(root);
+            return root.ToString(SaveOptions.DisableFormatting);
+        });
+
+    private static byte[] RewritePart(byte[] package, string name, Func<string, string> change) {
+        var output = new MemoryStream();
+        output.Write(package, 0, package.Length);
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true)) {
+            ZipArchiveEntry entry = archive.GetEntry(name)!;
+            string text;
+            using (var reader = new StreamReader(entry.Open(), Encoding.UTF8)) text = reader.ReadToEnd();
+            entry.Delete();
+            using var writer = new StreamWriter(archive.CreateEntry(name).Open(), new UTF8Encoding(false));
+            writer.Write(change(text));
+        }
+        return output.ToArray();
     }
 
     private static void Edit(PowerPointDocument presentation) {

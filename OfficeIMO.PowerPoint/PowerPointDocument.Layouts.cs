@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointPartRef> layouts = LayoutPartRefs(masterIndex);
             var results = new List<PowerPointSlideLayoutInfo>(layouts.Count);
             for (int i = 0; i < layouts.Count; i++) {
-                results.Add(new PowerPointSlideLayoutInfo(masterIndex, i, LayoutName(layouts[i]), LayoutTypeOf(layouts[i]), master.RelationshipIdOf(layouts[i])));
+                results.Add(new PowerPointSlideLayoutInfo(masterIndex, i, LayoutName(layouts[i]), LayoutTypeOf(layouts[i]), master.RelationshipIdOf(layouts[i], PowerPointPartRef.SlideLayoutRelationshipType)));
             }
 
             return results;
@@ -94,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
             PowerPointSlideLayout layout = GetLayout(RequireLayoutPartRef(masterIndex, layoutIndex));
             OfficeXmlNode shape = FindLayoutPlaceholderShape(layout, placeholderType, index);
-            return shape.IsNone ? null : (PowerPointTextBox)layout.WrapShape(shape);
+            return shape.IsNone ? null : layout.WrapTextBox(shape);
         }
 
         /// <summary>Reads layout geometry in native inheritance order before a partial edit materializes a local transform.</summary>
@@ -126,7 +126,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointSlideLayout layout = GetLayout(RequireLayoutPartRef(masterIndex, layoutIndex));
             OfficeXmlNode shape = FindLayoutPlaceholderShape(layout, placeholderType, index);
             if (!shape.IsNone) {
-                return (PowerPointTextBox)layout.WrapShape(shape);
+                return layout.WrapTextBox(shape);
             }
 
             OfficeXmlNode tree = layout.ShapeTree;
@@ -138,7 +138,7 @@ namespace OfficeIMO.PowerPoint {
 
             OfficeXmlNode created = tree.Append(CreateLayoutPlaceholderShape(tree, shapeId, resolvedName, typeToken, resolvedIndex, resolvedBounds));
             layout.PartRef.MarkEdited();
-            return (PowerPointTextBox)layout.WrapShape(created);
+            return layout.WrapTextBox(created);
         }
 
         /// <summary>
@@ -331,7 +331,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointPlaceholderType placeholderType, string? text, PowerPointLayoutBox? bounds, uint index, string name) {
             ThrowIfDisposed();
 
-            SetHeaderFooterFlag(RequireLayoutPartRef(masterIndex, layoutIndex), placeholderType);
+            SetHeaderFooterFlag(GetLayout(RequireLayoutPartRef(masterIndex, layoutIndex)), placeholderType);
 
             PowerPointTextBox textBox = EnsureLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType,
                 index, bounds ?? GetDefaultHeaderFooterBounds(placeholderType), name);
@@ -364,20 +364,20 @@ namespace OfficeIMO.PowerPoint {
 
         // Shows the footer, date or slide number on the layout's header/footer settings (p:hf), added before the
         // extension list when missing.
-        private static void SetHeaderFooterFlag(PowerPointPartRef layout, PowerPointPlaceholderType placeholderType) {
+        private static void SetHeaderFooterFlag(PowerPointSlideLayout layout, PowerPointPlaceholderType placeholderType) {
             string? attribute = placeholderType switch {
                 PowerPointPlaceholderType.Footer => "ftr",
                 PowerPointPlaceholderType.DateAndTime => "dt",
                 PowerPointPlaceholderType.SlideNumber => "sldNum",
                 _ => null
             };
-            OfficeXmlNode root = layout.Root;
+            OfficeXmlNode root = layout.EditableRoot;
             OfficeXmlNode headerFooter = root.Child(LayoutPresentationNamespace, "hf");
             if (headerFooter.IsNone) {
                 headerFooter = root.InsertBefore(root.CreateElement(LayoutPresentationNamespace, "hf"), root.Child(LayoutPresentationNamespace, "extLst"));
             }
             if (attribute != null) headerFooter.SetAttribute(attribute, "1");
-            layout.MarkEdited();
+            layout.PartRef.MarkEdited();
         }
 
     }
