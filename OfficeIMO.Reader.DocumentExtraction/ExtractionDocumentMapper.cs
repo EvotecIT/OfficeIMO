@@ -235,12 +235,7 @@ internal sealed class ExtractionDocumentMapper {
         // A structural table has no text payload of its own; a bare AIContent carries its properties and native table.
         var payload = new AIContent { RawRepresentation = table };
         var element = new ExtractionDocumentTableElement(payload, rowCount, columnCount);
-        if (!string.IsNullOrWhiteSpace(table.Title)) AddProperty(payload, OfficeIMOExtractionPropertyNames.TableTitle, table.Title);
-        if (!string.IsNullOrWhiteSpace(table.Kind)) AddProperty(payload, OfficeIMOExtractionPropertyNames.TableKind, table.Kind);
-        if (table.Truncated) {
-            AddProperty(payload, OfficeIMOExtractionPropertyNames.TableTruncated, true);
-            AddProperty(payload, OfficeIMOExtractionPropertyNames.TableTotalRowCount, table.TotalRowCount);
-        }
+        AddTableProperties(payload, table);
         ReaderLocation effective = location ?? table.Location ?? new ReaderLocation();
         AddLocationProperties(payload, effective);
         AddSources(element.Sources, effective, TableRegion(table));
@@ -269,21 +264,32 @@ internal sealed class ExtractionDocumentMapper {
         var builder = new StringBuilder();
         bool hasHeader = table.Columns.Count > 0 && !IsFallbackHeader(table.Columns);
         if (hasHeader) builder.Append(string.Join("\t", table.Columns));
+        bool rowEmitted = hasHeader;
         foreach (IReadOnlyList<string> row in table.Rows) {
             _cancellationToken.ThrowIfCancellationRequested();
-            if (builder.Length > 0) builder.Append('\n');
+            if (rowEmitted) builder.Append('\n');
             if (row != null) builder.Append(string.Join("\t", row));
+            rowEmitted = true;
         }
         var payload = new TextContent(builder.ToString()) { RawRepresentation = table };
         var element = new ExtractionDocumentTextElement(payload, "table");
         AddProperty(payload, OfficeIMOExtractionPropertyNames.TableGridLimitExceeded, true);
         AddProperty(payload, OfficeIMOExtractionPropertyNames.TableRowCount, rowCount);
         AddProperty(payload, OfficeIMOExtractionPropertyNames.TableColumnCount, columnCount);
-        if (!string.IsNullOrWhiteSpace(table.Title)) AddProperty(payload, OfficeIMOExtractionPropertyNames.TableTitle, table.Title);
+        AddTableProperties(payload, table);
         ReaderLocation effective = location ?? table.Location ?? new ReaderLocation();
         AddLocationProperties(payload, effective);
         AddSources(element.Sources, effective, TableRegion(table));
         CurrentSection().Elements.Add(element);
+    }
+
+    private static void AddTableProperties(AIContent payload, ReaderTable table) {
+        if (!string.IsNullOrWhiteSpace(table.Title)) AddProperty(payload, OfficeIMOExtractionPropertyNames.TableTitle, table.Title);
+        if (!string.IsNullOrWhiteSpace(table.Kind)) AddProperty(payload, OfficeIMOExtractionPropertyNames.TableKind, table.Kind);
+        if (table.Truncated) {
+            AddProperty(payload, OfficeIMOExtractionPropertyNames.TableTruncated, true);
+            AddProperty(payload, OfficeIMOExtractionPropertyNames.TableTotalRowCount, table.TotalRowCount);
+        }
     }
 
     private static bool IsFallbackHeader(IReadOnlyList<string> columns) {

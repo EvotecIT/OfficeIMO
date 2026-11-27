@@ -128,19 +128,30 @@ public sealed class ExtractionMappingTests {
             new ReaderTable {
                 Columns = new[] { "A", "B" },
                 Rows = new IReadOnlyList<string>[] { new[] { "1", "2" }, new[] { "3", "4", "5" } },
+                Kind = "data", Truncated = true, TotalRowCount = 10,
                 Location = new ReaderLocation { BlockIndex = 0 }
+            },
+            new ReaderTable {
+                Columns = new[] { "Column 1" },
+                Rows = new IReadOnlyList<string>[] { new[] { "" }, new[] { "value" } },
+                Location = new ReaderLocation { BlockIndex = 1 }
             }
         };
 
-        ExtractionDocument document = result.ToExtractionDocument("doc", new OfficeIMODocumentExtractionOptions { MaxTableCells = 8 });
+        ExtractionDocument document = result.ToExtractionDocument("doc", new OfficeIMODocumentExtractionOptions { MaxTableCells = 1 });
 
-        var element = Assert.IsType<ExtractionDocumentTextElement>(Assert.Single(document.EnumerateContent()));
+        ExtractionDocumentTextElement[] elements = document.EnumerateContent().Cast<ExtractionDocumentTextElement>().ToArray();
+        ExtractionDocumentTextElement element = elements[0];
         Assert.Equal("table", element.Role);
         Assert.Equal("A\tB\n1\t2\n3\t4\t5", Text(element));
         AdditionalPropertiesDictionary properties = element.Content!.AdditionalProperties!;
         Assert.Equal(true, properties[OfficeIMOExtractionPropertyNames.TableGridLimitExceeded]);
         Assert.Equal(3, properties[OfficeIMOExtractionPropertyNames.TableRowCount]);
         Assert.Equal(3, properties[OfficeIMOExtractionPropertyNames.TableColumnCount]);
+        Assert.Equal("data", properties[OfficeIMOExtractionPropertyNames.TableKind]);
+        Assert.Equal(true, properties[OfficeIMOExtractionPropertyNames.TableTruncated]);
+        Assert.Equal(10, properties[OfficeIMOExtractionPropertyNames.TableTotalRowCount]);
+        Assert.Equal("\nvalue", Text(Assert.Single(elements.Skip(1))));
     }
 
     [Fact]
