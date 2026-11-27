@@ -131,7 +131,7 @@ namespace OfficeIMO.Excel {
             }
 
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
-            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared) ? prepared : null;
+            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared, cancellationToken) ? prepared : null;
             bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
             bool directWrite = false;
             XlsbWorkbook? generatedWorkbook = null;
@@ -205,7 +205,7 @@ namespace OfficeIMO.Excel {
             }
 
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
-            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared) ? prepared : null;
+            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared, cancellationToken) ? prepared : null;
             bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
             if (!existingSource) {
                 cancellationToken.ThrowIfCancellationRequested();

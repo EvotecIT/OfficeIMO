@@ -5,15 +5,16 @@ using OfficeIMO.Excel.Xlsb.Write;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>Writes scalar changes from the deferred model when they leave the native package structure intact.</summary>
-        private bool TryPrepareOwnedXlsbEdit(ExcelSaveOptions? options, out byte[] bytes) {
+        private bool TryPrepareOwnedXlsbEdit(ExcelSaveOptions? options, out byte[] bytes, CancellationToken cancellationToken = default) {
             long maximumBytes = Math.Min(GetPackageMaterializationLimit(options) ?? int.MaxValue, int.MaxValue);
             byte[] prepared = Array.Empty<byte>();
             bool success = WithDeferredOpenGate(() => {
                 if (!IsSdkDeferred || _xlsbDeferredBaseline == null || !ReferenceEquals(_deferredPackageBytes, _xlsbDeferredBaseline)
                     || _xlsbOriginalPackageBytes == null || _xlsbAdvancedWorkbook == null
                     || _packagePropertiesDirty || _customDocumentPropertiesDirty || HasXlsbTransformSaveWork(options)
-                    || HasCalculationSaveWork(options)) return false;
+                    || options?.DisableFastPackageWriter == true || HasCalculationSaveWork(options)) return false;
 
+                cancellationToken.ThrowIfCancellationRequested();
                 var taken = TakeDeferredEdits();
                 if (taken.Length == 0) return false;
                 bool adopted = false;
@@ -35,9 +36,11 @@ namespace OfficeIMO.Excel {
                         ? _xlsbAdvancedWorkbook
                         : XlsbWorkbookReader.Load(nativeBytes, new XlsbImportOptions {
                             MaxPackageBytes = _xlsbAdvancedWorkbook.MaxPackageBytes,
-                            MaxPartBytes = _xlsbAdvancedWorkbook.MaxPartBytes
+                            MaxPartBytes = _xlsbAdvancedWorkbook.MaxPartBytes,
+                            CancellationToken = cancellationToken
                         });
                     if (!TryCreateDeferredPackageBytesCore(taken, maximumBytes, out byte[] projection)) return false;
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     // Like an owned XLSX save, publish the edited document state before writing to a destination.
                     // A failing or re-entrant destination cannot drop the taken edits, which now live in the packages.
