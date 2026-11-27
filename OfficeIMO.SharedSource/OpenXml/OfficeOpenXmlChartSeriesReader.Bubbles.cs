@@ -51,7 +51,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 var text = element.Child(NsC, "tx");
                 string name = text.ChildText(NsC, "v") ??
                     OfficeOpenXmlChartCacheReader.ReadCachedStrings(text, maximumPoints).FirstOrDefault() ??
-                    string.Concat(text.Descendants(NsA, "t").Select(value => value.InnerText));
+                    string.Concat(text.ContentDescendants(NsA, "t").Select(value => value.InnerText));
                 if (string.IsNullOrWhiteSpace(name)) {
                     if (!forDataUpdate && !text.Child(NsC, "strRef").IsNone) return null;
                     name = "Series " + (index + 1).ToString(CultureInfo.InvariantCulture);

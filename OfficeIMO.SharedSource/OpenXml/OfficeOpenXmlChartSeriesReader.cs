@@ -210,7 +210,7 @@ namespace OfficeIMO.OpenXml.Internal {
             string name = text.ChildText(NsC, "v") ?? string.Empty;
             if (string.IsNullOrWhiteSpace(name)) {
                 var cache = OfficeOpenXmlChartCacheReader.ReadCachedStrings(text, maximumPoints);
-                name = cache.FirstOrDefault() ?? string.Concat(text.Descendants(NsA, "t").Select(item => item.InnerText));
+                name = cache.FirstOrDefault() ?? string.Concat(text.ContentDescendants(NsA, "t").Select(item => item.InnerText));
             }
             if (string.IsNullOrWhiteSpace(name)) {
                 if (!forDataUpdate && !text.Child(NsC, "strRef").IsNone)

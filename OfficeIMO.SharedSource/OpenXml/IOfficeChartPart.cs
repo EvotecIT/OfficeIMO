@@ -10,8 +10,11 @@ namespace OfficeIMO.OpenXml.Internal {
         /// <summary>The part's <c>c:chartSpace</c> root element, or none when the part has no content.</summary>
         OfficeXmlNode ChartSpace { get; }
 
-        /// <summary>The roots of the chart style (<c>cs:chartStyle</c>) parts the chart relates to, at most <paramref name="limit"/>.</summary>
-        IReadOnlyList<OfficeXmlNode> ChartStyles(int limit);
+        /// <summary>
+        /// Openers for the chart style (<c>cs:chartStyle</c>) parts the chart relates to, at most <paramref name="limit"/>.
+        /// Each opens the part's markup as a stream, so a reader can apply its size limit while it reads.
+        /// </summary>
+        IReadOnlyList<Func<Stream>> ChartStyles(int limit);
 
         /// <summary>
         /// The color map of the slide, layout, master, notes or document that holds the chart, which scheme colors in

@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel {
         private static long PxToEmu(int px) => (long)Math.Round(px * 9525.0);
 
         private static bool IsSupportedImageAnchor(OfficeXmlNode anchor)
-            => IsSupportedDrawingAnchor(anchor) && anchor.FirstDescendant(Xdr, "pic").Exists;
+            => IsSupportedDrawingAnchor(anchor) && anchor.FirstDescendantOutsideExtensions(Xdr, "pic").Exists;
 
         /// <summary>An <c>xdr:from</c> or <c>xdr:to</c> marker with its column, column offset, row and row offset.</summary>
         private static OfficeXmlNode NewMarker(OfficeXmlNode context, string localName, long column, long columnOffset, long row, long rowOffset) {

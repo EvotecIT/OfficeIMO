@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel {
 
         internal static bool TryGetIdentity(OfficeXmlNode element, ExcelPartRef part, out DrawingIdentity identity) {
             identity = default;
-            uint? id = element.FirstDescendant(Xdr, "cNvPr").UInt32Attribute("id");
+            uint? id = element.FirstDescendantOutsideExtensions(Xdr, "cNvPr").UInt32Attribute("id");
             string? relationshipId;
             if (element.Is(Xdr, "graphicFrame")) {
                 relationshipId = element.Child(A, "graphic").Child(A, "graphicData").Child(C, "chart").RelationshipAttribute("id");

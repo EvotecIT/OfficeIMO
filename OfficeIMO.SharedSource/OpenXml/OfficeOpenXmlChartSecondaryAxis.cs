@@ -292,11 +292,11 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         OfficeXmlNode shape = title.Child(NsC, "spPr");
         if (!shape.IsNone && (shape.HasChildElements() || shape.HasAttributes))
             throw new NotSupportedException("The secondary axis title shape cannot be projected.");
-        foreach (OfficeXmlNode body in title.Descendants(NsA, "bodyPr")) {
+        foreach (OfficeXmlNode body in title.ContentDescendants(NsA, "bodyPr")) {
             if (body.HasAttributes || body.HasChildElements())
                 throw new NotSupportedException("The secondary axis title body appearance cannot be projected.");
         }
-        foreach (OfficeXmlNode paragraph in title.Descendants(NsA, "pPr")) {
+        foreach (OfficeXmlNode paragraph in title.ContentDescendants(NsA, "pPr")) {
             if (paragraph.HasAttributes || paragraph.Children().ToList().Any(child => !child.IsDrawing("defRPr")))
                 throw new NotSupportedException("The secondary axis title paragraph appearance cannot be projected.");
         }

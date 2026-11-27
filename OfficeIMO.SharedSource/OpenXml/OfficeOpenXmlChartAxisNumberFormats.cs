@@ -41,7 +41,7 @@ internal static class OfficeOpenXmlChartAxisNumberFormats {
     private static bool HasOnlyGeneralValueCaches(IOfficeChartPart chartPart) {
         OfficeXmlNode plot = chartPart.ChartSpace.Child(NsC, "chart").Child(NsC, "plotArea");
         if (plot.IsNone) return false;
-        OfficeXmlNode[] caches = plot.Descendants(NsC, "numCache")
+        OfficeXmlNode[] caches = plot.ContentDescendants(NsC, "numCache")
             .Where(cache => cache.Parent.Parent is var owner && (owner.IsChart("val") || owner.IsChart("yVal"))).ToArray();
         return caches.Length > 0 && caches.All(cache =>
             cache.Child(NsC, "formatCode") is var format && (format.IsNone || string.IsNullOrWhiteSpace(format.InnerText) ||

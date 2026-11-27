@@ -175,7 +175,8 @@ namespace OfficeIMO.Excel.OpenXml {
         /// <summary>
         /// The element after <paramref name="node"/> in document order within <paramref name="root"/>'s subtree, never entering
         /// an extension list. The SDK reads unknown extension content as unknown elements, so its typed lookups never matched
-        /// markup there. Walks without recursion, so deeply nested markup can't exhaust the stack.
+        /// markup there. Unlike the shared chart walk it still enters mc:AlternateContent, whose choices the SDK reads as typed
+        /// elements. Walks without recursion, so deeply nested markup can't exhaust the stack.
         /// </summary>
         internal static OfficeXmlNode NextOutsideExtensions(this OfficeXmlNode node, OfficeXmlNode root) {
             if (!IsExtensionList(node)) {

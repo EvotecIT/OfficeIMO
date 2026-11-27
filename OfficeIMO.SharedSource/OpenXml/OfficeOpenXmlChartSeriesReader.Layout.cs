@@ -11,7 +11,7 @@ namespace OfficeIMO.OpenXml.Internal {
         internal static OfficeChartLayout ReadLayout(OfficeXmlNode chart, OfficeChartType kind, OfficeChartData data, string? axisTitleFont = null, OfficeXmlNode scheme = default,
             Result? source = null) {
             OfficeXmlNode plot = chart.Child(NsC, "plotArea");
-            if (plot.Descendants(NsC, "title").Any(title =>
+            if (plot.ContentDescendants(NsC, "title").Any(title =>
                     !title.Child(NsC, "layout").Child(NsC, "manualLayout").IsNone ||
                     title.Child(NsC, "overlay") is { IsNone: false } overlay && overlay.BoolVal() != false))
                 OfficeOpenXmlChartFidelityScope.Approximate("Manual axis-title layouts and overlaid axis titles cannot be projected.",
@@ -41,7 +41,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (!plot.FirstDescendant(NsC, "tickLblSkip").IsNone || !plot.FirstDescendant(NsC, "tickMarkSkip").IsNone)
                 OfficeOpenXmlChartFidelityScope.Approximate("Category-axis label and tick skipping cannot be projected.",
                     "Category-axis labels and tick marks are drawn without skipping.");
-            if (plot.Descendants(NsC, "lblAlgn").Any(alignment => alignment.Val() is string value && value != "ctr"))
+            if (plot.ContentDescendants(NsC, "lblAlgn").Any(alignment => alignment.Val() is string value && value != "ctr"))
                 OfficeOpenXmlChartFidelityScope.Approximate("Non-centered category label alignment cannot be projected.",
                     "Category labels are drawn centred.");
             var chartLayers = plot.IsNone ? null : plot.Children().ToList()
@@ -51,7 +51,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 .Select(axis => axis.ChildVal(NsC, "crossBetween") ?? "between")
                 .Distinct().Skip(1).Any())
                 throw new NotSupportedException("Independent cross-between geometry on different value axes cannot be projected.");
-            if (plot.Descendants(NsC, "lblOffset").Any(offset => offset.UShortVal() is ushort value && value != 100))
+            if (plot.ContentDescendants(NsC, "lblOffset").Any(offset => offset.UShortVal() is ushort value && value != 100))
                 OfficeOpenXmlChartFidelityScope.Approximate("Independent category label offsets cannot be projected.",
                     "Category labels are drawn at the default distance from their axis.");
             OfficeXmlNode horizontal = OfficeXmlNode.None, vertical = OfficeXmlNode.None;
@@ -206,7 +206,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (numbering.BoolAttr("sourceLinked") == true || string.IsNullOrWhiteSpace(format)) {
                 OfficeXmlNode parent = axis.Parent;
                 if (parent.IsChart("plotArea"))
-                    format = parent.Descendants(NsC, "cat")
+                    format = parent.ContentDescendants(NsC, "cat")
                         .Select(categories => categories.Child(NsC, "numRef").Child(NsC, "numCache").ChildText(NsC, "formatCode"))
                         .FirstOrDefault(code => !string.IsNullOrWhiteSpace(code)) ?? format;
             }
@@ -215,7 +215,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static bool IsClearlyTextualCategoryCache(OfficeXmlNode plot) {
-            List<OfficeXmlNode> caches = plot.Descendants(NsC, "cat");
+            List<OfficeXmlNode> caches = plot.ContentDescendants(NsC, "cat");
             return caches.Count > 0 && caches.All(category => {
                 List<OfficeXmlNode> points = category.Child(NsC, "strRef").Child(NsC, "strCache").Children(NsC, "pt").ToList();
                 return points.Count > 0 && points.All(point =>

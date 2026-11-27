@@ -88,7 +88,7 @@ internal static class OfficeOpenXmlChartPlotSemantics {
         if (text.IsNone) return null;
         string? direct = text.ChildText(NsC, "v");
         if (!string.IsNullOrWhiteSpace(direct)) return direct;
-        OfficeXmlNode point = text.Descendants(NsC, "pt")
+        OfficeXmlNode point = text.ContentDescendants(NsC, "pt")
             .FirstOrDefault(item => (item.UIntAttr("idx") ?? 0U) == 0U);
         return point.ChildText(NsC, "v");
     }
@@ -217,7 +217,7 @@ internal static class OfficeOpenXmlChartPlotSemantics {
     private static string? ReadChartTextValue(OfficeXmlNode text) {
         if (text.IsNone) return null;
         OfficeXmlNode rich = text.Child(NsC, "rich");
-        if (!rich.IsNone) return string.Concat(rich.Descendants(NsA, "t").Select(run => run.InnerText));
+        if (!rich.IsNone) return string.Concat(rich.ContentDescendants(NsA, "t").Select(run => run.InnerText));
         OfficeXmlNode point = default;
         foreach (OfficeXmlNode item in text.Child(NsC, "strRef").Child(NsC, "strCache").Children(NsC, "pt")) {
             if ((item.UIntAttr("idx") ?? 0U) == 0U) {

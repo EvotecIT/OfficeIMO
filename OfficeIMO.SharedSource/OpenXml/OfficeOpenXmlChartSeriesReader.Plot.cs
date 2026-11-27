@@ -115,8 +115,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 OfficeOpenXmlChartFidelityScope.Record("Drop lines, up/down bars and series lines are left out.");
             }
             if (layer.IsChart("barChart") && layer.Children().ToList().Where(element => element.LocalName == "ser")
-                .Any(series => series.Descendants(NsC, "invertIfNegative").Any(invert => invert.BoolVal() != false) &&
-                    series.Child(NsC, "val").Descendants(NsC, "v").Any(value =>
+                .Any(series => series.ContentDescendants(NsC, "invertIfNegative").Any(invert => invert.BoolVal() != false) &&
+                    series.Child(NsC, "val").ContentDescendants(NsC, "v").Any(value =>
                         OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.InnerText, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number) && number < 0D))) return true;
             bool radial = layer.IsChart("pieChart") || layer.IsChart("doughnutChart");
             if (radial) {

@@ -41,6 +41,29 @@ namespace OfficeIMO.OpenXml.Internal {
             }
         }
 
+        /// <summary>
+        /// Adds the descendant elements with this name, in document order, leaving out <c>extLst</c> and
+        /// <c>mc:AlternateContent</c> elements and what they hold.
+        /// </summary>
+        internal static void CollectContentDescendants(object element, int namespaceId, string localName, List<OfficeXmlNode> found) {
+            OpenXmlElement root = E(element);
+            OpenXmlElement? current = root.FirstChild;
+            while (current != null) {
+                bool skip = current is OpenXmlMiscNode || current.LocalName == "extLst" ||
+                    current.LocalName == "AlternateContent" && Is(current, OfficeXmlNamespaces.MarkupCompatibility, "AlternateContent");
+                if (!skip && string.Equals(current.LocalName, localName, StringComparison.Ordinal) && Is(current, namespaceId, localName))
+                    found.Add(OfficeXmlNode.FromSdk(current));
+                OpenXmlElement? next = skip ? null : current.FirstChild;
+                if (next == null) {
+                    for (OpenXmlElement? up = current; up != null && !ReferenceEquals(up, root); up = up.Parent) {
+                        next = up.NextSibling();
+                        if (next != null) break;
+                    }
+                }
+                current = next;
+            }
+        }
+
         internal static object? FirstChild(object element) => SkipForward(E(element).FirstChild);
 
         internal static object? LastChild(object element) => SkipBackward(E(element).LastChild);

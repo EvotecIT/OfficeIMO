@@ -32,7 +32,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (chart.Child(NsC, "legend").Children(NsC, "legendEntry").ToList().Any(entry => !entry.Child(NsC, "txPr").IsNone))
                 OfficeOpenXmlChartFidelityScope.Approximate("Per-entry legend text formatting cannot be projected.",
                     "Legend entries with their own text formatting use the legend's text formatting.");
-            foreach (OfficeXmlNode title in chart.Descendants(NsC, "title")) {
+            foreach (OfficeXmlNode title in chart.ContentDescendants(NsC, "title")) {
                 OfficeXmlNode titleShape = title.Child(NsC, "spPr");
                 if (titleShape.IsNone) continue;
                 if (!titleShape.HasChildElements() && !titleShape.HasAttributes) continue;
@@ -77,7 +77,7 @@ namespace OfficeIMO.OpenXml.Internal {
             var categoryMinorGrid = ReadSurface(categoryMinor.Child(NsC, "spPr"), scheme, colorMap);
             var valueMinorGrid = ReadSurface(valueMinor.Child(NsC, "spPr"), scheme, colorMap);
             OfficeXmlNode radialSeries = kind is OfficeChartType.Pie or OfficeChartType.Doughnut
-                ? plot.Descendants(NsC, "ser").FirstOrDefault(series => IsPieSeriesGroup(series.Parent))
+                ? plot.ContentDescendants(NsC, "ser").FirstOrDefault(series => IsPieSeriesGroup(series.Parent))
                 : OfficeOpenXmlChartPlotSemantics.GetPointColoredSeries(plot);
             OfficeColor[]? radialPalette = radialSeries.IsNone ? null :
                 OfficeOpenXmlThemeColorResolver.ReadRadialPalette(chartPart, radialSeries, radialPointCount, scheme);
