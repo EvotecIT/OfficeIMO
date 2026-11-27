@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
@@ -10,8 +8,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            Hyperlink hyperlink,
-            OpenXmlPartContainer relationshipOwner,
+            LegacyDocElement hyperlink,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes) {
             AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, relationshipOwner, footnotes, endnotes, LegacyDocWritableFormatting.Plain);
@@ -21,8 +19,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            Hyperlink hyperlink,
-            OpenXmlPartContainer relationshipOwner,
+            LegacyDocElement hyperlink,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
             LegacyDocWritableFormatting inheritedFormatting) {
@@ -32,41 +30,40 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendFormattedText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
 
             int displayStart = text.Length;
-            foreach (OpenXmlElement child in hyperlink.ChildElements) {
-                switch (child) {
-                    case Run run:
-                        EnsureSupportedHyperlinkRun(run);
-                        AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: true);
+            foreach (LegacyDocElement child in hyperlink.Elements()) {
+                if (child.Is(OfficeXmlNamespaces.Math, "oMath") || child.Is(OfficeXmlNamespaces.Math, "oMathPara")) {
+                    AppendMathEquationField(text, runs, child, inheritedFormatting);
+                    continue;
+                }
+
+                switch (child.WName) {
+                    case "r":
+                        EnsureSupportedHyperlinkRun(child);
+                        AppendSupportedRunText(text, runs, child, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: true);
                         break;
-                    case InsertedRun insertedRun:
-                        AppendSupportedHyperlinkRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting);
+                    case "ins":
+                        AppendSupportedHyperlinkRevisionText(text, runs, child, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting);
                         break;
-                    case DeletedRun deletedRun:
-                        AppendSupportedHyperlinkRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting);
+                    case "del":
+                        AppendSupportedHyperlinkRevisionText(text, runs, child, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting);
                         break;
-                    case SdtRun sdtRun:
-                        AppendSupportedHyperlinkInlineContentControlText(text, runs, bookmarks, sdtRun, footnotes, endnotes, inheritedFormatting);
+                    case "sdt":
+                        AppendSupportedHyperlinkInlineContentControlText(text, runs, bookmarks, child, footnotes, endnotes, inheritedFormatting);
                         break;
-                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
-                        AppendMathEquationField(text, runs, officeMath, inheritedFormatting);
-                        break;
-                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
-                        AppendMathEquationField(text, runs, mathParagraph, inheritedFormatting);
-                        break;
-                    case SimpleField simpleField:
+                    case "fldSimple":
                         AppendSupportedPageNumberFieldFromSimpleField(
                             text,
                             runs,
                             bookmarks,
-                            simpleField,
+                            child,
                             inheritedFormatting,
                             allowHyperlinkRunStyle: true);
                         break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, text.Length);
+                    case "bookmarkStart":
+                        bookmarks.AddStart(child, text.Length);
                         break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, text.Length);
+                    case "bookmarkEnd":
+                        bookmarks.AddEnd(child, text.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {
@@ -84,35 +81,41 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendFormattedText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
         }
 
-        private static string CreateSupportedHyperlinkInstruction(Hyperlink hyperlink, OpenXmlPartContainer relationshipOwner) {
-            if (string.IsNullOrEmpty(hyperlink.Id)) {
-                if (string.IsNullOrWhiteSpace(hyperlink.Anchor?.Value)) {
+        private static string CreateSupportedHyperlinkInstruction(LegacyDocElement hyperlink, LegacyDocPart relationshipOwner) {
+            string? id = hyperlink.Attr(OfficeXmlNamespaces.Relationships, "id");
+            if (string.IsNullOrEmpty(id)) {
+                string? anchor = hyperlink.Attr("anchor");
+                if (string.IsNullOrWhiteSpace(anchor)) {
                     throw new NotSupportedException("Native DOC saving supports hyperlinks only when they target an external relationship or an internal bookmark anchor.");
                 }
 
-                return AppendHyperlinkMetadata(" HYPERLINK \\l \"" + EscapeFieldString(hyperlink.Anchor!.Value!) + "\" ", hyperlink);
+                return AppendHyperlinkMetadata(" HYPERLINK \\l \"" + EscapeFieldString(anchor!) + "\" ", hyperlink);
             }
 
-            HyperlinkRelationship? relationship = WordHyperLink.FindHyperlinkRelationship(relationshipOwner, hyperlink.Id?.Value);
+            LegacyDocRelationship? relationship = LegacyDocWordHelpers.FindHyperlinkRelationship(relationshipOwner, id);
             if (relationship == null) {
-                throw new NotSupportedException($"Native DOC saving could not find hyperlink relationship '{hyperlink.Id}'.");
+                throw new NotSupportedException($"Native DOC saving could not find hyperlink relationship '{id}'.");
             }
 
-            if (!relationship.Uri.IsAbsoluteUri) {
+            // The SDK's relationship URI: the raw target as a relative-or-absolute URI.
+            var uri = new Uri(relationship.Target!, UriKind.RelativeOrAbsolute);
+            if (!uri.IsAbsoluteUri) {
                 throw new NotSupportedException("Native DOC saving supports external hyperlinks only when their target URI is absolute.");
             }
 
-            return AppendHyperlinkMetadata(" HYPERLINK \"" + EscapeFieldString(relationship.Uri.ToString()) + "\" ", hyperlink);
+            return AppendHyperlinkMetadata(" HYPERLINK \"" + EscapeFieldString(uri.ToString()) + "\" ", hyperlink);
         }
 
-        private static string AppendHyperlinkMetadata(string instruction, Hyperlink hyperlink) {
-            EnsureSupportedHyperlinkMetadata(hyperlink.Tooltip?.Value);
-            EnsureSupportedHyperlinkMetadata(hyperlink.TargetFrame?.Value);
-            if (hyperlink.Tooltip?.Value is string tooltip) {
+        private static string AppendHyperlinkMetadata(string instruction, LegacyDocElement hyperlink) {
+            string? tooltipValue = hyperlink.Attr("tooltip");
+            string? targetFrame = hyperlink.Attr("tgtFrame");
+            EnsureSupportedHyperlinkMetadata(tooltipValue);
+            EnsureSupportedHyperlinkMetadata(targetFrame);
+            if (tooltipValue is string tooltip) {
                 instruction += "\\o \"" + EscapeFieldString(tooltip) + "\" ";
             }
-            if (!string.IsNullOrEmpty(hyperlink.TargetFrame?.Value)) {
-                instruction += "\\t \"" + EscapeFieldString(hyperlink.TargetFrame!.Value!) + "\" ";
+            if (!string.IsNullOrEmpty(targetFrame)) {
+                instruction += "\\t \"" + EscapeFieldString(targetFrame!) + "\" ";
             }
             return instruction;
         }
@@ -123,21 +126,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void EnsureSupportedHyperlinkRun(Run run) {
-            foreach (OpenXmlElement child in run.ChildElements) {
-                switch (child) {
-                    case RunProperties:
-                    case LastRenderedPageBreak:
-                    case Text:
-                    case DeletedText:
-                    case TabChar:
-                    case CarriageReturn:
-                    case NoBreakHyphen:
-                    case SoftHyphen:
-                    case Break:
+        private static void EnsureSupportedHyperlinkRun(LegacyDocElement run) {
+            foreach (LegacyDocElement child in run.Elements()) {
+                switch (child.WName) {
+                    case "rPr":
+                    case "lastRenderedPageBreak":
+                    case "t":
+                    case "delText":
+                    case "tab":
+                    case "cr":
+                    case "noBreakHyphen":
+                    case "softHyphen":
+                    case "br":
                         break;
-                    case FootnoteReference:
-                    case EndnoteReference:
+                    case "footnoteReference":
+                    case "endnoteReference":
                         throw new NotSupportedException("Native DOC saving supports hyperlink display text only as regular text runs. Footnote and endnote references inside hyperlinks are not supported yet.");
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple hyperlinks only when their display text contains text, tabs, carriage returns, soft/no-break hyphens, and supported breaks. Unsupported hyperlink run element: {child.LocalName}.");
@@ -148,17 +151,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendSupportedHyperlinkRevisionText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
-            OpenXmlCompositeElement revisionElement,
+            LegacyDocElement revisionElement,
             LegacyDocRevisionKind revisionKind,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
             LegacyDocWritableFormatting inheritedFormatting) {
             LegacyDocRevision revision = ReadSupportedRevision(revisionElement, revisionKind);
             LegacyDocWritableFormatting revisionFormatting = inheritedFormatting.WithRevision(revision);
-            foreach (OpenXmlElement child in revisionElement.ChildElements) {
-                if (child is Run run) {
-                    EnsureSupportedHyperlinkRun(run);
-                    AppendSupportedRunText(text, runs, run, footnotes, endnotes, revisionFormatting, allowHyperlinkRunStyle: true);
+            foreach (LegacyDocElement child in revisionElement.Elements()) {
+                if (child.Is("r")) {
+                    EnsureSupportedHyperlinkRun(child);
+                    AppendSupportedRunText(text, runs, child, footnotes, endnotes, revisionFormatting, allowHyperlinkRunStyle: true);
                     continue;
                 }
 
@@ -170,46 +173,45 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            SdtRun sdtRun,
+            LegacyDocElement sdtRun,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
             LegacyDocWritableFormatting inheritedFormatting) {
-            OpenXmlElement[] children = GetInlineContentControlChildren(sdtRun, "hyperlink inline content control");
-            foreach (OpenXmlElement child in children) {
-                switch (child) {
-                    case Run run:
-                        EnsureSupportedHyperlinkRun(run);
-                        AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: true);
+            LegacyDocElement[] children = GetInlineContentControlChildren(sdtRun, "hyperlink inline content control");
+            foreach (LegacyDocElement child in children) {
+                if (child.Is(OfficeXmlNamespaces.Math, "oMath") || child.Is(OfficeXmlNamespaces.Math, "oMathPara")) {
+                    AppendMathEquationField(text, runs, child, inheritedFormatting);
+                    continue;
+                }
+
+                switch (child.WName) {
+                    case "r":
+                        EnsureSupportedHyperlinkRun(child);
+                        AppendSupportedRunText(text, runs, child, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: true);
                         break;
-                    case InsertedRun insertedRun:
-                        AppendSupportedHyperlinkRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting);
+                    case "ins":
+                        AppendSupportedHyperlinkRevisionText(text, runs, child, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting);
                         break;
-                    case DeletedRun deletedRun:
-                        AppendSupportedHyperlinkRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting);
+                    case "del":
+                        AppendSupportedHyperlinkRevisionText(text, runs, child, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting);
                         break;
-                    case SdtRun nestedSdtRun:
-                        AppendSupportedHyperlinkInlineContentControlText(text, runs, bookmarks, nestedSdtRun, footnotes, endnotes, inheritedFormatting);
+                    case "sdt":
+                        AppendSupportedHyperlinkInlineContentControlText(text, runs, bookmarks, child, footnotes, endnotes, inheritedFormatting);
                         break;
-                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
-                        AppendMathEquationField(text, runs, officeMath, inheritedFormatting);
-                        break;
-                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
-                        AppendMathEquationField(text, runs, mathParagraph, inheritedFormatting);
-                        break;
-                    case SimpleField simpleField:
+                    case "fldSimple":
                         AppendSupportedPageNumberFieldFromSimpleField(
                             text,
                             runs,
                             bookmarks,
-                            simpleField,
+                            child,
                             inheritedFormatting,
                             allowHyperlinkRunStyle: true);
                         break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, text.Length);
+                    case "bookmarkStart":
+                        bookmarks.AddStart(child, text.Length);
                         break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, text.Length);
+                    case "bookmarkEnd":
+                        bookmarks.AddEnd(child, text.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {

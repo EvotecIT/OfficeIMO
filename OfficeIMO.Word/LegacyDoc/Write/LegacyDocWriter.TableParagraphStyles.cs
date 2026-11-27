@@ -1,43 +1,46 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static LegacyDocWritableParagraphFormatting ReadSupportedCellParagraphStyleFormatting(Paragraph paragraph, MainDocumentPart mainPart) {
+        private static LegacyDocWritableParagraphFormatting ReadSupportedCellParagraphStyleFormatting(LegacyDocElement paragraph, LegacyDocSourcePackage source) {
             var formatting = LegacyDocWritableParagraphFormatting.Plain;
-            foreach (Style style in EnumerateCellParagraphStyleChain(paragraph, mainPart)) {
-                string styleId = style.StyleId!.Value!;
+            foreach (LegacyDocElement style in EnumerateCellParagraphStyleChain(paragraph, source)) {
+                string styleId = LegacyDocStyleCatalog.StyleId(style)!;
                 LegacyDocWritableParagraphFormatting own = TryMapBuiltInParagraphStyleIndex(styleId, out ushort styleIndex)
-                    ? ReadSupportedBuiltInStyleParagraphFormatting(styleIndex, style.StyleParagraphProperties)
-                    : ReadSupportedCustomParagraphStyleParagraphFormatting(style.StyleParagraphProperties);
+                    ? ReadSupportedBuiltInStyleParagraphFormatting(styleIndex, style.Child("pPr"))
+                    : ReadSupportedCustomParagraphStyleParagraphFormatting(style.Child("pPr"));
                 formatting = formatting.WithInheritedParagraphFormatting(own);
             }
             return formatting;
         }
 
-        private static LegacyDocWritableFormatting ReadSupportedCellParagraphStyleRunFormatting(Paragraph paragraph, MainDocumentPart mainPart) {
+        private static LegacyDocWritableFormatting ReadSupportedCellParagraphStyleRunFormatting(LegacyDocElement paragraph, LegacyDocSourcePackage source) {
             var formatting = LegacyDocWritableFormatting.Plain;
-            foreach (Style style in EnumerateCellParagraphStyleChain(paragraph, mainPart)) {
+            foreach (LegacyDocElement style in EnumerateCellParagraphStyleChain(paragraph, source)) {
                 formatting = formatting.WithInheritedFormatting(ReadSupportedRunFormatting(GetSupportedTableStyleRunProperties(style)));
             }
             return formatting;
         }
 
-        private static IEnumerable<Style> EnumerateCellParagraphStyleChain(Paragraph paragraph, MainDocumentPart mainPart) {
-            string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+        private static IEnumerable<LegacyDocElement> EnumerateCellParagraphStyleChain(LegacyDocElement paragraph, LegacyDocSourcePackage source) {
+            string? styleId = paragraph.Child("pPr").Child("pStyle").Val;
             // Unstyled cells retain table defaults ahead of the document's Normal defaults.
             if (string.IsNullOrWhiteSpace(styleId) || string.Equals(styleId, "Normal", StringComparison.Ordinal)) {
                 yield break;
             }
 
             var visited = new HashSet<string>(StringComparer.Ordinal);
-            IReadOnlyList<WordStyleDefinitionsReader.StyleDefinition> styles = WordStyleCatalog.For(mainPart).Definitions;
+            IReadOnlyList<LegacyDocElement> styles = source.Styles.Definitions;
             while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
-                WordStyleDefinitionsReader.StyleDefinition? style = styles.FirstOrDefault(candidate => candidate.IsParagraphStyle &&
-                    string.Equals(candidate.StyleId, styleId, StringComparison.Ordinal));
-                if (style == null) break;
-                yield return style.Element;
-                styleId = style.BasedOn;
+                LegacyDocElement style = LegacyDocElement.None;
+                foreach (LegacyDocElement candidate in styles) {
+                    if (LegacyDocStyleCatalog.IsParagraphStyle(candidate) &&
+                        string.Equals(LegacyDocStyleCatalog.StyleId(candidate), styleId, StringComparison.Ordinal)) {
+                        style = candidate;
+                        break;
+                    }
+                }
+                if (style.IsNone) break;
+                yield return style;
+                styleId = style.Child("basedOn").Val;
             }
         }
     }

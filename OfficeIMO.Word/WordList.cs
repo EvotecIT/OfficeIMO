@@ -105,7 +105,7 @@ public partial class WordList : WordElement {
     public WordListNumbering Numbering {
         get {
             var abstractNum = GetAbstractNum();
-            return new WordListNumbering(abstractNum!);
+            return new WordListNumbering(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(abstractNum));
         }
     }
 

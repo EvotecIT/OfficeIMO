@@ -73,9 +73,9 @@ public sealed class PdfShortNumberingTabTests {
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordListLevel level = list.Numbering.Levels[0];
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D); level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(54D);
-        if (authored) level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new Tabs(
+        if (authored) level.OpenXmlLevel().PreviousParagraphProperties!.InsertAt(new Tabs(
             new TabStop { Val = TabStopValues.Number, Position = 720 }), 0);
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
     }
 
@@ -118,7 +118,7 @@ public sealed class PdfShortNumberingTabTests {
         WordListLevel level = list.Numbering.Levels[0];
         level.SetStartNumberingValue(9); level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D); level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = alignment; level.LevelSuffix = suffix;
-        level.OpenXmlElement.NumberingSymbolRunProperties!.FontSize = new FontSize { Val = "36" };
+        level.OpenXmlLevel().NumberingSymbolRunProperties!.FontSize = new FontSize { Val = "36" };
         WordTableCell? cell = scope == "table" ? document.AddTable(1, 1).Rows[0].Cells[0] : null;
         WordParagraph first = cell == null ? list.AddItem("FIRST") : cell.Paragraphs[0];
         WordParagraph second = cell == null ? list.AddItem("SECOND") : cell.AddParagraph("SECOND");

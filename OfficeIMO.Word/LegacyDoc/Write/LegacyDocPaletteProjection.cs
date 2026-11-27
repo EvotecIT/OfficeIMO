@@ -32,8 +32,8 @@ internal sealed class LegacyDocPaletteProjection : IDisposable {
         return true;
     }
 
-    internal OfficeConversionReport CreateReport(WordDocument document, TimeSpan elapsed) =>
-        new(document.FilePath ?? "Word", "Doc", itemsWritten: document.Sections.Count,
+    internal OfficeConversionReport CreateReport(WordDocument document, int sectionCount, TimeSpan elapsed) =>
+        new(document.FilePath ?? "Word", "Doc", itemsWritten: sectionCount,
             elapsed: elapsed, diagnostics: _diagnostics.Values);
 
     public void Dispose() => Active.Value = _previous;
