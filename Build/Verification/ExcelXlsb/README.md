@@ -19,7 +19,8 @@ attribute order, and the order of relationship and content-type declarations
 as equivalent. It resolves internal relationship targets and compares typed
 XML relationship references by their target. For XLSX it can pair renamed parts
 through the same relationship edges and compares their content types and bytes
-under that mapping. It ignores the modification time
+under that mapping. An omitted worksheet dimension is equivalent to one that
+exactly describes the bounds of the stored cells. It ignores the modification time
 written on save and compares the remaining core properties. Refusals must have
 the same exception type and message.
 

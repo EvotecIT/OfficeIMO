@@ -9,6 +9,7 @@ from io import BytesIO
 import os
 from pathlib import Path
 import posixpath
+import re
 import shutil
 import subprocess
 import xml.etree.ElementTree as ET
@@ -37,6 +38,8 @@ PACKAGE_REL = "{http://schemas.openxmlformats.org/package/2006/relationships}Rel
 OFFICE_REL = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 STRICT_OFFICE_REL = "{http://purl.oclc.org/ooxml/officeDocument/relationships}"
 VML_REL = "{urn:schemas-microsoft-com:office:office}relid"
+SPREADSHEET = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+CELL_REFERENCE = re.compile(r"([A-Z]{1,3})([1-9][0-9]{0,6})")
 
 
 def run(command, cwd, **kwargs):
@@ -233,10 +236,40 @@ def stable_relationships(parts, aliases):
     return ids, documents
 
 
+def remove_computed_dimension(root):
+    """A worksheet can omit a dimension whose value is exactly the bounds of its cells."""
+    if root.tag != SPREADSHEET + "worksheet":
+        return
+    dimensions = root.findall(SPREADSHEET + "dimension")
+    if len(dimensions) != 1:
+        return
+    dimension = dimensions[0]
+    if set(dimension.attrib) != {"ref"} or len(dimension) or dimension.text:
+        return
+    cells = root.findall(f"{SPREADSHEET}sheetData/{SPREADSHEET}row/{SPREADSHEET}c")
+    rows, columns = [], []
+    for cell in cells:
+        match = CELL_REFERENCE.fullmatch(cell.get("r", ""))
+        if match is None:
+            return
+        column, row = match.groups()
+        rows.append(int(row))
+        columns.append(column)
+    reference = "A1"
+    if rows:
+        order = lambda col: (len(col), col)
+        first = f"{min(columns, key=order)}{min(rows)}"
+        last = f"{max(columns, key=order)}{max(rows)}"
+        reference = first if first == last else f"{first}:{last}"
+    if dimension.get("ref") == reference:
+        root.remove(dimension)
+
+
 def normalized_xml(data, part, ids, relationships, aliases):
     root = relationships.get(part)
     if root is None:
         root = normalize_qualified_values(ET.iterparse(BytesIO(data), events=("start-ns", "start", "end")))
+        remove_computed_dimension(root)
         part_ids = ids.get(part)
         if part_ids:
             for node in root.iter():
