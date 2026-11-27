@@ -10,15 +10,31 @@ namespace OfficeIMO.PowerPoint {
         private const int D = OfficeXmlNamespaces.DrawingML;
         private const int Pml = OfficeXmlNamespaces.PresentationML;
 
-        private static OfficeXmlNode GetSlideColorScheme(PowerPointSlide slide) =>
-            PowerPointThemeScope.For(slide.PartRef).ColorScheme;
+        // While a slide renders, its theme scope is resolved once instead of for every shape. Outside a render, and
+        // once the SDK opens part way through one, it is resolved again, so later edits are always seen.
+        [ThreadStatic] private static PowerPointSlide? _renderingSlide;
+        [ThreadStatic] private static bool _renderingScopeResolved;
+        [ThreadStatic] private static bool _renderingScopeSdk;
+        [ThreadStatic] private static PowerPointThemeScope _renderingScope;
 
-        private static OfficeXmlNode GetSlideFormatScheme(PowerPointSlide slide) =>
-            PowerPointThemeScope.For(slide.PartRef).FormatScheme;
+        private static PowerPointThemeScope ThemeScope(PowerPointSlide slide) {
+            if (!ReferenceEquals(slide, _renderingSlide)) return PowerPointThemeScope.For(slide.PartRef);
+            bool sdk = slide.OwnerDocument?.IsSdkLoaded == true;
+            if (!_renderingScopeResolved || _renderingScopeSdk != sdk) {
+                _renderingScope = PowerPointThemeScope.For(slide.PartRef);
+                _renderingScopeSdk = sdk;
+                _renderingScopeResolved = true;
+            }
+            return _renderingScope;
+        }
+
+        private static OfficeXmlNode GetSlideColorScheme(PowerPointSlide slide) => ThemeScope(slide).ColorScheme;
+
+        private static OfficeXmlNode GetSlideFormatScheme(PowerPointSlide slide) => ThemeScope(slide).FormatScheme;
 
         /// <summary>The color map the slide's scheme colors go through, or none without a slide.</summary>
         private static OfficeXmlNode GetSlideColorMap(PowerPointSlide? slide) =>
-            slide == null ? default : PowerPointThemeScope.For(slide.PartRef).ColorMap;
+            slide == null ? default : ThemeScope(slide).ColorMap;
 
         /// <summary>The color map of the slide a part ref names, or none for no slide.</summary>
         private static OfficeXmlNode GetSlideColorMap(PowerPointPartRef slide) =>

@@ -32,16 +32,19 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            // The built-in styles are parsed for each lookup, so callers never share or edit one tree.
-            byte[] builtIn = PowerPointUtils.TableStylesBytes.Value;
-            OfficeXmlTree tree;
-            try {
-                tree = OfficeXmlTree.Parse(builtIn, builtIn.Length, new OfficeXmlNamespaces.Table());
-            } catch (System.Xml.XmlException) {
-                return default;
-            }
-            return FindTableStyle(new OfficeXmlNode(tree, tree.Root), resolvedStyleId);
+            OfficeXmlTree? tree = BuiltInTableStyles.Value;
+            return tree == null ? default : FindTableStyle(new OfficeXmlNode(tree, tree.Root), resolvedStyleId);
         }
+
+        // The built-in styles, parsed once. The tree is shared, so what comes from it is only ever read, never edited.
+        private static readonly Lazy<OfficeXmlTree?> BuiltInTableStyles = new(() => {
+            byte[] builtIn = PowerPointUtils.TableStylesBytes.Value;
+            try {
+                return OfficeXmlTree.Parse(builtIn, builtIn.Length, new OfficeXmlNamespaces.Table());
+            } catch (System.Xml.XmlException) {
+                return null;
+            }
+        });
 
         /// <summary>The presentation part of the table's slide, or of the part that holds a table of a layout or master.</summary>
         private static PowerPointPartRef ResolveTablePresentationPart(PowerPointTable table) {

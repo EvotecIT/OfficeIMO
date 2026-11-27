@@ -15,6 +15,24 @@ internal static partial class PowerPointSlideImageRenderer {
             options.MaximumTotalEmbeddedImageBytes);
         AddBackgroundRectangle(drawing, options.BackgroundColor, fillGradient: null);
 
+        PowerPointSlide? outerSlide = _renderingSlide;
+        bool outerResolved = _renderingScopeResolved, outerSdk = _renderingScopeSdk;
+        PowerPointThemeScope outerScope = _renderingScope;
+        _renderingSlide = slide;
+        _renderingScopeResolved = false;
+        try {
+            AddSlide(slide, drawing, options, diagnostics, imageBudget, token);
+        } finally {
+            _renderingSlide = outerSlide;
+            _renderingScopeResolved = outerResolved;
+            _renderingScopeSdk = outerSdk;
+            _renderingScope = outerScope;
+        }
+        return drawing;
+    }
+
+    private static void AddSlide(PowerPointSlide slide, OfficeDrawing drawing, PowerPointImageExportOptions options,
+        List<OfficeImageExportDiagnostic> diagnostics, PowerPointEmbeddedImageReadBudget imageBudget, CancellationToken token) {
         if (options.IncludeSlideBackground) {
             AddResolvedBackground(slide, drawing, diagnostics, imageBudget);
         }
@@ -29,8 +47,6 @@ internal static partial class PowerPointSlideImageRenderer {
             AddSlideContent(slide.Shapes, drawing, diagnostics,
                 PowerPointShapeBoundsMapping.Identity, colorScheme, options, imageBudget, 0, token);
         }
-
-        return drawing;
     }
 
     private static void AddSlideContent(IEnumerable<PowerPointShape> shapes, OfficeDrawing drawing,
