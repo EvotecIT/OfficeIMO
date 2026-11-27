@@ -1,4 +1,5 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word;
@@ -10,15 +11,15 @@ public partial class WordTableStyleDetails {
     /// An explicit auto value clears inherited fill.
     /// </remarks>
     internal string ShadingFillValue {
-        get => _tableProperties.GetFirstChild<Shading>()?.Fill?.Value?.ToUpperInvariant() ?? string.Empty;
+        get => Shading.Attribute(W, "fill")?.ToUpperInvariant() ?? string.Empty;
         set {
             string normalized = NormalizeTableShadingColor(value, nameof(ShadingFillColor));
-            if (normalized.Length == 0) { _tableProperties.GetFirstChild<Shading>()?.Remove(); return; }
-            Shading shading = GetOrCreateTableShading();
-            shading.Fill = normalized;
-            shading.ThemeFill = null;
-            shading.ThemeFillTint = null;
-            shading.ThemeFillShade = null;
+            if (normalized.Length == 0) { Shading.Remove(); return; }
+            OfficeXmlNode shading = GetOrCreateTableShading();
+            shading.SetAttribute(W, "fill", normalized);
+            shading.SetAttribute(W, "themeFill", null);
+            shading.SetAttribute(W, "themeFillTint", null);
+            shading.SetAttribute(W, "themeFillShade", null);
         }
     }
 
@@ -32,16 +33,15 @@ public partial class WordTableStyleDetails {
     /// <summary>Native direct shading pattern color as RGB hex or <c>auto</c>.</summary>
     /// <remarks>Empty or null clears only the pattern color, retaining the fill and pattern.</remarks>
     internal string ShadingColorValue {
-        get => _tableProperties.GetFirstChild<Shading>()?.Color?.Value?.ToUpperInvariant() ?? string.Empty;
+        get => Shading.Attribute(W, "color")?.ToUpperInvariant() ?? string.Empty;
         set {
             string normalized = NormalizeTableShadingColor(value, nameof(ShadingColor));
-            Shading? shading = normalized.Length == 0 ? _tableProperties.GetFirstChild<Shading>() : GetOrCreateTableShading();
-            if (shading == null) return;
-            if (normalized.Length == 0) shading.Color = null;
-            else shading.Color = normalized;
-            shading.ThemeColor = null;
-            shading.ThemeTint = null;
-            shading.ThemeShade = null;
+            OfficeXmlNode shading = normalized.Length == 0 ? Shading : GetOrCreateTableShading();
+            if (shading.IsNone) return;
+            shading.SetAttribute(W, "color", normalized.Length == 0 ? null : normalized);
+            shading.SetAttribute(W, "themeColor", null);
+            shading.SetAttribute(W, "themeTint", null);
+            shading.SetAttribute(W, "themeShade", null);
         }
     }
 
@@ -53,19 +53,22 @@ public partial class WordTableStyleDetails {
 
     /// <summary>Gets or sets the direct table shading pattern. Null removes direct table shading.</summary>
     public WordShadingPattern? ShadingPattern {
-        get => _tableProperties.GetFirstChild<Shading>()?.Val?.Value.ToOfficeEnum();
+        get => Shading.Attribute(W, "val") is string token && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordShadingPattern pattern) ? pattern : null;
         set {
-            if (!value.HasValue) { _tableProperties.GetFirstChild<Shading>()?.Remove(); return; }
-            ShadingPatternValues pattern = value.Value.ToOpenXml();
-            GetOrCreateTableShading().Val = pattern;
+            if (!value.HasValue) { Shading.Remove(); return; }
+            string pattern = value.Value.ToOpenXmlToken();
+            GetOrCreateTableShading().SetAttribute(W, "val", pattern);
         }
     }
 
-    private Shading GetOrCreateTableShading() {
-        Shading? shading = _tableProperties.GetFirstChild<Shading>();
-        if (shading == null) {
-            shading = new Shading { Val = ShadingPatternValues.Clear };
-            _tableProperties.AddChild(shading, true);
+    // Only the table's own w:shd counts, not one inside extension markup.
+    private OfficeXmlNode Shading => _properties.Child(W, "shd");
+
+    private OfficeXmlNode GetOrCreateTableShading() {
+        OfficeXmlNode shading = Shading;
+        if (shading.IsNone) {
+            shading = _properties.AddOrdered(W, "shd", WTblPrView.Order);
+            shading.SetAttribute(W, "val", "clear");
         }
         return shading;
     }

@@ -115,7 +115,7 @@ Pick two formats on the [interactive format map](https://officeimo.com/) to see 
 
 ## Read documents for search and AI
 
-`OfficeDocumentReader` from [OfficeIMO.Reader.All](OfficeIMO.Reader.All/README.md) reads any supported format into text, tables, metadata and chunks with source locations, ready for indexing or an AI pipeline. Scanned pages go through an optional OCR provider ([OfficeIMO.Ocr](OfficeIMO.Ocr/README.md)). The `officeimo` MCP server exposes the same reading, search and conversion to agents.
+`OfficeDocumentReader` from [OfficeIMO.Reader.All](OfficeIMO.Reader.All/README.md) reads any supported format into text, tables, metadata and chunks with source locations, ready for indexing or an AI pipeline. [OfficeIMO.Reader.DocumentExtraction](OfficeIMO.Reader.DocumentExtraction/README.md) offers the same reading as a provider for `Microsoft.Extensions.DocumentExtraction` (preview). Scanned pages go through an optional OCR provider ([OfficeIMO.Ocr](OfficeIMO.Ocr/README.md)). The `officeimo` MCP server exposes the same reading, search and conversion to agents.
 
 Before a document leaves your hands, the engines can find and remove author names, comments, tracked changes, hidden text and other [hidden data](Docs/officeimo.hidden-data-support-matrix.md), check accessibility, and sign Word, PDF and email with [OfficeIMO.Security](OfficeIMO.Security/README.md).
 

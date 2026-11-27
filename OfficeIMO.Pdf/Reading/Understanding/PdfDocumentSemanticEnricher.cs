@@ -34,7 +34,14 @@ internal static partial class PdfDocumentSemanticEnricher {
         ApplyOutlineEvidence(document.Outlines, pages, elements, workBudget);
         EnsureElementLimits(elements, maxElementsPerPage);
         TaggedStructureGraph? taggedGraph = taggedTableReads?.Graph ?? BuildTaggedStructureGraph(document, workBudget);
-        TaggedContentRoleIndex? taggedRoles = BuildTaggedContentRoleIndex(document, taggedGraph, workBudget);
+        TaggedContentRoleIndex? taggedRoles;
+        if (taggedTableReads is { RolesBuilt: true }) {
+            // Taking tables from tags built this index from the same graph. Charge the work it took, as building it again would.
+            if (taggedTableReads.RolesWork > 0) workBudget.Consume(taggedTableReads.RolesWork);
+            taggedRoles = taggedTableReads.Roles as TaggedContentRoleIndex;
+        } else {
+            taggedRoles = BuildTaggedContentRoleIndex(document, taggedGraph, workBudget);
+        }
         TaggedFigureCaptionIndex? taggedFigureCaptions = imageRegions.Any(static regions => regions.Count > 0)
             ? BuildTaggedFigureCaptionIndex(document, taggedGraph, workBudget)
             : null;
@@ -502,16 +509,23 @@ internal static partial class PdfDocumentSemanticEnricher {
         PdfTaggedContentInfo tagged = graph.Tagged;
 
         var index = new TaggedContentRoleIndex();
+        // The binding's roles live in this list until the next element; the index copies them.
+        var roles = new List<string>();
+        var visited = new HashSet<int>();
         foreach (PdfStructureElementInfo structureElement in tagged.StructureElements) {
             if (!graph.ReachableObjectNumbers.Contains(structureElement.ObjectNumber)) continue;
-            if (structureElement.MarkedContentReferences.Count == 0) continue;
+            IReadOnlyList<PdfMarkedContentReference> references = structureElement.MarkedContentReferences;
+            if (references.Count == 0) continue;
             TaggedStructureBinding? binding = ResolveTaggedBinding(
                 tagged,
                 graph.StructuresByObject,
                 structureElement,
+                roles,
+                visited,
                 workBudget);
             if (!binding.HasValue) continue;
-            foreach (PdfMarkedContentReference reference in structureElement.MarkedContentReferences) {
+            for (int referenceIndex = 0; referenceIndex < references.Count; referenceIndex++) {
+                PdfMarkedContentReference reference = references[referenceIndex];
                 workBudget.Consume();
                 int? pageObjectNumber = reference.PageObjectNumber ?? binding.Value.PageObjectNumber;
                 int? pageNumber = pageObjectNumber.HasValue
@@ -575,6 +589,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         TaggedContentRoleIndex? taggedRoles,
         PdfUnderstandingWorkBudget workBudget) {
         if (taggedRoles is null) return;
+        var markedContentKeys = new List<MarkedContentKey>();
+        var markedContentKeySet = new HashSet<MarkedContentKey>();
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             int pageNumber = pageNumbers[pageIndex];
             PdfReadPage readPage = document.Pages[pageNumber - 1];
@@ -586,28 +602,30 @@ internal static partial class PdfDocumentSemanticEnricher {
                 var matches = new List<TaggedLineMatch>();
                 for (int lineIndex = 0; lineIndex < current.Region.Lines.Count; lineIndex++) {
                     PdfUnderstandingLine line = current.Region.Lines[lineIndex];
-                    MarkedContentKey[] markedContent = line.Words
-                        .SelectMany(static word => word.SourceRuns)
-                        .Where(static run => run.MarkedContentId.HasValue)
-                        .Select(static run => new MarkedContentKey(run.ContentStreamObjectNumber, run.MarkedContentId!.Value))
-                        .Distinct()
-                        .ToArray();
-                    if (markedContent.Length == 0) continue;
-                    workBudget.Consume(markedContent.Length);
-                    TaggedRole? bestRole = markedContent
-                        .SelectMany(GetRoles)
-                        .Select(TryMapTaggedRole)
-                        .Where(static role => role.HasValue)
-                        .OrderBy(static role => role!.Value.Priority)
-                        .ThenBy(static role => role!.Value.Level ?? int.MaxValue)
-                        .FirstOrDefault();
+                    CollectDistinctMarkedContent(line, markedContentKeys, markedContentKeySet);
+                    int keyCount = markedContentKeys.Count;
+                    if (keyCount == 0) continue;
+                    workBudget.Consume(keyCount);
+                    TaggedRole? bestRole = null;
+                    for (int keyIndex = 0; keyIndex < keyCount; keyIndex++) {
+                        IReadOnlyList<string> keyRoles = taggedRoles.GetRoles(pageNumber, readPage, markedContentKeys[keyIndex]);
+                        for (int roleIndex = 0; roleIndex < keyRoles.Count; roleIndex++) {
+                            TaggedRole? role = TryMapTaggedRole(keyRoles[roleIndex]);
+                            // The first role with the lowest priority, then the lowest level, wins.
+                            if (role.HasValue && (!bestRole.HasValue || IsPreferredTaggedRole(role.Value, bestRole.Value))) bestRole = role;
+                        }
+                    }
                     if (!bestRole.HasValue) continue;
-                    TaggedListContent?[] memberships = markedContent
-                        .Select(key => taggedRoles.GetListContent(pageNumber, readPage, key)).ToArray();
-                    int? listOwner = memberships.All(static item => item.HasValue) &&
-                        memberships.Select(static item => item!.Value.ObjectNumber).Distinct().Count() == 1
-                        ? memberships[0]!.Value.ObjectNumber : null;
-                    matches.Add(new TaggedLineMatch(line, markedContent, bestRole.Value, listOwner));
+                    int? listOwner = null;
+                    for (int keyIndex = 0; keyIndex < keyCount; keyIndex++) {
+                        TaggedListContent? membership = taggedRoles.GetListContent(pageNumber, readPage, markedContentKeys[keyIndex]);
+                        if (!membership.HasValue || (listOwner.HasValue && listOwner.Value != membership.Value.ObjectNumber)) {
+                            listOwner = null;
+                            break;
+                        }
+                        listOwner = membership.Value.ObjectNumber;
+                    }
+                    matches.Add(new TaggedLineMatch(line, markedContentKeys.ToArray(), bestRole.Value, listOwner));
                 }
                 if (matches.Count == 0) {
                     enriched.Add(current);
@@ -638,11 +656,44 @@ internal static partial class PdfDocumentSemanticEnricher {
                 }
             }
             elements[pageIndex] = enriched;
+        }
+    }
 
-            IEnumerable<string> GetRoles(MarkedContentKey key) {
-                foreach (string role in taggedRoles.GetRoles(pageNumber, readPage, key)) yield return role;
+    // Lines usually carry a few marked-content keys, so a short list is searched directly; the set takes over beyond that.
+    private const int MarkedContentKeysWithoutSet = 16;
+
+    /// <summary>Collects the line's distinct marked-content keys in first-seen order.</summary>
+    private static void CollectDistinctMarkedContent(
+        PdfUnderstandingLine line,
+        List<MarkedContentKey> keys,
+        HashSet<MarkedContentKey> keySet) {
+        keys.Clear();
+        bool usingSet = false;
+        IReadOnlyList<PdfUnderstandingWord> words = line.Words;
+        for (int wordIndex = 0; wordIndex < words.Count; wordIndex++) {
+            IReadOnlyList<PdfTextSpan> runs = words[wordIndex].SourceRuns;
+            for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+                PdfTextSpan run = runs[runIndex];
+                if (!run.MarkedContentId.HasValue) continue;
+                var key = new MarkedContentKey(run.ContentStreamObjectNumber, run.MarkedContentId.Value);
+                if (usingSet) {
+                    if (keySet.Add(key)) keys.Add(key);
+                    continue;
+                }
+                if (keys.Contains(key)) continue;
+                keys.Add(key);
+                if (keys.Count > MarkedContentKeysWithoutSet) {
+                    keySet.Clear();
+                    keySet.UnionWith(keys);
+                    usingSet = true;
+                }
             }
         }
+    }
+
+    private static bool IsPreferredTaggedRole(TaggedRole candidate, TaggedRole best) {
+        if (candidate.Priority != best.Priority) return candidate.Priority < best.Priority;
+        return (candidate.Level ?? int.MaxValue) < (best.Level ?? int.MaxValue);
     }
 
     private static void ApplyTaggedTableHeaderEvidence(
@@ -839,9 +890,11 @@ internal static partial class PdfDocumentSemanticEnricher {
         PdfTaggedContentInfo tagged,
         Dictionary<int, PdfStructureElementInfo> structuresByObject,
         PdfStructureElementInfo structureElement,
+        List<string> roles,
+        HashSet<int> visited,
         PdfUnderstandingWorkBudget workBudget) {
-        var visited = new HashSet<int>();
-        var roles = new List<string>();
+        visited.Clear();
+        roles.Clear();
         PdfStructureElementInfo? current = structureElement;
         int? pageObjectNumber = null;
         string? alternativeText = null;
@@ -865,7 +918,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 }
                 if (string.Equals(candidate, "TOCI", StringComparison.OrdinalIgnoreCase)) contentsOwner ??= current.ObjectNumber;
                 if (string.Equals(candidate, "TOC", StringComparison.OrdinalIgnoreCase)) contentsDepth++;
-                if (!roles.Contains(candidate, StringComparer.OrdinalIgnoreCase)) roles.Add(candidate);
+                if (!ContainsIgnoreCase(roles, candidate)) roles.Add(candidate);
                 if (alternativeText is null &&
                     string.Equals(candidate, "Figure", StringComparison.OrdinalIgnoreCase) &&
                     !string.IsNullOrWhiteSpace(current.AlternateText)) {
@@ -879,9 +932,16 @@ internal static partial class PdfDocumentSemanticEnricher {
         }
         return roles.Count == 0
             ? null
-            : new TaggedStructureBinding(roles.AsReadOnly(), pageObjectNumber, alternativeText,
+            : new TaggedStructureBinding(roles, pageObjectNumber, alternativeText,
                 listOwner.HasValue ? new TaggedListContent(listOwner.Value, Math.Max(listItemDepth, listContainerDepth), listLabel) : null,
                 contentsOwner.HasValue ? new TaggedContentsContent(contentsOwner.Value, Math.Max(1, contentsDepth)) : null);
+    }
+
+    private static bool ContainsIgnoreCase(List<string> values, string value) {
+        for (int index = 0; index < values.Count; index++) {
+            if (string.Equals(values[index], value, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 
     private static TaggedRole? TryMapTaggedRole(string role) {
@@ -1091,12 +1151,12 @@ internal static partial class PdfDocumentSemanticEnricher {
                 _rolesByPage.Add(pageNumber, pageRoles);
             }
             if (!pageRoles.TryGetValue(key, out List<string>? values)) {
-                values = new List<string>();
+                values = new List<string>(roles.Count);
                 pageRoles.Add(key, values);
             }
             for (int index = 0; index < roles.Count; index++) {
                 string role = roles[index];
-                if (!values.Contains(role, StringComparer.OrdinalIgnoreCase)) values.Add(role);
+                if (!ContainsIgnoreCase(values, role)) values.Add(role);
             }
             if (key.ContentStreamObjectNumber.HasValue) {
                 if (!_scopedKeysByPageAndMcid.TryGetValue(pageNumber, out Dictionary<int, List<MarkedContentKey>>? pageScopedKeys)) {
