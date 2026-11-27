@@ -394,7 +394,8 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     inspectedTabStops++;
-                    if (tabStop.WAttr("pos") == null) {
+                    // A stop without a readable position has no place on the line.
+                    if (tabStop.WInt32("pos") == null) {
                         continue;
                     }
 

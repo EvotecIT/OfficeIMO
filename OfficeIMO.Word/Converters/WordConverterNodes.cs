@@ -417,9 +417,16 @@ internal static class WordConverterNodes {
             _wpsShape = (Wps.WordprocessingShape?)wpsShape.SdkElement
         };
 
-    /// <summary>A tab stop of <paramref name="paragraph"/> over a detached copy of a <c>w:tab</c>.</summary>
-    internal static WordTabStop DetachedTabStop(WordParagraph paragraph, OfficeXmlNode tabStop) =>
-        new(paragraph, (W.TabStop)((W.TabStop)tabStop.SdkElement!).CloneNode(true));
+    /// <summary>
+    /// A tab stop of <paramref name="paragraph"/> over a detached copy of a <c>w:tab</c>. An alignment or leader token
+    /// the schema doesn't define is left out of the copy, so it reads as missing.
+    /// </summary>
+    internal static WordTabStop DetachedTabStop(WordParagraph paragraph, OfficeXmlNode tabStop) {
+        var copy = (W.TabStop)((W.TabStop)tabStop.SdkElement!).CloneNode(true);
+        if (copy.Val is { HasValue: false }) copy.Val = null;
+        if (copy.Leader is { HasValue: false }) copy.Leader = null;
+        return new WordTabStop(paragraph, copy);
+    }
 
     // ---- Detached elements ----------------------------------------------------------------------------------------
 
