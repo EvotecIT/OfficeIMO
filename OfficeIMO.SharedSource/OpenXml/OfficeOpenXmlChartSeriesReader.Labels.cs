@@ -356,4 +356,3 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
     internal static LabelLayout ReadLabels(C.Chart chart, A.ColorScheme? scheme = null) =>
         ReadLabels(OfficeXmlNode.FromSdk(chart), OfficeXmlNode.FromSdk(scheme));
 }
-
