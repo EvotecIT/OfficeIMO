@@ -1,10 +1,9 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private IReadOnlyList<OpenXmlElement> BuildLinkedInlineContent(
+        private IReadOnlyList<OfficeXmlNode> BuildLinkedInlineContent(
             IElement link,
             WordDocument document,
             WordSection section,
@@ -29,8 +28,8 @@ namespace OfficeIMO.Word.Html {
                     ProcessLinkedInlineNode(child, document, section, options, temporary,
                         listStack, formatting, cell, headerFooter, headingList);
                 }
-                var inlineContent = temporary._paragraph.ChildElements
-                    .Where(child => child is not ParagraphProperties)
+                var inlineContent = temporary.Node().Children().ToList()
+                    .Where(child => !child.IsW("pPr"))
                     .ToList();
                 captured = true;
                 return inlineContent;
@@ -38,7 +37,7 @@ namespace OfficeIMO.Word.Html {
                 _suppressAutoLinksDepth--;
                 // The moved drawing still uses the image part, so remove only the temporary
                 // OpenXML paragraph. WordParagraph.Remove would also delete that image part.
-                if (captured) temporary._paragraph.Remove();
+                if (captured) temporary.Node().Remove();
                 else temporary.Remove();
             }
         }

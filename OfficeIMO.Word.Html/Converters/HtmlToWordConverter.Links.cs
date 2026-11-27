@@ -5,8 +5,8 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
+using OfficeIMO.OpenXml.Internal;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
@@ -91,12 +91,12 @@ namespace OfficeIMO.Word.Html {
             if (paragraph == null) {
                 return;
             }
-            var runs = paragraph._paragraph.Elements<Run>().ToList();
+            var runs = paragraph.Node().WElements("r").ToList();
             foreach (var run in runs) {
-                if (run.GetFirstChild<FootnoteReferenceMark>() != null) {
+                if (run.WChild("footnoteRef").Exists) {
                     continue;
                 }
-                if (run.GetFirstChild<EndnoteReferenceMark>() != null) {
+                if (run.WChild("endnoteRef").Exists) {
                     continue;
                 }
                 run.Remove();
@@ -115,17 +115,12 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            Paragraph? firstParagraphElement = doc._wordprocessingDocument
-                .MainDocumentPart?
-                .Document?
-                .Body?
-                .Descendants<Paragraph>()
-                .FirstOrDefault();
-            if (firstParagraphElement == null) {
+            OfficeXmlNode firstParagraphElement = doc.BodyNode().FirstDescendantElement(WordXml.W, "p");
+            if (firstParagraphElement.IsNone) {
                 return;
             }
 
-            var firstParagraph = new WordParagraph(doc, firstParagraphElement);
+            var firstParagraph = doc.ParagraphView(firstParagraphElement);
             WordBookmark.AddBookmark(firstParagraph, "_top");
             _pendingTopBookmark = false;
         }

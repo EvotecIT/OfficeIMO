@@ -3,7 +3,7 @@ using AngleSharp.Css.Dom;
 using AngleSharp.Css.Parser;
 using AngleSharp.Css.Values;
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Color = OfficeIMO.OfficeColor;
@@ -18,11 +18,11 @@ namespace OfficeIMO.Word.Html {
         }
 
         private struct TextFormatting {
-            internal TextFormatting(bool? bold = null, bool? italic = null, bool? underline = null, string? colorHex = null, string? fontFamily = null, double? fontSize = null, bool superscript = false, bool subscript = false, bool? strike = null, HighlightColorValues? highlight = null, string? backgroundColorHex = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
+            internal TextFormatting(bool? bold = null, bool? italic = null, bool? underline = null, string? colorHex = null, string? fontFamily = null, double? fontSize = null, bool superscript = false, bool subscript = false, bool? strike = null, WordHighlightColor? highlight = null, string? backgroundColorHex = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
-                UnderlineStyle = underline == true ? UnderlineValues.Single : null;
+                UnderlineStyle = underline == true ? WordUnderlineStyle.Single : null;
                 Strike = strike;
                 DoubleStrike = null;
                 Superscript = superscript;
@@ -43,7 +43,7 @@ namespace OfficeIMO.Word.Html {
             internal bool? Bold { get; set; }
             internal bool? Italic { get; set; }
             internal bool? Underline { get; set; }
-            internal UnderlineValues? UnderlineStyle { get; set; }
+            internal WordUnderlineStyle? UnderlineStyle { get; set; }
             internal bool? Strike { get; set; }
             internal bool? DoubleStrike { get; set; }
             internal bool Superscript { get; set; }
@@ -51,7 +51,7 @@ namespace OfficeIMO.Word.Html {
             internal string? ColorHex { get; set; }
             internal string? FontFamily { get; set; }
             internal double? FontSize { get; set; }
-            internal HighlightColorValues? Highlight { get; set; }
+            internal WordHighlightColor? Highlight { get; set; }
             internal string? BackgroundColorHex { get; set; }
             internal string? BackgroundBackdropColorHex { get; set; }
             internal bool PreserveHighlightOverBackground { get; set; }
@@ -261,7 +261,7 @@ namespace OfficeIMO.Word.Html {
             var declaration = ParseInlineDeclaration(styleAttribute);
             int? marginLeft = parsed.MarginLeft, marginRight = parsed.MarginRight, marginTop = parsed.MarginTop, marginBottom = parsed.MarginBottom;
             int? paddingLeft = parsed.PaddingLeft, paddingRight = parsed.PaddingRight, paddingTop = parsed.PaddingTop, paddingBottom = parsed.PaddingBottom;
-            JustificationValues? alignment = null;
+            WordParagraphAlignment? alignment = null;
 
             var colorVal = NormalizeColor(GetInlinePropertyValue(declaration, styleAttribute, "color"));
             if (colorVal != null) {
@@ -301,9 +301,9 @@ namespace OfficeIMO.Word.Html {
             }
             // inherit and unset take the container's or cell's alignment, so they do not own one.
             if (!string.IsNullOrWhiteSpace(align) && !IsInjectedInheritedProperty(element, "text-align") && !InheritsTextAlign(align)) {
-                _ownAlignmentParagraphs.Add(paragraph._paragraph);
+                _ownAlignmentParagraphs.Add(paragraph.Node());
             }
-            JustificationValues mappedAlignment;
+            WordParagraphAlignment mappedAlignment;
             if (!string.IsNullOrWhiteSpace(align) && IsInjectedInheritedProperty(element, "text-align")
                 && TryResolveInheritedTextAlign(element, out mappedAlignment)) {
                 // A copied value comes from an outer container; a nearer div align between the two wins.
@@ -326,8 +326,8 @@ namespace OfficeIMO.Word.Html {
             if (floatVal != null) {
                 var f = floatVal.ToLowerInvariant();
                 alignment = f switch {
-                    "left" => JustificationValues.Left,
-                    "right" => JustificationValues.Right,
+                    "left" => WordParagraphAlignment.Left,
+                    "right" => WordParagraphAlignment.Right,
                     _ => alignment
                 };
             }
@@ -351,7 +351,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (alignment.HasValue) {
-                paragraph.ParagraphAlignment = alignment.Value.ToOfficeEnum();
+                paragraph.ParagraphAlignment = alignment.Value;
             }
             if (applyVerticalBoxSpacing) {
                 int before = (marginTop ?? 0) + (paddingTop ?? 0);
@@ -437,23 +437,23 @@ namespace OfficeIMO.Word.Html {
                 align = null;
             }
             bool? bidi = GetBidiFromDir(element);
-            if (!TryMapTextAlign(align, bidi, out JustificationValues alignment)
+            if (!TryMapTextAlign(align, bidi, out WordParagraphAlignment alignment)
                 && !(string.IsNullOrWhiteSpace(align) && IsLegacyAlignedBlock(element)
                     && TryMapTextAlign(element.GetAttribute("align"), bidi, out alignment))) {
                 // A reset such as initial keeps outer containers from aligning this element's text.
                 if (!string.IsNullOrWhiteSpace(align) && !InheritsTextAlign(align) && !IsInjectedInheritedProperty(element, "text-align")) {
-                    foreach (WordParagraph paragraph in paragraphs) _ownAlignmentParagraphs.Add(paragraph._paragraph);
+                    foreach (WordParagraph paragraph in paragraphs) _ownAlignmentParagraphs.Add(paragraph.Node());
                 }
                 return;
             }
             foreach (WordParagraph paragraph in paragraphs) {
-                if (!_ownAlignmentParagraphs.Contains(paragraph._paragraph)) paragraph.ParagraphAlignment ??= alignment.ToOfficeEnum();
+                if (!_ownAlignmentParagraphs.Contains(paragraph.Node())) paragraph.ParagraphAlignment ??= alignment;
             }
         }
 
         // Paragraphs whose element declared text-align, including a reset such as initial; a
         // container or table cell alignment does not replace it.
-        private readonly HashSet<DocumentFormat.OpenXml.Wordprocessing.Paragraph> _ownAlignmentParagraphs = new();
+        private readonly HashSet<OfficeXmlNode> _ownAlignmentParagraphs = new();
 
         private static bool InheritsTextAlign(string? value) =>
             string.Equals(value, "inherit", StringComparison.OrdinalIgnoreCase)
@@ -467,8 +467,8 @@ namespace OfficeIMO.Word.Html {
         // inherit and unset defer to the next ancestor. Values copied down from a container are
         // skipped, so an align attribute between the copy and its source still applies; a copy that
         // differs from the declaration found above it came from a nearer stylesheet rule and wins.
-        private bool TryResolveInheritedTextAlign(IElement element, out JustificationValues alignment) {
-            alignment = JustificationValues.Left;
+        private bool TryResolveInheritedTextAlign(IElement element, out WordParagraphAlignment alignment) {
+            alignment = WordParagraphAlignment.Left;
             bool? bidi = GetBidiFromDir(element);
             string? copied = null;
             for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
@@ -492,8 +492,8 @@ namespace OfficeIMO.Word.Html {
         private static bool IsLegacyAlignedBlock(IElement element) =>
             element.LocalName is "p" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6";
 
-        private static bool TryMapTextAlign(string? value, bool? bidi, out JustificationValues alignment) {
-            alignment = JustificationValues.Left;
+        private static bool TryMapTextAlign(string? value, bool? bidi, out WordParagraphAlignment alignment) {
+            alignment = WordParagraphAlignment.Left;
             if (string.IsNullOrWhiteSpace(value)) {
                 return false;
             }
@@ -502,28 +502,28 @@ namespace OfficeIMO.Word.Html {
                 case "center":
                 case "-webkit-center":
                 case "-moz-center":
-                    alignment = JustificationValues.Center;
+                    alignment = WordParagraphAlignment.Center;
                     return true;
                 case "right":
                 case "-webkit-right":
                 case "-moz-right":
-                    alignment = JustificationValues.Right;
+                    alignment = WordParagraphAlignment.Right;
                     return true;
                 case "justify":
                 // Word justifies every line except the last; the last-line part of justify-all is reported.
                 case "justify-all":
-                    alignment = JustificationValues.Both;
+                    alignment = WordParagraphAlignment.Both;
                     return true;
                 case "left":
                 case "-webkit-left":
                 case "-moz-left":
-                    alignment = JustificationValues.Left;
+                    alignment = WordParagraphAlignment.Left;
                     return true;
                 case "start":
-                    alignment = bidi == true ? JustificationValues.Right : JustificationValues.Left;
+                    alignment = bidi == true ? WordParagraphAlignment.Right : WordParagraphAlignment.Left;
                     return true;
                 case "end":
-                    alignment = bidi == true ? JustificationValues.Left : JustificationValues.Right;
+                    alignment = bidi == true ? WordParagraphAlignment.Left : WordParagraphAlignment.Right;
                     return true;
                 default:
                     return false;
@@ -594,7 +594,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static WordParagraph AppendTextSegment(WordParagraph paragraph, string text) {
-            if (GetReusableInitialRun(paragraph) != null) {
+            if (GetReusableInitialRun(paragraph).Exists) {
                 paragraph.CopyRunFormattingToParagraphMark();
                 paragraph.Text = text;
                 return paragraph;
@@ -602,21 +602,22 @@ namespace OfficeIMO.Word.Html {
             return paragraph.AddText(text);
         }
 
-        private static Run? GetReusableInitialRun(WordParagraph paragraph) {
-            var initialRun = paragraph._run;
-            return initialRun?.Parent == paragraph._paragraph && !initialRun.HasAttributes &&
-                initialRun.ChildElements.All(child => child is RunProperties) &&
-                paragraph._paragraph.ChildElements.All(child => child is ParagraphProperties || ReferenceEquals(child, initialRun))
-                ? initialRun : null;
+        private static OfficeXmlNode GetReusableInitialRun(WordParagraph paragraph) {
+            OfficeXmlNode initialRun = paragraph.RunNode();
+            OfficeXmlNode paragraphNode = paragraph.Node();
+            return initialRun.Exists && initialRun.Parent == paragraphNode && !initialRun.HasAttributes &&
+                initialRun.Children().ToList().All(child => child.IsW("rPr")) &&
+                paragraphNode.Children().ToList().All(child => child.IsW("pPr") || child == initialRun)
+                ? initialRun : default;
         }
 
         // Semantic wrappers capture this before processing children. The first text may reuse
         // the formatting-only run instead of adding a run, so count it only after it receives content.
-        private static (int Count, Run? InitialRun) CaptureTextRunStart(WordParagraph paragraph) =>
+        private static (int Count, OfficeXmlNode InitialRun) CaptureTextRunStart(WordParagraph paragraph) =>
             (paragraph.GetRuns().Count(), GetReusableInitialRun(paragraph));
 
-        private static int FirstEmittedTextRunIndex((int Count, Run? InitialRun) start) =>
-            start.InitialRun?.ChildElements.Any(child => child is not RunProperties) == true ? start.Count - 1 : start.Count;
+        private static int FirstEmittedTextRunIndex((int Count, OfficeXmlNode InitialRun) start) =>
+            start.InitialRun.Exists && start.InitialRun.Children().ToList().Any(child => !child.IsW("rPr")) ? start.Count - 1 : start.Count;
 
         private static string ApplyWhiteSpace(string text, WhiteSpaceMode? mode) {
             if (!mode.HasValue) {
@@ -643,19 +644,19 @@ namespace OfficeIMO.Word.Html {
             if (formatting.Bold.HasValue) run.SetBold(formatting.Bold.Value);
             if (formatting.Italic.HasValue) run.SetItalic(formatting.Italic.Value);
             if (formatting.Underline.HasValue) run.SetUnderline((formatting.Underline.Value
-                ? GetUnderlineValue(formatting) ?? UnderlineValues.Single : UnderlineValues.None).ToOfficeEnum());
+                ? GetUnderlineValue(formatting) ?? WordUnderlineStyle.Single : WordUnderlineStyle.None));
             if (formatting.Strike.HasValue) {
                 run.SetStrikethrough(formatting.Strike.Value);
-                if (!formatting.Strike.Value) run.ScopedRunProperties!.Strike = new Strike { Val = false };
+                if (!formatting.Strike.Value) WordXmlEdits.ReplaceChild(run.ScopedRunPropertiesNode(), "strike", WRPrView.Order, "false");
             }
             if (formatting.DoubleStrike.HasValue) {
                 run.SetDoubleStrikethrough(formatting.DoubleStrike.Value);
-                if (!formatting.DoubleStrike.Value) run.ScopedRunProperties!.DoubleStrike = new DoubleStrike { Val = false };
+                if (!formatting.DoubleStrike.Value) WordXmlEdits.ReplaceChild(run.ScopedRunPropertiesNode(), "dstrike", WRPrView.Order, "false");
             }
             if (formatting.Superscript) run.SetSuperscript();
             if (formatting.Subscript) run.SetSubscript();
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColor(OfficeIMO.OfficeColor.Parse(formatting.ColorHex!));
-            if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value.ToOfficeEnum());
+            if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value);
             ApplyTextBackground(run, formatting, options);
             if (formatting.FontSize.HasValue) SetRunFontSizePoints(run, formatting.FontSize.Value);
             if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);
@@ -674,12 +675,63 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static UnderlineValues? GetUnderlineValue(TextFormatting formatting) =>
-            formatting.Underline == true ? formatting.UnderlineStyle ?? UnderlineValues.Single : null;
+        private static WordUnderlineStyle? GetUnderlineValue(TextFormatting formatting) =>
+            formatting.Underline == true ? formatting.UnderlineStyle ?? WordUnderlineStyle.Single : null;
+
+        /// <summary>The text-decoration style CSS gave, as a Word underline style.</summary>
+        private static WordUnderlineStyle? CssUnderlineStyle(CssStyleMapper.CssProperties parsed) =>
+            UnderlineStyleFromToken(((DocumentFormat.OpenXml.IEnumValue?)parsed.UnderlineStyle)?.Value); // SDK-SHIM
+
+        /// <summary>The underline style an <c>ST_Underline</c> token names, or null for an unknown token.</summary>
+        private static WordUnderlineStyle? UnderlineStyleFromToken(string? token) => token switch {
+            "single" => WordUnderlineStyle.Single,
+            "words" => WordUnderlineStyle.Words,
+            "double" => WordUnderlineStyle.Double,
+            "thick" => WordUnderlineStyle.Thick,
+            "dotted" => WordUnderlineStyle.Dotted,
+            "dottedHeavy" => WordUnderlineStyle.DottedHeavy,
+            "dash" => WordUnderlineStyle.Dash,
+            "dashedHeavy" => WordUnderlineStyle.DashedHeavy,
+            "dashLong" => WordUnderlineStyle.DashLong,
+            "dashLongHeavy" => WordUnderlineStyle.DashLongHeavy,
+            "dotDash" => WordUnderlineStyle.DotDash,
+            "dashDotHeavy" => WordUnderlineStyle.DashDotHeavy,
+            "dotDotDash" => WordUnderlineStyle.DotDotDash,
+            "dashDotDotHeavy" => WordUnderlineStyle.DashDotDotHeavy,
+            "wave" => WordUnderlineStyle.Wave,
+            "wavyHeavy" => WordUnderlineStyle.WavyHeavy,
+            "wavyDouble" => WordUnderlineStyle.WavyDouble,
+            "none" => WordUnderlineStyle.None,
+            _ => null
+        };
+
+        /// <summary>The <c>ST_Underline</c> token of an underline style.</summary>
+        private static string UnderlineStyleToken(WordUnderlineStyle style) => style switch {
+            WordUnderlineStyle.Single => "single",
+            WordUnderlineStyle.Words => "words",
+            WordUnderlineStyle.Double => "double",
+            WordUnderlineStyle.Thick => "thick",
+            WordUnderlineStyle.Dotted => "dotted",
+            WordUnderlineStyle.DottedHeavy => "dottedHeavy",
+            WordUnderlineStyle.Dash => "dash",
+            WordUnderlineStyle.DashedHeavy => "dashedHeavy",
+            WordUnderlineStyle.DashLong => "dashLong",
+            WordUnderlineStyle.DashLongHeavy => "dashLongHeavy",
+            WordUnderlineStyle.DotDash => "dotDash",
+            WordUnderlineStyle.DashDotHeavy => "dashDotHeavy",
+            WordUnderlineStyle.DotDotDash => "dotDotDash",
+            WordUnderlineStyle.DashDotDotHeavy => "dashDotDotHeavy",
+            WordUnderlineStyle.Wave => "wave",
+            WordUnderlineStyle.WavyHeavy => "wavyHeavy",
+            WordUnderlineStyle.WavyDouble => "wavyDouble",
+            WordUnderlineStyle.None => "none",
+            _ => throw new ArgumentOutOfRangeException(nameof(style), style, "Unsupported underline style.")
+        };
 
         private static void ApplySpanStyles(IElement element, ref TextFormatting formatting) {
             var styleText = element.GetAttribute("style") ?? string.Empty;
             var parsed = CssStyleMapper.ParseStyles(styleText);
+            WordUnderlineStyle? parsedUnderlineStyle = CssUnderlineStyle(parsed);
             var declaration = ParseInlineDeclaration(styleText);
             string exactUnderline = element.GetAttribute("data-officeimo-word-underline") ?? string.Empty;
             string exactDoubleStrike = element.GetAttribute("data-officeimo-word-double-strike") ?? string.Empty;
@@ -687,7 +739,7 @@ namespace OfficeIMO.Word.Html {
             if (!string.IsNullOrWhiteSpace(language)) {
                 formatting.Language = language;
             }
-            if (string.IsNullOrWhiteSpace(styleText) && declaration.Length == 0 && parsed.BackgroundColor == null && !parsed.Underline.HasValue && !parsed.Strike.HasValue && !parsed.UnderlineStyle.HasValue && string.IsNullOrWhiteSpace(exactUnderline) && string.IsNullOrWhiteSpace(exactDoubleStrike)) {
+            if (string.IsNullOrWhiteSpace(styleText) && declaration.Length == 0 && parsed.BackgroundColor == null && !parsed.Underline.HasValue && !parsed.Strike.HasValue && !parsedUnderlineStyle.HasValue && string.IsNullOrWhiteSpace(exactUnderline) && string.IsNullOrWhiteSpace(exactDoubleStrike)) {
                 return;
             }
 
@@ -695,7 +747,7 @@ namespace OfficeIMO.Word.Html {
                 && Enum.IsDefined(typeof(WordUnderlineStyle), wordUnderline)
                 && wordUnderline != WordUnderlineStyle.None) {
                 formatting.Underline = true;
-                formatting.UnderlineStyle = wordUnderline.ToOpenXml();
+                formatting.UnderlineStyle = wordUnderline;
             }
             if (bool.TryParse(exactDoubleStrike, out bool doubleStrike) && doubleStrike) {
                 formatting.Strike = false;
@@ -773,16 +825,16 @@ namespace OfficeIMO.Word.Html {
             if (parsed.Underline.HasValue) {
                 formatting.Underline = parsed.Underline.Value;
             }
-            if (parsed.UnderlineStyle.HasValue && (parsed.Underline == true || parsed.Strike != true)) {
-                formatting.UnderlineStyle = parsed.UnderlineStyle.Value;
+            if (parsedUnderlineStyle.HasValue && (parsed.Underline == true || parsed.Strike != true)) {
+                formatting.UnderlineStyle = parsedUnderlineStyle.Value;
             } else if (formatting.Underline == true && !formatting.UnderlineStyle.HasValue) {
-                formatting.UnderlineStyle = UnderlineValues.Single;
+                formatting.UnderlineStyle = WordUnderlineStyle.Single;
             }
             if (parsed.Strike.HasValue) {
                 formatting.Strike = parsed.Strike.Value;
                 if (!parsed.Strike.Value) formatting.DoubleStrike = false;
             }
-            if (parsed.Strike == true && parsed.UnderlineStyle == UnderlineValues.Double) {
+            if (parsed.Strike == true && parsedUnderlineStyle == WordUnderlineStyle.Double) {
                 formatting.Strike = false;
                 formatting.DoubleStrike = true;
             }
@@ -790,7 +842,7 @@ namespace OfficeIMO.Word.Html {
                 && Enum.IsDefined(typeof(WordUnderlineStyle), retainedUnderline)
                 && retainedUnderline != WordUnderlineStyle.None) {
                 formatting.Underline = true;
-                formatting.UnderlineStyle = retainedUnderline.ToOpenXml();
+                formatting.UnderlineStyle = retainedUnderline;
             }
             if (bool.TryParse(exactDoubleStrike, out bool retainedDoubleStrike) && retainedDoubleStrike) {
                 formatting.Strike = false;
@@ -806,7 +858,7 @@ namespace OfficeIMO.Word.Html {
                     formatting.PreserveHighlightOverBackground = false;
                 } else {
                     formatting.BackgroundColorHex = null;
-                    formatting.Highlight = HighlightColorValues.None;
+                    formatting.Highlight = WordHighlightColor.None;
                     formatting.PreserveHighlightOverBackground = false;
                 }
             }

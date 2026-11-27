@@ -58,6 +58,7 @@
         <Using Include="System.Text" />
         <Using Include="System.Collections" />
         <Using Include="DocumentFormat.OpenXml" />
+        <Using Include="OfficeIMO.Word.OpenXml" />
     </ItemGroup>
 
     <ItemGroup>

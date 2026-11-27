@@ -1,7 +1,6 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Internal;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -18,18 +17,26 @@ namespace OfficeIMO.Word.Html {
             return paragraph;
         }
 
-        private static bool IsReplaceableEmptyCellParagraph(WordParagraph paragraph) =>
-            !paragraph._paragraph.ChildElements.Any(IsMeaningfulCellParagraphChild);
+        private static bool IsReplaceableEmptyCellParagraph(WordParagraph paragraph) {
+            foreach (OfficeXmlNode child in paragraph.Node().Children()) {
+                if (IsMeaningfulCellParagraphChild(child)) return false;
+            }
+            return true;
+        }
 
-        private static bool IsMeaningfulCellParagraphChild(OpenXmlElement child) {
-            if (child is ParagraphProperties properties) {
-                return properties.HasChildren || properties.HasAttributes;
+        private static bool IsMeaningfulCellParagraphChild(OfficeXmlNode child) {
+            if (child.IsW("pPr")) {
+                return child.HasChildren() || child.HasAttributes;
             }
 
-            if (child is Run run) {
-                return run.ChildElements.Any(runChild =>
-                    runChild is not RunProperties &&
-                    (runChild is not Text text || !string.IsNullOrEmpty(text.Text)));
+            if (child.IsW("r")) {
+                foreach (OfficeXmlNode runChild in child.Children()) {
+                    if (!runChild.IsW("rPr") &&
+                        (!runChild.IsW("t") || !string.IsNullOrEmpty(runChild.InnerText))) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             return true;
@@ -72,18 +79,19 @@ namespace OfficeIMO.Word.Html {
             IReadOnlyList<WordTable> generatedTables) {
             // Checking each generated table's next sibling avoids PreviousSibling, which scans from the
             // first child of the parent.
-            if (!string.IsNullOrEmpty(paragraph._paragraph.InnerText) ||
-                !generatedTables.Any(table => ReferenceEquals(table._table.NextSibling(), paragraph._paragraph))) {
+            OfficeXmlNode node = paragraph.Node();
+            if (!string.IsNullOrEmpty(node.InnerText) ||
+                !generatedTables.Any(table => table.Node().NextSibling == node)) {
                 return false;
             }
 
-            ParagraphProperties? properties = paragraph._paragraph.ParagraphProperties;
-            SpacingBetweenLines? spacing = properties?.GetFirstChild<SpacingBetweenLines>();
-            return paragraph._paragraph.ChildElements.All(element => element is ParagraphProperties) &&
-                   properties?.ChildElements.Count == 1 &&
-                   spacing?.Before?.Value == "0" &&
-                   spacing.After?.Value == "0" &&
-                   spacing.Line?.Value == "0";
+            OfficeXmlNode properties = node.WChild("pPr");
+            OfficeXmlNode spacing = properties.WChild("spacing");
+            return node.Children().ToList().All(element => element.IsW("pPr")) &&
+                   properties.Exists && properties.Children().Count == 1 &&
+                   spacing.WAttr("before") == "0" &&
+                   spacing.WAttr("after") == "0" &&
+                   spacing.WAttr("line") == "0";
         }
 
         private static bool ShouldReuseInitialWordSection(IElement element, WordDocument doc, WordSection section) {
@@ -109,20 +117,20 @@ namespace OfficeIMO.Word.Html {
             IReadOnlyList<WordTable> tables) {
             bool breakBefore = StyleRequestsPageBreakBefore(element);
             bool breakAfter = StyleRequestsPageBreakAfter(element);
-            OpenXmlElement? first = GetGeneratedBlockBoundary(paragraphs, tables, first: true);
-            OpenXmlElement? last = GetGeneratedBlockBoundary(paragraphs, tables, first: false);
-            if (first == null || last == null) {
+            OfficeXmlNode first = GetGeneratedBlockBoundary(paragraphs, tables, first: true);
+            OfficeXmlNode last = GetGeneratedBlockBoundary(paragraphs, tables, first: false);
+            if (first.IsNone || last.IsNone) {
                 return;
             }
 
             if (breakBefore) {
                 WordParagraph? paragraph = paragraphs.FirstOrDefault(
-                    candidate => ReferenceEquals(candidate._paragraph, first));
+                    candidate => candidate.Node() == first);
                 if (paragraph != null) {
                     paragraph.PageBreakBefore = true;
                 } else {
                     WordTable? table = tables.FirstOrDefault(
-                        candidate => ReferenceEquals(candidate._table, first));
+                        candidate => candidate.Node() == first);
                     if (table != null) {
                         InsertPageBreakAdjacentToTable(table, before: true);
                     }
@@ -131,12 +139,12 @@ namespace OfficeIMO.Word.Html {
 
             if (breakAfter) {
                 WordParagraph? paragraph = paragraphs.FirstOrDefault(
-                    candidate => ReferenceEquals(candidate._paragraph, last));
+                    candidate => candidate.Node() == last);
                 if (paragraph != null) {
                     AddPageBreakAfter(paragraph);
                 } else {
                     WordTable? table = tables.FirstOrDefault(
-                        candidate => ReferenceEquals(candidate._table, last));
+                        candidate => candidate.Node() == last);
                     if (table != null) {
                         InsertPageBreakAdjacentToTable(table, before: false);
                     }
@@ -144,38 +152,40 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static OpenXmlElement? GetGeneratedBlockBoundary(
+        private static OfficeXmlNode GetGeneratedBlockBoundary(
             IReadOnlyList<WordParagraph> paragraphs,
             IReadOnlyList<WordTable> tables,
             bool first) {
-            var candidates = new List<OpenXmlElement>(paragraphs.Count + tables.Count);
-            var candidateSet = new HashSet<OpenXmlElement>(OfficeReferenceEqualityComparer<OpenXmlElement>.Instance);
+            var candidates = new List<OfficeXmlNode>(paragraphs.Count + tables.Count);
+            var candidateSet = new HashSet<OfficeXmlNode>();
             foreach (WordParagraph paragraph in paragraphs) {
-                if (candidateSet.Add(paragraph._paragraph)) {
-                    candidates.Add(paragraph._paragraph);
+                OfficeXmlNode node = paragraph.Node();
+                if (candidateSet.Add(node)) {
+                    candidates.Add(node);
                 }
             }
             foreach (WordTable table in tables) {
-                if (candidateSet.Add(table._table)) {
-                    candidates.Add(table._table);
+                OfficeXmlNode node = table.Node();
+                if (candidateSet.Add(node)) {
+                    candidates.Add(node);
                 }
             }
             if (candidates.Count == 0) {
-                return null;
+                return default;
             }
 
-            OpenXmlElement? parent = candidates[0].Parent;
-            if (parent == null) {
+            OfficeXmlNode parent = candidates[0].Parent;
+            if (parent.IsNone) {
                 return first ? candidates[0] : candidates[candidates.Count - 1];
             }
 
             // Generated blocks sit at the end of their container. Walking forward from the first
             // generated paragraph or table usually reaches every other candidate, which avoids
             // scanning all earlier siblings; Open XML siblings cannot be walked backwards cheaply.
-            int inParent = candidates.Count(candidate => ReferenceEquals(candidate.Parent, parent));
-            OpenXmlElement? firstTable = tables.Count > 0 && ReferenceEquals(tables[0]._table.Parent, parent) ? tables[0]._table : null;
-            if (TryFindCandidateRange(candidates[0], candidateSet, inParent, out OpenXmlElement? earliest, out OpenXmlElement? latest) ||
-                (firstTable != null && TryFindCandidateRange(firstTable, candidateSet, inParent, out earliest, out latest)) ||
+            int inParent = candidates.Count(candidate => candidate.Parent == parent);
+            OfficeXmlNode firstTable = tables.Count > 0 && tables[0].Node().Parent == parent ? tables[0].Node() : default;
+            if (TryFindCandidateRange(candidates[0], candidateSet, inParent, out OfficeXmlNode earliest, out OfficeXmlNode latest) ||
+                (firstTable.Exists && TryFindCandidateRange(firstTable, candidateSet, inParent, out earliest, out latest)) ||
                 TryFindCandidateRange(parent.FirstChild, candidateSet, inParent, out earliest, out latest)) {
                 return first ? earliest : latest;
             }
@@ -184,17 +194,17 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool TryFindCandidateRange(
-            OpenXmlElement? start,
-            HashSet<OpenXmlElement> candidates,
+            OfficeXmlNode start,
+            HashSet<OfficeXmlNode> candidates,
             int expected,
-            out OpenXmlElement? earliest,
-            out OpenXmlElement? latest) {
-            earliest = null;
-            latest = null;
+            out OfficeXmlNode earliest,
+            out OfficeXmlNode latest) {
+            earliest = default;
+            latest = default;
             int found = 0;
-            for (OpenXmlElement? sibling = start; sibling != null; sibling = sibling.NextSibling()) {
+            for (OfficeXmlNode sibling = start; sibling.Exists; sibling = sibling.NextSibling) {
                 if (candidates.Contains(sibling)) {
-                    earliest ??= sibling;
+                    if (earliest.IsNone) earliest = sibling;
                     latest = sibling;
                     found++;
                 }
@@ -204,12 +214,22 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void InsertPageBreakAdjacentToTable(WordTable table, bool before) {
-            var paragraph = new Paragraph(new Run(new Break { Type = BreakValues.Page }));
+            OfficeXmlNode tableNode = table.Node();
+            OfficeXmlNode paragraph = CreatePageBreakParagraph();
             if (before) {
-                table._table.InsertBeforeSelf(paragraph);
+                tableNode.Parent.InsertBefore(paragraph, tableNode);
             } else {
-                table._table.InsertAfterSelf(paragraph);
+                tableNode.InsertAfterSelf(paragraph);
             }
+        }
+
+        /// <summary>A detached <c>w:p</c> holding one run with a page break.</summary>
+        private static OfficeXmlNode CreatePageBreakParagraph() {
+            OfficeXmlNode paragraph = WordConverterNodes.CreateDetachedParagraph();
+            OfficeXmlNode run = paragraph.Append(paragraph.CreateElement(WordXml.W, "r"));
+            OfficeXmlNode pageBreak = run.Append(run.CreateElement(WordXml.W, "br"));
+            pageBreak.SetAttribute(WordXml.W, "type", "page");
+            return paragraph;
         }
     }
 }

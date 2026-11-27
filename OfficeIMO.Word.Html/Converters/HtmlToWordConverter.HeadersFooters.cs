@@ -1,5 +1,4 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
