@@ -1,44 +1,49 @@
 using System.Security.Cryptography;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>
     /// Fingerprints background XML together with directly related image bytes so
-    /// in-place ImagePart replacements cannot be mistaken for no-op edits.
+    /// in-place image part replacements cannot be mistaken for no-op edits.
     /// </summary>
     internal static class LegacyPptBackgroundProjectionFingerprint {
-        internal static string Create(OpenXmlPart ownerPart,
-            P.Background? background) {
-            ArgumentNullException.ThrowIfNull(ownerPart);
-            if (background == null) return string.Empty;
+        /// <summary>The fingerprint of the background of a slide-like part (its <c>p:cSld/p:bg</c>).</summary>
+        internal static string Create(LegacyPptPartView ownerPart) =>
+            Create(ownerPart, ownerPart.Root.Child(LegacyPptXml.P, "cSld").Child(LegacyPptXml.P, "bg"));
+
+        internal static string Create(LegacyPptPartView ownerPart,
+            OfficeXmlNode background) {
+            if (ownerPart.IsNone) throw new ArgumentNullException(nameof(ownerPart));
+            if (background.IsNone) return string.Empty;
             using IncrementalHash fingerprint = LegacyPptProjectionDigest
                 .CreateBuilder();
             LegacyPptProjectionDigest.Append(fingerprint,
-                background.OuterXml);
-            foreach (A.Blip blip in background.Descendants<A.Blip>()) {
-                string? relationshipId = blip.Embed?.Value;
+                LegacyPptXml.Digest(background));
+            foreach (OfficeXmlNode blip in background.Descendants(LegacyPptXml.A, "blip")) {
+                string? relationshipId = blip.Attribute(LegacyPptXml.R, "embed");
                 LegacyPptProjectionDigest.Append(fingerprint,
                     "image:" + relationshipId);
                 if (string.IsNullOrWhiteSpace(relationshipId)) continue;
                 try {
-                    if (ownerPart.GetPartById(relationshipId!)
-                            is not ImagePart imagePart) {
+                    if (!ownerPart.TryGetRelationship(relationshipId,
+                            out LegacyPptRelationshipView relationship)
+                        || relationship.IsExternal || relationship.TargetPart.IsNone) {
+                        LegacyPptProjectionDigest.Append(fingerprint,
+                            "unreadable:" + nameof(ArgumentOutOfRangeException));
+                        continue;
+                    }
+                    if (!relationship.IsType(LegacyPptPackageView.ImageRelationshipType)) {
                         LegacyPptProjectionDigest.Append(fingerprint,
                             "not-image");
                         continue;
                     }
+                    LegacyPptPartView imagePart = relationship.TargetPart;
                     LegacyPptProjectionDigest.Append(fingerprint,
                         imagePart.ContentType);
-                    using Stream stream = imagePart.GetStream(FileMode.Open,
-                        FileAccess.Read);
-                    using SHA256 sha256 = SHA256.Create();
                     LegacyPptProjectionDigest.Append(fingerprint,
-                        Convert.ToBase64String(sha256.ComputeHash(stream)));
+                        HashBytes(imagePart.GetBytes()));
                 } catch (Exception exception) when (exception
-                    is ArgumentOutOfRangeException
-                    or InvalidDataException
+                    is InvalidDataException
                     or IOException
                     or NotSupportedException
                     or UnauthorizedAccessException) {
@@ -47,6 +52,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
             }
             return LegacyPptProjectionDigest.Finish(fingerprint);
+        }
+
+        /// <summary>The Base64 SHA-256 of a part's bytes.</summary>
+        internal static string HashBytes(byte[] bytes) {
+#if NET5_0_OR_GREATER
+            return Convert.ToBase64String(SHA256.HashData(bytes));
+#else
+            using SHA256 sha256 = SHA256.Create();
+            return Convert.ToBase64String(sha256.ComputeHash(bytes));
+#endif
         }
     }
 }

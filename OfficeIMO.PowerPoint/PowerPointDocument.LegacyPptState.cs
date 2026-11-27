@@ -1,23 +1,22 @@
-using DocumentFormat.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.Drawing;
-using DocumentFormat.OpenXml.Packaging;
 using System.Security.Cryptography;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        private LegacyPptImportDiagnostic[] _legacyPptImportDiagnostics = Array.Empty<LegacyPptImportDiagnostic>();
+        // Field initializers would run in every constructor, the SDK one included, so these start null.
+        private LegacyPptImportDiagnostic[]? _legacyPptImportDiagnostics;
         private string? _legacyPptSourcePath;
         private LegacyPptPackage? _legacyPptPackage;
         private LegacyPptProjectionMap? _legacyPptProjectionMap;
         private string? _legacyPptProjectionFingerprint;
         private LegacyPptProjectionFingerprint? _legacyPptPreservationFingerprint;
-        private string[] _legacyPptLinkedOleDetails = Array.Empty<string>();
-        private string[] _legacyPptActiveXDetails = Array.Empty<string>();
-        private string[] _legacyPptMediaDetails = Array.Empty<string>();
+        private string[]? _legacyPptLinkedOleDetails;
+        private string[]? _legacyPptActiveXDetails;
+        private string[]? _legacyPptMediaDetails;
         private bool _legacyPptHasVbaContent;
         private bool _legacyPptHadProjectedVbaContent;
         private byte[]? _legacyPptProjectedVbaDigest;
@@ -31,14 +30,13 @@ namespace OfficeIMO.PowerPoint {
         private byte[]? _openXmlOriginalPackageBytes;
 
         /// <summary>Gets the detected physical format of the presentation source.</summary>
-        public PowerPointFileFormat SourceFormat { get; private set; } = PowerPointFileFormat.Pptx;
+        public PowerPointFileFormat SourceFormat { get; private set; }
 
         /// <summary>Gets the concrete source format, including modern template, slideshow, add-in, and macro variants.</summary>
         public OfficeFormatDescriptor SourceFormatDescriptor => IsLegacyBinaryFormat(SourceFormat)
             ? PowerPointFormatCatalog.GetDescriptor(SourceFormat, _legacyPptSourcePath)
-            : OpenXmlDocumentType is { } documentType
-                ? PowerPointFormatCatalog.GetDescriptor(documentType)
-                : PowerPointFormatCatalog.GetDescriptor(SourceFormat, FilePath);
+            : OpenXmlFormatDescriptor
+                ?? PowerPointFormatCatalog.GetDescriptor(SourceFormat, FilePath);
 
         /// <summary>Gets the original legacy source path, or the current Open XML file association.</summary>
         public string? SourcePath => IsLegacyBinaryFormat(SourceFormat)
@@ -46,7 +44,8 @@ namespace OfficeIMO.PowerPoint {
             : string.IsNullOrWhiteSpace(FilePath) ? null : FilePath;
 
         /// <summary>Gets diagnostics produced while importing a legacy binary presentation.</summary>
-        public IReadOnlyList<LegacyPptImportDiagnostic> LegacyPptImportDiagnostics => _legacyPptImportDiagnostics;
+        public IReadOnlyList<LegacyPptImportDiagnostic> LegacyPptImportDiagnostics =>
+            _legacyPptImportDiagnostics ?? Array.Empty<LegacyPptImportDiagnostic>();
 
         /// <summary>Tries to read an original source retained by a compatibility conversion.</summary>
         public bool TryGetCompatibilitySourcePayload(
@@ -67,10 +66,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             try {
-                using var snapshot = new MemoryStream();
-                using (SdkDocument!.Clone(snapshot)) { }
                 return OfficeCompatibilitySourceCarrier.TryReadPackage(
-                    snapshot.ToArray(),
+                    CapturePackageBytes(),
                     out payload,
                     out error);
             } catch (Exception exception) when (
@@ -96,8 +93,10 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptPackage = legacy.Package;
             _openXmlOriginalPackageBytes = null;
             _legacyPptProjectionMap = projectionMap;
-            _legacyPptProjectionFingerprint = CreatePackageFingerprint(SdkDocument!);
-            _legacyPptPreservationFingerprint = LegacyPptProjectionFingerprint.Create(SdkDocument!, projectionMap);
+            // Both fingerprints read a copy of the package, so the presentation stays in whichever model holds it.
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(this);
+            _legacyPptProjectionFingerprint = LegacyPptPackageFingerprint.Create(view);
+            _legacyPptPreservationFingerprint = LegacyPptProjectionFingerprint.Create(view, projectionMap);
             _legacyPptLinkedOleDetails = legacy.LinkedOleObjects.Select(ole =>
                 $"Linked OLE {ole.Id}: {ole.ProgId ?? "unknown class"}, {ole.UpdateMode}, {ole.Length} bytes"
                 + (ole.WasCompressed ? ", compressed source" : string.Empty))
@@ -128,10 +127,7 @@ namespace OfficeIMO.PowerPoint {
                 legacy.HasExternalMediaContent;
             _legacyPptHasRunProgramContent = legacy.HasRunProgramContent;
             _legacyPptHadProjectedRunProgramContent =
-                EnumerateReferencedHyperlinks().Any(item =>
-                    string.Equals(item.Hyperlink.Action?.Value,
-                        "ppaction://program",
-                        StringComparison.OrdinalIgnoreCase));
+                EnumerateReferencedHyperlinks(view).Any(IsRunProgramHyperlink);
             SourceFormat = sourceFormat;
         }
 
@@ -160,15 +156,24 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptActiveXDetails = Array.Empty<string>();
             _legacyPptMediaDetails = Array.Empty<string>();
             ClearLegacyPptSecurityState();
-            SourceFormat = OpenXmlDocumentType
-                == PresentationDocumentType.MacroEnabledPresentation
-                    ? PowerPointFileFormat.Pptm
-                    : PowerPointFileFormat.Pptx;
+            SourceFormat = IsMacroEnabledOpenXmlSource
+                ? PowerPointFileFormat.Pptm
+                : PowerPointFileFormat.Pptx;
         }
 
-        internal bool CanPreserveOriginalLegacyPackage => _legacyPptPackage != null
+        internal bool CanPreserveOriginalLegacyPackage {
+            get {
+                if (_legacyPptPackage == null || _legacyPptProjectionFingerprint == null) return false;
+                using LegacyPptPackageView view = LegacyPptPackageView.Capture(this);
+                return CanPreserveOriginalLegacyPackageIn(view);
+            }
+        }
+
+        /// <summary>Whether the package read through <paramref name="view"/> is still the one the import projected.</summary>
+        internal bool CanPreserveOriginalLegacyPackageIn(LegacyPptPackageView view) =>
+            _legacyPptPackage != null
             && _legacyPptProjectionFingerprint != null
-            && string.Equals(_legacyPptProjectionFingerprint, CreatePackageFingerprint(SdkDocument!),
+            && string.Equals(_legacyPptProjectionFingerprint, LegacyPptPackageFingerprint.Create(view),
                 StringComparison.Ordinal);
 
         internal LegacyPptPackage? LegacyPptPackage => _legacyPptPackage;
@@ -176,13 +181,13 @@ namespace OfficeIMO.PowerPoint {
         internal LegacyPptProjectionMap? LegacyPptProjectionMap => _legacyPptProjectionMap;
 
         internal IReadOnlyList<string> LegacyPptLinkedOleDetails =>
-            _legacyPptLinkedOleDetails;
+            _legacyPptLinkedOleDetails ?? Array.Empty<string>();
 
         internal IReadOnlyList<string> LegacyPptActiveXDetails =>
-            _legacyPptActiveXDetails;
+            _legacyPptActiveXDetails ?? Array.Empty<string>();
 
         internal IReadOnlyList<string> LegacyPptMediaDetails =>
-            _legacyPptMediaDetails;
+            _legacyPptMediaDetails ?? Array.Empty<string>();
 
         internal bool LegacyPptWillPreserveVbaContent =>
             _legacyPptHasVbaContent
@@ -194,23 +199,38 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptHasLinkedOleContent;
         internal bool LegacyPptHasActiveXContent =>
             _legacyPptHasActiveXContent;
-        internal bool LegacyPptWillPreserveExternalHyperlinkContent =>
-            _legacyPptHasExternalHyperlinkContent
-            && EnumerateReferencedHyperlinks().Any(item =>
-                IsExternalHyperlink(item.Part, item.Hyperlink));
+        internal bool LegacyPptWillPreserveExternalHyperlinkContent {
+            get {
+                if (!_legacyPptHasExternalHyperlinkContent) return false;
+                using LegacyPptPackageView view = LegacyPptPackageView.Capture(this);
+                return EnumerateReferencedHyperlinks(view).Any(item =>
+                    IsExternalHyperlink(item.Part, item.Hyperlink));
+            }
+        }
         internal bool LegacyPptHasExternalMediaContent =>
             _legacyPptHasExternalMediaContent;
-        internal bool LegacyPptWillPreserveRunProgramContent =>
-            _legacyPptHasRunProgramContent
-            && (!_legacyPptHadProjectedRunProgramContent
-                || EnumerateReferencedHyperlinks().Any(item =>
-                    string.Equals(item.Hyperlink.Action?.Value,
-                        "ppaction://program",
-                        StringComparison.OrdinalIgnoreCase)));
+        internal bool LegacyPptWillPreserveRunProgramContent {
+            get {
+                if (!_legacyPptHasRunProgramContent) return false;
+                if (!_legacyPptHadProjectedRunProgramContent) return true;
+                using LegacyPptPackageView view = LegacyPptPackageView.Capture(this);
+                return EnumerateReferencedHyperlinks(view).Any(IsRunProgramHyperlink);
+            }
+        }
 
-        internal bool HasOnlyLegacyPptPreservableChanges => _legacyPptProjectionMap != null
+        internal bool HasOnlyLegacyPptPreservableChanges {
+            get {
+                if (_legacyPptProjectionMap == null || _legacyPptPreservationFingerprint == null) return false;
+                using LegacyPptPackageView view = LegacyPptPackageView.Capture(this);
+                return HasOnlyLegacyPptPreservableChangesIn(view);
+            }
+        }
+
+        /// <summary>Whether the package read through <paramref name="view"/> holds only edits the preserving writer encodes.</summary>
+        internal bool HasOnlyLegacyPptPreservableChangesIn(LegacyPptPackageView view) =>
+            _legacyPptProjectionMap != null
             && _legacyPptPreservationFingerprint != null
-            && _legacyPptPreservationFingerprint.Matches(SdkDocument!, _legacyPptProjectionMap);
+            && _legacyPptPreservationFingerprint.Matches(view, _legacyPptProjectionMap);
 
         internal bool TryCopyOriginalLegacyPackage(out byte[] bytes) {
             if (CanPreserveOriginalLegacyPackage) {
@@ -259,13 +279,12 @@ namespace OfficeIMO.PowerPoint {
 
         private bool IsProjectedVbaContentUnchanged() {
             if (_legacyPptProjectedVbaDigest == null) return true;
-            VbaProjectPart? part = SdkPresentationPart.VbaProjectPart;
-            if (part == null) return false;
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(this);
+            LegacyPptPartView part = view.Presentation.RelatedPart(
+                LegacyPptPackageView.VbaProjectRelationshipType);
+            if (part.IsNone) return false;
             try {
-                using Stream stream = part.GetStream(FileMode.Open,
-                    FileAccess.Read);
-                using SHA256 sha256 = SHA256.Create();
-                return sha256.ComputeHash(stream)
+                return ComputeSha256(part.GetBytes())
                     .SequenceEqual(_legacyPptProjectedVbaDigest);
             } catch (Exception exception) when (
                 exception is IOException
@@ -277,87 +296,56 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private IEnumerable<(OpenXmlPart Part, A.HyperlinkType Hyperlink)>
-            EnumerateReferencedHyperlinks() {
-            foreach (SlidePart slidePart in SdkPresentationPart.SlideParts) {
-                if (slidePart.Slide != null) {
-                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
-                             in EnumerateReferencedHyperlinks(slidePart,
-                                 slidePart.Slide)) {
-                        yield return item;
-                    }
-                }
-                if (slidePart.NotesSlidePart?.NotesSlide != null) {
-                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
-                             in EnumerateReferencedHyperlinks(
-                                 slidePart.NotesSlidePart,
-                                 slidePart.NotesSlidePart.NotesSlide)) {
-                        yield return item;
-                    }
+        /// <summary>
+        /// The hyperlinks with a relationship id on the slides, their notes, the masters, their layouts and the notes and
+        /// handout masters, with the part that holds each.
+        /// </summary>
+        private static IEnumerable<(LegacyPptPartView Part, OfficeXmlNode Hyperlink)>
+            EnumerateReferencedHyperlinks(LegacyPptPackageView view) {
+            LegacyPptPartView presentation = view.Presentation;
+            foreach (LegacyPptPartView slidePart in presentation.RelatedParts(
+                         LegacyPptPackageView.SlideRelationshipType)) {
+                foreach (var item in EnumerateReferencedHyperlinks(slidePart)) yield return item;
+                LegacyPptPartView notesPart = slidePart.NotesSlide;
+                if (notesPart.IsNone) continue;
+                foreach (var item in EnumerateReferencedHyperlinks(notesPart)) yield return item;
+            }
+            foreach (LegacyPptPartView masterPart in presentation.RelatedParts(
+                         LegacyPptPackageView.SlideMasterRelationshipType)) {
+                foreach (var item in EnumerateReferencedHyperlinks(masterPart)) yield return item;
+                foreach (LegacyPptPartView layoutPart in masterPart.RelatedParts(
+                             LegacyPptPackageView.SlideLayoutRelationshipType)) {
+                    foreach (var item in EnumerateReferencedHyperlinks(layoutPart)) yield return item;
                 }
             }
-            foreach (SlideMasterPart masterPart in SdkPresentationPart.SlideMasterParts) {
-                if (masterPart.SlideMaster != null) {
-                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
-                             in EnumerateReferencedHyperlinks(masterPart,
-                                 masterPart.SlideMaster)) {
-                        yield return item;
-                    }
-                }
-                foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
-                    if (layoutPart.SlideLayout == null) continue;
-                    foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
-                             in EnumerateReferencedHyperlinks(layoutPart,
-                                 layoutPart.SlideLayout)) {
-                        yield return item;
-                    }
-                }
-            }
-            if (SdkPresentationPart.NotesMasterPart?.NotesMaster != null) {
-                foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
-                         in EnumerateReferencedHyperlinks(
-                             SdkPresentationPart.NotesMasterPart,
-                             SdkPresentationPart.NotesMasterPart.NotesMaster)) {
-                    yield return item;
-                }
-            }
-            if (SdkPresentationPart.HandoutMasterPart?.HandoutMaster != null) {
-                foreach ((OpenXmlPart Part, A.HyperlinkType Hyperlink) item
-                         in EnumerateReferencedHyperlinks(
-                             SdkPresentationPart.HandoutMasterPart,
-                             SdkPresentationPart.HandoutMasterPart.HandoutMaster)) {
-                    yield return item;
+            foreach (var item in EnumerateReferencedHyperlinks(view.NotesMaster)) yield return item;
+            foreach (var item in EnumerateReferencedHyperlinks(view.HandoutMaster)) yield return item;
+        }
+
+        private static IEnumerable<(LegacyPptPartView Part, OfficeXmlNode Hyperlink)>
+            EnumerateReferencedHyperlinks(LegacyPptPartView part) {
+            if (part.IsNone) yield break;
+            OfficeXmlNode root = part.Root;
+            if (root.IsNone) yield break;
+            foreach (string name in new[] { "hlinkClick", "hlinkHover", "hlinkMouseOver" }) {
+                foreach (OfficeXmlNode item in root.Descendants(LegacyPptXml.A, name)) {
+                    if (!string.IsNullOrEmpty(item.Attribute(LegacyPptXml.R, "id")))
+                        yield return (part, item);
                 }
             }
         }
 
-        private static IEnumerable<(OpenXmlPart Part,
-            A.HyperlinkType Hyperlink)> EnumerateReferencedHyperlinks(
-            OpenXmlPart part,
-            DocumentFormat.OpenXml.OpenXmlPartRootElement root) {
-            foreach (A.HyperlinkOnClick item in root
-                         .Descendants<A.HyperlinkOnClick>()) {
-                    if (!string.IsNullOrEmpty(item.Id?.Value))
-                        yield return (part, item);
-            }
-            foreach (A.HyperlinkOnHover item in root
-                         .Descendants<A.HyperlinkOnHover>()) {
-                    if (!string.IsNullOrEmpty(item.Id?.Value))
-                        yield return (part, item);
-            }
-            foreach (A.HyperlinkOnMouseOver item in root
-                         .Descendants<A.HyperlinkOnMouseOver>()) {
-                    if (!string.IsNullOrEmpty(item.Id?.Value))
-                        yield return (part, item);
-            }
-        }
+        private static bool IsRunProgramHyperlink((LegacyPptPartView Part, OfficeXmlNode Hyperlink) item) =>
+            string.Equals(item.Hyperlink.Attribute("action"), "ppaction://program",
+                StringComparison.OrdinalIgnoreCase);
 
-        private static bool IsExternalHyperlink(OpenXmlPart part,
-            A.HyperlinkType hyperlink) {
-            string? relationshipId = hyperlink.Id?.Value;
+        private static bool IsExternalHyperlink(LegacyPptPartView part,
+            OfficeXmlNode hyperlink) {
+            string? relationshipId = hyperlink.Attribute(LegacyPptXml.R, "id");
             return !string.IsNullOrEmpty(relationshipId)
-                && part.HyperlinkRelationships.Any(relationship =>
+                && part.Relationships.Any(relationship =>
                     relationship.IsExternal
+                    && relationship.IsType(LegacyPptPackageView.HyperlinkRelationshipType)
                     && string.Equals(relationship.Id, relationshipId,
                         StringComparison.Ordinal));
         }
@@ -365,6 +353,21 @@ namespace OfficeIMO.PowerPoint {
         private static byte[] ComputeSha256(byte[] bytes) {
             using SHA256 sha256 = SHA256.Create();
             return sha256.ComputeHash(bytes);
+        }
+
+        /// <summary>
+        /// Opens a separate read-only presentation over package bytes, for the binary writer's checks that read engine
+        /// shapes, so they don't open the SDK on the presentation being imported.
+        /// </summary>
+        internal static PowerPointDocument OpenLegacyPptProjectionReader(byte[] packageBytes) {
+            ArgumentNullException.ThrowIfNull(packageBytes);
+            return LoadPackage(packageBytes, filePath: null, sourceStream: null,
+                new PowerPointLoadOptions {
+                    AccessMode = DocumentAccessMode.ReadOnly,
+                    PersistenceMode = DocumentPersistenceMode.Explicit,
+                    MaxInputBytes = null
+                },
+                captureSourcePackageSecurity: false);
         }
 
         internal static bool IsLegacyBinaryFormat(PowerPointFileFormat format) =>

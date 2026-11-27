@@ -1,8 +1,9 @@
 using System.Collections.ObjectModel;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>
@@ -16,6 +17,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private const string ClassicAnimationExtensionUri =
             "{5BA743F1-2B69-4BB9-B2E0-4A418B7E7435}";
+        private const string ClassicAnimationNamespace =
+            "https://schemas.officeimo.net/powerpoint/2026/classic-animations";
         private readonly IReadOnlyDictionary<string, string> _slides;
         private readonly EditableImageFingerprintScope _editableImages;
 
@@ -30,39 +33,39 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal string Global { get; }
 
-        internal static LegacyPptProjectionFingerprint Create(PresentationDocument document,
+        internal static LegacyPptProjectionFingerprint Create(LegacyPptPackageView view,
             LegacyPptProjectionMap projectionMap) {
-            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(view);
             ArgumentNullException.ThrowIfNull(projectionMap);
             EditableImageFingerprintScope editableImages =
-                EditableImageFingerprintScope.Create(document, projectionMap);
+                EditableImageFingerprintScope.Create(view, projectionMap);
             var slides = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (SlidePart slidePart in document.PresentationPart?.SlideParts ?? Enumerable.Empty<SlidePart>()) {
+            foreach (LegacyPptPartView slidePart in LegacyPptPackageFingerprint.SlideParts(view)) {
                 if (projectionMap.Slides.Any(slide => string.Equals(slide.SlidePartUri,
-                        slidePart.Uri.ToString(), StringComparison.Ordinal))) {
-                    slides.Add(slidePart.Uri.ToString(), CreateSlide(document,
+                        slidePart.Name, StringComparison.Ordinal))) {
+                    slides.Add(slidePart.Name, CreateSlide(view,
                         slidePart, projectionMap, editableImages));
                 }
             }
             if (slides.Count != projectionMap.Slides.Count) {
                 throw new InvalidDataException("The projected slide fingerprint set is incomplete.");
             }
-            return new LegacyPptProjectionFingerprint(CreateGlobal(document,
+            return new LegacyPptProjectionFingerprint(CreateGlobal(view,
                 projectionMap, editableImages), slides, editableImages);
         }
 
-        internal bool Matches(PresentationDocument document, LegacyPptProjectionMap projectionMap) {
+        internal bool Matches(LegacyPptPackageView view, LegacyPptProjectionMap projectionMap) {
+            ArgumentNullException.ThrowIfNull(view);
+            ArgumentNullException.ThrowIfNull(projectionMap);
             EditableImageFingerprintScope editableImages =
-                EditableImageFingerprintScope.Create(document, projectionMap)
+                EditableImageFingerprintScope.Create(view, projectionMap)
                     .Merge(_editableImages);
-            if (!string.Equals(Global, CreateGlobal(document, projectionMap,
+            if (!string.Equals(Global, CreateGlobal(view, projectionMap,
                     editableImages),
                     StringComparison.Ordinal)) return false;
-            SlidePart[] currentSlides = document.PresentationPart?.SlideParts.ToArray() ?? Array.Empty<SlidePart>();
-            foreach (SlidePart slidePart in currentSlides) {
-                string uri = slidePart.Uri.ToString();
-                if (_slides.TryGetValue(uri, out string? expected)
-                    && !string.Equals(expected, CreateSlide(document,
+            foreach (LegacyPptPartView slidePart in LegacyPptPackageFingerprint.SlideParts(view)) {
+                if (_slides.TryGetValue(slidePart.Name, out string? expected)
+                    && !string.Equals(expected, CreateSlide(view,
                         slidePart, projectionMap, editableImages),
                         StringComparison.Ordinal)) {
                     return false;
@@ -71,206 +74,189 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return true;
         }
 
-        private static string CreateGlobal(PresentationDocument document,
+        private static string CreateGlobal(LegacyPptPackageView view,
             LegacyPptProjectionMap projectionMap,
             EditableImageFingerprintScope editableImages) {
-            ISet<string> materializedLayoutThemePartUris = new HashSet<string>(
-                document.PresentationPart?.SlideMasterParts
-                    .SelectMany(master => master.SlideLayoutParts)
-                    .Where(layout => projectionMap
-                        .IsEditableProjectedLayoutThemePart(
-                            layout.Uri.ToString()))
-                    .Select(layout => layout.ThemeOverridePart?.Uri.ToString())
-                    .Where(uri => uri != null).Cast<string>()
-                ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
-            return PowerPointPackageFingerprint.Create(document,
+            var materializedLayoutThemePartUris = new HashSet<string>(StringComparer.Ordinal);
+            foreach (LegacyPptPartView master in LegacyPptPackageFingerprint.SlideMasterParts(view)) {
+                foreach (LegacyPptPartView layout in LegacyPptPackageFingerprint.SlideLayoutParts(master)) {
+                    if (!projectionMap.IsEditableProjectedLayoutThemePart(layout.Name)) continue;
+                    LegacyPptPartView themeOverride = layout.ThemeOverride;
+                    if (!themeOverride.IsNone) materializedLayoutThemePartUris.Add(themeOverride.Name);
+                }
+            }
+            string presentationPartName = view.Presentation.Name;
+            return LegacyPptPackageFingerprint.Create(view,
                 (part, root) => {
-                    if (part is PresentationPart) NormalizeDocumentTopology(root);
-                    if (part is ExtendedFilePropertiesPart) {
+                    if (string.Equals(part.Name, presentationPartName, StringComparison.OrdinalIgnoreCase)) {
+                        NormalizeDocumentTopology(root);
+                    }
+                    if (part.HasContentType(LegacyPptPackageFingerprint.ExtendedPropertiesContentType)) {
                         NormalizeProjectedExtendedProperties(root);
                     }
-                    if (part is SlideMasterPart masterPart
-                        && projectionMap.TryGetMaster(masterPart,
+                    if (part.IsSlideMaster
+                        && projectionMap.TryGetMaster(part.Name,
                             out LegacyPptMasterProjection? masterProjection)
                         && masterProjection != null) {
                         NormalizeProjectedMaster(root, masterProjection);
                     }
-                    if (part is NotesMasterPart or HandoutMasterPart
-                        && projectionMap.TryGetSpecialMaster(part,
+                    if ((part.IsNotesMaster || part.IsHandoutMaster)
+                        && projectionMap.TryGetSpecialMaster(part.Name,
                             out LegacyPptMasterProjection? specialProjection)
                         && specialProjection != null) {
                         NormalizeProjectedSpecialMaster(root, specialProjection);
                     }
-                    if (part is ThemePart or ThemeOverridePart
-                        && projectionMap.IsProjectedMasterThemePart(part.Uri.ToString())) {
+                    if ((part.IsTheme || part.IsThemeOverride)
+                        && projectionMap.IsProjectedMasterThemePart(part.Name)) {
                         NormalizeProjectedMasterTheme(root);
                     }
-                    if (part is SlideLayoutPart
-                        && projectionMap.IsProjectedLayoutPart(part.Uri.ToString())) {
+                    if (part.IsSlideLayout
+                        && projectionMap.IsProjectedLayoutPart(part.Name)) {
                         NormalizeProjectedHeaderFooter(root);
                     }
-                    if (part is SlideLayoutPart ordinaryLayout
+                    if (part.IsSlideLayout
                         && projectionMap
-                            .IsEditableProjectedOrdinaryLayoutPart(
-                                ordinaryLayout.Uri.ToString())) {
+                            .IsEditableProjectedOrdinaryLayoutPart(part.Name)) {
                         NormalizeProjectedOrdinaryLayout(root);
                     }
-                    if (part is SlideLayoutPart backgroundLayout
-                        && projectionMap.IsEditableProjectedLayoutBackgroundPart(
-                            backgroundLayout.Uri.ToString())
-                        && root is P.SlideLayout normalizedLayout) {
-                        NormalizeProjectedBackground(
-                            normalizedLayout.CommonSlideData);
+                    if (part.IsSlideLayout
+                        && projectionMap.IsEditableProjectedLayoutBackgroundPart(part.Name)
+                        && root.Is(LegacyPptXml.P, "sldLayout")) {
+                        NormalizeProjectedBackground(root);
                     }
-                    if (part is SlideLayoutPart themeLayout
-                        && projectionMap.IsEditableProjectedLayoutThemePart(
-                            themeLayout.Uri.ToString())) {
+                    if (part.IsSlideLayout
+                        && projectionMap.IsEditableProjectedLayoutThemePart(part.Name)) {
                         NormalizeProjectedLayoutTheme(root);
                     }
-                    if (part is SlideLayoutPart titlePart
-                        && projectionMap.TryGetTitleMaster(titlePart,
+                    if (part.IsSlideLayout
+                        && projectionMap.TryGetTitleMaster(part.Name,
                             out LegacyPptMasterProjection? titleProjection)
                         && titleProjection != null) {
                         NormalizeProjectedTitleMaster(root, titleProjection);
                     }
                 },
-                part => !(part is SlidePart or NotesSlidePart or SlideCommentsPart
-                    or CommentAuthorsPart or CoreFilePropertiesPart
-                    or CustomFilePropertiesPart or VbaProjectPart)
-                    && !projectionMap.IsProjectedOlePart(
-                        part.Uri.ToString())
-                    && !materializedLayoutThemePartUris.Contains(
-                        part.Uri.ToString())
+                part => !(part.IsSlide || part.IsNotesSlide
+                        || LegacyPptPackageFingerprint.IsSlideComments(part)
+                        || LegacyPptPackageFingerprint.IsCommentAuthors(part)
+                        || part.HasContentType(LegacyPptPackageFingerprint.CorePropertiesContentType)
+                        || part.HasContentType(LegacyPptPackageFingerprint.CustomPropertiesContentType)
+                        || LegacyPptPackageFingerprint.IsVbaProject(part))
+                    && !projectionMap.IsProjectedOlePart(part.Name)
+                    && !materializedLayoutThemePartUris.Contains(part.Name)
                     && !editableImages.IsExclusiveImagePart(part),
-                (owner, relationship) => !(relationship.OpenXmlPart is SlidePart
-                    or SlideCommentsPart or CommentAuthorsPart or VbaProjectPart)
+                (owner, relationship) => !(relationship.TargetPart.IsSlide
+                        || LegacyPptPackageFingerprint.IsSlideComments(relationship.TargetPart)
+                        || LegacyPptPackageFingerprint.IsCommentAuthors(relationship.TargetPart)
+                        || LegacyPptPackageFingerprint.IsVbaProject(relationship.TargetPart))
                     && !editableImages.IsEditableImageRelationship(owner,
                         relationship)
-                    && !(owner is SlideLayoutPart layout
-                        && relationship.OpenXmlPart is ThemeOverridePart
+                    && !(owner.IsSlideLayout
+                        && relationship.TargetPart.IsThemeOverride
                         && projectionMap.IsEditableProjectedLayoutThemePart(
-                            layout.Uri.ToString())),
-                includePackageProperties: false);
+                            owner.Name)),
+                includeReferenceRelationship: null,
+                includeDataPartReferenceRelationship: null);
         }
 
-        private static void NormalizeProjectedMaster(OpenXmlElement root,
+        private static void NormalizeProjectedMaster(OfficeXmlNode root,
             LegacyPptMasterProjection projection) {
-            if (root is not P.SlideMaster master) return;
-            if (master.ColorMap != null) {
-                master.ColorMap.ClearAllAttributes();
-                master.ColorMap.RemoveAllChildren();
-            }
-            NormalizeProjectedBackground(master.CommonSlideData);
+            if (!root.Is(LegacyPptXml.P, "sldMaster")) return;
+            Clear(root.Child(LegacyPptXml.P, "clrMap"));
+            NormalizeProjectedBackground(root);
             NormalizeProjectedShapes(root, projection.TryGetShape,
                 normalizeInteractions: false);
             if (projection.CanEditTextStyles) {
-                master.TextStyles?.Remove();
+                Remove(root.Child(LegacyPptXml.P, "txStyles"));
             }
         }
 
-        private static void NormalizeProjectedMasterTheme(OpenXmlElement root) {
-            if (root is A.Theme theme) {
-                theme.ClearAllAttributes();
-                theme.RemoveAllChildren();
-            } else if (root is A.ThemeOverride themeOverride) {
-                themeOverride.ClearAllAttributes();
-                themeOverride.RemoveAllChildren();
+        private static void NormalizeProjectedMasterTheme(OfficeXmlNode root) {
+            if (root.Is(LegacyPptXml.A, "theme") || root.Is(LegacyPptXml.A, "themeOverride")) {
+                Clear(root);
             }
         }
 
-        private static void NormalizeProjectedTitleMaster(OpenXmlElement root,
+        private static void NormalizeProjectedTitleMaster(OfficeXmlNode root,
             LegacyPptMasterProjection projection) {
-            if (root is not P.SlideLayout layout) return;
-            layout.ShowMasterShapes = null;
-            if (layout.ColorMapOverride != null) {
-                layout.ColorMapOverride.ClearAllAttributes();
-                layout.ColorMapOverride.RemoveAllChildren();
-            }
-            NormalizeProjectedBackground(layout.CommonSlideData);
+            if (!root.Is(LegacyPptXml.P, "sldLayout")) return;
+            root.RemoveAttribute("showMasterSp");
+            Clear(root.Child(LegacyPptXml.P, "clrMapOvr"));
+            NormalizeProjectedBackground(root);
             NormalizeProjectedShapes(root, projection.TryGetShape,
                 normalizeInteractions: false);
         }
 
-        private static void NormalizeProjectedSpecialMaster(OpenXmlElement root,
+        private static void NormalizeProjectedSpecialMaster(OfficeXmlNode root,
             LegacyPptMasterProjection projection) {
-            switch (root) {
-                case P.NotesMaster notes when notes.ColorMap != null:
-                    notes.ColorMap.ClearAllAttributes();
-                    notes.ColorMap.RemoveAllChildren();
-                    NormalizeProjectedBackground(notes.CommonSlideData);
-                    break;
-                case P.HandoutMaster handout when handout.ColorMap != null:
-                    handout.ColorMap.ClearAllAttributes();
-                    handout.ColorMap.RemoveAllChildren();
-                    NormalizeProjectedBackground(handout.CommonSlideData);
-                    break;
-                case P.NotesMaster notes:
-                    NormalizeProjectedBackground(notes.CommonSlideData);
-                    break;
-                case P.HandoutMaster handout:
-                    NormalizeProjectedBackground(handout.CommonSlideData);
-                    break;
+            if (root.Is(LegacyPptXml.P, "notesMaster") || root.Is(LegacyPptXml.P, "handoutMaster")) {
+                Clear(root.Child(LegacyPptXml.P, "clrMap"));
+                NormalizeProjectedBackground(root);
             }
             NormalizeProjectedShapes(root, projection.TryGetShape,
                 normalizeInteractions: false);
         }
 
-        private static void NormalizeProjectedBackground(
-            P.CommonSlideData? commonSlideData) {
-            P.Background? background = commonSlideData?.Background;
-            if (background == null) return;
-            background.Remove();
-        }
+        /// <summary>Removes the background of a slide-like root's common slide data.</summary>
+        private static void NormalizeProjectedBackground(OfficeXmlNode root) =>
+            Remove(root.Child(LegacyPptXml.P, "cSld").Child(LegacyPptXml.P, "bg"));
 
-        private static string CreateSlide(PresentationDocument document, SlidePart slidePart,
+        private static string CreateSlide(LegacyPptPackageView view, LegacyPptPartView slidePart,
             LegacyPptProjectionMap projectionMap,
             EditableImageFingerprintScope editableImages) =>
-            PowerPointPackageFingerprint.Create(document,
-            (part, root) => NormalizeProjectedSlide(root, slidePart.Uri, projectionMap),
-            part => string.Equals(part.Uri.ToString(), slidePart.Uri.ToString(),
-                        StringComparison.Ordinal)
-                    || part is NotesSlidePart notesPart
-                    && ReferenceEquals(notesPart.SlidePart, slidePart),
-            (owner, relationship) => relationship.OpenXmlPart is not SlideCommentsPart
-                and not SlidePart
+            LegacyPptPackageFingerprint.Create(view,
+            (part, root) => NormalizeProjectedSlide(root, slidePart.Name, projectionMap),
+            part => part.Equals(slidePart)
+                    || part.IsNotesSlide
+                    && part.RelatedPart(LegacyPptPackageView.SlideRelationshipType).Equals(slidePart),
+            (owner, relationship) => !LegacyPptPackageFingerprint.IsSlideComments(relationship.TargetPart)
+                    && !relationship.TargetPart.IsSlide
                     && !editableImages.IsEditableImageRelationship(owner,
                         relationship),
-            (owner, relationship) => relationship is not HyperlinkRelationship,
+            (owner, relationship) => !relationship.IsType(LegacyPptPackageView.HyperlinkRelationshipType),
             (owner, relationship) =>
                 !IsWriterSupportedAudioDataRelationship(owner,
-                    relationship),
-            includePackageProperties: false);
+                    relationship));
 
         private static bool IsWriterSupportedAudioDataRelationship(
-            OpenXmlPart owner,
-            DataPartReferenceRelationship relationship) {
-            if (owner is not SlidePart slidePart
-                || slidePart.Slide == null) return false;
-            var referencedAudioIds = new HashSet<string>(
-                slidePart.Slide.Descendants<P.Sound>()
-                    .Select(sound => sound.Embed?.Value)
-                    .Concat(slidePart.Slide.Descendants<A.HyperlinkSound>()
-                        .Select(sound => sound.Embed?.Value))
-                    .Concat(slidePart.Slide.Descendants()
-                        .Where(element => string.Equals(element.LocalName,
-                                "snd", StringComparison.Ordinal)
-                            || string.Equals(element.LocalName, "sound",
-                                StringComparison.Ordinal))
-                        .Select(element => element.GetAttributes()
-                            .FirstOrDefault(attribute => string.Equals(
-                                attribute.LocalName, "embed",
-                                StringComparison.Ordinal)).Value))
-                    .Where(id => !string.IsNullOrEmpty(id))
-                    .Cast<string>(), StringComparer.Ordinal);
+            LegacyPptPartView owner,
+            LegacyPptRelationshipView relationship) {
+            if (!owner.IsSlide) return false;
+            OfficeXmlNode root = owner.Root;
+            if (root.IsNone) return false;
+            var referencedAudioIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (OfficeXmlNode sound in root.Descendants(LegacyPptXml.P, "snd")) {
+                AddIfPresent(referencedAudioIds, sound.Attribute(LegacyPptXml.R, "embed"));
+            }
+            foreach (OfficeXmlNode sound in root.Descendants(LegacyPptXml.A, "snd")) {
+                AddIfPresent(referencedAudioIds, sound.Attribute(LegacyPptXml.R, "embed"));
+            }
+            foreach (OfficeXmlNode element in root.AllDescendants()) {
+                if (element.LocalName is not "snd" and not "sound") continue;
+                AddIfPresent(referencedAudioIds, FirstAttributeNamed(element, "embed"));
+            }
             if (referencedAudioIds.Count == 0) return false;
-            DataPartReferenceRelationship[] dataRelationships = slidePart
-                .DataPartReferenceRelationships.Where(candidate =>
-                    ReferenceEquals(candidate.DataPart,
-                        relationship.DataPart)).ToArray();
+            LegacyPptRelationshipView[] dataRelationships = owner.Relationships
+                .Where(candidate => LegacyPptPackageFingerprint.IsDataPartReference(candidate)
+                    && candidate.TargetPart.Equals(relationship.TargetPart)).ToArray();
             return dataRelationships.Length > 0
                 && dataRelationships.All(candidate =>
-                    candidate is AudioReferenceRelationship
+                    candidate.IsType(LegacyPptPackageView.AudioRelationshipType)
                     && referencedAudioIds.Contains(candidate.Id));
+        }
+
+        private static void AddIfPresent(ISet<string> set, string? value) {
+            if (!string.IsNullOrEmpty(value)) set.Add(value!);
+        }
+
+        private static string? FirstAttributeNamed(OfficeXmlNode element, string localName) {
+            if (element.Tree is not { } tree) return null;
+            int count = tree.AttributeCountOf(element.Node);
+            for (int index = 0; index < count; index++) {
+                tree.GetAttributeAt(element.Node, index, out int namespaceId, out string name, out string value);
+                if (namespaceId == OfficeXmlNamespaces.Xmlns) continue;
+                if (string.Equals(name, localName, StringComparison.Ordinal)) return value;
+            }
+            return null;
         }
 
         private sealed class EditableImageFingerprintScope {
@@ -284,13 +270,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 _relationshipKeys = relationshipKeys;
             }
 
-            internal bool IsExclusiveImagePart(OpenXmlPart part) =>
-                _exclusiveImagePartUris.Contains(part.Uri.ToString());
+            internal bool IsExclusiveImagePart(LegacyPptPartView part) =>
+                _exclusiveImagePartUris.Contains(part.Name);
 
-            internal bool IsEditableImageRelationship(OpenXmlPart owner,
-                IdPartPair relationship) => _relationshipKeys.Contains(
-                    CreateRelationshipKey(owner,
-                        relationship.RelationshipId));
+            internal bool IsEditableImageRelationship(LegacyPptPartView owner,
+                LegacyPptRelationshipView relationship) => _relationshipKeys.Contains(
+                    CreateRelationshipKey(owner, relationship.Id));
 
             internal EditableImageFingerprintScope Merge(
                 EditableImageFingerprintScope other) {
@@ -305,28 +290,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
 
             internal static EditableImageFingerprintScope Create(
-                PresentationDocument document,
+                LegacyPptPackageView view,
                 LegacyPptProjectionMap projectionMap) {
-                var allParts = new HashSet<OpenXmlPart>();
-                foreach (IdPartPair pair in document.Parts) {
-                    CollectParts(pair.OpenXmlPart, allParts);
-                }
                 var relationshipKeys = new HashSet<string>(
                     StringComparer.Ordinal);
-                ISet<OpenXmlPart> editableBackgroundOwners =
-                    CollectEditableBackgroundOwners(document, projectionMap);
-                var incoming = new Dictionary<ImagePart,
-                    List<bool>>();
-                foreach (OpenXmlPart owner in allParts) {
-                    foreach (IdPartPair relationship in owner.Parts) {
-                        if (relationship.OpenXmlPart is not ImagePart image) {
+                ISet<string> editableBackgroundOwners =
+                    CollectEditableBackgroundOwners(view, projectionMap);
+                var incoming = new Dictionary<string, List<bool>>(StringComparer.Ordinal);
+                foreach (LegacyPptPartView owner in LegacyPptPackageFingerprint.CollectParts(view)) {
+                    foreach (LegacyPptRelationshipView relationship in owner.Relationships) {
+                        if (!LegacyPptPackageFingerprint.IsPartRelationship(relationship)
+                            || !relationship.IsType(LegacyPptPackageView.ImageRelationshipType)) {
                             continue;
                         }
                         bool editableOnly = IsUsedOnlyByPictureBullets(owner,
-                                relationship.RelationshipId)
+                                relationship.Id)
                             || IsUsedOnlyByEditableBackgrounds(owner,
-                                relationship.RelationshipId,
+                                relationship.Id,
                                 editableBackgroundOwners);
+                        string image = relationship.TargetPart.Name;
                         if (!incoming.TryGetValue(image,
                                 out List<bool>? usages)) {
                             usages = new List<bool>();
@@ -335,191 +317,171 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         usages.Add(editableOnly);
                         if (editableOnly) relationshipKeys.Add(
                             CreateRelationshipKey(owner,
-                                relationship.RelationshipId));
+                                relationship.Id));
                     }
                 }
                 ISet<string> exclusive = new HashSet<string>(
                     incoming.Where(pair => pair.Value.Count > 0
                             && pair.Value.All(value => value))
-                        .Select(pair => pair.Key.Uri.ToString()),
+                        .Select(pair => pair.Key),
                     StringComparer.Ordinal);
                 return new EditableImageFingerprintScope(exclusive,
                     relationshipKeys);
             }
 
             private static bool IsUsedOnlyByEditableBackgrounds(
-                OpenXmlPart owner, string relationshipId,
-                ISet<OpenXmlPart> editableBackgroundOwners) {
-                if (!editableBackgroundOwners.Contains(owner)) {
+                LegacyPptPartView owner, string relationshipId,
+                ISet<string> editableBackgroundOwners) {
+                if (!editableBackgroundOwners.Contains(owner.Name)) {
                     return false;
                 }
-                OpenXmlPartRootElement? root = owner.RootElement;
-                if (root == null) return false;
-                A.Blip[] references = root.Descendants<A.Blip>()
-                    .Where(blip => string.Equals(blip.Embed?.Value,
-                        relationshipId, StringComparison.Ordinal))
-                    .ToArray();
+                OfficeXmlNode[] references = BlipsReferencing(owner, relationshipId);
                 return references.Length > 0 && references.All(blip =>
-                    blip.Ancestors<P.Background>().Any());
+                    blip.HasAncestor(LegacyPptXml.P, "bg"));
             }
 
-            private static ISet<OpenXmlPart> CollectEditableBackgroundOwners(
-                PresentationDocument document,
+            private static ISet<string> CollectEditableBackgroundOwners(
+                LegacyPptPackageView view,
                 LegacyPptProjectionMap projectionMap) {
-                var result = new HashSet<OpenXmlPart>();
-                PresentationPart? presentationPart = document.PresentationPart;
-                if (presentationPart == null) return result;
-                foreach (SlidePart slidePart in presentationPart.SlideParts) {
+                var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (view.Presentation.IsNone) return result;
+                foreach (LegacyPptPartView slidePart in LegacyPptPackageFingerprint.SlideParts(view)) {
                     if (!projectionMap.Slides.Any(slide => string.Equals(
-                        slide.SlidePartUri, slidePart.Uri.ToString(),
+                        slide.SlidePartUri, slidePart.Name,
                         StringComparison.Ordinal))) continue;
-                    result.Add(slidePart);
-                    if (slidePart.NotesSlidePart != null) {
-                        result.Add(slidePart.NotesSlidePart);
-                    }
+                    result.Add(slidePart.Name);
+                    LegacyPptPartView notes = slidePart.NotesSlide;
+                    if (!notes.IsNone) result.Add(notes.Name);
                 }
-                foreach (SlideMasterPart masterPart in presentationPart
-                             .SlideMasterParts) {
-                    if (projectionMap.TryGetMaster(masterPart, out _)) {
-                        result.Add(masterPart);
+                foreach (LegacyPptPartView masterPart in LegacyPptPackageFingerprint.SlideMasterParts(view)) {
+                    if (projectionMap.TryGetMaster(masterPart.Name, out _)) {
+                        result.Add(masterPart.Name);
                     }
-                    foreach (SlideLayoutPart layoutPart in masterPart
-                                 .SlideLayoutParts) {
-                        if (projectionMap.TryGetTitleMaster(layoutPart, out _)
+                    foreach (LegacyPptPartView layoutPart in LegacyPptPackageFingerprint.SlideLayoutParts(masterPart)) {
+                        if (projectionMap.TryGetTitleMaster(layoutPart.Name, out _)
                             || projectionMap
                                 .IsEditableProjectedLayoutBackgroundPart(
-                                    layoutPart.Uri.ToString())) {
-                            result.Add(layoutPart);
+                                    layoutPart.Name)) {
+                            result.Add(layoutPart.Name);
                         }
                     }
                 }
-                if (presentationPart.NotesMasterPart is NotesMasterPart notes
-                    && projectionMap.TryGetSpecialMaster(notes, out _)) {
-                    result.Add(notes);
+                LegacyPptPartView notesMaster = view.NotesMaster;
+                if (!notesMaster.IsNone
+                    && projectionMap.TryGetSpecialMaster(notesMaster.Name, out _)) {
+                    result.Add(notesMaster.Name);
                 }
-                if (presentationPart.HandoutMasterPart
-                        is HandoutMasterPart handout
-                    && projectionMap.TryGetSpecialMaster(handout, out _)) {
-                    result.Add(handout);
+                LegacyPptPartView handoutMaster = view.HandoutMaster;
+                if (!handoutMaster.IsNone
+                    && projectionMap.TryGetSpecialMaster(handoutMaster.Name, out _)) {
+                    result.Add(handoutMaster.Name);
                 }
                 return result;
             }
 
             private static bool IsUsedOnlyByPictureBullets(
-                OpenXmlPart owner, string relationshipId) {
-                OpenXmlPartRootElement? root = owner.RootElement;
-                if (root == null) return false;
-                A.Blip[] references = root.Descendants<A.Blip>()
-                    .Where(blip => string.Equals(blip.Embed?.Value,
+                LegacyPptPartView owner, string relationshipId) {
+                OfficeXmlNode[] references = BlipsReferencing(owner, relationshipId);
+                return references.Length > 0 && references.All(blip =>
+                    blip.HasAncestor(LegacyPptXml.A, "buBlip"));
+            }
+
+            private static OfficeXmlNode[] BlipsReferencing(LegacyPptPartView owner, string relationshipId) {
+                OfficeXmlNode root = owner.Root;
+                if (root.IsNone) return Array.Empty<OfficeXmlNode>();
+                return root.Descendants(LegacyPptXml.A, "blip")
+                    .Where(blip => string.Equals(blip.Attribute(LegacyPptXml.R, "embed"),
                         relationshipId, StringComparison.Ordinal))
                     .ToArray();
-                return references.Length > 0 && references.All(blip =>
-                    blip.Ancestors<A.PictureBullet>().Any());
             }
 
-            private static void CollectParts(OpenXmlPart part,
-                ISet<OpenXmlPart> parts) {
-                if (!parts.Add(part)) return;
-                foreach (IdPartPair child in part.Parts) {
-                    CollectParts(child.OpenXmlPart, parts);
-                }
-            }
-
-            private static string CreateRelationshipKey(OpenXmlPart owner,
-                string relationshipId) => owner.Uri + "|" + relationshipId;
+            private static string CreateRelationshipKey(LegacyPptPartView owner,
+                string relationshipId) => owner.Name + "|" + relationshipId;
         }
 
-        private static void NormalizeDocumentTopology(OpenXmlElement root) {
-            if (root is not P.Presentation presentation) return;
-            presentation.SlideIdList?.RemoveAllChildren<P.SlideId>();
-            presentation.RemoveAllChildren<P.CustomShowList>();
+        private static void NormalizeDocumentTopology(OfficeXmlNode root) {
+            if (!root.Is(LegacyPptXml.P, "presentation")) return;
+            OfficeXmlNode slideIds = root.Child(LegacyPptXml.P, "sldIdLst");
+            if (!slideIds.IsNone) slideIds.RemoveChildren(LegacyPptXml.P, "sldId");
+            root.RemoveChildren(LegacyPptXml.P, "custShowLst");
         }
 
         private static void NormalizeProjectedExtendedProperties(
-            OpenXmlElement root) {
-            if (root is not DocumentFormat.OpenXml.ExtendedProperties.Properties
-                properties) return;
-            properties.Application?.Remove();
-            properties.TotalTime?.Remove();
-            properties.PresentationFormat?.Remove();
-            properties.Slides?.Remove();
-            properties.Notes?.Remove();
-            properties.HiddenSlides?.Remove();
-            properties.Manager?.Remove();
-            properties.Company?.Remove();
+            OfficeXmlNode root) {
+            if (!root.Is(OfficeXmlNamespaces.ExtendedProperties, "Properties")) return;
+            foreach (string name in new[] {
+                         "Application", "TotalTime", "PresentationFormat", "Slides",
+                         "Notes", "HiddenSlides", "Manager", "Company"
+                     }) {
+                Remove(root.Child(OfficeXmlNamespaces.ExtendedProperties, name));
+            }
         }
 
-        private static void NormalizeProjectedHeaderFooter(OpenXmlElement root) {
-            if (root is not P.SlideLayout layout) return;
-            layout.RemoveAllChildren<P.HeaderFooter>();
-            foreach (P.Shape shape in layout.CommonSlideData?.ShapeTree?
-                         .Elements<P.Shape>() ?? Enumerable.Empty<P.Shape>()) {
-                P.PlaceholderValues? type = shape.NonVisualShapeProperties?
-                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value;
-                if (type != P.PlaceholderValues.DateAndTime
-                    && type != P.PlaceholderValues.Footer
-                    && type != P.PlaceholderValues.SlideNumber) continue;
-                shape.TextBody?.RemoveAllChildren<A.Paragraph>();
+        private static void NormalizeProjectedHeaderFooter(OfficeXmlNode root) {
+            if (!root.Is(LegacyPptXml.P, "sldLayout")) return;
+            root.RemoveChildren(LegacyPptXml.P, "hf");
+            OfficeXmlNode tree = root.Path(LegacyPptXml.P, "cSld", "spTree");
+            foreach (OfficeXmlNode shape in tree.Children(LegacyPptXml.P, "sp").ToList()) {
+                string? type = shape.Path(LegacyPptXml.P, "nvSpPr", "nvPr", "ph").Attribute("type");
+                if (type is not "dt" and not "ftr" and not "sldNum") continue;
+                OfficeXmlNode text = shape.Child(LegacyPptXml.P, "txBody");
+                if (!text.IsNone) text.RemoveChildren(LegacyPptXml.A, "p");
             }
         }
 
         private static void NormalizeProjectedOrdinaryLayout(
-            OpenXmlElement root) {
-            if (root is not P.SlideLayout layout) return;
-            layout.Type = null;
-            layout.CommonSlideData?.ShapeTree?.RemoveAllChildren();
+            OfficeXmlNode root) {
+            if (!root.Is(LegacyPptXml.P, "sldLayout")) return;
+            root.RemoveAttribute("type");
+            OfficeXmlNode tree = root.Path(LegacyPptXml.P, "cSld", "spTree");
+            if (!tree.IsNone) RemoveAllChildren(tree);
         }
 
-        private static void NormalizeProjectedLayoutTheme(OpenXmlElement root) {
-            if (root is not P.SlideLayout layout) return;
-            layout.ColorMapOverride?.Remove();
+        private static void NormalizeProjectedLayoutTheme(OfficeXmlNode root) {
+            if (!root.Is(LegacyPptXml.P, "sldLayout")) return;
+            Remove(root.Child(LegacyPptXml.P, "clrMapOvr"));
         }
 
-        private static void NormalizeProjectedSlide(OpenXmlElement root, Uri partUri,
+        private static void NormalizeProjectedSlide(OfficeXmlNode root, string partName,
             LegacyPptProjectionMap projectionMap) {
             LegacyPptSlideProjection? slideProjection = projectionMap.Slides.FirstOrDefault(slide =>
-                string.Equals(slide.SlidePartUri, partUri.ToString(), StringComparison.Ordinal));
+                string.Equals(slide.SlidePartUri, partName, StringComparison.Ordinal));
             if (slideProjection == null) return;
-            if (root is P.NotesSlide notesRoot && slideProjection.Notes != null) {
-                notesRoot.ShowMasterShapes = null;
-                if (notesRoot.ColorMapOverride != null) {
-                    notesRoot.ColorMapOverride.ClearAllAttributes();
-                    notesRoot.ColorMapOverride.RemoveAllChildren();
-                }
-                NormalizeProjectedBackground(notesRoot.CommonSlideData);
-                foreach (P.Shape shape in notesRoot.CommonSlideData?.ShapeTree?
-                             .Elements<P.Shape>() ?? Enumerable.Empty<P.Shape>()) {
-                    P.PlaceholderShape? placeholder = shape.NonVisualShapeProperties?
-                        .ApplicationNonVisualDrawingProperties?.PlaceholderShape;
-                    if (placeholder?.Type?.Value == P.PlaceholderValues.Body
-                        && shape.TextBody != null) {
-                        shape.TextBody.RemoveAllChildren<A.Paragraph>();
+            if (root.Is(LegacyPptXml.P, "notes") && slideProjection.Notes != null) {
+                root.RemoveAttribute("showMasterSp");
+                Clear(root.Child(LegacyPptXml.P, "clrMapOvr"));
+                NormalizeProjectedBackground(root);
+                OfficeXmlNode tree = root.Path(LegacyPptXml.P, "cSld", "spTree");
+                foreach (OfficeXmlNode shape in tree.Children(LegacyPptXml.P, "sp").ToList()) {
+                    OfficeXmlNode placeholder = shape.Path(LegacyPptXml.P, "nvSpPr", "nvPr", "ph");
+                    OfficeXmlNode text = shape.Child(LegacyPptXml.P, "txBody");
+                    if (placeholder.Attribute("type") == "body" && !text.IsNone) {
+                        text.RemoveChildren(LegacyPptXml.A, "p");
                     }
                 }
                 return;
             }
-            if (root is P.Slide slideRoot) {
-                slideRoot.Show = null;
-                slideRoot.ShowMasterShapes = null;
-                slideRoot.Transition = null;
-                if (slideRoot.ColorMapOverride != null) {
-                    slideRoot.ColorMapOverride.ClearAllAttributes();
-                    slideRoot.ColorMapOverride.RemoveAllChildren();
+            if (root.Is(LegacyPptXml.P, "sld")) {
+                root.RemoveAttribute("show");
+                root.RemoveAttribute("showMasterSp");
+                Remove(root.Child(LegacyPptXml.P, "transition"));
+                Clear(root.Child(LegacyPptXml.P, "clrMapOvr"));
+                NormalizeProjectedBackground(root);
+                OfficeXmlNode extensions = root.Child(LegacyPptXml.P, "extLst");
+                OfficeXmlNode classicAnimations = default;
+                foreach (OfficeXmlNode extension in extensions.Children(LegacyPptXml.P, "ext")) {
+                    if (string.Equals(extension.Attribute("uri"),
+                            ClassicAnimationExtensionUri, StringComparison.Ordinal)) {
+                        classicAnimations = extension;
+                        break;
+                    }
                 }
-                NormalizeProjectedBackground(slideRoot.CommonSlideData);
-                P.SlideExtensionList? extensions = slideRoot
-                    .GetFirstChild<P.SlideExtensionList>();
-                P.SlideExtension? classicAnimations = extensions?
-                    .Elements<P.SlideExtension>().FirstOrDefault(extension =>
-                        string.Equals(extension.Uri?.Value,
-                            ClassicAnimationExtensionUri,
-                            StringComparison.Ordinal));
-                if (classicAnimations != null
+                if (!classicAnimations.IsNone
                     && HasOnlyTopLevelAnimationTargets(classicAnimations,
                         slideProjection)) {
-                    slideRoot.Timing?.Remove();
+                    Remove(root.Child(LegacyPptXml.P, "timing"));
                     classicAnimations.Remove();
-                    if (extensions!.ChildElements.Count == 0) extensions.Remove();
+                    if (extensions.FirstChild.IsNone) extensions.Remove();
                 }
             }
 
@@ -527,252 +489,384 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 normalizeInteractions: true);
         }
 
-        private static void NormalizeProjectedShapes(OpenXmlElement root,
+        private static void NormalizeProjectedShapes(OfficeXmlNode root,
             TryGetShapeProjection tryGetShape, bool normalizeInteractions) {
-            foreach (P.Shape shape in root.Descendants<P.Shape>()) {
-                uint? shapeId = shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
-                        out LegacyPptShapeProjection? shapeProjection)
-                    || shapeProjection == null) continue;
-                shape.NonVisualShapeProperties?
-                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape?
-                    .Remove();
-                NormalizeShapeMetadata(shape.NonVisualShapeProperties?
-                    .NonVisualDrawingProperties, shapeProjection);
+            foreach (OfficeXmlNode shape in root.Descendants(LegacyPptXml.P, "sp")) {
+                OfficeXmlNode nonVisual = shape.Child(LegacyPptXml.P, "nvSpPr");
+                if (!TryGetProjection(nonVisual, tryGetShape,
+                        out LegacyPptShapeProjection shapeProjection)) continue;
+                Remove(nonVisual.Path(LegacyPptXml.P, "nvPr", "ph"));
+                OfficeXmlNode drawing = nonVisual.Child(LegacyPptXml.P, "cNvPr");
+                NormalizeShapeMetadata(drawing, shapeProjection);
                 if (normalizeInteractions && shapeProjection.CanEditInteractions) {
-                    shape.NonVisualShapeProperties?.NonVisualDrawingProperties?
-                        .RemoveAllChildren<A.HyperlinkOnClick>();
-                    shape.NonVisualShapeProperties?.NonVisualDrawingProperties?
-                        .RemoveAllChildren<A.HyperlinkOnHover>();
+                    RemoveShapeInteractions(drawing);
                 }
-                var transform = shape.ShapeProperties?.Transform2D;
-                if (transform?.Offset != null) {
-                    transform.Offset.X = 0L;
-                    transform.Offset.Y = 0L;
-                }
-                if (transform?.Extents != null) {
-                    transform.Extents.Cx = 0L;
-                    transform.Extents.Cy = 0L;
-                }
-                NormalizeShapeFormatting(shape.ShapeProperties,
-                    shapeProjection);
-                if (shape.TextBody != null) {
+                OfficeXmlNode properties = shape.Child(LegacyPptXml.P, "spPr");
+                NormalizeOffsetAndExtents(properties.Child(LegacyPptXml.A, "xfrm"));
+                NormalizeShapeFormatting(properties, shapeProjection);
+                OfficeXmlNode text = shape.Child(LegacyPptXml.P, "txBody");
+                if (!text.IsNone) {
                     bool retainsSecuritySensitiveTextInteractions =
-                        !normalizeInteractions && shape.TextBody.Descendants()
-                            .Any(element => element is A.HyperlinkOnClick
-                                or A.HyperlinkOnHover
-                                or A.HyperlinkOnMouseOver);
+                        !normalizeInteractions && text.AllDescendants()
+                            .Any(element => element.Is(LegacyPptXml.A, "hlinkClick")
+                                || element.Is(LegacyPptXml.A, "hlinkHover")
+                                || element.Is(LegacyPptXml.A, "hlinkMouseOver"));
                     if (!retainsSecuritySensitiveTextInteractions) {
-                        shape.TextBody.RemoveAllChildren<A.Paragraph>();
+                        text.RemoveChildren(LegacyPptXml.A, "p");
                     }
-                    if (shapeProjection.CanEditTextFrame
-                        && shape.TextBody.BodyProperties != null) {
-                        shape.TextBody.BodyProperties.ClearAllAttributes();
-                        shape.TextBody.BodyProperties.RemoveAllChildren();
+                    if (shapeProjection.CanEditTextFrame) {
+                        Clear(text.Child(LegacyPptXml.A, "bodyPr"));
                     }
                 }
             }
-            foreach (P.Picture picture in root.Descendants<P.Picture>()) {
-                uint? shapeId = picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
-                        out LegacyPptShapeProjection? shapeProjection)
-                    || shapeProjection == null) continue;
-                picture.NonVisualPictureProperties?
-                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape?
-                    .Remove();
-                NormalizeShapeMetadata(picture.NonVisualPictureProperties?
-                    .NonVisualDrawingProperties, shapeProjection);
+            foreach (OfficeXmlNode picture in root.Descendants(LegacyPptXml.P, "pic")) {
+                OfficeXmlNode nonVisual = picture.Child(LegacyPptXml.P, "nvPicPr");
+                if (!TryGetProjection(nonVisual, tryGetShape,
+                        out LegacyPptShapeProjection shapeProjection)) continue;
+                Remove(nonVisual.Path(LegacyPptXml.P, "nvPr", "ph"));
+                OfficeXmlNode drawing = nonVisual.Child(LegacyPptXml.P, "cNvPr");
+                NormalizeShapeMetadata(drawing, shapeProjection);
                 if (normalizeInteractions && shapeProjection.CanEditInteractions) {
-                    picture.NonVisualPictureProperties?.NonVisualDrawingProperties?
-                        .RemoveAllChildren<A.HyperlinkOnClick>();
-                    picture.NonVisualPictureProperties?.NonVisualDrawingProperties?
-                        .RemoveAllChildren<A.HyperlinkOnHover>();
+                    RemoveShapeInteractions(drawing);
                 }
-                A.Transform2D? transform = picture.ShapeProperties?.Transform2D;
-                if (transform?.Offset != null) {
-                    transform.Offset.X = 0L;
-                    transform.Offset.Y = 0L;
-                }
-                if (transform?.Extents != null) {
-                    transform.Extents.Cx = 0L;
-                    transform.Extents.Cy = 0L;
-                }
-                NormalizeShapeFormatting(picture.ShapeProperties,
-                    shapeProjection);
+                OfficeXmlNode properties = picture.Child(LegacyPptXml.P, "spPr");
+                NormalizeOffsetAndExtents(properties.Child(LegacyPptXml.A, "xfrm"));
+                NormalizeShapeFormatting(properties, shapeProjection);
                 if (shapeProjection.CanEditPictureFormatting) {
-                    P.NonVisualPictureDrawingProperties? nonVisual = picture
-                        .NonVisualPictureProperties?
-                        .NonVisualPictureDrawingProperties;
-                    if (nonVisual != null) {
-                        nonVisual.PreferRelativeResize = null;
-                        nonVisual.RemoveAllChildren<A.PictureLocks>();
+                    OfficeXmlNode pictureDrawing = nonVisual.Child(LegacyPptXml.P, "cNvPicPr");
+                    if (!pictureDrawing.IsNone) {
+                        pictureDrawing.RemoveAttribute("preferRelativeResize");
+                        pictureDrawing.RemoveChildren(LegacyPptXml.A, "picLocks");
                     }
-                    picture.BlipFill?.SourceRectangle?.Remove();
-                    A.Blip? blip = picture.BlipFill?.Blip;
-                    blip?.RemoveAllChildren<A.LuminanceEffect>();
-                    blip?.RemoveAllChildren<A.Grayscale>();
-                    blip?.RemoveAllChildren<A.BiLevel>();
-                    blip?.RemoveAllChildren<A.ColorChange>();
-                    blip?.RemoveAllChildren<A.ColorReplacement>();
+                    OfficeXmlNode fill = picture.Child(LegacyPptXml.P, "blipFill");
+                    Remove(fill.Child(LegacyPptXml.A, "srcRect"));
+                    OfficeXmlNode blip = fill.Child(LegacyPptXml.A, "blip");
+                    if (!blip.IsNone) {
+                        blip.RemoveChildren(LegacyPptXml.A, "lum");
+                        blip.RemoveChildren(LegacyPptXml.A, "grayscl");
+                        blip.RemoveChildren(LegacyPptXml.A, "biLevel");
+                        blip.RemoveChildren(LegacyPptXml.A, "clrChange");
+                        blip.RemoveChildren(LegacyPptXml.A, "clrRepl");
+                    }
                 }
             }
-            foreach (P.ConnectionShape connection in root.Descendants<P.ConnectionShape>()) {
-                uint? shapeId = connection.NonVisualConnectionShapeProperties?
-                    .NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
-                        out LegacyPptShapeProjection? shapeProjection)
-                    || shapeProjection == null) continue;
-                connection.NonVisualConnectionShapeProperties?
-                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape?
-                    .Remove();
-                NormalizeShapeMetadata(connection
-                    .NonVisualConnectionShapeProperties?
-                    .NonVisualDrawingProperties, shapeProjection);
+            foreach (OfficeXmlNode connection in root.Descendants(LegacyPptXml.P, "cxnSp")) {
+                OfficeXmlNode nonVisual = connection.Child(LegacyPptXml.P, "nvCxnSpPr");
+                if (!TryGetProjection(nonVisual, tryGetShape,
+                        out LegacyPptShapeProjection shapeProjection)) continue;
+                Remove(nonVisual.Path(LegacyPptXml.P, "nvPr", "ph"));
+                OfficeXmlNode drawing = nonVisual.Child(LegacyPptXml.P, "cNvPr");
+                NormalizeShapeMetadata(drawing, shapeProjection);
                 if (normalizeInteractions && shapeProjection.CanEditInteractions) {
-                    connection.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties?
-                        .RemoveAllChildren<A.HyperlinkOnClick>();
-                    connection.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties?
-                        .RemoveAllChildren<A.HyperlinkOnHover>();
+                    RemoveShapeInteractions(drawing);
                 }
-                A.Transform2D? transform = connection.ShapeProperties?.Transform2D;
-                if (transform?.Offset != null) {
-                    transform.Offset.X = 0L;
-                    transform.Offset.Y = 0L;
-                }
-                if (transform?.Extents != null) {
-                    transform.Extents.Cx = 0L;
-                    transform.Extents.Cy = 0L;
-                }
-                NormalizeShapeFormatting(connection.ShapeProperties,
-                    shapeProjection);
+                OfficeXmlNode properties = connection.Child(LegacyPptXml.P, "spPr");
+                NormalizeOffsetAndExtents(properties.Child(LegacyPptXml.A, "xfrm"));
+                NormalizeShapeFormatting(properties, shapeProjection);
             }
-            foreach (P.GroupShape group in root.Descendants<P.GroupShape>()) {
-                uint? shapeId = group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
-                        out LegacyPptShapeProjection? shapeProjection)
-                    || shapeProjection == null) continue;
-                NormalizeShapeMetadata(group.NonVisualGroupShapeProperties?
-                    .NonVisualDrawingProperties, shapeProjection);
+            foreach (OfficeXmlNode group in root.Descendants(LegacyPptXml.P, "grpSp")) {
+                OfficeXmlNode nonVisual = group.Child(LegacyPptXml.P, "nvGrpSpPr");
+                if (!TryGetProjection(nonVisual, tryGetShape,
+                        out LegacyPptShapeProjection shapeProjection)) continue;
+                OfficeXmlNode drawing = nonVisual.Child(LegacyPptXml.P, "cNvPr");
+                NormalizeShapeMetadata(drawing, shapeProjection);
                 if (normalizeInteractions && shapeProjection.CanEditInteractions) {
-                    group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?
-                        .RemoveAllChildren<A.HyperlinkOnClick>();
-                    group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?
-                        .RemoveAllChildren<A.HyperlinkOnHover>();
+                    RemoveShapeInteractions(drawing);
                 }
-                A.TransformGroup? transform = group.GroupShapeProperties?.TransformGroup;
-                if (transform?.Offset != null) {
-                    transform.Offset.X = 0L;
-                    transform.Offset.Y = 0L;
+                OfficeXmlNode transform = group.Path(LegacyPptXml.P, "grpSpPr").Child(LegacyPptXml.A, "xfrm");
+                NormalizeOffsetAndExtents(transform);
+                if (shapeProjection.CanEditShapeTransform && !transform.IsNone) {
+                    RemoveRotationAndFlips(transform);
                 }
-                if (transform?.Extents != null) {
-                    transform.Extents.Cx = 0L;
-                    transform.Extents.Cy = 0L;
-                }
-                if (shapeProjection.CanEditShapeTransform
-                    && transform != null) {
-                    transform.Rotation = null;
-                    transform.HorizontalFlip = null;
-                    transform.VerticalFlip = null;
-                }
-                if (shapeProjection.CanEditGroupCoordinate
-                    && transform != null) {
-                    if (transform.ChildOffset != null) {
-                        transform.ChildOffset.X = 0L;
-                        transform.ChildOffset.Y = 0L;
-                    }
-                    if (transform.ChildExtents != null) {
-                        transform.ChildExtents.Cx = 0L;
-                        transform.ChildExtents.Cy = 0L;
-                    }
+                if (shapeProjection.CanEditGroupCoordinate && !transform.IsNone) {
+                    ZeroPoint(transform.Child(LegacyPptXml.A, "chOff"));
+                    ZeroSize(transform.Child(LegacyPptXml.A, "chExt"));
                 }
             }
-            foreach (P.GraphicFrame frame in root.Descendants<P.GraphicFrame>()) {
-                uint? shapeId = frame.NonVisualGraphicFrameProperties?
-                    .NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
-                        out LegacyPptShapeProjection? shapeProjection)
-                    || shapeProjection == null) continue;
-                NormalizeShapeMetadata(frame
-                    .NonVisualGraphicFrameProperties?
-                    .NonVisualDrawingProperties, shapeProjection);
+            foreach (OfficeXmlNode frame in root.Descendants(LegacyPptXml.P, "graphicFrame")) {
+                OfficeXmlNode nonVisual = frame.Child(LegacyPptXml.P, "nvGraphicFramePr");
+                if (!TryGetProjection(nonVisual, tryGetShape,
+                        out LegacyPptShapeProjection shapeProjection)) continue;
+                NormalizeShapeMetadata(nonVisual.Child(LegacyPptXml.P, "cNvPr"), shapeProjection);
                 if (shapeProjection.OleObject == null) continue;
-                P.Transform? transform = frame.Transform;
-                if (transform?.Offset != null) {
-                    transform.Offset.X = 0L;
-                    transform.Offset.Y = 0L;
+                OfficeXmlNode transform = frame.Child(LegacyPptXml.P, "xfrm");
+                NormalizeOffsetAndExtents(transform);
+                if (shapeProjection.CanEditShapeTransform && !transform.IsNone) {
+                    RemoveRotationAndFlips(transform);
                 }
-                if (transform?.Extents != null) {
-                    transform.Extents.Cx = 0L;
-                    transform.Extents.Cy = 0L;
-                }
-                if (shapeProjection.CanEditShapeTransform
-                    && transform != null) {
-                    transform.Rotation = null;
-                    transform.HorizontalFlip = null;
-                    transform.VerticalFlip = null;
-                }
-                P.OleObject? ole = frame.Graphic?.GraphicData?
-                    .GetFirstChild<P.OleObject>();
-                if (ole == null) continue;
-                ole.ProgId = null;
-                ole.ShowAsIcon = null;
-                P.OleObjectEmbed? embed = ole
-                    .GetFirstChild<P.OleObjectEmbed>();
-                if (embed != null) embed.FollowColorScheme = null;
+                OfficeXmlNode ole = frame.Child(LegacyPptXml.A, "graphic")
+                    .Child(LegacyPptXml.A, "graphicData").Child(LegacyPptXml.P, "oleObj");
+                if (ole.IsNone) continue;
+                ole.RemoveAttribute("progId");
+                ole.RemoveAttribute("showAsIcon");
+                OfficeXmlNode embed = ole.Child(LegacyPptXml.P, "embed");
+                if (!embed.IsNone) embed.RemoveAttribute("followColorScheme");
             }
         }
 
+        private static bool TryGetProjection(OfficeXmlNode nonVisual, TryGetShapeProjection tryGetShape,
+            out LegacyPptShapeProjection projection) {
+            projection = null!;
+            uint? shapeId = nonVisual.Child(LegacyPptXml.P, "cNvPr").UInt("id");
+            if (!shapeId.HasValue || !tryGetShape(shapeId.Value,
+                    out LegacyPptShapeProjection? found) || found == null) return false;
+            projection = found;
+            return true;
+        }
+
+        private static void RemoveShapeInteractions(OfficeXmlNode drawing) {
+            if (drawing.IsNone) return;
+            drawing.RemoveChildren(LegacyPptXml.A, "hlinkClick");
+            drawing.RemoveChildren(LegacyPptXml.A, "hlinkHover");
+        }
+
+        private static void NormalizeOffsetAndExtents(OfficeXmlNode transform) {
+            if (transform.IsNone) return;
+            ZeroPoint(transform.Child(LegacyPptXml.A, "off"));
+            ZeroSize(transform.Child(LegacyPptXml.A, "ext"));
+        }
+
+        private static void ZeroPoint(OfficeXmlNode point) {
+            if (point.IsNone) return;
+            point.SetAttribute("x", "0");
+            point.SetAttribute("y", "0");
+        }
+
+        private static void ZeroSize(OfficeXmlNode size) {
+            if (size.IsNone) return;
+            size.SetAttribute("cx", "0");
+            size.SetAttribute("cy", "0");
+        }
+
+        private static void RemoveRotationAndFlips(OfficeXmlNode transform) {
+            transform.RemoveAttribute("rot");
+            transform.RemoveAttribute("flipH");
+            transform.RemoveAttribute("flipV");
+        }
+
         private static void NormalizeShapeMetadata(
-            P.NonVisualDrawingProperties? properties,
+            OfficeXmlNode properties,
             LegacyPptShapeProjection projection) {
-            if (properties == null) return;
+            if (properties.IsNone) return;
             if (projection.CanEditShapeMetadata) {
-                properties.Name = string.Empty;
-                properties.Description = null;
+                properties.SetAttribute("name", string.Empty);
+                properties.RemoveAttribute("descr");
             }
             if (projection.CanEditShapeVisibility) {
-                properties.Hidden = null;
+                properties.RemoveAttribute("hidden");
             }
         }
 
         private static void NormalizeShapeFormatting(
-            P.ShapeProperties? properties,
+            OfficeXmlNode properties,
             LegacyPptShapeProjection projection) {
-            if (properties == null) {
-                return;
-            }
-            if (projection.CanEditShapeTransform
-                && properties.Transform2D != null) {
-                properties.Transform2D.Rotation = null;
-                properties.Transform2D.HorizontalFlip = null;
-                properties.Transform2D.VerticalFlip = null;
+            if (properties.IsNone) return;
+            OfficeXmlNode transform = properties.Child(LegacyPptXml.A, "xfrm");
+            if (projection.CanEditShapeTransform && !transform.IsNone) {
+                RemoveRotationAndFlips(transform);
             }
             if (projection.CanEditShapeGeometry) {
-                properties.GetFirstChild<A.PresetGeometry>()?
-                    .AdjustValueList?.RemoveAllChildren<A.ShapeGuide>();
+                OfficeXmlNode adjustments = properties.Child(LegacyPptXml.A, "prstGeom").Child(LegacyPptXml.A, "avLst");
+                if (!adjustments.IsNone) adjustments.RemoveChildren(LegacyPptXml.A, "gd");
             }
             if (!projection.CanEditShapeVisualStyle) return;
-            properties.RemoveAllChildren<A.NoFill>();
-            properties.RemoveAllChildren<A.SolidFill>();
-            properties.RemoveAllChildren<A.Outline>();
-            properties.RemoveAllChildren<A.EffectList>();
+            properties.RemoveChildren(LegacyPptXml.A, "noFill");
+            properties.RemoveChildren(LegacyPptXml.A, "solidFill");
+            properties.RemoveChildren(LegacyPptXml.A, "ln");
+            properties.RemoveChildren(LegacyPptXml.A, "effectLst");
         }
 
         private static bool HasOnlyTopLevelAnimationTargets(
-            P.SlideExtension extension,
+            OfficeXmlNode extension,
             LegacyPptSlideProjection slideProjection) {
-            OpenXmlElement[] animations = extension.Descendants()
-                .Where(element => element.NamespaceUri ==
-                        "https://schemas.officeimo.net/powerpoint/2026/classic-animations"
-                    && element.LocalName == "animation")
+            OfficeXmlNode[] animations = extension.AllDescendants()
+                .Where(element => element.Is(ClassicAnimationNamespace, "animation"))
                 .ToArray();
             return animations.Length > 0 && animations.All(animation =>
-                uint.TryParse(animation.GetAttributes().FirstOrDefault(attribute =>
-                        attribute.LocalName == "shapeId").Value,
-                    System.Globalization.NumberStyles.Integer,
-                    System.Globalization.CultureInfo.InvariantCulture,
+                uint.TryParse(FirstAttributeNamed(animation, "shapeId"),
+                    NumberStyles.Integer, CultureInfo.InvariantCulture,
                     out uint shapeId)
                 && slideProjection.TryGetShape(shapeId, out _));
+        }
+
+        private static void Remove(OfficeXmlNode element) {
+            if (!element.IsNone) element.Remove();
+        }
+
+        private static void RemoveAllChildren(OfficeXmlNode element) {
+            if (element.Tree is not { } tree) return;
+            while (tree.FirstChildOf(element.Node) != OfficeXmlTree.NoNode) {
+                tree.Remove(tree.FirstChildOf(element.Node));
+            }
+        }
+
+        /// <summary>Removes every attribute and child of an element, as the SDK's clear-all calls did.</summary>
+        internal static void Clear(OfficeXmlNode element) {
+            if (element.Tree is not { } tree) return;
+            RemoveAllChildren(element);
+            for (int index = tree.AttributeCountOf(element.Node) - 1; index >= 0; index--) {
+                tree.GetAttributeAt(element.Node, index, out int namespaceId, out string localName, out _);
+                if (namespaceId == OfficeXmlNamespaces.Xmlns
+                    || namespaceId == OfficeXmlNamespaces.None && string.Equals(localName, "xmlns", StringComparison.Ordinal)) {
+                    continue;
+                }
+                tree.RemoveAttribute(element.Node, namespaceId, localName);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A deterministic fingerprint over a presentation package read through a <see cref="LegacyPptPackageView"/>: parts,
+    /// their canonical markup or bytes, and their relationships, independent of how the package was serialized. Part
+    /// relationships, data-part (media) references and external or hyperlink references are told apart as the Open XML
+    /// SDK models them.
+    /// </summary>
+    internal static class LegacyPptPackageFingerprint {
+        internal const string ExtendedPropertiesContentType = "application/vnd.openxmlformats-officedocument.extended-properties+xml";
+        internal const string CorePropertiesContentType = "application/vnd.openxmlformats-package.core-properties+xml";
+        internal const string CustomPropertiesContentType = "application/vnd.openxmlformats-officedocument.custom-properties+xml";
+        private const string SlideCommentsContentType = "application/vnd.openxmlformats-officedocument.presentationml.comments+xml";
+        private const string CommentAuthorsContentType = "application/vnd.openxmlformats-officedocument.presentationml.commentAuthors+xml";
+        private const string VbaProjectContentType = "application/vnd.ms-office.vbaProject";
+        private const int MaximumPartCount = 100000;
+
+        internal static bool IsSlideComments(LegacyPptPartView part) => part.HasContentType(SlideCommentsContentType);
+
+        internal static bool IsCommentAuthors(LegacyPptPartView part) => part.HasContentType(CommentAuthorsContentType);
+
+        internal static bool IsVbaProject(LegacyPptPartView part) => part.HasContentType(VbaProjectContentType);
+
+        /// <summary>Whether a relationship is an external or hyperlink reference rather than a part edge.</summary>
+        internal static bool IsReference(LegacyPptRelationshipView relationship) =>
+            relationship.IsExternal || relationship.TargetPart.IsNone
+            || relationship.IsType(LegacyPptPackageView.HyperlinkRelationshipType);
+
+        /// <summary>Whether a relationship refers to a shared media data part (audio, video or media).</summary>
+        internal static bool IsDataPartReference(LegacyPptRelationshipView relationship) =>
+            !IsReference(relationship)
+            && (relationship.IsType(LegacyPptPackageView.AudioRelationshipType)
+                || relationship.IsType(LegacyPptPackageView.VideoRelationshipType)
+                || relationship.IsType(LegacyPptPackageView.MediaRelationshipType));
+
+        /// <summary>Whether a relationship is a part edge: internal, to an existing part, and not a data-part reference.</summary>
+        internal static bool IsPartRelationship(LegacyPptRelationshipView relationship) =>
+            !IsReference(relationship) && !IsDataPartReference(relationship);
+
+        /// <summary>Every part reachable from the package through part edges, each once.</summary>
+        internal static IReadOnlyList<LegacyPptPartView> CollectParts(LegacyPptPackageView view) {
+            var parts = new List<LegacyPptPartView>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var pending = new Stack<LegacyPptPartView>();
+            foreach (LegacyPptRelationshipView relationship in view.PackageRelationships) {
+                if (IsPartRelationship(relationship)) pending.Push(relationship.TargetPart);
+            }
+            while (pending.Count > 0) {
+                LegacyPptPartView part = pending.Pop();
+                if (!seen.Add(part.Name)) continue;
+                if (seen.Count > MaximumPartCount) {
+                    throw new IOException("The presentation part count exceeds the fingerprint limit.");
+                }
+                parts.Add(part);
+                foreach (LegacyPptRelationshipView relationship in part.Relationships) {
+                    if (IsPartRelationship(relationship)) pending.Push(relationship.TargetPart);
+                }
+            }
+            return parts;
+        }
+
+        /// <summary>The presentation's slide parts in relationship order, as the SDK lists them.</summary>
+        internal static List<LegacyPptPartView> SlideParts(LegacyPptPackageView view) =>
+            view.Presentation.RelatedParts(LegacyPptPackageView.SlideRelationshipType);
+
+        /// <summary>The presentation's slide master parts in relationship order, as the SDK lists them.</summary>
+        internal static List<LegacyPptPartView> SlideMasterParts(LegacyPptPackageView view) =>
+            view.Presentation.RelatedParts(LegacyPptPackageView.SlideMasterRelationshipType);
+
+        /// <summary>A master's slide layout parts in relationship order, as the SDK lists them.</summary>
+        internal static List<LegacyPptPartView> SlideLayoutParts(LegacyPptPartView master) =>
+            master.RelatedParts(LegacyPptPackageView.SlideLayoutRelationshipType);
+
+        /// <summary>A fingerprint of the whole package, every part and relationship included.</summary>
+        internal static string Create(LegacyPptPackageView view) => Create(view, null, null, null, null, null);
+
+        internal static string Create(LegacyPptPackageView view,
+            Action<LegacyPptPartView, OfficeXmlNode>? normalizeRoot,
+            Func<LegacyPptPartView, bool>? includePart,
+            Func<LegacyPptPartView, LegacyPptRelationshipView, bool>? includeRelationship,
+            Func<LegacyPptPartView, LegacyPptRelationshipView, bool>? includeReferenceRelationship,
+            Func<LegacyPptPartView, LegacyPptRelationshipView, bool>? includeDataPartReferenceRelationship) {
+            ArgumentNullException.ThrowIfNull(view);
+            using IncrementalHash content = LegacyPptProjectionDigest.CreateBuilder();
+            foreach (LegacyPptPartView part in CollectParts(view).OrderBy(item => item.Name, StringComparer.Ordinal)) {
+                if (includePart != null && !includePart(part)) continue;
+                LegacyPptProjectionDigest.Append(content, part.Name);
+                LegacyPptProjectionDigest.Append(content, part.ContentType);
+                AppendContent(content, part, normalizeRoot);
+
+                foreach (LegacyPptRelationshipView relationship in part.Relationships
+                             .Where(IsPartRelationship).OrderBy(item => item.Id, StringComparer.Ordinal)) {
+                    if (includeRelationship != null && !includeRelationship(part, relationship)) continue;
+                    LegacyPptProjectionDigest.Append(content, relationship.Id);
+                    LegacyPptProjectionDigest.Append(content, relationship.TargetPart.Name);
+                }
+                foreach (LegacyPptRelationshipView relationship in part.Relationships
+                             .Where(IsDataPartReference).OrderBy(item => item.Id, StringComparer.Ordinal)) {
+                    if (includeDataPartReferenceRelationship != null
+                        && !includeDataPartReferenceRelationship(part, relationship)) continue;
+                    LegacyPptPartView dataPart = relationship.TargetPart;
+                    LegacyPptProjectionDigest.Append(content, relationship.Id);
+                    LegacyPptProjectionDigest.Append(content, OfficeXmlNamespaces.NormalizeRelationshipType(relationship.Type));
+                    LegacyPptProjectionDigest.Append(content, dataPart.Name);
+                    LegacyPptProjectionDigest.Append(content, dataPart.ContentType);
+                    AppendBytes(content, dataPart);
+                }
+                foreach (LegacyPptRelationshipView relationship in part.Relationships
+                             .Where(IsReference).OrderBy(item => item.Id, StringComparer.Ordinal)) {
+                    if (includeReferenceRelationship != null
+                        && !includeReferenceRelationship(part, relationship)) continue;
+                    LegacyPptProjectionDigest.Append(content, relationship.Id);
+                    LegacyPptProjectionDigest.Append(content, OfficeXmlNamespaces.NormalizeRelationshipType(relationship.Type));
+                    LegacyPptProjectionDigest.Append(content, relationship.Target);
+                }
+            }
+            return LegacyPptProjectionDigest.Finish(content);
+        }
+
+        private static void AppendContent(IncrementalHash content, LegacyPptPartView part,
+            Action<LegacyPptPartView, OfficeXmlNode>? normalizeRoot) {
+            OfficeXmlNode root;
+            try {
+                root = part.Root;
+            } catch (Exception exception) when (exception is System.Xml.XmlException
+                                                    or InvalidDataException or IOException) {
+                LegacyPptProjectionDigest.Append(content, "unreadable");
+                return;
+            }
+            if (root.IsNone) {
+                AppendBytes(content, part);
+                return;
+            }
+            if (normalizeRoot != null) {
+                OfficeXmlNode normalized = root.Clone();
+                normalizeRoot(part, normalized);
+                root = normalized;
+            }
+            var markup = new StringBuilder();
+            LegacyPptXml.AppendCanonical(root, markup);
+            LegacyPptProjectionDigest.Append(content, "xml");
+            LegacyPptProjectionDigest.Append(content, markup.ToString());
+        }
+
+        private static void AppendBytes(IncrementalHash content, LegacyPptPartView part) {
+            byte[] bytes;
+            try {
+                bytes = part.GetBytes();
+            } catch (Exception exception) when (exception is InvalidDataException or IOException) {
+                LegacyPptProjectionDigest.Append(content, "unreadable");
+                return;
+            }
+            LegacyPptProjectionDigest.Append(content, bytes.Length.ToString(CultureInfo.InvariantCulture));
+            content.AppendData(bytes);
         }
     }
 }
