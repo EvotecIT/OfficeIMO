@@ -40,12 +40,13 @@ The open-source OneArchive project (packages RecursiveAI.OneCompress and Recursi
 | PPMd (variants H and I) | Read and write | No | Decision: no specification beyond source code |
 | LZX | Decode | Decode (CAB) | Done |
 | Checksums | CRC-32, CRC-32C, CRC-64, Adler-32, xxHash32, xxHash64 | CRC-32 (duplicated), Adler-32 | One public checksum set, retiring the private copies |
+| ZIP editing | Not offered | Write new archives only | Edit in place: add, remove, rename and replace entries while copying untouched entries' bytes unchanged, with correct zip64 above 4 GiB |
 | ZIP | zip64, descriptors, methods store, Deflate, Deflate64, bzip2, Zstandard, PPMd (read and write) and LZMA, xz (read); WinZip AES read and write, ZipCrypto read, damaged-file recovery, lazy central directory, raw entry copy | zip64, descriptors, stored and Deflate, no encryption; inventory spills large input to private storage | AES read and write, ZipCrypto read, recovery mode, new methods as their codecs land (Zstandard 93, LZMA 14, xz 95), raw member copy |
 | TAR | ustar, pax, GNU, sparse | ustar, pax, GNU, v7; sparse rejected | Sparse read, `.tar.zst/.xz/.bz2/.lz4/.lz/.br` |
 | 7z | Read and write, solid blocks, encoded headers, AES-256; Copy, Deflate, Deflate64, bzip2 (read), LZMA, LZMA2, Zstandard (non-standard method id), PPMd, Delta and branch filters; BCJ2 unsupported | Read: Copy, LZMA, LZMA2, encoded headers, solid; no filters, no encryption, no writer | Delta, BCJ filters, AES read, then a deterministic writer |
 | cpio, ar | newc, crc, odc cpio; common, GNU and BSD ar (`.deb` reads as ar); read and write | No | Read, then write; `.deb` through ar |
 | ISO 9660 | Joliet, Rock Ridge | No | Read, then write |
-| CAB | Stored, MSZIP, LZX; no Quantum | Same | Done; Quantum stays out (no specification) |
+| CAB | Stored, MSZIP, LZX read; no Quantum, no writing | Same | Quantum decoding and CAB creation (MSZIP, then LZX), so PowerShell users no longer need `makecab` or `expand.exe` |
 | Compound files | Versions 3 and 4, read and write, recovery mode on read | Read and write in Core (MSI, legacy Office) | Recovery reading where a consumer needs it |
 | RAR 5 | Listing and stored entries | No | Separate work in progress |
 | Small messages | Frame-per-message and flushed-stream modes for Zstandard and LZ4 with trained dictionaries | No | With Zstandard dictionaries |
@@ -55,13 +56,14 @@ The open-source OneArchive project (packages RecursiveAI.OneCompress and Recursi
 | Determinism | Byte-identical across OS, CPU, runtime, threads | Byte-identical across OS and target frameworks | Extend to every encoder and to thread count |
 | Targets | `net10.0`; AOT, trim, browser WASM | `netstandard2.0`, `net472`, `net8.0`, `net10.0`; AOT smoke | Keep the wider target set; add a WASM smoke |
 
-Where OfficeIMO goes further and keeps going: MSI payloads, `PlanRead` cost plans, atomic grouped reads, verified copies, shared budgets across nested containers, decode-work accounting, passive raw inventory, staged atomic extraction, `.NET Framework` and `netstandard2.0` support, and nested-archive traversal through the Reader. New codecs plug into all of these instead of bypassing them: a Zstandard member inside a ZIP inside a TAR is planned, budgeted and verified like a Deflate member today.
+Where OfficeIMO goes further and keeps going: CAB creation and Quantum decoding (planned), in-place ZIP editing (planned), MSI payloads, `PlanRead` cost plans, atomic grouped reads, verified copies, shared budgets across nested containers, decode-work accounting, passive raw inventory, staged atomic extraction, `.NET Framework` and `netstandard2.0` support, and nested-archive traversal through the Reader. New codecs plug into all of these instead of bypassing them: a Zstandard member inside a ZIP inside a TAR is planned, budgeted and verified like a Deflate member today.
 
 ## Package placement
 
-Codecs start as internal types in `OfficeIMO.Archives`, with public one-shot, encoder/decoder and stream types in an `OfficeIMO.Archives.Compression` namespace. A codec moves into `OfficeIMO.Core` (internal, like LZX and Deflate validation today) when a second package needs it. Brotli is the first candidate: WOFF2 font decoding in Core and Brotli CSV files only work on .NET 8 and later today, because they use the runtime `BrotliStream`. LZ4 and Zstandard would follow if Arrow IPC buffer compression is added.
+No new packages. Codecs live in `OfficeIMO.Archives` and `OfficeIMO.Core`:
 
-A separate `OfficeIMO.Compression` package (codecs and checksums, no containers) is the alternative. It suits callers who want Zstandard or Brotli without archive handling, and keeps Core small. It needs the resource-limit and corruption exceptions to stay in Core, which every package already references. This is a decision to take before the second codec lands; until then the first codec PR keeps everything internal so either choice stays open.
+- A codec starts as internal types in `OfficeIMO.Archives`. Single-stream facades such as `ZstandardArchive` sit next to `GZipArchive` in the `OfficeIMO.Archives` namespace. Lower-level public codec types (span encoders and decoders, checksums) go in `OfficeIMO.Archives.Compression`.
+- A codec moves into `OfficeIMO.Core` (internal, like LZX and Deflate validation today) when a second package needs it. Brotli goes straight to Core: WOFF2 font decoding in Core and Brotli CSV files only work on .NET 8 and later today, because they use the runtime `BrotliStream`. LZ4 and Zstandard would follow if Arrow IPC buffer compression is added.
 
 ## Specifications
 
@@ -88,32 +90,41 @@ A separate `OfficeIMO.Compression` package (codecs and checksums, no containers)
 | Deflate64 | APPNOTE names method 9 without defining it | Decision |
 | PPMd H and I | Only the reference source | Decision |
 | BCJ/branch filters (x86, ARM, ARM64, PowerPC, SPARC, IA-64, RISC-V) | Named in xz and 7z formats, defined only by source | Decision |
-| Quantum (CAB) | No public specification | Out of scope |
+| Quantum (CAB) | No Microsoft specification; only independent descriptions of the format | Planned; which description counts as the source is part of the open specification decision |
+| CAB creation | [MS-CAB] for the container and MSZIP; [MS-PATCH] LZX DELTA for the LZX format | Written specification |
 | RAR | Separate work | Out of scope here |
 
 ## Decisions needed
 
-1. **Package placement:** codecs inside `OfficeIMO.Archives` (moving to Core when shared) or a new `OfficeIMO.Compression` package.
-2. **bzip2:** implement from informal format descriptions and validate only against the reference tool's output, or leave out.
-3. **Deflate64:** same question; the only definition is behavioural (64 KiB window, extended length and distance codes).
-4. **PPMd:** no specification exists apart from source code. Leave out unless a written description is accepted.
-5. **Branch filters and 7z AES key derivation:** defined only by source code. Leave out, or accept independent descriptions.
+Package placement is settled above. Open: which sources are acceptable for formats defined only by another project's source code or by informal descriptions.
+
+1. **bzip2:** implement from informal format descriptions and validate only against the reference tool's output, or leave out.
+2. **Deflate64:** same question; the only definition is behavioural (64 KiB window, extended length and distance codes).
+3. **PPMd:** no specification exists apart from source code. Leave out unless a written description is accepted.
+4. **Branch filters and 7z AES key derivation:** defined only by source code. Leave out, or accept independent descriptions.
+5. **CAB Quantum:** no Microsoft specification; independent descriptions exist.
+
+These stay out until the decision is made.
 
 ## Delivery order
 
 Each step is one PR with interop fixtures produced by the reference tools through a committed script that records tool versions and hashes, malformed-input tests that assert the typed error and offset, default-on limits, and determinism pins for encoders.
 
 1. Zstandard decoder with `ArchiveCorruptionException`: frames, skippable frames, dictionaries, window limits.
-2. Typed corruption in the existing readers and a shared checksum set (CRC-32, CRC-32C, CRC-64, Adler-32, xxHash32, xxHash64).
-3. xz and lzip readers over the existing LZMA/LZMA2 decoders: checks, delta filter, multi-stream and padding.
-4. LZ4 frame and block decoder, then encoder; `.tar.lz4`.
-5. Managed Brotli decoder on every target, taking WOFF2 and CSV off the .NET 8 requirement.
-6. Managed inflate, so decoding no longer depends on the runtime's zlib.
-7. Encoders: Zstandard levels, LZMA/LZMA2 and xz, Brotli, Deflate levels, all deterministic.
-8. Containers: content-sniffed format detection (`.zst`, `.tar.zst` and the other single-stream codecs), cpio and ar, ISO 9660 with Joliet and Rock Ridge, TAR sparse reading.
-9. ZIP AES read and write, ZipCrypto read, recovery mode for damaged ZIPs, additional ZIP methods.
-10. 7z delta filter, AES read (after the decision), deterministic 7z writer.
-11. Zstandard dictionary training, seekable format and multithreaded compression with thread-count-independent output.
+2. ZIP encrypted-member reading: traditional ZipCrypto (APPNOTE) and WinZip AES (AE-1 and AE-2), password supplied through options.
+3. TAR wrappers as each codec lands: `.tar.zst`, `.tar.xz`, `.tar.lz` (and `.tar.bz2` after the decision) read alongside `.tar.gz`, written once the encoder exists; content-sniffed single-stream detection in the extractor.
+4. `OfficeIMO.Reader.Zip` becomes `OfficeIMO.Reader.Archives` for 4.0: 7z, CAB and RAR stored entries read automatically like ZIP, TAR and gzip, MSI opt-in, nested archives of any supported kind through the same path and limits.
+5. xz and lzip readers over the existing LZMA/LZMA2 decoders: checks, delta filter, multi-stream and padding (`XzArchive`, `LzipArchive`).
+6. LZ4 frame and block decoder, then encoder.
+7. Managed Brotli decoder in Core on every target, taking WOFF2 and CSV off the .NET 8 requirement.
+8. Typed corruption in the existing readers and a shared checksum set (CRC-32, CRC-32C, CRC-64, Adler-32, xxHash32, xxHash64).
+9. Managed inflate, so decoding no longer depends on the runtime's zlib.
+10. Encoders: Zstandard levels, LZMA/LZMA2 and xz, Brotli, Deflate levels, all deterministic.
+11. ZIP editing in place, ZIP AES writing, recovery mode for damaged ZIPs, additional ZIP methods.
+12. CAB creation (MSZIP, then LZX) and Quantum decoding (after the decision).
+13. Containers: cpio and ar, ISO 9660 with Joliet and Rock Ridge, TAR sparse reading.
+14. 7z delta filter, AES read (after the decision), deterministic 7z writer.
+15. Zstandard dictionary training, seekable format and multithreaded compression with thread-count-independent output.
 
 ## Benchmarks
 
