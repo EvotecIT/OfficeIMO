@@ -591,10 +591,12 @@ internal static partial class OfficeProvenanceTiff {
             result.Add(new TiffIfd(ifdOffset, entriesOffset, nextFieldOffset, countFieldSize, entrySize, nextFieldSize, littleEndian, bigTiff, tagsAreSorted, entries));
             if (followLinkedIfds) EnqueueIfdOffset(linkedOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
             foreach (TiffEntry subIfds in followLinkedIfds ? entries.Where(static entry => entry.Tag == SubIfdsTag) : Enumerable.Empty<TiffEntry>()) {
-                if (!IsValidSubIfdPointerType(subIfds.Type, bigTiff) ||
-                    subIfds.Count > (ulong)options.MaxContainerEntries || subIfds.Count > int.MaxValue ||
+                if (subIfds.Count > (ulong)options.MaxContainerEntries) {
+                    throw OfficeProvenanceLimitException.Create("TIFF SubIFD references exceed the configured container-entry limit.");
+                }
+                if (!IsValidSubIfdPointerType(subIfds.Type, bigTiff) || subIfds.Count > int.MaxValue ||
                     !TryGetValueStorageRange(data, subIfds, out int storageOffset, out _)) {
-                    throw OfficeProvenanceLimitException.Create("TIFF SubIFD references are malformed or exceed the configured container-entry limit.");
+                    throw new InvalidDataException("TIFF SubIFD references are malformed.");
                 }
                 for (int index = 0; index < (int)subIfds.Count; index++) {
                     if (!TryReadUnsignedValue(data, subIfds, storageOffset, index, out ulong subIfdOffset)) {
@@ -604,7 +606,8 @@ internal static partial class OfficeProvenanceTiff {
                 }
             }
             if (followExifIfd && result.Count == 1) {
-                foreach (TiffEntry exifIfd in entries.Where(static entry => entry.Tag == ExifIfdTag)) {
+                // The GPS IFD is read too: its values can share storage with a field that removal clears.
+                foreach (TiffEntry exifIfd in entries.Where(static entry => entry.Tag is ExifIfdTag or GpsIfdTag)) {
                     if (TryReadExifIfdPointer(data, exifIfd, bigTiff, out ulong exifOffset)) {
                         EnqueueIfdOffset(exifOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
                     }

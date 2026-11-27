@@ -177,7 +177,7 @@ internal static class OfficeHiddenDataAssets {
     private static bool IsAiExifDeclaration(OfficeExifValue value) =>
         value.Tag.Equals(OfficeExifTag.Software) && value.Value is string software && OfficeProvenanceAiGenerators.IsAiGenerator(software) ||
         value.Tag.Equals(OfficeExifTag.UserComment) && value.Value is byte[] comment &&
-            OfficeProvenanceAiGenerators.IsAiGenerationRecord(OfficeProvenanceAiGenerators.DecodeUserComment(comment, 0, comment.Length));
+            OfficeProvenanceAiGenerators.IsAiUserComment(comment, 0, comment.Length);
 
     private static string? DescribePrivateImageMetadata(byte[] data) {
         OfficeImageMetadata metadata;

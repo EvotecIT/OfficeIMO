@@ -350,12 +350,56 @@ public sealed class ProvenanceAiGeneratorMetadataContracts {
     }
 
     [Fact]
+    public void UnmarkedUnicodeCommentIsRecognizedInEitherByteOrderWhateverItsZeroBytes() {
+        string text = "Midjourney " + new string('\u0100', 20);
+        foreach (Encoding encoding in new[] { Encoding.BigEndianUnicode, Encoding.Unicode }) {
+            byte[] comment = Concat(Encoding.ASCII.GetBytes("UNICODE\0"), encoding.GetBytes(text));
+            byte[] png = CreatePng(CreateChunk("eXIf", CreateExif("Darktable", Latin1.GetString(comment))));
+
+            Assert.Equal("UserComment", Assert.Single(OfficeProvenanceInspector.Inspect(png, "generated.png").Evidence).Value);
+        }
+    }
+
+    [Fact]
+    public void MalformedSubIfdLinkStillReportsPrimaryFieldsAsMalformed() {
+        byte[] exif = CreateExif("Midjourney", "ASCII\0\0\0holiday");
+        // Turn Make into a SubIFDs entry (tag 330) with a SHORT pointer type, which is malformed but not a limit.
+        BitConverter.GetBytes((ushort)330).CopyTo(exif, 10);
+        BitConverter.GetBytes((ushort)3).CopyTo(exif, 12);
+        BitConverter.GetBytes(1u).CopyTo(exif, 14);
+        byte[] png = CreatePng(CreateChunk("eXIf", exif));
+
+        OfficeProvenanceEvidence evidence = Assert.Single(OfficeProvenanceInspector.Inspect(png, "generated.png").Evidence);
+        Assert.Equal("Midjourney", evidence.Value);
+        Assert.False(evidence.IsStructurallyValid);
+    }
+
+    [Fact]
+    public void SoftwareTextSharedWithAGpsEntryIsNotCleared() {
+        byte[] exif = CreateExif("Midjourney", "ASCII\0\0\0holiday");
+        int software = BitConverter.ToInt32(exif, 22 + 8);
+        // Point an extra GPS IFD's GPSMapDatum entry at the Software text by turning the Exif pointer into a GPS pointer and reusing
+        // its IFD: tag 0x0012 (GPSMapDatum), ASCII, same count and offset as Software.
+        BitConverter.GetBytes((ushort)0x8825).CopyTo(exif, 34);
+        int gps = BitConverter.ToInt32(exif, 34 + 8);
+        BitConverter.GetBytes((ushort)0x0012).CopyTo(exif, gps + 2);
+        BitConverter.GetBytes((ushort)2).CopyTo(exif, gps + 4);
+        BitConverter.GetBytes(BitConverter.ToUInt32(exif, 22 + 4)).CopyTo(exif, gps + 6);
+        BitConverter.GetBytes((uint)software).CopyTo(exif, gps + 10);
+        byte[] source = CreatePng(CreateChunk("eXIf", exif));
+
+        Assert.False(OfficeProvenanceRemover.Remove(source, "generated.png", new OfficeProvenanceRemovalOptions()).WasChanged);
+    }
+
+    [Fact]
     public void OrdinaryExifIsNotACarrier() {
         byte[] png = CreatePng(CreateChunk("eXIf", CreateExif("Darktable 4.6", "ASCII\0\0\0holiday")));
 
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(png, "photo.png");
         Assert.Empty(report.Evidence);
-        Assert.Equal(0, report.ExpandedInspectionBytes);
+        // Only the EXIF text is charged: Software and UserComment (14 + 15 bytes), read by the carrier check and again by inspection.
+        // The image itself is not decoded.
+        Assert.Equal(2 * (14 + 15), report.ExpandedInspectionBytes);
     }
 
     [Fact]

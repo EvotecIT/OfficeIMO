@@ -56,6 +56,20 @@ internal static class OfficeProvenanceAiGenerators {
             IsAiGenerator(text));
 
     /// <summary>
+    /// Whether an EXIF <c>UserComment</c> value is an AI generation record. A UTF-16 comment without a byte-order mark is read in
+    /// both byte orders, because no byte count can decide the order for every text.
+    /// </summary>
+    internal static bool IsAiUserComment(byte[] data, int offset, int length) {
+        if (IsAiGenerationRecord(DecodeUserComment(data, offset, length))) return true;
+        if (length < 10 || !OfficeProvenanceBinary.MatchesAscii(data, offset, "UNICODE\0")) return false;
+        int textOffset = offset + 8;
+        int textLength = (length - 8) & ~1;
+        if (data[textOffset] == 0xFE && data[textOffset + 1] == 0xFF || data[textOffset] == 0xFF && data[textOffset + 1] == 0xFE) return false;
+        return IsAiGenerationRecord(System.Text.Encoding.BigEndianUnicode.GetString(data, textOffset, textLength)) ||
+            IsAiGenerationRecord(System.Text.Encoding.Unicode.GetString(data, textOffset, textLength));
+    }
+
+    /// <summary>
     /// Decodes an EXIF <c>UserComment</c> value: an eight-byte character-code prefix followed by the text. ASCII, Unicode (UTF-16 in
     /// either byte order) and undefined (read as UTF-8) codes are supported; JIS and unknown codes return null.
     /// </summary>

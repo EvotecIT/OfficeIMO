@@ -60,7 +60,7 @@ internal static class OfficeProvenancePng {
         List<OfficeProvenanceChange>? changes,
         bool? inspectedStructureValid) {
         bool reserialized = false;
-        int c2paCount = CountC2paChunks(data, options, out int xmpCount, out int generatorCount, out bool validChunkStructure);
+        int c2paCount = CountC2paChunks(data, options, context, out int xmpCount, out int generatorCount, out bool validChunkStructure);
         // Decoding only establishes carrier validity, so carrier-free images are never decoded.
         bool validStructure = inspectedStructureValid ?? (
             (c2paCount != 0 || xmpCount != 0 || generatorCount != 0) && validChunkStructure && ValidateDecodedPayload(data, options, context!));
@@ -160,6 +160,7 @@ internal static class OfficeProvenancePng {
     private static int CountC2paChunks(
         byte[] data,
         OfficeProvenanceOptions options,
+        OfficeProvenanceContext? context,
         out int xmpCount,
         out int generatorCount,
         out bool validStructure) {
@@ -200,7 +201,7 @@ internal static class OfficeProvenancePng {
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
                 HasXmpKeyword(data, offset + 8, payloadLength)) xmpCount++;
             if (TryGetAiGeneratorKeyword(data, offset + 4, offset + 8, payloadLength, out _) ||
-                OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "eXIf") && HasExifGeneratorFields(data, offset + 8, payloadLength, options)) {
+                OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "eXIf") && HasExifGeneratorFields(data, offset + 8, payloadLength, options, context)) {
                 generatorCount++;
             }
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IHDR")) {
@@ -307,11 +308,12 @@ internal static class OfficeProvenancePng {
     };
 
     /// <summary>Only an EXIF block that holds AI generator fields is a carrier, so an ordinary eXIf chunk does not cause a decode.</summary>
-    private static bool HasExifGeneratorFields(byte[] data, int payloadOffset, int payloadLength, OfficeProvenanceOptions options) {
+    private static bool HasExifGeneratorFields(
+        byte[] data, int payloadOffset, int payloadLength, OfficeProvenanceOptions options, OfficeProvenanceContext? context) {
         if (payloadLength <= 8) return false;
         byte[] tiff = new byte[payloadLength];
         Buffer.BlockCopy(data, payloadOffset, tiff, 0, payloadLength);
-        return OfficeProvenanceTiff.HasGeneratorFields(tiff, options);
+        return OfficeProvenanceTiff.HasGeneratorFields(tiff, options, context);
     }
 
     private static bool TryGetAiGeneratorKeyword(byte[] data, int typeOffset, int payloadOffset, int payloadLength, out string? keyword) {

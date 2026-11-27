@@ -10,6 +10,7 @@ internal static partial class OfficeProvenanceTiff {
     private const ushort AsciiType = 2;
     private const ushort SoftwareTag = 305;
     private const ushort ExifIfdTag = 34665;
+    private const ushort GpsIfdTag = 34853;
     private const ushort UserCommentTag = 37510;
 
     internal static void InspectGeneratorFields(
@@ -18,7 +19,7 @@ internal static partial class OfficeProvenanceTiff {
         OfficeProvenanceContext context,
         string location,
         bool containerIsStructurallyValid) {
-        if (!TryFindGeneratorFields(tiff, options, out List<TiffIfd> ifds, out List<GeneratorField> fields, out bool complete)) return;
+        if (!TryFindGeneratorFields(tiff, options, context, out List<TiffIfd> ifds, out List<GeneratorField> fields, out bool complete)) return;
         bool storageValid = complete && HasValidEntryStorage(tiff, ifds);
         foreach (GeneratorField field in fields) {
             context.Add(new OfficeProvenanceEvidence(
@@ -41,7 +42,7 @@ internal static partial class OfficeProvenanceTiff {
         out byte[] output) {
         output = tiff;
         if (!options.RemoveAiSourceMetadata ||
-            !TryFindGeneratorFields(tiff, options.Limits, out List<TiffIfd> ifds, out List<GeneratorField> fields, out bool complete)) return false;
+            !TryFindGeneratorFields(tiff, options.Limits, context: null, out List<TiffIfd> ifds, out List<GeneratorField> fields, out bool complete)) return false;
         bool storageValid = complete && HasValidEntryStorage(tiff, ifds);
         byte[]? rewritten = null;
         foreach (IGrouping<TiffIfd, GeneratorField> group in fields.GroupBy(static field => field.Ifd)) {
@@ -70,8 +71,8 @@ internal static partial class OfficeProvenanceTiff {
     }
 
     /// <summary>Whether the structure holds AI generator fields, so a container knows the carrier is there before validating it.</summary>
-    internal static bool HasGeneratorFields(byte[] tiff, OfficeProvenanceOptions options) =>
-        TryFindGeneratorFields(tiff, options, out _, out _, out _);
+    internal static bool HasGeneratorFields(byte[] tiff, OfficeProvenanceOptions options, OfficeProvenanceContext? context) =>
+        TryFindGeneratorFields(tiff, options, context, out _, out _, out _);
 
     /// <summary>
     /// Finds the fields. When a later IFD or a SubIFD link is malformed, the primary and Exif IFDs are still read on their own and
@@ -80,6 +81,7 @@ internal static partial class OfficeProvenanceTiff {
     private static bool TryFindGeneratorFields(
         byte[] tiff,
         OfficeProvenanceOptions options,
+        OfficeProvenanceContext? context,
         out List<TiffIfd> ifds,
         out List<GeneratorField> fields,
         out bool complete) {
@@ -102,18 +104,30 @@ internal static partial class OfficeProvenanceTiff {
         TiffIfd? exif = exifPointer != null && TryReadExifIfdPointer(tiff, exifPointer, primary.BigTiff, out ulong exifOffset)
             ? ifds.FirstOrDefault(ifd => (ulong)ifd.Offset == exifOffset)
             : null;
-        // Every decoded value draws from the expanded-byte budget first, so entries that share one large value cannot multiply the work.
+        // Every distinct value is decoded once and drawn from the expanded-byte budget first: the inspection's cumulative budget
+        // when there is one, otherwise a budget for this call. Entries that share a value reuse its decoded text.
         long decodedBytes = 0;
-        void Charge(int length) {
-            decodedBytes += length;
-            if (decodedBytes > options.MaxExpandedContainerBytes) {
-                throw OfficeProvenanceLimitException.Create("TIFF generator fields exceed the configured expanded-byte limit.");
+        var decoded = new Dictionary<long, string?>();
+        bool TryDecode(int offset, int length, bool comment, out string? text) {
+            long key = ((long)offset << 32) | (uint)length;
+            if (decoded.TryGetValue(key, out text)) return true;
+            if (context != null) {
+                context.ReserveExpandedBytes(length, "TIFF generator fields exceed the configured expanded-byte limit.");
+            } else {
+                decodedBytes += length;
+                if (decodedBytes > options.MaxExpandedContainerBytes) {
+                    throw OfficeProvenanceLimitException.Create("TIFF generator fields exceed the configured expanded-byte limit.");
+                }
             }
+            text = comment
+                ? (OfficeProvenanceAiGenerators.IsAiUserComment(tiff, offset, length) ? "UserComment" : null)
+                : System.Text.Encoding.UTF8.GetString(tiff, offset, length).TrimEnd('\0');
+            decoded[key] = text;
+            return true;
         }
         foreach (TiffEntry entry in primary.Entries) {
             if (entry.Tag != SoftwareTag || entry.Type != AsciiType || !TryGetValueStorageRange(tiff, entry, out int offset, out int length)) continue;
-            Charge(length);
-            string value = System.Text.Encoding.UTF8.GetString(tiff, offset, length).TrimEnd('\0');
+            TryDecode(offset, length, comment: false, out string? value);
             if (OfficeProvenanceAiGenerators.TryMatch(value, out string product)) {
                 fields.Add(new GeneratorField(primary, entry, "IFD0/Software", product, offset, length));
             }
@@ -121,8 +135,8 @@ internal static partial class OfficeProvenanceTiff {
         if (exif != null) {
             foreach (TiffEntry entry in exif.Entries) {
                 if (entry.Tag != UserCommentTag || entry.Type != UndefinedType || !TryGetValueStorageRange(tiff, entry, out int offset, out int length)) continue;
-                Charge(length);
-                if (OfficeProvenanceAiGenerators.IsAiGenerationRecord(OfficeProvenanceAiGenerators.DecodeUserComment(tiff, offset, length))) {
+                TryDecode(offset, length, comment: true, out string? record);
+                if (record != null) {
                     fields.Add(new GeneratorField(exif, entry, "ExifIFD/UserComment", "UserComment", offset, length));
                 }
             }
