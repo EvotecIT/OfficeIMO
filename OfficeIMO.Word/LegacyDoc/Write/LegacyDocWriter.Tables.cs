@@ -1,25 +1,22 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void ThrowIfUnsupportedTableShape(Table table, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            foreach (OpenXmlElement child in table.ChildElements) {
-                switch (child) {
-                    case TableProperties tableProperties:
-                        ThrowIfUnsupportedTableProperties(tableProperties, tableStyleDefinitions);
+        private static void ThrowIfUnsupportedTableShape(LegacyDocElement table, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+            foreach (LegacyDocElement child in table.Elements()) {
+                switch (child.WName) {
+                    case "tblPr":
+                        ThrowIfUnsupportedTableProperties(child, tableStyleDefinitions);
                         break;
-                    case TableGrid tableGrid:
-                        ThrowIfUnsupportedTableGrid(tableGrid);
+                    case "tblGrid":
+                        ThrowIfUnsupportedTableGrid(child);
                         break;
-                    case TableRow:
+                    case "tr":
                         break;
-                    case BookmarkStart:
-                    case BookmarkEnd:
+                    case "bookmarkStart":
+                    case "bookmarkEnd":
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table element: {child.LocalName}.");
@@ -27,27 +24,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendTableRowBoundaryBookmarks(Table table, TableRow row, LegacyDocWritableBookmarksBuilder bookmarks, int characterPosition) {
-            OpenXmlElement? child = row.NextSibling();
-            while (child != null && child is not TableRow) {
-                if (child is not BookmarkStart bookmarkStart) {
+        private static void AppendTableRowBoundaryBookmarks(LegacyDocElement table, LegacyDocElement row, LegacyDocWritableBookmarksBuilder bookmarks, int characterPosition) {
+            LegacyDocElement child = row.NextElement;
+            while (child.Exists && !child.Is("tr")) {
+                if (!child.Is("bookmarkStart")) {
                     throw new NotSupportedException($"Native DOC saving supports row-level table bookmarks only as zero-length start/end marker pairs between table rows. Unsupported row-boundary table element: {child.LocalName}.");
                 }
 
-                OpenXmlElement? endMarker = child.NextSibling();
-                if (endMarker is not BookmarkEnd bookmarkEnd || bookmarkEnd.Id?.Value != bookmarkStart.Id?.Value) {
+                LegacyDocElement bookmarkStart = child;
+                LegacyDocElement endMarker = child.NextElement;
+                if (!endMarker.Is("bookmarkEnd") || endMarker.Attr("id") != bookmarkStart.Attr("id")) {
                     throw new NotSupportedException("Native DOC saving supports row-level table bookmarks only as zero-length start/end marker pairs between table rows.");
                 }
 
                 bookmarks.AddStart(bookmarkStart, characterPosition);
-                bookmarks.AddEnd(bookmarkEnd, characterPosition);
-                child = endMarker.NextSibling();
+                bookmarks.AddEnd(endMarker, characterPosition);
+                child = endMarker.NextElement;
             }
         }
 
-        private static void AppendLeadingTableBoundaryBookmarks(Table table, LegacyDocWritableBookmarksBuilder bookmarks, int characterPosition) {
-            foreach (OpenXmlElement child in table.ChildElements) {
-                if (child is TableRow) {
+        private static void AppendLeadingTableBoundaryBookmarks(LegacyDocElement table, LegacyDocWritableBookmarksBuilder bookmarks, int characterPosition) {
+            foreach (LegacyDocElement child in table.Elements()) {
+                if (child.Is("tr")) {
                     return;
                 }
 
@@ -55,10 +53,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendTrailingTableBoundaryBookmarks(Table table, LegacyDocWritableBookmarksBuilder bookmarks, int characterPosition) {
-            var trailingChildren = new List<OpenXmlElement>();
-            foreach (OpenXmlElement child in table.ChildElements) {
-                if (child is TableRow) {
+        private static void AppendTrailingTableBoundaryBookmarks(LegacyDocElement table, LegacyDocWritableBookmarksBuilder bookmarks, int characterPosition) {
+            var trailingChildren = new List<LegacyDocElement>();
+            foreach (LegacyDocElement child in table.Elements()) {
+                if (child.Is("tr")) {
                     trailingChildren.Clear();
                     continue;
                 }
@@ -66,55 +64,55 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 trailingChildren.Add(child);
             }
 
-            foreach (OpenXmlElement child in trailingChildren) {
+            foreach (LegacyDocElement child in trailingChildren) {
                 AppendSupportedTableBoundaryBookmark(bookmarks, child, characterPosition);
             }
         }
 
-        private static void AppendSupportedTableBoundaryBookmark(LegacyDocWritableBookmarksBuilder bookmarks, OpenXmlElement child, int characterPosition) {
-            switch (child) {
-                case BookmarkStart bookmarkStart:
-                    bookmarks.AddStart(bookmarkStart, characterPosition);
+        private static void AppendSupportedTableBoundaryBookmark(LegacyDocWritableBookmarksBuilder bookmarks, LegacyDocElement child, int characterPosition) {
+            switch (child.WName) {
+                case "bookmarkStart":
+                    bookmarks.AddStart(child, characterPosition);
                     break;
-                case BookmarkEnd bookmarkEnd:
-                    bookmarks.AddEnd(bookmarkEnd, characterPosition);
+                case "bookmarkEnd":
+                    bookmarks.AddEnd(child, characterPosition);
                     break;
             }
         }
 
-        private static void ThrowIfUnsupportedTableProperties(TableProperties tableProperties, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static void ThrowIfUnsupportedTableProperties(LegacyDocElement tableProperties, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             ThrowIfUnsupportedTableGapShading(tableProperties, tableStyleDefinitions);
-            foreach (OpenXmlElement property in tableProperties.ChildElements) {
-                switch (property) {
-                    case TableStyle tableStyle:
-                        ReadSupportedTableStyleBorders(tableStyle, tableStyleDefinitions);
-                        ReadSupportedTableStyleShading(tableStyle, tableStyleDefinitions);
+            foreach (LegacyDocElement property in tableProperties.Elements()) {
+                switch (property.WName) {
+                    case "tblStyle":
+                        ReadSupportedTableStyleBorders(property.Val, tableStyleDefinitions);
+                        ReadSupportedTableStyleShading(property.Val, tableStyleDefinitions);
                         break;
-                    case TableWidth tableWidth:
-                        ReadSupportedTablePreferredWidth(tableWidth);
+                    case "tblW":
+                        ReadSupportedTablePreferredWidth(property);
                         break;
-                    case TableJustification tableJustification:
-                        ReadSupportedTableAlignment(tableJustification);
+                    case "jc":
+                        ReadSupportedTableAlignment(property);
                         break;
-                    case TableIndentation tableIndentation:
-                        ReadSupportedTableIndentation(tableIndentation);
+                    case "tblInd":
+                        ReadSupportedTableIndentation(property);
                         break;
-                    case TableLayout tableLayout:
-                        ReadSupportedTableAutofit(tableLayout);
+                    case "tblLayout":
+                        ReadSupportedTableAutofit(property);
                         break;
-                    case TableCellMarginDefault tableCellMarginDefault:
-                        ReadSupportedTableDefaultCellMargins(tableCellMarginDefault);
+                    case "tblCellMar":
+                        ReadSupportedTableDefaultCellMargins(property);
                         break;
-                    case TableCellSpacing tableCellSpacing:
-                        ReadSupportedTableDefaultCellSpacing(tableCellSpacing);
+                    case "tblCellSpacing":
+                        ReadSupportedTableDefaultCellSpacing(property);
                         break;
-                    case TableBorders tableBorders:
-                        ReadSupportedTableBorders(tableBorders);
+                    case "tblBorders":
+                        ReadSupportedTableBorders(property);
                         break;
-                    case Shading shading:
-                        ReadSupportedTableCellShading(shading, "table shading");
+                    case "shd":
+                        ReadSupportedTableCellShading(property, "table shading");
                         break;
-                    case TableLook:
+                    case "tblLook":
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table property: {property.LocalName}.");
@@ -122,9 +120,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableGrid(TableGrid tableGrid) {
-            foreach (OpenXmlElement child in tableGrid.ChildElements) {
-                if (child is GridColumn) {
+        private static void ThrowIfUnsupportedTableGrid(LegacyDocElement tableGrid) {
+            foreach (LegacyDocElement child in tableGrid.Elements()) {
+                if (child.Is("gridCol")) {
                     continue;
                 }
 
@@ -132,43 +130,69 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocTableAlignment? ReadSupportedTableAlignment(TableProperties? tableProperties) {
-            TableJustification? tableJustification = tableProperties?.GetFirstChild<TableJustification>();
-            return tableJustification == null ? null : ReadSupportedTableAlignment(tableJustification);
+        /// <summary>
+        /// The text the Open XML SDK interpolated for one of its enumeration values in a message: the value type's
+        /// record form, or nothing when the value was absent.
+        /// </summary>
+        private static string FormatSdkEnumValue(string? token, string sdkTypeName) =>
+            token == null ? string.Empty : sdkTypeName + " { }";
+
+        /// <summary>
+        /// The first attribute whose local name matches ignoring case, in the order the SDK listed a typed element's
+        /// attributes: the schema attribute in the <c>w</c> namespace first, then the others in document order.
+        /// </summary>
+        private static string? FindTableAttributeIgnoringCase(LegacyDocElement element, string localName) {
+            string? schemaValue = element.Attr(localName);
+            if (schemaValue != null) {
+                return schemaValue;
+            }
+
+            foreach (LegacyDocAttribute attribute in element.Attributes) {
+                if (string.Equals(attribute.LocalName, localName, StringComparison.OrdinalIgnoreCase)) {
+                    return attribute.Value;
+                }
+            }
+
+            return null;
         }
 
-        private static LegacyDocTableAlignment? ReadSupportedTableAlignment(TableJustification tableJustification) {
-            TableRowAlignmentValues? value = tableJustification.Val?.Value;
+        private static LegacyDocTableAlignment? ReadSupportedTableAlignmentFromProperties(LegacyDocElement tableProperties) {
+            LegacyDocElement tableJustification = tableProperties.Child("jc");
+            return tableJustification.IsNone ? null : ReadSupportedTableAlignment(tableJustification);
+        }
+
+        private static LegacyDocTableAlignment? ReadSupportedTableAlignment(LegacyDocElement tableJustification) {
+            string? value = tableJustification.Val;
             if (value == null) {
                 return null;
             }
 
-            if (value == TableRowAlignmentValues.Left) {
+            if (value == "left") {
                 return LegacyDocTableAlignment.Left;
             }
 
-            if (value == TableRowAlignmentValues.Center) {
+            if (value == "center") {
                 return LegacyDocTableAlignment.Center;
             }
 
-            if (value == TableRowAlignmentValues.Right) {
+            if (value == "right") {
                 return LegacyDocTableAlignment.Right;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support table alignment value '{value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support table alignment value '{FormatSdkEnumValue(value, "TableRowAlignmentValues")}'.");
         }
 
-        private static int? ReadSupportedTableIndentation(TableProperties? tableProperties) {
-            TableIndentation? tableIndentation = tableProperties?.GetFirstChild<TableIndentation>();
-            return tableIndentation == null ? null : ReadSupportedTableIndentation(tableIndentation);
+        private static int? ReadSupportedTableIndentationFromProperties(LegacyDocElement tableProperties) {
+            LegacyDocElement tableIndentation = tableProperties.Child("tblInd");
+            return tableIndentation.IsNone ? null : ReadSupportedTableIndentation(tableIndentation);
         }
 
-        private static int? ReadSupportedTableIndentation(TableIndentation tableIndentation) {
-            if (tableIndentation.Type?.Value != TableWidthUnitValues.Dxa) {
+        private static int? ReadSupportedTableIndentation(LegacyDocElement tableIndentation) {
+            if (tableIndentation.Attr("type") != "dxa") {
                 throw new NotSupportedException("Native DOC saving supports table indentation only as DXA twip values.");
             }
 
-            int? width = tableIndentation.Width?.Value;
+            int? width = LegacyDocValues.Int32(tableIndentation.Attr("w"));
             if (width == null) {
                 return null;
             }
@@ -181,17 +205,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return width.Value;
         }
 
-        private static LegacyDocTablePreferredWidth? ReadSupportedTablePreferredWidth(TableProperties? tableProperties) {
-            TableWidth? tableWidth = tableProperties?.GetFirstChild<TableWidth>();
-            return tableWidth == null ? null : ReadSupportedTablePreferredWidth(tableWidth);
+        private static LegacyDocTablePreferredWidth? ReadSupportedTablePreferredWidthFromProperties(LegacyDocElement tableProperties) {
+            LegacyDocElement tableWidth = tableProperties.Child("tblW");
+            return tableWidth.IsNone ? null : ReadSupportedTablePreferredWidth(tableWidth);
         }
 
-        private static LegacyDocTablePreferredWidth? ReadSupportedTablePreferredWidth(TableWidth tableWidth) {
-            TableWidthUnitValues? type = tableWidth.Type == null ? null : WordTableWidthNative.NativeType(tableWidth);
-            if (tableWidth.Type != null && !type.HasValue)
-                throw new NotSupportedException("Native DOC saving does not support table width type '" + tableWidth.Type.InnerText + "'.");
-            string? widthText = tableWidth.Width?.Value;
-            if (type == TableWidthUnitValues.Auto) {
+        private static LegacyDocTablePreferredWidth? ReadSupportedTablePreferredWidth(LegacyDocElement tableWidth) {
+            string? typeText = tableWidth.Attr("type");
+            string? type = typeText == null ? null : LegacyDocWordHelpers.NativeTableWidthType(tableWidth);
+            if (typeText != null && type == null)
+                throw new NotSupportedException("Native DOC saving does not support table width type '" + typeText + "'.");
+            string? widthText = tableWidth.Attr("w");
+            if (type == "auto") {
                 return null;
             }
 
@@ -203,8 +228,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports table widths without an explicit type only when width is 0.");
             }
 
-            if (type != TableWidthUnitValues.Dxa && type != TableWidthUnitValues.Pct) {
-                throw new NotSupportedException($"Native DOC saving does not support table width type '{type}'.");
+            if (type != "dxa" && type != "pct") {
+                throw new NotSupportedException($"Native DOC saving does not support table width type '{FormatSdkEnumValue(type, "TableWidthUnitValues")}'.");
             }
 
             if (!int.TryParse(widthText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int width)
@@ -213,55 +238,55 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports table preferred width only as a positive Word 97-2003 signed width value.");
             }
 
-            LegacyDocTablePreferredWidthUnit unit = type == TableWidthUnitValues.Dxa
+            LegacyDocTablePreferredWidthUnit unit = type == "dxa"
                 ? LegacyDocTablePreferredWidthUnit.Dxa
                 : LegacyDocTablePreferredWidthUnit.Percent;
             return new LegacyDocTablePreferredWidth(unit, width);
         }
 
-        private static bool? ReadSupportedTableAutofit(TableProperties? tableProperties) {
-            TableLayout? tableLayout = tableProperties?.GetFirstChild<TableLayout>();
-            return tableLayout == null ? null : ReadSupportedTableAutofit(tableLayout);
+        private static bool? ReadSupportedTableAutofitFromProperties(LegacyDocElement tableProperties) {
+            LegacyDocElement tableLayout = tableProperties.Child("tblLayout");
+            return tableLayout.IsNone ? null : ReadSupportedTableAutofit(tableLayout);
         }
 
-        private static bool? ReadSupportedTableAutofit(TableLayout tableLayout) {
-            TableLayoutValues? value = tableLayout.Type?.Value;
+        private static bool? ReadSupportedTableAutofit(LegacyDocElement tableLayout) {
+            string? value = tableLayout.Attr("type");
             if (value == null) {
                 return null;
             }
 
-            if (value == TableLayoutValues.Autofit) {
+            if (value == "autofit") {
                 return true;
             }
 
-            if (value == TableLayoutValues.Fixed) {
+            if (value == "fixed") {
                 return false;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support table layout value '{value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support table layout value '{FormatSdkEnumValue(value, "TableLayoutValues")}'.");
         }
 
-        private static LegacyDocTableCellMargins? ReadSupportedTableDefaultCellMargins(TableProperties? tableProperties) {
-            TableCellMarginDefault? margins = tableProperties?.GetFirstChild<TableCellMarginDefault>();
-            return margins == null ? null : ReadSupportedTableDefaultCellMargins(margins);
+        private static LegacyDocTableCellMargins? ReadSupportedTableDefaultCellMarginsFromProperties(LegacyDocElement tableProperties) {
+            LegacyDocElement margins = tableProperties.Child("tblCellMar");
+            return margins.IsNone ? null : ReadSupportedTableDefaultCellMargins(margins);
         }
 
-        private static LegacyDocTableCellMargins? ReadSupportedTableDefaultCellMargins(TableCellMarginDefault margins) {
+        private static LegacyDocTableCellMargins? ReadSupportedTableDefaultCellMargins(LegacyDocElement margins) {
             LegacyDocTableCellMargins result = new LegacyDocTableCellMargins(
-                ReadSupportedTableCellMarginWidth(margins.TopMargin, "default top"),
-                ReadSupportedTableCellMarginWidth(margins.TableCellRightMargin, "default right"),
-                ReadSupportedTableCellMarginWidth(margins.BottomMargin, "default bottom"),
-                ReadSupportedTableCellMarginWidth(margins.TableCellLeftMargin, "default left"));
+                ReadSupportedTableCellMarginWidth(margins.Child("top"), "default top"),
+                ReadSupportedTableCellMarginWidth(margins.Child("right"), "default right"),
+                ReadSupportedTableCellMarginWidth(margins.Child("bottom"), "default bottom"),
+                ReadSupportedTableCellMarginWidth(margins.Child("left"), "default left"));
             return result.HasAny ? result : null;
         }
 
-        private static int? ReadSupportedTableDefaultCellSpacing(TableProperties? tableProperties) {
-            TableCellSpacing? spacing = tableProperties?.GetFirstChild<TableCellSpacing>();
-            return spacing == null ? null : ReadSupportedTableDefaultCellSpacing(spacing);
+        private static int? ReadSupportedTableDefaultCellSpacingFromProperties(LegacyDocElement tableProperties) {
+            LegacyDocElement spacing = tableProperties.Child("tblCellSpacing");
+            return spacing.IsNone ? null : ReadSupportedTableDefaultCellSpacing(spacing);
         }
 
-        private static int? ReadSupportedTableDefaultCellSpacing(TableCellSpacing spacing) {
-            string? widthText = spacing.Width?.Value;
+        private static int? ReadSupportedTableDefaultCellSpacing(LegacyDocElement spacing) {
+            string? widthText = spacing.Attr("w");
             if (string.IsNullOrWhiteSpace(widthText)) {
                 return null;
             }
@@ -276,22 +301,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return 0;
             }
 
-            if (spacing.Type?.Value != TableWidthUnitValues.Dxa) {
+            if (spacing.Attr("type") != "dxa") {
                 throw new NotSupportedException("Native DOC saving supports table cell spacing only as DXA twip values.");
             }
 
             return width;
         }
 
-        private static IReadOnlyList<int> ReadSupportedTableGridWidths(TableGrid? tableGrid) {
-            if (tableGrid == null) {
+        private static IReadOnlyList<int> ReadSupportedTableGridWidths(LegacyDocElement tableGrid) {
+            if (tableGrid.IsNone) {
                 return Array.Empty<int>();
             }
 
-            GridColumn[] columns = tableGrid.Elements<GridColumn>().ToArray();
+            LegacyDocElement[] columns = tableGrid.Elements("gridCol").ToArray();
             var widths = new int[columns.Length];
             for (int index = 0; index < columns.Length; index++) {
-                string? widthText = columns[index].Width?.Value;
+                string? widthText = columns[index].Attr("w");
                 if (string.IsNullOrWhiteSpace(widthText)) {
                     widths[index] = 0;
                     continue;
@@ -309,22 +334,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return widths;
         }
 
-        private static LegacyDocWritableTableRowFormatting ReadSupportedTableRowFormatting(TableRow row, out TableCell[] cells) {
-            var tableCells = new List<TableCell>();
+        private static LegacyDocWritableTableRowFormatting ReadSupportedTableRowFormatting(LegacyDocElement row, out LegacyDocElement[] cells) {
+            var tableCells = new List<LegacyDocElement>();
             LegacyDocWritableTableRowFormatting rowFormatting = LegacyDocWritableTableRowFormatting.Empty;
             bool hasTableRowProperties = false;
-            foreach (OpenXmlElement child in row.ChildElements) {
-                switch (child) {
-                    case TableRowProperties tableRowProperties:
+            foreach (LegacyDocElement child in row.Elements()) {
+                switch (child.WName) {
+                    case "trPr":
                         if (hasTableRowProperties) {
                             throw new NotSupportedException("Native DOC saving supports simple tables only with one table row property collection per row.");
                         }
 
-                        rowFormatting = ReadSupportedTableRowProperties(tableRowProperties);
+                        rowFormatting = ReadSupportedTableRowProperties(child);
                         hasTableRowProperties = true;
                         break;
-                    case TableCell tableCell:
-                        tableCells.Add(tableCell);
+                    case "tc":
+                        tableCells.Add(child);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table row element: {child.LocalName}.");
@@ -335,7 +360,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return rowFormatting;
         }
 
-        private static LegacyDocWritableTableRowFormatting ReadSupportedTableRowProperties(TableRowProperties tableRowProperties) {
+        private static LegacyDocWritableTableRowFormatting ReadSupportedTableRowProperties(LegacyDocElement tableRowProperties) {
             int? rowHeightTwips = null;
             bool rowHeightIsExact = false;
             bool? rowCantSplit = null;
@@ -343,30 +368,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool hasRowHeight = false;
             bool hasCantSplit = false;
             bool hasTableHeader = false;
-            foreach (OpenXmlElement property in tableRowProperties.ChildElements) {
-                switch (property) {
-                    case TableRowHeight rowHeight:
+            foreach (LegacyDocElement property in tableRowProperties.Elements()) {
+                switch (property.WName) {
+                    case "trHeight":
                         if (hasRowHeight) {
                             throw new NotSupportedException("Native DOC saving supports simple tables only with one table row height per row.");
                         }
 
-                        ReadSupportedTableRowHeight(rowHeight, out rowHeightTwips, out rowHeightIsExact);
+                        ReadSupportedTableRowHeight(property, out rowHeightTwips, out rowHeightIsExact);
                         hasRowHeight = true;
                         break;
-                    case CantSplit cantSplit:
+                    case "cantSplit":
                         if (hasCantSplit) {
                             throw new NotSupportedException("Native DOC saving supports simple tables only with one row no-split flag per row.");
                         }
 
-                        rowCantSplit = ReadTableRowOnOff(cantSplit);
+                        rowCantSplit = ReadTableRowOnOff(property);
                         hasCantSplit = true;
                         break;
-                    case TableHeader tableHeader:
+                    case "tblHeader":
                         if (hasTableHeader) {
                             throw new NotSupportedException("Native DOC saving supports simple tables only with one row header flag per row.");
                         }
 
-                        rowIsHeader = ReadTableRowOnOff(tableHeader);
+                        rowIsHeader = ReadTableRowOnOff(property);
                         hasTableHeader = true;
                         break;
                     default:
@@ -377,16 +402,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocWritableTableRowFormatting(rowHeightTwips, rowHeightIsExact, rowCantSplit, rowIsHeader);
         }
 
-        private static void ReadSupportedTableRowHeight(TableRowHeight rowHeight, out int? rowHeightTwips, out bool rowHeightIsExact) {
+        private static void ReadSupportedTableRowHeight(LegacyDocElement rowHeight, out int? rowHeightTwips, out bool rowHeightIsExact) {
             rowHeightTwips = null;
             rowHeightIsExact = false;
 
-            HeightRuleValues? heightRule = rowHeight.HeightType?.Value;
-            if (heightRule == HeightRuleValues.Auto) {
+            string? heightRule = rowHeight.Attr("hRule");
+            if (heightRule == "auto") {
                 return;
             }
 
-            uint? rawValue = rowHeight.Val?.Value;
+            uint? rawValue = LegacyDocValues.UInt32(rowHeight.Val);
             if (rawValue == null || rawValue.Value == 0) {
                 return;
             }
@@ -395,28 +420,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports table row heights only as positive twip values within the Word 97-2003 signed twip range.");
             }
 
-            if (heightRule != null && heightRule != HeightRuleValues.Exact && heightRule != HeightRuleValues.AtLeast) {
-                throw new NotSupportedException($"Native DOC saving does not support table row height rule '{heightRule}'.");
+            if (heightRule != null && heightRule != "exact" && heightRule != "atLeast") {
+                throw new NotSupportedException($"Native DOC saving does not support table row height rule '{FormatSdkEnumValue(heightRule, "HeightRuleValues")}'.");
             }
 
             rowHeightTwips = checked((int)rawValue.Value);
-            rowHeightIsExact = heightRule == HeightRuleValues.Exact;
+            rowHeightIsExact = heightRule == "exact";
         }
 
-        private static bool? ReadTableRowOnOff(CantSplit cantSplit) {
-            if (cantSplit.Val == null) {
+        // Reads w:cantSplit and w:tblHeader alike: present without a value is on.
+        private static bool? ReadTableRowOnOff(LegacyDocElement rowFlag) {
+            string? value = rowFlag.Val;
+            if (value == null) {
                 return true;
             }
 
-            return ReadTableRowOnOffValue(cantSplit.Val.InnerText) ? true : null;
-        }
-
-        private static bool? ReadTableRowOnOff(TableHeader tableHeader) {
-            if (tableHeader.Val == null) {
-                return true;
-            }
-
-            return ReadTableRowOnOffValue(tableHeader.Val.InnerText) ? true : null;
+            return ReadTableRowOnOffValue(value) ? true : null;
         }
 
         private static bool ReadTableRowOnOffValue(string? value) =>
@@ -425,7 +444,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             !string.Equals(value, "off", StringComparison.OrdinalIgnoreCase);
 
         private static IReadOnlyList<LegacyDocWritableTableCell> ExpandSupportedTableCells(
-            IReadOnlyList<TableCell> cells,
+            IReadOnlyList<LegacyDocElement> cells,
             IReadOnlyList<int> gridColumnWidthsTwips,
             LegacyDocTableBorders tableBorders,
             LegacyDocTableCellShading tableShading,
@@ -435,17 +454,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int rowCount) {
             var writableCells = new List<LegacyDocWritableTableCell>();
             int logicalColumnIndex = 0;
-            foreach (TableCell cell in cells) {
-                TableCellProperties? cellProperties = cell.TableCellProperties;
+            foreach (LegacyDocElement cell in cells) {
+                LegacyDocElement cellProperties = cell.Child("tcPr");
                 int gridSpan = ReadSupportedGridSpan(cellProperties);
                 LegacyDocTableCellHorizontalMerge horizontalMerge = ReadSupportedTableCellHorizontalMerge(cell);
                 LegacyDocTableCellVerticalMerge verticalMerge = ReadSupportedTableCellVerticalMerge(cell);
-                LegacyDocTableCellVerticalAlignment verticalAlignment = ReadSupportedTableCellVerticalAlignment(cellProperties);
-                LegacyDocTableCellTextDirection textDirection = ReadSupportedTableCellTextDirection(cellProperties);
-                bool fitText = ReadSupportedTableCellFitText(cellProperties);
-                bool noWrap = ReadSupportedTableCellNoWrap(cellProperties);
-                bool hideMark = ReadSupportedTableCellHideMark(cellProperties);
-                LegacyDocTableCellMargins margins = ReadSupportedTableCellMargins(cellProperties);
+                LegacyDocTableCellVerticalAlignment verticalAlignment = ReadSupportedTableCellVerticalAlignmentFromProperties(cellProperties);
+                LegacyDocTableCellTextDirection textDirection = ReadSupportedTableCellTextDirectionFromProperties(cellProperties);
+                bool fitText = ReadSupportedTableCellFitTextFromProperties(cellProperties);
+                bool noWrap = ReadSupportedTableCellNoWrapFromProperties(cellProperties);
+                bool hideMark = ReadSupportedTableCellHideMarkFromProperties(cellProperties);
+                LegacyDocTableCellMargins margins = ReadSupportedTableCellMarginsFromProperties(cellProperties);
                 LegacyDocTableCellShading shading = ReadSupportedTableCellShading(cellProperties);
                 LegacyDocTableCellBorders borders = ReadSupportedTableCellBorders(cellProperties);
                 if (gridSpan > 1 && horizontalMerge == LegacyDocTableCellHorizontalMerge.Continue) {
@@ -459,7 +478,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         : spanIndex == 0
                             ? LegacyDocTableCellHorizontalMerge.Restart
                             : LegacyDocTableCellHorizontalMerge.Continue;
-                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : null, width, merge, verticalMerge, verticalAlignment, textDirection, fitText, noWrap, hideMark, margins, shading, borders));
+                    writableCells.Add(new LegacyDocWritableTableCell(spanIndex == 0 ? cell : LegacyDocElement.None, width, merge, verticalMerge, verticalAlignment, textDirection, fitText, noWrap, hideMark, margins, shading, borders));
                 }
 
                 logicalColumnIndex += gridSpan;
@@ -534,41 +553,41 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocTableCellBorders(top, left, bottom, right);
         }
 
-        private static void ThrowIfUnsupportedTableCellProperties(TableCellProperties cellProperties) {
-            foreach (OpenXmlElement property in cellProperties.ChildElements) {
-                switch (property) {
-                    case TableCellWidth cellWidth:
+        private static void ThrowIfUnsupportedTableCellProperties(LegacyDocElement cellProperties) {
+            foreach (LegacyDocElement property in cellProperties.Elements()) {
+                switch (property.WName) {
+                    case "tcW":
                         ReadSupportedTableCellWidth(cellProperties, gridColumnWidthTwips: 0);
                         break;
-                    case GridSpan:
+                    case "gridSpan":
                         ReadSupportedGridSpan(cellProperties);
                         break;
-                    case HorizontalMerge:
+                    case "hMerge":
                         break;
-                    case VerticalMerge:
+                    case "vMerge":
                         break;
-                    case TableCellVerticalAlignment:
-                        ReadSupportedTableCellVerticalAlignment(cellProperties);
+                    case "vAlign":
+                        ReadSupportedTableCellVerticalAlignmentFromProperties(cellProperties);
                         break;
-                    case TextDirection:
-                        ReadSupportedTableCellTextDirection(cellProperties);
+                    case "textDirection":
+                        ReadSupportedTableCellTextDirectionFromProperties(cellProperties);
                         break;
-                    case TableCellFitText:
-                        ReadSupportedTableCellFitText(cellProperties);
+                    case "tcFitText":
+                        ReadSupportedTableCellFitTextFromProperties(cellProperties);
                         break;
-                    case NoWrap:
-                        ReadSupportedTableCellNoWrap(cellProperties);
+                    case "noWrap":
+                        ReadSupportedTableCellNoWrapFromProperties(cellProperties);
                         break;
-                    case HideMark:
-                        ReadSupportedTableCellHideMark(cellProperties);
+                    case "hideMark":
+                        ReadSupportedTableCellHideMarkFromProperties(cellProperties);
                         break;
-                    case TableCellMargin:
-                        ReadSupportedTableCellMargins(cellProperties);
+                    case "tcMar":
+                        ReadSupportedTableCellMarginsFromProperties(cellProperties);
                         break;
-                    case Shading:
+                    case "shd":
                         ReadSupportedTableCellShading(cellProperties);
                         break;
-                    case TableCellBorders:
+                    case "tcBorders":
                         ReadSupportedTableCellBorders(cellProperties);
                         break;
                     default:
@@ -607,11 +626,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableTableCell {
-            internal LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, LegacyDocTableCellTextDirection textDirection, bool fitText, bool noWrap, bool hideMark, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders)
+            internal LegacyDocWritableTableCell(LegacyDocElement sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, LegacyDocTableCellTextDirection textDirection, bool fitText, bool noWrap, bool hideMark, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders)
                 : this(sourceCell, widthTwips, horizontalMerge, verticalMerge, verticalAlignment, textDirection, fitText, noWrap, hideMark, margins, shading, borders, LegacyDocWritableParagraphFormatting.Plain, LegacyDocWritableFormatting.Plain) {
             }
 
-            private LegacyDocWritableTableCell(TableCell? sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, LegacyDocTableCellTextDirection textDirection, bool fitText, bool noWrap, bool hideMark, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders, LegacyDocWritableParagraphFormatting paragraphFormatting, LegacyDocWritableFormatting runFormatting) {
+            private LegacyDocWritableTableCell(LegacyDocElement sourceCell, int widthTwips, LegacyDocTableCellHorizontalMerge horizontalMerge, LegacyDocTableCellVerticalMerge verticalMerge, LegacyDocTableCellVerticalAlignment verticalAlignment, LegacyDocTableCellTextDirection textDirection, bool fitText, bool noWrap, bool hideMark, LegacyDocTableCellMargins margins, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders, LegacyDocWritableParagraphFormatting paragraphFormatting, LegacyDocWritableFormatting runFormatting) {
                 SourceCell = sourceCell;
                 WidthTwips = widthTwips;
                 HorizontalMerge = horizontalMerge;
@@ -628,7 +647,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 RunFormatting = runFormatting;
             }
 
-            internal TableCell? SourceCell { get; }
+            internal LegacyDocElement SourceCell { get; }
 
             internal int WidthTwips { get; }
 

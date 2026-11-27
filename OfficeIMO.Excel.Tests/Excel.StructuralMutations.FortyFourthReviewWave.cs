@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             formulaCell.DataType = CellValues.String;
             formulaCell.CellFormula!.CalculateCell = false;
             document.MarkFormulaSheetRecalculated(
-                sheet.WorksheetPart,
+                sheet.WorksheetPart.Uri,
                 document.CaptureFormulaInputMutationVersion());
 
             Assert.True(sheet.TryGetColumnIndexByHeader("Header", out int headerColumn));
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
 
             formulaCell.CellFormula!.CalculateCell = false;
             document.MarkFormulaSheetRecalculated(
-                sheet.WorksheetPart,
+                sheet.WorksheetPart.Uri,
                 document.CaptureFormulaInputMutationVersion());
             Assert.True(sheet.RemoveInCellImage(1, 1));
 

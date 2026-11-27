@@ -1,12 +1,7 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Binary;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Word.LegacyDoc.Model;
-using A = DocumentFormat.OpenXml.Drawing;
-using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using P = DocumentFormat.OpenXml.Drawing.Pictures;
-using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
@@ -26,7 +21,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             private readonly MemoryStream _data = new();
             private uint _nextShapeId = 1;
 
-            internal LegacyDocWritablePictures(WordDocument document) {
+            internal LegacyDocWritablePictures(WordDocument document, LegacyDocSourcePackage source) {
+                // Pictures resolve their image parts through the owner part passed to AddInlinePicture, which carries
+                // the package; the document supplies the imported compound Data stream.
+                _ = source;
                 bool preserveExistingData = document.LegacyDocCompoundFeatures.Any(feature =>
                     feature.Kind == LegacyDocCompoundFeatureKind.BinaryData);
                 if (preserveExistingData
@@ -40,7 +38,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal byte[] DataBytes => _data.ToArray();
 
-            internal int AddInlinePicture(WordDrawing drawing, OpenXmlPart ownerPart) {
+            internal int AddInlinePicture(LegacyDocElement drawing, LegacyDocPart ownerPart) {
                 LegacyDocWritablePicture picture = ReadInlinePicture(drawing, ownerPart);
                 int dataOffset = checked((int)_data.Length);
                 byte[] pictureData = CreatePicfAndOfficeArtData(picture, _nextShapeId++);
@@ -50,82 +48,95 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritablePicture ReadInlinePicture(WordDrawing drawing, OpenXmlPart ownerPart) {
-            if (drawing.Inline == null || drawing.Anchor != null) {
+        private static LegacyDocWritablePicture ReadInlinePicture(LegacyDocElement drawing, LegacyDocPart ownerPart) {
+            LegacyDocElement inline = drawing.Child(OfficeXmlNamespaces.WordprocessingDrawing, "inline");
+            if (inline.IsNone || drawing.Child(OfficeXmlNamespaces.WordprocessingDrawing, "anchor").Exists) {
                 throw new NotSupportedException(
                     "Native DOC saving currently supports embedded inline pictures only. Floating or anchored pictures are not supported yet.");
             }
 
-            DW.Extent? extent = drawing.Inline.Extent;
-            long? widthEmus = extent?.Cx?.Value;
-            long? heightEmus = extent?.Cy?.Value;
+            LegacyDocElement extent = inline.Child(OfficeXmlNamespaces.WordprocessingDrawing, "extent");
+            long? widthEmus = LegacyDocValues.Int64(extent.Attr(OfficeXmlNamespaces.None, "cx"));
+            long? heightEmus = LegacyDocValues.Int64(extent.Attr(OfficeXmlNamespaces.None, "cy"));
             int widthTwips = ConvertPictureExtentToTwips(widthEmus, "width");
             int heightTwips = ConvertPictureExtentToTwips(heightEmus, "height");
 
-            P.Picture[] pictures = drawing.Inline.Descendants<P.Picture>().ToArray();
-            if (pictures.Length != 1) {
+            LegacyDocElement source = LegacyDocElement.None;
+            int pictureCount = 0;
+            foreach (LegacyDocElement picture in inline.Descendants(OfficeXmlNamespaces.Picture, "pic")) {
+                if (pictureCount == 0) source = picture;
+                pictureCount++;
+            }
+            if (pictureCount != 1) {
                 throw new NotSupportedException(
                     "Native DOC saving supports an inline picture only when its DrawingML frame contains exactly one picture.");
             }
 
-            P.Picture source = pictures[0];
-            A.Blip? blip = source.BlipFill?.Blip;
-            string? relationshipId = blip?.Embed?.Value;
-            if (blip == null || string.IsNullOrWhiteSpace(relationshipId) || blip.Link?.Value != null) {
+            LegacyDocElement blipFill = source.Child(OfficeXmlNamespaces.Picture, "blipFill");
+            LegacyDocElement blip = blipFill.Child(OfficeXmlNamespaces.DrawingML, "blip");
+            string? relationshipId = blip.Attr(OfficeXmlNamespaces.Relationships, "embed");
+            if (blip.IsNone || string.IsNullOrWhiteSpace(relationshipId) || blip.Attr(OfficeXmlNamespaces.Relationships, "link") != null) {
                 throw new NotSupportedException(
                     "Native DOC saving supports embedded inline pictures only. Linked or missing image relationships are not supported.");
             }
 
-            A.SourceRectangle? sourceCrop = source.BlipFill?.SourceRectangle;
+            LegacyDocElement sourceCrop = blipFill.Child(OfficeXmlNamespaces.DrawingML, "srcRect");
             OfficeImageSourceCrop crop;
-            try { crop = OfficeImageSourceCrop.FromStrictFractions((sourceCrop?.Left?.Value ?? 0) / 100000D,
-                (sourceCrop?.Top?.Value ?? 0) / 100000D, (sourceCrop?.Right?.Value ?? 0) / 100000D, (sourceCrop?.Bottom?.Value ?? 0) / 100000D); }
+            try { crop = OfficeImageSourceCrop.FromStrictFractions((ReadCropEdge(sourceCrop, "l") ?? 0) / 100000D,
+                (ReadCropEdge(sourceCrop, "t") ?? 0) / 100000D, (ReadCropEdge(sourceCrop, "r") ?? 0) / 100000D, (ReadCropEdge(sourceCrop, "b") ?? 0) / 100000D); }
             catch (ArgumentOutOfRangeException exception) { throw new NotSupportedException("Native DOC saving requires an inset crop with a visible source area.", exception); }
-            if (sourceCrop?.HasChildren == true) throw new NotSupportedException("Native DOC saving does not support extended crop elements.");
+            if (sourceCrop.HasElements) throw new NotSupportedException("Native DOC saving does not support extended crop elements.");
             if (Math.Round(crop.Left * 65536) + Math.Round(crop.Right * 65536) >= 65536
                 || Math.Round(crop.Top * 65536) + Math.Round(crop.Bottom * 65536) >= 65536)
                 throw new NotSupportedException("Native DOC saving cannot preserve a crop whose visible area collapses at binary crop precision.");
-            var transform = source.ShapeProperties?.Transform2D;
-            if (transform?.Rotation?.Value is int rotation && rotation != 0 || transform?.HorizontalFlip?.Value == true || transform?.VerticalFlip?.Value == true)
+            LegacyDocElement transform = source.Child(OfficeXmlNamespaces.Picture, "spPr").Child(OfficeXmlNamespaces.DrawingML, "xfrm");
+            if (LegacyDocValues.Int32(transform.Attr(OfficeXmlNamespaces.None, "rot")) is int rotation && rotation != 0
+                || ReadXmlBoolean(transform.Attr(OfficeXmlNamespaces.None, "flipH")) == true
+                || ReadXmlBoolean(transform.Attr(OfficeXmlNamespaces.None, "flipV")) == true)
                 throw new NotSupportedException("Native DOC saving does not yet support rotated or mirrored inline pictures.");
 
-            if (blip.ChildElements.Any(element => element is not A.BlipExtensionList)
+            if (blip.Elements().Any(element => !element.Is(OfficeXmlNamespaces.DrawingML, "extLst"))
                 || blip.Descendants().Any(element =>
                     element.LocalName is not ("extLst" or "ext" or "useLocalDpi"))) {
                 throw new NotSupportedException(
                     "Native DOC saving does not yet support inline picture recoloring, transparency, or other image effects.");
             }
 
-            ImagePart imagePart;
-            try {
-                imagePart = ownerPart.GetPartById(relationshipId!) as ImagePart
-                    ?? throw new NotSupportedException(
-                        $"Native DOC saving cannot resolve inline picture relationship '{relationshipId}'.");
-            } catch (ArgumentOutOfRangeException exception) {
+            // The SDK resolved the id among the owner's part relationships: a missing or external id threw
+            // ArgumentOutOfRangeException, and a part that isn't an image part gave no ImagePart.
+            LegacyDocRelationship? relationship = ownerPart.FindRelationship(relationshipId);
+            string? imagePartName = ownerPart.GetPartById(relationshipId);
+            if (relationship == null || imagePartName == null) {
                 throw new NotSupportedException(
-                    $"Native DOC saving cannot resolve inline picture relationship '{relationshipId}'.", exception);
+                    $"Native DOC saving cannot resolve inline picture relationship '{relationshipId}'.", new ArgumentOutOfRangeException("id"));
             }
 
-            byte[] imageBytes;
-            using (Stream imageStream = imagePart.GetStream(FileMode.Open, FileAccess.Read))
-            using (var output = new MemoryStream()) {
-                imageStream.CopyTo(output);
-                imageBytes = output.ToArray();
+            if (!string.Equals(relationship.Type, LegacyDocSourcePackage.ImageRelationshipType, StringComparison.Ordinal)) {
+                throw new NotSupportedException(
+                    $"Native DOC saving cannot resolve inline picture relationship '{relationshipId}'.");
             }
+
+            byte[] imageBytes = ownerPart.Source.ReadPartBytes(imagePartName);
+            string contentType = ownerPart.Source.GetContentType(imagePartName) ?? string.Empty;
 
             try {
-                _ = OfficeArtBlipStoreEntryWriter.CreateEmbedded(imageBytes, imagePart.ContentType);
+                _ = OfficeArtBlipStoreEntryWriter.CreateEmbedded(imageBytes, contentType);
             } catch (Exception exception) when (exception is ArgumentException
                                                 or IOException
                                                 or NotSupportedException
                                                 or OverflowException) {
                 throw new NotSupportedException(
-                    $"Native DOC saving cannot encode the embedded inline picture '{imagePart.ContentType}' as an OfficeArt BLIP. {exception.Message}",
+                    $"Native DOC saving cannot encode the embedded inline picture '{contentType}' as an OfficeArt BLIP. {exception.Message}",
                     exception);
             }
 
-            return new LegacyDocWritablePicture(imageBytes, imagePart.ContentType, widthTwips, heightTwips, crop);
+            return new LegacyDocWritablePicture(imageBytes, contentType, widthTwips, heightTwips, crop);
         }
+
+        private static int? ReadCropEdge(LegacyDocElement sourceCrop, string edge) => LegacyDocValues.Int32(sourceCrop.Attr(OfficeXmlNamespaces.None, edge));
+
+        // An xsd:boolean attribute, as the SDK's BooleanValue parsed it.
+        private static bool? ReadXmlBoolean(string? value) => value == null ? null : System.Xml.XmlConvert.ToBoolean(value);
 
         private static int ConvertPictureExtentToTwips(long? emus, string dimensionName) {
             if (emus == null || emus.Value <= 0) {

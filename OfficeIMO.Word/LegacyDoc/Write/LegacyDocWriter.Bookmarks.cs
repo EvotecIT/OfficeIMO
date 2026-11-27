@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
@@ -55,10 +54,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasBookmarkMarkers => _starts.Count > 0 || _bookmarks.Count > 0;
 
-            internal void AddStart(BookmarkStart bookmarkStart, int startCharacter) {
+            internal void AddStart(LegacyDocElement bookmarkStart, int startCharacter) {
                 EnsureCapacity();
-                string id = ReadBookmarkId(bookmarkStart.Id?.Value, "start");
-                string name = ReadBookmarkName(bookmarkStart.Name?.Value);
+                string id = ReadBookmarkId(bookmarkStart.Attr("id"), "start");
+                string name = ReadBookmarkName(bookmarkStart.Attr("name"));
                 if (!_names.Add(name)) {
                     throw new NotSupportedException($"Native DOC saving cannot write duplicate bookmark name '{name}'.");
                 }
@@ -80,8 +79,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            internal void AddEnd(BookmarkEnd bookmarkEnd, int endCharacter, int? precedingTableEnd = null) {
-                string id = ReadBookmarkId(bookmarkEnd.Id?.Value, "end");
+            internal void AddEnd(LegacyDocElement bookmarkEnd, int endCharacter, int? precedingTableEnd = null) {
+                string id = ReadBookmarkId(bookmarkEnd.Attr("id"), "end");
                 if (!_starts.TryGetValue(id, out LegacyDocWritableBookmarkStart start)) {
                     throw new NotSupportedException($"Native DOC saving cannot write bookmark end id '{id}' because the matching bookmark start was not found in the same supported story.");
                 }

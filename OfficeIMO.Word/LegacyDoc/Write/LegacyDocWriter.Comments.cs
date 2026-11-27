@@ -1,6 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
@@ -10,18 +7,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int LegacyCommentAuthorRecordSize = 30;
 
         private static LegacyDocWritableComments ReadSupportedComments(
-            MainDocumentPart mainPart,
+            LegacyDocSourcePackage source,
             LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes) {
-            WordprocessingCommentsPart? commentsPart = mainPart.WordprocessingCommentsPart;
-            Comments? comments = commentsPart?.Comments;
-            if (comments == null) {
+            string? commentsPart = source.CommentsPart;
+            LegacyDocElement comments = source.Root(commentsPart);
+            if (comments.IsNone) {
                 return LegacyDocWritableComments.Empty;
             }
 
             var stories = new Dictionary<string, LegacyDocWritableCommentStory>(StringComparer.Ordinal);
-            foreach (Comment comment in comments.Elements<Comment>()) {
-                string? id = comment.Id?.Value;
+            foreach (LegacyDocElement comment in comments.Elements("comment")) {
+                string? id = comment.Attr("id");
                 if (string.IsNullOrWhiteSpace(id)) {
                     throw new NotSupportedException("Native DOC saving supports comments only when every comment has an identifier.");
                 }
@@ -30,9 +27,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException($"Native DOC saving cannot write duplicate comment id '{id}'.");
                 }
 
-                string initials = string.IsNullOrWhiteSpace(comment.Initials?.Value)
+                string? initialsValue = comment.Attr("initials");
+                string initials = string.IsNullOrWhiteSpace(initialsValue)
                     ? "DOC"
-                    : comment.Initials!.Value!;
+                    : initialsValue!;
                 if (initials.Length > LegacyCommentInitialsMaximumLength) {
                     throw new NotSupportedException(
                         $"Native DOC saving supports comment initials up to {LegacyCommentInitialsMaximumLength} characters. "
@@ -42,7 +40,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 stories.Add(id!, new LegacyDocWritableCommentStory(
                     id!,
                     initials,
-                    ReadSimpleCommentStory(comment, id!, commentsPart!, pictures, styleIndexes)));
+                    ReadSimpleCommentStory(comment, id!, source.Part(commentsPart!), pictures, styleIndexes)));
             }
 
             return stories.Count == 0
@@ -51,9 +49,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocWritableNoteStory ReadSimpleCommentStory(
-            Comment comment,
+            LegacyDocElement comment,
             string id,
-            WordprocessingCommentsPart relationshipOwner,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes) {
             var builder = new StringBuilder();
@@ -61,20 +59,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
             bool hasText = false;
-            foreach (OpenXmlElement child in comment.ChildElements) {
-                if (child is not Paragraph paragraph) {
+            foreach (LegacyDocElement child in comment.Elements()) {
+                if (!child.Is("p")) {
                     throw new NotSupportedException(
                         $"Native DOC saving supports comment id '{id}' only when it contains simple paragraphs. "
                         + $"Unsupported comment element: {child.LocalName}.");
                 }
 
+                LegacyDocElement paragraph = child;
+
                 int paragraphStart = builder.Length;
                 LegacyDocWritableFormatting paragraphMarkFormatting =
-                    ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
+                    ReadSupportedParagraphMarkRunFormatting(paragraph.Child("pPr"));
                 LegacyDocWritableParagraphFormatting paragraphFormatting;
                 try {
                     paragraphFormatting = ReadSupportedParagraphFormatting(
-                        paragraph.ParagraphProperties,
+                        paragraph.Child("pPr"),
                         styleIndexes);
                 } catch (NotSupportedException exception) {
                     throw new NotSupportedException(
@@ -117,31 +117,31 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void AppendSimpleCommentParagraph(
-            Paragraph paragraph,
+            LegacyDocElement paragraph,
             string id,
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            WordprocessingCommentsPart relationshipOwner,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures) {
-            foreach (OpenXmlElement child in paragraph.ChildElements) {
-                switch (child) {
-                    case ParagraphProperties:
+            foreach (LegacyDocElement child in paragraph.Elements()) {
+                switch (child.WName) {
+                    case "pPr":
                         break;
-                    case Run run:
-                        AppendSimpleCommentRun(builder, runs, run, id, relationshipOwner, pictures);
+                    case "r":
+                        AppendSimpleCommentRun(builder, runs, child, id, relationshipOwner, pictures);
                         break;
-                    case InsertedRun insertedRun:
-                        AppendSimpleCommentRevision(builder, runs, insertedRun, LegacyDocRevisionKind.Inserted, id, relationshipOwner, pictures);
+                    case "ins":
+                        AppendSimpleCommentRevision(builder, runs, child, LegacyDocRevisionKind.Inserted, id, relationshipOwner, pictures);
                         break;
-                    case DeletedRun deletedRun:
-                        AppendSimpleCommentRevision(builder, runs, deletedRun, LegacyDocRevisionKind.Deleted, id, relationshipOwner, pictures);
+                    case "del":
+                        AppendSimpleCommentRevision(builder, runs, child, LegacyDocRevisionKind.Deleted, id, relationshipOwner, pictures);
                         break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, builder.Length);
+                    case "bookmarkStart":
+                        bookmarks.AddStart(child, builder.Length);
                         break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, builder.Length);
+                    case "bookmarkEnd":
+                        bookmarks.AddEnd(child, builder.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {
@@ -158,15 +158,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendSimpleCommentRevision(
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
-            OpenXmlCompositeElement revisionElement,
+            LegacyDocElement revisionElement,
             LegacyDocRevisionKind revisionKind,
             string id,
-            WordprocessingCommentsPart relationshipOwner,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures) {
             LegacyDocRevision revision = ReadSupportedRevision(revisionElement, revisionKind);
-            foreach (OpenXmlElement child in revisionElement.ChildElements) {
-                if (child is Run run) {
-                    AppendSimpleCommentRun(builder, runs, run, id, relationshipOwner, pictures, revision);
+            foreach (LegacyDocElement child in revisionElement.Elements()) {
+                if (child.Is("r")) {
+                    AppendSimpleCommentRun(builder, runs, child, id, relationshipOwner, pictures, revision);
                     continue;
                 }
 
@@ -177,53 +177,53 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendSimpleCommentRun(
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
-            Run run,
+            LegacyDocElement run,
             string id,
-            WordprocessingCommentsPart relationshipOwner,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             LegacyDocRevision revision = default) {
-            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties).WithRevision(revision);
-            foreach (OpenXmlElement child in run.ChildElements) {
-                switch (child) {
-                    case RunProperties:
-                    case LastRenderedPageBreak:
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.Child("rPr")).WithRevision(revision);
+            foreach (LegacyDocElement child in run.Elements()) {
+                switch (child.WName) {
+                    case "rPr":
+                    case "lastRenderedPageBreak":
                         break;
-                    case Text text:
-                        AppendFormattedText(builder, runs, text.Text, formatting);
+                    case "t":
+                        AppendFormattedText(builder, runs, child.Text, formatting);
                         break;
-                    case DeletedText deletedText:
-                        AppendFormattedText(builder, runs, deletedText.Text, formatting);
+                    case "delText":
+                        AppendFormattedText(builder, runs, child.Text, formatting);
                         break;
-                    case TabChar:
+                    case "tab":
                         AppendFormattedText(builder, runs, "\t", formatting);
                         break;
-                    case CarriageReturn:
+                    case "cr":
                         AppendFormattedText(
                             builder,
                             runs,
                             LegacyDocSpecialCharacters.TextWrappingBreak.ToString(),
                             formatting);
                         break;
-                    case NoBreakHyphen:
+                    case "noBreakHyphen":
                         AppendFormattedText(
                             builder,
                             runs,
                             LegacyDocSpecialCharacters.NoBreakHyphen.ToString(),
                             formatting);
                         break;
-                    case SoftHyphen:
+                    case "softHyphen":
                         AppendFormattedText(
                             builder,
                             runs,
                             LegacyDocSpecialCharacters.SoftHyphen.ToString(),
                             formatting);
                         break;
-                    case Break breakNode:
-                        AppendSupportedBreak(builder, runs, breakNode, formatting);
+                    case "br":
+                        AppendSupportedBreak(builder, runs, child, formatting);
                         break;
-                    case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
+                    case "drawing":
                         int picturePosition = builder.Length;
-                        int pictureDataOffset = pictures.AddInlinePicture(drawing, relationshipOwner);
+                        int pictureDataOffset = pictures.AddInlinePicture(child, relationshipOwner);
                         builder.Append('\u0001');
                         runs.Add(new LegacyDocWritableRun(
                             picturePosition,
@@ -251,9 +251,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 _storiesById = storiesById;
             }
 
-            internal void BindBodyReferences(Body body, string bodyText) {
+            internal void BindBodyReferences(LegacyDocElement body, string bodyText) {
                 const int maximumCommentReferences = 100_000;
-                CommentReference[] references = body.Descendants<CommentReference>().ToArray();
+                LegacyDocElement[] references = body.Descendants("commentReference").ToList().ToArray();
                 if (references.Length > maximumCommentReferences) {
                     throw new NotSupportedException(
                         $"Native DOC saving supports at most {maximumCommentReferences} comment references.");
@@ -271,13 +271,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
 
                 IReadOnlyDictionary<string, int> rangeStartCounts = CountCommentMarkers(
-                    body.Descendants<CommentRangeStart>().Select(marker => marker.Id?.Value));
+                    body.Descendants("commentRangeStart").Select(marker => marker.Attr("id")));
                 IReadOnlyDictionary<string, int> rangeEndCounts = CountCommentMarkers(
-                    body.Descendants<CommentRangeEnd>().Select(marker => marker.Id?.Value));
+                    body.Descendants("commentRangeEnd").Select(marker => marker.Attr("id")));
 
                 var referencedIds = new HashSet<string>(StringComparer.Ordinal);
                 for (int index = 0; index < references.Length; index++) {
-                    string? id = references[index].Id?.Value;
+                    string? id = references[index].Attr("id");
                     if (string.IsNullOrWhiteSpace(id) || !_storiesById.TryGetValue(id!, out LegacyDocWritableCommentStory story)) {
                         throw new NotSupportedException(
                             $"Native DOC saving cannot write comment reference id '{id ?? "(missing)"}' because the comment body is missing.");

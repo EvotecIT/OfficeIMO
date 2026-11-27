@@ -111,3 +111,9 @@ surface can use `PublicAPI/<target-framework>/PublicAPI.Shipped.txt`; the build
 selects it only for that framework. Run all supported framework builds when
 changing a public declaration. The Windows-only net472 target and the existing
 restore-lock selection remain unchanged.
+
+## 4.0 fluent ledger
+
+`FluentLedger/` inventories every exported member of the authoring receivers from the built assemblies and
+classifies its 4.0 form under the fluent API proposal (#3344). Its generated output is in `fluent/`; the tool's
+README explains the treatments and how the caller migration uses them.

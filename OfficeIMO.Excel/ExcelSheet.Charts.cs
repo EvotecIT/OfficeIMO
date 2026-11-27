@@ -1,11 +1,8 @@
 using System.Diagnostics;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
 using OfficeIMO.Excel.Utilities;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -14,13 +11,16 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IEnumerable<ExcelChart> Charts {
             get {
-                var drawingPart = _worksheetPart.DrawingsPart;
-                if (drawingPart?.WorksheetDrawing == null) return Enumerable.Empty<ExcelChart>();
-                return drawingPart.WorksheetDrawing
-                    .Descendants<Xdr.GraphicFrame>()
-                    .Where(frame => frame.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null)
-                    .Select(frame => new ExcelChart(frame, drawingPart, this))
-                    .ToList();
+                ExcelPartRef drawingPart = ExcelPartRef.WorksheetForMetadata(this).Drawings;
+                OfficeXmlNode worksheetDrawing = drawingPart.IsNone ? default : drawingPart.Root;
+                if (worksheetDrawing.IsNone) return Enumerable.Empty<ExcelChart>();
+                var charts = new List<ExcelChart>();
+                foreach (OfficeXmlNode frame in worksheetDrawing.Descendants(Xdr, "graphicFrame")) {
+                    if (frame.Child(A, "graphic").Child(A, "graphicData").Child(C, "chart").Exists) {
+                        charts.Add(new ExcelChart(frame, drawingPart, this));
+                    }
+                }
+                return charts;
             }
         }
 
@@ -233,21 +233,18 @@ namespace OfficeIMO.Excel {
             height ??= OfficeLength.Pixels(360);
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException(nameof(tableName));
 
-            var table = _worksheetPart.TableDefinitionParts
-                .Select(p => p.Table)
-                .FirstOrDefault(t => string.Equals(t?.Name?.Value ?? t?.DisplayName?.Value, tableName, StringComparison.OrdinalIgnoreCase));
-            if (table?.Reference?.Value == null) {
+            ChartSourceTable? table = FindChartSourceTable(tableName);
+            if (table?.Reference == null) {
                 throw new InvalidOperationException($"Table '{tableName}' was not found on sheet '{Name}'.");
             }
 
-            bool hasHeaders = (table.HeaderRowCount?.Value ?? 1U) > 0;
-            var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(table.Reference.Value);
-            int totals = checked((int)(table.TotalsRowCount?.Value ?? 0U));
+            bool hasHeaders = (table.HeaderRowCount ?? 1U) > 0;
+            var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(table.Reference);
+            int totals = checked((int)(table.TotalsRowCount ?? 0U));
             string sourceRange = ExcelA1.CellReference(firstRow, firstColumn) + ":" +
                 ExcelA1.CellReference(lastRow - totals, lastColumn);
-            IReadOnlyList<string>? nativeSeriesNames = hasHeaders && includeCachedData ? null : table.TableColumns?
-                .Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>()
-                .Skip(1).Select(field => field.Name?.Value ?? string.Empty).ToArray();
+            IReadOnlyList<string>? nativeSeriesNames = hasHeaders && includeCachedData ? null : table.ColumnNames?
+                .Skip(1).ToArray();
             return AddChartFromRange(sourceRange, row, column, width.Value, height.Value, type, hasHeaders, title,
                 includeCachedData, nativeSeriesNames);
         }
@@ -306,68 +303,32 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Bubble charts require bubble size ranges for each series.", nameof(seriesRanges));
             }
 
-            Xdr.GraphicFrame? frame = null;
-            DrawingsPart? drawingPart = null;
+            OfficeXmlNode frame = default;
+            ExcelPartRef drawingPart = default;
 
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
             WriteLockWorksheetPreparationOnly(() => {
-                var drawing = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
-                if (drawing == null) {
-                    drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
-                    drawingPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
-                    string relId = _worksheetPart.GetIdOfPart(drawingPart);
-                    WorksheetRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = relId });
-                } else {
-                    drawingPart = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
-                    drawingPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
-                }
+                drawingPart = GetOrCreateDrawingsPart();
 
                 _excelDocument.EnsureWorkbookThemeAndStyles();
 
-                ExcelChartAxisIdGenerator.EnsureInitialized(_worksheetPart.OpenXmlPackage);
-                ChartPart chartPart = drawingPart!.AddNewPart<ChartPart>();
-                ExcelChartUtils.PopulateChartFromSeriesRanges(chartPart, type, Name, ranges, title);
+                EnsureChartAxisIds();
+                ExcelPartRef chartPart = drawingPart.AddNewPart(ExcelPartKind.Chart);
+                PopulateChartFromSeriesRanges(chartPart, type, Name, ranges, title);
                 if (_excelDocument.DefaultChartStylePreset == null)
-                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.Apply(chartPart, OfficeTheme.Default);
+                    ApplyDefaultChartTheme(chartPart);
                 if (_excelDocument.DefaultChartStylePreset != null) {
-                    ExcelChartUtils.ApplyChartStyle(chartPart, _excelDocument.DefaultChartStylePreset);
+                    ApplyChartStyle(chartPart, _excelDocument.DefaultChartStylePreset);
                 }
-                string chartRelId = drawingPart.GetIdOfPart(chartPart);
+                string chartRelId = drawingPart.GetIdOfPart(chartPart)!;
 
                 long cx = width.ToEmus();
                 long cy = height.ToEmus();
 
-                UInt32Value nvId = NextDrawingId(drawingPart);
-                frame = new Xdr.GraphicFrame(
-                    new Xdr.NonVisualGraphicFrameProperties(
-                        new Xdr.NonVisualDrawingProperties { Id = nvId, Name = $"Chart {nvId}" },
-                        new Xdr.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true })
-                    ),
-                    new Xdr.Transform(
-                        new A.Offset { X = 0, Y = 0 },
-                        new A.Extents { Cx = cx, Cy = cy }
-                    ),
-                    new A.Graphic(
-                        new A.GraphicData(
-                            new C.ChartReference { Id = chartRelId }
-                        ) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/chart" }
-                    )
-                );
-
-                var anchor = new Xdr.OneCellAnchor(
-                    new Xdr.FromMarker(
-                        new Xdr.ColumnId((column - 1).ToString()),
-                        new Xdr.ColumnOffset("0"),
-                        new Xdr.RowId((row - 1).ToString()),
-                        new Xdr.RowOffset("0")
-                    ),
-                    new Xdr.Extent { Cx = cx, Cy = cy },
-                    frame,
-                    new Xdr.ClientData()
-                );
-
-                drawingPart.WorksheetDrawing.Append(anchor);
-                drawingPart.WorksheetDrawing.Save();
+                uint nvId = NextDrawingId(drawingPart);
+                frame = AppendGraphicFrameAnchor(drawingPart.Root, row, column, cx, cy, nvId, $"Chart {nvId}",
+                    ChartGraphicDataUri, graphicData => WithRelationshipId(graphicData.New(C, "chart"), chartRelId));
+                drawingPart.SaveRoot();
             });
 
             return new ExcelChart(frame!, drawingPart!, this);
@@ -392,24 +353,15 @@ namespace OfficeIMO.Excel {
                 MaterializeDeferredDataSetImportIfNeeded();
             }
 
-            Xdr.GraphicFrame? frame = null;
-            DrawingsPart? drawingPart = null;
+            OfficeXmlNode frame = default;
+            ExcelPartRef drawingPart = default;
 
             using var preserveDirectDataSet = data == null || preserveDeferredDataSetCandidate
                 ? _excelDocument.PreserveDirectDataSetFastSaveStateDuringDirtyMarks()
                 : null;
             WriteLockWorksheetPreparationOnly(() => {
                 Stopwatch? stageWatch = EffectiveExecution.OnTiming == null ? null : Stopwatch.StartNew();
-                var drawing = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
-                if (drawing == null) {
-                    drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
-                    drawingPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
-                    string relId = _worksheetPart.GetIdOfPart(drawingPart);
-                    WorksheetRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = relId });
-                } else {
-                    drawingPart = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
-                    drawingPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
-                }
+                drawingPart = GetOrCreateDrawingsPart();
                 ReportChartTiming(stageWatch, "AddChartInternal.PrepareDrawingPart");
 
                 stageWatch?.Restart();
@@ -417,63 +369,36 @@ namespace OfficeIMO.Excel {
                 ReportChartTiming(stageWatch, "AddChartInternal.EnsureThemeAndStyles");
 
                 stageWatch?.Restart();
-                ExcelChartAxisIdGenerator.EnsureInitialized(_worksheetPart.OpenXmlPackage);
-                ChartPart chartPart = drawingPart!.AddNewPart<ChartPart>();
+                EnsureChartAxisIds();
+                ExcelPartRef chartPart = drawingPart.AddNewPart(ExcelPartKind.Chart);
                 ReportChartTiming(stageWatch, "AddChartInternal.AddChartPart");
 
                 stageWatch?.Restart();
-                ExcelChartUtils.PopulateChart(chartPart, type, range, data, title, nativeSeriesNames);
-                rangeSeries?.ApplyFormulas(chartPart);
+                PopulateChart(chartPart, type, range, data, title, nativeSeriesNames);
+                if (rangeSeries != null) ApplyRangeSeriesFormulas(rangeSeries, chartPart);
                 if (_excelDocument.DefaultChartStylePreset == null)
-                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.Apply(chartPart, OfficeTheme.Default);
+                    ApplyDefaultChartTheme(chartPart);
                 ReportChartTiming(stageWatch, "AddChartInternal.PopulateChart");
 
                 if (_excelDocument.DefaultChartStylePreset != null) {
                     stageWatch?.Restart();
-                    ExcelChartUtils.ApplyChartStyle(chartPart, _excelDocument.DefaultChartStylePreset);
+                    ApplyChartStyle(chartPart, _excelDocument.DefaultChartStylePreset);
                     ReportChartTiming(stageWatch, "AddChartInternal.ApplyChartStyle");
                 }
 
                 stageWatch?.Restart();
-                string chartRelId = drawingPart.GetIdOfPart(chartPart);
+                string chartRelId = drawingPart.GetIdOfPart(chartPart)!;
 
                 long cx = width.ToEmus();
                 long cy = height.ToEmus();
 
-                UInt32Value nvId = NextDrawingId(drawingPart);
-                frame = new Xdr.GraphicFrame(
-                    new Xdr.NonVisualGraphicFrameProperties(
-                        new Xdr.NonVisualDrawingProperties { Id = nvId, Name = $"Chart {nvId}" },
-                        new Xdr.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true })
-                    ),
-                    new Xdr.Transform(
-                        new A.Offset { X = 0, Y = 0 },
-                        new A.Extents { Cx = cx, Cy = cy }
-                    ),
-                    new A.Graphic(
-                        new A.GraphicData(
-                            new C.ChartReference { Id = chartRelId }
-                        ) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/chart" }
-                    )
-                );
-
-                var anchor = new Xdr.OneCellAnchor(
-                    new Xdr.FromMarker(
-                        new Xdr.ColumnId((column - 1).ToString()),
-                        new Xdr.ColumnOffset("0"),
-                        new Xdr.RowId((row - 1).ToString()),
-                        new Xdr.RowOffset("0")
-                    ),
-                    new Xdr.Extent { Cx = cx, Cy = cy },
-                    frame,
-                    new Xdr.ClientData()
-                );
-
-                drawingPart.WorksheetDrawing.Append(anchor);
+                uint nvId = NextDrawingId(drawingPart);
+                frame = AppendGraphicFrameAnchor(drawingPart.Root, row, column, cx, cy, nvId, $"Chart {nvId}",
+                    ChartGraphicDataUri, graphicData => WithRelationshipId(graphicData.New(C, "chart"), chartRelId));
                 ReportChartTiming(stageWatch, "AddChartInternal.BuildAnchor");
 
                 stageWatch?.Restart();
-                drawingPart.WorksheetDrawing.Save();
+                drawingPart.SaveRoot();
                 ReportChartTiming(stageWatch, "AddChartInternal.SaveDrawing");
             });
 
@@ -481,7 +406,50 @@ namespace OfficeIMO.Excel {
                 _excelDocument.PreserveDeferredDataSetFastSaveModelAndClearCandidate();
             }
 
-            return new ExcelChart(frame!, drawingPart!, this, rangeSeries == null ? range : null);
+            return new ExcelChart(frame, drawingPart, this, rangeSeries == null ? range : null);
+        }
+
+        private static OfficeXmlNode WithRelationshipId(OfficeXmlNode element, string relationshipId) {
+            element.SetAttribute(R, "id", relationshipId);
+            return element;
+        }
+
+        private const string ChartGraphicDataUri = "http://schemas.openxmlformats.org/drawingml/2006/chart";
+
+        /// <summary>
+        /// Appends a one-cell anchor holding a graphic frame to the worksheet drawing and returns the frame as held. The
+        /// frame's graphic data gets the uri and the reference <paramref name="createReference"/> makes for it.
+        /// </summary>
+        private static OfficeXmlNode AppendGraphicFrameAnchor(OfficeXmlNode worksheetDrawing, int row, int column, long cx, long cy,
+            uint id, string name, string graphicDataUri, Func<OfficeXmlNode, OfficeXmlNode> createReference) {
+            OfficeXmlNode anchor = worksheetDrawing.New(Xdr, "oneCellAnchor");
+            OfficeXmlNode frame = anchor.New(Xdr, "graphicFrame");
+            OfficeXmlNode nonVisual = frame.New(Xdr, "nvGraphicFramePr");
+            OfficeXmlNode frameDrawing = nonVisual.New(Xdr, "cNvGraphicFramePr");
+            OfficeXmlNode transform = frame.New(Xdr, "xfrm");
+            OfficeXmlNode graphic = frame.New(A, "graphic");
+            OfficeXmlNode graphicData = graphic.New(A, "graphicData").Attr("uri", graphicDataUri);
+            frame.With(
+                nonVisual.With(
+                    nonVisual.New(Xdr, "cNvPr").Attr("id", id).Attr("name", name),
+                    frameDrawing.With(frameDrawing.New(A, "graphicFrameLocks").Attr("noChangeAspect", true))
+                ),
+                transform.With(
+                    transform.New(A, "off").Attr("x", 0L).Attr("y", 0L),
+                    transform.New(A, "ext").Attr("cx", cx).Attr("cy", cy)
+                ),
+                graphic.With(graphicData.With(createReference(graphicData)))
+            );
+
+            anchor.With(
+                NewMarker(anchor, "from", column - 1, 0L, row - 1, 0L),
+                anchor.New(Xdr, "ext").Attr("cx", cx).Attr("cy", cy),
+                frame,
+                anchor.New(Xdr, "clientData")
+            );
+
+            anchor = worksheetDrawing.Append(anchor);
+            return anchor.Child(Xdr, "graphicFrame");
         }
 
         private static void ValidateChartPlacement(int row, int column, OfficeLength width, OfficeLength height) {

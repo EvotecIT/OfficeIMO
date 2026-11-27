@@ -70,23 +70,11 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         // The c:pt elements of string data (c:strCache, c:strLit, c:lvl) or of numeric data (c:numCache, c:numLit) below
-        // the container, in document order, read lazily so a bounded read stops early.
+        // the container, in document order and outside extension markup below it, read lazily so a bounded read stops
+        // early.
         private static IEnumerable<OfficeXmlNode> EnumeratePoints(OfficeXmlNode container, bool numeric) {
-            var pending = new Stack<OfficeXmlNode>();
-            OfficeXmlNode child = container.FirstChild;
-            while (true) {
-                while (!child.IsNone) {
-                    if (child.Is(NsC, "pt") && IsPointOf(child.Parent, numeric)) yield return child;
-                    OfficeXmlNode first = child.FirstChild;
-                    if (!first.IsNone) {
-                        pending.Push(child.NextSibling);
-                        child = first;
-                    } else {
-                        child = child.NextSibling;
-                    }
-                }
-                if (pending.Count == 0) yield break;
-                child = pending.Pop();
+            for (OfficeXmlNode child = container.FirstChild; !child.IsNone; child = child.NextContentInSubtree(container)) {
+                if (child.Is(NsC, "pt") && IsPointOf(child.Parent, numeric)) yield return child;
             }
         }
 

@@ -47,8 +47,9 @@ namespace OfficeIMO.Excel {
             _initialized = new Lazy<bool>(Initialize, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
-        private SharedStringCache(Func<Stream> openPartStream, ExcelReaderOptions options) {
+        private SharedStringCache(Func<Stream> openPartStream, ExcelReaderOptions options, bool keepUnmarkedWhitespace = false) {
             _openPartStream = openPartStream ?? throw new ArgumentNullException(nameof(openPartStream));
+            _keepUnmarkedWhitespace = keepUnmarkedWhitespace;
             _preferDom = false;
             _maxSharedStringItems = options.MaxSharedStringItems;
             _maxSharedStringItemCharacters = options.MaxSharedStringItemCharacters;
@@ -91,6 +92,10 @@ namespace OfficeIMO.Excel {
 
         internal static SharedStringCache Build(Func<Stream> openPartStream, ExcelReaderOptions options) =>
             new(openPartStream, options);
+
+        /// <summary>Builds the table from the part's bytes with the text the SDK model gives an editable document.</summary>
+        internal static SharedStringCache BuildKeepingUnmarkedWhitespace(Func<Stream> openPartStream, ExcelReaderOptions options) =>
+            new(openPartStream, options, keepUnmarkedWhitespace: true);
 
         internal static SharedStringCache Empty(ExcelReaderOptions options) =>
             new(new List<string>(), options);

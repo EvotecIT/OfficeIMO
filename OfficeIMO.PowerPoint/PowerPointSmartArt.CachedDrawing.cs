@@ -32,8 +32,17 @@ namespace OfficeIMO.PowerPoint {
                     failureReason = "The SmartArt diagram has no cached drawing from its producer.";
                     return false;
                 }
-                byte[] drawingBytes = ReadPartBytes(drawingPart);
-                ValidateCachedDrawing(drawingBytes);
+                // Admission limits apply while the part streams in, before it is read whole.
+                byte[]? drawingBytes = null;
+                if (drawingPart.Current.IsSdk) {
+                    using Stream stream = drawingPart.OpenRead();
+                    ValidateCachedDrawing(stream);
+                } else {
+                    // The package's bytes for the part, refused unread when they are stored longer than the limits allow.
+                    using var stream = (MemoryStream)drawingPart.OpenRead(MaximumCachedDrawingBytes);
+                    ValidateCachedDrawing(stream);
+                    drawingBytes = stream.ToArray();
+                }
                 OfficeXmlTree drawing = ParseCachedDrawing(ReadCachedDrawingMarkup(drawingPart, drawingBytes));
                 int tree = FindShapeTree(drawing);
                 if (tree == OfficeXmlTree.NoNode) {
@@ -82,8 +91,10 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ValidateCachedDrawing(byte[] drawing) {
-            using var stream = new MemoryStream(drawing, writable: false);
+        // The most bytes the character limit allows: four UTF-8 bytes a character, and a byte order mark.
+        private const long MaximumCachedDrawingBytes = 4L * PowerPointXmlReader.MaximumPackageXmlCharacters + 4L;
+
+        private static void ValidateCachedDrawing(Stream stream) {
             using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
@@ -339,10 +350,10 @@ namespace OfficeIMO.PowerPoint {
             List<int> clonedTexts = Descendants(output, body).Where(node => IsDrawingText(output, node)).ToList();
             for (int index = 0; index < sourceTexts.Count && index < clonedTexts.Count; index++) {
                 if (!HasCData(drawing, sourceTexts[index])) continue;
-                // A copy reads as its first text segment; one whose full text differs is written anew, without the
-                // attributes the split one had.
+                // The copy holds every segment as ordinary text; one that reads differently from the source's text is
+                // written anew, without the attributes the split one had.
                 string value = ReadFullText(drawing, sourceTexts[index]);
-                if (string.Equals(value, FirstTextSegment(drawing, sourceTexts[index]), StringComparison.Ordinal)) continue;
+                if (string.Equals(value, output.GetInnerText(clonedTexts[index]), StringComparison.Ordinal)) continue;
                 int replacement = output.CreateElement(D, "t");
                 if (value.Length > 0) output.Append(replacement, output.CreateText(value));
                 output.InsertBefore(output.ParentOf(clonedTexts[index]), replacement, clonedTexts[index]);
@@ -515,13 +526,6 @@ namespace OfficeIMO.PowerPoint {
                 if (drawing.IsCData(child) || preserve || !IsXmlWhitespace(value)) text.Append(value);
             }
             return text.ToString();
-        }
-
-        private static string FirstTextSegment(OfficeXmlTree drawing, int element) {
-            for (int child = drawing.FirstChildOf(element); child != OfficeXmlTree.NoNode; child = drawing.NextSiblingOf(child)) {
-                if (drawing.KindOf(child) == OfficeXmlTreeNodeKind.Text) return drawing.GetText(child);
-            }
-            return string.Empty;
         }
 
         private static bool HasCData(OfficeXmlTree drawing, int element) {

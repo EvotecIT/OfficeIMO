@@ -12,7 +12,8 @@ namespace OfficeIMO.PowerPoint {
         private readonly PowerPointPartRef _packagePart;
         private readonly PowerPointSlide? _packageSlide;
         // Whether the element is a standalone copy of one removed from its part.
-        private bool _standalone;
+        // Whether the element was removed before the package that held it went.
+        private bool _removed;
 
         internal PowerPointHeldNode(OfficeXmlNode element, PowerPointShape owner) {
             _element = element;
@@ -26,9 +27,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The element as it is held now: once the SDK opened, a package node is its SDK element.</summary>
         internal OfficeXmlNode Element {
             get {
+                ThrowIfRemoved();
                 // A removed slide's part name can be reused by a new slide, so its content never binds; an element removed
                 // from its table has no place in the SDK and stays as it is.
-                if (!_standalone && _element.Tree != null && _element.IsAttached && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }) {
+                if (_element.Tree != null && _element.IsAttached && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }) {
                     _element = OfficeXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, _element.Tree, _element.Node));
                 }
                 return _element;
@@ -43,23 +45,19 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlNode element = Element;
             if (element.SdkElement is { } sdk) return sdk;
             if (_packageSlide is { RemovedFromPackage: true }) throw new InvalidOperationException("The slide is no longer part of the presentation.");
-            if (!_standalone && element.Tree != null && !_packagePart.IsNone) return PowerPointSlide.BindPackageNode(_packagePart, element.Tree, element.Node);
+            if (element.Tree != null && !_packagePart.IsNone) return PowerPointSlide.BindPackageNode(_packagePart, element.Tree, element.Node);
             throw new InvalidOperationException("The element is not held in an SDK part.");
         }
 
-        void IPackageSdkBinding.KeepDetached() {
-            if (!_standalone && _element.Tree != null && !_element.IsAttached) {
-                _element = Standalone(_element);
-                _standalone = true;
-            }
+        void IPackageSdkBinding.InvalidateRemoved(bool sdkOpening) {
+            if (!_removed && _element.Tree != null && (OwnerSlideRemoved || sdkOpening && !_element.IsAttached)) _removed = true;
         }
 
-        /// <summary>A copy of a detached package element in a tree of its own, which nothing binds.</summary>
-        internal static OfficeXmlNode Standalone(OfficeXmlNode element) {
-            byte[] markup = element.OuterXml();
-            OfficeXmlTree tree = OfficeXmlTree.Parse(markup, markup.Length, element.Tree!.Namespaces);
-            return new OfficeXmlNode(tree, tree.Root);
+        private void ThrowIfRemoved() {
+            if (_removed) throw new InvalidOperationException("The content was removed from the presentation.");
         }
+
+        private bool OwnerSlideRemoved => _packageSlide is { RemovedFromPackage: true };
 
         void IPackageSdkBinding.BindSdk() {
             try {

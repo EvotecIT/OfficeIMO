@@ -154,7 +154,8 @@ namespace OfficeIMO.OpenXml.Internal {
                         preservedSeriesIndexes.Add(seriesIndex.Value);
                     }
                 }
-                if (insertionPoint.IsNone) SetOrdered(preserved, updated, SharedLayerOrder(preserved));
+                // A layer without series takes each one in schema order after the ones already added.
+                if (insertionPoint.IsNone) preserved.InsertOrdered(updated, SharedLayerOrder(preserved));
                 else preserved.InsertBefore(updated, insertionPoint);
             }
             foreach (OfficeXmlNode series in oldSeries) series.Remove();

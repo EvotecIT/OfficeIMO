@@ -1,13 +1,20 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 using DrawingIdentity = System.ValueTuple<string, uint, string, string>;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private readonly List<WeakReference<ExcelDrawingHandle>> _drawingHandles = new();
+        // Created on first use and without field initializers, which would run in the document's constructors.
+        private List<WeakReference<ExcelDrawingHandle>>? _drawingHandlesValue;
+        private List<WeakReference<ExcelDrawingHandle>> _drawingHandles => _drawingHandlesValue ??= new List<WeakReference<ExcelDrawingHandle>>();
         private IReadOnlyList<ExcelDrawingHandle.ReloadSnapshot>? _drawingHandlesBeforePackageClose;
-        private int _drawingHandlePruneThreshold = 256;
+        // Zero until the first prune grows it; the list is compacted from 256 handles on.
+        private int _drawingHandlePruneThresholdValue;
+        private int _drawingHandlePruneThreshold {
+            get => _drawingHandlePruneThresholdValue == 0 ? 256 : _drawingHandlePruneThresholdValue;
+            set => _drawingHandlePruneThresholdValue = value;
+        }
 
         internal void RegisterDrawingHandle(ExcelDrawingHandle handle) {
             lock (_sheetWrapperCacheLock) {
@@ -24,9 +31,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Snapshots live drawing identity before package replacement or a transactional mutation.</summary>
-        internal IReadOnlyList<ExcelDrawingHandle.ReloadSnapshot> CaptureDrawingHandlesForReload(
-            IReadOnlyDictionary<uint, WorksheetPart>? activeParts = null) {
-            activeParts ??= CaptureActiveSheetPartsForReload();
+        private IReadOnlyList<ExcelDrawingHandle.ReloadSnapshot> CaptureDrawingHandles(IReadOnlyDictionary<uint, ExcelPartRef> activeParts) {
             var snapshots = new List<ExcelDrawingHandle.ReloadSnapshot>();
             lock (_sheetWrapperCacheLock) {
                 PruneCollectedDrawingHandles();
@@ -41,22 +46,28 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Reconnects captured originals, indexing each restored drawing part once for all aliases.</summary>
         internal static void RebindDrawingHandlesAfterPackageReload(IReadOnlyList<ExcelDrawingHandle.ReloadSnapshot> snapshots) {
-            var indexes = new Dictionary<DrawingsPart, Dictionary<DrawingIdentity, OpenXmlElement?>>();
+            var indexes = new Dictionary<ExcelPartRef, Dictionary<DrawingIdentity, OfficeXmlNode>>();
             foreach (ExcelDrawingHandle.ReloadSnapshot snapshot in snapshots) {
-                DrawingsPart? part = snapshot.Sheet.DeferredMetadataWorksheetPart.DrawingsPart;
-                if (part?.WorksheetDrawing == null) continue;
-                if (!indexes.TryGetValue(part, out Dictionary<DrawingIdentity, OpenXmlElement?>? elements)) {
-                    elements = new Dictionary<DrawingIdentity, OpenXmlElement?>();
-                    foreach (OpenXmlElement element in part.WorksheetDrawing.Descendants()
-                        .Where(item => item is Xdr.GraphicFrame || item is Xdr.Picture)) {
-                        if (!ExcelDrawingHandle.TryGetIdentity(element, part, out DrawingIdentity identity)) continue;
-                        // Ambiguous malformed drawing identities must not attach a retained handle to an arbitrary node.
-                        if (elements.ContainsKey(identity)) elements[identity] = null;
-                        else elements.Add(identity, element);
-                    }
+                ExcelPartRef part = ExcelPartRef.WorksheetForMetadata(snapshot.Sheet).Drawings;
+                OfficeXmlNode root = part.Root;
+                if (root.IsNone) continue;
+                if (!indexes.TryGetValue(part, out Dictionary<DrawingIdentity, OfficeXmlNode>? elements)) {
+                    elements = new Dictionary<DrawingIdentity, OfficeXmlNode>();
+                    IndexDrawingElements(root, part, elements);
                     indexes.Add(part, elements);
                 }
                 snapshot.Restore(part, elements);
+            }
+        }
+
+        /// <summary>Indexes graphic frames and pictures in document order, as the SDK's descendant walk visits them.</summary>
+        private static void IndexDrawingElements(OfficeXmlNode root, ExcelPartRef part, Dictionary<DrawingIdentity, OfficeXmlNode> elements) {
+            for (OfficeXmlNode element = root.FirstChild; !element.IsNone; element = element.NextInSubtree(root)) {
+                if (!element.Is(Xdr, "graphicFrame") && !element.Is(Xdr, "pic")) continue;
+                if (!ExcelDrawingHandle.TryGetIdentity(element, part, out DrawingIdentity identity)) continue;
+                // Ambiguous malformed drawing identities must not attach a retained handle to an arbitrary node.
+                if (elements.ContainsKey(identity)) elements[identity] = OfficeXmlNode.None;
+                else elements.Add(identity, element);
             }
         }
     }

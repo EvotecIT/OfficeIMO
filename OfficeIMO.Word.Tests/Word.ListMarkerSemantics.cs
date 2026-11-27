@@ -185,7 +185,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfTextBoxMarkersUseLevelFormatting() {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"));
-        list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!
+        list.Numbering.Levels[0].OpenXmlLevel().GetFirstChild<NumberingSymbolRunProperties>()!
             .Append(new Bold(), new FontSize { Val = "36" });
         WordTextBox box = document.AddTextBox("Styled box");
         AttachToList(box.Paragraphs[0], list.NumberId);
@@ -286,7 +286,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"));
         WordListLevel level = list.Numbering.Levels[0];
-        level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!.Append(new Bold(), new FontSize { Val = "36" });
+        level.OpenXmlLevel().GetFirstChild<NumberingSymbolRunProperties>()!.Append(new Bold(), new FontSize { Val = "36" });
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
@@ -351,7 +351,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomBulletList('\uf0b7', "Symbol", OfficeColor.Parse("FF0000"));
         WordParagraph item = list.AddItem("Override replacement");
-        Level abstractLevel = list.Numbering.Levels[0].OpenXmlElement;
+        Level abstractLevel = list.Numbering.Levels[0].OpenXmlLevel();
         abstractLevel.GetFirstChild<PreviousParagraphProperties>()!.GetFirstChild<Indentation>()!.Left = "1800";
         Numbering numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
         NumberingInstance instance = numbering.Elements<NumberingInstance>()
@@ -449,7 +449,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-        list.Numbering.Levels[0].OpenXmlElement.Append(new ParagraphStyleIdInLevel { Val = "Issue2510OnlyLevelLinked" });
+        list.Numbering.Levels[0].OpenXmlLevel().Append(new ParagraphStyleIdInLevel { Val = "Issue2510OnlyLevelLinked" });
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(new Style { Type = StyleValues.Paragraph, StyleId = "Issue2510OnlyLevelLinked" });
         WordParagraph linked = document.AddParagraph("Level linked");
@@ -515,7 +515,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSquareSymbol));
-        list.Numbering.Levels[2].OpenXmlElement.Append(new ParagraphStyleIdInLevel { Val = "Issue2510LinkedLevel" });
+        list.Numbering.Levels[2].OpenXmlLevel().Append(new ParagraphStyleIdInLevel { Val = "Issue2510LinkedLevel" });
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(new Style(new StyleParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }))) {

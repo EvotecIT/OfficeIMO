@@ -11,9 +11,9 @@ namespace OfficeIMO.Excel {
 
         private bool TryGetDynamicArrayPlan(ExcelFormulaCell cell, out DynamicArrayPlan plan) {
             plan = null!;
-            return _formulaEvaluationCache != null
+            return _formulaEvaluationCache != null && cell.Reference is string reference
                 && ArrayCalculationContexts.GetOrCreateValue(_formulaEvaluationCache).DynamicPlans.TryGetValue(
-                    GetFormulaEvaluationCacheKey(cell.Reference!), out plan!);
+                    GetFormulaEvaluationCacheKey(reference), out plan!);
         }
 
         private void PlanDynamicArrayOwners() {

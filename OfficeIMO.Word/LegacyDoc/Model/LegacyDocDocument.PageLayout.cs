@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal sealed partial class LegacyDocDocument {
@@ -15,7 +14,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             ushort endnoteFormat = LegacyDocFib.ReadUInt16(tableStream, offset + 494);
             return sections.Select(section => new LegacyDocSection(section.StartCharacter, section.EndCharacter,
                 section.Format.WithNoteSettings(
-                    footnotePosition: position == 1 ? FootnotePositionValues.PageBottom : position == 2 ? FootnotePositionValues.BeneathText : (FootnotePositionValues?)null,
+                    footnotePosition: position == 1 ? LegacyDocFootnotePosition.PageBottom : position == 2 ? LegacyDocFootnotePosition.BeneathText : (LegacyDocFootnotePosition?)null,
                     footnoteRestart: ReadDopNoteRestart(footnoteSequence & 3, true),
                     footnoteStart: footnoteSequence >> 2 == 0 ? (int?)null : footnoteSequence >> 2,
                     footnoteNumberFormat: footnoteFormat <= byte.MaxValue ? LegacyDocNumberFormatMapper.FromNfc((byte)footnoteFormat) : null,
@@ -24,9 +23,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     endnoteNumberFormat: endnoteFormat <= byte.MaxValue ? LegacyDocNumberFormatMapper.FromNfc((byte)endnoteFormat) : null))).ToArray();
         }
 
-        private static RestartNumberValues? ReadDopNoteRestart(int value, bool footnotes) =>
-            value == 0 ? RestartNumberValues.Continuous : value == 1 ? RestartNumberValues.EachSection :
-            value == 2 && footnotes ? RestartNumberValues.EachPage : (RestartNumberValues?)null;
+        private static LegacyDocRestartNumber? ReadDopNoteRestart(int value, bool footnotes) =>
+            value == 0 ? LegacyDocRestartNumber.Continuous : value == 1 ? LegacyDocRestartNumber.EachSect :
+            value == 2 && footnotes ? LegacyDocRestartNumber.EachPage : (LegacyDocRestartNumber?)null;
 
         private void ReadDopMarginSettings(byte[] tableStream, LegacyDocFib fib) =>
             ReadDopMarginSettings(tableStream, fib.FcDop, fib.LcbDop);
