@@ -32,6 +32,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
         // Keep traversal bounded by the supplied subtree and independent of the nesting depth.
         // Projection elements contain only element children or leaf text.
         private static bool SameContent(OfficeXmlNode actual, OfficeXmlNode expected) {
+            // SDK text leaves can hide unknown child markup from the DOM traversal.
+            if (actual.IsSdk && expected.IsSdk) return actual.OuterXml().AsSpan().SequenceEqual(expected.OuterXml());
             var actualNodes = actual;
             var expectedNodes = expected;
             while (actualNodes.Exists && expectedNodes.Exists) {

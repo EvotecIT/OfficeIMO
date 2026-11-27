@@ -428,7 +428,7 @@ namespace OfficeIMO.Excel {
                 effectiveOptions.CancellationToken, effectiveOptions.MaxCells);
             if (owned != null) {
                 try {
-                    owned.MarkLoadedFromXlsb(filePath, workbook);
+                    owned.MarkLoadedFromOwnedXlsb(filePath, workbook);
                     return owned;
                 } catch {
                     owned.Dispose();

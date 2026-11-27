@@ -47,7 +47,6 @@ def measure(output):
                 raise RuntimeError(f"One or more workloads did not finish in {report}")
 
 
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("baseline", help="Baseline Git revision")
@@ -55,7 +54,13 @@ def main():
     parser.add_argument("output", type=Path, help="New scratch directory for the measurements")
     parser.add_argument("--lock", type=Path, required=True, help="Shared benchmark lock path to acquire")
     parser.add_argument("--repository", type=Path, default=HERE.parents[2], help="Repository containing both revisions")
-    args = parser.parse_args()
+    locked = len(sys.argv) > 1 and sys.argv[1] == "--under-benchmark-lock"
+    args = parser.parse_args(sys.argv[2:] if locked else sys.argv[1:])
+    if not locked:
+        run(["lockf", "-k", str(args.lock.expanduser().resolve()), sys.executable,
+             str(Path(__file__).resolve()), "--under-benchmark-lock", *sys.argv[1:]], Path.cwd())
+        return
+
     output = args.output.resolve()
     output.mkdir(parents=True)
     root = args.repository.resolve()
@@ -63,8 +68,6 @@ def main():
     revisions = {}
 
     try:
-        # Build both revisions before taking the lock. Only benchmark runs and their
-        # setup need the exclusive measurement slot.
         for label, ref in (("baseline", args.baseline), ("candidate", args.candidate)):
             checkout = output / f"source-{label}"
             run(["git", "worktree", "add", "--detach", "--quiet", str(checkout), ref], root)
@@ -80,15 +83,11 @@ def main():
             revisions[label] = revision
 
         (output / "inputs.json").write_text(json.dumps({"revisions": revisions}, indent=2) + "\n")
-        run(["lockf", "-k", str(args.lock), sys.executable, str(Path(__file__).resolve()),
-             "--measure", str(output)], output)
+        measure(output)
     finally:
         for checkout in reversed(checkouts):
             run(["git", "worktree", "remove", str(checkout)], root)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3 and sys.argv[1] == "--measure":
-        measure(Path(sys.argv[2]))
-    else:
-        main()
+    main()

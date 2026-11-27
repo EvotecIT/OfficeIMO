@@ -4,6 +4,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Write;
 using System.IO.Compression;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -66,6 +67,32 @@ public sealed class ExcelXlsbWorksheetFeatureTests {
         Assert.Equal(new[] { 4 }, reloaded["Data"].GetManualColumnPageBreaks());
         // The unchanged ignored-error collection is copied record for record.
         Assert.Equal(ReadRecords(source, 648, 650), ReadRecords(edited, 648, 650));
+    }
+
+    [Fact]
+    public void Native_xlsb_rewrite_rejects_unknown_markup_nested_in_a_header_text_element() {
+        const string headerText = "&CQuarterly";
+        byte[] source = SaveAsXlsb(CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.WorksheetPart.Worksheet!.Append(new HeaderFooter(new OddHeader(headerText)));
+            sheet.EnsureWorksheetElementOrder();
+        }));
+
+        using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source));
+        ExcelSheet data = loaded["Data"];
+        Worksheet worksheet = data.WorksheetPart.Worksheet!;
+        HeaderFooter original = Assert.IsType<HeaderFooter>(worksheet.GetFirstChild<HeaderFooter>());
+        XElement markup = XElement.Parse(original.OuterXml);
+        markup.Element(markup.Name.Namespace + "oddHeader")!.Add(new XElement(XName.Get("vendor", "urn:xlsb:test")));
+        var changed = new HeaderFooter(markup.ToString(SaveOptions.DisableFormatting));
+        worksheet.ReplaceChild(changed, original);
+        Assert.Equal(headerText, changed.OddHeader!.Text);
+        Assert.Contains("urn:xlsb:test", changed.OuterXml, StringComparison.Ordinal);
+        data.Cell(1, 1).SetValue(2);
+
+        var exception = Assert.Throws<NotSupportedException>(() => loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
+        Assert.Contains("headers and footers", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

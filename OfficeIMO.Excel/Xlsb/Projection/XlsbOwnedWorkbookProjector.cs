@@ -72,11 +72,17 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     relationshipType = RelationshipPrefix + "worksheet";
                     string nameInPackage = "/xl/" + relativeName;
                     OfficeXmlNode layout = XlsbOwnedWorksheetMarkup.Create(package, nameInPackage, source, selected, related);
-                    using var xml = new MemoryStream(Math.Min(64 * 1024, source.Cells.Count * 24));
-                    XlsbWorksheetGridProjector.WriteWorksheet(xml, source, LookupSharedString,
-                        (reference, retainsCache) => recordMutation(nameInPackage, reference, retainsCache),
-                        cancellationToken, layout, native.Stylesheet);
-                    package.CreateBinaryPart(nameInPackage, WorksheetContentType, xml.ToArray());
+                    foreach (XlsbCell cell in source.Cells) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (cell.Kind == XlsbCellValueKind.Text && cell.Value is string { Length: > 0 } text
+                            && strings.TryGetOrAdd(text, ExcelSheet.CellValuePlainStringPromotionSharedStringCount, out _)) {
+                            strings.AddedReferences++;
+                        }
+                    }
+                    package.CreateStreamedPart(nameInPackage, WorksheetContentType, stream =>
+                        XlsbWorksheetGridProjector.WriteWorksheet(stream, source, LookupSharedString,
+                            (reference, retainsCache) => recordMutation(nameInPackage, reference, retainsCache),
+                            cancellationToken, layout, native.Stylesheet));
                 }
                 OfficeXmlNode sheet = XlsbWorksheetMarkup.Append(sheets, "sheet");
                 sheet.SetAttribute("name", name);
@@ -99,9 +105,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             return output.ToArray();
 
             int? LookupSharedString(string text) {
-                if (!strings.TryGetOrAdd(text, ExcelSheet.CellValuePlainStringPromotionSharedStringCount, out int index)) return null;
-                strings.AddedReferences++;
-                return index;
+                int index = strings.IndexOf(text);
+                return index < 0 ? null : index;
             }
         }
 

@@ -18,30 +18,6 @@ namespace OfficeIMO.Excel {
             _xlsbDocumentPropertiesSnapshot = XlsbDocumentPropertyParts.Snapshot.Take(this);
         }
 
-        internal void MarkLoadedFromXlsb(string? sourcePath, XlsbWorkbook workbook) {
-            ArgumentNullException.ThrowIfNull(workbook);
-
-            SourceFormat = ExcelFileFormat.Xlsb;
-            _legacyXlsPreservationSnapshot = null;
-            _xlsbSourcePath = sourcePath;
-            _xlsbOriginalPackageBytes = workbook.OriginalPackageBytes;
-            _legacyXlsWasEncryptedSource = false;
-            _openXmlOriginalPackageBytes = null;
-            _xlsbAdvancedWorkbook = workbook;
-            _xlsbImportDiagnostics = workbook.Diagnostics.ToArray();
-            CaptureBinaryLoadDiagnostics(workbook);
-            _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
-            _packageDirty = false;
-            _packagePropertiesDirty = false;
-            InitializeXlsbPreservationForLoadedProjection();
-            _requiresSavePreflight = false;
-            _unchangedPackageBytes = null;
-            _packageContentTypesKnownNormalized = false;
-            if (!string.IsNullOrEmpty(sourcePath)) {
-                FilePath = sourcePath!;
-            }
-        }
-
         internal XlsbProjectionPreservationGuard NativeXlsbPreservation => _xlsbPreservationGuard
             ?? throw new InvalidOperationException("The XLSB source bindings are unavailable.");
         internal void ValidateNativeXlsbProjection() => _xlsbPreservationGuard?.Validate(this);

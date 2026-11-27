@@ -47,13 +47,28 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void InitializeXlsbPreservationForLoadedProjection() {
-            if (IsSdkDeferred) {
-                _xlsbDeferredBaseline = _deferredPackageBytes;
-                return;
+        private void MarkLoadedFromOwnedXlsb(string? sourcePath, XlsbWorkbook workbook) {
+            ArgumentNullException.ThrowIfNull(workbook);
+
+            SourceFormat = ExcelFileFormat.Xlsb;
+            _legacyXlsPreservationSnapshot = null;
+            _xlsbSourcePath = sourcePath;
+            _xlsbOriginalPackageBytes = workbook.OriginalPackageBytes;
+            _legacyXlsWasEncryptedSource = false;
+            _openXmlOriginalPackageBytes = null;
+            _xlsbAdvancedWorkbook = workbook;
+            _xlsbImportDiagnostics = workbook.Diagnostics.ToArray();
+            CaptureBinaryLoadDiagnostics(workbook);
+            _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
+            _packageDirty = false;
+            _packagePropertiesDirty = false;
+            _xlsbDeferredBaseline = _deferredPackageBytes;
+            _requiresSavePreflight = false;
+            _unchangedPackageBytes = null;
+            _packageContentTypesKnownNormalized = false;
+            if (!string.IsNullOrEmpty(sourcePath)) {
+                FilePath = sourcePath!;
             }
-            _xlsbPreservationGuard = XlsbProjectionPreservationGuard.Capture(this);
-            CaptureXlsbDocumentPropertiesState();
         }
 
         // An explicit SDK fallback needs the same original state as a workbook that was projected
