@@ -85,8 +85,7 @@ public partial class ExcelDocument {
 
         internal byte[] XlsbStylesPart {
             get {
-                lock (_gate) return _xlsbStylesPart ??= XlsbStylesheetPartWriter.CreateForNewWorkbook(
-                    new DocumentFormat.OpenXml.Spreadsheet.Stylesheet(_stylesXml), out _);
+                lock (_gate) return _xlsbStylesPart ??= XlsbStylesheetPartWriter.CreateFromMarkup(_stylesXml);
             }
         }
 

@@ -1,10 +1,13 @@
-using DocumentFormat.OpenXml;
+using System.Xml;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Projection;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Writes the core BIFF12 formatting collections referenced by normal worksheet cells.</summary>
     internal static class XlsbStylesheetPartWriter {
+        private const int Spreadsheet = OfficeXmlNamespaces.SpreadsheetML;
         private const int MaximumStyleNameLength = 255;
         private const int MaximumFonts = 0xFFD3;
         private const int MaximumCellFormats = 0xFF96;
@@ -38,28 +41,37 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         /// <summary>Defines style zero even when a new workbook has no explicit formatting.</summary>
         internal static byte[] CreateForNewWorkbook(Stylesheet? stylesheet, out int cellFormatCount, long maximumBytes = int.MaxValue,
             IReadOnlyList<Font>? additionalFonts = null) =>
-            Create(stylesheet ?? ExcelDocument.CreateDefaultStylesheet(), out cellFormatCount, maximumBytes, additionalFonts);
+            Create(OfficeXmlNode.FromSdk(stylesheet ?? ExcelDocument.CreateDefaultStylesheet()), out cellFormatCount,
+                maximumBytes, additionalFonts?.Select(font => OfficeXmlNode.FromSdk(font)));
 
-        internal static byte[] Create(Stylesheet stylesheet, out int cellFormatCount, long maximumBytes = int.MaxValue,
-            IReadOnlyList<Font>? additionalFonts = null) {
-            ArgumentNullException.ThrowIfNull(stylesheet);
+        /// <summary>Encodes a generated SpreadsheetML stylesheet without loading the SDK model.</summary>
+        internal static byte[] CreateFromMarkup(string stylesheetXml) {
+            byte[] bytes = Encoding.UTF8.GetBytes(stylesheetXml);
+            OfficeXmlTree tree = OfficeXmlTree.Parse(bytes, bytes.Length, new OfficeXmlNamespaces.Table());
+            return Create(new OfficeXmlNode(tree, tree.Root), out _);
+        }
+
+        internal static byte[] Create(OfficeXmlNode stylesheet, out int cellFormatCount, long maximumBytes = int.MaxValue,
+            IEnumerable<OfficeXmlNode>? additionalFonts = null) {
+            if (stylesheet.IsNone) throw new ArgumentException("The XLSB stylesheet is missing.", nameof(stylesheet));
             ValidateUnsupportedCollections(stylesheet);
 
-            NumberingFormat[] numberFormats = stylesheet.NumberingFormats?.Elements<NumberingFormat>().ToArray()
-                ?? Array.Empty<NumberingFormat>();
-            Font[] fonts = RequireItems(stylesheet.Fonts?.Elements<Font>().Concat(additionalFonts ?? Array.Empty<Font>()), "fonts", MaximumFonts);
-            Fill[] fills = RequireItems(stylesheet.Fills?.Elements<Fill>(), "fills");
-            Border[] borders = RequireItems(stylesheet.Borders?.Elements<Border>(), "borders");
-            CellFormat[] styleFormats = RequireItems(stylesheet.CellStyleFormats?.Elements<CellFormat>(), "cell style formats");
-            CellFormat[] cellFormats = RequireItems(stylesheet.CellFormats?.Elements<CellFormat>(), "cell formats", MaximumCellFormats);
-            cellFormatCount = cellFormats.Length;
+            List<OfficeXmlNode> numberFormats = Children(Child(stylesheet, "numFmts"), "numFmt");
+            List<OfficeXmlNode> fonts = Children(Child(stylesheet, "fonts"), "font");
+            if (additionalFonts != null) fonts.AddRange(additionalFonts);
+            RequireItems(fonts, "fonts", MaximumFonts);
+            List<OfficeXmlNode> fills = RequireItems(Children(Child(stylesheet, "fills"), "fill"), "fills");
+            List<OfficeXmlNode> borders = RequireItems(Children(Child(stylesheet, "borders"), "border"), "borders");
+            List<OfficeXmlNode> styleFormats = RequireItems(Children(Child(stylesheet, "cellStyleXfs"), "xf"), "cell style formats");
+            List<OfficeXmlNode> cellFormats = RequireItems(Children(Child(stylesheet, "cellXfs"), "xf"), "cell formats", MaximumCellFormats);
+            cellFormatCount = cellFormats.Count;
 
-            ValidateCellFormatReferences(styleFormats, fonts.Length, fills.Length, borders.Length, isStyleFormat: true);
-            ValidateCellFormatReferences(cellFormats, fonts.Length, fills.Length, borders.Length, isStyleFormat: false, styleFormats.Length);
+            ValidateCellFormatReferences(styleFormats, fonts.Count, fills.Count, borders.Count, isStyleFormat: true);
+            ValidateCellFormatReferences(cellFormats, fonts.Count, fills.Count, borders.Count, isStyleFormat: false, styleFormats.Count);
 
             using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
             XlsbRecordWriter.Write(output, BrtBeginStyleSheet);
-            if (numberFormats.Length > 0) {
+            if (numberFormats.Count > 0) {
                 WriteCollection(output, BrtBeginFmts, BrtEndFmts, numberFormats, WriteNumberFormat);
             }
             WriteCollection(output, BrtBeginFonts, BrtEndFonts, fonts, WriteFont);
@@ -69,59 +81,61 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 (stream, format) => WriteCellFormat(stream, format, isStyleFormat: true));
             WriteCollection(output, BrtBeginCellXfs, BrtEndCellXfs, cellFormats,
                 (stream, format) => WriteCellFormat(stream, format, isStyleFormat: false));
-            WriteCellStyles(output, stylesheet.CellStyles, styleFormats.Length);
-            DifferentialFormat[] differentialFormats = stylesheet.DifferentialFormats?.Elements<DifferentialFormat>().ToArray()
-                ?? Array.Empty<DifferentialFormat>();
+            WriteCellStyles(output, Child(stylesheet, "cellStyles"), styleFormats.Count);
+            List<OfficeXmlNode> differentialFormats = Children(Child(stylesheet, "dxfs"), "dxf");
             WriteCollection(output, BrtBeginDxfs, BrtEndDxfs, differentialFormats, (stream, format) => {
-                XlsbGeneratedRecord record = Styles.XlsbDifferentialFormatCodec.CreateRecord(format);
+                if (format.SdkElement is not DifferentialFormat differentialFormat)
+                    throw new NotSupportedException("Native XLSB generation needs the differential-format encoder for this stylesheet.");
+                XlsbGeneratedRecord record = Styles.XlsbDifferentialFormatCodec.CreateRecord(differentialFormat);
                 XlsbRecordWriter.Write(stream, record.Type, record.Payload);
             });
-            WriteTableStyles(output, stylesheet.TableStyles);
+            WriteTableStyles(output, Child(stylesheet, "tableStyles"));
             XlsbRecordWriter.Write(output, BrtEndStyleSheet);
             return output.ToArray();
         }
 
-        private static void ValidateUnsupportedCollections(Stylesheet stylesheet) {
-            if (stylesheet.DifferentialFormats is DifferentialFormats differentialFormats
-                && (differentialFormats.ChildElements.Any(child => child is not DifferentialFormat)
-                    || XlsbOpenXmlAttributeValidator.FindUnsupported(differentialFormats, new[] { "count" }) != null)) {
+        private static OfficeXmlNode Child(OfficeXmlNode parent, string name) => parent.Child(Spreadsheet, name);
+
+        private static List<OfficeXmlNode> Children(OfficeXmlNode parent, string name) => parent.Children(Spreadsheet, name).ToList();
+
+        private static void ValidateUnsupportedCollections(OfficeXmlNode stylesheet) {
+            OfficeXmlNode differentialFormats = Child(stylesheet, "dxfs");
+            if (!differentialFormats.IsNone
+                && (differentialFormats.Children().Count != differentialFormats.Children(Spreadsheet, "dxf").Count
+                    || XlsbWorkbookMarkup.UnsupportedAttribute(differentialFormats, new[] { "count" }) != null)) {
                 throw new NotSupportedException("Native XLSB generation does not encode extensions on the differential formatting collection.");
             }
-            if (stylesheet.Colors != null || stylesheet.ChildElements.Any(element => element.LocalName == "extLst")) {
+            if (Child(stylesheet, "colors").Exists || Child(stylesheet, "extLst").Exists) {
                 throw new NotSupportedException("Native XLSB generation does not yet encode custom indexed colors or style extensions.");
             }
 
-            if (stylesheet.TableStyles?.ChildElements.Count > 0) {
+            if (Child(stylesheet, "tableStyles").FirstChild.Exists) {
                 throw new NotSupportedException("Native XLSB generation does not yet encode custom table or pivot styles.");
             }
         }
 
-        private static T[] RequireItems<T>(
-            IEnumerable<T>? items,
-            string collectionName,
-            int maximumItems = 65_536) where T : OpenXmlElement {
-            T[] values = items?.ToArray() ?? Array.Empty<T>();
-            if (values.Length == 0) {
+        private static List<OfficeXmlNode> RequireItems(List<OfficeXmlNode> values, string collectionName, int maximumItems = 65_536) {
+            if (values.Count == 0) {
                 throw new NotSupportedException($"Native XLSB generation requires a non-empty {collectionName} collection.");
             }
-            if (values.Length > maximumItems) {
+            if (values.Count > maximumItems) {
                 throw new NotSupportedException($"Native XLSB generation supports at most {maximumItems:N0} {collectionName}.");
             }
             return values;
         }
 
         private static void ValidateCellFormatReferences(
-            IEnumerable<CellFormat> formats,
+            IEnumerable<OfficeXmlNode> formats,
             int fontCount,
             int fillCount,
             int borderCount,
             bool isStyleFormat,
             int styleFormatCount = 0) {
-            foreach (CellFormat format in formats) {
-                uint fontId = format.FontId?.Value ?? 0U;
-                uint fillId = format.FillId?.Value ?? 0U;
-                uint borderId = format.BorderId?.Value ?? 0U;
-                uint parentId = format.FormatId?.Value ?? 0U;
+            foreach (OfficeXmlNode format in formats) {
+                uint fontId = XlsbWorkbookMarkup.ReadUInt32(format, "fontId") ?? 0U;
+                uint fillId = XlsbWorkbookMarkup.ReadUInt32(format, "fillId") ?? 0U;
+                uint borderId = XlsbWorkbookMarkup.ReadUInt32(format, "borderId") ?? 0U;
+                uint parentId = XlsbWorkbookMarkup.ReadUInt32(format, "xfId") ?? 0U;
                 if (fontId >= fontCount || fillId >= fillCount || borderId >= borderCount) {
                     throw new NotSupportedException("Native XLSB generation found a cell format with an out-of-range font, fill, or border reference.");
                 }
@@ -144,16 +158,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal static XlsbGeneratedRecord CreateNumberFormatRecord(NumberingFormat value) {
             using var output = new MemoryStream();
-            WriteNumberFormat(output, value);
+            WriteNumberFormat(output, OfficeXmlNode.FromSdk(value));
             output.Position = 0;
             var record = XlsbRecordReader.ReadAll(output).Single();
             return new XlsbGeneratedRecord(record.Type, record.Data);
         }
 
-        private static void WriteNumberFormat(Stream output, NumberingFormat format) {
-            uint id = format.NumberFormatId?.Value
+        private static void WriteNumberFormat(Stream output, OfficeXmlNode format) {
+            uint id = XlsbWorkbookMarkup.ReadUInt32(format, "numFmtId")
                 ?? throw new NotSupportedException("Native XLSB generation requires every custom number format to have an id.");
-            string code = format.FormatCode?.Value ?? string.Empty;
+            string code = format.Attribute("formatCode") ?? string.Empty;
             if (id > ushort.MaxValue || string.IsNullOrEmpty(code) || code.Length > 255) {
                 throw new NotSupportedException("Native XLSB generation found an invalid custom number format.");
             }
@@ -164,64 +178,65 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbRecordWriter.Write(output, BrtFmt, payload.ToArray());
         }
 
-        private static void WriteFont(Stream output, Font font) {
+        private static void WriteFont(Stream output, OfficeXmlNode font) {
             XlsbGeneratedRecord record = CreateFontRecord(font);
             XlsbRecordWriter.Write(output, record.Type, record.Payload);
         }
 
-        internal static XlsbGeneratedRecord CreateFontRecord(Font font) {
-            ArgumentNullException.ThrowIfNull(font);
-            string name = font.FontName?.Val?.Value ?? "Calibri";
-            double size = font.FontSize?.Val?.Value ?? 11D;
+        internal static XlsbGeneratedRecord CreateFontRecord(Font font) => CreateFontRecord(OfficeXmlNode.FromSdk(font));
+
+        private static XlsbGeneratedRecord CreateFontRecord(OfficeXmlNode font) {
+            string name = Child(font, "name").Attribute("val") ?? "Calibri";
+            double size = ReadDouble(Child(font, "sz"), "val") ?? 11D;
             if (string.IsNullOrWhiteSpace(name) || name.Length > 31 || size <= 0D || size > 409.55D) {
                 throw new NotSupportedException("Native XLSB generation found a font with an unsupported name or size.");
             }
 
             ushort flags = 0;
-            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Bold)) flags |= 0x0001;
-            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Italic)) flags |= 0x0002;
-            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Strike)) flags |= 0x0008;
-            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Outline)) flags |= 0x0010;
-            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Shadow)) flags |= 0x0020;
-            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Condense)) flags |= 0x0040;
-            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Extend)) flags |= 0x0080;
+            if (FontFlag(font, "b")) flags |= 0x0001;
+            if (FontFlag(font, "i")) flags |= 0x0002;
+            if (FontFlag(font, "strike")) flags |= 0x0008;
+            if (FontFlag(font, "outline")) flags |= 0x0010;
+            if (FontFlag(font, "shadow")) flags |= 0x0020;
+            if (FontFlag(font, "condense")) flags |= 0x0040;
+            if (FontFlag(font, "extend")) flags |= 0x0080;
 
             using var payload = new MemoryStream(32 + name.Length * 2);
             WriteUInt16(payload, checked((ushort)Math.Round(size * 20D, MidpointRounding.AwayFromZero)));
             WriteUInt16(payload, flags);
-            WriteUInt16(payload, global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Bold) ? (ushort)700 : (ushort)400);
-            WriteUInt16(payload, ToScript(font.VerticalTextAlignment?.Val?.Value));
-            payload.WriteByte(font.Underline == null
-                ? (byte)0
-                : ToUnderline(font.Underline.Val?.Value ?? UnderlineValues.Single));
-            payload.WriteByte(checked((byte)(font.FontFamilyNumbering?.Val?.Value ?? 0)));
-            payload.WriteByte(checked((byte)(font.GetFirstChild<FontCharSet>()?.Val?.Value ?? 1)));
+            WriteUInt16(payload, FontFlag(font, "b") ? (ushort)700 : (ushort)400);
+            WriteUInt16(payload, Child(font, "vertAlign").Attribute("val") switch { "superscript" => (ushort)1, "subscript" => (ushort)2, _ => (ushort)0 });
+            OfficeXmlNode underline = Child(font, "u");
+            payload.WriteByte(underline.IsNone ? (byte)0 : (underline.Attribute("val") ?? "single") switch {
+                "single" => 1, "double" => 2, "singleAccounting" => 0x21, "doubleAccounting" => 0x22, _ => 0
+            });
+            payload.WriteByte(checked((byte)(XlsbWorkbookMarkup.ReadInt32(Child(font, "family"), "val") ?? 0)));
+            payload.WriteByte(checked((byte)(XlsbWorkbookMarkup.ReadInt32(Child(font, "charset"), "val") ?? 1)));
             payload.WriteByte(0);
-            WriteColor(payload, font.Color);
-            payload.WriteByte(ToFontScheme(font.GetFirstChild<FontScheme>()?.Val?.Value));
+            WriteColor(payload, Child(font, "color"));
+            payload.WriteByte(Child(font, "scheme").Attribute("val") switch { "major" => 1, "minor" => 2, _ => 0 });
             WriteWideString(payload, name);
             return new XlsbGeneratedRecord(BrtFont, payload.ToArray());
         }
 
         internal static XlsbGeneratedRecord CreateFillRecord(Fill value) {
             using var output = new MemoryStream();
-            WriteFill(output, value);
+            WriteFill(output, OfficeXmlNode.FromSdk(value));
             output.Position = 0;
             var record = XlsbRecordReader.ReadAll(output).Single();
             return new XlsbGeneratedRecord(record.Type, record.Data);
         }
 
-        private static void WriteFill(Stream output, Fill fill) {
-            GradientFill? gradient = fill.GetFirstChild<GradientFill>();
-            if (gradient != null) {
+        private static void WriteFill(Stream output, OfficeXmlNode fill) {
+            if (Child(fill, "gradientFill").Exists) {
                 throw new NotSupportedException("Native XLSB generation does not yet encode gradient fill stops.");
             }
 
-            PatternFill? pattern = fill.GetFirstChild<PatternFill>();
+            OfficeXmlNode pattern = Child(fill, "patternFill");
             using var payload = new MemoryStream(68);
-            WriteUInt32(payload, ToFillPattern(pattern?.PatternType?.Value));
-            WriteColor(payload, pattern?.ForegroundColor);
-            WriteColor(payload, pattern?.BackgroundColor);
+            WriteUInt32(payload, XlsbStylesheetMarkup.FillPatternCode(pattern.Attribute("patternType")));
+            WriteColor(payload, Child(pattern, "fgColor"));
+            WriteColor(payload, Child(pattern, "bgColor"));
             WriteUInt32(payload, 0);
             for (int index = 0; index < 5; index++) WriteDouble(payload, 0D);
             WriteUInt32(payload, 0);
@@ -230,128 +245,137 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal static XlsbGeneratedRecord CreateBorderRecord(Border value) {
             using var output = new MemoryStream();
-            WriteBorder(output, value);
+            WriteBorder(output, OfficeXmlNode.FromSdk(value));
             output.Position = 0;
             var record = XlsbRecordReader.ReadAll(output).Single();
             return new XlsbGeneratedRecord(record.Type, record.Data);
         }
 
-        private static void WriteBorder(Stream output, Border border) {
-            if (HasBorderContent(border.VerticalBorder)
-                || HasBorderContent(border.HorizontalBorder)
-                || HasBorderContent(border.StartBorder)
-                || HasBorderContent(border.EndBorder)) {
+        private static void WriteBorder(Stream output, OfficeXmlNode border) {
+            if (HasBorderContent(Child(border, "vertical"))
+                || HasBorderContent(Child(border, "horizontal"))
+                || HasBorderContent(Child(border, "start"))
+                || HasBorderContent(Child(border, "end"))) {
                 throw new NotSupportedException("Native XLSB generation does not yet encode start, end, vertical, or horizontal border definitions.");
             }
 
             using var payload = new MemoryStream(51);
             byte flags = 0;
-            if (border.DiagonalDown?.Value == true) flags |= 0x01;
-            if (border.DiagonalUp?.Value == true) flags |= 0x02;
+            if (XlsbWorkbookMarkup.ReadBoolean(border, "diagonalDown") == true) flags |= 0x01;
+            if (XlsbWorkbookMarkup.ReadBoolean(border, "diagonalUp") == true) flags |= 0x02;
             payload.WriteByte(flags);
-            WriteBorderSide(payload, border.TopBorder);
-            WriteBorderSide(payload, border.BottomBorder);
-            WriteBorderSide(payload, border.LeftBorder);
-            WriteBorderSide(payload, border.RightBorder);
-            WriteBorderSide(payload, border.DiagonalBorder);
+            WriteBorderSide(payload, Child(border, "top"));
+            WriteBorderSide(payload, Child(border, "bottom"));
+            WriteBorderSide(payload, Child(border, "left"));
+            WriteBorderSide(payload, Child(border, "right"));
+            WriteBorderSide(payload, Child(border, "diagonal"));
             XlsbRecordWriter.Write(output, BrtBorder, payload.ToArray());
         }
 
-        private static bool HasBorderContent(BorderPropertiesType? border) =>
-            border != null && (border.Style?.Value != null || border.Color != null);
+        private static bool HasBorderContent(OfficeXmlNode border) =>
+            border.HasAttribute("style") || Child(border, "color").Exists;
 
-        private static void WriteBorderSide(Stream output, BorderPropertiesType? side) {
-            output.WriteByte(ToBorderStyle(side?.Style?.Value));
+        private static void WriteBorderSide(Stream output, OfficeXmlNode side) {
+            output.WriteByte(XlsbStylesheetMarkup.BorderStyleCode(side.Attribute("style")));
             output.WriteByte(0);
-            WriteColor(output, side?.Color);
+            WriteColor(output, Child(side, "color"));
         }
 
-        private static void WriteCellFormat(Stream output, CellFormat format, bool isStyleFormat) {
+        private static void WriteCellFormat(Stream output, OfficeXmlNode format, bool isStyleFormat) {
             XlsbGeneratedRecord record = CreateCellFormatRecord(format, isStyleFormat);
             XlsbRecordWriter.Write(output, record.Type, record.Payload);
         }
 
-        internal static XlsbGeneratedRecord CreateCellFormatRecord(CellFormat format, bool isStyleFormat = false) {
-            ArgumentNullException.ThrowIfNull(format);
+        internal static XlsbGeneratedRecord CreateCellFormatRecord(CellFormat format, bool isStyleFormat = false) =>
+            CreateCellFormatRecord(OfficeXmlNode.FromSdk(format), isStyleFormat);
+
+        private static XlsbGeneratedRecord CreateCellFormatRecord(OfficeXmlNode format, bool isStyleFormat) {
             using var payload = new MemoryStream(16);
-            WriteUInt16(payload, isStyleFormat ? ushort.MaxValue : ToUInt16(format.FormatId?.Value ?? 0U, "parent style"));
-            ushort numberFormatId = ToUInt16(format.NumberFormatId?.Value ?? 0U, "number format");
-            ushort fontId = ToUInt16(format.FontId?.Value ?? 0U, "font");
-            ushort fillId = ToUInt16(format.FillId?.Value ?? 0U, "fill");
-            ushort borderId = ToUInt16(format.BorderId?.Value ?? 0U, "border");
+            WriteUInt16(payload, isStyleFormat ? ushort.MaxValue : ToUInt16(XlsbWorkbookMarkup.ReadUInt32(format, "xfId") ?? 0U, "parent style"));
+            ushort numberFormatId = ToUInt16(XlsbWorkbookMarkup.ReadUInt32(format, "numFmtId") ?? 0U, "number format");
+            ushort fontId = ToUInt16(XlsbWorkbookMarkup.ReadUInt32(format, "fontId") ?? 0U, "font");
+            ushort fillId = ToUInt16(XlsbWorkbookMarkup.ReadUInt32(format, "fillId") ?? 0U, "fill");
+            ushort borderId = ToUInt16(XlsbWorkbookMarkup.ReadUInt32(format, "borderId") ?? 0U, "border");
             WriteUInt16(payload, numberFormatId);
             WriteUInt16(payload, fontId);
             WriteUInt16(payload, fillId);
             WriteUInt16(payload, borderId);
 
-            Alignment? alignment = format.Alignment;
-            payload.WriteByte(checked((byte)(alignment?.TextRotation?.Value ?? 0U)));
-            payload.WriteByte(checked((byte)(alignment?.Indent?.Value ?? 0U)));
-            byte alignmentFlags = (byte)(ToHorizontalAlignment(alignment?.Horizontal?.Value)
-                | (ToVerticalAlignment(alignment?.Vertical?.Value) << 3));
-            if (alignment?.WrapText?.Value == true) alignmentFlags |= 0x40;
-            if (alignment?.JustifyLastLine?.Value == true) alignmentFlags |= 0x80;
+            OfficeXmlNode alignment = Child(format, "alignment");
+            OfficeXmlNode protection = Child(format, "protection");
+            payload.WriteByte(checked((byte)(XlsbWorkbookMarkup.ReadUInt32(alignment, "textRotation") ?? 0U)));
+            payload.WriteByte(checked((byte)(XlsbWorkbookMarkup.ReadUInt32(alignment, "indent") ?? 0U)));
+            byte alignmentFlags = (byte)(XlsbStylesheetMarkup.HorizontalAlignmentCode(alignment.Attribute("horizontal"))
+                | (XlsbStylesheetMarkup.VerticalAlignmentCode(alignment.Attribute("vertical")) << 3));
+            if (XlsbWorkbookMarkup.ReadBoolean(alignment, "wrapText") == true) alignmentFlags |= 0x40;
+            if (XlsbWorkbookMarkup.ReadBoolean(alignment, "justifyLastLine") == true) alignmentFlags |= 0x80;
             payload.WriteByte(alignmentFlags);
 
             byte protectionFlags = 0;
-            if (alignment?.ShrinkToFit?.Value == true) protectionFlags |= 0x01;
-            if (string.Equals(alignment?.MergeCell?.Value, "1", StringComparison.Ordinal)
-                || string.Equals(alignment?.MergeCell?.Value, "true", StringComparison.OrdinalIgnoreCase)) protectionFlags |= 0x02;
-            protectionFlags |= (byte)((alignment?.ReadingOrder?.Value ?? 0U) << 2);
-            if (format.Protection?.Locked?.Value ?? true) protectionFlags |= 0x10;
-            if (format.Protection?.Hidden?.Value == true) protectionFlags |= 0x20;
-            if (format.PivotButton?.Value == true) protectionFlags |= 0x40;
-            if (format.QuotePrefix?.Value == true) protectionFlags |= 0x80;
+            if (XlsbWorkbookMarkup.ReadBoolean(alignment, "shrinkToFit") == true) protectionFlags |= 0x01;
+            if (string.Equals(alignment.Attribute("mergeCell"), "1", StringComparison.Ordinal)
+                || string.Equals(alignment.Attribute("mergeCell"), "true", StringComparison.OrdinalIgnoreCase)) protectionFlags |= 0x02;
+            protectionFlags |= (byte)((XlsbWorkbookMarkup.ReadUInt32(alignment, "readingOrder") ?? 0U) << 2);
+            if (XlsbWorkbookMarkup.ReadBoolean(protection, "locked") ?? true) protectionFlags |= 0x10;
+            if (XlsbWorkbookMarkup.ReadBoolean(protection, "hidden") == true) protectionFlags |= 0x20;
+            if (XlsbWorkbookMarkup.ReadBoolean(format, "pivotButton") == true) protectionFlags |= 0x40;
+            if (XlsbWorkbookMarkup.ReadBoolean(format, "quotePrefix") == true) protectionFlags |= 0x80;
             payload.WriteByte(protectionFlags);
 
             ushort applyFlags = 0;
-            if (ShouldApply(format.ApplyNumberFormat, numberFormatId != 0)) applyFlags |= 1 << 0;
-            if (ShouldApply(format.ApplyFont, fontId != 0)) applyFlags |= 1 << 1;
-            if (ShouldApply(format.ApplyAlignment, alignment != null)) applyFlags |= 1 << 2;
-            if (ShouldApply(format.ApplyBorder, borderId != 0)) applyFlags |= 1 << 3;
-            if (ShouldApply(format.ApplyFill, fillId != 0)) applyFlags |= 1 << 4;
-            if (ShouldApply(format.ApplyProtection, format.Protection != null)) applyFlags |= 1 << 5;
+            if (XlsbWorkbookMarkup.ReadBoolean(format, "applyNumberFormat") ?? numberFormatId != 0) applyFlags |= 1 << 0;
+            if (XlsbWorkbookMarkup.ReadBoolean(format, "applyFont") ?? fontId != 0) applyFlags |= 1 << 1;
+            if (XlsbWorkbookMarkup.ReadBoolean(format, "applyAlignment") ?? alignment.Exists) applyFlags |= 1 << 2;
+            if (XlsbWorkbookMarkup.ReadBoolean(format, "applyBorder") ?? borderId != 0) applyFlags |= 1 << 3;
+            if (XlsbWorkbookMarkup.ReadBoolean(format, "applyFill") ?? fillId != 0) applyFlags |= 1 << 4;
+            if (XlsbWorkbookMarkup.ReadBoolean(format, "applyProtection") ?? protection.Exists) applyFlags |= 1 << 5;
             WriteUInt16(payload, applyFlags);
             return new XlsbGeneratedRecord(BrtXf, payload.ToArray());
         }
 
-        private static bool ShouldApply(BooleanValue? value, bool inferred) => value?.Value ?? inferred;
+        private static double? ReadDouble(OfficeXmlNode node, string attribute) =>
+            node.Attribute(attribute) is string value ? XmlConvert.ToDouble(value) : null;
+
+        private static bool FontFlag(OfficeXmlNode font, string localName) {
+            OfficeXmlNode child = Child(font, localName);
+            return child.Exists && (XlsbWorkbookMarkup.ReadBoolean(child, "val") ?? true);
+        }
 
         // BrtStyle (MS-XLSB 2.4.811): ixf, StyleFlags (fBuiltIn, fHidden, fCustom), iStyBuiltIn, iLevel, stName.
-        private static void WriteCellStyles(Stream output, CellStyles? styles, int styleFormatCount) {
-            CellStyle[] items = styles?.Elements<CellStyle>().ToArray() ?? Array.Empty<CellStyle>();
-            if (items.Length == 0) items = new[] { new CellStyle { Name = "Normal", FormatId = 0U, BuiltinId = 0U } };
+        private static void WriteCellStyles(Stream output, OfficeXmlNode styles, int styleFormatCount) {
+            List<OfficeXmlNode> items = Children(styles, "cellStyle");
+            if (items.Count == 0) items.Add(default); // Built-in Normal when no cell styles were declared.
             var formatIds = new HashSet<uint>();
-            var payloads = new List<byte[]>(items.Length);
-            foreach (CellStyle style in items) {
-                if (style.HasChildren) {
-                    throw new NotSupportedException($"Native XLSB generation does not yet encode extensions on cell style '{style.Name?.Value}'.");
+            var payloads = new List<byte[]>(items.Count);
+            foreach (OfficeXmlNode style in items) {
+                if (style.FirstChild.Exists) {
+                    throw new NotSupportedException($"Native XLSB generation does not yet encode extensions on cell style '{style.Attribute("name")}'.");
                 }
-                uint formatId = style.FormatId?.Value ?? 0U;
+                uint formatId = XlsbWorkbookMarkup.ReadUInt32(style, "xfId") ?? 0U;
                 if (formatId >= styleFormatCount) {
                     throw new NotSupportedException("Native XLSB generation found an out-of-range cell style format reference.");
                 }
                 if (!formatIds.Add(formatId)) {
                     throw new NotSupportedException($"Native XLSB generation requires each cell style to use its own style format; format {formatId} is shared.");
                 }
-                uint? builtInId = style.BuiltinId?.Value;
+                uint? builtInId = style.IsNone ? 0U : XlsbWorkbookMarkup.ReadUInt32(style, "builtinId");
                 if (builtInId > byte.MaxValue) {
                     throw new NotSupportedException($"Native XLSB generation cannot encode built-in cell style id {builtInId}.");
                 }
-                bool customBuiltIn = style.CustomBuiltin?.Value == true;
+                bool customBuiltIn = XlsbWorkbookMarkup.ReadBoolean(style, "customBuiltin") == true;
                 if (customBuiltIn && !builtInId.HasValue) {
                     throw new NotSupportedException("Native XLSB generation requires a built-in id for a customized built-in cell style.");
                 }
-                uint level = style.OutlineLevel?.Value ?? 0U;
+                uint level = XlsbWorkbookMarkup.ReadUInt32(style, "iLevel") ?? 0U;
                 if (builtInId is 1U or 2U && level > 6U) {
                     throw new NotSupportedException($"Native XLSB generation supports outline cell-style levels from 0 through 6, not {level}.");
                 }
-                string name = style.Name?.Value ?? (builtInId == 0U ? "Normal" : string.Empty);
+                string name = style.Attribute("name") ?? (builtInId == 0U ? "Normal" : string.Empty);
                 if (name.Length == 0) throw new NotSupportedException("Native XLSB generation requires a name for every cell style.");
                 ValidateStyleName(name, "cell style");
 
                 ushort flags = (ushort)((builtInId.HasValue ? 0x0001 : 0)
-                    | (style.Hidden?.Value == true ? 0x0002 : 0)
+                    | (XlsbWorkbookMarkup.ReadBoolean(style, "hidden") == true ? 0x0002 : 0)
                     | (customBuiltIn ? 0x0004 : 0));
                 using var payload = new MemoryStream(16 + name.Length * 2);
                 WriteUInt32(payload, formatId);
@@ -367,9 +391,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbRecordWriter.Write(output, BrtEndStyles);
         }
 
-        private static void WriteTableStyles(Stream output, TableStyles? styles) {
-            string table = styles?.DefaultTableStyle?.Value ?? "TableStyleMedium2";
-            string pivot = styles?.DefaultPivotStyle?.Value ?? "PivotStyleLight16";
+        private static void WriteTableStyles(Stream output, OfficeXmlNode styles) {
+            string table = styles.Attribute("defaultTableStyle") ?? "TableStyleMedium2";
+            string pivot = styles.Attribute("defaultPivotStyle") ?? "PivotStyleLight16";
             ValidateStyleName(table, "default table style");
             ValidateStyleName(pivot, "default pivot style");
             using var payload = new MemoryStream(12 + (table.Length + pivot.Length) * 2);
@@ -391,14 +415,17 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         /// Writes a BrtColor-layout color (MS-XLSB 2.4.337), which XFPropColor (2.5.161) shares; XFPropColor forbids the
         /// full-shade tint -32768, so <paramref name="allowFullShade"/> false writes -32767 for a tint of -1.
         /// </summary>
-        internal static void WriteColor(Stream output, ColorType? color, bool allowFullShade = true) {
+        internal static void WriteColor(Stream output, ColorType? color, bool allowFullShade = true) =>
+            WriteColor(output, OfficeXmlNode.FromSdk(color), allowFullShade);
+
+        private static void WriteColor(Stream output, OfficeXmlNode color, bool allowFullShade = true) {
             byte type = 0;
             byte index = 0;
             byte red = 0;
             byte green = 0;
             byte blue = 0;
             byte alpha = 0;
-            if (color?.Rgb?.Value is string rgb && rgb.Length > 0) {
+            if (color.Attribute("rgb") is string rgb && rgb.Length > 0) {
                 string normalized = rgb.Length == 6 ? "FF" + rgb : rgb;
                 if (normalized.Length != 8
                     || !uint.TryParse(normalized, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out uint argb)) {
@@ -409,20 +436,20 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 red = (byte)(argb >> 16);
                 green = (byte)(argb >> 8);
                 blue = (byte)argb;
-            } else if (color?.Theme?.Value is uint theme) {
+            } else if (XlsbWorkbookMarkup.ReadUInt32(color, "theme") is uint theme) {
                 type = 3;
                 index = checked((byte)theme);
-            } else if (color?.Indexed?.Value is uint indexed) {
+            } else if (XlsbWorkbookMarkup.ReadUInt32(color, "indexed") is uint indexed) {
                 type = 1;
                 index = checked((byte)indexed);
-            } else if (color?.Auto?.Value == true) {
+            } else if (XlsbWorkbookMarkup.ReadBoolean(color, "auto") == true) {
                 type = 0;
                 index = 0x40;
             }
 
             output.WriteByte((byte)((type << 1) | 0x01));
             output.WriteByte(index);
-            short tint = ToTint(color?.Tint?.Value ?? 0D);
+            short tint = ToTint(ReadDouble(color, "tint") ?? 0D);
             if (!allowFullShade && tint == short.MinValue) tint = -32767;
             WriteInt16(output, tint);
             output.WriteByte(red);
@@ -436,26 +463,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException($"Native XLSB generation cannot encode tint value {value}.");
             }
             return checked((short)Math.Round(value * (value < 0D ? 32768D : 32767D), MidpointRounding.AwayFromZero));
-        }
-
-        private static byte ToUnderline(UnderlineValues? value) {
-            if (value == UnderlineValues.Single) return 1;
-            if (value == UnderlineValues.Double) return 2;
-            if (value == UnderlineValues.SingleAccounting) return 0x21;
-            if (value == UnderlineValues.DoubleAccounting) return 0x22;
-            return 0;
-        }
-
-        private static ushort ToScript(VerticalAlignmentRunValues? value) {
-            if (value == VerticalAlignmentRunValues.Superscript) return 1;
-            if (value == VerticalAlignmentRunValues.Subscript) return 2;
-            return 0;
-        }
-
-        private static byte ToFontScheme(FontSchemeValues? value) {
-            if (value == FontSchemeValues.Major) return 1;
-            if (value == FontSchemeValues.Minor) return 2;
-            return 0;
         }
 
         internal static uint ToFillPattern(PatternValues? value) {
