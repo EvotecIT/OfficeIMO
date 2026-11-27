@@ -37,13 +37,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         /// </summary>
         private static bool HasAttributes(OfficeXmlNode element) => AttributeLocalNames(element).Count > 0;
 
-        /// <summary>The local names of the element's attributes, without namespace declarations or compatibility markup.</summary>
+        /// <summary>
+        /// The local names of the element's attributes, without namespace declarations or compatibility markup, which
+        /// the SDK kept apart from attributes. An SDK element is read from its markup, as the node offers no attribute
+        /// list for it.
+        /// </summary>
         private static List<string> AttributeLocalNames(OfficeXmlNode element) {
             var names = new List<string>();
-            if (element.Tree is not { } tree) return names;
-            int count = tree.AttributeCountOf(element.Node);
+            if (element.IsNone) return names;
+            OfficeXmlTree? tree = element.Tree;
+            int node = element.Node;
+            if (tree == null) {
+                byte[] markup = element.OuterXml();
+                tree = OfficeXmlTree.Parse(markup, markup.Length, new OfficeXmlNamespaces.Table());
+                node = tree.Root;
+            }
+            int count = tree.AttributeCountOf(node);
             for (int index = 0; index < count; index++) {
-                tree.GetAttributeAt(element.Node, index, out int namespaceId, out string localName, out _);
+                tree.GetAttributeAt(node, index, out int namespaceId, out string localName, out _);
                 if (namespaceId == OfficeXmlNamespaces.Xmlns
                     || namespaceId == OfficeXmlNamespaces.None && string.Equals(localName, "xmlns", StringComparison.Ordinal)
                     || namespaceId == OfficeXmlNamespaces.MarkupCompatibility) continue;

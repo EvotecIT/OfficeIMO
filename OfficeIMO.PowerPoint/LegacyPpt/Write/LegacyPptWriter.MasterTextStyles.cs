@@ -13,10 +13,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool CanWriteMasterTextStyles(
             PowerPointDocument presentation, out string? reason) {
-            if (!TryReadPictureBulletCatalog(presentation,
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            if (!TryReadPictureBulletCatalog(view, presentation,
                     out LegacyPptWriterPictureBulletCatalog pictureBullets,
                     out reason)) return false;
-            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
             return TryReadMasterTextStyles(view, presentation,
                 Template.Value.Document, pictureBullets, out _, out reason);
         }

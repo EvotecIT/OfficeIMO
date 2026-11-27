@@ -505,33 +505,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static int CountPresent(OfficeXmlNode parent, params string[] localNames) =>
             localNames.Count(name => !parent.Child(A, name).IsNone);
 
-        /// <summary>
-        /// The local names of an element's attributes, namespace declarations left out. An SDK element is read from its
-        /// markup, as the node offers no attribute list for it.
-        /// </summary>
-        private static List<string> AttributeLocalNames(OfficeXmlNode element) {
-            var names = new List<string>();
-            if (element.IsNone) return names;
-            OfficeXmlTree? tree = element.Tree;
-            int node = element.Node;
-            if (tree == null) {
-                byte[] markup = element.OuterXml();
-                tree = OfficeXmlTree.Parse(markup, markup.Length, new OfficeXmlNamespaces.Table());
-                node = tree.Root;
-            }
-            int count = tree.AttributeCountOf(node);
-            for (int index = 0; index < count; index++) {
-                tree.GetAttributeAt(node, index, out int namespaceId, out string localName, out _);
-                if (namespaceId == OfficeXmlNamespaces.Xmlns
-                    || namespaceId == OfficeXmlNamespaces.None && string.Equals(localName, "xmlns", StringComparison.Ordinal)) continue;
-                names.Add(localName);
-            }
-            return names;
-        }
-
         private static bool HasAnyAttribute(OfficeXmlNode element) => AttributeLocalNames(element).Count != 0;
-
-        private static bool HasChildElements(OfficeXmlNode element) => !element.FirstChild.IsNone;
 
         private static bool HasOnlyAttributes(OfficeXmlNode element,
             params string[] allowed) => HasOnlyAttributes(element, null, allowed);

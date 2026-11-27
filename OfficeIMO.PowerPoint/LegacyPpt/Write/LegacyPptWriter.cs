@@ -76,7 +76,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? oleReason)) {
                 throw new NotSupportedException(oleReason);
             }
-            if (!TryReadPictureBulletCatalog(presentation,
+            if (!TryReadPictureBulletCatalog(view, presentation,
                     out LegacyPptWriterPictureBulletCatalog pictureBullets,
                     out string? pictureBulletReason)) {
                 throw new NotSupportedException(pictureBulletReason);

@@ -119,16 +119,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static bool TryWriteMasterParagraphException(Stream output,
             LegacyPptWriterTextStyleSource source, OfficeXmlNode properties,
             LegacyPptWriterFontCatalog fonts, out string? reason) =>
-            TryWriteParagraphException(output,
-                LiveSdkElement<A.TextParagraphPropertiesType>(source.Presentation, source.PartName, properties),
+            TryWriteParagraphException(output, properties,
                 fonts, out reason, allowAutoNumbering: true);
 
         // SDK callee in LegacyPptWriter.TextProperties.cs.
         private static bool TryWriteMasterCharacterException(Stream output,
             LegacyPptWriterTextStyleSource source, OfficeXmlNode properties,
             LegacyPptWriterFontCatalog fonts, out string? reason) =>
-            TryWriteCharacterException(output,
-                LiveSdkElement<A.DefaultRunProperties>(source.Presentation, source.PartName, properties),
+            TryWriteCharacterException(output, properties,
                 fonts, out reason);
 
         // SDK callee in LegacyPptWriter.AutoNumbering.cs; the picture-bullet catalog is keyed by live SDK elements.
@@ -136,10 +134,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterTextStyleSource source, OfficeXmlNode numbering, int numberingStart,
             OfficeXmlNode pictureBullet,
             LegacyPptWriterPictureBulletCatalog pictureBullets, out string? reason) =>
-            TryWriteAutomaticNumberingException9(output,
-                LiveSdkElement<A.AutoNumberedBullet>(source.Presentation, source.PartName, numbering),
-                numberingStart,
-                LiveSdkElement<A.PictureBullet>(source.Presentation, source.PartName, pictureBullet),
+            TryWriteAutomaticNumberingException9(output, numbering, numberingStart, pictureBullet,
                 pictureBullets, out reason);
 
         // The picture catalog in LegacyPptWriter.Pictures.cs is keyed by live SDK elements.
