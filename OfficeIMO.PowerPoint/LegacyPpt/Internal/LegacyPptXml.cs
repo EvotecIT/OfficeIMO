@@ -72,17 +72,48 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return current;
         }
 
-        /// <summary>Elements below <paramref name="element"/> in document order, at any depth.</summary>
-        internal static IEnumerable<OfficeXmlNode> AllDescendants(this OfficeXmlNode element) {
+        /// <summary>
+        /// Elements below <paramref name="element"/> in document order, at any depth, extension content included, as the
+        /// SDK's untyped <c>Descendants()</c> walked them.
+        /// </summary>
+        internal static IEnumerable<OfficeXmlNode> AllDescendants(this OfficeXmlNode element) =>
+            Walk(element, skipExtensions: false);
+
+        /// <summary>
+        /// The descendants with this name, in document order, without the content of extension lists (<c>extLst</c>).
+        /// It replaces the SDK's typed <c>Descendants&lt;T&gt;()</c>, which did not see markup inside extension
+        /// metadata, so a name that also appears there must not match it.
+        /// </summary>
+        internal static List<OfficeXmlNode> SchemaDescendants(this OfficeXmlNode element, int namespaceId, string localName) {
+            var result = new List<OfficeXmlNode>();
+            foreach (OfficeXmlNode candidate in Walk(element, skipExtensions: true)) {
+                if (candidate.Is(namespaceId, localName)) result.Add(candidate);
+            }
+            return result;
+        }
+
+        /// <summary>The first descendant with this name outside extension lists, or none; see <see cref="SchemaDescendants"/>.</summary>
+        internal static OfficeXmlNode FirstSchemaDescendant(this OfficeXmlNode element, int namespaceId, string localName) {
+            foreach (OfficeXmlNode candidate in Walk(element, skipExtensions: true)) {
+                if (candidate.Is(namespaceId, localName)) return candidate;
+            }
+            return default;
+        }
+
+        private static IEnumerable<OfficeXmlNode> Walk(OfficeXmlNode element, bool skipExtensions) {
             if (element.IsNone) yield break;
             var pending = new Stack<OfficeXmlNode>();
             for (OfficeXmlNode child = element.LastChild; !child.IsNone; child = child.PreviousSibling) pending.Push(child);
             while (pending.Count > 0) {
                 OfficeXmlNode current = pending.Pop();
+                if (skipExtensions && IsExtensionList(current)) continue;
                 yield return current;
                 for (OfficeXmlNode child = current.LastChild; !child.IsNone; child = child.PreviousSibling) pending.Push(child);
             }
         }
+
+        private static bool IsExtensionList(OfficeXmlNode element) =>
+            string.Equals(element.LocalName, "extLst", StringComparison.Ordinal);
 
         /// <summary>Whether an ancestor (not the element itself) has this name.</summary>
         internal static bool HasAncestor(this OfficeXmlNode element, int namespaceId, string localName) =>

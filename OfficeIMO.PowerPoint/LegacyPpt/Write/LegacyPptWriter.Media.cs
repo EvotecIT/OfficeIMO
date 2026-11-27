@@ -82,9 +82,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 "audio", "cMediaNode", "cTn", "childTnLst", "cond",
                 "par", "spTgt", "stCondLst", "tgtEl", "tnLst"
             };
-            List<OfficeXmlNode> targets = timing.Descendants(LegacyPptXml.P,
+            List<OfficeXmlNode> targets = timing.SchemaDescendants(LegacyPptXml.P,
                 "spTgt");
-            List<OfficeXmlNode> mediaNodes = timing.Descendants(LegacyPptXml.P,
+            List<OfficeXmlNode> mediaNodes = timing.SchemaDescendants(LegacyPptXml.P,
                 "cMediaNode");
             return targets.Count == mediaShapeIds.Count
                 && mediaNodes.Count == mediaShapeIds.Count

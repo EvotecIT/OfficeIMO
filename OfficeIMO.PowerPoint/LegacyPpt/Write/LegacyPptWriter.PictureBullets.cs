@@ -225,7 +225,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 OfficeXmlNode root = ownerPart.Root;
                 if (root.IsNone) continue;
                 OfficeXmlNode liveRoot = default;
-                foreach (OfficeXmlNode bullet in root.Descendants(A, "buBlip")) {
+                foreach (OfficeXmlNode bullet in root.SchemaDescendants(A, "buBlip")) {
                     if (!TryReadPictureBullet(ownerPart, bullet,
                             entries, byHash,
                             out LegacyPptWriterPictureBulletEntry? entry,

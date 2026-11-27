@@ -224,10 +224,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             OfficeXmlNode root = owner.Root;
             if (root.IsNone) return false;
             var referencedAudioIds = new HashSet<string>(StringComparer.Ordinal);
-            foreach (OfficeXmlNode sound in root.Descendants(LegacyPptXml.P, "snd")) {
+            foreach (OfficeXmlNode sound in root.SchemaDescendants(LegacyPptXml.P, "snd")) {
                 AddIfPresent(referencedAudioIds, sound.Attribute(LegacyPptXml.R, "embed"));
             }
-            foreach (OfficeXmlNode sound in root.Descendants(LegacyPptXml.A, "snd")) {
+            foreach (OfficeXmlNode sound in root.SchemaDescendants(LegacyPptXml.A, "snd")) {
                 AddIfPresent(referencedAudioIds, sound.Attribute(LegacyPptXml.R, "embed"));
             }
             foreach (OfficeXmlNode element in root.AllDescendants()) {
@@ -389,7 +389,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             private static OfficeXmlNode[] BlipsReferencing(LegacyPptPartView owner, string relationshipId) {
                 OfficeXmlNode root = owner.Root;
                 if (root.IsNone) return Array.Empty<OfficeXmlNode>();
-                return root.Descendants(LegacyPptXml.A, "blip")
+                return root.SchemaDescendants(LegacyPptXml.A, "blip")
                     .Where(blip => string.Equals(blip.Attribute(LegacyPptXml.R, "embed"),
                         relationshipId, StringComparison.Ordinal))
                     .ToArray();
@@ -491,7 +491,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private static void NormalizeProjectedShapes(OfficeXmlNode root,
             TryGetShapeProjection tryGetShape, bool normalizeInteractions) {
-            foreach (OfficeXmlNode shape in root.Descendants(LegacyPptXml.P, "sp")) {
+            foreach (OfficeXmlNode shape in root.SchemaDescendants(LegacyPptXml.P, "sp")) {
                 OfficeXmlNode nonVisual = shape.Child(LegacyPptXml.P, "nvSpPr");
                 if (!TryGetProjection(nonVisual, tryGetShape,
                         out LegacyPptShapeProjection shapeProjection)) continue;
@@ -519,7 +519,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     }
                 }
             }
-            foreach (OfficeXmlNode picture in root.Descendants(LegacyPptXml.P, "pic")) {
+            foreach (OfficeXmlNode picture in root.SchemaDescendants(LegacyPptXml.P, "pic")) {
                 OfficeXmlNode nonVisual = picture.Child(LegacyPptXml.P, "nvPicPr");
                 if (!TryGetProjection(nonVisual, tryGetShape,
                         out LegacyPptShapeProjection shapeProjection)) continue;
@@ -550,7 +550,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     }
                 }
             }
-            foreach (OfficeXmlNode connection in root.Descendants(LegacyPptXml.P, "cxnSp")) {
+            foreach (OfficeXmlNode connection in root.SchemaDescendants(LegacyPptXml.P, "cxnSp")) {
                 OfficeXmlNode nonVisual = connection.Child(LegacyPptXml.P, "nvCxnSpPr");
                 if (!TryGetProjection(nonVisual, tryGetShape,
                         out LegacyPptShapeProjection shapeProjection)) continue;
@@ -564,7 +564,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 NormalizeOffsetAndExtents(properties.Child(LegacyPptXml.A, "xfrm"));
                 NormalizeShapeFormatting(properties, shapeProjection);
             }
-            foreach (OfficeXmlNode group in root.Descendants(LegacyPptXml.P, "grpSp")) {
+            foreach (OfficeXmlNode group in root.SchemaDescendants(LegacyPptXml.P, "grpSp")) {
                 OfficeXmlNode nonVisual = group.Child(LegacyPptXml.P, "nvGrpSpPr");
                 if (!TryGetProjection(nonVisual, tryGetShape,
                         out LegacyPptShapeProjection shapeProjection)) continue;
@@ -583,7 +583,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     ZeroSize(transform.Child(LegacyPptXml.A, "chExt"));
                 }
             }
-            foreach (OfficeXmlNode frame in root.Descendants(LegacyPptXml.P, "graphicFrame")) {
+            foreach (OfficeXmlNode frame in root.SchemaDescendants(LegacyPptXml.P, "graphicFrame")) {
                 OfficeXmlNode nonVisual = frame.Child(LegacyPptXml.P, "nvGraphicFramePr");
                 if (!TryGetProjection(nonVisual, tryGetShape,
                         out LegacyPptShapeProjection shapeProjection)) continue;

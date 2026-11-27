@@ -49,6 +49,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SchemaDescendants_SkipExtensionMetadataLikeTypedSdkLookups() {
+            // A blip in the picture and another inside extension metadata of the same picture.
+            var picture = new P.Picture(new DocumentFormat.OpenXml.OpenXmlUnknownElement("p", "nvPicPr",
+                    "http://schemas.openxmlformats.org/presentationml/2006/main"),
+                new P.BlipFill(new A.Blip { Embed = "rId1" }),
+                new P.ShapeProperties(new A.ExtensionList(new A.Extension(
+                    new A.Blip { Embed = "rId2" }) { Uri = "{00000000-0000-0000-0000-000000000000}" })));
+            OfficeIMO.OpenXml.Internal.OfficeXmlNode node = OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(picture);
+
+            OfficeIMO.OpenXml.Internal.OfficeXmlNode blip = Assert.Single(node.SchemaDescendants(LegacyPptXml.A, "blip"));
+            Assert.Equal("rId1", blip.Attribute(LegacyPptXml.R, "embed"));
+            Assert.Equal(2, node.AllDescendants().Count(element => element.Is(LegacyPptXml.A, "blip")));
+        }
+
+        [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
             LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);
 

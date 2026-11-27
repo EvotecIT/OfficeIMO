@@ -328,7 +328,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlNode root = part.Root;
             if (root.IsNone) yield break;
             foreach (string name in new[] { "hlinkClick", "hlinkHover", "hlinkMouseOver" }) {
-                foreach (OfficeXmlNode item in root.Descendants(LegacyPptXml.A, name)) {
+                foreach (OfficeXmlNode item in root.SchemaDescendants(LegacyPptXml.A, name)) {
                     if (!string.IsNullOrEmpty(item.Attribute(LegacyPptXml.R, "id")))
                         yield return (part, item);
                 }

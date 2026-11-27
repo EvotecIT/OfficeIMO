@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 .CreateBuilder();
             LegacyPptProjectionDigest.Append(fingerprint,
                 LegacyPptXml.Digest(background));
-            foreach (OfficeXmlNode blip in background.Descendants(LegacyPptXml.A, "blip")) {
+            foreach (OfficeXmlNode blip in background.SchemaDescendants(LegacyPptXml.A, "blip")) {
                 string? relationshipId = blip.Attribute(LegacyPptXml.R, "embed");
                 LegacyPptProjectionDigest.Append(fingerprint,
                     "image:" + relationshipId);

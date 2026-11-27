@@ -98,12 +98,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (shape.IsNone) return string.Empty;
             OfficeXmlNode body = shape.Child(Pml, "txBody");
             return body.IsNone ? string.Empty : string.Concat(
-                body.Descendants(Dml, "t").Select(text => text.InnerText));
+                body.SchemaDescendants(Dml, "t").Select(text => text.InnerText));
         }
 
         private static bool ContainsDateTimeField(OfficeXmlNode commonSlideData) {
             OfficeXmlNode shape = FindPlaceholderShape(commonSlideData, "dt");
-            return shape.Child(Pml, "txBody").Descendants(Dml, "fld").Count > 0;
+            return shape.Child(Pml, "txBody").SchemaDescendants(Dml, "fld").Count > 0;
         }
 
         internal static byte[] BuildHeaderFooterRecord(

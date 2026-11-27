@@ -184,7 +184,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 return null;
             }
             OfficeXmlNode geometry = projected.Element
-                .Descendants(LegacyPptXml.A, "prstGeom").FirstOrDefault();
+                .SchemaDescendants(LegacyPptXml.A, "prstGeom").FirstOrDefault();
             OfficeXmlNode values = geometry.Child(LegacyPptXml.A, "avLst");
             return string.Concat(values.Children(LegacyPptXml.A, "gd").ToList()
                 .Select(LegacyPptMasterProjection.Markup));
@@ -302,8 +302,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (textBody.IsNone) return string.Empty;
             OfficeXmlNode clone = textBody.Clone();
             LegacyPptProjectionFingerprint.Clear(clone.Child(LegacyPptXml.A, "bodyPr"));
-            foreach (OfficeXmlNode text in clone.Descendants(LegacyPptXml.A, "t")) text.SetInnerText(string.Empty);
-            foreach (OfficeXmlNode properties in clone.Descendants(LegacyPptXml.A, "rPr")) {
+            foreach (OfficeXmlNode text in clone.SchemaDescendants(LegacyPptXml.A, "t")) text.SetInnerText(string.Empty);
+            foreach (OfficeXmlNode properties in clone.SchemaDescendants(LegacyPptXml.A, "rPr")) {
                 properties.RemoveChildren(LegacyPptXml.A, "hlinkClick");
                 properties.RemoveChildren(LegacyPptXml.A, "hlinkMouseOver");
                 if (!HasAttributes(properties) && properties.FirstChild.IsNone) properties.Remove();
@@ -332,7 +332,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             OfficeXmlNode root, LegacyPptPartView ownerPart) {
             if (root.IsNone || ownerPart.IsNone) return string.Empty;
             var result = new System.Text.StringBuilder();
-            foreach (OfficeXmlNode bullet in root.Descendants(LegacyPptXml.A, "buBlip")) {
+            foreach (OfficeXmlNode bullet in root.SchemaDescendants(LegacyPptXml.A, "buBlip")) {
                 string? relationshipId = bullet.Child(LegacyPptXml.A, "blip")
                     .Attribute(LegacyPptXml.R, "embed");
                 result.Append("|buBlip:").Append(relationshipId);

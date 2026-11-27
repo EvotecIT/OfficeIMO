@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             foreach (LegacyPptPartView master in SlideMasterPartsInRelationshipOrder(view)) {
                 foreach (LegacyPptPartView part in master.RelatedParts(
                              LegacyPptPackageView.SlideLayoutRelationshipType)) {
-                    OfficeXmlNode unmaterialized = ShapeTree(part).Descendants(Pml, "pic")
+                    OfficeXmlNode unmaterialized = ShapeTree(part).SchemaDescendants(Pml, "pic")
                         .FirstOrDefault(picture => !materializedPictures.Contains(
                             LegacyPptWriterXml.ElementPath(part.Name, picture)));
                     if (unmaterialized.IsNone) continue;

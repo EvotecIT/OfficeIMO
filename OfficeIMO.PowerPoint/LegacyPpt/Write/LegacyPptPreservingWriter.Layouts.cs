@@ -129,9 +129,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool HasLayoutInteraction(PowerPointShape shape) {
             OfficeXmlNode element = shape.XmlElement;
-            return element.Descendants(LegacyPptXml.A, "hlinkClick").Count > 0
-                || element.Descendants(LegacyPptXml.A, "hlinkHover").Count > 0
-                || element.Descendants(LegacyPptXml.A, "hlinkMouseOver").Count > 0;
+            return element.SchemaDescendants(LegacyPptXml.A, "hlinkClick").Count > 0
+                || element.SchemaDescendants(LegacyPptXml.A, "hlinkHover").Count > 0
+                || element.SchemaDescendants(LegacyPptXml.A, "hlinkMouseOver").Count > 0;
         }
 
         private static bool TryRewriteDocumentDrawingClusters(

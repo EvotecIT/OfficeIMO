@@ -467,7 +467,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The first p:cNvPr below <paramref name="root"/> with this shape id, and the element that owns it.</summary>
         private static OfficeXmlNode FindLegacyShapeById(OfficeXmlNode root, uint shapeId) {
             string id = shapeId.ToString(CultureInfo.InvariantCulture);
-            foreach (OfficeXmlNode properties in root.Descendants(LegacyPptXml.P, "cNvPr")) {
+            foreach (OfficeXmlNode properties in root.SchemaDescendants(LegacyPptXml.P, "cNvPr")) {
                 if (string.Equals(properties.Attribute("id"), id, StringComparison.Ordinal)) {
                     // cNvPr sits in the non-visual properties of its shape.
                     return properties.Parent.Parent;

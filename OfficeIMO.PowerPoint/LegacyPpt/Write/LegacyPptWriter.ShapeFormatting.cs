@@ -977,12 +977,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static OfficeXmlNode FirstDescendant(OfficeXmlNode element,
-            int namespaceId, string localName) {
-            foreach (OfficeXmlNode descendant in element.AllDescendants()) {
-                if (descendant.Is(namespaceId, localName)) return descendant;
-            }
-            return default;
-        }
+            int namespaceId, string localName) =>
+            element.FirstSchemaDescendant(namespaceId, localName);
 
         internal static bool HasDescendant(OfficeXmlNode element,
             int namespaceId, string localName) =>

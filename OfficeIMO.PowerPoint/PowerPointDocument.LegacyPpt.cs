@@ -341,7 +341,7 @@ namespace OfficeIMO.PowerPoint {
                 case LegacyPptShapeKind.Group:
                     OfficeXmlNode tree = slide.PartRef.Root.Path(LegacyPptXml.P, "cSld", "spTree");
                     if (tree.IsNone) throw new InvalidDataException("The projected slide has no shape tree.");
-                    uint nextShapeId = tree.Descendants(LegacyPptXml.P, "cNvPr")
+                    uint nextShapeId = tree.SchemaDescendants(LegacyPptXml.P, "cNvPr")
                         .Select(item => item.UInt("id") ?? 0U)
                         .DefaultIfEmpty(1U)
                         .Max() + 1U;
@@ -414,7 +414,7 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<LegacyPptConnectorRule> rules,
             IReadOnlyDictionary<uint, uint> projectedShapeIds) {
             var connectorsById = new Dictionary<uint, OfficeXmlNode>();
-            foreach (OfficeXmlNode connector in tree.Descendants(LegacyPptXml.P, "cxnSp")) {
+            foreach (OfficeXmlNode connector in tree.SchemaDescendants(LegacyPptXml.P, "cxnSp")) {
                 uint? id = connector.Path(LegacyPptXml.P, "nvCxnSpPr", "cNvPr").UInt("id");
                 if (id.HasValue && !connectorsById.ContainsKey(id.Value)) {
                     connectorsById.Add(id.Value, connector);

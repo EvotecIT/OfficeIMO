@@ -437,16 +437,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 ? shape.Child(LegacyPptXml.P, "txBody")
                 : default;
             if (textBody.IsNone) return true;
-            if (textBody.Descendants(LegacyPptXml.A, "fld").Count > 0) {
+            if (textBody.SchemaDescendants(LegacyPptXml.A, "fld").Count > 0) {
                 return false;
             }
-            return !textBody.Descendants(LegacyPptXml.A, "rPr").Any(properties =>
+            return !textBody.SchemaDescendants(LegacyPptXml.A, "rPr").Any(properties =>
                        HasAttributes(properties) || properties.Children().ToList().Any(child =>
                            !child.Is(LegacyPptXml.A, "hlinkClick")
                            && !child.Is(LegacyPptXml.A, "hlinkMouseOver")))
-                && !textBody.Descendants(LegacyPptXml.A, "pPr").Any(properties =>
+                && !textBody.SchemaDescendants(LegacyPptXml.A, "pPr").Any(properties =>
                     HasAttributes(properties) || !properties.FirstChild.IsNone)
-                && !textBody.Descendants(LegacyPptXml.A, "endParaRPr").Any(properties =>
+                && !textBody.SchemaDescendants(LegacyPptXml.A, "endParaRPr").Any(properties =>
                     HasAttributes(properties) || !properties.FirstChild.IsNone);
         }
 
