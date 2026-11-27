@@ -60,25 +60,10 @@ namespace OfficeIMO.OpenXml.Internal {
             return (value as OpenXmlPartRootElement)?.OpenXmlPart;
         }
 
-        // Whether the SDK's typed class declares an attribute, so it can be read directly instead of listing them all.
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<(Type Type, int NamespaceId, string LocalName), bool> DeclaredAttributes = new();
-
         internal static string? GetAttribute(object element, int namespaceId, string localName) {
             OpenXmlElement value = E(element);
             if (!value.HasAttributes) return null;
             string uri = Uri(namespaceId);
-            var key = (value.GetType(), namespaceId, localName);
-            bool known = DeclaredAttributes.TryGetValue(key, out bool declared);
-            if (known && declared) return value.GetAttribute(localName, uri).Value;
-            if (!known) {
-                try {
-                    string? direct = value.GetAttribute(localName, uri).Value;
-                    DeclaredAttributes.TryAdd(key, true);
-                    return direct;
-                } catch (KeyNotFoundException) {
-                    DeclaredAttributes.TryAdd(key, false);
-                }
-            }
             foreach (OpenXmlAttribute attribute in value.GetAttributes()) {
                 if (string.Equals(attribute.LocalName, localName, StringComparison.Ordinal)
                     && string.Equals(attribute.NamespaceUri, uri, StringComparison.Ordinal)) {
