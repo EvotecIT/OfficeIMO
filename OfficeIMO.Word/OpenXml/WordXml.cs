@@ -10,7 +10,10 @@ namespace OfficeIMO.Word.OpenXml;
 /// </summary>
 /// <remarks>
 /// Enumerated values are read as the XML token the attribute holds (<c>"center"</c>, <c>"auto"</c>), the same text the
-/// SDK's enumeration values carry. On/off values follow the SDK: a missing <c>w:val</c> is on.
+/// SDK's enumeration values carry. On/off values follow the SDK: a missing <c>w:val</c> is on. Names that read a
+/// <c>w:</c> attribute start with <c>W</c> (<see cref="WVal"/>, <see cref="WAttr"/>), so they never meet the shared chart
+/// readers' unqualified <c>Val()</c>; <c>FirstDescendant</c> and <c>Ancestor</c> with a namespace id come from the shared
+/// <see cref="OfficeChartXml"/> helpers.
 /// </remarks>
 internal static class WordXml {
     internal const int W = OfficeXmlNamespaces.WordprocessingML;
@@ -104,14 +107,6 @@ internal static class WordXml {
         }
     }
 
-    /// <summary>The first element with this name below this one, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode FirstDescendant(this OfficeXmlNode element, int namespaceId, string localName) {
-        foreach (OfficeXmlNode node in element.DescendantElements()) {
-            if (node.Is(namespaceId, localName)) return node;
-        }
-        return default;
-    }
-
     /// <summary>The first element with this name, in a namespace outside the fixed ones, below this one.</summary>
     internal static OfficeXmlNode FirstDescendant(this OfficeXmlNode element, string namespaceUri, string localName) {
         foreach (OfficeXmlNode node in element.DescendantElements()) {
@@ -129,10 +124,6 @@ internal static class WordXml {
         for (OfficeXmlNode node = element.IsNone ? default : element.Parent; !node.IsNone; node = node.Parent) yield return node;
     }
 
-    /// <summary>The nearest ancestor with this name, without the element itself, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode Ancestor(this OfficeXmlNode element, int namespaceId, string localName) =>
-        element.IsNone ? default : element.Parent.AncestorOrSelf(namespaceId, localName);
-
     /// <summary>The following sibling elements, nearest first.</summary>
     internal static IEnumerable<OfficeXmlNode> ElementsAfter(this OfficeXmlNode element) {
         for (OfficeXmlNode node = element.IsNone ? default : element.NextSibling; !node.IsNone; node = node.NextSibling) yield return node;
@@ -149,6 +140,68 @@ internal static class WordXml {
     /// <summary>Whether the element has child elements.</summary>
     internal static bool HasChildren(this OfficeXmlNode element) => !element.IsNone && !element.FirstChild.IsNone;
 
+    // ---- Classification -------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// The level of a <c>w:sdt</c> by where it sits, as the SDK types it (<c>SdtRun</c>, <c>SdtBlock</c>,
+    /// <c>SdtRow</c>, <c>SdtCell</c>): content controls, custom XML and markup-compatibility branches pass their own
+    /// context on to their content. <see cref="WordContentControlLevel.None"/> where the SDK leaves it untyped.
+    /// </summary>
+    internal static WordContentControlLevel ContentControlLevel(this OfficeXmlNode sdt) {
+        if (!sdt.IsW("sdt")) return WordContentControlLevel.None;
+        OfficeXmlNode parent = sdt.Parent;
+        while (true) {
+            while (parent.Is(Mc, "Choice") || parent.Is(Mc, "Fallback") || parent.Is(Mc, "AlternateContent")) parent = parent.Parent;
+            if (parent.IsW("sdtContent")) return parent.Parent.ContentControlLevel();
+            if (!parent.IsW("customXml")) break;
+            parent = parent.Parent;
+        }
+        if (parent.IsNone) return WordContentControlLevel.None;
+        if (parent.NamespaceId == M) {
+            switch (parent.LocalName) {
+                case "oMath": case "e": case "num": case "den": case "sub": case "sup": case "deg": case "lim": case "fName":
+                    return WordContentControlLevel.Run;
+                default:
+                    return WordContentControlLevel.None;
+            }
+        }
+        if (parent.NamespaceId != W) return WordContentControlLevel.None;
+        switch (parent.LocalName) {
+            case "p": case "hyperlink": case "fldSimple": case "dir": case "bdo":
+            case "ins": case "del": case "moveFrom": case "moveTo":
+                return WordContentControlLevel.Run;
+            case "body": case "txbxContent": case "tc": case "hdr": case "ftr": case "footnote": case "endnote":
+            case "comment": case "docPartBody":
+                return WordContentControlLevel.Block;
+            case "tr":
+                return WordContentControlLevel.Cell;
+            case "tbl":
+                return WordContentControlLevel.Row;
+            default:
+                return WordContentControlLevel.None;
+        }
+    }
+
+    /// <summary>Whether the element is an inline <c>w:sdt</c>, one the SDK types as <c>SdtRun</c>.</summary>
+    internal static bool IsRunContentControl(this OfficeXmlNode element) => element.ContentControlLevel() == WordContentControlLevel.Run;
+
+    /// <summary>
+    /// Whether the element is a tracked change that holds content (<c>w:ins</c>, <c>w:del</c>, <c>w:moveFrom</c> or
+    /// <c>w:moveTo</c>, the SDK's <c>InsertedRun</c> family), not the same-named revision mark inside run, row,
+    /// numbering or math-control properties.
+    /// </summary>
+    internal static bool IsTrackedChangeContainer(this OfficeXmlNode element) {
+        if (element.IsNone || element.NamespaceId != W) return false;
+        switch (element.LocalName) {
+            case "ins": case "del": case "moveFrom": case "moveTo":
+                OfficeXmlNode parent = element.Parent;
+                return !(parent.IsW("rPr") || parent.IsW("trPr") || parent.IsW("numPr") || parent.IsW("smartTag") ||
+                    parent.Is(M, "ctrlPr"));
+            default:
+                return false;
+        }
+    }
+
     // ---- Values ---------------------------------------------------------------------------------------------------
 
     /// <summary>A <c>w:</c> attribute, or null when the element or the attribute is missing.</summary>
@@ -156,10 +209,10 @@ internal static class WordXml {
         element.IsNone ? null : element.Attribute(W, localName);
 
     /// <summary>The element's <c>w:val</c>, or null when the element or the value is missing.</summary>
-    internal static string? Val(this OfficeXmlNode element) => element.IsNone ? null : element.Attribute(W, "val");
+    internal static string? WVal(this OfficeXmlNode element) => element.IsNone ? null : element.Attribute(W, "val");
 
     /// <summary>The <c>w:val</c> of the first <c>w:</c> child with this name.</summary>
-    internal static string? ChildVal(this OfficeXmlNode element, string localName) => element.WChild(localName).Val();
+    internal static string? ChildVal(this OfficeXmlNode element, string localName) => element.WChild(localName).WVal();
 
     /// <summary>An attribute with no namespace, or null.</summary>
     internal static string? Attr(this OfficeXmlNode element, string localName) =>
@@ -215,6 +268,10 @@ internal static class WordXml {
     internal static int? ParseInt32(string? value) =>
         value != null && int.TryParse(value.Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int parsed) ? parsed : null;
 
+    /// <summary>A short integer as the SDK's <c>Int16Value</c> reads it, or null when missing or out of range.</summary>
+    internal static short? ParseInt16(string? value) =>
+        value != null && short.TryParse(value.Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out short parsed) ? parsed : null;
+
     /// <summary>An unsigned integer as the SDK's <c>UInt32Value</c> reads it, or null.</summary>
     internal static uint? ParseUInt32(string? value) =>
         value != null && uint.TryParse(value.Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out uint parsed) ? parsed : null;
@@ -240,4 +297,18 @@ internal static class WordXml {
 
     /// <summary>The element's text and its descendants', as the SDK's <c>InnerText</c>.</summary>
     internal static string Text(this OfficeXmlNode element) => element.IsNone ? string.Empty : element.InnerText;
+}
+
+/// <summary>The level of a <c>w:sdt</c> content control, as <see cref="WordXml.ContentControlLevel"/> reads it.</summary>
+internal enum WordContentControlLevel {
+    /// <summary>Not a content control the SDK types by position.</summary>
+    None,
+    /// <summary>An inline control in paragraph content (<c>SdtRun</c>).</summary>
+    Run,
+    /// <summary>A block-level control (<c>SdtBlock</c>).</summary>
+    Block,
+    /// <summary>A control holding table rows (<c>SdtRow</c>).</summary>
+    Row,
+    /// <summary>A control holding table cells (<c>SdtCell</c>).</summary>
+    Cell
 }
