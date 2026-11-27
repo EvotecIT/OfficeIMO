@@ -57,10 +57,10 @@ public static partial class PdfProvenance {
             foreach (string key in InfoGeneratorKeys) {
                 if (!info.Items.TryGetValue(key, out PdfObject? item) ||
                     PdfObjectLookup.Resolve(objects, item) is not PdfStringObj text ||
-                    !OfficeProvenanceAiGenerators.IsAiGenerator(text.Value)) continue;
+                    !OfficeProvenanceAiGenerators.TryMatch(text.Value, out string product)) continue;
                 string location = "PDF/Info/" + key;
                 context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.AiGeneratorMetadata, location, true,
-                    text.RawBytes.Length, text.Value, OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia));
+                    text.RawBytes.Length, product, OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia));
                 if (!removeDeclarations || changes == null || edits == null) continue;
                 changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.AiGeneratorMetadata, location, text.RawBytes.Length));
                 string removedKey = key;

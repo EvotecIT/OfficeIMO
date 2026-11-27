@@ -18,10 +18,10 @@ public sealed class PdfProvenanceAiDeclarationTests {
         Assert.Contains(report.Evidence, item => item.Carrier == OfficeProvenanceCarrierKind.AiGeneratorMetadata &&
             item.Location == "PDF/Catalog/Metadata/xmp:CreatorTool[0]" && item.Value == "Midjourney");
         Assert.Contains(report.Evidence, item => item.Carrier == OfficeProvenanceCarrierKind.AiGeneratorMetadata &&
-            item.Location == "PDF/Info/Creator" && item.Value == "DALL-E 3");
+            item.Location == "PDF/Info/Creator" && item.Value == "DALL-E");
         Assert.Contains(report.Evidence, item => item.Carrier == OfficeProvenanceCarrierKind.AiGeneratorMetadata &&
             item.Location.StartsWith("PDF/Object[", StringComparison.Ordinal) && item.Location.Contains("/Image/JPEG[0]/APP1-Exif@") &&
-            item.Value == "Midjourney v6");
+            item.Value == "Midjourney");
         Assert.True(report.HasGenerativeAiDeclaration);
         Assert.All(report.Evidence, item => Assert.True(item.IsStructurallyValid));
     }
