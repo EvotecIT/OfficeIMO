@@ -113,11 +113,16 @@ namespace OfficeIMO.Tests {
                 parts.Add((entry.FullName, reader.ReadToEnd()));
             }
 
-            // Relationship ids are generated at random; number them in package order so the hashes compare content.
+            // Relationship ids are generated at random; number them by what they point to so the hashes compare content.
+            // .NET Framework's package layer writes relationships in another order, so the order in the file is not used.
+            XNamespace relationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
             var ids = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var part in parts.Where(part => part.Name.EndsWith(".rels", StringComparison.Ordinal))) {
-                foreach (Match match in Regex.Matches(part.Text, "\\bId=\"([^\"]+)\"")) {
-                    string id = match.Groups[1].Value;
+                IEnumerable<XElement> relationships = XDocument.Parse(part.Text).Root!.Elements(relationshipsNamespace + "Relationship")
+                    .OrderBy(relationship => (string?)relationship.Attribute("Type"), StringComparer.Ordinal)
+                    .ThenBy(relationship => (string?)relationship.Attribute("Target"), StringComparer.Ordinal);
+                foreach (XElement relationship in relationships) {
+                    string id = (string)relationship.Attribute("Id")!;
                     if (!ids.ContainsKey(id)) ids[id] = "rel" + ids.Count.ToString(CultureInfo.InvariantCulture);
                 }
             }
@@ -129,8 +134,8 @@ namespace OfficeIMO.Tests {
                 // A new document's section gets a random revision id, and a table of contents a random placeholder name.
                 text = Regex.Replace(text, "<w:sectPr w:rsidR=\"[0-9A-F]{8}\"", "<w:sectPr w:rsidR=\"00000000\"");
                 text = Regex.Replace(text, "OfficeIMO_TocPlaceholder_[0-9a-f]{32}", "OfficeIMO_TocPlaceholder");
-                // The package layer writes relationship parts, and .NET Framework formats them differently; they are
-                // compared by their relationships.
+                // The package layer writes relationship parts, and .NET Framework formats and orders them differently;
+                // they are compared by their relationships.
                 if (part.Name.EndsWith(".rels", StringComparison.Ordinal)) text = DescribeRelationships(text);
                 string hash;
                 using (var sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text))).Replace("-", string.Empty);
