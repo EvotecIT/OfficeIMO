@@ -22,6 +22,7 @@ namespace OfficeIMO.Word.LegacyDoc.Docx {
         private readonly LegacyDocDocxPart _main;
         private readonly OfficeXmlTree _styles;
         private readonly int _body;
+        private int _finalSectionProperties = OfficeXmlTree.NoNode;
 
         private LegacyDocDocxWriter(OfficeOpcEditablePackage package, LegacyDocDocument source, CancellationToken cancellationToken) {
             _package = package;
@@ -100,18 +101,15 @@ namespace OfficeIMO.Word.LegacyDoc.Docx {
 
         /// <summary>The body-level section properties, which describe the last section.</summary>
         private int FinalSectionProperties() {
+            if (_finalSectionProperties != OfficeXmlTree.NoNode) return _finalSectionProperties;
             OfficeXmlTree tree = _main.Tree;
             int sectionProperties = tree.FindChild(_body, W, "sectPr");
             if (sectionProperties == OfficeXmlTree.NoNode) sectionProperties = Append(tree, _body, Element(tree, "sectPr"));
-            return sectionProperties;
+            return _finalSectionProperties = sectionProperties;
         }
 
-        /// <summary>Adds a body block before the final section properties.</summary>
-        private void AppendBodyBlock(int block) {
-            OfficeXmlTree tree = _main.Tree;
-            int sectionProperties = tree.FindChild(_body, W, "sectPr");
-            tree.InsertBefore(_body, block, sectionProperties);
-        }
+        /// <summary>Adds a body block before the final section properties, which stay the body's last child.</summary>
+        private void AppendBodyBlock(int block) => _main.Tree.InsertBefore(_body, block, FinalSectionProperties());
 
         private int CreateBodyParagraph() {
             OfficeXmlTree tree = _main.Tree;

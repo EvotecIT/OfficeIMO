@@ -184,8 +184,7 @@ namespace OfficeIMO.Word.LegacyDoc.Docx {
         /// <summary>The text width of the last section as it stands now, which new tables span by default.</summary>
         private int SectionTextWidthTwips() {
             OfficeXmlTree tree = _main.Tree;
-            int sectionProperties = Child(tree, _body, "sectPr");
-            if (sectionProperties == OfficeXmlTree.NoNode) return DefaultTableTextWidthTwips;
+            int sectionProperties = FinalSectionProperties();
             int pageSize = Child(tree, sectionProperties, "pgSz");
             if (pageSize == OfficeXmlTree.NoNode || !long.TryParse(Get(tree, pageSize, "w"), out long width)) return DefaultTableTextWidthTwips;
             int pageMargin = Child(tree, sectionProperties, "pgMar");

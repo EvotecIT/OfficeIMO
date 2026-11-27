@@ -7,6 +7,9 @@ namespace OfficeIMO.Word.LegacyDoc.Docx {
         private const string NumberingPartName = "/word/numbering.xml";
         private const string NumberingContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml";
         private OfficeXmlTree? _numbering;
+        // The list instance ids the numbering part defines, and the next free abstract list id.
+        private readonly HashSet<int> _numberIds = new();
+        private int _nextAbstractId;
 
         // ---- Paragraph styles -----------------------------------------------------------------------------------
 
@@ -233,6 +236,10 @@ namespace OfficeIMO.Word.LegacyDoc.Docx {
         private void AddNumberingDefinitions(LegacyDocNumbering source) {
             if (source.Instances.Count == 0) return;
             OfficeXmlTree numbering = Numbering();
+            // Register the source instances and definitions first: a level's own paragraph formatting can refer to an
+            // instance written after it, which must not get a fallback list with the same id.
+            for (int index = 0; index < source.Instances.Count; index++) _numberIds.Add(index + 1);
+            _nextAbstractId = source.Definitions.Count;
             var ids = new Dictionary<int, int>();
             var definitions = source.Definitions.ToDictionary(item => item.Id);
             foreach (LegacyDocListDefinition definition in source.Definitions) {
@@ -316,17 +323,8 @@ namespace OfficeIMO.Word.LegacyDoc.Docx {
         /// <summary>Adds a decimal list for a list reference the source numbering doesn't define.</summary>
         private void EnsureNumberingDefinition(int numberId) {
             OfficeXmlTree numbering = Numbering();
-            int nextAbstractId = 0;
-            foreach (int instance in Elements(numbering, numbering.Root, "num")) {
-                if (Get(numbering, instance, "numId") == Text(numberId)) return;
-            }
-
-            foreach (int abstractNum in Elements(numbering, numbering.Root, "abstractNum")) {
-                if (int.TryParse(Get(numbering, abstractNum, "abstractNumId"), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int id)) {
-                    nextAbstractId = Math.Max(nextAbstractId, id + 1);
-                }
-            }
-
+            if (!_numberIds.Add(numberId)) return;
+            int nextAbstractId = _nextAbstractId++;
             int fallback = Element(numbering, "abstractNum");
             Set(numbering, fallback, "abstractNumId", Text(nextAbstractId));
             Append(numbering, fallback, Element(numbering, "multiLevelType", "hybridMultilevel"));
