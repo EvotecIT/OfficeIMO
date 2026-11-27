@@ -156,17 +156,24 @@ namespace OfficeIMO.Word {
             Node.SetAttribute(W, "ilvl", levelIndex.ToString(CultureInfo.InvariantCulture));
 
         private OfficeXmlNode GetStartNumberingValueElement() {
-            List<OfficeXmlNode> existing = Node.Descendants(W, "start");
-            if (existing.Count == 0) {
+            // w:start is the level's first child; a misplaced one deeper down still counts.
+            OfficeXmlNode existing = Node.Child(W, "start");
+            if (existing.IsNone) {
+                List<OfficeXmlNode> nested = Node.Descendants(W, "start");
+                if (nested.Count > 0) existing = nested[0];
+            }
+            if (existing.IsNone) {
                 OfficeXmlNode element = Node.AddOrdered(W, "start", WLvlView.Order);
                 element.SetAttribute(W, "val", "1");
                 return element;
             }
-            if (OfficeXmlViewValues.ParseInt32(existing[0].Attribute(W, "val")) == null) existing[0].SetAttribute(W, "val", "1");
-            return existing[0];
+            if (OfficeXmlViewValues.ParseInt32(existing.Attribute(W, "val")) == null) existing.SetAttribute(W, "val", "1");
+            return existing;
         }
 
         private OfficeXmlNode GetIndentationElement() {
+            OfficeXmlNode direct = Node.Child(W, "pPr").Child(W, "ind");
+            if (!direct.IsNone) return direct;
             List<OfficeXmlNode> existing = Node.Descendants(W, "ind");
             if (existing.Count > 0) return existing[0];
 

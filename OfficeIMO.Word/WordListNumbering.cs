@@ -17,7 +17,8 @@ namespace OfficeIMO.Word {
         public List<WordListLevel> Levels {
             get {
                 List<WordListLevel> levels = new List<WordListLevel>();
-                foreach (OfficeXmlNode level in _abstractNum.Descendants(W, "lvl")) {
+                // Levels are children of the definition; nothing below them holds a w:lvl.
+                foreach (OfficeXmlNode level in _abstractNum.Children(W, "lvl")) {
                     levels.Add(new WordListLevel(level));
                 }
                 return levels;
@@ -50,11 +51,12 @@ namespace OfficeIMO.Word {
         /// </value>
         private int GetNextLevelIndex {
             get {
-                List<OfficeXmlNode> currentLevels = _abstractNum.Descendants(W, "lvl");
-                if (currentLevels.Count == 0) {
+                OfficeXmlNode lastLevel = default;
+                foreach (OfficeXmlNode level in _abstractNum.Children(W, "lvl")) lastLevel = level;
+                if (lastLevel.IsNone) {
                     return 0;
                 }
-                int lastIndex = OfficeXmlViewValues.ParseInt32(currentLevels[currentLevels.Count - 1].Attribute(W, "ilvl")) ?? -1;
+                int lastIndex = OfficeXmlViewValues.ParseInt32(lastLevel.Attribute(W, "ilvl")) ?? -1;
                 return lastIndex + 1;
             }
         }
