@@ -341,13 +341,19 @@ internal sealed partial class OfficeXmlTree {
     }
 
     /// <summary>
-    /// The value of the element's attribute at <paramref name="index"/>, from zero to <see cref="AttributeCountOf"/>, with its
-    /// name. Namespace declarations are attributes in the <see cref="OfficeXmlNamespaces.Xmlns"/> namespace.
+    /// The name and value of an element's attribute by position, from 0 to <see cref="AttributeCountOf"/> less one,
+    /// namespace declarations included.
     /// </summary>
+    internal void GetAttributeAt(int node, int index, out int namespaceId, out string localName, out string value) {
+        value = GetAttributeAt(node, index, out OfficeXmlName name);
+        namespaceId = name.NamespaceId;
+        localName = name.LocalName;
+    }
+
+    /// <summary>The value of an element's attribute by position, with its full name, prefix included.</summary>
     internal string GetAttributeAt(int node, int index, out OfficeXmlName name) {
-        ref Node record = ref _nodes[node];
-        if ((uint)index >= (uint)record.AttrCount) throw new ArgumentOutOfRangeException(nameof(index));
-        ref Attr attribute = ref _attrs[record.AttrFirst + index];
+        if ((uint)index >= (uint)_nodes[node].AttrCount) throw new ArgumentOutOfRangeException(nameof(index));
+        ref Attr attribute = ref _attrs[_nodes[node].AttrFirst + index];
         name = Namespaces.GetName(attribute.Name);
         return AttributeValue(ref attribute);
     }

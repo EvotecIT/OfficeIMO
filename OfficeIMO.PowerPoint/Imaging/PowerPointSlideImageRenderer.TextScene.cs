@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
@@ -12,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
             double scaleX = width / sourceWidth;
             double scaleY = height / sourceHeight;
             var mapping = new PowerPointShapeBoundsMapping(-left * scaleX, -top * scaleY, scaleX, scaleY);
-            var colors = textBox.OwnerSlide == null ? null : GetSlideColorScheme(textBox.OwnerSlide);
+            OfficeXmlNode colors = textBox.OwnerSlide == null ? default : GetSlideColorScheme(textBox.OwnerSlide);
             return CreateFittedTextBoxDrawing(textBox, width, height, diagnostics, mapping, colors, measure, defaultFontFamily, cancellationToken);
         }
 
@@ -35,15 +36,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static IEnumerable<OfficeRichTextRun> CreateEffectiveTextRuns(string text, PowerPointTextRun? run,
-            PowerPointTextBox textBox, PowerPointParagraph paragraph, DocumentFormat.OpenXml.Drawing.ColorScheme? colors,
+            PowerPointTextBox textBox, PowerPointParagraph paragraph, OfficeXmlNode colors,
             PowerPointShapeBoundsMapping mapping, string? defaultFontFamily = null, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             if (run == null) {
                 yield return CreateRichTextRun(text, run, textBox, paragraph, colors, mapping, defaultFontFamily: defaultFontFamily);
                 yield break;
             }
-            foreach (PowerPointEffectiveTextSegment part in PowerPointEffectiveRunStyleResolver.ResolveSegments(
-                run, paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle)) {
+            foreach (PowerPointEffectiveTextSegment part in ResolveTextSegments(run, paragraph, textBox)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 PowerPointEffectiveRunStyle style = part.Style;
                 string value = style.Capitalization is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps

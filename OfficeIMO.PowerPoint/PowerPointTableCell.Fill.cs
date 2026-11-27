@@ -1,21 +1,27 @@
-using DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTableCell {
+        private static readonly string[] CellFills = { "noFill", "solidFill", "gradFill", "blipFill", "pattFill", "grpFill" };
+
         /// <summary>
         /// Gets or sets the local cell fill. Setting a color replaces other local fill choices.
         /// Null removes the local solid fill and allows the remaining local or table style fill to apply.
         /// </summary>
         public OfficeColor? FillColor {
-            get => PowerPointDrawingColor.Read(Cell.TableCellProperties?.GetFirstChild<SolidFill>());
+            get => PowerPointDrawingColor.Read(PropertiesElement.Child(D, "solidFill"));
             set {
-                Cell.TableCellProperties ??= new TableCellProperties();
+                OfficeTheme? theme = ThemeFor(value);
+                OfficeXmlNode properties = EnsureProperties();
                 if (value == null) {
-                    Cell.TableCellProperties.RemoveAllChildren<SolidFill>();
-                    return;
+                    properties.RemoveChildren(D, "solidFill");
+                } else {
+                    foreach (string name in CellFills) properties.RemoveChildren(D, name);
+                    properties.InsertOrdered(PowerPointDrawingColor.CreateFill(properties, value.Value, theme), ATableCellPropertiesView.Order);
                 }
-                RemoveCellFillChoices();
-                Cell.TableCellProperties.AddChild(PowerPointDrawingColor.Fill(value, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart)), true);
+                MarkEdited();
             }
         }
 
@@ -24,26 +30,17 @@ namespace OfficeIMO.PowerPoint {
         /// Setting true replaces other local fill choices; setting false removes the no-fill override.
         /// </summary>
         public bool NoFill {
-            get => Cell.TableCellProperties?.GetFirstChild<NoFill>() != null;
+            get => !PropertiesElement.Child(D, "noFill").IsNone;
             set {
                 if (!value) {
-                    Cell.TableCellProperties?.RemoveAllChildren<NoFill>();
-                    return;
+                    PropertiesElement.RemoveChildren(D, "noFill");
+                } else {
+                    OfficeXmlNode properties = EnsureProperties();
+                    foreach (string name in CellFills) properties.RemoveChildren(D, name);
+                    properties.AddOrdered(D, "noFill", ATableCellPropertiesView.Order);
                 }
-                Cell.TableCellProperties ??= new TableCellProperties();
-                RemoveCellFillChoices();
-                Cell.TableCellProperties.AddChild(new NoFill(), true);
+                MarkEdited();
             }
-        }
-
-        private void RemoveCellFillChoices() {
-            var properties = Cell.TableCellProperties!;
-            properties.RemoveAllChildren<NoFill>();
-            properties.RemoveAllChildren<SolidFill>();
-            properties.RemoveAllChildren<GradientFill>();
-            properties.RemoveAllChildren<BlipFill>();
-            properties.RemoveAllChildren<PatternFill>();
-            properties.RemoveAllChildren<GroupFill>();
         }
     }
 }

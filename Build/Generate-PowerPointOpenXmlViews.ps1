@@ -16,7 +16,11 @@ $types = @(
     'a:CT_PresetGeometry2D', 'a:CT_GeomGuideList', 'a:CT_NoFillProperties', 'a:CT_SolidColorFillProperties', 'a:CT_SRgbColor',
     'a:CT_TextBody', 'a:CT_TextBodyProperties', 'a:CT_TextListStyle', 'a:CT_TextParagraph', 'a:CT_TextParagraphProperties',
     'a:CT_RegularTextRun', 'a:CT_TextCharacterProperties', 'a:CT_TextNormalAutofit', 'a:CT_ColorMapping', 'a:CT_ColorMappingOverride',
-    'a:CT_EmptyElement'
+    'a:CT_EmptyElement',
+    'p:CT_GraphicalObjectFrame', 'p:CT_GraphicalObjectFrameNonVisual', 'a:CT_GraphicalObject', 'a:CT_GraphicalObjectData',
+    'a:CT_Table', 'a:CT_TableProperties', 'a:CT_TableGrid', 'a:CT_TableCol', 'a:CT_TableRow', 'a:CT_TableCell',
+    'a:CT_TableCellProperties', 'a:CT_LineProperties',
+    'p:CT_NotesSlide', 'p:CT_NotesMaster', 'p:CT_NotesMasterIdList', 'p:CT_NotesMasterIdListEntry'
 )
 
 & (Join-Path $PSScriptRoot 'Generate-OpenXmlViews.ps1') `

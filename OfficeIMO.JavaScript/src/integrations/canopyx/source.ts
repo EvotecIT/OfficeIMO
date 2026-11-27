@@ -33,16 +33,23 @@ export function canopyIdentityValue(value: ExportValue): CellValue {
   return original === undefined ? value.value : original;
 }
 
-function badgeText(input: unknown): string | undefined {
-  if (!Array.isArray(input) || input.length > 64) throw new TypeError("Canopy cell badges must be a bounded array of { text, tone?, title? }.");
-  const labels: string[] = [];
+// Grids accept any number of badges. Exports keep the first labels that stay readable and fit an Excel text cell,
+// and report how many were left out instead of failing the whole document.
+const maximumBadges = 64, maximumCellText = 32767;
+
+function badgeText(input: unknown, text: string): { readonly labels: string | undefined; readonly dropped: number } {
+  if (!Array.isArray(input)) throw new TypeError("Canopy cell badges must be an array of { text, tone?, title? }.");
+  let labels = "", kept = 0, dropped = 0;
   for (const badge of input) {
-    const text = typeof badge === "string" ? badge : badge && typeof badge === "object" ? (badge as { text?: unknown }).text : undefined;
-    if (typeof text !== "string") throw new TypeError("Canopy cell badges must be a bounded array of { text, tone?, title? }.");
-    const label = text.trim();
-    if (label) labels.push(label);
+    const value = typeof badge === "string" ? badge : badge && typeof badge === "object" ? (badge as { text?: unknown }).text : undefined;
+    if (typeof value !== "string") throw new TypeError("Canopy cell badges must be an array of { text, tone?, title? }.");
+    const label = value.trim();
+    if (!label) continue;
+    const next = labels ? labels + badgeSeparator + label : label;
+    if (kept >= maximumBadges || (text ? text.length + badgeSeparator.length : 0) + next.length > maximumCellText) { dropped++; continue; }
+    labels = next; kept++;
   }
-  return labels.length ? labels.join(badgeSeparator) : undefined;
+  return { labels: labels || undefined, dropped };
 }
 
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
@@ -152,11 +159,13 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         // History captures already carry their frozen latest scalar (or null).
         // Columns read by an emitted native rule keep the raw scalar the rule compares, so the label goes to the text only.
         const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link") && !ruleOperands.has(spec.id);
-        const badges = cell.badges === undefined ? undefined : badgeText(cell.badges);
+        const badged = cell.badges === undefined ? undefined : badgeText(cell.badges, cell.text), badges = badged?.labels;
+        if (badged?.dropped) fallback({ code: "BADGES_TRUNCATED:" + badged.dropped, rowId: row.id, columnId: spec.id });
         const text = badges ? cell.text ? cell.text + badgeSeparator + badges : badges : cell.text;
         // Badges belong to the visible label, so a badged text cell exports that composed label rather than a raw/label hybrid.
         // Typed columns keep their scalar, and native rule operands keep the raw value the rule compares; both carry badges in the text only.
-        const badgedValue = !!badges && values === "raw" && !relativeLabel && spec.kind === "text" && !ruleOperands.has(spec.id);
+        // A cell whose badges were all left out still exports its captured label, as it would with the badges.
+        const badgedValue = (!!badges || !!badged?.dropped) && values === "raw" && !relativeLabel && spec.kind === "text" && !ruleOperands.has(spec.id);
         let value: import("../../core/index.js").CellValue = values === "display" || relativeLabel || badgedValue ? text : cell.value;
         if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string") value = datetime(value, dateMode, clock);
         const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;

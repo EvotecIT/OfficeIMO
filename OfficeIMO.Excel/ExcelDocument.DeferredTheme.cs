@@ -30,6 +30,7 @@ namespace OfficeIMO.Excel {
                 bytes = output.ToArray();
             }
             _deferredPackageBytes = bytes;
+            ForgetDeferredTables();
             _deferredPackageWrittenHere = true;
             MarkPackageDirty();
             return true;

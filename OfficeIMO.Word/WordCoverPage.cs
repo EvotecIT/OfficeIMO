@@ -104,24 +104,7 @@ namespace OfficeIMO.Word {
             body.Append(_sdtBlock);
         }
 
-        private SdtBlock GetStyle(WordCoverPageTemplate template) {
-            switch (template) {
-                case WordCoverPageTemplate.Austin: return CoverPageAustin;
-                case WordCoverPageTemplate.Banded: return CoverPageBanded;
-                case WordCoverPageTemplate.Facet: return CoverPageFacet;
-                case WordCoverPageTemplate.Grid: return CoverPageGrid;
-                case WordCoverPageTemplate.IonDark: return CoverPageIonDark;
-                case WordCoverPageTemplate.IonLight: return CoverPageIonLight;
-                case WordCoverPageTemplate.Element: return CoverPageElement;
-                case WordCoverPageTemplate.Wisp: return CoverPageWisp;
-                case WordCoverPageTemplate.ViewMaster: return CoverPageViewMaster;
-                case WordCoverPageTemplate.SliceLight: return CoverPageSliceLight;
-                case WordCoverPageTemplate.SliceDark: return CoverPageSliceDark;
-                case WordCoverPageTemplate.SideLine: return CoverPageSideLine;
-                case WordCoverPageTemplate.Semaphore: return CoverPageSemaphore;
-                case WordCoverPageTemplate.Retrospect: return CoverPageRetrospect;
-            }
-            throw new ArgumentOutOfRangeException(nameof(template));
-        }
+        private static SdtBlock GetStyle(WordCoverPageTemplate template) =>
+            WordEmbeddedMarkup.CreateBuildingBlock(WordEmbeddedMarkup.CoverPages, template.ToString(), nameof(template));
     }
 }

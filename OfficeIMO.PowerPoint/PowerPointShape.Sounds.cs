@@ -96,6 +96,12 @@ namespace OfficeIMO.PowerPoint {
         private A.HyperlinkSound? GetInteractionSound(bool mouseOver) =>
             GetInteraction(mouseOver)?.GetFirstChild<A.HyperlinkSound>();
 
+        // The shape's p:cNvPr as an SDK element; the sounds are stored in SDK parts, so this opens the SDK.
+        private NonVisualDrawingProperties? GetNonVisualDrawingProperties(bool create) {
+            _ = Element;
+            return NonVisualDrawingElement(create).SdkElement as NonVisualDrawingProperties;
+        }
+
         private A.HyperlinkType? GetInteraction(bool mouseOver) {
             NonVisualDrawingProperties? properties =
                 GetNonVisualDrawingProperties(create: false);

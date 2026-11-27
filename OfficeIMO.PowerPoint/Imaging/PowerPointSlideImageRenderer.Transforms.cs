@@ -1,14 +1,14 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
 internal static partial class PowerPointSlideImageRenderer {
     private static void AddGroupShape(OfficeDrawing drawing, PowerPointGroupShape groupShape,
         List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
-        A.ColorScheme? colorScheme, PowerPointImageExportOptions options,
+        OfficeXmlNode colorScheme, PowerPointImageExportOptions options,
         PowerPointEmbeddedImageReadBudget imageBudget, int groupDepth, CancellationToken token = default) {
         if (options.MaxGroupShapeDepth >= 0 && groupDepth >= options.MaxGroupShapeDepth) {
             diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
@@ -142,15 +142,15 @@ internal static partial class PowerPointSlideImageRenderer {
     }
 
     private static PowerPointShapeBoundsMapping CreateGroupChildMapping(PowerPointGroupShape groupShape, PowerPointShapeBoundsMapping parentMapping) {
-        A.TransformGroup? transform = groupShape.GroupShape.GroupShapeProperties?.TransformGroup;
-        long? groupXEmu = transform?.Offset?.X?.Value;
-        long? groupYEmu = transform?.Offset?.Y?.Value;
-        long? groupWidthEmu = transform?.Extents?.Cx?.Value;
-        long? groupHeightEmu = transform?.Extents?.Cy?.Value;
-        long? childXEmu = transform?.ChildOffset?.X?.Value;
-        long? childYEmu = transform?.ChildOffset?.Y?.Value;
-        long? childWidthEmu = transform?.ChildExtents?.Cx?.Value;
-        long? childHeightEmu = transform?.ChildExtents?.Cy?.Value;
+        OfficeXmlNode transform = GroupTransform(groupShape);
+        long? groupXEmu = transform.Child(D, "off").Int64Attribute("x");
+        long? groupYEmu = transform.Child(D, "off").Int64Attribute("y");
+        long? groupWidthEmu = transform.Child(D, "ext").Int64Attribute("cx");
+        long? groupHeightEmu = transform.Child(D, "ext").Int64Attribute("cy");
+        long? childXEmu = transform.Child(D, "chOff").Int64Attribute("x");
+        long? childYEmu = transform.Child(D, "chOff").Int64Attribute("y");
+        long? childWidthEmu = transform.Child(D, "chExt").Int64Attribute("cx");
+        long? childHeightEmu = transform.Child(D, "chExt").Int64Attribute("cy");
         if (!groupXEmu.HasValue || !groupYEmu.HasValue || !groupWidthEmu.HasValue || !groupHeightEmu.HasValue ||
             !childXEmu.HasValue || !childYEmu.HasValue || !childWidthEmu.HasValue || !childHeightEmu.HasValue ||
             childWidthEmu.Value == 0L || childHeightEmu.Value == 0L) {
@@ -172,15 +172,15 @@ internal static partial class PowerPointSlideImageRenderer {
     }
 
     private static PowerPointShapeBoundsMapping CreateGroupLocalChildMapping(PowerPointGroupShape groupShape, PowerPointShapeBoundsMapping parentMapping) {
-        A.TransformGroup? transform = groupShape.GroupShape.GroupShapeProperties?.TransformGroup;
+        OfficeXmlNode transform = GroupTransform(groupShape);
         bool hasTransformedAncestor = parentMapping.HasTransformedAncestor
             || CreateGroupFrameTransform(groupShape, 0D, 0D, 0D, 0D).HasTransform;
-        long? groupWidthEmu = transform?.Extents?.Cx?.Value;
-        long? groupHeightEmu = transform?.Extents?.Cy?.Value;
-        long? childXEmu = transform?.ChildOffset?.X?.Value;
-        long? childYEmu = transform?.ChildOffset?.Y?.Value;
-        long? childWidthEmu = transform?.ChildExtents?.Cx?.Value;
-        long? childHeightEmu = transform?.ChildExtents?.Cy?.Value;
+        long? groupWidthEmu = transform.Child(D, "ext").Int64Attribute("cx");
+        long? groupHeightEmu = transform.Child(D, "ext").Int64Attribute("cy");
+        long? childXEmu = transform.Child(D, "chOff").Int64Attribute("x");
+        long? childYEmu = transform.Child(D, "chOff").Int64Attribute("y");
+        long? childWidthEmu = transform.Child(D, "chExt").Int64Attribute("cx");
+        long? childHeightEmu = transform.Child(D, "chExt").Int64Attribute("cy");
         if (!groupWidthEmu.HasValue || !groupHeightEmu.HasValue ||
             !childXEmu.HasValue || !childYEmu.HasValue || !childWidthEmu.HasValue || !childHeightEmu.HasValue ||
             childWidthEmu.Value == 0L || childHeightEmu.Value == 0L) {
@@ -200,15 +200,19 @@ internal static partial class PowerPointSlideImageRenderer {
     }
 
     private static OfficeImageFrameTransform CreateGroupFrameTransform(PowerPointGroupShape groupShape, double left, double top, double width, double height) {
-        A.TransformGroup? transform = groupShape.GroupShape.GroupShapeProperties?.TransformGroup;
-        double rotation = transform?.Rotation?.Value / 60000D ?? 0D;
+        OfficeXmlNode transform = GroupTransform(groupShape);
+        double rotation = transform.Int32Attribute("rot") / 60000D ?? 0D;
         return new OfficeImageFrameTransform(
             rotation,
             left + (width / 2D),
             top + (height / 2D),
-            transform?.HorizontalFlip?.Value == true,
-            transform?.VerticalFlip?.Value == true);
+            transform.BooleanAttribute("flipH") == true,
+            transform.BooleanAttribute("flipV") == true);
     }
+
+    /// <summary>The group's <c>p:grpSpPr/a:xfrm</c>, or none.</summary>
+    private static OfficeXmlNode GroupTransform(PowerPointGroupShape groupShape) =>
+        groupShape.XmlElement.Child(Pml, "grpSpPr").Child(D, "xfrm");
 
     private static bool HasUnsupportedTransform(PowerPointShape shape) {
         double rotation = shape.Rotation ?? 0D;

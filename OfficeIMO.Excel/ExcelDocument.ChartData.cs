@@ -1,16 +1,50 @@
 using System.Diagnostics;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         internal const string ChartDataSheetName = "OfficeIMO_ChartData";
         private const string ChartDataOwnerDefinedName = "_OfficeIMO_ChartDataOwner";
-        private readonly object _chartDataLock = new object();
-        private readonly List<(int StartRow, int RowCount)> _chartDataFreeRows =
-            new List<(int StartRow, int RowCount)>();
+        // Created on first use rather than by field initializers, which would compile into the document's constructors.
+        private object? _chartDataLockValue;
+        private List<(int StartRow, int RowCount)>? _chartDataFreeRowsValue;
+        private object ChartDataLock => LazyInitializer.EnsureInitialized(ref _chartDataLockValue, () => new object())!;
+        private List<(int StartRow, int RowCount)> ChartDataFreeRows => LazyInitializer.EnsureInitialized(ref _chartDataFreeRowsValue)!;
         private ExcelSheet? _chartDataSheet;
         private int _chartDataNextRow;
+        private const int SpreadsheetMl = OfficeXmlNamespaces.SpreadsheetML;
+
+        // The workbook children a new definedNames element goes before, where the SDK's typed setter put it.
+        private static bool FollowsDefinedNames(OfficeXmlNode child) =>
+            child.NamespaceId == SpreadsheetMl && child.LocalName switch {
+                "calcPr" or "oleSize" or "customWorkbookViews" or "pivotCaches" or "webPublishing" or "fileRecoveryPr"
+                    or "webPublishObjects" or "extLst" => true,
+                _ => false
+            };
+
+        private OfficeXmlNode WorkbookRootNode {
+            get {
+                OfficeXmlNode root = ExcelPartRef.Workbook(this).Root;
+                return root.IsNone ? throw new InvalidOperationException("Workbook is null.") : root;
+            }
+        }
+
+        // The workbook's sheet entries, in order.
+        private List<OfficeXmlNode> WorkbookSheetNodes() => WorkbookRootNode.Child(SpreadsheetMl, "sheets").Children(SpreadsheetMl, "sheet").ToList();
+
+        // The workbook-level defined names (no localSheetId) with this name.
+        private static List<OfficeXmlNode> WorkbookDefinedNames(OfficeXmlNode definedNames, string name) {
+            var matches = new List<OfficeXmlNode>();
+            foreach (OfficeXmlNode definedName in definedNames.Children(SpreadsheetMl, "definedName")) {
+                if (definedName.Attribute("localSheetId") == null
+                    && string.Equals(definedName.Attribute("name"), name, StringComparison.OrdinalIgnoreCase)) {
+                    matches.Add(definedName);
+                }
+            }
+            return matches;
+        }
 
         internal ExcelSheet GetOrCreateChartDataSheet() {
             if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
@@ -30,13 +64,13 @@ namespace OfficeIMO.Excel {
             if (rowsNeeded <= 0) rowsNeeded = 1;
             if (spacingRows < 0) spacingRows = 0;
 
-            lock (_chartDataLock) {
+            lock (ChartDataLock) {
                 int slotRows = checked(rowsNeeded + spacingRows);
-                for (int index = 0; index < _chartDataFreeRows.Count; index++) {
-                    (int freeStart, int freeCount) = _chartDataFreeRows[index];
+                for (int index = 0; index < ChartDataFreeRows.Count; index++) {
+                    (int freeStart, int freeCount) = ChartDataFreeRows[index];
                     if (freeCount < slotRows) continue;
-                    if (freeCount == slotRows) _chartDataFreeRows.RemoveAt(index);
-                    else _chartDataFreeRows[index] = (freeStart + slotRows, freeCount - slotRows);
+                    if (freeCount == slotRows) ChartDataFreeRows.RemoveAt(index);
+                    else ChartDataFreeRows[index] = (freeStart + slotRows, freeCount - slotRows);
                     return freeStart;
                 }
                 if (_chartDataNextRow <= 0) {
@@ -88,9 +122,9 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyList<ExcelReference> GetOwnedChartDataReferences(string sheetName) {
-            List<Sheet> sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
+            List<OfficeXmlNode> sheets = WorkbookSheetNodes();
             int sheetIndex = sheets.FindIndex(sheet =>
-                string.Equals(sheet.Name?.Value, sheetName, StringComparison.OrdinalIgnoreCase));
+                string.Equals(sheet.Attribute("name"), sheetName, StringComparison.OrdinalIgnoreCase));
             if (sheetIndex < 0) return Array.Empty<ExcelReference>();
             var references = new List<ExcelReference>();
             foreach (var context in EnumerateMutationFormulaContexts(
@@ -109,20 +143,18 @@ namespace OfficeIMO.Excel {
 
         internal bool IsOwnedChartDataRangeShared(
             ExcelChartDataRange range,
-            ExtendedChartPart ownerPart) {
+            ExcelPartRef ownerPart) {
             ArgumentNullException.ThrowIfNull(range);
-            ArgumentNullException.ThrowIfNull(ownerPart);
+            if (ownerPart.IsNone) throw new ArgumentNullException(nameof(ownerPart));
             ExcelReference ownedRange = ExcelReference.Parse(range.DataRangeA1);
 
-            IEnumerable<ExtendedChartPart> chartParts = WorkbookPartRoot.WorksheetParts
-                .SelectMany(part => part.DrawingsPart?.ExtendedChartParts
-                    ?? Enumerable.Empty<ExtendedChartPart>())
-                .Concat(WorkbookPartRoot.ChartsheetParts.SelectMany(part =>
-                    part.DrawingsPart?.ExtendedChartParts
-                    ?? Enumerable.Empty<ExtendedChartPart>()));
-            foreach (ExtendedChartPart chartPart in chartParts) {
-                if (ReferenceEquals(chartPart, ownerPart)) continue;
-                foreach (string formula in EnumerateMutationFormulaTexts(chartPart.ChartSpace)) {
+            IEnumerable<ExcelPartRef> chartParts = ExcelPartRef.WorksheetParts(this)
+                .SelectMany(part => part.Drawings.PartsOfKind(ExcelPartKind.ExtendedChart))
+                .Concat(ExcelPartRef.ChartsheetParts(this).SelectMany(part =>
+                    part.Drawings.PartsOfKind(ExcelPartKind.ExtendedChart)));
+            foreach (ExcelPartRef chartPart in chartParts) {
+                if (chartPart == ownerPart) continue;
+                foreach (string formula in EnumerateMutationFormulaTexts(chartPart.Root)) {
                     if (!ExcelChartUtils.TryParseSheetQualifiedRange(
                             formula,
                             out string sheetName,
@@ -161,16 +193,16 @@ namespace OfficeIMO.Excel {
         }
 
         private void ReleaseChartDataRows(int startRow, int rowCount) {
-            lock (_chartDataLock) {
-                _chartDataFreeRows.Add((startRow, rowCount));
-                _chartDataFreeRows.Sort((left, right) => left.StartRow.CompareTo(right.StartRow));
-                for (int index = _chartDataFreeRows.Count - 1; index > 0; index--) {
-                    (int previousStart, int previousCount) = _chartDataFreeRows[index - 1];
-                    (int currentStart, int currentCount) = _chartDataFreeRows[index];
+            lock (ChartDataLock) {
+                ChartDataFreeRows.Add((startRow, rowCount));
+                ChartDataFreeRows.Sort((left, right) => left.StartRow.CompareTo(right.StartRow));
+                for (int index = ChartDataFreeRows.Count - 1; index > 0; index--) {
+                    (int previousStart, int previousCount) = ChartDataFreeRows[index - 1];
+                    (int currentStart, int currentCount) = ChartDataFreeRows[index];
                     if (previousStart + previousCount < currentStart) continue;
                     int mergedEnd = Math.Max(previousStart + previousCount, currentStart + currentCount);
-                    _chartDataFreeRows[index - 1] = (previousStart, mergedEnd - previousStart);
-                    _chartDataFreeRows.RemoveAt(index);
+                    ChartDataFreeRows[index - 1] = (previousStart, mergedEnd - previousStart);
+                    ChartDataFreeRows.RemoveAt(index);
                 }
             }
         }
@@ -181,31 +213,31 @@ namespace OfficeIMO.Excel {
             }
 
             Stopwatch? stageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
-            var sheets = WorkbookRoot.Sheets?.OfType<Sheet>() ?? Enumerable.Empty<Sheet>();
+            List<OfficeXmlNode> sheets = WorkbookSheetNodes();
             ReportChartDataTiming(stageWatch, "ChartData.GetSheets");
 
             stageWatch?.Restart();
             string? ownedSheetName = GetOwnedChartDataSheetName();
-            var existing = ownedSheetName == null
-                ? null
-                : sheets.FirstOrDefault(s => string.Equals(s.Name?.Value, ownedSheetName, StringComparison.OrdinalIgnoreCase));
+            OfficeXmlNode existing = ownedSheetName == null
+                ? OfficeXmlNode.None
+                : sheets.FirstOrDefault(s => string.Equals(s.Attribute("name"), ownedSheetName, StringComparison.OrdinalIgnoreCase));
             ReportChartDataTiming(stageWatch, "ChartData.FindExistingSheet");
-            if (existing != null) {
+            if (existing.Exists) {
                 stageWatch?.Restart();
-                _chartDataSheet = new ExcelSheet(this, _spreadSheetDocument, existing);
+                _chartDataSheet = WrapChartDataSheet(existing);
                 ReportChartDataTiming(stageWatch, "ChartData.WrapExistingSheet");
                 return _chartDataSheet;
             }
 
             stageWatch?.Restart();
             var names = new HashSet<string>(
-                sheets.Select(sheet => sheet.Name?.Value ?? string.Empty),
+                sheets.Select(sheet => sheet.Attribute("name") ?? string.Empty),
                 StringComparer.OrdinalIgnoreCase);
             string createdName = ChartDataSheetName;
             for (int suffix = 2; names.Contains(createdName); suffix++) {
                 createdName = ChartDataSheetName + "_" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
-            var created = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, createdName);
+            var created = CreateChartDataWorksheet(createdName);
             ReportChartDataTiming(stageWatch, "ChartData.CreateWorksheet");
 
             stageWatch?.Restart();
@@ -216,17 +248,26 @@ namespace OfficeIMO.Excel {
             }
             ReportChartDataTiming(stageWatch, "ChartData.HideWorksheet");
 
-            DefinedNames definedNames = WorkbookRoot.DefinedNames ??= new DefinedNames();
-            foreach (DefinedName marker in definedNames.Elements<DefinedName>().Where(name =>
-                name.LocalSheetId == null
-                && string.Equals(name.Name?.Value, ChartDataOwnerDefinedName, StringComparison.OrdinalIgnoreCase)).ToList()) {
+            OfficeXmlNode workbook = WorkbookRootNode;
+            OfficeXmlNode definedNames = workbook.Child(SpreadsheetMl, "definedNames");
+            if (definedNames.IsNone) {
+                OfficeXmlNode follower = OfficeXmlNode.None;
+                foreach (OfficeXmlNode child in workbook.Children()) {
+                    if (FollowsDefinedNames(child)) {
+                        follower = child;
+                        break;
+                    }
+                }
+                definedNames = workbook.InsertBefore(workbook.CreateElement(SpreadsheetMl, "definedNames"), follower);
+            }
+            foreach (OfficeXmlNode marker in WorkbookDefinedNames(definedNames, ChartDataOwnerDefinedName)) {
                 marker.Remove();
             }
-            definedNames.Append(new DefinedName {
-                Name = ChartDataOwnerDefinedName,
-                Hidden = true,
-                Text = ExcelChartUtils.BuildSheetQualifiedRange(created.Name, "$A$1")
-            });
+            OfficeXmlNode ownerName = definedNames.CreateElement(SpreadsheetMl, "definedName");
+            ownerName.SetAttribute("name", ChartDataOwnerDefinedName);
+            ownerName.SetAttribute("hidden", "1");
+            ownerName.SetInnerText(ExcelChartUtils.BuildSheetQualifiedRange(created.Name, "$A$1"));
+            definedNames.Append(ownerName);
 
             stageWatch?.Restart();
             using (PreserveDirectDataSetFastSaveStateDuringDirtyMarks()) {
@@ -241,10 +282,10 @@ namespace OfficeIMO.Excel {
         internal bool IsOwnedChartDataSheet(string sheetName) {
             string? ownedSheetName = GetOwnedChartDataSheetName();
             if (!string.Equals(ownedSheetName, sheetName, StringComparison.OrdinalIgnoreCase)) return false;
-            Sheet? ownedSheet = WorkbookRoot.Sheets?.Elements<Sheet>().FirstOrDefault(sheet =>
-                string.Equals(sheet.Name?.Value, ownedSheetName, StringComparison.OrdinalIgnoreCase));
-            return ownedSheet?.State?.Value == SheetStateValues.Hidden
-                || ownedSheet?.State?.Value == SheetStateValues.VeryHidden;
+            OfficeXmlNode ownedSheet = WorkbookSheetNodes().FirstOrDefault(sheet =>
+                string.Equals(sheet.Attribute("name"), ownedSheetName, StringComparison.OrdinalIgnoreCase));
+            string? state = ownedSheet.Attribute("state");
+            return state == "hidden" || state == "veryHidden";
         }
 
         private void ValidateOwnedChartDataSheetRemoval(string sheetName) {
@@ -258,25 +299,20 @@ namespace OfficeIMO.Excel {
         private void CompleteOwnedChartDataSheetRemoval(string sheetName) {
             string? ownedSheetName = GetOwnedChartDataSheetName();
             if (!string.Equals(ownedSheetName, sheetName, StringComparison.OrdinalIgnoreCase)) return;
-            foreach (DefinedName marker in WorkbookRoot.DefinedNames?.Elements<DefinedName>().Where(name =>
-                name.LocalSheetId == null
-                && string.Equals(name.Name?.Value, ChartDataOwnerDefinedName, StringComparison.OrdinalIgnoreCase)).ToList()
-                ?? Enumerable.Empty<DefinedName>()) {
+            foreach (OfficeXmlNode marker in WorkbookDefinedNames(WorkbookRootNode.Child(SpreadsheetMl, "definedNames"), ChartDataOwnerDefinedName)) {
                 marker.Remove();
             }
-            lock (_chartDataLock) {
+            lock (ChartDataLock) {
                 _chartDataSheet = null;
                 _chartDataNextRow = 0;
-                _chartDataFreeRows.Clear();
+                ChartDataFreeRows.Clear();
             }
         }
 
         private string? GetOwnedChartDataSheetName() {
-            DefinedName? marker = WorkbookRoot.DefinedNames?.Elements<DefinedName>().FirstOrDefault(name =>
-                name.LocalSheetId == null
-                && name.Hidden?.Value == true
-                && string.Equals(name.Name?.Value, ChartDataOwnerDefinedName, StringComparison.OrdinalIgnoreCase));
-            return ExcelChartUtils.TryParseSheetQualifiedRange(marker?.Text, out string sheetName, out string range)
+            OfficeXmlNode marker = WorkbookDefinedNames(WorkbookRootNode.Child(SpreadsheetMl, "definedNames"), ChartDataOwnerDefinedName)
+                .FirstOrDefault(name => name.BooleanAttribute("hidden") == true);
+            return ExcelChartUtils.TryParseSheetQualifiedRange(marker.IsNone ? null : marker.InnerText, out string sheetName, out string range)
                 && string.Equals(range, "A1", StringComparison.OrdinalIgnoreCase)
                 ? sheetName
                 : null;

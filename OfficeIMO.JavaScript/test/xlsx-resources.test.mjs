@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Workbook } from "../dist/xlsx/index.js";
+import { ExportCell } from "../dist/core/index.js";
+import { readZip } from "./zip-reader.mjs";
 
 const png = new Uint8Array(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jfKsAAAAASUVORK5CYII=", "base64"));
 
@@ -87,4 +89,21 @@ test("timer cancellation interrupts XLSX relationship finalization before remain
     if (original) Object.defineProperty(performance, "now", original); else delete performance.now;
     await book.discard(reason);
   }
+});
+
+test("hyperlinkOverflow drop gives way to 32,765 later fixed links in one ordered pass", async () => {
+  const overflows = [];
+  const book = new Workbook({ compression: "store", hyperlinkOverflow: "drop", onHyperlinkOverflow: overflow => overflows.push(overflow) });
+  const sheet = book.addWorksheet("Links", { columns: [{ header: "Data" }, { header: "Fixed" }] });
+  await sheet.addRows(Array.from({ length: 65530 }, (_, i) => [new ExportCell("d" + i, { link: { target: "https://example.com/d" + i } }), "f" + i]));
+  const fixed = 32765;
+  for (let i = 0; i < fixed; i++) sheet.addHyperlink({ cell: "B" + (i + 2), target: "https://example.com/f" + i });
+  const zip = await readZip(await book.toBlob());
+  const refs = [...zip.get("xl/worksheets/sheet1.xml").content.matchAll(/<hyperlink ref="([A-Z]+)(\d+)"/g)].map(m => [m[1], Number(m[2])]);
+  // The first data links keep their place in row order, followed by every fixed link in the order it was added.
+  const kept = 65530 - fixed;
+  assert.equal(refs.length, 65530);
+  assert.ok(refs.slice(0, kept).every(([column, row], i) => column === "A" && row === i + 2));
+  assert.ok(refs.slice(kept).every(([column, row], i) => column === "B" && row === i + 2));
+  assert.deepEqual(overflows, [{ sheetName: "Links", dropped: fixed }]);
 });

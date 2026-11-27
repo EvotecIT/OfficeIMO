@@ -1,8 +1,9 @@
 using System.Globalization;
 using DocumentFormat.OpenXml;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal;
 
@@ -16,11 +17,13 @@ internal static class OfficeOpenXmlChartErrorBars {
     /// <param name="maximumPoints">The most cached custom amounts read per direction.</param>
     /// <param name="selectVisible">Keeps the cached custom amounts of the points a visible-cells-only chart plots,
     /// given the amounts' source element (c:plus or c:minus); null when every cached point is plotted.</param>
-    internal static IReadOnlyList<OfficeChartErrorBars>? Read(OpenXmlCompositeElement series, A.ColorScheme? scheme, int maximumPoints,
-        Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisible = null) {
+    internal static IReadOnlyList<OfficeChartErrorBars>? Read(OfficeXmlNode series, OfficeXmlNode scheme, int maximumPoints,
+        Func<OfficeXmlNode, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisible = null) {
         List<OfficeChartErrorBars>? result = null;
-        bool scatter = series.Parent is C.ScatterChart or C.BubbleChart;
-        foreach (C.ErrorBars bars in series.Elements<C.ErrorBars>().Take(2)) {
+        bool scatter = series.Parent.NamespaceId == NsC && series.Parent.LocalName is "scatterChart" or "bubbleChart";
+        int read = 0;
+        foreach (OfficeXmlNode bars in series.Children(NsC, "errBars")) {
+            if (read++ == 2) break;
             string? direction = Value(bars, "errDir");
             string? type = Value(bars, "errBarType");
             string? valueType = Value(bars, "errValType");
@@ -39,15 +42,15 @@ internal static class OfficeOpenXmlChartErrorBars {
                 plus = ReadCustomAmounts(Child(bars, "plus"), maximumPoints, selectVisible);
                 minus = ReadCustomAmounts(Child(bars, "minus"), maximumPoints, selectVisible);
             }
-            A.Outline? outline = bars.GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.Outline>();
-            if (outline?.GetFirstChild<A.NoFill>() != null) continue;
-            OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme);
-            if (outline?.ChildElements.Any(child => child is A.GradientFill or A.PatternFill) == true)
+            OfficeXmlNode outline = bars.Child(NsC, "spPr").Child(NsA, "ln");
+            if (outline.Child(NsA, "noFill").Exists) continue;
+            OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(outline.Child(NsA, "solidFill"), scheme);
+            if (outline.Child(NsA, "gradFill").Exists || outline.Child(NsA, "pattFill").Exists)
                 Approximate("The error bar line fill cannot be projected.",
                     "Error bars with a gradient or pattern line are drawn in a solid colour.");
-            double? width = outline?.Width?.Value is int emus && emus > 0 ? Math.Min(emus / 12700D, OfficeChartStyleBounds.MaximumLineWidthPoints) : null;
+            double? width = outline.IntAttr("w") is int emus && emus > 0 ? Math.Min(emus / 12700D, OfficeChartStyleBounds.MaximumLineWidthPoints) : null;
             OfficeStrokeDashStyle? dash = OfficeOpenXmlChartTrendlines.ReadDash(outline);
-            if ((outline?.GetFirstChild<A.PresetDash>() != null || outline?.GetFirstChild<A.CustomDash>() != null) && !dash.HasValue)
+            if ((outline.Child(NsA, "prstDash").Exists || outline.Child(NsA, "custDash").Exists) && !dash.HasValue)
                 Approximate("The error bar dash pattern cannot be projected.",
                     "An error bar dash pattern the renderer cannot draw is drawn solid.");
             (result ??= new List<OfficeChartErrorBars>()).Add(new OfficeChartErrorBars(kind, amount,
@@ -64,15 +67,32 @@ internal static class OfficeOpenXmlChartErrorBars {
         if (OfficeOpenXmlChartFidelityScope.IsProjecting) OfficeOpenXmlChartFidelityScope.Approximate(strictReason, approximation);
     }
 
-    private static IReadOnlyList<double>? ReadCustomAmounts(OpenXmlElement? source, int maximumPoints,
-        Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisible) {
+    private static IReadOnlyList<double>? ReadCustomAmounts(OfficeXmlNode source, int maximumPoints,
+        Func<OfficeXmlNode, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisible) {
         IReadOnlyList<double>? amounts = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(source, maximumPoints);
-        return amounts != null && source != null && selectVisible != null ? selectVisible(source, amounts) : amounts;
+        return amounts != null && source.Exists && selectVisible != null ? selectVisible(source, amounts) : amounts;
     }
 
-    private static OpenXmlElement? Child(OpenXmlElement parent, string localName) =>
-        parent.ChildElements.FirstOrDefault(child => child.LocalName == localName);
+    // The first child with this local name, in any namespace.
+    private static OfficeXmlNode Child(OfficeXmlNode parent, string localName) {
+        foreach (OfficeXmlNode child in parent.Children())
+            if (child.LocalName == localName) return child;
+        return OfficeXmlNode.None;
+    }
 
-    private static string? Value(OpenXmlElement parent, string localName) =>
-        Child(parent, localName)?.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == "val").Value;
+    // The first attribute named val, in any namespace, of that child.
+    private static string? Value(OfficeXmlNode parent, string localName) {
+        OfficeXmlNode child = Child(parent, localName);
+        if (child.IsNone) return null;
+        foreach (OfficeXmlAttribute attribute in child.Attributes())
+            if (attribute.LocalName == "val") return attribute.Value;
+        return null;
+    }
+
+    // SDK callers
+    internal static IReadOnlyList<OfficeChartErrorBars>? Read(OpenXmlCompositeElement series, A.ColorScheme? scheme, int maximumPoints,
+        Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisible = null) =>
+        Read(OfficeXmlNode.FromSdk(series), OfficeXmlNode.FromSdk(scheme), maximumPoints,
+            selectVisible == null ? null : new Func<OfficeXmlNode, IReadOnlyList<double>, IReadOnlyList<double>>(
+                (source, amounts) => selectVisible((OpenXmlElement)source.SdkElement!, amounts)));
 }

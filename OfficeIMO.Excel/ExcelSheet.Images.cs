@@ -1,8 +1,8 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using System.Globalization;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     // Helpers for inserting images anchored to worksheet cells.
@@ -12,14 +12,18 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IEnumerable<ExcelImage> Images {
             get {
-                var drawingPart = _worksheetPart.DrawingsPart;
-                if (drawingPart?.WorksheetDrawing == null) return Enumerable.Empty<ExcelImage>();
+                ExcelPartRef drawingPart = ExcelPartRef.WorksheetForMetadata(this).Drawings;
+                OfficeXmlNode worksheetDrawing = drawingPart.IsNone ? default : drawingPart.Root;
+                if (worksheetDrawing.IsNone) return Enumerable.Empty<ExcelImage>();
 
-                return drawingPart.WorksheetDrawing
-                    .ChildElements
-                    .Where(IsSupportedImageAnchor)
-                    .SelectMany(anchor => anchor.Descendants<Xdr.Picture>().Select(picture => new ExcelImage(picture, anchor, drawingPart, this)))
-                    .ToList();
+                var images = new List<ExcelImage>();
+                foreach (OfficeXmlNode anchor in worksheetDrawing.Children()) {
+                    if (!IsSupportedImageAnchor(anchor)) continue;
+                    foreach (OfficeXmlNode picture in anchor.Descendants(Xdr, "pic")) {
+                        images.Add(new ExcelImage(picture, anchor, drawingPart, this));
+                    }
+                }
+                return images;
             }
         }
 
@@ -44,20 +48,14 @@ namespace OfficeIMO.Excel {
             ExcelImage? image = null;
             WriteLock(() => {
                 // Ensure a drawing part exists and is referenced by the worksheet
-                DrawingsPart drawingPart;
-                var drawing = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
-                if (drawing == null) {
-                    drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
-                    drawingPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
-                    string relId = _worksheetPart.GetIdOfPart(drawingPart);
-                    WorksheetRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = relId });
-                } else {
-                    drawingPart = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
-                    drawingPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
-                }
+                ExcelPartRef drawingPart = GetOrCreateDrawingsPart();
+                OfficeXmlNode worksheetDrawing = drawingPart.Root;
 
                 // Add the image part
-                A.Blip blip = CreatePictureBlip(drawingPart, imageBytes, contentType, deduplicate);
+                OfficeXmlNode anchor = worksheetDrawing.New(Xdr, "oneCellAnchor");
+                OfficeXmlNode picture = anchor.New(Xdr, "pic");
+                OfficeXmlNode blipFill = picture.New(Xdr, "blipFill");
+                OfficeXmlNode blip = CreatePictureBlip(drawingPart, blipFill, imageBytes, contentType, deduplicate);
 
                 // Build a OneCellAnchor: FromMarker + Extent + Picture + ClientData
                 long cx = resolvedWidth.ToEmus();
@@ -65,41 +63,42 @@ namespace OfficeIMO.Excel {
                 long dx = offsetX.ToEmus();
                 long dy = offsetY.ToEmus();
 
-                var nvId = NextDrawingId(drawingPart);
+                uint nvId = NextDrawingId(drawingPart);
                 string resolvedName = string.IsNullOrWhiteSpace(name) ? $"Picture {nvId}" : name!.Trim();
-                var anchor = new Xdr.OneCellAnchor(
-                    new Xdr.FromMarker(
-                        new Xdr.ColumnId((column - 1).ToString()),
-                        new Xdr.ColumnOffset(dx.ToString()),
-                        new Xdr.RowId((row - 1).ToString()),
-                        new Xdr.RowOffset(dy.ToString())
-                    ),
-                    new Xdr.Extent { Cx = cx, Cy = cy },
-                    new Xdr.Picture(
-                        new Xdr.NonVisualPictureProperties(
-                            new Xdr.NonVisualDrawingProperties { Id = nvId, Name = resolvedName, Description = altText ?? string.Empty },
-                            new Xdr.NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = lockAspectRatio })
+                OfficeXmlNode nonVisual = picture.New(Xdr, "nvPicPr");
+                OfficeXmlNode pictureDrawing = nonVisual.New(Xdr, "cNvPicPr");
+                OfficeXmlNode stretch = blipFill.New(A, "stretch");
+                OfficeXmlNode shapeProperties = picture.New(Xdr, "spPr");
+                OfficeXmlNode transform = shapeProperties.New(A, "xfrm");
+                OfficeXmlNode geometry = shapeProperties.New(A, "prstGeom").Attr("prst", "rect");
+                anchor.With(
+                    NewMarker(anchor, "from", column - 1, dx, row - 1, dy),
+                    anchor.New(Xdr, "ext").Attr("cx", cx).Attr("cy", cy),
+                    picture.With(
+                        nonVisual.With(
+                            nonVisual.New(Xdr, "cNvPr").Attr("id", nvId).Attr("name", resolvedName).Attr("descr", altText ?? string.Empty),
+                            pictureDrawing.With(pictureDrawing.New(A, "picLocks").Attr("noChangeAspect", lockAspectRatio))
                         ),
-                        new Xdr.BlipFill(
+                        blipFill.With(
                             blip,
-                            new A.Stretch(new A.FillRectangle())
+                            stretch.With(stretch.New(A, "fillRect"))
                         ),
-                        new Xdr.ShapeProperties(
-                            new A.Transform2D(
-                                new A.Offset { X = 0, Y = 0 },
-                                new A.Extents { Cx = cx, Cy = cy }
+                        shapeProperties.With(
+                            transform.With(
+                                transform.New(A, "off").Attr("x", 0L).Attr("y", 0L),
+                                transform.New(A, "ext").Attr("cx", cx).Attr("cy", cy)
                             ),
-                            new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
+                            geometry.With(geometry.New(A, "avLst"))
                         )
                     ),
-                    new Xdr.ClientData()
+                    anchor.New(Xdr, "clientData")
                 );
 
-                drawingPart.WorksheetDrawing.Append(anchor);
-                drawingPart.WorksheetDrawing.Save();
-                WorksheetRoot.Save();
+                anchor = worksheetDrawing.Append(anchor);
+                drawingPart.SaveRoot();
+                ExcelPartRef.SaveWorksheetElement(this);
                 _excelDocument.MarkPackageDirty();
-                image = new ExcelImage(anchor.GetFirstChild<Xdr.Picture>()!, anchor, drawingPart, this);
+                image = new ExcelImage(anchor.Child(Xdr, "pic"), anchor, drawingPart, this);
             });
 
             return image!;
@@ -107,16 +106,29 @@ namespace OfficeIMO.Excel {
 
         private static long PxToEmu(int px) => (long)Math.Round(px * 9525.0);
 
-        private static bool IsSupportedImageAnchor(OpenXmlElement anchor)
-            => (anchor is Xdr.OneCellAnchor || anchor is Xdr.TwoCellAnchor || anchor is Xdr.AbsoluteAnchor)
-                && anchor.Descendants<Xdr.Picture>().Any();
+        private static bool IsSupportedImageAnchor(OfficeXmlNode anchor)
+            => IsSupportedDrawingAnchor(anchor) && anchor.FirstDescendantOutsideExtensions(Xdr, "pic").Exists;
 
-        private static UInt32Value NextDrawingId(DrawingsPart dp) {
+        /// <summary>An <c>xdr:from</c> or <c>xdr:to</c> marker with its column, column offset, row and row offset.</summary>
+        private static OfficeXmlNode NewMarker(OfficeXmlNode context, string localName, long column, long columnOffset, long row, long rowOffset) {
+            OfficeXmlNode marker = context.New(Xdr, localName);
+            return marker.With(
+                marker.NewText(Xdr, "col", column.ToString(CultureInfo.InvariantCulture)),
+                marker.NewText(Xdr, "colOff", columnOffset.ToString(CultureInfo.InvariantCulture)),
+                marker.NewText(Xdr, "row", row.ToString(CultureInfo.InvariantCulture)),
+                marker.NewText(Xdr, "rowOff", rowOffset.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        private static uint NextDrawingId(ExcelPartRef dp) {
+            OfficeXmlNode worksheetDrawing = dp.Root;
+            if (worksheetDrawing.IsNone) return 1;
+            // An SDK-held drawing is walked through the SDK's typed elements, which each chart and image added scans.
+            if (worksheetDrawing.IsSdk) return dp.MaxSdkDrawingId() + 1;
             uint max = 0;
-            if (dp.WorksheetDrawing != null) {
-                foreach (var nv in dp.WorksheetDrawing.Descendants<Xdr.NonVisualDrawingProperties>()) {
-                    if (nv.Id != null && nv.Id.Value > max) max = nv.Id.Value;
-                }
+            for (OfficeXmlNode current = worksheetDrawing.FirstChild; current.Exists; current = current.NextInSubtree(worksheetDrawing)) {
+                if (!current.Is(Xdr, "cNvPr")) continue;
+                uint? id = current.UInt32Attribute("id");
+                if (id.HasValue && id.Value > max) max = id.Value;
             }
             return max + 1;
         }
