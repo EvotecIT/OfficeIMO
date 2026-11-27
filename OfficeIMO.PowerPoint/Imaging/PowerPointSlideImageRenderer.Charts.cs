@@ -3,13 +3,15 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
-        private static void AddChart(OfficeDrawing drawing, PowerPointChart chart, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme,
+        private static void AddChart(OfficeDrawing drawing, PowerPointChart chart, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, OfficeIMO.OpenXml.Internal.OfficeXmlNode colorScheme,
             OfficeChartFidelity fidelity) {
             if (!TryGetBounds(chart, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
                 return;
             }
 
-            if (!chart.TryGetSnapshot(colorScheme, fidelity, out PowerPointChartSnapshot snapshot, out string? failureReason,
+            A.ColorScheme? chartColorScheme = colorScheme.SdkElement as A.ColorScheme
+                ?? (colorScheme.IsNone ? null : new A.ColorScheme(System.Text.Encoding.UTF8.GetString(colorScheme.OuterXml())));
+            if (!chart.TryGetSnapshot(chartColorScheme, fidelity, out PowerPointChartSnapshot snapshot, out string? failureReason,
                     out IReadOnlyList<string> approximations)) {
                 AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the shared chart renderer cannot draw it: " +
                     (failureReason ?? "the chart could not be projected."), diagnosticCode: OfficeDiagnosticCodes.UnsupportedChart);

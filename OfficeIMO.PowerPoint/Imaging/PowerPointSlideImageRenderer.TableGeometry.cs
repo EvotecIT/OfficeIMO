@@ -1,12 +1,12 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
 internal static partial class PowerPointSlideImageRenderer {
-    private static void AddTable(OfficeDrawing drawing, PowerPointTable table, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
+    private static void AddTable(OfficeDrawing drawing, PowerPointTable table, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, OfficeXmlNode colorScheme) {
         if (!TryValidateTableRasterLimits(table, out string? limitReason)) {
             AddUnsupportedShapeDiagnostic(diagnostics, table,
                 limitReason!);
@@ -25,7 +25,7 @@ internal static partial class PowerPointSlideImageRenderer {
         double[] rowHeights = CreateTableRowHeights(table, height);
         double[] columnLefts = CreateOffsets(columnWidths);
         double[] rowTops = CreateOffsets(rowHeights);
-        A.TableStyleEntry? tableStyle = ResolveTableStyle(table);
+        OfficeXmlNode tableStyle = ResolveTableStyleElement(table);
         bool[,] coveredCells = new bool[table.RowCount, table.ColumnCount];
 
         for (int row = 0; row < table.RowCount; row++) {
@@ -90,7 +90,7 @@ internal static partial class PowerPointSlideImageRenderer {
         int column,
         int rowSpan,
         int columnSpan,
-        A.TableStyleEntry? tableStyle,
+        OfficeXmlNode tableStyle,
         double cellLeft,
         double cellTop,
         double cellWidth,
@@ -99,7 +99,7 @@ internal static partial class PowerPointSlideImageRenderer {
         double tableTop,
         double tableWidth,
         double tableHeight,
-        A.ColorScheme? colorScheme) {
+        OfficeXmlNode colorScheme) {
         OfficeColor fillColor = ResolveTableCellFillColor(table, cell, row, column, tableStyle, colorScheme);
 
         OfficeTransform? transform = CreateTableCellTransform(table, cellLeft, cellTop, tableLeft, tableTop, tableWidth, tableHeight);
