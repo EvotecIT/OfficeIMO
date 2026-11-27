@@ -219,13 +219,6 @@ namespace OfficeIMO.Word.Html {
             };
         }
 
-        private static bool IsGenericFont(string family) =>
-            string.Equals(family, "serif", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(family, "sans-serif", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(family, "monospace", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(family, "cursive", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(family, "fantasy", StringComparison.OrdinalIgnoreCase);
-
         private static string? ResolveFontFamily(string? family) {
             if (string.IsNullOrWhiteSpace(family)) {
                 return null;
@@ -235,13 +228,11 @@ namespace OfficeIMO.Word.Html {
                 if (string.IsNullOrEmpty(trimmed)) {
                     continue;
                 }
-                if (IsGenericFont(trimmed)) {
-                    var resolved = WordFontResolver.Resolve(trimmed);
-                    if (!string.IsNullOrEmpty(resolved)) {
-                        return resolved;
-                    }
-                } else {
-                    return trimmed;
+                // The first family the document can name, as authored; a generic family becomes its portable
+                // Office font. Neither depends on the fonts installed where the document is generated.
+                var documentFont = WordFontResolver.ToDocumentFont(trimmed);
+                if (!string.IsNullOrEmpty(documentFont)) {
+                    return documentFont;
                 }
             }
             return null;

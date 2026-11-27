@@ -105,7 +105,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     if (!string.IsNullOrWhiteSpace(value)) {
                         hasAccountId = true;
                         hasIbanId = true;
-                        if (!OfficeIMO.Internal.Invoicing.InvoiceBankAccountIdentity.IsValidIban(value)) {
+                        if (!OfficeIMO.Entities.FinancialSchemes.Iban.IsValid(value)) {
                             invalidIbanIds.Add(value.Trim());
                         }
                     }
