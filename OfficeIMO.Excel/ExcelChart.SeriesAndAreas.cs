@@ -1,9 +1,5 @@
-using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     // Represents a chart on a worksheet.
@@ -14,8 +10,8 @@ namespace OfficeIMO.Excel {
         public ExcelChart SetSeriesNoFill(int seriesIndex, bool noLine = true) {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
-            bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+            bool applied = ApplySeriesByIndex(seriesIndex, (OfficeXmlNode series) => {
+                OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplyNoFill(props);
                 if (noLine) {
                     ApplyNoLine(props);
@@ -36,10 +32,10 @@ namespace OfficeIMO.Excel {
         public ExcelChart SetSeriesFillColor(int seriesIndex, OfficeColor color) {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
-            bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+            bool applied = ApplySeriesByIndex(seriesIndex, (OfficeXmlNode series) => {
+                OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, color);
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+                ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
@@ -56,10 +52,10 @@ namespace OfficeIMO.Excel {
         public ExcelChart SetSeriesFillColor(string seriesName, OfficeColor color, bool ignoreCase = true) {
             ArgumentNullException.ThrowIfNull(seriesName);
 
-            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, (OfficeXmlNode series) => {
+                OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, color);
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+                ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
@@ -77,10 +73,10 @@ namespace OfficeIMO.Excel {
             OfficeChartStyleBounds.ValidateLineWidth(width?.ToPoints(), nameof(width), allowZero: true);
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
-            bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+            bool applied = ApplySeriesByIndex(seriesIndex, (OfficeXmlNode series) => {
+                OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplyLine(props, color, width);
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+                ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
@@ -98,10 +94,10 @@ namespace OfficeIMO.Excel {
             OfficeChartStyleBounds.ValidateLineWidth(width?.ToPoints(), nameof(width), allowZero: true);
             ArgumentNullException.ThrowIfNull(seriesName);
 
-            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, (OfficeXmlNode series) => {
+                OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplyLine(props, color, width);
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+                ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
@@ -119,7 +115,7 @@ namespace OfficeIMO.Excel {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
 
-            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+            bool applied = ApplySeriesByIndex(seriesIndex, (OfficeXmlNode series) => {
                 ApplyPointFill(series, pointIndex, color);
             });
 
@@ -138,7 +134,7 @@ namespace OfficeIMO.Excel {
             ArgumentNullException.ThrowIfNull(seriesName);
             ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
 
-            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, (OfficeXmlNode series) => {
                 ApplyPointFill(series, pointIndex, color);
             });
 
@@ -160,7 +156,7 @@ namespace OfficeIMO.Excel {
             }
 
             OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
-            bool applied = ApplySeriesMarkerByIndex(seriesIndex, marker => {
+            bool applied = ApplySeriesMarkerByIndex(seriesIndex, (OfficeXmlNode marker) => {
                 ApplyMarker(marker, style, size, fillColor, lineColor, lineWidth);
             });
 
@@ -182,7 +178,7 @@ namespace OfficeIMO.Excel {
             }
 
             OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
-            bool applied = ApplySeriesMarkerByName(seriesName, ignoreCase, marker => {
+            bool applied = ApplySeriesMarkerByName(seriesName, ignoreCase, (OfficeXmlNode marker) => {
                 ApplyMarker(marker, style, size, fillColor, lineColor, lineWidth);
             });
 
@@ -201,17 +197,14 @@ namespace OfficeIMO.Excel {
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
             ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
-            ChartPart chartPart = GetChartPart();
-            C.ChartSpace? chartSpace = chartPart.ChartSpace;
-            if (chartSpace == null) {
+            OfficeXmlNode chartSpace = ChartSpaceNode();
+            if (chartSpace.IsNone) {
                 return this;
             }
 
-            C.ShapeProperties props = chartSpace.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
+            OfficeXmlNode existing = chartSpace.Child(C, "spPr");
+            OfficeXmlNode props = existing.Exists ? existing : chartSpace.Append(chartSpace.New(C, "spPr"));
             ApplyAreaStyle(props, fillColor, lineColor, lineWidth, noFill, noLine);
-            if (props.Parent == null) {
-                chartSpace.Append(props);
-            }
 
             Save();
             return this;
@@ -224,17 +217,14 @@ namespace OfficeIMO.Excel {
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
             ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ShapeProperties props = plotArea.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
+            OfficeXmlNode existing = plotArea.Child(C, "spPr");
+            OfficeXmlNode props = existing.Exists ? existing : plotArea.Append(plotArea.New(C, "spPr"));
             ApplyAreaStyle(props, fillColor, lineColor, lineWidth, noFill, noLine);
-            if (props.Parent == null) {
-                plotArea.Append(props);
-            }
 
             Save();
             return this;
@@ -249,7 +239,7 @@ namespace OfficeIMO.Excel {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
-            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+            bool applied = ApplySeriesByIndex(seriesIndex, (OfficeXmlNode series) => {
                 ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidth);
             });
 
@@ -271,7 +261,7 @@ namespace OfficeIMO.Excel {
             ArgumentNullException.ThrowIfNull(seriesName);
             ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
-            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, (OfficeXmlNode series) => {
                 ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidth);
             });
 
@@ -289,8 +279,8 @@ namespace OfficeIMO.Excel {
         public ExcelChart ClearSeriesTrendline(int seriesIndex) {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
-            bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                series.RemoveAllChildren<C.Trendline>();
+            bool applied = ApplySeriesByIndex(seriesIndex, (OfficeXmlNode series) => {
+                series.RemoveChildren(C, "trendline");
             });
 
             if (!applied) {
@@ -307,8 +297,8 @@ namespace OfficeIMO.Excel {
         public ExcelChart ClearSeriesTrendline(string seriesName, bool ignoreCase = true) {
             ArgumentNullException.ThrowIfNull(seriesName);
 
-            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                series.RemoveAllChildren<C.Trendline>();
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, (OfficeXmlNode series) => {
+                series.RemoveChildren(C, "trendline");
             });
 
             if (!applied) {
@@ -319,41 +309,33 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        private static void ApplyPointFill(OpenXmlCompositeElement series, int pointIndex, OfficeColor color) {
-            C.DataPoint point = EnsureDataPoint(series, pointIndex);
-            C.ChartShapeProperties props = point.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
+        private static void ApplyPointFill(OfficeXmlNode series, int pointIndex, OfficeColor color) {
+            OfficeXmlNode point = EnsureDataPoint(series, pointIndex);
+            OfficeXmlNode existing = point.Child(C, "spPr");
+            OfficeXmlNode props = existing.Exists ? existing : point.Append(point.New(C, "spPr"));
             ApplySolidFill(props, color);
-            if (props.Parent == null) {
-                point.Append(props);
-            }
         }
 
-        private static C.DataPoint EnsureDataPoint(OpenXmlCompositeElement series, int pointIndex) {
-            foreach (C.DataPoint existing in series.Elements<C.DataPoint>()) {
-                uint? existingIndex = existing.GetFirstChild<C.Index>()?.Val?.Value;
+        private static OfficeXmlNode EnsureDataPoint(OfficeXmlNode series, int pointIndex) {
+            foreach (OfficeXmlNode existing in series.Children(C, "dPt")) {
+                uint? existingIndex = existing.Child(C, "idx").UInt32Val();
                 if (existingIndex.HasValue && existingIndex.Value == (uint)pointIndex) {
                     return existing;
                 }
             }
 
-            var point = new C.DataPoint(new C.Index { Val = (uint)pointIndex });
-            OpenXmlElement? insertBefore = series.Elements<C.DataPoint>()
-                .FirstOrDefault(existing => {
-                    uint? existingIndex = existing.GetFirstChild<C.Index>()?.Val?.Value;
-                    return existingIndex.HasValue && existingIndex.Value > (uint)pointIndex;
-                });
-            insertBefore ??= series.GetFirstChild<C.DataLabels>();
-            insertBefore ??= series.GetFirstChild<C.Trendline>();
-            insertBefore ??= series.GetFirstChild<C.ErrorBars>();
-            insertBefore ??= series.GetFirstChild<C.CategoryAxisData>();
-            insertBefore ??= series.GetFirstChild<C.Values>();
-            insertBefore ??= series.GetFirstChild<C.XValues>();
-            insertBefore ??= series.GetFirstChild<C.YValues>();
-            insertBefore ??= series.GetFirstChild<C.BubbleSize>();
-            insertBefore ??= series.GetFirstChild<C.Smooth>();
-            insertBefore ??= series.GetFirstChild<C.ExtensionList>();
-            EnsureSeriesChildPosition(series, point, insertBefore);
-            return point;
+            OfficeXmlNode point = NewDataPoint(series);
+            point.Append(point.NewVal(C, "idx", (uint)pointIndex));
+            OfficeXmlNode insertBefore = OfficeXmlNode.None;
+            foreach (OfficeXmlNode existing in series.Children(C, "dPt")) {
+                uint? existingIndex = existing.Child(C, "idx").UInt32Val();
+                if (existingIndex.HasValue && existingIndex.Value > (uint)pointIndex) {
+                    insertBefore = existing;
+                    break;
+                }
+            }
+            if (insertBefore.IsNone) insertBefore = FirstExistingChild(series, SeriesChildrenAfterDataPoint);
+            return EnsureSeriesChildPosition(series, point, insertBefore);
         }
 
     }

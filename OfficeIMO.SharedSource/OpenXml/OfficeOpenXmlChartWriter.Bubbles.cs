@@ -1,9 +1,10 @@
 using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartWriter {
@@ -104,24 +105,24 @@ namespace OfficeIMO.OpenXml.Internal {
             return stream.ToArray();
         }
 
-        private static C.BubbleChart CreateSharedBubbleChart(OfficeChartData data,
+        private static OfficeXmlNode CreateSharedBubbleChart(OfficeXmlNode context, OfficeChartData data,
             uint xAxisId, uint yAxisId) {
-            C.BubbleChart chart = new(
-                new C.VaryColors { Val = false });
+            OfficeXmlNode chart = context.CreateElement(NsC, "bubbleChart");
+            chart.AppendVal(NsC, "varyColors", Text(false));
             for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
-                chart.Append(CreateSharedBubbleSeries(data, seriesIndex));
+                chart.Append(CreateSharedBubbleSeries(chart, data, seriesIndex));
             }
-            chart.Append(CreateDefaultDataLabels());
-            chart.Append(new C.Bubble3D { Val = false });
-            chart.Append(new C.BubbleScale { Val = 100U });
-            chart.Append(new C.ShowNegativeBubbles { Val = false });
-            chart.Append(new C.SizeRepresents { Val = C.SizeRepresentsValues.Area });
-            chart.Append(new C.AxisId { Val = xAxisId });
-            chart.Append(new C.AxisId { Val = yAxisId });
+            chart.Append(CreateDefaultDataLabels(chart));
+            chart.AppendVal(NsC, "bubble3D", Text(false));
+            chart.AppendVal(NsC, "bubbleScale", Text(100U));
+            chart.AppendVal(NsC, "showNegBubbles", Text(false));
+            chart.AppendVal(NsC, "sizeRepresents", "area");
+            chart.AppendVal(NsC, "axId", Text(xAxisId));
+            chart.AppendVal(NsC, "axId", Text(yAxisId));
             return chart;
         }
 
-        private static C.BubbleChartSeries CreateSharedBubbleSeries(OfficeChartData data,
+        private static OfficeXmlNode CreateSharedBubbleSeries(OfficeXmlNode context, OfficeChartData data,
             int seriesIndex) {
             OfficeSeries series = data.Series[seriesIndex];
             IReadOnlyList<double> xValues = series.XValues ?? ParseScatterCategories(data.Categories);
@@ -130,18 +131,19 @@ namespace OfficeIMO.OpenXml.Internal {
             string xColumn = ColumnLetter(firstColumn);
             string yColumn = ColumnLetter(firstColumn + 1);
             string sizeColumn = ColumnLetter(firstColumn + 2);
-            return new C.BubbleChartSeries(
-                new C.Index { Val = (uint)seriesIndex },
-                new C.Order { Val = (uint)seriesIndex },
-                new C.SeriesText(CreateStringReference(
-                    $"Sheet1!${yColumn}$1", new[] { series.Name })),
-                new C.XValues(CreateNumberReference(
-                    $"Sheet1!${xColumn}$2:${xColumn}${lastRow}", xValues)),
-                new C.YValues(CreateNumberReference(
-                    $"Sheet1!${yColumn}$2:${yColumn}${lastRow}", series.Values)),
-                new C.BubbleSize(CreateNumberReference(
-                    $"Sheet1!${sizeColumn}$2:${sizeColumn}${lastRow}", series.BubbleSizes!)),
-                new C.Bubble3D { Val = false });
+            OfficeXmlNode seriesElement = context.CreateElement(NsC, "ser");
+            seriesElement.AppendVal(NsC, "idx", Text((uint)seriesIndex));
+            seriesElement.AppendVal(NsC, "order", Text((uint)seriesIndex));
+            AppendStringReference(seriesElement.AppendNew(NsC, "tx"),
+                $"Sheet1!${yColumn}$1", new[] { series.Name });
+            AppendNumberReference(seriesElement.AppendNew(NsC, "xVal"),
+                $"Sheet1!${xColumn}$2:${xColumn}${lastRow}", xValues);
+            AppendNumberReference(seriesElement.AppendNew(NsC, "yVal"),
+                $"Sheet1!${yColumn}$2:${yColumn}${lastRow}", series.Values);
+            AppendNumberReference(seriesElement.AppendNew(NsC, "bubbleSize"),
+                $"Sheet1!${sizeColumn}$2:${sizeColumn}${lastRow}", series.BubbleSizes!);
+            seriesElement.AppendVal(NsC, "bubble3D", Text(false));
+            return seriesElement;
         }
     }
 }

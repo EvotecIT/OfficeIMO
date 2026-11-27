@@ -2,21 +2,22 @@ using static OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader;
 using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 
 namespace OfficeIMO.OpenXml.Internal;
 
 internal static partial class OfficeOpenXmlChartSeriesReader {
-    private static NativeText ReadChartStyleLabelText(ChartPart chartPart, A.ColorScheme? scheme) {
-        ChartStylePart[] parts = chartPart.GetPartsOfType<ChartStylePart>().Take(2).ToArray();
-        if (parts.Length == 0) return default;
-        if (parts.Length != 1) throw new NotSupportedException("Multiple chart text styles cannot be projected.");
-        const string chartStyleNamespace = "http://schemas.microsoft.com/office/drawing/2012/chartStyle";
+    private static NativeText ReadChartStyleLabelText(IOfficeChartPart chartPart, OfficeXmlNode scheme) {
+        const string chartStyleNamespace = ChartStyleUri;
         const string drawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
+        IReadOnlyList<Func<Stream>> parts = chartPart.ChartStyles(2);
+        if (parts.Count == 0) return default;
+        if (parts.Count != 1) throw new NotSupportedException("Multiple chart text styles cannot be projected.");
         try {
-            using Stream stream = parts[0].GetStream();
+            // The limit applies while the part streams in, so an oversized style is refused before it is parsed.
+            using Stream stream = parts[0]();
             using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
@@ -46,9 +47,9 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             string? fontReference = font?.Attribute("idx")?.Value;
             if (fontReference != null && fontReference is not "minor" and not "major")
                 throw new NotSupportedException("The chart data-label font reference cannot be projected.");
-            A.FontScheme? fontScheme = fontReference == null ? null : ResolveChartFontScheme(chartPart);
-            string? family = fontReference == "major" ? fontScheme?.MajorFont?.LatinFont?.Typeface?.Value :
-                fontReference == "minor" ? fontScheme?.MinorFont?.LatinFont?.Typeface?.Value : null;
+            OfficeXmlNode fontScheme = fontReference == null ? default : chartPart.HostFontScheme;
+            string? family = fontReference == "major" ? SchemeTypeface(fontScheme, "majorFont") :
+                fontReference == "minor" ? SchemeTypeface(fontScheme, "minorFont") : null;
             if (fontReference != null && string.IsNullOrWhiteSpace(family))
                 throw new NotSupportedException("The chart data-label font family cannot be resolved.");
 
@@ -59,17 +60,18 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 XElement element = colorElements[0];
                 if (element.Name.NamespaceName != drawingNamespace)
                     throw new NotSupportedException("The chart data-label font color cannot be projected.");
-                if (element.Name.LocalName == "schemeClr" && element.Attribute("val")?.Value is string token)
-                    element.SetAttributeValue("val", OfficeOpenXmlThemeColorResolver.MapSchemeColor(
-                        token, OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart)));
-                DocumentFormat.OpenXml.OpenXmlElement nativeColor = element.Name.LocalName switch {
-                    "schemeClr" => new A.SchemeColor(element.ToString(SaveOptions.DisableFormatting)),
-                    "srgbClr" => new A.RgbColorModelHex(element.ToString(SaveOptions.DisableFormatting)),
-                    _ => throw new NotSupportedException("The chart data-label font color cannot be projected.")
-                };
+                if (element.Name.LocalName is not "schemeClr" and not "srgbClr")
+                    throw new NotSupportedException("The chart data-label font color cannot be projected.");
+                // The color element on its own, with its namespace declared, as the color resolver reads it.
+                byte[] colorMarkup = System.Text.Encoding.UTF8.GetBytes(element.ToString(SaveOptions.DisableFormatting));
+                OfficeXmlTree colorTree = OfficeXmlTree.Parse(colorMarkup, colorMarkup.Length, new OfficeXmlNamespaces.Table());
+                OfficeXmlNode nativeColor = new(colorTree, colorTree.Root);
+                // A scheme color goes through the chart's color map, as the slot it names is mapped before it resolves.
+                OfficeXmlNode colorMap = element.Name.LocalName == "schemeClr" && element.Attribute("val") != null
+                    ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart) : default;
                 if (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(nativeColor))
                     throw new NotSupportedException("The chart data-label font transforms cannot be projected.");
-                color = OfficeOpenXmlThemeColorResolver.ResolveColor(nativeColor, scheme) ??
+                color = OfficeOpenXmlThemeColorResolver.ResolveColor(nativeColor, scheme, colorMap: colorMap) ??
                     throw new NotSupportedException("The chart data-label font color cannot be resolved.");
             }
 
@@ -104,32 +106,5 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         } catch (XmlException exception) {
             throw new NotSupportedException("The chart data-label style XML cannot be projected.", exception);
         }
-    }
-
-    private static A.FontScheme? ResolveChartFontScheme(ChartPart chartPart) {
-        var visited = new System.Collections.Generic.HashSet<OpenXmlPart>();
-        var queue = new System.Collections.Generic.Queue<OpenXmlPart>(chartPart.GetParentParts());
-        while (queue.Count > 0 && visited.Count < 16) {
-            OpenXmlPart owner = queue.Dequeue();
-            if (!visited.Add(owner)) continue;
-            A.FontScheme? scheme = owner switch {
-                SlidePart slide => slide.ThemeOverridePart?.ThemeOverride?.FontScheme ??
-                    slide.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.FontScheme ??
-                    slide.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.FontScheme,
-                SlideLayoutPart layout => layout.ThemeOverridePart?.ThemeOverride?.FontScheme ??
-                    layout.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.FontScheme,
-                SlideMasterPart master => master.ThemePart?.Theme?.ThemeElements?.FontScheme,
-                NotesSlidePart notes => notes.ThemeOverridePart?.ThemeOverride?.FontScheme ??
-                    notes.NotesMasterPart?.ThemePart?.Theme?.ThemeElements?.FontScheme,
-                NotesMasterPart notesMaster => notesMaster.ThemePart?.Theme?.ThemeElements?.FontScheme,
-                HandoutMasterPart handout => handout.ThemePart?.Theme?.ThemeElements?.FontScheme,
-                MainDocumentPart document => document.ThemePart?.Theme?.ThemeElements?.FontScheme,
-                WorkbookPart workbook => workbook.ThemePart?.Theme?.ThemeElements?.FontScheme,
-                _ => null
-            };
-            if (scheme != null) return scheme;
-            foreach (OpenXmlPart parent in owner.GetParentParts()) queue.Enqueue(parent);
-        }
-        return null;
     }
 }
