@@ -634,12 +634,11 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 The [archive codecs and containers design](officeimo.archives-codecs-design.md) sets the codec set, package placement, specifications and proof for the items below. Each lands with reference-tool fixtures from a committed script, typed malformed-input errors with offsets, default-on limits and, for encoders, determinism pins.
 
 - [ ] Report corruption in the existing ZIP, 7z, CAB, MSI, TAR and gzip readers through `ArchiveCorruptionException` with offsets, and add one public checksum set (CRC-32, CRC-32C, CRC-64, Adler-32, xxHash32, xxHash64) that replaces the private CRC-32 copies in Core, Email, OneNote and Png.
-- [ ] Read xz and lzip over the existing LZMA/LZMA2 decoders, with CRC-32, CRC-64 and SHA-256 checks, the delta filter, multiple streams and padding, as single streams and `.tar.xz` / `.tar.lz`.
 - [ ] Decode and encode LZ4 blocks and frames, including content checksums and linked blocks, as single streams and `.tar.lz4`.
 - [ ] Decode Brotli (RFC 7932) in managed code on every target, so WOFF2 fonts and Brotli CSV files no longer require .NET 8.
 - [ ] Replace runtime inflate with a managed Deflate decoder so decoding is identical on every runtime, including browser WebAssembly.
 - [ ] Add deterministic encoders: Zstandard levels, LZMA, LZMA2 and xz, lzip, Brotli qualities and Deflate levels, pinned by SHA-256 across platforms and target frameworks.
-- [ ] Detect every container and single-stream codec from content in `ArchiveInspector`, and inventory, plan, read, verify and extract through the existing surfaces, starting with `.zst` and `.tar.zst` in `ArchiveExtractor`, `ArchiveReader.ReadTar` and `OfficeIMO.Reader.Zip`.
+- [ ] Detect every container and single-stream codec from content in `ArchiveInspector`, and inventory, plan, read, verify and extract through the existing surfaces, starting with `.zst`, `.xz`, `.lz` and their `.tar` forms in `ArchiveExtractor`, `ArchiveReader.ReadTar` and `OfficeIMO.Reader.Zip`.
 - [ ] Read and write cpio (odc, newc, crc) and ar (System V/GNU and BSD), and read TAR sparse members (GNU 0.0, 0.1 and 1.0).
 - [ ] Read ISO 9660 images with Joliet and Rock Ridge names, links and permissions, then write deterministic images.
 - [ ] Read and write WinZip AES ZIP members, read ZipCrypto members, add an opt-in recovery mode for damaged ZIPs that reports each skipped range, and read Zstandard, LZMA, xz and bzip2 ZIP methods once their codecs exist.

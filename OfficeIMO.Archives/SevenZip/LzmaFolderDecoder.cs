@@ -1,11 +1,16 @@
 namespace OfficeIMO.Archives.SevenZip;
 
-/// <summary>Decodes the LZMA or LZMA2 stream of one 7z folder into its admitted output buffer.</summary>
+/// <summary>Decodes LZMA and LZMA2 streams, either into one admitted output buffer (7z folders) or through a sliding
+/// dictionary that writes completed output to a sink (xz and lzip).</summary>
 internal sealed class LzmaFolderDecoder {
     private const int PositionContextCount = 16;
     private const int LiteralModelSize = 768;
-    private readonly byte[] _output;
+    private const int MaxMatchLength = 273;
+    private const int StreamingSlice = 64 * 1024;
+    private byte[] _output;
     private readonly uint _dictionarySize;
+    private readonly LzmaOutputSink? _sink;
+    private int _flushed;
     private readonly ushort[] _matches = new ushort[12 * PositionContextCount];
     private readonly ushort[] _shortRepeats = new ushort[12 * PositionContextCount];
     private readonly ushort[] _repeatKinds = new ushort[12 * 4];
@@ -17,15 +22,55 @@ internal sealed class LzmaFolderDecoder {
     private readonly uint[] _recent = new uint[4];
     private ushort[] _literals = Array.Empty<ushort>();
     private int _position;
-    private int _historyStart;
+    private long _historyStart;
     private int _state;
     private int _literalContextBits;
     private int _literalPositionMask;
     private int _positionMask;
 
-    private LzmaFolderDecoder(byte[] output, uint dictionarySize) {
+    private LzmaFolderDecoder(byte[] output, uint dictionarySize, LzmaOutputSink? sink = null) {
         _output = output;
         _dictionarySize = dictionarySize;
+        _sink = sink;
+    }
+
+    /// <summary>Total bytes produced so far, including bytes already written to the sink.</summary>
+    internal long Produced => (_sink?.Written ?? 0) + _position - _flushed;
+
+    /// <summary>Creates a decoder that streams through a sliding dictionary. History is allocated as output grows, up
+    /// to the dictionary size plus one maximum LZMA2 chunk.</summary>
+    internal static LzmaFolderDecoder CreateStreaming(uint dictionarySize, LzmaOutputSink sink) =>
+        new(new byte[64 * 1024], Math.Max(4096u, dictionarySize), sink);
+
+    /// <summary>Decodes one LZMA stream that ends with an end marker (lzip) and leaves the source at the byte after it.</summary>
+    internal void DecodeLzmaUntilEndMarker(Stream source, int properties, ArchiveBlockBudget budget, CancellationToken token) {
+        ConfigureModels(properties, lzma2: false, budget);
+        var reader = new LzmaRangeDecoder(source, source.Length - source.Position);
+        while (true) {
+            token.ThrowIfCancellationRequested();
+            EnsureFits(StreamingSlice + MaxMatchLength, exact: false);
+            int softEnd = _position + StreamingSlice;
+            int hardEnd = _output.Length;
+            while (_position < softEnd) {
+                if (!DecodeSymbol(reader, hardEnd)) {
+                    if (!reader.CodeIsZero) throw new InvalidDataException("The LZMA end marker is not followed by a flushed range coder.");
+                    Flush();
+                    return;
+                }
+            }
+        }
+    }
+
+    /// <summary>Decodes an LZMA2 stream through the sliding dictionary until its end-of-stream control byte.</summary>
+    internal void DecodeLzma2Streaming(Stream source, ArchiveBlockBudget budget, CancellationToken token) {
+        DecodeLzma2Chunks(this, source, budget, token);
+        Flush();
+    }
+
+    private void Flush() {
+        if (_sink == null || _position == _flushed) return;
+        _sink.Write(_output, _flushed, _position - _flushed);
+        _flushed = _position;
     }
 
     internal static void DecodeLzma(Stream source, byte[] properties, byte[] output, ArchiveBlockBudget budget, CancellationToken token) {
@@ -36,9 +81,17 @@ internal sealed class LzmaFolderDecoder {
     }
 
     internal static void DecodeLzma2(Stream source, byte[] properties, byte[] output, ArchiveBlockBudget budget, CancellationToken token) {
-        int property = properties[0];
-        uint dictionary = property == 40 ? uint.MaxValue : (uint)(2 + property % 2) << (11 + property / 2);
-        var decoder = new LzmaFolderDecoder(output, dictionary);
+        var decoder = new LzmaFolderDecoder(output, Lzma2DictionarySize(properties[0]));
+        DecodeLzma2Chunks(decoder, source, budget, token);
+        if (decoder._position != output.Length || source.Position != source.Length)
+            throw new InvalidDataException("The 7z LZMA2 stream does not end at its declared boundaries.");
+    }
+
+    /// <summary>Dictionary size named by an LZMA2 property byte (0 to 40).</summary>
+    internal static uint Lzma2DictionarySize(int property) =>
+        property == 40 ? uint.MaxValue : (uint)(2 + property % 2) << (11 + property / 2);
+
+    private static void DecodeLzma2Chunks(LzmaFolderDecoder decoder, Stream source, ArchiveBlockBudget budget, CancellationToken token) {
         bool requireDictionary = true;
         bool requireProperties = true;
         while (true) {
@@ -76,8 +129,6 @@ internal sealed class LzmaFolderDecoder {
             }
             decoder.DecodeSegment(source, packedLength, plainLength, allowEndMarker: false, token);
         }
-        if (decoder._position != output.Length || source.Position != source.Length)
-            throw new InvalidDataException("The 7z LZMA2 stream does not end at its declared boundaries.");
     }
 
     private void ConfigureModels(int properties, bool lzma2, ArchiveBlockBudget budget) {
@@ -134,7 +185,7 @@ internal sealed class LzmaFolderDecoder {
     }
 
     private bool DecodeSymbol(LzmaRangeDecoder reader, int end) {
-        int context = (_position - _historyStart) & _positionMask;
+        int context = (int)((_position - _historyStart) & _positionMask);
         int stateAndContext = _state * PositionContextCount + context;
         if (reader.Bit(_matches, stateAndContext) == 0) {
             if (_position == end) throw new InvalidDataException("The LZMA stream exceeds its declared output size.");
@@ -171,7 +222,7 @@ internal sealed class LzmaFolderDecoder {
 
     private byte ReadLiteral(LzmaRangeDecoder reader) {
         int previous = _position > _historyStart ? _output[_position - 1] : 0;
-        int positionContext = (_position - _historyStart) & _literalPositionMask;
+        int positionContext = (int)((_position - _historyStart) & _literalPositionMask);
         int context = (positionContext << _literalContextBits) | (previous >> (8 - _literalContextBits));
         int baseIndex = context * LiteralModelSize;
         int prefix = 1;
@@ -205,13 +256,39 @@ internal sealed class LzmaFolderDecoder {
     }
 
     private int HistoryOffset(uint distance) {
-        if (distance >= _dictionarySize || distance >= (uint)(_position - _historyStart))
+        if (distance >= _dictionarySize || distance >= _position - _historyStart)
             throw new InvalidDataException("An LZMA match points outside its initialized dictionary.");
         return _position - (int)distance - 1;
     }
 
-    private void EnsureFits(int count) {
-        if (count > _output.Length - _position) throw new InvalidDataException("A 7z compressed chunk exceeds its declared output size.");
+    /// <summary>Makes room for <paramref name="count"/> more bytes. An exact count is a declared chunk size and is
+    /// checked against the output limit; a working slice is checked when it is written.</summary>
+    private void EnsureFits(int count, bool exact = true) {
+        if (count <= _output.Length - _position) return;
+        if (_sink == null) throw new InvalidDataException("A 7z compressed chunk exceeds its declared output size.");
+        if (exact) _sink.Admit(Produced + count);
+        Flush();
+        // Keep the reachable history: the dictionary, or everything since the last dictionary reset if that is shorter.
+        int keep = (int)Math.Min(_position, Math.Min(_dictionarySize, _position - _historyStart));
+        int shift = _position - keep;
+        if (shift > 0) {
+            Buffer.BlockCopy(_output, shift, _output, 0, keep);
+            _position = keep;
+            _flushed = keep;
+            _historyStart -= shift;
+        }
+        if (count > _output.Length - _position) {
+            long needed = (long)_position + count;
+            long grown = Math.Max(needed, Math.Min(2L * _output.Length, (long)_dictionarySize + 2 * (2 * 1024 * 1024 + MaxMatchLength + StreamingSlice)));
+            if (grown > int.MaxValue - 64) throw new InvalidDataException("The LZMA dictionary does not fit in memory.");
+            Array.Resize(ref _output, (int)grown);
+        }
+        // Keep the distance from the last reset bounded so long streams cannot overflow it; the low bits select contexts.
+        if (_position - _historyStart > (long)_dictionarySize + 1024) {
+            long distance = _position - _historyStart;
+            long target = (long)_dictionarySize + 16;
+            _historyStart = _position - (target + ((distance - target) & 15));
+        }
     }
 
     private static int Octet(Stream stream) {
