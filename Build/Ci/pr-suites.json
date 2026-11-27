@@ -306,6 +306,7 @@
       "OfficeIMO.DocBook.Tests",
       "OfficeIMO.Drawing.CodeGlyphX.Tests",
       "OfficeIMO.Drawing.Tests",
+      "OfficeIMO.Fluent.Generators.Tests",
       "OfficeIMO.GoogleWorkspace.Tests",
       "OfficeIMO.Html.Pdf.Browser.Tests",
       "OfficeIMO.IWork.Tests",

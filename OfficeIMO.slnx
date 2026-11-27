@@ -155,6 +155,8 @@
   <Project Path="OfficeIMO.Data.Conversions.Excel/OfficeIMO.Data.Conversions.Excel.csproj" />
   <Project Path="OfficeIMO.Data.Conversions.Tests/OfficeIMO.Data.Conversions.Tests.csproj" />
   <Project Path="OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj" />
+  <Project Path="OfficeIMO.Fluent.Generators/OfficeIMO.Fluent.Generators.csproj" />
+  <Project Path="OfficeIMO.Fluent.Generators.Tests/OfficeIMO.Fluent.Generators.Tests.csproj" />
   <Project Path="OfficeIMO.DjVu.Pdf/OfficeIMO.DjVu.Pdf.csproj" />
   <Project Path="OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj" />
   <Project Path="OfficeIMO.DjVu/OfficeIMO.DjVu.csproj" />
