@@ -29,11 +29,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                         continue;
                     }
                     ExcelSheet targetSheet = document.AddSheet(sourceSheet.Name);
-                    if (XlsbWorksheetGridProjector.CanStream(sourceSheet)) {
-                        ProjectCellGrid(document, targetSheet, sourceSheet, cancellationToken);
-                    } else {
-                        ProjectCellsThroughModel(targetSheet, sourceSheet, cancellationToken);
-                    }
+                    ProjectCellsThroughModel(targetSheet, sourceSheet, cancellationToken);
 
                     ApplyRichText(targetSheet, sourceSheet, workbook.Stylesheet, cancellationToken);
 
@@ -84,21 +80,6 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 document.Dispose();
                 throw;
             }
-        }
-
-        private static void ProjectCellGrid(ExcelDocument document, ExcelSheet sheet, XlsbSheet source,
-            CancellationToken cancellationToken) {
-            var part = sheet.WorksheetPart;
-            using var xml = new MemoryStream(Math.Min(64 * 1024, source.Cells.Count * 24));
-            XlsbWorksheetGridProjector.WriteWorksheet(xml, source,
-                text => document.TryGetOrAddSharedStringIndexBelowLimit(text, ExcelSheet.CellValuePlainStringPromotionSharedStringCount,
-                    validateNewString: false, out int index, out _) ? index : (int?)null,
-                (formulaReference, retainsCache) => {
-                    if (retainsCache) document.MarkFormulaInputMutation();
-                    if (formulaReference != null) document.MarkFormulaAuthored(part, formulaReference, retainsCache);
-                }, cancellationToken);
-            xml.Position = 0;
-            part.FeedData(xml);
         }
 
         private static void ProjectCellsThroughModel(ExcelSheet targetSheet, XlsbSheet sourceSheet,
@@ -161,7 +142,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             return run;
         }
 
-        private static void EnsureArrayProjectionBudget(XlsbWorkbook workbook, int maxCells,
+        internal static void EnsureArrayProjectionBudget(XlsbWorkbook workbook, int maxCells,
             System.Threading.CancellationToken cancellationToken) {
             long projectedCells = workbook.Sheets.Sum(sheet => (long)sheet.Cells.Count);
             if (projectedCells > maxCells) throw new InvalidDataException($"The XLSB workbook exceeds the configured limit of {maxCells} cells.");

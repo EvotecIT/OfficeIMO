@@ -151,31 +151,6 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal void MarkLoadedFromXlsb(string? sourcePath, XlsbWorkbook workbook) {
-            ArgumentNullException.ThrowIfNull(workbook);
-
-            SourceFormat = ExcelFileFormat.Xlsb;
-            _legacyXlsPreservationSnapshot = null;
-            _xlsbSourcePath = sourcePath;
-            _xlsbOriginalPackageBytes = workbook.OriginalPackageBytes;
-            _legacyXlsWasEncryptedSource = false;
-            _openXmlOriginalPackageBytes = null;
-            _xlsbAdvancedWorkbook = workbook;
-            _xlsbPreservationGuard = OfficeIMO.Excel.Xlsb.Write.XlsbProjectionPreservationGuard.Capture(this);
-            _xlsbImportDiagnostics = workbook.Diagnostics.ToArray();
-            CaptureBinaryLoadDiagnostics(workbook);
-            _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
-            _packageDirty = false;
-            _packagePropertiesDirty = false;
-            CaptureXlsbDocumentPropertiesState();
-            _requiresSavePreflight = false;
-            _unchangedPackageBytes = null;
-            _packageContentTypesKnownNormalized = false;
-            if (!string.IsNullOrEmpty(sourcePath)) {
-                FilePath = sourcePath!;
-            }
-        }
-
         internal static ExcelDocument ProjectLoadedLegacyXlsWorkbook(
             LegacyXlsWorkbook workbook,
             string? sourcePath,

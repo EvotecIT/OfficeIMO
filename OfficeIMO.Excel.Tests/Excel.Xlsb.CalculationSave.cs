@@ -45,6 +45,27 @@ public sealed class ExcelXlsbCalculationSaveTests {
         }
     }
 
+    [Fact]
+    public void Import_and_unchanged_native_save_keep_the_workbook_on_the_owned_package() {
+        var options = new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb };
+        using var seed = ExcelDocument.Create();
+        ExcelSheet sample = seed.AddSheet("Data");
+        sample.Cell(1, 1).SetValue(123);
+        sample.Cell(2, 1).SetValue("Sample");
+        byte[] nativeBytes = seed.ToBytes(options);
+
+        using var source = new MemoryStream(nativeBytes, writable: false);
+        using ExcelDocument document = ExcelDocument.Load(source);
+        Assert.True(document.IsSdkDeferred);
+        ExcelSheet imported = Assert.Single(document.Sheets);
+        Assert.Equal("Data", imported.Name);
+
+        using var destination = new MemoryStream();
+        document.Save(destination, options);
+        Assert.Equal(nativeBytes, destination.ToArray());
+        Assert.Empty(document.OpenXmlSdkFallbacks);
+    }
+
     [Theory]
     [InlineData("evaluate", false)]
     [InlineData("clear", false)]

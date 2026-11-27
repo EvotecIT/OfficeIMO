@@ -21,39 +21,68 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
         }
 
         internal static void WriteWorksheet(Stream output, XlsbSheet source, Func<string, int?> sharedStringIndex,
-            Action<string?, bool> recordMutation, CancellationToken cancellationToken) {
+            Action<string?, bool> recordMutation, CancellationToken cancellationToken, OfficeXmlNode layout = default,
+            XlsbStylesheet? styles = null) {
             using XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
                 Encoding = new UTF8Encoding(false),
                 NewLineHandling = NewLineHandling.Entitize
             });
             writer.WriteStartElement("worksheet", Namespace);
-            writer.WriteStartElement("sheetData", Namespace);
-
-            int row = 0;
-            foreach (XlsbCell cell in source.Cells) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (cell.Row != row) {
-                    if (row != 0) writer.WriteEndElement();
-                    row = cell.Row;
-                    writer.WriteStartElement("row", Namespace);
-                    writer.WriteAttributeString("r", InvariantNumberText.Get(row));
+            if (layout.IsNone) {
+                WriteGrid(writer, source, sharedStringIndex, recordMutation, includeLayout: false, styles, cancellationToken);
+            } else {
+                foreach (OfficeXmlNode child in layout.Children()) {
+                    if (child.Is(OfficeXmlNamespaces.SpreadsheetML, "sheetData"))
+                        WriteGrid(writer, source, sharedStringIndex, recordMutation, includeLayout: true, styles, cancellationToken);
+                    else
+                        writer.WriteRaw(Encoding.UTF8.GetString(child.OuterXml()));
                 }
-                WriteCell(writer, cell, sharedStringIndex, recordMutation);
             }
-            if (row != 0) writer.WriteEndElement();
-
             writer.WriteEndElement();
+        }
+
+        private static void WriteGrid(XmlWriter writer, XlsbSheet source, Func<string, int?> sharedStringIndex,
+            Action<string?, bool> recordMutation, bool includeLayout, XlsbStylesheet? styles, CancellationToken cancellationToken) {
+            writer.WriteStartElement("sheetData", Namespace);
+            int cellIndex = 0, rowIndex = 0;
+            IReadOnlyList<XlsbRowInfo> rows = includeLayout ? source.Rows : Array.Empty<XlsbRowInfo>();
+            while (cellIndex < source.Cells.Count || rowIndex < rows.Count) {
+                cancellationToken.ThrowIfCancellationRequested();
+                XlsbRowInfo? metadata = rowIndex < rows.Count ? rows[rowIndex] : null;
+                int cellRow = cellIndex < source.Cells.Count ? source.Cells[cellIndex].Row : int.MaxValue;
+                int row = Math.Min(cellRow, metadata?.Row ?? int.MaxValue);
+                writer.WriteStartElement("row", Namespace);
+                writer.WriteAttributeString("r", InvariantNumberText.Get(row));
+                if (metadata?.Row == row) {
+                    XlsbWorksheetGeometryMarkup.WriteRowAttributes(writer, metadata);
+                    rowIndex++;
+                }
+                while (cellIndex < source.Cells.Count && source.Cells[cellIndex].Row == row) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    WriteCell(writer, source.Cells[cellIndex++], sharedStringIndex, recordMutation, includeLayout, styles);
+                }
+                writer.WriteEndElement();
+            }
             writer.WriteEndElement();
         }
 
         private static void WriteCell(XmlWriter writer, XlsbCell cell, Func<string, int?> sharedStringIndex,
-            Action<string?, bool> recordMutation) {
+            Action<string?, bool> recordMutation, bool richText, XlsbStylesheet? styles) {
             string reference = ExcelA1.CellReference(cell.Row, cell.Column);
             (string? type, string? value) = CellValue(cell, sharedStringIndex);
             string? formula = string.IsNullOrWhiteSpace(cell.FormulaText) ? null : ExcelSanitizer.SanitizeFormula(cell.FormulaText!);
             writer.WriteStartElement("c", Namespace);
             writer.WriteAttributeString("r", reference);
             writer.WriteAttributeString("s", InvariantNumberText.Get(cell.StyleIndex));
+            // BIFF12 text runs project to an inline string. Keep the initial shared-string
+            // lookup because it determines indices of later plain strings in the same workbook.
+            if (richText && cell.TextRuns != null && cell.FormulaBytes == null && cell.Value is string text) {
+                writer.WriteAttributeString("t", "inlineStr");
+                WriteRichText(writer, text, cell.TextRuns, styles);
+                writer.WriteEndElement();
+                recordMutation(null, true);
+                return;
+            }
             if (type != null) writer.WriteAttributeString("t", type);
             if (formula != null) {
                 writer.WriteStartElement("f", Namespace);
@@ -65,6 +94,34 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             writer.WriteEndElement();
 
             recordMutation(formula == null ? null : reference, value != null);
+        }
+
+        private static void WriteRichText(XmlWriter writer, string text, XlsbTextRun[] runs, XlsbStylesheet? styles) {
+            writer.WriteStartElement("is", Namespace);
+            if (runs[0].Start > 0) WriteRun(writer, text.Substring(0, runs[0].Start), null);
+            for (int index = 0; index < runs.Length; index++) {
+                int begin = runs[index].Start;
+                int end = index + 1 < runs.Length ? runs[index + 1].Start : text.Length;
+                int fontIndex = runs[index].Font;
+                XlsbFont? font = styles != null && fontIndex < styles.Fonts.Count ? styles.Fonts[fontIndex] : null;
+                WriteRun(writer, text.Substring(begin, end - begin), font);
+            }
+            writer.WriteEndElement();
+        }
+
+        private static void WriteRun(XmlWriter writer, string text, XlsbFont? font) {
+            writer.WriteStartElement("r", Namespace);
+            if (font != null) {
+                OfficeXmlTree tree = OfficeXmlTree.Create(new OfficeXmlNamespaces.Table(), OfficeXmlNamespaces.SpreadsheetML, "rPr", 12);
+                var props = new OfficeXmlNode(tree, tree.Root);
+                XlsbStylesheetMarkup.WriteFont(props, font, run: true);
+                writer.WriteRaw(Encoding.UTF8.GetString(props.OuterXml()));
+            }
+            writer.WriteStartElement("t", Namespace);
+            writer.WriteAttributeString("xml", "space", "http://www.w3.org/XML/1998/namespace", "preserve");
+            writer.WriteString(ExcelSanitizer.EncodeXString(text));
+            writer.WriteEndElement();
+            writer.WriteEndElement();
         }
 
         private static (string? Type, string? Value) CellValue(XlsbCell cell, Func<string, int?> sharedStringIndex) {

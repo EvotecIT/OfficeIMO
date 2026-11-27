@@ -18,6 +18,30 @@ namespace OfficeIMO.Excel {
             _xlsbDocumentPropertiesSnapshot = XlsbDocumentPropertyParts.Snapshot.Take(this);
         }
 
+        internal void MarkLoadedFromXlsb(string? sourcePath, XlsbWorkbook workbook) {
+            ArgumentNullException.ThrowIfNull(workbook);
+
+            SourceFormat = ExcelFileFormat.Xlsb;
+            _legacyXlsPreservationSnapshot = null;
+            _xlsbSourcePath = sourcePath;
+            _xlsbOriginalPackageBytes = workbook.OriginalPackageBytes;
+            _legacyXlsWasEncryptedSource = false;
+            _openXmlOriginalPackageBytes = null;
+            _xlsbAdvancedWorkbook = workbook;
+            _xlsbImportDiagnostics = workbook.Diagnostics.ToArray();
+            CaptureBinaryLoadDiagnostics(workbook);
+            _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
+            _packageDirty = false;
+            _packagePropertiesDirty = false;
+            InitializeXlsbPreservationForLoadedProjection();
+            _requiresSavePreflight = false;
+            _unchangedPackageBytes = null;
+            _packageContentTypesKnownNormalized = false;
+            if (!string.IsNullOrEmpty(sourcePath)) {
+                FilePath = sourcePath!;
+            }
+        }
+
         internal XlsbProjectionPreservationGuard NativeXlsbPreservation => _xlsbPreservationGuard
             ?? throw new InvalidOperationException("The XLSB source bindings are unavailable.");
         internal void ValidateNativeXlsbProjection() => _xlsbPreservationGuard?.Validate(this);
@@ -61,6 +85,14 @@ namespace OfficeIMO.Excel {
         }
 
         private bool CanCopyUnchangedXlsb(ExcelSaveOptions? options) {
+            if (IsSdkDeferred && _xlsbDeferredBaseline != null) {
+                if (ReferenceEquals(_deferredPackageBytes, _xlsbDeferredBaseline)
+                    && !_packageDirty && !_packagePropertiesDirty && !_customDocumentPropertiesDirty
+                    && _xlsbOriginalPackageBytes != null && !HasXlsbTransformSaveWork(options) && !HasCalculationSaveWork(options)) {
+                    return true;
+                }
+                OpenDeferredSdk("Save: rewriting an edited XLSB workbook");
+            }
             ValidateNativeXlsbProjection();
             return SourceFormat == ExcelFileFormat.Xlsb
                 && !_packageDirty
@@ -102,7 +134,7 @@ namespace OfficeIMO.Excel {
             CommitPreparedPackageToFile(path, bytes);
             FilePath = path;
             _xlsbSourcePath = path;
-            AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
+            if (!unchanged || !IsSdkDeferred) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(!existingSource
@@ -131,7 +163,7 @@ namespace OfficeIMO.Excel {
             await CommitPreparedPackageToFileAsync(path, bytes, cancellationToken).ConfigureAwait(false);
             FilePath = path;
             _xlsbSourcePath = path;
-            AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
+            if (!unchanged || !IsSdkDeferred) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(!existingSource
@@ -177,7 +209,7 @@ namespace OfficeIMO.Excel {
             PrepareDestinationStreamForWrite(destination);
             destination.Write(bytes, 0, bytes.Length);
             try { destination.Flush(); } catch (NotSupportedException) { }
-            RefreshXlsbStateAfterNativeWrite(bytes);
+            if (!unchanged || !IsSdkDeferred) RefreshXlsbStateAfterNativeWrite(bytes);
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
                 : "XLSB worksheet cell records rewritten while all other package parts were preserved.");
@@ -222,7 +254,7 @@ namespace OfficeIMO.Excel {
             PrepareDestinationStreamForWrite(destination);
             await destination.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
             try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
-            RefreshXlsbStateAfterNativeWrite(bytes);
+            if (!unchanged || !IsSdkDeferred) RefreshXlsbStateAfterNativeWrite(bytes);
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
                 : "XLSB worksheet cell records rewritten while all other package parts were preserved.");
@@ -291,24 +323,7 @@ namespace OfficeIMO.Excel {
             foreach (var sheet in Sheets) {
                 var native = workbook.Worksheets.FirstOrDefault(item => item.Name == sheet.Name);
                 if (native == null) continue;
-                var root = sheet.WorksheetPart.Worksheet!;
-                if (native.UsedRange != null)
-                    root.SheetDimension = new DocumentFormat.OpenXml.Spreadsheet.SheetDimension { Reference = native.UsedRange.ToA1Reference() };
-                var nativeFormulas = native.Cells.Where(cell => cell.FormulaText != null).ToDictionary(cell => ExcelA1.CellReference(cell.Row, cell.Column));
-                foreach (var cell in root.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Where(cell => cell.CellFormula != null))
-                    if (nativeFormulas.TryGetValue(cell.CellReference?.Value ?? string.Empty, out var formula)) cell.CellFormula!.Text = formula.FormulaText!;
-                var clearedOpaque = native.Cells.Where(cell => cell.FormulaBytes != null && cell.FormulaText == null && cell.Kind == XlsbCellValueKind.Text && cell.Value is string text && text.Length == 0)
-                    .ToDictionary(cell => ExcelA1.CellReference(cell.Row, cell.Column));
-                if (clearedOpaque.Count != 0) foreach (var cell in root.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>())
-                    if (clearedOpaque.ContainsKey(cell.CellReference?.Value ?? string.Empty) && cell.CellFormula == null) {
-                        cell.InlineString = null; cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
-                        cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(string.Empty);
-                    }
-                string? codeName = native.Properties?.CodeName;
-                if (string.IsNullOrEmpty(codeName)) continue;
-                var properties = root.SheetProperties;
-                if (properties == null) { properties = new DocumentFormat.OpenXml.Spreadsheet.SheetProperties(); root.AddChild(properties, true); }
-                properties.CodeName = codeName;
+                XlsbWorksheetIdentity.Restore(XlsbWorksheetMarkup.Root(sheet), native);
             }
         }
 
