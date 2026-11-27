@@ -17,6 +17,8 @@
     <!-- PDFium through Docnet.Core is the text reference engine. -->
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
     <PackageReference Include="PdfPig" Version="0.1.15" />
+    <!-- Tabula (tabula-sharp, MIT) extracts ruled tables on top of PdfPig for the pdfpig-tabula engine. -->
+    <PackageReference Include="Tabula" Version="1.0.1" />
     <!-- PdfOxide (MIT OR Apache-2.0) ships native pdf_oxide libraries behind a .NET binding. -->
     <PackageReference Include="PdfOxide" Version="0.3.78" />
   </ItemGroup>
