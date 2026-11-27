@@ -1,5 +1,5 @@
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint {
         /// paragraphs; shape fitting grows only the exported frame, without editing the deck.
         /// </summary>
         private static OfficeDrawing CreateFittedTextBoxDrawing(PowerPointTextBox textBox, double width, double height,
-            List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colors,
+            List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, OfficeXmlNode colors,
             Func<string?, double, string?, OfficeFontStyle, double> measure, string? defaultFontFamily,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -34,7 +34,7 @@ namespace OfficeIMO.PowerPoint {
             }
             double textWidth = width - marginLeft - marginRight;
             double textHeight = height - marginTop - marginBottom;
-            bool wrap = textBox.TextBody?.GetFirstChild<A.BodyProperties>()?.Wrap?.Value != A.TextWrappingValues.None;
+            bool wrap = textBox.XmlElement.Child(Pml, "txBody").Child(D, "bodyPr").Attribute("wrap") != "none";
             List<PowerPointParagraph> paragraphs = textBox.Paragraphs.ToList();
             PowerPointTextAutoFitOptions? options = textBox.TextAutoFit == PowerPointTextAutoFit.Normal
                 ? textBox.TextAutoFitOptions : null;

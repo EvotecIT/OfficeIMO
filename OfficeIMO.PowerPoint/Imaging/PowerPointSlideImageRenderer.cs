@@ -1,25 +1,59 @@
-using DocumentFormat.OpenXml;
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
-        private static A.ColorScheme? GetSlideColorScheme(PowerPointSlide slide) =>
-            slide.ResolvedColorScheme;
+        private const int D = OfficeXmlNamespaces.DrawingML;
+        private const int Pml = OfficeXmlNamespaces.PresentationML;
 
-        private static A.FormatScheme? GetSlideFormatScheme(PowerPointSlide slide) =>
-            slide.ResolvedFormatScheme;
+        // While a slide renders, its theme scope is resolved once instead of for every shape. Outside a render, and
+        // once the SDK opens part way through one, it is resolved again, so later edits are always seen.
+        [ThreadStatic] private static PowerPointSlide? _renderingSlide;
+        [ThreadStatic] private static bool _renderingScopeResolved;
+        [ThreadStatic] private static bool _renderingScopeSdk;
+        [ThreadStatic] private static PowerPointThemeScope _renderingScope;
+
+        private static PowerPointThemeScope ThemeScope(PowerPointSlide slide) {
+            if (!ReferenceEquals(slide, _renderingSlide)) return PowerPointThemeScope.For(slide.PartRef);
+            bool sdk = slide.OwnerDocument?.IsSdkLoaded == true;
+            if (!_renderingScopeResolved || _renderingScopeSdk != sdk) {
+                _renderingScope = PowerPointThemeScope.For(slide.PartRef);
+                _renderingScopeSdk = sdk;
+                _renderingScopeResolved = true;
+            }
+            return _renderingScope;
+        }
+
+        private static OfficeXmlNode GetSlideColorScheme(PowerPointSlide slide) => ThemeScope(slide).ColorScheme;
+
+        private static OfficeXmlNode GetSlideFormatScheme(PowerPointSlide slide) => ThemeScope(slide).FormatScheme;
+
+        /// <summary>The color map the slide's scheme colors go through, or none without a slide.</summary>
+        private static OfficeXmlNode GetSlideColorMap(PowerPointSlide? slide) =>
+            slide == null ? default : ThemeScope(slide).ColorMap;
+
+        /// <summary>The color map of the slide a part ref names, or none for no slide.</summary>
+        private static OfficeXmlNode GetSlideColorMap(PowerPointPartRef slide) =>
+            slide.IsNone ? default : PowerPointThemeScope.For(slide).ColorMap;
 
         /// <summary>Projects the existing shared shape appearance for preset and text-frame export.</summary>
         internal static void ApplyShapeAppearanceForExport(OfficeShape target, PowerPointShape source,
             List<OfficeImageExportDiagnostic> diagnostics) {
-            bool transformedAncestor = source.Element.Ancestors<DocumentFormat.OpenXml.Presentation.GroupShape>()
-                .Any(group => group.GroupShapeProperties?.TransformGroup is { } transform
-                    && ((transform.Rotation?.Value ?? 0) != 0 || transform.HorizontalFlip?.Value == true
-                        || transform.VerticalFlip?.Value == true));
-            ApplyShapeStyle(target, source, source.OwnerSlide?.ResolvedColorScheme,
+            bool transformedAncestor = false;
+            for (OfficeXmlNode ancestor = source.XmlElement.Parent; !ancestor.IsNone; ancestor = ancestor.Parent) {
+                if (!ancestor.Is(Pml, "grpSp")) continue;
+                OfficeXmlNode transform = ancestor.Child(Pml, "grpSpPr").Child(D, "xfrm");
+                if (!transform.IsNone && ((transform.Int32Attribute("rot") ?? 0) != 0 || transform.BooleanAttribute("flipH") == true
+                        || transform.BooleanAttribute("flipV") == true)) {
+                    transformedAncestor = true;
+                    break;
+                }
+            }
+            ApplyShapeStyle(target, source, source.OwnerSlide == null ? default : GetSlideColorScheme(source.OwnerSlide),
                 PowerPointShapeBoundsMapping.Identity.WithTransformedAncestor(transformedAncestor), diagnostics);
             if (source.UnsupportedFillKindForExport is { } fillKind) {
                 AddUnsupportedShapeDiagnostic(diagnostics, source,
@@ -28,7 +62,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyShapeStyle(OfficeShape target, PowerPointShape source,
-            A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping,
+            OfficeXmlNode colorScheme, PowerPointShapeBoundsMapping mapping,
             List<OfficeImageExportDiagnostic> diagnostics) {
             ShapeFillGradientProjection gradientProjection = ApplyShapeFillGradient(
                 target, source, colorScheme, mapping.HasTransformedAncestor);
@@ -41,11 +75,11 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (TryResolveShapeOutlineColor(source, colorScheme, out OfficeColor stroke)) {
-                A.Outline? localOutline = GetLocalShapeOutline(source);
-                A.Outline? themeOutline = GetThemeShapeOutline(source);
+                OfficeXmlNode localOutline = GetLocalShapeOutline(source);
+                OfficeXmlNode themeOutline = GetThemeShapeOutline(source);
                 target.StrokeColor = stroke;
-                long? widthEmus = localOutline?.Width?.Value
-                    ?? themeOutline?.Width?.Value;
+                long? widthEmus = localOutline.Int32Attribute("w")
+                    ?? themeOutline.Int32Attribute("w");
                 double widthPoints = widthEmus.HasValue
                     ? widthEmus.Value / 12700D
                     : 1D;
@@ -62,28 +96,26 @@ namespace OfficeIMO.PowerPoint {
             ApplyShapeEffects(target, source, colorScheme, mapping);
         }
 
-        private static A.Outline? GetLocalShapeOutline(PowerPointShape source) =>
-            GetOpenXmlShapeProperties(source)?.GetFirstChild<A.Outline>();
+        private static OfficeXmlNode GetLocalShapeOutline(PowerPointShape source) =>
+            GetShapePropertiesElement(source).Child(D, "ln");
 
-        private static A.Outline? GetThemeShapeOutline(PowerPointShape source) {
-            A.LineReference? lineReference =
-                GetOpenXmlShapeStyle(source)?.LineReference;
-            A.FormatScheme? formatScheme = source.OwnerSlide == null
-                ? null
+        private static OfficeXmlNode GetThemeShapeOutline(PowerPointShape source) {
+            OfficeXmlNode lineReference = GetShapeStyleElement(source).Child(D, "lnRef");
+            OfficeXmlNode formatScheme = source.OwnerSlide == null
+                ? default
                 : GetSlideFormatScheme(source.OwnerSlide);
-            OpenXmlElement? themeLine = ResolveThemeShapeLine(formatScheme,
-                lineReference?.Index?.Value);
-            return themeLine as A.Outline
-                ?? themeLine?.GetFirstChild<A.Outline>();
+            OfficeXmlNode themeLine = ResolveThemeShapeLine(formatScheme,
+                lineReference.UInt32Attribute("idx"));
+            return themeLine.Is(D, "ln") ? themeLine : themeLine.Child(D, "ln");
         }
 
-        private static bool TryResolveShapeFillColor(PowerPointShape source, A.ColorScheme? colorScheme, out OfficeColor color) {
+        private static bool TryResolveShapeFillColor(PowerPointShape source, OfficeXmlNode colorScheme, out OfficeColor color) {
             OfficeColor? resolved = source.ResolveFillColorForExport();
             color = resolved.GetValueOrDefault();
             return resolved.HasValue;
         }
 
-        private static bool TryResolveShapeOutlineColor(PowerPointShape source, A.ColorScheme? colorScheme, out OfficeColor color) {
+        private static bool TryResolveShapeOutlineColor(PowerPointShape source, OfficeXmlNode colorScheme, out OfficeColor color) {
             OfficeColor? resolved = source.ResolveOutlineColorForExport();
             color = resolved.GetValueOrDefault();
             return resolved.HasValue;
@@ -91,17 +123,17 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Converts DrawingML dash percentages to exact lengths in the authored stroke width.</summary>
         private static void ApplyStrokeDash(OfficeShape target, PowerPointShape source,
-            A.Outline? localOutline, A.Outline? themeOutline, List<OfficeImageExportDiagnostic> diagnostics) {
-            A.Outline? outline = localOutline?.GetFirstChild<A.PresetDash>() != null
-                || localOutline?.GetFirstChild<A.CustomDash>() != null ? localOutline : themeOutline;
-            target.StrokeDashStyle = MapDash(outline?.GetFirstChild<A.PresetDash>()?.Val?.Value);
-            A.CustomDash? custom = outline?.GetFirstChild<A.CustomDash>();
-            if (custom == null || target.StrokeWidth <= 0D) return;
+            OfficeXmlNode localOutline, OfficeXmlNode themeOutline, List<OfficeImageExportDiagnostic> diagnostics) {
+            OfficeXmlNode outline = !localOutline.Child(D, "prstDash").IsNone
+                || !localOutline.Child(D, "custDash").IsNone ? localOutline : themeOutline;
+            target.StrokeDashStyle = MapDash(outline.Child(D, "prstDash").Attribute("val"));
+            OfficeXmlNode custom = outline.Child(D, "custDash");
+            if (custom.IsNone || target.StrokeWidth <= 0D) return;
 
             var pattern = new List<double>();
-            foreach (A.DashStop stop in custom.Elements<A.DashStop>()) {
-                pattern.Add(target.StrokeWidth * (stop.DashLength?.Value ?? 0) / 100000D);
-                pattern.Add(target.StrokeWidth * (stop.SpaceLength?.Value ?? 0) / 100000D);
+            foreach (OfficeXmlNode stop in custom.Children(D, "ds")) {
+                pattern.Add(target.StrokeWidth * (stop.Int32Attribute("d") ?? 0) / 100000D);
+                pattern.Add(target.StrokeWidth * (stop.Int32Attribute("sp") ?? 0) / 100000D);
             }
             if (pattern.Any(value => value < 0D) || !pattern.Any(value => value > 0D)) {
                 AddUnsupportedShapeDiagnostic(diagnostics, source,
@@ -113,47 +145,35 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyStrokeLineCapAndJoin(OfficeShape target,
-            A.Outline? localOutline, A.Outline? themeOutline) {
-            target.StrokeLineCap = MapLineCap(localOutline?.CapType?.Value)
-                ?? MapLineCap(themeOutline?.CapType?.Value);
-            target.StrokeLineJoin = localOutline == null
+            OfficeXmlNode localOutline, OfficeXmlNode themeOutline) {
+            target.StrokeLineCap = MapLineCap(localOutline.Attribute("cap"))
+                ?? MapLineCap(themeOutline.Attribute("cap"));
+            target.StrokeLineJoin = localOutline.IsNone
                 ? null
                 : MapLineJoin(localOutline);
-            target.StrokeLineJoin ??= themeOutline == null
+            target.StrokeLineJoin ??= themeOutline.IsNone
                 ? null
                 : MapLineJoin(themeOutline);
         }
 
-        private static OfficeStrokeLineCap? MapLineCap(A.LineCapValues? cap) {
-            if (!cap.HasValue) {
-                return null;
-            }
+        // DrawingML ST_LineCap tokens.
+        private static OfficeStrokeLineCap? MapLineCap(string? cap) => cap switch {
+            "rnd" => OfficeStrokeLineCap.Round,
+            "sq" => OfficeStrokeLineCap.Square,
+            "flat" => OfficeStrokeLineCap.Butt,
+            _ => null
+        };
 
-            if (cap.Value == A.LineCapValues.Round) {
-                return OfficeStrokeLineCap.Round;
-            }
-
-            if (cap.Value == A.LineCapValues.Square) {
-                return OfficeStrokeLineCap.Square;
-            }
-
-            if (cap.Value == A.LineCapValues.Flat) {
-                return OfficeStrokeLineCap.Butt;
-            }
-
-            return null;
-        }
-
-        private static OfficeStrokeLineJoin? MapLineJoin(A.Outline outline) {
-            if (outline.GetFirstChild<A.Round>() != null) {
+        private static OfficeStrokeLineJoin? MapLineJoin(OfficeXmlNode outline) {
+            if (!outline.Child(D, "round").IsNone) {
                 return OfficeStrokeLineJoin.Round;
             }
 
-            if (outline.GetFirstChild<A.LineJoinBevel>() != null) {
+            if (!outline.Child(D, "bevel").IsNone) {
                 return OfficeStrokeLineJoin.Bevel;
             }
 
-            if (outline.GetFirstChild<A.Miter>() != null) {
+            if (!outline.Child(D, "miter").IsNone) {
                 return OfficeStrokeLineJoin.Miter;
             }
 
@@ -161,20 +181,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyLineMarkers(OfficeShape target,
-            A.Outline? localOutline, A.Outline? themeOutline) {
+            OfficeXmlNode localOutline, OfficeXmlNode themeOutline) {
             if (target.Kind != OfficeShapeKind.Line && target.Kind != OfficeShapeKind.Path) {
                 return;
             }
 
-            A.HeadEnd? headEnd = localOutline?.GetFirstChild<A.HeadEnd>()
-                ?? themeOutline?.GetFirstChild<A.HeadEnd>();
-            A.TailEnd? tailEnd = localOutline?.GetFirstChild<A.TailEnd>()
-                ?? themeOutline?.GetFirstChild<A.TailEnd>();
-            target.StrokeStartMarker = MapLineMarker(headEnd?.Type?.Value, headEnd?.Width?.Value, headEnd?.Length?.Value, target.StrokeWidth);
-            target.StrokeEndMarker = MapLineMarker(tailEnd?.Type?.Value, tailEnd?.Width?.Value, tailEnd?.Length?.Value, target.StrokeWidth);
+            OfficeXmlNode headEnd = localOutline.Child(D, "headEnd");
+            if (headEnd.IsNone) headEnd = themeOutline.Child(D, "headEnd");
+            OfficeXmlNode tailEnd = localOutline.Child(D, "tailEnd");
+            if (tailEnd.IsNone) tailEnd = themeOutline.Child(D, "tailEnd");
+            target.StrokeStartMarker = MapLineMarker(headEnd.Attribute("type"), headEnd.Attribute("w"), headEnd.Attribute("len"), target.StrokeWidth);
+            target.StrokeEndMarker = MapLineMarker(tailEnd.Attribute("type"), tailEnd.Attribute("w"), tailEnd.Attribute("len"), target.StrokeWidth);
         }
 
-        private static OfficeLineMarker? MapLineMarker(A.LineEndValues? type, A.LineEndWidthValues? width, A.LineEndLengthValues? length, double strokeWidth) {
+        private static OfficeLineMarker? MapLineMarker(string? type, string? width, string? length, double strokeWidth) {
             OfficeLineMarkerKind kind = MapLineMarkerKind(type);
             if (kind == OfficeLineMarkerKind.None) {
                 return null;
@@ -185,61 +205,33 @@ namespace OfficeIMO.PowerPoint {
             return new OfficeLineMarker(kind, markerWidth, markerLength);
         }
 
-        private static DocumentFormat.OpenXml.Presentation.ShapeProperties? GetOpenXmlShapeProperties(PowerPointShape shape) {
-            return shape.Element switch {
-                DocumentFormat.OpenXml.Presentation.Shape openXmlShape => openXmlShape.ShapeProperties,
-                DocumentFormat.OpenXml.Presentation.ConnectionShape connectionShape => connectionShape.ShapeProperties,
-                _ => null
-            };
+        /// <summary>The <c>p:spPr</c> of a shape or connector, or none for other elements.</summary>
+        private static OfficeXmlNode GetShapePropertiesElement(PowerPointShape shape) {
+            OfficeXmlNode element = shape.XmlElement;
+            return element.Is(Pml, "sp") || element.Is(Pml, "cxnSp") ? element.Child(Pml, "spPr") : default;
         }
 
-        private static OfficeLineMarkerKind MapLineMarkerKind(A.LineEndValues? type) {
-            if (type == A.LineEndValues.Triangle) {
-                return OfficeLineMarkerKind.Triangle;
-            }
+        // DrawingML ST_LineEndType, ST_LineEndWidth and ST_LineEndLength tokens.
+        private static OfficeLineMarkerKind MapLineMarkerKind(string? type) => type switch {
+            "triangle" => OfficeLineMarkerKind.Triangle,
+            "stealth" => OfficeLineMarkerKind.Stealth,
+            "diamond" => OfficeLineMarkerKind.Diamond,
+            "oval" => OfficeLineMarkerKind.Oval,
+            "arrow" => OfficeLineMarkerKind.Arrow,
+            _ => OfficeLineMarkerKind.None
+        };
 
-            if (type == A.LineEndValues.Stealth) {
-                return OfficeLineMarkerKind.Stealth;
-            }
+        private static double MapLineMarkerWidthFactor(string? width) => width switch {
+            "sm" => 3D,
+            "lg" => 6D,
+            _ => 4.5D
+        };
 
-            if (type == A.LineEndValues.Diamond) {
-                return OfficeLineMarkerKind.Diamond;
-            }
-
-            if (type == A.LineEndValues.Oval) {
-                return OfficeLineMarkerKind.Oval;
-            }
-
-            if (type == A.LineEndValues.Arrow) {
-                return OfficeLineMarkerKind.Arrow;
-            }
-
-            return OfficeLineMarkerKind.None;
-        }
-
-        private static double MapLineMarkerWidthFactor(A.LineEndWidthValues? width) {
-            if (width == A.LineEndWidthValues.Small) {
-                return 3D;
-            }
-
-            if (width == A.LineEndWidthValues.Large) {
-                return 6D;
-            }
-
-            return 4.5D;
-        }
-
-        private static double MapLineMarkerLengthFactor(A.LineEndLengthValues? length) {
-            if (length == A.LineEndLengthValues.Small) {
-                return 4D;
-            }
-
-            if (length == A.LineEndLengthValues.Large) {
-                return 8D;
-            }
-
-            return 6D;
-        }
+        private static double MapLineMarkerLengthFactor(string? length) => length switch {
+            "sm" => 4D,
+            "lg" => 8D,
+            _ => 6D
+        };
 
         /// <summary>Applies the native shape frame to the composed geometry and paint.</summary>
         internal static void ApplyShapeTransformForExport(OfficeShape target, PowerPointShape source, double width, double height) {
@@ -275,7 +267,7 @@ namespace OfficeIMO.PowerPoint {
                 : OfficeTextParagraphIndent.Empty;
         }
 
-        private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTextBox textBox, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false, string? defaultFontFamily = null) {
+        private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTextBox textBox, PowerPointParagraph? paragraph, OfficeXmlNode colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false, string? defaultFontFamily = null) {
             OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme, paragraph);
             if (markerRun && paragraph != null)
                 color = PowerPointEffectiveRunStyleResolver.ResolveBulletColorForExport(paragraph, textBox, color);
@@ -287,9 +279,9 @@ namespace OfficeIMO.PowerPoint {
                 run?.Bold == true,
                 run?.Italic == true,
                 run?.Underline == true,
-                PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
+                ResolveThemeFontReference(
                     (markerRun ? paragraph?.BulletFontFamily : null) ?? run?.FontFamily ?? textBox.FontFamily,
-                    run?.OwnerPart ?? paragraph?.OwnerPart ?? textBox.RelationshipOwnerPart)
+                    run, paragraph, textBox)
                     ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                 run?.Strikethrough == true,
                 backgroundColor,
@@ -321,25 +313,28 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointCapitalization? ResolvePowerPointCapitalization(PowerPointTextRun? run, PowerPointParagraph? paragraph) {
             if (run?.Capitalization.HasValue == true) return run.Capitalization;
-            A.TextCapsValues? inherited = paragraph?.Paragraph.ParagraphProperties?
-                .GetFirstChild<A.DefaultRunProperties>()?.Capital?.Value;
-            if (!inherited.HasValue) return null;
-            if (inherited.Value == A.TextCapsValues.None) return PowerPointCapitalization.None;
-            if (inherited.Value == A.TextCapsValues.Small) return PowerPointCapitalization.SmallCaps;
-            if (inherited.Value == A.TextCapsValues.All) return PowerPointCapitalization.AllCaps;
-            return null;
+            if (paragraph == null) return null;
+            // DrawingML ST_TextCapsType tokens.
+            return ParagraphDefaultRunProperties(paragraph).Attribute("cap") switch {
+                "none" => PowerPointCapitalization.None,
+                "small" => PowerPointCapitalization.SmallCaps,
+                "all" => PowerPointCapitalization.AllCaps,
+                _ => null
+            };
         }
+
+        /// <summary>The paragraph's <c>a:pPr/a:defRPr</c>, or none.</summary>
+        private static OfficeXmlNode ParagraphDefaultRunProperties(PowerPointParagraph paragraph) =>
+            paragraph.Element.Child(D, "pPr").Child(D, "defRPr");
 
         private static string? ResolvePowerPointLanguage(PowerPointTextRun? run, PowerPointParagraph? paragraph) =>
             !string.IsNullOrWhiteSpace(run?.Language)
                 ? run!.Language
-                : paragraph?.Paragraph.ParagraphProperties?
-                    .GetFirstChild<A.DefaultRunProperties>()?.Language?.Value;
+                : paragraph == null ? null : ParagraphDefaultRunProperties(paragraph).Attribute("lang");
 
         private static double? ResolvePowerPointBaselinePercent(PowerPointTextRun? run, PowerPointParagraph? paragraph) {
             if (run?.BaselinePercent.HasValue == true) return run.BaselinePercent;
-            int? inherited = paragraph?.Paragraph.ParagraphProperties?
-                .GetFirstChild<A.DefaultRunProperties>()?.Baseline?.Value;
+            int? inherited = paragraph == null ? null : ParagraphDefaultRunProperties(paragraph).Int32Attribute("baseline");
             return inherited.HasValue ? inherited.Value / 1000D : (double?)null;
         }
 
@@ -432,16 +427,28 @@ namespace OfficeIMO.PowerPoint {
             _ => OfficeTextBaseline.Normal
         };
 
-        private static OfficeColor ResolveTextRunColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme,
+        private static OfficeColor ResolveTextRunColor(PowerPointTextRun? run, PowerPointTextBox textBox, OfficeXmlNode colorScheme,
             PowerPointParagraph? paragraph = null) {
             if (run == null) return ResolveTextBoxColor(textBox, colorScheme);
-            paragraph ??= textBox.Paragraphs.FirstOrDefault(item =>
-                ReferenceEquals(item.Paragraph, run.Run.Parent ?? run.RunProperties?.Parent?.Parent));
+            paragraph ??= FindRunParagraph(textBox.Paragraphs, run);
             return PowerPointEffectiveRunStyleResolver.ResolveTextColorForExport(run, paragraph, textBox)
                 ?? OfficeColor.Black;
         }
 
-        private static OfficeColor ResolveTextBoxColor(PowerPointTextBox textBox, A.ColorScheme? colorScheme) {
+        /// <summary>
+        /// The paragraph of <paramref name="paragraphs"/> that holds the run: the parent of an <c>a:r</c>, or of an
+        /// <c>a:fld</c> that has run properties; a field without them, or a run that is not attached, has none.
+        /// </summary>
+        private static PowerPointParagraph? FindRunParagraph(IEnumerable<PowerPointParagraph> paragraphs, PowerPointTextRun run) {
+            OfficeXmlNode element = run.Element;
+            OfficeXmlNode parent = element.Is(D, "r") || element.Is(D, "fld") && !element.Child(D, "rPr").IsNone
+                ? element.Parent
+                : default;
+            if (parent.IsNone) return null;
+            return paragraphs.FirstOrDefault(item => item.Element == parent);
+        }
+
+        private static OfficeColor ResolveTextBoxColor(PowerPointTextBox textBox, OfficeXmlNode colorScheme) {
             PowerPointParagraph? paragraph = textBox.Paragraphs.FirstOrDefault(item =>
                 item.InlineNodes.Any(node => node.Run != null && !string.IsNullOrEmpty(node.Text)))
                 ?? textBox.Paragraphs.FirstOrDefault();
@@ -452,11 +459,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, PowerPointTextBox textBox,
-            A.ColorScheme? colorScheme, PowerPointParagraph? paragraph = null) {
-            if (run != null) paragraph ??= textBox.Paragraphs.FirstOrDefault(item =>
-                ReferenceEquals(item.Paragraph, run.Run.Parent ?? run.RunProperties?.Parent?.Parent));
-            return PowerPointEffectiveRunStyleResolver.ResolveTextColorElementForExport(
-                PowerPointEffectiveRunStyleResolver.ResolveHighlightElement(run, paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle), textBox);
+            OfficeXmlNode colorScheme, PowerPointParagraph? paragraph = null) {
+            if (run != null) paragraph ??= FindRunParagraph(textBox.Paragraphs, run);
+            return ResolveTextBoxHighlightColor(run, paragraph, textBox);
         }
 
         private static OfficeTextAlignment MapTextAlignment(PowerPointTextAlignment? alignment) {
@@ -478,31 +483,14 @@ namespace OfficeIMO.PowerPoint {
             return OfficeTextAlignment.Left;
         }
 
-        private static OfficeStrokeDashStyle MapDash(A.PresetLineDashValues? dash) {
-            if (dash == A.PresetLineDashValues.LargeDashDotDot ||
-                dash == A.PresetLineDashValues.SystemDashDotDot) {
-                return OfficeStrokeDashStyle.DashDotDot;
-            }
-
-            if (dash == A.PresetLineDashValues.DashDot ||
-                dash == A.PresetLineDashValues.LargeDashDot ||
-                dash == A.PresetLineDashValues.SystemDashDot) {
-                return OfficeStrokeDashStyle.DashDot;
-            }
-
-            if (dash == A.PresetLineDashValues.Dot ||
-                dash == A.PresetLineDashValues.SystemDot) {
-                return OfficeStrokeDashStyle.Dot;
-            }
-
-            if (dash == A.PresetLineDashValues.Dash ||
-                dash == A.PresetLineDashValues.LargeDash ||
-                dash == A.PresetLineDashValues.SystemDash) {
-                return OfficeStrokeDashStyle.Dash;
-            }
-
-            return OfficeStrokeDashStyle.Solid;
-        }
+        // DrawingML ST_PresetLineDashVal tokens.
+        private static OfficeStrokeDashStyle MapDash(string? dash) => dash switch {
+            "lgDashDotDot" or "sysDashDotDot" => OfficeStrokeDashStyle.DashDotDot,
+            "dashDot" or "lgDashDot" or "sysDashDot" => OfficeStrokeDashStyle.DashDot,
+            "dot" or "sysDot" => OfficeStrokeDashStyle.Dot,
+            "dash" or "lgDash" or "sysDash" => OfficeStrokeDashStyle.Dash,
+            _ => OfficeStrokeDashStyle.Solid
+        };
 
         private static bool TryParseOfficeColor(string? value, out OfficeColor color) {
             color = default;

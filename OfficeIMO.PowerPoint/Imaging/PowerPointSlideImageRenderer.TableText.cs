@@ -1,7 +1,8 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -20,7 +21,7 @@ internal static partial class PowerPointSlideImageRenderer {
         double tableHeight,
         List<OfficeImageExportDiagnostic> diagnostics,
         PowerPointShapeBoundsMapping mapping,
-        A.ColorScheme? colorScheme) {
+        OfficeXmlNode colorScheme) {
         string text = ResolvePowerPointDisplayText(cell);
         if (string.IsNullOrEmpty(text)) {
             return;
@@ -117,16 +118,15 @@ internal static partial class PowerPointSlideImageRenderer {
         }
 
         return new OfficeFontInfo(
-            PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(firstRun?.FontFamily ?? cell.FontFamily,
-                firstRun?.OwnerPart ?? cell.OwnerPart) ?? "Calibri",
+            ResolveThemeFontReference(firstRun?.FontFamily ?? cell.FontFamily,
+                firstRun, null, cell) ?? "Calibri",
             mapping.MapFontSize(firstRun?.FontSize?.ToPoints() ?? cell.FontSize?.ToPoints() ?? 10),
             style);
     }
 
-    private static List<OfficeRichTextRun> CreateRichTextRuns(PowerPointTableCell cell, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
+    private static List<OfficeRichTextRun> CreateRichTextRuns(PowerPointTableCell cell, OfficeXmlNode colorScheme, PowerPointShapeBoundsMapping mapping) {
         var richRuns = new List<OfficeRichTextRun>();
-        A.TextBody? textBody = cell.Cell.TextBody;
-        if (textBody == null) {
+        if (cell.Element.Child(D, "txBody").IsNone) {
             return richRuns;
         }
 
@@ -155,14 +155,14 @@ internal static partial class PowerPointSlideImageRenderer {
         return richRuns;
     }
 
-    private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTableCell cell, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
+    private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTableCell cell, OfficeXmlNode colorScheme, PowerPointShapeBoundsMapping mapping) {
         return CreateRichTextRun(text, run, cell, paragraph: null, colorScheme, mapping, markerRun: false);
     }
 
-    private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTableCell cell, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false) {
+    private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTableCell cell, PowerPointParagraph? paragraph, OfficeXmlNode colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false) {
         OfficeColor color = ResolveTableCellTextRunColor(run, cell, colorScheme);
         if (markerRun && paragraph != null)
-            color = PowerPointEffectiveRunStyleResolver.ResolveBulletColorForExport(paragraph, cell, colorScheme, color);
+            color = ResolveTableCellBulletColor(paragraph, cell, colorScheme, color);
         OfficeColor? backgroundColor = ResolveTableCellTextRunBackgroundColor(run, cell, paragraph, colorScheme);
         Uri? hyperlink = markerRun ? null : run?.Hyperlink;
         return new OfficeRichTextRun(
@@ -172,9 +172,9 @@ internal static partial class PowerPointSlideImageRenderer {
             run?.Bold == true,
             run?.Italic == true,
             run?.Underline == true,
-            PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
+            ResolveThemeFontReference(
                 (markerRun ? paragraph?.BulletFontFamily : null) ?? run?.FontFamily ?? cell.FontFamily,
-                run?.OwnerPart ?? paragraph?.OwnerPart ?? cell.OwnerPart) ?? "Calibri",
+                run, paragraph, cell) ?? "Calibri",
             run?.Strikethrough == true,
             backgroundColor,
             MapUnderlineStyle(run?.UnderlineStyle),
@@ -248,9 +248,9 @@ internal static partial class PowerPointSlideImageRenderer {
             OfficeConversionLossKind.Approximation));
     }
 
-    private static OfficeColor ResolveTableCellTextRunColor(PowerPointTextRun? run, PowerPointTableCell cell, A.ColorScheme? colorScheme) {
-        OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme,
-            colorMap: PowerPointSlide.ResolveExportColorMap(cell.SlidePart));
+    private static OfficeColor ResolveTableCellTextRunColor(PowerPointTextRun? run, PowerPointTableCell cell, OfficeXmlNode colorScheme) {
+        OfficeColor? runColor = OfficeXmlThemeColors.ResolveColor(RunSolidFill(run), colorScheme,
+            colorMap: GetSlideColorMap(TableCellSlide(cell)));
         if (runColor.HasValue) {
             return runColor.Value;
         }
@@ -258,24 +258,68 @@ internal static partial class PowerPointSlideImageRenderer {
         return ResolveTableCellTextColor(cell, colorScheme);
     }
 
-    private static OfficeColor ResolveTableCellTextColor(PowerPointTableCell cell, A.ColorScheme? colorScheme) {
+    private static OfficeColor ResolveTableCellTextColor(PowerPointTableCell cell, OfficeXmlNode colorScheme) {
         PowerPointTextRun? run = cell.Paragraphs
             .SelectMany(paragraph => paragraph.InlineNodes)
             .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
-        OfficeColor? cellColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme,
-            colorMap: PowerPointSlide.ResolveExportColorMap(cell.SlidePart));
+        OfficeColor? cellColor = OfficeXmlThemeColors.ResolveColor(RunSolidFill(run), colorScheme,
+            colorMap: GetSlideColorMap(TableCellSlide(cell)));
         return cellColor.HasValue
             ? cellColor.Value
             : OfficeColor.Black;
     }
 
-    private static OfficeColor? ResolveTableCellTextRunBackgroundColor(PowerPointTextRun? run, PowerPointTableCell cell,
-        PowerPointParagraph? paragraph, A.ColorScheme? colorScheme) {
-        if (run != null) paragraph ??= cell.Paragraphs.FirstOrDefault(item =>
-            ReferenceEquals(item.Paragraph, run.Run.Parent ?? run.RunProperties?.Parent?.Parent));
-        var masterStyle = cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles?.OtherStyle;
-        return OfficeOpenXmlThemeColorResolver.ResolveColor(
-            PowerPointEffectiveRunStyleResolver.ResolveHighlightElement(run, paragraph, cell.Cell.TextBody?.ListStyle, masterStyle), colorScheme,
-            colorMap: PowerPointSlide.ResolveExportColorMap(cell.SlidePart));
+    /// <summary>The run's <c>a:rPr/a:solidFill</c>, or none.</summary>
+    private static OfficeXmlNode RunSolidFill(PowerPointTextRun? run) =>
+        run == null ? default : run.PropertiesElement.Child(D, "solidFill");
+
+    /// <summary>The slide the cell's table is on, or none for a table of a layout or master.</summary>
+    private static PowerPointPartRef TableCellSlide(PowerPointTableCell cell) {
+        PowerPointPartRef slide = cell.SlidePartRef;
+        return slide.Kind == PowerPointPartKind.Slide ? slide : default;
     }
+
+    private static OfficeColor? ResolveTableCellTextRunBackgroundColor(PowerPointTextRun? run, PowerPointTableCell cell,
+        PowerPointParagraph? paragraph, OfficeXmlNode colorScheme) {
+        if (run != null) paragraph ??= FindRunParagraph(cell.Paragraphs, run);
+        return OfficeXmlThemeColors.ResolveColor(
+            ResolveTableCellHighlightElement(run, paragraph, cell), colorScheme,
+            colorMap: GetSlideColorMap(TableCellSlide(cell)));
+    }
+
+    /// <summary>
+    /// Resolves bullet paint of a table-cell paragraph from its own and its cell's list defaults, honoring an explicit
+    /// return to text color.
+    /// </summary>
+    private static OfficeColor ResolveTableCellBulletColor(PowerPointParagraph paragraph, PowerPointTableCell cell,
+        OfficeXmlNode colorScheme, OfficeColor textColor) {
+        OfficeXmlNode paragraphProperties = paragraph.Element.Child(D, "pPr");
+        int level = paragraphProperties.Int32Attribute("lvl") ?? 0;
+        OfficeXmlNode listStyle = cell.Element.Child(D, "txBody").Child(D, "lstStyle");
+        OfficeXmlNode colorMap = GetSlideColorMap(TableCellOwnerSlide(cell));
+        foreach (OfficeXmlNode source in new[] {
+                     paragraphProperties,
+                     LevelParagraphProperties(listStyle, level),
+                     listStyle.Child(D, "defPPr")
+                 }) {
+            if (!source.Child(D, "buClrTx").IsNone) return textColor;
+            OfficeXmlNode bullet = source.Child(D, "buClr");
+            if (!bullet.IsNone && OfficeXmlThemeColors.ResolveColor(bullet, colorScheme, colorMap: colorMap) is { } color) return color;
+        }
+        return textColor;
+    }
+
+    /// <summary>The part that holds the cell's table when it is a slide, or none.</summary>
+    private static PowerPointPartRef TableCellOwnerSlide(PowerPointTableCell cell) {
+        PowerPointPartRef owner = cell.OwnerPartRef;
+        return owner.Kind == PowerPointPartKind.Slide ? owner : default;
+    }
+
+    /// <summary>
+    /// The paragraph properties of a list style for a zero-based level (<c>a:lvl1pPr</c> to <c>a:lvl9pPr</c>), or none.
+    /// </summary>
+    private static OfficeXmlNode LevelParagraphProperties(OfficeXmlNode listStyle, int level) =>
+        level is >= 0 and <= 8
+            ? listStyle.Child(D, "lvl" + (level + 1).ToString(CultureInfo.InvariantCulture) + "pPr")
+            : default;
 }

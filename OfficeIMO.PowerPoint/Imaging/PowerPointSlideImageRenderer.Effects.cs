@@ -1,29 +1,28 @@
-using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
-        private static void ApplyShapeEffects(OfficeShape target, PowerPointShape source, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
-            A.EffectList? effects = GetOpenXmlShapeProperties(source)?.GetFirstChild<A.EffectList>();
-            if (effects == null) {
+        private static void ApplyShapeEffects(OfficeShape target, PowerPointShape source, OfficeXmlNode colorScheme, PowerPointShapeBoundsMapping mapping) {
+            OfficeXmlNode effects = GetShapePropertiesElement(source).Child(D, "effectLst");
+            if (effects.IsNone) {
                 return;
             }
 
-            A.Glow? glow = effects.GetFirstChild<A.Glow>();
-            if (glow != null && TryCreateGlow(glow, colorScheme, mapping, out OfficeGlow? officeGlow, source.OwnerSlide?.ResolvedColorMap)) {
+            OfficeXmlNode glow = effects.Child(D, "glow");
+            if (!glow.IsNone && TryCreateGlow(glow, colorScheme, mapping, out OfficeGlow? officeGlow, GetSlideColorMap(source.OwnerSlide))) {
                 target.Glow = officeGlow;
             }
 
-            A.OuterShadow? shadow = effects.GetFirstChild<A.OuterShadow>();
-            if (shadow != null && TryCreateShadow(shadow, colorScheme, mapping, out OfficeShadow? officeShadow, source.OwnerSlide?.ResolvedColorMap)) {
+            OfficeXmlNode shadow = effects.Child(D, "outerShdw");
+            if (!shadow.IsNone && TryCreateShadow(shadow, colorScheme, mapping, out OfficeShadow? officeShadow, GetSlideColorMap(source.OwnerSlide))) {
                 target.Shadow = officeShadow;
             }
         }
 
-        private static bool TryCreateGlow(A.Glow glow, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, out OfficeGlow? officeGlow, OpenXmlElement? colorMap = null) {
+        private static bool TryCreateGlow(OfficeXmlNode glow, OfficeXmlNode colorScheme, PowerPointShapeBoundsMapping mapping, out OfficeGlow? officeGlow, OfficeXmlNode colorMap = default) {
             officeGlow = null;
-            double radius = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(glow.Radius?.Value ?? 0L));
+            double radius = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(glow.Int64Attribute("rad") ?? 0L));
             if (radius <= 0D) {
                 return false;
             }
@@ -41,10 +40,10 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static bool TryCreateShadow(A.OuterShadow shadow, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, out OfficeShadow? officeShadow, OpenXmlElement? colorMap = null) {
+        private static bool TryCreateShadow(OfficeXmlNode shadow, OfficeXmlNode colorScheme, PowerPointShapeBoundsMapping mapping, out OfficeShadow? officeShadow, OfficeXmlNode colorMap = default) {
             officeShadow = null;
-            double distance = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(shadow.Distance?.Value ?? 0L));
-            double blurRadius = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(shadow.BlurRadius?.Value ?? 0L));
+            double distance = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(shadow.Int64Attribute("dist") ?? 0L));
+            double blurRadius = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(shadow.Int64Attribute("blurRad") ?? 0L));
             if (distance <= 0D && blurRadius <= 0D) {
                 return false;
             }
@@ -58,7 +57,7 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            double angleDegrees = (shadow.Direction?.Value ?? 0) / DrawingMlAngleUnitsPerDegree;
+            double angleDegrees = (shadow.Int32Attribute("dir") ?? 0) / DrawingMlAngleUnitsPerDegree;
             double radians = angleDegrees * Math.PI / 180D;
             double offsetX = Math.Cos(radians) * distance;
             double offsetY = Math.Sin(radians) * distance;
@@ -67,9 +66,9 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static bool TryResolveEffectColor(OpenXmlCompositeElement owner, A.ColorScheme? colorScheme,
-            OpenXmlElement? colorMap, out OfficeColor color) {
-            OfficeColor? resolved = OfficeOpenXmlThemeColorResolver.ResolveColor(owner, colorScheme, colorMap: colorMap);
+        private static bool TryResolveEffectColor(OfficeXmlNode owner, OfficeXmlNode colorScheme,
+            OfficeXmlNode colorMap, out OfficeColor color) {
+            OfficeColor? resolved = OfficeXmlThemeColors.ResolveColor(owner, colorScheme, colorMap: colorMap);
             color = resolved.GetValueOrDefault();
             return resolved.HasValue;
         }

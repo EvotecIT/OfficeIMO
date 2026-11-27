@@ -1,3 +1,7 @@
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
+using Ns = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces;
+
 namespace OfficeIMO.PowerPoint {
     /// <summary>Everything a layout renderer needs: document, tokens, grid and deck state.</summary>
     internal sealed class PowerPointLayoutContext {
@@ -33,33 +37,35 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointLayoutRect? MasterTitle { get; private set; }
 
         private PowerPointLayoutGrid? TemplateGrid(PowerPointDocument document) {
-            DocumentFormat.OpenXml.Packaging.SlideMasterPart? master = document.OpenXmlDocument.PresentationPart?.SlideMasterParts.FirstOrDefault();
-            if (master == null) return null;
-            DocumentFormat.OpenXml.Packaging.SlideLayoutPart? layout = master.SlideLayoutParts.FirstOrDefault(l =>
-                    l.SlideLayout?.Type?.Value == DocumentFormat.OpenXml.Presentation.SlideLayoutValues.Object)
-                ?? master.SlideLayoutParts.FirstOrDefault(l => l.SlideLayout?.Type?.Value == DocumentFormat.OpenXml.Presentation.SlideLayoutValues.Text);
-            PowerPointLayoutRect? Bounds(DocumentFormat.OpenXml.OpenXmlPartRootElement? root, bool title) {
-                if (root == null) return null;
-                foreach (DocumentFormat.OpenXml.Presentation.Shape shape in root.Descendants<DocumentFormat.OpenXml.Presentation.Shape>()) {
-                    DocumentFormat.OpenXml.Presentation.PlaceholderShape? ph = shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape;
-                    if (ph == null) continue;
-                    bool isTitle = ph.Type?.Value == DocumentFormat.OpenXml.Presentation.PlaceholderValues.Title ||
-                                   ph.Type?.Value == DocumentFormat.OpenXml.Presentation.PlaceholderValues.CenteredTitle;
-                    bool isBody = ph.Type == null || ph.Type.Value == DocumentFormat.OpenXml.Presentation.PlaceholderValues.Body ||
-                                  ph.Type.Value == DocumentFormat.OpenXml.Presentation.PlaceholderValues.Object;
+            PowerPointPartRef master = document.LayoutPresentationPartRef.RelatedPart(PowerPointPartRef.SlideMasterRelationshipType);
+            if (master.IsNone) return null;
+            PowerPointPartRef[] layouts = master.RelatedParts(PowerPointPartRef.SlideLayoutRelationshipType).ToArray();
+            PowerPointPartRef layout = layouts.FirstOrDefault(l => l.Root.Attribute("type") == "obj");
+            if (layout.IsNone) layout = layouts.FirstOrDefault(l => l.Root.Attribute("type") == "tx");
+            OfficeXmlNode masterRoot = master.Root;
+            OfficeXmlNode layoutRoot = layout.IsNone ? default : layout.Root;
+            PowerPointLayoutRect? Bounds(OfficeXmlNode root, bool title) {
+                if (root.IsNone) return null;
+                foreach (OfficeXmlNode shape in root.Descendants(Ns.PresentationML, "sp")) {
+                    OfficeXmlNode ph = shape.Child(Ns.PresentationML, "nvSpPr").Child(Ns.PresentationML, "nvPr").Child(Ns.PresentationML, "ph");
+                    if (ph.IsNone) continue;
+                    string? type = ph.Attribute("type");
+                    bool isTitle = type is "title" or "ctrTitle";
+                    bool isBody = type is null or "body" or "obj";
                     if (title ? !isTitle : !isBody) continue;
-                    DocumentFormat.OpenXml.Drawing.Transform2D? xfrm = shape.ShapeProperties?.Transform2D;
-                    if (xfrm?.Offset == null || xfrm.Extents == null) continue;
-                    return new PowerPointLayoutRect(xfrm.Offset.X!.Value / 12700D, xfrm.Offset.Y!.Value / 12700D,
-                        xfrm.Extents.Cx!.Value / 12700D, xfrm.Extents.Cy!.Value / 12700D);
+                    OfficeXmlNode xfrm = shape.Child(Ns.PresentationML, "spPr").Child(Ns.DrawingML, "xfrm");
+                    OfficeXmlNode offset = xfrm.Child(Ns.DrawingML, "off"), extents = xfrm.Child(Ns.DrawingML, "ext");
+                    if (offset.IsNone || extents.IsNone) continue;
+                    return new PowerPointLayoutRect((offset.Int64Attribute("x") ?? 0L) / 12700D, (offset.Int64Attribute("y") ?? 0L) / 12700D,
+                        (extents.Int64Attribute("cx") ?? 0L) / 12700D, (extents.Int64Attribute("cy") ?? 0L) / 12700D);
                 }
 
                 return null;
             }
 
-            PowerPointLayoutRect? body = Bounds(layout?.SlideLayout, false) ?? Bounds(master.SlideMaster, false);
-            PowerPointLayoutRect? titleBox = Bounds(layout?.SlideLayout, true) ?? Bounds(master.SlideMaster, true);
-            MasterTitle = Bounds(master.SlideMaster, true);
+            PowerPointLayoutRect? body = Bounds(layoutRoot, false) ?? Bounds(masterRoot, false);
+            PowerPointLayoutRect? titleBox = Bounds(layoutRoot, true) ?? Bounds(masterRoot, true);
+            MasterTitle = Bounds(masterRoot, true);
             if (body == null || body.Value.Width < 100D || body.Value.Height < 100D) return null;
             if (!PowerPointLayoutEngine.WithinSlide(document, body.Value.X, body.Value.Y, body.Value.Width, body.Value.Height))
                 return null;

@@ -1,5 +1,4 @@
 using System.Globalization;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {

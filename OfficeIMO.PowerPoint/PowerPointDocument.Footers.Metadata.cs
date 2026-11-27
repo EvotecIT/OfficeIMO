@@ -34,7 +34,7 @@ namespace OfficeIMO.PowerPoint {
                 var entry = new OpenXmlUnknownElement("imo", "footer", FooterNamespace);
                 entry.SetAttribute(new OpenXmlAttribute("alignment", string.Empty, item.Key.ToString()));
                 var body = (TextBody)item.Value.Definition.Box.TextBody!.CloneNode(true);
-                if (owner is SlidePart slide) PowerPointLayoutNativeText.RehomeRelationships(body,
+                if (owner is SlidePart slide) PowerPointSlide.RehomeLayoutRelationships(body,
                     item.Value.Definition.Box.RelationshipOwnerPart, slide);
                 entry.Append(body);
                 definitions.Append(entry);

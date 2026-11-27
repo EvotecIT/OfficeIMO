@@ -47,7 +47,9 @@ namespace OfficeIMO.PowerPoint {
                 var tableRow = new A.TableRow { Height = rowHeights[row] };
                 for (int column = 0; column < tableSource.Columns; column++) {
                     tableRow.Append(new A.TableCell(
-                        PowerPointTableTextDefaults.CreateTextBody(),
+                        new A.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(
+                            new A.Run(new A.RunProperties { Language = PowerPointTableTextDefaults.Language }, new A.Text(string.Empty)),
+                            new A.EndParagraphRunProperties { Language = PowerPointTableTextDefaults.Language })),
                         new A.TableCellProperties()));
                 }
                 tableElement.Append(tableRow);

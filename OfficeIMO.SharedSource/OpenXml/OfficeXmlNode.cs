@@ -1,6 +1,19 @@
 using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.OpenXml.Internal {
+    /// <summary>An attribute of an <see cref="OfficeXmlNode"/>: namespace URI (empty for none), local name and value.</summary>
+    internal readonly struct OfficeXmlAttribute {
+        internal OfficeXmlAttribute(string namespaceUri, string localName, string value) {
+            NamespaceUri = namespaceUri;
+            LocalName = localName;
+            Value = value;
+        }
+
+        internal string NamespaceUri { get; }
+        internal string LocalName { get; }
+        internal string Value { get; }
+    }
+
     /// <summary>
     /// An element of a part, wherever the part is held: in OfficeIMO's own tree while the document works without the
     /// Open XML SDK, or in the SDK package once the engine's <c>OpenXmlDocument</c> opened it, where edits go to the
@@ -153,14 +166,58 @@ namespace OfficeIMO.OpenXml.Internal {
         /// <summary>The elements with this name below this one, in document order.</summary>
         internal List<OfficeXmlNode> Descendants(int namespaceId, string localName) {
             var found = new List<OfficeXmlNode>();
+            if (_sdk != null) {
+                // The SDK walks its own tree faster than a walk through this handle, one sibling at a time.
+                OfficeSdkXml.CollectDescendants(_sdk, namespaceId, localName, found);
+                return found;
+            }
             CollectDescendants(this, namespaceId, localName, found);
             return found;
         }
 
+        /// <summary>
+        /// Whether the element holds extension markup: an <c>extLst</c> in any namespace or an <c>mc:AlternateContent</c>.
+        /// The SDK read what these hold as unknown elements, so searches for content don't look inside them.
+        /// </summary>
+        internal bool IsExtensionMarkup() =>
+            LocalName == "extLst" || Is(OfficeXmlNamespaces.MarkupCompatibility, "AlternateContent");
+
+        /// <summary>The elements with this name below this one, in document order, outside extension markup.</summary>
+        internal List<OfficeXmlNode> ContentDescendants(int namespaceId, string localName) {
+            var found = new List<OfficeXmlNode>();
+            if (_sdk != null) {
+                OfficeSdkXml.CollectContentDescendants(_sdk, namespaceId, localName, found);
+                return found;
+            }
+            OfficeXmlNode current = FirstChild;
+            while (!current.IsNone) {
+                bool extension = current.IsExtensionMarkup();
+                if (!extension && current.Is(namespaceId, localName)) found.Add(current);
+                OfficeXmlNode next = extension ? default : current.FirstChild;
+                if (next.IsNone) {
+                    for (OfficeXmlNode up = current; !up.IsNone && up != this; up = up.Parent) {
+                        next = up.NextSibling;
+                        if (!next.IsNone) break;
+                    }
+                }
+                current = next;
+            }
+            return found;
+        }
+
+        // Walks the subtree in document order without recursion, so deeply nested markup can't exhaust the stack.
         private static void CollectDescendants(OfficeXmlNode element, int namespaceId, string localName, List<OfficeXmlNode> found) {
-            foreach (OfficeXmlNode child in element.Children()) {
-                if (child.Is(namespaceId, localName)) found.Add(child);
-                CollectDescendants(child, namespaceId, localName, found);
+            OfficeXmlNode current = element.FirstChild;
+            while (!current.IsNone) {
+                if (current.Is(namespaceId, localName)) found.Add(current);
+                OfficeXmlNode next = current.FirstChild;
+                if (next.IsNone) {
+                    for (OfficeXmlNode up = current; !up.IsNone && up != element; up = up.Parent) {
+                        next = up.NextSibling;
+                        if (!next.IsNone) break;
+                    }
+                }
+                current = next;
             }
         }
 
@@ -199,6 +256,48 @@ namespace OfficeIMO.OpenXml.Internal {
         internal string? Attribute(int namespaceId, string localName) =>
             _tree != null ? _tree.GetAttribute(_node, namespaceId, localName)
             : _sdk != null ? OfficeSdkXml.GetAttribute(_sdk, namespaceId, localName) : null;
+
+        /// <summary>
+        /// The element's attributes in document order, without namespace declarations. Markup compatibility attributes
+        /// such as <c>mc:Ignorable</c> are included, as the SDK lists them.
+        /// </summary>
+        internal List<OfficeXmlAttribute> Attributes() {
+            var attributes = new List<OfficeXmlAttribute>();
+            if (_tree != null) {
+                int count = _tree.AttributeCountOf(_node);
+                for (int index = 0; index < count; index++) {
+                    _tree.GetAttributeAt(_node, index, out int namespaceId, out string localName, out string value);
+                    if (namespaceId == OfficeXmlNamespaces.Xmlns) continue;
+                    string uri = namespaceId == OfficeXmlNamespaces.None ? string.Empty : _tree.Namespaces.GetUri(namespaceId);
+                    attributes.Add(new OfficeXmlAttribute(uri, localName, value));
+                }
+            } else if (_sdk != null) {
+                OfficeSdkXml.CollectAttributes(_sdk, attributes);
+            }
+            return attributes;
+        }
+
+        /// <summary>Whether the element has any attribute <see cref="Attributes"/> lists.</summary>
+        internal bool HasAttributes {
+            get {
+                if (_tree != null) {
+                    int count = _tree.AttributeCountOf(_node);
+                    for (int index = 0; index < count; index++) {
+                        _tree.GetAttributeAt(_node, index, out int namespaceId, out _, out _);
+                        if (namespaceId != OfficeXmlNamespaces.Xmlns) return true;
+                    }
+                    return false;
+                }
+                return _sdk != null && OfficeSdkXml.HasAttributes(_sdk);
+            }
+        }
+
+        /// <summary>Declares <paramref name="prefix"/> for <paramref name="namespaceUri"/> on the element.</summary>
+        internal void DeclareNamespace(string prefix, string namespaceUri) {
+            if (_tree != null) _tree.DeclareNamespace(_node, prefix, namespaceUri);
+            else if (_sdk != null) OfficeSdkXml.DeclareNamespace(_sdk, prefix, namespaceUri);
+            else throw new InvalidOperationException("There is no element to declare the namespace on.");
+        }
 
         internal bool HasAttribute(string localName) => Attribute(OfficeXmlNamespaces.None, localName) != null;
 
@@ -274,9 +373,14 @@ namespace OfficeIMO.OpenXml.Internal {
             return new OfficeXmlNode(scratch, scratch.Root);
         }
 
-        /// <summary>Creates a detached element in a namespace outside the fixed ones, written with <paramref name="prefix"/>.</summary>
+        /// <summary>
+        /// Creates a detached element in a namespace outside the fixed ones, written with <paramref name="prefix"/>. For an
+        /// SDK element it is the SDK's typed class this element expects as its child, or an unknown element where the SDK
+        /// has none, made directly rather than parsed from markup.
+        /// </summary>
         internal OfficeXmlNode CreateElement(string namespaceUri, string localName, string prefix) {
             if (_tree != null) return new OfficeXmlNode(_tree, _tree.CreateElement(namespaceUri, localName, prefix));
+            if (_sdk != null) return FromSdk(OfficeSdkXml.CreateElement(_sdk, namespaceUri, localName, prefix));
             var table = new OfficeXmlNamespaces.Table();
             OfficeXmlTree scratch = OfficeXmlTree.Create(table, OfficeXmlNamespaces.None, "scratch", 8);
             int node = scratch.CreateElement(namespaceUri, localName, prefix);
@@ -310,8 +414,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 return new OfficeXmlNode(_tree, node);
             }
             if (_sdk == null) throw new InvalidOperationException("There is no element to insert into.");
-            return FromSdk(child._sdk != null
-                ? OfficeSdkXml.InsertBefore(_sdk, child._sdk, reference._sdk)
+            if (child._sdk != null) return FromSdk(OfficeSdkXml.InsertBefore(_sdk, child._sdk, reference._sdk));
+            // An element of a tree becomes the SDK's typed elements directly when it can, and is parsed otherwise.
+            return FromSdk(OfficeSdkXml.CreateFromTree(_sdk, child._tree!, child._node) is { } built
+                ? OfficeSdkXml.InsertBefore(_sdk, built, reference._sdk)
                 : OfficeSdkXml.InsertMarkupBefore(_sdk, child._tree!.WriteElement(child._node), reference._sdk));
         }
 

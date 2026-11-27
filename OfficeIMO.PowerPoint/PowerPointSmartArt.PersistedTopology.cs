@@ -1,8 +1,7 @@
 using System.Globalization;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSmartArt {
@@ -14,10 +13,10 @@ namespace OfficeIMO.PowerPoint {
             (XNamespace dgm, XNamespace a) ns,
             PowerPointSmartArtTopology current,
             IReadOnlyList<PowerPointSmartArtNode> requested,
-            out DiagramPersistLayoutPart? persistPart,
+            out PowerPointPartRef persistPart,
             out XDocument? persistDocument,
             out string diagnostic) {
-            persistPart = null;
+            persistPart = default;
             persistDocument = null;
             diagnostic = string.Empty;
 
@@ -35,20 +34,14 @@ namespace OfficeIMO.PowerPoint {
                 .Attribute("relId");
             if (current.Kind != OfficeDiagramKind.Process
                 || string.IsNullOrWhiteSpace(relationshipId)
-                || !_slidePart.TryGetPartById(relationshipId!,
-                    out OpenXmlPart? relatedPart)
-                || relatedPart is not DiagramPersistLayoutPart drawingPart) {
+                || !TryGetDiagramPart(relationshipId,
+                    DiagramDrawingRelationshipType, out PowerPointPartRef drawingPart)) {
                 diagnostic = "The producer SmartArt presentation graph cannot be synchronized safely and remains preservation-only for topology changes.";
                 return false;
             }
 
             try {
-                XDocument drawingDocument;
-                using (Stream stream = drawingPart.GetStream(FileMode.Open,
-                           FileAccess.Read)) {
-                    drawingDocument = PowerPointXmlReader
-                        .LoadPackagePartXml(stream);
-                }
+                XDocument drawingDocument = LoadPartXml(drawingPart);
 
                 if (!TrySynchronizeBasicProcessPresentationGraph(
                         dataDocument, drawingDocument, ns, current,
@@ -265,8 +258,8 @@ namespace OfficeIMO.PowerPoint {
                     StringComparison.Ordinal));
 
         private static void SaveDiagramTopologyAtomically(
-            DiagramDataPart dataPart, XDocument dataDocument,
-            DiagramPersistLayoutPart persistPart,
+            PowerPointPartRef dataPart, XDocument dataDocument,
+            PowerPointPartRef persistPart,
             XDocument persistDocument) {
             byte[] originalData = ReadPartBytes(dataPart);
             byte[] originalPersistedDrawing = ReadPartBytes(persistPart);
@@ -282,26 +275,6 @@ namespace OfficeIMO.PowerPoint {
                 } catch { }
                 throw;
             }
-        }
-
-        private static byte[] ReadPartBytes(OpenXmlPart part) {
-            using Stream stream = part.GetStream(FileMode.Open,
-                FileAccess.Read);
-            using var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
-            return buffer.ToArray();
-        }
-
-        private static byte[] SerializeXml(XDocument document) {
-            using var buffer = new MemoryStream();
-            document.Save(buffer);
-            return buffer.ToArray();
-        }
-
-        private static void WritePartBytes(OpenXmlPart part, byte[] bytes) {
-            using Stream stream = part.GetStream(FileMode.Create,
-                FileAccess.Write);
-            stream.Write(bytes, 0, bytes.Length);
         }
 
         private sealed class PersistedPresentationPoint {

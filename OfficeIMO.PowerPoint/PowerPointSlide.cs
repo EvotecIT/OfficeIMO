@@ -134,7 +134,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Notes associated with the slide.
         /// </summary>
-        public PowerPointNotes Notes => _notes ??= IsPackageBacked ? new PowerPointNotes(this) : new PowerPointNotes(SlidePart);
+        public PowerPointNotes Notes => _notes ??= new PowerPointNotes(this);
 
         private List<PowerPointShape> ShapeList {
             get {
@@ -287,7 +287,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (SlidePart.NotesSlidePart != null) {
-                _notes = new PowerPointNotes(SlidePart);
+                _notes = new PowerPointNotes(this);
             }
         }
     }
