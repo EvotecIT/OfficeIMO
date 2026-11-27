@@ -157,7 +157,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void WriteListLevel(Stream stream, Level level, IReadOnlyDictionary<string, ushort> styles, IReadOnlyDictionary<string, int> fonts) {
             int index = level.LevelIndex?.Value ?? -1, start = level.StartNumberingValue?.Val?.Value ?? 1;
             NumberFormatValues format = level.NumberingFormat?.Val?.Value ?? NumberFormatValues.Decimal;
-            byte? nfc = format == NumberFormatValues.Bullet ? (byte)23 : format == NumberFormatValues.None ? (byte)255 : LegacyDocNumberFormatMapper.ToNfc(format);
+            byte? nfc = format == NumberFormatValues.Bullet ? (byte)23 : format == NumberFormatValues.None ? (byte)255 : ToNfc(format);
             if (index < 0 || index > 8 || start < 0 || start > short.MaxValue || nfc == null || nfc == 8 || nfc == 9 || nfc == 15 || nfc == 19)
                 throw new NotSupportedException("Native DOC list level has an unsupported format or start.");
             foreach (OpenXmlElement child in level.ChildElements) {
