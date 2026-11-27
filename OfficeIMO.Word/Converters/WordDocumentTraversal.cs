@@ -454,7 +454,7 @@ namespace OfficeIMO.Word {
                 result[numberId] = new ListNumberingDefinition(
                     numberId,
                     abstractNum?.AbstractNumberId?.Value,
-                    abstractNum != null ? WordListStyles.MatchStyle(abstractNum) : WordListStyle.Custom,
+                    WordListStyles.MatchStyle(abstractNum?.GetFirstChild<TemplateCode>()?.Val?.Value),
                     startOverrides,
                     levels);
             }
