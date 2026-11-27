@@ -2,10 +2,10 @@
 import { __officeimoModules } from "./officeimo.mjs";
 const _core = key => { const value = __officeimoModules[key]; if (!value) throw new Error("officeimo-datatables-adapter.mjs needs officeimo.mjs or officeimo.min.mjs from the same OfficeIMO build, loaded first."); return value; };
 const _c0 = _core("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00");
-const _c1 = _core("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f");
-const _c2 = _core("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4");
-const _c3 = _core("6394edd060bcbd1459f1a0ce394f338b4c39dfed76aa608533e2177d8047943a");
-const _c4 = _core("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe");
+const _c1 = _core("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244");
+const _c2 = _core("406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580");
+const _c3 = _core("c12757631f688715be1bdefd417a8b7769fff613a69aecf31ff1fb9a81c9e520");
+const _c4 = _core("dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7");
 const _c5 = _core("d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc92711c2");
 const _c6 = _core("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5");
 const _c7 = _core("d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da");

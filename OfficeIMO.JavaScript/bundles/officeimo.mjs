@@ -1783,15 +1783,20 @@ return _exports;
 const _m23 = (() => {
 /** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
 function notifyProgress(callback, progress) {
+    notifySynchronously("onProgress", callback, progress);
+}
+/** @internal Run a host notification that must finish before the export continues. A returned promise is observed,
+ * so its rejection is never unhandled, and the export fails instead of reporting success before the callback ends. */
+function notifySynchronously(name, callback, value) {
     if (!callback)
         return;
-    const result = callback(progress);
+    const result = callback(value);
     if (result && typeof result.then === "function") {
         void Promise.resolve(result).catch(() => { });
-        throw new TypeError("onProgress must be synchronous.");
+        throw new TypeError(name + " must be synchronous.");
     }
 }
-const _exports = Object.freeze({ notifyProgress: notifyProgress });
+const _exports = Object.freeze({ notifyProgress: notifyProgress, notifySynchronously: notifySynchronously });
 return _exports;
 })();
 
@@ -3349,7 +3354,7 @@ const { ChunkedTextSink, BlobByteSink } = _m3;
 
 const { OfficeIMOError } = _m2;
 
-const { notifyProgress } = _m23;
+const { notifyProgress, notifySynchronously } = _m23;
 
 const { copyColumns, createRowProjector } = _m11;
 
@@ -4075,7 +4080,7 @@ class Worksheet {
                 for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count, detailRanges))
                     await this.buffer.write(xml);
                 if (this.droppedLinks)
-                    this.book.settings.onHyperlinkOverflow?.(Object.freeze({ sheetName: this.name, dropped: this.droppedLinks }));
+                    notifySynchronously("onHyperlinkOverflow", this.book.settings.onHyperlinkOverflow, Object.freeze({ sheetName: this.name, dropped: this.droppedLinks }));
                 if (this.links.length || this.internalLinks.length)
                     await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
                 await this.buffer.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
@@ -11582,6 +11587,6 @@ const _m0 = (() => {
 const _exports = Object.freeze({ core: _m1, zip: _m14, xml: _m17, opc: _m18, xlsx: _m21, csv: _m50, pdf: _m54, Workbook: _m21.Workbook, Worksheet: _m21.Worksheet, Cell: _m21.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, writeXlsx: _m21.writeXlsx, writeXlsxTo: _m21.writeXlsxTo, writeCsv: _m50.writeCsv, writeCsvTo: _m50.writeCsvTo, createGroupedReport: _m8.createGroupedReport, writeGroupedXlsx: _m48.writeGroupedXlsx, writeGroupedXlsxTo: _m48.writeGroupedXlsxTo, addGroupedXlsx: _m48.addGroupedXlsx, writeGroupedPdf: _m83.writeGroupedPdf, writeGroupedPdfTo: _m83.writeGroupedPdfTo, pdfGroupedTable: _m83.pdfGroupedTable, writePdf: _m54.writePdf, writePdfTo: _m54.writePdfTo, writePdfDocument: _m54.writePdfDocument, writePdfDocumentTo: _m54.writePdfDocumentTo, pdfTable: _m54.pdfTable, PdfFont: _m54.PdfFont, preflightPdfText: _m54.preflightPdfText, OfficeIMOError: _m1.OfficeIMOError, NotSupportedError: _m1.NotSupportedError, detectFeatures: _m1.detectFeatures, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
 return _exports;
 })();
-const __officeimoModules = Object.freeze({ "81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00": _m1, "6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f": _m23, "b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4": _m50, "6394edd060bcbd1459f1a0ce394f338b4c39dfed76aa608533e2177d8047943a": _m21, "027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe": _m54, "d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc92711c2": _m47, "732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5": _m5, "d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da": _m30, "87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3": _m4, "42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671": _m9, "50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669": _m10, "0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc": _m11, "f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208": _m53, "4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38": _m56, "fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96": _m43, "d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596": _m63, "e88a83ca79cd099fc2de29689554c913c7d04b17018098f81c43044064fcdfb8": _m27, "046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0": _m8, "c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b": _m12, "227236fd7adc9472e188831b8f16fdc69338c4d779f2b69a8abbd8dbfa95b585": _m17, "5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b": _m3, "59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070": _m67 });
+const __officeimoModules = Object.freeze({ "81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00": _m1, "4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244": _m23, "406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580": _m50, "c12757631f688715be1bdefd417a8b7769fff613a69aecf31ff1fb9a81c9e520": _m21, "dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7": _m54, "d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc92711c2": _m47, "732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5": _m5, "d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da": _m30, "87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3": _m4, "42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671": _m9, "50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669": _m10, "0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc": _m11, "f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208": _m53, "4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38": _m56, "fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96": _m43, "d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596": _m63, "e88a83ca79cd099fc2de29689554c913c7d04b17018098f81c43044064fcdfb8": _m27, "046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0": _m8, "c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b": _m12, "227236fd7adc9472e188831b8f16fdc69338c4d779f2b69a8abbd8dbfa95b585": _m17, "5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b": _m3, "59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070": _m67 });
 const { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, createGroupedReport, writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx, writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable, writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell } = _m0;
 export { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, createGroupedReport, writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx, writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable, writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell, __officeimoModules };

@@ -1,6 +1,6 @@
 import { BlobByteSink, ExportCell } from "../../core/index.js";
 import type { OutputDestination, ExportResult, ExportProgress } from "../../core/index.js";
-import { notifyProgress } from "../../core/progress.js";
+import { notifyProgress, notifySynchronously } from "../../core/progress.js";
 import { captureFields } from "../../internal/capture.js";
 import { captureCommonLimits, captureXlsxOptions, captureCsvOptions, capturePdfOptions, mergeAdapterLimits } from "../options.js";
 import { writeXlsxTo } from "../../xlsx/index.js";
@@ -75,7 +75,7 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
     const settings = { ...xlsx, ...stream, columns: source.columns, sheet, dateMode: xlsx.dateMode ?? request.timeZone, limits: formatLimits,
       hyperlinkOverflow: xlsx.hyperlinkOverflow ?? "drop" as const,
       onHyperlinkOverflow: (overflow: { readonly sheetName: string; readonly dropped: number }) => {
-        onHyperlinkOverflow?.(overflow); linkFallback({ code: "LINKS_TRUNCATED:" + overflow.dropped });
+        notifySynchronously("onHyperlinkOverflow", onHyperlinkOverflow, overflow); linkFallback({ code: "LINKS_TRUNCATED:" + overflow.dropped });
       } };
     if (grouped || about) return writeCanopyWorkbook(source, grouped, destination, settings, capturedLabels, about);
     return writeXlsxTo(source.rows(), destination, settings);

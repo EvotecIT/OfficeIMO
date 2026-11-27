@@ -1,7 +1,7 @@
 import { checkAbort, consumeRows, inputRows, pause, taskYieldDue } from "../core/iteration.js";
 import { ChunkedTextSink, BlobByteSink } from "../core/sinks.js";
 import { OfficeIMOError } from "../core/errors.js";
-import { notifyProgress } from "../core/progress.js";
+import { notifyProgress, notifySynchronously } from "../core/progress.js";
 import type { CellValue } from "../core/index.js";
 import { copyColumns, createRowProjector } from "../internal/rows.js";
 import { EntryWriter } from "../zip/entry.js";
@@ -542,7 +542,7 @@ export class Worksheet<T = never> {
       const detailRanges = dataRowRanges(this);
       for (const xml of this.conditional.xml(this.headerRows, this.count, this.totalRows, detailRanges)) await this.buffer!.write(xml);
       for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count, detailRanges)) await this.buffer!.write(xml);
-      if (this.droppedLinks) this.book.settings.onHyperlinkOverflow?.(Object.freeze({ sheetName: this.name, dropped: this.droppedLinks }));
+      if (this.droppedLinks) notifySynchronously("onHyperlinkOverflow", this.book.settings.onHyperlinkOverflow, Object.freeze({ sheetName: this.name, dropped: this.droppedLinks }));
       if (this.links.length || this.internalLinks.length) await this.buffer!.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
       await this.buffer!.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
       if (this.pictures.length || this.nativeCharts.length) await this.buffer!.write('<drawing r:id="drawing"/>');

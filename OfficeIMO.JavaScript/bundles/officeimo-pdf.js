@@ -307,19 +307,24 @@ _modules.set("5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b",
 return _exports;
 })();
 
-const _m5 = _modules.get("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f") ?? (() => {
+const _m5 = _modules.get("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244") ?? (() => {
 /** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
 function notifyProgress(callback, progress) {
+    notifySynchronously("onProgress", callback, progress);
+}
+/** @internal Run a host notification that must finish before the export continues. A returned promise is observed,
+ * so its rejection is never unhandled, and the export fails instead of reporting success before the callback ends. */
+function notifySynchronously(name, callback, value) {
     if (!callback)
         return;
-    const result = callback(progress);
+    const result = callback(value);
     if (result && typeof result.then === "function") {
         void Promise.resolve(result).catch(() => { });
-        throw new TypeError("onProgress must be synchronous.");
+        throw new TypeError(name + " must be synchronous.");
     }
 }
-const _exports = Object.freeze({ notifyProgress: notifyProgress });
-_modules.set("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f", _exports);
+const _exports = Object.freeze({ notifyProgress: notifyProgress, notifySynchronously: notifySynchronously });
+_modules.set("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244", _exports);
 return _exports;
 })();
 
@@ -5106,7 +5111,7 @@ _modules.set("afdad27eb363e8de0c3bd69ebf358860eb76f5c6fb29f43a87635807cb7fc273",
 return _exports;
 })();
 
-const _m1 = _modules.get("45cf9fd6b6293c1a83bc8554e1bcb5cf119f44701fbad7849f39a712cab5074b") ?? (() => {
+const _m1 = _modules.get("e923a51cdae01d7be98424e46022ce8932595316387f868c1fa0cfc1bc61801f") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { beginTask, checkAbort, consumeRows, pause, taskYieldDue } = _m3;
@@ -5171,7 +5176,7 @@ async function writePdfTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writePdf: writePdf, writePdfTo: writePdfTo });
-_modules.set("45cf9fd6b6293c1a83bc8554e1bcb5cf119f44701fbad7849f39a712cab5074b", _exports);
+_modules.set("e923a51cdae01d7be98424e46022ce8932595316387f868c1fa0cfc1bc61801f", _exports);
 return _exports;
 })();
 
@@ -6650,7 +6655,7 @@ _modules.set("289fa3a052c7fbab2a3ca0fb91fb9974db709d24b7d850f1175810258f0409a0",
 return _exports;
 })();
 
-const _m45 = _modules.get("9051bf9fc3168e24b53b16c123a42816198456846003fb49191c03a18cdab904") ?? (() => {
+const _m45 = _modules.get("77cbc636141a5bcb999b399693d3e836cc6d74eb40fb407e980d13dbbc6fe78c") ?? (() => {
 const { BlobByteSink, withDestination } = _m2;
 
 const { OfficeIMOError } = _m4;
@@ -6940,11 +6945,11 @@ function captureTableOptions(options) {
     return { ...captured, ...(captured.wideTable === undefined ? {} : { wideTable: captureWideTable(captured.wideTable) }) };
 }
 const _exports = Object.freeze({ pdfTable: pdfTable, writePdfDocument: writePdfDocument, writePdfDocumentTo: writePdfDocumentTo });
-_modules.set("9051bf9fc3168e24b53b16c123a42816198456846003fb49191c03a18cdab904", _exports);
+_modules.set("77cbc636141a5bcb999b399693d3e836cc6d74eb40fb407e980d13dbbc6fe78c", _exports);
 return _exports;
 })();
 
-const _m43 = _modules.get("abe76e52ffeed11ab42477c83ddde1d1d7de28b803096436b5b23cb153af58ba") ?? (() => {
+const _m43 = _modules.get("9df580f9853411293bc562c049fb1297d59986cc923786dbacfa5d937c6cfff8") ?? (() => {
 const { assertGroupedReportSource } = _m44;
 
 const { BlobByteSink } = _m2;
@@ -6990,7 +6995,7 @@ async function writeGroupedPdfTo(report, destination, configuration) {
     return writePdfDocumentTo([pdfGroupedTable(report, tableOptions)], destination, documentOptions);
 }
 const _exports = Object.freeze({ pdfGroupedTable: _m54.pdfGroupedTable, writeGroupedPdf: writeGroupedPdf, writeGroupedPdfTo: writeGroupedPdfTo });
-_modules.set("abe76e52ffeed11ab42477c83ddde1d1d7de28b803096436b5b23cb153af58ba", _exports);
+_modules.set("9df580f9853411293bc562c049fb1297d59986cc923786dbacfa5d937c6cfff8", _exports);
 return _exports;
 })();
 
@@ -7083,10 +7088,10 @@ _modules.set("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00",
 return _exports;
 })();
 
-const _m0 = _modules.get("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe") ?? (() => {
+const _m0 = _modules.get("dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7") ?? (() => {
 
 const _exports = Object.freeze({ writePdf: _m1.writePdf, writePdfTo: _m1.writePdfTo, writeGroupedPdf: _m43.writeGroupedPdf, writeGroupedPdfTo: _m43.writeGroupedPdfTo, pdfGroupedTable: _m43.pdfGroupedTable, createGroupedReport: _m44.createGroupedReport, writePdfDocument: _m45.writePdfDocument, writePdfDocumentTo: _m45.writePdfDocumentTo, pdfTable: _m45.pdfTable, PdfFont: _m22.PdfFont, preflightPdfText: _m55.preflightPdfText, ExportCell: _m7.ExportCell, saveBlob: _m56.saveBlob });
-_modules.set("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe", _exports);
+_modules.set("dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m56, pdf: _m0 });

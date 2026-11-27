@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { exportCanopy } from "../dist/integrations/canopyx/index.js";
 import { ExportCell } from "../dist/core/index.js";
+import { writeXlsx } from "../dist/xlsx/index.js";
 import { readZip } from "./zip-reader.mjs";
 import { inspectPdf } from "./pdf-reader.mjs";
 
@@ -136,6 +137,30 @@ for (const source of linkSources) {
     assert.doesNotMatch(sheet, new RegExp('<hyperlink ref="A' + (source.rows + 1) + '"'));
     assert.match(sheet, new RegExp('<c r="A' + (source.rows + 1) + '"'));
     assert.deepEqual(diagnostics, ["LINKS_TRUNCATED:" + source.dropped]);
+  });
+}
+
+// onHyperlinkOverflow runs before the worksheet finishes, so a failure or a pending promise must fail the export, never leak.
+const overflowCallbacks = [
+  { name: "a synchronous throw", callback: () => { throw new RangeError("host refused"); }, error: /host refused/ },
+  { name: "an asynchronous rejection", callback: async () => { throw new RangeError("host refused later"); }, error: /onHyperlinkOverflow must be synchronous/ },
+  { name: "an asynchronous resolution", callback: async () => {}, error: /onHyperlinkOverflow must be synchronous/ }
+];
+const overflowHosts = [
+  { name: "XLSX writer", write: onHyperlinkOverflow => writeXlsx(linkRows(65531).map(row => [new ExportCell(row.cells.Name.value, { link: row.cells.Name.link })]),
+    { columns: [{ header: "Name" }], hyperlinkOverflow: "drop", onHyperlinkOverflow }) },
+  { name: "Canopy adapter", write: onHyperlinkOverflow => exportCanopy(capture(linkRows(65531)), "xlsx", { xlsx: { onHyperlinkOverflow } }) }
+];
+
+for (const host of overflowHosts) for (const entry of overflowCallbacks) {
+  test(host.name + " fails the export when onHyperlinkOverflow ends in " + entry.name, async () => {
+    const unhandled = [], listener = reason => unhandled.push(reason);
+    process.on("unhandledRejection", listener);
+    try {
+      await assert.rejects(host.write(entry.callback), entry.error);
+      await new Promise(resolve => setImmediate(resolve));
+      assert.deepEqual(unhandled, []);
+    } finally { process.off("unhandledRejection", listener); }
   });
 }
 

@@ -2,15 +2,15 @@
 import { __officeimoModules } from "./officeimo.mjs";
 const _core = key => { const value = __officeimoModules[key]; if (!value) throw new Error("officeimo-canopyx-adapter.mjs needs officeimo.mjs or officeimo.min.mjs from the same OfficeIMO build, loaded first."); return value; };
 const _c0 = _core("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00");
-const _c1 = _core("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f");
+const _c1 = _core("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244");
 const _c2 = _core("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669");
 const _c3 = _core("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671");
 const _c4 = _core("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208");
 const _c5 = _core("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38");
 const _c6 = _core("fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96");
-const _c7 = _core("6394edd060bcbd1459f1a0ce394f338b4c39dfed76aa608533e2177d8047943a");
-const _c8 = _core("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4");
-const _c9 = _core("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe");
+const _c7 = _core("c12757631f688715be1bdefd417a8b7769fff613a69aecf31ff1fb9a81c9e520");
+const _c8 = _core("406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580");
+const _c9 = _core("dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7");
 const _c10 = _core("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc");
 const _c11 = _core("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5");
 const _c12 = _core("e88a83ca79cd099fc2de29689554c913c7d04b17018098f81c43044064fcdfb8");
@@ -1356,7 +1356,7 @@ return _exports;
 const _m0 = (() => {
 const { BlobByteSink, ExportCell } = _c0;
 
-const { notifyProgress } = _c1;
+const { notifyProgress, notifySynchronously } = _c1;
 
 const { captureFields } = _c2;
 
@@ -1446,7 +1446,7 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
         const settings = { ...xlsx, ...stream, columns: source.columns, sheet, dateMode: xlsx.dateMode ?? request.timeZone, limits: formatLimits,
             hyperlinkOverflow: xlsx.hyperlinkOverflow ?? "drop",
             onHyperlinkOverflow: (overflow) => {
-                onHyperlinkOverflow?.(overflow);
+                notifySynchronously("onHyperlinkOverflow", onHyperlinkOverflow, overflow);
                 linkFallback({ code: "LINKS_TRUNCATED:" + overflow.dropped });
             } };
         if (grouped || about)

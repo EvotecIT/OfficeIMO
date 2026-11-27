@@ -956,15 +956,20 @@ return _exports;
 const _m14 = (() => {
 /** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
 function notifyProgress(callback, progress) {
+    notifySynchronously("onProgress", callback, progress);
+}
+/** @internal Run a host notification that must finish before the export continues. A returned promise is observed,
+ * so its rejection is never unhandled, and the export fails instead of reporting success before the callback ends. */
+function notifySynchronously(name, callback, value) {
     if (!callback)
         return;
-    const result = callback(progress);
+    const result = callback(value);
     if (result && typeof result.then === "function") {
         void Promise.resolve(result).catch(() => { });
-        throw new TypeError("onProgress must be synchronous.");
+        throw new TypeError(name + " must be synchronous.");
     }
 }
-const _exports = Object.freeze({ notifyProgress: notifyProgress });
+const _exports = Object.freeze({ notifyProgress: notifyProgress, notifySynchronously: notifySynchronously });
 return _exports;
 })();
 
@@ -3555,7 +3560,7 @@ const { ChunkedTextSink, BlobByteSink } = _m3;
 
 const { OfficeIMOError } = _m2;
 
-const { notifyProgress } = _m14;
+const { notifyProgress, notifySynchronously } = _m14;
 
 const { copyColumns, createRowProjector } = _m11;
 
@@ -4281,7 +4286,7 @@ class Worksheet {
                 for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count, detailRanges))
                     await this.buffer.write(xml);
                 if (this.droppedLinks)
-                    this.book.settings.onHyperlinkOverflow?.(Object.freeze({ sheetName: this.name, dropped: this.droppedLinks }));
+                    notifySynchronously("onHyperlinkOverflow", this.book.settings.onHyperlinkOverflow, Object.freeze({ sheetName: this.name, dropped: this.droppedLinks }));
                 if (this.links.length || this.internalLinks.length)
                     await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
                 await this.buffer.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
