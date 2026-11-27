@@ -25,9 +25,10 @@ Rules that apply to every README:
   matrices. No competitor comparisons, no PR progress, no "now supports".
 - No hardcoded version numbers or format/route counts in prose. The NuGet badge
   shows the current version; counts come from generated data or link to it.
-- Code samples are short and compile. Samples in READMEs listed in
-  `Build/docs-sync.json` are generated from `Build/DocumentationExamples`; edit
-  the example source and run the sync, never the generated block.
+- Code samples are short and compile. Blocks wrapped in `powerforge:code`
+  markers in READMEs listed in `Build/docs-sync.json` are generated from
+  `Build/DocumentationExamples`; edit the example source and run the sync,
+  never the marked block. Samples outside those markers are maintained by hand.
 - Package READMEs use absolute links (`https://github.com/EvotecIT/OfficeIMO/blob/master/...`
   or `https://officeimo.com/...`). Relative links break on nuget.org. The root
   README is not packed and can keep relative links.
