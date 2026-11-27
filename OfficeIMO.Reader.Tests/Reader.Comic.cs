@@ -5,15 +5,18 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderComicTests {
-    [Fact]
-    public void ImportedChaptersRetainSourceKindAndLogicalPageProvenance() {
-        string path = Path.Combine(AppContext.BaseDirectory, "EbookFixtures", "harbour.cbz");
+    [Theory]
+    [InlineData("harbour.cbz", "officeimo.reader.cbz")]
+    [InlineData("harbour.cb7", "officeimo.reader.cb7")]
+    public void ImportedChaptersRetainSourceKindAndLogicalPageProvenance(string name, string handler) {
+        string path = Path.Combine(AppContext.BaseDirectory, "EbookFixtures", name);
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
 
         using var source = File.OpenRead(path);
         OfficeDocumentReadResult result = reader.ReadDocument(source, Path.GetFileName(path), new ReaderOptions { ComputeHashes = true });
 
         Assert.Equal(ReaderInputKind.Comic, result.Kind);
+        Assert.Contains(handler, result.CapabilitiesUsed);
         Assert.NotEmpty(result.Pages);
         Assert.Equal(OfficeDocumentPageProvenance.LogicalContainer, result.GetPageProvenance());
         Assert.NotEmpty(result.Chunks);

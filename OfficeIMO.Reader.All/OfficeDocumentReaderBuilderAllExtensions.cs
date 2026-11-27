@@ -61,6 +61,8 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddSourceCodeHandler()
             .AddAsciiDocHandler(configured.AsciiDoc)
             .AddCsvHandler(configured.Csv)
+            .AddHandler(EpubReaderAdapter.CreateImportHandler("cb7", new[] { ".cb7" },
+                ReaderInputKind.Comic, ComicReader.MaximumInputBytes, ComicReader.Import, ComicReader.Probe))
             .AddHandler(EpubReaderAdapter.CreateImportHandler("cbz", new[] { ".cbz" },
                 ReaderInputKind.Comic, ComicReader.MaximumInputBytes, ComicReader.Import, ComicReader.Probe))
             .AddChmHandler(configured.Chm)

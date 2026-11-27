@@ -7,13 +7,13 @@ using OfficeIMO.Epub;
 namespace OfficeIMO.Comic;
 
 public static partial class ComicReader {
-    private static XElement? ReadMetadata(IReadOnlyList<ArchiveEntryData> entries, List<OfficeDiagnostic> diagnostics,
+    private static XElement? ReadMetadata(IReadOnlyList<ArchiveEntryData> entries, string format, List<OfficeDiagnostic> diagnostics,
         CancellationToken token) {
         ArchiveEntryData? entry = entries.FirstOrDefault(item => IsComicInfo(item.RelativePath));
         if (entry == null) return null;
         const int maximumMetadataBytes = 256 * 1024;
         if (entry.Length > maximumMetadataBytes) {
-            diagnostics.Add(Loss("CBZ_COMICINFO_LIMIT", "ComicInfo exceeds the metadata limit.", entry.RelativePath));
+            diagnostics.Add(Loss(format + "_COMICINFO_LIMIT", "ComicInfo exceeds the metadata limit.", entry.RelativePath));
             return null;
         }
 
@@ -34,12 +34,12 @@ public static partial class ComicReader {
             if (root.Name != "ComicInfo") throw new XmlException("ComicInfo root element is missing.");
             return root;
         } catch (XmlException exception) {
-            diagnostics.Add(Loss("CBZ_COMICINFO_INVALID", exception.Message, entry.RelativePath));
+            diagnostics.Add(Loss(format + "_COMICINFO_INVALID", exception.Message, entry.RelativePath));
             return null;
         }
     }
 
-    private static void ApplyMetadata(EpubPublication book, XElement? metadata, List<OfficeDiagnostic> diagnostics) {
+    private static void ApplyMetadata(EpubPublication book, XElement? metadata, string format, List<OfficeDiagnostic> diagnostics) {
         foreach (XElement element in metadata?.Elements() ?? Enumerable.Empty<XElement>()) {
             string key = element.Name.LocalName;
             string value = element.Value.Trim();
@@ -57,7 +57,7 @@ public static partial class ComicReader {
             } else if (key == "Manga") {
                 if (value == "YesAndRightToLeft") book.PageProgressionDirection = "rtl";
             } else if (key is not ("Title" or "LanguageISO" or "Series" or "Number" or "Pages" or "PageCount")) {
-                diagnostics.Add(Loss("CBZ_COMICINFO_FIELD_OMITTED", "The ComicInfo field has no mapped publication metadata.", key));
+                diagnostics.Add(Loss(format + "_COMICINFO_FIELD_OMITTED", "The ComicInfo field has no mapped publication metadata.", key));
             }
         }
         if (Text(metadata, "Series") is { } series) {
@@ -70,19 +70,19 @@ public static partial class ComicReader {
                     else break;
                 }
                 if (position.Count == parts.Length) collection.Position = position;
-                else diagnostics.Add(Loss("CBZ_COMICINFO_NUMBER_OMITTED",
+                else diagnostics.Add(Loss(format + "_COMICINFO_NUMBER_OMITTED",
                     "The issue number is outside the EPUB collection-position profile.", number));
             }
             book.AddCollection("comic-series", collection);
         }
     }
 
-    private static Dictionary<int, (string? Bookmark, bool Cover)> ReadPages(XElement? metadata, int count,
+    private static Dictionary<int, (string? Bookmark, bool Cover)> ReadPages(XElement? metadata, int count, string format,
         List<OfficeDiagnostic> diagnostics) {
         var pages = new Dictionary<int, (string?, bool)>();
         foreach (XElement page in metadata?.Element("Pages")?.Elements("Page") ?? Enumerable.Empty<XElement>()) {
             if (!int.TryParse((string?)page.Attribute("Image"), out int index) || index < 0 || index >= count || pages.ContainsKey(index)) {
-                diagnostics.Add(Loss("CBZ_COMICINFO_PAGE_UNAVAILABLE", "The ComicInfo page index is invalid or duplicated.",
+                diagnostics.Add(Loss(format + "_COMICINFO_PAGE_UNAVAILABLE", "The ComicInfo page index is invalid or duplicated.",
                     (string?)page.Attribute("Image")));
                 continue;
             }
@@ -90,7 +90,7 @@ public static partial class ComicReader {
             string? type = (string?)page.Attribute("Type");
             pages.Add(index, (string.IsNullOrEmpty(bookmark) ? null : bookmark, type == "FrontCover"));
             if ((string?)page.Attribute("DoublePage") is "true" or "1" || type is not (null or "FrontCover" or "Story"))
-                diagnostics.Add(Loss("CBZ_COMICINFO_PAGE_ROLE_OMITTED",
+                diagnostics.Add(Loss(format + "_COMICINFO_PAGE_ROLE_OMITTED",
                     "The page image is preserved, but its ComicInfo role or spread is not carried over.", (string?)page.Attribute("Image")));
         }
         return pages;

@@ -1061,6 +1061,7 @@ internal static partial class DocumentReaderEngine {
             ".xml" => "application/xml",
             ".yml" or ".yaml" => "application/yaml",
             ".toml" => "application/toml",
+            ".cb7" => "application/x-7z-compressed",
             ".odt" => "application/vnd.oasis.opendocument.text",
             ".ods" => "application/vnd.oasis.opendocument.spreadsheet",
             ".odp" => "application/vnd.oasis.opendocument.presentation",

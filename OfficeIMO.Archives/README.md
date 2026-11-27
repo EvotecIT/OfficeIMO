@@ -1,6 +1,6 @@
 # OfficeIMO.Archives
 
-OfficeIMO.Archives inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer databases, reads complete verified members, and extracts ZIP, CAB, MSI, TAR, .tar.gz and gzip payloads to disk. It also creates ZIP, TAR and .tar.gz archives and gzip files whose bytes depend only on their input. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared ZIP validation. Extraction does not execute an installer, scripts or custom actions.
+OfficeIMO.Archives inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer databases, reads complete verified members, and extracts ZIP, 7z, CAB, MSI, TAR, .tar.gz and gzip payloads to disk. It also creates ZIP, TAR and .tar.gz archives and gzip files whose bytes depend only on their input. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared ZIP validation. Extraction does not execute an installer, scripts or custom actions.
 
 ## Install
 
@@ -130,6 +130,14 @@ writer.AddFile("logs/raw.bin", File.OpenRead("raw.bin"), compression: ZipCompres
 The output is reproducible. Deflate uses a managed encoder with fixed parameters instead of the runtime's zlib, so the same entries give the same bytes on every operating system and target framework. Timestamps default to 1980-01-01 (the DOS epoch); set `Timestamp` to fix another time, or add `ClampToTimestamp` to cap only newer times as the reproducible-builds `SOURCE_DATE_EPOCH` convention describes. `ArchiveTimestamp.FromSourceDateEpoch()` reads that variable. Attributes are constant (Unix 0644 for files, 0755 for directories) and no varying extra fields are written. `CreateFromDirectory` orders entries by ordinal path, ignores file times unless `PreserveFileTimes` is set, and rejects symbolic links and reparse points.
 
 Each member is compressed into a staging buffer first (memory up to 8 MiB, then a private temporary file) so its local header carries the exact sizes and CRC-32, and the destination does not need to be seekable. `UseDataDescriptors` writes members straight to the destination with data descriptors instead; members of unknown length are then limited to 4 GiB. Member names pass the same checks as extraction: no absolute paths, traversal, empty or nonportable segments, reserved device names, or case and Unicode-normalization collisions. If a source stream fails mid-member, the writer stops without a central directory, so readers reject the incomplete archive instead of accepting a truncated member.
+
+## Read and extract 7z archives
+
+`ArchiveReader.ListSevenZip(stream)` returns file-table order, validated paths and
+folder ordinals. `ReadSevenZip(stream, options)` returns complete verified files.
+`ArchiveExtractor.Extract` publishes the verified files to a fresh directory.
+The managed reader supports Copy, LZMA and LZMA2, including solid folders.
+See [7z limits and codec coverage](SUPPORT.md#7z-reading).
 
 ## Write and read TAR and gzip
 

@@ -112,6 +112,7 @@
     <None Include="../OfficeIMO.Mobi.Tests/Fixtures/harbour.mobi" Link="EbookFixtures/harbour.mobi" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Mobi.Tests/Fixtures/harbour.pdb" Link="EbookFixtures/harbour.pdb" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Comic.Tests/Fixtures/harbour.cbz" Link="EbookFixtures/harbour.cbz" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Comic.Tests/Fixtures/harbour.cb7" Link="EbookFixtures/harbour.cb7" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Fb2.Tests/Fixtures/harbour.fb2.zip" Link="EbookFixtures/harbour.fb2.zip" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Publisher.Tests/Fixtures/*.pub" Link="PublisherFixtures/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

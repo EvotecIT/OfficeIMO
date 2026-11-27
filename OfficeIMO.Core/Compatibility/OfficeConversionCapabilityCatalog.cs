@@ -258,6 +258,7 @@ public static partial class OfficeConversionCapabilityCatalog {
         "odt-pdf", "ods-pdf", "odp-pdf", "email-pdf", "epub-pdf", "markdown-docx", "html-docx", "rtf-docx",
         "docx-epub", "markdown-epub", "html-epub", "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx",
         "csv-xlsx", "xlsx-csv",
+        "ebook-cb7-epub", "ebook-cb7-pdf", "ebook-cb7-html", "ebook-cb7-markdown",
         "ebook-cbz-epub", "ebook-cbz-pdf", "ebook-cbz-html", "ebook-cbz-markdown",
         "ebook-fb2-epub", "ebook-fb2-pdf", "ebook-fb2-html", "ebook-fb2-markdown",
         "ebook-mobi-epub", "ebook-mobi-pdf", "ebook-mobi-html", "ebook-mobi-markdown"
@@ -410,6 +411,10 @@ public static partial class OfficeConversionCapabilityCatalog {
         Route("ebook-cbz-pdf", "Comic book ZIP", "PDF", OfficeConversionInputKind.File, new[] { ".cbz" }, ".pdf", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book ZIP content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("ebook-cbz-html", "Comic book ZIP", "HTML", OfficeConversionInputKind.File, new[] { ".cbz" }, ".html", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book ZIP content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("ebook-cbz-markdown", "Comic book ZIP", "Markdown", OfficeConversionInputKind.File, new[] { ".cbz" }, ".md", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book ZIP content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-cb7-epub", "Comic book 7z", "EPUB", OfficeConversionInputKind.File, new[] { ".cb7" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book 7z content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-cb7-pdf", "Comic book 7z", "PDF", OfficeConversionInputKind.File, new[] { ".cb7" }, ".pdf", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book 7z content with a fidelity report.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
+        Route("ebook-cb7-html", "Comic book 7z", "HTML", OfficeConversionInputKind.File, new[] { ".cb7" }, ".html", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book 7z content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("ebook-cb7-markdown", "Comic book 7z", "Markdown", OfficeConversionInputKind.File, new[] { ".cb7" }, ".md", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported Comic book 7z content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("djvu-pdf", "DjVu", "PDF", OfficeConversionInputKind.File, new[] { ".djvu", ".djv" }, ".pdf", "OfficeIMO.DjVu.Pdf", "DjVuDocument.Load(stream).SaveAsPdf(output, options)", "Convert scanned pages with source physical size, stored searchable text and navigation, with explicit fidelity reports.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("xps-pdf", "XPS/OpenXPS", "PDF", OfficeConversionInputKind.File, new[] { ".xps", ".oxps" }, ".pdf", "OfficeIMO.Xps.Pdf", "XpsDocument.Load(stream).SaveAsPdf(output, options)", "Preserve supported native page paint, searchable Unicode, reading order and navigation in PDF.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("ebook-fb2-epub", "FictionBook 2", "EPUB", OfficeConversionInputKind.File, new[] { ".fb2", ".fb2.zip" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Convert supported FictionBook 2 content with a fidelity report.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
@@ -750,7 +755,7 @@ public static partial class OfficeConversionCapabilityCatalog {
     private static (OfficeConversionTextFormattingKind Kind, string Contract) GetTextFormattingContract(
         string source,
         string target) {
-        if (source == "Comic book ZIP") {
+        if (source is "Comic book ZIP" or "Comic book 7z") {
             return (OfficeConversionTextFormattingKind.FlattenedRaster,
                 "Preserves lettering as part of the raster pages in every output.");
         }

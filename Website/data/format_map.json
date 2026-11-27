@@ -135,6 +135,10 @@
       "family": "books"
     },
     {
+      "name": "Comic book 7z",
+      "family": "books"
+    },
+    {
       "name": "FictionBook 2",
       "family": "books"
     },
@@ -1257,6 +1261,62 @@
       ],
       "cmdlet": "Export-OfficeDocumentImage",
       "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Webp"
+    },
+    {
+      "id": "ebook-cb7-epub",
+      "source": "Comic book 7z",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cb7-html",
+      "source": "Comic book 7z",
+      "target": "HTML",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cb7-markdown",
+      "source": "Comic book 7z",
+      "target": "Markdown",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "ebook-cb7-pdf",
+      "source": "Comic book 7z",
+      "target": "PDF",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
     },
     {
       "id": "ebook-cbz-epub",

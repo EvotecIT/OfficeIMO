@@ -14,6 +14,7 @@
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\wwwroot\samples\provenance-demo.png" Link="samples\provenance-demo.png" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../OfficeIMO.Invoicing.Tests/Fixtures/InvoiceFixture.cs" Link="Fixtures/InvoiceFixture.cs" />
     <Compile Include="../OfficeIMO.Chm.Tests/ChmFixture.cs" Link="Fixtures/ChmFixture.cs" />
+    <None Include="../OfficeIMO.Comic.Tests/Fixtures/harbour.cb7" Link="Fixtures/harbour.cb7" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Fb2.Tests/Fixtures/harbour.fb2.zip" Link="Fixtures/harbour.fb2.zip" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../OfficeIMO.TestAssets/ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
     <None Include="../OfficeIMO.TestAssets/Images/Heic/basic-8bit-srgb.heic" Link="Fixtures/Heic/basic-8bit-srgb.heic" CopyToOutputDirectory="PreserveNewest" />
