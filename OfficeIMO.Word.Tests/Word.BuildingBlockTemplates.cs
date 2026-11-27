@@ -21,6 +21,9 @@ namespace OfficeIMO.Tests {
     public class WordBuildingBlockTemplates {
         private const string BaselineFile = "BuildingBlockTemplates.txt";
 
+        // The text each line was hashed from, so a failure can show what a differing part holds.
+        private readonly Dictionary<string, string> _hashedText = new(StringComparer.Ordinal);
+
         [Fact]
         public void EveryTemplateWritesTheSamePartsAsTheCapturedBaseline() {
             var actual = new List<string>();
@@ -58,12 +61,16 @@ namespace OfficeIMO.Tests {
             Assert.True(missing.Count == 0 && unexpected.Count == 0,
                 "Building block output differs from the baseline." + Environment.NewLine
                 + "Expected:" + Environment.NewLine + string.Join(Environment.NewLine, missing) + Environment.NewLine
-                + "Actual:" + Environment.NewLine + string.Join(Environment.NewLine, unexpected));
+                + "Actual:" + Environment.NewLine + string.Join(Environment.NewLine, unexpected) + Environment.NewLine
+                // The compared text of the first differing line for each part, to show what changed where the
+                // baseline can't be captured (.NET Framework runs only on Windows).
+                + string.Join(Environment.NewLine, unexpected.GroupBy(line => line.Split(' ')[1], StringComparer.Ordinal)
+                    .Select(part => part.First() + ":" + Environment.NewLine + _hashedText[part.First()])));
         }
 
         // One line per part of the saved package (document properties excepted, they carry the save time): the
         // building block, the part name and the SHA-256 of its text with relationship ids numbered.
-        private static IEnumerable<string> Render(string name, Action<WordDocument> build, OfficeTheme? theme = null) {
+        private IEnumerable<string> Render(string name, Action<WordDocument> build, OfficeTheme? theme = null) {
             byte[] package;
             using (var document = theme == null ? WordDocument.Create() : WordDocument.Create(new WordCreateOptions { Theme = theme })) {
                 build(document);
@@ -72,7 +79,7 @@ namespace OfficeIMO.Tests {
             return Hash(name, package);
         }
 
-        private static IEnumerable<string> RenderDefaultTheme() {
+        private IEnumerable<string> RenderDefaultTheme() {
             using var stream = new MemoryStream();
             using (var package = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document)) {
                 MainDocumentPart main = package.AddMainDocumentPart();
@@ -82,7 +89,7 @@ namespace OfficeIMO.Tests {
             return Hash("DefaultPart/Theme", stream.ToArray());
         }
 
-        private static IEnumerable<string> RenderStyleless() {
+        private IEnumerable<string> RenderStyleless() {
             using var input = new MemoryStream();
             using (var package = WordprocessingDocument.Create(input, WordprocessingDocumentType.Document)) {
                 MainDocumentPart main = package.AddMainDocumentPart();
@@ -103,7 +110,7 @@ namespace OfficeIMO.Tests {
             return Hash("Document/Styleless", output);
         }
 
-        private static IEnumerable<string> Hash(string name, byte[] package) {
+        private IEnumerable<string> Hash(string name, byte[] package) {
             using var stream = new MemoryStream(package, writable: false);
             using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
             var parts = new List<(string Name, string Text)>();
@@ -120,7 +127,7 @@ namespace OfficeIMO.Tests {
             foreach (var part in parts.Where(part => part.Name.EndsWith(".rels", StringComparison.Ordinal))) {
                 IEnumerable<XElement> relationships = XDocument.Parse(part.Text).Root!.Elements(relationshipsNamespace + "Relationship")
                     .OrderBy(relationship => (string?)relationship.Attribute("Type"), StringComparer.Ordinal)
-                    .ThenBy(relationship => (string?)relationship.Attribute("Target"), StringComparer.Ordinal);
+                    .ThenBy(relationship => ResolveTarget(part.Name, relationship), StringComparer.Ordinal);
                 foreach (XElement relationship in relationships) {
                     string id = (string)relationship.Attribute("Id")!;
                     if (!ids.ContainsKey(id)) ids[id] = "rel" + ids.Count.ToString(CultureInfo.InvariantCulture);
@@ -136,21 +143,34 @@ namespace OfficeIMO.Tests {
                 text = Regex.Replace(text, "OfficeIMO_TocPlaceholder_[0-9a-f]{32}", "OfficeIMO_TocPlaceholder");
                 // The package layer writes relationship parts, and .NET Framework formats and orders them differently;
                 // they are compared by their relationships.
-                if (part.Name.EndsWith(".rels", StringComparison.Ordinal)) text = DescribeRelationships(text);
+                if (part.Name.EndsWith(".rels", StringComparison.Ordinal)) text = DescribeRelationships(part.Name, text);
                 string hash;
                 using (var sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text))).Replace("-", string.Empty);
-                lines.Add($"{name} {part.Name} {hash}");
+                string line = $"{name} {part.Name} {hash}";
+                _hashedText[line] = text;
+                lines.Add(line);
             }
             return lines;
         }
 
-        private static string DescribeRelationships(string text) {
+        private static string DescribeRelationships(string relationshipsPart, string text) {
             XNamespace ns = "http://schemas.openxmlformats.org/package/2006/relationships";
             return string.Join("\n", XDocument.Parse(text).Root!.Elements(ns + "Relationship")
                 .Select(relationship => string.Join("|",
                     (string?)relationship.Attribute("Id"), (string?)relationship.Attribute("Type"),
-                    (string?)relationship.Attribute("Target"), (string?)relationship.Attribute("TargetMode") ?? "Internal"))
+                    ResolveTarget(relationshipsPart, relationship), (string?)relationship.Attribute("TargetMode") ?? "Internal"))
                 .OrderBy(line => line, StringComparer.Ordinal));
+        }
+
+        // The package layer writes some internal targets as part names (/word/header1.xml) and others relative to the
+        // source part (header1.xml), differently on .NET Framework; both name the same part, so compare the part name.
+        private static string ResolveTarget(string relationshipsPart, XElement relationship) {
+            string target = (string)relationship.Attribute("Target")!;
+            if ((string?)relationship.Attribute("TargetMode") == "External") return target;
+            // word/_rels/document.xml.rels describes /word/document.xml.
+            string folder = relationshipsPart.Substring(0, relationshipsPart.LastIndexOf("_rels/", StringComparison.Ordinal));
+            string source = "/" + folder + relationshipsPart.Substring(relationshipsPart.LastIndexOf('/') + 1, relationshipsPart.Length - relationshipsPart.LastIndexOf('/') - 1 - ".rels".Length);
+            return new Uri(new Uri("http://package" + source), target).AbsolutePath;
         }
 
         private static string FindTestProjectDirectory() {
