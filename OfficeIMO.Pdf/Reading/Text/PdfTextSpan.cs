@@ -276,7 +276,8 @@ public sealed partial class PdfTextSpan {
         bool isArtifactContent = false,
         int? fontWeight = null,
         int? fontDescriptorFlags = null,
-        IReadOnlyList<int>? embeddedLineBreakCounts = null) {
+        IReadOnlyList<int>? embeddedLineBreakCounts = null,
+        bool adoptEvidenceArrays = false) {
         if (fontWeight.HasValue && (fontWeight.Value < 1 || fontWeight.Value > 1000)) {
             throw new ArgumentOutOfRangeException(nameof(fontWeight));
         }
@@ -304,11 +305,13 @@ public sealed partial class PdfTextSpan {
         EmbeddedLineBreakCounts = embeddedLineBreakCounts;
         ContentOrderKey = contentOrderKey;
         TextObjectOrderKey = textObjectOrderKey;
-        CharacterAdvances = characterAdvances?.ToArray();
-        GlyphCharacterLengths = glyphCharacterLengths?.ToArray();
+        // Spans never write their evidence arrays after construction. A caller that passes arrays it built for
+        // this span, or another span's snapshots, hands them over; anything else is copied.
+        CharacterAdvances = Snapshot(characterAdvances, adoptEvidenceArrays);
+        GlyphCharacterLengths = SnapshotGlyphCharacterLengths(glyphCharacterLengths, adoptEvidenceArrays);
         // Glyph codes are fresh per decoded glyph and never written after decoding, so spans share them.
-        GlyphBytes = glyphBytes?.ToArray();
-        GlyphPaintedAdvances = glyphPaintedAdvances?.ToArray();
+        GlyphBytes = Snapshot(glyphBytes, adoptEvidenceArrays);
+        GlyphPaintedAdvances = Snapshot(glyphPaintedAdvances, adoptEvidenceArrays);
         CharacterAdvanceDirection = characterAdvanceDirection;
         TextRenderingMode = textRenderingMode;
         CanRestamp = canRestamp;
@@ -324,6 +327,29 @@ public sealed partial class PdfTextSpan {
         IsType3Font = isType3Font;
         GlyphSequenceProgressesLeftToRight = glyphSequenceProgressesLeftToRight;
         IsArtifactContent = isArtifactContent;
+    }
+
+    private static T[]? Snapshot<T>(IReadOnlyList<T>? values, bool adopt) =>
+        values is null ? null : adopt && values is T[] array ? array : values.ToArray();
+
+    // Most glyphs decode to one character, so runs of the same length share one read-only array of ones.
+    private const int MaximumSharedGlyphCharacterLengths = 256;
+    private static readonly int[]?[] SharedSingleCharacterGlyphLengths = new int[]?[MaximumSharedGlyphCharacterLengths + 1];
+
+    private static int[]? SnapshotGlyphCharacterLengths(IReadOnlyList<int>? lengths, bool adopt) {
+        if (lengths is null) return null;
+        int count = lengths.Count;
+        if (count == 0 || count > MaximumSharedGlyphCharacterLengths) return Snapshot(lengths, adopt);
+        for (int index = 0; index < count; index++) {
+            if (lengths[index] != 1) return Snapshot(lengths, adopt);
+        }
+        int[]? shared = SharedSingleCharacterGlyphLengths[count];
+        if (shared is null) {
+            shared = new int[count];
+            for (int index = 0; index < count; index++) shared[index] = 1;
+            SharedSingleCharacterGlyphLengths[count] = shared;
+        }
+        return shared;
     }
 
     private bool _completeTextProjectionSuppressed;
@@ -393,7 +419,7 @@ public sealed partial class PdfTextSpan {
     internal PdfTextSpan WithOffset(double deltaX, double deltaY) => new PdfTextSpan(
         Text, FontResource, FontSize, X + deltaX, Y + deltaY, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
-        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreakCounts) { DecodingEvidence = DecodingEvidence, TextSpaceFontSize = TextSpaceFontSize, _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed, StoredLogicalLayoutAdvance = this.StoredLogicalLayoutAdvance, StoredLogicalLayoutBaselineOffset = this.StoredLogicalLayoutBaselineOffset, LogicalDrawingText = LogicalDrawingText, LogicalGlyphTexts = LogicalGlyphTexts, HasUnresolvedPaint = HasUnresolvedPaint, HasAdditionalVisiblePaint = HasAdditionalVisiblePaint, VisibleStrokePadding = VisibleStrokePadding, OutlineStroke = OutlineStroke, IsPaintedGlyphProjection = IsPaintedGlyphProjection, SourceActualText = SourceActualText, _hasExactActualTextGlyphMapping = _hasExactActualTextGlyphMapping };
+        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreakCounts, adoptEvidenceArrays: true) { DecodingEvidence = DecodingEvidence, TextSpaceFontSize = TextSpaceFontSize, _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed, StoredLogicalLayoutAdvance = this.StoredLogicalLayoutAdvance, StoredLogicalLayoutBaselineOffset = this.StoredLogicalLayoutBaselineOffset, LogicalDrawingText = LogicalDrawingText, LogicalGlyphTexts = LogicalGlyphTexts, HasUnresolvedPaint = HasUnresolvedPaint, HasAdditionalVisiblePaint = HasAdditionalVisiblePaint, VisibleStrokePadding = VisibleStrokePadding, OutlineStroke = OutlineStroke, IsPaintedGlyphProjection = IsPaintedGlyphProjection, SourceActualText = SourceActualText, _hasExactActualTextGlyphMapping = _hasExactActualTextGlyphMapping };
 
     internal PdfTextSpan WithVisualFontSize(double fontSize) {
         PdfTextSpan copy = CloneSharingGlyphEvidence();
@@ -405,7 +431,7 @@ public sealed partial class PdfTextSpan {
     internal PdfTextSpan WithVisualText(string text) => new PdfTextSpan(
         text, FontResource, FontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
-        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, text.Length == Text.Length ? EmbeddedLineBreakCounts : null) { DecodingEvidence = DecodingEvidence, TextSpaceFontSize = TextSpaceFontSize, _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed, StoredLogicalLayoutAdvance = this.StoredLogicalLayoutAdvance, StoredLogicalLayoutBaselineOffset = this.StoredLogicalLayoutBaselineOffset, LogicalDrawingText = LogicalDrawingText ?? Text, LogicalGlyphTexts = text.Length == Text.Length ? LogicalGlyphTexts : null, HasUnresolvedPaint = HasUnresolvedPaint, HasAdditionalVisiblePaint = HasAdditionalVisiblePaint, VisibleStrokePadding = VisibleStrokePadding, OutlineStroke = OutlineStroke, IsPaintedGlyphProjection = IsPaintedGlyphProjection, SourceActualText = SourceActualText, _hasExactActualTextGlyphMapping = _hasExactActualTextGlyphMapping };
+        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, GlyphCharacterLengths, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, text.Length == Text.Length ? EmbeddedLineBreakCounts : null, adoptEvidenceArrays: true) { DecodingEvidence = DecodingEvidence, TextSpaceFontSize = TextSpaceFontSize, _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed, StoredLogicalLayoutAdvance = this.StoredLogicalLayoutAdvance, StoredLogicalLayoutBaselineOffset = this.StoredLogicalLayoutBaselineOffset, LogicalDrawingText = LogicalDrawingText ?? Text, LogicalGlyphTexts = text.Length == Text.Length ? LogicalGlyphTexts : null, HasUnresolvedPaint = HasUnresolvedPaint, HasAdditionalVisiblePaint = HasAdditionalVisiblePaint, VisibleStrokePadding = VisibleStrokePadding, OutlineStroke = OutlineStroke, IsPaintedGlyphProjection = IsPaintedGlyphProjection, SourceActualText = SourceActualText, _hasExactActualTextGlyphMapping = _hasExactActualTextGlyphMapping };
 
     /// <summary>
     /// Returns one painted glyph of this run at its own origin. The glyph advance is its painted
@@ -424,7 +450,7 @@ public sealed partial class PdfTextSpan {
             text, FontResource, FontSize, x, y, paintedAdvance, Color, IsVisible, RotationDegrees, BaseFont, clipPath ?? ClipPath,
             PaintOrder, DrawingFontFamily, 0, false, false,
             ContentOrderKey, characterAdvances, TextRenderingMode, false, RestampFontSize, text, true, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, glyphTransform, VisualPaintIdentity,
-            new[] { characterLength }, GlyphBytes is null ? null : new[] { GlyphBytes[glyphIndex] }, new[] { paintedAdvance }, CharacterAdvanceDirection, HasActualText, IsType3Font, false, IsArtifactContent, FontWeight, FontDescriptorFlags) {
+            new[] { characterLength }, GlyphBytes is null ? null : new[] { GlyphBytes[glyphIndex] }, new[] { paintedAdvance }, CharacterAdvanceDirection, HasActualText, IsType3Font, false, IsArtifactContent, FontWeight, FontDescriptorFlags, adoptEvidenceArrays: true) {
             DecodingEvidence = DecodingEvidence, TextSpaceFontSize = TextSpaceFontSize, _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed,
             LogicalDrawingText = LogicalGlyphTexts is { } logicalGlyphs ? logicalGlyphs[glyphIndex] : LogicalDrawingText?.Length == Text.Length
                 ? LogicalDrawingText.Substring(characterOffset, characterLength)
@@ -444,11 +470,19 @@ public sealed partial class PdfTextSpan {
         return new PdfTextSpan(
             glyphText, FontResource, FontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
             PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
-            ContentOrderKey, advances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, new[] { glyphText.Length }, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, glyphText.Length == Text.Length ? EmbeddedLineBreakCounts : null) { DecodingEvidence = DecodingEvidence, TextSpaceFontSize = TextSpaceFontSize, _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed, StoredLogicalLayoutAdvance = this.StoredLogicalLayoutAdvance, StoredLogicalLayoutBaselineOffset = this.StoredLogicalLayoutBaselineOffset, LogicalDrawingText = LogicalDrawingText ?? Text, LogicalGlyphTexts = LogicalGlyphTexts, HasUnresolvedPaint = HasUnresolvedPaint, HasAdditionalVisiblePaint = HasAdditionalVisiblePaint, VisibleStrokePadding = VisibleStrokePadding, OutlineStroke = OutlineStroke, IsPaintedGlyphProjection = IsPaintedGlyphProjection, SourceActualText = SourceActualText, _hasExactActualTextGlyphMapping = _hasExactActualTextGlyphMapping };
+            ContentOrderKey, advances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity, new[] { glyphText.Length }, GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font, GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, glyphText.Length == Text.Length ? EmbeddedLineBreakCounts : null, adoptEvidenceArrays: true) { DecodingEvidence = DecodingEvidence, TextSpaceFontSize = TextSpaceFontSize, _completeTextProjectionSuppressed = this._completeTextProjectionSuppressed, StoredLogicalLayoutAdvance = this.StoredLogicalLayoutAdvance, StoredLogicalLayoutBaselineOffset = this.StoredLogicalLayoutBaselineOffset, LogicalDrawingText = LogicalDrawingText ?? Text, LogicalGlyphTexts = LogicalGlyphTexts, HasUnresolvedPaint = HasUnresolvedPaint, HasAdditionalVisiblePaint = HasAdditionalVisiblePaint, VisibleStrokePadding = VisibleStrokePadding, OutlineStroke = OutlineStroke, IsPaintedGlyphProjection = IsPaintedGlyphProjection, SourceActualText = SourceActualText, _hasExactActualTextGlyphMapping = _hasExactActualTextGlyphMapping };
     }
 
     // Layout and rendering measure the transformed glyph height. Raw extraction still exposes
     // the authored Tf operand, which can be 1 when a producer puts scaling in Tm or cm.
+    // For a span its caller owns and has not shared yet: the same change as WithPageFontSize, without a copy.
+    internal void ApplyPageFontSize() {
+        if (RestampFontSize > 0D && !double.IsNaN(RestampFontSize) && !double.IsInfinity(RestampFontSize) &&
+            Math.Abs(RestampFontSize - FontSize) > 0.000001D) {
+            FontSize = RestampFontSize;
+        }
+    }
+
     internal PdfTextSpan WithPageFontSize() =>
         RestampFontSize > 0D && !double.IsNaN(RestampFontSize) && !double.IsInfinity(RestampFontSize) &&
         Math.Abs(RestampFontSize - FontSize) > 0.000001D
@@ -461,7 +495,7 @@ public sealed partial class PdfTextSpan {
         ContentOrderKey, CharacterAdvances, TextRenderingMode, false, RestampFontSize, RestampText, CanScaleAggregateAdvance,
         MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, null, VisualPaintIdentity, GlyphCharacterLengths,
         GlyphBytes, GlyphPaintedAdvances, CharacterAdvanceDirection, HasActualText, IsType3Font,
-        GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreakCounts) {
+        GlyphSequenceProgressesLeftToRight, IsArtifactContent, FontWeight, FontDescriptorFlags, EmbeddedLineBreakCounts, adoptEvidenceArrays: true) {
         // The internal layout proxy has no source-space clip. Retain the original eligibility
         // decision so removing that coordinate-dependent clip cannot expose complete cell text.
         DecodingEvidence = DecodingEvidence, TextSpaceFontSize = TextSpaceFontSize,

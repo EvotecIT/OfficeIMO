@@ -1,8 +1,7 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -15,10 +14,14 @@ namespace OfficeIMO.Excel {
             var (startRow, startColumn, endRow, endColumn) = ParseImageRange(range);
             ExcelImage? image = null;
             WriteLock(() => {
-                DrawingsPart drawingPart = GetOrCreateDrawingsPart();
-                A.Blip blip = CreatePictureBlip(drawingPart, imageBytes, contentType, deduplicate);
+                ExcelPartRef drawingPart = GetOrCreateDrawingsPart();
+                OfficeXmlNode worksheetDrawing = drawingPart.Root;
+                OfficeXmlNode anchor = worksheetDrawing.New(Xdr, "twoCellAnchor");
+                OfficeXmlNode picture = anchor.New(Xdr, "pic");
+                OfficeXmlNode blipFill = picture.New(Xdr, "blipFill");
+                OfficeXmlNode blip = CreatePictureBlip(drawingPart, blipFill, imageBytes, contentType, deduplicate);
 
-                var drawingId = NextDrawingId(drawingPart);
+                uint drawingId = NextDrawingId(drawingPart);
                 string resolvedName = string.IsNullOrWhiteSpace(name) ? $"Picture {drawingId}" : name!.Trim();
                 var (width, height) = CalculateRangeAnchorSize(
                     startRow,
@@ -29,31 +32,19 @@ namespace OfficeIMO.Excel {
                     offsetY,
                     endOffsetX,
                     endOffsetY);
-                var anchor = new Xdr.TwoCellAnchor(
-                    new Xdr.FromMarker(
-                        new Xdr.ColumnId((startColumn - 1).ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                        new Xdr.ColumnOffset(offsetX.ToEmus().ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                        new Xdr.RowId((startRow - 1).ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                        new Xdr.RowOffset(offsetY.ToEmus().ToString(System.Globalization.CultureInfo.InvariantCulture))
-                    ),
-                    new Xdr.ToMarker(
-                        new Xdr.ColumnId(endColumn.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                        new Xdr.ColumnOffset(endOffsetX.ToEmus().ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                        new Xdr.RowId(endRow.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                        new Xdr.RowOffset(endOffsetY.ToEmus().ToString(System.Globalization.CultureInfo.InvariantCulture))
-                    ),
-                    CreatePicture(drawingId, resolvedName, blip, altText, title, lockAspectRatio,
+                anchor.SetAttribute("editAs", ToEditAsValue(placement));
+                anchor.With(
+                    NewMarker(anchor, "from", startColumn - 1, offsetX.ToEmus(), startRow - 1, offsetY.ToEmus()),
+                    NewMarker(anchor, "to", endColumn, endOffsetX.ToEmus(), endRow, endOffsetY.ToEmus()),
+                    FillPicture(picture, blipFill, drawingId, resolvedName, blip, altText, title, lockAspectRatio,
                         width.ToEmus(), height.ToEmus(), rotationDegrees),
-                    new Xdr.ClientData()) {
-                    EditAs = ToEditAsValue(placement)
-                };
+                    anchor.New(Xdr, "clientData"));
 
-                Xdr.WorksheetDrawing worksheetDrawing = drawingPart.WorksheetDrawing!;
-                worksheetDrawing.Append(anchor);
-                worksheetDrawing.Save();
-                WorksheetRoot.Save();
+                anchor = worksheetDrawing.Append(anchor);
+                drawingPart.SaveRoot();
+                ExcelPartRef.SaveWorksheetElement(this);
                 _excelDocument.MarkPackageDirty();
-                image = new ExcelImage(anchor.GetFirstChild<Xdr.Picture>()!, anchor, drawingPart, this);
+                image = new ExcelImage(anchor.Child(Xdr, "pic"), anchor, drawingPart, this);
             });
 
             return image!;
@@ -70,78 +61,102 @@ namespace OfficeIMO.Excel {
             if (resolvedHeight <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
             ExcelImage? image = null;
             WriteLock(() => {
-                DrawingsPart drawingPart = GetOrCreateDrawingsPart();
-                A.Blip blip = CreatePictureBlip(drawingPart, imageBytes, contentType, deduplicate);
+                ExcelPartRef drawingPart = GetOrCreateDrawingsPart();
+                OfficeXmlNode worksheetDrawing = drawingPart.Root;
+                OfficeXmlNode anchor = worksheetDrawing.New(Xdr, "absoluteAnchor");
+                OfficeXmlNode picture = anchor.New(Xdr, "pic");
+                OfficeXmlNode blipFill = picture.New(Xdr, "blipFill");
+                OfficeXmlNode blip = CreatePictureBlip(drawingPart, blipFill, imageBytes, contentType, deduplicate);
 
-                UInt32Value drawingId = NextDrawingId(drawingPart);
+                uint drawingId = NextDrawingId(drawingPart);
                 string resolvedName = string.IsNullOrWhiteSpace(name) ? $"Picture {drawingId}" : name!.Trim();
                 long widthEmu = resolvedWidth.ToEmus();
                 long heightEmu = resolvedHeight.ToEmus();
-                var anchor = new Xdr.AbsoluteAnchor(
-                    new Xdr.Position {
-                        X = x.ToEmus(),
-                        Y = y.ToEmus()
-                    },
-                    new Xdr.Extent { Cx = widthEmu, Cy = heightEmu },
-                    CreatePicture(drawingId, resolvedName, blip, altText, title, lockAspectRatio, widthEmu, heightEmu, rotationDegrees),
-                    new Xdr.ClientData());
+                anchor.With(
+                    anchor.New(Xdr, "pos").Attr("x", x.ToEmus()).Attr("y", y.ToEmus()),
+                    anchor.New(Xdr, "ext").Attr("cx", widthEmu).Attr("cy", heightEmu),
+                    FillPicture(picture, blipFill, drawingId, resolvedName, blip, altText, title, lockAspectRatio, widthEmu, heightEmu, rotationDegrees),
+                    anchor.New(Xdr, "clientData"));
 
-                Xdr.WorksheetDrawing worksheetDrawing = drawingPart.WorksheetDrawing!;
-                worksheetDrawing.Append(anchor);
-                worksheetDrawing.Save();
-                WorksheetRoot.Save();
+                anchor = worksheetDrawing.Append(anchor);
+                drawingPart.SaveRoot();
+                ExcelPartRef.SaveWorksheetElement(this);
                 _excelDocument.MarkPackageDirty();
-                image = new ExcelImage(anchor.GetFirstChild<Xdr.Picture>()!, anchor, drawingPart, this);
+                image = new ExcelImage(anchor.Child(Xdr, "pic"), anchor, drawingPart, this);
             });
 
             return image!;
         }
 
-        private DrawingsPart GetOrCreateDrawingsPart() {
-            var drawing = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
-            if (drawing == null) {
-                DrawingsPart drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
-                drawingPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
-                string relationshipId = _worksheetPart.GetIdOfPart(drawingPart);
-                WorksheetRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = relationshipId });
+        /// <summary>
+        /// The worksheet's drawing part, created and linked from the worksheet when the worksheet has none, with a
+        /// worksheet drawing root.
+        /// </summary>
+        private ExcelPartRef GetOrCreateDrawingsPart() {
+            ExcelPartRef worksheetPart = ExcelPartRef.WorksheetForMetadata(this);
+            OfficeXmlNode drawing = ExcelPartRef.WorksheetDrawingElement(this);
+            if (drawing.IsNone) {
+                ExcelPartRef drawingPart = worksheetPart.AddNewPart(ExcelPartKind.Drawings);
+                drawingPart.SetRootMarkup(WorksheetDrawingRootMarkup);
+                string relationshipId = worksheetPart.GetIdOfPart(drawingPart)!;
+                ExcelPartRef.LinkWorksheetDrawing(this, relationshipId);
                 return drawingPart;
             }
 
-            var existing = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
-            existing.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
+            ExcelPartRef existing = RequireDrawingsPart(worksheetPart, drawing.RelationshipAttribute("id"));
+            if (existing.Root.IsNone) existing.SetRootMarkup(WorksheetDrawingRootMarkup);
             return existing;
         }
 
-        private static Xdr.Picture CreatePicture(UInt32Value drawingId, string name, A.Blip blip, string? altText,
-            string? title, bool lockAspectRatio, long widthEmu, long heightEmu, double rotationDegrees) {
-            var drawingProperties = new Xdr.NonVisualDrawingProperties {
-                Id = drawingId,
-                Name = name,
-                Description = altText ?? string.Empty
-            };
+        /// <summary>A new worksheet drawing root, as <c>new WorksheetDrawing()</c> writes it.</summary>
+        private static byte[] WorksheetDrawingRootMarkup => System.Text.Encoding.UTF8.GetBytes(
+            "<xdr:wsDr xmlns:xdr=\"http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing\" />");
+
+        // The drawing part the worksheet's drawing relationship targets; fails as the typed part lookup does.
+        private static ExcelPartRef RequireDrawingsPart(ExcelPartRef worksheetPart, string? relationshipId) {
+            if (relationshipId == null) throw new ArgumentNullException("id");
+            ExcelPartRef part = worksheetPart.GetPartById(relationshipId);
+            if (part.IsNone) throw new ArgumentOutOfRangeException("id");
+            if (part.Kind != ExcelPartKind.Drawings) throw new InvalidCastException("The worksheet drawing relationship does not target a drawing part.");
+            return part;
+        }
+
+        // Fills a detached xdr:pic made for its anchor and returns it.
+        private static OfficeXmlNode FillPicture(OfficeXmlNode picture, OfficeXmlNode blipFill, uint drawingId, string name, OfficeXmlNode blip,
+            string? altText, string? title, bool lockAspectRatio, long widthEmu, long heightEmu, double rotationDegrees) {
+            OfficeXmlNode nonVisual = picture.New(Xdr, "nvPicPr");
+            OfficeXmlNode drawingProperties = nonVisual.New(Xdr, "cNvPr")
+                .Attr("id", drawingId)
+                .Attr("name", name)
+                .Attr("descr", altText ?? string.Empty);
             if (!string.IsNullOrWhiteSpace(title)) {
-                drawingProperties.Title = title;
+                drawingProperties.SetAttribute("title", title);
             }
 
-            var transform = new A.Transform2D(
-                new A.Offset { X = 0, Y = 0 },
-                new A.Extents { Cx = widthEmu, Cy = heightEmu });
+            OfficeXmlNode shapeProperties = picture.New(Xdr, "spPr");
+            OfficeXmlNode transform = shapeProperties.New(A, "xfrm");
+            transform.With(
+                transform.New(A, "off").Attr("x", 0L).Attr("y", 0L),
+                transform.New(A, "ext").Attr("cx", widthEmu).Attr("cy", heightEmu));
             if (Math.Abs(rotationDegrees) > double.Epsilon) {
-                transform.Rotation = (int)Math.Round(rotationDegrees * 60000.0);
+                transform.SetInt32Attribute("rot", (int)Math.Round(rotationDegrees * 60000.0));
             }
 
-            return new Xdr.Picture(
-                new Xdr.NonVisualPictureProperties(
+            OfficeXmlNode pictureDrawing = nonVisual.New(Xdr, "cNvPicPr");
+            OfficeXmlNode stretch = blipFill.New(A, "stretch");
+            OfficeXmlNode geometry = shapeProperties.New(A, "prstGeom").Attr("prst", "rect");
+            return picture.With(
+                nonVisual.With(
                     drawingProperties,
-                    new Xdr.NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = lockAspectRatio })
+                    pictureDrawing.With(pictureDrawing.New(A, "picLocks").Attr("noChangeAspect", lockAspectRatio))
                 ),
-                new Xdr.BlipFill(
+                blipFill.With(
                     blip,
-                    new A.Stretch(new A.FillRectangle())
+                    stretch.With(stretch.New(A, "fillRect"))
                 ),
-                new Xdr.ShapeProperties(
+                shapeProperties.With(
                     transform,
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
+                    geometry.With(geometry.New(A, "avLst"))
                 )
             );
         }
@@ -186,7 +201,7 @@ namespace OfficeIMO.Excel {
             OfficeLength offsetX, OfficeLength offsetY, OfficeLength endOffsetX, OfficeLength endOffsetY) {
             OfficeLength width = OfficeLength.Zero;
             OfficeLength height = OfficeLength.Zero;
-            var geometry = Utilities.ExcelWorksheetGeometryIndex.Create(WorksheetPart);
+            var geometry = ExcelPartRef.Worksheet(this).CreateWorksheetGeometry();
             for (int column = startColumn; column <= endColumn; column++)
                 width += geometry.GetColumnLength(column);
             for (int row = startRow; row <= endRow; row++)
@@ -214,33 +229,34 @@ namespace OfficeIMO.Excel {
         public static bool IsSupportedImageContentType(string? contentType) =>
             TryGetImagePartType(contentType, out _);
 
-        private static PartTypeInfo ToImagePartType(string? contentType) {
-            if (TryGetImagePartType(contentType, out PartTypeInfo imagePartType)) return imagePartType;
+        private static (string ContentType, string Extension) ToImagePartContentType(string? contentType) {
+            if (TryGetImagePartType(contentType, out var imagePartType)) return imagePartType;
             throw new NotSupportedException($"Image content type '{contentType}' is not supported by Excel image parts.");
         }
 
-        private static bool TryGetImagePartType(string? contentType, out PartTypeInfo imagePartType) {
+        // The image part content type and file extension Excel image parts use for each accepted content type.
+        private static bool TryGetImagePartType(string? contentType, out (string ContentType, string Extension) imagePartType) {
             switch ((contentType ?? string.Empty).Trim().ToLowerInvariant()) {
-                case "image/png": imagePartType = ImagePartType.Png; return true;
+                case "image/png": imagePartType = ("image/png", ".png"); return true;
                 case "image/jpeg":
-                case "image/jpg": imagePartType = ImagePartType.Jpeg; return true;
-                case "image/gif": imagePartType = ImagePartType.Gif; return true;
-                case "image/bmp": imagePartType = ImagePartType.Bmp; return true;
+                case "image/jpg": imagePartType = ("image/jpeg", ".jpg"); return true;
+                case "image/gif": imagePartType = ("image/gif", ".gif"); return true;
+                case "image/bmp": imagePartType = ("image/bmp", ".bmp"); return true;
                 case "image/tiff":
-                case "image/tif": imagePartType = ImagePartType.Tiff; return true;
+                case "image/tif": imagePartType = ("image/tiff", ".tiff"); return true;
                 case "image/svg+xml":
-                case "image/svg": imagePartType = ImagePartType.Svg; return true;
+                case "image/svg": imagePartType = ("image/svg+xml", ".svg"); return true;
                 case "image/x-emf":
-                case "image/emf": imagePartType = ImagePartType.Emf; return true;
+                case "image/emf": imagePartType = ("image/x-emf", ".emf"); return true;
                 case "image/x-wmf":
-                case "image/wmf": imagePartType = ImagePartType.Wmf; return true;
+                case "image/wmf": imagePartType = ("image/x-wmf", ".wmf"); return true;
                 case "image/x-icon":
                 case "image/vnd.microsoft.icon":
-                case "image/ico": imagePartType = ImagePartType.Icon; return true;
+                case "image/ico": imagePartType = ("image/x-icon", ".ico"); return true;
                 case "image/x-pcx":
-                case "image/pcx": imagePartType = ImagePartType.Pcx; return true;
+                case "image/pcx": imagePartType = ("image/x-pcx", ".pcx"); return true;
                 default:
-                    imagePartType = default!;
+                    imagePartType = default;
                     return false;
             }
         }
@@ -260,12 +276,12 @@ namespace OfficeIMO.Excel {
             return info;
         }
 
-        private static EnumValue<Xdr.EditAsValues> ToEditAsValue(ExcelImagePlacement placement) {
+        private static string ToEditAsValue(ExcelImagePlacement placement) {
             return placement switch {
-                ExcelImagePlacement.MoveAndSize => Xdr.EditAsValues.TwoCell,
-                ExcelImagePlacement.MoveOnly => Xdr.EditAsValues.OneCell,
-                ExcelImagePlacement.FreeFloating => Xdr.EditAsValues.Absolute,
-                _ => Xdr.EditAsValues.TwoCell
+                ExcelImagePlacement.MoveAndSize => "twoCell",
+                ExcelImagePlacement.MoveOnly => "oneCell",
+                ExcelImagePlacement.FreeFloating => "absolute",
+                _ => "twoCell"
             };
         }
     }

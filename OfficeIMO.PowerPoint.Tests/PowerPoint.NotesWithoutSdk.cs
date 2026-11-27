@@ -73,6 +73,77 @@ public class PowerPointNotesWithoutSdkTests {
         Assert.Equal("Speaker notes", reopened.Slides[0].Notes.Text);
     }
 
+    [Fact]
+    public void NotesTextKeptFromARemovedSlideThrowsAndNeverReachesNewNotes() {
+        byte[] source;
+        using (var created = PowerPointDocument.Create()) {
+            created.AddSlide().Notes.Text = "Old notes";
+            created.AddSlide();
+            source = created.ToBytes();
+        }
+
+        byte[] saved;
+        using (var presentation = PowerPointDocument.Load(new MemoryStream(source))) {
+            PowerPointParagraph paragraph = presentation.Slides[0].Notes.Paragraphs[0];
+            PowerPointTextRun run = paragraph.Runs[0];
+            presentation.RemoveSlide(0);
+            // The remaining slide's new notes can take the removed notes' part name.
+            presentation.Slides[0].Notes.Text = "New notes";
+
+            Assert.Throws<InvalidOperationException>(() => run.Text = "Edited");
+            Assert.Throws<InvalidOperationException>(() => run.SetHyperlink("https://example.com"));
+            Assert.Throws<InvalidOperationException>(() => paragraph.Text);
+            Assert.False(presentation.IsSdkLoaded);
+            _ = presentation.OpenXmlDocument;
+            Assert.Throws<InvalidOperationException>(() => run.Text);
+            saved = presentation.ToBytes();
+        }
+
+        using var reopened = PowerPointDocument.Load(new MemoryStream(saved));
+        Assert.Equal("New notes", reopened.Slides[0].Notes.Text);
+        var notesPart = reopened.OpenXmlDocument.PresentationPart!.SlideParts.Single().NotesSlidePart!;
+        Assert.Empty(notesPart.HyperlinkRelationships);
+    }
+
+    [Fact]
+    public void ANotesRelationshipToAPartThatIsNotNotesReadsAsNoNotes() {
+        byte[] source = CreateDeck();
+        var output = new MemoryStream();
+        output.Write(source, 0, source.Length);
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true)) {
+            Rewrite(archive, "ppt/slides/_rels/slide1.xml.rels", root => root.Add(new XElement(root.GetDefaultNamespace() + "Relationship",
+                new XAttribute("Id", "rId90"),
+                new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide"),
+                new XAttribute("Target", "slide2.xml"))));
+        }
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(output.ToArray()));
+        PowerPointSlide slide = presentation.Slides[0];
+        Assert.False(slide.HasSpeakerNotes);
+        Assert.False(slide.Notes.TryGetText(out _));
+        Assert.False(slide.Notes.TryGetExistingText(out _));
+        Assert.Empty(slide.Notes.Paragraphs);
+        Assert.Equal(string.Empty, slide.GetSpeakerNotesText());
+    }
+
+    [Fact]
+    public void NotesTooLargeForThePackageReadTheSameEverywhere() {
+        string text = new('x', 17 * 1024 * 1024);
+        byte[] source;
+        using (var created = PowerPointDocument.Create()) {
+            created.AddSlide().Notes.Text = text;
+            source = created.ToBytes();
+        }
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source));
+        PowerPointSlide slide = presentation.Slides[0];
+        Assert.True(slide.HasSpeakerNotes);
+        Assert.Equal(text.Length, slide.GetSpeakerNotesText().Length);
+        Assert.Single(slide.Notes.Paragraphs);
+        Assert.True(slide.Notes.TryGetText(out string read));
+        Assert.Equal(text.Length, read.Length);
+    }
+
     private static void Edit(PowerPointDocument presentation) {
         PowerPointSlide[] slides = presentation.Slides.ToArray();
         slides[0].Notes.Text = "First point\nSecond point";

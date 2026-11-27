@@ -193,6 +193,9 @@ internal static class OfficeOpenXmlThemeColorResolver {
             _ => null
         };
 
+    private static int? Percentage(OfficeXmlNode element, string localName) =>
+        OfficeDrawingColorTransforms.ParsePercentage(element.Attribute(localName));
+
     private static OfficeColor? ResolveColorElement(
         OfficeXmlNode colorElement,
         OfficeXmlNode colorScheme,
@@ -208,10 +211,11 @@ internal static class OfficeOpenXmlThemeColorResolver {
                 color = ParseRgb(colorElement.Attribute("val"));
                 break;
             case "scrgbClr":
-                color = OfficeDrawingColorTransforms.ParseScRgb(colorElement.IntAttr("r"), colorElement.IntAttr("g"), colorElement.IntAttr("b"));
+                // Percentages: thousandths of a percent, or a strict document's "50%" form.
+                color = OfficeDrawingColorTransforms.ParseScRgb(Percentage(colorElement, "r"), Percentage(colorElement, "g"), Percentage(colorElement, "b"));
                 break;
             case "hslClr":
-                color = OfficeDrawingColorTransforms.ParseHsl(colorElement.IntAttr("hue"), colorElement.IntAttr("sat"), colorElement.IntAttr("lum"));
+                color = OfficeDrawingColorTransforms.ParseHsl(colorElement.IntAttr("hue"), Percentage(colorElement, "sat"), Percentage(colorElement, "lum"));
                 break;
             case "sysClr":
                 color = ParseRgb(colorElement.Attribute("lastClr"));

@@ -281,7 +281,7 @@ public partial class Html {
         var list = doc.Lists[0];
         Assert.NotNull(list.Numbering);
         Assert.Equal(5, list.Numbering!.Levels[0].StartNumberingValue);
-        Assert.Equal(NumberFormatValues.LowerLetter, list.Numbering.Levels[0]._level.NumberingFormat!.Val!.Value);
+        Assert.Equal(NumberFormatValues.LowerLetter, list.Numbering.Levels[0].OpenXmlLevel().NumberingFormat!.Val!.Value);
     }
 
     [Fact]
@@ -292,7 +292,7 @@ public partial class Html {
 
         var list = doc.Lists[0];
         Assert.NotNull(list.Numbering);
-        Assert.Equal("o", list.Numbering!.Levels[0]._level.LevelText!.Val);
+        Assert.Equal("o", list.Numbering!.Levels[0].OpenXmlLevel().LevelText!.Val);
     }
 
     [Fact]

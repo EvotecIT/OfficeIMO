@@ -119,7 +119,7 @@ namespace OfficeIMO.Word {
             ArgumentOutOfRangeException.ThrowIfNegative(level);
 
             var levels = Numbering.Levels;
-            var targetLevel = levels.FirstOrDefault(l => l._level.LevelIndex?.Value == level)
+            var targetLevel = levels.FirstOrDefault(l => l.LevelIndex == level && l.Node.HasAttribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.WordprocessingML, "ilvl"))
                 ?? (levels.Count > level ? levels[level] : null);
             targetLevel?.SetStartNumberingValue(value);
 
@@ -293,7 +293,7 @@ namespace OfficeIMO.Word {
             }
             level.Append(symbolProps);
 
-            list.Numbering.AddLevel(level);
+            list.Numbering.AddLevel(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(level));
 
             return list;
         }
@@ -386,7 +386,9 @@ namespace OfficeIMO.Word {
 
             var list = document.AddList(WordListStyle.Custom);
             list.Numbering.RemoveAllLevels();
-            list.ReplaceAbstractNum(WordListStyles.CreatePictureBulletStyle(picId));
+            AbstractNum pictureDefinition = NewDefinition(WordListStyles.PictureBulletMarkup, list._abstractId);
+            pictureDefinition.Descendants<LevelPictureBulletId>().First().Val = picId;
+            list.ReplaceAbstractNum(pictureDefinition);
             return list;
         }
 
@@ -417,10 +419,9 @@ namespace OfficeIMO.Word {
 
             var currentCount = this.Numbering.Levels.Count;
             if (currentCount > 0 && levelIndex > currentCount + 1) {
-                var last = this.Numbering.Levels.Last()._level;
+                var last = this.Numbering.Levels.Last().Node;
                 while (this.Numbering.Levels.Count < levelIndex - 1) {
-                    var clone = (Level)last.CloneNode(true);
-                    this.Numbering.AddLevel(clone);
+                    this.Numbering.AddLevel(last.Clone());
                 }
             }
 
@@ -428,13 +429,12 @@ namespace OfficeIMO.Word {
                 var placeholder = CreateBulletLevel(symbol, fontFamily, color, fontSize);
                 while (this.Numbering.Levels.Count < levelIndex - 1) {
                     var clone = (Level)placeholder.CloneNode(true);
-                    this.Numbering.AddLevel(clone);
+                    this.Numbering.AddLevel(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(clone));
                 }
             }
 
             var newLevel = CreateBulletLevel(symbol, fontFamily, color, fontSize);
-            this.Numbering.AddLevel(newLevel);
-            return new WordListLevel(newLevel);
+            return new WordListLevel(this.Numbering.AddLevel(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(newLevel)));
         }
 
         /// <summary>
@@ -482,14 +482,14 @@ namespace OfficeIMO.Word {
         /// Converts this list to a numbered style while preserving existing list items.
         /// </summary>
         public void ConvertToNumbered() {
-            ReplaceAbstractNum(WordListStyles.GetStyle(WordListStyle.Numbered));
+            ReplaceAbstractNum(NewDefinition(WordListStyles.GetDefinitionMarkup(WordListStyle.Numbered), _abstractId));
         }
 
         /// <summary>
         /// Converts this list to a bulleted style while preserving existing list items.
         /// </summary>
         public void ConvertToBulleted() {
-            ReplaceAbstractNum(WordListStyles.GetStyle(WordListStyle.Bulleted));
+            ReplaceAbstractNum(NewDefinition(WordListStyles.GetDefinitionMarkup(WordListStyle.Bulleted), _abstractId));
         }
     }
 }

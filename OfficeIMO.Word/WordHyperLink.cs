@@ -203,7 +203,8 @@ namespace OfficeIMO.Word {
                 return _hyperlink.Tooltip;
             }
             set {
-                _hyperlink.Tooltip = value;
+                // Null removes the attribute; an attribute without a value would be written as an empty tooltip.
+                _hyperlink.Tooltip = value == null ? null : new StringValue(value);
             }
         }
 

@@ -122,6 +122,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_ToBytes_RejectsUnknownConditionalTableStyleTypeEvenWithoutFormatting() {
+            const string styleId = "NativeDocUnknownConditional";
+            using WordDocument document = WordDocument.Create();
+            var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+            style.Append(new StyleName { Val = "Native DOC Unknown Conditional" });
+            style.Append(new BasedOn { Val = "TableNormal" });
+            style.Append(new TableStyleProperties { Type = new DocumentFormat.OpenXml.EnumValue<TableStyleOverrideValues> { InnerText = "diagonalCell" } });
+            document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc));
+
+            Assert.Contains("Unsupported conditional type: diagonalCell", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleBasedOnCustomLayoutStyleAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string baseStyleId = "NativeDocBaseLayoutTable";

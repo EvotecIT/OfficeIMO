@@ -1017,3 +1017,43 @@ namespace OfficeIMO.Excel {
         }
     }
 }
+
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
+        private void MaterializeWorkbookSharedFormulasForStructuralEdit() {
+            foreach (Sheet sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
+                if (sheetElement.Id?.Value is not string relationshipId
+                    || WorkbookPartRoot.GetPartById(relationshipId) is not WorksheetPart worksheetPart) {
+                    continue;
+                }
+
+                ExcelSheet sheet = ReferenceEquals(worksheetPart, _worksheetPart)
+                    ? this
+                    : new ExcelSheet(
+                        _excelDocument,
+                        _spreadSheetDocument,
+                        sheetElement,
+                        registerSheetWrapper: false);
+                sheet.MaterializeSharedFormulasForStructuralEdit();
+            }
+        }
+
+        private void ValidateWorkbookSharedFormulasForStructuralEdit() {
+            foreach (Sheet sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
+                if (sheetElement.Id?.Value is not string relationshipId
+                    || WorkbookPartRoot.GetPartById(relationshipId) is not WorksheetPart worksheetPart) {
+                    continue;
+                }
+
+                ExcelSheet sheet = ReferenceEquals(worksheetPart, _worksheetPart)
+                    ? this
+                    : new ExcelSheet(
+                        _excelDocument,
+                        _spreadSheetDocument,
+                        sheetElement,
+                        registerSheetWrapper: false);
+                sheet.ResolveSharedFormulaTextsForStructuralValidation();
+            }
+        }
+    }
+}

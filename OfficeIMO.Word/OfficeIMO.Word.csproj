@@ -59,6 +59,7 @@
 
     <ItemGroup>
         <EmbeddedResource Include="TableStyles\WordTableStyles.xml" LogicalName="OfficeIMO.Word.TableStyles.WordTableStyles.xml" />
+        <EmbeddedResource Include="ListStyles\WordListStyles.xml" LogicalName="OfficeIMO.Word.ListStyles.WordListStyles.xml" />
     </ItemGroup>
 
     <ItemGroup>

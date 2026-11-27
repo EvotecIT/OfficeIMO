@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal static class LegacyDocSectionFormattingReader {
@@ -120,7 +119,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int end = offset + count;
             int? pageWidth = null;
             int? pageHeight = null;
-            PageOrientationValues? orientation = null;
+            LegacyDocPageOrientation? orientation = null;
             int? marginTop = null;
             int? marginRight = null;
             int? marginBottom = null;
@@ -135,21 +134,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool hasColumnSeparator = false;
             bool restartPageNumbering = false;
             int? pageNumberStart = null;
-            NumberFormatValues? pageNumberFormat = null;
+            LegacyDocNumberFormat? pageNumberFormat = null;
             bool rtlGutter = false;
-            VerticalJustificationValues? verticalAlignment = null;
+            LegacyDocVerticalJustification? verticalAlignment = null;
             int? lineNumberCountBy = null;
             int? lineNumberDistance = null;
             int? lineNumberStart = null;
-            LineNumberRestartValues? lineNumberRestart = null;
-            FootnotePositionValues? footnotePosition = null;
-            RestartNumberValues? footnoteRestart = null;
+            LegacyDocLineNumberRestart? lineNumberRestart = null;
+            LegacyDocFootnotePosition? footnotePosition = null;
+            LegacyDocRestartNumber? footnoteRestart = null;
             int? footnoteStart = null;
-            NumberFormatValues? footnoteNumberFormat = null;
-            RestartNumberValues? endnoteRestart = null;
+            LegacyDocNumberFormat? footnoteNumberFormat = null;
+            LegacyDocRestartNumber? endnoteRestart = null;
             int? endnoteStart = null;
-            NumberFormatValues? endnoteNumberFormat = null;
-            SectionMarkValues? sectionBreakType = null;
+            LegacyDocNumberFormat? endnoteNumberFormat = null;
+            LegacyDocSectionMark? sectionBreakType = null;
             LegacyDocParagraphBorder pageTopBorder = default;
             LegacyDocParagraphBorder pageLeftBorder = default;
             LegacyDocParagraphBorder pageBottomBorder = default;
@@ -177,7 +176,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         break;
                     }
 
-                    orientation = bytes[offset + 2] == 2 ? PageOrientationValues.Landscape : PageOrientationValues.Portrait;
+                    orientation = bytes[offset + 2] == 2 ? LegacyDocPageOrientation.Landscape : LegacyDocPageOrientation.Portrait;
                     offset += 3;
                     continue;
                 }
@@ -247,11 +246,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         break;
                     }
 
-                    RestartNumberValues? restart = ReadNoteRestart(bytes[offset + 2]);
+                    LegacyDocRestartNumber? restart = ReadNoteRestart(bytes[offset + 2]);
                     if (sprm == SprmSRncFtn) {
                         footnoteRestart = restart;
                     } else {
-                        endnoteRestart = restart == RestartNumberValues.EachPage ? null : restart;
+                        endnoteRestart = restart == LegacyDocRestartNumber.EachPage ? null : restart;
                     }
 
                     offset += 3;
@@ -427,7 +426,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             if (orientation == null && pageWidth != null && pageHeight != null && pageWidth > pageHeight) {
-                orientation = PageOrientationValues.Landscape;
+                orientation = LegacyDocPageOrientation.Landscape;
             }
 
             IReadOnlyList<WordSectionColumn>? columnDefinitions = indexedColumns.Build(columnCount, out warning);
@@ -467,74 +466,74 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 columnDefinitions);
         }
 
-        private static FootnotePositionValues? ReadFootnotePosition(byte value) {
+        private static LegacyDocFootnotePosition? ReadFootnotePosition(byte value) {
             switch (value) {
                 case 1:
-                    return FootnotePositionValues.PageBottom;
+                    return LegacyDocFootnotePosition.PageBottom;
                 case 2:
-                    return FootnotePositionValues.BeneathText;
+                    return LegacyDocFootnotePosition.BeneathText;
                 default:
                     return null;
             }
         }
 
-        private static RestartNumberValues? ReadNoteRestart(byte value) {
+        private static LegacyDocRestartNumber? ReadNoteRestart(byte value) {
             switch (value) {
                 case 0:
-                    return RestartNumberValues.Continuous;
+                    return LegacyDocRestartNumber.Continuous;
                 case 1:
-                    return RestartNumberValues.EachSection;
+                    return LegacyDocRestartNumber.EachSect;
                 case 2:
-                    return RestartNumberValues.EachPage;
+                    return LegacyDocRestartNumber.EachPage;
                 default:
                     return null;
             }
         }
 
-        private static LineNumberRestartValues? ReadLineNumberRestart(byte value) {
+        private static LegacyDocLineNumberRestart? ReadLineNumberRestart(byte value) {
             switch (value) {
                 case 0:
-                    return LineNumberRestartValues.NewPage;
+                    return LegacyDocLineNumberRestart.NewPage;
                 case 1:
-                    return LineNumberRestartValues.NewSection;
+                    return LegacyDocLineNumberRestart.NewSection;
                 case 2:
-                    return LineNumberRestartValues.Continuous;
+                    return LegacyDocLineNumberRestart.Continuous;
                 default:
                     return null;
             }
         }
 
-        private static VerticalJustificationValues? ReadVerticalAlignment(byte value) {
+        private static LegacyDocVerticalJustification? ReadVerticalAlignment(byte value) {
             switch (value) {
                 case 0:
-                    return VerticalJustificationValues.Top;
+                    return LegacyDocVerticalJustification.Top;
                 case 1:
-                    return VerticalJustificationValues.Center;
+                    return LegacyDocVerticalJustification.Center;
                 case 2:
-                    return VerticalJustificationValues.Both;
+                    return LegacyDocVerticalJustification.Both;
                 case 3:
-                    return VerticalJustificationValues.Bottom;
+                    return LegacyDocVerticalJustification.Bottom;
                 default:
                     return null;
             }
         }
 
-        private static NumberFormatValues? ReadPageNumberFormat(byte value) {
+        private static LegacyDocNumberFormat? ReadPageNumberFormat(byte value) {
             return LegacyDocNumberFormatMapper.FromNfc(value);
         }
 
-        private static SectionMarkValues? ReadSectionBreakType(byte value) {
+        private static LegacyDocSectionMark? ReadSectionBreakType(byte value) {
             switch (value) {
                 case 0:
-                    return SectionMarkValues.Continuous;
+                    return LegacyDocSectionMark.Continuous;
                 case 1:
-                    return SectionMarkValues.NextColumn;
+                    return LegacyDocSectionMark.NextColumn;
                 case 2:
-                    return SectionMarkValues.NextPage;
+                    return LegacyDocSectionMark.NextPage;
                 case 3:
-                    return SectionMarkValues.EvenPage;
+                    return LegacyDocSectionMark.EvenPage;
                 case 4:
-                    return SectionMarkValues.OddPage;
+                    return LegacyDocSectionMark.OddPage;
                 default:
                     return null;
             }

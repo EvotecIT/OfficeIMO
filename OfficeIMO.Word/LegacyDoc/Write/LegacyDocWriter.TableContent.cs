@@ -1,14 +1,12 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Table table, MainDocumentPart mainPart, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocTableStyleDefinitions tableStyleDefinitions, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, int tableDepth = 1, OpenXmlPart? relationshipOwner = null) {
-            relationshipOwner ??= mainPart;
+        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, LegacyDocElement table, LegacyDocSourcePackage source, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocTableStyleDefinitions tableStyleDefinitions, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, int tableDepth = 1, LegacyDocPart? relationshipOwner = null) {
+            LegacyDocPart owner = relationshipOwner ?? source.Main;
             if (tableDepth <= 0 || tableDepth > 2) {
                 throw new NotSupportedException("Native DOC saving supports nested tables only to depth 2.");
             }
@@ -19,43 +17,44 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             ThrowIfUnsupportedTableShape(table, tableStyleDefinitions);
 
-            TableRow[] rows = table.Elements<TableRow>().ToArray();
+            LegacyDocElement[] rows = table.Elements("tr").ToArray();
             if (rows.Length == 0) {
                 throw new NotSupportedException("Native DOC saving supports simple tables only when at least one row is present.");
             }
 
             AppendLeadingTableBoundaryBookmarks(table, bookmarks, text.Length);
-            TableProperties? tableProperties = ResolveSupportedEffectiveTableProperties(
-                table.GetFirstChild<TableProperties>(), tableStyleDefinitions);
-            LegacyDocTableAlignment? tableAlignment = ReadSupportedTableAlignment(tableProperties);
-            tableAlignment ??= ReadSupportedTableStyleAlignment(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
-            int? tableLeftIndentTwips = ReadSupportedTableIndentation(tableProperties);
-            tableLeftIndentTwips ??= ReadSupportedTableStyleIndentation(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
-            LegacyDocTablePreferredWidth? tablePreferredWidth = ReadSupportedTablePreferredWidth(tableProperties);
-            tablePreferredWidth ??= ReadSupportedTableStylePreferredWidth(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
-            bool? tableAutofit = ReadSupportedTableAutofit(tableProperties);
-            tableAutofit ??= ReadSupportedTableStyleAutofit(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
+            // The table's own properties; a document default table style stands in for a missing w:tblStyle.
+            LegacyDocElement tableProperties = table.Child("tblPr");
+            string? tableStyleId = ResolveSupportedEffectiveTableStyleId(tableProperties, tableStyleDefinitions);
+            LegacyDocTableAlignment? tableAlignment = ReadSupportedTableAlignmentFromProperties(tableProperties);
+            tableAlignment ??= ReadSupportedTableStyleAlignment(tableStyleId, tableStyleDefinitions);
+            int? tableLeftIndentTwips = ReadSupportedTableIndentationFromProperties(tableProperties);
+            tableLeftIndentTwips ??= ReadSupportedTableStyleIndentation(tableStyleId, tableStyleDefinitions);
+            LegacyDocTablePreferredWidth? tablePreferredWidth = ReadSupportedTablePreferredWidthFromProperties(tableProperties);
+            tablePreferredWidth ??= ReadSupportedTableStylePreferredWidth(tableStyleId, tableStyleDefinitions);
+            bool? tableAutofit = ReadSupportedTableAutofitFromProperties(tableProperties);
+            tableAutofit ??= ReadSupportedTableStyleAutofit(tableStyleId, tableStyleDefinitions);
             // DOCX defaults to AutoFit, while binary DOC defaults to fixed columns.
             // Materialize the effective default after direct and inherited settings.
             tableAutofit ??= true;
-            LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMargins(tableProperties);
+            LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMarginsFromProperties(tableProperties);
             // Materialize the resolved DOCX inset for stable native DOC layout;
             // Word positions these cells differently when the padding is implicit.
             defaultCellMargins = new LegacyDocTableCellMargins(0, 108, 0, 108)
-                .Merge(ReadSupportedTableStyleDefaultCellMargins(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions) ?? default)
+                .Merge(ReadSupportedTableStyleDefaultCellMargins(tableStyleId, tableStyleDefinitions) ?? default)
                 .Merge(defaultCellMargins ?? default);
-            int? defaultCellSpacingTwips = ReadSupportedTableDefaultCellSpacing(tableProperties);
-            defaultCellSpacingTwips ??= ReadSupportedTableStyleDefaultCellSpacing(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
-            LegacyDocTableBorders tableBorders = ReadSupportedTableBorders(tableProperties, tableStyleDefinitions);
-            LegacyDocTableCellShading tableShading = ReadSupportedTableShading(tableProperties, tableStyleDefinitions);
-            LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting = ReadSupportedTableStyleParagraphFormatting(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
-            LegacyDocWritableFormatting tableStyleRunFormatting = ReadSupportedTableStyleRunFormatting(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
-            LegacyDocTableConditionalStyleSet conditionalStyles = ReadSupportedTableConditionalStyles(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
-            LegacyDocTableLook tableLook = ReadSupportedTableLook(tableProperties?.GetFirstChild<TableLook>());
-            IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.GetFirstChild<TableGrid>());
+            int? defaultCellSpacingTwips = ReadSupportedTableDefaultCellSpacingFromProperties(tableProperties);
+            defaultCellSpacingTwips ??= ReadSupportedTableStyleDefaultCellSpacing(tableStyleId, tableStyleDefinitions);
+            LegacyDocTableBorders tableBorders = ReadSupportedTableBorders(tableProperties, tableStyleId, tableStyleDefinitions);
+            LegacyDocTableCellShading tableShading = ReadSupportedTableShading(tableStyleId, tableStyleDefinitions);
+            LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting = ReadSupportedTableStyleParagraphFormatting(tableStyleId, tableStyleDefinitions);
+            LegacyDocWritableFormatting tableStyleRunFormatting = ReadSupportedTableStyleRunFormatting(tableStyleId, tableStyleDefinitions);
+            LegacyDocTableConditionalStyleSet conditionalStyles = ReadSupportedTableConditionalStyles(tableStyleId, tableStyleDefinitions);
+            LegacyDocTableLook tableLook = ReadSupportedTableLook(tableProperties.Child("tblLook"));
+            IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.Child("tblGrid"));
             for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
-                TableRow row = rows[rowIndex];
-                LegacyDocWritableTableRowFormatting rowFormatting = ReadSupportedTableRowFormatting(row, out TableCell[] cells);
+                LegacyDocElement row = rows[rowIndex];
+                LegacyDocWritableTableRowFormatting rowFormatting = ReadSupportedTableRowFormatting(row, out LegacyDocElement[] cells);
                 rowFormatting = ApplySupportedTableConditionalRowFormatting(rowFormatting, conditionalStyles, tableLook, rowIndex, rows.Length);
                 if (cells.Length == 0) {
                     throw new NotSupportedException("Native DOC saving supports simple tables only when every row contains at least one cell.");
@@ -76,7 +75,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 foreach (LegacyDocWritableTableCell writableCell in writableCells) {
                     LegacyDocWritableParagraphFormatting cellParagraphFormatting = writableCell.ParagraphFormatting.WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
                     LegacyDocWritableFormatting cellRunFormatting = writableCell.RunFormatting.WithInheritedFormatting(tableStyleRunFormatting);
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, bookmarks, writableCell.SourceCell, mainPart, relationshipOwner, pictures, styleIndexes, tableStyleDefinitions, cellParagraphFormatting, cellRunFormatting, footnotes, endnotes, tableDepth, out int finalParagraphStart, out LegacyDocWritableFormatting finalParagraphMarkFormatting);
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, bookmarks, writableCell.SourceCell, source, owner, pictures, styleIndexes, tableStyleDefinitions, cellParagraphFormatting, cellRunFormatting, footnotes, endnotes, tableDepth, out int finalParagraphStart, out LegacyDocWritableFormatting finalParagraphMarkFormatting);
                     paragraphFormatting = tableDepth == 1
                         ? paragraphFormatting.WithTableMarkers(isTableTerminatingParagraph: false)
                         : paragraphFormatting.WithNestedTableMarkers(tableDepth);
@@ -132,9 +131,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> paragraphFormats,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            TableCell? cell,
-            MainDocumentPart mainPart,
-            OpenXmlPart relationshipOwner,
+            LegacyDocElement cell,
+            LegacyDocSourcePackage source,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes,
             LegacyDocTableStyleDefinitions tableStyleDefinitions,
@@ -147,31 +146,31 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             out LegacyDocWritableFormatting finalParagraphMarkFormatting) {
             finalParagraphStart = text.Length;
             finalParagraphMarkFormatting = LegacyDocWritableFormatting.Plain;
-            if (cell == null) {
+            if (cell.IsNone) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
 
-            var content = new List<OpenXmlElement>();
-            foreach (OpenXmlElement child in cell.ChildElements) {
-                switch (child) {
-                    case TableCellProperties cellProperties:
-                        ThrowIfUnsupportedTableCellProperties(cellProperties);
+            var content = new List<LegacyDocElement>();
+            foreach (LegacyDocElement child in cell.Elements()) {
+                switch (child.WName) {
+                    case "tcPr":
+                        ThrowIfUnsupportedTableCellProperties(child);
                         break;
-                    case Paragraph cellParagraph:
-                        content.Add(cellParagraph);
+                    case "p":
+                        content.Add(child);
                         break;
-                    case Table nestedTable:
+                    case "tbl":
                         if (tableDepth >= 2) {
                             throw new NotSupportedException("Native DOC saving supports nested tables only to depth 2.");
                         }
 
-                        content.Add(nestedTable);
+                        content.Add(child);
                         break;
-                    case SdtBlock sdtBlock:
-                        AddSupportedTableCellContentControlChildren(sdtBlock, content);
+                    case "sdt":
+                        AddSupportedTableCellContentControlChildren(child, content);
                         break;
-                    case BookmarkStart:
-                    case BookmarkEnd:
+                    case "bookmarkStart":
+                    case "bookmarkEnd":
                         content.Add(child);
                         break;
                     default:
@@ -186,11 +185,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool hasFinalParagraph = false;
             LegacyDocWritableParagraphFormatting finalParagraphFormatting = LegacyDocWritableParagraphFormatting.Plain;
             for (int contentIndex = 0; contentIndex < content.Count; contentIndex++) {
-                OpenXmlElement child = content[contentIndex];
-                switch (child) {
-                    case Paragraph paragraph:
+                LegacyDocElement child = content[contentIndex];
+                switch (child.WName) {
+                    case "p":
                         int paragraphStart = text.Length;
-                        LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, bookmarks, paragraph, mainPart, relationshipOwner, pictures, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes, out LegacyDocWritableFormatting paragraphMarkFormatting);
+                        LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, bookmarks, child, source, relationshipOwner, pictures, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes, out LegacyDocWritableFormatting paragraphMarkFormatting);
                         bool isFinalParagraph = !HasLaterParagraphOrTable(content, contentIndex);
                         if (isFinalParagraph) {
                             finalParagraphStart = paragraphStart;
@@ -207,17 +206,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         break;
-                    case Table nestedTable:
-                        AppendTable(text, runs, paragraphFormats, bookmarks, nestedTable, mainPart, pictures, styleIndexes, tableStyleDefinitions, footnotes, endnotes, tableDepth + 1, relationshipOwner);
+                    case "tbl":
+                        AppendTable(text, runs, paragraphFormats, bookmarks, child, source, pictures, styleIndexes, tableStyleDefinitions, footnotes, endnotes, tableDepth + 1, relationshipOwner);
                         finalParagraphStart = text.Length;
                         finalParagraphMarkFormatting = LegacyDocWritableFormatting.Plain;
                         finalParagraphFormatting = LegacyDocWritableParagraphFormatting.Plain;
                         break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, text.Length);
+                    case "bookmarkStart":
+                        bookmarks.AddStart(child, text.Length);
                         break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, text.Length);
+                    case "bookmarkEnd":
+                        bookmarks.AddEnd(child, text.Length);
                         break;
                 }
             }
@@ -231,9 +230,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return finalParagraphFormatting;
         }
 
-        private static bool HasLaterParagraphOrTable(IReadOnlyList<OpenXmlElement> content, int currentIndex) {
+        private static bool HasLaterParagraphOrTable(IReadOnlyList<LegacyDocElement> content, int currentIndex) {
             for (int index = currentIndex + 1; index < content.Count; index++) {
-                if (content[index] is Paragraph || content[index] is Table) {
+                if (content[index].Is("p") || content[index].Is("tbl")) {
                     return true;
                 }
             }
@@ -241,26 +240,26 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return false;
         }
 
-        private static void AddSupportedTableCellContentControlChildren(SdtBlock sdtBlock, List<OpenXmlElement> content) {
-            SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
-            if (contentBlock == null) {
+        private static void AddSupportedTableCellContentControlChildren(LegacyDocElement sdtBlock, List<LegacyDocElement> content) {
+            LegacyDocElement contentBlock = sdtBlock.Child("sdtContent");
+            if (contentBlock.IsNone) {
                 throw new NotSupportedException("Native DOC saving supports table cell content controls only when they contain simple paragraphs and bookmarks.");
             }
 
-            foreach (OpenXmlElement child in contentBlock.ChildElements) {
-                switch (child) {
-                    case Paragraph paragraph:
-                        if (paragraph.ParagraphProperties?.GetFirstChild<SectionProperties>() != null) {
+            foreach (LegacyDocElement child in contentBlock.Elements()) {
+                switch (child.WName) {
+                    case "p":
+                        if (child.Child("pPr").Child("sectPr").Exists) {
                             throw new NotSupportedException("Native DOC saving keeps section breaks scoped to supported body paragraph boundaries. Table cell content controls cannot contain section properties.");
                         }
 
-                        content.Add(paragraph);
+                        content.Add(child);
                         break;
-                    case SdtBlock childContentControl:
-                        AddSupportedTableCellContentControlChildren(childContentControl, content);
+                    case "sdt":
+                        AddSupportedTableCellContentControlChildren(child, content);
                         break;
-                    case BookmarkStart:
-                    case BookmarkEnd:
+                    case "bookmarkStart":
+                    case "bookmarkEnd":
                         content.Add(child);
                         break;
                     default:
@@ -269,28 +268,34 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, OpenXmlPart relationshipOwner, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting, LegacyDocWritableFormatting tableStyleRunFormatting, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, out LegacyDocWritableFormatting paragraphMarkFormatting) {
-            paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes)
-                .WithInheritedParagraphFormatting(ReadSupportedCellParagraphStyleFormatting(paragraph, mainPart))
+        private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, LegacyDocElement paragraph, LegacyDocSourcePackage source, LegacyDocPart relationshipOwner, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting, LegacyDocWritableFormatting tableStyleRunFormatting, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, out LegacyDocWritableFormatting paragraphMarkFormatting) {
+            LegacyDocElement paragraphProperties = paragraph.Child("pPr");
+            paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraphProperties);
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraphProperties, styleIndexes)
+                .WithInheritedParagraphFormatting(ReadSupportedCellParagraphStyleFormatting(paragraph, source))
                 .WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
-            tableStyleRunFormatting = ReadSupportedCellParagraphStyleRunFormatting(paragraph, mainPart)
+            tableStyleRunFormatting = ReadSupportedCellParagraphStyleRunFormatting(paragraph, source)
                 .WithInheritedFormatting(tableStyleRunFormatting);
 
-            OpenXmlElement[] children = paragraph.ChildElements.ToArray();
+            LegacyDocElement[] children = paragraph.Elements().ToArray();
             for (int index = 0; index < children.Length; index++) {
-                OpenXmlElement child = children[index];
-                switch (child) {
-                    case ParagraphProperties:
+                LegacyDocElement child = children[index];
+                if (child.Is(OfficeXmlNamespaces.Math, "oMath") || child.Is(OfficeXmlNamespaces.Math, "oMathPara")) {
+                    AppendMathEquationField(text, runs, child, tableStyleRunFormatting);
+                    continue;
+                }
+
+                switch (child.WName) {
+                    case "pPr":
                         break;
-                    case Run run:
-                        if (IsComplexFieldBeginRun(run)) {
+                    case "r":
+                        if (IsComplexFieldBeginRun(child)) {
                             AppendSupportedComplexPageNumberField(children, ref index, text, runs, bookmarks, tableStyleRunFormatting);
                         } else {
                             AppendSupportedRunText(
                                 text,
                                 runs,
-                                run,
+                                child,
                                 footnotes,
                                 endnotes,
                                 tableStyleRunFormatting,
@@ -300,32 +305,26 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         break;
-                    case InsertedRun insertedRun:
-                        AppendSupportedRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, tableStyleRunFormatting, pictures, relationshipOwner);
+                    case "ins":
+                        AppendSupportedRevisionText(text, runs, child, LegacyDocRevisionKind.Inserted, footnotes, endnotes, tableStyleRunFormatting, pictures, relationshipOwner);
                         break;
-                    case DeletedRun deletedRun:
-                        AppendSupportedRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, tableStyleRunFormatting, pictures, relationshipOwner);
+                    case "del":
+                        AppendSupportedRevisionText(text, runs, child, LegacyDocRevisionKind.Deleted, footnotes, endnotes, tableStyleRunFormatting, pictures, relationshipOwner);
                         break;
-                    case Hyperlink hyperlink:
-                        AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, relationshipOwner, footnotes, endnotes, tableStyleRunFormatting);
+                    case "hyperlink":
+                        AppendSupportedHyperlinkText(text, runs, bookmarks, child, relationshipOwner, footnotes, endnotes, tableStyleRunFormatting);
                         break;
-                    case SimpleField simpleField:
-                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, simpleField, tableStyleRunFormatting);
+                    case "fldSimple":
+                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, child, tableStyleRunFormatting);
                         break;
-                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
-                        AppendMathEquationField(text, runs, officeMath, tableStyleRunFormatting);
+                    case "sdt":
+                        AppendSupportedInlineContentControlText(text, runs, bookmarks, child, relationshipOwner, pictures, footnotes, endnotes, tableStyleRunFormatting, "table cell inline content control");
                         break;
-                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
-                        AppendMathEquationField(text, runs, mathParagraph, tableStyleRunFormatting);
+                    case "bookmarkStart":
+                        bookmarks.AddStart(child, text.Length);
                         break;
-                    case SdtRun sdtRun:
-                        AppendSupportedInlineContentControlText(text, runs, bookmarks, sdtRun, relationshipOwner, pictures, footnotes, endnotes, tableStyleRunFormatting, "table cell inline content control");
-                        break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, text.Length);
-                        break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, text.Length);
+                    case "bookmarkEnd":
+                        bookmarks.AddEnd(child, text.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {

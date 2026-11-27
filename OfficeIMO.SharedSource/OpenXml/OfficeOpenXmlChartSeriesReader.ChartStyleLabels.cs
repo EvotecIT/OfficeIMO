@@ -9,6 +9,9 @@ using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 namespace OfficeIMO.OpenXml.Internal;
 
 internal static partial class OfficeOpenXmlChartSeriesReader {
+    /// <summary>The most characters a chart style part may hold for its data-label style to be read.</summary>
+    internal const int MaximumChartStyleCharacters = 131072;
+
     private static NativeText ReadChartStyleLabelText(IOfficeChartPart chartPart, OfficeXmlNode scheme) {
         const string chartStyleNamespace = ChartStyleUri;
         const string drawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
@@ -21,7 +24,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
-                MaxCharactersInDocument = 131072
+                MaxCharactersInDocument = MaximumChartStyleCharacters
             });
             XElement? root = XDocument.Load(reader).Root;
             if (root?.Name != XName.Get("chartStyle", chartStyleNamespace))
@@ -103,7 +106,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 if (run.HasElements) throw new NotSupportedException("The chart data-label run effects cannot be projected.");
             }
             return new NativeText(size, style, color, family);
-        } catch (XmlException exception) {
+        } catch (Exception exception) when (exception is XmlException or InvalidDataException) {
             throw new NotSupportedException("The chart data-label style XML cannot be projected.", exception);
         }
     }

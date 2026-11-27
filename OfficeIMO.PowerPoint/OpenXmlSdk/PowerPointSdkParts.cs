@@ -123,6 +123,8 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
         /// <summary>Removes a relationship the part's content no longer uses, with media only it used.</summary>
         internal static void RemoveRelationshipIfUnused(object part, string id, object? owningSlide) {
             OpenXmlPart owner = P(part);
+            // A read-only presentation can't be saved, so its relationships are left as they are, as on the package.
+            if (owner.OpenXmlPackage.FileOpenAccess == FileAccess.Read) return;
             if (owner.RootElement != null && ReferencesRelationship(owner.RootElement, id)) return;
             if (owner is NotesSlidePart && owningSlide != null
                 && owner.Parts.Any(pair => string.Equals(pair.RelationshipId, id, StringComparison.Ordinal) && ReferenceEquals(pair.OpenXmlPart, owningSlide))) return;

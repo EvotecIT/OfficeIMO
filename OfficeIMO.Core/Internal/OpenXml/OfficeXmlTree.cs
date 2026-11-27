@@ -321,6 +321,25 @@ internal sealed partial class OfficeXmlTree {
 
     internal int AttributeCountOf(int node) => _nodes[node].AttrCount;
 
+    /// <summary>The name of the element's attribute at <paramref name="index"/>, counting from zero in written order.</summary>
+    internal ref readonly OfficeXmlName AttributeNameAt(int node, int index) =>
+        ref Namespaces.GetName(_attrs[_nodes[node].AttrFirst + index].Name);
+
+    /// <summary>The decoded value of the element's attribute at <paramref name="index"/>.</summary>
+    internal string AttributeValueAt(int node, int index) => AttributeValue(ref _attrs[_nodes[node].AttrFirst + index]);
+
+    /// <summary>
+    /// The namespace, local name and value of the attribute at <paramref name="position"/> among the element's
+    /// <see cref="AttributeCountOf"/> attributes, namespace declarations included.
+    /// </summary>
+    internal string AttributeAt(int node, int position, out int namespaceId, out string localName) {
+        ref Attr attribute = ref _attrs[_nodes[node].AttrFirst + position];
+        ref readonly OfficeXmlName name = ref Namespaces.GetName(attribute.Name);
+        namespaceId = name.NamespaceId;
+        localName = name.LocalName;
+        return AttributeValue(ref attribute);
+    }
+
     /// <summary>
     /// The name and value of an element's attribute by position, from 0 to <see cref="AttributeCountOf"/> less one,
     /// namespace declarations included.

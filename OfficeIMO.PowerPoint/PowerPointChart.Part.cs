@@ -83,8 +83,9 @@ namespace OfficeIMO.PowerPoint {
             var styles = new List<Func<Stream>>();
             if (limit <= 0) return styles;
             foreach (PowerPointPartRef style in _part.RelatedParts(ChartStyleRelationshipType)) {
-                // The stored bytes, without parsing the part first, so the reader's size limit applies as it reads.
-                styles.Add(() => new MemoryStream(style.ReadBytes(), writable: false));
+                // The part's stream, without parsing it first, so the reader's size limit applies as it reads. A package part
+                // stored longer than that limit could hold (four UTF-8 bytes a character) is refused before it is read.
+                styles.Add(() => style.OpenRead(4L * OfficeOpenXmlChartSeriesReader.MaximumChartStyleCharacters + 4L));
                 if (styles.Count >= limit) break;
             }
             return styles;
@@ -197,7 +198,8 @@ namespace OfficeIMO.PowerPoint {
 
             public string ContentType => _package.ContentType ?? string.Empty;
 
-            public Stream OpenRead() => new MemoryStream(_package.ReadBytes(), writable: false);
+            // Readers bound the workbook to this size, so a longer stored package is refused before it is read.
+            public Stream OpenRead() => _package.OpenRead(OfficeOpenXmlChartWorkbookSecurity.MaximumPackageBytes);
 
             public void Replace(byte[] data) => _package.ReplaceBytes(data);
         }

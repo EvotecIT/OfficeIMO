@@ -1,6 +1,5 @@
 using OfficeIMO.Core.Internal;
 using System.Threading;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
@@ -181,7 +180,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             byte[] tableStream = tableStreamCandidate!;
             DifferentOddAndEvenPages = ReadDopFacingPagesFlag(tableStream, fib);
             ReadDopMarginSettings(tableStream, fib);
-            EndnotePositionValues? dopEndnotePosition = ReadDopEndnotePlacement(tableStream, fib);
+            LegacyDocEndnotePosition? dopEndnotePosition = ReadDopEndnotePlacement(tableStream, fib);
 
             if (!LegacyDocPieceTable.TryRead(wordDocumentStream, tableStream, fib, options.MaxDecodedCharacters, out LegacyDocTextContent textContent, out string? textError)) {
                 AddError("doc-piece-table-invalid", textError ?? "The legacy DOC piece table could not be decoded.");
@@ -591,7 +590,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return (dopFlags & facingPagesFlag) != 0;
         }
 
-        private static EndnotePositionValues? ReadDopEndnotePlacement(byte[] tableStream, LegacyDocFib fib) {
+        private static LegacyDocEndnotePosition? ReadDopEndnotePlacement(byte[] tableStream, LegacyDocFib fib) {
             const int endnotePlacementOffset = 52;
             const int minimumDopLength = endnotePlacementOffset + 4;
             const int endnotePlacementShift = 16;
@@ -604,15 +603,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             uint placement = (row >> endnotePlacementShift) & endnotePlacementMask;
             switch (placement) {
                 case 0:
-                    return EndnotePositionValues.SectionEnd;
+                    return LegacyDocEndnotePosition.SectEnd;
                 case 3:
-                    return EndnotePositionValues.DocumentEnd;
+                    return LegacyDocEndnotePosition.DocEnd;
                 default:
                     return null;
             }
         }
 
-        private static IReadOnlyList<LegacyDocSection> ApplyDopEndnotePlacement(IReadOnlyList<LegacyDocSection> sections, LegacyDocFib fib, EndnotePositionValues? endnotePosition) {
+        private static IReadOnlyList<LegacyDocSection> ApplyDopEndnotePlacement(IReadOnlyList<LegacyDocSection> sections, LegacyDocFib fib, LegacyDocEndnotePosition? endnotePosition) {
             if (endnotePosition == null) {
                 return sections;
             }

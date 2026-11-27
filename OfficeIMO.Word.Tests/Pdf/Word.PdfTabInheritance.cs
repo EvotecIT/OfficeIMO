@@ -204,8 +204,8 @@ public sealed class WordPdfTabInheritanceTests {
         WordListLevel level = list.Numbering.Levels[0];
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(54D);
-        level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new W.Tabs(Tab(listTabPosition, W.TabStopValues.Number)), 0);
-        level.OpenXmlElement.NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
+        level.OpenXmlLevel().PreviousParagraphProperties!.InsertAt(new W.Tabs(Tab(listTabPosition, W.TabStopValues.Number)), 0);
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
             new W.RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new W.FontSize { Val = "24" });
         WordParagraph paragraph = list.AddItem("LISTBODY\nLISTNEXT");
         paragraph.FontFamily = "Courier New";

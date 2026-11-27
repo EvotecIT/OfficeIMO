@@ -71,10 +71,13 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointTextContent.InsertInlineContent(paragraph, value, runProperties, default);
                 paragraph.Append(endProperties);
 
+                // The new paragraph is in place before the old ones and their relationships go, so a failure there leaves
+                // the edit made rather than an empty cell.
                 PowerPointPartRef owner = OwnerPartRef, slide = SlidePartRef;
-                foreach (OfficeXmlNode previous in body.Children(D, "p").ToList()) PowerPointTextRun.DiscardContent(previous, owner, slide);
+                List<OfficeXmlNode> previous = body.Children(D, "p").ToList();
                 body.Append(paragraph);
                 MarkEdited();
+                foreach (OfficeXmlNode old in previous) PowerPointTextRun.DiscardContent(old, owner, slide);
             }
         }
 
