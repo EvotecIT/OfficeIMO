@@ -1,0 +1,42 @@
+{
+  "producer": "RARLAB RAR command-line tool",
+  "download": "https://www.rarlab.com/download.htm",
+  "producerPlatform": "Darwin arm64",
+  "verification": "rar t passed for all archives and both complete volume sets.",
+  "files": [
+    {
+      "file": "harbour.cbr",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m0",
+        "out/harbour.cbr",
+        "ComicInfo.xml",
+        "cover.png",
+        "page10.png",
+        "page2.png"
+      ],
+      "sha256": "2f06709f11692a05f77e8720e2d230583f42c60262d1ecf5d998602f2f75df49"
+    },
+    {
+      "file": "harbour-compressed.cbr",
+      "rarVersion": "7.23",
+      "arguments": [
+        "a",
+        "-cfg-",
+        "-idq",
+        "-ma5",
+        "-m3",
+        "out/harbour-compressed.cbr",
+        "ComicInfo.xml",
+        "cover.png",
+        "page10.png",
+        "page2.png"
+      ],
+      "sha256": "b82159832635cc1f10abb6e60cf43c68d5bac3e645f04047818ef3c90862c8c4"
+    }
+  ]
+}
