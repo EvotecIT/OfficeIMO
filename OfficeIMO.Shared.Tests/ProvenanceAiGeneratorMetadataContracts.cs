@@ -97,7 +97,7 @@ public sealed class ProvenanceAiGeneratorMetadataContracts {
 
     [Fact]
     public void TextAllowanceAdmitsEmptyStreamsAndChargesExceededAndFailedInflation() {
-        byte[] empty = CreatePng(CreateChunk("zTXt", Concat(Encoding.ASCII.GetBytes("parameters"), new byte[] { 0, 0 }, Zlib(Array.Empty<byte>()))));
+        byte[] empty = CreatePng(CreateChunk("zTXt", Concat(Encoding.ASCII.GetBytes("parameters"), new byte[] { 0, 0 }, EmptyZlib)));
         Assert.True(OfficePngContainerValidator.TryValidate(empty, default, int.MaxValue, 0, out _, out _, out long emptyBytes));
         Assert.Equal(0, emptyBytes);
 
@@ -112,6 +112,9 @@ public sealed class ProvenanceAiGeneratorMetadataContracts {
         Assert.False(OfficePngContainerValidator.TryValidate(corrupt, default, int.MaxValue, 1 << 20, out _, out _, out long corruptBytes));
         Assert.True(corruptBytes >= 4096);
     }
+
+    // A final stored block with no data. Built by hand because DeflateStream writes nothing for empty input on some platforms.
+    private static readonly byte[] EmptyZlib = { 0x78, 0x9C, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01 };
 
     private static byte[] Zlib(byte[] data) {
         using var output = new MemoryStream();
