@@ -102,6 +102,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if (!strings.TryWrite(package, WorkbookPart, declareNewCounts: false)) throw new InvalidOperationException("The projected workbook cannot add its shared strings.");
 
             XlsbDocumentPropertiesProjector.Apply(package, native);
+            ExcelDocument.CreateApplicationPropertiesIfMissing(package, related: package.PartExists("/docProps/app.xml"));
             using var output = new MemoryStream(16 * 1024);
             package.Save(output);
             return output.ToArray();

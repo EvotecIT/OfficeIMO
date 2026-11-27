@@ -96,7 +96,7 @@ namespace OfficeIMO.Excel {
         /// Adds the application properties a save through the model gives a new workbook, unless the package has them or
         /// another part holds their usual name.
         /// </summary>
-        private static void CreateApplicationPropertiesIfMissing(OfficeOpcEditablePackage package, bool related) {
+        internal static void CreateApplicationPropertiesIfMissing(OfficeOpcEditablePackage package, bool related) {
             const string partName = "/docProps/app.xml";
             if (related || package.PartExists(partName)) return;
             package.CreateBinaryPart(partName, "application/vnd.openxmlformats-officedocument.extended-properties+xml",
