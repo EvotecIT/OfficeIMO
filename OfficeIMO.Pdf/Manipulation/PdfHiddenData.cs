@@ -188,7 +188,8 @@ internal static class PdfHiddenData {
             RemoveExternalC2paReferences = selected && carriers.RemoveExternalC2paReferences,
             RemoveAiSourceMetadata = selected && carriers.RemoveAiSourceMetadata,
             RequireStructurallyValidCarrier = carriers.RequireStructurallyValidCarrier,
-            ProcessEmbeddedAssets = selected && carriers.ProcessEmbeddedAssets
+            ProcessEmbeddedAssets = selected && carriers.ProcessEmbeddedAssets,
+            MaxEmbeddedAssets = carriers.MaxEmbeddedAssets
         };
         options.Limits.MaxAssetBytes = Math.Max(carriers.Limits.MaxAssetBytes, length);
         options.Limits.MaxManifestBytes = carriers.Limits.MaxManifestBytes;

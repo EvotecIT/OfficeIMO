@@ -49,8 +49,8 @@ public static partial class PdfProvenance {
             revisionEnds.Length + 1, seen, null, currentCarriers);
         long historicalBytes = InspectHistoricalCarriers(pdf, document, options, effectiveReadOptions, inspectionTimer,
             maximumManifestBytes, evidence, stores, occurrences, revisionEnds, seen, historicalCarriers);
-        InspectDeclarations(document, options, evidence);
-        IReadOnlyList<string> diagnostics = SelectActiveManifest(stores);
+        string[] declarationDiagnostics = InspectDeclarations(document, options, evidence);
+        IReadOnlyList<string> diagnostics = SelectActiveManifest(stores).Concat(declarationDiagnostics).ToArray();
         return new OfficeProvenanceReport(
             OfficeProvenanceAssetFormat.Pdf,
             evidence.AsReadOnly(),

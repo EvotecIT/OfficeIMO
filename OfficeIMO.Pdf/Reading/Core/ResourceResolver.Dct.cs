@@ -78,7 +78,7 @@ internal static partial class ResourceResolver {
                !hasAuthoredColorTransform;
     }
 
-    private static bool TryGetDctPayload(
+    internal static bool TryGetDctPayload(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,

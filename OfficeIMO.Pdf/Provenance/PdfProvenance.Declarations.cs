@@ -14,10 +14,15 @@ public static partial class PdfProvenance {
 
     private delegate void ObjectGraphEdit(Dictionary<int, PdfIndirectObject> objects, PdfDocumentSecurityInfo security);
 
-    private static void InspectDeclarations(PdfReadDocument document, OfficeProvenanceOptions options, List<OfficeProvenanceEvidence> evidence) {
+    /// <summary>Adds declaration evidence and returns the diagnostics of images that were preserved because they could not be inspected.</summary>
+    private static string[] InspectDeclarations(PdfReadDocument document, OfficeProvenanceOptions options, List<OfficeProvenanceEvidence> evidence) {
         var context = new OfficeProvenanceContext(OfficeProvenanceAssetFormat.Pdf, options);
         WalkDeclarations(document, options, context, removal: null, changes: null, edits: null);
+        if (evidence.Count + context.Evidence.Count > options.MaxCarriers) {
+            throw OfficeProvenanceLimitException.Create($"The asset exceeds the configured carrier limit of {options.MaxCarriers}.");
+        }
         evidence.AddRange(context.Evidence);
+        return context.Diagnostics.ToArray();
     }
 
     /// <summary>Plans the selected declaration removals; each edit replaces or trims one object in the rewritten graph.</summary>
@@ -91,7 +96,7 @@ public static partial class PdfProvenance {
             }
             if (!processImages || !IsJpegStream(objects, image)) continue;
             if (++images > maximumImages) throw new InvalidDataException("The PDF exceeds the configured embedded-asset limit.");
-            WalkJpegImage(objectNumber, pair.Value.Generation, image, options, context, removal, changes, edits);
+            WalkJpegImage(objectNumber, pair.Value.Generation, image, objects, options, context, removal, changes, edits);
         }
     }
 
@@ -130,14 +135,20 @@ public static partial class PdfProvenance {
         int objectNumber,
         int generation,
         PdfStream image,
+        Dictionary<int, PdfIndirectObject> objects,
         OfficeProvenanceOptions options,
         OfficeProvenanceContext? context,
         OfficeProvenanceRemovalOptions? removal,
         List<OfficeProvenanceChange>? changes,
         List<ObjectGraphEdit>? edits) {
-        byte[] jpeg = image.GetData(options.CancellationToken);
-        if (jpeg.LongLength > options.MaxAssetBytes) throw new InvalidDataException("A PDF image exceeds the configured asset limit.");
         string prefix = $"PDF/Object[{objectNumber}]/Image/";
+        int maximumBytes = (int)Math.Min(int.MaxValue, options.MaxAssetBytes);
+        // Filters ahead of DCTDecode (ASCII85, Flate) are decoded so the JPEG engine sees the complete JPEG file.
+        if (!ResourceResolver.TryGetDctPayload(image, objects, maximumBytes, out byte[] jpeg)) {
+            context?.Diagnostics.Add($"{prefix.TrimEnd('/')}: image was preserved because its filters could not be decoded.");
+            return;
+        }
+        if (jpeg.LongLength > options.MaxAssetBytes) throw new InvalidDataException("A PDF image exceeds the configured asset limit.");
         string name = $"object-{objectNumber}.jpg";
         try {
             if (context != null) {
@@ -154,10 +165,7 @@ public static partial class PdfProvenance {
                 changes.Add(new OfficeProvenanceChange(change.Carrier, prefix + change.Location, change.RemovedBytes));
             }
             byte[] cleaned = result.ToArray();
-            var dictionary = new PdfDictionary();
-            foreach (KeyValuePair<string, PdfObject> entry in image.Dictionary.Items) {
-                if (entry.Key != "Length") dictionary.Items[entry.Key] = entry.Value;
-            }
+            PdfDictionary dictionary = CreateJpegDictionary(image.Dictionary, objects);
             edits.Add((graph, _) => graph[objectNumber] = new PdfIndirectObject(objectNumber, generation, new PdfStream(dictionary, cleaned)));
         } catch (InvalidDataException exception) when (!OfficeProvenanceLimitException.Is(exception)) {
             // A JPEG stream the image reader cannot parse is left exactly as it is.
@@ -165,14 +173,38 @@ public static partial class PdfProvenance {
         }
     }
 
+    /// <summary>Whether the image's last filter is DCTDecode, so its decoded payload is a JPEG file.</summary>
     private static bool IsJpegStream(Dictionary<int, PdfIndirectObject> objects, PdfStream image) {
-        if (!image.Dictionary.Items.TryGetValue("Filter", out PdfObject? filter)) return false;
+        PdfObject? filter = image.Dictionary.Items.TryGetValue("Filter", out PdfObject? full) ? full
+            : image.Dictionary.Items.TryGetValue("F", out PdfObject? abbreviated) ? abbreviated : null;
         PdfObject? resolved = PdfObjectLookup.Resolve(objects, filter);
-        if (resolved is PdfArray array) {
-            if (array.Items.Count != 1) return false;
-            resolved = PdfObjectLookup.Resolve(objects, array.Items[0]);
+        if (resolved is PdfArray { Items.Count: > 0 } array) resolved = PdfObjectLookup.Resolve(objects, array.Items[array.Items.Count - 1]);
+        return resolved is PdfName name && name.Name is "DCTDecode" or "DCT";
+    }
+
+    /// <summary>
+    /// The image dictionary for a cleaned JPEG written without the filters that preceded DCTDecode: the filter becomes DCTDecode alone
+    /// and only DCTDecode's own decode parameters stay.
+    /// </summary>
+    private static PdfDictionary CreateJpegDictionary(PdfDictionary source, Dictionary<int, PdfIndirectObject> objects) {
+        var dictionary = new PdfDictionary();
+        foreach (KeyValuePair<string, PdfObject> entry in source.Items) {
+            if (entry.Key is not ("Length" or "Filter" or "F" or "DecodeParms" or "DP")) dictionary.Items[entry.Key] = entry.Value;
         }
-        return resolved is PdfName name && name.Name == "DCTDecode";
+        dictionary.Items["Filter"] = new PdfName("DCTDecode");
+        PdfObject? parameters = source.Items.TryGetValue("DecodeParms", out PdfObject? full) ? full
+            : source.Items.TryGetValue("DP", out PdfObject? abbreviated) ? abbreviated : null;
+        PdfObject? filter = source.Items.TryGetValue("Filter", out PdfObject? fullFilter) ? fullFilter
+            : source.Items.TryGetValue("F", out PdfObject? abbreviatedFilter) ? abbreviatedFilter : null;
+        bool chained = PdfObjectLookup.Resolve(objects, filter) is PdfArray { Items.Count: > 1 };
+        PdfObject? resolvedParameters = PdfObjectLookup.Resolve(objects, parameters);
+        if (!chained && parameters != null) {
+            dictionary.Items["DecodeParms"] = parameters;
+        } else if (chained && resolvedParameters is PdfArray { Items.Count: > 0 } list &&
+            PdfObjectLookup.Resolve(objects, list.Items[list.Items.Count - 1]) is PdfDictionary dctParameters) {
+            dictionary.Items["DecodeParms"] = dctParameters;
+        }
+        return dictionary;
     }
 
     private static bool IsName(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, string expected) =>

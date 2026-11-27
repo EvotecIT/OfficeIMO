@@ -81,7 +81,29 @@ public sealed class PdfProvenanceAiDeclarationTests {
         Assert.Empty(PdfProvenance.Inspect(removed.ToArray()).Evidence);
     }
 
-    private static byte[] CreatePdf(out byte[] jpeg) {
+    [Fact]
+    public void JpegBehindAscii85IsInspectedAndWrittenBackAsPlainDctDecode() {
+        byte[] source = CreatePdf(out byte[] jpeg, ascii85: true);
+
+        Assert.Contains(PdfProvenance.Inspect(source).Evidence, item => item.Location.Contains("/Image/JPEG[0]/APP1-Exif@") && item.Value == "Midjourney");
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(source);
+        Assert.Empty(result.After.Evidence);
+        PdfReadDocument document = PdfReadDocument.Open(result.ToArray());
+        PdfStream image = Assert.Single(document.Objects.Values.Select(item => item.Value).OfType<PdfStream>(),
+            stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "Image" });
+        Assert.Equal("DCTDecode", Assert.IsType<PdfName>(image.Dictionary.Items["Filter"]).Name);
+        Assert.Equal(jpeg.Length, image.Data.Length);
+        Assert.Null(OfficeImageMetadata.Read(image.Data).GetExifValue(OfficeExifTag.Software));
+    }
+
+    [Fact]
+    public void CarrierLimitCountsAttachmentsAndDeclarationsTogether() {
+        byte[] source = CreatePdf(out _);
+        Assert.Throws<InvalidDataException>(() => PdfProvenance.Inspect(source, new OfficeProvenanceOptions { MaxCarriers = 2 }));
+    }
+
+    private static byte[] CreatePdf(out byte[] jpeg, bool ascii85 = false) {
         var raster = new OfficeRasterImage(2, 1);
         raster.SetPixel(0, 0, OfficeColor.Red);
         raster.SetPixel(1, 0, OfficeColor.Blue);
@@ -115,9 +137,18 @@ public sealed class PdfProvenanceAiDeclarationTests {
             imageDictionary.Items["Height"] = new PdfNumber(1);
             imageDictionary.Items["ColorSpace"] = new PdfName("DeviceRGB");
             imageDictionary.Items["BitsPerComponent"] = new PdfNumber(8);
-            imageDictionary.Items["Filter"] = new PdfName("DCTDecode");
+            byte[] imageData = image;
+            if (ascii85) {
+                var filters = new PdfArray();
+                filters.Items.Add(new PdfName("ASCII85Decode"));
+                filters.Items.Add(new PdfName("DCTDecode"));
+                imageDictionary.Items["Filter"] = filters;
+                imageData = Ascii85(image);
+            } else {
+                imageDictionary.Items["Filter"] = new PdfName("DCTDecode");
+            }
             int imageNumber = next++;
-            objects[imageNumber] = new PdfIndirectObject(imageNumber, 0, new PdfStream(imageDictionary, image));
+            objects[imageNumber] = new PdfIndirectObject(imageNumber, 0, new PdfStream(imageDictionary, imageData));
             PdfDictionary pages = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Pages"]));
             PdfArray kids = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, pages.Items["Kids"]));
             PdfDictionary page = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, kids.Items[0]));
@@ -133,5 +164,26 @@ public sealed class PdfProvenanceAiDeclarationTests {
             objects[infoNumber] = new PdfIndirectObject(infoNumber, 0, info);
             return infoNumber;
         });
+    }
+
+    private static byte[] Ascii85(byte[] data) {
+        var text = new StringBuilder();
+        for (int index = 0; index < data.Length; index += 4) {
+            int count = Math.Min(4, data.Length - index);
+            uint value = 0;
+            for (int part = 0; part < 4; part++) value = value << 8 | (part < count ? data[index + part] : (byte)0);
+            if (count == 4 && value == 0) {
+                text.Append('z');
+                continue;
+            }
+            var digits = new char[5];
+            for (int digit = 4; digit >= 0; digit--) {
+                digits[digit] = (char)('!' + value % 85);
+                value /= 85;
+            }
+            text.Append(digits, 0, count + 1);
+        }
+        text.Append("~>");
+        return Encoding.ASCII.GetBytes(text.ToString());
     }
 }
