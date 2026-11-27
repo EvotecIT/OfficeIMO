@@ -209,7 +209,7 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfRemoved();
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width.ToEmus(), nameof(width));
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height.ToEmus(), nameof(height));
-            string relationshipId = EmbedImage(image, imageType);
+            string relationshipId = EmbedImage(image, imageType, out int pixelWidth, out int pixelHeight);
             OfficeXmlNode tree = ShapeTree;
             OfficeXmlNode picture = tree.CreateElement(P, "pic");
             OfficeXmlNode nonVisual = picture.Append(picture.CreateElement(P, "nvPicPr"));
@@ -225,7 +225,8 @@ namespace OfficeIMO.PowerPoint {
             picture = tree.Append(picture);
             MarkEdited();
             var result = (PowerPointImage)WrapShape(picture);
-            result.ContainInFrame();
+            if (pixelWidth > 0 && pixelHeight > 0) result.ContainInFrame(pixelWidth, pixelHeight);
+            else result.ContainInFrame();
             return result;
         }
 
@@ -262,7 +263,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Sets a stretched background picture from a stream.</summary>
         public void SetBackgroundImage(Stream image, OfficeImageFormat imageType) {
             ThrowIfRemoved();
-            string relationshipId = EmbedImage(image, imageType);
+            string relationshipId = EmbedImage(image, imageType, out _, out _);
             OfficeXmlNode data = CommonSlideData;
             OfficeXmlNode fill = data.CreateElement(D, "blipFill");
             fill.Append(fill.CreateElement(D, "blip")).SetAttribute(OfficeXmlNamespaces.Relationships, "embed", relationshipId);
@@ -337,7 +338,8 @@ namespace OfficeIMO.PowerPoint {
             if (newImage == null || newImage != previousImage) DeleteImageIfUnused(previousImage);
         }
 
-        private string EmbedImage(Stream image, OfficeImageFormat imageType) {
+        // Embeds the image in the part and returns its relationship id, with the pixel size read from it when it can be.
+        private string EmbedImage(Stream image, OfficeImageFormat imageType, out int pixelWidth, out int pixelHeight) {
             ArgumentNullException.ThrowIfNull(image);
             if (!image.CanRead) throw new ArgumentException("Image stream must be readable.", nameof(image));
             using MemoryStream? normalized = PowerPointImageNormalization.NormalizeHeicForEmbedding(image, imageType);
@@ -347,6 +349,7 @@ namespace OfficeIMO.PowerPoint {
             using var buffer = new MemoryStream();
             source.CopyTo(buffer);
             byte[] data = buffer.ToArray();
+            if (!PowerPointImageSize.TryRead(data, out pixelWidth, out pixelHeight)) pixelWidth = pixelHeight = 0;
             PowerPointPartRef part = PartRef;
             if (!part.IsSdk && Document.TryAddPackageImagePart(part.Name, data, PowerPointImageContentTypes.For(format),
                     PowerPointPartFactory.GetImageExtension(format), out string relationshipId, out _, out _)) {
