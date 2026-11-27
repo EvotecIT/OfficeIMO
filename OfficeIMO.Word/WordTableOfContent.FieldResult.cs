@@ -1,110 +1,125 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Word {
     public partial class WordTableOfContent {
-        private void ReplaceContentWithFieldResult(string instruction, string noContentText, IReadOnlyList<TocHeadingEntry> entries, ISet<int> pageNumberSuppressedLevels, string pageNumberSeparator) {
-            SdtContentBlock content = _sdtBlock.SdtContentBlock
-                ?? throw new InvalidOperationException("Table of contents content block is missing.");
+        private void ReplaceContentWithFieldResult(string instruction, string noContentText, IReadOnlyList<TocHeadingEntry> entries,
+            ISet<int> pageNumberSuppressedLevels, string pageNumberSeparator) {
+            const int W = TocNamespace;
+            OfficeXmlNode content = ContentNode;
+            if (content.IsNone) throw new InvalidOperationException("Table of contents content block is missing.");
 
-            Paragraph? titleParagraph = GetTitleParagraph();
-            if (titleParagraph != null) RemoveIfAttached(titleParagraph);
-            content.RemoveAllChildren();
-            if (titleParagraph != null) content.Append(titleParagraph);
+            OfficeXmlNode title = GetTitleParagraphNode();
+            if (title.Exists) title.Remove();
+            while (content.FirstChild.Exists) content.FirstChild.Remove();
+            if (title.Exists) content.Append(title);
 
             int? rightTabPosition = pageNumberSeparator == "\t" ? GetTextWidthTwips() : null;
-            var paragraphs = new List<Paragraph>();
+            var paragraphs = new List<OfficeXmlNode>(entries.Count);
             foreach (TocHeadingEntry entry in entries) {
-                paragraphs.Add(CreateFieldEntryParagraph(entry, !pageNumberSuppressedLevels.Contains(entry.Level), pageNumberSeparator, rightTabPosition));
+                OfficeXmlNode paragraph = content.CreateElement(W, "p");
+                PopulateFieldEntry(paragraph, entry, !pageNumberSuppressedLevels.Contains(entry.Level), pageNumberSeparator, rightTabPosition);
+                paragraphs.Add(paragraph);
             }
-
             AppendGeneratedFieldResult(content, instruction, paragraphs, noContentText);
         }
 
-        private static Paragraph CreateFieldEntryParagraph(TocHeadingEntry entry, bool includePageNumber, string pageNumberSeparator, int? rightTabPosition) {
-            var properties = new ParagraphProperties(new ParagraphStyleId { Val = "TOC" + entry.Level.ToString(CultureInfo.InvariantCulture) });
-            if (includePageNumber && rightTabPosition != null) {
-                properties.Tabs = new Tabs(new TabStop {
-                    Val = TabStopValues.Right,
-                    Leader = TabStopLeaderCharValues.Dot,
-                    Position = rightTabPosition.Value
-                });
+        private static void PopulateFieldEntry(OfficeXmlNode paragraph, TocHeadingEntry entry, bool includePageNumber,
+            string pageNumberSeparator, int? rightTabPosition) {
+            const int W = TocNamespace;
+            OfficeXmlNode properties = AppendTocChild(paragraph, "pPr");
+            AppendTocChild(properties, "pStyle").SetAttribute(W, "val", "TOC" + entry.Level.ToString(CultureInfo.InvariantCulture));
+            if (includePageNumber && rightTabPosition.HasValue) {
+                OfficeXmlNode tab = AppendTocChild(AppendTocChild(properties, "tabs"), "tab");
+                tab.SetAttribute(W, "val", "right");
+                tab.SetAttribute(W, "leader", "dot");
+                tab.SetAttribute(W, "pos", OfficeXmlViewValues.Format(rightTabPosition));
             }
 
-            var hyperlink = new Hyperlink {
-                Anchor = entry.BookmarkName,
-                History = true
-            };
-            hyperlink.Append(new Run(new Text(entry.Text) { Space = SpaceProcessingModeValues.Preserve }));
-            if (includePageNumber) {
-                if (pageNumberSeparator == "\t") {
-                    hyperlink.Append(new Run(new TabChar()));
-                } else if (pageNumberSeparator.Length > 0) {
-                    hyperlink.Append(new Run(new Text(pageNumberSeparator) { Space = SpaceProcessingModeValues.Preserve }));
-                }
+            OfficeXmlNode hyperlink = AppendTocChild(paragraph, "hyperlink");
+            hyperlink.SetAttribute(W, "anchor", entry.BookmarkName);
+            hyperlink.SetAttribute(W, "history", "true");
+            hyperlink.Append(CreateTocTextRun(hyperlink, "t", entry.Text, preserveSpace: true));
+            if (!includePageNumber) return;
 
-                hyperlink.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
-                hyperlink.Append(new Run(new FieldCode(" PAGEREF " + entry.BookmarkName + " \\h ") { Space = SpaceProcessingModeValues.Preserve }));
-                hyperlink.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
-                hyperlink.Append(new Run(new Text(entry.PageNumber.ToString(CultureInfo.InvariantCulture))));
-                hyperlink.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            if (pageNumberSeparator == "\t") {
+                AppendTocChild(AppendTocChild(hyperlink, "r"), "tab");
+            } else if (pageNumberSeparator.Length > 0) {
+                hyperlink.Append(CreateTocTextRun(hyperlink, "t", pageNumberSeparator, preserveSpace: true));
             }
 
-            return new Paragraph(properties, hyperlink);
+            hyperlink.Append(CreateTocMarkerRun(hyperlink, "begin"));
+            hyperlink.Append(CreateTocTextRun(hyperlink, "instrText", " PAGEREF " + entry.BookmarkName + " \\h ", preserveSpace: true));
+            hyperlink.Append(CreateTocMarkerRun(hyperlink, "separate"));
+            hyperlink.Append(CreateTocTextRun(hyperlink, "t", entry.PageNumber.ToString(CultureInfo.InvariantCulture), preserveSpace: false));
+            hyperlink.Append(CreateTocMarkerRun(hyperlink, "end"));
         }
 
-        /// <summary>
-        /// Gets the text width of the section that holds the table, for the right-aligned page number tab.
-        /// </summary>
+        /// <summary>Gets the text width of the section holding the table, for the page-number tab.</summary>
         private int GetTextWidthTwips() {
+            const int W = TocNamespace;
             const int defaultTextWidth = 9360;
-            SectionProperties? section = _sdtBlock.ElementsAfter()
-                .OfType<Paragraph>()
-                .Select(_ => _.ParagraphProperties?.SectionProperties)
-                .FirstOrDefault(_ => _ != null)
-                ?? _sdtBlock.Ancestors<Body>().FirstOrDefault()?.Elements<SectionProperties>().LastOrDefault();
-            PageSize? size = section?.GetFirstChild<PageSize>();
-            PageMargin? margin = section?.GetFirstChild<PageMargin>();
-            if (size?.Width?.Value is not uint width) {
-                return defaultTextWidth;
+            OfficeXmlNode section = default;
+            for (OfficeXmlNode paragraph = SdtNode.NextSiblingNamed(W, "p"); paragraph.Exists;
+                 paragraph = paragraph.NextSiblingNamed(W, "p")) {
+                section = paragraph.Child(W, "pPr").Child(W, "sectPr");
+                if (section.Exists) break;
             }
+            if (section.IsNone) section = SdtNode.AncestorOrSelf(W, "body").Children(W, "sectPr").Last();
 
-            long left = margin?.Left?.Value ?? 1440U;
-            long right = margin?.Right?.Value ?? 1440U;
-            long gutter = margin?.Gutter?.Value ?? 0U;
-            long textWidth = width - left - right - gutter;
-            if (textWidth > 0) {
-                return (int)textWidth;
-            }
-
-            return defaultTextWidth;
+            OfficeXmlNode margin = section.Child(W, "pgMar");
+            uint? width = OfficeXmlViewValues.ParseUInt32(section.Child(W, "pgSz").Attribute(W, "w"));
+            if (!width.HasValue) return defaultTextWidth;
+            long left = OfficeXmlViewValues.ParseUInt32(margin.Attribute(W, "left")) ?? 1440U;
+            long right = OfficeXmlViewValues.ParseUInt32(margin.Attribute(W, "right")) ?? 1440U;
+            long gutter = OfficeXmlViewValues.ParseUInt32(margin.Attribute(W, "gutter")) ?? 0U;
+            long textWidth = width.Value - left - right - gutter;
+            return textWidth > 0 ? (int)textWidth : defaultTextWidth;
         }
 
-        private void AppendGeneratedFieldResult(SdtContentBlock content, string instruction, IEnumerable<Paragraph> entries, string noContentText) {
+        private void AppendGeneratedFieldResult(OfficeXmlNode content, string instruction, IEnumerable<OfficeXmlNode> entries,
+            string noContentText) {
             PreservePlaceholderText(noContentText);
-            var paragraphs = entries.ToList();
+            List<OfficeXmlNode> paragraphs = entries.ToList();
             if (paragraphs.Count == 0) {
-                paragraphs.Add(new Paragraph(new Run(new Text(noContentText) { Space = SpaceProcessingModeValues.Preserve })));
+                OfficeXmlNode empty = content.CreateElement(TocNamespace, "p");
+                empty.Append(CreateTocTextRun(empty, "t", noContentText, preserveSpace: true));
+                paragraphs.Add(empty);
             }
 
-            Paragraph first = paragraphs[0];
-            OpenXmlElement? anchor = first.ParagraphProperties;
-            foreach (Run fieldStart in new[] {
-                         new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
-                         new Run(new FieldCode(instruction) { Space = SpaceProcessingModeValues.Preserve }),
-                         new Run(new FieldChar { FieldCharType = FieldCharValues.Separate })
-                     }) {
-                anchor = anchor == null ? first.PrependChild(fieldStart) : first.InsertAfter(fieldStart, anchor);
-            }
+            OfficeXmlNode first = paragraphs[0];
+            OfficeXmlNode properties = first.Child(TocNamespace, "pPr");
+            OfficeXmlNode reference = properties.Exists ? properties.NextSibling : first.FirstChild;
+            first.InsertBefore(CreateTocMarkerRun(first, "begin"), reference);
+            first.InsertBefore(CreateTocTextRun(first, "instrText", instruction, preserveSpace: true), reference);
+            first.InsertBefore(CreateTocMarkerRun(first, "separate"), reference);
 
-            paragraphs[paragraphs.Count - 1].Append(new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
-            foreach (Paragraph paragraph in paragraphs) {
-                RemoveIfAttached(paragraph);
+            OfficeXmlNode last = paragraphs[paragraphs.Count - 1];
+            last.Append(CreateTocMarkerRun(last, "end"));
+            foreach (OfficeXmlNode paragraph in paragraphs) {
+                if (paragraph.Parent.Exists) paragraph.Remove();
                 content.Append(paragraph);
             }
-            _document.LocalizeBuiltInStyleReferences(content);
+            LocalizeGeneratedStyles(content);
+            RecordOwnedTocEdit();
         }
 
+        private static OfficeXmlNode CreateTocMarkerRun(OfficeXmlNode parent, string type) {
+            OfficeXmlNode run = parent.CreateElement(TocNamespace, "r");
+            AppendTocChild(run, "fldChar").SetAttribute(TocNamespace, "fldCharType", type);
+            return run;
+        }
+
+        private static OfficeXmlNode CreateTocTextRun(OfficeXmlNode parent, string name, string value, bool preserveSpace) {
+            OfficeXmlNode run = parent.CreateElement(TocNamespace, "r");
+            OfficeXmlNode text = AppendTocChild(run, name);
+            text.SetInnerText(value);
+            if (preserveSpace) text.SetAttribute(OfficeXmlNamespaces.Xml, "space", "preserve");
+            return run;
+        }
+
+        private static OfficeXmlNode AppendTocChild(OfficeXmlNode parent, string name) =>
+            parent.Append(parent.CreateElement(TocNamespace, name));
     }
 }

@@ -1,4 +1,7 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
+using System.Text;
 
 namespace OfficeIMO.Word {
 
@@ -198,16 +201,23 @@ namespace OfficeIMO.Word {
     /// Represents a field element within a Word document.
     /// </summary>
     public partial class WordField : WordElement {
+        private const int W = OfficeXmlNamespaces.WordprocessingML;
         private WordParagraph? _authoringParagraph;
 
         /// <summary>Gets the containing paragraph handle for continuing paragraph authoring.</summary>
-        public WordParagraph Paragraph => _authoringParagraph ?? (_simpleField != null
-            ? new WordParagraph(_document, _paragraph, _simpleField)
-            : new WordParagraph(_document, _paragraph, _runs));
+        public WordParagraph Paragraph {
+            get {
+                if (_authoringParagraph != null) return _authoringParagraph;
+                ResolveNodes();
+                return WordParagraph.WrapSdkField(_document, _paragraph, _simpleField, _runs);
+            }
+        }
+
         private readonly WordDocument _document;
-        private readonly Paragraph _paragraph;
-        private readonly List<Run> _runs = new List<Run>();
-        private readonly SimpleField? _simpleField;
+        private OfficeXmlNode _paragraph;
+        private OfficeXmlNode _simpleField;
+        private readonly List<OfficeXmlNode> _runs;
+        private readonly Action<OfficeXmlNode>? _replaceSdkRuns;
 
         /// <summary>
         /// Gets the type of the current field.
@@ -250,134 +260,123 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string Field {
             get {
-                if (_simpleField != null) {
-                    return _simpleField.Instruction?.Value ?? string.Empty;
-                } else {
-                    var instruction = "";
-                    foreach (var run in _runs) {
-                        var fieldCode = run.ChildElements.OfType<FieldCode>().FirstOrDefault();
-                        if (fieldCode != null) {
-                            instruction += fieldCode.Text;
-                        }
-                    }
-                    return instruction;
-                }
+                ResolveNodes();
+                if (_simpleField.Exists) return _simpleField.Attribute(W, "instr") ?? string.Empty;
+                var instruction = new StringBuilder();
+                foreach (OfficeXmlNode run in _runs) instruction.Append(run.Child(W, "instrText").InnerText);
+                return instruction.ToString();
             }
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the field is marked dirty.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the field is marked dirty.</summary>
         public bool UpdateField {
-            get {
-                if (_simpleField != null) {
-                    if (_simpleField.Dirty != null) {
-                        return _simpleField.Dirty;
-                    } else {
-                        return false;
-                    }
-                } else {
-                    foreach (var run in _runs) {
-                        var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
-                        if (fieldChar != null) {
-                            if (fieldChar.Dirty != null) {
-                                return fieldChar.Dirty;
-                            } else {
-                                return false;
-                            }
-                        }
-                    }
-                }
-                return false;
-            }
-            set {
-                if (_simpleField != null) {
-                    _simpleField.Dirty = value;
-                } else {
-                    foreach (var run in _runs) {
-                        var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
-                        if (fieldChar != null) {
-                            fieldChar.Dirty = value;
-                        }
-                    }
-                }
-            }
+            get => GetFlag("dirty");
+            set => SetFlag("dirty", value);
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the field is locked.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the field is locked.</summary>
         public bool LockField {
-            get {
-                if (_simpleField != null) {
-                    if (_simpleField.FieldLock != null) {
-                        return _simpleField.FieldLock;
-                    } else {
-                        return false;
-                    }
-                } else {
-                    foreach (var run in _runs) {
-                        var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
-                        if (fieldChar != null) {
-                            if (fieldChar.FieldLock != null) {
-                                return fieldChar.FieldLock;
-                            } else {
-                                return false;
-                            }
-                        }
-                    }
-                }
-                return false;
+            get => GetFlag("fldLock");
+            set => SetFlag("fldLock", value);
+        }
+
+        private bool GetFlag(string attribute) {
+            ResolveNodes();
+            if (_simpleField.Exists) return WordFieldInventory.ReadFlag(_simpleField, attribute);
+            foreach (OfficeXmlNode run in _runs) {
+                OfficeXmlNode marker = run.Child(W, "fldChar");
+                if (marker.Exists) return WordFieldInventory.ReadFlag(marker, attribute);
             }
-            set {
-                if (_simpleField != null) {
-                    _simpleField.FieldLock = value;
-                } else {
-                    foreach (var run in _runs) {
-                        var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
-                        if (fieldChar != null) {
-                            fieldChar.FieldLock = value;
-                        }
-                    }
-                }
+            return false;
+        }
+
+        private void SetFlag(string attribute, bool value) {
+            ResolveNodes()?.MarkChanged();
+            string token = value ? "true" : "false";
+            if (_simpleField.Exists) {
+                _simpleField.SetAttribute(W, attribute, token);
+                return;
+            }
+            foreach (OfficeXmlNode run in _runs) {
+                OfficeXmlNode marker = run.Child(W, "fldChar");
+                if (marker.Exists) marker.SetAttribute(W, attribute, token);
             }
         }
 
-        /// <summary>
-        /// Gets or sets the display text of the field.
-        /// </summary>
+        /// <summary>Gets or sets the display text of the field.</summary>
         public string Text {
             get {
-                return string.Concat(_runs
-                    .SelectMany(run => run.ChildElements.OfType<Text>())
-                    .Select(text => text.Text));
+                ResolveNodes();
+                var text = new StringBuilder();
+                foreach (OfficeXmlNode run in _runs) {
+                    foreach (OfficeXmlNode item in run.Children(W, "t")) text.Append(item.InnerText);
+                }
+                return text.ToString();
             }
             set {
-                var texts = _runs
-                    .SelectMany(run => run.ChildElements.OfType<Text>())
-                    .ToList();
-
-                if (texts.Count == 0) {
-                    return;
-                }
-
-                texts[0].Text = value;
-                texts[0].Space = SpaceProcessingModeValues.Preserve;
-                for (int i = 1; i < texts.Count; i++) {
-                    texts[i].Text = string.Empty;
+                WordPackageModel? model = ResolveNodes();
+                bool first = true;
+                foreach (OfficeXmlNode run in _runs) {
+                    foreach (OfficeXmlNode text in run.Children(W, "t")) {
+                        if (first) {
+                            text.SetInnerText(value ?? string.Empty);
+                            text.SetAttribute(OfficeXmlNamespaces.Xml, "space", "preserve");
+                            model?.MarkChanged();
+                            first = false;
+                        } else {
+                            text.SetInnerText(string.Empty);
+                        }
+                    }
                 }
             }
         }
 
-        internal WordField(WordDocument document, Paragraph paragraph, SimpleField? simpleField, List<Run>? runs) {
-            this._document = document;
-            this._paragraph = paragraph;
-            this._simpleField = simpleField;
-            if (simpleField != null) {
-                this._runs.AddRange(simpleField.Elements<Run>());
-            } else if (runs != null) {
-                this._runs = runs;
+        internal WordField(WordDocument document, OfficeXmlNode paragraph, OfficeXmlNode simpleField,
+            List<OfficeXmlNode>? runs = null, Action<OfficeXmlNode>? replaceSdkRuns = null) {
+            _document = document;
+            _paragraph = paragraph;
+            _simpleField = simpleField;
+            _runs = runs ?? simpleField.Children(W, "r").ToList();
+            _replaceSdkRuns = replaceSdkRuns;
+        }
+
+        // Field wrappers may outlive the owned package, just like their containing paragraphs.
+        private WordPackageModel? ResolveNodes() {
+            if (_paragraph.Tree is not { } tree) return null;
+            if (_document._ownedModel is { } model && _document.OwnsWordTree(model, tree)) return model;
+
+            WordPackageModel? copy = _document.DisposedReadModel;
+            OfficeXmlTree? copyTree = copy == null || _document._ownedNodeElements != null
+                ? null : _document.GetDisposedWordTree(copy, tree);
+            if (copyTree != null) {
+                if (!ReferenceEquals(copyTree, tree)) {
+                    _paragraph = CopyOf(_paragraph);
+                    _simpleField = CopyOf(_simpleField);
+                    for (int index = 0; index < _runs.Count; index++) _runs[index] = CopyOf(_runs[index]);
+                }
+                return copy;
             }
+
+            if (_document.FindSdkWordNodeMap(tree) is not { } elements) {
+                throw new InvalidOperationException("The field is no longer part of the document.");
+            }
+            _paragraph = SdkNode(_paragraph);
+            _simpleField = SdkNode(_simpleField);
+            for (int index = 0; index < _runs.Count; index++) _runs[index] = SdkNode(_runs[index]);
+            return null;
+
+            OfficeXmlNode CopyOf(OfficeXmlNode node) => node.IsNone
+                ? default : new OfficeXmlNode(copyTree!, _document.DisposedCopyNode(tree, node.Node));
+
+            OfficeXmlNode SdkNode(OfficeXmlNode node) => node.Node >= 0 && node.Node < elements.Length
+                ? OfficeXmlNode.FromSdk(elements[node.Node]) : default;
+        }
+
+        internal void SetAuthoringParagraph(WordParagraph paragraph) => _authoringParagraph = paragraph;
+
+        internal (OfficeXmlNode SimpleField, List<OfficeXmlNode> Runs) CurrentNodes() {
+            ResolveNodes();
+            return (_simpleField, _runs);
         }
     }
 }

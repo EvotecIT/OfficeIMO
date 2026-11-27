@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word;
 
 /// <summary>
@@ -23,25 +21,21 @@ public enum WordSectionBreakType {
 }
 
 internal static class WordSectionBreakTypeExtensions {
-    internal static SectionMarkValues ToOpenXml(this WordSectionBreakType breakType) {
-        return breakType switch {
-            WordSectionBreakType.NextPage => SectionMarkValues.NextPage,
-            WordSectionBreakType.NextColumn => SectionMarkValues.NextColumn,
-            WordSectionBreakType.Continuous => SectionMarkValues.Continuous,
-            WordSectionBreakType.EvenPage => SectionMarkValues.EvenPage,
-            WordSectionBreakType.OddPage => SectionMarkValues.OddPage,
-            _ => throw new ArgumentOutOfRangeException(nameof(breakType), breakType, "Unsupported Word section break type.")
-        };
-    }
+    internal static string ToOpenXmlToken(this WordSectionBreakType breakType) => breakType switch {
+        WordSectionBreakType.NextPage => "nextPage",
+        WordSectionBreakType.NextColumn => "nextColumn",
+        WordSectionBreakType.Continuous => "continuous",
+        WordSectionBreakType.EvenPage => "evenPage",
+        WordSectionBreakType.OddPage => "oddPage",
+        _ => throw new ArgumentOutOfRangeException(nameof(breakType), breakType, "Unsupported Word section break type.")
+    };
 
-    internal static WordSectionBreakType ToOfficeEnum(this SectionMarkValues breakType) {
-        return breakType switch {
-            _ when breakType == SectionMarkValues.NextPage => WordSectionBreakType.NextPage,
-            _ when breakType == SectionMarkValues.NextColumn => WordSectionBreakType.NextColumn,
-            _ when breakType == SectionMarkValues.Continuous => WordSectionBreakType.Continuous,
-            _ when breakType == SectionMarkValues.EvenPage => WordSectionBreakType.EvenPage,
-            _ when breakType == SectionMarkValues.OddPage => WordSectionBreakType.OddPage,
-            _ => throw new ArgumentOutOfRangeException(nameof(breakType), breakType, "Unsupported Word section break type.")
-        };
-    }
+    internal static WordSectionBreakType FromOpenXmlToken(string? token) => token switch {
+        null or "nextPage" => WordSectionBreakType.NextPage,
+        "nextColumn" => WordSectionBreakType.NextColumn,
+        "continuous" => WordSectionBreakType.Continuous,
+        "evenPage" => WordSectionBreakType.EvenPage,
+        "oddPage" => WordSectionBreakType.OddPage,
+        _ => throw new FormatException("Unsupported Word section break type: " + token)
+    };
 }

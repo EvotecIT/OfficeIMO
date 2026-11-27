@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -39,6 +41,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        internal void AssignNewSdtIds(OfficeXmlNode root) {
+            const int W = OfficeXmlNamespaces.WordprocessingML;
+            foreach (OfficeXmlNode properties in root.ContentDescendants(W, "sdtPr")) {
+                OfficeXmlNode id = properties.Child(W, "id");
+                if (id.Exists) id.SetAttribute(W, "val", OfficeXmlViewValues.Format(GenerateSdtId()));
+            }
+        }
+
         private void InitializeSdtIdState() {
             lock (_sdtIdLock) {
                 _usedSdtIds.Clear();
@@ -65,6 +75,19 @@ namespace OfficeIMO.Word {
         }
 
         private IEnumerable<int> EnumerateExistingSdtIds() {
+            if (_ownedModel != null) {
+                const int W = OfficeXmlNamespaces.WordprocessingML;
+                foreach (var story in WordFieldInventory.EnumerateStories(this)) {
+                    if (story.LocationKind is WordFieldLocationKind.Footnote or WordFieldLocationKind.Endnote) continue;
+                    // Keep controls in every preserved branch distinct when another reader selects it.
+                    foreach (OfficeXmlNode properties in WordFieldInventory.EnumerateFieldContent(story.Root, reserveInactiveCompatibilityIds: true)) {
+                        if (properties.Is(W, "sdtPr") &&
+                            OfficeXmlViewValues.ParseInt32(properties.Child(W, "id").Attribute(W, "val")) is int id) yield return id;
+                    }
+                }
+                yield break;
+            }
+
             var mainPart = _wordprocessingDocument?.MainDocumentPart;
             if (mainPart == null) {
                 yield break;

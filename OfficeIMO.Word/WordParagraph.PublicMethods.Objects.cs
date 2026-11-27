@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.OpenXml;
 using System.Reflection;
 using System.Xml.Linq;
 using MathParagraph = DocumentFormat.OpenXml.Math.Paragraph;
@@ -147,6 +148,8 @@ namespace OfficeIMO.Word {
         /// <returns>The footnote.</returns>
         /// <exception cref="InvalidOperationException">The paragraph is in a header or footer.</exception>
         public WordFootNote AddFootNote(string text) {
+            if (_document._ownedModel != null && WordOwnedParagraphs.IsRunningStory(_ownedTree))
+                throw new InvalidOperationException("Footnotes cannot be added to header or footer paragraphs.");
             var footerWordParagraph = new WordParagraph(this._document, true, true) {
                 Text = text
             };

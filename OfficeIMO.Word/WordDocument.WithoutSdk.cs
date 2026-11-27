@@ -153,7 +153,11 @@ namespace OfficeIMO.Word {
                 return true;
             }
             // Reading the settings on the SDK path adds a settings part to a package without one.
-            if (_tableOfContentUpdateQueued || !model.HasSettings || model.SettingsHave("updateFields")) return false;
+            if (!model.HasSettings) return false;
+            if (_tableOfContentUpdateQueued || model.SettingsHave("updateFields")) {
+                HeadingModified();
+                return true;
+            }
             // The SDK path finds a table of contents in a content control or in a TOC field of a body paragraph.
             return !model.BodyHasFieldsOrContentControls;
         }
@@ -189,6 +193,9 @@ namespace OfficeIMO.Word {
             if (model.IsDocumentParsed) {
                 _ownedNodeTree = model.Document;
                 _ownedNodeElements = WordOpenXmlSdkBridge.MapOwnedTree(model.Document, _documentValue!);
+                BindOwnedSections();
+                BindOwnedRunningStories(model);
+                WordParagraph.BindPageNumberFormatting(model.Document, _ownedNodeElements);
             }
             if (disposeModel) model.Dispose();
         }
@@ -213,6 +220,8 @@ namespace OfficeIMO.Word {
                 OpenSdkPackage("Save: " + blocker);
                 return false;
             }
+            RefreshGeneratedTableOfContent();
+            if (!ReferenceEquals(_ownedModel, model)) return false;
             WordOwnedSave.PrepareForSave(model);
             if (!model.IsChanged) {
                 bytes = model.SourceBytes;

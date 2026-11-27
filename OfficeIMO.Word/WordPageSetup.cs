@@ -1,4 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -11,6 +13,7 @@ namespace OfficeIMO.Word {
     /// <see cref="GetFooter"/> to inspect a story without creating it.
     /// </remarks>
     public sealed class WordPageSetup {
+        private const int W = OfficeXmlNamespaces.WordprocessingML;
         private readonly WordSection _section;
 
         internal WordPageSetup(WordSection section) {
@@ -31,8 +34,8 @@ namespace OfficeIMO.Word {
         /// Gets or sets the page orientation of the section.
         /// </summary>
         public OfficePageOrientation Orientation {
-            get => WordPageSizes.GetOrientation(_section._sectionProperties).ToOfficeEnum();
-            set => WordPageSizes.SetOrientation(_section._sectionProperties, value.ToOpenXml());
+            get => Size.Orientation;
+            set => Size.Orientation = value;
         }
 
         /// <summary>
@@ -42,19 +45,19 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool DifferentFirstPage {
             get {
-                var titlePage = _section._sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
-                return titlePage != null && (titlePage.Val?.Value ?? true);
+                OfficeXmlNode titlePage = _section.SectionNode.Child(W, "titlePg");
+                return titlePage.Exists && (titlePage.Attribute(W, "val") is null or "true" or "1" or "on");
             }
             set {
-                var sectionProperties = _section._sectionProperties;
-                var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
+                OfficeXmlNode section = _section.EditSectionNode();
+                OfficeXmlNode titlePage = section.Child(W, "titlePg");
                 if (!value) {
-                    titlePage?.Remove();
+                    if (titlePage.Exists) titlePage.Remove();
                     return;
                 }
 
-                if (titlePage == null) sectionProperties.Append(new TitlePage());
-                else titlePage.Val = true;
+                if (titlePage.IsNone) section.Append(section.CreateElement(W, "titlePg"));
+                else titlePage.SetAttribute(W, "val", "true");
                 WordHeadersAndFooters.AddHeaderReference(_section._document, _section, HeaderFooterValues.First);
                 WordHeadersAndFooters.AddFooterReference(_section._document, _section, HeaderFooterValues.First);
             }
@@ -72,6 +75,14 @@ namespace OfficeIMO.Word {
                 return _section.ResolveEvenHeader() != null || _section.ResolveEvenFooter() != null;
             }
             set {
+                if (!value && _section.TryGetOwnedStorySettings(out OfficeXmlNode ownedSettings)) {
+                    OfficeXmlNode ownedSetting = ownedSettings.Child(W, "evenAndOddHeaders");
+                    if (ownedSetting.Exists) {
+                        ownedSetting.Remove();
+                        _section._document._ownedModel!.MarkChanged();
+                    }
+                    return;
+                }
                 var mainPart = _section._document._wordprocessingDocument.MainDocumentPart;
                 if (!value) {
                     mainPart?.DocumentSettingsPart?.Settings?.GetFirstChild<EvenAndOddHeaders>()?.Remove();

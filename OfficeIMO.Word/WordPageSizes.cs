@@ -1,4 +1,7 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
+using System.Globalization;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -91,80 +94,45 @@ namespace OfficeIMO.Word {
     /// Provides helpers for manipulating Word page size and orientation.
     /// </summary>
     public partial class WordPageSizes {
+        private const int W = OfficeXmlNamespaces.WordprocessingML;
+        private static readonly WordPageSize[] Presets = global::OfficeIMO.Internal.EnumCompat.GetValues<WordPageSize>();
         private readonly WordSection _section;
-        private readonly WordDocument _document;
 
-        /// <summary>
-        /// This element specifies the properties (size and orientation) for all pages in the current section.
-        /// </summary>
+        private OfficeXmlNode SizeNode => _section.SectionNode.Child(W, "pgSz");
+
+        /// <summary>Gets or sets the preset paper size for the section.</summary>
         public WordPageSize? PageSize {
             get {
-                var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
-                if (pageSize != null) {
-                    foreach (WordPageSize wordPageSize in global::OfficeIMO.Internal.EnumCompat.GetValues<WordPageSize>()) {
-                        if (wordPageSize == WordPageSize.Unknown) {
-                            continue;
-                        }
-
-                        var pageSizeBuiltin = GetDefault(wordPageSize);
-                        if (pageSizeBuiltin == null) {
-                            continue;
-                        }
-
-                        // Printer codes are optional in producer DOCX files and native DOC
-                        // imports. A one-twip tolerance accepts producer unit rounding.
-                        if ((pageSize.Code == null || pageSizeBuiltin.Code == pageSize.Code) &&
-                            ((PageDimensionMatches(pageSizeBuiltin.Width, pageSize.Width) &&
-                              PageDimensionMatches(pageSizeBuiltin.Height, pageSize.Height)) ||
-                             (PageDimensionMatches(pageSizeBuiltin.Width, pageSize.Height) &&
-                              PageDimensionMatches(pageSizeBuiltin.Height, pageSize.Width)))) {
-                            return wordPageSize;
-                        }
-                    }
-                    return WordPageSize.Unknown;
-                } else {
-                    return null;
+                OfficeXmlNode node = SizeNode;
+                if (node.IsNone) return null;
+                uint? width = ReadDimension(node, "w");
+                uint? height = ReadDimension(node, "h");
+                ushort? code = ReadCode(node);
+                foreach (WordPageSize preset in Presets) {
+                    if (GetDefinition(preset) is not { } definition) continue;
+                    if (code.HasValue && definition.PaperCode != code.Value) continue;
+                    long expectedWidth = definition.Width.ToTwips();
+                    long expectedHeight = definition.Height.ToTwips();
+                    // The paper code is optional. Accept a one-twip producer rounding difference.
+                    if ((Matches(expectedWidth, width) && Matches(expectedHeight, height)) ||
+                        (Matches(expectedWidth, height) && Matches(expectedHeight, width))) return preset;
                 }
+                return WordPageSize.Unknown;
             }
-            set => SetPageSize(value);
-        }
-
-        private static bool PageDimensionMatches(DocumentFormat.OpenXml.UInt32Value? expected, DocumentFormat.OpenXml.UInt32Value? actual) =>
-            expected != null && actual != null && Math.Abs((long)expected.Value - actual.Value) <= 1L;
-
-        private void SetPageSize(WordPageSize? wordPageSize) {
-            var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
-
-            if (wordPageSize == null) {
-                pageSize?.Remove();
-                return;
-            }
-
-            var pageSizeSettings = GetDefault(wordPageSize);
-            if (pageSizeSettings == null) {
-                pageSize?.Remove();
-                return;
-            }
-
-            if (pageSize == null) {
-                _section._sectionProperties.AddChild(pageSizeSettings, true);
-                return;
-            }
-
-            bool requiresPageOrient = false;
-            PageOrientationValues pageOrientation = PageOrientationValues.Portrait;
-            if (pageSize.Orient != null && pageSize.Orient.Value != PageOrientationValues.Portrait) {
-                pageOrientation = pageSize.Orient.Value;
-                requiresPageOrient = true;
-            }
-
-            pageSize.Remove();
-            _section._sectionProperties.AddChild(pageSizeSettings, true);
-
-            if (requiresPageOrient) {
-                SetOrientation(_section._sectionProperties, pageOrientation);
+            set {
+                WordPageSizeDefinition? preset = value.HasValue ? GetDefinition(value.Value) : null;
+                OfficeXmlNode section = _section.EditSectionNode();
+                OfficeXmlNode previous = section.Child(W, "pgSz");
+                OfficePageOrientation orientation = ReadOrientation(previous);
+                if (previous.Exists) previous.Remove();
+                if (preset == null) return;
+                OfficeXmlNode pageSize = WordSection.AddSectionChild(section, "pgSz");
+                WritePreset(pageSize, preset);
+                if (orientation == OfficePageOrientation.Landscape) ApplyOrientation(pageSize, orientation);
             }
         }
+
+        private static bool Matches(long expected, uint? actual) => actual.HasValue && Math.Abs(expected - actual.Value) <= 1L;
 
         /// <summary>
         /// Applies a physical paper size in the requested orientation, or the section's current orientation when omitted.
@@ -173,132 +141,96 @@ namespace OfficeIMO.Word {
         internal void SetSize(OfficeIMO.Drawing.OfficePageSize size, OfficePageOrientation? orientation = null) {
             if (size.Width <= OfficeLength.Zero || size.Height <= OfficeLength.Zero)
                 throw new ArgumentOutOfRangeException(nameof(size), "Page dimensions must be positive.");
-            var effectiveOrientation = (orientation ?? Orientation).ToOpenXml();
-            var orientedSize = effectiveOrientation == PageOrientationValues.Landscape ? size.Landscape() : size.Portrait();
+            OfficePageOrientation effectiveOrientation = orientation ?? Orientation;
+            string token = effectiveOrientation.ToOpenXmlToken();
+            var orientedSize = effectiveOrientation == OfficePageOrientation.Landscape ? size.Landscape() : size.Portrait();
             uint width = checked((uint)orientedSize.Width.ToTwips());
             uint height = checked((uint)orientedSize.Height.ToTwips());
-            var pageSize = EnsurePageSize();
-            pageSize.Width = width;
-            pageSize.Height = height;
-            pageSize.Orient = effectiveOrientation;
-            pageSize.Code = null;
+            OfficeXmlNode pageSize = EnsurePageSize();
+            pageSize.SetAttribute(W, "w", OfficeXmlViewValues.Format(width));
+            pageSize.SetAttribute(W, "h", OfficeXmlViewValues.Format(height));
+            pageSize.SetAttribute(W, "orient", token);
+            pageSize.SetAttribute(W, "code", null);
         }
 
-        private PageSize EnsurePageSize() {
-            var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
-            if (pageSize == null) {
-                pageSize = new PageSize();
-                _section._sectionProperties.AddChild(pageSize, true);
-            }
-            return pageSize;
+        private OfficeXmlNode EnsurePageSize() => _section.EnsureSectionChild("pgSz");
+
+        /// <summary>Gets or sets the section width. Explicit edits clear the paper code.</summary>
+        public OfficeLength? Width {
+            get => GetLength("w");
+            set => SetLength("w", value);
         }
 
-        /// <summary>
-        /// Gets or sets the section width. Explicit dimension edits clear the printer paper code without changing orientation.
-        /// </summary>
-        public global::OfficeIMO.OfficeLength? Width {
-            get {
-                var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
-                return ((pageSize?.Width?.Value) is { } wordLength7222 ? global::OfficeIMO.OfficeLength.Points((wordLength7222) / 20D) : (global::OfficeIMO.OfficeLength?)null);
-            }
-            set {
-                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
-                var wordNativeValue = checked((uint?)(value?.ToTwips()));
-                var pageSize = EnsurePageSize();
-                pageSize.Width = wordNativeValue;
-                pageSize.Code = null;
-            }
+        /// <summary>Gets or sets the section height. Explicit edits clear the paper code.</summary>
+        public OfficeLength? Height {
+            get => GetLength("h");
+            set => SetLength("h", value);
         }
 
-        /// <summary>
-        /// Gets or sets the section height. Explicit dimension edits clear the printer paper code without changing orientation.
-        /// </summary>
-        public global::OfficeIMO.OfficeLength? Height {
-            get {
-                var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
-                return ((pageSize?.Height?.Value) is { } wordLength7637 ? global::OfficeIMO.OfficeLength.Points((wordLength7637) / 20D) : (global::OfficeIMO.OfficeLength?)null);
-            }
-            set {
-                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
-                var wordNativeValue = checked((uint?)(value?.ToTwips()));
-                var pageSize = EnsurePageSize();
-                pageSize.Height = wordNativeValue;
-                pageSize.Code = null;
-            }
+        private OfficeLength? GetLength(string attribute) =>
+            ReadDimension(SizeNode, attribute) is uint value ? OfficeLength.Points(value / 20D) : (OfficeLength?)null;
+
+        private void SetLength(string attribute, OfficeLength? value) {
+            if (value.HasValue && value.Value.ToEmus() < 0)
+                throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
+            uint? twips = checked((uint?)(value?.ToTwips()));
+            OfficeXmlNode size = EnsurePageSize();
+            size.SetAttribute(W, attribute, OfficeXmlViewValues.Format(twips));
+            size.SetAttribute(W, "code", null);
         }
 
-        /// <summary>
-        /// Get or Set section/page Code
-        /// </summary>
+        private static uint? ReadDimension(OfficeXmlNode size, string attribute) =>
+            OfficeXmlViewValues.ParseUInt32(size.Attribute(W, attribute));
+
+        private static ushort? ReadCode(OfficeXmlNode size) =>
+            size.Attribute(W, "code") is { } token ? ushort.Parse(token, CultureInfo.InvariantCulture) : (ushort?)null;
+
+        /// <summary>Gets or sets the paper code.</summary>
         public ushort? Code {
-            get {
-                var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
-                return pageSize?.Code?.Value;
-            }
-            set {
-                var pageSize = EnsurePageSize();
-                pageSize.Code = value;
-            }
+            get => ReadCode(SizeNode);
+            set => EnsurePageSize().SetAttribute(W, "code", value?.ToString(CultureInfo.InvariantCulture));
         }
 
-        internal static PageOrientationValues GetOrientation(SectionProperties sectionProperties) {
-            var pageSize = sectionProperties.GetFirstChild<PageSize>();
-            if (pageSize == null) {
-                return PageOrientationValues.Portrait;
-            }
-
-            if (pageSize.Orient != null) {
-                return pageSize.Orient.Value;
-            }
-
-            return PageOrientationValues.Portrait;
-        }
-
-        internal static void SetOrientation(SectionProperties sectionProperties, PageOrientationValues pageOrientationValue) {
-            var pageSize = sectionProperties.Descendants<PageSize>().FirstOrDefault();
-            if (pageSize == null) {
-                // we need to setup default values for A4 
-                pageSize = ToOpenXmlPageSize(WordPageSizes.A4);
-                pageSize.Orient = PageOrientationValues.Portrait;
-                sectionProperties.AddChild(pageSize, true);
-            }
-            if (pageSize.Orient == null) {
-                pageSize.Orient = PageOrientationValues.Portrait;
-            }
-            if (pageSize.Orient != pageOrientationValue) {
-                // changing orientation is not enough, we need to change width with height and vice versa
-                var width = pageSize.Width;
-                var height = pageSize.Height;
-                pageSize.Width = height;
-                pageSize.Height = width;
-
-                pageSize.Orient = pageOrientationValue;
-            }
-        }
-
-        /// <summary>
-        /// Get or Set section/page Orientation
-        /// </summary>
+        /// <summary>Gets or sets the section page orientation.</summary>
         public OfficePageOrientation Orientation {
-            get => GetOrientation(_section._sectionProperties).ToOfficeEnum();
-            set => SetOrientation(_section._sectionProperties, value.ToOpenXml());
+            get => ReadOrientation(SizeNode);
+            set {
+                _ = value.ToOpenXmlToken();
+                OfficeXmlNode section = _section.EditSectionNode();
+                OfficeXmlNode size = section.Child(W, "pgSz");
+                if (size.IsNone) {
+                    size = WordSection.AddSectionChild(section, "pgSz");
+                    WritePreset(size, A4);
+                }
+                ApplyOrientation(size, value);
+            }
         }
 
-        /// <summary>
-        /// Manipulate section/page settings
-        /// </summary>
-        /// <param name="wordDocument"></param>
-        /// <param name="wordSection"></param>
+        private static OfficePageOrientation ReadOrientation(OfficeXmlNode size) {
+            string? token = size.Attribute(W, "orient");
+            if (token == null) return OfficePageOrientation.Portrait;
+            if (WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out OfficePageOrientation orientation)) return orientation;
+            throw new FormatException("Unsupported Word page orientation: " + token);
+        }
+
+        private static void ApplyOrientation(OfficeXmlNode size, OfficePageOrientation orientation) {
+            if (ReadOrientation(size) != orientation) {
+                string? width = size.Attribute(W, "w");
+                size.SetAttribute(W, "w", size.Attribute(W, "h"));
+                size.SetAttribute(W, "h", width);
+            }
+            size.SetAttribute(W, "orient", orientation.ToOpenXmlToken());
+        }
+
+        private static void WritePreset(OfficeXmlNode size, WordPageSizeDefinition preset) {
+            size.SetAttribute(W, "w", preset.Width.ToTwips().ToString(CultureInfo.InvariantCulture));
+            size.SetAttribute(W, "h", preset.Height.ToTwips().ToString(CultureInfo.InvariantCulture));
+            size.SetAttribute(W, "code", preset.PaperCode.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>Initializes the page settings for a section.</summary>
         public WordPageSizes(WordDocument wordDocument, WordSection wordSection) {
             _section = wordSection;
-            _document = wordDocument;
         }
-
-        private static PageSize ToOpenXmlPageSize(WordPageSizeDefinition definition) =>
-            new PageSize {
-                Width = checked((uint)(definition.Width.ToTwips())),
-                Height = checked((uint)(definition.Height.ToTwips())),
-                Code = definition.PaperCode
-            };
     }
 }

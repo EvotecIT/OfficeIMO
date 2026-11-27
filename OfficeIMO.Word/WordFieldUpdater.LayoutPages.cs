@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Word {
@@ -15,71 +13,81 @@ namespace OfficeIMO.Word {
         /// so a field on a later line of a paragraph that continues onto another page takes that later page. The
         /// markers are removed afterwards.
         /// </summary>
-        private static WordLayoutPagination LayOutWithPageFieldBookmarks(WordDocument document, MainDocumentPart mainPart,
+        private static WordLayoutPagination LayOutWithPageFieldBookmarks(WordDocument document,
             Func<WordDocument, WordLayoutPagination> provider, FieldEvaluationState state) {
-            var inserted = new List<OpenXmlElement>();
-            var links = new List<Hyperlink>();
+            const int W = FieldNamespace;
+            var inserted = new List<OfficeXmlNode>();
+            var links = new List<OfficeXmlNode>();
             try {
-                Body? body = mainPart.Document?.Body;
-                if (body != null) {
-                    int nextId = body.Descendants<BookmarkStart>()
-                        .Select(start => int.TryParse(start.Id?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id) ? id : 0)
+                OfficeXmlNode body = WordFieldInventory.BodyNode(document);
+                if (body.Exists) {
+                    int nextId = WordFieldInventory.EnumerateFieldContent(body, reserveInactiveCompatibilityIds: true)
+                        .Where(node => node.Is(W, "bookmarkStart"))
+                        .Select(start => int.TryParse(start.Attribute(W, "id"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int id) ? id : 0)
                         .DefaultIfEmpty(0).Max() + 1;
-                    foreach (MutableFieldCandidate field in EnumerateFields(mainPart)) {
+                    foreach (MutableFieldCandidate field in EnumerateFields(document)) {
                         if (field.LocationKind != WordFieldLocationKind.Body ||
                             WordFieldInventory.ParseInstruction(field.InstructionText).FieldType != WordFieldType.Page) continue;
-                        Paragraph? paragraph = field.AnchorElement.Ancestors<Paragraph>().FirstOrDefault();
-                        if (paragraph == null || !paragraph.Ancestors<Body>().Any()) continue;
-                        OpenXmlElement child = field.AnchorElement;
-                        while (child.Parent != null && !ReferenceEquals(child.Parent, paragraph)) child = child.Parent;
-                        if (child.Parent == null) continue;
+                        OfficeXmlNode paragraph = field.AnchorElement.AncestorOrSelf(W, "p");
+                        if (paragraph.IsNone || !paragraph.IsInside(body)) continue;
+                        OfficeXmlNode child = field.AnchorElement;
+                        while (child.Exists && child.Parent != paragraph) child = child.Parent;
+                        if (child.IsNone) continue;
 
                         string id = (nextId++).ToString(CultureInfo.InvariantCulture);
                         string name = PageFieldBookmarkPrefix + id;
-                        var start = new BookmarkStart { Id = id, Name = name };
-                        var end = new BookmarkEnd { Id = id };
-                        child.InsertBeforeSelf(start);
-                        start.InsertAfterSelf(end);
+                        OfficeXmlNode start = paragraph.CreateElement(W, "bookmarkStart");
+                        start.SetAttribute(W, "id", id);
+                        start.SetAttribute(W, "name", name);
+                        OfficeXmlNode end = paragraph.CreateElement(W, "bookmarkEnd");
+                        end.SetAttribute(W, "id", id);
+                        paragraph.InsertBefore(start, child);
+                        paragraph.InsertBefore(end, child);
                         inserted.Add(start);
                         inserted.Add(end);
-                        if (WrapFieldInLink(field, paragraph, child, name) is { } link) links.Add(link);
+                        OfficeXmlNode link = WrapFieldInLink(field, paragraph, child, name);
+                        if (link.Exists) links.Add(link);
                         state.PageFieldBookmarks[field.AnchorElement] = name;
                     }
                 }
 
                 return provider(document);
             } finally {
-                foreach (Hyperlink link in links) {
-                    foreach (OpenXmlElement child in link.ChildElements.ToList()) {
+                foreach (OfficeXmlNode link in links) {
+                    OfficeXmlNode paragraph = link.Parent;
+                    while (link.FirstChild.Exists) {
+                        OfficeXmlNode child = link.FirstChild;
                         child.Remove();
-                        link.InsertBeforeSelf(child);
+                        paragraph.InsertBefore(child, link);
                     }
                     link.Remove();
                 }
-                foreach (OpenXmlElement element in inserted) element.Remove();
+                foreach (OfficeXmlNode element in inserted) element.Remove();
             }
         }
 
-        private static Hyperlink? WrapFieldInLink(MutableFieldCandidate field, Paragraph paragraph, OpenXmlElement first, string name) {
-            OpenXmlElement last = first;
+        private static OfficeXmlNode WrapFieldInLink(MutableFieldCandidate field, OfficeXmlNode paragraph,
+            OfficeXmlNode first, string name) {
+            const int W = FieldNamespace;
+            OfficeXmlNode last = first;
             if (field.Representation == WordFieldRepresentation.Complex) {
-                if (field.EndRun == null || !ReferenceEquals(field.EndRun.Parent, paragraph) || first is not Run) return null;
                 last = field.EndRun;
-                for (OpenXmlElement? current = first; !ReferenceEquals(current, last); current = current.NextSibling()) {
-                    if (current is not Run) return null;
+                if (!last.Is(W, "r") || last.Parent != paragraph) return default;
+                for (OfficeXmlNode run = first; run != last; run = run.NextSibling) {
+                    if (!run.Is(W, "r")) return default;
                 }
-            } else if (first is not SimpleField) {
-                return null;
+            } else if (!first.Is(W, "fldSimple")) {
+                return default;
             }
 
-            var link = new Hyperlink { Anchor = name };
-            first.InsertBeforeSelf(link);
-            OpenXmlElement? next = first;
-            while (next != null) {
-                OpenXmlElement? following = ReferenceEquals(next, last) ? null : next.NextSibling();
-                next.Remove();
-                link.Append(next);
-                next = following;
+            OfficeXmlNode link = paragraph.CreateElement(W, "hyperlink");
+            link.SetAttribute(W, "anchor", name);
+            paragraph.InsertBefore(link, first);
+            for (OfficeXmlNode child = first; child.Exists;) {
+                OfficeXmlNode next = child == last ? default : child.NextSibling;
+                child.Remove();
+                link.Append(child);
+                child = next;
             }
             return link;
         }

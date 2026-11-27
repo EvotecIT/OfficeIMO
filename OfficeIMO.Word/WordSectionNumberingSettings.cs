@@ -1,152 +1,134 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
+using System.Globalization;
 
 namespace OfficeIMO.Word {
     /// <summary>Editable pagenumber configuration attached to a section.</summary>
     public sealed class WordPageNumberSettings {
         private readonly WordSection _section;
         internal WordPageNumberSettings(WordSection section) => _section = section;
-        private W.PageNumberType? Value => _section._sectionProperties.GetFirstChild<W.PageNumberType>();
-
-        private W.PageNumberType Ensure() {
-            var value = Value;
-            if (value == null) {
-                value = new W.PageNumberType();
-                _section._sectionProperties.AddChild(value, true);
-            }
-            return value;
-        }
+        private const int Ns = OfficeXmlNamespaces.WordprocessingML;
+        private OfficeXmlNode Value => WordSection.FindSectionChild(_section.SectionNode, "pgNumType");
+        private OfficeXmlNode Ensure() => _section.EnsureSectionChild("pgNumType");
 
         /// <summary>Gets or sets the first page number, or null when numbering continues.</summary>
         public int? StartNumber {
-            get => Value?.Start?.Value;
-            set {
-                Ensure().Start = value;
-            }
+            get => OfficeXmlViewValues.ParseInt32(Value.Attribute(Ns, "start"));
+            set => Ensure().SetAttribute(Ns, "start", OfficeXmlViewValues.Format(value));
         }
 
         /// <summary>Gets or sets the page-number format.</summary>
         public WordNumberFormat? NumberingFormat {
-            get => Value?.Format?.Value.ToOfficeEnum();
-            set {
-                Ensure().Format = value?.ToOpenXml();
-            }
+            get => Value.Attribute(Ns, "fmt") is string token &&
+                WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordNumberFormat format)
+                ? format : (WordNumberFormat?)null;
+            set => Ensure().SetAttribute(Ns, "fmt", value?.ToOpenXmlToken());
+        }
+    }
+
+    internal readonly struct SectionNoteSettings {
+        private const int Ns = OfficeXmlNamespaces.WordprocessingML;
+        internal static readonly OfficeXmlChildOrder Order = new(
+            new[] { Ns, Ns, Ns, Ns }, new[] { "pos", "numFmt", "numStart", "numRestart" }, new[] { 0, 1, 2, 3 });
+
+        private readonly WordSection _section;
+        private readonly string _localName;
+
+        internal SectionNoteSettings(WordSection section, string localName) {
+            _section = section;
+            _localName = localName;
         }
 
+        internal OfficeXmlNode Edit() => _section.EnsureSectionChild(_localName);
+
+        internal string? Get(string childName) => _section.SectionNode.Child(Ns, _localName).Child(Ns, childName).Attribute(Ns, "val");
+
+        internal void Set(string name, string? token) {
+            OfficeXmlNode node = token != null ? Edit() : _section.EditSectionNode().Child(Ns, _localName);
+            Set(node, name, token);
+        }
+
+        internal static void Set(OfficeXmlNode properties, string name, string? token) {
+            if (properties.IsNone) return;
+            properties.RemoveChildren(Ns, name);
+            if (token != null) properties.AddOrdered(Ns, name, Order).SetAttribute(Ns, "val", token);
+        }
+
+        internal WordNumberFormat? NumberingFormat {
+            get => Get("numFmt") is { } token &&
+                WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordNumberFormat format)
+                ? format : (WordNumberFormat?)null;
+            set => Set("numFmt", value?.ToOpenXmlToken());
+        }
+
+        internal WordNoteNumberRestart? NumberingRestart {
+            get => Get("numRestart") is { } token &&
+                WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordNoteNumberRestart restart)
+                ? restart : (WordNoteNumberRestart?)null;
+            set => Set("numRestart", value?.ToOpenXmlToken());
+        }
+
+        internal int? StartNumber {
+            get => Get("numStart") is { } token ? ushort.Parse(token, CultureInfo.InvariantCulture) : (int?)null;
+            set => Set("numStart", StartToken(value));
+        }
+
+        internal static string? StartToken(int? value) {
+            if (value < 0 || value > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(value));
+            return OfficeXmlViewValues.Format(value);
+        }
     }
 
     /// <summary>Editable footnote configuration attached to a section.</summary>
     public sealed class WordFootnoteSettings {
-        private readonly WordSection _section;
-        internal WordFootnoteSettings(WordSection section) => _section = section;
-        private W.FootnoteProperties? Value => _section._sectionProperties.GetFirstChild<W.FootnoteProperties>();
-
-        private W.FootnoteProperties Ensure() {
-            var value = Value;
-            if (value == null) {
-                value = new W.FootnoteProperties();
-                _section._sectionProperties.AddChild(value, true);
-            }
-            return value;
-        }
-
-        private void Set<T>(T child, bool present) where T : DocumentFormat.OpenXml.OpenXmlElement {
-            if (!present) { Value?.RemoveAllChildren<T>(); return; }
-            var value = Ensure();
-            value.RemoveAllChildren<T>();
-            value.AddChild(child, true);
-        }
+        private SectionNoteSettings _settings;
+        internal WordFootnoteSettings(WordSection section) => _settings = new SectionNoteSettings(section, "footnotePr");
 
         /// <summary>Gets or sets the footnote placement.</summary>
         public WordFootnotePosition? Position {
-            get => Value?.FootnotePosition?.Val?.Value.ToOfficeEnum();
-            set {
-                Set(new W.FootnotePosition { Val = value?.ToOpenXml() }, value.HasValue);
-            }
+            get => _settings.Get("pos") is { } token &&
+                WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordFootnotePosition position)
+                ? position : (WordFootnotePosition?)null;
+            set => _settings.Set("pos", value?.ToOpenXmlToken());
         }
 
         /// <summary>Gets or sets the numbering format.</summary>
-        public WordNumberFormat? NumberingFormat {
-            get => Value?.NumberingFormat?.Val?.Value.ToOfficeEnum();
-            set {
-                Set(new W.NumberingFormat { Val = value?.ToOpenXml() }, value.HasValue);
-            }
-        }
+        public WordNumberFormat? NumberingFormat { get => _settings.NumberingFormat; set => _settings.NumberingFormat = value; }
 
         /// <summary>Gets or sets the numbering restart rule.</summary>
-        public WordNoteNumberRestart? NumberingRestart {
-            get => Value?.NumberingRestart?.Val?.Value.ToOfficeEnum();
-            set {
-                Set(new W.NumberingRestart { Val = value?.ToOpenXml() }, value.HasValue);
-            }
-        }
+        public WordNoteNumberRestart? NumberingRestart { get => _settings.NumberingRestart; set => _settings.NumberingRestart = value; }
 
         /// <summary>Gets or sets the first note number.</summary>
-        public int? StartNumber {
-            get => Value?.NumberingStart?.Val?.Value;
-            set {
-                if (value < 0 || value > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(value));
-                Set(new W.NumberingStart { Val = value.HasValue ? (ushort?)value.Value : null }, value.HasValue);
-            }
-        }
-
+        public int? StartNumber { get => _settings.StartNumber; set => _settings.StartNumber = value; }
     }
 
     /// <summary>Editable endnote configuration attached to a section.</summary>
     public sealed class WordEndnoteSettings {
         private readonly WordSection _section;
-        internal WordEndnoteSettings(WordSection section) => _section = section;
-        private W.EndnoteProperties? Value => _section._sectionProperties.GetFirstChild<W.EndnoteProperties>();
-
-        private W.EndnoteProperties Ensure() {
-            var value = Value;
-            if (value == null) {
-                value = new W.EndnoteProperties();
-                _section._sectionProperties.AddChild(value, true);
-            }
-            return value;
+        private SectionNoteSettings _settings;
+        internal WordEndnoteSettings(WordSection section) {
+            _section = section;
+            _settings = new SectionNoteSettings(section, "endnotePr");
         }
 
-        private void Set<T>(T child, bool present) where T : DocumentFormat.OpenXml.OpenXmlElement {
-            if (!present) { Value?.RemoveAllChildren<T>(); return; }
-            var value = Ensure();
-            value.RemoveAllChildren<T>();
-            value.AddChild(child, true);
-        }
-
-        /// <summary>Gets or sets the document-wide endnote placement; null restores document-end.</summary>
+        /// <summary>Gets or sets document-wide endnote placement. Null restores document-end placement.</summary>
         public WordEndnotePosition? Position {
-            get => _section._document.DocumentEndnotePosition.ToOfficeEnum();
+            get => _section.ReadDocumentEndnotePlacement();
             set {
-                Set(new W.EndnotePosition { Val = value?.ToOpenXml() }, value.HasValue);
-                _section._document.SetDocumentEndnotePosition(value?.ToOpenXml() ?? W.EndnotePositionValues.DocumentEnd);
+                _settings.Set("pos", value?.ToOpenXmlToken());
+                _section.WriteDocumentEndnotePlacement(value ?? WordEndnotePosition.DocumentEnd);
             }
         }
 
         /// <summary>Gets or sets the numbering format.</summary>
-        public WordNumberFormat? NumberingFormat {
-            get => Value?.NumberingFormat?.Val?.Value.ToOfficeEnum();
-            set {
-                Set(new W.NumberingFormat { Val = value?.ToOpenXml() }, value.HasValue);
-            }
-        }
+        public WordNumberFormat? NumberingFormat { get => _settings.NumberingFormat; set => _settings.NumberingFormat = value; }
 
         /// <summary>Gets or sets the numbering restart rule.</summary>
-        public WordNoteNumberRestart? NumberingRestart {
-            get => Value?.NumberingRestart?.Val?.Value.ToOfficeEnum();
-            set {
-                Set(new W.NumberingRestart { Val = value?.ToOpenXml() }, value.HasValue);
-            }
-        }
+        public WordNoteNumberRestart? NumberingRestart { get => _settings.NumberingRestart; set => _settings.NumberingRestart = value; }
 
         /// <summary>Gets or sets the first note number.</summary>
-        public int? StartNumber {
-            get => Value?.NumberingStart?.Val?.Value;
-            set {
-                if (value < 0 || value > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(value));
-                Set(new W.NumberingStart { Val = value.HasValue ? (ushort?)value.Value : null }, value.HasValue);
-            }
-        }
-
+        public int? StartNumber { get => _settings.StartNumber; set => _settings.StartNumber = value; }
     }
 
     public partial class WordSection {

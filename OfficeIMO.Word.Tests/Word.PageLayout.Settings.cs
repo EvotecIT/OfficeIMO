@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -6,6 +7,100 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Fact]
+    public void Test_SectionsAndRunningStoriesKeepTheirHandlesAfterSdkInterop() {
+        using WordDocument document = WordDocument.Create();
+        WordSection first = document.Sections[0];
+        WordParagraph header = first.PageSetup.Header.AddParagraph("First");
+        WordSection second = document.AddSection(WordSectionBreakType.Continuous);
+        second.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Inches(2);
+        WordField footer = second.PageSetup.Footer.AddField(WordFieldType.Page);
+        footer.Text = "12";
+
+        Assert.True(document.IsSdkDeferred);
+        Assert.Equal("First", header.Text);
+        Assert.Equal(WordSectionBreakType.Continuous, second.BreakType);
+
+        _ = document.OpenXmlDocument;
+
+        Assert.Same(first, document.Sections[0]);
+        Assert.Same(second, document.Sections[1]);
+        header.Text = "Updated first";
+        footer.Text = "13";
+        Assert.Equal("Updated first", Assert.Single(first.PageSetup.Header.Paragraphs).Text);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Inches(2), second.PageSetup.Margins.Left);
+        Assert.Contains(document.InspectFields(), field => field.LocationKind == WordFieldLocationKind.Footer && field.ResultText == "13");
+    }
+
+    [Fact]
+    public void Test_DisposedOwnedDocumentKeepsItsSections() {
+        using WordDocument document = WordDocument.Create();
+        List<WordSection> sections = document.Sections;
+        WordSection second = document.AddSection(WordSectionBreakType.OddPage);
+        document.Dispose();
+
+        Assert.Same(sections, document.Sections);
+        Assert.Same(second, document.Sections[1]);
+        Assert.Equal(WordSectionBreakType.OddPage, second.BreakType);
+    }
+
+    [Fact]
+    public void Test_PageNumberInsertionPreservesSectionCompatibilityBranches() {
+        byte[] bytes;
+        using (WordDocument document = WordDocument.Create()) {
+            var section = document.OpenXmlDocument.MainDocumentPart!.Document.Body!.GetFirstChild<SectionProperties>()!;
+            var size = section.GetFirstChild<PageSize>()!;
+            var choice = new AlternateContentChoice(size.CloneNode(true)) { Requires = "w14" };
+            size.InsertBeforeSelf(new AlternateContent(choice, new AlternateContentFallback(size.CloneNode(true))));
+            size.Remove();
+            bytes = document.ToBytes();
+        }
+
+        using WordDocument edited = WordDocument.Load(new MemoryStream(bytes));
+        edited.Sections[0].AddPageNumbering(startNumber: 2);
+        Assert.True(edited.IsSdkDeferred);
+        bytes = edited.ToBytes();
+
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
+        var properties = reopened.OpenXmlDocument.MainDocumentPart!.Document.Body!.GetFirstChild<SectionProperties>()!;
+        Assert.Collection(properties.ChildElements,
+            node => {
+                var alternate = Assert.IsType<AlternateContent>(node);
+                Assert.NotNull(alternate.GetFirstChild<AlternateContentChoice>()?.FirstChild);
+                Assert.NotNull(alternate.GetFirstChild<AlternateContentFallback>()?.FirstChild);
+            },
+            node => Assert.IsType<PageMargin>(node),
+            node => Assert.Equal(2, Assert.IsType<PageNumberType>(node).Start!.Value));
+    }
+
+    [Fact]
+    public void Test_PageNumberInsertionCanUseTheActiveSectionBranch() {
+        byte[] bytes;
+        using (WordDocument document = WordDocument.Create()) {
+            var section = document.OpenXmlDocument.MainDocumentPart!.Document.Body!.GetFirstChild<SectionProperties>()!;
+            var margin = section.GetFirstChild<PageMargin>()!;
+            var choice = new AlternateContentChoice(margin.CloneNode(true), new Columns()) { Requires = "w14" };
+            var fallback = new AlternateContentFallback(margin.CloneNode(true), new Columns());
+            margin.InsertBeforeSelf(new AlternateContent(choice, fallback));
+            margin.Remove();
+            bytes = document.ToBytes();
+        }
+
+        using WordDocument edited = WordDocument.Load(new MemoryStream(bytes));
+        edited.Sections[0].AddPageNumbering(startNumber: 2);
+        Assert.Equal(2, edited.Sections[0].PageNumberSettings.StartNumber);
+        Assert.True(edited.IsSdkDeferred);
+        bytes = edited.ToBytes();
+
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
+        var properties = reopened.OpenXmlDocument.MainDocumentPart!.Document.Body!.GetFirstChild<SectionProperties>()!;
+        var alternate = Assert.Single(properties.Elements<AlternateContent>());
+        Assert.Equal(new[] { "pgMar", "pgNumType", "cols" },
+            alternate.GetFirstChild<AlternateContentChoice>()!.ChildElements.Select(node => node.LocalName));
+        Assert.Equal(new[] { "pgMar", "cols" },
+            alternate.GetFirstChild<AlternateContentFallback>()!.ChildElements.Select(node => node.LocalName));
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]

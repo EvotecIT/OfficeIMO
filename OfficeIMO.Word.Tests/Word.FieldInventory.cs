@@ -157,6 +157,69 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_InspectFields_IgnoresExtensionFieldsAndUnselectedCompatibilityBranches() {
+            const string w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+            const string mc = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+            const string wps = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape";
+            string path = Path.Combine(_directoryWithFiles, "FieldInventory.ExtensionMarkup.docx");
+
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddParagraph("Normal story").AddField(WordFieldType.Author);
+                document.Save();
+            }
+
+            using (WordprocessingDocument package = WordprocessingDocument.Open(path, true)) {
+                Paragraph paragraph = package.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single();
+                paragraph.InnerXml +=
+                    $"<x:extLst xmlns:x=\"urn:field-extension\" xmlns:w=\"{w}\"><w:fldSimple w:instr=\" TITLE \"/></x:extLst>" +
+                    $"<mc:AlternateContent xmlns:mc=\"{mc}\" xmlns:w=\"{w}\">" +
+                    "<mc:Choice xmlns:wps=\"urn:unsupported\" Requires=\"wps\"><w:fldSimple w:instr=\" SUBJECT \"/></mc:Choice>" +
+                    $"<mc:Choice xmlns:shape=\"{wps}\" Requires=\"shape\"><w:fldSimple w:instr=\" FILENAME \"/></mc:Choice>" +
+                    "<mc:Fallback><w:fldSimple w:instr=\" COMMENTS \"/></mc:Fallback></mc:AlternateContent>";
+                package.MainDocumentPart.Document.Save();
+            }
+
+            using WordDocument loaded = WordDocument.Load(path);
+            Assert.Equal(new[] { WordFieldType.Author, WordFieldType.FileName },
+                loaded.InspectFields().Select(field => field.FieldType!.Value));
+            Assert.True(loaded.IsSdkDeferred);
+
+            _ = loaded.OpenXmlDocument;
+            Assert.Equal(new[] { WordFieldType.Author, WordFieldType.FileName },
+                loaded.InspectFields().Select(field => field.FieldType!.Value));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_AuthoredFieldEditsTheSameResultAfterOpeningTheSdk(bool advanced) {
+            using WordDocument document = WordDocument.Create();
+            var time = new DateTime(2025, 3, 17, 12, 34, 56);
+            WordParagraph paragraph = document.AddParagraph("Value: ");
+            WordField field = paragraph.AddField(WordFieldType.Time, customFormat: "HH:mm", advanced: advanced);
+
+            Assert.Same(paragraph, field.Paragraph);
+            Assert.Equal(WordFieldType.Time, field.FieldType);
+            Assert.True(field.UpdateField);
+            WordFieldUpdateResult result = Assert.Single(document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions {
+                CurrentDateTime = time,
+                DateTimeFieldsOnly = true
+            }).Results);
+            Assert.Equal(WordFieldUpdateStatus.Updated, result.Status);
+            Assert.Equal("12:34", field.Text);
+            Assert.True(document.IsSdkDeferred);
+
+            _ = document.OpenXmlDocument;
+            field.Text = "kept result";
+            field.LockField = true;
+
+            using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes()));
+            WordFieldInfo saved = Assert.Single(reopened.InspectFields());
+            Assert.Equal("kept result", saved.ResultText);
+            Assert.True(saved.IsLocked);
+        }
+
         private static void AddSplitComplexField(Paragraph paragraph, string instructionPart1, string instructionPart2, string resultText, bool dirty, bool locked) {
             paragraph.Append(
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Begin, Dirty = dirty, FieldLock = locked }),

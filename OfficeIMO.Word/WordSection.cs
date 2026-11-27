@@ -1,5 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 using System.Diagnostics;
 
 namespace OfficeIMO.Word {
@@ -636,9 +638,26 @@ namespace OfficeIMO.Word {
         private IEnumerable<WordParagraph> GetContentControlParagraphs() =>
             Paragraphs.Concat(Tables.SelectMany(table => table.ContentControlParagraphs));
 
-        internal WordFooters Footers { get; set; } = new WordFooters();
+        private WordFooters _footers = new WordFooters();
+        private WordHeaders _headers = new WordHeaders();
 
-        internal WordHeaders Headers { get; set; } = new WordHeaders();
+        internal WordFooters Footers {
+            get {
+                if (_document._ownedModel is { } model && _ownedSectionNode.Exists) ReadOwnedStories(model);
+                else EnsureSdkSection();
+                return _footers;
+            }
+            set => _footers = value;
+        }
+
+        internal WordHeaders Headers {
+            get {
+                if (_document._ownedModel is { } model && _ownedSectionNode.Exists) ReadOwnedStories(model);
+                else EnsureSdkSection();
+                return _headers;
+            }
+            set => _headers = value;
+        }
 
         /// <summary>
         /// Provides access to page border settings for this section.
@@ -705,9 +724,9 @@ namespace OfficeIMO.Word {
 
 
         internal WordDocument _document = null!;
-        internal SectionProperties _sectionProperties = null!;
-        private WordprocessingDocument _wordprocessingDocument = null!;
-        private readonly Paragraph? _paragraph;
+        private WordprocessingDocument? _sdkDocument;
+        private WordprocessingDocument _wordprocessingDocument => _sdkDocument ??= _document._wordprocessingDocument;
+        private Paragraph? _paragraph;
 
 
         /// <summary>
@@ -719,7 +738,7 @@ namespace OfficeIMO.Word {
         /// <exception cref="NotImplementedException"></exception>
         internal WordSection(WordDocument wordDocument, SectionProperties? sectionProperties = null, Paragraph? paragraph = null) {
             this._document = wordDocument;
-            this._wordprocessingDocument = wordDocument._wordprocessingDocument;
+            this._sdkDocument = wordDocument._wordprocessingDocument;
             this._paragraph = paragraph;
             if (sectionProperties != null) {
                 this._sectionProperties = sectionProperties.MakeSureSectionIsValid();
@@ -768,7 +787,7 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph"></param>
         internal WordSection(WordDocument wordDocument, Paragraph? paragraph = null) {
             this._document = wordDocument;
-            this._wordprocessingDocument = wordDocument._wordprocessingDocument;
+            this._sdkDocument = wordDocument._wordprocessingDocument;
             this._paragraph = paragraph;
 
             if (paragraph != null) {
@@ -792,7 +811,7 @@ namespace OfficeIMO.Word {
 
                 var temporarySectionProperties = lastSection._sectionProperties;
                 if (temporarySectionProperties != null) {
-                    CopySectionProperties(lastSection._sectionProperties, this._sectionProperties);
+                    CopySectionProperties(lastSection.SectionNode, SectionNode);
                     var old = this._sectionProperties;
                     this._sectionProperties = lastSection._sectionProperties;
                     lastSection._sectionProperties = old;
@@ -806,8 +825,33 @@ namespace OfficeIMO.Word {
             wordDocument.Sections.Add(this);
         }
 
+        internal WordEndnotePosition ReadDocumentEndnotePlacement() {
+            if (TryGetOwnedStorySettings(out OfficeXmlNode settings)) {
+                string? token = settings.Child(SectionNamespace, "endnotePr").Child(SectionNamespace, "pos").Attribute(SectionNamespace, "val");
+                return token != null && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordEndnotePosition position)
+                    ? position : WordEndnotePosition.DocumentEnd;
+            }
+            return _document.DocumentEndnotePosition.ToOfficeEnum();
+        }
+
+        internal void WriteDocumentEndnotePlacement(WordEndnotePosition position) {
+            if (TryGetOwnedStorySettings(out OfficeXmlNode settings)) {
+                OfficeXmlNode notes = settings.Child(SectionNamespace, "endnotePr");
+                if (notes.Exists) {
+                    SectionNoteSettings.Set(notes, "pos", position.ToOpenXmlToken());
+                    _document._ownedModel!.MarkChanged();
+                    return;
+                }
+            }
+            _document.SetDocumentEndnotePosition(position.ToOpenXml());
+        }
+
         internal bool DocumentOddEvenSettingEnabled {
             get {
+                if (TryGetOwnedStorySettings(out OfficeXmlNode settings)) {
+                    OfficeXmlNode owned = settings.Child(SectionNamespace, "evenAndOddHeaders");
+                    return owned.Exists && (owned.Attribute(SectionNamespace, "val") is null or "true" or "1" or "on");
+                }
                 EvenAndOddHeaders? setting = _wordprocessingDocument.MainDocumentPart?
                     .DocumentSettingsPart?
                     .Settings?
@@ -821,28 +865,18 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool RtlGutter {
             get {
-                var sectionProperties = _sectionProperties;
-                if (sectionProperties != null) {
-                    var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
-                    if (rtlGutter != null) return rtlGutter.Val?.Value ?? true;
-                }
-                return false;
+                OfficeXmlNode gutter = SectionNode.Child(SectionNamespace, "rtlGutter");
+                return gutter.Exists && (gutter.Attribute(SectionNamespace, "val") is null or "true" or "1" or "on");
             }
             set {
-                var sectionProperties = _sectionProperties;
-                if (sectionProperties == null) {
+                OfficeXmlNode section = EditSectionNode();
+                OfficeXmlNode gutter = section.Child(SectionNamespace, "rtlGutter");
+                if (!value) {
+                    if (gutter.Exists) gutter.Remove();
                     return;
                 }
-                var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
-                if (value == false) {
-                    rtlGutter?.Remove();
-                } else {
-                    if (rtlGutter == null) {
-                        rtlGutter = new GutterOnRight();
-                        sectionProperties.AddChild(rtlGutter, true);
-                    }
-                    rtlGutter.Val = value;
-                }
+                if (gutter.IsNone) gutter = AddSectionChild(section, "rtlGutter");
+                gutter.SetAttribute(SectionNamespace, "val", "true");
             }
         }
 

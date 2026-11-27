@@ -107,12 +107,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordSection> Sections {
             get {
-                if (_ownedModel != null) OpenSdkPackage(null);
+                if (_ownedModel is { } model) return _ownedSections ??= WordSection.LoadOwnedSections(this, model);
+                if (IsDisposed && _wordprocessingDocumentValue == null && _ownedSections != null) return _ownedSections;
                 return _sections;
             }
         }
 
-        private readonly List<WordSection> _sections = new List<WordSection>();
+        private List<WordSection> _sections = new List<WordSection>();
 
         /// <summary>
         /// Path to the file backing this document.

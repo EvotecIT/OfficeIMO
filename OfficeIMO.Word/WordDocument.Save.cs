@@ -229,6 +229,9 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
 
+            if (format == WordFileFormat.Docx && TryCreateBytesWithoutSdk(null, options, out byte[] ownedBytes)) {
+                return ownedBytes;
+            }
             if (format == WordFileFormat.Doc && TryCreateLegacyDocBytesWithoutSdk(options, isTemplate: false, out byte[] legacyDocBytes)) {
                 return legacyDocBytes;
             }

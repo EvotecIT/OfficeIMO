@@ -1,3 +1,4 @@
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -147,32 +148,26 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static IEnumerable<string> EnumerateComplexFieldInstructions(Paragraph paragraph) {
+        private static IEnumerable<string> EnumerateComplexFieldInstructions(Paragraph paragraph) =>
+            EnumerateComplexFieldInstructions(OfficeXmlNode.FromSdk(paragraph));
+
+        private static IEnumerable<string> EnumerateComplexFieldInstructions(OfficeXmlNode paragraph) {
+            const int W = TocNamespace;
             var instructions = new Stack<StringBuilder?>();
-            foreach (Run run in paragraph.Descendants<Run>()) {
-                foreach (OpenXmlElement child in run.ChildElements) {
-                    if (child is FieldChar fieldChar) {
-                        FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
-                        if (fieldCharType == FieldCharValues.Begin) {
+            foreach (OfficeXmlNode run in WordFieldInventory.EnumerateFieldContent(paragraph)) {
+                if (!run.Is(W, "r")) continue;
+                foreach (OfficeXmlNode child in run.Children()) {
+                    if (child.Is(W, "fldChar")) {
+                        string? type = child.Attribute(W, "fldCharType");
+                        if (type == "begin") {
                             instructions.Push(new StringBuilder());
-                        } else if (fieldCharType == FieldCharValues.Separate && instructions.Count > 0) {
+                        } else if (type is "separate" or "end" && instructions.Count > 0) {
                             StringBuilder? instruction = instructions.Pop();
-                            if (instruction != null) {
-                                yield return instruction.ToString();
-                            }
-                            instructions.Push(null);
-                        } else if (fieldCharType == FieldCharValues.End && instructions.Count > 0) {
-                            StringBuilder? instruction = instructions.Pop();
-                            if (instruction != null) {
-                                yield return instruction.ToString();
-                            }
+                            if (instruction != null) yield return instruction.ToString();
+                            if (type == "separate") instructions.Push(null);
                         }
-
-                        continue;
-                    }
-
-                    if (instructions.Count > 0 && child is FieldCode fieldCode) {
-                        instructions.Peek()?.Append(fieldCode.Text ?? string.Empty);
+                    } else if (instructions.Count > 0 && child.Is(W, "instrText")) {
+                        instructions.Peek()?.Append(child.InnerText);
                     }
                 }
             }
@@ -400,7 +395,8 @@ namespace OfficeIMO.Word {
 
                 AppendIndexNode(result, node, options.Separators);
             }
-            AppendGeneratedFieldResult(content, CreateIndexInstruction(options), result.Elements<Paragraph>(), noContentText);
+            AppendGeneratedFieldResult(OfficeXmlNode.FromSdk(content), CreateIndexInstruction(options),
+                result.Elements<Paragraph>().Select(OfficeXmlNode.FromSdk), noContentText);
         }
 
         private static void AppendIndexNode(SdtContentBlock content, IndexNode node, IndexSeparators separators) {
