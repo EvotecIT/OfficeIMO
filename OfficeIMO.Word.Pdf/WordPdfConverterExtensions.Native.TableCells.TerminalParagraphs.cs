@@ -19,7 +19,7 @@ public static partial class WordPdfConverterExtensions {
         W.Paragraph source = paragraph._paragraph;
         if (source.ChildElements.Any(child => child is not W.ParagraphProperties) ||
             source.ParagraphProperties?.SectionProperties != null || HasNativePageBreakBefore(paragraph) ||
-            WordParagraph.IsSectionMarkOnly(source) || getMarker?.Invoke(paragraph) != null ||
+            IsSectionMarkOnly(source) || getMarker?.Invoke(paragraph) != null ||
             WordDocumentTraversal.GetListInfo(paragraph) != null || GetHeadingLevel(paragraph) > 0 ||
             HasNativeParagraphBarTabs(paragraph) || HasNativeParagraphFrame(paragraph) ||
             HasNativeParagraphBorder(GetNativeEffectiveParagraphBorders(paragraph)) ||

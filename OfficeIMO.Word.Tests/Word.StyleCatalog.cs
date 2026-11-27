@@ -82,8 +82,8 @@ public partial class Word {
         StyleDefinitionsPart stylesPart = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!;
         int before = document.Styles.Count;
         WordTableStyle added = Enum.GetValues(typeof(WordTableStyle)).Cast<WordTableStyle>()
-            .First(style => style != WordTableStyle.OfficeIMOModern && !document.Styles.Contains(WordTableStyles.GetStyle(style).Val!.Value!));
-        string styleId = WordTableStyles.GetStyle(added).Val!.Value!;
+            .First(style => style != WordTableStyle.OfficeIMOModern && !document.Styles.Contains(WordTableStyles.GetStyleId(style)));
+        string styleId = WordTableStyles.GetStyleId(added);
         Assert.False(stylesPart.IsRootElementLoaded);
 
         document.AddTable(2, 2, added);

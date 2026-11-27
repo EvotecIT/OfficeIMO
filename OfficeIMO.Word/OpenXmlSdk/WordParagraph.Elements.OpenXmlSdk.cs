@@ -26,18 +26,5 @@ namespace OfficeIMO.Word {
             }
             return VerifyRunProperties();
         }
-
-        private void SdkSyncPageNumberFormatting(object properties, string localName) {
-            OpenXmlElement? value = null;
-            foreach (OpenXmlElement child in ((OpenXmlElement)properties).ChildElements) {
-                if (child.LocalName == localName && child.NamespaceUri == WordprocessingNamespace) {
-                    value = child;
-                    break;
-                }
-            }
-            UpdatePageNumberFormatting(value, localName);
-        }
-
-        private const string WordprocessingNamespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
     }
 }

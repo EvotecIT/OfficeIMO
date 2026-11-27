@@ -487,7 +487,7 @@ namespace OfficeIMO.Word.Pdf {
         private static double? GetNativeSectionOutgoingSpacingAfter(IReadOnlyList<WordElement> elements,
             NativeSpacingCollapseFlow flow, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) =>
             elements.Count > 0 && elements[elements.Count - 1] is WordParagraph sectionMark &&
-            sectionMark._paragraph != null && WordParagraph.IsSectionMarkOnly(sectionMark._paragraph)
+            sectionMark._paragraph != null && IsSectionMarkOnly(sectionMark._paragraph)
                 ? CreateNativeParagraphStyle(sectionMark, nativeDefaults, nativeFontMap).SpacingAfter?.ToPoints()
                 : flow.PendingSpacingAfter;
 

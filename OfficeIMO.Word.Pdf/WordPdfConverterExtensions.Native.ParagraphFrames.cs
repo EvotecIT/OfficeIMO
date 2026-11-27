@@ -205,7 +205,7 @@ public static partial class WordPdfConverterExtensions {
     /// </summary>
     private static bool IsNativeFrameContextSupported(WordParagraph paragraph) {
         W.Paragraph source = paragraph._paragraph!;
-        if (WordParagraph.IsSectionMarkOnly(source) || source.ParagraphProperties?.SectionProperties != null) return false;
+        if (IsSectionMarkOnly(source) || source.ParagraphProperties?.SectionProperties != null) return false;
         W.ParagraphProperties? properties = source.ParagraphProperties;
         NativeParagraphStyleDefaults styles = GetNativeParagraphStyleDefaults(paragraph);
         // Word writes keep-with-next on every drop cap; the cap is drawn beside the next paragraph.

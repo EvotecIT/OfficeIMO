@@ -95,7 +95,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             // A formatted section terminator is editable metadata, not a separate blank body line.
-            if (WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) {
+            if (IsSectionMarkOnly(paragraph._paragraph)) {
                 if (nativeDefaults.RunningContentContext == null) RenderNativeParagraphBookmarks(pdf, paragraph);
                 RecordNativeParagraphBarTabDiagnostics(paragraph, options, "section terminator", omitted: true);
                 return;
