@@ -2,6 +2,7 @@
 """Compare XLSX projections, unchanged XLSB saves and edited XLSB saves on both revisions."""
 
 import argparse
+from collections import deque
 from hashlib import sha256
 import json
 from io import BytesIO
@@ -137,24 +138,89 @@ def relationship_owner(name):
     return None
 
 
-def stable_relationships(archive):
+def resolved_target(owner, target):
+    uri = urlsplit(target)
+    if uri.scheme or uri.netloc or not uri.path:
+        return uri
+    path = uri.path if uri.path.startswith("/") else posixpath.join("/", posixpath.dirname(owner), uri.path)
+    return uri._replace(path=posixpath.normpath(path))
+
+
+def read_relationship_parts(archive):
+    return {name: ET.fromstring(archive.read(name)) for name in archive.namelist()
+            if relationship_owner(name) is not None}
+
+
+def match_part_names(baseline_names, candidate_names, baseline_rels, candidate_rels):
+    """Pair renamed XLSX parts by their OPC edges, without guessing among ambiguous targets."""
+    def edges(parts):
+        return {relationship_owner(name): root.findall(PACKAGE_REL) for name, root in parts.items()}
+
+    left_edges, right_edges = edges(baseline_rels), edges(candidate_rels)
+    left_files, right_files = set(baseline_names), set(candidate_names)
+    aliases = {"": ""}
+    paired = {""}
+    queue = deque([("", "")])
+    while queue:
+        left_owner, right_owner = queue.popleft()
+        available = list(right_edges.get(right_owner, []))
+        for edge in left_edges.get(left_owner, []):
+            if edge.get("TargetMode", "Internal") != "Internal":
+                continue
+            left_uri = resolved_target(left_owner, edge.get("Target", ""))
+            left_path = left_uri.path.lstrip("/")
+            if left_path not in left_files:
+                continue
+            matches = []
+            for other in available:
+                if other.get("Type") != edge.get("Type") or other.get("TargetMode", "Internal") != "Internal":
+                    continue
+                right_uri = resolved_target(right_owner, other.get("Target", ""))
+                right_path = right_uri.path.lstrip("/")
+                if (right_path not in right_files or left_uri.query != right_uri.query
+                        or left_uri.fragment != right_uri.fragment):
+                    continue
+                if (right_path in aliases and aliases[right_path] == left_path
+                        or right_path not in aliases and left_path not in paired):
+                    matches.append((other, right_path))
+            target_match = [item for item in matches if item[1] == left_path]
+            id_match = [item for item in matches if item[0].get("Id") == edge.get("Id")]
+            choices = target_match or id_match or matches
+            if len(choices) != 1:
+                continue
+            other, right_path = choices[0]
+            available.remove(other)
+            if right_path not in aliases:
+                aliases[right_path] = left_path
+                paired.add(left_path)
+                queue.append((left_path, right_path))
+
+    for rels_name in candidate_rels:
+        owner = relationship_owner(rels_name)
+        translated = aliases.get(owner, owner)
+        if translated != owner:
+            folder, leaf = posixpath.split(translated)
+            aliases[rels_name] = posixpath.join(folder, "_rels", leaf + ".rels")
+    del aliases[""]
+    return aliases
+
+
+def stable_relationships(parts, aliases):
     """Map transient IDs to their relationship type, target and target mode for each owner."""
     ids = {}
     documents = {}
-    for name in archive.namelist():
+    for name, root in parts.items():
         owner = relationship_owner(name)
-        if owner is None:
-            continue
-        root = ET.fromstring(archive.read(name))
-        owner_ids = ids[owner] = {}
+        owner_ids = ids[aliases.get(owner, owner)] = {}
         for relation in root.findall(PACKAGE_REL):
             target = relation.get("Target", "")
             mode = relation.get("TargetMode", "Internal")
             if mode == "Internal":
-                uri = urlsplit(target)
-                if not uri.scheme and not uri.netloc and uri.path:
-                    path = uri.path if uri.path.startswith("/") else posixpath.join("/", posixpath.dirname(owner), uri.path)
-                    target = urlunsplit(uri._replace(path=posixpath.normpath(path)))
+                uri = resolved_target(owner, target)
+                physical = uri.path.lstrip("/")
+                if physical in aliases:
+                    uri = uri._replace(path="/" + aliases[physical])
+                target = urlunsplit(uri)
                 relation.set("Target", target)
                 relation.attrib.pop("TargetMode", None)
             key = sha256(json.dumps([relation.get("Type"), mode, target]).encode("utf-8")).hexdigest()
@@ -163,11 +229,11 @@ def stable_relationships(archive):
                 raise ValueError("Missing or duplicated relationship ID in " + name)
             owner_ids[old_id] = key
             relation.set("Id", key)
-        documents[name] = root
+        documents[aliases.get(name, name)] = root
     return ids, documents
 
 
-def normalized_xml(data, part, ids, relationships):
+def normalized_xml(data, part, ids, relationships, aliases):
     root = relationships.get(part)
     if root is None:
         root = normalize_qualified_values(ET.iterparse(BytesIO(data), events=("start-ns", "start", "end")))
@@ -182,36 +248,47 @@ def normalized_xml(data, part, ids, relationships):
         modified = root.find(CORE_MODIFIED)
         if modified is not None:
             modified.text = ""
+    if part == "[Content_Types].xml":
+        for content_type in root:
+            part_name = content_type.get("PartName")
+            if part_name and part_name.lstrip("/") in aliases:
+                content_type.set("PartName", "/" + aliases[part_name.lstrip("/")])
     if part in relationships or part == "[Content_Types].xml":
         root[:] = sorted(root, key=lambda child: (child.tag, sorted(child.attrib.items())))
     return ET.canonicalize(ET.tostring(root, encoding="unicode"), rewrite_prefixes=True)
 
 
-def compare_packages(left, right, allow_markup_equivalence):
+def compare_packages(left, right, allow_markup_equivalence, allow_part_rename=False):
     if left.read_bytes() == right.read_bytes():
         return "identical", []
     if not allow_markup_equivalence:
         return "different", ["Unchanged XLSB bytes differ"]
     with zipfile.ZipFile(left) as baseline, zipfile.ZipFile(right) as candidate:
         left_names = sorted(baseline.namelist())
-        right_names = sorted(candidate.namelist())
-        if left_names != right_names:
+        left_parts = read_relationship_parts(baseline)
+        right_parts = read_relationship_parts(candidate)
+        aliases = match_part_names(left_names, candidate.namelist(), left_parts, right_parts) if allow_part_rename else {}
+        right_names = {aliases.get(name, name): name for name in candidate.namelist()}
+        if len(right_names) != len(candidate.namelist()):
+            return "different", ["Multiple candidate parts map to the same baseline part"]
+        if left_names != sorted(right_names):
             return "different", [
                 f"Baseline only: {sorted(set(left_names) - set(right_names))}",
                 f"Candidate only: {sorted(set(right_names) - set(left_names))}",
             ]
-        left_ids, left_relationships = stable_relationships(baseline)
-        right_ids, right_relationships = stable_relationships(candidate)
+        left_ids, left_relationships = stable_relationships(left_parts, {})
+        right_ids, right_relationships = stable_relationships(right_parts, aliases)
         changed = []
         for part in left_names:
             before = baseline.read(part)
-            after = candidate.read(part)
+            after = candidate.read(right_names[part])
             has_relationship_ids = part in left_ids or part in right_ids
-            if before == after and not has_relationship_ids:
+            if before == after and not has_relationship_ids and part not in left_relationships:
                 continue
             if part.endswith((".xml", ".rels", ".vml")):
                 try:
-                    if normalized_xml(before, part, left_ids, left_relationships) == normalized_xml(after, part, right_ids, right_relationships):
+                    if normalized_xml(before, part, left_ids, left_relationships, {}) == normalized_xml(
+                            after, part, right_ids, right_relationships, aliases):
                         continue
                 except ET.ParseError:
                     pass
@@ -239,7 +316,8 @@ def compare(output):
             else:
                 result = compare_packages(baseline_dir / f"{name}.{key.lower()}",
                                           candidate_dir / f"{name}.{key.lower()}",
-                                          allow_markup_equivalence=key != "Xlsb")
+                                          allow_markup_equivalence=key != "Xlsb",
+                                          allow_part_rename=key == "Xlsx")
             status, details = result
             counts[status] = counts.get(status, 0) + 1
             results[name][key] = {"status": status, "differences": details, "baselineError": baseline_error}

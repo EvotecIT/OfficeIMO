@@ -17,7 +17,9 @@ the comparison accepts ZIP container differences and compares the members.
 Binary parts must match byte for byte. XML comparison treats namespace prefixes,
 attribute order, and the order of relationship and content-type declarations
 as equivalent. It resolves internal relationship targets and compares typed
-XML relationship references by their target. It ignores the modification time
+XML relationship references by their target. For XLSX it can pair renamed parts
+through the same relationship edges and compares their content types and bytes
+under that mapping. It ignores the modification time
 written on save and compares the remaining core properties. Refusals must have
 the same exception type and message.
 
