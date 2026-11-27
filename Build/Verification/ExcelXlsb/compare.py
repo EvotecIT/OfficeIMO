@@ -246,22 +246,43 @@ def remove_computed_dimension(root):
     dimension = dimensions[0]
     if set(dimension.attrib) != {"ref"} or len(dimension) or dimension.text:
         return
-    cells = root.findall(f"{SPREADSHEET}sheetData/{SPREADSHEET}row/{SPREADSHEET}c")
     rows, columns = [], []
-    for cell in cells:
-        match = CELL_REFERENCE.fullmatch(cell.get("r", ""))
+
+    def add_reference(text):
+        match = CELL_REFERENCE.fullmatch(text)
         if match is None:
-            return
+            return False
         column, row = match.groups()
-        rows.append(int(row))
+        row = int(row)
+        if row > 1_048_576 or len(column) == 3 and column > "XFD":
+            return False
+        rows.append(row)
         columns.append(column)
-    reference = "A1"
-    if rows:
-        order = lambda col: (len(col), col)
+        return True
+
+    def bounds():
+        if not rows:
+            return "A1"
+
+        def order(col):
+            return (len(col), col)
+
         first = f"{min(columns, key=order)}{min(rows)}"
         last = f"{max(columns, key=order)}{max(rows)}"
-        reference = first if first == last else f"{first}:{last}"
-    if dimension.get("ref") == reference:
+        return first if first == last else f"{first}:{last}"
+
+    cells = root.findall(f"{SPREADSHEET}sheetData/{SPREADSHEET}row/{SPREADSHEET}c")
+    if not all(add_reference(cell.get("r", "")) for cell in cells):
+        return
+    reference = dimension.get("ref")
+    if reference != bounds():
+        # BIFF12 can include merged cells in its used range. Both projections
+        # must still contain the same merged ranges and cell grid.
+        for merge in root.findall(f"{SPREADSHEET}mergeCells/{SPREADSHEET}mergeCell"):
+            endpoints = merge.get("ref", "").split(":")
+            if len(endpoints) not in (1, 2) or not all(add_reference(cell) for cell in endpoints):
+                return
+    if reference == bounds():
         root.remove(dimension)
 
 

@@ -20,8 +20,8 @@ as equivalent. It resolves internal relationship targets and compares typed
 XML relationship references by their target. For XLSX it can pair renamed parts
 through the same relationship edges and compares their content types and bytes
 under that mapping. An omitted worksheet dimension is equivalent to one that
-exactly describes the bounds of the stored cells. It ignores the modification time
-written on save and compares the remaining core properties. Refusals must have
+exactly bounds the stored cells or the stored cells and their merged ranges.
+The cells and merges themselves must match. It ignores the modification time written on save and compares the remaining core properties. Refusals must have
 the same exception type and message.
 
 Run the paired benchmark on the Mac mini. The lock covers both builds and all
