@@ -188,9 +188,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             byte[] imageBytes;
             try {
-                using var stream = new MemoryStream(imagePart.GetBytes(), writable: false);
-                imageBytes = OfficeStreamReader.ReadAllBytes(stream,
-                    64 * 1024 * 1024);
+                imageBytes = imagePart.ReadBytes(64 * 1024 * 1024);
                 _ = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(imageBytes,
                     contentType);
             } catch (Exception exception) when (exception is IOException

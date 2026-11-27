@@ -63,6 +63,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, node.AllDescendants().Count(element => element.Is(LegacyPptXml.A, "blip")));
         }
 
+        [Theory]
+        [InlineData("urn:understood", "v", true)]
+        [InlineData("urn:unsupported", "v", false)]
+        [InlineData("urn:understood", "w", true)]
+        public void Digest_ComparesCompatibilityPrefixesByTheirNamespace(string namespaceUri, string prefix, bool sameDigest) {
+            static string DigestOf(string xml) {
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(xml);
+                var tree = OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.Parse(bytes, bytes.Length,
+                    new OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Table());
+                return LegacyPptXml.Digest(new OfficeIMO.OpenXml.Internal.OfficeXmlNode(tree, tree.Root));
+            }
+            const string Template = "<p:sp xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" "
+                + "xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" xmlns:{0}=\"{1}\">"
+                + "<mc:AlternateContent><mc:Choice Requires=\"{0}\"><p:txBody/></mc:Choice><mc:Fallback/></mc:AlternateContent></p:sp>";
+
+            string original = DigestOf(string.Format(System.Globalization.CultureInfo.InvariantCulture, Template, "v", "urn:understood"));
+            string changed = DigestOf(string.Format(System.Globalization.CultureInfo.InvariantCulture, Template, prefix, namespaceUri));
+
+            Assert.Equal(sameDigest, original == changed);
+        }
+
         [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
             LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);

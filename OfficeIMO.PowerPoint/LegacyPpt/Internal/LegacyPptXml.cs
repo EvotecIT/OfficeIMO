@@ -173,6 +173,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     var name = new StringBuilder();
                     AppendNamespace(name, tree, namespaceId);
                     name.Append(localName);
+                    if (IsCompatibilityPrefixList(tree, node, namespaceId, localName)) {
+                        value = ResolveCompatibilityPrefixes(tree, node, value);
+                    }
                     attributes.Add((name.ToString(), value));
                 }
                 attributes.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
@@ -196,6 +199,44 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 AppendCanonical(tree, child, builder);
             }
             builder.Append("</>");
+        }
+
+        // Markup-compatibility attributes whose values name namespaces by prefix: mc:Ignorable, mc:MustUnderstand,
+        // mc:ProcessContent, mc:PreserveElements, mc:PreserveAttributes, and Requires on mc:Choice.
+        private static bool IsCompatibilityPrefixList(OfficeXmlTree tree, int node, int namespaceId, string localName) {
+            if (namespaceId == Mc) {
+                return localName is "Ignorable" or "MustUnderstand" or "ProcessContent" or "PreserveElements" or "PreserveAttributes";
+            }
+            return namespaceId == OfficeXmlNamespaces.None
+                && string.Equals(localName, "Requires", StringComparison.Ordinal)
+                && tree.NamespaceOf(node) == Mc
+                && string.Equals(tree.LocalNameOf(node), "Choice", StringComparison.Ordinal);
+        }
+
+        // Replaces each prefix in a compatibility list with the namespace it is bound to where the attribute sits, so a
+        // changed binding changes the digest and a renamed prefix with the same binding doesn't.
+        private static string ResolveCompatibilityPrefixes(OfficeXmlTree tree, int node, string value) {
+            var resolved = new StringBuilder(value.Length);
+            foreach (string token in value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+                int colon = token.IndexOf(':');
+                string prefix = colon < 0 ? token : token.Substring(0, colon);
+                if (resolved.Length > 0) resolved.Append(' ');
+                resolved.Append('{').Append(LookupNamespace(tree, node, prefix) ?? prefix).Append('}');
+                if (colon >= 0) resolved.Append(token, colon + 1, token.Length - colon - 1);
+            }
+            return resolved.ToString();
+        }
+
+        private static string? LookupNamespace(OfficeXmlTree tree, int node, string prefix) {
+            for (int current = node; current != OfficeXmlTree.NoNode; current = tree.ParentOf(current)) {
+                if (tree.KindOf(current) != OfficeXmlTreeNodeKind.Element) continue;
+                int count = tree.AttributeCountOf(current);
+                for (int index = 0; index < count; index++) {
+                    tree.GetAttributeAt(current, index, out int namespaceId, out string localName, out string uri);
+                    if (namespaceId == OfficeXmlNamespaces.Xmlns && string.Equals(localName, prefix, StringComparison.Ordinal)) return uri;
+                }
+            }
+            return null;
         }
 
         private static void AppendNamespace(StringBuilder builder, OfficeXmlTree tree, int namespaceId) {

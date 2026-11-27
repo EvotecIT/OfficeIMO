@@ -111,14 +111,18 @@ public sealed partial class PowerPointDocument {
             // Cloning saves the SDK package first, and that save rewrites the core properties part and the core
             // properties the document holds (dates shift by the local time zone offset, and values set since the load
             // can be lost). The copy must leave the document as it was, its package fingerprints included, so the part
-            // and the properties are put back. The clone also leaves out the package's own external relationships,
-            // which the copy needs.
+            // and the properties are put back. The copy itself takes the values the document held before the clone:
+            // on .NET Framework the packaging layer keeps core properties in memory, and the clone doesn't carry them.
+            // The clone also leaves out the package's own external relationships, which the copy needs.
             PresentationDocument document = SdkDocument;
             CorePropertyValues properties = CorePropertyValues.Read(document);
             CoreFilePropertiesPart? corePart = document.CoreFilePropertiesPart;
             byte[]? coreBytes = corePart == null ? null : ReadPartBytes(corePart);
             using (PresentationDocument copy = (PresentationDocument)document.Clone(package)) {
-                if (copy.FileOpenAccess == FileAccess.ReadWrite) CopyPackageReferenceRelationships(document, copy);
+                if (copy.FileOpenAccess == FileAccess.ReadWrite) {
+                    CopyPackageReferenceRelationships(document, copy);
+                    properties.Restore(copy);
+                }
             }
             if (corePart != null && coreBytes != null && !coreBytes.SequenceEqual(ReadPartBytes(corePart))) {
                 using var original = new MemoryStream(coreBytes, writable: false);

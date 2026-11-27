@@ -351,9 +351,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return TryReadPictureBytes(imagePart.IsNone ? null : imagePart.ContentType,
                 () => imagePart.IsNone
                     ? throw new InvalidOperationException("Picture has no embedded image part.")
-                    : OfficeStreamReader.ReadAllBytes(
-                        new MemoryStream(imagePart.GetBytes(), writable: false),
-                        MaximumPictureBytes),
+                    : imagePart.ReadBytes(MaximumPictureBytes),
                 out imageBytes, out contentType, out reason);
         }
 

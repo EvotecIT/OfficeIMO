@@ -61,10 +61,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidDataException("The projected PowerPoint package has no slide master.");
             }
             OfficeXmlNode layoutIds = slideMaster.GetOrAddChild(LegacyPptXml.P, "sldLayoutIdLst", LegacyPptImportXml.SlideMasterOrder);
-            uint layoutId = layoutIds.Children(LegacyPptXml.P, "sldLayoutId").ToList()
-                .Select(item => item.UInt("id") ?? 2147483648U)
-                .DefaultIfEmpty(2147483648U)
-                .Max() + 1U;
+            // Layout ids are unique across the presentation's masters and layouts, not only within one master.
+            uint layoutId = NextLegacyMasterOrLayoutId(parts.PresentationPart, excludedLayoutIds: null);
             layoutIds.AddP("sldLayoutId").Set("id", (long)layoutId).SetRelationship("id", relationshipId);
             masterPart.MarkEdited();
             parts.Document.InvalidatePackageRelationships();

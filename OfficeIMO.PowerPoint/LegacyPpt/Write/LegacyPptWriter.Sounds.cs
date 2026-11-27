@@ -245,10 +245,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 bytes = Array.Empty<byte>();
                 reason = null;
                 try {
-                    using Stream input = new MemoryStream(mediaPart.GetBytes(),
-                        writable: false);
-                    bytes = OfficeStreamReader.ReadAllBytes(input,
-                        MaximumSoundBytes);
+                    bytes = mediaPart.ReadBytes(MaximumSoundBytes);
                     return true;
                 } catch (Exception exception) when (exception
                     is IOException or InvalidDataException

@@ -320,7 +320,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = $"Picture bullets do not support image content type '{contentType}' in classic binary PowerPoint.";
                 return false;
             }
-            byte[] imageBytes = imagePart.GetBytes();
+            byte[] imageBytes;
+            try {
+                imageBytes = imagePart.ReadBytes(MaximumPictureBulletBytes);
+            } catch (InvalidDataException) {
+                imageBytes = Array.Empty<byte>();
+            }
             if (imageBytes.Length <= 0
                 || imageBytes.Length > MaximumPictureBulletBytes) {
                 reason = "A picture-bullet image is empty or exceeds the 64 MiB bounded binary-writing limit.";

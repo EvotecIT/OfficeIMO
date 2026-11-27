@@ -31,9 +31,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             try {
-                using Stream stream = new MemoryStream(part.GetBytes(), writable: false);
-                projectBytes = OfficeStreamReader.ReadAllBytes(stream,
-                    64 * 1024 * 1024);
+                projectBytes = part.ReadBytes(64 * 1024 * 1024);
             } catch (Exception exception) when (exception is IOException
                                                 or InvalidDataException
                                                 or UnauthorizedAccessException) {

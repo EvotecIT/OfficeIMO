@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.OpenXml.Internal;
 
@@ -254,6 +255,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         /// <summary>The part's bytes as the package holds them.</summary>
         internal byte[] GetBytes() => _package == null ? Array.Empty<byte>() : _package.BytesOf(Name);
+
+        /// <summary>
+        /// The part's bytes, refusing a part stored larger than <paramref name="maxBytes"/> before it is read.
+        /// </summary>
+        /// <exception cref="InvalidDataException">The part is larger than the limit.</exception>
+        internal byte[] ReadBytes(long maxBytes) {
+            if (_package == null) return Array.Empty<byte>();
+            if (_package.TryGetStoredLength(Name, out long storedLength)) {
+                OfficeStreamReader.EnsureWithinLimit(storedLength, maxBytes);
+            }
+            byte[] bytes = _package.BytesOf(Name);
+            OfficeStreamReader.EnsureWithinLimit(bytes.Length, maxBytes);
+            return bytes;
+        }
 
         internal IReadOnlyList<LegacyPptRelationshipView> Relationships =>
             _package == null ? Array.Empty<LegacyPptRelationshipView>() : _package.RelationshipsOf(Name);
