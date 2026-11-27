@@ -26,7 +26,9 @@ namespace OfficeIMO.PowerPoint {
             _owningSlide = owningSlide;
             _initialSlidePart = !slidePart.IsNone ? slidePart : ownerPart.Kind == PowerPointPartKind.Slide ? ownerPart : default;
             _initialOwnerPart = !ownerPart.IsNone ? ownerPart : slidePart;
-            if (paragraph.Tree != null && !_initialOwnerPart.IsNone && !_initialOwnerPart.IsSdk && paragraph.IsAttached) {
+            // A paragraph of a copy kept after its part went belongs to no part and never binds.
+            _standalone = PowerPointDetachedCopies.IsStandalone(paragraph.Tree);
+            if (!_standalone && paragraph.Tree != null && !_initialOwnerPart.IsNone && !_initialOwnerPart.IsSdk && paragraph.IsAttached) {
                 _packagePart = _initialOwnerPart;
                 _initialOwnerPart.Document?.RegisterPackageBinding(this);
             }
@@ -58,12 +60,15 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The paragraph's node in <see cref="PackageTree"/>.</summary>
         internal int PackageNode => Element.Node;
 
-        void IPackageSdkBinding.KeepDetached() {
-            if (!_standalone && _element.Tree != null && !_element.IsAttached) {
-                _element = PowerPointHeldNode.Standalone(_element);
+        void IPackageSdkBinding.KeepDetached(PowerPointDetachedCopies copies) {
+            if (!_standalone && copies.ShouldCopy(_element, OwnerSlideRemoved)) {
+                _element = copies.Copy(_element);
                 _standalone = true;
             }
         }
+
+        // Whether the slide whose part holds the paragraph was removed; its part name can be reused by another slide.
+        private bool OwnerSlideRemoved => _packageSlide is { RemovedFromPackage: true } || _owningSlide is { RemovedFromPackage: true };
 
         void IPackageSdkBinding.BindSdk() {
             try {
@@ -76,6 +81,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The slide the paragraph is on, found from where the element is now when it can be.</summary>
         internal PowerPointPartRef SlidePartRef {
             get {
+                if (_standalone || OwnerSlideRemoved) return default;
                 PowerPointPartRef current = ContainingPart(Element);
                 return current.Kind == PowerPointPartKind.Slide ? current : _initialSlidePart;
             }
@@ -84,6 +90,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The part that holds the paragraph, found from where the element is now when it can be.</summary>
         internal PowerPointPartRef OwnerPartRef {
             get {
+                if (_standalone || OwnerSlideRemoved) return default;
                 PowerPointPartRef current = ContainingPart(Element);
                 return current.Kind == PowerPointPartKind.Slide ? current : !_initialOwnerPart.IsNone ? _initialOwnerPart : _initialSlidePart;
             }

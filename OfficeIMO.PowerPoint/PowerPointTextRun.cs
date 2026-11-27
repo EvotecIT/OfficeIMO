@@ -41,7 +41,9 @@ namespace OfficeIMO.PowerPoint {
             _initialOwnerPart = !ownerPart.IsNone ? ownerPart : slidePart;
             if (lineContinuation is { Count: > 0 }) _lineContinuation = lineContinuation;
             // A run of a part's package tree binds to its SDK element when the SDK opens.
-            if (element.Tree != null && !_initialOwnerPart.IsNone && !_initialOwnerPart.IsSdk && element.IsAttached) {
+            // A run of a copy kept after its part went belongs to no part and never binds.
+            _standalone = PowerPointDetachedCopies.IsStandalone(element.Tree);
+            if (!_standalone && element.Tree != null && !_initialOwnerPart.IsNone && !_initialOwnerPart.IsSdk && element.IsAttached) {
                 _packagePart = _initialOwnerPart;
                 _initialOwnerPart.Document?.RegisterPackageBinding(this);
             }
@@ -86,19 +88,23 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        void IPackageSdkBinding.KeepDetached() {
+        void IPackageSdkBinding.KeepDetached(PowerPointDetachedCopies copies) {
+            bool removed = OwnerSlideRemoved;
             // The lines the run continues on are copied with it, so its text and formatting stay whole.
             if (_lineContinuation != null) {
                 for (int index = 0; index < _lineContinuation.Count; index++) {
                     OfficeXmlNode line = _lineContinuation[index];
-                    if (line.Tree != null && !line.IsAttached) _lineContinuation[index] = PowerPointHeldNode.Standalone(line);
+                    if (copies.ShouldCopy(line, removed)) _lineContinuation[index] = copies.Copy(line);
                 }
             }
-            if (!_standalone && _element.Tree != null && !_element.IsAttached) {
-                _element = PowerPointHeldNode.Standalone(_element);
+            if (!_standalone && copies.ShouldCopy(_element, removed)) {
+                _element = copies.Copy(_element);
                 _standalone = true;
             }
         }
+
+        // Whether the slide whose part holds the run was removed; its part name can be reused by another slide.
+        private bool OwnerSlideRemoved => _packageSlide is { RemovedFromPackage: true } || _owningSlide is { RemovedFromPackage: true };
 
         void IPackageSdkBinding.BindSdk() {
             try {
@@ -111,6 +117,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The slide the run's text is on, found from where the element is now when it can be.</summary>
         internal PowerPointPartRef SlidePartRef {
             get {
+                if (_standalone || OwnerSlideRemoved) return default;
                 PowerPointPartRef current = ContainingPart(Element);
                 return current.Kind == PowerPointPartKind.Slide ? current : _initialSlidePart;
             }
@@ -119,6 +126,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The part that holds the run, found from where the element is now when it can be.</summary>
         internal PowerPointPartRef OwnerPartRef {
             get {
+                if (_standalone || OwnerSlideRemoved) return default;
                 PowerPointPartRef current = ContainingPart(Element);
                 return current.Kind == PowerPointPartKind.Slide ? current : !_initialOwnerPart.IsNone ? _initialOwnerPart : _initialSlidePart;
             }

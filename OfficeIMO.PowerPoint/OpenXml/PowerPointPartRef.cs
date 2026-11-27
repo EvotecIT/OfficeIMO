@@ -125,7 +125,13 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                 PowerPointPartRef current = Current;
                 if (current._sdk != null) return OfficeXmlNode.FromSdk(PowerPointSdkParts.Root(current._sdk));
                 OfficeXmlTree? tree = current._document?.GetPackageXml(current._name!);
-                return tree == null ? default : new OfficeXmlNode(tree, tree.Root);
+                if (tree != null) return new OfficeXmlNode(tree, tree.Root);
+                // A part over the size the package reads is read through the SDK, which applies the load's own limit.
+                if (current._document is { } document && document.IsPackagePartOverLimit(current._name!)) {
+                    document.OpenSdkForOversizedPart();
+                    return Current.Root;
+                }
+                return default;
             }
         }
 

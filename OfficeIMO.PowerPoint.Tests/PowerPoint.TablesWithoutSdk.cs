@@ -121,6 +121,50 @@ public class PowerPointTablesWithoutSdkTests {
     }
 
     [Fact]
+    public void WrappersKeptFromARemovedRowShareOneCopyAfterTheSdkOpens() {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
+        PowerPointTable table = presentation.Slides[0].Tables.Single();
+        PowerPointTableRow row = table.GetRow(2);
+        PowerPointTableCell cell = table.GetCell(2, 2);
+        PowerPointParagraph paragraph = cell.Paragraphs[0];
+        PowerPointTextRun run = paragraph.Runs[0];
+        table.RemoveRow(2);
+
+        _ = presentation.OpenXmlDocument;
+        run.Text = "Changed";
+
+        Assert.Equal("Changed", paragraph.Text);
+        Assert.Equal("Changed", cell.Text);
+        Assert.Equal("Changed", row.GetCell(2).Text);
+        Assert.Equal(2, table.RowCount);
+    }
+
+    [Fact]
+    public void AReadOnlySnapshotKeepsTableAndNotesEditsWithOrWithoutTheSdk() {
+        byte[] source;
+        using (var deck = PowerPointDocument.Load(new MemoryStream(CreateDeck()))) {
+            // A read-only presentation edits the notes it has; it can't add a notes part.
+            deck.Slides[0].Notes.Text = "Notes";
+            source = deck.ToBytes();
+        }
+        string withoutSdk = Snapshot(source, openSdkFirst: false);
+        string throughSdk = Snapshot(source, openSdkFirst: true);
+
+        Assert.Contains("Edited cell", withoutSdk, StringComparison.Ordinal);
+        Assert.Equal(withoutSdk, throughSdk);
+    }
+
+    // Edits a cell and the notes of a read-only load and reads them back from its snapshot.
+    private static string Snapshot(byte[] source, bool openSdkFirst) {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source), new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        if (openSdkFirst) _ = presentation.OpenXmlDocument;
+        presentation.Slides[0].Tables.Single().GetCell(0, 0).Text = "Edited cell";
+        presentation.Slides[0].Notes.Text = "Edited notes";
+        using var snapshot = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
+        return snapshot.Slides[0].Tables.Single().GetCell(0, 0).Text + "|" + snapshot.Slides[0].Notes.Text;
+    }
+
+    [Fact]
     public void ANegativeInsertionIndexLeavesTheTableUnchanged() {
         using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
         PowerPointTable table = presentation.Slides[0].Tables.Single();

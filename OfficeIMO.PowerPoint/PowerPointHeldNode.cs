@@ -16,7 +16,9 @@ namespace OfficeIMO.PowerPoint {
 
         internal PowerPointHeldNode(OfficeXmlNode element, PowerPointShape owner) {
             _element = element;
-            if (element.Tree != null && owner.OwnerSlide is { } slide) {
+            // An element of a copy kept after its part went belongs to no part and never binds.
+            _standalone = PowerPointDetachedCopies.IsStandalone(element.Tree);
+            if (!_standalone && element.Tree != null && owner.OwnerSlide is { } slide) {
                 _packageSlide = slide;
                 _packagePart = slide.PartRef;
                 slide.OwnerDocument?.RegisterPackageBinding(this);
@@ -47,18 +49,11 @@ namespace OfficeIMO.PowerPoint {
             throw new InvalidOperationException("The element is not held in an SDK part.");
         }
 
-        void IPackageSdkBinding.KeepDetached() {
-            if (!_standalone && _element.Tree != null && !_element.IsAttached) {
-                _element = Standalone(_element);
+        void IPackageSdkBinding.KeepDetached(PowerPointDetachedCopies copies) {
+            if (!_standalone && copies.ShouldCopy(_element, _packageSlide is { RemovedFromPackage: true })) {
+                _element = copies.Copy(_element);
                 _standalone = true;
             }
-        }
-
-        /// <summary>A copy of a detached package element in a tree of its own, which nothing binds.</summary>
-        internal static OfficeXmlNode Standalone(OfficeXmlNode element) {
-            byte[] markup = element.OuterXml();
-            OfficeXmlTree tree = OfficeXmlTree.Parse(markup, markup.Length, element.Tree!.Namespaces);
-            return new OfficeXmlNode(tree, tree.Root);
         }
 
         void IPackageSdkBinding.BindSdk() {
@@ -67,6 +62,57 @@ namespace OfficeIMO.PowerPoint {
             } catch (InvalidOperationException) {
                 // An element the opened slide doesn't have where expected reports it when it is used.
             }
+        }
+    }
+
+    /// <summary>
+    /// Copies of elements removed from their part (or whose slide was removed) taken before the package lets go of them.
+    /// Wrappers of the same subtree share one copy, so they stay one piece of content, and nothing in a copy binds.
+    /// </summary>
+    internal sealed class PowerPointDetachedCopies {
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<OfficeXmlTree, object> StandaloneTrees = new();
+        private readonly Dictionary<(OfficeXmlTree Tree, int Root), OfficeXmlNode> _copies = new();
+
+        /// <summary>Whether a tree is such a copy.</summary>
+        internal static bool IsStandalone(OfficeXmlTree? tree) => tree != null && StandaloneTrees.TryGetValue(tree, out _);
+
+        /// <summary>Whether a wrapper's element needs a copy: a package node that left its part, or whose slide was removed.</summary>
+        internal bool ShouldCopy(OfficeXmlNode element, bool ownerRemoved) =>
+            element.Tree != null && !IsStandalone(element.Tree) && (ownerRemoved || !element.IsAttached);
+
+        /// <summary>The element's place in the shared copy of the subtree (or the whole part) it is in.</summary>
+        internal OfficeXmlNode Copy(OfficeXmlNode element) {
+            var path = new List<int>();
+            OfficeXmlNode root = element;
+            for (OfficeXmlNode parent = root.Parent; !parent.IsNone; parent = root.Parent) {
+                path.Add(ElementIndex(parent, root));
+                root = parent;
+            }
+            if (!_copies.TryGetValue((root.Tree!, root.Node), out OfficeXmlNode copy)) {
+                byte[] markup = root.OuterXml();
+                OfficeXmlTree tree = OfficeXmlTree.Parse(markup, markup.Length, root.Tree!.Namespaces);
+                StandaloneTrees.Add(tree, tree);
+                copy = new OfficeXmlNode(tree, tree.Root);
+                _copies.Add((root.Tree!, root.Node), copy);
+            }
+            for (int level = path.Count - 1; level >= 0; level--) copy = NthElement(copy, path[level]);
+            return copy;
+        }
+
+        private static int ElementIndex(OfficeXmlNode parent, OfficeXmlNode child) {
+            int index = 0;
+            foreach (OfficeXmlNode candidate in parent.Children()) {
+                if (candidate.Equals(child)) return index;
+                index++;
+            }
+            return -1;
+        }
+
+        private static OfficeXmlNode NthElement(OfficeXmlNode parent, int index) {
+            foreach (OfficeXmlNode candidate in parent.Children()) {
+                if (index-- == 0) return candidate;
+            }
+            return default;
         }
     }
 }
