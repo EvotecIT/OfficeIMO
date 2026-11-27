@@ -147,6 +147,7 @@
   <Project Path="OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj" />
   <Project Path="OfficeIMO.Confluence/OfficeIMO.Confluence.csproj" />
   <Project Path="OfficeIMO.Core/OfficeIMO.Core.csproj" />
+  <Project Path="OfficeIMO.Entities.Tests/OfficeIMO.Entities.Tests.csproj" />
   <Project Path="OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj" />
   <Project Path="OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj" />
   <Project Path="OfficeIMO.CSV/OfficeIMO.CSV.csproj" />

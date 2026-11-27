@@ -1707,3 +1707,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.Core` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
+
+## Entity recognition
+
+Use `OfficeIMO.Entities` to validate a known identifier or find and mask identifiers, email addresses, and URLs in text. The [entity recognition guide](../Docs/officeimo.entities.md) covers scheme registration, check provenance, confidence and masking.
