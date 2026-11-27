@@ -349,7 +349,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static string[] ValidateTableColumnNames(IReadOnlyList<string> columnNames) {
+        internal static string[] ValidateTableColumnNames(IReadOnlyList<string> columnNames) {
             if (columnNames.Count == 0) throw new ArgumentException("A table must contain at least one column.", nameof(columnNames));
             var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var result = new string[columnNames.Count];

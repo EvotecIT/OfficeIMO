@@ -28,6 +28,12 @@ namespace OfficeIMO.Excel {
         internal bool ShowColumnStripes { get; set; }
         internal List<(string? Name, string? TotalsRowFunction)> Columns { get; } = new();
 
+        /// <summary>The part the table was read from.</summary>
+        internal string PartName { get; set; } = string.Empty;
+
+        /// <summary>Whether the table feeds a query table, whose fields follow its column names.</summary>
+        internal bool HasQueryTable { get; set; }
+
         internal bool Matches(string nameOrDisplayName) =>
             string.Equals(Name, nameOrDisplayName, StringComparison.OrdinalIgnoreCase)
             || string.Equals(DisplayName, nameOrDisplayName, StringComparison.OrdinalIgnoreCase);
@@ -100,13 +106,19 @@ namespace OfficeIMO.Excel {
                     || relationship.IsExternal || relationship.TargetPartName is not { } target || !package.PartExists(target)) continue;
                 OfficeXmlPullReader reader = package.OpenXml(target, out OfficePooledBytes content, processMarkupCompatibility: false);
                 using (content) {
-                    if (Read(reader) is { } table) tables.Add(table);
+                    if (Read(reader) is not { } table) continue;
+                    table.PartName = target;
+                    foreach (OfficeOpcRelationship child in package.GetRelationships(target)) {
+                        if (string.Equals(child.Type, QueryTableRelationshipType, StringComparison.Ordinal)) table.HasQueryTable = true;
+                    }
+                    tables.Add(table);
                 }
             }
             return tables;
         }
 
         internal const string TableRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "table";
+        private const string QueryTableRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "queryTable";
 
         private static string? Attribute(OfficeXmlPullReader reader, string name) =>
             reader.TryGetAttribute(OfficeXmlNamespaces.None, name, out string value) ? value : null;
