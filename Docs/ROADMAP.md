@@ -635,14 +635,14 @@ The [archive codecs and containers design](officeimo.archives-codecs-design.md) 
 
 - [ ] Report corruption in the existing ZIP, 7z, CAB, MSI, TAR and gzip readers through `ArchiveCorruptionException` with offsets, and add one public checksum set (CRC-32, CRC-32C, CRC-64, Adler-32, xxHash32, xxHash64) that replaces the private CRC-32 copies in Core, Email, OneNote and Png.
 - [ ] Read encrypted ZIP members: traditional ZipCrypto (PKWARE APPNOTE) and WinZip AES (AE-1 and AE-2), with the password supplied through options. Encrypted members are rejected today.
-- [ ] Read and write TAR wrapped in Zstandard, xz and lzip (and bzip2 after the specification decision) alongside gzip, as each decoder and encoder lands, with content-based detection in `ArchiveExtractor` and `ArchiveReader.ReadTar`.
+- [ ] Read and write TAR wrapped in Zstandard, xz, lzip, LZ4 and Brotli (and bzip2 after the specification decision) alongside gzip, as each decoder and encoder lands, with content-based detection in `ArchiveExtractor` and `ArchiveReader.ReadTar`.
 - [ ] Rename `OfficeIMO.Reader.Zip` to `OfficeIMO.Reader.Archives` for 4.0 (`AddArchiveHandler`, `ReaderArchiveOptions`) and read 7z, CAB and RAR stored entries automatically like ZIP, TAR and gzip, with MSI opt-in. Nested archives of any supported kind use the same nested path and limits, and each new TAR wrapper is picked up as it lands.
 - [ ] Read xz and lzip over the existing LZMA/LZMA2 decoders, with CRC-32, CRC-64 and SHA-256 checks, the delta filter, multiple streams and padding, as single streams and `.tar.xz` / `.tar.lz`.
 - [ ] Decode and encode LZ4 blocks and frames, including content checksums and linked blocks, as single streams and `.tar.lz4`.
 - [ ] Decode Brotli (RFC 7932) in managed code on every target, so WOFF2 fonts and Brotli CSV files no longer require .NET 8.
 - [ ] Replace runtime inflate with a managed Deflate decoder so decoding is identical on every runtime, including browser WebAssembly.
 - [ ] Add deterministic encoders: Zstandard levels, LZMA, LZMA2 and xz, lzip, Brotli qualities and Deflate levels, pinned by SHA-256 across platforms and target frameworks.
-- [ ] Detect every container and single-stream codec from content in `ArchiveInspector`, and inventory, plan, read, verify and extract through the existing surfaces.
+- [ ] Detect every container and single-stream codec that has a signature from content in `ArchiveInspector` (Brotli only by explicit format or `.br` name, since it has no signature), and inventory, plan, read, verify and extract through the existing surfaces.
 - [ ] Read and write cpio (odc, newc, crc) and ar (System V/GNU and BSD), and read TAR sparse members (GNU 0.0, 0.1 and 1.0).
 - [ ] Read ISO 9660 images with Joliet and Rock Ridge names, links and permissions, then write deterministic images.
 - [ ] Edit existing ZIP archives in place: add, remove and rename entries and replace content, copying untouched entries' bytes without recompression, with correct zip64 above 4 GiB. Then write WinZip AES members, add an opt-in recovery mode for damaged ZIPs that reports each skipped range, and read Zstandard, LZMA and xz ZIP methods once their codecs exist.

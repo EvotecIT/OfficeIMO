@@ -6,7 +6,7 @@
 
 1. **Every codec in managed code.** No native libraries, P/Invoke or new runtime dependencies. Codecs are written from their primary specifications; no code is copied, ported or adapted from other projects.
 2. **Hostile input is the normal case.** Limits on input, output, expansion, entries, metadata, dictionary/window size and decode work are on by default and reported through the existing `OfficeInspectionResourceLimitException`. Decoder memory is admitted from the declared window or dictionary before allocation. Malformed input fails with a typed error that names the format, the byte offset and what was expected; no truncated result is returned.
-3. **Deterministic output.** Every encoder writes the same bytes for the same input and options on every platform, target framework, CPU and thread count, as the ZIP, TAR and gzip writers already do. SHA-256 pins of reference outputs guard it.
+3. **Deterministic output.** Every encoder writes the same bytes for the same input and options on every platform, target framework, CPU and thread count, as the ZIP, TAR and gzip writers already do. SHA-256 pins of reference outputs guard it. Encrypted output is the exception: each encrypted entry gets a fresh random salt (WinZip AES requires a different salt per file, and a reused salt shows whether two encrypted files are identical), so pins cover unencrypted output and encrypted entries are checked by decrypting them.
 4. **One API shape.** One-shot `Compress`/`Decompress` methods, a span-based encoder/decoder that reports `OperationStatus`, and a `Stream` wrapper, each taking an options object. Containers keep the existing `ArchiveInspector` / `ArchiveReader` / `ArchiveExtractor` / writer surfaces rather than gaining a parallel facade.
 5. **Portable.** `netstandard2.0`, `net472` and current .NET; NativeAOT, trimming and browser WebAssembly. A codec nobody calls is trimmed away: no static registry roots every codec.
 
@@ -50,8 +50,8 @@ The open-source OneArchive project (packages RecursiveAI.OneCompress and Recursi
 | Compound files | Versions 3 and 4, read and write, recovery mode on read | Read and write in Core (MSI, legacy Office) | Recovery reading where a consumer needs it |
 | RAR 5 | Listing and stored entries | No | Separate work in progress |
 | Small messages | Frame-per-message and flushed-stream modes for Zstandard and LZ4 with trained dictionaries | No | With Zstandard dictionaries |
-| Single compressed files | `.gz .bz2 .zst .lz4 .xz .lz`, `.br` by name, `.tar.*` detection | gzip only | Content-sniffed single-stream reading for every codec |
-| Format detection | From bytes, then extension | Caller chooses the API | `ArchiveInspector` sniffing across every container and codec |
+| Single compressed files | `.gz .bz2 .zst .lz4 .xz .lz`, `.br` by name, `.tar.*` detection | gzip only | Content-sniffed single-stream reading for every codec that has a signature; Brotli only with an explicit format or a `.br` name, since a Brotli stream has no signature (a single `0x06` byte is a valid empty stream) |
+| Format detection | From bytes, then extension | Caller chooses the API | `ArchiveInspector` sniffing across every container and codec with a signature; Brotli is never guessed from content |
 | Typed errors | One exception hierarchy with format, offset and expectation | Resource limits typed; `ArchiveCorruptionException` (format, offset, expectation) for new codecs; older readers use `InvalidDataException` | Move the older readers to `ArchiveCorruptionException` |
 | Determinism | Byte-identical across OS, CPU, runtime, threads | Byte-identical across OS and target frameworks | Extend to every encoder and to thread count |
 | Targets | `net10.0`; AOT, trim, browser WASM | `netstandard2.0`, `net472`, `net8.0`, `net10.0`; AOT smoke | Keep the wider target set; add a WASM smoke |
@@ -91,7 +91,7 @@ No new packages. Codecs live in `OfficeIMO.Archives` and `OfficeIMO.Core`:
 | PPMd H and I | Only the reference source | Decision |
 | BCJ/branch filters (x86, ARM, ARM64, PowerPC, SPARC, IA-64, RISC-V) | Named in xz and 7z formats, defined only by source | Decision |
 | Quantum (CAB) | No Microsoft specification; only independent descriptions of the format | Planned; which description counts as the source is part of the open specification decision |
-| CAB creation | [MS-CAB] for the container and MSZIP; [MS-PATCH] LZX DELTA for the LZX format | Written specification |
+| CAB creation | [MS-CAB] for the container and MSZIP; for LZX, the LZX data compression format document from Microsoft's Cabinet SDK ([MS-PATCH] LZX DELTA is a derivative, not the CAB format itself) | MSZIP: written specification. LZX: confirm that document as the source before the encoder starts |
 | RAR | Separate work | Out of scope here |
 
 ## Decisions needed
@@ -112,7 +112,7 @@ Each step is one PR with interop fixtures produced by the reference tools throug
 
 1. Zstandard decoder with `ArchiveCorruptionException`: frames, skippable frames, dictionaries, window limits.
 2. ZIP encrypted-member reading: traditional ZipCrypto (APPNOTE) and WinZip AES (AE-1 and AE-2), password supplied through options.
-3. TAR wrappers as each codec lands: `.tar.zst`, `.tar.xz`, `.tar.lz` (and `.tar.bz2` after the decision) read alongside `.tar.gz`, written once the encoder exists; content-sniffed single-stream detection in the extractor.
+3. TAR wrappers as each codec lands: `.tar.zst`, `.tar.xz`, `.tar.lz` now, `.tar.lz4` with step 6, `.tar.br` (by name or explicit format) with step 7, and `.tar.bz2` after the decision, read alongside `.tar.gz`, written once the encoder exists; content-sniffed single-stream detection in the extractor.
 4. `OfficeIMO.Reader.Zip` becomes `OfficeIMO.Reader.Archives` for 4.0: 7z, CAB and RAR stored entries read automatically like ZIP, TAR and gzip, MSI opt-in, nested archives of any supported kind through the same path and limits.
 5. xz and lzip readers over the existing LZMA/LZMA2 decoders: checks, delta filter, multi-stream and padding.
 6. LZ4 frame and block decoder, then encoder.
