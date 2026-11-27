@@ -674,6 +674,25 @@ Encryption, RAR, additional 7z filters and methods, XZ, Zstandard, Brotli, split
 - [ ] Materialize encrypted OneNote revisions only after the producer corpus, key-acquisition contract, dependency-chain semantics, and safe partial-result policy are defined. Until then, any encrypted current revision or dependency must fail closed without older-plaintext fallback.
 - [ ] Extend ODF and EPUB signature interoperability beyond the bounded OfficeIMO XML package-manifest profile only with independent producer corpora, explicit trust policy, mutation/invalidation rules, and deterministic validation evidence.
 
+## Entity recognition
+
+The [entity recognition design](officeimo.entities-design.md) defines one engine in `OfficeIMO.Core` (`OfficeIMO.Entities`) for validating, normalizing, formatting and finding identifiers and personal data, and how redaction, the Reader, cleaning, invoicing, email and the hosts call it.
+
+- [ ] Stage 1: add the entity model, scheme catalog, finder with scoring and overlap resolution, and masking to `OfficeIMO.Core`, with schemes for Poland (PESEL, NIP, REGON, KRS, identity card, passport), EU VAT for every member state and Northern Ireland, the UK (NINO, company number, VAT), the US (SSN, EIN), IBAN, BIC, payment cards, ISIN, LEI, email and URL. Move the shared IBAN helper into the engine. Every algorithm and test vector cites its issuer's publication.
+- [ ] Add entity criteria to PDF redaction search and a `PdfRedactionRuleKind.Entity` workflow rule, and `-Entity` to `Get-OfficePdfRedactionPlan` and `Remove-OfficePdfContent`. Plans and evidence record scheme ids and confidence, never values.
+- [ ] Add `Test-OfficeEntity`, `Find-OfficeEntity`, `Protect-OfficeText` and `Get-OfficeEntityScheme` to PSWriteOffice, and the same validate, find and mask operations to the CLI and MCP server, with values left out of output unless requested.
+- [ ] Validate party VAT and tax registrations, FA(3) NIP values, IBAN and BIC in `OfficeIMO.Invoicing` through the entity schemes, as advisory findings for identifiers outside the catalog. Decide whether Invoicing references Core or keeps linked sources.
+- [ ] Give `OfficeIMO.Email` an RFC 5321/5322/6531 address check and an IDNA-aware comparison key from the email scheme for contact consolidation.
+- [ ] Add a cross-format entity inspection report (kind, scheme, location, confidence) next to hidden-data and content-safety reports.
+- [ ] Add an optional Reader entity processor that records findings on each chunk and can mask chunk text before it leaves the process, and let `OfficeIMO.AI` require masked chunks for remote processing and validate identifier fields it extracts.
+- [ ] Profile, validate, normalize, format and mask identifier columns in CSV and Excel through the entity schemes, with invalid values reported, never silently changed.
+- [ ] Bring entity criteria to Word, Excel and PowerPoint redaction when those formats get reviewable redaction plans.
+- [ ] Ship `OfficeIMO.Entities.Data` with phone parsing, validation, formatting and recognition generated from pinned libphonenumber metadata, recorded in `Build/third-party-material.json`.
+- [ ] Add per-country postal address formatting to `OfficeIMO.Entities.Data` from Google address metadata, used by invoice PDFs and Word mail merge address blocks.
+- [ ] Add ISO 20275 company legal forms from the GLEIF ELF list to `OfficeIMO.Entities.Data` for company name recognition.
+- [ ] Add national identifier packs for further EU countries (German tax ID, French NIR, Spanish DNI/NIE, Italian codice fiscale, Dutch BSN and others), each with primary sources and context keywords.
+- [ ] Show entity findings, entity-driven redaction review and masking before AI in Studio.
+
 ## Document-format depth
 
 - [ ] Qualify XML Spreadsheet 2003 physical column widths against native Excel across Normal fonts and window DPI settings. Cover point-to-character conversion, default and explicit widths, zero-width hidden columns, and repeated XML/XLSX conversion. Extend the current reported 96-DPI approximation only with independent evidence for the receiving environment. See the [Excel compatibility contract](../OfficeIMO.Excel/COMPATIBILITY.md).
