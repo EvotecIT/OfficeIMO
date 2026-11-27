@@ -99,9 +99,20 @@ internal static partial class OfficeProvenanceTiff {
         if (ifds.Count == 0) return false;
         TiffIfd primary = ifds[0];
         TiffEntry? exifPointer = primary.Entries.FirstOrDefault(static entry => entry.Tag == ExifIfdTag);
-        TiffIfd? exif = exifPointer == null ? null : ifds.FirstOrDefault(ifd => (ulong)ifd.Offset == exifPointer.ValueOrOffset);
+        TiffIfd? exif = exifPointer != null && TryReadExifIfdPointer(tiff, exifPointer, primary.BigTiff, out ulong exifOffset)
+            ? ifds.FirstOrDefault(ifd => (ulong)ifd.Offset == exifOffset)
+            : null;
+        // Every decoded value draws from the expanded-byte budget first, so entries that share one large value cannot multiply the work.
+        long decodedBytes = 0;
+        void Charge(int length) {
+            decodedBytes += length;
+            if (decodedBytes > options.MaxExpandedContainerBytes) {
+                throw OfficeProvenanceLimitException.Create("TIFF generator fields exceed the configured expanded-byte limit.");
+            }
+        }
         foreach (TiffEntry entry in primary.Entries) {
             if (entry.Tag != SoftwareTag || entry.Type != AsciiType || !TryGetValueStorageRange(tiff, entry, out int offset, out int length)) continue;
+            Charge(length);
             string value = System.Text.Encoding.UTF8.GetString(tiff, offset, length).TrimEnd('\0');
             if (OfficeProvenanceAiGenerators.TryMatch(value, out string product)) {
                 fields.Add(new GeneratorField(primary, entry, "IFD0/Software", product, offset, length));
@@ -110,6 +121,7 @@ internal static partial class OfficeProvenanceTiff {
         if (exif != null) {
             foreach (TiffEntry entry in exif.Entries) {
                 if (entry.Tag != UserCommentTag || entry.Type != UndefinedType || !TryGetValueStorageRange(tiff, entry, out int offset, out int length)) continue;
+                Charge(length);
                 if (OfficeProvenanceAiGenerators.IsAiGenerationRecord(OfficeProvenanceAiGenerators.DecodeUserComment(tiff, offset, length))) {
                     fields.Add(new GeneratorField(exif, entry, "ExifIFD/UserComment", "UserComment", offset, length));
                 }

@@ -278,6 +278,76 @@ public sealed class ProvenanceAiGeneratorMetadataContracts {
     }
 
     [Fact]
+    public void BigEndianBigTiffReadsAFourByteExifPointerAtItsDeclaredWidth() {
+        byte[] software = Encoding.ASCII.GetBytes("Midjourney\0");
+        byte[] comment = Encoding.ASCII.GetBytes("ASCII\0\0\0Steps: 20, Sampler: Euler, Seed: 1");
+        const int ifd0 = 16, entry = 20;
+        int exifIfd = ifd0 + 8 + 2 * entry + 8;
+        int softwareOffset = exifIfd + 8 + entry + 8;
+        int commentOffset = softwareOffset + software.Length;
+        var tiff = new byte[commentOffset + comment.Length];
+        tiff[0] = (byte)'M'; tiff[1] = (byte)'M'; tiff[3] = 43; tiff[5] = 8;
+        WriteBigEndianUInt64(tiff, 8, ifd0);
+        WriteBigEndianUInt64(tiff, ifd0, 2);
+        WriteBigEndianEntry(tiff, ifd0 + 8, 0x0131, 2, (ulong)software.Length);
+        WriteBigEndianUInt64(tiff, ifd0 + 8 + 12, (ulong)softwareOffset);
+        WriteBigEndianEntry(tiff, ifd0 + 8 + entry, 0x8769, 4, 1);
+        WriteBigEndianUInt32(tiff, ifd0 + 8 + entry + 12, (uint)exifIfd); // four-byte LONG, then four bytes of padding
+        WriteBigEndianUInt64(tiff, exifIfd, 1);
+        WriteBigEndianEntry(tiff, exifIfd + 8, 0x9286, 7, (ulong)comment.Length);
+        WriteBigEndianUInt64(tiff, exifIfd + 8 + 12, (ulong)commentOffset);
+        software.CopyTo(tiff, softwareOffset);
+        comment.CopyTo(tiff, commentOffset);
+
+        OfficeProvenanceEvidence[] evidence = OfficeProvenanceInspector.Inspect(CreatePng(CreateChunk("eXIf", tiff)), "generated.png").Evidence.ToArray();
+
+        Assert.Equal(new[] { "Midjourney", "UserComment" }, evidence.Select(item => item.Value));
+    }
+
+    [Fact]
+    public void SoftwareCountPastTheEndIsIgnoredInsteadOfFailingInspection() {
+        byte[] exif = CreateExif("Midjourney", "ASCII\0\0\0holiday");
+        BitConverter.GetBytes(10_000u).CopyTo(exif, 8 + 2 + 12 + 4);
+        byte[] png = CreatePng(CreateChunk("eXIf", exif));
+
+        Assert.Empty(OfficeProvenanceInspector.Inspect(png, "photo.png").Evidence);
+    }
+
+    [Fact]
+    public void DecodedGeneratorValuesDrawFromTheExpandedByteBudget() {
+        byte[] png = CreatePng(CreateChunk("eXIf", CreateExif("Midjourney v6 with a longer description", "ASCII\0\0\0holiday")));
+
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(png, "generated.png",
+            new OfficeProvenanceOptions { MaxExpandedContainerBytes = 16 }));
+    }
+
+    [Fact]
+    public void GeneratorPropertyWithItsOwnAttributesIsNotTreatedAsADeclarationOnlyPacket() {
+        static byte[] Packet(string property) => Encoding.UTF8.GetBytes(
+            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
+            "<rdf:Description rdf:about=\"\" xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\" xmlns:private=\"urn:private\">" + property +
+            "</rdf:Description></rdf:RDF></x:xmpmeta>");
+
+        Assert.True(OfficeProvenanceXmp.HasOnlyDigitalSourceTypes(Packet("<xmp:CreatorTool>Midjourney</xmp:CreatorTool>"), new OfficeProvenanceOptions()));
+        Assert.False(OfficeProvenanceXmp.HasOnlyDigitalSourceTypes(
+            Packet("<xmp:CreatorTool private:owner=\"Alice\">Midjourney</xmp:CreatorTool>"), new OfficeProvenanceOptions()));
+    }
+
+    private static void WriteBigEndianEntry(byte[] data, int offset, ushort tag, ushort type, ulong count) {
+        data[offset] = (byte)(tag >> 8); data[offset + 1] = (byte)tag;
+        data[offset + 2] = (byte)(type >> 8); data[offset + 3] = (byte)type;
+        WriteBigEndianUInt64(data, offset + 4, count);
+    }
+
+    private static void WriteBigEndianUInt64(byte[] data, int offset, ulong value) {
+        for (int index = 7; index >= 0; index--) { data[offset + index] = (byte)value; value >>= 8; }
+    }
+
+    private static void WriteBigEndianUInt32(byte[] data, int offset, uint value) {
+        for (int index = 3; index >= 0; index--) { data[offset + index] = (byte)value; value >>= 8; }
+    }
+
+    [Fact]
     public void OrdinaryExifIsNotACarrier() {
         byte[] png = CreatePng(CreateChunk("eXIf", CreateExif("Darktable 4.6", "ASCII\0\0\0holiday")));
 

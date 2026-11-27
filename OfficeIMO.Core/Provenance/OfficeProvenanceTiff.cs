@@ -440,6 +440,14 @@ internal static partial class OfficeProvenanceTiff {
         return true;
     }
 
+    /// <summary>Reads the Exif IFD pointer at its declared width, so a four-byte pointer inside an eight-byte BigTIFF slot reads correctly.</summary>
+    private static bool TryReadExifIfdPointer(byte[] data, TiffEntry entry, bool bigTiff, out ulong offset) {
+        offset = 0;
+        return IsValidSubIfdPointerType(entry.Type, bigTiff) && entry.Count == 1 &&
+            TryGetValueStorageRange(data, entry, out int storage, out _) &&
+            TryReadUnsignedValue(data, entry, storage, 0, out offset);
+    }
+
     private static bool TryReadUnsignedValue(
         byte[] data,
         TiffEntry entry,
@@ -477,7 +485,7 @@ internal static partial class OfficeProvenanceTiff {
             offset = entry.Offset + (entry.InlineSize == 8 ? 12 : 8);
             return offset <= data.Length - length;
         }
-        if (entry.ValueOrOffset > int.MaxValue || entry.ValueOrOffset > (ulong)(data.Length - length)) return false;
+        if (length > data.Length || entry.ValueOrOffset > int.MaxValue || entry.ValueOrOffset > (ulong)(data.Length - length)) return false;
         offset = (int)entry.ValueOrOffset;
         return true;
     }
@@ -597,8 +605,8 @@ internal static partial class OfficeProvenanceTiff {
             }
             if (followExifIfd && result.Count == 1) {
                 foreach (TiffEntry exifIfd in entries.Where(static entry => entry.Tag == ExifIfdTag)) {
-                    if (IsValidSubIfdPointerType(exifIfd.Type, bigTiff) && exifIfd.Count == 1) {
-                        EnqueueIfdOffset(exifIfd.ValueOrOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
+                    if (TryReadExifIfdPointer(data, exifIfd, bigTiff, out ulong exifOffset)) {
+                        EnqueueIfdOffset(exifOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
                     }
                 }
             }

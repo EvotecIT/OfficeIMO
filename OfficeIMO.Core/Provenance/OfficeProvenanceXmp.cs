@@ -140,7 +140,11 @@ internal static class OfficeProvenanceXmp {
                     if (!IsDigitalSourceType(attribute.Name) && !IsAiGeneratorField(attribute.Name, attribute.Value)) return false;
                 }
                 foreach (XElement property in description.Elements()) {
-                    if (property.HasElements || !IsDigitalSourceType(property.Name) && !IsAiGeneratorField(property.Name, property.Value)) return false;
+                    if (property.HasElements) return false;
+                    if (IsDigitalSourceType(property.Name)) continue;
+                    // A generator property counts only as a plain scalar; extra attributes can carry private data of their own.
+                    if (!IsAiGeneratorField(property.Name, property.Value) || IsInsideXmlLiteral(property) ||
+                        !IsScalarRdfProperty(property, null)) return false;
                 }
             }
         }
