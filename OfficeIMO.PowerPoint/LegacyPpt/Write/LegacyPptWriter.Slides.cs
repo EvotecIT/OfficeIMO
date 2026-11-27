@@ -1,12 +1,11 @@
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
-        private static byte[] BuildSlideRecord(LegacyPptRecord prototype, PowerPointSlide slide,
+        private static byte[] BuildSlideRecord(LegacyPptPackageView view, PowerPointDocument presentation,
+            LegacyPptRecord prototype, PowerPointSlide slide,
             IReadOnlyList<PowerPointShape> shapes, uint drawingId, uint? masterIdRef,
             uint? notesIdRef, IReadOnlyList<LegacyPptWriterComment> comments,
             LegacyPptWriterInteractionCatalog interactionCatalog,
@@ -18,20 +17,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             bool layoutIsIndependentMaster = false) {
             var children = new List<byte[]>();
-            ThemeOverridePart? themePart = slide.SlidePart.ThemeOverridePart
-                ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart;
-            P.ColorMapOverride? colorMap = slide.SlidePart.Slide?
-                .ColorMapOverride
-                ?? slide.SlidePart.SlideLayoutPart?.SlideLayout?
-                    .ColorMapOverride;
+            LegacyPptPartView slidePart = SlidePartView(view, slide);
+            LegacyPptPartView layoutPart = slidePart.SlideLayout;
+            LegacyPptPartView themePart = !slidePart.ThemeOverride.IsNone
+                ? slidePart.ThemeOverride
+                : layoutPart.ThemeOverride;
+            OfficeXmlNode colorMap = slidePart.Root.Child(Pml, "clrMapOvr");
+            if (colorMap.IsNone) colorMap = layoutPart.Root.Child(Pml, "clrMapOvr");
             IReadOnlyList<byte[]> roundTripThemeRecords =
-                BuildRoundTripThemeRecords(themePart?.ThemeOverride, colorMap);
-            A.ColorScheme? overrideColors = themePart?.ThemeOverride?
-                .ColorScheme;
-            LegacyPptWriterColorScheme? classicOverride = overrideColors == null
+                BuildRoundTripThemeRecords(themePart.Root, colorMap, isOverride: true);
+            OfficeXmlNode overrideColors = ThemeOverrideElement(themePart, "clrScheme");
+            LegacyPptWriterColorScheme? classicOverride = overrideColors.IsNone
                 ? null
                 : ReadColorScheme(overrideColors);
-            if (!TryReadBackground(slide, out LegacyPptWriterBackground? background,
+            if (!TryReadBackground(view, presentation, slide, out LegacyPptWriterBackground? background,
                     out string? backgroundReason)) {
                 throw new NotSupportedException(backgroundReason);
             }
@@ -44,15 +43,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool needsSlideShowInfo = slide.Hidden || transition != null;
             bool hasHeaderFooter = prototype.Children.Any(child =>
                 child.Type == RecordHeadersFooters && child.Instance == 0);
-            LegacyPptWriterHeaderFooter? headerFooter = ReadSlideHeaderFooter(slide);
+            LegacyPptWriterHeaderFooter? headerFooter = ReadSlideHeaderFooter(slidePart);
             bool wroteComments = false;
             bool wroteClassicOverride = false;
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == RecordSlideAtom) {
                     byte[] atom = child.CopyRecordBytes();
-                    LegacyPptSlideLayoutType layoutType = MapSlideLayout(slide, shapes);
+                    LegacyPptSlideLayoutType layoutType = MapSlideLayout(slidePart, shapes);
                     WriteUInt32(atom, 8, (uint)layoutType);
-                    byte[] placeholderTypes = BuildLayoutPlaceholderTypes(slide, shapes);
+                    byte[] placeholderTypes = BuildLayoutPlaceholderTypes(slidePart, shapes);
                     for (int index = 0; index < placeholderTypes.Length; index++) {
                         atom[12 + index] = placeholderTypes[index];
                     }
@@ -65,7 +64,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     slideFlags = classicOverride == null
                         ? unchecked((ushort)(slideFlags | 0x0002))
                         : unchecked((ushort)(slideFlags & ~0x0002));
-                    slideFlags = FollowsMasterObjects(slide,
+                    slideFlags = FollowsMasterObjects(slidePart,
                             layoutIsIndependentMaster)
                         ? unchecked((ushort)(slideFlags | 0x0001))
                         : unchecked((ushort)(slideFlags & ~0x0001));

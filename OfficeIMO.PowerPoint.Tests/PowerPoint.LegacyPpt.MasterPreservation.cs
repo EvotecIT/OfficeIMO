@@ -12,6 +12,16 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptMasterTests {
+        // Reads a master's shapes as the binary writer does: through a view of the package captured now.
+        internal static IReadOnlyList<PowerPointShape> ReadMasterShapesThroughView(
+            OpenXmlPart part, out string? reason) {
+            PowerPointDocument document = OfficeIMO.PowerPoint.OpenXml.PowerPointPartRef
+                .FromSdk(part).Document!;
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(document);
+            return LegacyPptWriter.ReadMasterShapesForWrite(document,
+                view.Part(part.Uri.ToString()), out reason);
+        }
+
         [Fact]
         public void ImportedMainMasterShapeMove_AppendsPreservingIncrementalRecord() {
             LegacyPptDocument original = LegacyPptDocument.Load(FixturePath);
@@ -26,8 +36,7 @@ namespace OfficeIMO.Tests {
                 FixturePath);
             SlideMasterPart masterPart = imported.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.ElementAt(masterIndex);
-            IReadOnlyList<PowerPointShape> projectedShapes = LegacyPptWriter
-                .ReadMasterShapesForWrite(masterPart, out string? reason);
+            IReadOnlyList<PowerPointShape> projectedShapes = ReadMasterShapesThroughView(masterPart, out string? reason);
             Assert.Null(reason);
             Assert.Equal(originalMaster.Shapes.Count, projectedShapes.Count);
             PowerPointShape projectedShape = projectedShapes[0];
@@ -62,8 +71,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Load(stream);
             SlideMasterPart reopenedMaster = reopened.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.ElementAt(masterIndex);
-            PowerPointShape reopenedShape = LegacyPptWriter
-                .ReadMasterShapesForWrite(reopenedMaster, out _)[0];
+            PowerPointShape reopenedShape = ReadMasterShapesThroughView(reopenedMaster, out _)[0];
             Assert.Equal(expectedLeft, reopenedShape.Left.ToEmus());
             Assert.Equal("0F1E2D", reopenedMaster.SlideMaster!
                 .CommonSlideData!.Background!.BackgroundProperties!
@@ -83,7 +91,7 @@ namespace OfficeIMO.Tests {
             SlideMasterPart masterPart = imported.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             PowerPointTextBox textBox = Assert.IsType<PowerPointTextBox>(
-                Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
+                Assert.Single(ReadMasterShapesThroughView(
                     masterPart, out _)));
             textBox.Text = "Edited label";
             P.Shape textShape = Assert.IsType<P.Shape>(textBox.Element);
@@ -154,7 +162,7 @@ namespace OfficeIMO.Tests {
             SlideMasterPart reopenedMaster = reopened.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             PowerPointTextBox reopenedText = Assert.IsType<PowerPointTextBox>(
-                Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
+                Assert.Single(ReadMasterShapesThroughView(
                     reopenedMaster, out _)));
             Assert.Equal("Edited label", reopenedText.Text);
             Assert.Equal(PowerPointPlaceholderType.Title,
@@ -210,7 +218,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument removedProjection =
                 PowerPointDocument.Load(removedInput);
             PowerPointTextBox removedText = Assert.IsType<PowerPointTextBox>(
-                Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
+                Assert.Single(ReadMasterShapesThroughView(
                     removedProjection.OpenXmlDocument.PresentationPart!
                         .SlideMasterParts.Single(), out _)));
             Assert.False(removedText.IsPlaceholder);
@@ -260,7 +268,7 @@ namespace OfficeIMO.Tests {
                 FixturePath);
             NotesMasterPart notesPart = imported.OpenXmlDocument.PresentationPart!
                 .NotesMasterPart!;
-            PowerPointShape shape = LegacyPptWriter.ReadMasterShapesForWrite(
+            PowerPointShape shape = ReadMasterShapesThroughView(
                 notesPart, out _)[0];
             long expectedLeft = shape.Left.ToEmus() + 15875L;
             shape.Left= OfficeIMO.OfficeLength.Emus(expectedLeft);
@@ -288,8 +296,7 @@ namespace OfficeIMO.Tests {
             using var reopenedInput = new MemoryStream(savedBytes);
             using PowerPointDocument reopened =
                 PowerPointDocument.Load(reopenedInput);
-            PowerPointShape reopenedShape = LegacyPptWriter
-                .ReadMasterShapesForWrite(reopened.OpenXmlDocument
+            PowerPointShape reopenedShape = ReadMasterShapesThroughView(reopened.OpenXmlDocument
                     .PresentationPart!.NotesMasterPart!, out _)[0];
             Assert.Equal(expectedLeft, reopenedShape.Left.ToEmus());
             Assert.Equal("2468AC", reopened.OpenXmlDocument.PresentationPart!
@@ -322,8 +329,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Load(input);
             HandoutMasterPart handoutMasterPart = imported.OpenXmlDocument
                 .PresentationPart!.HandoutMasterPart!;
-            PowerPointShape shape = Assert.Single(LegacyPptWriter
-                .ReadMasterShapesForWrite(handoutMasterPart, out _));
+            PowerPointShape shape = Assert.Single(ReadMasterShapesThroughView(handoutMasterPart, out _));
             shape.Left+= OfficeIMO.OfficeLength.Emus(15875L);
             A.Accent5Color accent5 = handoutMasterPart.ThemePart!.Theme!
                 .ThemeElements!.ColorScheme!.GetFirstChild<A.Accent5Color>()!;
@@ -353,8 +359,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Load(reopenedInput);
             HandoutMasterPart reopenedPart = reopened.OpenXmlDocument
                 .PresentationPart!.HandoutMasterPart!;
-            Assert.Equal(shape.Left.ToEmus(), Assert.Single(LegacyPptWriter
-                .ReadMasterShapesForWrite(reopenedPart, out _)).Left.ToEmus());
+            Assert.Equal(shape.Left.ToEmus(), Assert.Single(ReadMasterShapesThroughView(reopenedPart, out _)).Left.ToEmus());
             Assert.Equal("13579B", reopenedPart.ThemePart!.Theme!
                 .ThemeElements!.ColorScheme!.GetFirstChild<A.Accent5Color>()!
                 .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
@@ -392,8 +397,7 @@ namespace OfficeIMO.Tests {
                     attribute.LocalName == "showMasterSp");
             Assert.Empty(imported.ValidateDocument());
             titlePart.SlideLayout.ShowMasterShapes = true;
-            PowerPointShape shape = Assert.Single(LegacyPptWriter
-                .ReadMasterShapesForWrite(titlePart, out string? shapeReason));
+            PowerPointShape shape = Assert.Single(ReadMasterShapesThroughView(titlePart, out string? shapeReason));
             Assert.Null(shapeReason);
             long expectedLeft = shape.Left.ToEmus() + 15875L;
             shape.Left= OfficeIMO.OfficeLength.Emus(expectedLeft);
@@ -450,8 +454,7 @@ namespace OfficeIMO.Tests {
                     StringComparison.Ordinal));
             Assert.True(reopenedTitlePart.SlideLayout!.ShowMasterShapes?.Value
                 != false);
-            Assert.Equal(expectedLeft, Assert.Single(LegacyPptWriter
-                .ReadMasterShapesForWrite(reopenedTitlePart, out _)).Left.ToEmus());
+            Assert.Equal(expectedLeft, Assert.Single(ReadMasterShapesThroughView(reopenedTitlePart, out _)).Left.ToEmus());
             Assert.Equal("5A6B7C", reopenedTitlePart.ThemeOverridePart!
                 .ThemeOverride!.ColorScheme!.GetFirstChild<A.Accent5Color>()!
                 .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);

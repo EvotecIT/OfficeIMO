@@ -1,7 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Text;
-using DocumentFormat.OpenXml.Packaging;
-using P = DocumentFormat.OpenXml.Presentation;
+using System.Xml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -12,14 +13,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordComment10Atom = 0x2EE1;
         private const string Ppt10TagName = "___PPT10";
 
+        private const string ModernCommentAuthorsRelationshipType =
+            "http://schemas.microsoft.com/office/2018/10/relationships/authors";
+        private const string ModernCommentsRelationshipType =
+            "http://schemas.microsoft.com/office/2018/10/relationships/comments";
+
+        // Callers in LegacyPptWritePreflight.cs and LegacyPptPreservingWriter.ChangePlan.cs not yet passing a view.
         internal static bool TryReadAllClassicComments(PowerPointDocument presentation,
+            out IReadOnlyDictionary<string, IReadOnlyList<LegacyPptWriterComment>> commentsBySlide,
+            out string? reason) {
+            ArgumentNullException.ThrowIfNull(presentation);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            return TryReadAllClassicComments(view, presentation, out commentsBySlide, out reason);
+        }
+
+        internal static bool TryReadAllClassicComments(LegacyPptPackageView view,
+            PowerPointDocument presentation,
             out IReadOnlyDictionary<string, IReadOnlyList<LegacyPptWriterComment>> commentsBySlide,
             out string? reason) {
             commentsBySlide = new ReadOnlyDictionary<string, IReadOnlyList<LegacyPptWriterComment>>(
                 new Dictionary<string, IReadOnlyList<LegacyPptWriterComment>>(StringComparer.Ordinal));
             reason = null;
-            PresentationPart? presentationPart = presentation.OpenXmlDocument.PresentationPart;
-            if (presentationPart == null) {
+            LegacyPptPartView presentationPart = view.Presentation;
+            if (presentationPart.IsNone) {
                 reason = "The Open XML presentation part is missing.";
                 return false;
             }
@@ -33,11 +49,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var maximumIndexes = new Dictionary<uint, uint>();
             var result = new Dictionary<string, IReadOnlyList<LegacyPptWriterComment>>(StringComparer.Ordinal);
             foreach (PowerPointSlide slide in presentation.Slides) {
-                if (!TryReadClassicComments(slide, authors, usedAuthorIds, maximumIndexes,
+                LegacyPptPartView slidePart = SlidePartView(view, slide);
+                if (!TryReadClassicComments(slidePart, authors, usedAuthorIds, maximumIndexes,
                         out IReadOnlyList<LegacyPptWriterComment> comments, out reason)) {
                     return false;
                 }
-                result.Add(slide.SlidePart.Uri.ToString(), comments);
+                result.Add(slide.PartRef.Name, comments);
             }
 
             foreach (LegacyPptWriterAuthor author in authors.Values) {
@@ -57,26 +74,35 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
+        // Callers in LegacyPptWritePreflight.cs and LegacyPptPreservingWriter.ChangePlan.cs not yet passing a view.
         internal static bool HasModernComments(PowerPointDocument presentation) {
-            PresentationPart? presentationPart = presentation.OpenXmlDocument.PresentationPart;
-            if (presentationPart == null) return false;
-            if (presentationPart.Parts.Any(pair =>
-                    pair.OpenXmlPart is PowerPointAuthorsPart)) {
-                return true;
-            }
-            return presentation.Slides.Any(slide => slide.SlidePart.Parts.Any(pair =>
-                pair.OpenXmlPart is PowerPointCommentPart));
+            ArgumentNullException.ThrowIfNull(presentation);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            return HasModernComments(view, presentation);
         }
 
+        internal static bool HasModernComments(LegacyPptPackageView view,
+            PowerPointDocument presentation) {
+            LegacyPptPartView presentationPart = view.Presentation;
+            if (presentationPart.IsNone) return false;
+            if (HasInternalRelationship(presentationPart, ModernCommentAuthorsRelationshipType)) {
+                return true;
+            }
+            return presentation.Slides.Any(slide => HasInternalRelationship(
+                SlidePartView(view, slide), ModernCommentsRelationshipType));
+        }
+
+        private static bool HasInternalRelationship(LegacyPptPartView part, string relationshipType) =>
+            part.Relationships.Any(relationship => !relationship.IsExternal
+                && !relationship.TargetPart.IsNone && relationship.IsType(relationshipType));
+
         internal static IReadOnlyList<LegacyPptWriterComment> ReadClassicCommentsForSlide(
-            PowerPointSlide slide) {
-            PresentationPart presentationPart = slide.SlidePart.GetParentParts()
-                .OfType<PresentationPart>().Single();
-            if (!TryReadClassicAuthors(presentationPart,
+            LegacyPptPackageView view, PowerPointSlide slide) {
+            if (!TryReadClassicAuthors(view.Presentation,
                     out Dictionary<uint, LegacyPptWriterAuthor> authors, out string? reason)) {
                 throw new NotSupportedException(reason);
             }
-            if (!TryReadClassicComments(slide, authors, new HashSet<uint>(),
+            if (!TryReadClassicComments(SlidePartView(view, slide), authors, new HashSet<uint>(),
                     new Dictionary<uint, uint>(), out IReadOnlyList<LegacyPptWriterComment> comments,
                     out reason)) {
                 throw new NotSupportedException(reason);
@@ -84,25 +110,32 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return comments;
         }
 
-        private static bool TryReadClassicAuthors(PresentationPart presentationPart,
+        private static bool TryReadClassicAuthors(LegacyPptPartView presentationPart,
             out Dictionary<uint, LegacyPptWriterAuthor> authors, out string? reason) {
             authors = new Dictionary<uint, LegacyPptWriterAuthor>();
             reason = null;
-            CommentAuthorsPart? authorsPart = presentationPart.CommentAuthorsPart;
-            if (authorsPart == null) return true;
-            P.CommentAuthorList? list = authorsPart.CommentAuthorList;
-            if (list == null || list.ChildElements.Any(child => child is not P.CommentAuthor)) {
+            LegacyPptPartView authorsPart = presentationPart.RelatedPart(
+                LegacyPptPackageView.CommentAuthorsRelationshipType);
+            if (authorsPart.IsNone) return true;
+            OfficeXmlNode list = authorsPart.Root;
+            bool foreignChild = false;
+            foreach (OfficeXmlNode child in list.Children()) {
+                if (!child.Is(Pml, "cmAuthor")) foreignChild = true;
+            }
+            if (!list.Is(Pml, "cmAuthorLst") || foreignChild) {
                 reason = "The classic comment author list is missing or contains unsupported extension content.";
                 return false;
             }
             var identities = new HashSet<string>(StringComparer.Ordinal);
-            foreach (P.CommentAuthor author in list.Elements<P.CommentAuthor>()) {
-                if (author.Id?.HasValue != true || author.LastIndex?.HasValue != true
-                    || author.ColorIndex?.HasValue != true) {
+            foreach (OfficeXmlNode author in list.Children(Pml, "cmAuthor")) {
+                uint? authorId = author.UInt("id");
+                uint? lastIndex = author.UInt("lastIdx");
+                uint? colorIndex = author.UInt("clrIdx");
+                if (!authorId.HasValue || !lastIndex.HasValue || !colorIndex.HasValue) {
                     reason = "Every classic comment author must define id, lastIdx, and clrIdx.";
                     return false;
                 }
-                uint id = author.Id!.Value;
+                uint id = authorId.Value;
                 if (!TryGetBinaryCompatibleClassicAuthorIdentity(author,
                         out string name, out string initials,
                         out string identity)) {
@@ -110,7 +143,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 if (!HasCanonicalClassicAuthorColorIndex(author)) {
-                    reason = $"Classic comment author {id} uses color index {author.ColorIndex.Value}; binary comments can retain only the canonical color index equal to the author id.";
+                    reason = $"Classic comment author {id} uses color index {colorIndex.Value}; binary comments can retain only the canonical color index equal to the author id.";
                     return false;
                 }
                 if (!identities.Add(identity)) {
@@ -122,27 +155,34 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 authors.Add(id, new LegacyPptWriterAuthor(id, name, initials,
-                    author.LastIndex!.Value));
+                    lastIndex.Value));
             }
             return true;
         }
 
+        /// <summary>Whether a classic comment author (<c>p:cmAuthor</c>) uses the color index equal to its id.</summary>
         internal static bool HasCanonicalClassicAuthorColorIndex(
-            P.CommentAuthor author) =>
-            author.Id?.HasValue == true
-            && author.ColorIndex?.HasValue == true
-            && author.ColorIndex.Value == author.Id.Value;
+            OfficeXmlNode author) {
+            uint? id = author.UInt("id");
+            uint? colorIndex = author.UInt("clrIdx");
+            return id.HasValue && colorIndex.HasValue && colorIndex.Value == id.Value;
+        }
 
+        /// <summary>
+        /// The name, initials and identity of a classic comment author (<c>p:cmAuthor</c>) when binary comments can hold
+        /// them.
+        /// </summary>
         internal static bool TryGetBinaryCompatibleClassicAuthorIdentity(
-            P.CommentAuthor author,
+            OfficeXmlNode author,
             out string name,
             out string initials,
             out string identity) {
-            name = author.Name?.Value ?? string.Empty;
-            initials = author.Initials?.Value ?? string.Empty;
+            name = author.Attribute("name") ?? string.Empty;
+            string? initialsValue = author.Attribute("initials");
+            initials = initialsValue ?? string.Empty;
             identity = string.Empty;
             if (string.IsNullOrWhiteSpace(name)
-                || author.Initials?.Value == null
+                || initialsValue == null
                 || name.Length > 52 || initials.Length > 52
                 || name.IndexOf('\0') >= 0 || initials.IndexOf('\0') >= 0) {
                 return false;
@@ -157,50 +197,68 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             maximumIndexes.TryGetValue(authorId, out uint maximumIndex)
             && lastIndex == maximumIndex;
 
-        private static bool TryReadClassicComments(PowerPointSlide slide,
+        private static bool TryReadClassicComments(LegacyPptPartView slidePart,
             IReadOnlyDictionary<uint, LegacyPptWriterAuthor> authors, ISet<uint> usedAuthorIds,
             IDictionary<uint, uint> maximumIndexes,
             out IReadOnlyList<LegacyPptWriterComment> comments, out string? reason) {
             var result = new List<LegacyPptWriterComment>();
             comments = result;
             reason = null;
-            SlideCommentsPart? commentsPart = slide.SlidePart.SlideCommentsPart;
-            if (commentsPart == null) return true;
-            P.CommentList? list = commentsPart.CommentList;
-            if (list == null || list.ChildElements.Any(child => child is not P.Comment)) {
+            LegacyPptPartView commentsPart = slidePart.RelatedPart(
+                LegacyPptPackageView.CommentsRelationshipType);
+            if (commentsPart.IsNone) return true;
+            OfficeXmlNode list = commentsPart.Root;
+            bool foreignChild = false;
+            foreach (OfficeXmlNode child in list.Children()) {
+                if (!child.Is(Pml, "cm")) foreignChild = true;
+            }
+            if (!list.Is(Pml, "cmLst") || foreignChild) {
                 reason = "A classic slide comment list is missing or contains unsupported extension content.";
                 return false;
             }
-            foreach (P.Comment comment in list.Elements<P.Comment>()) {
-                if (comment.ChildElements.Any(child => child is not P.Position && child is not P.Text)
-                    || comment.AuthorId?.HasValue != true || comment.Index?.HasValue != true
-                    || comment.Position?.X?.HasValue != true || comment.Position.Y?.HasValue != true) {
+            foreach (OfficeXmlNode comment in list.Children(Pml, "cm")) {
+                bool foreignContent = false;
+                foreach (OfficeXmlNode child in comment.Children()) {
+                    if (!child.Is(Pml, "pos") && !child.Is(Pml, "text")) foreignContent = true;
+                }
+                OfficeXmlNode position = comment.Child(Pml, "pos");
+                uint? commentAuthorId = comment.UInt("authorId");
+                uint? commentIndex = comment.UInt("idx");
+                long? positionX = position.Long("x");
+                long? positionY = position.Long("y");
+                if (foreignContent
+                    || !commentAuthorId.HasValue || !commentIndex.HasValue
+                    || !positionX.HasValue || !positionY.HasValue) {
                     reason = "Every classic comment must contain only a position and text and define authorId, idx, x, and y.";
                     return false;
                 }
-                uint authorId = comment.AuthorId!.Value;
+                uint authorId = commentAuthorId.Value;
                 if (!authors.TryGetValue(authorId, out LegacyPptWriterAuthor? author)) {
                     reason = $"Classic comment author id {authorId} is missing from the author list.";
                     return false;
                 }
-                uint index = comment.Index!.Value;
+                uint index = commentIndex.Value;
                 if (index > int.MaxValue) {
                     reason = $"Classic comment index {index} exceeds the binary signed 32-bit limit.";
                     return false;
                 }
-                string text = comment.Text?.Text ?? string.Empty;
+                OfficeXmlNode textElement = comment.Child(Pml, "text");
+                string text = textElement.IsNone ? string.Empty : textElement.InnerText;
                 if (text.Length > 32000 || text.IndexOf('\0') >= 0) {
                     reason = $"Classic comment {index} exceeds the binary 32,000-character text limit.";
                     return false;
                 }
-                long x = comment.Position.X!.Value;
-                long y = comment.Position.Y!.Value;
+                long x = positionX.Value;
+                long y = positionY.Value;
                 if (x < int.MinValue || x > int.MaxValue || y < int.MinValue
                     || y > int.MaxValue) {
                     reason = $"Classic comment {index} has a position outside the binary signed 32-bit coordinate range.";
                     return false;
                 }
-                DateTime? createdAtUtc = NormalizeCommentDate(comment.DateTime?.Value);
+                string? dateText = comment.Attribute("dt");
+                DateTime? createdAtUtc = NormalizeCommentDate(dateText == null
+                    ? null
+                    : XmlConvert.ToDateTime(dateText, XmlDateTimeSerializationMode.RoundtripKind));
                 result.Add(new LegacyPptWriterComment(checked((int)index), author.Name,
                     author.Initials, text, createdAtUtc, checked((int)x), checked((int)y)));
                 usedAuthorIds.Add(authorId);

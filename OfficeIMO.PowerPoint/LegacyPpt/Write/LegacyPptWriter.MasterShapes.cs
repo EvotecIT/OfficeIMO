@@ -1,53 +1,32 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
+        /// <summary>
+        /// The shapes of a slide master, notes master, handout master or title master layout, wrapped over the live
+        /// document's part of the same name.
+        /// </summary>
         internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
-            SlideMasterPart masterPart, out string? unsupportedReason) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return ReadMasterShapesForWrite(masterPart,
-                masterPart.SlideMaster?.CommonSlideData?.ShapeTree,
-                "slide master", out unsupportedReason);
-        }
-
-        internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
-            NotesMasterPart masterPart, out string? unsupportedReason) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return ReadMasterShapesForWrite(masterPart,
-                masterPart.NotesMaster?.CommonSlideData?.ShapeTree,
-                "notes master", out unsupportedReason);
-        }
-
-        internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
-            HandoutMasterPart masterPart, out string? unsupportedReason) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return ReadMasterShapesForWrite(masterPart,
-                masterPart.HandoutMaster?.CommonSlideData?.ShapeTree,
-                "handout master", out unsupportedReason);
-        }
-
-        internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
-            SlideLayoutPart masterPart, out string? unsupportedReason) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            return ReadMasterShapesForWrite(masterPart,
-                masterPart.SlideLayout?.CommonSlideData?.ShapeTree,
-                "title master layout", out unsupportedReason);
-        }
-
-        private static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
-            OpenXmlPartContainer ownerPart, P.ShapeTree? tree, string ownerName,
+            PowerPointDocument presentation, LegacyPptPartView masterPart,
             out string? unsupportedReason) {
+            ArgumentNullException.ThrowIfNull(presentation);
+            if (masterPart.IsNone) throw new ArgumentNullException(nameof(masterPart));
+            string ownerName = masterPart.IsNotesMaster ? "notes master"
+                : masterPart.IsHandoutMaster ? "handout master"
+                : masterPart.IsSlideLayout ? "title master layout"
+                : "slide master";
             unsupportedReason = null;
-            if (tree == null) return Array.Empty<PowerPointShape>();
-            var shapes = new List<PowerPointShape>(tree.ChildElements.Count);
-            foreach (OpenXmlElement element in tree.ChildElements) {
-                if (element is P.NonVisualGroupShapeProperties
-                    or P.GroupShapeProperties) continue;
-                PowerPointShape? shape = WrapShapeForWrite(element,
-                    ownerPart);
+            EnsureShapeWrappersCanBind(presentation);
+            PowerPointPartRef ownerPart = PowerPointPartRef.Package(presentation, masterPart.Name);
+            OfficeXmlNode tree = ownerPart.Root.Path(Pml, "cSld", "spTree");
+            if (tree.IsNone) return Array.Empty<PowerPointShape>();
+            var shapes = new List<PowerPointShape>(tree.Children().Count);
+            foreach (OfficeXmlNode element in tree.Children()) {
+                if (IsGroupProperties(element)) continue;
+                PowerPointShape? shape = WrapShapeForWrite(presentation,
+                    ownerPart, element);
                 if (shape == null) {
                     unsupportedReason ??=
                         $"The {ownerName} contains '{element.LocalName}' content that is not yet encoded by the native binary writer.";

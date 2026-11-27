@@ -1,8 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
-using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -13,17 +12,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordNamedShow = 0x0411;
         private const ushort RecordNamedShowSlides = 0x0412;
 
+        // Callers in LegacyPptWritePreflight.cs and LegacyPptPreservingWriter.ChangePlan.cs not yet passing a view.
         internal static bool TryReadCustomShows(PowerPointDocument presentation,
+            out LegacyPptWriterCustomShowCatalog catalog, out string? reason) {
+            ArgumentNullException.ThrowIfNull(presentation);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            return TryReadCustomShows(view, presentation, out catalog, out reason);
+        }
+
+        internal static bool TryReadCustomShows(LegacyPptPackageView view,
+            PowerPointDocument presentation,
             out LegacyPptWriterCustomShowCatalog catalog, out string? reason) {
             ArgumentNullException.ThrowIfNull(presentation);
             catalog = new LegacyPptWriterCustomShowCatalog();
             reason = null;
-            PresentationPart? presentationPart = presentation.OpenXmlDocument
-                .PresentationPart;
-            P.CustomShowList? list = presentationPart?.Presentation?.CustomShowList;
-            if (list == null) return true;
-            if (list.HasAttributes || list.ChildElements.Any(child =>
-                    child is not P.CustomShow)) {
+            LegacyPptPartView presentationPart = view.Presentation;
+            OfficeXmlNode list = presentationPart.Root.Child(Pml, "custShowLst");
+            if (list.IsNone) return true;
+            bool foreignChild = false;
+            foreach (OfficeXmlNode child in list.Children()) {
+                if (!child.Is(Pml, "custShow")) foreignChild = true;
+            }
+            if (HasAttributes(list) || foreignChild) {
                 reason = "The custom-show list contains attributes or extension data that have no binary representation.";
                 return false;
             }
@@ -31,51 +41,58 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var ids = new HashSet<uint>();
             var names = new HashSet<string>(StringComparer.Ordinal);
             var slideUris = new HashSet<string>(presentation.Slides.Select(slide =>
-                slide.SlidePart.Uri.ToString()), StringComparer.Ordinal);
-            foreach (P.CustomShow show in list.Elements<P.CustomShow>()) {
-                string? name = show.Name?.Value;
-                uint? id = show.Id?.Value;
+                slide.PartRef.Name), StringComparer.Ordinal);
+            foreach (OfficeXmlNode show in list.Children(Pml, "custShow")) {
+                string? name = show.Attribute("name");
+                uint? id = show.UInt("id");
                 if (name == null || name.Length == 0 || name.IndexOf('\0') >= 0
                     || !id.HasValue || !ids.Add(id.Value)
                     || !names.Add(name)) {
                     reason = "Custom shows require unique numeric ids, unique nonempty names, and valid Unicode text.";
                     return false;
                 }
-                if (show.GetAttributes().Any(attribute =>
-                        !string.Equals(attribute.LocalName, "name",
+                bool showForeignChild = false;
+                foreach (OfficeXmlNode child in show.Children()) {
+                    if (!child.Is(Pml, "sldLst")) showForeignChild = true;
+                }
+                if (AttributeLocalNames(show).Any(attribute =>
+                        !string.Equals(attribute, "name",
                             StringComparison.Ordinal)
-                        && !string.Equals(attribute.LocalName, "id",
+                        && !string.Equals(attribute, "id",
                             StringComparison.Ordinal))
-                    || show.ChildElements.Any(child => child is not P.SlideList)
-                    || show.Elements<P.SlideList>().Skip(1).Any()) {
+                    || showForeignChild
+                    || show.Children(Pml, "sldLst").Count > 1) {
                     reason = $"Custom show '{name}' contains extension data that have no binary representation.";
                     return false;
                 }
-                P.SlideList? showSlides = show.SlideList;
-                if (showSlides != null && (showSlides.HasAttributes
-                        || showSlides.ChildElements.Any(child =>
-                            child is not P.SlideListEntry))) {
+                OfficeXmlNode showSlides = show.Child(Pml, "sldLst");
+                bool foreignEntry = false;
+                foreach (OfficeXmlNode child in showSlides.Children()) {
+                    if (!child.Is(Pml, "sld")) foreignEntry = true;
+                }
+                if (!showSlides.IsNone && (HasAttributes(showSlides) || foreignEntry)) {
                     reason = $"Custom show '{name}' contains unsupported slide-list data.";
                     return false;
                 }
 
                 var showSlideUris = new List<string>();
-                foreach (P.SlideListEntry entry in showSlides?
-                             .Elements<P.SlideListEntry>()
-                         ?? Enumerable.Empty<P.SlideListEntry>()) {
-                    string? relationshipId = entry.Id?.Value;
-                    if (entry.GetAttributes().Any(attribute =>
-                            !string.Equals(attribute.LocalName, "id",
+                foreach (OfficeXmlNode entry in showSlides.Children(Pml, "sld")) {
+                    string? relationshipId = entry.RelationshipId();
+                    LegacyPptPartView slidePart = string.IsNullOrEmpty(relationshipId)
+                        ? default
+                        : presentationPart.PartById(relationshipId);
+                    if (AttributeLocalNames(entry).Any(attribute =>
+                            !string.Equals(attribute, "id",
                                 StringComparison.Ordinal))
                         || string.IsNullOrEmpty(relationshipId)
-                        || !presentationPart!.TryGetPartById(relationshipId!,
-                            out OpenXmlPart? part)
-                        || part is not SlidePart slidePart
-                        || !slideUris.Contains(slidePart.Uri.ToString())) {
+                        || slidePart.IsNone
+                        || !presentationPart.TryGetRelationship(relationshipId, out LegacyPptRelationshipView relationship)
+                        || !relationship.IsType(LegacyPptPackageView.SlideRelationshipType)
+                        || !slideUris.Contains(slidePart.Name)) {
                         reason = $"Custom show '{name}' references a missing or unsupported slide relationship.";
                         return false;
                     }
-                    showSlideUris.Add(slidePart.Uri.ToString());
+                    showSlideUris.Add(slidePart.Name);
                 }
                 catalog.Add(new LegacyPptWriterCustomShow(name, showSlideUris));
             }

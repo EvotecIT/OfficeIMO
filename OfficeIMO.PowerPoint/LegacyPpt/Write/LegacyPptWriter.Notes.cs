@@ -1,21 +1,28 @@
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
+        // Callers in LegacyPptWritePreflight.cs and LegacyPptWriter.Pictures.cs not yet passing a view.
         internal static bool ShouldWriteNotesPage(PowerPointSlide slide,
             out string text) {
+            ArgumentNullException.ThrowIfNull(slide);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(OwnerDocumentForWrite(slide));
+            return ShouldWriteNotesPage(view, slide, out text);
+        }
+
+        internal static bool ShouldWriteNotesPage(LegacyPptPackageView view,
+            PowerPointSlide slide, out string text) {
             ArgumentNullException.ThrowIfNull(slide);
             text = slide.Notes.TryGetText(out string noteText)
                 ? noteText
                 : string.Empty;
             if (!string.IsNullOrWhiteSpace(text)) return true;
 
-            NotesSlidePart? notesPart = slide.SlidePart.NotesSlidePart;
-            return notesPart?.NotesSlide?.CommonSlideData?.Background != null
-                || notesPart?.ThemeOverridePart?.ThemeOverride != null
-                || notesPart?.NotesSlide?.ShowMasterShapes?.Value == false;
+            LegacyPptPartView notesPart = SlidePartView(view, slide).NotesSlide;
+            return !CommonSlideData(notesPart).Child(Pml, "bg").IsNone
+                || !notesPart.ThemeOverride.Root.IsNone
+                || notesPart.Root.Bool("showMasterSp") == false;
         }
 
         private static byte[] BuildNotesList(IReadOnlyList<LegacyPptWriterNote> notes) {
@@ -31,22 +38,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildContainer(RecordSlideListWithText, instance: 2, children);
         }
 
-        private static byte[] BuildNotesRecord(LegacyPptRecord prototype, string text,
-            uint slideId, uint drawingId, NotesSlidePart? sourcePart,
+        private static byte[] BuildNotesRecord(PowerPointDocument presentation,
+            LegacyPptRecord prototype, string text,
+            uint slideId, uint drawingId, LegacyPptPartView sourcePart,
             LegacyPptWriterPictureCatalog pictureCatalog) {
             var children = new List<byte[]>(prototype.Children.Count);
-            A.ThemeOverride? theme = sourcePart?.ThemeOverridePart?
-                .ThemeOverride;
+            OfficeXmlNode theme = sourcePart.ThemeOverride.Root;
             IReadOnlyList<byte[]> roundTripThemeRecords =
                 BuildRoundTripThemeRecords(theme,
-                    sourcePart?.NotesSlide?.ColorMapOverride);
-            A.ColorScheme? overrideColors = theme?.ColorScheme;
-            LegacyPptWriterColorScheme? classicOverride = overrideColors == null
+                    sourcePart.Root.Child(Pml, "clrMapOvr"), isOverride: true);
+            OfficeXmlNode overrideColors = theme.Child(Dml, "clrScheme");
+            LegacyPptWriterColorScheme? classicOverride = overrideColors.IsNone
                 ? null
                 : ReadColorScheme(overrideColors);
             LegacyPptWriterBackground? background = null;
-            if (sourcePart != null
-                && !TryReadBackground(sourcePart, out background,
+            if (!sourcePart.IsNone
+                && !TryReadBackground(presentation, sourcePart, out background,
                     out string? backgroundReason)) {
                 throw new NotSupportedException(backgroundReason);
             }
@@ -63,7 +70,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     flags = classicOverride == null
                         ? unchecked((ushort)(flags | 0x0002))
                         : unchecked((ushort)(flags & ~0x0002));
-                    flags = sourcePart?.NotesSlide?.ShowMasterShapes?.Value != false
+                    flags = sourcePart.Root.Bool("showMasterSp") != false
                         ? unchecked((ushort)(flags | 0x0001))
                         : unchecked((ushort)(flags & ~0x0001));
                     WriteUInt16(atom, 12, flags);
@@ -137,7 +144,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private sealed class LegacyPptWriterNote {
             internal LegacyPptWriterNote(int slideIndex, string text, uint notesId,
-                uint persistId, uint drawingId, NotesSlidePart? sourcePart) {
+                uint persistId, uint drawingId, LegacyPptPartView sourcePart) {
                 SlideIndex = slideIndex;
                 Text = text ?? string.Empty;
                 NotesId = notesId;
@@ -151,7 +158,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal uint NotesId { get; }
             internal uint PersistId { get; }
             internal uint DrawingId { get; }
-            internal NotesSlidePart? SourcePart { get; }
+            internal LegacyPptPartView SourcePart { get; }
         }
     }
 }
