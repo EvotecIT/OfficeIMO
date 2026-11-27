@@ -24,10 +24,22 @@ namespace OfficeIMO.OpenXml.Internal {
             if (!string.Equals(value.LocalName, localName, StringComparison.Ordinal)) return false;
             string uri = value.NamespaceUri;
             if (namespaceId == OfficeXmlNamespaces.None) return uri.Length == 0;
+            // The transitional URI the id stands for, then any other spelling of it (strict) through the lookup.
+            if (string.Equals(uri, OfficeXmlNamespaces.KnownUri(namespaceId), StringComparison.Ordinal)) return true;
             return OfficeXmlNamespaces.TryGetKnownId(uri, out int id) && id == namespaceId;
         }
 
         internal static object? Parent(object element) => E(element).Parent;
+
+        /// <summary>Adds the descendant elements with this name, in document order, as the element handle walks them.</summary>
+        internal static void CollectDescendants(object element, int namespaceId, string localName, List<OfficeXmlNode> found) {
+            foreach (OpenXmlElement descendant in E(element).Descendants()) {
+                if (descendant is OpenXmlMiscNode) continue;
+                if (string.Equals(descendant.LocalName, localName, StringComparison.Ordinal) && Is(descendant, namespaceId, localName)) {
+                    found.Add(OfficeXmlNode.FromSdk(descendant));
+                }
+            }
+        }
 
         internal static object? FirstChild(object element) => SkipForward(E(element).FirstChild);
 
@@ -60,10 +72,24 @@ namespace OfficeIMO.OpenXml.Internal {
             return (value as OpenXmlPartRootElement)?.OpenXmlPart;
         }
 
+        // Element classes and attribute names seen without the attribute. The SDK's own lookup by name doesn't copy the
+        // element's attributes but throws when the attribute is missing, so it is tried only for names that have always
+        // been there; the rest go through the list.
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<(Type Element, string LocalName, string Uri), bool> AttributesSeenMissing = new();
+
         internal static string? GetAttribute(object element, int namespaceId, string localName) {
             OpenXmlElement value = E(element);
             if (!value.HasAttributes) return null;
             string uri = Uri(namespaceId);
+            var key = (value.GetType(), localName, uri);
+            if (!AttributesSeenMissing.ContainsKey(key)) {
+                try {
+                    return value.GetAttribute(localName, uri).Value;
+                } catch (KeyNotFoundException) {
+                    AttributesSeenMissing.TryAdd(key, true);
+                    return null;
+                }
+            }
             // Indexed, so reading an attribute doesn't also box an enumerator over the list the SDK builds.
             IList<OpenXmlAttribute> attributes = value.GetAttributes();
             for (int index = 0; index < attributes.Count; index++) {
@@ -123,10 +149,42 @@ namespace OfficeIMO.OpenXml.Internal {
 
         // One parsed element per parent type and name. New elements are clones of it, so they get the typed class the
         // parent expects there without parsing markup each time.
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<(Type Parent, string Uri, string LocalName), OpenXmlElement> Prototypes = new();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<PrototypeKey, OpenXmlElement> Prototypes = new();
+
+        // Every new element and every insert looks a prototype up, so the key hashes the parent type and the name cheaply
+        // rather than the whole namespace URI.
+        private readonly struct PrototypeKey : IEquatable<PrototypeKey> {
+            private readonly Type _parent;
+            private readonly string _uri;
+            private readonly string _localName;
+
+            internal PrototypeKey(Type parent, string uri, string localName) {
+                _parent = parent;
+                _uri = uri;
+                _localName = localName;
+            }
+
+            public bool Equals(PrototypeKey other) =>
+                ReferenceEquals(_parent, other._parent)
+                && string.Equals(_localName, other._localName, StringComparison.Ordinal)
+                && (ReferenceEquals(_uri, other._uri) || string.Equals(_uri, other._uri, StringComparison.Ordinal));
+
+            public override bool Equals(object? obj) => obj is PrototypeKey other && Equals(other);
+
+            public override int GetHashCode() {
+                int length = _localName.Length;
+                int hash = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_parent);
+                hash = (hash * 31) + length;
+                if (length > 0) hash = (hash * 31) + _localName[0] + (_localName[length - 1] << 8) + (_localName[length >> 1] << 16);
+                return (hash * 31) + _uri.Length;
+            }
+        }
+
+        // Whether an element of a typed class needs reading again under a parent of a typed class, as InsertBefore decides.
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<(Type Parent, Type Child), bool> Retyped = new();
 
         private static OpenXmlElement Prototype(OpenXmlElement parent, string namespaceUri, string localName, string prefix) {
-            var key = (parent.GetType(), namespaceUri, localName);
+            var key = new PrototypeKey(parent.GetType(), namespaceUri, localName);
             if (Prototypes.TryGetValue(key, out OpenXmlElement? prototype)) return prototype;
             OpenXmlElement probe = parent.CloneNode(false);
             probe.InnerXml = prefix.Length == 0
@@ -145,7 +203,8 @@ namespace OfficeIMO.OpenXml.Internal {
         /// </summary>
         internal static object? CreateElement(object context, int namespaceId, string localName) {
             OpenXmlElement prototype = Prototype(E(context), Uri(namespaceId), localName, OfficeXmlPrefixes.Canonical(namespaceId));
-            return prototype is OpenXmlUnknownElement ? null : prototype.CloneNode(true);
+            // A prototype has no attributes or children, so a shallow copy is the whole element.
+            return prototype is OpenXmlUnknownElement ? null : prototype.CloneNode(false);
         }
 
         /// <summary>
@@ -155,7 +214,7 @@ namespace OfficeIMO.OpenXml.Internal {
         /// </summary>
         internal static object CreateElement(object context, string namespaceUri, string localName, string prefix) {
             OpenXmlElement prototype = Prototype(E(context), namespaceUri, localName, prefix);
-            return prototype is OpenXmlUnknownElement ? new OpenXmlUnknownElement(prefix, localName, namespaceUri) : prototype.CloneNode(true);
+            return prototype is OpenXmlUnknownElement ? new OpenXmlUnknownElement(prefix, localName, namespaceUri) : prototype.CloneNode(false);
         }
 
         /// <summary>Inserts an SDK element, moving it out of a detached copy, and returns it.</summary>
@@ -166,10 +225,14 @@ namespace OfficeIMO.OpenXml.Internal {
             // the SDK has no typed class for it under this parent out of context, such as under a detached mc:Choice,
             // the element stays as it is.
             if (value is not OpenXmlUnknownElement && value.NamespaceUri.Length > 0) {
-                OpenXmlElement expected = Prototype(target, value.NamespaceUri, value.LocalName, value.Prefix);
-                if (expected is not OpenXmlUnknownElement && value.GetType() != expected.GetType()) {
-                    return InsertMarkupBefore(parent, OuterXml(value), reference);
+                // A typed class always has the same name, so the parent and child classes decide.
+                var pair = (target.GetType(), value.GetType());
+                if (!Retyped.TryGetValue(pair, out bool retype)) {
+                    OpenXmlElement expected = Prototype(target, value.NamespaceUri, value.LocalName, value.Prefix);
+                    retype = expected is not OpenXmlUnknownElement && value.GetType() != expected.GetType();
+                    Retyped.TryAdd(pair, retype);
                 }
+                if (retype) return InsertMarkupBefore(parent, OuterXml(value), reference);
             }
             if (reference == null) target.AppendChild(value);
             else target.InsertBefore(value, E(reference));

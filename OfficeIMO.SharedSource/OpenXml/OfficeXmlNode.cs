@@ -166,6 +166,11 @@ namespace OfficeIMO.OpenXml.Internal {
         /// <summary>The elements with this name below this one, in document order.</summary>
         internal List<OfficeXmlNode> Descendants(int namespaceId, string localName) {
             var found = new List<OfficeXmlNode>();
+            if (_sdk != null) {
+                // The SDK walks its own tree faster than a walk through this handle, one sibling at a time.
+                OfficeSdkXml.CollectDescendants(_sdk, namespaceId, localName, found);
+                return found;
+            }
             CollectDescendants(this, namespaceId, localName, found);
             return found;
         }
