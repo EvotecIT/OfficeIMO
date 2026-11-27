@@ -1,8 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Word;
@@ -11,9 +7,9 @@ namespace OfficeIMO.Word;
 /// The WordprocessingML OfficeIMO writes as it is, kept in XML files embedded in the assembly: the building block
 /// galleries (<c>BuildingBlocks/</c>, one <c>w:sdt</c> per template, keyed by the name of its enum value) and the
 /// default parts and styles of a new document (<c>Parts/Defaults/</c>). The files are read through the owned XML layer;
-/// the SDK gets elements built from their markup, or a part's bytes.
+/// <c>OpenXmlSdk/WordEmbeddedMarkup.OpenXmlSdk.cs</c> hands their markup to the SDK.
 /// </summary>
-internal static class WordEmbeddedMarkup {
+internal static partial class WordEmbeddedMarkup {
     internal const string CoverPages = "CoverPages";
     internal const string PageNumbers = "PageNumbers";
     internal const string TablesOfContents = "TablesOfContents";
@@ -23,95 +19,28 @@ internal static class WordEmbeddedMarkup {
     private const string DefaultsPrefix = "OfficeIMO.Word.Parts.Defaults.";
 
     private static readonly ConcurrentDictionary<string, Lazy<Dictionary<string, byte[]>>> Galleries = new(StringComparer.Ordinal);
-    private static readonly ConcurrentDictionary<(string Gallery, string Name), Lazy<SdtBlock>> BuildingBlocks = new();
     private static readonly Lazy<Dictionary<string, byte[]>> DefaultStyleMarkup = new(LoadDefaultStyles);
-    private static readonly ConcurrentDictionary<string, Lazy<OpenXmlElement>> DefaultStyleElements = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// A new, detached copy of the template <paramref name="name"/> from <paramref name="gallery"/>, ready for the caller
-    /// to give it identifiers and insert it.
+    /// The markup of the template <paramref name="name"/> from <paramref name="gallery"/>: one <c>w:sdt</c> that declares
+    /// every prefix it uses.
     /// </summary>
-    internal static SdtBlock CreateBuildingBlock(string gallery, string name, string parameterName) {
+    internal static byte[] GetBuildingBlockMarkup(string gallery, string name, string parameterName) {
         Dictionary<string, byte[]> templates = Galleries.GetOrAdd(gallery, key => new Lazy<Dictionary<string, byte[]>>(() => LoadGallery(key))).Value;
-        if (!templates.TryGetValue(name, out byte[]? markup)) throw new ArgumentOutOfRangeException(parameterName);
-        // Each template is parsed once, even when threads ask for it together; callers get copies they can edit.
-        SdtBlock template = BuildingBlocks.GetOrAdd((gallery, name), _ => new Lazy<SdtBlock>(() => Parse(markup, xml => new SdtBlock(xml)))).Value;
-        return (SdtBlock)template.CloneNode(true);
+        return templates.TryGetValue(name, out byte[]? markup) ? markup : throw new ArgumentOutOfRangeException(parameterName);
     }
 
     /// <summary>
-    /// A new copy of an element of <c>Parts/Defaults/WordDefaultStyles.xml</c>: a <c>w:style</c> by its style id, or
+    /// The markup of an element of <c>Parts/Defaults/WordDefaultStyles.xml</c>: a <c>w:style</c> by its style id, or
     /// <c>docDefaults</c> or <c>latentStyles</c>.
     /// </summary>
-    internal static T CreateDefaultStyleElement<T>(string key, Func<string, T> create) where T : OpenXmlElement {
-        // Each element is parsed once, even when threads ask for it together; callers get copies they can edit.
-        OpenXmlElement element = DefaultStyleElements.GetOrAdd(key, name => new Lazy<OpenXmlElement>(() => {
-            if (!DefaultStyleMarkup.Value.TryGetValue(name, out byte[]? markup)) throw new ArgumentOutOfRangeException(nameof(key), name, "No default style element has this key.");
-            return Parse(markup, create);
-        })).Value;
-        return (T)element.CloneNode(true);
-    }
+    internal static byte[] GetDefaultStyleMarkup(string key) =>
+        DefaultStyleMarkup.Value.TryGetValue(key, out byte[]? markup)
+            ? markup
+            : throw new ArgumentOutOfRangeException(nameof(key), key, "No default style element has this key.");
 
-    /// <summary>Writes the default part <paramref name="fileName"/> into <paramref name="part"/>.</summary>
-    internal static void FeedDefaultPart(OpenXmlPart part, string fileName) {
-        using Stream stream = OpenResource(DefaultsPrefix + fileName);
-        part.FeedData(stream);
-    }
-
-    // Builds the SDK element from markup that declares every prefix it uses. Parsing markup on its own, the SDK reads a
-    // few attributes for Office 2007: w:ind's w:left and w:right come back as w:start and w:end, and w:tblLook keeps only
-    // w:val. Elements whose attributes came back different get them again exactly as written, and the root drops its
-    // declarations so that, inserted, it takes them from the part as an element built in code does.
-    private static T Parse<T>(byte[] markup, Func<string, T> create) where T : OpenXmlElement {
-        T element = create(Encoding.UTF8.GetString(markup));
-        OfficeXmlTree tree = OfficeXmlTree.Parse(markup, markup.Length, new OfficeXmlNamespaces.Table());
-        RestoreAttributes(tree, tree.Root, element);
-        foreach (KeyValuePair<string, string> declaration in element.NamespaceDeclarations.ToList()) {
-            element.RemoveNamespaceDeclaration(declaration.Key);
-        }
-        return element;
-    }
-
-    private static void RestoreAttributes(OfficeXmlTree tree, int node, OpenXmlElement element) {
-        int count = tree.AttributeCountOf(node);
-        List<OpenXmlAttribute>? written = null;
-        for (int index = 0; index < count; index++) {
-            tree.GetAttributeAt(node, index, out string prefix, out string localName, out string namespaceUri, out string value, out bool declaration);
-            if (declaration) continue;
-            (written ??= new List<OpenXmlAttribute>(count)).Add(new OpenXmlAttribute(prefix, localName, namespaceUri, value));
-        }
-        if (!SameAttributes(element.GetAttributes(), written)) {
-            element.ClearAllAttributes();
-            if (written != null) {
-                foreach (OpenXmlAttribute attribute in written) element.SetAttribute(attribute);
-            }
-        }
-
-        OpenXmlElement? child = element.FirstChild;
-        for (int childNode = tree.FirstChildOf(node); childNode != OfficeXmlTree.NoNode; childNode = tree.NextSiblingOf(childNode)) {
-            if (tree.KindOf(childNode) != OfficeXmlTreeNodeKind.Element) continue;
-            while (child is OpenXmlMiscNode) child = child.NextSibling();
-            if (child == null) throw new InvalidOperationException("The embedded markup and the elements parsed from it differ.");
-            RestoreAttributes(tree, childNode, child);
-            child = child.NextSibling();
-        }
-    }
-
-    private static bool SameAttributes(IList<OpenXmlAttribute> parsed, List<OpenXmlAttribute>? written) {
-        if (parsed.Count != (written?.Count ?? 0)) return false;
-        if (written == null) return true;
-        foreach (OpenXmlAttribute attribute in written) {
-            bool found = false;
-            foreach (OpenXmlAttribute candidate in parsed) {
-                if (candidate.LocalName == attribute.LocalName && candidate.NamespaceUri == attribute.NamespaceUri) {
-                    found = candidate.Value == attribute.Value;
-                    break;
-                }
-            }
-            if (!found) return false;
-        }
-        return true;
-    }
+    /// <summary>The bytes of the default part <paramref name="fileName"/>, as a new part gets them.</summary>
+    internal static Stream OpenDefaultPart(string fileName) => OpenResource(DefaultsPrefix + fileName);
 
     private static Dictionary<string, byte[]> LoadGallery(string gallery) {
         OfficeXmlTree tree = ReadTree(BuildingBlocksPrefix + gallery + ".xml");
