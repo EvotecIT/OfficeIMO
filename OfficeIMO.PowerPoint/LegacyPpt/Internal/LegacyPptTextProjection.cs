@@ -330,66 +330,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             _ => throw new ArgumentOutOfRangeException(nameof(value))
         };
 
-        /// <summary>
-        /// A fingerprint of a text body's formatting: its markup with the text frame, the text and run interactions left
-        /// out, plus the content of each picture bullet image. Read from a package view; values compare only with other
-        /// values of this method.
-        /// </summary>
-        internal static string CreateFormattingFingerprint(OfficeXmlNode textBody, LegacyPptPartView ownerPart) {
-            if (textBody.IsNone) return string.Empty;
-            OfficeXmlNode clone = textBody.Clone();
-            OfficeXmlNode bodyProperties = clone.Child(A, "bodyPr");
-            if (!bodyProperties.IsNone) {
-                clone.InsertBefore(clone.CreateElement(A, "bodyPr"), bodyProperties);
-                bodyProperties.Remove();
-            }
-            foreach (OfficeXmlNode text in clone.Descendants(A, "t")) text.SetInnerText(string.Empty);
-            foreach (OfficeXmlNode properties in clone.Descendants(A, "rPr")) {
-                properties.RemoveChildren(A, "hlinkClick");
-                properties.RemoveChildren(A, "hlinkMouseOver");
-                if (properties.FirstChild.IsNone && !HasAttributes(properties)) properties.Remove();
-            }
-            return LegacyPptXml.Digest(clone) + CreatePictureBulletImageFingerprint(textBody, ownerPart);
-        }
-
-        /// <summary>The content type and content digest of each picture bullet image below <paramref name="root"/>.</summary>
-        internal static string CreatePictureBulletImageFingerprint(OfficeXmlNode root, LegacyPptPartView ownerPart) {
-            if (root.IsNone || ownerPart.IsNone) return string.Empty;
-            var result = new System.Text.StringBuilder();
-            foreach (OfficeXmlNode bullet in root.Descendants(A, "buBlip")) {
-                string? relationshipId = bullet.Child(A, "blip").RelationshipId("embed");
-                result.Append("|buBlip:").Append(relationshipId);
-                LegacyPptPartView image = ownerPart.PartById(relationshipId);
-                if (image.IsNone || image.ContentType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) != true) {
-                    result.Append(":missing");
-                    continue;
-                }
-                result.Append(':').Append(image.ContentType).Append(':');
-                using SHA256 sha = SHA256.Create();
-                result.Append(Convert.ToBase64String(sha.ComputeHash(image.GetBytes())));
-            }
-            return result.ToString();
-        }
-
-        /// <summary>A fingerprint of a text body's frame properties.</summary>
-        internal static string CreateTextFrameFingerprint(OfficeXmlNode textBody) {
-            OfficeXmlNode bodyProperties = textBody.Child(A, "bodyPr");
-            return bodyProperties.IsNone ? string.Empty : LegacyPptXml.Digest(bodyProperties);
-        }
-
-        // Whether an element has attributes other than namespace declarations.
-        private static bool HasAttributes(OfficeXmlNode element) {
-            if (element.Tree is not { } tree) throw new InvalidOperationException("Fingerprints are read from Open XML layer trees.");
-            int count = tree.AttributeCountOf(element.Node);
-            for (int index = 0; index < count; index++) {
-                tree.GetAttributeAt(element.Node, index, out int namespaceId, out string localName, out _);
-                if (namespaceId == OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Xmlns
-                    || namespaceId == OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.None && localName == "xmlns") continue;
-                return true;
-            }
-            return false;
-        }
-
         private static void AppendParagraphRuns(OfficeXmlNode paragraph,
             LegacyPptTextBody source,
             LegacyPptTextProjectionPlan projectionPlan,

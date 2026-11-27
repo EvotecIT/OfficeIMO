@@ -41,10 +41,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             Presentation = FindPresentation();
         }
 
-        /// <summary>Copies the document's package as it is now, edits included.</summary>
+        // The view of a document open on this thread, which nested captures of the same document share.
+        [ThreadStatic]
+        private static LegacyPptPackageView? t_shared;
+
+        private PowerPointDocument? _document;
+        private LegacyPptPackageView? _outer;
+        private int _references = 1;
+
+        /// <summary>
+        /// Copies the document's package as it is now, edits included. While a view of the same document is open on
+        /// this thread, that view is returned instead, so one operation (a save, its preservation checks, its preflight
+        /// and its writer) reads one copy; the document must not change while a view is open. Each capture is disposed.
+        /// </summary>
         internal static LegacyPptPackageView Capture(PowerPointDocument document) {
             ArgumentNullException.ThrowIfNull(document);
-            return Open(document.CapturePackageBytes());
+            if (t_shared is { } shared && ReferenceEquals(shared._document, document)) {
+                shared._references++;
+                return shared;
+            }
+            LegacyPptPackageView view = Open(document.CapturePackageBytes());
+            view._document = document;
+            view._outer = t_shared;
+            t_shared = view;
+            return view;
         }
 
         /// <summary>Reads a package from its bytes.</summary>
@@ -194,7 +214,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private LegacyPptPartView FindPresentation() => PackageRelatedPart(OfficeDocumentRelationshipType);
 
-        public void Dispose() => _package.Dispose();
+        public void Dispose() {
+            if (_references <= 0) return;
+            if (--_references > 0) return;
+            if (ReferenceEquals(t_shared, this)) t_shared = _outer;
+            _package.Dispose();
+        }
     }
 
     /// <summary>A part of a <see cref="LegacyPptPackageView"/>.</summary>

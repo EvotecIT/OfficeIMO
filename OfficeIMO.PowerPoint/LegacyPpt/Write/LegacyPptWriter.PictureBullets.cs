@@ -192,19 +192,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new[] { name, data });
         }
 
-        /// <summary>
-        /// Reads the picture-bullet catalog of the document as it is now. The catalog also answers for the document's
-        /// own elements, so callers that still read the document rather than a captured presentation find their bullets.
-        /// </summary>
-        internal static bool TryReadPictureBulletCatalog(
-            PowerPointDocument presentation,
-            out LegacyPptWriterPictureBulletCatalog catalog,
-            out string? reason) {
-            ArgumentNullException.ThrowIfNull(presentation);
-            LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
-            return TryReadPictureBulletCatalog(view, presentation,
-                out catalog, out reason);
-        }
 
         /// <summary>Reads the picture-bullet catalog of the presentation captured for the write.</summary>
         internal static bool TryReadPictureBulletCatalog(

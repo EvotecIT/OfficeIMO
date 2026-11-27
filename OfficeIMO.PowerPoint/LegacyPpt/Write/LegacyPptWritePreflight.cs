@@ -54,7 +54,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             int masterCount = masterParts.Count;
             LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
                 pictureBullets;
-            if (!LegacyPptWriter.TryReadPictureBulletCatalog(presentation,
+            if (!LegacyPptWriter.TryReadPictureBulletCatalog(view, presentation,
                     out pictureBullets,
                     out string? pictureBulletReason)) {
                 findings.Add(new LegacyPptWriteFinding(

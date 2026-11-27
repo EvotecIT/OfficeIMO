@@ -378,9 +378,15 @@ namespace OfficeIMO.PowerPoint {
                 return originalBytes;
             }
             ApplySignatureMutationPolicy(options);
-            foreach (PowerPointSlide slide in LoadedSlides) slide.Save();
-            PresentationRoot.Save();
-            SdkDocument!.Save();
+            // The binary writers read a copy of the package; a document the SDK holds writes its DOM there first, and
+            // one held in its package already has its edits there.
+            if (IsSdkLoaded) {
+                foreach (PowerPointSlide slide in LoadedSlides) slide.Save();
+                PresentationRoot.Save();
+                SdkDocument!.Save();
+            }
+            // One copy of the package serves the preservation checks and the writer.
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(this);
             if (LegacyPptPreservingWriter.TryWriteDocument(this, out byte[] preservedBytes)) {
                 LegacyPptWritePreflight.ThrowIfBlocked(
                     AnalyzeLegacyPptWrite(), options);
