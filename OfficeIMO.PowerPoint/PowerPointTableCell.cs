@@ -1,178 +1,87 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a cell within a PowerPoint table.
     /// </summary>
-    public partial class PowerPointTableCell : IPackageSdkBinding {
+    public partial class PowerPointTableCell {
+        private const int D = OfficeXmlNamespaces.DrawingML;
         private const int EmusPerPoint = 12700;
-        private readonly SlidePart? _initialSlidePart;
-        private SlidePart? _slidePart => Cell.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
-        private readonly OpenXmlPartContainer? _initialOwnerPart;
-        private OpenXmlPartContainer? _ownerPart => _initialOwnerPart is SlidePart ? _slidePart : _initialOwnerPart;
 
-        private TableCell? _cell;
-        private readonly PowerPointTable? _packageTable;
-        private readonly int _packageRow, _packageColumn;
+        private readonly PowerPointTable _table;
+        private readonly PowerPointHeldNode _cell;
 
-        internal PowerPointTableCell(TableCell cell, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
-            _cell = cell;
-            _initialSlidePart = slidePart;
-            _initialOwnerPart = ownerPart ?? slidePart;
+        // A cell (a:tc) of the table, held where the table holds it.
+        internal PowerPointTableCell(PowerPointTable table, OfficeXmlNode cell) {
+            _table = table;
+            _cell = new PowerPointHeldNode(cell, table);
         }
 
-        // A cell of a table that works on its slide's package tree; anything the cell does not do there binds the table
-        // and reads the same cell through the SDK.
-        internal PowerPointTableCell(PowerPointTable table, OfficeXmlTree tree, int node, int row, int column) {
-            _packageTable = table;
-            PackageTree = tree;
-            PackageNode = node;
-            _packageRow = row;
-            _packageColumn = column;
-            table.OwnerSlide?.OwnerDocument?.RegisterPackageBinding(this);
-        }
+        /// <summary>The cell's element as it is held now.</summary>
+        internal OfficeXmlNode Element => _cell.Element;
 
-        // Bound by its place in the slide when the SDK opens, before anything changes the table there.
-        void IPackageSdkBinding.BindSdk() {
-            if (_cell != null || PackageTree == null || _packageTable?.OwnerSlide == null) return;
-            try {
-                _cell = (TableCell)PowerPointSlide.BindPackageElement(_packageTable.OwnerSlide, PackageTree, PackageNode);
-            } catch (InvalidOperationException) {
-                // A cell the opened slide doesn't have where expected reports it when it is used.
-            }
-        }
+        /// <summary>The table the cell belongs to.</summary>
+        internal PowerPointTable Table => _table;
 
-        internal TableCell Cell => _cell ??= BindSdkCell();
+        /// <summary>The part that holds the cell.</summary>
+        internal PowerPointPartRef OwnerPartRef => _table.OwnerPartRef;
 
-        // Binding the table opens the SDK, so the table then finds the cell there.
-        private TableCell BindSdkCell() {
-            if (_packageTable!.OwnerSlide is { } slide) return (TableCell)PowerPointSlide.BindPackageElement(slide, PackageTree!, PackageNode);
-            _ = _packageTable.Element;
-            return _packageTable.GetCell(_packageRow, _packageColumn).Cell;
-        }
+        /// <summary>The slide the cell is on, or none for a table of a layout or master.</summary>
+        internal PowerPointPartRef SlidePartRef => _table.SlidePartRef;
 
-        /// <summary>The cell's package tree and element while its table works without the SDK.</summary>
-        internal OfficeXmlTree? PackageTree { get; }
-        internal int PackageNode { get; }
+        private void MarkEdited() => OwnerPartRef.MarkEdited();
 
-        private bool TryGetPackageCell(out OfficeXmlTree tree, out int node) {
-            tree = PackageTree!;
-            node = PackageNode;
-            return _cell == null && tree != null && _packageTable!.TryGetPackageElement(out _, out _);
-        }
+        private OfficeTheme? ThemeFor(OfficeColor? color) =>
+            PowerPointDrawingColor.NeedsTheme(color) ? PowerPointDrawingColor.ThemeFor(OwnerPartRef, _table.OwnerSlide) : null;
 
-        // The cell's text on the package tree; a cell without a text body is left to the model, which adds one.
-        private bool TryGetPackageText(out string text) {
-            text = string.Empty;
-            if (!TryGetPackageCell(out OfficeXmlTree tree, out int node)) return false;
-            int body = tree.FindChild(node, OfficeXmlNamespaces.DrawingML, "txBody");
-            return body != OfficeXmlTree.NoNode && PowerPointTreeText.TryReadBody(tree, body, out text);
-        }
+        private OfficeXmlNode BodyElement => Element.Child(D, "txBody");
 
-        // Replaces the cell's paragraphs on the package tree as the Text setter does.
-        private bool TrySetPackageText(string value) {
-            if (!TryGetPackageCell(out OfficeXmlTree tree, out int node) || !_packageTable!.TryEditPackage(out _, out _)) return false;
-            int body = tree.FindChild(node, OfficeXmlNamespaces.DrawingML, "txBody");
-            // The model drops relationships of hyperlinks and sounds the old text no longer uses.
-            if (body == OfficeXmlTree.NoNode || HasInteraction(tree, body)) return false;
-            int source = tree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p");
-            int runProperties = OfficeXmlTree.NoNode, paragraphProperties = OfficeXmlTree.NoNode, endProperties = OfficeXmlTree.NoNode;
-            if (source != OfficeXmlTree.NoNode) {
-                int firstRun = tree.FindChild(source, OfficeXmlNamespaces.DrawingML, "r");
-                // Copies of the properties would lose prefixes of foreign namespaces the removed paragraph or run declares.
-                if (tree.DeclaresForeignNamespaces(source) || firstRun != OfficeXmlTree.NoNode && tree.DeclaresForeignNamespaces(firstRun)) return false;
-                int existingRun = firstRun == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(firstRun, OfficeXmlNamespaces.DrawingML, "rPr");
-                if (existingRun != OfficeXmlTree.NoNode) runProperties = tree.CloneElement(existingRun);
-                int existingParagraph = tree.FindChild(source, OfficeXmlNamespaces.DrawingML, "pPr");
-                if (existingParagraph != OfficeXmlTree.NoNode) paragraphProperties = tree.CloneElement(existingParagraph);
-                int existingEnd = tree.FindChild(source, OfficeXmlNamespaces.DrawingML, "endParaRPr");
-                if (existingEnd != OfficeXmlTree.NoNode) endProperties = tree.CloneElement(existingEnd);
-            }
-            if (endProperties == OfficeXmlTree.NoNode) endProperties = tree.CreateElement(OfficeXmlNamespaces.DrawingML, "endParaRPr");
-            PowerPointTreeText.WithoutInteractions(tree, endProperties);
-            string language = tree.GetAttribute(endProperties, OfficeXmlNamespaces.None, "lang") ?? PowerPointTableTextDefaults.Language;
-            tree.SetAttribute(endProperties, OfficeXmlNamespaces.None, "lang", language);
-            if (runProperties == OfficeXmlTree.NoNode) runProperties = tree.CreateElement(OfficeXmlNamespaces.DrawingML, "rPr");
-            PowerPointTreeText.WithoutInteractions(tree, runProperties);
-            if (tree.GetAttribute(runProperties, OfficeXmlNamespaces.None, "lang") == null) tree.SetAttribute(runProperties, OfficeXmlNamespaces.None, "lang", language);
-
-            for (int paragraph = tree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p"); paragraph != OfficeXmlTree.NoNode;) {
-                int next = tree.FindNextSibling(paragraph, OfficeXmlNamespaces.DrawingML, "p");
-                tree.Remove(paragraph);
-                paragraph = next;
-            }
-            int added = PowerPointTreeText.Append(tree, body, "p");
-            if (paragraphProperties != OfficeXmlTree.NoNode) tree.Append(added, paragraphProperties);
-            PowerPointTreeText.AppendInlineContent(tree, added, value, runProperties);
-            tree.Append(added, endProperties);
-            _packageTable.MarkPackageEdited();
-            return true;
-        }
-
-        // Hyperlinks and sounds anywhere in the text, whose relationships the model cleans up.
-        private static bool HasInteraction(OfficeXmlTree tree, int node) {
-            for (int child = tree.FirstChildOf(node); child != OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
-                if (tree.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
-                if (tree.NamespaceOf(child) == OfficeXmlNamespaces.DrawingML && tree.LocalNameOf(child) is "hlinkClick" or "hlinkMouseOver" or "snd") return true;
-                if (HasInteraction(tree, child)) return true;
-            }
-            return false;
-        }
-        internal SlidePart? SlidePart => _slidePart;
-        internal OpenXmlPartContainer? OwnerPart => _ownerPart;
+        private OfficeXmlNode PropertiesElement => Element.Child(D, "tcPr");
 
         /// <summary>
         ///     Gets or sets the text contained in the cell.
         /// </summary>
         public string Text {
-            get => TryGetPackageText(out string text) ? text : PowerPointParagraph.ReadText(EnsureTextBody());
-
-
+            get => PowerPointParagraph.ReadBodyText(EnsureTextBody());
             set {
-                if (TrySetPackageText(value)) return;
-                Cell.TextBody ??= PowerPointTableTextDefaults.CreateTextBody();
-                A.Paragraph? sourceParagraph = Cell.TextBody.GetFirstChild<A.Paragraph>();
-                A.RunProperties? existingRunProperties = sourceParagraph?
-                    .Elements<A.Run>()
-                    .FirstOrDefault()?
-                    .RunProperties?
-                    .CloneNode(true) as A.RunProperties;
-                A.ParagraphProperties? existingParagraphProperties = sourceParagraph?.ParagraphProperties?.CloneNode(true) as A.ParagraphProperties;
-                if (existingParagraphProperties != null) {
-                    foreach (var link in existingParagraphProperties.Descendants<A.HyperlinkType>().ToArray()) link.Remove();
+                OfficeXmlNode body = EnsureTextBody();
+                // The first paragraph's properties, its first run's formatting and its end properties carry over, without
+                // the hyperlinks the old text had.
+                OfficeXmlNode source = body.Child(D, "p");
+                OfficeXmlNode paragraphProperties = source.Child(D, "pPr");
+                if (!paragraphProperties.IsNone) {
+                    paragraphProperties = paragraphProperties.Clone();
+                    foreach (OfficeXmlNode link in paragraphProperties.Descendants(D, "hlinkClick")) link.Remove();
+                    foreach (OfficeXmlNode link in paragraphProperties.Descendants(D, "hlinkMouseOver")) link.Remove();
                 }
-                A.EndParagraphRunProperties? existingEndProperties = sourceParagraph?
-                    .GetFirstChild<A.EndParagraphRunProperties>()?
-                    .CloneNode(true) as A.EndParagraphRunProperties;
+                OfficeXmlNode endProperties = source.Child(D, "endParaRPr");
+                endProperties = endProperties.IsNone ? body.CreateElement(D, "endParaRPr") : endProperties.Clone();
+                WithoutHyperlinks(endProperties);
+                string language = endProperties.Attribute("lang") ?? PowerPointTableTextDefaults.Language;
+                endProperties.SetAttribute("lang", language);
+                OfficeXmlNode runProperties = source.Child(D, "r").Child(D, "rPr");
+                runProperties = runProperties.IsNone ? body.CreateElement(D, "rPr") : runProperties.Clone();
+                WithoutHyperlinks(runProperties);
+                if (runProperties.Attribute("lang") == null) runProperties.SetAttribute("lang", language);
 
-                A.EndParagraphRunProperties endProperties = existingEndProperties
-                    ?? new A.EndParagraphRunProperties { Language = PowerPointTableTextDefaults.Language };
-                endProperties.RemoveAllChildren<A.HyperlinkOnClick>();
-                endProperties.RemoveAllChildren<A.HyperlinkOnMouseOver>();
-                endProperties.Language ??= PowerPointTableTextDefaults.Language;
-                A.RunProperties runProperties = existingRunProperties ?? new A.RunProperties();
-                runProperties.RemoveAllChildren<A.HyperlinkOnClick>();
-                runProperties.RemoveAllChildren<A.HyperlinkOnMouseOver>();
-                runProperties.Language ??= endProperties.Language?.Value ?? PowerPointTableTextDefaults.Language;
-
-                A.Paragraph paragraph = new();
-                if (existingParagraphProperties != null) {
-                    paragraph.Append(existingParagraphProperties);
-                }
-
-                paragraph.Append(PowerPointTextContent.CreateInlineContent(value, runProperties));
+                OfficeXmlNode paragraph = body.CreateElement(D, "p");
+                if (!paragraphProperties.IsNone) paragraph.Append(paragraphProperties);
+                PowerPointTextContent.InsertInlineContent(paragraph, value, runProperties, default);
                 paragraph.Append(endProperties);
 
-                foreach (var previous in Cell.TextBody.Elements<A.Paragraph>().ToArray())
-                    PowerPointTextRun.DiscardContent(previous, _ownerPart as OpenXmlPart ?? _slidePart);
-                Cell.TextBody.Append(paragraph);
+                PowerPointPartRef owner = OwnerPartRef, slide = SlidePartRef;
+                foreach (OfficeXmlNode previous in body.Children(D, "p").ToList()) PowerPointTextRun.DiscardContent(previous, owner, slide);
+                body.Append(paragraph);
+                MarkEdited();
             }
         }
 
+        private static void WithoutHyperlinks(OfficeXmlNode properties) {
+            properties.RemoveChildren(D, "hlinkClick");
+            properties.RemoveChildren(D, "hlinkMouseOver");
+        }
 
         /// <summary>
         ///     Gets or sets the merge information for this cell.
@@ -180,22 +89,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public (int rows, int columns) Merge {
             get {
-                int rows = Cell.RowSpan?.Value ?? 1;
-                int cols = Cell.GridSpan?.Value ?? 1;
-                return (rows, cols);
+                OfficeXmlNode cell = Element;
+                return (cell.Int32Attribute("rowSpan") ?? 1, cell.Int32Attribute("gridSpan") ?? 1);
             }
             set {
-                if (value.rows <= 1) {
-                    Cell.RowSpan = null;
-                } else {
-                    Cell.RowSpan = value.rows;
-                }
-
-                if (value.columns <= 1) {
-                    Cell.GridSpan = null;
-                } else {
-                    Cell.GridSpan = value.columns;
-                }
+                OfficeXmlNode cell = Element;
+                cell.SetInt32Attribute("rowSpan", value.rows <= 1 ? null : value.rows);
+                cell.SetInt32Attribute("gridSpan", value.columns <= 1 ? null : value.columns);
+                MarkEdited();
             }
         }
 
@@ -203,27 +104,27 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the horizontal alignment of the cell text.
         /// </summary>
         public PowerPointTextAlignment? HorizontalAlignment {
-            get {
-                var pPr = Cell.TextBody?.Elements<Paragraph>().FirstOrDefault()?.ParagraphProperties;
-                return pPr?.Alignment?.Value.ToOfficeEnum();
-            }
+            get => BodyElement.Child(D, "p").Child(D, "pPr").Attribute("algn") is { } token
+                && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointTextAlignment alignment) ? alignment : null;
             set {
-                Cell.TextBody ??= new A.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph());
-                var paragraph = Cell.TextBody.Elements<A.Paragraph>().First();
-                paragraph.ParagraphProperties ??= new A.ParagraphProperties();
-                paragraph.ParagraphProperties.Alignment = value?.ToOpenXml();
+                string? token = value?.ToOpenXmlToken();
+                OfficeXmlNode body = BodyElement;
+                if (body.IsNone) {
+                    body = CreateBody(withParagraph: false);
+                    body.Append(body.CreateElement(D, "p"));
+                }
+                OfficeXmlNode paragraph = body.Child(D, "p");
+                if (paragraph.IsNone) paragraph = body.Append(body.CreateElement(D, "p"));
+                paragraph.GetOrPrependChild(D, "pPr").SetAttribute("algn", token);
+                MarkEdited();
             }
         }
-
 
         /// <summary>
         ///     Gets or sets the local border color (all sides), retaining native theme slots and opacity.
         /// </summary>
         public OfficeColor? BorderColor {
-            get {
-                var line = Cell.TableCellProperties?.LeftBorderLineProperties;
-                return GetLineColor(line);
-            }
+            get => PowerPointDrawingColor.Read(PropertiesElement.Child(D, "lnL").Child(D, "solidFill"));
             set {
                 if (value == null) {
                     ClearBorders(PowerPointTableCellBorders.All);
@@ -237,14 +138,22 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Gets a value indicating whether this cell is a merged continuation cell.
         /// </summary>
-        public bool IsMergedCell =>
-            Cell.HorizontalMerge?.Value == true || Cell.VerticalMerge?.Value == true;
+        public bool IsMergedCell {
+            get {
+                OfficeXmlNode cell = Element;
+                return cell.BooleanAttribute("hMerge") == true || cell.BooleanAttribute("vMerge") == true;
+            }
+        }
 
         /// <summary>
         ///     Gets a value indicating whether this cell is the anchor for a merged range.
         /// </summary>
-        public bool IsMergeAnchor =>
-            (Cell.RowSpan?.Value ?? 1) > 1 || (Cell.GridSpan?.Value ?? 1) > 1;
+        public bool IsMergeAnchor {
+            get {
+                OfficeXmlNode cell = Element;
+                return (cell.Int32Attribute("rowSpan") ?? 1) > 1 || (cell.Int32Attribute("gridSpan") ?? 1) > 1;
+            }
+        }
 
         /// <summary>
         ///     Replaces literal text in the cell paragraphs.
@@ -256,42 +165,40 @@ namespace OfficeIMO.PowerPoint {
         /// <remarks>A match can span adjacent runs within one paragraph. Replacement text takes the formatting of the run where the match starts.</remarks>
         public int ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) {
             OfficeTextSearch.ValidateSearchText(text, nameof(text));
-            return Cell.TextBody == null ? 0 : Paragraphs.Sum(paragraph => paragraph.ReplaceAll(text, replacement, options));
+            return BodyElement.IsNone ? 0 : Paragraphs.Sum(paragraph => paragraph.ReplaceAll(text, replacement, options));
         }
 
         /// <summary>
         ///     Gets formatted runs from the first cell paragraph.
         /// </summary>
-        public IReadOnlyList<PowerPointTextRun> Runs =>
-            Cell.TextBody?
-                .Elements<A.Paragraph>()
-                .FirstOrDefault()?
-                .Elements<A.Run>()
-                .Select(run => new PowerPointTextRun(run, _slidePart, _ownerPart))
-                .ToList() ?? new List<PowerPointTextRun>();
+        public IReadOnlyList<PowerPointTextRun> Runs {
+            get {
+                var runs = new List<PowerPointTextRun>();
+                PowerPointPartRef slide = SlidePartRef, owner = OwnerPartRef;
+                foreach (OfficeXmlNode run in BodyElement.Child(D, "p").Children(D, "r")) runs.Add(new PowerPointTextRun(run, slide, owner));
+                return runs;
+            }
+        }
 
         /// <summary>
         ///     Appends text as a new run in the first cell paragraph and returns that run.
         /// </summary>
-        public PowerPointTextRun AddText(string text) =>
-            new PowerPointParagraph(EnsureParagraph(), _slidePart, _ownerPart).InsertRun(text);
+        public PowerPointTextRun AddText(string text) => ParagraphFor(EnsureParagraph()).InsertRun(text);
 
         /// <summary>
         ///     Gets or sets whether the cell text is bold. Setting applies to every run and line break in the cell.
         /// </summary>
         public bool Bold {
-            get => GetRun()?.RunProperties?.Bold?.Value == true;
-            set => FormatRuns(props => props.Bold = value);
+            get => FirstRunProperties.BooleanAttribute("b") == true;
+            set => FormatRuns(properties => properties.SetAttribute("b", value ? "1" : "0"));
         }
 
         /// <summary>
         ///     Gets or sets whether the cell text is italic.
         /// </summary>
         public bool Italic {
-            get => GetRun()?.RunProperties?.Italic?.Value == true;
-            set {
-                FormatRuns(props => props.Italic = value);
-            }
+            get => FirstRunProperties.BooleanAttribute("i") == true;
+            set => FormatRuns(properties => properties.SetAttribute("i", value ? "1" : "0"));
         }
 
         /// <summary>
@@ -299,12 +206,12 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public global::OfficeIMO.OfficeLength? FontSize {
             get {
-                int? size = GetRun()?.RunProperties?.FontSize?.Value;
+                int? size = FirstRunProperties.Int32Attribute("sz");
                 return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
                 int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
-                FormatRuns(props => props.FontSize = drawingSize);
+                FormatRuns(properties => properties.SetInt32Attribute("sz", drawingSize));
             }
         }
 
@@ -312,18 +219,18 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the font family.
         /// </summary>
         public string? FontFamily {
-            get => GetRun()?.RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
-            set => FormatRuns(props => PowerPointTextPropertyFormatting.SetFontFamily(props, value));
+            get => FirstRunProperties.Child(D, "latin").Attribute("typeface");
+            set => FormatRuns(properties => PowerPointTextPropertyFormatting.SetFontFamily(properties, value));
         }
 
         /// <summary>
         ///     Gets or sets the text color. Alpha below 255 is written as native DrawingML opacity.
         /// </summary>
         public global::OfficeIMO.OfficeColor? Color {
-            get => PowerPointDrawingColor.Read(GetRun()?.RunProperties?.GetFirstChild<A.SolidFill>());
+            get => PowerPointDrawingColor.Read(FirstRunProperties.Child(D, "solidFill"));
             set {
-                OfficeTheme theme = PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart);
-                FormatRuns(props => PowerPointTextPropertyFormatting.SetColor(props, value, theme));
+                OfficeTheme? theme = ThemeFor(value);
+                FormatRuns(properties => PowerPointTextPropertyFormatting.SetColor(properties, value, theme));
             }
         }
 
@@ -331,56 +238,52 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the left padding as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? PaddingLeft {
-            get => Cell.TableCellProperties?.LeftMargin?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.LeftMargin = ToEmus(value?.ToPoints(), EmusPerPoint);
-            }
+            get => GetMargin("marL");
+            set => SetMargin("marL", value);
         }
 
         /// <summary>
         ///     Gets or sets the right padding as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? PaddingRight {
-            get => Cell.TableCellProperties?.RightMargin?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.RightMargin = ToEmus(value?.ToPoints(), EmusPerPoint);
-            }
+            get => GetMargin("marR");
+            set => SetMargin("marR", value);
         }
 
         /// <summary>
         ///     Gets or sets the top padding as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? PaddingTop {
-            get => Cell.TableCellProperties?.TopMargin?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.TopMargin = ToEmus(value?.ToPoints(), EmusPerPoint);
-            }
+            get => GetMargin("marT");
+            set => SetMargin("marT", value);
         }
 
         /// <summary>
         ///     Gets or sets the bottom padding as a physical length.
         /// </summary>
         public global::OfficeIMO.OfficeLength? PaddingBottom {
-            get => Cell.TableCellProperties?.BottomMargin?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.BottomMargin = ToEmus(value?.ToPoints(), EmusPerPoint);
-            }
+            get => GetMargin("marB");
+            set => SetMargin("marB", value);
         }
 
-        // VerticalAlignment is supported through TableCellProperties.Anchor.   
+        private global::OfficeIMO.OfficeLength? GetMargin(string attribute) =>
+            PropertiesElement.Int32Attribute(attribute) is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
+
+        private void SetMargin(string attribute, global::OfficeIMO.OfficeLength? value) {
+            EnsureProperties().SetInt32Attribute(attribute, ToEmus(value?.ToPoints(), EmusPerPoint));
+            MarkEdited();
+        }
 
         /// <summary>
         ///     Gets or sets the vertical alignment of the cell text (top/center/bottom).
         /// </summary>
         public PowerPointTextVerticalAlignment? VerticalAlignment {
-            get => Cell.TableCellProperties?.Anchor?.Value.ToOfficeEnum();
+            get => PropertiesElement.Attribute("anchor") is { } token
+                && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointTextVerticalAlignment alignment) ? alignment : null;
             set {
-                Cell.TableCellProperties ??= new TableCellProperties();
-                Cell.TableCellProperties.Anchor = value?.ToOpenXml();
+                string? token = value?.ToOpenXmlToken();
+                EnsureProperties().SetAttribute("anchor", token);
+                MarkEdited();
             }
         }
 
@@ -389,43 +292,32 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextAutoFit? TextAutoFit {
             get {
-                A.BodyProperties? body = GetBodyProperties();
-                if (body == null) {
-                    return null;
-                }
-                if (body.GetFirstChild<A.NoAutoFit>() != null) {
-                    return PowerPointTextAutoFit.None;
-                }
-                if (body.GetFirstChild<A.NormalAutoFit>() != null) {
-                    return PowerPointTextAutoFit.Normal;
-                }
-                if (body.GetFirstChild<A.ShapeAutoFit>() != null) {
-                    return PowerPointTextAutoFit.Shape;
-                }
+                OfficeXmlNode body = BodyElement.Child(D, "bodyPr");
+                if (body.IsNone) return null;
+                if (!body.Child(D, "noAutofit").IsNone) return PowerPointTextAutoFit.None;
+                if (!body.Child(D, "normAutofit").IsNone) return PowerPointTextAutoFit.Normal;
+                if (!body.Child(D, "spAutoFit").IsNone) return PowerPointTextAutoFit.Shape;
                 return null;
             }
             set {
-                A.BodyProperties body = EnsureBodyProperties();
-                body.RemoveAllChildren<A.NoAutoFit>();
-                body.RemoveAllChildren<A.NormalAutoFit>();
-                body.RemoveAllChildren<A.ShapeAutoFit>();
-
-                if (value == null) {
-                    return;
+                OfficeXmlNode body = EnsureBodyProperties();
+                RemoveAutoFit(body);
+                if (value != null) {
+                    string name = value.Value switch {
+                        PowerPointTextAutoFit.None => "noAutofit",
+                        PowerPointTextAutoFit.Normal => "normAutofit",
+                        _ => "spAutoFit"
+                    };
+                    body.AddOrdered(D, name, ATextBodyPropertiesView.Order);
                 }
-
-                switch (value.Value) {
-                    case PowerPointTextAutoFit.None:
-                        body.Append(new A.NoAutoFit());
-                        break;
-                    case PowerPointTextAutoFit.Normal:
-                        body.Append(new A.NormalAutoFit());
-                        break;
-                    case PowerPointTextAutoFit.Shape:
-                        body.Append(new A.ShapeAutoFit());
-                        break;
-                }
+                MarkEdited();
             }
+        }
+
+        private static void RemoveAutoFit(OfficeXmlNode body) {
+            body.RemoveChildren(D, "noAutofit");
+            body.RemoveChildren(D, "normAutofit");
+            body.RemoveChildren(D, "spAutoFit");
         }
 
         /// <summary>
@@ -433,27 +325,22 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextAutoFitOptions? TextAutoFitOptions {
             get {
-                A.BodyProperties? body = GetBodyProperties();
-                A.NormalAutoFit? normal = body?.GetFirstChild<A.NormalAutoFit>();
-                if (normal == null) {
-                    return null;
-                }
-                return PowerPointTextAutoFitOptions.FromOpenXmlValues(
-                    normal.FontScale?.Value, normal.LineSpaceReduction?.Value);
+                OfficeXmlNode normal = BodyElement.Child(D, "bodyPr").Child(D, "normAutofit");
+                if (normal.IsNone) return null;
+                return PowerPointTextAutoFitOptions.FromOpenXmlValues(normal.Int32Attribute("fontScale"), normal.Int32Attribute("lnSpcReduction"));
             }
             set {
                 if (value == null) {
-                    A.BodyProperties? body = GetBodyProperties();
-                    body?.RemoveAllChildren<A.NormalAutoFit>();
+                    BodyElement.Child(D, "bodyPr").RemoveChildren(D, "normAutofit");
+                    MarkEdited();
                     return;
                 }
 
-                A.BodyProperties bodyProperties = EnsureBodyProperties();
-                bodyProperties.RemoveAllChildren<A.NoAutoFit>();
-                bodyProperties.RemoveAllChildren<A.ShapeAutoFit>();
-                A.NormalAutoFit normal = bodyProperties.GetFirstChild<A.NormalAutoFit>()
-                    ?? bodyProperties.AppendChild(new A.NormalAutoFit());
-                ApplyNormalAutoFitOptions(normal, value.Value);
+                OfficeXmlNode body = EnsureBodyProperties();
+                body.RemoveChildren(D, "noAutofit");
+                body.RemoveChildren(D, "spAutoFit");
+                ApplyNormalAutoFitOptions(body.GetOrAddChild(D, "normAutofit", ATextBodyPropertiesView.Order), value.Value);
+                MarkEdited();
             }
         }
 
@@ -463,149 +350,102 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointTableCell SetTextAutoFit(PowerPointTextAutoFit fit, PowerPointTextAutoFitOptions? options = null) {
             TextAutoFit = fit;
             if (fit == PowerPointTextAutoFit.Normal && options != null) {
-                A.BodyProperties body = EnsureBodyProperties();
-                A.NormalAutoFit normal = body.GetFirstChild<A.NormalAutoFit>()
-                    ?? body.AppendChild(new A.NormalAutoFit());
-                ApplyNormalAutoFitOptions(normal, options.Value);
+                ApplyNormalAutoFitOptions(EnsureBodyProperties().GetOrAddChild(D, "normAutofit", ATextBodyPropertiesView.Order), options.Value);
+                MarkEdited();
             }
             return this;
         }
+
+        // The cell's border elements in tcPr, by side.
+        private static readonly (PowerPointTableCellBorders Side, string Name)[] BorderElements = {
+            (PowerPointTableCellBorders.Left, "lnL"), (PowerPointTableCellBorders.Right, "lnR"),
+            (PowerPointTableCellBorders.Top, "lnT"), (PowerPointTableCellBorders.Bottom, "lnB"),
+            (PowerPointTableCellBorders.DiagonalDown, "lnTlToBr"), (PowerPointTableCellBorders.DiagonalUp, "lnBlToTr")
+        };
 
         /// <summary>
         ///     Applies border styling, retaining the existing width or dash when omitted.
         /// </summary>
         public void SetBorders(PowerPointTableCellBorders borders, OfficeColor color, OfficeLength? width = null, PowerPointLineDashStyle? dash = null) {
             ValidateBorderStyle(borders, color, width);
-            if (dash.HasValue) _ = dash.Value.ToOpenXml();
-            double? widthPoints = width?.ToPoints();
+            string? dashToken = dash?.ToOpenXmlToken();
+            int? lineWidth = width.HasValue ? PowerPointShape.ToDrawingLineWidth(width.Value, nameof(width)) : null;
+            OfficeTheme? theme = ThemeFor(color);
 
-            TableCellProperties props = EnsureProperties();
-
-            if (borders.HasFlag(PowerPointTableCellBorders.Left)) {
-                props.LeftBorderLineProperties ??= new LeftBorderLineProperties();
-                ApplyLine(props.LeftBorderLineProperties, color, widthPoints, dash);
+            OfficeXmlNode properties = EnsureProperties();
+            foreach ((PowerPointTableCellBorders side, string name) in BorderElements) {
+                if (!borders.HasFlag(side)) continue;
+                OfficeXmlNode line = properties.GetOrAddChild(D, name, ATableCellPropertiesView.Order);
+                SetBorderLineFill(line, PowerPointDrawingColor.CreateFill(line, color, theme));
+                if (lineWidth != null) line.SetInt32Attribute("w", lineWidth);
+                if (dashToken != null) {
+                    line.RemoveChildren(D, "prstDash");
+                    line.AddOrdered(D, "prstDash", ALinePropertiesView.Order).SetAttribute("val", dashToken);
+                }
             }
-            if (borders.HasFlag(PowerPointTableCellBorders.Top)) {
-                props.TopBorderLineProperties ??= new TopBorderLineProperties();
-                ApplyLine(props.TopBorderLineProperties, color, widthPoints, dash);
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.Right)) {
-                props.RightBorderLineProperties ??= new RightBorderLineProperties();
-                ApplyLine(props.RightBorderLineProperties, color, widthPoints, dash);
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.Bottom)) {
-                props.BottomBorderLineProperties ??= new BottomBorderLineProperties();
-                ApplyLine(props.BottomBorderLineProperties, color, widthPoints, dash);
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.DiagonalDown)) {
-                props.TopLeftToBottomRightBorderLineProperties ??= new TopLeftToBottomRightBorderLineProperties();
-                ApplyLine(props.TopLeftToBottomRightBorderLineProperties, color, widthPoints, dash);
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.DiagonalUp)) {
-                props.BottomLeftToTopRightBorderLineProperties ??= new BottomLeftToTopRightBorderLineProperties();
-                ApplyLine(props.BottomLeftToTopRightBorderLineProperties, color, widthPoints, dash);
-            }
+            MarkEdited();
         }
 
         /// <summary>
         ///     Clears borders on the specified sides.
         /// </summary>
         public void ClearBorders(PowerPointTableCellBorders borders) {
-            TableCellProperties props = EnsureProperties();
-
-            if (borders.HasFlag(PowerPointTableCellBorders.Left)) {
-                props.LeftBorderLineProperties = null;
+            OfficeXmlNode properties = EnsureProperties();
+            foreach ((PowerPointTableCellBorders side, string name) in BorderElements) {
+                if (borders.HasFlag(side)) properties.RemoveChildren(D, name);
             }
-            if (borders.HasFlag(PowerPointTableCellBorders.Top)) {
-                props.TopBorderLineProperties = null;
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.Right)) {
-                props.RightBorderLineProperties = null;
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.Bottom)) {
-                props.BottomBorderLineProperties = null;
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.DiagonalDown)) {
-                props.TopLeftToBottomRightBorderLineProperties = null;
-            }
-            if (borders.HasFlag(PowerPointTableCellBorders.DiagonalUp)) {
-                props.BottomLeftToTopRightBorderLineProperties = null;
-            }
-        }
-
-        private void ApplyLine(LinePropertiesType line, OfficeColor color, double? widthPoints) {
-            SetBorderLineFill(line, PowerPointDrawingColor.Fill(color, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart)));
-            if (widthPoints != null) {
-                line.Width = PowerPointShape.ToDrawingLineWidth(widthPoints.Value, nameof(widthPoints));
-            }
-        }
-
-        private void ApplyLine(LinePropertiesType line, OfficeColor color, double? widthPoints, PowerPointLineDashStyle? dash) {
-            ApplyLine(line, color, widthPoints);
-            if (dash.HasValue) {
-                line.RemoveAllChildren<A.PresetDash>();
-                line.Append(new A.PresetDash { Val = dash.Value.ToOpenXml() });
-            }
-        }
-
-        private static OfficeColor? GetLineColor(LinePropertiesType? line) {
-            return PowerPointDrawingColor.Read(line?.GetFirstChild<SolidFill>());
+            MarkEdited();
         }
 
         private static int? ToEmus(double? value, double emusPerUnit) {
             return value != null ? (int)Math.Round(value.Value * emusPerUnit) : null;
         }
 
-        private static double? FromEmus(int? emus, double emusPerUnit) {
-            return emus != null ? emus.Value / emusPerUnit : null;
+        private static void ApplyNormalAutoFitOptions(OfficeXmlNode normal, PowerPointTextAutoFitOptions options) {
+            normal.SetInt32Attribute("fontScale", options.FontScaleValue);
+            normal.SetInt32Attribute("lnSpcReduction", options.LineSpaceReductionValue);
         }
 
-        private static void ApplyNormalAutoFitOptions(A.NormalAutoFit normal, PowerPointTextAutoFitOptions options) {
-            normal.FontScale = options.FontScaleValue;
-            normal.LineSpaceReduction = options.LineSpaceReductionValue;
-        }
+        private OfficeXmlNode EnsureProperties() => Element.GetOrAddChild(D, "tcPr", ATableCellView.Order);
 
-        private TableCellProperties EnsureProperties() {
-            return Cell.TableCellProperties ??= new TableCellProperties();
-        }
-
-        private A.BodyProperties? GetBodyProperties() {
-            return Cell.TextBody?.GetFirstChild<A.BodyProperties>();
-        }
-
-        private A.BodyProperties EnsureBodyProperties() {
-            Cell.TextBody ??= new A.TextBody(new A.BodyProperties(), new A.ListStyle());
-            A.BodyProperties? body = Cell.TextBody.GetFirstChild<A.BodyProperties>();
-            if (body == null) {
-                body = new A.BodyProperties();
-                Cell.TextBody.PrependChild(body);
-            }
+        // A text body before the cell properties: body and list-style properties, with one empty paragraph when asked.
+        private OfficeXmlNode CreateBody(bool withParagraph) {
+            OfficeXmlNode cell = Element;
+            OfficeXmlNode body = cell.CreateElement(D, "txBody");
+            body.Append(body.CreateElement(D, "bodyPr"));
+            body.Append(body.CreateElement(D, "lstStyle"));
+            if (withParagraph) body.Append(PowerPointTableTextDefaults.CreateParagraph(body));
+            body = cell.InsertOrdered(body, ATableCellView.Order);
+            MarkEdited();
             return body;
         }
 
-        private A.Run? GetRun() {
-            return Cell.TextBody?
-                .Elements<A.Paragraph>()
-                .FirstOrDefault()?
-                .Elements<A.Run>()
-                .FirstOrDefault();
+        private OfficeXmlNode EnsureBodyProperties() {
+            OfficeXmlNode body = BodyElement;
+            if (body.IsNone) return CreateBody(withParagraph: false).Child(D, "bodyPr");
+            return body.GetOrPrependChild(D, "bodyPr");
         }
 
-        private A.Paragraph EnsureParagraph() {
-            Cell.TextBody ??= new A.TextBody(new A.BodyProperties(), new A.ListStyle());
-            A.Paragraph paragraph = Cell.TextBody.Elements<A.Paragraph>().FirstOrDefault() ?? new A.Paragraph();
-            if (paragraph.Parent == null) {
-                Cell.TextBody.Append(paragraph);
-            }
+        private OfficeXmlNode FirstRunProperties => BodyElement.Child(D, "p").Child(D, "r").Child(D, "rPr");
 
+        private OfficeXmlNode EnsureParagraph() {
+            OfficeXmlNode body = BodyElement;
+            if (body.IsNone) body = CreateBody(withParagraph: false);
+            OfficeXmlNode paragraph = body.Child(D, "p");
+            if (paragraph.IsNone) {
+                paragraph = body.Append(body.CreateElement(D, "p"));
+                MarkEdited();
+            }
             return paragraph;
         }
 
-        private void FormatRuns(Action<A.RunProperties> change) {
-            if (GetRun() == null) {
-                new PowerPointParagraph(EnsureParagraph(), _slidePart, _ownerPart).InsertRun(string.Empty);
-            }
-            PowerPointTextContent.FormatRuns(Cell.TextBody!, change);
+        // A paragraph wrapper held the way the cell is.
+        private PowerPointParagraph ParagraphFor(OfficeXmlNode paragraph) => new(paragraph, SlidePartRef, OwnerPartRef);
+
+        private void FormatRuns(Action<OfficeXmlNode> change) {
+            if (BodyElement.Child(D, "p").Child(D, "r").IsNone) ParagraphFor(EnsureParagraph()).InsertRun(string.Empty);
+            PowerPointTextContent.FormatRuns(BodyElement, change);
+            MarkEdited();
         }
     }
 }

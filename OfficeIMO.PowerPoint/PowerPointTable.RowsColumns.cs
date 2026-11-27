@@ -1,7 +1,5 @@
-using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTable {
@@ -12,9 +10,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointTableRow GetRow(int rowIndex) {
             ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, RowCount);
-
-            A.TableRow tableRow = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
-            return new PowerPointTableRow(this, tableRow);
+            return new PowerPointTableRow(this, NthChild(TableNode, "tr", rowIndex));
         }
 
         /// <summary>
@@ -23,9 +19,19 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointTableColumn GetColumn(int columnIndex) {
             ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, ColumnCount);
+            return new PowerPointTableColumn(this, NthChild(GridNode, "gridCol", columnIndex));
+        }
 
-            A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
-            return new PowerPointTableColumn(this, column);
+        // A new empty cell: a text body with one empty run, and empty cell properties.
+        private static OfficeXmlNode CreateEmptyCell(OfficeXmlNode context) {
+            OfficeXmlNode cell = context.CreateElement(D, "tc");
+            OfficeXmlNode body = cell.Append(cell.CreateElement(D, "txBody"));
+            body.Append(body.CreateElement(D, "bodyPr"));
+            body.Append(body.CreateElement(D, "lstStyle"));
+            OfficeXmlNode run = body.Append(body.CreateElement(D, "p")).Append(body.CreateElement(D, "r"));
+            run.Append(run.CreateElement(D, "t"));
+            cell.Append(cell.CreateElement(D, "tcPr"));
+            return cell;
         }
 
         /// <summary>
@@ -33,31 +39,22 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Optional zero-based index where the row should be inserted. If omitted, row is appended.</param>
         public PowerPointTableRow AddRow(int? index = null) {
-            A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
+            OfficeXmlNode table = TableNode;
             int columns = ColumnCount;
+            int rows = RowCount;
             var regions = CaptureMergeRegions();
-            A.TableRow row = new() { Height = 370840L };
-            for (int c = 0; c < columns; c++) {
-                A.TableCell cell = new(
-                    new A.TextBody(new A.BodyProperties(), new A.ListStyle(),
-                        new A.Paragraph(new A.Run(new A.Text(string.Empty)))),
-                    new A.TableCellProperties()
-                );
-                row.Append(cell);
-            }
+            OfficeXmlNode row = table.CreateElement(D, "tr");
+            row.SetInt64Attribute("h", 370840L);
+            for (int c = 0; c < columns; c++) row.Append(CreateEmptyCell(row));
 
-            int insertAt = index.HasValue && index.Value < RowCount ? index.Value : RowCount;
-            if (insertAt < RowCount) {
-                A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(insertAt);
-                table.InsertBefore(row, refRow);
-            } else {
-                table.Append(row);
-            }
+            int insertAt = index.HasValue && index.Value < rows ? index.Value : rows;
+            row = table.InsertBefore(row, insertAt < rows ? NthChild(table, "tr", insertAt) : default);
             if (regions.Count > 0) {
                 ShiftMergeRegionsForInsertedRow(regions, insertAt);
                 ApplyMergeRegions(regions);
             }
             SyncFrameHeightToGrid();
+            MarkEdited();
             return new PowerPointTableRow(this, row);
         }
 
@@ -68,28 +65,23 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfNegative(templateRowIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(templateRowIndex, RowCount);
 
-            A.Table table = TableElement;
+            OfficeXmlNode table = TableNode;
+            int rows = RowCount;
             var regions = CaptureMergeRegions();
             var templateHorizontalRegions = regions
                 .Where(region => region.Row <= templateRowIndex && templateRowIndex < region.Row + region.RowSpan
                     && region.ColumnSpan > 1)
                 .Select(region => (region.Row, region.Column, RowSpan: 1, region.ColumnSpan))
                 .ToList();
-            A.TableRow templateRow = table.Elements<A.TableRow>().ElementAt(templateRowIndex);
-            A.TableRow newRow = (A.TableRow)templateRow.CloneNode(true);
+            OfficeXmlNode newRow = NthChild(table, "tr", templateRowIndex).Clone();
             if (clearText) {
-                foreach (A.TableCell cell in newRow.Elements<A.TableCell>()) {
+                foreach (OfficeXmlNode cell in newRow.Children(D, "tc")) {
                     ClearCellText(cell);
                 }
             }
 
-            int insertAt = index.HasValue ? Math.Min(index.Value, RowCount) : RowCount;
-            if (insertAt < RowCount) {
-                A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(insertAt);
-                table.InsertBefore(newRow, refRow);
-            } else {
-                table.Append(newRow);
-            }
+            int insertAt = index.HasValue ? Math.Min(index.Value, rows) : rows;
+            newRow = table.InsertBefore(newRow, insertAt < rows ? NthChild(table, "tr", insertAt) : default);
             if (regions.Count > 0) {
                 ShiftMergeRegionsForInsertedRow(regions, insertAt);
                 foreach (var region in templateHorizontalRegions) {
@@ -104,6 +96,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SyncFrameHeightToGrid();
+            MarkEdited();
             return new PowerPointTableRow(this, newRow);
         }
 
@@ -112,26 +105,25 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Zero-based index of the row to remove.</param>
         public void RemoveRow(int index) {
-            A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
-            A.TableRow row = table.Elements<A.TableRow>().ElementAt(index);
+            OfficeXmlNode row = NthChild(TableNode, "tr", index);
+            if (row.IsNone) throw new ArgumentOutOfRangeException(nameof(index));
             RemoveRow(row);
         }
 
-        internal void RemoveRow(A.TableRow row) {
-            if (row.Parent == null) return;
-            int index = TableElement.Elements<A.TableRow>().ToList().IndexOf(row);
+        internal void RemoveRow(OfficeXmlNode row) {
+            if (row.Parent.IsNone) return;
+            int index = TableNode.Children(D, "tr").ToList().IndexOf(row);
             var regions = index >= 0 ? CaptureMergeRegions() : new List<(int Row, int Column, int RowSpan, int ColumnSpan)>();
             PreserveAnchorsForRemovedRow(regions, index);
-            string[] discardedSoundIds = PowerPointEmbeddedSound
-                .GetRelationshipIds(row);
+            List<string> soundIds = PowerPointTextBox.SoundIds(row);
             row.Remove();
             if (regions.Count > 0) {
                 ShiftMergeRegionsForRemovedRow(regions, index);
                 ApplyMergeRegions(regions);
             }
-            PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
-                discardedSoundIds);
+            RemoveUnusedSounds(soundIds);
             SyncFrameHeightToGrid();
+            MarkEdited();
         }
 
         /// <summary>
@@ -139,39 +131,25 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Optional zero-based index where the column should be inserted. If omitted, column is appended.</param>
         public PowerPointTableColumn AddColumn(int? index = null) {
-            A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
-            A.TableGrid grid = table.TableGrid!;
+            OfficeXmlNode table = TableNode;
+            OfficeXmlNode grid = GridNode;
             int existingColumns = ColumnCount;
+            bool inside = index.HasValue && index.Value < existingColumns;
             var regions = CaptureMergeRegions();
-            A.GridColumn gridColumn = new() { Width = 3708400L };
+            OfficeXmlNode gridColumn = grid.CreateElement(D, "gridCol");
+            gridColumn.SetInt64Attribute("w", 3708400L);
+            gridColumn = grid.InsertBefore(gridColumn, inside ? NthChild(grid, "gridCol", index!.Value) : default);
 
-            if (index.HasValue && index.Value < existingColumns) {
-                A.GridColumn refCol = grid.Elements<A.GridColumn>().ElementAt(index.Value);
-                grid.InsertBefore(gridColumn, refCol);
-            } else {
-                grid.Append(gridColumn);
-            }
-
-            foreach (A.TableRow row in table.Elements<A.TableRow>()) {
-                A.TableCell cell = new(
-                    new A.TextBody(new A.BodyProperties(), new A.ListStyle(),
-                        new A.Paragraph(new A.Run(new A.Text(string.Empty)))),
-                    new A.TableCellProperties()
-                );
-
-                if (index.HasValue && index.Value < existingColumns) {
-                    A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(index.Value);
-                    row.InsertBefore(cell, refCell);
-                } else {
-                    row.InsertBefore(cell, row.GetFirstChild<A.ExtensionList>());
-                }
+            foreach (OfficeXmlNode row in table.Children(D, "tr")) {
+                OfficeXmlNode cell = CreateEmptyCell(row);
+                row.InsertBefore(cell, inside ? NthChild(row, "tc", index!.Value) : row.Child(D, "extLst"));
             }
             if (regions.Count > 0) {
-                ShiftMergeRegionsForInsertedColumn(regions,
-                    index.HasValue && index.Value < existingColumns ? index.Value : existingColumns);
+                ShiftMergeRegionsForInsertedColumn(regions, inside ? index!.Value : existingColumns);
                 ApplyMergeRegions(regions);
             }
             SyncFrameWidthToGrid();
+            MarkEdited();
             return new PowerPointTableColumn(this, gridColumn);
         }
 
@@ -182,8 +160,9 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfNegative(templateColumnIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(templateColumnIndex, ColumnCount);
 
-            A.Table table = TableElement;
-            A.TableGrid grid = table.TableGrid ?? throw new InvalidOperationException("Table grid is missing.");
+            OfficeXmlNode table = TableNode;
+            OfficeXmlNode grid = GridNode;
+            if (grid.IsNone) throw new InvalidOperationException("Table grid is missing.");
             int existingColumns = ColumnCount;
             var regions = CaptureMergeRegions();
             var templateVerticalRegions = regions
@@ -191,30 +170,17 @@ namespace OfficeIMO.PowerPoint {
                     templateColumnIndex < region.Column + region.ColumnSpan && region.RowSpan > 1)
                 .Select(region => (region.Row, region.Column, region.RowSpan, ColumnSpan: 1))
                 .ToList();
-            A.GridColumn templateColumn = grid.Elements<A.GridColumn>().ElementAt(templateColumnIndex);
-            A.GridColumn newColumn = (A.GridColumn)templateColumn.CloneNode(true);
+            OfficeXmlNode newColumn = NthChild(grid, "gridCol", templateColumnIndex).Clone();
 
             int insertAt = index.HasValue ? Math.Min(index.Value, existingColumns) : existingColumns;
-            if (insertAt < existingColumns) {
-                A.GridColumn refColumn = grid.Elements<A.GridColumn>().ElementAt(insertAt);
-                grid.InsertBefore(newColumn, refColumn);
-            } else {
-                grid.Append(newColumn);
-            }
+            newColumn = grid.InsertBefore(newColumn, insertAt < existingColumns ? NthChild(grid, "gridCol", insertAt) : default);
 
-            foreach (A.TableRow row in table.Elements<A.TableRow>()) {
-                A.TableCell templateCell = row.Elements<A.TableCell>().ElementAt(templateColumnIndex);
-                A.TableCell newCell = (A.TableCell)templateCell.CloneNode(true);
+            foreach (OfficeXmlNode row in table.Children(D, "tr")) {
+                OfficeXmlNode newCell = NthChild(row, "tc", templateColumnIndex).Clone();
                 if (clearText) {
                     ClearCellText(newCell);
                 }
-
-                if (insertAt < existingColumns) {
-                    A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(insertAt);
-                    row.InsertBefore(newCell, refCell);
-                } else {
-                    row.InsertBefore(newCell, row.GetFirstChild<A.ExtensionList>());
-                }
+                row.InsertBefore(newCell, insertAt < existingColumns ? NthChild(row, "tc", insertAt) : row.Child(D, "extLst"));
             }
             if (regions.Count > 0) {
                 ShiftMergeRegionsForInsertedColumn(regions, insertAt);
@@ -230,6 +196,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SyncFrameWidthToGrid();
+            MarkEdited();
             return new PowerPointTableColumn(this, newColumn);
         }
 
@@ -238,28 +205,34 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Zero-based index of the column to remove.</param>
         public void RemoveColumn(int index) {
-            A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
-            A.TableGrid grid = table.TableGrid!;
+            OfficeXmlNode table = TableNode;
+            OfficeXmlNode gridColumn = NthChild(GridNode, "gridCol", index);
+            if (gridColumn.IsNone) throw new ArgumentOutOfRangeException(nameof(index));
             var regions = CaptureMergeRegions();
             PreserveAnchorsForRemovedColumn(regions, index);
-            A.TableCell[] discardedCells = table.Elements<A.TableRow>()
-                .Select(row => row.Elements<A.TableCell>().ElementAt(index))
-                .ToArray();
-            string[] discardedSoundIds = discardedCells
-                .SelectMany(PowerPointEmbeddedSound.GetRelationshipIds)
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
-            grid.Elements<A.GridColumn>().ElementAt(index).Remove();
-            foreach (A.TableCell cell in discardedCells) {
+            var discardedCells = new List<OfficeXmlNode>();
+            foreach (OfficeXmlNode row in table.Children(D, "tr")) {
+                OfficeXmlNode cell = NthChild(row, "tc", index);
+                if (cell.IsNone) throw new ArgumentOutOfRangeException(nameof(index));
+                discardedCells.Add(cell);
+            }
+            var soundIds = new List<string>();
+            foreach (OfficeXmlNode cell in discardedCells) {
+                foreach (string id in PowerPointTextBox.SoundIds(cell)) {
+                    if (!soundIds.Contains(id)) soundIds.Add(id);
+                }
+            }
+            gridColumn.Remove();
+            foreach (OfficeXmlNode cell in discardedCells) {
                 cell.Remove();
             }
             if (regions.Count > 0) {
                 ShiftMergeRegionsForRemovedColumn(regions, index);
                 ApplyMergeRegions(regions);
             }
-            PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
-                discardedSoundIds);
+            RemoveUnusedSounds(soundIds);
             SyncFrameWidthToGrid();
+            MarkEdited();
         }
     }
 }

@@ -95,7 +95,7 @@ namespace OfficeIMO.PowerPoint {
             if (GetPackage(edit: false) is not { } package) return null;
             try {
                 string? notes = FirstRelated(package, slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide", out _);
-                PackageSlideList? slides = notes == null ? null : PackageSlideList.Read(package);
+                PackageSlideList? slides = notes == null ? null : PackageSlideList.ReadPresentation(package);
                 if (notes == null || slides == null) return null;
                 string? master = FirstRelated(package, slides.Main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesMaster", out string? masterRelationship);
                 if (master == null || masterRelationship == null
@@ -120,8 +120,9 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>
         /// Adds a notes slide to a slide that has none, as the notes model creates it on first use: an empty body
-        /// placeholder, a relationship back to the slide and one to the presentation's notes master. Null, having changed
-        /// nothing, when the slide has notes or the presentation lacks a notes master the model would only use as it is.
+        /// placeholder, a relationship back to the slide and one to the presentation's notes master, which is added first
+        /// when the presentation has none. Null, having changed nothing, when the slide has notes or the presentation has a
+        /// notes master the model would repair.
         /// </summary>
         internal OfficeXmlTree? TryCreatePackageNotes(string slidePart) {
             if (GetPackage(edit: true) is not { } package) return null;
@@ -131,8 +132,13 @@ namespace OfficeIMO.PowerPoint {
                 // Notes go in a folder beside the slide's folder, which a slide at the package root doesn't have.
                 string slideDirectory = slidePart.Substring(0, slidePart.LastIndexOf('/'));
                 if (slideDirectory.LastIndexOf('/') < 0) return null;
-                if (PackageSlideList.Read(package) is not { } slides) return null;
+                if (PackageSlideList.ReadPresentation(package) is not { } slides) return null;
                 string? master = FirstRelated(package, slides.Main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesMaster", out string? masterRelationship);
+                // A presentation without a notes master gets the default one, as the model adds it on first use.
+                if (master == null && !HasRelationshipOfType(package, slides.Main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesMaster")
+                    && !TryAddPackageNotesMaster(package, slides, out master, out masterRelationship)) {
+                    return null;
+                }
                 if (master == null || masterRelationship == null
                     || FirstRelated(package, master, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "theme", out _) == null
                     || !package.GetXml(master).IsElement(package.GetXml(master).Root, OfficeXmlNamespaces.PresentationML, "notesMaster")) {

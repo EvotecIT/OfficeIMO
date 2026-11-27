@@ -1,8 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
-using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTable {
@@ -13,15 +11,11 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="row">Zero-based row index.</param>
         /// <param name="column">Zero-based column index.</param>
         public PowerPointTableCell GetCell(int row, int column) {
-            if (TryGetPackageTable(out OfficeXmlTree tree, out int packageTable)) {
-                int packageRow = NthChild(tree, packageTable, "tr", row);
-                int packageCell = packageRow == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : NthChild(tree, packageRow, "tc", column);
-                if (packageCell != OfficeXmlTree.NoNode) return new PowerPointTableCell(this, tree, packageCell, row, column);
-            }
-            A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
-            A.TableRow tableRow = table.Elements<A.TableRow>().ElementAt(row);
-            A.TableCell cell = tableRow.Elements<A.TableCell>().ElementAt(column);
-            return WrapCell(cell);
+            OfficeXmlNode tableRow = NthChild(TableNode, "tr", row);
+            if (tableRow.IsNone) throw new ArgumentOutOfRangeException(nameof(row));
+            OfficeXmlNode cell = NthChild(tableRow, "tc", column);
+            if (cell.IsNone) throw new ArgumentOutOfRangeException(nameof(column));
+            return CellFor(cell);
         }
 
         /// <summary>
@@ -136,7 +130,7 @@ namespace OfficeIMO.PowerPoint {
         public void SetCellBorders(PowerPointTableCellBorders borders, OfficeColor color, OfficeLength? width = null,
             PowerPointLineDashStyle? dash = null) {
             PowerPointTableCell.ValidateBorderStyle(borders, color, width);
-            if (dash.HasValue) _ = dash.Value.ToOpenXml();
+            if (dash.HasValue) _ = dash.Value.ToOpenXmlToken();
             ApplyToCells(cell => cell.SetBorders(borders, color, width, dash));
         }
 
@@ -174,49 +168,49 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            A.Table table = TableElement;
             DissolveMergesTouching(topRow, leftColumn, bottomRow, rightColumn);
+            List<List<OfficeXmlNode>> cells = CellNodes();
             for (int r = topRow; r <= bottomRow; r++) {
-                A.TableRow row = table.Elements<A.TableRow>().ElementAt(r);
                 for (int c = leftColumn; c <= rightColumn; c++) {
-                    A.TableCell cell = row.Elements<A.TableCell>().ElementAt(c);
-                    bool isAnchor = r == topRow && c == leftColumn;
-
-                    if (isAnchor) {
-                        cell.RowSpan = rowSpan > 1 ? rowSpan : null;
-                        cell.GridSpan = colSpan > 1 ? colSpan : null;
-                        cell.HorizontalMerge = null;
-                        cell.VerticalMerge = null;
+                    OfficeXmlNode cell = cells[r][c];
+                    if (r == topRow && c == leftColumn) {
+                        SetMerge(cell, rowSpan > 1 ? rowSpan : null, colSpan > 1 ? colSpan : null, false, false);
                         continue;
                     }
 
-                    cell.RowSpan = null;
-                    cell.GridSpan = null;
-                    cell.HorizontalMerge = c > leftColumn ? true : (bool?)null;
-                    cell.VerticalMerge = r > topRow ? true : (bool?)null;
-
+                    SetMerge(cell, null, null, c > leftColumn, r > topRow);
                     if (clearMergedContent) {
-                        ClearMergedCellText(cell);
+                        ClearCellText(cell);
                     }
                 }
             }
+            MarkEdited();
         }
 
-        private void ClearCellText(A.TableCell cell) {
-            if (cell.TextBody == null) {
-                return;
-            }
-
-            string[] discardedSoundIds = PowerPointEmbeddedSound
-                .GetRelationshipIds(cell.TextBody);
-            cell.TextBody.RemoveAllChildren<A.Paragraph>();
-            cell.TextBody.Append(new A.Paragraph(new A.Run(new A.Text(string.Empty))));
-            PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
-                discardedSoundIds);
+        // Sets a cell's spans and merge flags; null spans and false flags remove the attribute.
+        private static void SetMerge(OfficeXmlNode cell, int? rowSpan, int? gridSpan, bool horizontal, bool vertical) {
+            cell.SetInt32Attribute("rowSpan", rowSpan);
+            cell.SetInt32Attribute("gridSpan", gridSpan);
+            cell.SetAttribute("hMerge", horizontal ? "1" : null);
+            cell.SetAttribute("vMerge", vertical ? "1" : null);
         }
 
-        private void ClearMergedCellText(A.TableCell cell) {
-            ClearCellText(cell);
+        // Replaces the cell's paragraphs with one empty run, dropping the sounds the old text played.
+        private void ClearCellText(OfficeXmlNode cell) {
+            OfficeXmlNode body = cell.Child(D, "txBody");
+            if (body.IsNone) return;
+            List<string> soundIds = PowerPointTextBox.SoundIds(body);
+            body.RemoveChildren(D, "p");
+            OfficeXmlNode run = body.Append(body.CreateElement(D, "p")).Append(body.CreateElement(D, "r"));
+            run.Append(run.CreateElement(D, "t"));
+            RemoveUnusedSounds(soundIds);
+        }
+
+        private void RemoveUnusedSounds(List<string> soundIds) {
+            if (soundIds.Count == 0) return;
+            PowerPointPartRef owner = OwnerPartRef;
+            if (owner.IsNone) return;
+            foreach (string id in soundIds) owner.RemoveRelationshipIfUnused(id, default);
         }
     }
 }

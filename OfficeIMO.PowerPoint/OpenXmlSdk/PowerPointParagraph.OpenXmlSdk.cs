@@ -34,12 +34,5 @@ namespace OfficeIMO.PowerPoint {
                 return owner.Current.SdkPart as OpenXmlPart;
             }
         }
-
-        internal static string ReadText(A.Paragraph paragraph) => ReadText(OfficeXmlNode.FromSdk(paragraph));
-
-        internal static string ReadText(OpenXmlElement textBody) => ReadBodyText(OfficeXmlNode.FromSdk(textBody));
-
-        internal PowerPointTextRun InsertRun(string? text, A.RunProperties? properties) =>
-            InsertRun(text, OfficeXmlNode.FromSdk(properties));
     }
 }

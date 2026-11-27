@@ -72,5 +72,11 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>The presentation part through the SDK, opening it.</summary>
         private OpenXml.PowerPointPartRef SdkPresentationPartRef => OpenXml.PowerPointPartRef.FromSdk(SdkPresentationPart);
+
+        // The SDK document's table styles part, added with the built-in styles when it has none.
+        private OpenXml.PowerPointPartRef SdkEnsureTableStylesPart() {
+            PowerPointUtils.CreateTableStylesPart(SdkPresentationPart);
+            return OpenXml.PowerPointPartRef.FromSdk(SdkPresentationPart.TableStylesPart);
+        }
     }
 }

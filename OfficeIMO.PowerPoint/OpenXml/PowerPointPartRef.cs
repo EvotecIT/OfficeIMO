@@ -50,6 +50,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
     internal readonly struct PowerPointPartRef : IEquatable<PowerPointPartRef> {
         internal const string HyperlinkRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink";
         internal const string SlideRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide";
+        internal const string NotesSlideRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide";
         internal const string SlideLayoutRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout";
         internal const string SlideMasterRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster";
         internal const string ThemeRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme";
