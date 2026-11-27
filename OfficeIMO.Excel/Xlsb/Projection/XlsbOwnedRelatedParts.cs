@@ -4,7 +4,7 @@ using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.Xlsb.Package;
 
 namespace OfficeIMO.Excel.Xlsb.Projection {
-    /// <summary>Copies native worksheet, chart and VBA carriers into the projected workbook's owned OPC package.</summary>
+    /// <summary>Copies native worksheet and chart carriers into the projected workbook's owned OPC package.</summary>
     internal sealed class XlsbOwnedRelatedParts {
         private readonly OfficeOpcEditablePackage _package;
         private readonly XlsbWorkbook _workbook;

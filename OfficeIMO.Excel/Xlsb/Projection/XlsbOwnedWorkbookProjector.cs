@@ -14,10 +14,10 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
         private const string WorksheetContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml";
         private const string ChartsheetContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.chartsheet+xml";
 
-        // The legacy table and comment projectors and the initial custom-property load still use their own model paths.
-        // Their native contents must be preserved until those paths can run against the owned package.
+        // Tables, comments and custom properties still use their established model paths. Macro-enabled
+        // imports also use the existing path to retain their XLSX export layout and property handling.
         internal static bool CanWrite(XlsbWorkbook workbook) =>
-            workbook.Sheets.Count != 0 && workbook.CustomPropertiesXml == null
+            workbook.Sheets.Count != 0 && workbook.CustomPropertiesXml == null && workbook.VbaProjectPartName == null
             && workbook.Sheets.All(sheet => sheet.Tables.Count == 0 && sheet.Comments == null
                 && XlsbWorksheetGridProjector.CanStream(sheet));
 
@@ -97,8 +97,6 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             XlsbDefinedNameProjector.Apply(workbook, native.DefinedNames);
             if (native.CalculationProperties != null) XlsbCalculationPropertiesProjector.Apply(workbook, native.CalculationProperties);
             if (native.ThemePartName != null) related.ReplaceTheme(WorkbookPart, ThemePart, native.ThemePartName);
-            if (native.VbaProjectPartName != null)
-                related.Link(WorkbookPart, native.VbaProjectPartName, "http://schemas.microsoft.com/office/2006/relationships/vbaProject");
             if (!strings.TryWrite(package, WorkbookPart, declareNewCounts: false)) throw new InvalidOperationException("The projected workbook cannot add its shared strings.");
 
             XlsbDocumentPropertiesProjector.Apply(package, native);
