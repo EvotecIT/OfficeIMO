@@ -1,4 +1,3 @@
-using System.Globalization;
 using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Excel {
@@ -9,10 +8,15 @@ namespace OfficeIMO.Excel {
         internal string? Reference { get; set; }
 
         /// <summary>The header row count as written; null when the attribute is absent (one header row).</summary>
-        internal uint? HeaderRowCount { get; set; }
+        /// <exception cref="FormatException">The attribute is not a number, as the SDK reports it.</exception>
+        internal uint? HeaderRowCount => Count(HeaderRowCountText);
 
         /// <summary>The totals row count as written; null when the attribute is absent.</summary>
-        internal uint? TotalsRowCount { get; set; }
+        /// <exception cref="FormatException">The attribute is not a number, as the SDK reports it.</exception>
+        internal uint? TotalsRowCount => Count(TotalsRowCountText);
+
+        internal string? HeaderRowCountText { get; set; }
+        internal string? TotalsRowCountText { get; set; }
 
         internal bool TotalsRowShown { get; set; }
         internal bool HasAutoFilter { get; set; }
@@ -56,8 +60,8 @@ namespace OfficeIMO.Excel {
                         Name = Attribute(reader, "name"),
                         DisplayName = Attribute(reader, "displayName"),
                         Reference = Attribute(reader, "ref"),
-                        HeaderRowCount = UInt(reader, "headerRowCount"),
-                        TotalsRowCount = UInt(reader, "totalsRowCount"),
+                        HeaderRowCountText = Attribute(reader, "headerRowCount"),
+                        TotalsRowCountText = Attribute(reader, "totalsRowCount"),
                         TotalsRowShown = IsTrue(reader, "totalsRowShown"),
                     };
                     continue;
@@ -107,14 +111,13 @@ namespace OfficeIMO.Excel {
         private static string? Attribute(OfficeXmlPullReader reader, string name) =>
             reader.TryGetAttribute(OfficeXmlNamespaces.None, name, out string value) ? value : null;
 
-        private static uint? UInt(OfficeXmlPullReader reader, string name) =>
-            reader.TryGetAttribute(OfficeXmlNamespaces.None, name, out string value)
-            && uint.TryParse(value.Trim(XmlWhitespace), NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed) ? parsed : null;
+        // Parsed when read, as the SDK parses its attribute values, so an invalid count fails each read the same way.
+        private static uint? Count(string? text) => text == null ? null : System.Xml.XmlConvert.ToUInt32(text);
 
         private static bool IsTrue(OfficeXmlPullReader reader, string name) =>
             reader.TryGetAttribute(OfficeXmlNamespaces.None, name, out string value) && value.Trim(XmlWhitespace) is "1" or "true";
 
-        // XmlConvert, which the SDK parses these attributes with, ignores surrounding XML whitespace.
+        // XmlConvert, which the SDK parses boolean attributes with, ignores surrounding XML whitespace.
         private static readonly char[] XmlWhitespace = { ' ', '\t', '\n', '\r' };
     }
 }

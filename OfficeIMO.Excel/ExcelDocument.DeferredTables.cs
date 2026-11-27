@@ -31,7 +31,10 @@ namespace OfficeIMO.Excel {
         private DeferredTables? ReadDeferredTables() {
             ExcelDeferredWorkbook? workbook = _deferredWorkbook;
             byte[]? bytes = _deferredPackageBytes;
-            if (workbook == null || bytes == null) return null;
+            if (workbook == null || bytes == null) {
+                _deferredTables = null;
+                return null;
+            }
             object gate = Volatile.Read(ref _deferredTablesGate) ?? Interlocked.CompareExchange(ref _deferredTablesGate, new object(), null) ?? _deferredTablesGate!;
             lock (gate) {
                 DeferredTables? tables = _deferredTables;
@@ -67,8 +70,14 @@ namespace OfficeIMO.Excel {
         /// workbook reads its tables through the SDK model.
         /// </summary>
         internal bool TryGetDeferredTables(ExcelDeferredSheet? selected, out List<ExcelTableInfo> tables) {
-            tables = null!;
-            if (ReadDeferredTables() is not { } read) return false;
+            List<ExcelTableInfo>? listed = ExecuteReadWithoutMaterializing(() => ListDeferredTables(selected));
+            tables = listed!;
+            return listed != null;
+        }
+
+        // Runs under the workbook read lock, which adding sheets and saving hold for writing.
+        private List<ExcelTableInfo>? ListDeferredTables(ExcelDeferredSheet? selected) {
+            if (ReadDeferredTables() is not { } read) return null;
             List<ExcelDeferredSheet> sheets = read.Workbook.Sheets;
             if (selected != null && !sheets.Contains(selected)) {
                 throw new InvalidOperationException(
@@ -83,14 +92,16 @@ namespace OfficeIMO.Excel {
                 bool named = sheet != null && !string.IsNullOrWhiteSpace(sheet.Name);
                 foreach (ExcelTablePart table in read.ByPart[partName]) result.Add(table.ToInfo(named ? sheet!.Name : string.Empty, named ? index : -1));
             }
-            tables = result;
-            return true;
+            return result;
         }
 
         /// <summary>The table parts of a worksheet that has not opened its SDK package, or null when it reads them through the model.</summary>
-        internal List<ExcelTablePart>? TryGetDeferredTableParts(ExcelDeferredSheet sheet) =>
+        internal List<ExcelTablePart>? TryGetDeferredTableParts(ExcelDeferredSheet sheet) => ExecuteReadWithoutMaterializing(() =>
             ReadDeferredTables() is { } read && read.Workbook.Sheets.Contains(sheet) && read.ByPart.TryGetValue(sheet.PartName, out List<ExcelTablePart>? tables)
                 ? tables
-                : null;
+                : null);
+
+        /// <summary>Drops the tables read from the package the document held before a save.</summary>
+        private void ForgetDeferredTables() => _deferredTables = null;
     }
 }

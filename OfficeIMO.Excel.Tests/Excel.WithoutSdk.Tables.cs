@@ -56,6 +56,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "Ann", "Bob" }, document.Sheets[1].Table("Orders").RowsAs<Order>().Select(row => row.Customer));
         }
 
+        [Theory]
+        [InlineData("+1")]
+        [InlineData("bogus")]
+        public void AnInvalidRowCountFailsAsItDoesThroughTheModel(string count) {
+            byte[] source = RewriteTables(CreateWorkbook(), xml => xml.Replace("totalsRowCount=\"1\"", "totalsRowCount=\"" + count + "\""));
+            foreach (bool openSdkFirst in new[] { true, false }) {
+                using var document = ExcelDocument.Load(new MemoryStream(source));
+                if (openSdkFirst) Assert.NotNull(document.OpenXmlDocument);
+                Assert.Throws<FormatException>(() => document.GetTables());
+                Assert.Throws<FormatException>(() => document.Sheets[1].Table("Orders").RowsAs<Order>().ToList());
+            }
+        }
+
         [Fact]
         public void ADamagedTableOnOneWorksheetDoesNotHideTablesOnAnother() {
             byte[] source = CreateWorkbook(sumSheet: true);
