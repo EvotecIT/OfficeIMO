@@ -25,9 +25,10 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             XlsbStylesheet? styles = null) {
             using XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
                 Encoding = new UTF8Encoding(false),
-                NewLineHandling = NewLineHandling.Entitize
+                NewLineHandling = NewLineHandling.Entitize,
+                NamespaceHandling = NamespaceHandling.OmitDuplicates
             });
-            writer.WriteStartElement("worksheet", Namespace);
+            writer.WriteStartElement("x", "worksheet", Namespace);
             if (layout.IsNone) {
                 WriteGrid(writer, source, sharedStringIndex, recordMutation, includeLayout: false, styles, cancellationToken);
             } else {
@@ -35,7 +36,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     if (child.Is(OfficeXmlNamespaces.SpreadsheetML, "sheetData"))
                         WriteGrid(writer, source, sharedStringIndex, recordMutation, includeLayout: true, styles, cancellationToken);
                     else
-                        writer.WriteRaw(Encoding.UTF8.GetString(child.OuterXml()));
+                        WriteFragment(writer, child);
                 }
             }
             writer.WriteEndElement();
@@ -115,13 +116,20 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 OfficeXmlTree tree = OfficeXmlTree.Create(new OfficeXmlNamespaces.Table(), OfficeXmlNamespaces.SpreadsheetML, "rPr", 12);
                 var props = new OfficeXmlNode(tree, tree.Root);
                 XlsbStylesheetMarkup.WriteFont(props, font, run: true);
-                writer.WriteRaw(Encoding.UTF8.GetString(props.OuterXml()));
+                WriteFragment(writer, props);
             }
             writer.WriteStartElement("t", Namespace);
             writer.WriteAttributeString("xml", "space", "http://www.w3.org/XML/1998/namespace", "preserve");
             writer.WriteString(ExcelSanitizer.EncodeXString(text));
             writer.WriteEndElement();
             writer.WriteEndElement();
+        }
+
+        private static void WriteFragment(XmlWriter writer, OfficeXmlNode node) {
+            using var stream = new MemoryStream(node.OuterXml(), writable: false);
+            using XmlReader reader = XmlReader.Create(stream);
+            reader.MoveToContent();
+            writer.WriteNode(reader, defattr: true);
         }
 
         private static (string? Type, string? Value) CellValue(XlsbCell cell, Func<string, int?> sharedStringIndex) {

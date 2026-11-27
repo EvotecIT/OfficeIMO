@@ -45,9 +45,11 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             int firstSheet = (int)Math.Min(native.FirstSheet ?? 0U, (uint)(native.Sheets.Count - 1));
             int active = ChooseVisibleTab(native.Sheets, originalActive);
             if (active != originalActive && firstSheet > active) firstSheet = active;
-            OfficeXmlNode view = XlsbWorksheetMarkup.Append(XlsbWorkbookMarkup.Add(workbook, "bookViews"), "workbookView");
-            if (active != 0 || originalActive != 0 || firstSheet != 0) view.SetUInt32Attribute("activeTab", (uint)active);
-            if (firstSheet != 0) view.SetUInt32Attribute("firstSheet", (uint)firstSheet);
+            if (active != 0 || originalActive != 0 || firstSheet != 0) {
+                OfficeXmlNode view = XlsbWorksheetMarkup.Append(XlsbWorkbookMarkup.Add(workbook, "bookViews"), "workbookView");
+                view.SetUInt32Attribute("activeTab", (uint)active);
+                if (firstSheet != 0) view.SetUInt32Attribute("firstSheet", (uint)firstSheet);
+            }
             OfficeXmlNode sheets = XlsbWorkbookMarkup.Add(workbook, "sheets");
 
             ExcelDeferredSharedStrings strings = ExcelDeferredSharedStrings.Load(package, partName: null)!;

@@ -67,8 +67,6 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
 
         /// <summary>Writes a font record as either a cell font or the font properties of an inline text run.</summary>
         internal static void WriteFont(OfficeXmlNode node, XlsbFont source, bool run) {
-            SetValue(node, run ? "rFont" : "name", source.Name);
-            Add(node, "sz").SetDoubleAttribute("val", source.HeightTwips / 20D);
             if (source.Weight >= 700) Add(node, "b");
             if ((source.Flags & 0x0002) != 0) Add(node, "i");
             if ((source.Flags & 0x0008) != 0) Add(node, "strike");
@@ -81,7 +79,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             };
             if (underline != null) SetValue(node, "u", underline);
             if (source.Script is 1 or 2) SetValue(node, "vertAlign", source.Script == 1 ? "superscript" : "subscript");
+            Add(node, "sz").SetDoubleAttribute("val", source.HeightTwips / 20D);
             if (source.Color != null) WriteColor(Add(node, "color"), source.Color);
+            SetValue(node, run ? "rFont" : "name", source.Name);
             if (source.Family != 0) Add(node, "family").SetUInt32Attribute("val", source.Family);
             if (source.CharacterSet != 1) Add(node, "charset").SetUInt32Attribute("val", source.CharacterSet);
             if (source.Scheme is 1 or 2) SetValue(node, "scheme", source.Scheme == 1 ? "major" : "minor");
