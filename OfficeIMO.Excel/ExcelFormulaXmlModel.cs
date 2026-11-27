@@ -619,7 +619,10 @@ namespace OfficeIMO.Excel {
             return new List<ExcelFormulaDefinedName>(_definedNames!);
         }
 
-        internal override ExcelSheet CreateSheet(ExcelFormulaSheetEntry entry) => new ExcelSheet(_document, (ExcelDeferredSheet)entry.Element);
+        // An entry read before the workbook changed models is found again by its name.
+        internal override ExcelSheet CreateSheet(ExcelFormulaSheetEntry entry) => entry.Element is ExcelDeferredSheet sheet
+            ? new ExcelSheet(_document, sheet)
+            : _document.FindSheetForFormulas(entry.Name ?? string.Empty) ?? throw new InvalidOperationException("The worksheet '" + entry.Name + "' is no longer part of the workbook.");
 
         /// <summary>Reads the workbook part and the shared strings; false when either needs the model.</summary>
         internal bool TryReadParts() {

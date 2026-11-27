@@ -111,12 +111,33 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        private static byte[] Package(params Row[] rows) {
+        [Fact]
+        public void NamesResolvedBeforeTheSdkOpensStillReachOtherSheets() {
+            // A1 reads a name, B1's #CALC! opens the SDK model, then C1 reads a name scoped to another sheet.
+            byte[] source = Package(new[] {
+                new Row(
+                    FormulaCell("A1", new CellFormula("First"), "0"),
+                    FormulaCell("B1", new CellFormula("SEQUENCE(0)") { FormulaType = CellFormulaValues.Array, Reference = "B1" }, "0"),
+                    FormulaCell("C1", new CellFormula("Other!Second"), "0")) { RowIndex = 1U } },
+                new DefinedNames(new DefinedName("Other!$A$1") { Name = "First" }, new DefinedName("Other!$A$2") { Name = "Second", LocalSheetId = 1U }),
+                new Row(Number("A1", "3")) { RowIndex = 1U }, new Row(Number("A2", "4")) { RowIndex = 2U });
+            Assert.Equal(CellsOf(Calculate(source, openSdkFirst: true, edit: false)), CellsOf(Calculate(source, openSdkFirst: false, edit: false)));
+        }
+
+        private static byte[] Package(params Row[] rows) => Package(rows, null);
+
+        private static byte[] Package(Row[] rows, DefinedNames? names, params Row[] otherRows) {
             using var stream = new MemoryStream();
             using (SpreadsheetDocument package = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook)) {
                 WorkbookPart workbook = package.AddWorkbookPart();
-                workbook.Workbook = new Workbook(new Sheets(new Sheet { Name = "Data", SheetId = 1U, Id = "rId1" }));
+                var sheets = new Sheets(new Sheet { Name = "Data", SheetId = 1U, Id = "rId1" });
+                workbook.Workbook = new Workbook(sheets);
                 workbook.AddNewPart<WorksheetPart>("rId1").Worksheet = new Worksheet(new SheetData(rows));
+                if (otherRows.Length > 0) {
+                    sheets.Append(new Sheet { Name = "Other", SheetId = 2U, Id = "rId2" });
+                    workbook.AddNewPart<WorksheetPart>("rId2").Worksheet = new Worksheet(new SheetData(otherRows));
+                }
+                if (names != null) workbook.Workbook.Append(names);
             }
             return stream.ToArray();
         }

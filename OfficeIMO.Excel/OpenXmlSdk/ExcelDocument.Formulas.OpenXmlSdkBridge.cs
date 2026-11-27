@@ -40,8 +40,10 @@ namespace OfficeIMO.Excel {
                 return names;
             }
 
-            internal override ExcelSheet CreateSheet(ExcelFormulaSheetEntry entry) =>
-                new ExcelSheet(_document, _document._spreadSheetDocument, (Sheet)entry.Element);
+            // An entry read from the workbook's XML before the SDK package opened is found again by its name.
+            internal override ExcelSheet CreateSheet(ExcelFormulaSheetEntry entry) => entry.Element is Sheet sheet
+                ? new ExcelSheet(_document, _document._spreadSheetDocument, sheet)
+                : _document.FindSheetForFormulas(entry.Name ?? string.Empty) ?? throw new InvalidOperationException("The worksheet '" + entry.Name + "' is no longer part of the workbook.");
 
             internal override IEnumerable<(ExcelFormulaSheetEntry Sheet, ExcelFormulaTable Table)> Tables() {
                 foreach ((Sheet sheet, WorksheetPart? part) in Sheets()) {
