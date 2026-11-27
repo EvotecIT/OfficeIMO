@@ -266,10 +266,12 @@ namespace OfficeIMO.Word {
                 return token != null && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordNumberFormat format) ? format : WordNumberFormat.Decimal;
             }
             set {
-                // A new element, as the format replaces any other attributes the old one had.
+                // A new element, as the format replaces any other attributes the old one had. The token is resolved
+                // first, so an undefined format leaves the level as it was.
+                string token = value.ToOpenXmlToken();
                 OfficeXmlNode existing = Node.Child(W, "numFmt");
                 if (!existing.IsNone) existing.Remove();
-                Node.AddOrdered(W, "numFmt", WLvlView.Order).SetAttribute(W, "val", value.ToOpenXmlToken());
+                Node.AddOrdered(W, "numFmt", WLvlView.Order).SetAttribute(W, "val", token);
             }
         }
 
@@ -296,13 +298,19 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets the physical text indentation for this level.</summary>
         public OfficeLength IndentationLeft {
             get => ReadTwips(GetIndentationElement().Attribute(W, "left"));
-            set => GetIndentationElement().SetAttribute(W, "left", checked((int)value.ToTwips()).ToString(CultureInfo.InvariantCulture));
+            set {
+                string twips = checked((int)value.ToTwips()).ToString(CultureInfo.InvariantCulture);
+                GetIndentationElement().SetAttribute(W, "left", twips);
+            }
         }
 
         /// <summary>Gets or sets the physical number position for this level.</summary>
         public OfficeLength IndentationHanging {
             get => ReadTwips(GetIndentationElement().Attribute(W, "hanging"));
-            set => GetIndentationElement().SetAttribute(W, "hanging", checked((int)value.ToTwips()).ToString(CultureInfo.InvariantCulture));
+            set {
+                string twips = checked((int)value.ToTwips()).ToString(CultureInfo.InvariantCulture);
+                GetIndentationElement().SetAttribute(W, "hanging", twips);
+            }
         }
 
         private static OfficeLength ReadTwips(string? value) {
@@ -323,7 +331,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordListLevelAlignment LevelJustification {
             get => ReadLevelJustification(ReadValue(GetValueElement("lvlJc", "left"), "left", static token => ReadLevelJustification(token) != null))!.Value;
-            set => GetValueElement("lvlJc", "left").SetAttribute(W, "val", value.ToOpenXmlToken());
+            set {
+                string token = value.ToOpenXmlToken();
+                GetValueElement("lvlJc", "left").SetAttribute(W, "val", token);
+            }
         }
 
         /// <summary>
@@ -336,7 +347,10 @@ namespace OfficeIMO.Word {
                 WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordListLevelSuffix suffix);
                 return suffix;
             }
-            set => GetValueElement("suff", "tab").SetAttribute(W, "val", value.ToOpenXmlToken());
+            set {
+                string token = value.ToOpenXmlToken();
+                GetValueElement("suff", "tab").SetAttribute(W, "val", token);
+            }
         }
 
         /// <summary>

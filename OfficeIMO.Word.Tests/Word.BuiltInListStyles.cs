@@ -74,4 +74,21 @@ public partial class Word {
         Assert.Equal("Wingdings", added.NumberingSymbolRunProperties!.GetFirstChild<RunFonts>()!.Ascii!.Value);
         Assert.Equal("§", level.LevelText);
     }
+
+    [Fact]
+    public void FailedLevelEditsLeaveTheListAsItWas() {
+        using var document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        WordListLevel level = list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
+
+        // A level a list already holds can't be added again, and trying changes nothing.
+        Assert.Throws<InvalidOperationException>(() => list.Numbering.AddLevel(level));
+        Assert.Equal(new[] { 0 }, list.Numbering.Levels.Select(existing => existing.LevelIndex));
+
+        // An undefined format or an indentation beyond the range Word stores is rejected before the level changes.
+        Assert.ThrowsAny<ArgumentException>(() => level.NumberFormat = (WordNumberFormat)(-1));
+        Assert.Equal(WordNumberFormat.None, level.NumberFormat);
+        Assert.Throws<OverflowException>(() => level.IndentationLeft = OfficeIMO.OfficeLength.Points(double.MaxValue / 100));
+        Assert.Null(level.OpenXmlLevel().PreviousParagraphProperties);
+    }
 }

@@ -117,15 +117,15 @@ namespace OfficeIMO.Word {
         /// <param name="wordListLevel">The word list level.</param>
         public WordListLevel AddLevel(WordListLevel wordListLevel) {
             ArgumentNullException.ThrowIfNull(wordListLevel);
-
-            int levelIndex = GetNextLevelIndex;
-            wordListLevel.SetLevelIndex(levelIndex);
-            // The placeholder %CurrentLevel in the level text stands for the level's own number.
+            if (!wordListLevel.Node.Parent.IsNone) throw new InvalidOperationException("The level already belongs to a list.");
             OfficeXmlNode levelText = wordListLevel.Node.Child(W, "lvlText");
             if (levelText.IsNone) throw new InvalidOperationException("Level text element is missing.");
+
+            int levelIndex = GetNextLevelIndex;
+            // The placeholder %CurrentLevel in the level text stands for the level's own number.
             levelText.SetAttribute(W, "val", (levelText.Attribute(W, "val") ?? string.Empty)
                 .Replace("%CurrentLevel", "%" + (levelIndex + 1).ToString(CultureInfo.InvariantCulture)));
-            wordListLevel.Node = AddLevel(wordListLevel.Node);
+            wordListLevel.Node = Append(wordListLevel.Node, levelIndex);
             return wordListLevel;
         }
 
@@ -135,8 +135,12 @@ namespace OfficeIMO.Word {
         /// <param name="level">The detached <c>w:lvl</c> element.</param>
         internal OfficeXmlNode AddLevel(OfficeXmlNode level) {
             if (level.IsNone) throw new ArgumentNullException(nameof(level));
+            if (!level.Parent.IsNone) throw new InvalidOperationException("The level already belongs to a list.");
+            return Append(level, GetNextLevelIndex);
+        }
 
-            level.SetAttribute(W, "ilvl", GetNextLevelIndex.ToString(CultureInfo.InvariantCulture));
+        private OfficeXmlNode Append(OfficeXmlNode level, int levelIndex) {
+            level.SetAttribute(W, "ilvl", levelIndex.ToString(CultureInfo.InvariantCulture));
             OfficeXmlNode added = _abstractNum.Append(level);
             WordListNumberingResolver.InvalidateNumbering(_abstractNum.AncestorOrSelf(W, "numbering").SdkElement);
             return added;

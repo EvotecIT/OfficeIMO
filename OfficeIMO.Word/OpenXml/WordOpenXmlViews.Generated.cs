@@ -20,8 +20,8 @@ internal readonly partial struct WDocumentView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "background", "body" }, new int[] { 0, 1 });
 
     internal string? Conformance {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "conformance");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "conformance", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "conformance");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "conformance", value);
     }
 
     internal string? Ignorable {
@@ -85,28 +85,28 @@ internal readonly partial struct WPView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.Math, OfficeXmlNamespaces.Math, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "pPr", "customXml", "smartTag", "sdt", "dir", "bdo", "r", "proofErr", "permStart", "permEnd", "bookmarkStart", "bookmarkEnd", "moveFromRangeStart", "moveFromRangeEnd", "moveToRangeStart", "moveToRangeEnd", "commentRangeStart", "commentRangeEnd", "customXmlInsRangeStart", "customXmlInsRangeEnd", "customXmlDelRangeStart", "customXmlDelRangeEnd", "customXmlMoveFromRangeStart", "customXmlMoveFromRangeEnd", "customXmlMoveToRangeStart", "customXmlMoveToRangeEnd", "ins", "del", "moveFrom", "moveTo", "oMathPara", "oMath", "fldSimple", "hyperlink", "subDoc" }, new int[] { 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 });
 
     internal string? RsidRPr {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidRPr");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidRPr", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidRPr");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidRPr", value);
     }
 
     internal string? RsidR {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidR");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidR", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidR");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidR", value);
     }
 
     internal string? RsidDel {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidDel");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidDel", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidDel");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidDel", value);
     }
 
     internal string? RsidP {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidP");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidP", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidP");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidP", value);
     }
 
     internal string? RsidRDefault {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidRDefault");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidRDefault", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidRDefault");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidRDefault", value);
     }
 
     internal WPPrView? PPr {
@@ -701,18 +701,18 @@ internal readonly partial struct WRView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "rPr", "br", "t", "contentPart", "delText", "instrText", "delInstrText", "noBreakHyphen", "softHyphen", "dayShort", "monthShort", "yearShort", "dayLong", "monthLong", "yearLong", "annotationRef", "footnoteRef", "endnoteRef", "separator", "continuationSeparator", "sym", "pgNum", "cr", "tab", "object", "pict", "fldChar", "ruby", "footnoteReference", "endnoteReference", "commentReference", "drawing", "ptab", "lastRenderedPageBreak" }, new int[] { 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 });
 
     internal string? RsidRPr {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidRPr");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidRPr", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidRPr");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidRPr", value);
     }
 
     internal string? RsidDel {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidDel");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidDel", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidDel");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidDel", value);
     }
 
     internal string? RsidR {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidR");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidR", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidR");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidR", value);
     }
 
     internal WRPrView? RPr {
@@ -1123,13 +1123,13 @@ internal readonly partial struct WBrView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Type {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "type");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "type", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "type");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "type", value);
     }
 
     internal string? Clear {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "clear");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "clear", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "clear");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "clear", value);
     }
 }
 
@@ -1147,8 +1147,8 @@ internal readonly partial struct WOnOffView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 }
 
@@ -1166,8 +1166,8 @@ internal readonly partial struct WHpsMeasureView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 }
 
@@ -1185,23 +1185,23 @@ internal readonly partial struct WColorView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 
     internal string? ThemeColor {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeColor");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeColor", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeColor");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeColor", value);
     }
 
     internal string? ThemeTint {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeTint");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeTint", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeTint");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeTint", value);
     }
 
     internal string? ThemeShade {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeShade");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeShade", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeShade");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeShade", value);
     }
 }
 
@@ -1219,28 +1219,28 @@ internal readonly partial struct WUnderlineView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 
     internal string? Color {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "color");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "color", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "color");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "color", value);
     }
 
     internal string? ThemeColor {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeColor");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeColor", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeColor");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeColor", value);
     }
 
     internal string? ThemeTint {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeTint");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeTint", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeTint");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeTint", value);
     }
 
     internal string? ThemeShade {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeShade");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeShade", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeShade");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeShade", value);
     }
 }
 
@@ -1258,8 +1258,8 @@ internal readonly partial struct WHighlightView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 }
 
@@ -1277,48 +1277,48 @@ internal readonly partial struct WFontsView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Hint {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "hint");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "hint", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "hint");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "hint", value);
     }
 
     internal string? Ascii {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "ascii");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "ascii", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "ascii");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "ascii", value);
     }
 
     internal string? HAnsi {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "hAnsi");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "hAnsi", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "hAnsi");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "hAnsi", value);
     }
 
     internal string? EastAsia {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "eastAsia");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "eastAsia", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "eastAsia");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "eastAsia", value);
     }
 
     internal string? Cs {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "cs");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "cs", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "cs");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "cs", value);
     }
 
     internal string? AsciiTheme {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "asciiTheme");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "asciiTheme", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "asciiTheme");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "asciiTheme", value);
     }
 
     internal string? HAnsiTheme {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "hAnsiTheme");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "hAnsiTheme", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "hAnsiTheme");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "hAnsiTheme", value);
     }
 
     internal string? EastAsiaTheme {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "eastAsiaTheme");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "eastAsiaTheme", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "eastAsiaTheme");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "eastAsiaTheme", value);
     }
 
     internal string? Cstheme {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "cstheme");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "cstheme", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "cstheme");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "cstheme", value);
     }
 }
 
@@ -1336,8 +1336,8 @@ internal readonly partial struct WJcView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 }
 
@@ -1355,8 +1355,8 @@ internal readonly partial struct WStringView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 }
 
@@ -1374,8 +1374,8 @@ internal readonly partial struct WVerticalAlignRunView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 }
 
@@ -1393,23 +1393,23 @@ internal readonly partial struct WSectPrView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "headerReference", "footerReference", "footnotePr", "endnotePr", "type", "pgSz", "pgMar", "paperSrc", "pgBorders", "lnNumType", "pgNumType", "cols", "formProt", "vAlign", "noEndnote", "titlePg", "textDirection", "bidi", "rtlGutter", "docGrid", "printerSettings", "sectPrChange" }, new int[] { 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 });
 
     internal string? RsidRPr {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidRPr");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidRPr", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidRPr");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidRPr", value);
     }
 
     internal string? RsidDel {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidDel");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidDel", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidDel");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidDel", value);
     }
 
     internal string? RsidR {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidR");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidR", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidR");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidR", value);
     }
 
     internal string? RsidSect {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "rsidSect");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rsidSect", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "rsidSect");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rsidSect", value);
     }
 
     internal WOnOffView? FormProt {
@@ -1472,43 +1472,43 @@ internal readonly partial struct WSpacingView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Before {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "before");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "before", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "before");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "before", value);
     }
 
     internal int? BeforeLines {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "beforeLines");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "beforeLines", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "beforeLines");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "beforeLines", value);
     }
 
     internal string? BeforeAutospacing {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "beforeAutospacing");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "beforeAutospacing", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "beforeAutospacing");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "beforeAutospacing", value);
     }
 
     internal string? After {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "after");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "after", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "after");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "after", value);
     }
 
     internal int? AfterLines {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "afterLines");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "afterLines", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "afterLines");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "afterLines", value);
     }
 
     internal string? AfterAutospacing {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "afterAutospacing");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "afterAutospacing", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "afterAutospacing");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "afterAutospacing", value);
     }
 
     internal string? Line {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "line");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "line", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "line");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "line", value);
     }
 
     internal string? LineRule {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "lineRule");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "lineRule", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "lineRule");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "lineRule", value);
     }
 }
 
@@ -1526,63 +1526,63 @@ internal readonly partial struct WIndView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Start {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "start");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "start", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "start");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "start", value);
     }
 
     internal int? StartChars {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "startChars");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "startChars", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "startChars");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "startChars", value);
     }
 
     internal string? End {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "end");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "end", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "end");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "end", value);
     }
 
     internal int? EndChars {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "endChars");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "endChars", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "endChars");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "endChars", value);
     }
 
     internal string? Left {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "left");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "left", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "left");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "left", value);
     }
 
     internal int? LeftChars {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "leftChars");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "leftChars", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "leftChars");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "leftChars", value);
     }
 
     internal string? Right {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "right");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "right", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "right");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "right", value);
     }
 
     internal int? RightChars {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "rightChars");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "rightChars", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rightChars");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "rightChars", value);
     }
 
     internal string? Hanging {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "hanging");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "hanging", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "hanging");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "hanging", value);
     }
 
     internal int? HangingChars {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "hangingChars");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "hangingChars", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "hangingChars");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "hangingChars", value);
     }
 
     internal string? FirstLine {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "firstLine");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "firstLine", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "firstLine");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "firstLine", value);
     }
 
     internal int? FirstLineChars {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "firstLineChars");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "firstLineChars", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "firstLineChars");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "firstLineChars", value);
     }
 }
 
@@ -1600,8 +1600,8 @@ internal readonly partial struct WSignedTwipsMeasureView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 }
 
@@ -1619,8 +1619,8 @@ internal readonly partial struct WTextEffectView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 }
 
@@ -1638,48 +1638,48 @@ internal readonly partial struct WShdView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 
     internal string? Color {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "color");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "color", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "color");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "color", value);
     }
 
     internal string? ThemeColor {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeColor");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeColor", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeColor");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeColor", value);
     }
 
     internal string? ThemeTint {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeTint");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeTint", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeTint");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeTint", value);
     }
 
     internal string? ThemeShade {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeShade");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeShade", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeShade");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeShade", value);
     }
 
     internal string? Fill {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "fill");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "fill", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "fill");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "fill", value);
     }
 
     internal string? ThemeFill {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeFill");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeFill", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeFill");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeFill", value);
     }
 
     internal string? ThemeFillTint {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeFillTint");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeFillTint", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeFillTint");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeFillTint", value);
     }
 
     internal string? ThemeFillShade {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "themeFillShade");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "themeFillShade", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "themeFillShade");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "themeFillShade", value);
     }
 }
 
@@ -1697,8 +1697,8 @@ internal readonly partial struct WEmView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 }
 
@@ -1716,18 +1716,18 @@ internal readonly partial struct WLanguageView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
 
     internal string? Val {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "val");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "val", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "val");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "val", value);
     }
 
     internal string? EastAsia {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "eastAsia");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "eastAsia", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "eastAsia");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "eastAsia", value);
     }
 
     internal string? Bidi {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "bidi");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "bidi", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "bidi");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "bidi", value);
     }
 }
 
@@ -1777,8 +1777,8 @@ internal readonly partial struct WAbstractNumView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "nsid", "multiLevelType", "tmpl", "name", "styleLink", "numStyleLink", "lvl" }, new int[] { 0, 1, 2, 3, 4, 5, 6 });
 
     internal int? AbstractNumId {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "abstractNumId");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "abstractNumId", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "abstractNumId");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "abstractNumId", value);
     }
 
     internal WStringView? Name {
@@ -1832,18 +1832,18 @@ internal readonly partial struct WLvlView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "start", "numFmt", "lvlRestart", "pStyle", "isLgl", "suff", "lvlText", "lvlPicBulletId", "legacy", "lvlJc", "pPr", "rPr" }, new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 });
 
     internal int? Ilvl {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "ilvl");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "ilvl", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "ilvl");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "ilvl", value);
     }
 
     internal string? Tplc {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "tplc");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "tplc", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "tplc");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "tplc", value);
     }
 
     internal string? Tentative {
-        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "tentative");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "tentative", value);
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.WordprocessingML, "tentative");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "tentative", value);
     }
 
     internal WStringView? PStyle {
@@ -1897,8 +1897,8 @@ internal readonly partial struct WNumView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "abstractNumId", "lvlOverride" }, new int[] { 0, 1 });
 
     internal int? NumId {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "numId");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "numId", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "numId");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "numId", value);
     }
 
     internal OfficeXmlElementList LvlOverrideList => new(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "lvlOverride");
@@ -1925,8 +1925,8 @@ internal readonly partial struct WNumLvlView {
     internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "startOverride", "lvl" }, new int[] { 0, 1 });
 
     internal int? Ilvl {
-        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "ilvl");
-        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "ilvl", value);
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "ilvl");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "ilvl", value);
     }
 
     internal WLvlView? Lvl {
