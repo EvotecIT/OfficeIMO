@@ -197,7 +197,7 @@ namespace OfficeIMO.PowerPoint {
                 using var replacement = new MemoryStream(workbook,
                     writable: false);
                 embedded.FeedData(replacement);
-                Save();
+                MarkChartEdited();
             } catch {
                 try {
                     chartPart.ChartSpace = originalChartSpace;

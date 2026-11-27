@@ -1,8 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
         //     Represents a chart on a slide.
@@ -14,19 +11,18 @@ namespace OfficeIMO.PowerPoint {
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
-            ChartPart chartPart = GetChartPart();
-            C.ChartSpace? chartSpace = chartPart.ChartSpace;
-            if (chartSpace == null) {
+            OfficeXmlNode chartSpace = ChartSpaceNode;
+            if (chartSpace.IsNone) {
                 return this;
             }
 
-            C.ShapeProperties props = chartSpace.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
-            ApplyAreaStyle(props, fillColor, lineColor, lineWidth, noFill, noLine);
-            if (props.Parent == null) {
-                InsertChartSpaceShapeProperties(chartSpace, props);
+            OfficeXmlNode props = chartSpace.Child(CNs, "spPr");
+            if (props.IsNone) {
+                props = InsertChartSpaceShapeProperties(chartSpace, chartSpace.CreateElement(CNs, "spPr"));
             }
+            ApplyAreaStyle(props, fillColor, lineColor, lineWidth, noFill, noLine);
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -37,19 +33,18 @@ namespace OfficeIMO.PowerPoint {
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ShapeProperties props = plotArea.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
-            ApplyAreaStyle(props, fillColor, lineColor, lineWidth, noFill, noLine);
-            if (props.Parent == null) {
-                InsertPlotAreaShapeProperties(plotArea, props);
+            OfficeXmlNode props = plotArea.Child(CNs, "spPr");
+            if (props.IsNone) {
+                props = InsertPlotAreaShapeProperties(plotArea, plotArea.CreateElement(CNs, "spPr"));
             }
+            ApplyAreaStyle(props, fillColor, lineColor, lineWidth, noFill, noLine);
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -72,7 +67,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -96,7 +91,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -107,14 +102,14 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                series.RemoveAllChildren<C.Trendline>();
+                series.RemoveChildren(CNs, "trendline");
             });
 
             if (!applied) {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -125,71 +120,40 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(seriesName);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                series.RemoveAllChildren<C.Trendline>();
+                series.RemoveChildren(CNs, "trendline");
             });
 
             if (!applied) {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
-        private PowerPointChart ClearValueAxisDisplayUnits(Func<C.ValueAxis, bool>? predicate) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+        private PowerPointChart ClearValueAxisDisplayUnits(Func<OfficeXmlNode, bool>? predicate) {
+            OfficeXmlNode axis = FindAxis(ValueAxisName, predicate);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = predicate == null
-                ? plotArea.Elements<C.ValueAxis>().FirstOrDefault()
-                : plotArea.Elements<C.ValueAxis>().FirstOrDefault(predicate);
-            if (axis == null) {
-                return this;
-            }
-
-            axis.GetFirstChild<C.DisplayUnits>()?.Remove();
-            Save();
+            OfficeXmlNode displayUnits = axis.Child(CNs, "dispUnits");
+            if (displayUnits.Exists) displayUnits.Remove();
+            MarkChartEdited();
             return this;
         }
 
-        private PowerPointChart ApplyToAllDataLabels(Action<C.DataLabels> apply) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+        private PowerPointChart ApplyToAllDataLabels(Action<OfficeXmlNode> apply) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                apply(EnsureDataLabels(barChart));
+            foreach (OfficeXmlNode chartGroup in DataLabelGroups(plotArea)) {
+                apply(EnsureDataLabels(chartGroup));
             }
 
-            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                apply(EnsureDataLabels(lineChart));
-            }
-
-            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                apply(EnsureDataLabels(areaChart));
-            }
-
-            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                apply(EnsureDataLabels(pieChart));
-            }
-
-            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                apply(EnsureDataLabels(doughnutChart));
-            }
-
-            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                apply(EnsureDataLabels(scatterChart));
-            }
-            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
-                apply(EnsureDataLabels(bubbleChart));
-            }
-
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -197,22 +161,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the category axis orientation (normal or reversed order).
         /// </summary>
         public PowerPointChart SetCategoryAxisReverseOrder(bool reverseOrder = true) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode axis = FindAxis(CategoryAxisName, null);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.CategoryAxis? axis = plotArea.Elements<C.CategoryAxis>().FirstOrDefault();
-            if (axis == null) {
-                return this;
-            }
-
-            C.Scaling scaling = EnsureScaling(axis);
-            ReplaceChild(scaling, new C.Orientation {
-                Val = reverseOrder ? C.OrientationValues.MaxMin : C.OrientationValues.MinMax
-            });
-            Save();
+            OfficeXmlNode scaling = EnsureScaling(axis);
+            ReplaceValChild(scaling, "orientation", reverseOrder ? "maxMin" : "minMax");
+            MarkChartEdited();
             return this;
         }
 
@@ -224,19 +180,13 @@ namespace OfficeIMO.PowerPoint {
             bool? reverseOrder = null, bool? logScale = null) {
             ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale, logBase);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
-                return this;
-            }
-
-            C.ValueAxis? axis = plotArea.Elements<C.ValueAxis>().FirstOrDefault();
-            if (axis == null) {
+            OfficeXmlNode axis = FindAxis(ValueAxisName, null);
+            if (axis.IsNone) {
                 return this;
             }
 
             ApplyAxisScale(axis, minimum, maximum, majorUnit, minorUnit, reverseOrder, logScale, logBase);
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -248,19 +198,13 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
-                return this;
-            }
-
-            C.CategoryAxis? axis = plotArea.Elements<C.CategoryAxis>().FirstOrDefault();
-            if (axis == null) {
+            OfficeXmlNode axis = FindAxis(CategoryAxisName, null);
+            if (axis.IsNone) {
                 return this;
             }
 
             ApplyAxisCrossing(axis, crosses, crossesAt);
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -272,20 +216,14 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
-                return this;
-            }
-
-            C.ValueAxis? axis = plotArea.Elements<C.ValueAxis>().FirstOrDefault();
-            if (axis == null) {
+            OfficeXmlNode axis = FindAxis(ValueAxisName, null);
+            if (axis.IsNone) {
                 return this;
             }
 
             ValidateCrossesAtForAxis(axis, crossesAt);
             ApplyAxisCrossing(axis, crosses, crossesAt);
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -297,19 +235,18 @@ namespace OfficeIMO.PowerPoint {
             bool? logScale = null, double? logBase = null) {
             ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale, logBase);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveScatterXAxis(plotArea);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveScatterXAxis(plotArea);
+            if (axis.IsNone) {
                 return this;
             }
 
             ApplyAxisScale(axis, minimum, maximum, majorUnit, minorUnit, reverseOrder, logScale, logBase);
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -321,19 +258,18 @@ namespace OfficeIMO.PowerPoint {
             bool? logScale = null, double? logBase = null) {
             ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale, logBase);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveScatterYAxis(plotArea);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveScatterYAxis(plotArea);
+            if (axis.IsNone) {
                 return this;
             }
 
             ApplyAxisScale(axis, minimum, maximum, majorUnit, minorUnit, reverseOrder, logScale, logBase);
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -345,20 +281,19 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveScatterXAxis(plotArea);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveScatterXAxis(plotArea);
+            if (axis.IsNone) {
                 return this;
             }
 
             ValidateCrossesAtForAxis(axis, crossesAt);
             ApplyAxisCrossing(axis, crosses ?? OfficeChartAxisCrossingPosition.AutoZero, crossesAt);
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -370,29 +305,29 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt));
             }
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode plotArea = PlotAreaNode;
+            if (plotArea.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = ResolveScatterYAxis(plotArea);
-            if (axis == null) {
+            OfficeXmlNode axis = ResolveScatterYAxis(plotArea);
+            if (axis.IsNone) {
                 return this;
             }
 
             ValidateCrossesAtForAxis(axis, crossesAt);
             ApplyAxisCrossing(axis, crosses ?? OfficeChartAxisCrossingPosition.AutoZero, crossesAt);
-            Save();
+            MarkChartEdited();
             return this;
         }
 
         // A pie or doughnut series fill colours every slice in PowerPoint, while other renderers
         // keeps varying the slices when c:varyColors stays on. Turning it off, as PowerPoint
         // does when a series fill is chosen, makes every renderer draw the same chart.
-        private static void UseSeriesColorForEverySlice(OpenXmlElement series) {
-            if (series is not C.PieChartSeries) return;
-            if (series.Parent?.GetFirstChild<C.VaryColors>() is C.VaryColors varyColors) varyColors.Val = false;
+        private static void UseSeriesColorForEverySlice(OfficeXmlNode series) {
+            if (SeriesKind(series) != ChartSeriesKind.Pie) return;
+            OfficeXmlNode varyColors = series.Parent.Child(CNs, "varyColors");
+            if (varyColors.Exists) varyColors.SetBooleanAttribute("val", false);
         }
 
         /// <summary>
@@ -401,10 +336,11 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointChart SetSeriesFillColor(int seriesIndex, OfficeColor color) {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
+            RequireSdkChart();
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+                OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, color);
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+                ClearAutomaticSeriesColor(series);
                 UseSeriesColorForEverySlice(series);
             });
 
@@ -412,7 +348,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -422,10 +358,11 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointChart SetSeriesFillColor(string seriesName, OfficeColor color, bool ignoreCase = true) {
             ArgumentNullException.ThrowIfNull(seriesName);
 
+            RequireSdkChart();
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+                OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, color);
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+                ClearAutomaticSeriesColor(series);
                 UseSeriesColorForEverySlice(series);
             });
 
@@ -433,7 +370,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -445,17 +382,18 @@ namespace OfficeIMO.PowerPoint {
 #pragma warning restore RS0026
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
+            RequireSdkChart();
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+                OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplyLine(props, color, width);
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+                ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -467,17 +405,18 @@ namespace OfficeIMO.PowerPoint {
 #pragma warning restore RS0026
             ArgumentNullException.ThrowIfNull(seriesName);
 
+            RequireSdkChart();
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+                OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplyLine(props, color, width);
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+                ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -500,7 +439,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -523,7 +462,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 

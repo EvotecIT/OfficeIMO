@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -27,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
             _initialOwnerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
         }
 
-        private OfficeTheme ColorTheme => OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(_ownerPart);
+        private OfficeTheme ColorTheme => PowerPointDrawingColor.ThemeFor(OwnerPartRef, OwnerSlide);
 
         private GraphicFrame Frame => (GraphicFrame)Element;
 
@@ -49,7 +50,7 @@ namespace OfficeIMO.PowerPoint {
                 embedded.FeedData(stream);
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -71,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
                 embedded.FeedData(stream);
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -99,25 +100,31 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointChart SetTitle(string title) {
             ArgumentNullException.ThrowIfNull(title);
 
-            C.Chart chart = GetChart();
-            chart.AutoTitleDeleted = new C.AutoTitleDeleted { Val = false };
-
-            C.Title chartTitle = chart.GetFirstChild<C.Title>() ?? new C.Title();
-            chartTitle.RemoveAllChildren<C.ChartText>();
-            chartTitle.AddChild(CreateChartText(title), true);
-            if (chartTitle.GetFirstChild<C.Layout>() == null) {
-                chartTitle.AddChild(new C.Layout(), true);
+            OfficeXmlNode chart = ChartNode;
+            if (chart.Child(CNs, "title").IsNone && !chart.IsSdk) {
+                // A new title takes the theme's title text defaults through the shared writer, which works on SDK elements.
+                RequireSdkChart();
+                chart = ChartNode;
             }
-            chartTitle.RemoveAllChildren<C.Overlay>();
-            chartTitle.AddChild(new C.Overlay { Val = false }, true);
+            SetValChild(chart, "autoTitleDeleted", "0", CChartView.Order);
 
-            if (chart.GetFirstChild<C.Title>() == null) {
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.ApplyTitle(chartTitle,
+            OfficeXmlNode existing = chart.Child(CNs, "title");
+            OfficeXmlNode chartTitle = existing.Exists ? existing : chart.CreateElement(CNs, "title");
+            chartTitle.RemoveChildren(CNs, "tx");
+            chartTitle.InsertOrdered(CreateChartText(chartTitle, title), CTitleView.Order);
+            if (chartTitle.Child(CNs, "layout").IsNone) {
+                chartTitle.AddOrdered(CNs, "layout", CTitleView.Order);
+            }
+            chartTitle.RemoveChildren(CNs, "overlay");
+            chartTitle.AddOrdered(CNs, "overlay", CTitleView.Order).SetBooleanAttribute("val", false);
+
+            if (existing.IsNone) {
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.ApplyTitle((C.Title)chartTitle.SdkElement!,
                     ColorTheme);
-                chart.InsertAt(chartTitle, 0);
+                chart.InsertBefore(chartTitle, chart.FirstChild);
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -128,20 +135,19 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor? color = null, string? fontFamily = null) {
             ValidateTextStyle(fontSize, color, fontFamily);
 
-            C.Chart chart = GetChart();
-            C.Title? title = chart.GetFirstChild<C.Title>();
-            if (title == null) {
+            OfficeXmlNode title = ChartNode.Child(CNs, "title");
+            if (title.IsNone) {
                 return this;
             }
 
-            C.ChartText? chartText = title.GetFirstChild<C.ChartText>();
-            if (chartText == null) {
+            OfficeXmlNode chartText = title.Child(CNs, "tx");
+            if (chartText.IsNone) {
                 return this;
             }
 
             EnsureChartTextRunProperties(chartText);
             PowerPointTextContent.FormatRuns(chartText, properties => ApplyTextStyle(properties, fontSize, bold, italic, color, fontFamily));
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -149,18 +155,16 @@ namespace OfficeIMO.PowerPoint {
         ///     Clears custom chart title text styling while preserving the title text.
         /// </summary>
         public PowerPointChart ClearTitleTextStyle() {
-            C.Chart chart = GetChart();
-            C.Title? title = chart.GetFirstChild<C.Title>();
-            C.ChartText? chartText = title?.GetFirstChild<C.ChartText>();
-            if (chartText == null) {
+            OfficeXmlNode chartText = ChartNode.Child(CNs, "title").Child(CNs, "tx");
+            if (chartText.IsNone) {
                 return this;
             }
 
-            foreach (A.RunProperties runProps in chartText.Descendants<A.RunProperties>()) {
+            foreach (OfficeXmlNode runProps in chartText.Descendants(ANs, "rPr")) {
                 ClearTextStyle(runProps);
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -168,10 +172,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Removes the chart title.
         /// </summary>
         public PowerPointChart ClearTitle() {
-            C.Chart chart = GetChart();
-            chart.GetFirstChild<C.Title>()?.Remove();
-            chart.AutoTitleDeleted = new C.AutoTitleDeleted { Val = true };
-            Save();
+            OfficeXmlNode chart = ChartNode;
+            OfficeXmlNode title = chart.Child(CNs, "title");
+            if (title.Exists) title.Remove();
+            SetValChild(chart, "autoTitleDeleted", "1", CChartView.Order);
+            MarkChartEdited();
             return this;
         }
 
@@ -179,29 +184,25 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the legend position and visibility.
         /// </summary>
         public PowerPointChart SetLegend(OfficeChartLegendPosition position, bool overlay = false) {
-            C.Chart chart = GetChart();
-            C.Legend legend = chart.GetFirstChild<C.Legend>() ?? new C.Legend();
-            var legendPosition = legend.GetFirstChild<C.LegendPosition>() ?? new C.LegendPosition();
-            legendPosition.Val = position.ToOpenXml();
-            if (legendPosition.Parent == null) {
-                legend.AddChild(legendPosition, true);
+            OfficeXmlNode chart = ChartNode;
+            OfficeXmlNode legend = chart.Child(CNs, "legend");
+            if (legend.IsNone) {
+                legend = chart.CreateElement(CNs, "legend");
+                OfficeXmlNode plotArea = chart.Child(CNs, "plotArea");
+                legend = plotArea.Exists ? plotArea.InsertAfterSelf(legend) : chart.Append(legend);
             }
-            if (legend.GetFirstChild<C.Layout>() == null) {
-                legend.AddChild(new C.Layout(), true);
+            OfficeXmlNode legendPosition = legend.Child(CNs, "legendPos");
+            if (legendPosition.IsNone) {
+                legendPosition = legend.AddOrdered(CNs, "legendPos", CLegendView.Order);
             }
-            legend.RemoveAllChildren<C.Overlay>();
-            InsertLegendOverlay(legend, new C.Overlay { Val = overlay });
+            legendPosition.SetAttribute("val", position.ToOpenXmlToken());
+            if (legend.Child(CNs, "layout").IsNone) {
+                legend.AddOrdered(CNs, "layout", CLegendView.Order);
+            }
+            legend.RemoveChildren(CNs, "overlay");
+            InsertLegendOverlay(legend, legend.CreateElement(CNs, "overlay")).SetBooleanAttribute("val", overlay);
 
-            if (chart.GetFirstChild<C.Legend>() == null) {
-                C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-                if (plotArea != null) {
-                    chart.InsertAfter(legend, plotArea);
-                } else {
-                    chart.Append(legend);
-                }
-            }
-
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -212,14 +213,13 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor? color = null, string? fontFamily = null) {
             ValidateTextStyle(fontSize, color, fontFamily);
 
-            C.Chart chart = GetChart();
-            C.Legend? legend = chart.GetFirstChild<C.Legend>();
-            if (legend == null) {
+            OfficeXmlNode legend = ChartNode.Child(CNs, "legend");
+            if (legend.IsNone) {
                 return this;
             }
 
             ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSize, bold, italic, color, fontFamily);
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -227,19 +227,13 @@ namespace OfficeIMO.PowerPoint {
         ///     Clears custom legend text styling while preserving the legend.
         /// </summary>
         public PowerPointChart ClearLegendTextStyle() {
-            C.Chart chart = GetChart();
-            C.Legend? legend = chart.GetFirstChild<C.Legend>();
-            A.DefaultRunProperties? runProps = legend?
-                .GetFirstChild<C.TextProperties>()?
-                .GetFirstChild<A.Paragraph>()?
-                .GetFirstChild<A.ParagraphProperties>()?
-                .GetFirstChild<A.DefaultRunProperties>();
-            if (runProps == null) {
+            OfficeXmlNode runProps = ChartNode.Child(CNs, "legend").Child(CNs, "txPr").Child(ANs, "p").Child(ANs, "pPr").Child(ANs, "defRPr");
+            if (runProps.IsNone) {
                 return this;
             }
 
             ClearTextStyle(runProps);
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -247,11 +241,38 @@ namespace OfficeIMO.PowerPoint {
         ///     Hides the chart legend.
         /// </summary>
         public PowerPointChart HideLegend() {
-            C.Chart chart = GetChart();
-            chart.GetFirstChild<C.Legend>()?.Remove();
-            Save();
+            OfficeXmlNode legend = ChartNode.Child(CNs, "legend");
+            if (legend.Exists) legend.Remove();
+            MarkChartEdited();
             return this;
         }
+
+        private PowerPointChart ClearAxisLabelTextStyle(string axisName, Func<OfficeXmlNode, bool>? predicate = null) {
+            OfficeXmlNode axis = FindAxis(axisName, predicate);
+            if (axis.IsNone || AxisLabelRunProperties(axis).IsNone) {
+                return this;
+            }
+            if (!axis.IsSdk) {
+                // The theme's axis text defaults go back through the shared writer, which works on SDK elements.
+                RequireSdkChart();
+                axis = FindAxis(axisName, predicate);
+            }
+
+            OfficeXmlNode runProps = AxisLabelRunProperties(axis);
+            ClearTextStyle(runProps);
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.RestoreAxisTextDefaults((A.TextCharacterPropertiesType)runProps.SdkElement!,
+                ColorTheme);
+            MarkChartEdited();
+            return this;
+        }
+
+        // Clears the automatic color marker of a series through the shared writer, which works on SDK elements; callers
+        // open the SDK for the chart first.
+        private static void ClearAutomaticSeriesColor(OfficeXmlNode series) =>
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor((OpenXmlElement)series.SdkElement!);
+
+        /// <summary>Opens the SDK for the chart, so its elements are the SDK's.</summary>
+        private void RequireSdkChart() => _ = GetChartPart();
 
         internal C.Chart GetChart() {
             ChartPart chartPart = GetChartPart();
@@ -271,11 +292,6 @@ namespace OfficeIMO.PowerPoint {
 
             string relId = relationshipId.Value ?? throw new InvalidOperationException("Chart relationship id is empty.");
             return (ChartPart)_ownerPart.GetPartById(relId);
-        }
-
-        internal void Save() {
-            ChartPart chartPart = GetChartPart();
-            chartPart.ChartSpace?.Save();
         }
     }
 }

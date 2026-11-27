@@ -710,7 +710,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlNode legend = result.ChartNode.Child(Ns.Chart, "legend");
             if (chart.Data.Series.Count <= 1) {
                 if (legend.Exists) legend.Remove();
-                result.Save();
+                result.MarkChartEdited();
             } else {
                 result.SetLegend(OfficeChartLegendPosition.Top);
                 result.SetLegendTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: OfficeColor.Parse(context.Theme.TextMuted));
@@ -783,7 +783,7 @@ namespace OfficeIMO.PowerPoint {
                 text.InsertAfterSelf(reference.Clone());
                 text.Remove();
             }
-            result.Save();
+            result.MarkChartEdited();
         }
 
         /// <summary>Writes explicit unsmoothed lines, so no renderer curves a series between its points.</summary>
@@ -811,7 +811,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 changed = true;
             }
-            if (changed) result.Save();
+            if (changed) result.MarkChartEdited();
         }
 
         /// <summary>
