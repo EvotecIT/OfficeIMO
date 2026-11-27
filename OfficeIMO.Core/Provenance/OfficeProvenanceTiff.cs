@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;
 
-internal static class OfficeProvenanceTiff {
+internal static partial class OfficeProvenanceTiff {
     private const ushort C2paTag = 0xCD41;
     private const ushort XmpTag = 700;
     private const ushort ByteType = 1;
@@ -65,6 +65,7 @@ internal static class OfficeProvenanceTiff {
                 if (!ifd.TagsAreSorted) context.Diagnostics.Add($"The TIFF tags at IFD {ifdIndex} are not sorted in ascending order.");
             }
         }
+        InspectGeneratorFields(data, options, context, "TIFF", containerIsStructurallyValid: true);
     }
 
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes, out bool reserialized) {
@@ -154,6 +155,10 @@ internal static class OfficeProvenanceTiff {
                 throw new InvalidDataException("TIFF IFD rewrite overlaps retained value or image data.");
             }
             RewriteIfd(output, ifd, retained);
+            reserialized = true;
+        }
+        if (TryRemoveGeneratorFields(output, options, "TIFF", changes, containerIsStructurallyValid: true, out byte[] withoutGenerators)) {
+            output = withoutGenerators;
             reserialized = true;
         }
         return output;
@@ -502,7 +507,7 @@ internal static class OfficeProvenanceTiff {
         else OfficeProvenanceBinary.WriteUInt32(output, entry.Offset + 4, checked((uint)count), entry.LittleEndian);
     }
 
-    private static List<TiffIfd> ReadIfds(byte[] data, OfficeProvenanceOptions options) {
+    private static List<TiffIfd> ReadIfds(byte[] data, OfficeProvenanceOptions options, bool followExifIfd = false) {
         if (data.Length < 8) throw new InvalidDataException("TIFF header is truncated.");
         bool littleEndian;
         if (data[0] == (byte)'I' && data[1] == (byte)'I') littleEndian = true;
@@ -588,6 +593,13 @@ internal static class OfficeProvenanceTiff {
                         throw new InvalidDataException("TIFF SubIFD references are malformed.");
                     }
                     EnqueueIfdOffset(subIfdOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
+                }
+            }
+            if (followExifIfd && result.Count == 1) {
+                foreach (TiffEntry exifIfd in entries.Where(static entry => entry.Tag == ExifIfdTag)) {
+                    if (IsValidSubIfdPointerType(exifIfd.Type, bigTiff) && exifIfd.Count == 1) {
+                        EnqueueIfdOffset(exifIfd.ValueOrOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
+                    }
                 }
             }
         }

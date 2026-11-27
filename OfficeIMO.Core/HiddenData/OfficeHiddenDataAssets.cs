@@ -149,7 +149,7 @@ internal static class OfficeHiddenDataAssets {
                 ? "Content Credentials (C2PA manifest) declaring generative AI"
                 : "Content Credentials (C2PA manifest)",
             OfficeProvenanceCarrierKind.C2paExternalManifest => "Reference to external Content Credentials",
-            OfficeProvenanceCarrierKind.AiGeneratorMetadata => "AI generator settings: " + evidence.Value,
+            OfficeProvenanceCarrierKind.AiGeneratorMetadata => "AI generator metadata: " + evidence.Value,
             _ => "Digital source type: " + evidence.DigitalSourceKind
         };
         return evidence.IsStructurallyValid ? description : description + " (malformed)";
@@ -157,6 +157,17 @@ internal static class OfficeHiddenDataAssets {
 
     internal static string? ProvenanceValue(OfficeProvenanceEvidence evidence) =>
         evidence.Carrier == OfficeProvenanceCarrierKind.C2paManifest ? evidence.Manifest?.ClaimGenerator : evidence.Value;
+
+    /// <summary>Orientation and density, which cleanup keeps so the image displays the same.</summary>
+    private static bool IsKeptExifValue(OfficeExifValue value) =>
+        value.Tag.Equals(OfficeExifTag.Orientation) || value.Tag.Equals(OfficeExifTag.XResolution) ||
+        value.Tag.Equals(OfficeExifTag.YResolution) || value.Tag.Equals(OfficeExifTag.ResolutionUnit);
+
+    /// <summary>EXIF values that the provenance engine reports as AI generator metadata.</summary>
+    private static bool IsAiExifDeclaration(OfficeExifValue value) =>
+        value.Tag.Equals(OfficeExifTag.Software) && value.Value is string software && OfficeProvenanceAiGenerators.IsAiGenerator(software) ||
+        value.Tag.Equals(OfficeExifTag.UserComment) && value.Value is byte[] comment &&
+            OfficeProvenanceAiGenerators.IsAiGenerationRecord(OfficeProvenanceAiGenerators.DecodeUserComment(comment, 0, comment.Length));
 
     private static string? DescribePrivateImageMetadata(byte[] data) {
         OfficeImageMetadata metadata;
@@ -171,7 +182,7 @@ internal static class OfficeHiddenDataAssets {
         bool hasExif = false;
         foreach (OfficeExifValue value in metadata.ExifValues) {
             if (value.Tag.Directory == OfficeExifDirectory.Gps) hasGps = true;
-            else if (!value.Tag.Equals(OfficeExifTag.Orientation)) hasExif = true;
+            else if (!IsKeptExifValue(value) && !IsAiExifDeclaration(value)) hasExif = true;
         }
 
         if (hasExif) profiles.Add("Exif");
@@ -184,14 +195,17 @@ internal static class OfficeHiddenDataAssets {
 
     /// <summary>
     /// Rewrites only the metadata containers; ICC colour, density and orientation stay so the image looks the same.
-    /// With <paramref name="keepDigitalSourceType"/>, XMP is reduced to the image's digital source type declaration.
+    /// With <paramref name="keepDigitalSourceType"/>, XMP is reduced to the image's AI source declarations and the EXIF fields that
+    /// declare an AI generator stay, because provenance is governed by its own category.
     /// </summary>
     private static byte[]? TryStripPrivateImageMetadata(byte[] data, bool keepDigitalSourceType) {
         try {
             OfficeImageMetadata metadata = OfficeImageMetadata.Read(data);
             OfficeExifValue? orientation = metadata.GetExifValue(OfficeExifTag.Orientation);
+            OfficeExifValue[] declarations = keepDigitalSourceType ? metadata.ExifValues.Where(IsAiExifDeclaration).ToArray() : Array.Empty<OfficeExifValue>();
             OfficeImageMetadata stripped = metadata.Clone();
             stripped.ClearExif();
+            foreach (OfficeExifValue declaration in declarations) stripped.SetExifValue(declaration.Tag, declaration.Value);
             byte[]? xmp = metadata.XmpProfileData;
             stripped.XmpProfile = keepDigitalSourceType && xmp != null
                 ? OfficeProvenanceXmp.CreateDigitalSourceTypePacket(xmp, new OfficeProvenanceOptions())

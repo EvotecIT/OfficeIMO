@@ -8,6 +8,8 @@ internal static class OfficeProvenanceXmp {
     private const string IptcNamespace = "http://iptc.org/std/Iptc4xmpExt/2008-02-29/";
     private static readonly XNamespace RdfNamespace = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
     private const string VocabularyPrefix = "http://cv.iptc.org/newscodes/digitalsourcetype/";
+    private const string XmpBasicNamespace = "http://ns.adobe.com/xap/1.0/";
+    private const string TiffNamespace = "http://ns.adobe.com/tiff/1.0/";
 
     internal static void Inspect(byte[] packet, OfficeProvenanceOptions options, OfficeProvenanceContext context, string location,
         bool carrierIsStructurallyValid = true,
@@ -21,6 +23,15 @@ internal static class OfficeProvenanceXmp {
                 isStructurallyValid: carrierIsStructurallyValid && value.IsStructurallyValid,
                 value: value.Value,
                 digitalSourceKind: value.Kind));
+        }
+        index = 0;
+        foreach (XmpValue field in FindGeneratorFields(document)) {
+            context.Add(new OfficeProvenanceEvidence(
+                OfficeProvenanceCarrierKind.AiGeneratorMetadata,
+                $"{location}/{GeneratorFieldName(field)}[{index++}]",
+                isStructurallyValid: carrierIsStructurallyValid && field.IsStructurallyValid,
+                value: field.Value,
+                digitalSourceKind: OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia));
         }
     }
 
@@ -52,6 +63,19 @@ internal static class OfficeProvenanceXmp {
             }
             index++;
         }
+        index = 0;
+        foreach (XmpValue field in FindGeneratorFields(document).ToArray()) {
+            if (field.IsStructurallyValid || !options.RequireStructurallyValidCarrier) {
+                if (field.Element != null) field.Element.Remove();
+                else field.Attribute?.Remove();
+                changes.Add(new OfficeProvenanceChange(
+                    OfficeProvenanceCarrierKind.AiGeneratorMetadata,
+                    $"{location}/{GeneratorFieldName(field)}[{index}]",
+                    removedBytes: 0));
+                changed = true;
+            }
+            index++;
+        }
         if (!changed) return false;
         using var stream = new OfficeProvenanceBoundedMemoryStream(
             options.EffectiveMaxOutputBytes,
@@ -67,12 +91,17 @@ internal static class OfficeProvenanceXmp {
         return true;
     }
 
-    /// <summary>Builds a minimal XMP packet that keeps only the digital source type declarations in <paramref name="packet"/>, or null when it declares none.</summary>
+    /// <summary>
+    /// Builds a minimal XMP packet that keeps only the AI source declarations in <paramref name="packet"/>: digital source types and
+    /// generator fields that name an AI product. Returns null when it declares none.
+    /// </summary>
     internal static byte[]? CreateDigitalSourceTypePacket(byte[] packet, OfficeProvenanceOptions options) {
         if (!TryLoad(packet, options, out XDocument? document) || document == null) return null;
         string[] values = FindValues(document).Where(value => value.IsStructurallyValid && value.Value.Length > 0)
             .Select(value => value.Value).Distinct(StringComparer.Ordinal).ToArray();
-        if (values.Length == 0) return null;
+        XElement[] generators = FindGeneratorFields(document).Where(field => field.IsStructurallyValid)
+            .Select(field => new XElement(field.Name, field.Value)).ToArray();
+        if (values.Length == 0 && generators.Length == 0) return null;
         XNamespace meta = "adobe:ns:meta/";
         XNamespace iptc = IptcNamespace;
         var root = new XElement(meta + "xmpmeta",
@@ -82,13 +111,21 @@ internal static class OfficeProvenanceXmp {
                 new XAttribute(XNamespace.Xmlns + "Iptc4xmpExt", IptcNamespace),
                 values.Select(value => new XElement(RdfNamespace + "Description",
                     new XAttribute(RdfNamespace + "about", string.Empty),
-                    new XElement(iptc + "DigitalSourceType", new XAttribute(RdfNamespace + "resource", value))))));
+                    new XElement(iptc + "DigitalSourceType", new XAttribute(RdfNamespace + "resource", value)))),
+                generators.Length == 0 ? null : new XElement(RdfNamespace + "Description",
+                    new XAttribute(RdfNamespace + "about", string.Empty),
+                    new XAttribute(XNamespace.Xmlns + "xmp", XmpBasicNamespace),
+                    new XAttribute(XNamespace.Xmlns + "tiff", TiffNamespace),
+                    generators)));
         string text = "<?xpacket begin=\"\uFEFF\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>" +
             root.ToString(SaveOptions.DisableFormatting) + "<?xpacket end=\"w\"?>";
         return new UTF8Encoding(false).GetBytes(text);
     }
 
-    /// <summary>Whether a packet carries nothing but digital source type declarations, including a packet emptied by provenance removal.</summary>
+    /// <summary>
+    /// Whether a packet carries nothing but AI source declarations (digital source types and AI generator fields), including a packet
+    /// emptied by provenance removal.
+    /// </summary>
     internal static bool HasOnlyDigitalSourceTypes(byte[] packet, OfficeProvenanceOptions options) {
         if (!TryLoad(packet, options, out XDocument? document) || document == null) return false;
         XElement[] graphs = document.Descendants(RdfNamespace + "RDF").ToArray();
@@ -98,10 +135,10 @@ internal static class OfficeProvenanceXmp {
                 if (description.Name != RdfNamespace + "Description") return false;
                 foreach (XAttribute attribute in description.Attributes()) {
                     if (attribute.IsNamespaceDeclaration || attribute.Name == RdfNamespace + "about") continue;
-                    if (!IsDigitalSourceType(attribute.Name)) return false;
+                    if (!IsDigitalSourceType(attribute.Name) && !IsAiGeneratorField(attribute.Name, attribute.Value)) return false;
                 }
                 foreach (XElement property in description.Elements()) {
-                    if (!IsDigitalSourceType(property.Name) || property.HasElements) return false;
+                    if (property.HasElements || !IsDigitalSourceType(property.Name) && !IsAiGeneratorField(property.Name, property.Value)) return false;
                 }
             }
         }
@@ -110,6 +147,35 @@ internal static class OfficeProvenanceXmp {
 
     private static bool IsDigitalSourceType(XName name) =>
         name.NamespaceName == IptcNamespace && name.LocalName == "DigitalSourceType";
+
+    private static bool IsGeneratorFieldName(XName name) =>
+        name.NamespaceName == XmpBasicNamespace && name.LocalName == "CreatorTool" ||
+        name.NamespaceName == TiffNamespace && name.LocalName == "Software";
+
+    private static bool IsAiGeneratorField(XName name, string value) =>
+        IsGeneratorFieldName(name) && OfficeProvenanceAiGenerators.IsAiGenerator(value);
+
+    private static string GeneratorFieldName(XmpValue field) =>
+        field.Name.NamespaceName == TiffNamespace ? "tiff:Software" : "xmp:CreatorTool";
+
+    /// <summary>Generator fields (<c>xmp:CreatorTool</c>, <c>tiff:Software</c>) whose value names a generative AI product.</summary>
+    private static IEnumerable<XmpValue> FindGeneratorFields(XDocument document) {
+        foreach (XElement description in document.Descendants(RdfNamespace + "Description")
+            .Where(candidate => candidate.Ancestors().Any(ancestor => ancestor.Name == RdfNamespace + "RDF"))) {
+            if (IsInsideXmlLiteral(description)) continue;
+            foreach (XAttribute attribute in description.Attributes()) {
+                if (IsAiGeneratorField(attribute.Name, attribute.Value)) {
+                    yield return new XmpValue(attribute.Value, OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia, attribute, null,
+                        isStructurallyValid: true, attribute.Name);
+                }
+            }
+            foreach (XElement element in description.Elements()) {
+                if (IsInsideXmlLiteral(element) || !IsAiGeneratorField(element.Name, element.Value)) continue;
+                yield return new XmpValue(element.Value, OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia, null, element,
+                    IsScalarRdfProperty(element, null), element.Name);
+            }
+        }
+    }
 
     internal static OfficeProvenanceDigitalSourceKind Classify(string value) {
         if (value == null) return OfficeProvenanceDigitalSourceKind.Unknown;
@@ -179,13 +245,15 @@ internal static class OfficeProvenanceXmp {
 
     private sealed class XmpValue {
         internal XmpValue(string value, OfficeProvenanceDigitalSourceKind kind, XAttribute? attribute, XElement? element,
-            bool isStructurallyValid) {
+            bool isStructurallyValid, XName? name = null) {
+            Name = name ?? element?.Name ?? attribute?.Name ?? XName.Get("DigitalSourceType", IptcNamespace);
             Value = value;
             Kind = kind;
             Attribute = attribute;
             Element = element;
             IsStructurallyValid = isStructurallyValid;
         }
+        internal XName Name { get; }
         internal string Value { get; }
         internal OfficeProvenanceDigitalSourceKind Kind { get; }
         internal XAttribute? Attribute { get; }

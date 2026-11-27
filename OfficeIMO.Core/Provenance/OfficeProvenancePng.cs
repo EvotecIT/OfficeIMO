@@ -114,6 +114,19 @@ internal static class OfficeProvenancePng {
                 } else {
                     output?.Write(data, offset, total);
                 }
+            } else if (type == "eXIf" && payloadLength > 8) {
+                byte[] tiff = new byte[payloadLength];
+                Buffer.BlockCopy(data, offset + 8, tiff, 0, payloadLength);
+                string location = $"PNG/eXIf@{offset}";
+                bool valid = validStructure && foundHeader && HasValidCrc(data, offset, payloadLength);
+                if (context != null) OfficeProvenanceTiff.InspectGeneratorFields(tiff, options, context, location, valid);
+                if (output != null && removalOptions != null && changes != null &&
+                    OfficeProvenanceTiff.TryRemoveGeneratorFields(tiff, removalOptions, location, changes, valid, out byte[] cleaned)) {
+                    WriteChunk(output, "eXIf", cleaned);
+                    reserialized = true;
+                } else {
+                    output?.Write(data, offset, total);
+                }
             } else if (TryGetAiGeneratorKeyword(data, offset + 4, offset + 8, payloadLength, out string? keyword)) {
                 // Text chunks are ancillary and position-independent, so dropping one leaves the image and every other chunk intact.
                 bool valid = validStructure && foundHeader && HasValidCrc(data, offset, payloadLength);
@@ -186,7 +199,8 @@ internal static class OfficeProvenancePng {
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX")) c2paCount++;
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
                 HasXmpKeyword(data, offset + 8, payloadLength)) xmpCount++;
-            if (TryGetAiGeneratorKeyword(data, offset + 4, offset + 8, payloadLength, out _)) generatorCount++;
+            if (TryGetAiGeneratorKeyword(data, offset + 4, offset + 8, payloadLength, out _) ||
+                OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "eXIf")) generatorCount++;
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IHDR")) {
                 headerCount++;
                 validLeadingHeader = headerCount == 1 && offset == SignatureLength && payloadLength == 13 &&
