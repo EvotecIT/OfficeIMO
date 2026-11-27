@@ -40,10 +40,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $key = "studio-apple-engine-$(./Build/Studio/Apple/Build-StudioEngine.ps1 -PrintSourceKey)"
-          # A marker artifact named after the source key records which sources the kept engine was built from.
-          $marker = [int](gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?name=$key&per_page=10" --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master" and .workflow_run.head_repository_id == .workflow_run.repository_id)] | length')
+          # A marker artifact named after the source key records which sources the kept engine was built from. The build is
+          # skipped only when the engine itself is still there in the marker's run.
+          $origin = '.expired == false and .workflow_run.head_branch == "master" and .workflow_run.head_repository_id == .workflow_run.repository_id'
+          $markerRuns = @(gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?name=$key&per_page=10" --jq ".artifacts[] | select($origin) | .workflow_run.id")
           if ($LASTEXITCODE) { throw 'Cannot list the engine artifacts.' }
-          $built = $marker -gt 0
+          $built = $false
+          foreach ($run in $markerRuns) {
+              $engines = [int](gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$run/artifacts" --jq '[.artifacts[] | select(.name == "studio-apple-engine" and .expired == false)] | length')
+              if ($LASTEXITCODE) { throw "Cannot list the artifacts of engine run $run." }
+              if ($engines -gt 0) { $built = $true; break }
+          }
           "key=$key" >> $env:GITHUB_OUTPUT
           "built=$($built.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           Write-Host ($built ? "An engine for these sources is already kept ($key)." : "Building $key.")
@@ -102,8 +109,9 @@ jobs:
               gh cache delete $id --repo $env:GITHUB_REPOSITORY
               if ($LASTEXITCODE) { throw "Cannot delete engine cache $id." }
           }
-          $runs = gh api "repos/$env:GITHUB_REPOSITORY/actions/workflows/studio-apple-engine.yml/runs?per_page=50" --jq ".workflow_runs[] | select(.id != $env:GITHUB_RUN_ID) | .id"
-          if ($LASTEXITCODE) { throw 'Cannot list the engine runs.' }
+          # Every kept engine, however many unchanged nightly runs followed it, plus the marker uploaded in the same run.
+          $runs = gh api --paginate "repos/$env:GITHUB_REPOSITORY/actions/artifacts?name=studio-apple-engine&per_page=100" --jq ".artifacts[] | select(.workflow_run.id != $env:GITHUB_RUN_ID) | .workflow_run.id" | Sort-Object -Unique
+          if ($LASTEXITCODE) { throw 'Cannot list the engine artifacts.' }
           foreach ($run in $runs) {
               $artifacts = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$run/artifacts" --jq '.artifacts[] | select(.name | startswith("studio-apple-engine")) | .id'
               if ($LASTEXITCODE) { throw "Cannot list the artifacts of engine run $run." }
