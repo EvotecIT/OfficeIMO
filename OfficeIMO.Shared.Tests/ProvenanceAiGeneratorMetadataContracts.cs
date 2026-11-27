@@ -83,6 +83,37 @@ public sealed class ProvenanceAiGeneratorMetadataContracts {
         Assert.Equal(CreatePng(), OfficeProvenanceRemover.Remove(source, "generated.png", destructive).ToArray());
     }
 
+    [Fact]
+    public void InspectChargesInflatedTextAgainstTheExpandedByteBudget() {
+        byte[] text = Concat(Encoding.ASCII.GetBytes("parameters"), new byte[] { 0, 0 }, Zlib(new byte[65536]));
+        byte[] png = CreatePng(CreateChunk("zTXt", text));
+
+        Assert.True(Assert.Single(OfficeProvenanceInspector.Inspect(png, "generated.png").Evidence).IsStructurallyValid);
+
+        var limited = new OfficeProvenanceOptions { MaxExpandedContainerBytes = 1024 };
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(png, "generated.png", limited));
+    }
+
+    private static byte[] Zlib(byte[] data) {
+        using var output = new MemoryStream();
+        output.WriteByte(0x78);
+        output.WriteByte(0x9C);
+        using (var deflate = new System.IO.Compression.DeflateStream(output, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true)) {
+            deflate.Write(data, 0, data.Length);
+        }
+        uint a = 1, b = 0;
+        foreach (byte value in data) {
+            a = (a + value) % 65521;
+            b = (b + a) % 65521;
+        }
+        uint adler = b << 16 | a;
+        output.WriteByte((byte)(adler >> 24));
+        output.WriteByte((byte)(adler >> 16));
+        output.WriteByte((byte)(adler >> 8));
+        output.WriteByte((byte)adler);
+        return output.ToArray();
+    }
+
     internal static byte[] CreatePng(params byte[][] ancillary) {
         var parts = new List<byte[]> {
             PngSignature,

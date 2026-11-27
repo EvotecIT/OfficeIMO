@@ -270,13 +270,17 @@ public static partial class OfficePngReader {
         byte[] bytes,
         CancellationToken cancellationToken,
         int maximumChunks,
-        out long decodedBytes) {
+        long maximumTextBytes,
+        out long decodedBytes,
+        out long textBytes) {
         decodedBytes = 0;
+        textBytes = 0;
         if (bytes == null || bytes.Length < 33) return false;
         for (int index = 0; index < Signature.Length; index++) {
             if (bytes[index] != Signature[index]) return false;
         }
-        if (!OfficePngContainerValidator.TryValidate(bytes, cancellationToken, maximumChunks, out int frameCount, out _) ||
+        if (!OfficePngContainerValidator.TryValidate(
+                bytes, cancellationToken, maximumChunks, maximumTextBytes, out int frameCount, out _, out textBytes) ||
             ReadBigEndianInt32(bytes, 8) != 13 ||
             bytes[12] != (byte)'I' || bytes[13] != (byte)'H' || bytes[14] != (byte)'D' || bytes[15] != (byte)'R') return false;
         int width = ReadBigEndianInt32(bytes, 16);

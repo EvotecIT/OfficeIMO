@@ -25,9 +25,29 @@ internal static class OfficePngContainerValidator {
         CancellationToken cancellationToken,
         int maximumChunks,
         out int frameCount,
-        out string? failureReason) {
+        out string? failureReason) =>
+        TryValidate(bytes, cancellationToken, maximumChunks, MaximumPngTextBytes, out frameCount, out failureReason, out _);
+
+    /// <summary>
+    /// Validates the container while inflating at most <paramref name="maximumTextBytes"/> of decoded text in total (never more than
+    /// the 1 MiB text limit). <paramref name="textBytes"/> reports the decoded text, or a value above <paramref name="maximumTextBytes"/>
+    /// when the text did not fit; compressed text is never inflated past the remaining allowance.
+    /// </summary>
+    internal static bool TryValidate(
+        byte[]? bytes,
+        CancellationToken cancellationToken,
+        int maximumChunks,
+        long maximumTextBytes,
+        out int frameCount,
+        out string? failureReason,
+        out long textBytes) {
         frameCount = 0;
         failureReason = null;
+        // Text counters compare against the fixed limit, so a smaller allowance starts the counter that much closer to it.
+        long textAllowance = Math.Max(0, Math.Min(maximumTextBytes, MaximumPngTextBytes));
+        long textCounterStart = MaximumPngTextBytes - textAllowance;
+        long decodedTextBytes = textCounterStart;
+        textBytes = 0;
         if (bytes == null || bytes.Length < 33 || !HasSignature(bytes)) {
             failureReason = "PNG bytes are missing the PNG signature or required chunks.";
             return false;
@@ -59,7 +79,6 @@ internal static class OfficePngContainerValidator {
             int declaredFrameCount = 1;
             uint gammaValue = 0;
             bool hasStandardRgbChromaticities = false;
-            long decodedTextBytes = 0;
             int offset = Signature.Length;
             int chunkCount = 0;
             while (offset + 12 <= bytes.Length) {
@@ -228,6 +247,7 @@ internal static class OfficePngContainerValidator {
                         if (!seenHeader || !HasValidLatinText(
                                 bytes, dataOffset, length, ref decodedTextBytes, cancellationToken)) {
                             failureReason = "PNG bytes contain an invalid tEXt chunk.";
+                            textBytes = decodedTextBytes - textCounterStart;
                             return false;
                         }
                         if (seenImageData) imageDataEnded = true;
@@ -236,6 +256,7 @@ internal static class OfficePngContainerValidator {
                         if (!seenHeader || !HasValidCompressedText(
                                 bytes, dataOffset, length, ref decodedTextBytes, cancellationToken)) {
                             failureReason = "PNG bytes contain an invalid zTXt chunk.";
+                            textBytes = decodedTextBytes - textCounterStart;
                             return false;
                         }
                         if (seenImageData) imageDataEnded = true;
@@ -244,6 +265,7 @@ internal static class OfficePngContainerValidator {
                         if (!seenHeader || !HasValidInternationalText(
                                 bytes, dataOffset, length, ref decodedTextBytes, cancellationToken)) {
                             failureReason = "PNG bytes contain an invalid iTXt chunk.";
+                            textBytes = decodedTextBytes - textCounterStart;
                             return false;
                         }
                         if (seenImageData) imageDataEnded = true;
@@ -298,6 +320,7 @@ internal static class OfficePngContainerValidator {
                             return false;
                         }
                         frameCount = declaredFrameCount;
+                        textBytes = decodedTextBytes - textCounterStart;
                         return true;
                     default:
                         if (IsCriticalChunk(bytes[offset + 4])) {
@@ -581,11 +604,15 @@ internal static class OfficePngContainerValidator {
         ref long decodedTextBytes,
         bool requireUtf8,
         CancellationToken cancellationToken) {
-        if (length < 6 || !TryGetCompressedMetadataOutputLimit(
+        long remainingTextBytes = MaximumPngTextBytes - decodedTextBytes;
+        if (length < 6 || remainingTextBytes < 1 || !TryGetCompressedMetadataOutputLimit(
                 bytes.LongLength,
                 length,
-                MaximumPngTextBytes,
-                out int maximumTextBytes)) return false;
+                (int)remainingTextBytes,
+                out int maximumTextBytes)) {
+            if (remainingTextBytes < 1) decodedTextBytes = MaximumPngTextBytes + 1L;
+            return false;
+        }
         var compressed = new byte[length];
         Buffer.BlockCopy(bytes, offset, compressed, 0, length);
         try {
@@ -593,10 +620,12 @@ internal static class OfficePngContainerValidator {
                 compressed, maximumTextBytes, cancellationToken: cancellationToken);
             return (!requireUtf8 || HasValidUtf8(text, 0, text.Length, cancellationToken)) &&
                    TryAddDecodedTextBytes(ref decodedTextBytes, text.Length);
+        } catch (OfficeDecompressionSizeLimitException) {
+            decodedTextBytes = MaximumPngTextBytes + 1L;
+            return false;
         } catch (Exception exception) when (
             exception is ArgumentException ||
             exception is FormatException ||
-            exception is OfficeDecompressionSizeLimitException ||
             exception is InvalidDataException ||
             exception is NotSupportedException ||
             exception is OverflowException) {
