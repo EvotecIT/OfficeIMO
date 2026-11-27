@@ -122,6 +122,14 @@ namespace OfficeIMO.Excel {
         private void MaterializeDeferredDataSetImportIfNeeded() {
             // A caller here works on the worksheet next; recorded values reach it, or the cell buffer, through the replay.
             _excelDocument.OpenDeferredSdkBeforeReadingRecordedChanges();
+            MaterializeDirectDataSetImportIfNeeded();
+        }
+
+        /// <summary>
+        /// Moves a pending data set import into the worksheet. Formulas call it directly: their model reads the
+        /// recorded values of a workbook that has not opened its SDK package itself.
+        /// </summary>
+        private void MaterializeDirectDataSetImportIfNeeded() {
             if (_excelDocument.IsPreservingDirectDataSetExternalCellMutation
                 && _excelDocument.HasDeferredDirectDataSetImport
                 && !_excelDocument.HasPendingDirectCellValues) {

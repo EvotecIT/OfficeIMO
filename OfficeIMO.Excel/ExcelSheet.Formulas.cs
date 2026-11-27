@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 MaterializePendingDirectCellValues();
                 // Formulas reach other sheets too, whose buffered cells must be in their worksheets by then.
-                MaterializeDeferredDataSetImportIfNeeded();
+                MaterializeDirectDataSetImportIfNeeded();
                 // The write lock makes this thread the workbook's only evaluator, so the pass may reuse parsed syntax.
                 using ExcelFormulaSyntaxCache.Scope syntaxScope = _excelDocument.FormulaSyntaxCache.Enter();
                 long formulaInputMutationVersion = _excelDocument.CaptureFormulaInputMutationVersion();
