@@ -336,11 +336,10 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointChart SetSeriesFillColor(int seriesIndex, OfficeColor color) {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
-            RequireSdkChart();
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, color);
-                ClearAutomaticSeriesColor(series);
+                OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
                 UseSeriesColorForEverySlice(series);
             });
 
@@ -358,11 +357,10 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointChart SetSeriesFillColor(string seriesName, OfficeColor color, bool ignoreCase = true) {
             ArgumentNullException.ThrowIfNull(seriesName);
 
-            RequireSdkChart();
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, color);
-                ClearAutomaticSeriesColor(series);
+                OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
                 UseSeriesColorForEverySlice(series);
             });
 
@@ -382,11 +380,10 @@ namespace OfficeIMO.PowerPoint {
 #pragma warning restore RS0026
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
-            RequireSdkChart();
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplyLine(props, color, width);
-                ClearAutomaticSeriesColor(series);
+                OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {
@@ -405,11 +402,10 @@ namespace OfficeIMO.PowerPoint {
 #pragma warning restore RS0026
             ArgumentNullException.ThrowIfNull(seriesName);
 
-            RequireSdkChart();
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 OfficeXmlNode props = EnsureChartShapeProperties(series);
                 ApplyLine(props, color, width);
-                ClearAutomaticSeriesColor(series);
+                OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
             if (!applied) {

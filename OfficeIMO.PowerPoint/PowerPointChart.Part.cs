@@ -48,7 +48,18 @@ namespace OfficeIMO.PowerPoint {
         internal void MarkChartEdited() => ChartPartRef.SaveRootEdited();
 
         /// <summary>The chart part as the shared chart reader and writer see it.</summary>
-        internal IOfficeChartPart SharedChartPart => new PowerPointChartPart(ChartPartRef, OwnerPartRef);
+        internal IOfficeChartPart SharedChartPart {
+            get {
+                var part = new PowerPointChartPart(ChartPartRef, OwnerPartRef);
+                // A chart read from the package tells the shared reader which part its tree is, so chart text and automatic
+                // colours find the host color map and chart styles as they do for an SDK part.
+                if (part.ChartSpace.Tree is { } tree) OfficeOpenXmlChartTextReader.AttachChartPart(tree, part);
+                return part;
+            }
+        }
+
+        /// <summary>The theme color scheme in effect for the part that holds the chart, or none.</summary>
+        internal OfficeXmlNode OwnerColorScheme => PowerPointChartPart.HostScheme(OwnerPartRef, "clrScheme");
     }
 
     /// <summary>A chart part of the presentation for the shared chart reader and writer, wherever the part is held.</summary>
@@ -117,26 +128,49 @@ namespace OfficeIMO.PowerPoint {
                 : layout.RelatedPart(PowerPointPartRef.SlideMasterRelationshipType).Root.Child(OfficeXmlNamespaces.PresentationML, "clrMap");
         }
 
-        public OfficeXmlNode HostFontScheme {
-            get {
-                switch (_owner.Kind) {
-                    case PowerPointPartKind.Slide:
-                    case PowerPointPartKind.SlideLayout:
-                    case PowerPointPartKind.SlideMaster:
-                        return PowerPointThemeScope.For(_owner).FontScheme;
-                    case PowerPointPartKind.NotesSlide: {
-                        OfficeXmlNode scheme = _owner.RelatedPart(PowerPointPartRef.ThemeOverrideRelationshipType).Root.Child(OfficeXmlNamespaces.DrawingML, "fontScheme");
-                        return scheme.Exists ? scheme : ThemeFontScheme(_owner.RelatedPart(NotesMasterRelationshipType));
-                    }
-                    default:
-                        return ThemeFontScheme(_owner);
+        public OfficeXmlNode HostFontScheme => HostScheme(_owner, "fontScheme");
+
+        /// <summary>
+        /// The theme scheme (<c>clrScheme</c>, <c>fontScheme</c>) in effect for <paramref name="owner"/>: its theme override,
+        /// then its layout's, then its master's theme; a notes slide's override, then its notes master's theme; a master's
+        /// own theme.
+        /// </summary>
+        internal static OfficeXmlNode HostScheme(PowerPointPartRef owner, string schemeName) {
+            // Each part is read only when the ones before it have no scheme, as the SDK chain reads them.
+            OfficeXmlNode scheme;
+            switch (owner.Kind) {
+                case PowerPointPartKind.Slide: {
+                    if ((scheme = OverrideScheme(owner, schemeName)).Exists) return scheme;
+                    PowerPointPartRef layout = owner.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType);
+                    if (layout.IsNone) return default;
+                    if ((scheme = OverrideScheme(layout, schemeName)).Exists) return scheme;
+                    return ThemeScheme(layout.RelatedPart(PowerPointPartRef.SlideMasterRelationshipType), schemeName);
                 }
+                case PowerPointPartKind.SlideLayout:
+                    if ((scheme = OverrideScheme(owner, schemeName)).Exists) return scheme;
+                    return ThemeScheme(owner.RelatedPart(PowerPointPartRef.SlideMasterRelationshipType), schemeName);
+                case PowerPointPartKind.NotesSlide:
+                    if ((scheme = OverrideScheme(owner, schemeName)).Exists) return scheme;
+                    return ThemeScheme(owner.RelatedPart(NotesMasterRelationshipType), schemeName);
+                default:
+                    return ThemeScheme(owner, schemeName);
             }
         }
 
-        private static OfficeXmlNode ThemeFontScheme(PowerPointPartRef part) =>
-            part.IsNone ? default : part.RelatedPart(PowerPointPartRef.ThemeRelationshipType).Root
-                .Child(OfficeXmlNamespaces.DrawingML, "themeElements").Child(OfficeXmlNamespaces.DrawingML, "fontScheme");
+        private static OfficeXmlNode OverrideScheme(PowerPointPartRef part, string schemeName) =>
+            RootOf(part.RelatedPart(PowerPointPartRef.ThemeOverrideRelationshipType)).Child(OfficeXmlNamespaces.DrawingML, schemeName);
+
+        private static OfficeXmlNode ThemeScheme(PowerPointPartRef part, string schemeName) =>
+            part.IsNone ? default : RootOf(part.RelatedPart(PowerPointPartRef.ThemeRelationshipType))
+                .Child(OfficeXmlNamespaces.DrawingML, "themeElements").Child(OfficeXmlNamespaces.DrawingML, schemeName);
+
+        // A part's root; a package part that exists but can't be parsed fails, as reading it through the SDK does.
+        private static OfficeXmlNode RootOf(PowerPointPartRef part) {
+            if (part.IsNone) return default;
+            OfficeXmlNode root = part.Root;
+            if (root.IsNone && !part.Current.IsSdk) throw new InvalidDataException("The part '" + part.Name + "' could not be read.");
+            return root;
+        }
 
         public IReadOnlyList<IOfficeChartEmbeddedPackage> EmbeddedPackages(int limit) {
             var packages = new List<IOfficeChartEmbeddedPackage>();

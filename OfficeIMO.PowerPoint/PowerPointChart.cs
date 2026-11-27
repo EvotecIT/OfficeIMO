@@ -1,80 +1,15 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.OpenXml.Internal;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Represents a chart on a slide.
         /// </summary>
         public partial class PowerPointChart : PowerPointShape {
-        private readonly OpenXmlPartContainer? _initialOwnerPart;
-        // A chart read from the package belongs to its slide's part once the SDK opens.
-        private OpenXmlPartContainer _ownerPart => _initialOwnerPart is null or SlidePart
-            ? Element.Ancestors<Slide>().FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? OwnerSlide!.SlidePart
-            : _initialOwnerPart;
-
         internal PowerPointChart(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
-        internal PowerPointChart(GraphicFrame frame, SlidePart slidePart) : base(frame) {
-            _initialOwnerPart = slidePart ?? throw new ArgumentNullException(nameof(slidePart));
-        }
-
-        internal PowerPointChart(GraphicFrame frame, OpenXmlPartContainer ownerPart) : base(frame) {
-            _initialOwnerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
-        }
-
         private OfficeTheme ColorTheme => PowerPointDrawingColor.ThemeFor(OwnerPartRef, OwnerSlide);
-
-        private GraphicFrame Frame => (GraphicFrame)Element;
-
-        /// <summary>
-        ///     Updates the chart data (series and categories).
-        /// </summary>
-        internal PowerPointChart UpdateData(PowerPointChartData data) {
-            ArgumentNullException.ThrowIfNull(data);
-
-            ChartPart chartPart = GetChartPart();
-            EmbeddedPackagePart? embedded = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(chartPart);
-            byte[]? workbookBytes = embedded != null ? PowerPointUtils.BuildChartWorkbook(data) : null;
-            Action? preserveBindings = embedded != null ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
-                chartPart, data.Series.Select(series => series.Values.Count).ToArray()) : null;
-            PowerPointUtils.UpdateChartData(chartPart, data);
-            preserveBindings?.Invoke();
-            if (embedded != null) {
-                using var stream = new MemoryStream(workbookBytes!);
-                embedded.FeedData(stream);
-            }
-
-            MarkChartEdited();
-            return this;
-        }
-
-        /// <summary>
-        ///     Updates scatter chart data (series X/Y values).
-        /// </summary>
-        internal PowerPointChart UpdateData(PowerPointScatterChartData data) {
-            ArgumentNullException.ThrowIfNull(data);
-
-            ChartPart chartPart = GetChartPart();
-            EmbeddedPackagePart? embedded = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(chartPart);
-            byte[]? workbookBytes = embedded != null ? PowerPointUtils.BuildChartWorkbook(data) : null;
-            Action? preserveBindings = embedded != null ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
-                chartPart, data.Series.Select(series => series.YValues.Count).ToArray()) : null;
-            PowerPointUtils.UpdateChartData(chartPart, data);
-            preserveBindings?.Invoke();
-            if (embedded != null) {
-                using var stream = new MemoryStream(workbookBytes!);
-                embedded.FeedData(stream);
-            }
-
-            MarkChartEdited();
-            return this;
-        }
 
         /// <summary>
         ///     Updates the chart data using selectors.
@@ -101,26 +36,20 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(title);
 
             OfficeXmlNode chart = ChartNode;
-            if (chart.Child(CNs, "title").IsNone && !chart.IsSdk) {
-                // A new title takes the theme's title text defaults through the shared writer, which works on SDK elements.
-                RequireSdkChart();
-                chart = ChartNode;
-            }
             SetValChild(chart, "autoTitleDeleted", "0", CChartView.Order);
 
             OfficeXmlNode existing = chart.Child(CNs, "title");
             OfficeXmlNode chartTitle = existing.Exists ? existing : chart.CreateElement(CNs, "title");
             chartTitle.RemoveChildren(CNs, "tx");
-            chartTitle.InsertOrdered(CreateChartText(chartTitle, title), CTitleView.Order);
+            OfficeChartXml.SetOrdered(chartTitle, CreateChartText(chartTitle, title), CTitleView.Order);
             if (chartTitle.Child(CNs, "layout").IsNone) {
                 chartTitle.AddOrdered(CNs, "layout", CTitleView.Order);
             }
             chartTitle.RemoveChildren(CNs, "overlay");
-            chartTitle.AddOrdered(CNs, "overlay", CTitleView.Order).SetBooleanAttribute("val", false);
+            OfficeChartXml.SetOrdered(chartTitle, chartTitle.CreateVal(CNs, "overlay", "0"), CTitleView.Order);
 
             if (existing.IsNone) {
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.ApplyTitle((C.Title)chartTitle.SdkElement!,
-                    ColorTheme);
+                OfficeOpenXmlChartThemeWriter.ApplyTitle(chartTitle, ColorTheme);
                 chart.InsertBefore(chartTitle, chart.FirstChild);
             }
 
@@ -249,49 +178,16 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointChart ClearAxisLabelTextStyle(string axisName, Func<OfficeXmlNode, bool>? predicate = null) {
             OfficeXmlNode axis = FindAxis(axisName, predicate);
-            if (axis.IsNone || AxisLabelRunProperties(axis).IsNone) {
+            OfficeXmlNode runProps = AxisLabelRunProperties(axis);
+            if (runProps.IsNone) {
                 return this;
             }
-            if (!axis.IsSdk) {
-                // The theme's axis text defaults go back through the shared writer, which works on SDK elements.
-                RequireSdkChart();
-                axis = FindAxis(axisName, predicate);
-            }
 
-            OfficeXmlNode runProps = AxisLabelRunProperties(axis);
             ClearTextStyle(runProps);
-            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.RestoreAxisTextDefaults((A.TextCharacterPropertiesType)runProps.SdkElement!,
-                ColorTheme);
+            OfficeOpenXmlChartThemeWriter.RestoreAxisTextDefaults(runProps, ColorTheme);
             MarkChartEdited();
             return this;
         }
 
-        // Clears the automatic color marker of a series through the shared writer, which works on SDK elements; callers
-        // open the SDK for the chart first.
-        private static void ClearAutomaticSeriesColor(OfficeXmlNode series) =>
-            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor((OpenXmlElement)series.SdkElement!);
-
-        /// <summary>Opens the SDK for the chart, so its elements are the SDK's.</summary>
-        private void RequireSdkChart() => _ = GetChartPart();
-
-        internal C.Chart GetChart() {
-            ChartPart chartPart = GetChartPart();
-            C.Chart? chart = chartPart.ChartSpace?.GetFirstChild<C.Chart>();
-            if (chart == null) {
-                throw new InvalidOperationException("Chart element not found in chart part.");
-            }
-            return chart;
-        }
-
-        private ChartPart GetChartPart() {
-            C.ChartReference? chartReference = Frame.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>();
-            StringValue? relationshipId = chartReference?.Id;
-            if (relationshipId == null) {
-                throw new InvalidOperationException("Chart reference not found for the shape.");
-            }
-
-            string relId = relationshipId.Value ?? throw new InvalidOperationException("Chart relationship id is empty.");
-            return (ChartPart)_ownerPart.GetPartById(relId);
-        }
     }
 }

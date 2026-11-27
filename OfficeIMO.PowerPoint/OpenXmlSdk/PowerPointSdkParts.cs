@@ -80,17 +80,7 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
 
         internal static string ContentType(object part) => P(part).ContentType;
 
-        internal static byte[] ReadBytes(object part) {
-            using Stream stream = P(part).GetStream(FileMode.Open, FileAccess.Read);
-            using var copy = new MemoryStream();
-            stream.CopyTo(copy);
-            return copy.ToArray();
-        }
-
-        internal static void FeedBytes(object part, byte[] data) {
-            using var stream = new MemoryStream(data, writable: false);
-            P(part).FeedData(stream);
-        }
+        internal static Stream GetStream(object part, FileMode mode, FileAccess access) => P(part).GetStream(mode, access);
 
         internal static void SaveRoot(object part) => P(part).RootElement?.Save();
 

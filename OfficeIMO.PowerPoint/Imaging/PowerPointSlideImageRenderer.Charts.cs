@@ -1,5 +1,4 @@
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
@@ -9,9 +8,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            A.ColorScheme? chartColorScheme = colorScheme.SdkElement as A.ColorScheme
-                ?? (colorScheme.IsNone ? null : new A.ColorScheme(System.Text.Encoding.UTF8.GetString(colorScheme.OuterXml())));
-            if (!chart.TryGetSnapshot(chartColorScheme, fidelity, out PowerPointChartSnapshot snapshot, out string? failureReason,
+            if (!chart.TryGetSnapshot(colorScheme, fidelity, out PowerPointChartSnapshot snapshot, out string? failureReason,
                     out IReadOnlyList<string> approximations)) {
                 AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the shared chart renderer cannot draw it: " +
                     (failureReason ?? "the chart could not be projected."), diagnosticCode: OfficeDiagnosticCodes.UnsupportedChart);

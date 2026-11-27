@@ -1,15 +1,12 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
 public partial class PowerPointChart {
     internal void ApplyPointStyles(PowerPointChartData data) {
-        var part = GetChartPart();
-        var chartSpace = part.ChartSpace ?? throw new InvalidOperationException("Chart content is missing.");
-        var nativeSeries = chartSpace.Descendants<DocumentFormat.OpenXml.OpenXmlCompositeElement>()
-            .Where(element => element.LocalName == "ser" && element.NamespaceUri == "http://schemas.openxmlformats.org/drawingml/2006/chart")
-            .OrderBy(element => element.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue).ToList();
+        List<OfficeXmlNode> nativeSeries = SeriesInIndexOrder();
         if (nativeSeries.Count != data.Series.Count) throw new InvalidOperationException("Chart series metadata does not match the native chart.");
         for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
             PowerPointChartSeries source = data.Series[seriesIndex];
@@ -17,20 +14,24 @@ public partial class PowerPointChart {
             OfficeOpenXmlChartPointStyles.ApplyPoints(nativeSeries[seriesIndex],
                 source.PointStyles, source.PointColors, source.Values.Count);
         }
-        chartSpace.Save();
+        MarkChartEdited();
     }
 
     /// <summary>Replaces a point's fill/outline overrides. Null restores series/theme inheritance.</summary>
     public PowerPointChart SetDataPointStyle(int seriesIndex, uint pointIndex, OfficeChartPointStyle? style) {
         ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
-        var part = GetChartPart();
-        var chartSpace = part.ChartSpace ?? throw new InvalidOperationException("Chart content is missing.");
-        var series = chartSpace.Descendants<DocumentFormat.OpenXml.OpenXmlCompositeElement>()
-            .Where(element => element.LocalName == "ser" && element.NamespaceUri == "http://schemas.openxmlformats.org/drawingml/2006/chart")
-            .OrderBy(element => element.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue).ToList();
+        List<OfficeXmlNode> series = SeriesInIndexOrder();
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(seriesIndex, series.Count);
         OfficeOpenXmlChartPointStyles.ApplyPoint(series[seriesIndex], pointIndex, style);
-        chartSpace.Save();
+        MarkChartEdited();
         return this;
+    }
+
+    // Every c:ser of the chart space, ordered by c:idx, those without one last.
+    private List<OfficeXmlNode> SeriesInIndexOrder() {
+        OfficeXmlNode chartSpace = ChartSpaceNode;
+        if (chartSpace.IsNone) throw new InvalidOperationException("Chart content is missing.");
+        return chartSpace.Descendants(OfficeXmlNamespaces.Chart, "ser")
+            .OrderBy(element => element.Child(OfficeXmlNamespaces.Chart, "idx").UIntVal() ?? uint.MaxValue).ToList();
     }
 }

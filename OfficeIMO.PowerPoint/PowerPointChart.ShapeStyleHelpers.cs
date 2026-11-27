@@ -147,15 +147,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets the <c>val</c> of a chart child element as an SDK property assignment does: an existing element in place,
-        /// a new one in schema order.
+        /// Sets a chart child element carrying <paramref name="value"/> as its <c>val</c> the way an SDK property assignment
+        /// does: whatever fills the same schema slot is replaced, and the new element goes in schema order.
         /// </summary>
-        private static OfficeXmlNode SetValChild(OfficeXmlNode parent, string localName, string value, OfficeXmlChildOrder order) {
-            OfficeXmlNode child = parent.Child(CNs, localName);
-            if (child.IsNone) child = parent.AddOrdered(CNs, localName, order);
-            child.SetAttribute("val", value);
-            return child;
-        }
+        private static OfficeXmlNode SetValChild(OfficeXmlNode parent, string localName, string value, OfficeXmlChildOrder order) =>
+            OfficeChartXml.SetOrdered(parent, parent.CreateVal(CNs, localName, value), order);
 
         private static void RemoveFills(OfficeXmlNode props) {
             foreach (string fill in ShapeFills) props.RemoveChildren(ANs, fill);
@@ -175,13 +171,13 @@ namespace OfficeIMO.PowerPoint {
 
         private void ApplySolidFill(OfficeXmlNode props, OfficeColor? color) {
             RemoveFills(props);
-            props.InsertOrdered(PowerPointDrawingColor.CreateFill(props, color ?? throw new ArgumentNullException(nameof(color)), ColorTheme),
+            OfficeChartXml.SetOrdered(props, PowerPointDrawingColor.CreateFill(props, color ?? throw new ArgumentNullException(nameof(color)), ColorTheme),
                 DmlShapePropertiesView.Order);
         }
 
         private static void ApplyNoFill(OfficeXmlNode props) {
             RemoveFills(props);
-            props.AddOrdered(ANs, "noFill", DmlShapePropertiesView.Order);
+            OfficeChartXml.SetOrdered(props, props.CreateElement(ANs, "noFill"), DmlShapePropertiesView.Order);
         }
 
         private static void ApplyNoLine(OfficeXmlNode props) {
@@ -194,7 +190,7 @@ namespace OfficeIMO.PowerPoint {
         private void ApplyLine(OfficeXmlNode props, OfficeColor? color, OfficeLength? width) {
             OfficeXmlNode outline = GetOrAppend(props, ANs, "ln");
             RemoveFills(outline);
-            outline.InsertOrdered(PowerPointDrawingColor.CreateFill(outline, color ?? throw new ArgumentNullException(nameof(color)), ColorTheme),
+            OfficeChartXml.SetOrdered(outline, PowerPointDrawingColor.CreateFill(outline, color ?? throw new ArgumentNullException(nameof(color)), ColorTheme),
                 DmlLinePropertiesView.Order);
             if (width != null) {
                 outline.SetInt32Attribute("w", checked((int)width.Value.ToEmus()));
@@ -209,7 +205,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlNode outline = GetOrAppend(props, ANs, "ln");
             if (color != null) {
                 RemoveFills(outline);
-                outline.InsertOrdered(PowerPointDrawingColor.CreateFill(outline, color.Value, ColorTheme), DmlLinePropertiesView.Order);
+                OfficeChartXml.SetOrdered(outline, PowerPointDrawingColor.CreateFill(outline, color.Value, ColorTheme), DmlLinePropertiesView.Order);
             }
             if (width != null) {
                 outline.SetInt32Attribute("w", checked((int)width.Value.ToEmus()));
