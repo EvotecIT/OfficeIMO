@@ -1,7 +1,5 @@
 using System.Globalization;
 using System.Text;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -167,7 +165,7 @@ namespace OfficeIMO.Excel {
                 if (!TryResolveFormulaReferenceArgument(tokens[0], out ExcelSheet referenceSheet, out int referenceRow, out int referenceColumn))
                     return _formulaReferenceError.IsError;
 
-                bool isFormula = referenceSheet.TryGetDomCell(referenceRow, referenceColumn) is { } formulaCell && ExcelWorksheetScan.FindFormula(formulaCell) != null;
+                bool isFormula = referenceSheet.HasFormulaCell(referenceRow, referenceColumn);
                 result = FormulaArgumentValue.Boolean(isFormula);
                 return true;
             }
@@ -272,13 +270,12 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            Cell? cell = referenceSheet.TryGetDomCell(row, column);
-            formulaText = (cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) == null
+            ExcelFormulaCell cell = referenceSheet.GetFormulaCell(row, column);
+            formulaText = !cell.HasFormula
                 ? string.Empty
                 : referenceSheet.ResolveCellFormulaText(
-                    cell!,
-                    ExcelWorksheetScan.FindFormula(cell!)!.FormulaType?.Value == CellFormulaValues.Shared
-                        && string.IsNullOrEmpty(ExcelWorksheetScan.FindFormula(cell!)!.Text)
+                    cell,
+                    cell.FormulaKind == ExcelFormulaKind.Shared && string.IsNullOrEmpty(cell.FormulaText)
                         ? GetFormulaEvaluationSharedDefinitions(referenceSheet)
                         : null);
             return formulaText.Length > 0;

@@ -23,17 +23,10 @@ namespace OfficeIMO.Excel {
                 result = FormulaArgumentValue.Error("#REF!");
                 return true;
             }
-            DocumentFormat.OpenXml.Packaging.PivotTablePart? selected = null;
-            foreach (var part in sheet._worksheetPart.PivotTableParts) {
-                if (!ExcelA1.TryParseRange(part.PivotTableDefinition?.Location?.Reference?.Value ?? "", out int r1, out int c1, out int r2, out int c2)
-                    || top > r2 || bottom < r1 || left > c2 || right < c1) continue;
-                if (selected != null) { result = FormulaArgumentValue.Error("#REF!"); return true; }
-                selected = part;
+            switch (sheet.ReadSavedPivotDataAt(top, left, bottom, right, dataField.Text, criteria, out ExcelCellData value)) {
+                case ExcelPivotDataLookup.NotFound: result = FormulaArgumentValue.Error("#REF!"); return true;
+                case ExcelPivotDataLookup.Unsupported: return false;
             }
-            if (selected == null) { result = FormulaArgumentValue.Error("#REF!"); return true; }
-            ExcelCellData value;
-            try { value = sheet.ReadSavedPivotData(selected, dataField.Text, criteria); }
-            catch (NotSupportedException) { return false; }
             result = value.Kind == ExcelCellDataKind.Error ? FormulaArgumentValue.Error(value.Value as string ?? "#VALUE!")
                 : value.Value is bool boolean ? new FormulaArgumentValue(boolean ? 1 : 0, boolean ? "TRUE" : "FALSE", isBoolean: true)
                 : value.Value is double number ? new FormulaArgumentValue(number, InvariantNumberText.Get(number))

@@ -412,7 +412,7 @@ namespace OfficeIMO.Excel {
                     localSheetIndex,
                     sourceName,
                     allowGlobal: true,
-                    out DefinedName definedName,
+                    out ExcelFormulaDefinedName definedName,
                     out _)) {
                 return false;
             }

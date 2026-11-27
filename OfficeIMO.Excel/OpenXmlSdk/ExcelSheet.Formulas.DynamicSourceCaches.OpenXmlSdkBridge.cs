@@ -115,7 +115,8 @@ namespace OfficeIMO.Excel {
                 if (state.Valid && state.AnchorSeen)
                     foreach (var entry in state.Cells)
                         if (!ownership.Cells.ContainsKey(entry.Key)) {
-                            sheetIndex.Cells.TryGetValue(entry.Key, out entry.Value.SourceCell);
+                            if (sheetIndex.Cells.TryGetValue(entry.Key, out ExcelFormulaCell source))
+                                entry.Value.SourceCell = (Cell?)source.Element;
                             ownership.Cells.Add(entry.Key, entry.Value);
                         }
         }
@@ -171,7 +172,7 @@ namespace OfficeIMO.Excel {
         private static bool OriginalDynamicAnchorMatches(XmlReader reader, FixedArrayOwner owner) {
             string? cellMetadata = reader.GetAttribute("cm");
             if (!uint.TryParse(cellMetadata, out uint metadata)
-                || metadata != owner.Cell.CellMetaIndex?.Value) return false;
+                || metadata != owner.Cell.CellMetaIndex) return false;
             string expectedRange = ExcelA1.CellReference(owner.Top, owner.Left) + ":"
                 + ExcelA1.CellReference(owner.Bottom, owner.Right);
             using XmlReader child = reader.ReadSubtree();
@@ -182,7 +183,7 @@ namespace OfficeIMO.Excel {
                 string? range = child.GetAttribute("ref");
                 string formula = child.ReadElementContentAsString();
                 return type == "array" && string.Equals(range, expectedRange, StringComparison.Ordinal)
-                    && string.Equals(formula, ExcelWorksheetScan.FindFormula(owner.Cell)?.Text, StringComparison.Ordinal);
+                    && string.Equals(formula, owner.Cell.FormulaText, StringComparison.Ordinal);
             }
             return false;
         }
@@ -191,14 +192,14 @@ namespace OfficeIMO.Excel {
             snapshot = null;
             if (reader.GetAttribute("cm") != null) return false;
             string? type = reader.GetAttribute("t");
-            DocumentFormat.OpenXml.Spreadsheet.CellValues? parsedType = type switch {
+            CellValues? parsedType = type switch {
                 null => null,
-                "b" => DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean,
-                "d" => DocumentFormat.OpenXml.Spreadsheet.CellValues.Date,
-                "e" => DocumentFormat.OpenXml.Spreadsheet.CellValues.Error,
-                "n" => DocumentFormat.OpenXml.Spreadsheet.CellValues.Number,
-                "s" => DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString,
-                "str" => DocumentFormat.OpenXml.Spreadsheet.CellValues.String,
+                "b" => CellValues.Boolean,
+                "d" => CellValues.Date,
+                "e" => CellValues.Error,
+                "n" => CellValues.Number,
+                "s" => CellValues.SharedString,
+                "str" => CellValues.String,
                 _ => null
             };
             if (type != null && parsedType == null) return false;

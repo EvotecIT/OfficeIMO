@@ -34,10 +34,10 @@ namespace OfficeIMO.Excel {
             }
 
             // Cross-sheet wrappers borrow this snapshot only while the pass owns it.
-            internal SharedStringCache GetSharedStrings(DocumentFormat.OpenXml.Packaging.SpreadsheetDocument document, long mutationVersion) {
+            internal SharedStringCache GetSharedStrings(Func<SharedStringCache> build, long mutationVersion) {
                 if (_sharedStrings == null || _sharedStringMutationVersion != mutationVersion) {
                     _sharedStrings?.Dispose();
-                    _sharedStrings = SharedStringCache.Build(document);
+                    _sharedStrings = build();
                     _sharedStringMutationVersion = mutationVersion;
                 }
                 return _sharedStrings;

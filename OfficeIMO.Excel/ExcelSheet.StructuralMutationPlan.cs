@@ -141,14 +141,14 @@ namespace OfficeIMO.Excel {
                         _spreadSheetDocument,
                         sheetElement,
                         registerSheetWrapper: false);
-                IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates =
+                IReadOnlyDictionary<ExcelFormulaCell, (int Row, int Column)> effectiveCoordinates =
                     inspectedSheet.BuildEffectiveCellCoordinates(
                         worksheetElements.OfType<Row>(),
                         worksheetElements.OfType<Cell>());
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
                     inspectedSheet.BuildSharedFormulaDefinitions(
                         effectiveCoordinates,
-                        worksheetElements.OfType<Cell>());
+                        worksheetElements.OfType<Cell>().Select(cell => (ExcelFormulaCell)cell));
                 bool isPendingOwner = pendingCellsByOwner.TryGetValue(worksheetPart, out Dictionary<long, object?>? pendingOwnerCells);
                 if (rewriteUnqualified) {
                     rows += CountAffectedRowRecords(worksheetElements, firstRow);
