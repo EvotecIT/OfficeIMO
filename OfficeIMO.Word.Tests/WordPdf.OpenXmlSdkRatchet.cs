@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
     /// Word model and its <c>OfficeXmlNode</c> handles; the count may only go down.
     /// </summary>
     public class WordPdfOpenXmlSdkRatchet {
-        private const int Baseline = 113;
+        private const int Baseline = 0;
         private readonly ITestOutputHelper _output;
 
         public WordPdfOpenXmlSdkRatchet(ITestOutputHelper output) => _output = output;
