@@ -61,22 +61,30 @@ namespace OfficeIMO.Excel {
         /// Records a calculated result for the owned save; false when the workbook has opened its SDK package and the
         /// result goes to the model instead. Consecutive results for one cell keep the latest.
         /// </summary>
-        internal bool RecordDeferredFormulaResult(ExcelSheet sheet, ExcelDeferredSheet entry, ExcelXmlFormulaCellRecord cell) {
+        internal bool RecordDeferredFormulaResult(ExcelSheet sheet, ExcelDeferredSheet entry, ExcelXmlFormulaCellRecord cell,
+            out ExcelDeferredCellStore store, out int countBefore, out int countAfter) {
             ExcelDeferredCellEdit edit = ExcelDeferredCellEdit.FormulaResult(cell.Row, cell.Column, cell.Value, cell.Type,
                 cell.HasFormula ? cell.Calculate : null);
             lock (_deferredEditsGate) {
+                store = null!;
+                countBefore = countAfter = 0;
                 if (_deferredWorkbook == null || !ReferenceEquals(sheet.DeferredEntry, entry)) return false;
-                ExcelDeferredCellStore? store = entry.Cells;
-                if (store == null) {
-                    entry.Cells = store = new ExcelDeferredCellStore();
+                ExcelDeferredCellStore? cells = entry.Cells;
+                if (cells == null) {
+                    entry.Cells = cells = new ExcelDeferredCellStore();
                     _deferredEditedSheets.Add(sheet);
-                    store.Add(edit);
-                } else if (store.Count > 0 && store[store.Count - 1] is { Kind: ExcelDeferredCellKind.FormulaResult } last
-                    && last.Row == edit.Row && last.Column == edit.Column) {
-                    store[store.Count - 1] = edit;
-                } else {
-                    store.Add(edit);
                 }
+                countBefore = cells.Count;
+                if (countBefore > 0 && cells[countBefore - 1] is { Kind: ExcelDeferredCellKind.FormulaResult } last
+                    && last.Row == edit.Row && last.Column == edit.Column) {
+                    // Replacing the latest change leaves every earlier one where it was.
+                    cells[countBefore - 1] = edit;
+                    countBefore--;
+                } else {
+                    cells.Add(edit);
+                }
+                countAfter = cells.Count;
+                store = cells;
             }
             if (!_packageDirty) MarkPackageDirty();
             return true;

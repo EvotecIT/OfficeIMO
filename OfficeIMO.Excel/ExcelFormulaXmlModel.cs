@@ -4,6 +4,14 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Excel {
+    /// <summary>What a write to a cell read from the workbook's XML changed.</summary>
+    internal enum ExcelXmlFormulaChange : byte {
+        Value,
+        Calculate,
+        InlineString,
+        ValueMetadata,
+    }
+
     /// <summary>
     /// A cell read from the worksheet XML the workbook loaded, with the changes recorded since applied. Its writes are
     /// recorded as changes too, so the owned save writes them and a later SDK opening replays them.
@@ -68,27 +76,27 @@ namespace OfficeIMO.Excel {
         internal override void SetCalculateCell(bool? calculate) {
             if (Calculate == calculate) return;
             Calculate = calculate;
-            _model.Record(this);
+            _model.Record(this, ExcelXmlFormulaChange.Calculate);
         }
 
         internal override void SetValue(string? text, ExcelCellValueType? type) {
             if (string.Equals(Value, text, StringComparison.Ordinal) && Type == type) return;
             Value = text;
             Type = type;
-            _model.Record(this);
+            _model.Record(this, ExcelXmlFormulaChange.Value);
         }
 
         internal override void ClearInlineString() {
             if (!Inline) return;
             Inline = false;
             InlineValue = string.Empty;
-            _model.Record(this);
+            _model.Record(this, ExcelXmlFormulaChange.InlineString);
         }
 
         internal override void ClearValueMetaIndex() {
             if (ValueMeta == null) return;
             ValueMeta = null;
-            _model.Record(this);
+            _model.Record(this, ExcelXmlFormulaChange.ValueMetadata);
         }
 
         internal override void SetFormulaReference(string reference) =>
@@ -211,20 +219,25 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Records a write for the owned save, or sends it to the model when the workbook has opened one.</summary>
-        internal void Record(ExcelXmlFormulaCellRecord cell) {
-            if (_document.RecordDeferredFormulaResult(_sheet, _entry, cell)) {
-                // The change is in the store already applied to this record.
-                if (ReferenceEquals(_entry.Cells, _appliedStore) || _appliedStore == null) {
-                    _appliedStore = _entry.Cells;
-                    _applied = _entry.Cells!.Count;
+        internal void Record(ExcelXmlFormulaCellRecord cell, ExcelXmlFormulaChange change) {
+            if (_document.RecordDeferredFormulaResult(_sheet, _entry, cell, out ExcelDeferredCellStore store, out int before, out int after)) {
+                // The change is in the store already applied to this record. The cursor moves past it only when every
+                // change ahead of it was applied, so a change recorded meanwhile by another writer is still applied.
+                if ((ReferenceEquals(store, _appliedStore) && _applied == before) || (_appliedStore == null && before == 0)) {
+                    _appliedStore = store;
+                    _applied = after;
                 }
                 return;
             }
+            // The model holds the cell now: only what changed goes to it, so a value the model wrote meanwhile (a
+            // rich error, say) is not overwritten with this record's older one.
             ExcelFormulaCellRecord target = InModel(cell, null);
-            target.SetValue(cell.Value, cell.Type);
-            target.SetCalculateCell(cell.Calculate);
-            if (!cell.Inline) target.ClearInlineString();
-            if (cell.ValueMeta == null) target.ClearValueMetaIndex();
+            switch (change) {
+                case ExcelXmlFormulaChange.Value: target.SetValue(cell.Value, cell.Type); break;
+                case ExcelXmlFormulaChange.Calculate: if (target.HasFormula) target.SetCalculateCell(cell.Calculate); break;
+                case ExcelXmlFormulaChange.InlineString: target.ClearInlineString(); break;
+                case ExcelXmlFormulaChange.ValueMetadata: target.ClearValueMetaIndex(); break;
+            }
         }
 
         /// <summary>The same cell in the model the workbook opens for a change its XML cannot record.</summary>
@@ -339,6 +352,10 @@ namespace OfficeIMO.Excel {
                             && uint.TryParse(rowText, NumberStyles.None, CultureInfo.InvariantCulture, out uint parsedRow) && parsedRow > 0U) {
                             if (parsedRow > ExcelA1.MaxRows) return false;
                             rowNumber = (int)parsedRow;
+                        } else {
+                            // The model places an unnumbered row by its cells and writes results into the elements it
+                            // finds; such a sheet calculates through the model.
+                            return false;
                         }
                         previousRow = rowNumber;
                         if (rowNumber > ExcelA1.MaxRows) return false;
@@ -386,11 +403,8 @@ namespace OfficeIMO.Excel {
                                 column = explicitColumn;
                                 canonical = true;
                             } else {
-                                reference = reader.GetAttributeValue(index);
-                                if (ExcelA1.TryParseCellReferenceFast(reference, out explicitRow, out explicitColumn)) {
-                                    row = explicitRow;
-                                    column = explicitColumn;
-                                }
+                                // A reference written another way is placed differently by the model and the save.
+                                return false;
                             }
                             break;
                         case "s":
@@ -408,6 +422,8 @@ namespace OfficeIMO.Excel {
                             break;
                     }
                 }
+                // A cell without a reference is placed by its position, which the model finds differently.
+                if (!canonical || row != rowNumber) return false;
                 previousColumn = column;
                 if (column > ExcelA1.MaxColumns || row > ExcelA1.MaxRows) return false;
                 // A later cell at the same position replaces an earlier one, as a lookup by reference finds the first.

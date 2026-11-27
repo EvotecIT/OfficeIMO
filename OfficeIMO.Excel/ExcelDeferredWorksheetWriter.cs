@@ -286,7 +286,8 @@ namespace OfficeIMO.Excel {
                             return Fail("a row number is not valid");
                         }
                     } else {
-                        rowNumber = previousRow + 1;
+                        // The model numbers such a row by its first cell that names a row, which the merge does not follow.
+                        return Fail("a row has no number");
                     }
                     // Rows out of order leave the place of a new row unclear.
                     if (rowNumber <= previousRow) return Fail("rows are out of order");

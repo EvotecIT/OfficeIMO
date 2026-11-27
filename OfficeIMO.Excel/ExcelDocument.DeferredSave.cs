@@ -366,7 +366,10 @@ namespace OfficeIMO.Excel {
             foreach (ExcelDeferredSheet entry in _deferredWorkbook?.Sheets ?? new List<ExcelDeferredSheet>()) {
                 entry.TableHeadersRead = false;
                 entry.IsNewSheet = false;
+                // Formula models read the replaced bytes; the next formula read reads the saved ones.
+                entry.FormulaModel = null;
             }
+            _xmlFormulaWorkbook = null;
             _deferredHasCellMetadata = null;
             MarkPackageClean(bytes);
             bool pending;

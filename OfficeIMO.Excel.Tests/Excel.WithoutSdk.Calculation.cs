@@ -65,6 +65,72 @@ namespace OfficeIMO.Tests {
             Assert.Empty(document.OpenXmlSdkFallbacks);
         }
 
+        [Fact]
+        public void ASheetWithAnUnnumberedRowCalculatesAsTheModelDoes() {
+            // The master names B5 in a row that omits its number; the dependent after it has no reference of its own.
+            // The model places these cells by their row and writes results into them, so the sheet calculates through it.
+            byte[] source = Package(new Row(
+                FormulaCell("B5", new CellFormula("A6*2") { FormulaType = CellFormulaValues.Shared, SharedIndex = 0U, Reference = "B5:C5" }, "0"),
+                new Cell { CellFormula = new CellFormula { FormulaType = CellFormulaValues.Shared, SharedIndex = 0U }, CellValue = new CellValue("0") }),
+                new Row(Number("A6", "4"), Number("B6", "5")) { RowIndex = 6U });
+            Assert.Equal(CellsOf(Calculate(source, openSdkFirst: true, edit: false)), CellsOf(Calculate(source, openSdkFirst: false, edit: false)));
+        }
+
+        [Fact]
+        public void ARichErrorFromTheModelIsNotOverwrittenByTheCalculateFlag() {
+            // SEQUENCE(0) is #CALC!, a rich error, which opens the SDK model; the flags written after it must keep it.
+            byte[] source = Package(new Row(
+                FormulaCell("B1", new CellFormula("SEQUENCE(0)") { FormulaType = CellFormulaValues.Array, Reference = "B1", CalculateCell = true }, "7")) { RowIndex = 1U });
+            byte[] expected = Calculate(source, openSdkFirst: true, edit: false);
+            byte[] actual = Calculate(source, openSdkFirst: false, edit: false);
+            Assert.Equal(CellsOf(expected), CellsOf(actual));
+            Assert.DoesNotContain(CellsOf(actual), cell => cell.StartsWith("B1|", StringComparison.Ordinal) && cell.Contains("|7|"));
+        }
+
+        [Fact]
+        public void AnArrayMemberWrittenAfterARichErrorGoesToTheModel() {
+            // B2 takes #CALC! from A2, which opens the SDK model; B3 changes afterwards and has no formula of its own.
+            byte[] source = Package(
+                new Row(Number("A1", "1"), FormulaCell("B1", new CellFormula("A1:A3") { FormulaType = CellFormulaValues.Array, Reference = "B1:B3" }, "1")) { RowIndex = 1U },
+                new Row(FormulaCell("A2", new CellFormula("SEQUENCE(0)") { FormulaType = CellFormulaValues.Array, Reference = "A2" }, "2"), Number("B2", "2")) { RowIndex = 2U },
+                new Row(Number("A3", "30"), Number("B3", "3")) { RowIndex = 3U });
+            Assert.Equal(CellsOf(Calculate(source, openSdkFirst: true, edit: false)), CellsOf(Calculate(source, openSdkFirst: false, edit: false)));
+        }
+
+        [Fact]
+        public void InspectingFormulasReadsTheSheetsAfterOneThatOpensTheSdk() {
+            // The Lookups sheet reads saved pivot tables, which opens the SDK model part way through the workbook.
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", "aggregation-conformance.xlsx");
+            List<string> expected;
+            using (var document = ExcelDocument.Load(path)) {
+                Assert.NotNull(document.OpenXmlDocument);
+                expected = document.InspectFormulas().Formulas.Select(cell => cell.SheetName + "!" + cell.CellReference + "=" + cell.CachedValue).ToList();
+            }
+            using (var document = ExcelDocument.Load(path)) {
+                Assert.Equal(expected, document.InspectFormulas().Formulas.Select(cell => cell.SheetName + "!" + cell.CellReference + "=" + cell.CachedValue));
+            }
+        }
+
+        private static byte[] Package(params Row[] rows) {
+            using var stream = new MemoryStream();
+            using (SpreadsheetDocument package = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook)) {
+                WorkbookPart workbook = package.AddWorkbookPart();
+                workbook.Workbook = new Workbook(new Sheets(new Sheet { Name = "Data", SheetId = 1U, Id = "rId1" }));
+                workbook.AddNewPart<WorksheetPart>("rId1").Worksheet = new Worksheet(new SheetData(rows));
+            }
+            return stream.ToArray();
+        }
+
+        private static byte[] Calculate(byte[] source, bool openSdkFirst, bool edit) {
+            using var document = ExcelDocument.Load(new MemoryStream(source));
+            if (openSdkFirst) Assert.NotNull(document.OpenXmlDocument);
+            if (edit) document.Sheets[0].Cell(2, 1).SetValue(5d);
+            document.Calculate();
+            using var output = new MemoryStream();
+            document.Save(output);
+            return output.ToArray();
+        }
+
         private static byte[] Calculate(byte[] source, bool openSdkFirst) {
             using var document = ExcelDocument.Load(new MemoryStream(source));
             if (openSdkFirst) Assert.NotNull(document.OpenXmlDocument);

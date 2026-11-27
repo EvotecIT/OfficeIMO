@@ -368,9 +368,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelFormulaInspection InspectFormulas() {
             var formulas = new List<ExcelFormulaCellInfo>();
-            ExcelFormulaWorkbookModel workbook = FormulaWorkbookModel;
-            foreach (ExcelFormulaSheetEntry entry in workbook.SheetEntries()) {
-                if (entry.IsWorksheet) formulas.AddRange(workbook.CreateSheet(entry).GetFormulaCells());
+            var names = new List<string>();
+            foreach (ExcelFormulaSheetEntry entry in FormulaWorkbookModel.SheetEntries()) {
+                if (entry.IsWorksheet && entry.Name != null) names.Add(entry.Name);
+            }
+            // Each sheet is found through the model the workbook reads at that moment: inspecting one sheet can open
+            // the SDK package (a saved pivot table, say), and the sheets after it are then read through the model.
+            foreach (string name in names) {
+                if (FindSheetForFormulas(name) is { } sheet) formulas.AddRange(sheet.GetFormulaCells());
             }
 
             return new ExcelFormulaInspection(formulas);

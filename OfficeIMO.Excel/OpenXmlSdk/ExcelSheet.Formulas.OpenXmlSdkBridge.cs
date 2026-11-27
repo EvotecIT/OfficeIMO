@@ -143,7 +143,7 @@ namespace OfficeIMO.Excel {
             internal override string? ResolveRichValueError(string? fallback) => _sheet.ResolveRichValueError(Cell, fallback);
 
             internal override void SetCalculateCell(bool? calculate) {
-                CellFormula formula = Formula!;
+                if (Formula is not CellFormula formula) return;
                 bool? current = formula.CalculateCell is { HasValue: true } flag ? flag.Value : null;
                 if (current == calculate && (calculate.HasValue || formula.CalculateCell == null)) return;
                 formula.CalculateCell = calculate.HasValue ? new BooleanValue(calculate.Value) : null;
