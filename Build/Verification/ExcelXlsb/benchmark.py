@@ -8,8 +8,44 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 from compare import HERE, run
+
+
+def driver(output, label):
+    directory = output / f"driver-{label}"
+    executable = directory / "bin/Release/net10.0/BenchmarkRevisions.dll"
+    env = {**os.environ, "ExcelSourceRoot": str(output / f"source-{label}")}
+    return executable, env
+
+
+def measure(output):
+    fixture = output / "benchmark.xlsb"
+    executable, env = driver(output, "baseline")
+    run(["dotnet", str(executable), "seed", str(fixture)], executable.parent, env=env)
+    inputs_path = output / "inputs.json"
+    inputs = json.loads(inputs_path.read_text())
+    inputs["fixtureSha256"] = hashlib.sha256(fixture.read_bytes()).hexdigest()
+    inputs["initialLoad"] = run(["uptime"], output, stdout=subprocess.PIPE).stdout.strip()
+    inputs_path.write_text(json.dumps(inputs, indent=2) + "\n")
+
+    # Alternate the starting revision on the second round. Each report keeps the raw
+    # samples, allocations and runtime environment.
+    for round_number, order in enumerate((("baseline", "candidate"), ("candidate", "baseline")), 1):
+        for label in order:
+            executable, env = driver(output, label)
+            report = output / f"{round_number}-{label}"
+            run(["dotnet", str(executable), "--inProcess", "--filter", "*XlsbMigrationBenchmarks*",
+                 "--job", "short", "--artifacts", str(report), "--exporters", "json"], executable.parent,
+                env={**env, "OFFICEIMO_XLSB_BENCH_INPUT": str(fixture)})
+            reports = list((report / "results").glob("*-report*.json"))
+            if len(reports) != 1:
+                raise RuntimeError(f"Expected one benchmark report in {report}")
+            results = json.loads(reports[0].read_text())["Benchmarks"]
+            if len(results) != 3 or any(not result.get("Statistics") for result in results):
+                raise RuntimeError(f"One or more workloads did not finish in {report}")
+
 
 
 def main():
@@ -24,7 +60,6 @@ def main():
     output.mkdir(parents=True)
     root = args.repository.resolve()
     checkouts = []
-    executables = {}
     revisions = {}
 
     try:
@@ -35,49 +70,25 @@ def main():
             run(["git", "worktree", "add", "--detach", "--quiet", str(checkout), ref], root)
             checkouts.append(checkout)
             revision = run(["git", "rev-parse", "HEAD"], checkout, stdout=subprocess.PIPE).stdout.strip()
-            driver = output / f"driver-{label}"
-            driver.mkdir()
+            directory = output / f"driver-{label}"
+            directory.mkdir()
             for file in ("BenchmarkRevisions.cs", "BenchmarkRevisions.csproj"):
-                shutil.copyfile(HERE / file, driver / file)
-            env = {**os.environ, "ExcelSourceRoot": str(checkout)}
-            run(["dotnet", "build", "BenchmarkRevisions.csproj", "-c", "Release", "-m:2"], driver, env=env)
-            executable = driver / "bin/Release/net10.0/BenchmarkRevisions.dll"
-            executables[label] = executable, env
+                shutil.copyfile(HERE / file, directory / file)
+            _, env = driver(output, label)
+            run(["dotnet", "build", "BenchmarkRevisions.csproj", "-c", "Release", "-f", "net10.0", "-m:2"],
+                directory, env=env)
             revisions[label] = revision
 
-        fixture = output / "benchmark.xlsb"
-        executable, env = executables["baseline"]
-        run(["dotnet", str(executable), "seed", str(fixture)], executable.parent, env=env)
-        clock = run(["uptime"], root, stdout=subprocess.PIPE).stdout.strip()
-        (output / "inputs.json").write_text(json.dumps({
-            "revisions": revisions,
-            "fixtureSha256": hashlib.sha256(fixture.read_bytes()).hexdigest(),
-            "initialLoad": clock,
-        }, indent=2) + "\n")
-
-        args.lock.mkdir()
-        try:
-            # Alternate the starting revision on the second round. Each report
-            # keeps the raw samples, allocations and runtime environment.
-            for round_number, order in enumerate((("baseline", "candidate"), ("candidate", "baseline")), 1):
-                for label in order:
-                    executable, env = executables[label]
-                    report = output / f"{round_number}-{label}"
-                    run(["dotnet", str(executable), "--inProcess", "--filter", "*XlsbMigrationBenchmarks*",
-                         "--job", "short", "--artifacts", str(report), "--exporters", "json"], executable.parent,
-                        env={**env, "OFFICEIMO_XLSB_BENCH_INPUT": str(fixture)})
-                    reports = list((report / "results").glob("*-report*.json"))
-                    if len(reports) != 1:
-                        raise RuntimeError(f"Expected one benchmark report in {report}")
-                    results = json.loads(reports[0].read_text())["Benchmarks"]
-                    if len(results) != 3 or any(not result.get("Statistics") for result in results):
-                        raise RuntimeError(f"One or more workloads did not finish in {report}")
-        finally:
-            args.lock.rmdir()
+        (output / "inputs.json").write_text(json.dumps({"revisions": revisions}, indent=2) + "\n")
+        run(["lockf", "-k", str(args.lock), sys.executable, str(Path(__file__).resolve()),
+             "--measure", str(output)], output)
     finally:
         for checkout in reversed(checkouts):
             run(["git", "worktree", "remove", str(checkout)], root)
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) == 3 and sys.argv[1] == "--measure":
+        measure(Path(sys.argv[2]))
+    else:
+        main()
