@@ -53,20 +53,9 @@ jobs:
         with:
           persist-credentials: false
       # A four-slice NativeAOT build takes well over an hour here, so the apps compile against the newest engine the
-      # Studio Apple engine workflow built from master.
-      - name: Restore the engine built from master
-        id: engine
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework
-            Apple/OfficeIMOStudioEngine/link-inputs
-          key: studio-apple-engine-${{ github.sha }}
-          restore-keys: studio-apple-engine-
-      # The cache shares its space with the NuGet caches, so the engine workflow keeps its newest build as an artifact.
+      # Studio Apple engine workflow built from master and kept as an artifact.
       - name: Use the engine artifact from master
         id: artifact
-        if: steps.engine.outputs.cache-matched-key == ''
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -95,9 +84,9 @@ jobs:
             done
           done
           echo "No engine artifact from master is available."
-      # Without either, the last released engine stands in.
+      # Without it, the last released engine stands in.
       - name: Use the released engine
-        if: steps.engine.outputs.cache-matched-key == '' && steps.artifact.outputs.found != 'true'
+        if: steps.artifact.outputs.found != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -112,7 +101,7 @@ jobs:
         id: check
         shell: bash
         env:
-          ENGINE: ${{ steps.engine.outputs.cache-matched-key != '' && 'cache' || steps.artifact.outputs.found == 'true' && 'artifact' || 'release' }}
+          ENGINE: ${{ steps.artifact.outputs.found == 'true' && 'artifact' || 'release' }}
         run: |
           set -euo pipefail
           echo "engine=$ENGINE" >> "$GITHUB_OUTPUT"
@@ -146,14 +135,14 @@ jobs:
       - name: Preserve checked-in source
         run: git diff --exit-code
 
-  # After a merge, an engine that came from the artifact or release, or lacks new exports, is rebuilt from master
-  # straight away rather than at the nightly run. The engine workflow skips the build when its sources are cached.
+  # After a merge, a run that had to use the released engine, or whose engine lacks new exports, rebuilds it from master
+  # straight away rather than at the nightly run. The engine workflow skips the build when its sources are already kept.
   engine-refresh:
     name: Rebuild a stale engine
     needs: native
     if: >-
       always() && github.event_name == 'push' && github.ref == 'refs/heads/master'
-      && needs.native.outputs.engine != '' && (needs.native.outputs.engine != 'cache' || needs.native.outputs.current != 'true')
+      && needs.native.outputs.engine != '' && (needs.native.outputs.engine != 'artifact' || needs.native.outputs.current != 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

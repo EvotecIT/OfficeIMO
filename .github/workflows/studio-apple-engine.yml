@@ -1,6 +1,7 @@
 name: Studio Apple engine
 
-# Builds the Studio engine from master for the Studio Apple job, which compiles the apps against the newest build.
+# Builds the Studio engine from master for the Studio Apple job, which compiles the apps against the newest build,
+# kept as the studio-apple-engine artifact.
 # A four-slice NativeAOT build takes well over an hour, so it runs nightly, and only when the engine sources changed.
 on:
   schedule:
@@ -39,15 +40,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $key = "studio-apple-engine-$(./Build/Studio/Apple/Build-StudioEngine.ps1 -PrintSourceKey)"
-          $cached = [int](gh cache list --repo $env:GITHUB_REPOSITORY --key $key --ref refs/heads/master --json key --jq 'length')
-          if ($LASTEXITCODE) { throw 'Cannot list the engine caches.' }
-          # The artifact is the copy the Studio Apple job falls back to when the cache is evicted, so both must exist.
-          $artifacts = [int](gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?name=studio-apple-engine&per_page=10" --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master" and .workflow_run.head_repository_id == .workflow_run.repository_id)] | length')
+          # A marker artifact named after the source key records which sources the kept engine was built from.
+          $marker = [int](gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?name=$key&per_page=10" --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "master" and .workflow_run.head_repository_id == .workflow_run.repository_id)] | length')
           if ($LASTEXITCODE) { throw 'Cannot list the engine artifacts.' }
-          $built = $cached -gt 0 -and $artifacts -gt 0
+          $built = $marker -gt 0
           "key=$key" >> $env:GITHUB_OUTPUT
           "built=$($built.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
-          Write-Host ($built ? "An engine for these sources is already cached ($key)." : "Building $key.")
+          Write-Host ($built ? "An engine for these sources is already kept ($key)." : "Building $key.")
 
   engine:
     name: Build the engine
@@ -68,10 +67,8 @@ jobs:
       - name: Build all four slices
         shell: pwsh
         run: ./Build/Studio/Apple/Build-StudioEngine.ps1 -WorkDirectory (Join-Path $env:RUNNER_TEMP 'studio-engine')
-      # The cache is shared with the NuGet caches and can be evicted. This copy lives outside it, so the Studio Apple
-      # job keeps compiling against a current engine until the next build. It's uploaded before the cache is saved, so a
-      # cached engine always has a matching copy and a failed upload leaves the next run to build again.
-      - name: Keep a copy outside the cache
+      # Kept as an artifact rather than in the Actions cache, which the NuGet caches regularly fill and evict from.
+      - name: Keep the engine
         id: artifact
         uses: actions/upload-artifact@v7
         with:
@@ -81,30 +78,37 @@ jobs:
             Apple/OfficeIMOStudioEngine/link-inputs
           if-no-files-found: error
           retention-days: 90
-      # Saved under the key computed above, so the next check finds it whichever SDK this runner rolled forward to.
-      - uses: actions/cache/save@v6
+      - name: Record the engine's sources
+        shell: pwsh
+        env:
+          KEY: ${{ needs.sources.outputs.key }}
+        run: Set-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'engine-source-key.txt') -Value $env:KEY -NoNewline
+      - uses: actions/upload-artifact@v7
         with:
-          path: |
-            Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework
-            Apple/OfficeIMOStudioEngine/link-inputs
-          key: ${{ needs.sources.outputs.key }}
-      # Each engine is large, and the Studio Apple job only uses the newest, so older ones would just take up space.
+          name: ${{ needs.sources.outputs.key }}
+          path: ${{ runner.temp }}/engine-source-key.txt
+          if-no-files-found: error
+          retention-days: 90
+      # Only the newest engine is used, so earlier runs' engines and markers, and any engine left in the cache by the
+      # previous scheme, would just take up space.
       - name: Remove older engines
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          KEEP: ${{ needs.sources.outputs.key }}
-          KEEP_ARTIFACT: ${{ steps.artifact.outputs.artifact-id }}
         run: |
-          $old = gh cache list --repo $env:GITHUB_REPOSITORY --key studio-apple-engine- --limit 100 --json id,key --jq ".[] | select(.key != `"$env:KEEP`") | .id"
+          $caches = gh cache list --repo $env:GITHUB_REPOSITORY --key studio-apple-engine- --limit 100 --json id --jq '.[].id'
           if ($LASTEXITCODE) { throw 'Cannot list the engine caches.' }
-          foreach ($id in $old) {
+          foreach ($id in $caches) {
               gh cache delete $id --repo $env:GITHUB_REPOSITORY
               if ($LASTEXITCODE) { throw "Cannot delete engine cache $id." }
           }
-          $oldArtifacts = gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?name=studio-apple-engine&per_page=100" --jq ".artifacts[] | select((.id | tostring) != `"$env:KEEP_ARTIFACT`") | .id"
-          if ($LASTEXITCODE) { throw 'Cannot list the engine artifacts.' }
-          foreach ($id in $oldArtifacts) {
-              gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$id" | Out-Null
-              if ($LASTEXITCODE) { throw "Cannot delete engine artifact $id." }
+          $runs = gh api "repos/$env:GITHUB_REPOSITORY/actions/workflows/studio-apple-engine.yml/runs?per_page=50" --jq ".workflow_runs[] | select(.id != $env:GITHUB_RUN_ID) | .id"
+          if ($LASTEXITCODE) { throw 'Cannot list the engine runs.' }
+          foreach ($run in $runs) {
+              $artifacts = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$run/artifacts" --jq '.artifacts[] | select(.name | startswith("studio-apple-engine")) | .id'
+              if ($LASTEXITCODE) { throw "Cannot list the artifacts of engine run $run." }
+              foreach ($id in $artifacts) {
+                  gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$id" | Out-Null
+                  if ($LASTEXITCODE) { throw "Cannot delete engine artifact $id." }
+              }
           }
