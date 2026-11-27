@@ -148,8 +148,12 @@ namespace OfficeIMO.PowerPoint {
         internal OfficeXmlTree? TryCreatePackageNotes(string slidePart) {
             if (GetPackage(edit: true) is not { } package) return null;
             try {
-                // Any notes relationship, even one whose part is missing, is the model's to handle.
-                if (HasRelationshipOfType(package, slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide")) return null;
+                // A notes relationship to a part that holds no notes is replaced, as nothing reads it as notes; any other
+                // notes relationship, even one whose part is missing, is the model's to handle.
+                if (HasRelationshipOfType(package, slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide")
+                    && !TryRemoveNonNotesRelationships(package, slidePart)) {
+                    return null;
+                }
                 // Notes go in a folder beside the slide's folder, which a slide at the package root doesn't have.
                 string slideDirectory = slidePart.Substring(0, slidePart.LastIndexOf('/'));
                 if (slideDirectory.LastIndexOf('/') < 0) return null;
@@ -209,6 +213,27 @@ namespace OfficeIMO.PowerPoint {
             } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                 return null;
             }
+        }
+
+        // Removes the slide's notes relationships when every one targets an existing part whose root is not p:notes; false,
+        // having changed nothing, when one targets notes or a missing part.
+        private static bool TryRemoveNonNotesRelationships(OfficeOpcEditablePackage package, string slidePart) {
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(slidePart);
+            OfficeXmlTree relationships = package.GetXml(relationshipsPart);
+            var removed = new List<int>();
+            for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                 node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                if (OfficeXmlNamespaces.NormalizeRelationshipType(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type") ?? string.Empty)
+                    != OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide") continue;
+                if (string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) return false;
+                string? target = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
+                if (target == null || !package.PartExists(target)) return false;
+                OfficeXmlTree content = package.GetXml(target);
+                if (content.IsElement(content.Root, OfficeXmlNamespaces.PresentationML, "notes")) return false;
+                removed.Add(node);
+            }
+            foreach (int node in removed) relationships.Remove(node);
+            return true;
         }
 
         // The notes slide the notes model writes: a group named for the notes, and the body placeholder with one empty run.
