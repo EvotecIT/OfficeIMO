@@ -33,6 +33,12 @@ namespace OfficeIMO.Word {
                     _loadedPassword = null;
                     return;
                 }
+                if (ownedTarget != null && TryCreateLegacyDocFileBytesWithoutSdk(ownedTarget, options, out byte[] legacyDocBytes)) {
+                    OfficeFileCommit.WriteAllBytes(ownedTarget, legacyDocBytes);
+                    FilePath = ownedTarget;
+                    _loadedPassword = null;
+                    return;
+                }
             }
             ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "Save");
             PreSaving();
@@ -144,6 +150,10 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
             ArgumentException.ThrowIfNullOrEmpty(filePath);
+            if (TryCreateLegacyDocFileBytesWithoutSdk(filePath, options, out byte[] legacyDocBytes)) {
+                OfficeFileCommit.WriteAllBytes(filePath, legacyDocBytes);
+                return;
+            }
 
             ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveCopy");
             PreSaving();
@@ -184,6 +194,11 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
 
+            if (TryCreateLegacyDocFileBytesWithoutSdk(filePath, options, out byte[] legacyDocBytes)) {
+                await OfficeFileCommit.WriteAllBytesAsync(filePath, legacyDocBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
             ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveCopyAsync");
             PreSaving();
             if (_wordprocessingDocument == null) {
@@ -212,6 +227,10 @@ namespace OfficeIMO.Word {
             EnsureSupportedWordSaveFormat(format);
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
+            }
+
+            if (format == WordFileFormat.Doc && TryCreateLegacyDocBytesWithoutSdk(options, isTemplate: false, out byte[] legacyDocBytes)) {
+                return legacyDocBytes;
             }
 
             ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "ToBytes");
@@ -251,6 +270,12 @@ namespace OfficeIMO.Word {
                 if (ownedTarget != null && TryCreateBytesWithoutSdk(ownedTarget, options, out byte[] ownedBytes)) {
                     EnsureDestinationFileWritable(ownedTarget);
                     await OfficeFileCommit.WriteAllBytesAsync(ownedTarget, ownedBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    FilePath = ownedTarget;
+                    _loadedPassword = null;
+                    return;
+                }
+                if (ownedTarget != null && TryCreateLegacyDocFileBytesWithoutSdk(ownedTarget, options, out byte[] legacyDocBytes)) {
+                    await OfficeFileCommit.WriteAllBytesAsync(ownedTarget, legacyDocBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
                     FilePath = ownedTarget;
                     _loadedPassword = null;
                     return;
@@ -362,6 +387,10 @@ namespace OfficeIMO.Word {
                 OfficeStreamWriter.WriteAllBytes(outputStream, ownedBytes);
                 return;
             }
+            if (format == WordFileFormat.Doc && TryCreateLegacyDocBytesWithoutSdk(options, isTemplate: false, out byte[] legacyDocBytes)) {
+                OfficeStreamWriter.WriteAllBytes(outputStream, legacyDocBytes);
+                return;
+            }
             ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "Save");
             PreSaving();
 
@@ -406,6 +435,10 @@ namespace OfficeIMO.Word {
             if (FileOpenAccess == FileAccess.Read) throw new InvalidOperationException("Document is read only, and cannot be saved.");
             if (format == WordFileFormat.Docx && TryCreateBytesWithoutSdk(null, options, out byte[] ownedBytes)) {
                 await OfficeStreamWriter.WriteAllBytesAsync(outputStream, ownedBytes, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            if (format == WordFileFormat.Doc && TryCreateLegacyDocBytesWithoutSdk(options, isTemplate: false, out byte[] legacyDocBytes)) {
+                await OfficeStreamWriter.WriteAllBytesAsync(outputStream, legacyDocBytes, cancellationToken).ConfigureAwait(false);
                 return;
             }
 

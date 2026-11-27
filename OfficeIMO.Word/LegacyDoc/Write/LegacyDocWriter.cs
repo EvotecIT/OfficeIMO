@@ -1,8 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Office2013.Word;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
@@ -99,23 +96,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static readonly byte[] PlainParagraphPapx = { 0x00, 0x01, 0x00, 0x00 };
         private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, (byte)NoteTextParagraphStyleIndex, (byte)(NoteTextParagraphStyleIndex >> 8) };
 
-        // The legacy DOC model carries WordprocessingML values as its own enums; this writer still reads them from the SDK.
-        private static TModel? ToModel<TModel, TSdk>(TSdk? value) where TModel : struct, Enum where TSdk : struct, IEnumValue =>
-            value.HasValue ? LegacyDocWordValues.TryParseXml<TModel>(value.Value.Value) : null;
+        // The legacy DOC model carries WordprocessingML values as its own enums; the writer reads them as schema tokens.
+        private static TModel? ToModel<TModel>(string? value) where TModel : struct, Enum =>
+            value == null ? null : LegacyDocWordValues.TryParseXml<TModel>(value);
 
-        private static TModel? ToModel<TModel>(IEnumValue value) where TModel : struct, Enum =>
-            LegacyDocWordValues.TryParseXml<TModel>(value.Value);
-
-        private static byte? ToNfc(NumberFormatValues format) =>
+        private static byte? ToNfc(string format) =>
             ToModel<LegacyDocNumberFormat>(format) is { } model ? LegacyDocNumberFormatMapper.ToNfc(model) : null;
-
-        private static SectionMarkValues ToSdk(LegacyDocSectionMark value) => new(value.ToXml());
-        private static NumberFormatValues ToSdk(LegacyDocNumberFormat value) => new(value.ToXml());
-        private static FootnotePositionValues ToSdk(LegacyDocFootnotePosition value) => new(value.ToXml());
-        private static EndnotePositionValues ToSdk(LegacyDocEndnotePosition value) => new(value.ToXml());
-        private static RestartNumberValues ToSdk(LegacyDocRestartNumber value) => new(value.ToXml());
-        private static LineNumberRestartValues ToSdk(LegacyDocLineNumberRestart value) => new(value.ToXml());
-        private static VerticalJustificationValues ToSdk(LegacyDocVerticalJustification value) => new(value.ToXml());
 
         private static void ThrowIfUnsupportedLegacyDocImportState(WordDocument document, WordSaveOptions? options) {
             bool hasLegacyDigitalSignature = document.LegacyDocCompoundFeatures.Any(feature =>
@@ -162,36 +148,29 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return padded;
         }
 
-        private static LegacyDocWritableBody BuildBody(WordDocument document) {
-            var wordDocument = document._wordprocessingDocument;
-            if (wordDocument == null) {
-                throw new InvalidOperationException("Document couldn't be saved as legacy DOC because WordDocument wasn't provided.");
-            }
-
-            wordDocument.Save();
-            var mainPart = wordDocument.MainDocumentPart;
-            var body = mainPart?.Document?.Body;
-            if (body == null) {
+        private static LegacyDocWritableBody BuildBody(WordDocument document, LegacyDocSourcePackage source) {
+            LegacyDocElement body = source.Body;
+            if (body.IsNone) {
                 throw new InvalidOperationException("Document couldn't be saved as legacy DOC because the document body is missing.");
             }
 
-            ThrowIfUnsupportedDocumentParts(document, mainPart);
+            ThrowIfUnsupportedDocumentParts(source);
 
             var text = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
             var bodyBoundaries = new BodyBlockBoundaryCache();
-            var pictures = new LegacyDocWritablePictures(document);
-            LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(mainPart!, body);
-            LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!, pictures, styleSheet.StyleIndexes);
-            LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(mainPart!, pictures, styleSheet.StyleIndexes);
-            LegacyDocWritableComments comments = ReadSupportedComments(mainPart!, pictures, styleSheet.StyleIndexes);
-            LegacyDocTableStyleDefinitions tableStyleDefinitions = ReadTableStyleDefinitions(mainPart!);
+            var pictures = new LegacyDocWritablePictures(document, source);
+            LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(source, body);
+            LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(source, pictures, styleSheet.StyleIndexes);
+            LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(source, pictures, styleSheet.StyleIndexes);
+            LegacyDocWritableComments comments = ReadSupportedComments(source, pictures, styleSheet.StyleIndexes);
+            LegacyDocTableStyleDefinitions tableStyleDefinitions = ReadTableStyleDefinitions(source);
             LegacyDocSectionFormat finalSectionFormat = LegacyDocSectionFormat.Default;
             var sections = new List<LegacyDocWritableSection>();
             int bodyContentCount = 0;
-            foreach (OpenXmlElement child in body.ChildElements) {
+            foreach (LegacyDocElement child in body.Elements()) {
                 AppendBodyChild(
                     text,
                     runs,
@@ -199,7 +178,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     bookmarks,
                     bodyBoundaries,
                     child,
-                    mainPart!,
+                    source,
                     pictures,
                     styleSheet.StyleIndexes,
                     tableStyleDefinitions,
@@ -222,7 +201,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             endnotes.ThrowIfUnreferencedEndnotesRemain();
             comments.BindBodyReferences(body, text.ToString());
             bool hasNoteReferences = footnotes.HasReferences || endnotes.HasReferences;
-            LegacyDocWritableHeaderFooterStories headerFooterStories = BuildHeaderFooterStories(document, mainPart!, pictures, hasNoteReferences, styleSheet.StyleIndexes);
+            LegacyDocWritableHeaderFooterStories headerFooterStories = BuildHeaderFooterStories(source, pictures, hasNoteReferences, styleSheet.StyleIndexes);
             int terminalCharacterPadding = hasNoteReferences ? 1 : 0;
             LegacyDocWritableFootnoteStories footnoteStories = footnotes.CreateStories(text.Length, headerFooterStories.Text.Length, terminalCharacterPadding);
             bookmarks.AddRange(footnoteStories.Bookmarks, text.Length);
@@ -237,18 +216,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 commentStories.Text.Length,
                 terminalCharacterPadding);
             bookmarks.AddRange(endnoteStories.Bookmarks, commentStoryStart + commentStories.Text.Length);
-            Settings? settings = mainPart!.DocumentSettingsPart?.Settings;
-            SplitPageBreakAndParagraphMark? splitMark = settings?.GetFirstChild<Compatibility>()?
-                .GetFirstChild<SplitPageBreakAndParagraphMark>();
-            if (splitMark != null && !IsOnOffEnabled(splitMark)) {
+            LegacyDocElement settings = source.Settings;
+            LegacyDocElement compatibility = settings.Child("compat");
+            LegacyDocElement splitMark = compatibility.Child("splitPgBreakAndParaMark");
+            if (splitMark.Exists && !IsOnOffEnabled(splitMark)) {
                 throw new NotSupportedException("Native DOC layout always moves a trailing page-break paragraph mark onto the next page. Save as DOCX to retain SplitPageBreakAndParagraphMark=false.");
             }
-            DoNotUseIndentAsNumberingTabStop? numberingTab = settings?.GetFirstChild<Compatibility>()?
-                .GetFirstChild<DoNotUseIndentAsNumberingTabStop>();
-            if (numberingTab != null && !IsOnOffEnabled(numberingTab)) {
+            LegacyDocElement numberingTab = compatibility.Child("doNotUseIndentAsNumberingTabStop");
+            if (numberingTab.Exists && !IsOnOffEnabled(numberingTab)) {
                 throw new NotSupportedException("Native DOC numbering uses an authored or default tab stop rather than the hanging indent. Save as DOCX to retain DoNotUseIndentAsNumberingTabStop=false.");
             }
-            bool trackRevisions = settings?.Elements<TrackRevisions>().Any(IsOnOffEnabled) == true;
+            bool trackRevisions = AnyOnOffEnabled(settings, "trackRevisions");
             bool lockRevisionTracking = IsLockedRevisionTracking(settings);
             var writableBody = new LegacyDocWritableBody(
                 text.ToString(),
@@ -257,116 +235,103 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 bookmarks.Create(),
                 sections,
                 styleSheet,
-                mainPart.NumberingDefinitionsPart?.Numbering,
+                source.Numbering,
                 footnoteStories,
                 endnoteStories,
                 headerFooterStories,
                 commentStories,
                 pictures.DataBytes,
                 pictures.HasPictures,
-                HasEvenAndOddHeaders(mainPart),
-                settings?.Elements<MirrorMargins>().Any(IsOnOffEnabled) == true,
-                settings?.Elements<GutterAtTop>().Any(IsOnOffEnabled) == true,
-                settings?.GetFirstChild<Compatibility>()?.Elements<NoColumnBalance>().Any(IsOnOffEnabled) == true,
-                checked((ushort)(ReadTwipValue(settings?.GetFirstChild<DefaultTabStop>()?.Val, 720, "default tab interval") ?? 720)),
+                HasEvenAndOddHeaders(source),
+                AnyOnOffEnabled(settings, "mirrorMargins"),
+                AnyOnOffEnabled(settings, "gutterAtTop"),
+                AnyOnOffEnabled(compatibility, "noColumnBalance"),
+                checked((ushort)(ReadTwipValue(settings.Child("defaultTabStop").Val, 720, "default tab interval") ?? 720)),
                 ReadDocumentEndnotePosition(settings),
                 trackRevisions || lockRevisionTracking,
                 lockRevisionTracking);
-            ValidateNativeNumberingReferences(mainPart, styleSheet.StyleIndexes);
+            ValidateNativeNumberingReferences(source, styleSheet.StyleIndexes);
             return writableBody;
         }
 
-        private static bool HasEvenAndOddHeaders(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
-            Settings? settings = mainPart.DocumentSettingsPart?.Settings;
-            return settings?.Elements<EvenAndOddHeaders>().Any(IsOnOffEnabled) == true;
-        }
-
-        private static bool IsLockedRevisionTracking(Settings? settings) {
-            DocumentProtection? protection = settings?.Elements<DocumentProtection>().FirstOrDefault();
-            return protection?.Edit?.Value == DocumentProtectionValues.TrackedChanges
-                && protection.Enforcement != null
-                && protection.Enforcement.Value;
-        }
-
-        private static EndnotePositionValues ReadDocumentEndnotePosition(Settings? settings) {
-            EndnoteDocumentWideProperties? properties = settings?.GetFirstChild<EndnoteDocumentWideProperties>();
-            return ReadEndnotePosition(properties?.GetFirstChild<EndnotePosition>()?.Val) ?? EndnotePositionValues.DocumentEnd;
-        }
-
-        private static void ThrowIfUnsupportedDocumentParts(WordDocument document, DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart) {
-            if (mainPart == null) {
-                return;
+        /// <summary>Whether any child of <paramref name="parent"/> with this name is an enabled on/off property.</summary>
+        private static bool AnyOnOffEnabled(LegacyDocElement parent, string localName) {
+            foreach (LegacyDocElement element in parent.Elements(localName)) {
+                if (IsOnOffEnabled(element)) return true;
             }
+            return false;
+        }
 
-            ThrowIfUnsupportedReviewMarkup(mainPart);
+        private static bool HasEvenAndOddHeaders(LegacyDocSourcePackage source) => AnyOnOffEnabled(source.Settings, "evenAndOddHeaders");
 
-            if (HasRelatedPart<ChartPart>(mainPart)) {
+        private static bool IsLockedRevisionTracking(LegacyDocElement settings) {
+            LegacyDocElement protection = settings.Child("documentProtection");
+            return protection.Attr("edit") == "trackedChanges"
+                && protection.Attr("enforcement") is { } enforcement
+                && LegacyDocValues.ParseOnOff(enforcement);
+        }
+
+        private static string ReadDocumentEndnotePosition(LegacyDocElement settings) {
+            LegacyDocElement properties = settings.Child("endnotePr");
+            return ReadEndnotePosition(properties.Child("pos").Val) ?? "docEnd";
+        }
+
+        private static void ThrowIfUnsupportedDocumentParts(LegacyDocSourcePackage source) {
+            ThrowIfUnsupportedReviewMarkup(source);
+
+            if (source.ReachesRelationshipType(type => type == LegacyDocSourcePackage.RelationshipTypePrefix + "chart")) {
                 throw new NotSupportedException("Native DOC saving currently supports text only. Charts are not supported yet.");
             }
 
-            if (HasRelatedPart<DiagramDataPart>(mainPart)
-                || HasRelatedPart<DiagramLayoutDefinitionPart>(mainPart)
-                || HasRelatedPart<DiagramStylePart>(mainPart)
-                || HasRelatedPart<DiagramColorsPart>(mainPart)) {
+            if (source.ReachesRelationshipType(type => type == LegacyDocSourcePackage.RelationshipTypePrefix + "diagramData"
+                    || type == LegacyDocSourcePackage.RelationshipTypePrefix + "diagramLayout"
+                    || type == LegacyDocSourcePackage.RelationshipTypePrefix + "diagramQuickStyle"
+                    || type == LegacyDocSourcePackage.RelationshipTypePrefix + "diagramColors")) {
                 throw new NotSupportedException("Native DOC saving currently supports text only. SmartArt diagrams are not supported yet.");
             }
 
-            if (HasRelatedPart<EmbeddedObjectPart>(mainPart)
-                || HasRelatedPart<EmbeddedPackagePart>(mainPart)) {
+            if (source.ReachesRelationshipType(type => type == LegacyDocSourcePackage.RelationshipTypePrefix + "oleObject"
+                    || type == LegacyDocSourcePackage.RelationshipTypePrefix + "package")) {
                 throw new NotSupportedException("Native DOC saving currently supports text only. Embedded objects and packages are not supported yet.");
             }
 
-            if (mainPart.VbaProjectPart != null) {
+            if (source.MainPart(LegacyDocSourcePackage.VbaProjectRelationshipType) != null) {
                 throw new NotSupportedException("Native DOC saving currently does not support macro or VBA projects. Remove macros or save as DOCM/DOCX before saving as DOC.");
             }
         }
 
-        private static bool HasRelatedPart<TPart>(OpenXmlPartContainer container)
-            where TPart : OpenXmlPart {
-            return HasRelatedPart<TPart>(container, new HashSet<OpenXmlPart>());
-        }
+        private const string Word2012Namespace = "http://schemas.microsoft.com/office/word/2012/wordml";
 
-        private static bool HasRelatedPart<TPart>(OpenXmlPartContainer container, HashSet<OpenXmlPart> visited)
-            where TPart : OpenXmlPart {
-            foreach (IdPartPair relationship in container.Parts) {
-                OpenXmlPart part = relationship.OpenXmlPart;
-                if (part is TPart) {
-                    return true;
-                }
-
-                if (visited.Add(part) && HasRelatedPart<TPart>(part, visited)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static void ThrowIfUnsupportedReviewMarkup(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
-            IReadOnlyList<OpenXmlElement> storyRoots = GetReviewMarkupStoryRoots(mainPart);
+        private static void ThrowIfUnsupportedReviewMarkup(LegacyDocSourcePackage source) {
+            IReadOnlyList<LegacyDocElement> storyRoots = GetReviewMarkupStoryRoots(source);
             if (storyRoots.Any(HasMoveRevisionMarkup)) {
                 throw new NotSupportedException("Native DOC saving currently supports tracked insertions and deletions, but not tracked move markup. Accept or reject tracked moves, or save as DOCX before saving as DOC.");
             }
 
-            CommentsEx? commentsEx = mainPart.WordprocessingCommentsExPart?.CommentsEx;
-            if (commentsEx?.Elements<CommentEx>().Any(comment =>
-                    !string.IsNullOrWhiteSpace(comment.ParaIdParent?.Value)
-                    || comment.Done != null) == true) {
-                throw new NotSupportedException(
-                    "Native DOC saving currently does not support threaded replies or resolved-state comment metadata. "
-                    + "Flatten the comment threads and remove resolved-state metadata, or save as DOCX before saving as DOC.");
+            LegacyDocElement commentsEx = source.Root(source.MainPart(LegacyDocSourcePackage.CommentsExRelationshipType));
+            if (commentsEx.Is(Word2012Namespace, "commentsEx")) {
+                foreach (LegacyDocElement comment in commentsEx.Elements()) {
+                    if (!comment.Is(Word2012Namespace, "commentEx")) continue;
+                    if (!string.IsNullOrWhiteSpace(comment.AttrNs(Word2012Namespace, "paraIdParent"))
+                        || comment.AttrNs(Word2012Namespace, "done") != null) {
+                        throw new NotSupportedException(
+                            "Native DOC saving currently does not support threaded replies or resolved-state comment metadata. "
+                            + "Flatten the comment threads and remove resolved-state metadata, or save as DOCX before saving as DOC.");
+                    }
+                }
             }
 
-            if (mainPart.WordprocessingCommentsIdsPart != null
-                || mainPart.WordprocessingPeoplePart != null
-                || mainPart.Parts.Select(pair => pair.OpenXmlPart).Any(IsUnsupportedModernCommentMetadataPart)) {
+            if (source.MainPart(LegacyDocSourcePackage.CommentsIdsRelationshipType) != null
+                || source.MainPart(LegacyDocSourcePackage.PeopleRelationshipType) != null
+                || source.MainRelatedParts().Any(part => IsUnsupportedModernCommentMetadataPart(source, part.PartName))) {
                 throw new NotSupportedException(
                     "Native DOC saving currently does not support modern comment identity, people, or extensible metadata. "
                     + "Remove that metadata, or save as DOCX before saving as DOC.");
             }
 
+            LegacyDocElement body = source.Body;
             if (storyRoots
-                .Where(storyRoot => !ReferenceEquals(storyRoot, mainPart.Document?.Body))
+                .Where(storyRoot => storyRoot != body)
                 .Any(HasCommentMarkers)) {
                 throw new NotSupportedException(
                     "Native DOC saving currently supports comment references in the main document body only. "
@@ -374,55 +339,56 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static bool IsUnsupportedModernCommentMetadataPart(OpenXmlPart part) {
-            string uri = part.Uri.OriginalString;
-            string contentType = part.ContentType;
-            return uri.IndexOf("commentsExtensible", StringComparison.OrdinalIgnoreCase) >= 0
+        private static bool IsUnsupportedModernCommentMetadataPart(LegacyDocSourcePackage source, string partName) {
+            string contentType = source.GetContentType(partName) ?? string.Empty;
+            return partName.IndexOf("commentsExtensible", StringComparison.OrdinalIgnoreCase) >= 0
                 || contentType.IndexOf("commentsExtensible", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private static IReadOnlyList<OpenXmlElement> GetReviewMarkupStoryRoots(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
-            var roots = new List<OpenXmlElement>();
-            if (mainPart.Document?.Body != null) {
-                roots.Add(mainPart.Document.Body);
+        private static IReadOnlyList<LegacyDocElement> GetReviewMarkupStoryRoots(LegacyDocSourcePackage source) {
+            var roots = new List<LegacyDocElement>();
+            if (source.Body.Exists) {
+                roots.Add(source.Body);
             }
 
-            foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                if (headerPart.Header != null) {
-                    roots.Add(headerPart.Header);
+            foreach (LegacyDocRelatedPart headerPart in source.HeaderParts) {
+                LegacyDocElement header = source.Root(headerPart.PartName);
+                if (header.Exists) {
+                    roots.Add(header);
                 }
             }
 
-            foreach (FooterPart footerPart in mainPart.FooterParts) {
-                if (footerPart.Footer != null) {
-                    roots.Add(footerPart.Footer);
+            foreach (LegacyDocRelatedPart footerPart in source.FooterParts) {
+                LegacyDocElement footer = source.Root(footerPart.PartName);
+                if (footer.Exists) {
+                    roots.Add(footer);
                 }
             }
 
-            if (mainPart.FootnotesPart?.Footnotes != null) {
-                roots.Add(mainPart.FootnotesPart.Footnotes);
+            if (source.Footnotes.Exists) {
+                roots.Add(source.Footnotes);
             }
 
-            if (mainPart.EndnotesPart?.Endnotes != null) {
-                roots.Add(mainPart.EndnotesPart.Endnotes);
+            if (source.Endnotes.Exists) {
+                roots.Add(source.Endnotes);
             }
 
             return roots;
         }
 
-        private static bool HasMoveRevisionMarkup(OpenXmlElement storyRoot) {
-            return storyRoot.Descendants<MoveFromRun>().Any()
-                || storyRoot.Descendants<MoveToRun>().Any();
+        private static bool HasMoveRevisionMarkup(LegacyDocElement storyRoot) {
+            return storyRoot.HasDescendant("moveFrom")
+                || storyRoot.HasDescendant("moveTo");
         }
 
-        private static bool HasCommentMarkers(OpenXmlElement storyRoot) {
-            return storyRoot.Descendants<CommentRangeStart>().Any()
-                || storyRoot.Descendants<CommentRangeEnd>().Any()
-                || storyRoot.Descendants<CommentReference>().Any();
+        private static bool HasCommentMarkers(LegacyDocElement storyRoot) {
+            return storyRoot.HasDescendant("commentRangeStart")
+                || storyRoot.HasDescendant("commentRangeEnd")
+                || storyRoot.HasDescendant("commentReference");
         }
 
-        private static bool IsUserEndnote(Endnote endnote) {
-            return endnote.Type == null || endnote.Type.Value == FootnoteEndnoteValues.Normal;
+        private static bool IsUserEndnote(LegacyDocElement endnote) {
+            return endnote.Attr("type") is not { } type || type == "normal";
         }
 
         private static void AddSection(List<LegacyDocWritableSection> sections, int endCharacter, LegacyDocSectionFormat format) {
@@ -444,8 +410,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             List<LegacyDocWritableParagraph> paragraphFormats,
             LegacyDocWritableBookmarksBuilder bookmarks,
             BodyBlockBoundaryCache bodyBoundaries,
-            OpenXmlElement child,
-            MainDocumentPart mainPart,
+            LegacyDocElement child,
+            LegacyDocSourcePackage source,
             LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes,
             LegacyDocTableStyleDefinitions tableStyleDefinitions,
@@ -455,19 +421,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ref LegacyDocSectionFormat finalSectionFormat,
             ref int bodyContentCount,
             string containerDescription) {
-            if (child is BookmarkStart && text.Length > 0 && text[text.Length - 1] == '\a' &&
-                bodyBoundaries.FindFollowing(child) is Table) {
+            if (child.Is("bookmarkStart") && text.Length > 0 && text[text.Length - 1] == '\a' &&
+                bodyBoundaries.FindFollowing(child).Is("tbl")) {
                 // A range starting at the next table excludes its required separator.
                 // Ends closing the preceding table keep their original position.
                 text.Append('\r');
             }
-            switch (child) {
-                case Paragraph paragraph:
-                    AppendParagraph(text, runs, paragraphFormats, bookmarks, paragraph, mainPart, pictures, styleIndexes, footnotes, endnotes);
+            switch (child.WName) {
+                case "p":
+                    AppendParagraph(text, runs, paragraphFormats, bookmarks, child, source, pictures, styleIndexes, footnotes, endnotes);
                     bodyContentCount++;
 
-                    SectionProperties? paragraphSectionProperties = paragraph.GetFirstChild<ParagraphProperties>()?.GetFirstChild<SectionProperties>();
-                    if (paragraphSectionProperties != null) {
+                    LegacyDocElement paragraphSectionProperties = child.Child("pPr").Child("sectPr");
+                    if (paragraphSectionProperties.Exists) {
                         LegacyDocSectionFormat paragraphSectionFormat = ReadSupportedSectionProperties(paragraphSectionProperties);
                         // A section mark terminates this paragraph. The PLC and SEPX retain
                         // this section's own formatting, including its start type.
@@ -476,19 +442,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     }
 
                     break;
-                case Table table:
-                    AppendTable(text, runs, paragraphFormats, bookmarks, table, mainPart, pictures, styleIndexes, tableStyleDefinitions, footnotes, endnotes);
+                case "tbl":
+                    AppendTable(text, runs, paragraphFormats, bookmarks, child, source, pictures, styleIndexes, tableStyleDefinitions, footnotes, endnotes);
                     bodyContentCount++;
                     break;
-                case SdtBlock sdtBlock:
+                case "sdt":
                     AppendBodyContentControl(
                         text,
                         runs,
                         paragraphFormats,
                         bookmarks,
                         bodyBoundaries,
-                        sdtBlock,
-                        mainPart,
+                        child,
+                        source,
                         pictures,
                         styleIndexes,
                         tableStyleDefinitions,
@@ -498,18 +464,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ref finalSectionFormat,
                         ref bodyContentCount);
                     break;
-                case BookmarkStart bookmarkStart:
-                    bookmarks.AddStart(bookmarkStart, text.Length);
+                case "bookmarkStart":
+                    bookmarks.AddStart(child, text.Length);
                     break;
-                case BookmarkEnd bookmarkEnd:
+                case "bookmarkEnd":
                     int? precedingTableEnd = text.Length > 1 && text[text.Length - 1] == '\r' && text[text.Length - 2] == '\a' &&
-                        bodyBoundaries.FindPreceding(child) is Table && bodyBoundaries.FindFollowing(child) is Table
+                        bodyBoundaries.FindPreceding(child).Is("tbl") && bodyBoundaries.FindFollowing(child).Is("tbl")
                         ? text.Length - 1
                         : null;
-                    bookmarks.AddEnd(bookmarkEnd, text.Length, precedingTableEnd);
+                    bookmarks.AddEnd(child, text.Length, precedingTableEnd);
                     break;
-                case SectionProperties sectionProperties:
-                    finalSectionFormat = ReadSupportedSectionProperties(sectionProperties);
+                case "sectPr":
+                    finalSectionFormat = ReadSupportedSectionProperties(child);
                     break;
                 default:
                     throw new NotSupportedException($"Native DOC saving currently supports body paragraphs, simple body content controls, and simple tables with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family text runs. Unsupported {containerDescription} element: {child.LocalName}.");
@@ -522,8 +488,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             List<LegacyDocWritableParagraph> paragraphFormats,
             LegacyDocWritableBookmarksBuilder bookmarks,
             BodyBlockBoundaryCache bodyBoundaries,
-            SdtBlock sdtBlock,
-            MainDocumentPart mainPart,
+            LegacyDocElement sdtBlock,
+            LegacyDocSourcePackage source,
             LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes,
             LegacyDocTableStyleDefinitions tableStyleDefinitions,
@@ -532,12 +498,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             List<LegacyDocWritableSection> sections,
             ref LegacyDocSectionFormat finalSectionFormat,
             ref int bodyContentCount) {
-            SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
-            if (contentBlock == null) {
+            LegacyDocElement contentBlock = sdtBlock.Child("sdtContent");
+            if (contentBlock.IsNone) {
                 throw new NotSupportedException("Native DOC saving supports body content controls only when they contain simple body content.");
             }
 
-            foreach (OpenXmlElement child in contentBlock.ChildElements) {
+            foreach (LegacyDocElement child in contentBlock.Elements()) {
                 AppendBodyChild(
                     text,
                     runs,
@@ -545,7 +511,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     bookmarks,
                     bodyBoundaries,
                     child,
-                    mainPart,
+                    source,
                     pictures,
                     styleIndexes,
                     tableStyleDefinitions,
@@ -558,52 +524,51 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
-            ParagraphProperties? paragraphProperties = paragraph.GetFirstChild<ParagraphProperties>();
+        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, LegacyDocElement paragraph, LegacyDocSourcePackage source, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
+            LegacyDocElement paragraphProperties = paragraph.Child("pPr");
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedBodyParagraphFormatting(paragraphProperties, styleIndexes);
             LegacyDocWritableFormatting paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraphProperties);
             int paragraphStart = text.Length;
 
-            OpenXmlElement[] children = paragraph.ChildElements.ToArray();
+            LegacyDocElement[] children = paragraph.Elements().ToArray();
             for (int index = 0; index < children.Length; index++) {
-                OpenXmlElement child = children[index];
-                switch (child) {
-                    case ParagraphProperties:
+                LegacyDocElement child = children[index];
+                if (child.Is(OfficeXmlNamespaces.Math, "oMath") || child.Is(OfficeXmlNamespaces.Math, "oMathPara")) {
+                    AppendMathEquationField(text, runs, child, LegacyDocWritableFormatting.Plain);
+                    continue;
+                }
+
+                switch (child.WName) {
+                    case "pPr":
                         break;
-                    case Run run:
-                        if (IsComplexFieldBeginRun(run)) {
+                    case "r":
+                        if (IsComplexFieldBeginRun(child)) {
                             AppendSupportedComplexPageNumberField(children, ref index, text, runs, bookmarks, LegacyDocWritableFormatting.Plain);
                         } else {
-                            AppendSupportedRunText(text, runs, run, footnotes, endnotes, pictures, mainPart);
+                            AppendSupportedRunText(text, runs, child, footnotes, endnotes, pictures, source.Main);
                         }
 
                         break;
-                    case InsertedRun insertedRun:
-                        AppendSupportedRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, LegacyDocWritableFormatting.Plain, pictures, mainPart);
+                    case "ins":
+                        AppendSupportedRevisionText(text, runs, child, LegacyDocRevisionKind.Inserted, footnotes, endnotes, LegacyDocWritableFormatting.Plain, pictures, source.Main);
                         break;
-                    case DeletedRun deletedRun:
-                        AppendSupportedRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, LegacyDocWritableFormatting.Plain, pictures, mainPart);
+                    case "del":
+                        AppendSupportedRevisionText(text, runs, child, LegacyDocRevisionKind.Deleted, footnotes, endnotes, LegacyDocWritableFormatting.Plain, pictures, source.Main);
                         break;
-                    case Hyperlink hyperlink:
-                        AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, mainPart, footnotes, endnotes);
+                    case "hyperlink":
+                        AppendSupportedHyperlinkText(text, runs, bookmarks, child, source.Main, footnotes, endnotes);
                         break;
-                    case SimpleField simpleField:
-                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, simpleField, LegacyDocWritableFormatting.Plain);
+                    case "fldSimple":
+                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, child, LegacyDocWritableFormatting.Plain);
                         break;
-                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
-                        AppendMathEquationField(text, runs, officeMath, LegacyDocWritableFormatting.Plain);
+                    case "sdt":
+                        AppendSupportedInlineContentControlText(text, runs, bookmarks, child, source.Main, pictures, footnotes, endnotes, LegacyDocWritableFormatting.Plain, "body paragraph inline content control");
                         break;
-                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
-                        AppendMathEquationField(text, runs, mathParagraph, LegacyDocWritableFormatting.Plain);
+                    case "bookmarkStart":
+                        bookmarks.AddStart(child, text.Length);
                         break;
-                    case SdtRun sdtRun:
-                        AppendSupportedInlineContentControlText(text, runs, bookmarks, sdtRun, mainPart, pictures, footnotes, endnotes, LegacyDocWritableFormatting.Plain, "body paragraph inline content control");
-                        break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, text.Length);
-                        break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, text.Length);
+                    case "bookmarkEnd":
+                        bookmarks.AddEnd(child, text.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {
@@ -621,10 +586,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static bool IsIgnorableParagraphMarkup(OpenXmlElement element) {
-            return element is ProofError
-                or CommentRangeStart
-                or CommentRangeEnd;
+        private static bool IsIgnorableParagraphMarkup(LegacyDocElement element) {
+            return element.Is("proofErr")
+                || element.Is("commentRangeStart")
+                || element.Is("commentRangeEnd");
         }
 
 
