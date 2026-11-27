@@ -106,6 +106,27 @@ public class PowerPointNotesWithoutSdkTests {
     }
 
     [Fact]
+    public void ANotesRelationshipToAPartThatIsNotNotesReadsAsNoNotes() {
+        byte[] source = CreateDeck();
+        var output = new MemoryStream();
+        output.Write(source, 0, source.Length);
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true)) {
+            Rewrite(archive, "ppt/slides/_rels/slide1.xml.rels", root => root.Add(new XElement(root.GetDefaultNamespace() + "Relationship",
+                new XAttribute("Id", "rId90"),
+                new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide"),
+                new XAttribute("Target", "slide2.xml"))));
+        }
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(output.ToArray()));
+        PowerPointSlide slide = presentation.Slides[0];
+        Assert.False(slide.HasSpeakerNotes);
+        Assert.False(slide.Notes.TryGetText(out _));
+        Assert.False(slide.Notes.TryGetExistingText(out _));
+        Assert.Empty(slide.Notes.Paragraphs);
+        Assert.Equal(string.Empty, slide.GetSpeakerNotesText());
+    }
+
+    [Fact]
     public void NotesTooLargeForThePackageReadTheSameEverywhere() {
         string text = new('x', 17 * 1024 * 1024);
         byte[] source;

@@ -17,8 +17,14 @@ namespace OfficeIMO.PowerPoint {
             _slide = slide;
         }
 
-        // The slide's notes slide part when it has one, or none.
-        private PowerPointPartRef ExistingNotesPart => _slide.PartRef.RelatedPart(PowerPointPartRef.NotesSlideRelationshipType);
+        // The slide's notes slide part when it has one, or none; a relationship to a part that holds no p:notes doesn't count,
+        // as the SDK rejects it and HasSpeakerNotes reads it.
+        private PowerPointPartRef ExistingNotesPart {
+            get {
+                PowerPointPartRef notes = _slide.PartRef.RelatedPart(PowerPointPartRef.NotesSlideRelationshipType);
+                return notes.Root.Is(P, "notes") ? notes : default;
+            }
+        }
 
         // The notes slide part, created as the notes model first uses it when the slide has none.
         private PowerPointPartRef EnsureNotesPart() =>
