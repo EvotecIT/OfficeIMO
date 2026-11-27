@@ -21,7 +21,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal GroupShape GroupShape => (GroupShape)Element;
 
-        /// <summary>The part whose relationships the group's children use: a master's or layout's for a group held there.</summary>
-        internal OpenXmlPartContainer? OwnerPart => _ownerPart ?? (PackagePart.IsNone ? null : RelationshipOwnerPart);
+        /// <summary>The slide, layout, or master part whose relationships the group's children use.</summary>
+        internal OpenXmlPartContainer? OwnerPart => _ownerPart ?? RelationshipOwnerPart;
     }
 }

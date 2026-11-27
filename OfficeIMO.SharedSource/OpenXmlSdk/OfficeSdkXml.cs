@@ -64,6 +64,12 @@ namespace OfficeIMO.OpenXml.Internal {
             }
         }
 
+        internal static void CollectChildNodes(object element, List<OfficeXmlNode> children) {
+            foreach (OpenXmlElement child in E(element).ChildElements) children.Add(OfficeXmlNode.FromSdk(child));
+        }
+
+        internal static object? NextNode(object element) => E(element).NextSibling();
+
         internal static object? FirstChild(object element) => SkipForward(E(element).FirstChild);
 
         internal static object? LastChild(object element) => SkipBackward(E(element).LastChild);
@@ -165,6 +171,8 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static void Remove(object element) => E(element).Remove();
+
+        internal static void RemoveAllChildren(object element) => E(element).RemoveAllChildren();
 
         internal static object Clone(object element) => E(element).CloneNode(true);
 

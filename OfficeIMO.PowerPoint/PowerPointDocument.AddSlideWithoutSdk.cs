@@ -16,61 +16,106 @@ namespace OfficeIMO.PowerPoint {
         // The last number given to a new part of each content type, as the SDK counts them in an open package.
         private Dictionary<string, int>? _packagePartSequence;
 
-        /// <summary>Adds a slide without the SDK, or returns null, having changed nothing, for the model to add it.</summary>
-        private PowerPointSlide? TryAddSlideWithoutSdk(int masterIndex, int layoutIndex) {
+        private PowerPointSlide? TryAddSlideWithoutSdk(int masterIndex, int layoutIndex) =>
+            TryAddPackageSlides(1, masterIndex, layoutIndex, useBatchRelationshipIds: false, CancellationToken.None)?.FirstOrDefault();
+
+        // The completed part of a batch stays in the package if cancellation or unsupported section markup
+        // prevents the next slide from being added. The caller can finish an unsupported batch through the SDK.
+        private List<PowerPointSlide>? TryAddPackageSlides(int count, int masterIndex, int layoutIndex,
+            bool useBatchRelationshipIds, CancellationToken cancellationToken) {
             if (GetPackage(edit: true) is not { } package) return null;
+
+            PackageSlideList? slides;
+            string layout;
+            List<uint>? ids;
+            OfficeXmlTree mainRelationships;
             try {
-                PackageSlideList? slides = PackageSlideList.Read(package);
+                slides = PackageSlideList.Read(package);
                 if (slides == null) return null;
-                // Masters and their layouts in relationship order, as the SDK lists the parts.
                 List<string> masters = RelatedParts(package, slides.Main, SlideMasterRelationshipType);
                 if (masterIndex < 0 || masterIndex >= masters.Count) return null;
                 List<string> layouts = RelatedParts(package, masters[masterIndex], SlideLayoutRelationshipType);
                 if (layoutIndex < 0 || layoutIndex >= layouts.Count) return null;
-                string layout = layouts[layoutIndex];
-
-                List<uint>? ids = slides.ReadIds();
+                layout = layouts[layoutIndex];
+                ids = slides.ReadIds();
                 if (ids == null) return null;
-                uint maxId = ids.Count == 0 ? 255U : ids.Max();
-                if (maxId >= 2147483647U) return null;
-                uint newId = maxId >= 255U ? maxId + 1U : 256U;
-
-                OfficeXmlTree presentation = slides.Presentation;
-                int p14 = package.Namespaces.GetId(PowerPointTreeSections.P14Namespace);
-                var newIds = new List<uint>(ids) { newId };
-                OfficeXmlTree mainRelationships = package.GetRelationships(slides.Main);
-                string relationshipId = NextPresentationRelationshipId(mainRelationships);
-                string partName = NextPartName(package, SlideContentType,
-                    slides.Main.Substring(0, slides.Main.LastIndexOf('/') + 1) + "slides/slide", ".xml");
-
-                // The slide list entry comes first, so the section plan sees the list as the model does.
-                PPresentationView root = new(presentation, presentation.Root);
-                int list = root.GetOrAddSldIdLst().Node;
-                int entry = presentation.CreateElement(OfficeXmlNamespaces.PresentationML, "sldId");
-                presentation.SetAttribute(entry, OfficeXmlNamespaces.None, "id", newId.ToString(CultureInfo.InvariantCulture));
-                presentation.SetAttribute(entry, OfficeXmlNamespaces.Relationships, "id", relationshipId);
-                presentation.Append(list, entry);
-                if (!PowerPointTreeSections.TryPlanAdded(presentation, p14, newIds, newIds.Count - 1, out PowerPointTreeSections.Plan? sections, out _)) {
-                    presentation.Remove(entry);
-                    return null;
-                }
-
-                WriteBlankSlide(package.CreateXmlPart(partName, SlideContentType, OfficeXmlNamespaces.PresentationML, "sld", 24));
-                package.AddRelationship(partName, SlideLayoutRelationshipType, OfficeOpcPartNames.GetRelativeTarget(partName, layout), id: "rId1");
-                package.AddRelationship(slides.Main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "slide",
-                    OfficeOpcPartNames.GetRelativeTarget(slides.Main, partName), id: relationshipId);
-                if (sections != null) PowerPointTreeSections.Apply(sections);
-                _pendingRelationships = null;
-
-                var slide = new PowerPointSlide(this, partName);
-                (_packageSlides ??= new Dictionary<string, PowerPointSlide>(OfficeAsciiIgnoreCaseComparer.Instance)).Add(PartIdentity(partName), slide);
-                PackageSlidesChanged();
-                _deferredSlideCount = newIds.Count;
-                _pendingEdits = true;
-                return slide;
+                mainRelationships = package.GetRelationships(slides.Main);
             } catch (Exception exception) when (exception is XmlException or InvalidDataException) {
                 return null;
             }
+
+            uint maxId = ids.Count == 0 ? 255U : Math.Max(255U, ids.Max());
+            if (maxId >= 2147483647U || (ulong)maxId + (uint)count > 2147483647U) return null;
+            OfficeXmlTree presentation = slides.Presentation;
+            if (useBatchRelationshipIds && presentation.HasCommentsOrInstructions()) return null;
+            int p14 = package.Namespaces.GetId(PowerPointTreeSections.P14Namespace);
+            HashSet<string> used = ReadPresentationRelationshipIds(mainRelationships);
+            if (useBatchRelationshipIds) {
+                foreach ((_, string id, _) in slides.Entries) used.Add(id);
+            }
+            long relationshipCursor = useBatchRelationshipIds ? 1 : _slideRelationshipSearchStart;
+            string pathPrefix = slides.Main.Substring(0, slides.Main.LastIndexOf('/') + 1) + "slides/slide";
+            var added = new List<PowerPointSlide>(count);
+            try {
+                for (int index = 0; index < count; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    string partName = NextPartName(package, SlideContentType, pathPrefix, ".xml");
+                    string partRelationships = OfficeOpcPartNames.GetRelationshipsPartName(partName);
+                    if (package.PartExists(partRelationships)) {
+                        throw new InvalidDataException("The package already has relationships for the new slide '" + partName + "'.");
+                    }
+
+                    uint id = maxId + (uint)index + 1U;
+                    ids.Add(id);
+                    if (!PowerPointTreeSections.TryPlanAdded(presentation, p14, ids, ids.Count - 1, out PowerPointTreeSections.Plan? sections, out int sectionEntry)) {
+                        ids.RemoveAt(ids.Count - 1);
+                        break;
+                    }
+
+                    string relationship = ReserveSlideRelationshipId(used, ref relationshipCursor);
+                    string layoutTarget = OfficeOpcPartNames.GetRelativeTarget(partName, layout);
+                    string slideTarget = OfficeOpcPartNames.GetRelativeTarget(slides.Main, partName);
+                    bool createdSlide = false;
+                    bool linkedSlide = false;
+                    int entry = OfficeXmlTree.NoNode;
+                    try {
+                        OfficeXmlTree slideMarkup = package.CreateXmlPart(partName, SlideContentType, OfficeXmlNamespaces.PresentationML, "sld", 24);
+                        createdSlide = true;
+                        WriteBlankSlide(slideMarkup);
+                        package.AddRelationship(partName, SlideLayoutRelationshipType, layoutTarget, id: "rId1");
+                        package.AddRelationship(slides.Main, PowerPointPartRef.SlideRelationshipType, slideTarget, id: relationship);
+                        linkedSlide = true;
+
+                        int list = new PPresentationView(presentation, presentation.Root).GetOrAddSldIdLst().Node;
+                        entry = Append(presentation, list, OfficeXmlNamespaces.PresentationML, "sldId");
+                        presentation.SetAttribute(entry, OfficeXmlNamespaces.None, "id", id.ToString(CultureInfo.InvariantCulture));
+                        presentation.SetAttribute(entry, OfficeXmlNamespaces.Relationships, "id", relationship);
+                    } catch {
+                        if (entry != OfficeXmlTree.NoNode) presentation.Remove(entry);
+                        if (sectionEntry != OfficeXmlTree.NoNode) presentation.Remove(sectionEntry);
+                        if (linkedSlide) mainRelationships.Remove(FindRelationship(mainRelationships, relationship));
+                        if (createdSlide) {
+                            package.DeletePart(partRelationships);
+                            package.DeletePart(partName);
+                        }
+                        throw;
+                    }
+                    if (sections != null) PowerPointTreeSections.Apply(sections);
+
+                    var slide = new PowerPointSlide(this, partName);
+                    (_packageSlides ??= new Dictionary<string, PowerPointSlide>(OfficeAsciiIgnoreCaseComparer.Instance)).Add(PartIdentity(partName), slide);
+                    added.Add(slide);
+                }
+            } finally {
+                if (added.Count > 0) {
+                    if (!useBatchRelationshipIds) _slideRelationshipSearchStart = relationshipCursor;
+                    InvalidatePackageRelationships();
+                    PackageSlidesChanged();
+                    _deferredSlideCount = slides.Entries.Count + added.Count;
+                    MarkPackageEdited();
+                }
+            }
+            return added;
         }
 
         /// <summary>
@@ -162,21 +207,17 @@ namespace OfficeIMO.PowerPoint {
             return parts;
         }
 
-        // The next free rIdN of the presentation part, searched from where the last search stopped, as the model does.
-        private string NextPresentationRelationshipId(OfficeXmlTree relationships) {
+        // The next free rIdN of the presentation part, searched from where the last search stopped.
+        private string NextPresentationRelationshipId(OfficeXmlTree relationships) =>
+            ReserveSlideRelationshipId(ReadPresentationRelationshipIds(relationships), ref _slideRelationshipSearchStart);
+
+        private static HashSet<string> ReadPresentationRelationshipIds(OfficeXmlTree relationships) {
             var used = new HashSet<string>(StringComparer.Ordinal);
             for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
                  node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
                 if (relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Id") is { } id) used.Add(id);
             }
-            long next = _slideRelationshipSearchStart;
-            while (true) {
-                string candidate = "rId" + next.ToString(CultureInfo.InvariantCulture);
-                next = checked(next + 1);
-                if (used.Contains(candidate)) continue;
-                _slideRelationshipSearchStart = next;
-                return candidate;
-            }
+            return used;
         }
 
         // The SDK's name for a new part. It numbers the parts of a content type on from how many the package had when it

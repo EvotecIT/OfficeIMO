@@ -1,6 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -19,12 +19,13 @@ namespace OfficeIMO.PowerPoint {
                 .OrderBy(shape => EnsureShapeOnSlide(shape))
                 .ToList();
 
-            OpenXmlElement? parent = ordered[0].Element.Parent;
-            if (parent == null) {
+            PowerPointPartRef part = PartRef.ForMovingXmlNodes();
+            OfficeXmlNode parent = ordered[0].XmlElement.Parent;
+            if (parent.IsNone) {
                 throw new InvalidOperationException("Shape is not attached to a slide.");
             }
 
-            if (ordered.Any(shape => !ReferenceEquals(shape.Element.Parent, parent))) {
+            if (ordered.Any(shape => shape.XmlElement.Parent != parent)) {
                 throw new InvalidOperationException("All shapes must share the same parent.");
             }
 
@@ -32,34 +33,44 @@ namespace OfficeIMO.PowerPoint {
             string baseName = string.IsNullOrWhiteSpace(name) ? "Group" : name!;
             string groupName = GenerateUniqueName(baseName);
 
-            GroupShape group = new GroupShape(
-                new NonVisualGroupShapeProperties(
-                    new NonVisualDrawingProperties { Id = AllocateShapeId(), Name = groupName },
-                    new NonVisualGroupShapeDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties()),
-                new GroupShapeProperties(
-                    new A.TransformGroup(
-                        new A.Offset { X = bounds.Left.ToEmus(), Y = bounds.Top.ToEmus() },
-                        new A.Extents { Cx = bounds.Width.ToEmus(), Cy = bounds.Height.ToEmus() },
-                        new A.ChildOffset { X = bounds.Left.ToEmus(), Y = bounds.Top.ToEmus() },
-                        new A.ChildExtents { Cx = bounds.Width.ToEmus(), Cy = bounds.Height.ToEmus() }
-                    )));
+            const int presentation = OfficeXmlNamespaces.PresentationML;
+            const int drawing = OfficeXmlNamespaces.DrawingML;
+            uint groupId = AllocateShapeId();
+            // An existing slide may have needed the SDK when resolving its drawing IDs.
+            parent = ordered[0].XmlElement.Parent;
+            part = part.Current;
+            OfficeXmlNode group = parent.CreateElement(presentation, "grpSp");
+            OfficeXmlNode nonVisual = group.Append(group.CreateElement(presentation, "nvGrpSpPr"));
+            OfficeXmlNode properties = nonVisual.Append(nonVisual.CreateElement(presentation, "cNvPr"));
+            properties.SetUInt32Attribute("id", groupId);
+            properties.SetAttribute("name", groupName);
+            nonVisual.Append(nonVisual.CreateElement(presentation, "cNvGrpSpPr"));
+            nonVisual.Append(nonVisual.CreateElement(presentation, "nvPr"));
 
-            OpenXmlElement firstElement = ordered[0].Element;
-            parent.InsertBefore(group, firstElement);
+            OfficeXmlNode groupProperties = group.Append(group.CreateElement(presentation, "grpSpPr"));
+            OfficeXmlNode transform = groupProperties.Append(groupProperties.CreateElement(drawing, "xfrm"));
+            WriteGroupPoint(transform, "off", "x", bounds.Left, "y", bounds.Top);
+            WriteGroupPoint(transform, "ext", "cx", bounds.Width, "cy", bounds.Height);
+            WriteGroupPoint(transform, "chOff", "x", bounds.Left, "y", bounds.Top);
+            WriteGroupPoint(transform, "chExt", "cx", bounds.Width, "cy", bounds.Height);
+            group = parent.InsertBefore(group, ordered[0].XmlElement);
 
             foreach (PowerPointShape shape in ordered) {
-                shape.Element.Remove();
-                group.Append(shape.Element);
+                OfficeXmlNode element = shape.XmlElement;
+                element.Remove();
+                group.Append(element);
             }
 
             int insertIndex = ShapeList.IndexOf(ordered[0]);
             foreach (PowerPointShape shape in ordered) {
+                // The caller may still hold a child after it leaves the slide's top-level list.
+                if (shape.IsPackageBacked) OwnerDocument?.RegisterPackageBinding(shape);
                 ShapeList.Remove(shape);
             }
 
-            PowerPointGroupShape grouped = new PowerPointGroupShape(group, SlidePart);
-            InsertTrackedShape(insertIndex, grouped);
+            var grouped = (PowerPointGroupShape)WrapSlideShape(group, part)!;
+            part.MarkEdited();
+            ShapeList.Insert(insertIndex, grouped);
             return grouped;
         }
 
@@ -70,31 +81,34 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(groupShape);
 
             int index = EnsureShapeOnSlide(groupShape);
-            GroupShape group = groupShape.GroupShape;
-            OpenXmlElement? parent = group.Parent;
-            if (parent == null) {
+            PowerPointPartRef part = PartRef.ForMovingXmlNodes();
+            OfficeXmlNode group = groupShape.XmlElement;
+            OfficeXmlNode parent = group.Parent;
+            if (parent.IsNone) {
                 throw new InvalidOperationException("Group is not attached to a slide.");
             }
 
-            List<OpenXmlElement> children = group.ChildElements
-                .Where(child => child is not NonVisualGroupShapeProperties && child is not GroupShapeProperties)
-                .ToList();
-
+            const int presentation = OfficeXmlNamespaces.PresentationML;
             var results = new List<PowerPointShape>();
-            foreach (OpenXmlElement child in children) {
+            foreach (OfficeXmlNode child in group.ChildNodes()) {
+                if (child.Is(presentation, "nvGrpSpPr") || child.Is(presentation, "grpSpPr")) continue;
                 child.Remove();
-                parent.InsertBefore(child, group);
-                PowerPointShape? shape = CreateShapeFromElement(child);
-                if (shape != null) {
-                    results.Add(shape);
-                }
+                OfficeXmlNode moved = parent.InsertBefore(child, group);
+                if (WrapSlideShape(moved, part) is { } shape) results.Add(shape);
             }
 
             group.Remove();
+            part.MarkEdited();
 
             ShapeList.RemoveAt(index);
-            InsertRangeTrackedShapes(index, results);
+            ShapeList.InsertRange(index, results);
             return results;
+        }
+        private static void WriteGroupPoint(OfficeXmlNode transform, string name,
+            string horizontalAttribute, OfficeLength horizontal, string verticalAttribute, OfficeLength vertical) {
+            OfficeXmlNode point = transform.Append(transform.CreateElement(OfficeXmlNamespaces.DrawingML, name));
+            point.SetInt64Attribute(horizontalAttribute, horizontal.ToEmus());
+            point.SetInt64Attribute(verticalAttribute, vertical.ToEmus());
         }
     }
 }

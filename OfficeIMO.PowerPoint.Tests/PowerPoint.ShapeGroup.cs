@@ -1,3 +1,8 @@
+using System.IO.Compression;
+using System.Xml;
+using System.Xml.Linq;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -19,6 +24,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(200, group.Top.ToEmus());
                 Assert.Equal(900, group.Width.ToEmus());
                 Assert.Equal(1000, group.Height.ToEmus());
+                Assert.False(presentation.IsSdkLoaded);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -53,11 +59,60 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(300, childB.Top.ToEmus());
                 Assert.Equal(150, childB.Width.ToEmus());
                 Assert.Equal(120, childB.Height.ToEmus());
+                Assert.False(presentation.IsSdkLoaded);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void GroupedShapeReferencesFollowUngroupingAfterTheSdkOpens() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointAutoShape first = slide.AddShape(OfficePresetShapeType.Rectangle, name: "First");
+            PowerPointAutoShape second = slide.AddShape(OfficePresetShapeType.Rectangle, name: "Second");
+            PowerPointGroupShape group = slide.GroupShapes([first, second]);
+            Assert.False(presentation.IsSdkLoaded);
+
+            _ = presentation.OpenXmlDocument;
+            var children = slide.UngroupShape(group);
+            first.Name = "Renamed first";
+
+            Assert.Equal("Renamed first", children[0].Name);
+            Assert.Equal("Second", children[1].Name);
+        }
+
+        [Fact]
+        public void UngroupAndReorderPreserveNonElementDrawingMarkup() {
+            byte[] authored;
+            using (PowerPointDocument presentation = PowerPointDocument.Create()) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointAutoShape a = slide.AddRectangle(OfficeLength.Points(5), OfficeLength.Points(5),
+                    OfficeLength.Points(5), OfficeLength.Points(5), "First");
+                PowerPointAutoShape b = slide.AddRectangle(OfficeLength.Points(15), OfficeLength.Points(5),
+                    OfficeLength.Points(5), OfficeLength.Points(5), "Second");
+                slide.GroupShapes([a, b]);
+                GroupShape group = presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single()
+                    .Slide.CommonSlideData!.ShapeTree!.Elements<GroupShape>().Single();
+                group.InsertAfter(new OpenXmlMiscNode(XmlNodeType.Comment, "<!--drawing marker-->"),
+                    group.Elements<Shape>().First());
+                authored = presentation.ToBytes();
+            }
+
+            using PowerPointDocument loaded = PowerPointDocument.Load(new MemoryStream(authored, writable: false));
+            PowerPointSlide loadedSlide = Assert.Single(loaded.Slides);
+            var children = loadedSlide.UngroupShape(Assert.IsType<PowerPointGroupShape>(Assert.Single(loadedSlide.Shapes)));
+            loadedSlide.BringForward(children[0]);
+            Assert.Equal(new[] { "Second", "First" }, loadedSlide.Shapes.Select(shape => shape.Name));
+
+            using var saved = new ZipArchive(new MemoryStream(loaded.ToBytes(), writable: false));
+            using Stream markup = saved.GetEntry("ppt/slides/slide1.xml")!.Open();
+            XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+            XElement tree = XDocument.Load(markup).Descendants(p + "spTree").Single();
+            XComment marker = Assert.Single(tree.Nodes().OfType<XComment>());
+            Assert.Equal("drawing marker", marker.Value);
         }
 
         [Fact]
