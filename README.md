@@ -23,7 +23,7 @@ OfficeIMO creates, edits, reads and converts Word, Excel, PowerPoint and PDF fil
 
 - **No Office, no COM, no native dependencies.** The engines are managed code that runs on Windows, macOS and Linux, in services, containers and build agents. Optional providers, such as Tesseract for OCR, are opt-in. The [package catalog](Docs/officeimo.package-catalog.md#dependencies) lists every third-party dependency.
 - **One library for old and new files.** Word, Excel and PowerPoint cover the Open XML formats and the documented subsets of `.doc`, `.xls`, `.xlsb` and `.ppt`, with compatibility reports for what a subset doesn't carry.
-- **Conversions say what they lost.** Every conversion returns a report of what the target couldn't carry. You can inspect it, or set `FailOnLoss` to stop instead of writing a lossy file.
+- **Conversions say what they lost.** `OfficeConverter` and the `SaveAs` and `To` conversion methods return a report of what the target couldn't carry. You can inspect it, or set `FailOnLoss` to stop instead of writing a lossy file. The [route catalog](Docs/Compatibility/generated/conversion-routes.md) lists each route's result type and limits.
 - **Careful with untrusted input.** Readers bound bytes, package entries, ZIP expansion and decoded text before allocating, and flag hidden or prompt-like content before it reaches an AI pipeline. See the [content safety matrix](Docs/officeimo.content-safety-support-matrix.md).
 - **NativeAOT and WebAssembly.** CI publishes the core engines with NativeAOT on Linux and Windows, and the officeimo.com browser tools run them in WebAssembly.
 - **Measured, not claimed.** Performance figures come from repeatable workloads in [`Docs/performance`](Docs/performance) and the [published benchmarks](https://officeimo.com/benchmarks/), with the method next to each result.
@@ -121,7 +121,7 @@ Before a document leaves your hands, the engines can find and remove author name
 
 ## Packages
 
-Each format has its own package, and each conversion has an adapter named `OfficeIMO.{Source}.{Target}` that brings only the two engines it joins. Readers for search and AI are `OfficeIMO.Reader.{Format}`. The main engines:
+Each format has its own package. Most conversions live in an adapter named `OfficeIMO.{Source}.{Target}` that brings only the two engines it joins, and readers for search and AI are `OfficeIMO.Reader.{Format}`. A few routes live in the format package itself; the [route catalog](Docs/Compatibility/generated/conversion-routes.md) names the package for every route. The main engines:
 
 | Area | Package | Document type |
 | --- | --- | --- |
