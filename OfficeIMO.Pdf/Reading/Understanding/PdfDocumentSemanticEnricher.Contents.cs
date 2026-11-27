@@ -70,10 +70,14 @@ internal static partial class PdfDocumentSemanticEnricher {
         var owners = new Dictionary<int, (int Level, List<PdfUnderstandingWord> Words, List<PdfUnderstandingLine> Lines)>();
         var order = new List<int>();
         foreach (PdfUnderstandingLine line in lines) {
-            foreach (PdfUnderstandingWord word in line.Words) {
+            IReadOnlyList<PdfUnderstandingWord> words = line.Words;
+            for (int wordIndex = 0; wordIndex < words.Count; wordIndex++) {
+                PdfUnderstandingWord word = words[wordIndex];
                 budget.Consume();
                 TaggedContentsContent? owner = null;
-                foreach (PdfTextSpan run in word.SourceRuns) {
+                IReadOnlyList<PdfTextSpan> runs = word.SourceRuns;
+                for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+                    PdfTextSpan run = runs[runIndex];
                     if (!run.MarkedContentId.HasValue) continue;
                     owner ??= roles.GetContentsContent(pageNumber, readPage,
                         new MarkedContentKey(run.ContentStreamObjectNumber, run.MarkedContentId.Value));
@@ -283,11 +287,16 @@ internal static partial class PdfDocumentSemanticEnricher {
 
     private static bool HasTaggedListOrTableRole(PdfUnderstandingLine line, int pageNumber, PdfReadPage readPage, TaggedContentRoleIndex? roles) {
         if (roles is null || !roles.HasPage(pageNumber)) return false;
-        foreach (PdfUnderstandingWord word in line.Words) {
-            foreach (PdfTextSpan run in word.SourceRuns) {
+        IReadOnlyList<PdfUnderstandingWord> words = line.Words;
+        for (int wordIndex = 0; wordIndex < words.Count; wordIndex++) {
+            IReadOnlyList<PdfTextSpan> runs = words[wordIndex].SourceRuns;
+            for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+                PdfTextSpan run = runs[runIndex];
                 if (!run.MarkedContentId.HasValue) continue;
                 IReadOnlyList<string> found = roles.GetRoles(pageNumber, readPage, new MarkedContentKey(run.ContentStreamObjectNumber, run.MarkedContentId.Value));
-                if (found.Any(static role => role is "Table" or "TR" or "TD" or "TH" or "L" or "LI")) return true;
+                for (int roleIndex = 0; roleIndex < found.Count; roleIndex++) {
+                    if (found[roleIndex] is "Table" or "TR" or "TD" or "TH" or "L" or "LI") return true;
+                }
             }
         }
         return false;
