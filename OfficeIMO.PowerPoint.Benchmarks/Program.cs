@@ -29,6 +29,11 @@ if (args.Length > 0 && string.Equals(args[0], "--flows-ab", StringComparison.Ord
     return PowerPointWithoutSdkFlowBenchmarks.RunInterleaved(rounds, uncheckedFlows);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "--content-flows", StringComparison.OrdinalIgnoreCase)) {
+    // --content-flows [rounds]: charts, SmartArt, layout and image export flows.
+    return PowerPointContentFlowBenchmarks.RunInterleaved(args.Length > 1 ? int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 50);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "--probe",
         StringComparison.OrdinalIgnoreCase)) {
     return PowerPointBaselineRunner.RunProbe(args.Skip(1).ToArray());
