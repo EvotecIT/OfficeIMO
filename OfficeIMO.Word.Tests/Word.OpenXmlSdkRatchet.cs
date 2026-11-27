@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
     /// that removes files from a list.
     /// </summary>
     public class WordOpenXmlSdkRatchet {
-        private const int Baseline = 362;
+        private const int Baseline = 360;
         private const int PackagingBaseline = 9;
         private readonly ITestOutputHelper _output;
 

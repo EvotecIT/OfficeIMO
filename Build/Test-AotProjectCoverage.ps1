@@ -94,6 +94,11 @@ $nonNativeValidated = @(
         evidence = 'The reader and its conversion routes are exercised by managed .NET 8 and 10 contracts. Full-assembly NativeAOT qualification remains open.'
     }
     [ordered]@{
+        name = 'OfficeIMO.Reader.DocumentExtraction'
+        classification = 'managed-cross-platform'
+        evidence = 'The provider for the preview Microsoft.Extensions.DocumentExtraction abstraction is exercised by managed .NET 8 and 10 contracts over real Office, PDF, HTML and EPUB documents. NativeAOT qualification waits for the experimental upstream APIs to stabilize.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Pdf.Testing'
         classification = 'managed-cross-platform'
         evidence = 'The PDF snapshot assertions run inside test hosts; packed xUnit, NUnit and MSTest consumers on .NET 8 and 10 validate them. Test projects are not published as NativeAOT applications.'

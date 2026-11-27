@@ -1,9 +1,26 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word;
 
 // Manages table style settings and borders.
 public partial class WordTableStyleDetails {
+    // Element names and matching cell edges, in the order of WordTableBorderSide.
+    private static readonly string[] SideNames = { "top", "bottom", "left", "right", "insideH", "insideV" };
+    private static readonly WordTableCellBorder.Edge[] SideEdges = {
+        WordTableCellBorder.Edge.Top, WordTableCellBorder.Edge.Bottom, WordTableCellBorder.Edge.Left,
+        WordTableCellBorder.Edge.Right, WordTableCellBorder.Edge.InsideHorizontal, WordTableCellBorder.Edge.InsideVertical
+    };
+
+    // Word writes w:left before w:start and w:right before w:end when both are present.
+    private static readonly OfficeXmlChildOrder BorderOrder = new(
+        new[] { W, W, W, W, W, W, W, W },
+        new[] { "top", "left", "start", "bottom", "right", "end", "insideH", "insideV" });
+
+    // Only the table's own w:tblBorders counts, not one inside extension markup.
+    private OfficeXmlNode Borders => _properties.Child(W, "tblBorders");
+
     /// <summary>
     /// Creates and sets a TableBorders object with the specified border settings
     /// </summary>
@@ -11,19 +28,7 @@ public partial class WordTableStyleDetails {
     /// <param name="size">Nonnegative thickness, rounded to eighths of a point within the native unsigned 32-bit range.</param>
     /// <param name="color">Border color for all sides</param>
     public void SetBordersForAllSides(WordBorderStyle style, global::OfficeIMO.OfficeLength size, OfficeIMO.OfficeColor color) {
-        uint nativeSize = ToBorderSize(size, nameof(size));
-        string colorHex = color.ToRgbHex();
-
-        TableBorders borders = new TableBorders(
-            new TopBorder() { Val = style.ToOpenXml(), Size = nativeSize, Color = colorHex },
-            new LeftBorder() { Val = style.ToOpenXml(), Size = nativeSize, Color = colorHex },
-            new BottomBorder() { Val = style.ToOpenXml(), Size = nativeSize, Color = colorHex },
-            new RightBorder() { Val = style.ToOpenXml(), Size = nativeSize, Color = colorHex },
-            new InsideHorizontalBorder() { Val = style.ToOpenXml(), Size = nativeSize, Color = colorHex },
-            new InsideVerticalBorder() { Val = style.ToOpenXml(), Size = nativeSize, Color = colorHex }
-        );
-
-        TableBorders = borders;
+        SetBordersOutsideInside(style, size, color, style, size, color);
     }
 
     /// <summary>
@@ -40,19 +45,20 @@ public partial class WordTableStyleDetails {
         WordBorderStyle insideStyle, global::OfficeIMO.OfficeLength insideSize, OfficeIMO.OfficeColor insideColor) {
         uint nativeOutsideSize = ToBorderSize(outsideSize, nameof(outsideSize));
         uint nativeInsideSize = ToBorderSize(insideSize, nameof(insideSize));
+        string outsideToken = outsideStyle.ToOpenXmlToken();
+        string insideToken = insideStyle.ToOpenXmlToken();
         string outsideRgb = outsideColor.ToRgbHex();
         string insideRgb = insideColor.ToRgbHex();
 
-        TableBorders borders = new TableBorders(
-            new TopBorder() { Val = outsideStyle.ToOpenXml(), Size = nativeOutsideSize, Color = outsideRgb },
-            new LeftBorder() { Val = outsideStyle.ToOpenXml(), Size = nativeOutsideSize, Color = outsideRgb },
-            new BottomBorder() { Val = outsideStyle.ToOpenXml(), Size = nativeOutsideSize, Color = outsideRgb },
-            new RightBorder() { Val = outsideStyle.ToOpenXml(), Size = nativeOutsideSize, Color = outsideRgb },
-            new InsideHorizontalBorder() { Val = insideStyle.ToOpenXml(), Size = nativeInsideSize, Color = insideRgb },
-            new InsideVerticalBorder() { Val = insideStyle.ToOpenXml(), Size = nativeInsideSize, Color = insideRgb }
-        );
-
-        TableBorders = borders;
+        // The new borders replace any the table had.
+        _table.CheckTableProperties();
+        Borders.Remove();
+        OfficeXmlNode borders = _properties.AddOrdered(W, "tblBorders", WTblPrView.Order);
+        foreach (string side in new[] { "top", "left", "bottom", "right" }) {
+            WriteBorder(borders.AddOrdered(W, side, BorderOrder), outsideToken, nativeOutsideSize, outsideRgb);
+        }
+        WriteBorder(borders.AddOrdered(W, "insideH", BorderOrder), insideToken, nativeInsideSize, insideRgb);
+        WriteBorder(borders.AddOrdered(W, "insideV", BorderOrder), insideToken, nativeInsideSize, insideRgb);
     }
 
     /// <summary>
@@ -85,83 +91,27 @@ public partial class WordTableStyleDetails {
         WordBorderStyle? rightStyle = null, global::OfficeIMO.OfficeLength? rightSize = null, OfficeIMO.OfficeColor? rightColor = null,
         WordBorderStyle? insideHStyle = null, global::OfficeIMO.OfficeLength? insideHSize = null, OfficeIMO.OfficeColor? insideHColor = null,
         WordBorderStyle? insideVStyle = null, global::OfficeIMO.OfficeLength? insideVSize = null, OfficeIMO.OfficeColor? insideVColor = null) {
-        uint? nativeTopSize = topSize.HasValue ? ToBorderSize(topSize.Value, nameof(topSize)) : (uint?)null;
-        uint? nativeBottomSize = bottomSize.HasValue ? ToBorderSize(bottomSize.Value, nameof(bottomSize)) : (uint?)null;
-        uint? nativeLeftSize = leftSize.HasValue ? ToBorderSize(leftSize.Value, nameof(leftSize)) : (uint?)null;
-        uint? nativeRightSize = rightSize.HasValue ? ToBorderSize(rightSize.Value, nameof(rightSize)) : (uint?)null;
-        uint? nativeInsideHSize = insideHSize.HasValue ? ToBorderSize(insideHSize.Value, nameof(insideHSize)) : (uint?)null;
-        uint? nativeInsideVSize = insideVSize.HasValue ? ToBorderSize(insideVSize.Value, nameof(insideVSize)) : (uint?)null;
-
-        // Get existing borders or create new
-        TableBorders borders = TableBorders ?? new TableBorders();
-
-        // Update top border if any parameter is set
-        if (topStyle != null || topSize != null || topColor != null) {
-            var topBorder = borders.TopBorder ?? new TopBorder();
-            if (topStyle != null) topBorder.Val = topStyle.Value.ToOpenXml();
-            if (topSize != null) topBorder.Size = nativeTopSize;
-            if (topColor != null) {
-                topBorder.Color = topColor.Value.ToRgbHex();
-            }
-            borders.TopBorder = topBorder;
+        // Validate every value before changing anything, in the order of WordTableBorderSide.
+        WordBorderStyle?[] styles = { topStyle, bottomStyle, leftStyle, rightStyle, insideHStyle, insideVStyle };
+        OfficeIMO.OfficeColor?[] colors = { topColor, bottomColor, leftColor, rightColor, insideHColor, insideVColor };
+        global::OfficeIMO.OfficeLength?[] lengths = { topSize, bottomSize, leftSize, rightSize, insideHSize, insideVSize };
+        string[] sizeNames = { nameof(topSize), nameof(bottomSize), nameof(leftSize), nameof(rightSize), nameof(insideHSize), nameof(insideVSize) };
+        uint?[] sizes = new uint?[SideNames.Length];
+        string?[] tokens = new string?[SideNames.Length];
+        for (int side = 0; side < SideNames.Length; side++) {
+            sizes[side] = lengths[side].HasValue ? ToBorderSize(lengths[side]!.Value, sizeNames[side]) : null;
+            tokens[side] = styles[side]?.ToOpenXmlToken();
         }
 
-        // Update bottom border if any parameter is set
-        if (bottomStyle != null || bottomSize != null || bottomColor != null) {
-            var bottomBorder = borders.BottomBorder ?? new BottomBorder();
-            if (bottomStyle != null) bottomBorder.Val = bottomStyle.Value.ToOpenXml();
-            if (bottomSize != null) bottomBorder.Size = nativeBottomSize;
-            if (bottomColor != null) {
-                bottomBorder.Color = bottomColor.Value.ToRgbHex();
-            }
-            borders.BottomBorder = bottomBorder;
+        _table.CheckTableProperties();
+        OfficeXmlNode borders = _properties.GetOrAddChild(W, "tblBorders", WTblPrView.Order);
+        for (int side = 0; side < SideNames.Length; side++) {
+            if (tokens[side] == null && sizes[side] == null && colors[side] == null) continue;
+            OfficeXmlNode border = borders.GetOrAddChild(W, SideNames[side], BorderOrder);
+            if (tokens[side] != null) border.SetAttribute(W, "val", tokens[side]);
+            if (sizes[side] != null) border.SetAttribute(W, "sz", OfficeXmlViewValues.Format(sizes[side]));
+            if (colors[side] != null) border.SetAttribute(W, "color", colors[side]!.Value.ToRgbHex());
         }
-
-        // Update left border if any parameter is set
-        if (leftStyle != null || leftSize != null || leftColor != null) {
-            var leftBorder = borders.LeftBorder ?? new LeftBorder();
-            if (leftStyle != null) leftBorder.Val = leftStyle.Value.ToOpenXml();
-            if (leftSize != null) leftBorder.Size = nativeLeftSize;
-            if (leftColor != null) {
-                leftBorder.Color = leftColor.Value.ToRgbHex();
-            }
-            borders.LeftBorder = leftBorder;
-        }
-
-        // Update right border if any parameter is set
-        if (rightStyle != null || rightSize != null || rightColor != null) {
-            var rightBorder = borders.RightBorder ?? new RightBorder();
-            if (rightStyle != null) rightBorder.Val = rightStyle.Value.ToOpenXml();
-            if (rightSize != null) rightBorder.Size = nativeRightSize;
-            if (rightColor != null) {
-                rightBorder.Color = rightColor.Value.ToRgbHex();
-            }
-            borders.RightBorder = rightBorder;
-        }
-
-        // Update inside horizontal border if any parameter is set
-        if (insideHStyle != null || insideHSize != null || insideHColor != null) {
-            var insideHBorder = borders.InsideHorizontalBorder ?? new InsideHorizontalBorder();
-            if (insideHStyle != null) insideHBorder.Val = insideHStyle.Value.ToOpenXml();
-            if (insideHSize != null) insideHBorder.Size = nativeInsideHSize;
-            if (insideHColor != null) {
-                insideHBorder.Color = insideHColor.Value.ToRgbHex();
-            }
-            borders.InsideHorizontalBorder = insideHBorder;
-        }
-
-        // Update inside vertical border if any parameter is set
-        if (insideVStyle != null || insideVSize != null || insideVColor != null) {
-            var insideVBorder = borders.InsideVerticalBorder ?? new InsideVerticalBorder();
-            if (insideVStyle != null) insideVBorder.Val = insideVStyle.Value.ToOpenXml();
-            if (insideVSize != null) insideVBorder.Size = nativeInsideVSize;
-            if (insideVColor != null) {
-                insideVBorder.Color = insideVColor.Value.ToRgbHex();
-            }
-            borders.InsideVerticalBorder = insideVBorder;
-        }
-
-        TableBorders = borders;
     }
 
     /// <summary>
@@ -170,51 +120,19 @@ public partial class WordTableStyleDetails {
     /// <param name="side">The border side to get properties for</param>
     /// <returns>The direct border style, physical thickness and RGB color; absent or automatic values remain null.</returns>
     public (WordBorderStyle? Style, global::OfficeIMO.OfficeLength? Size, global::OfficeIMO.OfficeColor? Color) GetBorderProperties(WordTableBorderSide side) {
-        if (TableBorders == null) {
-            return (null, null, null);
-        }
-
-        switch (side) {
-            case WordTableBorderSide.Top:
-                return (
-                    TableBorders.TopBorder?.Val?.Value.ToOfficeEnum(),
-                    ReadBorderSize(TableBorders.TopBorder?.Size?.Value),
-                    Helpers.ParseNativeColor(TableBorders.TopBorder?.Color?.Value)
-                );
-            case WordTableBorderSide.Bottom:
-                return (
-                    TableBorders.BottomBorder?.Val?.Value.ToOfficeEnum(),
-                    ReadBorderSize(TableBorders.BottomBorder?.Size?.Value),
-                    Helpers.ParseNativeColor(TableBorders.BottomBorder?.Color?.Value)
-                );
-            case WordTableBorderSide.Left:
-                return (
-                    TableBorders.LeftBorder?.Val?.Value.ToOfficeEnum(),
-                    ReadBorderSize(TableBorders.LeftBorder?.Size?.Value),
-                    Helpers.ParseNativeColor(TableBorders.LeftBorder?.Color?.Value)
-                );
-            case WordTableBorderSide.Right:
-                return (
-                    TableBorders.RightBorder?.Val?.Value.ToOfficeEnum(),
-                    ReadBorderSize(TableBorders.RightBorder?.Size?.Value),
-                    Helpers.ParseNativeColor(TableBorders.RightBorder?.Color?.Value)
-                );
-            case WordTableBorderSide.InsideHorizontal:
-                return (
-                    TableBorders.InsideHorizontalBorder?.Val?.Value.ToOfficeEnum(),
-                    ReadBorderSize(TableBorders.InsideHorizontalBorder?.Size?.Value),
-                    Helpers.ParseNativeColor(TableBorders.InsideHorizontalBorder?.Color?.Value)
-                );
-            case WordTableBorderSide.InsideVertical:
-                return (
-                    TableBorders.InsideVerticalBorder?.Val?.Value.ToOfficeEnum(),
-                    ReadBorderSize(TableBorders.InsideVerticalBorder?.Size?.Value),
-                    Helpers.ParseNativeColor(TableBorders.InsideVerticalBorder?.Color?.Value)
-                );
-            default:
-                return (null, null, null);
-        }
+        if ((uint)side >= (uint)SideNames.Length) return (null, null, null);
+        OfficeXmlNode border = Borders.Child(W, SideNames[(int)side]);
+        return (ReadStyle(border), ReadBorderSize(OfficeXmlViewValues.ParseUInt32(border.Attribute(W, "sz"))), Helpers.ParseNativeColor(border.Attribute(W, "color")));
     }
+
+    private static void WriteBorder(OfficeXmlNode border, string token, uint size, string color) {
+        border.SetAttribute(W, "val", token);
+        border.SetAttribute(W, "color", color);
+        border.SetAttribute(W, "sz", OfficeXmlViewValues.Format(size));
+    }
+
+    private static WordBorderStyle? ReadStyle(OfficeXmlNode border) =>
+        border.Attribute(W, "val") is string token && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordBorderStyle style) ? style : null;
 
     private static uint ToBorderSize(global::OfficeIMO.OfficeLength value, string parameter) {
         decimal native = Math.Round(value.ToEmus() * 8m / 12700m, 0, MidpointRounding.AwayFromZero);
@@ -230,75 +148,25 @@ public partial class WordTableStyleDetails {
     /// Apply the current table's border settings to all cells in the table
     /// </summary>
     public void ApplyBordersToAllCells() {
-        if (TableBorders == null) {
+        OfficeXmlNode borders = Borders;
+        if (borders.IsNone) {
             return;
         }
 
+        // Read the table's borders once; every cell gets the attributes each side states.
+        var sides = new List<(WordTableCellBorder.Edge Edge, WordBorderStyle? Style, global::OfficeIMO.OfficeLength? Size, string? Color)>();
+        for (int side = 0; side < SideNames.Length; side++) {
+            OfficeXmlNode border = borders.Child(W, SideNames[side]);
+            if (border.IsNone) continue;
+            sides.Add((SideEdges[side], ReadStyle(border), WordBorderLengths.FromSize(OfficeXmlViewValues.ParseUInt32(border.Attribute(W, "sz"))), border.Attribute(W, "color")));
+        }
+
         foreach (var cell in _table.Cells) {
-            // Top border
-            if (TableBorders.TopBorder != null) {
-                if (TableBorders.TopBorder.Val != null) {
-                    cell.Borders.TopStyle = TableBorders.TopBorder.Val!.Value.ToOfficeEnum();
-                }
-                if (TableBorders.TopBorder.Size != null)
-                    cell.Borders.TopSize = WordBorderLengths.FromSize(TableBorders.TopBorder.Size.Value);
-                if (TableBorders.TopBorder.Color != null)
-                    cell.Borders.TopColorValue = TableBorders.TopBorder.Color!;
-            }
-
-            // Bottom border
-            if (TableBorders.BottomBorder != null) {
-                if (TableBorders.BottomBorder.Val != null) {
-                    cell.Borders.BottomStyle = TableBorders.BottomBorder.Val!.Value.ToOfficeEnum();
-                }
-                if (TableBorders.BottomBorder.Size != null)
-                    cell.Borders.BottomSize = WordBorderLengths.FromSize(TableBorders.BottomBorder.Size.Value);
-                if (TableBorders.BottomBorder.Color != null)
-                    cell.Borders.BottomColorValue = TableBorders.BottomBorder.Color!;
-            }
-
-            // Left border
-            if (TableBorders.LeftBorder != null) {
-                if (TableBorders.LeftBorder.Val != null) {
-                    cell.Borders.LeftStyle = TableBorders.LeftBorder.Val!.Value.ToOfficeEnum();
-                }
-                if (TableBorders.LeftBorder.Size != null)
-                    cell.Borders.LeftSize = WordBorderLengths.FromSize(TableBorders.LeftBorder.Size.Value);
-                if (TableBorders.LeftBorder.Color != null)
-                    cell.Borders.LeftColorValue = TableBorders.LeftBorder.Color!;
-            }
-
-            // Right border
-            if (TableBorders.RightBorder != null) {
-                if (TableBorders.RightBorder.Val != null) {
-                    cell.Borders.RightStyle = TableBorders.RightBorder.Val!.Value.ToOfficeEnum();
-                }
-                if (TableBorders.RightBorder.Size != null)
-                    cell.Borders.RightSize = WordBorderLengths.FromSize(TableBorders.RightBorder.Size.Value);
-                if (TableBorders.RightBorder.Color != null)
-                    cell.Borders.RightColorValue = TableBorders.RightBorder.Color!;
-            }
-
-            // Inside horizontal border
-            if (TableBorders.InsideHorizontalBorder != null) {
-                if (TableBorders.InsideHorizontalBorder.Val != null) {
-                    cell.Borders.InsideHorizontalStyle = TableBorders.InsideHorizontalBorder.Val!.Value.ToOfficeEnum();
-                }
-                if (TableBorders.InsideHorizontalBorder.Size != null)
-                    cell.Borders.InsideHorizontalSize = WordBorderLengths.FromSize(TableBorders.InsideHorizontalBorder.Size.Value);
-                if (TableBorders.InsideHorizontalBorder.Color != null)
-                    cell.Borders.InsideHorizontalColorValue = TableBorders.InsideHorizontalBorder.Color!;
-            }
-
-            // Inside vertical border
-            if (TableBorders.InsideVerticalBorder != null) {
-                if (TableBorders.InsideVerticalBorder.Val != null) {
-                    cell.Borders.InsideVerticalStyle = TableBorders.InsideVerticalBorder.Val!.Value.ToOfficeEnum();
-                }
-                if (TableBorders.InsideVerticalBorder.Size != null)
-                    cell.Borders.InsideVerticalSize = WordBorderLengths.FromSize(TableBorders.InsideVerticalBorder.Size.Value);
-                if (TableBorders.InsideVerticalBorder.Color != null)
-                    cell.Borders.InsideVerticalColorValue = TableBorders.InsideVerticalBorder.Color!;
+            WordTableCellBorder cellBorders = cell.Borders;
+            foreach (var side in sides) {
+                if (side.Style.HasValue) cellBorders.SetStyle(side.Edge, side.Style);
+                if (side.Size.HasValue) cellBorders.SetSize(side.Edge, side.Size);
+                if (side.Color != null) cellBorders.SetColorValue(side.Edge, side.Color);
             }
         }
     }

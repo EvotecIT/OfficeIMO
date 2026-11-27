@@ -180,6 +180,8 @@ internal sealed class WordPartView {
             string? type = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
             string? target = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Target");
             if (id == null || type == null) continue;
+            // Strict relationship types read as their transitional spelling, as the shared package reader reads them.
+            type = OfficeXmlNamespaces.NormalizeRelationshipType(type);
             bool external = string.Equals(tree.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase);
             if (!external && !string.Equals(type, WordPackageView.HyperlinkRelationshipType, StringComparison.Ordinal)) {
                 target = OfficeOpcPartNames.ResolveRelationshipTargetFrom(sourceDirectory, target);
