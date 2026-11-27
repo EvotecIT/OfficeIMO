@@ -1,43 +1,46 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal static class HtmlSemanticMetadata {
         private const string TimeDateTimeTagPrefix = "officeimo-html-time:";
 
         internal static void SetBlockquoteCite(WordParagraph paragraph, string? cite) {
-            if (string.IsNullOrWhiteSpace(cite) || paragraph._paragraph == null) {
+            OfficeXmlNode node = paragraph.Node();
+            if (string.IsNullOrWhiteSpace(cite) || node.IsNone) {
                 return;
             }
 
-            paragraph._paragraph.RemoveAnnotations<HtmlBlockquoteCiteAnnotation>();
-            paragraph._paragraph.AddAnnotation(new HtmlBlockquoteCiteAnnotation(cite!));
+            node.RemoveAnnotations<HtmlBlockquoteCiteAnnotation>();
+            node.AddAnnotation(new HtmlBlockquoteCiteAnnotation(cite!));
         }
 
         internal static void MarkBlockquote(WordParagraph paragraph) {
-            if (paragraph._paragraph == null || paragraph._paragraph.Annotation<HtmlBlockquoteAnnotation>() != null) {
+            OfficeXmlNode node = paragraph.Node();
+            if (node.IsNone || node.Annotation<HtmlBlockquoteAnnotation>() != null) {
                 return;
             }
 
-            paragraph._paragraph.AddAnnotation(new HtmlBlockquoteAnnotation());
+            node.AddAnnotation(new HtmlBlockquoteAnnotation());
         }
 
         /// <summary>Records that a class-styled paragraph came from a <c>dt</c> or <c>dd</c> element.</summary>
         internal static void MarkDefinitionListItem(WordParagraph paragraph, bool description) {
-            if (paragraph._paragraph == null) return;
-            paragraph._paragraph.RemoveAnnotations<HtmlDefinitionListItemAnnotation>();
-            paragraph._paragraph.AddAnnotation(new HtmlDefinitionListItemAnnotation(description));
+            OfficeXmlNode node = paragraph.Node();
+            if (node.IsNone) return;
+            node.RemoveAnnotations<HtmlDefinitionListItemAnnotation>();
+            node.AddAnnotation(new HtmlDefinitionListItemAnnotation(description));
         }
 
         /// <summary>The definition-list role a class-styled paragraph was imported with, or null.</summary>
         internal static bool? GetDefinitionListItemRole(WordParagraph paragraph) =>
-            paragraph._paragraph?.Annotation<HtmlDefinitionListItemAnnotation>()?.IsDescription;
+            paragraph.Node().Annotation<HtmlDefinitionListItemAnnotation>()?.IsDescription;
 
         internal static bool IsMarkedBlockquote(WordParagraph paragraph) =>
-            paragraph._paragraph?.Annotation<HtmlBlockquoteAnnotation>() != null;
+            paragraph.Node().Annotation<HtmlBlockquoteAnnotation>() != null;
 
         internal static bool TryGetBlockquoteCite(WordParagraph paragraph, out string cite) {
             cite = string.Empty;
-            var annotation = paragraph._paragraph?.Annotation<HtmlBlockquoteCiteAnnotation>();
+            var annotation = paragraph.Node().Annotation<HtmlBlockquoteCiteAnnotation>();
             if (annotation == null || string.IsNullOrEmpty(annotation.Cite)) {
                 return false;
             }
@@ -47,26 +50,27 @@ namespace OfficeIMO.Word.Html {
         }
 
         internal static void SetTimeDateTime(WordParagraph run, string? dateTime) {
-            if (string.IsNullOrWhiteSpace(dateTime) || run._run == null) {
+            OfficeXmlNode runNode = run.RunNode();
+            if (string.IsNullOrWhiteSpace(dateTime) || runNode.IsNone) {
                 return;
             }
 
-            run._run.RemoveAnnotations<HtmlTimeAnnotation>();
-            run._run.AddAnnotation(new HtmlTimeAnnotation(dateTime!));
-            SetTimeDateTimeMetadataRun(run._run, dateTime!);
+            runNode.RemoveAnnotations<HtmlTimeAnnotation>();
+            runNode.AddAnnotation(new HtmlTimeAnnotation(dateTime!));
+            SetTimeDateTimeMetadataRun(runNode, dateTime!);
         }
 
         internal static bool TryGetTimeDateTime(WordParagraph run, out string dateTime) {
             dateTime = string.Empty;
-            var annotation = run._run?.Annotation<HtmlTimeAnnotation>();
+            OfficeXmlNode runNode = run.RunNode();
+            var annotation = runNode.Annotation<HtmlTimeAnnotation>();
             if (annotation != null && !string.IsNullOrEmpty(annotation.DateTime)) {
                 dateTime = annotation.DateTime;
                 return true;
             }
 
-            if (run._run != null) {
-                var nextRun = run._run.NextSibling<Run>();
-                if (TryGetTimeDateTimeMetadata(nextRun, out dateTime)) {
+            if (runNode.Exists) {
+                if (TryGetTimeDateTimeMetadata(runNode.NextSiblingNamed(WordXml.W, "r"), out dateTime)) {
                     return true;
                 }
             }
@@ -75,41 +79,44 @@ namespace OfficeIMO.Word.Html {
         }
 
         internal static bool IsTimeDateTimeMetadataRun(WordParagraph run) =>
-            TryGetTimeDateTimeMetadata(run._run, out _);
+            TryGetTimeDateTimeMetadata(run.RunNode(), out _);
 
-        private static void SetTimeDateTimeMetadataRun(Run run, string dateTime) {
+        private static void SetTimeDateTimeMetadataRun(OfficeXmlNode run, string dateTime) {
             var tagValue = TimeDateTimeTagPrefix + Uri.EscapeDataString(dateTime);
-            var metadataRun = run.NextSibling<Run>();
+            OfficeXmlNode metadataRun = run.NextSiblingNamed(WordXml.W, "r");
             if (!IsTimeDateTimeMetadataRun(metadataRun)) {
-                metadataRun = new Run(new RunProperties(new Vanish()));
-                run.InsertAfterSelf(metadataRun);
+                OfficeXmlNode created = WordConverterNodes.CreateDetachedRun();
+                OfficeXmlNode properties = created.Append(created.CreateElement(WordXml.W, "rPr"));
+                properties.Append(properties.CreateElement(WordXml.W, "vanish"));
+                metadataRun = run.InsertAfterSelf(created);
             }
 
-            var text = metadataRun!.GetFirstChild<Text>();
-            if (text == null) {
-                metadataRun.AppendChild(new Text(tagValue) { Space = SpaceProcessingModeValues.Preserve });
+            OfficeXmlNode text = metadataRun.WChild("t");
+            if (text.IsNone) {
+                metadataRun.Append(WordConverterNodes.CreateDetachedPreservedText(tagValue));
             } else {
-                text.Text = tagValue;
-                text.Space = SpaceProcessingModeValues.Preserve;
+                text.SetInnerText(tagValue);
+                text.SetAttribute(WordXml.Xml, "space", "preserve");
             }
         }
 
-        private static bool TryGetTimeDateTimeMetadata(Run? run, out string dateTime) {
+        private static bool TryGetTimeDateTimeMetadata(OfficeXmlNode run, out string dateTime) {
             dateTime = string.Empty;
             if (!IsTimeDateTimeMetadataRun(run)) {
                 return false;
             }
 
-            var tag = run!.GetFirstChild<Text>()?.Text;
-            dateTime = Uri.UnescapeDataString(tag!.Substring(TimeDateTimeTagPrefix.Length));
+            string tag = run.WChild("t").InnerText;
+            dateTime = Uri.UnescapeDataString(tag.Substring(TimeDateTimeTagPrefix.Length));
             return true;
         }
 
-        private static bool IsTimeDateTimeMetadataRun(Run? run) {
-            var tag = run?.GetFirstChild<Text>()?.Text;
+        private static bool IsTimeDateTimeMetadataRun(OfficeXmlNode run) {
+            OfficeXmlNode text = run.WChild("t");
+            string? tag = text.IsNone ? null : text.InnerText;
             return !string.IsNullOrEmpty(tag) &&
                 tag!.StartsWith(TimeDateTimeTagPrefix, StringComparison.Ordinal) &&
-                run!.RunProperties?.GetFirstChild<Vanish>() != null;
+                run.WChild("rPr").WChild("vanish").Exists;
         }
 
         private sealed class HtmlTimeAnnotation {

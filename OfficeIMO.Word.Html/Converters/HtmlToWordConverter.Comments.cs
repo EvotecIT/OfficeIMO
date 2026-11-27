@@ -1,5 +1,5 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
@@ -127,15 +127,15 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void HideLastCommentReference(WordParagraph paragraph) {
-            Run? referenceRun = paragraph._paragraph
-                .Elements<Run>()
-                .LastOrDefault(run => run.Elements<CommentReference>().Any());
-            if (referenceRun == null) {
+            OfficeXmlNode referenceRun = paragraph.Node()
+                .WElements("r")
+                .LastOrDefault(run => run.WChild("commentReference").Exists);
+            if (referenceRun.IsNone) {
                 return;
             }
 
-            referenceRun.RunProperties ??= new RunProperties();
-            referenceRun.RunProperties.Vanish = new Vanish();
+            OfficeXmlNode properties = referenceRun.GetOrAddChild(WordXml.W, "rPr", WRView.Order);
+            WordXmlEdits.ReplaceChild(properties, "vanish", WRPrView.Order);
         }
     }
 }

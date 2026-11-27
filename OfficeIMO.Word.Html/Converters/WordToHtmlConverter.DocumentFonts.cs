@@ -40,7 +40,7 @@ namespace OfficeIMO.Word.Html {
 
         private static string? ResolveStyleFont(WordDocument document, string styleId) {
             WordStyleCatalog styles = WordStyleCatalog.For(document);
-            if (document.StylesNode().IsNone) {
+            if (!document.HasStylesPart()) {
                 return null;
             }
 

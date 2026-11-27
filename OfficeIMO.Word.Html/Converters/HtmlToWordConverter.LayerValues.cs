@@ -1,5 +1,4 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html;
@@ -51,9 +50,8 @@ internal partial class HtmlToWordConverter {
     private static void ApplyParagraphLineHeight(WordParagraph paragraph, CssStyleMapper.CssProperties parsed) {
         if (!parsed.LineHeight.HasValue) return;
         // CSS parsing is native-shaped; the Word owner interprets its units.
-        paragraph.LineSpacing = WordLineSpacing.Read(new SpacingBetweenLines {
-            Line = parsed.LineHeight.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            LineRule = parsed.LineHeightRule == null ? null : new LineSpacingRuleValues(parsed.LineHeightRule) // SDK-SHIM
-        });
+        paragraph.LineSpacing = WordLineSpacing.Read(
+            parsed.LineHeight.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            parsed.LineHeightRule);
     }
 }

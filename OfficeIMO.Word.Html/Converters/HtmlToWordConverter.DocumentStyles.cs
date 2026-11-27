@@ -1,7 +1,6 @@
 using AngleSharp.Css.Dom;
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -16,15 +15,15 @@ namespace OfficeIMO.Word.Html {
 
         private readonly Dictionary<string, string?> _documentParagraphStyleIds = new(StringComparer.Ordinal);
         // Paragraphs the converter gave the default paragraph style when it created them.
-        private readonly HashSet<Paragraph> _defaultStyledParagraphs = new();
+        private readonly HashSet<OfficeXmlNode> _defaultStyledParagraphs = new();
         private string? _defaultParagraphStyleId;
-        private TableCell? _insertionCell;
+        private OfficeXmlNode _insertionCell;
 
         /// <summary>Resolves the document styles the options name, before the conversion changes the document.</summary>
         private void PrepareDocumentStyles(WordDocument doc, HtmlWordExportOptions options) {
             _documentParagraphStyleIds.Clear();
             _defaultStyledParagraphs.Clear();
-            _insertionCell = null;
+            _insertionCell = default;
             _defaultParagraphStyleId = null;
             if (string.IsNullOrWhiteSpace(options.DefaultParagraphStyleId)) return;
 
@@ -40,9 +39,9 @@ namespace OfficeIMO.Word.Html {
         /// of generated tables are left alone; the cell HTML is added to counts as body.
         /// </summary>
         private void ApplyDefaultParagraphStyle(WordParagraph paragraph, WordTableCell? cell) {
-            if (_defaultParagraphStyleId == null || cell != null && !ReferenceEquals(cell._tableCell, _insertionCell)) return;
+            if (_defaultParagraphStyleId == null || cell != null && cell.Node() != _insertionCell) return;
             paragraph.SetStyleId(_defaultParagraphStyleId);
-            _defaultStyledParagraphs.Add(paragraph._paragraph);
+            _defaultStyledParagraphs.Add(paragraph.Node());
         }
 
         /// <summary>
@@ -52,17 +51,18 @@ namespace OfficeIMO.Word.Html {
         private bool HasOwnStyle(WordParagraph paragraph) {
             string? styleId = paragraph.StyleId;
             if (styleId == null) return false;
-            return !(_defaultStyledParagraphs.Contains(paragraph._paragraph) &&
+            return !(_defaultStyledParagraphs.Contains(paragraph.Node()) &&
                 string.Equals(styleId, _defaultParagraphStyleId, StringComparison.Ordinal));
         }
 
         /// <summary>Gives generated body paragraphs the importer created some other way the default paragraph style.</summary>
-        private void ApplyDefaultParagraphStyle(WordDocument doc, IEnumerable<OpenXmlElement> generatedBlocks) {
+        private void ApplyDefaultParagraphStyle(WordDocument doc, IEnumerable<OfficeXmlNode> generatedBlocks) {
             if (_defaultParagraphStyleId == null) return;
-            foreach (Paragraph paragraph in generatedBlocks.OfType<Paragraph>()) {
-                ParagraphProperties? properties = paragraph.ParagraphProperties;
-                if (properties?.ParagraphStyleId != null || properties?.NumberingProperties != null) continue;
-                new WordParagraph(doc, paragraph).SetStyleId(_defaultParagraphStyleId);
+            foreach (OfficeXmlNode paragraph in generatedBlocks) {
+                if (!paragraph.IsW("p")) continue;
+                OfficeXmlNode properties = paragraph.WChild("pPr");
+                if (properties.WChild("pStyle").Exists || properties.WChild("numPr").Exists) continue;
+                doc.ParagraphView(paragraph).SetStyleId(_defaultParagraphStyleId);
             }
         }
 

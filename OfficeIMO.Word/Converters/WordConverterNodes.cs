@@ -24,7 +24,7 @@ internal static class WordConverterNodes {
     internal static OfficeXmlNode DocumentNode(this WordDocument document) => OfficeXmlNode.FromSdk(document._document);
 
     /// <summary>The <c>w:body</c> element, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode BodyNode(this WordDocument document) => OfficeXmlNode.FromSdk(document._document.Body);
+    internal static OfficeXmlNode BodyNode(this WordDocument document) => OfficeXmlNode.FromSdk(document._document?.Body);
 
     private static MainDocumentPart? Main(WordDocument? document) => document?._wordprocessingDocument?.MainDocumentPart;
 
@@ -32,9 +32,16 @@ internal static class WordConverterNodes {
     internal static OfficeXmlNode SettingsNode(this WordDocument? document) =>
         OfficeXmlNode.FromSdk(Main(document)?.DocumentSettingsPart?.Settings);
 
-    /// <summary>The <c>w:styles</c> root, or <see cref="OfficeXmlNode.None"/>.</summary>
+    /// <summary>
+    /// The <c>w:styles</c> root, or <see cref="OfficeXmlNode.None"/>. Reading it loads the whole styles part; style
+    /// lookups go through <see cref="WordStyleCatalog"/>, which streams it, and <see cref="HasStylesPart"/> tells
+    /// whether there is one.
+    /// </summary>
     internal static OfficeXmlNode StylesNode(this WordDocument? document) =>
         OfficeXmlNode.FromSdk(Main(document)?.StyleDefinitionsPart?.Styles);
+
+    /// <summary>Whether the document has a styles part, without loading it.</summary>
+    internal static bool HasStylesPart(this WordDocument? document) => Main(document)?.StyleDefinitionsPart != null;
 
     /// <summary>The <c>w:numbering</c> root, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode NumberingNode(this WordDocument? document) =>
@@ -877,4 +884,80 @@ internal static class WordConverterNodes {
 
     /// <summary>The hyperlink's <c>w:hyperlink</c>.</summary>
     internal static OfficeXmlNode Node(this WordHyperLink hyperlink) => OfficeXmlNode.FromSdk(hyperlink._hyperlink);
+
+    // ---- Word.Html (build) ---
+
+    /// <summary>Attaches an in-memory annotation object to the element; it isn't written to the document.</summary>
+    internal static void AddAnnotation(this OfficeXmlNode element, object annotation) =>
+        ((OpenXmlElement)element.SdkElement!).AddAnnotation(annotation);
+
+    /// <summary>The element's first annotation of type <typeparamref name="T"/>, or null.</summary>
+    internal static T? Annotation<T>(this OfficeXmlNode element) where T : class =>
+        (element.SdkElement as OpenXmlElement)?.Annotation<T>();
+
+    /// <summary>Removes the element's annotations of type <typeparamref name="T"/>.</summary>
+    internal static void RemoveAnnotations<T>(this OfficeXmlNode element) where T : class =>
+        (element.SdkElement as OpenXmlElement)?.RemoveAnnotations<T>();
+
+    /// <summary>The Word elements for generated block elements (paragraphs, tables, content controls), in order.</summary>
+    internal static IReadOnlyList<WordElement> WrapBlockElements(WordDocument document, IEnumerable<OfficeXmlNode> blocks,
+        CancellationToken cancellationToken = default) =>
+        WordSection.WrapBlockElements(document, blocks.Select(block => (OpenXmlElement)block.SdkElement!), cancellationToken);
+
+    /// <summary>The last body block and last paragraph of the section, when the body layout matches it cheaply.</summary>
+    internal static bool TryGetLastBlockNodes(this WordSection section, out OfficeXmlNode lastBlock, out OfficeXmlNode lastParagraph) {
+        bool found = section.TryGetLastBlocks(out OpenXmlElement? block, out W.Paragraph? paragraph);
+        lastBlock = OfficeXmlNode.FromSdk(block);
+        lastParagraph = OfficeXmlNode.FromSdk(paragraph);
+        return found;
+    }
+
+    /// <summary>
+    /// The body paragraphs after <paramref name="lastParagraph"/> and tables after <paramref name="lastBlock"/> in the
+    /// section, as <see cref="WordSection.TryGetBlocksAfter"/> collects them.
+    /// </summary>
+    internal static bool TryGetBlockNodesAfter(this WordSection section, OfficeXmlNode lastBlock, OfficeXmlNode lastParagraph,
+        List<OfficeXmlNode> paragraphs, List<OfficeXmlNode> tables) {
+        var sdkParagraphs = new List<W.Paragraph>();
+        var sdkTables = new List<W.Table>();
+        bool found = section.TryGetBlocksAfter((OpenXmlElement?)lastBlock.SdkElement, (W.Paragraph?)lastParagraph.SdkElement,
+            sdkParagraphs, sdkTables);
+        paragraphs.Clear();
+        tables.Clear();
+        foreach (W.Paragraph paragraph in sdkParagraphs) paragraphs.Add(OfficeXmlNode.FromSdk(paragraph));
+        foreach (W.Table table in sdkTables) tables.Add(OfficeXmlNode.FromSdk(table));
+        return found;
+    }
+
+
+    /// <summary>The usable content width of a <c>w:tc</c> in twips, or null when it can't be estimated.</summary>
+    internal static int? EstimateCellContentWidthInDxa(WordDocument document, OfficeXmlNode cell) =>
+        WordTable.EstimateCellContentWidthInDxa(document, (W.TableCell)cell.SdkElement!);
+
+    /// <summary>
+    /// A cell-width estimator for one <c>w:tbl</c>: given a <c>w:tc</c>, its grid column and its span, the usable content
+    /// width in twips.
+    /// </summary>
+    internal static Func<OfficeXmlNode, int, int, int?> CreateCellContentWidthEstimatorInDxa(WordDocument document, OfficeXmlNode table) {
+        Func<W.TableCell, int, int, int?> estimate = WordTable.CreateCellContentWidthEstimatorInDxa(document, (W.Table)table.SdkElement!);
+        return (cell, gridIndex, span) => estimate((W.TableCell)cell.SdkElement!, gridIndex, span);
+    }
+
+    /// <summary>Adds an internal hyperlink to <paramref name="anchor"/> holding <paramref name="inlineContent"/>.</summary>
+    internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OfficeXmlNode> inlineContent, string anchor,
+        bool addStyle = false, string tooltip = "", bool history = true, bool moveContent = false) =>
+        WordHyperLink.AddHyperLinkContent(paragraph, inlineContent.Select(node => (OpenXmlElement)node.SdkElement!), anchor,
+            addStyle, tooltip, history, moveContent);
+
+    /// <summary>Adds an external hyperlink to <paramref name="uri"/> holding <paramref name="inlineContent"/>.</summary>
+    internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OfficeXmlNode> inlineContent, Uri uri,
+        bool addStyle = false, string tooltip = "", bool history = true, bool moveContent = false) =>
+        WordHyperLink.AddHyperLinkContent(paragraph, inlineContent.Select(node => (OpenXmlElement)node.SdkElement!), uri,
+            addStyle, tooltip, history, moveContent);
+
+    /// <summary>The story root (document, header, footer, notes or comments) that holds the paragraph.</summary>
+    internal static OfficeXmlNode LocationNode(this WordParagraph paragraph) => OfficeXmlNode.FromSdk(paragraph.Location());
+
+    /// <summary>The <c>wp:positionH</c> of an anchored image; throws for an inline image, as the model does.</summary>
+    internal static OfficeXmlNode HorizontalPositionNode(this WordImage image) => OfficeXmlNode.FromSdk(image.horizontalPosition);
 }

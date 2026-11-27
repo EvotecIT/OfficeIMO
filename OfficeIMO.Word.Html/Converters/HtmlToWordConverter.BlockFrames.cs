@@ -1,6 +1,5 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 using SixColor = OfficeIMO.OfficeColor;
 
@@ -14,20 +13,20 @@ namespace OfficeIMO.Word.Html {
         }
 
         private readonly struct BlockBorder {
-            internal BlockBorder(BorderValues style, uint size, SixColor? color) {
+            internal BlockBorder(WordBorderStyle style, uint size, SixColor? color) {
                 Style = style;
                 Size = size;
                 Color = color;
             }
 
-            internal BorderValues Style { get; }
+            internal WordBorderStyle Style { get; }
             internal uint Size { get; }
             internal SixColor? Color { get; }
         }
 
         private struct BlockBorderState {
             internal BlockBorderState(
-                BorderValues style,
+                WordBorderStyle style,
                 uint size,
                 SixColor? color,
                 bool transparentColor = false) {
@@ -37,7 +36,7 @@ namespace OfficeIMO.Word.Html {
                 TransparentColor = transparentColor;
             }
 
-            internal BorderValues? Style { get; set; }
+            internal WordBorderStyle? Style { get; set; }
             internal uint? Size { get; set; }
             internal SixColor? Color { get; set; }
             internal bool TransparentColor { get; set; }
@@ -45,7 +44,7 @@ namespace OfficeIMO.Word.Html {
             internal BlockBorder? Materialize() =>
                 !TransparentColor &&
                 Style.HasValue &&
-                Style.Value != BorderValues.None &&
+                Style.Value != WordBorderStyle.None &&
                 (Size == null || Size.Value > 0)
                     ? new BlockBorder(Style.Value, Size ?? 18U, Color)
                     : null;
@@ -183,7 +182,7 @@ namespace OfficeIMO.Word.Html {
                                    out bool hasTransparentBorderColor,
                                    background ?? inheritedBackground)) {
                         var border = new BlockBorderState(
-                            hasBorderStyle ? borderStyle : BorderValues.None,
+                            hasBorderStyle ? borderStyle : WordBorderStyle.None,
                             borderSize,
                             hasBorderColor ? borderColor : null,
                             hasTransparentBorderColor);
@@ -208,7 +207,7 @@ namespace OfficeIMO.Word.Html {
                                    out bool hasTransparentSideColor,
                                    background ?? inheritedBackground)) {
                         sideBorders[side] = new BlockBorderState(
-                            hasSideStyle ? sideStyle : BorderValues.None,
+                            hasSideStyle ? sideStyle : WordBorderStyle.None,
                             sideSize,
                             hasSideColor ? sideColor : null,
                             hasTransparentSideColor);
@@ -240,22 +239,22 @@ namespace OfficeIMO.Word.Html {
             IElement element,
             IReadOnlyList<WordParagraph> paragraphs,
             IReadOnlyList<WordTable> tables) {
-            OpenXmlElement? first = GetGeneratedBlockBoundary(paragraphs, tables, first: true);
-            OpenXmlElement? last = GetGeneratedBlockBoundary(paragraphs, tables, first: false);
+            OfficeXmlNode first = GetGeneratedBlockBoundary(paragraphs, tables, first: true);
+            OfficeXmlNode last = GetGeneratedBlockBoundary(paragraphs, tables, first: false);
             ApplyBlockFrameFromCss(
                 element,
                 paragraphs,
                 applyContainerSpacing: false,
                 applyTopBorder: paragraphs.Any(
-                    paragraph => ReferenceEquals(paragraph._paragraph, first)),
+                    paragraph => paragraph.Node() == first),
                 applyBottomBorder: paragraphs.Any(
-                    paragraph => ReferenceEquals(paragraph._paragraph, last)));
+                    paragraph => paragraph.Node() == last));
             foreach (WordTable table in tables) {
                 ApplyTableContainerFrameFromCss(
                     element,
                     table,
-                    applyTopBorder: ReferenceEquals(table._table, first),
-                    applyBottomBorder: ReferenceEquals(table._table, last));
+                    applyTopBorder: table.Node() == first,
+                    applyBottomBorder: table.Node() == last);
             }
             ApplyContainerSpacingFromCss(element, paragraphs, tables);
         }
@@ -318,22 +317,22 @@ namespace OfficeIMO.Word.Html {
             string color = value.Color?.ToRgbHex() ?? fallbackColor;
             switch (side) {
                 case BlockBorderSide.Left:
-                    cell.Borders.LeftStyle = value.Style.ToOfficeEnum();
+                    cell.Borders.LeftStyle = value.Style;
                     cell.Borders.LeftSize = WordBorderLengths.FromSize(value.Size);
                     cell.Borders.LeftColorValue = color;
                     break;
                 case BlockBorderSide.Right:
-                    cell.Borders.RightStyle = value.Style.ToOfficeEnum();
+                    cell.Borders.RightStyle = value.Style;
                     cell.Borders.RightSize = WordBorderLengths.FromSize(value.Size);
                     cell.Borders.RightColorValue = color;
                     break;
                 case BlockBorderSide.Top:
-                    cell.Borders.TopStyle = value.Style.ToOfficeEnum();
+                    cell.Borders.TopStyle = value.Style;
                     cell.Borders.TopSize = WordBorderLengths.FromSize(value.Size);
                     cell.Borders.TopColorValue = color;
                     break;
                 case BlockBorderSide.Bottom:
-                    cell.Borders.BottomStyle = value.Style.ToOfficeEnum();
+                    cell.Borders.BottomStyle = value.Style;
                     cell.Borders.BottomSize = WordBorderLengths.FromSize(value.Size);
                     cell.Borders.BottomColorValue = color;
                     break;
@@ -448,7 +447,7 @@ namespace OfficeIMO.Word.Html {
             IReadOnlyList<WordParagraph> paragraphs) {
             var result = new List<WordParagraph>(paragraphs.Count);
             foreach (WordParagraph paragraph in paragraphs) {
-                if (!result.Any(existing => ReferenceEquals(existing._paragraph, paragraph._paragraph))) {
+                if (!result.Any(existing => existing.Node() == paragraph.Node())) {
                     result.Add(paragraph);
                 }
             }
@@ -494,7 +493,7 @@ namespace OfficeIMO.Word.Html {
             if (IsCssWideResetValue(value)) {
                 switch (component) {
                     case "style":
-                        border.Style = BorderValues.None;
+                        border.Style = WordBorderStyle.None;
                         break;
                     case "width":
                         border.Size = null;
@@ -511,7 +510,7 @@ namespace OfficeIMO.Word.Html {
             }
             switch (component) {
                 case "style":
-                    if (!TryParseBlockBorderStyle(value, out BorderValues style)) {
+                    if (!TryParseBlockBorderStyle(value, out WordBorderStyle style)) {
                         return;
                     }
                     border.Style = style;
@@ -572,7 +571,7 @@ namespace OfficeIMO.Word.Html {
 
         private static bool TryParseBlockBorder(
             string value,
-            out BorderValues style,
+            out WordBorderStyle style,
             out uint size,
             out SixColor color,
             out bool hasExplicitStyle,
@@ -653,25 +652,25 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private static bool TryParseBlockBorderStyle(string value, out BorderValues style) {
+        private static bool TryParseBlockBorderStyle(string value, out WordBorderStyle style) {
             switch (value.Trim().ToLowerInvariant()) {
                 case "solid":
-                    style = BorderValues.Single;
+                    style = WordBorderStyle.Single;
                     return true;
                 case "dotted":
-                    style = BorderValues.Dotted;
+                    style = WordBorderStyle.Dotted;
                     return true;
                 case "dashed":
-                    style = BorderValues.Dashed;
+                    style = WordBorderStyle.Dashed;
                     return true;
                 case "double":
-                    style = BorderValues.Double;
+                    style = WordBorderStyle.Double;
                     return true;
                 case "none":
-                    style = BorderValues.None;
+                    style = WordBorderStyle.None;
                     return true;
                 default:
-                    style = BorderValues.Single;
+                    style = WordBorderStyle.Single;
                     return false;
             }
         }
@@ -749,22 +748,22 @@ namespace OfficeIMO.Word.Html {
             string color = value.Color?.ToRgbHex() ?? fallbackColor;
             switch (side) {
                 case BlockBorderSide.Left:
-                    paragraph.Borders.LeftStyle = value.Style.ToOfficeEnum();
+                    paragraph.Borders.LeftStyle = value.Style;
                     paragraph.Borders.LeftSize = OfficeLength.Points(value.Size / 8D);
                     paragraph.Borders.LeftColorValue = color;
                     break;
                 case BlockBorderSide.Right:
-                    paragraph.Borders.RightStyle = value.Style.ToOfficeEnum();
+                    paragraph.Borders.RightStyle = value.Style;
                     paragraph.Borders.RightSize = OfficeLength.Points(value.Size / 8D);
                     paragraph.Borders.RightColorValue = color;
                     break;
                 case BlockBorderSide.Top:
-                    paragraph.Borders.TopStyle = value.Style.ToOfficeEnum();
+                    paragraph.Borders.TopStyle = value.Style;
                     paragraph.Borders.TopSize = OfficeLength.Points(value.Size / 8D);
                     paragraph.Borders.TopColorValue = color;
                     break;
                 case BlockBorderSide.Bottom:
-                    paragraph.Borders.BottomStyle = value.Style.ToOfficeEnum();
+                    paragraph.Borders.BottomStyle = value.Style;
                     paragraph.Borders.BottomSize = OfficeLength.Points(value.Size / 8D);
                     paragraph.Borders.BottomColorValue = color;
                     break;
