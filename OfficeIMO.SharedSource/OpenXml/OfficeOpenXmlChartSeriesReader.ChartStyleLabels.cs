@@ -12,19 +12,12 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
     private static NativeText ReadChartStyleLabelText(IOfficeChartPart chartPart, OfficeXmlNode scheme) {
         const string chartStyleNamespace = ChartStyleUri;
         const string drawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
-        IReadOnlyList<OfficeXmlNode> parts;
-        try {
-            parts = chartPart.ChartStyles(2);
-        } catch (XmlException exception) {
-            throw new NotSupportedException("The chart data-label style XML cannot be projected.", exception);
-        }
+        IReadOnlyList<Func<Stream>> parts = chartPart.ChartStyles(2);
         if (parts.Count == 0) return default;
         if (parts.Count != 1) throw new NotSupportedException("Multiple chart text styles cannot be projected.");
-        OfficeXmlNode styleRoot = parts[0];
         try {
-            // The style is read from its markup with the same limits as the part stream, so an oversized or malformed
-            // style is refused the same way whichever host holds it.
-            using Stream stream = new MemoryStream(styleRoot.OuterXml(), writable: false);
+            // The limit applies while the part streams in, so an oversized style is refused before it is parsed.
+            using Stream stream = parts[0]();
             using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
@@ -69,8 +62,10 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     throw new NotSupportedException("The chart data-label font color cannot be projected.");
                 if (element.Name.LocalName is not "schemeClr" and not "srgbClr")
                     throw new NotSupportedException("The chart data-label font color cannot be projected.");
-                // The same element in the style part: the first child of the rule's font reference.
-                OfficeXmlNode nativeColor = styleRoot.Child(chartStyleNamespace, "dataLabel").Child(chartStyleNamespace, "fontRef").FirstChild;
+                // The color element on its own, with its namespace declared, as the color resolver reads it.
+                byte[] colorMarkup = System.Text.Encoding.UTF8.GetBytes(element.ToString(SaveOptions.DisableFormatting));
+                OfficeXmlTree colorTree = OfficeXmlTree.Parse(colorMarkup, colorMarkup.Length, new OfficeXmlNamespaces.Table());
+                OfficeXmlNode nativeColor = new(colorTree, colorTree.Root);
                 // A scheme color goes through the chart's color map, as the slot it names is mapped before it resolves.
                 OfficeXmlNode colorMap = element.Name.LocalName == "schemeClr" && element.Attribute("val") != null
                     ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart) : default;

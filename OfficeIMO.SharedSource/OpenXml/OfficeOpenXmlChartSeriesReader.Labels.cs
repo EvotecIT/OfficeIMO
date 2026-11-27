@@ -341,7 +341,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
     private static bool? ReadRangeTextFlag(OfficeXmlNode labels) {
         OfficeXmlNode flag = default;
         foreach (OfficeXmlNode list in labels.Children(NsC, "extLst")) {
-            flag = list.DescendantsWhere(element => element.LocalName == "showDataLabelsRange").FirstOrDefault();
+            flag = list.DescendantsWhere(element => element.LocalName == "showDataLabelsRange", includeExtensionMarkup: true).FirstOrDefault();
             if (!flag.IsNone) break;
         }
         if (flag.IsNone) return null;

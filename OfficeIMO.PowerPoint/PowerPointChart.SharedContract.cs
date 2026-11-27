@@ -157,7 +157,7 @@ namespace OfficeIMO.PowerPoint {
 
         private bool HasUnprojectedNativeAxisUnits(OfficeChartLayout layout) {
             OfficeXmlNode secondaryAxis = OfficeOpenXmlChartSecondaryAxis.Resolve(PlotAreaNode);
-            foreach (OfficeXmlNode axis in ChartSpaceNode.Descendants(CNs, "valAx")) {
+            foreach (OfficeXmlNode axis in ChartSpaceNode.ContentDescendants(CNs, "valAx")) {
                 bool secondary = axis == secondaryAxis;
                 string? position = axis.ChildVal(CNs, "axPos");
                 OfficeXmlNode majorUnit = axis.Child(CNs, "majorUnit"), minorUnit = axis.Child(CNs, "minorUnit");

@@ -79,11 +79,12 @@ namespace OfficeIMO.PowerPoint {
 
         public OfficeXmlNode ChartSpace => _part.Root;
 
-        public IReadOnlyList<OfficeXmlNode> ChartStyles(int limit) {
-            var styles = new List<OfficeXmlNode>();
+        public IReadOnlyList<Func<Stream>> ChartStyles(int limit) {
+            var styles = new List<Func<Stream>>();
             if (limit <= 0) return styles;
             foreach (PowerPointPartRef style in _part.RelatedParts(ChartStyleRelationshipType)) {
-                styles.Add(style.Root);
+                // The stored bytes, without parsing the part first, so the reader's size limit applies as it reads.
+                styles.Add(() => new MemoryStream(style.ReadBytes(), writable: false));
                 if (styles.Count >= limit) break;
             }
             return styles;

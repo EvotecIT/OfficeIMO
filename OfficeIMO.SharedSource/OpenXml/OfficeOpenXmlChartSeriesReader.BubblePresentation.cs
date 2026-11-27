@@ -155,13 +155,13 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static bool HasEnabledBubbleDataLabels(OfficeXmlNode chart) =>
-            chart.Descendants(NsC, "showLegendKey").Any(item => item.BoolVal() != false) ||
-            chart.Descendants(NsC, "showVal").Any(item => item.BoolVal() != false) ||
-            chart.Descendants(NsC, "showCatName").Any(item => item.BoolVal() != false) ||
-            chart.Descendants(NsC, "showSerName").Any(item => item.BoolVal() != false) ||
-            chart.Descendants(NsC, "showPercent").Any(item => item.BoolVal() != false) ||
-            chart.Descendants(NsC, "showBubbleSize").Any(item => item.BoolVal() != false) ||
-            chart.Descendants(NsC, "dLbl").Any(label => {
+            chart.ContentDescendants(NsC, "showLegendKey").Any(item => item.BoolVal() != false) ||
+            chart.ContentDescendants(NsC, "showVal").Any(item => item.BoolVal() != false) ||
+            chart.ContentDescendants(NsC, "showCatName").Any(item => item.BoolVal() != false) ||
+            chart.ContentDescendants(NsC, "showSerName").Any(item => item.BoolVal() != false) ||
+            chart.ContentDescendants(NsC, "showPercent").Any(item => item.BoolVal() != false) ||
+            chart.ContentDescendants(NsC, "showBubbleSize").Any(item => item.BoolVal() != false) ||
+            chart.ContentDescendants(NsC, "dLbl").Any(label => {
                 OfficeXmlNode delete = label.Child(NsC, "delete");
                 return !label.Child(NsC, "tx").IsNone &&
                     (delete.IsNone || delete.BoolVal() == false);

@@ -214,7 +214,7 @@ namespace OfficeIMO.PowerPoint {
         private bool TryGetEditableImportedWorkbook(
             out IOfficeChartEmbeddedPackage? workbook, out string diagnostic) {
             IOfficeChartPart chartPart = SharedChartPart;
-            List<OfficeXmlNode> references = chartPart.ChartSpace.Descendants(CNs, "externalData");
+            List<OfficeXmlNode> references = chartPart.ChartSpace.ContentDescendants(CNs, "externalData");
             string? id = references.Count == 1 ? references[0].Attribute(OfficeXmlNamespaces.Relationships, "id") : null;
             IOfficeChartEmbeddedPackage? embedded = string.IsNullOrWhiteSpace(id) ? null
                 : chartPart.EmbeddedPackages(int.MaxValue).FirstOrDefault(package => string.Equals(package.RelationshipId, id, StringComparison.Ordinal));

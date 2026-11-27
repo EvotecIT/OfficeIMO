@@ -44,8 +44,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (!OfficeOpenXmlChartSourceVisibility.PlotsVisibleCellsOnly(chart)) return true;
             // Literal cached charts have no workbook source whose hidden rows can affect plotting.
             OfficeXmlNode plot = chart.Child(NsC, "plotArea");
-            List<OfficeXmlNode> allFormulas = plot.Descendants(NsC, "f");
-            if (!allFormulas.Any(formula => !string.IsNullOrWhiteSpace(formula.InnerText))) return true;
+            if (plot.DescendantsWhere(IsSourceFormula, limit: 1).Count == 0) return true;
             try {
                 // Without any workbook reference the cache is the only source, and Office plots it
                 // as written. An unresolved or external workbook link fails closed.
@@ -69,10 +68,11 @@ namespace OfficeIMO.OpenXml.Internal {
                     hiddenBySheet.Add(worksheetPart, new OfficeOpenXmlChartHiddenCells(worksheetPart.Worksheet!));
                 if (!hiddenBySheet.Values.Any(hidden => hidden.HasHiddenCells)) return true;
 
-                if (allFormulas.Count > 10000) return Fail("The chart has more source references than are supported.", out reason);
+                List<OfficeXmlNode> formulas = plot.DescendantsWhere(element => element.Is(NsC, "f"), limit: 10001);
+                if (formulas.Count > 10000) return Fail("The chart has more source references than are supported.", out reason);
                 var visible = new Dictionary<OfficeXmlNode, int[]>();
                 long cells = 0;
-                foreach (OfficeXmlNode formula in allFormulas) {
+                foreach (OfficeXmlNode formula in formulas) {
                     string formulaText = formula.InnerText;
                     if (string.IsNullOrWhiteSpace(formulaText)) continue;
                     if (!OfficeOpenXmlChartSourceVisibility.TryParseRange(formulaText, out string sheetName,
@@ -112,7 +112,7 @@ namespace OfficeIMO.OpenXml.Internal {
                         : (long?)source.FirstDescendant(NsC, "ptCount").UIntVal() ?? 0L;
                     // A series whose value cells are all hidden is left out with its categories, so it needs no
                     // padding and sets no length; the others are padded to the longest series or category list kept.
-                    var kept = plot.Descendants(NsC, "val")
+                    var kept = plot.ContentDescendants(NsC, "val")
                         .Select(values => (Values: Length(values), Categories: values.Parent.Child(NsC, "cat") is { IsNone: false } categories ? Length(categories) : 0L))
                         .Where(item => item.Values != 0L).ToArray();
                     long projected = kept.Select(item => Math.Max(item.Values, item.Categories)).DefaultIfEmpty(0L).Max();
@@ -125,6 +125,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 return Fail("The chart's embedded workbook cannot be read to leave out hidden cells: " + exception.Message, out reason);
             }
         }
+
+        private static bool IsSourceFormula(OfficeXmlNode element) => element.Is(NsC, "f") && !string.IsNullOrWhiteSpace(element.InnerText);
 
         private static bool Fail(string message, out string? reason) {
             reason = message;

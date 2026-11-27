@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint {
             string relationshipId = package.RelationshipId;
             OfficeXmlNode chartSpace = chartPart.ChartSpace;
             bool isReferenced = !chartSpace.IsNone
-                && chartSpace.Descendants(OfficeXmlNamespaces.Chart, "externalData")
+                && chartSpace.ContentDescendants(OfficeXmlNamespaces.Chart, "externalData")
                     .Any(externalData => string.Equals(
                         externalData.Attribute(OfficeXmlNamespaces.Relationships, "id"), relationshipId, StringComparison.Ordinal));
             if (!isReferenced) {

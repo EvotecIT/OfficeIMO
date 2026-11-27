@@ -25,7 +25,7 @@ namespace OfficeIMO.OpenXml.Internal {
             OfficeXmlNode chartSpace = part.ChartSpace;
             if (chartSpace.IsNone) throw new InvalidOperationException("Chart space not found.");
             var replacements = new List<KeyValuePair<OfficeXmlNode, OfficeXmlNode>>();
-            List<OfficeXmlNode> descendants = chartSpace.AllDescendants();
+            List<OfficeXmlNode> descendants = chartSpace.DescendantsWhere(null, includeExtensionMarkup: true);
             List<OfficeXmlNode> sourceSeries = descendants.Where(element => element.LocalName == "ser").ToList();
             foreach (OfficeXmlNode text in descendants) {
                 if (!IsChartText(text)) continue;

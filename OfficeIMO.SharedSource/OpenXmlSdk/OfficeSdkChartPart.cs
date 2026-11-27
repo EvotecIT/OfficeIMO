@@ -12,8 +12,9 @@ namespace OfficeIMO.OpenXml.Internal {
 
         public OfficeXmlNode ChartSpace => OfficeXmlNode.FromSdk(Part.ChartSpace);
 
-        public IReadOnlyList<OfficeXmlNode> ChartStyles(int limit) =>
-            Part.GetPartsOfType<ChartStylePart>().Take(limit).Select(style => OfficeXmlNode.FromSdk(style.RootElement)).ToList();
+        public IReadOnlyList<Func<Stream>> ChartStyles(int limit) =>
+            Part.GetPartsOfType<ChartStylePart>().Take(limit)
+                .Select(style => (Func<Stream>)(() => style.GetStream(FileMode.Open, FileAccess.Read))).ToList();
 
         public OfficeXmlNode HostColorMap {
             get {

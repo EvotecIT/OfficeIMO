@@ -813,7 +813,7 @@ namespace OfficeIMO.PowerPoint {
 
         // The text of every a:t below the element, in document order.
         private static string ConcatText(OfficeXmlNode element) =>
-            string.Concat(element.Descendants(ANs, "t").Select(item => item.InnerText));
+            string.Concat(element.ContentDescendants(ANs, "t").Select(item => item.InnerText));
 
         private static string ReadChartParagraphText(OfficeXmlNode paragraph) {
             var builder = new System.Text.StringBuilder();

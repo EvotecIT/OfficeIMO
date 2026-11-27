@@ -70,7 +70,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            foreach (OfficeXmlNode runProps in chartText.Descendants(ANs, "rPr")) {
+            foreach (OfficeXmlNode runProps in chartText.ContentDescendants(ANs, "rPr")) {
                 ClearTextStyle(runProps);
             }
 

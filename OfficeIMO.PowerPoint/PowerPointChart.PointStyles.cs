@@ -31,7 +31,7 @@ public partial class PowerPointChart {
     private List<OfficeXmlNode> SeriesInIndexOrder() {
         OfficeXmlNode chartSpace = ChartSpaceNode;
         if (chartSpace.IsNone) throw new InvalidOperationException("Chart content is missing.");
-        return chartSpace.Descendants(OfficeXmlNamespaces.Chart, "ser")
+        return chartSpace.ContentDescendants(OfficeXmlNamespaces.Chart, "ser")
             .OrderBy(element => element.Child(OfficeXmlNamespaces.Chart, "idx").UIntVal() ?? uint.MaxValue).ToList();
     }
 }

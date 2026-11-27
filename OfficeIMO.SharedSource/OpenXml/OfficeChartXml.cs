@@ -158,32 +158,43 @@ namespace OfficeIMO.OpenXml.Internal {
             return default;
         }
 
-        /// <summary>The first element with this name below this one, in document order, or none.</summary>
-        internal static OfficeXmlNode FirstDescendant(this OfficeXmlNode node, int namespaceId, string localName) {
-            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = current.NextInSubtree(node)) {
-                if (current.Is(namespaceId, localName)) return current;
+        // The next element in document order within root's subtree, not entering extension markup.
+        private static OfficeXmlNode NextContent(OfficeXmlNode node, OfficeXmlNode root) {
+            if (!node.IsExtensionMarkup()) {
+                OfficeXmlNode child = node.FirstChild;
+                if (!child.IsNone) return child;
+            }
+            for (OfficeXmlNode current = node; !current.IsNone && current != root; current = current.Parent) {
+                OfficeXmlNode sibling = current.NextSibling;
+                if (!sibling.IsNone) return sibling;
             }
             return default;
         }
 
-        /// <summary>Every element below this one, in document order.</summary>
-        internal static List<OfficeXmlNode> AllDescendants(this OfficeXmlNode node) {
-            var found = new List<OfficeXmlNode>();
-            CollectDescendants(node, null, found);
-            return found;
+        /// <summary>The first element with this name below this one, in document order, outside extension markup, or none.</summary>
+        internal static OfficeXmlNode FirstDescendant(this OfficeXmlNode node, int namespaceId, string localName) {
+            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = NextContent(current, node)) {
+                if (current.Is(namespaceId, localName) && !current.IsExtensionMarkup()) return current;
+            }
+            return default;
         }
 
-        /// <summary>The elements below this one that match, in document order.</summary>
-        internal static List<OfficeXmlNode> DescendantsWhere(this OfficeXmlNode node, Func<OfficeXmlNode, bool> predicate) {
-            var found = new List<OfficeXmlNode>();
-            CollectDescendants(node, predicate, found);
-            return found;
-        }
+        /// <summary>Every element below this one, in document order, outside extension markup.</summary>
+        internal static List<OfficeXmlNode> AllDescendants(this OfficeXmlNode node) => node.DescendantsWhere(null);
 
-        private static void CollectDescendants(OfficeXmlNode node, Func<OfficeXmlNode, bool>? predicate, List<OfficeXmlNode> found) {
-            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = current.NextInSubtree(node)) {
+        /// <summary>
+        /// The elements below this one that match, in document order, stopping after <paramref name="limit"/>. Extension
+        /// markup and what it holds are left out unless <paramref name="includeExtensionMarkup"/> is set.
+        /// </summary>
+        internal static List<OfficeXmlNode> DescendantsWhere(this OfficeXmlNode node, Func<OfficeXmlNode, bool>? predicate,
+            bool includeExtensionMarkup = false, int limit = int.MaxValue) {
+            var found = new List<OfficeXmlNode>();
+            for (OfficeXmlNode current = node.FirstChild; !current.IsNone && found.Count < limit;
+                 current = includeExtensionMarkup ? current.NextInSubtree(node) : NextContent(current, node)) {
+                if (!includeExtensionMarkup && current.IsExtensionMarkup()) continue;
                 if (predicate == null || predicate(current)) found.Add(current);
             }
+            return found;
         }
 
         /// <summary>The nearest ancestor with this name, the element itself excluded, or none.</summary>

@@ -175,6 +175,36 @@ namespace OfficeIMO.OpenXml.Internal {
             return found;
         }
 
+        /// <summary>
+        /// Whether the element holds extension markup: an <c>extLst</c> in any namespace or an <c>mc:AlternateContent</c>.
+        /// The SDK read what these hold as unknown elements, so searches for content don't look inside them.
+        /// </summary>
+        internal bool IsExtensionMarkup() =>
+            LocalName == "extLst" || Is(OfficeXmlNamespaces.MarkupCompatibility, "AlternateContent");
+
+        /// <summary>The elements with this name below this one, in document order, outside extension markup.</summary>
+        internal List<OfficeXmlNode> ContentDescendants(int namespaceId, string localName) {
+            var found = new List<OfficeXmlNode>();
+            if (_sdk != null) {
+                OfficeSdkXml.CollectContentDescendants(_sdk, namespaceId, localName, found);
+                return found;
+            }
+            OfficeXmlNode current = FirstChild;
+            while (!current.IsNone) {
+                bool extension = current.IsExtensionMarkup();
+                if (!extension && current.Is(namespaceId, localName)) found.Add(current);
+                OfficeXmlNode next = extension ? default : current.FirstChild;
+                if (next.IsNone) {
+                    for (OfficeXmlNode up = current; !up.IsNone && up != this; up = up.Parent) {
+                        next = up.NextSibling;
+                        if (!next.IsNone) break;
+                    }
+                }
+                current = next;
+            }
+            return found;
+        }
+
         // Walks the subtree in document order without recursion, so deeply nested markup can't exhaust the stack.
         private static void CollectDescendants(OfficeXmlNode element, int namespaceId, string localName, List<OfficeXmlNode> found) {
             OfficeXmlNode current = element.FirstChild;

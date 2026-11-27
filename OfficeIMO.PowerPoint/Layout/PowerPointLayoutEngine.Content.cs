@@ -789,7 +789,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Writes explicit unsmoothed lines, so no renderer curves a series between its points.</summary>
         private static void StraightLines(PowerPointChart result) {
             bool changed = false;
-            foreach (OfficeXmlNode series in result.ChartNode.Descendants(Ns.Chart, "ser")) {
+            foreach (OfficeXmlNode series in result.ChartNode.ContentDescendants(Ns.Chart, "ser")) {
                 // Line, 3-D line and stock charts hold line series (CT_LineSer), the series that carry c:smooth.
                 if (!series.Parent.Is(Ns.Chart, "lineChart") && !series.Parent.Is(Ns.Chart, "line3DChart") && !series.Parent.Is(Ns.Chart, "stockChart")) continue;
                 OfficeXmlNode smooth = series.Child(Ns.Chart, "smooth");

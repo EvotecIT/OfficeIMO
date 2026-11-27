@@ -12,7 +12,7 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
     internal OfficeOpenXmlChartTextReader(OfficeXmlNode scheme) => _scheme = scheme;
 
     internal static bool HasUncachedFormulaTitle(OfficeXmlNode chart) =>
-        chart.Descendants(NsC, "title").Any(title => title.Child(NsC, "tx").Child(NsC, "strRef") is { IsNone: false } reference &&
+        chart.ContentDescendants(NsC, "title").Any(title => title.Child(NsC, "tx").Child(NsC, "strRef") is { IsNone: false } reference &&
             !reference.Child(NsC, "f").IsNone && string.IsNullOrWhiteSpace(reference.Child(NsC, "strCache").InnerText));
 
         internal bool TryReadSharedTextStyle(OfficeXmlNode chart,
@@ -56,7 +56,7 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
 
         internal static string? ReadChartDefaultTypeface(OfficeXmlNode chart) =>
             chart.Parent.Child(NsC, "txPr")
-                .Descendants(NsA, "latin")
+                .ContentDescendants(NsA, "latin")
                 .Select(font => font.Attribute("typeface"))
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 
@@ -70,7 +70,7 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
                 if (title.IsNone) continue;
                 if (HasText(title) ||
                     title.Child(NsC, "tx").Child(NsC, "strRef").Child(NsC, "strCache")
-                        .Descendants(NsC, "pt").Any(point => !string.IsNullOrEmpty(point.Child(NsC, "v").InnerText)))
+                        .ContentDescendants(NsC, "pt").Any(point => !string.IsNullOrEmpty(point.Child(NsC, "v").InnerText)))
                     titles.Add(title);
             }
             string?[] fonts = titles.Select(title =>
@@ -92,13 +92,13 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
 
         // Whether any a:t below the element holds text.
         private static bool HasText(OfficeXmlNode element) =>
-            element.Descendants(NsA, "t").Any(text => !string.IsNullOrEmpty(text.InnerText));
+            element.ContentDescendants(NsA, "t").Any(text => !string.IsNullOrEmpty(text.InnerText));
 
         private string? ReadBodyTypeface(
             OfficeXmlNode textArea, string? chartDefaultTypeface) {
-            string?[] typefaces = textArea.Descendants(NsC, "txPr")
+            string?[] typefaces = textArea.ContentDescendants(NsC, "txPr")
                 .Where(properties => properties.Ancestor(NsC, "title").IsNone)
-                .SelectMany(properties => properties.Descendants(NsA, "latin"))
+                .SelectMany(properties => properties.ContentDescendants(NsA, "latin"))
                 .Select(font => font.Attribute("typeface"))
                 .Where(value => !string.IsNullOrWhiteSpace(value))
                 .ToArray();
@@ -120,11 +120,11 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
             string? chartDefaultTypeface) {
             if (title.IsNone) return null;
             string? defaultTypeface = title.Children(NsC, "txPr").ToList()
-                .SelectMany(properties => properties.Descendants(NsA, "latin"))
+                .SelectMany(properties => properties.ContentDescendants(NsA, "latin"))
                 .Select(font => font.Attribute("typeface"))
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))
                 ?? chartDefaultTypeface;
-            OfficeXmlNode[] textRuns = title.Descendants(NsC, "rich")
+            OfficeXmlNode[] textRuns = title.ContentDescendants(NsC, "rich")
                 .SelectMany(richText => richText.DescendantsWhere(element =>
                     element.NamespaceId == NsA && element.LocalName is "r" or "fld"))
                 .Where(run => !run.Child(NsA, "t").IsNone)

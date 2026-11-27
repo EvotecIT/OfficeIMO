@@ -65,7 +65,7 @@ internal static class OfficeOpenXmlChartThemeWriter {
             if (newOutline) SetOrdered(properties, outline, DmlShapePropertiesView.Order);
             if (newProperties) SetOrdered(series, properties, CLineSerView.Order);
         }
-        foreach (OfficeXmlNode labels in plot.Descendants(NsC, "dLbls")) {
+        foreach (OfficeXmlNode labels in plot.ContentDescendants(NsC, "dLbls")) {
             if (labels.Child(NsC, "showVal").IsNone) {
                 // c:delete and the formatting children are the two branches of one choice; adding c:showVal leaves the
                 // formatting branch, as the SDK's AddChild did.
