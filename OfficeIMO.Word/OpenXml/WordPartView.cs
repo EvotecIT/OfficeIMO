@@ -38,7 +38,7 @@ internal sealed partial class WordPackageView {
 
     private readonly OfficeOpcEditablePackage? _owned;
     private readonly Dictionary<string, WordPartView> _ownedParts = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<object, WordPartView> _sdkParts = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<object, WordPartView> _sdkParts = new(OfficeIMO.Internal.OfficeReferenceEqualityComparer<object>.Instance);
     private WordPartView? _main;
     private bool _mainRead;
 
