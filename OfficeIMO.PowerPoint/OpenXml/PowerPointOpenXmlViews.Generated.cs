@@ -89,6 +89,15 @@ internal readonly partial struct PPresentationView {
 
     internal PSlideMasterIdListView GetOrAddSldMasterIdLst() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "sldMasterIdLst", Order));
 
+    internal PNotesMasterIdListView? NotesMasterIdLst {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "notesMasterIdLst");
+            return child.IsNone ? null : new PNotesMasterIdListView(child);
+        }
+    }
+
+    internal PNotesMasterIdListView GetOrAddNotesMasterIdLst() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "notesMasterIdLst", Order));
+
     internal PSlideIdListView? SldIdLst {
         get {
             OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "sldIdLst");
@@ -540,6 +549,11 @@ internal readonly partial struct PGroupShapeView {
 
     /// <summary>Adds a <c>grpSp</c> after the existing ones, in sequence order.</summary>
     internal PGroupShapeView AddGrpSp() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "grpSp", Order));
+
+    internal OfficeXmlNode.ChildList GraphicFrameList => Element.Children(OfficeXmlNamespaces.PresentationML, "graphicFrame");
+
+    /// <summary>Adds a <c>graphicFrame</c> after the existing ones, in sequence order.</summary>
+    internal PGraphicalObjectFrameView AddGraphicFrame() => new(Element.AddOrdered(OfficeXmlNamespaces.PresentationML, "graphicFrame", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_GroupShapeNonVisual</c>.</summary>
@@ -1019,6 +1033,15 @@ internal readonly partial struct AShapePropertiesView {
     }
 
     internal ASolidColorFillPropertiesView GetOrAddSolidFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "solidFill", Order));
+
+    internal ALinePropertiesView? Ln {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "ln");
+            return child.IsNone ? null : new ALinePropertiesView(child);
+        }
+    }
+
+    internal ALinePropertiesView GetOrAddLn() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "ln", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_Transform2D</c>.</summary>
@@ -1700,6 +1723,15 @@ internal readonly partial struct ATextCharacterPropertiesView {
         set => Element.SetAttribute(OfficeXmlNamespaces.None, "bmk", value);
     }
 
+    internal ALinePropertiesView? Ln {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "ln");
+            return child.IsNone ? null : new ALinePropertiesView(child);
+        }
+    }
+
+    internal ALinePropertiesView GetOrAddLn() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "ln", Order));
+
     internal ANoFillPropertiesView? NoFill {
         get {
             OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
@@ -1717,6 +1749,15 @@ internal readonly partial struct ATextCharacterPropertiesView {
     }
 
     internal ASolidColorFillPropertiesView GetOrAddSolidFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "solidFill", Order));
+
+    internal ALinePropertiesView? ULn {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "uLn");
+            return child.IsNone ? null : new ALinePropertiesView(child);
+        }
+    }
+
+    internal ALinePropertiesView GetOrAddULn() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "uLn", Order));
 }
 
 /// <summary>View over an element of schema type <c>CT_TextNormalAutofit</c>.</summary>
@@ -1861,4 +1902,655 @@ internal readonly partial struct AEmptyElementView {
 
     /// <summary>Child element names in sequence order.</summary>
     internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
+}
+
+/// <summary>View over an element of schema type <c>CT_GraphicalObjectFrame</c>.</summary>
+internal readonly partial struct PGraphicalObjectFrameView {
+    internal PGraphicalObjectFrameView(OfficeXmlNode element) => Element = element;
+
+    internal PGraphicalObjectFrameView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.PresentationML }, new string[] { "nvGraphicFramePr", "xfrm", "graphic", "extLst" }, new int[] { 0, 1, 2, 3 });
+
+    internal string? BwMode {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "bwMode");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "bwMode", value);
+    }
+
+    internal PGraphicalObjectFrameNonVisualView? NvGraphicFramePr {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvGraphicFramePr");
+            return child.IsNone ? null : new PGraphicalObjectFrameNonVisualView(child);
+        }
+    }
+
+    internal PGraphicalObjectFrameNonVisualView GetOrAddNvGraphicFramePr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "nvGraphicFramePr", Order));
+
+    internal ATransform2DView? Xfrm {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "xfrm");
+            return child.IsNone ? null : new ATransform2DView(child);
+        }
+    }
+
+    internal ATransform2DView GetOrAddXfrm() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "xfrm", Order));
+
+    internal AGraphicalObjectView? Graphic {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "graphic");
+            return child.IsNone ? null : new AGraphicalObjectView(child);
+        }
+    }
+
+    internal AGraphicalObjectView GetOrAddGraphic() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "graphic", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_GraphicalObjectFrameNonVisual</c>.</summary>
+internal readonly partial struct PGraphicalObjectFrameNonVisualView {
+    internal PGraphicalObjectFrameNonVisualView(OfficeXmlNode element) => Element = element;
+
+    internal PGraphicalObjectFrameNonVisualView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "cNvPr", "cNvGraphicFramePr", "nvPr" }, new int[] { 0, 1, 2 });
+
+    internal ANonVisualDrawingPropsView? CNvPr {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cNvPr");
+            return child.IsNone ? null : new ANonVisualDrawingPropsView(child);
+        }
+    }
+
+    internal ANonVisualDrawingPropsView GetOrAddCNvPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "cNvPr", Order));
+
+    internal PApplicationNonVisualDrawingPropsView? NvPr {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "nvPr");
+            return child.IsNone ? null : new PApplicationNonVisualDrawingPropsView(child);
+        }
+    }
+
+    internal PApplicationNonVisualDrawingPropsView GetOrAddNvPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "nvPr", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_GraphicalObject</c>.</summary>
+internal readonly partial struct AGraphicalObjectView {
+    internal AGraphicalObjectView(OfficeXmlNode element) => Element = element;
+
+    internal AGraphicalObjectView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML }, new string[] { "graphicData" }, new int[] { 0 });
+
+    internal AGraphicalObjectDataView? GraphicData {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "graphicData");
+            return child.IsNone ? null : new AGraphicalObjectDataView(child);
+        }
+    }
+
+    internal AGraphicalObjectDataView GetOrAddGraphicData() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "graphicData", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_GraphicalObjectData</c>.</summary>
+internal readonly partial struct AGraphicalObjectDataView {
+    internal AGraphicalObjectDataView(OfficeXmlNode element) => Element = element;
+
+    internal AGraphicalObjectDataView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] {  }, new string[] {  }, new int[] {  });
+
+    internal string? Uri {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "uri");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "uri", value);
+    }
+}
+
+/// <summary>View over an element of schema type <c>CT_Table</c>.</summary>
+internal readonly partial struct ATableView {
+    internal ATableView(OfficeXmlNode element) => Element = element;
+
+    internal ATableView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "tblPr", "tblGrid", "tr" }, new int[] { 0, 1, 2 });
+
+    internal ATablePropertiesView? TblPr {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "tblPr");
+            return child.IsNone ? null : new ATablePropertiesView(child);
+        }
+    }
+
+    internal ATablePropertiesView GetOrAddTblPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "tblPr", Order));
+
+    internal ATableGridView? TblGrid {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "tblGrid");
+            return child.IsNone ? null : new ATableGridView(child);
+        }
+    }
+
+    internal ATableGridView GetOrAddTblGrid() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "tblGrid", Order));
+
+    internal OfficeXmlNode.ChildList TrList => Element.Children(OfficeXmlNamespaces.DrawingML, "tr");
+
+    /// <summary>Adds a <c>tr</c> after the existing ones, in sequence order.</summary>
+    internal ATableRowView AddTr() => new(Element.AddOrdered(OfficeXmlNamespaces.DrawingML, "tr", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_TableProperties</c>.</summary>
+internal readonly partial struct ATablePropertiesView {
+    internal ATablePropertiesView(OfficeXmlNode element) => Element = element;
+
+    internal ATablePropertiesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "noFill", "solidFill", "gradFill", "blipFill", "pattFill", "grpFill", "effectLst", "effectDag", "tableStyle", "tableStyleId", "extLst" }, new int[] { 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3 });
+
+    internal bool? Rtl {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "rtl"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "rtl", OfficeXmlViewValues.Format(value));
+    }
+
+    internal bool? FirstRow {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "firstRow"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "firstRow", OfficeXmlViewValues.Format(value));
+    }
+
+    internal bool? FirstCol {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "firstCol"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "firstCol", OfficeXmlViewValues.Format(value));
+    }
+
+    internal bool? LastRow {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "lastRow"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "lastRow", OfficeXmlViewValues.Format(value));
+    }
+
+    internal bool? LastCol {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "lastCol"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "lastCol", OfficeXmlViewValues.Format(value));
+    }
+
+    internal bool? BandRow {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "bandRow"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "bandRow", OfficeXmlViewValues.Format(value));
+    }
+
+    internal bool? BandCol {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "bandCol"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "bandCol", OfficeXmlViewValues.Format(value));
+    }
+
+    internal ANoFillPropertiesView? NoFill {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
+            return child.IsNone ? null : new ANoFillPropertiesView(child);
+        }
+    }
+
+    internal ANoFillPropertiesView GetOrAddNoFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "noFill", Order));
+
+    internal ASolidColorFillPropertiesView? SolidFill {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
+            return child.IsNone ? null : new ASolidColorFillPropertiesView(child);
+        }
+    }
+
+    internal ASolidColorFillPropertiesView GetOrAddSolidFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "solidFill", Order));
+
+    internal string? TableStyleId {
+        get => Element.ChildText(OfficeXmlNamespaces.DrawingML, "tableStyleId");
+        set => Element.SetChildText(OfficeXmlNamespaces.DrawingML, "tableStyleId", value, Order);
+    }
+}
+
+/// <summary>View over an element of schema type <c>CT_TableGrid</c>.</summary>
+internal readonly partial struct ATableGridView {
+    internal ATableGridView(OfficeXmlNode element) => Element = element;
+
+    internal ATableGridView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML }, new string[] { "gridCol" }, new int[] { 0 });
+
+    internal OfficeXmlNode.ChildList GridColList => Element.Children(OfficeXmlNamespaces.DrawingML, "gridCol");
+
+    /// <summary>Adds a <c>gridCol</c> after the existing ones, in sequence order.</summary>
+    internal ATableColView AddGridCol() => new(Element.AddOrdered(OfficeXmlNamespaces.DrawingML, "gridCol", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_TableCol</c>.</summary>
+internal readonly partial struct ATableColView {
+    internal ATableColView(OfficeXmlNode element) => Element = element;
+
+    internal ATableColView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML }, new string[] { "extLst" }, new int[] { 0 });
+
+    internal string? W {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "w");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "w", value);
+    }
+}
+
+/// <summary>View over an element of schema type <c>CT_TableRow</c>.</summary>
+internal readonly partial struct ATableRowView {
+    internal ATableRowView(OfficeXmlNode element) => Element = element;
+
+    internal ATableRowView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "tc", "extLst" }, new int[] { 0, 1 });
+
+    internal string? H {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "h");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "h", value);
+    }
+
+    internal OfficeXmlNode.ChildList TcList => Element.Children(OfficeXmlNamespaces.DrawingML, "tc");
+
+    /// <summary>Adds a <c>tc</c> after the existing ones, in sequence order.</summary>
+    internal ATableCellView AddTc() => new(Element.AddOrdered(OfficeXmlNamespaces.DrawingML, "tc", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_TableCell</c>.</summary>
+internal readonly partial struct ATableCellView {
+    internal ATableCellView(OfficeXmlNode element) => Element = element;
+
+    internal ATableCellView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "txBody", "tcPr", "extLst" }, new int[] { 0, 1, 2 });
+
+    internal int? RowSpan {
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "rowSpan"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "rowSpan", OfficeXmlViewValues.Format(value));
+    }
+
+    internal int? GridSpan {
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "gridSpan"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "gridSpan", OfficeXmlViewValues.Format(value));
+    }
+
+    internal bool? HMerge {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "hMerge"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "hMerge", OfficeXmlViewValues.Format(value));
+    }
+
+    internal bool? VMerge {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "vMerge"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "vMerge", OfficeXmlViewValues.Format(value));
+    }
+
+    internal string? Id {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "id");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "id", value);
+    }
+
+    internal ATextBodyView? TxBody {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "txBody");
+            return child.IsNone ? null : new ATextBodyView(child);
+        }
+    }
+
+    internal ATextBodyView GetOrAddTxBody() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "txBody", Order));
+
+    internal ATableCellPropertiesView? TcPr {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "tcPr");
+            return child.IsNone ? null : new ATableCellPropertiesView(child);
+        }
+    }
+
+    internal ATableCellPropertiesView GetOrAddTcPr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "tcPr", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_TableCellProperties</c>.</summary>
+internal readonly partial struct ATableCellPropertiesView {
+    internal ATableCellPropertiesView(OfficeXmlNode element) => Element = element;
+
+    internal ATableCellPropertiesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "lnL", "lnR", "lnT", "lnB", "lnTlToBr", "lnBlToTr", "cell3D", "noFill", "solidFill", "gradFill", "blipFill", "pattFill", "grpFill", "headers", "extLst" }, new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 8, 9 });
+
+    internal string? MarL {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "marL");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "marL", value);
+    }
+
+    internal string? MarR {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "marR");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "marR", value);
+    }
+
+    internal string? MarT {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "marT");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "marT", value);
+    }
+
+    internal string? MarB {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "marB");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "marB", value);
+    }
+
+    internal string? Vert {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "vert");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "vert", value);
+    }
+
+    internal string? Anchor {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "anchor");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "anchor", value);
+    }
+
+    internal bool? AnchorCtr {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "anchorCtr"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "anchorCtr", OfficeXmlViewValues.Format(value));
+    }
+
+    internal string? HorzOverflow {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "horzOverflow");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "horzOverflow", value);
+    }
+
+    internal ALinePropertiesView? LnL {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lnL");
+            return child.IsNone ? null : new ALinePropertiesView(child);
+        }
+    }
+
+    internal ALinePropertiesView GetOrAddLnL() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lnL", Order));
+
+    internal ALinePropertiesView? LnR {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lnR");
+            return child.IsNone ? null : new ALinePropertiesView(child);
+        }
+    }
+
+    internal ALinePropertiesView GetOrAddLnR() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lnR", Order));
+
+    internal ALinePropertiesView? LnT {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lnT");
+            return child.IsNone ? null : new ALinePropertiesView(child);
+        }
+    }
+
+    internal ALinePropertiesView GetOrAddLnT() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lnT", Order));
+
+    internal ALinePropertiesView? LnB {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lnB");
+            return child.IsNone ? null : new ALinePropertiesView(child);
+        }
+    }
+
+    internal ALinePropertiesView GetOrAddLnB() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lnB", Order));
+
+    internal ALinePropertiesView? LnTlToBr {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lnTlToBr");
+            return child.IsNone ? null : new ALinePropertiesView(child);
+        }
+    }
+
+    internal ALinePropertiesView GetOrAddLnTlToBr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lnTlToBr", Order));
+
+    internal ALinePropertiesView? LnBlToTr {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "lnBlToTr");
+            return child.IsNone ? null : new ALinePropertiesView(child);
+        }
+    }
+
+    internal ALinePropertiesView GetOrAddLnBlToTr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "lnBlToTr", Order));
+
+    internal ANoFillPropertiesView? NoFill {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
+            return child.IsNone ? null : new ANoFillPropertiesView(child);
+        }
+    }
+
+    internal ANoFillPropertiesView GetOrAddNoFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "noFill", Order));
+
+    internal ASolidColorFillPropertiesView? SolidFill {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
+            return child.IsNone ? null : new ASolidColorFillPropertiesView(child);
+        }
+    }
+
+    internal ASolidColorFillPropertiesView GetOrAddSolidFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "solidFill", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_LineProperties</c>.</summary>
+internal readonly partial struct ALinePropertiesView {
+    internal ALinePropertiesView(OfficeXmlNode element) => Element = element;
+
+    internal ALinePropertiesView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML, OfficeXmlNamespaces.DrawingML }, new string[] { "noFill", "solidFill", "gradFill", "pattFill", "prstDash", "custDash", "round", "bevel", "miter", "headEnd", "tailEnd", "extLst" }, new int[] { 0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 4, 5 });
+
+    internal int? W {
+        get => OfficeXmlViewValues.ParseInt32(Element.Attribute(OfficeXmlNamespaces.None, "w"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "w", OfficeXmlViewValues.Format(value));
+    }
+
+    internal string? Cap {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "cap");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "cap", value);
+    }
+
+    internal string? Cmpd {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "cmpd");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "cmpd", value);
+    }
+
+    internal string? Algn {
+        get => Element.Attribute(OfficeXmlNamespaces.None, "algn");
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "algn", value);
+    }
+
+    internal ANoFillPropertiesView? NoFill {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "noFill");
+            return child.IsNone ? null : new ANoFillPropertiesView(child);
+        }
+    }
+
+    internal ANoFillPropertiesView GetOrAddNoFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "noFill", Order));
+
+    internal ASolidColorFillPropertiesView? SolidFill {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.DrawingML, "solidFill");
+            return child.IsNone ? null : new ASolidColorFillPropertiesView(child);
+        }
+    }
+
+    internal ASolidColorFillPropertiesView GetOrAddSolidFill() => new(Element.GetOrAddChild(OfficeXmlNamespaces.DrawingML, "solidFill", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_NotesSlide</c>.</summary>
+internal readonly partial struct PNotesSlideView {
+    internal PNotesSlideView(OfficeXmlNode element) => Element = element;
+
+    internal PNotesSlideView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "cSld", "clrMapOvr", "extLst" }, new int[] { 0, 1, 2 });
+
+    internal bool? ShowMasterSp {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "showMasterSp"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "showMasterSp", OfficeXmlViewValues.Format(value));
+    }
+
+    internal bool? ShowMasterPhAnim {
+        get => OfficeXmlViewValues.ParseBoolean(Element.Attribute(OfficeXmlNamespaces.None, "showMasterPhAnim"));
+        set => Element.SetAttribute(OfficeXmlNamespaces.None, "showMasterPhAnim", OfficeXmlViewValues.Format(value));
+    }
+
+    internal PCommonSlideDataView? CSld {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cSld");
+            return child.IsNone ? null : new PCommonSlideDataView(child);
+        }
+    }
+
+    internal PCommonSlideDataView GetOrAddCSld() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "cSld", Order));
+
+    internal AColorMappingOverrideView? ClrMapOvr {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "clrMapOvr");
+            return child.IsNone ? null : new AColorMappingOverrideView(child);
+        }
+    }
+
+    internal AColorMappingOverrideView GetOrAddClrMapOvr() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "clrMapOvr", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_NotesMaster</c>.</summary>
+internal readonly partial struct PNotesMasterView {
+    internal PNotesMasterView(OfficeXmlNode element) => Element = element;
+
+    internal PNotesMasterView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML, OfficeXmlNamespaces.PresentationML }, new string[] { "cSld", "clrMap", "hf", "notesStyle", "extLst" }, new int[] { 0, 1, 2, 3, 4 });
+
+    internal PCommonSlideDataView? CSld {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "cSld");
+            return child.IsNone ? null : new PCommonSlideDataView(child);
+        }
+    }
+
+    internal PCommonSlideDataView GetOrAddCSld() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "cSld", Order));
+
+    internal AColorMappingView? ClrMap {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "clrMap");
+            return child.IsNone ? null : new AColorMappingView(child);
+        }
+    }
+
+    internal AColorMappingView GetOrAddClrMap() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "clrMap", Order));
+
+    internal ATextListStyleView? NotesStyle {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "notesStyle");
+            return child.IsNone ? null : new ATextListStyleView(child);
+        }
+    }
+
+    internal ATextListStyleView GetOrAddNotesStyle() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "notesStyle", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_NotesMasterIdList</c>.</summary>
+internal readonly partial struct PNotesMasterIdListView {
+    internal PNotesMasterIdListView(OfficeXmlNode element) => Element = element;
+
+    internal PNotesMasterIdListView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "notesMasterId" }, new int[] { 0 });
+
+    internal PNotesMasterIdListEntryView? NotesMasterId {
+        get {
+            OfficeXmlNode child = Element.Child(OfficeXmlNamespaces.PresentationML, "notesMasterId");
+            return child.IsNone ? null : new PNotesMasterIdListEntryView(child);
+        }
+    }
+
+    internal PNotesMasterIdListEntryView GetOrAddNotesMasterId() => new(Element.GetOrAddChild(OfficeXmlNamespaces.PresentationML, "notesMasterId", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_NotesMasterIdListEntry</c>.</summary>
+internal readonly partial struct PNotesMasterIdListEntryView {
+    internal PNotesMasterIdListEntryView(OfficeXmlNode element) => Element = element;
+
+    internal PNotesMasterIdListEntryView(OfficeXmlTree tree, int node) : this(new OfficeXmlNode(tree, node)) { }
+
+    internal OfficeXmlNode Element { get; }
+    internal OfficeXmlTree Tree => Element.Tree!;
+    internal int Node => Element.Node;
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.PresentationML }, new string[] { "extLst" }, new int[] { 0 });
+
+    internal string? RelationshipId {
+        get => Element.Attribute(OfficeXmlNamespaces.Relationships, "id");
+        set => Element.SetAttribute(OfficeXmlNamespaces.Relationships, "id", value);
+    }
 }

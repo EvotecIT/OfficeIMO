@@ -1,5 +1,5 @@
-using DocumentFormat.OpenXml;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     // Represents a chart on a worksheet.
@@ -44,8 +44,8 @@ namespace OfficeIMO.Excel {
 
             ValidateDataPointStyle(fillColor, lineColor, lineWidth);
 
-            bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.DataPoint point = EnsureDataPoint(series, pointIndex);
+            bool applied = ApplySeriesByIndex(seriesIndex, (OfficeXmlNode series) => {
+                OfficeXmlNode point = EnsureDataPoint(series, pointIndex);
                 ApplyDataPointStyle(point, fillColor, lineColor, lineWidth);
             });
 
@@ -65,8 +65,8 @@ namespace OfficeIMO.Excel {
 
             ValidateDataPointStyle(fillColor, lineColor, lineWidth);
 
-            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.DataPoint point = EnsureDataPoint(series, pointIndex);
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, (OfficeXmlNode series) => {
+                OfficeXmlNode point = EnsureDataPoint(series, pointIndex);
                 ApplyDataPointStyle(point, fillColor, lineColor, lineWidth);
             });
 
@@ -85,20 +85,25 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static C.DataPoint EnsureDataPoint(OpenXmlCompositeElement series, uint pointIndex) {
-            C.DataPoint? point = series.Elements<C.DataPoint>()
-                .FirstOrDefault(dataPoint => dataPoint.GetFirstChild<C.Index>()?.Val?.Value == pointIndex);
-
-            if (point == null) {
-                point = new C.DataPoint(new C.Index { Val = pointIndex });
-                InsertDataPoint(series, point);
+        private static OfficeXmlNode EnsureDataPoint(OfficeXmlNode series, uint pointIndex) {
+            foreach (OfficeXmlNode dataPoint in series.Children(C, "dPt")) {
+                if (dataPoint.Child(C, "idx").UInt32Val() == pointIndex) {
+                    return dataPoint;
+                }
             }
 
-            return point;
+            OfficeXmlNode point = NewDataPoint(series);
+            point.Append(point.NewVal(C, "idx", pointIndex));
+            return InsertDataPoint(series, point);
         }
 
-        private static void ApplyDataPointStyle(C.DataPoint point, OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth) {
-            C.ChartShapeProperties props = point.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
+        private static void ApplyDataPointStyle(OfficeXmlNode point, OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth) {
+            OfficeXmlNode props = point.Child(C, "spPr");
+            if (props.IsNone) {
+                OfficeXmlNode insertBefore = point.Child(C, "pictureOptions");
+                if (insertBefore.IsNone) insertBefore = point.Child(C, "extLst");
+                props = point.InsertBefore(point.New(C, "spPr"), insertBefore);
+            }
             if (fillColor != null) {
                 ApplySolidFill(props, fillColor);
             }
@@ -107,35 +112,11 @@ namespace OfficeIMO.Excel {
             } else if (lineWidth != null) {
                 ApplyOptionalLine(props, null, lineWidth);
             }
-
-            if (props.Parent == null) {
-                OpenXmlElement? insertBefore = point.GetFirstChild<C.PictureOptions>();
-                insertBefore ??= point.GetFirstChild<C.ExtensionList>();
-                if (insertBefore != null) {
-                    point.InsertBefore(props, insertBefore);
-                } else {
-                    point.Append(props);
-                }
-            }
         }
 
-        private static void InsertDataPoint(OpenXmlCompositeElement series, C.DataPoint point) {
-            OpenXmlElement? insertBefore = series.GetFirstChild<C.DataLabels>();
-            insertBefore ??= series.GetFirstChild<C.Trendline>();
-            insertBefore ??= series.GetFirstChild<C.ErrorBars>();
-            insertBefore ??= series.GetFirstChild<C.CategoryAxisData>();
-            insertBefore ??= series.GetFirstChild<C.Values>();
-            insertBefore ??= series.GetFirstChild<C.XValues>();
-            insertBefore ??= series.GetFirstChild<C.YValues>();
-            insertBefore ??= series.GetFirstChild<C.BubbleSize>();
-            insertBefore ??= series.GetFirstChild<C.Smooth>();
-            insertBefore ??= series.GetFirstChild<C.ExtensionList>();
-
-            if (insertBefore != null) {
-                series.InsertBefore(point, insertBefore);
-            } else {
-                series.Append(point);
-            }
+        private static OfficeXmlNode InsertDataPoint(OfficeXmlNode series, OfficeXmlNode point) {
+            OfficeXmlNode insertBefore = FirstExistingChild(series, SeriesChildrenAfterDataPoint);
+            return series.InsertBefore(point, insertBefore);
         }
     }
 }

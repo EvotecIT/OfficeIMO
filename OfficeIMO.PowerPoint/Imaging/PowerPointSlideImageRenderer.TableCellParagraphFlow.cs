@@ -1,5 +1,5 @@
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
@@ -20,7 +20,7 @@ namespace OfficeIMO.PowerPoint {
             double tableWidth,
             double tableHeight,
             PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme,
+            OfficeXmlNode colorScheme,
             List<OfficeImageExportDiagnostic> diagnostics) {
             List<PowerPointParagraph> paragraphs = cell.Paragraphs.ToList();
             if (!ShouldRenderTableCellParagraphFlow(paragraphs)) {
@@ -116,7 +116,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointParagraphNumberingState numberingState,
             double textWidth,
             PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure) {
+            OfficeXmlNode colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure) {
             var results = new List<PowerPointParagraphDrawing>(paragraphs.Count);
             for (int i = 0; i < paragraphs.Count; i++) {
                 PowerPointParagraph paragraph = paragraphs[i];
@@ -175,7 +175,7 @@ namespace OfficeIMO.PowerPoint {
             return results;
         }
 
-        private static List<OfficeRichTextRun> CreateTableCellParagraphRichTextRuns(PowerPointTableCell cell, PowerPointParagraph paragraph, string? marker, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping) {
+        private static List<OfficeRichTextRun> CreateTableCellParagraphRichTextRuns(PowerPointTableCell cell, PowerPointParagraph paragraph, string? marker, OfficeXmlNode colorScheme, PowerPointShapeBoundsMapping mapping) {
             IReadOnlyList<PowerPointParagraphInline> inlineNodes = paragraph.InlineNodes;
             var richRuns = new List<OfficeRichTextRun>(inlineNodes.Count);
             PowerPointTextRun? firstRun = inlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
@@ -195,11 +195,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static OfficeFontInfo ResolveTableCellParagraphFont(PowerPointTableCell cell, PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping) {
             if (!paragraph.InlineNodes.Any(node => !string.IsNullOrEmpty(node.Text))) {
-                PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.ResolveParagraph(
-                    paragraph, cell.Cell.TextBody?.ListStyle,
-                    cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles?.OtherStyle);
-                return new OfficeFontInfo(effective.FontName ?? PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                        cell.FontFamily, cell.OwnerPart) ?? "Calibri",
+                PowerPointEffectiveRunStyle effective = ResolveParagraphStyle(paragraph, cell);
+                return new OfficeFontInfo(effective.FontName ?? ResolveThemeFontReference(
+                        cell.FontFamily, null, null, cell) ?? "Calibri",
                     mapping.MapFontSize(effective.FontSizePoints ?? cell.FontSize?.ToPoints() ?? 10),
                     ResolveEffectiveFontStyle(effective, cell.Bold, cell.Italic));
             }
@@ -222,12 +220,12 @@ namespace OfficeIMO.PowerPoint {
                 style |= OfficeFontStyle.Strikethrough;
             }
 
-            return new OfficeFontInfo(PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                firstRun?.FontFamily ?? cell.FontFamily, firstRun?.OwnerPart ?? cell.OwnerPart) ?? "Calibri",
+            return new OfficeFontInfo(ResolveThemeFontReference(
+                firstRun?.FontFamily ?? cell.FontFamily, firstRun, null, cell) ?? "Calibri",
                 mapping.MapFontSize(firstRun?.FontSize?.ToPoints() ?? cell.FontSize?.ToPoints() ?? 10), style);
         }
 
-        private static OfficeColor ResolveTableCellParagraphTextColor(PowerPointTableCell cell, PowerPointParagraph paragraph, A.ColorScheme? colorScheme) {
+        private static OfficeColor ResolveTableCellParagraphTextColor(PowerPointTableCell cell, PowerPointParagraph paragraph, OfficeXmlNode colorScheme) {
             PowerPointTextRun? firstRun = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run
                 ?? paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
             return ResolveTableCellTextRunColor(firstRun, cell, colorScheme);

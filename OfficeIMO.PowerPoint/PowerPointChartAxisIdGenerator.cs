@@ -1,7 +1,6 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.OpenXml.Internal;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Features;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     internal static class PowerPointChartAxisIdGenerator {
@@ -10,40 +9,37 @@ namespace OfficeIMO.PowerPoint {
         // OfficeIMO match what the desktop client produces.
         private const long BaseAxisId = 48650112L;
 
+        private const string ChartRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart";
+
         /// <summary>
-        /// Raises the shared seed above the axis identifiers already in this package before it
+        /// Raises the shared seed above the axis identifiers already in this presentation before it
         /// allocates new ones. Loading does not pay for this: it parses every chart part, and
         /// reading or converting a presentation never allocates an axis identifier.
         /// </summary>
-        internal static void EnsureSeeded(OpenXmlPackage package) {
-            if (package is not PresentationDocument document) return;
-            PowerPointDocument? owner = document.Features.Get<PowerPointDocument>();
-            if (owner != null) {
-                if (owner.ChartAxisSeedApplied) return;
-                owner.ChartAxisSeedApplied = true;
-            }
-            Initialize(document.PresentationPart!);
+        internal static void EnsureSeeded(PowerPointDocument? document) {
+            if (document == null || document.ChartAxisSeedApplied) return;
+            document.ChartAxisSeedApplied = true;
+            Initialize(document.PresentationPartRef);
         }
 
-        private static void Initialize(PresentationPart presentationPart) {
-            if (presentationPart == null) {
+        private static void Initialize(PowerPointPartRef presentationPart) {
+            if (presentationPart.IsNone) {
                 return;
             }
 
             long max = BaseAxisId;
 
-            foreach (SlidePart slidePart in presentationPart.SlideParts) {
-                foreach (ChartPart chartPart in slidePart.ChartParts) {
-                    ChartSpace? chartSpace = chartPart.ChartSpace;
-                    Chart? chart = chartSpace?.GetFirstChild<Chart>();
-                    if (chart == null) {
+            foreach (PowerPointPartRef slidePart in presentationPart.RelatedParts(PowerPointPartRef.SlideRelationshipType)) {
+                foreach (PowerPointPartRef chartPart in slidePart.RelatedParts(ChartRelationshipType)) {
+                    OfficeXmlNode chart = chartPart.Root.Child(OfficeXmlNamespaces.Chart, "chart");
+                    if (chart.IsNone) {
                         continue;
                     }
 
-                    foreach (AxisId axisId in chart.Descendants<AxisId>()) {
+                    foreach (OfficeXmlNode axisId in chart.ContentDescendants(OfficeXmlNamespaces.Chart, "axId")) {
                         // Imported IDs near UInt32.MaxValue cannot become the shared
                         // process seed: one generated chart would exhaust the allocator.
-                        if (axisId.Val?.Value is uint value && value <= int.MaxValue && value > max) {
+                        if (axisId.UInt32Attribute("val") is uint value && value <= int.MaxValue && value > max) {
                             max = value;
                         }
                     }

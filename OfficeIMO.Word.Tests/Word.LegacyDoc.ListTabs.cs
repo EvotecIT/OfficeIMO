@@ -19,14 +19,14 @@ public partial class Word {
     [Fact]
     public void LegacyDoc_ListTabsWrittenFromNumberingDefinitionsRemainEditable() {
         using WordDocument source = CreateNativeListDefinitionControl();
-        Level level = source.Lists.Single().Numbering.Levels[0].OpenXmlElement;
+        Level level = source.Lists.Single().Numbering.Levels[0].OpenXmlLevel();
         level.PreviousParagraphProperties ??= new PreviousParagraphProperties();
         level.PreviousParagraphProperties.Tabs = new Tabs(new TabStop {
             Val = TabStopValues.Number, Position = 3000, Leader = TabStopLeaderCharValues.None
         });
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         AssertListNumberTab(restored, 3000);
-        TabStop tab = restored.Lists.Single().Numbering.Levels[0].OpenXmlElement
+        TabStop tab = restored.Lists.Single().Numbering.Levels[0].OpenXmlLevel()
             .PreviousParagraphProperties!.Tabs!.Elements<TabStop>().Single();
         tab.Position = 2200;
         using WordDocument edited = WordDocument.Load(new MemoryStream(restored.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
@@ -108,7 +108,7 @@ public partial class Word {
     }
 
     private static void AssertListNumberTab(WordDocument document, int position) {
-        PreviousParagraphProperties properties = Assert.IsType<PreviousParagraphProperties>(document.Lists.Single().Numbering.Levels[0].OpenXmlElement.PreviousParagraphProperties);
+        PreviousParagraphProperties properties = Assert.IsType<PreviousParagraphProperties>(document.Lists.Single().Numbering.Levels[0].OpenXmlLevel().PreviousParagraphProperties);
         Tabs tabs = Assert.IsType<Tabs>(properties.Tabs);
         TabStop tab = Assert.Single(tabs.Elements<TabStop>());
         Assert.Equal(TabStopValues.Number, tab.Val!.Value);

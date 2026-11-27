@@ -6,7 +6,7 @@ namespace OfficeIMO.OpenXml.Internal {
     /// Applies bounded nested-package validation before embedded chart workbooks are opened.
     /// </summary>
     internal static class OfficeOpenXmlChartWorkbookSecurity {
-        private const int MaximumPackageBytes = 8 * 1024 * 1024;
+        internal const int MaximumPackageBytes = 8 * 1024 * 1024;
         private const long MaximumCharactersInPart = 2L * 1024L * 1024L;
 
         internal static byte[] ReadAndValidate(Stream stream) {

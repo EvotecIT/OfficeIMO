@@ -81,7 +81,7 @@ public sealed class AddOfficePowerPointTextCommand : OfficeCmdlet {
             if (PassThru) WriteObject(run);
         } catch {
             if (body != null) scope!.DiscardTextBody(body);
-            else if (run != null) PowerPointTextRun.DiscardContent(run.Run, run.OwnerPart as DocumentFormat.OpenXml.Packaging.OpenXmlPart);
+            else if (run != null) PowerPointTextRun.DiscardContent(run.Element, run.OwnerPartRef, run.SlidePartRef);
             throw;
         }
     }

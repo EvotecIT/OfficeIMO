@@ -793,7 +793,7 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointChart AddChartInternal(byte[] workbookBytes, Action<ChartPart, string> populateChart,
             long left, long top, long width, long height) {
-            PowerPointChartAxisIdGenerator.EnsureSeeded(SlidePart.OpenXmlPackage);
+            PowerPointChartAxisIdGenerator.EnsureSeeded(PartRef.Document);
             uint shapeId = AllocateShapeId();
             string chartPartUri = PowerPointPartFactory.GetIndexedPartUri(
                 SlidePart.OpenXmlPackage,

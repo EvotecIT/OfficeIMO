@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -15,24 +15,45 @@ internal static partial class PowerPointSlideImageRenderer {
             options.MaximumTotalEmbeddedImageBytes);
         AddBackgroundRectangle(drawing, options.BackgroundColor, fillGradient: null);
 
+        PowerPointSlide? outerSlide = _renderingSlide;
+        bool outerResolved = _renderingScopeResolved, outerSdk = _renderingScopeSdk;
+        PowerPointThemeScope outerScope = _renderingScope;
+        _renderingSlide = slide;
+        _renderingScopeResolved = false;
+        _styleFlagsTable = null;
+        try {
+            AddSlide(slide, drawing, options, diagnostics, imageBudget, token);
+        } finally {
+            _renderingSlide = outerSlide;
+            _renderingScopeResolved = outerResolved;
+            _renderingScopeSdk = outerSdk;
+            _renderingScope = outerScope;
+            _styleFlagsTable = null;
+        }
+        return drawing;
+    }
+
+    private static void AddSlide(PowerPointSlide slide, OfficeDrawing drawing, PowerPointImageExportOptions options,
+        List<OfficeImageExportDiagnostic> diagnostics, PowerPointEmbeddedImageReadBudget imageBudget, CancellationToken token) {
         if (options.IncludeSlideBackground) {
             AddResolvedBackground(slide, drawing, diagnostics, imageBudget);
         }
 
         if (options.IncludeSlideContent) {
-            A.ColorScheme? colorScheme = GetSlideColorScheme(slide);
-            AddSlideContent(slide.GetInheritedShapesForExport(), drawing, diagnostics,
+            // The inherited shapes are read first: reading them may open the SDK, and the scheme is then read where the
+            // slide's content is held now.
+            IReadOnlyList<PowerPointShape> inheritedShapes = slide.GetInheritedShapesForExport();
+            OfficeXmlNode colorScheme = GetSlideColorScheme(slide);
+            AddSlideContent(inheritedShapes, drawing, diagnostics,
                 PowerPointShapeBoundsMapping.Identity, colorScheme, options, imageBudget, 0, token);
             AddSlideContent(slide.Shapes, drawing, diagnostics,
                 PowerPointShapeBoundsMapping.Identity, colorScheme, options, imageBudget, 0, token);
         }
-
-        return drawing;
     }
 
     private static void AddSlideContent(IEnumerable<PowerPointShape> shapes, OfficeDrawing drawing,
         List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
-        A.ColorScheme? colorScheme, PowerPointImageExportOptions options,
+        OfficeXmlNode colorScheme, PowerPointImageExportOptions options,
         PowerPointEmbeddedImageReadBudget imageBudget, int groupDepth, CancellationToken token = default) {
         foreach (PowerPointShape shape in shapes) {
             token.ThrowIfCancellationRequested();

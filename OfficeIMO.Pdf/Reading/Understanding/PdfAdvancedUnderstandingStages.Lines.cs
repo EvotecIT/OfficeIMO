@@ -254,12 +254,16 @@ internal static partial class PdfAdvancedUnderstandingStages {
         // after gutter collection; it reuses the array and charges the same work again.
         private static PdfUnderstandingWord[] OrderAlong(PdfUnderstandingPageContext context, BaselineGroup group) {
             double radians = group.Angle * Math.PI / 180D;
-            var keyed = new (double Along, PdfUnderstandingWord Word)[group.Words.Count];
-            for (int index = 0; index < keyed.Length; index++) keyed[index] = (ProjectAlong(group.Words[index], radians), group.Words[index]);
-            (double Along, PdfUnderstandingWord Word)[] sorted = CopyAndSort(context, keyed,
-                static (left, right) => left.Along.CompareTo(right.Along), out long work);
+            List<PdfUnderstandingWord> words = group.Words;
+            var along = new double[words.Count];
+            var positions = new int[words.Count];
+            for (int index = 0; index < along.Length; index++) {
+                along[index] = ProjectAlong(words[index], radians);
+                positions[index] = index;
+            }
+            int[] sorted = CopyAndSort(context, positions, (left, right) => along[left].CompareTo(along[right]), out long work);
             var ordered = new PdfUnderstandingWord[sorted.Length];
-            for (int index = 0; index < sorted.Length; index++) ordered[index] = sorted[index].Word;
+            for (int index = 0; index < sorted.Length; index++) ordered[index] = words[sorted[index]];
             group.AlongOrdered = ordered;
             group.AlongOrderWork = work;
             return ordered;

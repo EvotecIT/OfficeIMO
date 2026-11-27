@@ -512,6 +512,10 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
+            if (DeferredEntry is { } entry && _excelDocument.TryGetDeferredTableParts(entry) is { } tables) {
+                return tables.Find(table => table.Matches(tableName))?.Reference;
+            }
+
             // A table part keeps its reference whether or not deferred rows have been written, so only a table that
             // does not exist yet waits for them; reading the range then leaves the direct-save rows in place.
             return _excelDocument.ExecuteReadWithoutMaterializing(() => GetTableRangeWithoutMaterializing(tableName))

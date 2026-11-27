@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel {
         /// <remarks>Saving the workbook retains live worksheet handles, including when saving rebuilds the package.</remarks>
         /// <exception cref="System.InvalidOperationException">The worksheet was removed or no longer belongs to the current workbook package.</exception>
         public IReadOnlyList<ExcelTableInfo> GetTables() {
+            if (DeferredEntry is { } entry && _excelDocument.TryGetDeferredTables(entry, out List<ExcelTableInfo> deferred)) return deferred;
             WorksheetPart worksheetPart = _worksheetPart;
             return _excelDocument.TryGetDirectTabularSaveCandidateTable(this, worksheetPart, out ExcelTableInfo? pending)
                 ? new[] { pending! }

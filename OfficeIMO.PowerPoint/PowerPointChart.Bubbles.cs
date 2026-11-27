@@ -1,7 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointChart {
@@ -20,52 +19,36 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(sizeMode));
             }
 
-            ChartPart chartPart = GetChartPart();
-            C.PlotArea? plotArea = chartPart.ChartSpace?
-                .GetFirstChild<C.Chart>()?
-                .GetFirstChild<C.PlotArea>();
-            C.BubbleChart[] bubbleCharts = plotArea?
-                .Elements<C.BubbleChart>()
-                .ToArray() ?? Array.Empty<C.BubbleChart>();
-            if (bubbleCharts.Length == 0) {
+            OfficeXmlNode plotArea = ChartSpaceNode.Child(CNs, "chart").Child(CNs, "plotArea");
+            List<OfficeXmlNode> bubbleCharts = plotArea.Children(CNs, "bubbleChart").ToList();
+            if (bubbleCharts.Count == 0) {
                 throw new NotSupportedException(
                     "Bubble sizing can only be set on a bubble chart.");
             }
 
-            foreach (C.BubbleChart bubbleChart in bubbleCharts) {
+            foreach (OfficeXmlNode bubbleChart in bubbleCharts) {
                 ApplyBubbleSizing(bubbleChart, scalePercent, sizeMode);
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
-        private static void ApplyBubbleSizing(C.BubbleChart bubbleChart,
+        private static void ApplyBubbleSizing(OfficeXmlNode bubbleChart,
             uint scalePercent, OfficeChartBubbleSizeMode sizeMode) {
-            C.BubbleScale scale = bubbleChart.GetFirstChild<C.BubbleScale>() ??
-                new C.BubbleScale();
-            scale.Val = scalePercent;
-            if (scale.Parent == null) {
-                OpenXmlElement? insertBefore =
-                    bubbleChart.GetFirstChild<C.ShowNegativeBubbles>() ??
-                    (OpenXmlElement?)bubbleChart.GetFirstChild<C.SizeRepresents>() ??
-                    bubbleChart.GetFirstChild<C.AxisId>();
-                if (insertBefore == null) bubbleChart.Append(scale);
-                else bubbleChart.InsertBefore(scale, insertBefore);
+            OfficeXmlNode scale = bubbleChart.Child(CNs, "bubbleScale");
+            if (scale.IsNone) {
+                scale = InsertBeforeOrAppend(bubbleChart, bubbleChart.CreateElement(CNs, "bubbleScale"),
+                    FirstChildOf(bubbleChart, "showNegBubbles", "sizeRepresents", "axId"));
             }
+            scale.SetUInt32Attribute("val", scalePercent);
 
-            C.SizeRepresents represents =
-                bubbleChart.GetFirstChild<C.SizeRepresents>() ??
-                new C.SizeRepresents();
-            represents.Val = sizeMode == OfficeChartBubbleSizeMode.Width
-                ? C.SizeRepresentsValues.Width
-                : C.SizeRepresentsValues.Area;
-            if (represents.Parent == null) {
-                OpenXmlElement? insertBefore =
-                    bubbleChart.GetFirstChild<C.AxisId>();
-                if (insertBefore == null) bubbleChart.Append(represents);
-                else bubbleChart.InsertBefore(represents, insertBefore);
+            OfficeXmlNode represents = bubbleChart.Child(CNs, "sizeRepresents");
+            if (represents.IsNone) {
+                represents = InsertBeforeOrAppend(bubbleChart, bubbleChart.CreateElement(CNs, "sizeRepresents"),
+                    bubbleChart.Child(CNs, "axId"));
             }
+            represents.SetAttribute("val", sizeMode == OfficeChartBubbleSizeMode.Width ? "w" : "area");
         }
     }
 }

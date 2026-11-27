@@ -1,3 +1,6 @@
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
+using Ns = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces;
 using System.Globalization;
 
 namespace OfficeIMO.PowerPoint {
@@ -102,23 +105,23 @@ namespace OfficeIMO.PowerPoint {
                 master = selected.Value.MasterIndex;
                 layout = selected.Value.LayoutIndex;
             }
-            return TemplateTitle(context, context.Document.GetSlideLayoutPart(master, layout))?.Bounds;
+            return TemplateTitle(context, PowerPointLayoutTemplateNodes.LayoutPart(context.Document, master, layout))?.Bounds;
         }
 
-        private static PowerPointLayoutPlaceholderInfo? TemplateTitle(PowerPointLayoutContext context,
-            DocumentFormat.OpenXml.Packaging.SlideLayoutPart? layout) {
-            var tree = layout?.SlideLayout?.CommonSlideData?.ShapeTree;
-            if (tree == null) return null;
-            foreach (var shape in tree.Elements<DocumentFormat.OpenXml.Presentation.Shape>()) {
-                var placeholder = shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape;
-                var type = placeholder?.Type?.Value;
-                if (placeholder == null || type != DocumentFormat.OpenXml.Presentation.PlaceholderValues.Title &&
-                    type != DocumentFormat.OpenXml.Presentation.PlaceholderValues.CenteredTitle) continue;
-                PowerPointLayoutBox? bounds = PowerPointSlide.GetExportPlaceholderBounds(layout, placeholder);
+        private static PowerPointLayoutPlaceholderInfo? TemplateTitle(PowerPointLayoutContext context, PowerPointPartRef layout) {
+            if (layout.IsNone) return null;
+            OfficeXmlNode tree = PowerPointLayoutTemplateNodes.ShapeTree(layout.Root);
+            if (tree.IsNone) return null;
+            foreach (OfficeXmlNode shape in tree.Children(Ns.PresentationML, "sp")) {
+                OfficeXmlNode placeholder = PowerPointLayoutTemplateNodes.Placeholder(shape);
+                string? type = placeholder.Attribute("type");
+                if (placeholder.IsNone || type is not ("title" or "ctrTitle")) continue;
+                PowerPointLayoutBox? bounds = PowerPointLayoutTemplateNodes.ExportPlaceholderBounds(layout, placeholder);
                 if (!bounds.HasValue || !WithinSlide(context.Document, bounds.Value.Left.ToPoints(), bounds.Value.Top.ToPoints(),
                         bounds.Value.Width.ToPoints(), bounds.Value.Height.ToPoints())) continue;
-                return new PowerPointLayoutPlaceholderInfo(shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty,
-                    type.Value.ToOfficeEnum(), placeholder.Index?.Value, bounds);
+                PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(type, out PowerPointPlaceholderType placeholderType);
+                return new PowerPointLayoutPlaceholderInfo(PowerPointLayoutTemplateNodes.ShapeName(shape),
+                    placeholderType, placeholder.UInt32Attribute("idx"), bounds);
             }
             return null;
         }
@@ -160,7 +163,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutSlide slide, bool decorate = true) {
             PowerPointLayoutGrid grid = context.Grid;
             if ((!context.Document.OwnsLayoutTheme || slide.TemplateLayout != null) &&
-                TemplateTitle(context, writer.Slide.SlidePart.SlideLayoutPart) is PowerPointLayoutPlaceholderInfo templateTitle) {
+                TemplateTitle(context, writer.Slide.PartRef.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType)) is PowerPointLayoutPlaceholderInfo templateTitle) {
                 return RenderTemplateHeader(context, writer, slide, templateTitle);
             }
 
@@ -222,27 +225,26 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointTextBox shape = writer.Text("Title", title, context.Paragraph(text, PowerPointTextRole.Title),
                     placeholder: "<p:ph type=\"" + type + "\"" + index + "/>");
                 // Inherit geometry and character formatting from the template's title placeholder.
-                var element = (DocumentFormat.OpenXml.Presentation.Shape)shape.Element;
-                element.ShapeProperties?.RemoveAllChildren();
-                foreach (var properties in element.Descendants().Where(item =>
-                    item is DocumentFormat.OpenXml.Drawing.RunProperties ||
-                    item is DocumentFormat.OpenXml.Drawing.EndParagraphRunProperties).ToArray()) {
-                    properties.RemoveAllChildren();
-                    properties.ClearAllAttributes();
+                OfficeXmlNode element = shape.XmlElement;
+                RemoveAllChildren(element.Child(Ns.PresentationML, "spPr"));
+                OfficeXmlNode textBody = element.Child(Ns.PresentationML, "txBody");
+                foreach (OfficeXmlNode properties in element.Descendants(Ns.DrawingML, "rPr").Concat(element.Descendants(Ns.DrawingML, "endParaRPr"))) {
+                    RemoveAllChildren(properties);
+                    foreach (string attribute in CharacterPropertyAttributes) properties.RemoveAttribute(attribute);
                 }
 
-                DocumentFormat.OpenXml.Drawing.BodyProperties? body = element.TextBody?.BodyProperties;
-                if (body != null) {
-                    body.RemoveAllChildren();
-                    body.RemoveAttribute("lIns", string.Empty);
-                    body.RemoveAttribute("tIns", string.Empty);
-                    body.RemoveAttribute("rIns", string.Empty);
-                    body.RemoveAttribute("bIns", string.Empty);
-                    body.RemoveAttribute("anchor", string.Empty);
-                    body.RemoveAttribute("wrap", string.Empty);
+                OfficeXmlNode body = textBody.Child(Ns.DrawingML, "bodyPr");
+                if (body.Exists) {
+                    RemoveAllChildren(body);
+                    body.RemoveAttribute("lIns");
+                    body.RemoveAttribute("tIns");
+                    body.RemoveAttribute("rIns");
+                    body.RemoveAttribute("bIns");
+                    body.RemoveAttribute("anchor");
+                    body.RemoveAttribute("wrap");
                 }
 
-                element.TextBody?.Descendants<DocumentFormat.OpenXml.Drawing.ParagraphProperties>().ToList().ForEach(p => p.Remove());
+                foreach (OfficeXmlNode properties in textBody.Descendants(Ns.DrawingML, "pPr")) properties.Remove();
             }
 
             if (!string.IsNullOrWhiteSpace(slide.Subtitle)) {
@@ -330,7 +332,18 @@ namespace OfficeIMO.PowerPoint {
         private static void InheritTemplatePlaceholder(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointTextBox shape,
             PowerPointPlaceholderType type) {
             if (context.Document.OwnsLayoutTheme || writer.Slide.GetLayoutPlaceholder(type)?.Bounds == null) return;
-            ((DocumentFormat.OpenXml.Presentation.Shape)shape.Element).ShapeProperties?.RemoveAllChildren();
+            RemoveAllChildren(shape.XmlElement.Child(Ns.PresentationML, "spPr"));
+        }
+
+        /// <summary>The attributes of DrawingML character properties (<c>CT_TextCharacterProperties</c>).</summary>
+        private static readonly string[] CharacterPropertyAttributes = {
+            "kumimoji", "lang", "altLang", "sz", "b", "i", "u", "strike", "kern", "cap", "spc", "normalizeH", "baseline",
+            "noProof", "dirty", "err", "smtClean", "smtId", "bmk"
+        };
+
+        private static void RemoveAllChildren(OfficeXmlNode element) {
+            if (element.IsNone) return;
+            for (OfficeXmlNode child = element.FirstChild; child.Exists; child = element.FirstChild) child.Remove();
         }
 
         private static string Ellipsize(string text, double size, double width, string font) {
