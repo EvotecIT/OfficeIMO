@@ -1,68 +1,72 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word;
 
 public partial class WordChart {
-    private Chart? _validatedSliceChart;
-    private OpenXmlCompositeElement? _validatedSliceFamily;
-    private OpenXmlCompositeElement? _validatedCategoryLiteral;
-    private NumberLiteral? _validatedValueLiteral;
-    private OpenXmlElement? _lastAppendedCategoryPoint;
-    private NumericPoint? _lastAppendedValuePoint;
+    private OfficeXmlNode _validatedSliceChart;
+    private OfficeXmlNode _validatedSliceFamily;
+    private OfficeXmlNode _validatedCategoryLiteral;
+    private OfficeXmlNode _validatedValueLiteral;
+    private OfficeXmlNode _lastAppendedCategoryPoint;
+    private OfficeXmlNode _lastAppendedValuePoint;
     private bool _validatedDoughnutFamily;
 
-    private static void AppendLiteralSlicePoint(OpenXmlCompositeElement literal, OpenXmlElement point) {
+    /// <summary>Appends a point to a literal before its extension list, and returns it as it is now held.</summary>
+    private static OfficeXmlNode AppendLiteralSlicePoint(OfficeXmlNode literal, OfficeXmlNode point) {
         // The extension list is the final schema child. Checking the tail keeps
         // each append constant-time even for large authored literal charts.
-        OpenXmlElement? last = literal.LastChild;
-        if (last is not ExtensionList && last is not StrDataExtensionList) literal.Append(point);
-        else literal.InsertBefore(point, last);
+        OfficeXmlNode last = literal.LastChild;
+        return last.IsNone || last.LocalName != "extLst" ? literal.Append(point) : literal.InsertBefore(point, last);
     }
 
     // Literal slice appends must use logical cache positions, not the number of stored points.
     // A missing point is a gap; category and value caches can omit different positions.
     private void PrepareLiteralSliceAppend(string category, bool doughnut) {
-        _chart ??= _chartPart?.ChartSpace?.GetFirstChild<Chart>();
-        if (_chart == null) {
+        if (_chart.IsNone && !ChartSpaceNode.IsNone) _chart = ChartSpaceNode.Child(NsC, "chart");
+        if (_chart.IsNone) {
             _currentIndexCategory = 0U;
             _currentIndexValues = 0U;
             return;
         }
-        if (_chart.PlotArea?.ChildElements.Where(element =>
-                element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).Take(2).Count() != 1)
+        OfficeXmlNode plot = PlotAreaOf(_chart);
+        int groups = 0;
+        if (!plot.IsNone) {
+            foreach (OfficeXmlNode child in plot.Children()) {
+                if (IsChartGroup(child) && ++groups == 2) break;
+            }
+        }
+        if (groups != 1)
             throw new NotSupportedException("Slice appends require a plot area with exactly one chart group.");
-        OpenXmlCompositeElement? family = doughnut
-            ? _chart.PlotArea?.GetFirstChild<DoughnutChart>()
-            : (OpenXmlCompositeElement?)_chart.PlotArea?.GetFirstChild<PieChart>() ??
-                _chart.PlotArea?.GetFirstChild<Pie3DChart>();
-        if (family == null)
+        OfficeXmlNode family = doughnut ? plot.Child(NsC, "doughnutChart") : plot.Child(NsC, "pieChart");
+        if (!doughnut && family.IsNone) family = plot.Child(NsC, "pie3DChart");
+        if (family.IsNone)
             throw new NotSupportedException("An existing chart of another family cannot accept these slices.");
-        if (family.Elements<PieChartSeries>().Skip(1).Any())
+        if (family.Children(NsC, "ser").Count > 1)
             throw new NotSupportedException("Use cached-data mutation APIs to edit a chart with multiple rings or series.");
-        PieChartSeries? series = family.GetFirstChild<PieChartSeries>();
-        CategoryAxisData? categories = series?.GetFirstChild<CategoryAxisData>();
-        Values? values = series?.GetFirstChild<Values>();
-        if (categories?.GetFirstChild<StringReference>() != null ||
-            categories?.GetFirstChild<NumberReference>() != null ||
-            categories?.GetFirstChild<MultiLevelStringReference>() != null ||
-            values?.GetFirstChild<NumberReference>() != null)
+        OfficeXmlNode series = family.Child(NsC, "ser");
+        OfficeXmlNode categories = series.IsNone ? default : series.Child(NsC, "cat");
+        OfficeXmlNode values = series.IsNone ? default : series.Child(NsC, "val");
+        if (!categories.IsNone && (!categories.Child(NsC, "strRef").IsNone || !categories.Child(NsC, "numRef").IsNone ||
+                !categories.Child(NsC, "multiLvlStrRef").IsNone) ||
+            !values.IsNone && !values.Child(NsC, "numRef").IsNone)
             throw new NotSupportedException("Use cached-data mutation APIs when chart data uses worksheet references.");
-        OpenXmlCompositeElement? categoryLiteral = (OpenXmlCompositeElement?)categories?.GetFirstChild<StringLiteral>() ??
-            categories?.GetFirstChild<NumberLiteral>();
-        NumberLiteral? valueLiteral = values?.GetFirstChild<NumberLiteral>();
+        OfficeXmlNode categoryLiteral = categories.IsNone ? default : categories.Child(NsC, "strLit");
+        if (categoryLiteral.IsNone && !categories.IsNone) categoryLiteral = categories.Child(NsC, "numLit");
+        OfficeXmlNode valueLiteral = values.IsNone ? default : values.Child(NsC, "numLit");
         uint nextCategory = _currentIndexCategory;
+        bool numericCategories = !categoryLiteral.IsNone && categoryLiteral.LocalName == "numLit";
         if (nextCategory > 0U && nextCategory == _currentIndexValues &&
-            ReferenceEquals(_chart, _validatedSliceChart) &&
-            ReferenceEquals(family, _validatedSliceFamily) &&
-            ReferenceEquals(categoryLiteral, _validatedCategoryLiteral) &&
-            ReferenceEquals(valueLiteral, _validatedValueLiteral) &&
+            _chart == _validatedSliceChart &&
+            family == _validatedSliceFamily &&
+            categoryLiteral == _validatedCategoryLiteral &&
+            valueLiteral == _validatedValueLiteral &&
             _validatedDoughnutFamily == doughnut &&
             nextCategory < MaxCachedChartPoints &&
             HasAppendedTail(categoryLiteral, _lastAppendedCategoryPoint, nextCategory) &&
             HasAppendedTail(valueLiteral, _lastAppendedValuePoint, nextCategory)) {
-            if (categoryLiteral is NumberLiteral && !IsNumericSliceCategory(category))
+            if (numericCategories && !IsNumericSliceCategory(category))
                 throw new ArgumentException("A numeric category literal requires a finite invariant numeric category.", nameof(category));
             return;
         }
@@ -72,7 +76,7 @@ public partial class WordChart {
             throw new InvalidOperationException("Slice category and value caches must have equal logical lengths.");
         if (categoryLength >= MaxCachedChartPoints)
             throw new InvalidOperationException("Slice caches must contain fewer than 10000 logical points before appending.");
-        if (categoryLiteral is NumberLiteral && !IsNumericSliceCategory(category))
+        if (numericCategories && !IsNumericSliceCategory(category))
             throw new ArgumentException("A numeric category literal requires a finite invariant numeric category.", nameof(category));
         _currentIndexCategory = categoryLength;
         _currentIndexValues = valueLength;
@@ -83,28 +87,29 @@ public partial class WordChart {
         _validatedDoughnutFamily = doughnut;
     }
 
-    private static bool HasAppendedTail(OpenXmlCompositeElement? literal, OpenXmlElement? point,
-        uint nextIndex) =>
-        literal?.GetFirstChild<PointCount>()?.Val?.Value == nextIndex &&
-        point != null && ReferenceEquals(point.Parent, literal) &&
-        (point is StringPoint text ? text.Index?.Value : (point as NumericPoint)?.Index?.Value) == nextIndex - 1U;
+    private static bool HasAppendedTail(OfficeXmlNode literal, OfficeXmlNode point, uint nextIndex) {
+        if (literal.IsNone || point.IsNone) return false;
+        OfficeXmlNode count = literal.Child(NsC, "ptCount");
+        return !count.IsNone && count.UIntVal() == nextIndex && point.Parent == literal &&
+            point.Is(NsC, "pt") && point.UIntAttr("idx") == nextIndex - 1U;
+    }
 
     private static bool IsNumericSliceCategory(string category) =>
         OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(category, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) &&
         !double.IsNaN(number) && !double.IsInfinity(number);
 
-    private static uint ReadLiteralSliceLength(OpenXmlCompositeElement? literal) {
+    private static uint ReadLiteralSliceLength(OfficeXmlNode literal) {
         var indexes = new HashSet<uint>();
-        uint length = literal?.GetFirstChild<PointCount>()?.Val?.Value ?? 0U;
+        OfficeXmlNode count = literal.IsNone ? default : literal.Child(NsC, "ptCount");
+        uint length = (count.IsNone ? null : count.UIntVal()) ?? 0U;
         if (length > MaxCachedChartPoints)
             throw new InvalidOperationException("Slice cache exceeds the supported logical point count.");
-        if (literal == null) return length;
+        if (literal.IsNone) return length;
         int stored = 0;
-        foreach (OpenXmlElement point in literal.ChildElements) {
-            if (!(point is StringPoint) && !(point is NumericPoint)) continue;
+        foreach (OfficeXmlNode point in literal.Children(NsC, "pt")) {
             if (++stored > MaxCachedChartPoints)
                 throw new InvalidOperationException("Slice cache exceeds the supported stored point count.");
-            uint? index = point is StringPoint text ? text.Index?.Value : ((NumericPoint)point).Index?.Value;
+            uint? index = point.UIntAttr("idx");
             if (!index.HasValue || index.Value >= MaxCachedChartPoints || !indexes.Add(index.Value))
                 throw new InvalidOperationException("Slice cache contains an invalid or duplicate point index.");
             length = Math.Max(length, index.Value + 1U);

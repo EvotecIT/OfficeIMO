@@ -1,22 +1,42 @@
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word;
 
 /// <summary>An editable legend attached to a Word chart.</summary>
 public sealed class WordChartLegend {
-    private readonly C.Legend _element;
-    internal WordChartLegend(WordChart chart, C.Legend element) { Chart = chart; _element = element; }
+    private const int NsC = OfficeXmlNamespaces.Chart;
+    private readonly OfficeXmlNode _element;
+    internal WordChartLegend(WordChart chart, OfficeXmlNode element) { Chart = chart; _element = element; }
     /// <summary>The owning chart.</summary>
     public WordChart Chart { get; }
     /// <summary>The legend position.</summary>
     public OfficeChartLegendPosition Position {
-        get { RequireAttached(); return (_element.LegendPosition?.Val?.Value ?? C.LegendPositionValues.Right).ToOfficeEnum(); }
-        set { RequireAttached(); _element.LegendPosition = new C.LegendPosition { Val = value.ToOpenXml() }; }
+        get {
+            RequireAttached();
+            OfficeXmlNode position = _element.Child(NsC, "legendPos");
+            string token = (position.IsNone ? null : position.Val()) ?? "r";
+            return WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out OfficeChartLegendPosition value)
+                ? value : throw new FormatException("The legend position '" + token + "' is not a valid value.");
+        }
+        set {
+            RequireAttached();
+            OfficeChartXml.SetOrdered(_element, _element.CreateVal(NsC, "legendPos", value.ToOpenXmlToken()), CLegendView.Order);
+        }
     }
     /// <summary>Whether the legend overlays the plot.</summary>
     public bool Overlay {
-        get { RequireAttached(); return _element.GetFirstChild<C.Overlay>()?.Val?.Value ?? false; }
-        set { RequireAttached(); _element.GetFirstChild<C.Overlay>()?.Remove(); _element.AddChild(new C.Overlay { Val = value }, true); }
+        get {
+            RequireAttached();
+            OfficeXmlNode overlay = _element.Child(NsC, "overlay");
+            return (overlay.IsNone ? null : overlay.BoolVal()) ?? false;
+        }
+        set {
+            RequireAttached();
+            OfficeXmlNode overlay = _element.Child(NsC, "overlay");
+            if (!overlay.IsNone) overlay.Remove();
+            OfficeChartXml.SetOrdered(_element, _element.CreateVal(NsC, "overlay", OfficeChartXml.Text(value)), CLegendView.Order);
+        }
     }
     /// <summary>Removes this legend from its chart.</summary>
     public void Remove() { RequireAttached(); _element.Remove(); }

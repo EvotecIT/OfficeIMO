@@ -1,11 +1,12 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Word;
 
 public partial class WordChart {
     private void RejectPieAppendToDoughnut() {
-        if (ResolveChart()?.PlotArea?.GetFirstChild<DoughnutChart>() != null)
+        OfficeXmlNode plot = PlotAreaOf(ResolveChart());
+        if (!plot.IsNone && !plot.Child(NsC, "doughnutChart").IsNone)
             throw new NotSupportedException("Use AddDoughnut to append slices to a doughnut chart.");
     }
 
@@ -22,11 +23,15 @@ public partial class WordChart {
         if (double.IsNaN(number) || double.IsInfinity(number) || number < 0)
             throw new ArgumentOutOfRangeException(nameof(value), "Doughnut values must be finite and nonnegative.");
         PrepareLiteralSliceAppend(category, doughnut: true);
-        if (_chart == null) {
-            _chart = GenerateChart();
-            var doughnut = new DoughnutChart(new VaryColors { Val = true }, AddDataLabel(), new HoleSize { Val = (ByteValue)50 });
-            _chart.PlotArea!.Append(doughnut);
-            _chartPart?.ChartSpace?.Append(_chart);
+        if (_chart.IsNone) {
+            OfficeXmlNode chart = GenerateChart();
+            OfficeXmlNode plotArea = PlotAreaOf(chart);
+            OfficeXmlNode doughnut = NewC(plotArea, "doughnutChart");
+            AddC(doughnut, "varyColors", true);
+            doughnut.Append(AddDataLabel(doughnut));
+            AddC(doughnut, "holeSize", "50");
+            plotArea.Append(doughnut);
+            AttachNewChart(chart);
             EnsureFramelessChartArea();
             UpdateTitle();
         }

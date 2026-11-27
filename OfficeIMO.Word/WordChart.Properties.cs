@@ -1,7 +1,5 @@
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     // Partial class containing property definitions and helper fields for
@@ -35,35 +33,10 @@ namespace OfficeIMO.Word {
         private const long PixelsPerInch = 96;
         private readonly WordDocument _document;
         private WordParagraph? _paragraph;
-        private ChartPart? _chartPart {
-            get {
-                if (_drawing == null) {
-                    return null;
-                }
-
-                var chartRef = _drawing.Descendants<ChartReference>().FirstOrDefault();
-                string? id = chartRef?.Id?.Value;
-                if (string.IsNullOrWhiteSpace(id)) {
-                    return null;
-                }
-
-                try {
-                    return WordPartOwnership.Resolve(_document, _drawing).GetPartById(id!) as ChartPart;
-                } catch (System.ArgumentOutOfRangeException) {
-                    return null;
-                } catch (System.InvalidOperationException) {
-                    return null;
-                } catch (OpenXmlPackageException) {
-                    return null;
-                }
-            }
-        }
-        private WordDrawing? _drawing;
-        private Chart? _chart;
-
-        internal ChartPart? ChartPart => _chartPart;
-
-        internal WordDrawing? Drawing => _drawing;
+        /// <summary>The chart's <c>w:drawing</c>.</summary>
+        private OfficeXmlNode _drawing;
+        /// <summary>The chart's <c>c:chart</c>, or none until the first series creates it.</summary>
+        private OfficeXmlNode _chart;
 
         /// <summary>
         /// The current index for values
@@ -72,46 +45,51 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// The current index for categories
         /// </summary>
-        private UInt32Value _currentIndexCategory = 0;
+        private uint _currentIndexCategory = 0;
         private string? _xAxisTitle;
         private string? _yAxisTitle;
         private string _axisTitleFontName = OfficeTheme.Default.ChartStyle.AxisFont.Family;
         private int _axisTitleFontSize = 1100;
         private OfficeIMO.OfficeColor _axisTitleColor = OfficeIMO.OfficeColor.Black;
-        //private string _id => _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
+
+        /// <summary>The first <c>c:barChart</c> of the chart part's chart, or none.</summary>
+        private OfficeXmlNode SavedBarChart {
+            get {
+                OfficeXmlNode space = ChartSpaceNode;
+                if (space.IsNone) return default;
+                OfficeXmlNode plot = PlotAreaOf(space.Child(NsC, "chart"));
+                return plot.IsNone ? default : plot.Child(NsC, "barChart");
+            }
+        }
 
         /// <summary>
         /// Gets or sets the bar grouping mode for bar charts.
         /// </summary>
         public WordChartBarGrouping? BarGrouping {
             get {
-                if (_chartPart != null) {
-                    var chart = ChartSpaceRoot.GetFirstChild<Chart>();
-                    var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
-                    if (barChart?.BarGrouping != null) {
-                        return barChart.BarGrouping.Val?.Value.ToOfficeEnum();
-                    }
-                }
-
-                return null;
+                OfficeXmlNode grouping = SavedBarChart.IsNone ? default : SavedBarChart.Child(NsC, "grouping");
+                if (grouping.IsNone || grouping.Val() is not string token) return null;
+                return WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordChartBarGrouping value)
+                    ? value : throw new FormatException("The bar grouping '" + token + "' is not a valid value.");
             }
             set {
-                if (_chartPart != null) {
-                    var chart = ChartSpaceRoot.GetFirstChild<Chart>();
-                    var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
-                    if (barChart != null) {
-                        if (value.HasValue) {
-                            (barChart.BarGrouping ??= new BarGrouping()).Val = value.Value.ToOpenXml();
-                            Overlap overlap = barChart.GetFirstChild<Overlap>() ?? new Overlap();
-                            overlap.Val = new DocumentFormat.OpenXml.SByteValue(
-                                value.Value is WordChartBarGrouping.Stacked or WordChartBarGrouping.PercentStacked ? (sbyte)100 : (sbyte)0);
-                            if (overlap.Parent == null) barChart.AddChild(overlap, true);
-                        } else {
-                            barChart.BarGrouping = null;
-                            if (barChart.GetFirstChild<Overlap>() is Overlap overlap)
-                                overlap.Val = new DocumentFormat.OpenXml.SByteValue((sbyte)0);
-                        }
+                OfficeXmlNode barChart = SavedBarChart;
+                if (barChart.IsNone) return;
+                if (value.HasValue) {
+                    OfficeXmlNode grouping = barChart.Child(NsC, "grouping");
+                    if (grouping.IsNone) grouping = OfficeChartXml.SetOrdered(barChart, NewC(barChart, "grouping"), CBarChartView.Order);
+                    grouping.SetAttribute("val", value.Value.ToOpenXmlToken());
+                    string overlapValue = value.Value is WordChartBarGrouping.Stacked or WordChartBarGrouping.PercentStacked ? "100" : "0";
+                    OfficeXmlNode overlap = barChart.Child(NsC, "overlap");
+                    if (overlap.IsNone) {
+                        OfficeChartXml.SetOrdered(barChart, NewC(barChart, "overlap", overlapValue), CBarChartView.Order);
+                    } else {
+                        overlap.SetAttribute("val", overlapValue);
                     }
+                } else {
+                    barChart.RemoveChildren(NsC, "grouping");
+                    OfficeXmlNode overlap = barChart.Child(NsC, "overlap");
+                    if (!overlap.IsNone) overlap.SetAttribute("val", "0");
                 }
             }
         }
@@ -120,78 +98,66 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordChartBarDirection? BarDirection {
             get {
-                if (_chartPart != null) {
-                    var chart = ChartSpaceRoot.GetFirstChild<Chart>();
-                    var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
-                    if (barChart?.BarDirection != null) {
-                        return barChart.BarDirection.Val?.Value.ToOfficeEnum();
-                    }
-                }
-
-                return null;
+                OfficeXmlNode direction = SavedBarChart.IsNone ? default : SavedBarChart.Child(NsC, "barDir");
+                if (direction.IsNone || direction.Val() is not string token) return null;
+                return WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordChartBarDirection value)
+                    ? value : throw new FormatException("The bar direction '" + token + "' is not a valid value.");
             }
             set {
-                if (_chartPart != null) {
-                    var chart = ChartSpaceRoot.GetFirstChild<Chart>();
-                    var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
-                    if (barChart != null) {
-                        if (value.HasValue) {
-                            (barChart.BarDirection ??= new BarDirection()).Val = value.Value.ToOpenXml();
-                            var plot = chart!.PlotArea!;
-                            if (plot.ChildElements.Count(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal)) == 1 &&
-                                plot.Elements<CategoryAxis>().Count() == 1 && plot.Elements<ValueAxis>().Count() == 1) {
-                                var category = plot.GetFirstChild<CategoryAxis>()!.GetFirstChild<AxisPosition>();
-                                var numeric = plot.GetFirstChild<ValueAxis>()!.GetFirstChild<AxisPosition>();
-                                if (category != null && numeric != null) {
-                                    category.Val = value.Value == WordChartBarDirection.Bar ? AxisPositionValues.Left : AxisPositionValues.Bottom;
-                                    numeric.Val = value.Value == WordChartBarDirection.Bar ? AxisPositionValues.Bottom : AxisPositionValues.Left;
-                                }
-                            }
-                        } else {
-                            barChart.BarDirection = null;
-                            var plot = chart!.PlotArea!;
-                            if (plot.ChildElements.Count(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal)) == 1 &&
-                                plot.Elements<CategoryAxis>().Count() == 1 && plot.Elements<ValueAxis>().Count() == 1) {
-                                var category = plot.GetFirstChild<CategoryAxis>()!.GetFirstChild<AxisPosition>();
-                                var numeric = plot.GetFirstChild<ValueAxis>()!.GetFirstChild<AxisPosition>();
-                                if (category != null && numeric != null) {
-                                    category.Val = AxisPositionValues.Bottom;
-                                    numeric.Val = AxisPositionValues.Left;
-                                }
-                            }
-                        }
-                    }
+                OfficeXmlNode barChart = SavedBarChart;
+                if (barChart.IsNone) return;
+                if (value.HasValue) {
+                    OfficeXmlNode direction = barChart.Child(NsC, "barDir");
+                    if (direction.IsNone) direction = OfficeChartXml.SetOrdered(barChart, NewC(barChart, "barDir"), CBarChartView.Order);
+                    direction.SetAttribute("val", value.Value.ToOpenXmlToken());
+                    SetSingleBarAxisPositions(barChart.Parent, value.Value == WordChartBarDirection.Bar ? "l" : "b",
+                        value.Value == WordChartBarDirection.Bar ? "b" : "l");
+                } else {
+                    barChart.RemoveChildren(NsC, "barDir");
+                    SetSingleBarAxisPositions(barChart.Parent, "b", "l");
                 }
             }
         }
+
+        /// <summary>
+        /// Places the category and value axes of a plot area holding one chart group on one pair of axes; any other
+        /// plot area keeps its axes where they are.
+        /// </summary>
+        private static void SetSingleBarAxisPositions(OfficeXmlNode plot, string categoryPosition, string valuePosition) {
+            int groups = 0;
+            foreach (OfficeXmlNode child in plot.Children()) {
+                if (IsChartGroup(child)) groups++;
+            }
+            if (groups != 1 || plot.Children(NsC, "catAx").Count != 1 || plot.Children(NsC, "valAx").Count != 1) return;
+            OfficeXmlNode category = plot.Child(NsC, "catAx").Child(NsC, "axPos");
+            OfficeXmlNode numeric = plot.Child(NsC, "valAx").Child(NsC, "axPos");
+            if (category.IsNone || numeric.IsNone) return;
+            category.SetAttribute("val", categoryPosition);
+            numeric.SetAttribute("val", valuePosition);
+        }
+
         /// <summary>
         /// Gets or sets whether the chart frame uses rounded corners.
         /// </summary>
         public bool RoundedCorners {
             get {
-                var roundedCorners = _chartPart?.ChartSpace?.GetFirstChild<RoundedCorners>();
-                if (roundedCorners?.Val != null) {
-                    return roundedCorners.Val;
-                }
-
-                return true;
+                OfficeXmlNode space = ChartSpaceNode;
+                OfficeXmlNode roundedCorners = space.IsNone ? default : space.Child(NsC, "roundedCorners");
+                return (roundedCorners.IsNone ? null : roundedCorners.BoolVal()) ?? true;
             }
             set {
-                if (_chartPart == null) return;
-                var space = ChartSpaceRoot;
-                var roundedCorners = space.GetFirstChild<RoundedCorners>();
-                if (roundedCorners == null) {
-                    roundedCorners = new RoundedCorners();
+                OfficeXmlNode space = ChartSpaceNode;
+                if (space.IsNone) return;
+                OfficeXmlNode roundedCorners = space.Child(NsC, "roundedCorners");
+                if (roundedCorners.IsNone) {
                     // c:roundedCorners follows c:date1904 and c:lang in the chart-space sequence.
-                    OpenXmlElement? previous = (OpenXmlElement?)space.GetFirstChild<EditingLanguage>() ?? space.GetFirstChild<Date1904>();
-                    if (previous != null) {
-                        space.InsertAfter(roundedCorners, previous);
-                    } else {
-                        space.InsertAt(roundedCorners, 0);
-                    }
+                    OfficeXmlNode previous = space.Child(NsC, "lang");
+                    if (previous.IsNone) previous = space.Child(NsC, "date1904");
+                    roundedCorners = previous.IsNone
+                        ? space.InsertBefore(NewC(space, "roundedCorners"), space.FirstChild)
+                        : previous.InsertAfterSelf(NewC(space, "roundedCorners"));
                 }
-                roundedCorners.Val = value;
-
+                roundedCorners.SetAttribute("val", OfficeChartXml.Text(value));
             }
         }
 
@@ -204,8 +170,9 @@ namespace OfficeIMO.Word {
         }
 
         private List<string> ReadSavedCategories() {
-            var categories = _chart?.PlotArea?.Descendants<CategoryAxisData>().FirstOrDefault();
-            return categories == null ? new List<string>() : ReadCachedStrings(categories).ToList();
+            OfficeXmlNode plot = PlotAreaOf(_chart);
+            List<OfficeXmlNode> categories = plot.IsNone ? new List<OfficeXmlNode>() : plot.ContentDescendants(NsC, "cat");
+            return categories.Count == 0 ? new List<string>() : ReadCachedStrings(categories[0]).ToList();
         }
 
         /// <summary>
@@ -223,7 +190,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? Title {
             get {
-                string? saved = _chart != null ? ReadTitle(_chart) : null;
+                string? saved = !_chart.IsNone ? ReadTitle(_chart) : null;
                 if (saved != null) {
                     return saved;
                 }
@@ -233,7 +200,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                if (_chart != null && value != null) {
+                if (!_chart.IsNone && value != null) {
                     SetTitle(value);
                 }
                 PrivateTitle = value ?? string.Empty;

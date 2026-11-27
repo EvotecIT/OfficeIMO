@@ -1,15 +1,15 @@
-using DocumentFormat.OpenXml;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Word;
 
 /// <summary>Chart series data, optionally attached to an editable native chart.</summary>
 public sealed class WordChartSeries {
+    private const int NsC = OfficeXmlNamespaces.Chart;
     private readonly OfficeSeries? _snapshot;
-    private readonly OpenXmlCompositeElement? _element;
+    private readonly OfficeXmlNode _element;
 
     internal WordChartSeries(OfficeSeries snapshot) => _snapshot = snapshot;
-    internal WordChartSeries(WordChart chart, OpenXmlCompositeElement element) {
+    internal WordChartSeries(WordChart chart, OfficeXmlNode element) {
         Chart = chart;
         _element = element;
     }
@@ -19,15 +19,19 @@ public sealed class WordChartSeries {
 
     /// <summary>The series display name.</summary>
     public string Name {
-        get => _snapshot?.Name ?? RequireAttached().GetFirstChild<C.SeriesText>()?
-            .Descendants<C.NumericValue>().FirstOrDefault()?.Text ?? string.Empty;
+        get {
+            if (_snapshot != null) return _snapshot.Name;
+            OfficeXmlNode text = RequireAttached().Child(NsC, "tx");
+            if (text.IsNone) return string.Empty;
+            List<OfficeXmlNode> values = text.ContentDescendants(NsC, "v");
+            return values.Count == 0 ? string.Empty : values[0].InnerText;
+        }
         set {
             ArgumentNullException.ThrowIfNull(value);
-            var element = RequireAttached();
-            var text = element.GetFirstChild<C.SeriesText>()
-                ?? throw new InvalidOperationException("The series has no native title.");
-            text.RemoveAllChildren();
-            text.Append(new C.NumericValue(value));
+            OfficeXmlNode text = RequireAttached().Child(NsC, "tx");
+            if (text.IsNone) throw new InvalidOperationException("The series has no native title.");
+            OfficeIMO.OpenXml.Internal.OfficeChartXml.RemoveAllChildElements(text);
+            text.Append(text.CreateElement(NsC, "v")).SetInnerText(value);
         }
     }
 
@@ -48,8 +52,8 @@ public sealed class WordChartSeries {
     /// <summary>Removes this native series. Detached inspection data cannot be edited.</summary>
     public void Remove() => RequireAttached().Remove();
 
-    private OpenXmlCompositeElement RequireAttached() {
-        if (Chart == null || _element == null)
+    private OfficeXmlNode RequireAttached() {
+        if (Chart == null || _element.IsNone)
             throw new InvalidOperationException("Detached chart inspection data cannot be edited.");
         Chart.RequireChartAttachment(_element);
         return _element;
