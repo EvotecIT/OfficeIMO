@@ -321,6 +321,7 @@
       "OfficeIMO.PowerPoint.Tests",
       "OfficeIMO.Project.Tests",
       "OfficeIMO.Publisher.Tests",
+      "OfficeIMO.Reader.DocumentExtraction.Tests",
       "OfficeIMO.Reader.Tests",
       "OfficeIMO.Shared.Tests",
       "OfficeIMO.Tests",
