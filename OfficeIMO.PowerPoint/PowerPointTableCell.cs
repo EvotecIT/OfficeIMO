@@ -175,7 +175,7 @@ namespace OfficeIMO.PowerPoint {
             get {
                 var runs = new List<PowerPointTextRun>();
                 PowerPointPartRef slide = SlidePartRef, owner = OwnerPartRef;
-                foreach (OfficeXmlNode run in BodyElement.Child(D, "p").Children(D, "r")) runs.Add(new PowerPointTextRun(run, slide, owner));
+                foreach (OfficeXmlNode run in BodyElement.Child(D, "p").Children(D, "r")) runs.Add(new PowerPointTextRun(run, slide, owner, owningSlide: _table.OwnerSlide));
                 return runs;
             }
         }
@@ -440,7 +440,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // A paragraph wrapper held the way the cell is.
-        private PowerPointParagraph ParagraphFor(OfficeXmlNode paragraph) => new(paragraph, SlidePartRef, OwnerPartRef);
+        private PowerPointParagraph ParagraphFor(OfficeXmlNode paragraph) => new(paragraph, SlidePartRef, OwnerPartRef, _table.OwnerSlide);
 
         private void FormatRuns(Action<OfficeXmlNode> change) {
             if (BodyElement.Child(D, "p").Child(D, "r").IsNone) ParagraphFor(EnsureParagraph()).InsertRun(string.Empty);

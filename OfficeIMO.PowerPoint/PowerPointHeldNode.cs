@@ -24,8 +24,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The element as it is held now: once the SDK opened, a package node is its SDK element.</summary>
         internal OfficeXmlNode Element {
             get {
-                // A removed slide's part name can be reused by a new slide, so its content never binds.
-                if (_element.Tree != null && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }) {
+                // A removed slide's part name can be reused by a new slide, so its content never binds; an element removed
+                // from its table has no place in the SDK and stays as it is.
+                if (_element.Tree != null && _element.IsAttached && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }) {
                     _element = OfficeXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, _element.Tree, _element.Node));
                 }
                 return _element;

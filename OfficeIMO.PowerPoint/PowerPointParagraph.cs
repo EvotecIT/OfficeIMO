@@ -11,14 +11,17 @@ namespace OfficeIMO.PowerPoint {
         private readonly PowerPointPartRef _initialSlidePart;
         private readonly PowerPointPartRef _initialOwnerPart;
         private readonly PowerPointSlide? _packageSlide;
+        // The slide whose part (its own or its notes) holds the paragraph, when known: once removed, nothing binds.
+        private readonly PowerPointSlide? _owningSlide;
         private readonly PowerPointPartRef _packagePart;
 
         /// <summary>
         /// A paragraph (<c>a:p</c>) of a part, wherever the part is held. <paramref name="slidePart"/> is the slide the
         /// text belongs to and <paramref name="ownerPart"/> the part that holds it.
         /// </summary>
-        internal PowerPointParagraph(OfficeXmlNode paragraph, PowerPointPartRef slidePart, PowerPointPartRef ownerPart) {
+        internal PowerPointParagraph(OfficeXmlNode paragraph, PowerPointPartRef slidePart, PowerPointPartRef ownerPart, PowerPointSlide? owningSlide = null) {
             _element = paragraph;
+            _owningSlide = owningSlide;
             _initialSlidePart = !slidePart.IsNone ? slidePart : ownerPart.Kind == PowerPointPartKind.Slide ? ownerPart : default;
             _initialOwnerPart = !ownerPart.IsNone ? ownerPart : slidePart;
             if (paragraph.Tree != null && !_initialOwnerPart.IsNone && !_initialOwnerPart.IsSdk && paragraph.IsAttached) {
@@ -39,7 +42,8 @@ namespace OfficeIMO.PowerPoint {
         internal OfficeXmlNode Element {
             get {
                 // A removed slide's part name can be reused by a new slide, so its content never binds.
-                if (_element.Tree != null && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }) {
+                if (_element.Tree != null && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }
+                    && _owningSlide is not { RemovedFromPackage: true }) {
                     _element = OfficeXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, _element.Tree, _element.Node));
                 }
                 return _element;
@@ -86,7 +90,7 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointTextRun RunFor(OfficeXmlNode element) =>
             _packageSlide != null && element.Tree != null
                 ? new PowerPointTextRun(_packageSlide, element.Tree, element.Node)
-                : new PowerPointTextRun(element, SlidePartRef, OwnerPartRef);
+                : new PowerPointTextRun(element, SlidePartRef, OwnerPartRef, owningSlide: _owningSlide);
 
         /// <summary>
         /// Text content of the paragraph.

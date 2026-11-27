@@ -52,10 +52,12 @@ namespace OfficeIMO.PowerPoint {
             master = relationship = null;
             const string prefix = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix;
             if (FirstRelated(package, slides.Main, prefix + "theme", out _) is not { } theme) return false;
+            // The theme is read before any part is added, so a failed read leaves the package as it was.
+            byte[] themeContent = package.ReadPartBytes(theme);
             string masterPart = NextPartName(package, NotesMasterContentType, "/ppt/notesMasters/notesMaster", ".xml");
             package.CreateBinaryPart(masterPart, NotesMasterContentType, CreateDefaultNotesMaster());
             string themePart = NextPartName(package, ThemeContentType, "/ppt/notesMasters/theme/theme", ".xml");
-            package.CreateBinaryPart(themePart, ThemeContentType, package.ReadPartBytes(theme));
+            package.CreateBinaryPart(themePart, ThemeContentType, themeContent);
             package.AddRelationship(masterPart, prefix + "theme", OfficeOpcPartNames.GetRelativeTarget(masterPart, themePart), id: NewRelationshipId());
             relationship = package.AddRelationship(slides.Main, prefix + "notesMaster", OfficeOpcPartNames.GetRelativeTarget(slides.Main, masterPart), id: NewRelationshipId());
 

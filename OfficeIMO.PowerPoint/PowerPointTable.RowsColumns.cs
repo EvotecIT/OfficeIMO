@@ -39,6 +39,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Optional zero-based index where the row should be inserted. If omitted, row is appended.</param>
         public PowerPointTableRow AddRow(int? index = null) {
+            if (index.HasValue) ArgumentOutOfRangeException.ThrowIfNegative(index.Value, nameof(index));
             OfficeXmlNode table = TableNode;
             int columns = ColumnCount;
             int rows = RowCount;
@@ -64,6 +65,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointTableRow AddRowFromTemplate(int templateRowIndex, int? index = null, bool clearText = true) {
             ArgumentOutOfRangeException.ThrowIfNegative(templateRowIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(templateRowIndex, RowCount);
+            if (index.HasValue) ArgumentOutOfRangeException.ThrowIfNegative(index.Value, nameof(index));
 
             OfficeXmlNode table = TableNode;
             int rows = RowCount;
@@ -131,6 +133,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Optional zero-based index where the column should be inserted. If omitted, column is appended.</param>
         public PowerPointTableColumn AddColumn(int? index = null) {
+            if (index.HasValue) ArgumentOutOfRangeException.ThrowIfNegative(index.Value, nameof(index));
             OfficeXmlNode table = TableNode;
             OfficeXmlNode grid = GridNode;
             int existingColumns = ColumnCount;
@@ -159,6 +162,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointTableColumn AddColumnFromTemplate(int templateColumnIndex, int? index = null, bool clearText = true) {
             ArgumentOutOfRangeException.ThrowIfNegative(templateColumnIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(templateColumnIndex, ColumnCount);
+            if (index.HasValue) ArgumentOutOfRangeException.ThrowIfNegative(index.Value, nameof(index));
 
             OfficeXmlNode table = TableNode;
             OfficeXmlNode grid = GridNode;

@@ -46,7 +46,7 @@ namespace OfficeIMO.PowerPoint {
                 if (notes.IsNone) return paragraphs;
                 PowerPointPartRef slide = _slide.PartRef;
                 foreach (OfficeXmlNode paragraph in GetNotesTextShape(ShapeTreeOf(notes)).Child(P, "txBody").Children(D, "p")) {
-                    paragraphs.Add(new PowerPointParagraph(paragraph, slide, notes));
+                    paragraphs.Add(new PowerPointParagraph(paragraph, slide, notes, _slide));
                 }
                 return paragraphs;
             }
@@ -87,7 +87,7 @@ namespace OfficeIMO.PowerPoint {
                 if (!paragraphProperties.IsNone) paragraph.Append(paragraphProperties.Clone());
                 PowerPointTextContent.InsertInlineContent(paragraph, text ?? string.Empty, runProperties, default);
                 if (!endProperties.IsNone) paragraph.Append(endProperties.Clone());
-                result.Add(new PowerPointParagraph(paragraph, slide, notes));
+                result.Add(new PowerPointParagraph(paragraph, slide, notes, _slide));
             }
             notes.MarkEdited();
             return result;
