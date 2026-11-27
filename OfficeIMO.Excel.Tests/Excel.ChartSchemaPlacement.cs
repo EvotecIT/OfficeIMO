@@ -88,7 +88,9 @@ namespace OfficeIMO.Tests {
 
             foreach (C.LineChartSeries series in ReadChartSpace(saved).Descendants<C.LineChartSeries>()) {
                 string[] children = series.ChildElements.Select(child => child.LocalName).ToArray();
-                Assert.True(Array.IndexOf(children, "pictureOptions") < Array.IndexOf(children, "cat"), string.Join(",", children));
+                int pictureOptions = Array.IndexOf(children, "pictureOptions");
+                Assert.True(pictureOptions >= 0, string.Join(",", children));
+                Assert.True(pictureOptions < Array.IndexOf(children, "cat"), string.Join(",", children));
             }
         }
     }
