@@ -96,6 +96,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     && mediaShapeIds.Contains(shapeId)
                     && target.HasAncestor(LegacyPptXml.P, "cMediaNode")
                     && target.HasAncestor(LegacyPptXml.P, "audio"))
+                // Each audio shape is the target of exactly one default playback node.
+                && targets.Select(target => target.Attribute("spid")).Distinct(StringComparer.Ordinal).Count() == targets.Count
                 && mediaNodes.All(HasDefaultMediaNode);
         }
 
@@ -113,10 +115,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             OfficeXmlNode target = mediaNode.Child(LegacyPptXml.P, "tgtEl");
             if (commonTime.IsNone || target.IsNone
                 || ChildCount(mediaNode) != 2) return false;
+            List<(int NamespaceId, string LocalName, string Value)> commonTimeAttributes = Attributes(commonTime);
+            // Exactly id, fill and display, unqualified: anything else is timing the binary writer can't keep.
+            if (commonTimeAttributes.Count != 3
+                || commonTimeAttributes.Any(attribute => attribute.NamespaceId != OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.None)) {
+                return false;
+            }
             var timeAttributes = new Dictionary<string, string?>(
                 StringComparer.Ordinal);
-            foreach ((_, string localName, string value) in
-                     Attributes(commonTime)) {
+            foreach ((_, string localName, string value) in commonTimeAttributes) {
                 timeAttributes[localName] = value;
             }
             if (timeAttributes.Count != 3

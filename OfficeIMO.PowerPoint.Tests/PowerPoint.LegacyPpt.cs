@@ -85,6 +85,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ScalarAttributes_IgnoreSurroundingXmlWhitespace() {
+            Assert.False(LegacyPptXml.ParseBoolean(" false\n"));
+            Assert.Equal(42, LegacyPptXml.ParseInt32("\t42 "));
+            Assert.Equal(7U, LegacyPptXml.ParseUInt32(" 7"));
+            Assert.Equal(-5L, LegacyPptXml.ParseInt64("-5 "));
+            Assert.Null(LegacyPptXml.ParseInt32("4 2"));
+        }
+
+        [Theory]
+        [InlineData(" xml:space=\"preserve\"", false)]
+        [InlineData("", true)]
+        public void Digest_KeepsWhitespaceWhereXmlSpaceIsPreserve(string space, bool sameDigest) {
+            static string DigestOf(string xml) {
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(xml);
+                var tree = OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.Parse(bytes, bytes.Length,
+                    new OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Table());
+                return LegacyPptXml.Digest(new OfficeIMO.OpenXml.Internal.OfficeXmlNode(tree, tree.Root));
+            }
+
+            string withSpace = DigestOf("<v:root xmlns:v=\"urn:test\"" + space + "><v:data><v:item/> </v:data></v:root>");
+            string withoutSpace = DigestOf("<v:root xmlns:v=\"urn:test\"" + space + "><v:data><v:item/></v:data></v:root>");
+
+            Assert.Equal(sameDigest, withSpace == withoutSpace);
+        }
+
+        [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
             LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);
 

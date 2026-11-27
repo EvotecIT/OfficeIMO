@@ -650,7 +650,9 @@ namespace OfficeIMO.PowerPoint {
             using LegacyPptPackageView view = LegacyPptPackageView.Capture(this);
             foreach (PowerPointSlide slide in LoadedSlides) {
                 LegacyPptPartView slidePart = view.Part(slide.PartRef.Name);
+                // Hyperlinks inside extension metadata define no slide action, as the typed SDK scan didn't see them.
                 foreach (OfficeXmlNode hyperlink in slidePart.Root.EveryDescendant()) {
+                    if (hyperlink.HasAncestor(LegacyPptXml.A, "extLst") || hyperlink.HasAncestor(LegacyPptXml.P, "extLst")) continue;
                     if (!hyperlink.Is(LegacyPptXml.A, "hlinkClick")
                         && !hyperlink.Is(LegacyPptXml.A, "hlinkHover")
                         && !hyperlink.Is(LegacyPptXml.A, "hlinkMouseOver")) continue;

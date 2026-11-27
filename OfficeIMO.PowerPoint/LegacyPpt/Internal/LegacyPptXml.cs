@@ -28,7 +28,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static bool Bool(this OfficeXmlNode element, string localName, bool defaultValue) => element.Bool(localName) ?? defaultValue;
 
-        internal static bool? ParseBoolean(string? value) => value switch {
+        // xsd:boolean and the integer types collapse whitespace, so surrounding XML whitespace is not part of the value.
+        private static readonly char[] XmlWhitespace = { ' ', '\t', '\r', '\n' };
+
+        private static string? Collapse(string? value) => value?.Trim(XmlWhitespace);
+
+        internal static bool? ParseBoolean(string? value) => Collapse(value) switch {
             "true" or "1" => true,
             "false" or "0" => false,
             _ => null
@@ -41,13 +46,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static long? Long(this OfficeXmlNode element, string localName) => ParseInt64(element.Attribute(localName));
 
         internal static int? ParseInt32(string? value) =>
-            value != null && int.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int parsed) ? parsed : null;
+            Collapse(value) is string text && int.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int parsed) ? parsed : null;
 
         internal static uint? ParseUInt32(string? value) =>
-            value != null && uint.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed) ? parsed : null;
+            Collapse(value) is string text && uint.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed) ? parsed : null;
 
         internal static long? ParseInt64(string? value) =>
-            value != null && long.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long parsed) ? parsed : null;
+            Collapse(value) is string text && long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long parsed) ? parsed : null;
 
         internal static string Format(long value) => value.ToString(CultureInfo.InvariantCulture);
 
@@ -191,7 +196,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             for (int child = tree.FirstChildOf(node); child != OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
                 // Indentation between elements is formatting, which serializers add or drop.
-                if (hasElements && tree.KindOf(child) == OfficeXmlTreeNodeKind.Text && string.IsNullOrWhiteSpace(tree.GetText(child))) continue;
+                if (hasElements && tree.KindOf(child) == OfficeXmlTreeNodeKind.Text && string.IsNullOrWhiteSpace(tree.GetText(child))
+                    && !PreservesSpace(tree, node)) continue;
                 AppendCanonical(tree, child, builder);
             }
             builder.Append("</>");
@@ -221,6 +227,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 if (colon >= 0) resolved.Append(token, colon + 1, token.Length - colon - 1);
             }
             return resolved.ToString();
+        }
+
+        // Whether the nearest xml:space on the element or its ancestors is "preserve".
+        private static bool PreservesSpace(OfficeXmlTree tree, int node) {
+            for (int current = node; current != OfficeXmlTree.NoNode; current = tree.ParentOf(current)) {
+                if (tree.KindOf(current) != OfficeXmlTreeNodeKind.Element) continue;
+                int count = tree.AttributeCountOf(current);
+                for (int index = 0; index < count; index++) {
+                    tree.GetAttributeAt(current, index, out int namespaceId, out string localName, out string value);
+                    if (namespaceId == OfficeXmlNamespaces.Xml && string.Equals(localName, "space", StringComparison.Ordinal)) {
+                        return string.Equals(value, "preserve", StringComparison.Ordinal);
+                    }
+                }
+            }
+            return false;
         }
 
         private static string? LookupNamespace(OfficeXmlTree tree, int node, string prefix) {

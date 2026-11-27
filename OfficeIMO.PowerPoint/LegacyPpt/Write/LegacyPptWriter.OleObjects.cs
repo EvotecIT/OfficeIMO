@@ -83,8 +83,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out LegacyPptRelationshipView relationship)
                 || relationship.IsExternal
                 || relationship.TargetPart.IsNone) {
-                throw new ArgumentOutOfRangeException(nameof(relationshipId),
-                    $"The relationship '{relationshipId}' does not target a part of '{slidePart.Name}'.");
+                reason = $"The OLE relationship '{relationshipId}' does not target a part of '{slidePart.Name}'.";
+                return false;
             }
             LegacyPptPartView part = relationship.TargetPart;
             if (!relationship.IsType(LegacyPptPackageView.OleObjectRelationshipType)) {

@@ -807,6 +807,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                              .Where(IsPartRelationship).OrderBy(item => item.Id, StringComparer.Ordinal)) {
                     if (includeRelationship != null && !includeRelationship(part, relationship)) continue;
                     LegacyPptProjectionDigest.Append(content, relationship.Id);
+                    LegacyPptProjectionDigest.Append(content, OfficeXmlNamespaces.NormalizeRelationshipType(relationship.Type));
                     LegacyPptProjectionDigest.Append(content, relationship.TargetPart.Name);
                 }
                 foreach (LegacyPptRelationshipView relationship in part.Relationships
