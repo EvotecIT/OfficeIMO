@@ -9,10 +9,16 @@ namespace OfficeIMO.PowerPoint.Benchmarks;
 [MemoryDiagnoser]
 [BenchmarkCategory("Performance")]
 public class PowerPointLegacyPptBenchmarks {
+    // The corpus decks carry content the native writer reports as lossy (notes drawings, connectors).
+    private static readonly PowerPointSaveOptions WriteOptions = new() {
+        Format = PowerPointFileFormat.Ppt,
+        LossPolicy = OfficeConversionLossPolicy.Allow
+    };
+
     private byte[] _ppt = Array.Empty<byte>();
     private byte[] _pptx = Array.Empty<byte>();
 
-    [Params("PicturePowerPoint.ppt", "ConnectedPowerPoint.ppt", "RichTextPowerPoint.ppt", "apache-poi-testdata/bug61881.ppt")]
+    [Params("PicturePowerPoint.ppt", "BasicPowerPoint.ppt", "RichTextPowerPoint.ppt", "apache-poi-testdata/bug61881.ppt")]
     public string Fixture { get; set; } = string.Empty;
 
     [GlobalSetup]
@@ -22,7 +28,7 @@ public class PowerPointLegacyPptBenchmarks {
         if (presentation.Slides.Count == 0) throw new InvalidOperationException("The fixture has no slides.");
         _pptx = presentation.ToBytes();
         using PowerPointDocument converted = PowerPointDocument.Load(new MemoryStream(_pptx, writable: false));
-        if (converted.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }).Length == 0) {
+        if (converted.ToBytes(WriteOptions).Length == 0) {
             throw new InvalidOperationException("The native writer produced nothing.");
         }
     }
@@ -36,7 +42,7 @@ public class PowerPointLegacyPptBenchmarks {
     [Benchmark]
     public byte[] WriteNative() {
         using PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_pptx, writable: false));
-        return presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
+        return presentation.ToBytes(WriteOptions);
     }
 
     private static string FindCorpus() {
