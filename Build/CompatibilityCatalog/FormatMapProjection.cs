@@ -14,7 +14,13 @@ internal static class FormatMapProjection {
     private const string PowerShellRoutesFile = "powershell-routes.json";
     private const string PowerShellSnapshot = "Website/data/apidocs/powershell/command-metadata.json";
 
-    internal static string Create(string repositoryRoot) {
+    internal static string Create(string repositoryRoot) =>
+        Serialize(CreateModel(repositoryRoot));
+
+    internal static string Serialize(FormatMapModel model) =>
+        JsonSerializer.Serialize(model, FormatMapJsonContext.Default.FormatMapModel).Replace("\r\n", "\n") + "\n";
+
+    internal static FormatMapModel CreateModel(string repositoryRoot) {
         HashSet<string> studio = Ids(IWorkWorkflow.CreateRunner().ConversionRoutes);
         HashSet<string> cli = Ids(new OfficeWorkflowRunner().ConversionRoutes);
         cli.UnionWith(studio);
@@ -57,8 +63,7 @@ internal static class FormatMapProjection {
                 }
             }
         }
-        var model = new FormatMapModel(1, Families, formats, routes);
-        return JsonSerializer.Serialize(model, FormatMapJsonContext.Default.FormatMapModel).Replace("\r\n", "\n") + "\n";
+        return new FormatMapModel(1, Families, formats, routes);
     }
 
     private static HashSet<string> Ids(IEnumerable<OfficeWorkflowRoute> routes) =>

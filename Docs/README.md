@@ -7,7 +7,8 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Build and release](building-and-releasing.md) — combined OfficeIMO/PSWriteOffice validation, publication, and website generation.
 - [PSWriteOffice](../PowerShell/PSWriteOffice/README.MD) — PowerShell installation, commands, and examples.
 
-- [Repository overview](../README.md) — install, quick start, package map and supported platforms.
+- [Repository overview](../README.md) — what OfficeIMO offers, ways to use it, the format map and the main packages.
+- [Platform differences](officeimo.platform-differences.md) — what can differ between .NET Framework and modern .NET for the same document.
 - [Package catalog](officeimo.package-catalog.md) — every package, what it covers, its dependencies and the conversion graph.
 - Format guides — the API beyond each package README: [Word](officeimo.word-guide.md), [Excel](officeimo.excel-guide.md), [PowerPoint](officeimo.powerpoint-guide.md) and [PDF](officeimo.pdf-guide.md).
 - [API design](officeimo.api-design.md) — naming, lifecycle, conversion and PowerShell rules shared by every package.

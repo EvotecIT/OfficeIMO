@@ -52,17 +52,16 @@ Rules that apply to every README:
    that name what a target could not carry, bounded reads of untrusted input,
    and measured performance with a link to the published workloads.
 5. **Quick start**: the generated QuickStart example.
-6. **Formats**: a format map grouped by family (documents, spreadsheets,
-   presentations, PDF and fixed layout, diagrams and plans, databases, notes
-   and books, email and archives, markup and data, web and cloud). One row per
-   format: extensions, package, and create / edit / read / convert marks.
-   The marks come from `Website/data/format_map.json` and the generated operation
-   contract, so the table should be generated rather than kept by hand.
+6. **Formats**: the format map, generated between the
+   `officeimo-format-map` markers by `Build/CompatibilityCatalog` from the
+   same catalog as `Website/data/format_map.json`. One row per family with its
+   formats and route count, and a line with the route count for each surface.
+   Change the families in `RootReadmeFormatMapProjection.cs`, then regenerate.
 7. **Read for search and AI**: Reader, OCR and the MCP tools in two or three
    lines.
 8. **Packages**: how packages are named (`OfficeIMO.{Format}`,
-   `OfficeIMO.{Source}.{Target}`, `OfficeIMO.Reader.{Format}`) and a link to the
-   package catalog instead of a second full list.
+   `OfficeIMO.{Source}.{Target}`, `OfficeIMO.Reader.{Format}`), a short table of
+   the main engines, and a link to the package catalog for the rest.
 9. **Platforms**: targets, operating systems, AOT, and one link to the platform
    differences page.
 10. **Documentation, support, sponsors, license**.
