@@ -69,6 +69,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private static bool SameBytes(byte[] left, byte[] right) {
+            if (left.Length != right.Length) return false;
+            for (int index = 0; index < left.Length; index++) {
+                if (left[index] != right[index]) return false;
+            }
+            return true;
+        }
+
         private static void ApplyFormattingChange(OfficeXmlNode srcRun, OfficeXmlNode tgtRun, OfficeXmlNode resRun) {
             if (srcRun.IsNone || tgtRun.IsNone || resRun.IsNone) {
                 return;
@@ -77,7 +85,7 @@ namespace OfficeIMO.Word {
             OfficeXmlNode srcProperties = srcRun.Child(W, "rPr");
             OfficeXmlNode tgtProperties = tgtRun.Child(W, "rPr");
             if (srcProperties.IsNone == tgtProperties.IsNone &&
-                (srcProperties.IsNone || srcProperties.OuterXml().AsSpan().SequenceEqual(tgtProperties.OuterXml()))) {
+                (srcProperties.IsNone || SameBytes(srcProperties.OuterXml(), tgtProperties.OuterXml()))) {
                 return;
             }
 
