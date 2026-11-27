@@ -43,6 +43,7 @@ decision or retirement for it. A member inherited from a base type appears once,
 | `kind`, `member`, `signature`, `returns` | The current exported shape, including parameter names and defaults. |
 | `treatment` | The 4.0 form (below). |
 | `proposed` | The 4.0 call for `rename`, `generate*`, `retire` and decisions that already have a proposal. |
+| `powerForge` | What PowerForge.Generators produces for the member once its receiver is `[Fluent]` (below). |
 | `semantics` | What the body returns: `returns-receiver` (mutation), `returns-new` (copy), `mixed`, `delegates`, `void` or `no-source`. |
 | `reason` | Why, when the treatment alone does not say. |
 | `flags` | Extra facts and decision codes (below). |
@@ -56,7 +57,7 @@ decision or retirement for it. A member inherited from a base type appears once,
 | `rename` | A `Set...` configuration method becomes the property-named extension in `proposed` (`SetBold` to `Bold()` / `Bold(false)`). Also property renames from `fluent-ledger.json`. |
 | `generate` | A public settable property gets a generated `X(value)` extension; `bool` and `bool?` get `X(bool value = true)`, `IsX` becomes `X()`. Assignment keeps working. |
 | `generate-nested` | A read-only property holding an option object gets `X(o => ...)`, configured in place. |
-| `generate-configure` | A delegate-valued property is assigned through `Configure(x => x.Callback = ...)`, never by a same-named call. |
+| `generate-verb` | A delegate-valued property gets a method named by a verb (`[Fluent("FormatLabels")]`), never a same-named call, which would invoke it. |
 | `keep-action` | An explicit editing action keeps its verb (`ApplyTheme`, `ReplaceAll`, `RemoveX`), including keyed `Set...` writes. |
 | `keep-copy` | A genuine `With...` copy keeps its name and copy semantics. |
 | `keep-add` | `Add...` keeps returning the created native child. |
@@ -86,32 +87,74 @@ and no matching property, renamed with its arguments), `keyed-set` (the first ar
 so it stays an action), `merges-set` (a property whose `Set...` method maps to the same extension: one generated
 method), `is-prefix`, `property-rename`, `struct-receiver` (a value-type handle: the extension must call a handle
 mutator), `interface-member`, `init-only`, `non-public-setter`, `set-method`, `collection`, `returns-parent`,
-`returns-void`, `getter-copies` (a read-only option property whose getter returns a copy or a detached new object, so it gets no in-place
+`returns-void`, `getter-computed` (a collection getter that builds the list each time, so adding to it is lost),
+`collection-collision` (a collection's one-item or range method name is already a method), `getter-copies` (a read-only option property whose getter returns a copy or a detached new object, so it gets no in-place
 callback), `getter-view` (the getter returns a new wrapper over the receiver or a reference it holds, so the callback
 edits the receiver), `copy-unverified` (a `With...` on a mutable type whose body was not proven to copy),
 `matches-property` and `callback`.
 
-## Generating the extensions
+## PowerForge.Generators
 
-`OfficeIMO.Fluent.Generators` is the prototype that turns `rename` and `generate*` rows into code. A receiver opts
-in with `[Fluent]`; a canonical write path that has no public setter (a `Set...` method becoming internal, or a
-value-type handle such as `ExcelCell`) is marked `[FluentMutator("Bold")]`, and the generated `Bold(...)` calls it
-and returns the receiver. Reference types get `TSelf` extensions so derived receivers keep their type; value-type
-handles return the same handle without allocating. Collisions, setters on value types and two members mapping to
-one method are build errors. `OfficeIMO.Fluent.Generators.Tests` proves it on a small receiver.
+The extensions come from [PowerForge.Generators](https://github.com/EvotecIT/PSPublishModule/tree/main/PowerForge.Generators),
+the build-time generator ConsoleMonster and the other Evotec libraries already use, referenced with
+`PrivateAssets="all"` so it adds no runtime dependency. A receiver opts in with `[PowerForge.Fluent.Fluent]`; every
+public settable property then gets `X(value)` (`X(bool value = true)` for a `bool`, `IsX` becoming `X`), a settings
+object gets `X(o => ...)` configured in place, and an `ICollection<T>` gets one-item and range methods named after
+the singular. `[Fluent("Name")]` renames a method, `[Child("Name")]` renames a collection's one-item methods and
+`[NoFluent]` leaves a member out; a collision is build error PFF002.
 
-PowerForge.Generators already generates fluent methods for ConsoleMonster and the other Evotec libraries from the
-same kind of attributes. It cannot yet call an instance mutator, generate for structs, or give `bool?` a
-`X()` that means true, which the engines need. Either it gains those three and OfficeIMO consumes it as a
-build-time dependency, or this generator stays package-local; #3344 tracks that decision.
+`powerForge` records the outcome per row:
+
+| Value | Meaning |
+| --- | --- |
+| `generated` | A property setter, or a `Set...` method whose property has a public setter (the method then retires). |
+| `generated-configure` | `X(o => ...)` on a read-only settings property, including a live wrapper (`getter-view`). |
+| `generated-collection` | One-item and range methods on a stored collection. |
+| `[Fluent("Verb")]` | A delegate property: PFF001 until it names a verb. |
+| `[Fluent("Name")]` | The generated name collides (`name-collision`): PFF002 until it is renamed or left out. |
+| `[Child("Name")]` | A collection whose one-item or range name is taken (`collection-collision`). |
+| `[NoFluent]` | Must be left out: a getter that copies (`getter-copies`), or a collection that is computed (`getter-computed`) or read-only, where generated methods would edit a throwaway object or throw. |
+| `gap:...` | Something OfficeIMO needs that the generator does not support yet (below). |
+
+### What PowerForge.Generators does not support yet
+
+These are generator changes, made in PSPublishModule as their own release. The summary in
+[`Build/ApiMap/fluent`](../fluent/README.md#powerforgegenerators) counts the rows for each.
+
+- **`gap:mutator`: a canonical write path without a public setter.** The generator only assigns public setters.
+  `WordComment.SetResolved(bool)` writes `Resolved`, whose setter is not public; `WordChart.SetRadialLayout(...)` has
+  no property at all. `[FluentForward]` reaches a static helper with one value, so each would need a handwritten
+  static wrapper. Needed: an attribute on an internal instance method (`[FluentMutator("Resolved")]`) that the
+  generated `Resolved(bool value = true)` calls.
+- **`gap:multi-value`: a configuration call with several values.** `PdfHeaderFooter.SetZones(left, center, right)`,
+  `PowerPointChart.SetAccessibility(alternativeText, dataSummary, includeDataSummary)`. Forwarding takes one value.
+  Needed: the mutator above with its full parameter list and defaults.
+- **`gap:value-handle`: value-type handles.** `ExcelCell` is a struct over the sheet, so `ExcelCell.SetBold(...)` and
+  the other cell setters cannot become `Bold()`: the generator only writes for classes. Needed: by-value
+  extensions on a struct (`this ExcelCell cell`) that call a handle mutator and return the same handle, without
+  allocating a wrapper.
+- **`gap:nullable-bool`: `bool?` properties.** `PdfViewerPreferencesOptions.CenterWindow` and
+  `WordParagraph.AvoidWidowAndOrphanOverride` get `X(bool? value)` with no default, so `X()` does not compile, and
+  `IsX` keeps its prefix. Needed: the `bool` rule (`X(bool? value = true)`, `IsX` to `X`) for `bool?`.
+- **`gap:receiver-shape`: nested option types.** `PowerPointExtractionExtensions.PowerPointExtractOptions`,
+  `TocBlock.Entry` and `ExcelDocument.ExcelTabularRowWriter` are nested, which the generator skips. Either they
+  move to the namespace or the generator learns nested types.
+- **`gap:settings-shape`: abstract settings types.** `PowerPointConnectionShape.StartShape` returns an abstract
+  `PowerPointShape`, which is not configured in place because the generator requires a concrete type. Only two rows;
+  configuring in place does not need to create the object.
+
+Not gaps, but worth folding into the generator: it configures a read-only settings property in place without looking
+at the getter and generates adders for any `ICollection<T>`, so the `[NoFluent]` rows must be marked by hand
+(`WordDocument.Charts` returns a new list on every read, `HtmlRenderRequest.Options` returns a clone).
 
 ## Migrating callers
 
 The rename runs after the SDK removal, against a regenerated ledger. It is mechanical because every row is keyed
 by `id` and carries its `proposed` call.
 
-1. **Add before removing.** Mark the receivers `[Fluent]` and the canonical write paths `[FluentMutator]`. The
-   generated `Bold()` coexists with the public `SetBold()` (different names), so every caller still compiles.
+1. **Add before removing.** Reference PowerForge.Generators, mark the receivers `[Fluent]`, add the attributes the
+   `powerForge` field names, and close the `gap:` rows in the generator first. The generated `Bold()` coexists with
+   the public `SetBold()` (different names), so every caller still compiles.
 2. **Rewrite C# callers with a Roslyn codemod.** It opens each project with `MSBuildWorkspace` (Microsoft.Build.Locator
    and Microsoft.CodeAnalysis.Workspaces.MSBuild, build-time only), resolves every `rename` and `retire` row from its
    `id` in the engine compilation, and finds references with `SymbolFinder`. A `rename` reference becomes the
@@ -131,7 +174,7 @@ by `id` and carries its `proposed` call.
    semantic model. Their calls are renamed only when the member name maps to one 4.0 name for every receiver in
    the ledger; any other call is reported. `Build/Test-DocsCodeExamples.ps1` then compiles the website blocks and the
    Pester tests cover the scripts.
-4. **Remove the old surface.** Make the `Set...` methods internal (they stay the `[FluentMutator]` write paths) or
+4. **Remove the old surface.** Make the `Set...` methods internal (they stay the canonical write paths) or
    delete them where a property setter already is the write path, rebuild, and regenerate the ledger: no public
    `rename` rows may remain.
 5. **Generate the migration notes.** Write the applied rows into `Build/ApiMap/csharp/{package}.json` as `rename`,

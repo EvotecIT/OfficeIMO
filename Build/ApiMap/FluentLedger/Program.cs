@@ -83,7 +83,7 @@ internal static class LedgerOutput {
         .OrderBy(row => row.Receiver, StringComparer.Ordinal).ThenBy(row => row.Member, StringComparer.Ordinal).ThenBy(row => row.Signature, StringComparer.Ordinal);
 
     private static readonly string[] Columns = [
-        Ledger.Treatments.Rename, Ledger.Treatments.Generate, Ledger.Treatments.GenerateNested, Ledger.Treatments.GenerateConfigure,
+        Ledger.Treatments.Rename, Ledger.Treatments.Generate, Ledger.Treatments.GenerateNested, Ledger.Treatments.GenerateVerb,
         Ledger.Treatments.KeepAction, Ledger.Treatments.KeepCopy, Ledger.Treatments.KeepAdd, Ledger.Treatments.KeepLifecycle,
         Ledger.Treatments.KeepConversion, Ledger.Treatments.KeepSelector, Ledger.Treatments.KeepProperty, Ledger.Treatments.KeepFluent, Ledger.Treatments.Keep,
         Ledger.Treatments.Retire, Ledger.Treatments.Decision ];
@@ -119,6 +119,20 @@ internal static class LedgerOutput {
         text.AppendLine("| Code | Rows | Receivers | Examples |");
         text.AppendLine("| --- | ---: | ---: | --- |");
         foreach (var group in decisions.GroupBy(DecisionCode).OrderByDescending(group => group.Count()).ThenBy(group => group.Key, StringComparer.Ordinal)) {
+            var examples = Order(group).Select(row => $"`{Short(row.Receiver)}.{row.Member}`").Distinct().Take(6);
+            text.AppendLine($"| `{group.Key}` | {group.Count()} | {group.Select(row => row.Receiver).Distinct().Count()} | {string.Join(", ", examples)} |");
+        }
+        text.AppendLine();
+
+        text.AppendLine("## PowerForge.Generators");
+        text.AppendLine();
+        text.AppendLine("What PowerForge.Generators produces for each member once its receiver is marked `[Fluent]` (the `powerForge` field). ");
+        text.AppendLine("`generated*` needs nothing more; an attribute is what the member needs; `gap:` is something the generator does not support yet.");
+        text.AppendLine();
+        text.AppendLine("| Form | Rows | Receivers | Examples |");
+        text.AppendLine("| --- | ---: | ---: | --- |");
+        foreach (var group in rows.Where(row => row.PowerForge != null).GroupBy(row => row.PowerForge!)
+                     .OrderBy(group => group.Key.StartsWith("gap:", StringComparison.Ordinal)).ThenByDescending(group => group.Count()).ThenBy(group => group.Key, StringComparer.Ordinal)) {
             var examples = Order(group).Select(row => $"`{Short(row.Receiver)}.{row.Member}`").Distinct().Take(6);
             text.AppendLine($"| `{group.Key}` | {group.Count()} | {group.Select(row => row.Receiver).Distinct().Count()} | {string.Join(", ", examples)} |");
         }

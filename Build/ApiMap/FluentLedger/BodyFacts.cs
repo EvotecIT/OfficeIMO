@@ -96,6 +96,23 @@ internal static class BodyFacts {
         _ => type.ToString()
     };
 
+    /// <summary>
+    /// True when a getter hands out a stored instance (an auto-property, a field or a member of one), false when it computes
+    /// the value each time (<c>ToList()</c>, <c>new List&lt;T&gt;(...)</c>, a query), so adding to the result would be lost.
+    /// </summary>
+    internal static bool GetterStored(IReadOnlyList<SyntaxNode> declarations) {
+        foreach (var property in declarations.OfType<PropertyDeclarationSyntax>()) {
+            var getter = property.AccessorList?.Accessors.FirstOrDefault(accessor => accessor.Keyword.ValueText == "get");
+            IEnumerable<ExpressionSyntax> expressions = property.ExpressionBody != null ? [property.ExpressionBody.Expression]
+                : getter?.ExpressionBody != null ? [getter.ExpressionBody.Expression]
+                : getter?.Body != null ? OwnedReturns(getter.Body) : [];
+            if (expressions.Any(expression => Unwrap(expression) is var value && (IsFresh(value) || value is InvocationExpressionSyntax
+                    or CollectionExpressionSyntax or ArrayCreationExpressionSyntax or ImplicitArrayCreationExpressionSyntax or ConditionalExpressionSyntax or SwitchExpressionSyntax)))
+                return false;
+        }
+        return true;
+    }
+
     private static bool IsFresh(ExpressionSyntax value) =>
         value is BaseObjectCreationExpressionSyntax or WithExpressionSyntax
         || value is InvocationExpressionSyntax invocation && InvokedName(invocation) is { } name

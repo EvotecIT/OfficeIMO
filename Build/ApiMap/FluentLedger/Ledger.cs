@@ -14,6 +14,7 @@ internal sealed record LedgerRow(
     string? Returns,
     string Treatment,
     string? Proposed,
+    string? PowerForge,
     string? Semantics,
     string? Reason,
     IReadOnlyList<string>? Flags,
@@ -30,7 +31,7 @@ internal sealed class Ledger {
         internal const string Rename = "rename";
         internal const string Generate = "generate";
         internal const string GenerateNested = "generate-nested";
-        internal const string GenerateConfigure = "generate-configure";
+        internal const string GenerateVerb = "generate-verb";
         internal const string KeepAction = "keep-action";
         internal const string KeepCopy = "keep-copy";
         internal const string KeepAdd = "keep-add";
@@ -273,8 +274,8 @@ internal sealed class Ledger {
 
         if (IsPublicSetter(property)) {
             if (property.Type.TypeKind == TypeKind.Delegate)
-                return Row(receiver, property, framework, Treatments.GenerateConfigure, $"Configure(x => x.{name} = value)", "",
-                    "Delegate-valued property is assigned through Configure, never invoked by a same-named call.", flags);
+                return Row(receiver, property, framework, Treatments.GenerateVerb, null, "",
+                    "Delegate-valued property: a same-named call would invoke it, so its method needs a verb of its own.", flags);
             bool boolean = IsBoolean(property.Type);
             string target = name;
             if (boolean && name.Length > 2 && name.StartsWith("Is", StringComparison.Ordinal) && char.IsUpper(name[2])) {
@@ -330,6 +331,11 @@ internal sealed class Ledger {
             return Row(receiver, property, framework, Treatments.GenerateNested, $"{name}({Display(property.Type).TrimEnd('?')} => ...)", "",
                 "Read-only option object configured in place through a nested callback.", flags);
         if (IsCollection(property.Type)) flags.Add("collection");
+        if (CollectionItem(property.Type) != null) {
+            if (!BodyFacts.GetterStored(_source.FindSyntax(property))) flags.Add("getter-computed");
+            // The one-item methods take the singular name, the range method the property name; an existing method there is PFF002.
+            if (Collision(receiver, Singular(property.Name), property) != null || Collision(receiver, property.Name, property) != null) flags.Add("collection-collision");
+        }
         return Row(receiver, property, framework, Treatments.KeepSelector, null, "", null, flags);
     }
 
@@ -422,6 +428,100 @@ internal sealed class Ledger {
     private static string Display(ITypeSymbol type) => type.ToDisplayString(TypeName);
     private static string Name(INamedTypeSymbol type) => type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat.WithGenericsOptions(SymbolDisplayGenericsOptions.None));
 
+    /// <summary>
+    /// What PowerForge.Generators produces for the member once its receiver is marked <c>[Fluent]</c>: <c>generated</c>,
+    /// <c>generated-configure</c> and <c>generated-collection</c> need nothing more; an attribute name says what the member
+    /// needs (<c>[Fluent("Verb")]</c>, <c>[Fluent("Name")]</c>, <c>[NoFluent]</c>); <c>gap:...</c> is something it cannot
+    /// generate yet. Null when the generator does not touch the member.
+    /// </summary>
+    private static string? PowerForgeForm(INamedTypeSymbol receiver, ISymbol member, string treatment, string? proposed, IReadOnlyList<string> flags) {
+        bool collides = flags.Contains("name-collision");
+        string? Shape() => receiver.TypeKind == TypeKind.Struct ? Gaps.ValueHandle : !PowerForgeReceiver(receiver) ? Gaps.ReceiverShape : null;
+        switch (member) {
+            case IPropertySymbol { IsIndexer: false, IsStatic: false } property:
+                if (treatment == Treatments.GenerateVerb) return Shape() ?? "[Fluent(\"Verb\")]";
+                if (IsPublicSetter(property) && (treatment == Treatments.Generate || collides)) {
+                    if (Shape() is { } gap) return gap;
+                    if (collides) return "[Fluent(\"Name\")]";
+                    return IsNullableBoolean(property.Type) ? Gaps.NullableBool : "generated";
+                }
+                if (treatment == Treatments.GenerateNested || flags.Contains("getter-copies") || flags.Contains("getter-wraps")) {
+                    if (Shape() is { } gap) return gap;
+                    if (property.Type is not INamedTypeSymbol option || !PowerForgeSettings(option)) return treatment == Treatments.GenerateNested ? Gaps.SettingsShape : null;
+                    // A read-only settings property is always configured in place, so a copying getter must be left out.
+                    return treatment == Treatments.GenerateNested ? "generated-configure" : "[NoFluent]";
+                }
+                if (CollectionItem(property.Type) != null && property.GetMethod is { DeclaredAccessibility: Accessibility.Public } && Shape() == null) {
+                    // Adding to a computed or read-only collection would be lost or throw.
+                    if (flags.Contains("getter-computed") || IsReadOnlyCollection(property.Type)) return "[NoFluent]";
+                    return flags.Contains("collection-collision") ? "[Child(\"Name\")]" : "generated-collection";
+                }
+                return null;
+            case IMethodSymbol method when treatment == Treatments.Rename || collides && IsSetMethod(method):
+                if (Shape() is { } shape) return shape;
+                if (proposed == null || proposed.IndexOf('(') is var open && open < 0) return null;
+                var target = FindProperty(receiver, proposed[..open]);
+                if (target != null && IsPublicSetter(target)) {
+                    if (collides) return "[Fluent(\"Name\")]";
+                    return IsNullableBoolean(target.Type) ? Gaps.NullableBool : "generated";
+                }
+                return flags.Contains("multi-value") ? Gaps.MultiValue : Gaps.Mutator;
+            default:
+                return null;
+        }
+    }
+
+    private static bool IsSetMethod(IMethodSymbol method) => method.Name.StartsWith("Set", StringComparison.Ordinal);
+
+    internal static class Gaps {
+        internal const string Mutator = "gap:mutator";
+        internal const string MultiValue = "gap:multi-value";
+        internal const string ValueHandle = "gap:value-handle";
+        internal const string NullableBool = "gap:nullable-bool";
+        internal const string ReceiverShape = "gap:receiver-shape";
+        internal const string SettingsShape = "gap:settings-shape";
+    }
+
+    /// <summary>A type PowerForge.Generators writes methods for: a public, top-level class, not static, generic only when sealed.</summary>
+    private static bool PowerForgeReceiver(INamedTypeSymbol type) =>
+        type.TypeKind == TypeKind.Class && !type.IsStatic && (!type.IsGenericType || type.IsSealed)
+        && type.DeclaredAccessibility == Accessibility.Public && type.ContainingType == null;
+
+    /// <summary>A settings type it configures through <c>X(o =&gt; ...)</c>: a concrete receiver-shaped class with a public setter or a collection.</summary>
+    private static bool PowerForgeSettings(INamedTypeSymbol type) =>
+        PowerForgeReceiver(type) && !type.IsAbstract
+        && SelfAndBases(type).SelectMany(t => t.GetMembers()).OfType<IPropertySymbol>().Any(p => IsPublicSetter(p) || IsPublic(p) && !p.IsStatic && CollectionItem(p.Type) != null);
+
+    /// <summary>The item type of a mutable collection the way PowerForge.Generators reads it: <c>ICollection&lt;T&gt;</c>, not a dictionary, array or string.</summary>
+    private static ITypeSymbol? CollectionItem(ITypeSymbol type) {
+        if (type.SpecialType == SpecialType.System_String || type is IArrayTypeSymbol) return null;
+        var contracts = type is INamedTypeSymbol { TypeKind: TypeKind.Interface } named ? new[] { named }.Concat(type.AllInterfaces) : type.AllInterfaces;
+        ITypeSymbol? item = null;
+        foreach (var contract in contracts) {
+            string definition = contract.OriginalDefinition.ToDisplayString();
+            if (definition == "System.Collections.Generic.IDictionary<TKey, TValue>") return null;
+            if (definition == "System.Collections.Generic.ICollection<T>") item = contract.TypeArguments[0];
+        }
+        return item;
+    }
+
+    private static bool IsReadOnlyCollection(ITypeSymbol type) {
+        string name = type.OriginalDefinition.ToDisplayString();
+        return name.StartsWith("System.Collections.ObjectModel.ReadOnly", StringComparison.Ordinal) || name.StartsWith("System.Collections.Immutable.", StringComparison.Ordinal);
+    }
+
+    private static bool IsNullableBoolean(ITypeSymbol type) =>
+        type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable && nullable.TypeArguments[0].SpecialType == SpecialType.System_Boolean;
+
+    /// <summary>PowerForge.Generators' singular rule for a collection's one-item methods.</summary>
+    private static string Singular(string name) {
+        if (name.EndsWith("Children", StringComparison.Ordinal)) return name[..^3];
+        if (name.EndsWith("Series", StringComparison.Ordinal) || name.EndsWith("ss", StringComparison.Ordinal) || !name.EndsWith('s')) return name;
+        if (name.EndsWith("ies", StringComparison.Ordinal)) return name[..^3] + "y";
+        if (name.EndsWith("ches", StringComparison.Ordinal) || name.EndsWith("shes", StringComparison.Ordinal) || name.EndsWith("sses", StringComparison.Ordinal) || name.EndsWith("xes", StringComparison.Ordinal)) return name[..^2];
+        return name[..^1];
+    }
+
     private LedgerRow Row(INamedTypeSymbol receiver, ISymbol member, string framework, string treatment, string? proposed, string semantics, string? reason, IReadOnlyList<string> flags) {
         bool extension = member is IMethodSymbol { IsExtensionMethod: true };
         string kind = member switch {
@@ -455,6 +555,7 @@ internal sealed class Ledger {
             returns.Length == 0 ? null : returns,
             treatment,
             proposed,
+            PowerForgeForm(receiver, member, treatment, proposed, flags),
             semantics.Length == 0 ? null : semantics,
             reason,
             flags.Count == 0 ? null : flags.Distinct().ToArray(),

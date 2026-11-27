@@ -10,7 +10,7 @@ Built from the Release assemblies for net10.0, netstandard2.0. Treatments and fl
 
 ## Treatments by package
 
-| Package | rename | generate | generate-nested | generate-configure | keep-action | keep-copy | keep-add | keep-lifecycle | keep-conversion | keep-selector | keep-property | keep-fluent | keep | retire | decision | total |
+| Package | rename | generate | generate-nested | generate-verb | keep-action | keep-copy | keep-add | keep-lifecycle | keep-conversion | keep-selector | keep-property | keep-fluent | keep | retire | decision | total |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | [OfficeIMO](OfficeIMO.json) |  | 120 |  | 2 | 1 |  |  | 17 | 3 | 1 | 38 | 1 | 42 |  | 21 | 246 |
 | [OfficeIMO.Access](OfficeIMO.Access.json) | 3 | 19 |  |  | 1 |  | 10 | 15 |  | 39 |  |  | 2 |  |  | 89 |
@@ -73,6 +73,26 @@ Every `decision` row carries one of these codes in `flags`.
 | `set-returns-copy` | 1 | 1 | `ExcelTable.SetSchema` |
 | `static-set` | 1 | 1 | `VCardDocument.SetVersion` |
 | `word-run-type` | 1 | 1 | `WordParagraph.AddText` |
+
+## PowerForge.Generators
+
+What PowerForge.Generators produces for each member once its receiver is marked `[Fluent]` (the `powerForge` field). 
+`generated*` needs nothing more; an attribute is what the member needs; `gap:` is something the generator does not support yet.
+
+| Form | Rows | Receivers | Examples |
+| --- | ---: | ---: | --- |
+| `generated` | 7530 | 900 | `AccessCreateOptions.CreatedAt`, `AccessCreateOptions.DatabaseTitle`, `AccessCreateOptions.Format`, `AccessCreateOptions.Profile`, `AccessLoadOptions.DecodeApplicationObjects`, `AccessLoadOptions.DecodeCatalog` |
+| `generated-collection` | 271 | 89 | `ObjectFlattenerOptions.ExpandProperties`, `OfficeInkStroke.RecognitionAlternatives`, `OfficeRemoteImageLoadOptions.AllowedHosts`, `ContentLineComponent.Components`, `ContentLineComponent.Properties`, `ContentLineParameter.Values` |
+| `generated-configure` | 210 | 94 | `OfficeDrawing.Fonts`, `OfficeDrawingShape.Shape`, `OfficeSvgDrawingReaderOptions.Fonts`, `EmailDocument.Body`, `EmailDocument.MessageMetadata`, `EmailMailboxEntry.Document` |
+| `[NoFluent]` | 91 | 12 | `ExcelDocument.DocumentValidationErrors`, `HtmlRenderRequest.Options`, `PowerPointDocument.DocumentValidationErrors`, `WordComment.Replies`, `WordDocument.Charts`, `WordDocument.Comments` |
+| `[Fluent("Verb")]` | 55 | 37 | `ArchiveExtractionOptions.IncludeFile`, `ArchiveReadOptions.IncludeFile`, `CsvLoadOptions.ProgressCallback`, `CsvReaderOptions.ProgressCallback`, `RowMappingColumnOptions.TypeConverter`, `OfficeChangeSetOptions.NewPageNumber` |
+| `[Child("Name")]` | 1 | 1 | `TocBlock.Entries` |
+| `gap:nullable-bool` | 369 | 84 | `EmailMessageMetadata.IsRead`, `OutlookAppointment.IsAllDay`, `OutlookAppointment.IsRecurring`, `OutlookAppointment.NotAllowPropose`, `OutlookAppointment.ReminderIsSet`, `OutlookContact.HasPicture` |
+| `gap:mutator` | 284 | 62 | `AccessDocument.SetVbaProject`, `OfficeShape.SetStrokeDashArray`, `EmailStoreItemPatch.SetCategories`, `EmailStoreItemPatch.SetImportance`, `EmailStoreItemPatch.SetReadState`, `EmailStoreItemPatch.SetReminder` |
+| `gap:multi-value` | 257 | 53 | `AccessApplicationObject.SetCodeBehind`, `AccessApplicationObject.SetEventBinding`, `OutlookFollowUp.SetFlagged`, `EmailStoreItemPatch.SetFollowUp`, `EpubPublication.SetContentXml`, `EpubPublication.SetMetadataProperty` |
+| `gap:value-handle` | 47 | 1 | `ExcelCell.SetBaseline`, `ExcelCell.SetBold`, `ExcelCell.SetBorder`, `ExcelCell.SetColor`, `ExcelCell.SetDiagonalBorder`, `ExcelCell.SetError` |
+| `gap:receiver-shape` | 26 | 7 | `ExcelTabularRowWriter.SetNextCellStyle`, `ExcelTabularRowWriter.SetRowStyle`, `Entry.Anchor`, `Entry.Level`, `Entry.Text`, `PowerPointExtractOptions.IncludeHiddenShapes` |
+| `gap:settings-shape` | 2 | 1 | `PowerPointConnectionShape.EndShape`, `PowerPointConnectionShape.StartShape` |
 
 ## Rename families
 
