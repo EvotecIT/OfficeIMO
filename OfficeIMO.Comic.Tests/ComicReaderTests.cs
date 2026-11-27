@@ -7,6 +7,7 @@ public sealed class ComicReaderTests {
     [Theory]
     [InlineData("harbour.cbz")]
     [InlineData("harbour.cb7")]
+    [InlineData("harbour.cbr")]
     public void ImportsProducerComicsInNumericOrderWithBookmarksAndCanvases(string name) {
         using Stream source = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
         var imported = ComicReader.Import(source, name);

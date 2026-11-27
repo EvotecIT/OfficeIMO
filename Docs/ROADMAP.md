@@ -631,7 +631,7 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 - [ ] Qualify ZIP64 members of 4 GiB and more written by `ZipArchiveWriter` (staged and data-descriptor modes) against Info-ZIP, 7-Zip and the .NET runtime reader, and measure the managed Deflate encoder's throughput and ratio against the runtime's zlib on representative payloads.
 - [ ] Inventory TAR and gzip through `ArchiveInspector` (ordinal entries, planned and grouped reads, verified copies) and let `OfficeIMO.Reader.Zip` report unsafe TAR members as per-entry warnings and traverse archives nested in a TAR, as it does for ZIP.
 
-Encryption, RAR, additional 7z filters and methods, XZ, Zstandard, Brotli, split archives and installer execution remain deferred. Reassess format expansion only for an identified consumer workflow, with compatibility and dependency approval. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.
+Encryption, RAR 4 and compressed RAR 5 members, additional 7z filters and methods, XZ, Zstandard, Brotli, other split archives and installer execution remain deferred. Reassess format expansion only for an identified consumer workflow, with compatibility and dependency approval. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.
 
 ## Email artifacts and archives
 

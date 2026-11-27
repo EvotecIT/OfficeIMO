@@ -1,3 +1,4 @@
+using OfficeIMO.Archives;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.All;
 using Xunit;
@@ -8,6 +9,7 @@ public sealed class ReaderComicTests {
     [Theory]
     [InlineData("harbour.cbz", "officeimo.reader.cbz")]
     [InlineData("harbour.cb7", "officeimo.reader.cb7")]
+    [InlineData("harbour.cbr", "officeimo.reader.cbr")]
     public void ImportedChaptersRetainSourceKindAndLogicalPageProvenance(string name, string handler) {
         string path = Path.Combine(AppContext.BaseDirectory, "EbookFixtures", name);
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
@@ -27,4 +29,12 @@ public sealed class ReaderComicTests {
             Assert.Equal(DocumentReaderEngine.ComputeChunkHash(chunk), chunk.ChunkHash);
         });
     }
+    [Fact]
+    public void EncryptedRarComicRetainsTheReaderEncryptionErrorCode() {
+        string path = Path.Combine(AppContext.BaseDirectory, "EbookFixtures", "encrypted-headers.cbr");
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
+        var error = Assert.Throws<Rar5EncryptionNotSupportedException>(() => reader.ReadDocument(path));
+        Assert.Equal(ReaderErrorCodes.UnsupportedEncryption, reader.ClassifyReadError(error, path));
+    }
+
 }
