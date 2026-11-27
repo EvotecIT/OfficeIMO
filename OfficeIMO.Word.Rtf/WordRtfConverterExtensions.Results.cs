@@ -344,7 +344,7 @@ public static partial class WordRtfConverterExtensions {
         var visitedParagraphs = new HashSet<OfficeXmlNode>();
         var visitedRuns = new HashSet<OfficeXmlNode>();
         foreach (WordStoryRootCandidate storyRoot in storyRoots) {
-            foreach (OfficeXmlNode paragraph in storyRoot.Root.DescendantElements(WordXml.W, "p")) {
+            foreach (OfficeXmlNode paragraph in storyRoot.Root.ModelDescendants("p")) {
                 if (!visitedParagraphs.Add(paragraph)) continue;
                 bool paragraphOmitted = storyRoot.OmittedByConverter ||
                                         !IsParagraphConvertedFromStoryRoot(storyRoot.Root, paragraph);
@@ -371,12 +371,12 @@ public static partial class WordRtfConverterExtensions {
         foreach (OfficeXmlNode element in EnumerateEffectiveRunContent(run)) {
             IEnumerable<OfficeXmlNode> drawings = element.IsW("drawing")
                 ? new[] { element }
-                : element.DescendantElements(WordXml.W, "drawing");
-            count += drawings.Count(drawing => drawing.HasDescendant(WordXml.Pic, "pic"));
+                : element.ModelDescendants("drawing");
+            count += drawings.Count(drawing => drawing.DescendantElements(WordXml.Pic, "pic").Any(WordConverterNodes.IsModelElement));
 
             IEnumerable<OfficeXmlNode> shapes = element.Is(WordXml.V, "shape")
                 ? new[] { element }
-                : element.DescendantElements(WordXml.V, "shape");
+                : element.DescendantElements(WordXml.V, "shape").Where(WordConverterNodes.IsModelElement);
             count += shapes.Count(shape => shape.Child(WordXml.V, "imagedata").Exists);
         }
         return count;
@@ -449,10 +449,10 @@ public static partial class WordRtfConverterExtensions {
                 foreach (string id in CollectReferencedCommentIds(new[] { candidate.Key })) {
                     RecordStoryReference(referencedCommentIds, id, candidate.Value);
                 }
-                foreach (OfficeXmlNode reference in candidate.Key.DescendantElements(WordXml.W, "footnoteReference")) {
+                foreach (OfficeXmlNode reference in candidate.Key.ModelDescendants("footnoteReference")) {
                     if (WordXml.ParseInt64(reference.WAttr("id")) is long id) RecordStoryReference(referencedFootnoteIds, id, candidate.Value);
                 }
-                foreach (OfficeXmlNode reference in candidate.Key.DescendantElements(WordXml.W, "endnoteReference")) {
+                foreach (OfficeXmlNode reference in candidate.Key.ModelDescendants("endnoteReference")) {
                     if (WordXml.ParseInt64(reference.WAttr("id")) is long id) RecordStoryReference(referencedEndnoteIds, id, candidate.Value);
                 }
             }
@@ -557,7 +557,7 @@ public static partial class WordRtfConverterExtensions {
                     }
                     break;
                 default:
-                    foreach (OfficeXmlNode omittedRun in child.DescendantElements(WordXml.W, "r")) {
+                    foreach (OfficeXmlNode omittedRun in child.ModelDescendants("r")) {
                         yield return (omittedRun, true);
                     }
                     break;

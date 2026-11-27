@@ -18,7 +18,7 @@ public static partial class WordRtfConverterExtensions {
         IEnumerable<WordStoryRootCandidate> storyRoots, RtfConversionReport report) {
         var elements = new HashSet<OfficeXmlNode>();
         foreach (WordStoryRootCandidate story in storyRoots) {
-            foreach (OfficeXmlNode paragraph in story.Root.DescendantElements(WordXml.W, "p")) {
+            foreach (OfficeXmlNode paragraph in story.Root.ModelDescendants("p")) {
                 OfficeXmlNode properties = paragraph.WChild("pPr");
                 if (properties.Exists) elements.Add(properties);
             }

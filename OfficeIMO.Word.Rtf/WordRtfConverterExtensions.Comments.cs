@@ -25,8 +25,8 @@ public static partial class WordRtfConverterExtensions {
     private static HashSet<string> CollectReferencedCommentIds(IEnumerable<OfficeXmlNode> roots) {
         var commentIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (OfficeXmlNode root in roots) {
-            foreach (string? id in root.DescendantElements(WordXml.W, "commentRangeStart").Select(start => start.WAttr("id"))
-                         .Concat(root.DescendantElements(WordXml.W, "commentReference").Select(reference => reference.WAttr("id")))) {
+            foreach (string? id in root.ModelDescendants("commentRangeStart").Select(start => start.WAttr("id"))
+                         .Concat(root.ModelDescendants("commentReference").Select(reference => reference.WAttr("id")))) {
                 if (!string.IsNullOrWhiteSpace(id)) commentIds.Add(id!);
             }
         }
