@@ -1,139 +1,139 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
-        private static bool TryReadImageExportTitle(C.Chart? chart, WorkbookPart workbook,
+        private static bool TryReadImageExportTitle(OfficeXmlNode chart, ExcelPartRef workbook,
             out OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader.NativeText text) {
             text = default;
-            if (chart?.GetFirstChild<C.Title>() is not C.Title title) return false;
+            OfficeXmlNode title = chart.Child(C, "title");
+            if (title.IsNone) return false;
             try {
-                text = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader.ReadNativeText(chart, title,
-                    workbook.GetPartsOfType<ThemePart>().FirstOrDefault()?.Theme?.ThemeElements?.ColorScheme);
+                text = ImageExportReadNativeText(chart, title,
+                    workbook.FirstPartOfKind(ExcelPartKind.Theme).Root.Child(A, "themeElements").Child(A, "clrScheme"));
                 return true;
             } catch (NotSupportedException) {
                 return false;
             }
         }
 
-        private static bool TryGetImageExportTitleColor(C.Chart? chart, WorkbookPart workbookPart, out OfficeColor color) {
+        private static bool TryGetImageExportTitleColor(OfficeXmlNode chart, ExcelPartRef workbookPart, out OfficeColor color) {
             bool resolved = TryReadImageExportTitle(chart, workbookPart, out var text);
             color = text.Color.GetValueOrDefault();
             return resolved && text.Color.HasValue;
         }
 
-        private static bool TryGetImageExportTitleFontFamily(C.Chart? chart, WorkbookPart workbookPart, out string? fontFamily) {
+        private static bool TryGetImageExportTitleFontFamily(OfficeXmlNode chart, ExcelPartRef workbookPart, out string? fontFamily) {
             bool resolved = TryReadImageExportTitle(chart, workbookPart, out var text);
             fontFamily = text.Family;
             return resolved && fontFamily != null;
         }
 
-        private static bool TryGetImageExportTitleFontSize(C.Chart? chart, WorkbookPart workbookPart, out double fontSize) {
+        private static bool TryGetImageExportTitleFontSize(OfficeXmlNode chart, ExcelPartRef workbookPart, out double fontSize) {
             bool resolved = TryReadImageExportTitle(chart, workbookPart, out var text);
             fontSize = text.Size.GetValueOrDefault();
             return resolved && text.Size.HasValue;
         }
 
-        private static bool TryGetImageExportTitleFontStyle(C.Chart? chart, WorkbookPart workbookPart, out OfficeFontStyle fontStyle) {
+        private static bool TryGetImageExportTitleFontStyle(OfficeXmlNode chart, ExcelPartRef workbookPart, out OfficeFontStyle fontStyle) {
             bool resolved = TryReadImageExportTitle(chart, workbookPart, out var text);
             fontStyle = text.Style.GetValueOrDefault();
             return resolved && text.Style.HasValue;
         }
 
-        private static bool TryGetImageExportLegendTextColor(C.Chart? chart, WorkbookPart workbookPart, out OfficeColor color) =>
+        private static bool TryGetImageExportLegendTextColor(OfficeXmlNode chart, ExcelPartRef workbookPart, out OfficeColor color) =>
             TryGetFirstImageExportTextColor(GetImageExportLegendTextOwners(chart), workbookPart, out color);
 
-        private static bool TryGetImageExportDataLabelTextColor(C.PlotArea? plotArea, WorkbookPart workbookPart, out OfficeColor color) =>
+        private static bool TryGetImageExportDataLabelTextColor(OfficeXmlNode plotArea, ExcelPartRef workbookPart, out OfficeColor color) =>
             TryGetFirstImageExportTextColor(GetImageExportDataLabelTextOwners(plotArea), workbookPart, out color);
 
-        private static bool TryGetImageExportDataLabelFillColor(C.PlotArea? plotArea, WorkbookPart workbookPart, out OfficeColor color) =>
+        private static bool TryGetImageExportDataLabelFillColor(OfficeXmlNode plotArea, ExcelPartRef workbookPart, out OfficeColor color) =>
             TryGetFirstImageExportShapeFill(GetImageExportDataLabelTextOwners(plotArea), workbookPart, out color);
 
-        private static bool TryGetImageExportDataLabelLineColor(C.PlotArea? plotArea, WorkbookPart workbookPart, out OfficeColor color) =>
+        private static bool TryGetImageExportDataLabelLineColor(OfficeXmlNode plotArea, ExcelPartRef workbookPart, out OfficeColor color) =>
             TryGetFirstImageExportShapeLine(GetImageExportDataLabelTextOwners(plotArea), workbookPart, out color);
 
-        private static bool TryGetImageExportDataLabelLineWidth(C.PlotArea? plotArea, out double width) =>
+        private static bool TryGetImageExportDataLabelLineWidth(OfficeXmlNode plotArea, out double width) =>
             TryGetFirstImageExportShapeLineWidth(GetImageExportDataLabelTextOwners(plotArea), out width);
 
-        private static bool TryGetImageExportDataLabelLineDashStyle(C.PlotArea? plotArea, out OfficeStrokeDashStyle dashStyle) =>
+        private static bool TryGetImageExportDataLabelLineDashStyle(OfficeXmlNode plotArea, out OfficeStrokeDashStyle dashStyle) =>
             TryGetFirstImageExportShapeLineDashStyle(GetImageExportDataLabelTextOwners(plotArea), out dashStyle);
 
-        private static bool TryGetImageExportAxisTextColor(C.PlotArea? plotArea, WorkbookPart workbookPart, out OfficeColor color) =>
+        private static bool TryGetImageExportAxisTextColor(OfficeXmlNode plotArea, ExcelPartRef workbookPart, out OfficeColor color) =>
             TryGetFirstImageExportAxisLabelTextColor(plotArea, workbookPart, out color);
 
-        private static bool TryGetImageExportAxisTitleTextColor(C.PlotArea? plotArea, WorkbookPart workbookPart, out OfficeColor color) =>
+        private static bool TryGetImageExportAxisTitleTextColor(OfficeXmlNode plotArea, ExcelPartRef workbookPart, out OfficeColor color) =>
             TryGetFirstImageExportTextColor(GetImageExportAxisTitleTextOwners(plotArea), workbookPart, out color);
 
-        private static bool TryGetImageExportLegendFontSize(C.Chart? chart, out double fontSize) =>
+        private static bool TryGetImageExportLegendFontSize(OfficeXmlNode chart, out double fontSize) =>
             TryGetFirstImageExportTextFontSize(GetImageExportLegendTextOwners(chart), out fontSize);
 
-        private static bool TryGetImageExportLegendFontFamily(C.Chart? chart, out string? fontFamily) =>
+        private static bool TryGetImageExportLegendFontFamily(OfficeXmlNode chart, out string? fontFamily) =>
             TryGetFirstImageExportTextFontFamily(GetImageExportLegendTextOwners(chart), out fontFamily);
 
-        private static bool TryGetImageExportLegendFontStyle(C.Chart? chart, out OfficeFontStyle fontStyle) =>
+        private static bool TryGetImageExportLegendFontStyle(OfficeXmlNode chart, out OfficeFontStyle fontStyle) =>
             TryGetFirstImageExportTextFontStyle(GetImageExportLegendTextOwners(chart), out fontStyle);
 
-        private static bool TryGetImageExportDataLabelFontSize(C.PlotArea? plotArea, out double fontSize) =>
+        private static bool TryGetImageExportDataLabelFontSize(OfficeXmlNode plotArea, out double fontSize) =>
             TryGetFirstImageExportTextFontSize(GetImageExportDataLabelTextOwners(plotArea), out fontSize);
 
-        private static bool TryGetImageExportDataLabelFontFamily(C.PlotArea? plotArea, out string? fontFamily) =>
+        private static bool TryGetImageExportDataLabelFontFamily(OfficeXmlNode plotArea, out string? fontFamily) =>
             TryGetFirstImageExportTextFontFamily(GetImageExportDataLabelTextOwners(plotArea), out fontFamily);
 
-        private static bool TryGetImageExportDataLabelFontStyle(C.PlotArea? plotArea, out OfficeFontStyle fontStyle) =>
+        private static bool TryGetImageExportDataLabelFontStyle(OfficeXmlNode plotArea, out OfficeFontStyle fontStyle) =>
             TryGetFirstImageExportTextFontStyle(GetImageExportDataLabelTextOwners(plotArea), out fontStyle);
 
-        private static bool TryGetImageExportAxisLabelFontSize(C.PlotArea? plotArea, out double fontSize) =>
+        private static bool TryGetImageExportAxisLabelFontSize(OfficeXmlNode plotArea, out double fontSize) =>
             TryGetFirstImageExportAxisLabelTextFontSize(plotArea, out fontSize);
 
-        private static bool TryGetImageExportAxisTitleFontSize(C.PlotArea? plotArea, out double fontSize) =>
+        private static bool TryGetImageExportAxisTitleFontSize(OfficeXmlNode plotArea, out double fontSize) =>
             TryGetFirstImageExportTextFontSize(GetImageExportAxisTitleTextOwners(plotArea), out fontSize);
 
-        private static bool TryGetImageExportAxisTextFontFamily(C.PlotArea? plotArea, out string? fontFamily) =>
+        private static bool TryGetImageExportAxisTextFontFamily(OfficeXmlNode plotArea, out string? fontFamily) =>
             TryGetFirstImageExportAxisLabelTextFontFamily(plotArea, out fontFamily);
 
-        private static bool TryGetImageExportAxisTitleFontFamily(C.PlotArea? plotArea, out string? fontFamily) =>
+        private static bool TryGetImageExportAxisTitleFontFamily(OfficeXmlNode plotArea, out string? fontFamily) =>
             TryGetFirstImageExportTextFontFamily(GetImageExportAxisTitleTextOwners(plotArea), out fontFamily);
 
-        private static bool TryGetImageExportAxisTextFontStyle(C.PlotArea? plotArea, out OfficeFontStyle fontStyle) =>
+        private static bool TryGetImageExportAxisTextFontStyle(OfficeXmlNode plotArea, out OfficeFontStyle fontStyle) =>
             TryGetFirstImageExportAxisLabelTextFontStyle(plotArea, out fontStyle);
 
-        private static bool TryGetImageExportAxisTitleFontStyle(C.PlotArea? plotArea, out OfficeFontStyle fontStyle) =>
+        private static bool TryGetImageExportAxisTitleFontStyle(OfficeXmlNode plotArea, out OfficeFontStyle fontStyle) =>
             TryGetFirstImageExportTextFontStyle(GetImageExportAxisTitleTextOwners(plotArea), out fontStyle);
 
-        private static bool HasUnsupportedImageExportTextStyle(C.ChartSpace chartSpace, WorkbookPart workbookPart) {
-            C.Chart? chart = chartSpace.GetFirstChild<C.Chart>();
-            C.PlotArea? plotArea = chart?.GetFirstChild<C.PlotArea>();
-            C.Title? chartTitle = chart?.GetFirstChild<C.Title>();
-            if (chartTitle != null && !TryReadImageExportTitle(chart, workbookPart, out _)) {
+        private static bool HasUnsupportedImageExportTextStyle(OfficeXmlNode chartSpace, ExcelPartRef workbookPart) {
+            OfficeXmlNode chart = chartSpace.Child(C, "chart");
+            OfficeXmlNode plotArea = chart.Child(C, "plotArea");
+            OfficeXmlNode chartTitle = chart.Child(C, "title");
+            if (chartTitle.Exists && !TryReadImageExportTitle(chart, workbookPart, out _)) {
                 return true;
             }
 
-            IReadOnlyList<OpenXmlCompositeElement> bodyOwners = GetImageExportBodyTextOwners(chart, plotArea).ToArray();
-            foreach (OpenXmlCompositeElement owner in bodyOwners) {
+            IReadOnlyList<OfficeXmlNode> bodyOwners = GetImageExportBodyTextOwners(chart, plotArea).ToArray();
+            foreach (OfficeXmlNode owner in bodyOwners) {
                 if (HasUnsupportedImageExportTextStyle(owner, allowSolidFill: true, allowFontFamily: true, allowFontSize: true, allowFontStyle: true, workbookPart)) {
                     return true;
                 }
             }
 
-            IReadOnlyList<OpenXmlCompositeElement> axisLabelOwners = GetImageExportAxisLabelTextOwners(plotArea).ToArray();
-            foreach (OpenXmlCompositeElement owner in axisLabelOwners) {
+            IReadOnlyList<OfficeXmlNode> axisLabelOwners = GetImageExportAxisLabelTextOwners(plotArea).ToArray();
+            foreach (OfficeXmlNode owner in axisLabelOwners) {
                 if (HasUnsupportedImageExportAxisLabelTextStyle(owner, allowSolidFill: true, allowFontFamily: true, allowFontSize: true, allowFontStyle: true, workbookPart)) {
                     return true;
                 }
             }
 
-            IReadOnlyList<OpenXmlCompositeElement> axisTitleOwners = GetImageExportAxisTitleTextOwners(plotArea).ToArray();
-            foreach (OpenXmlCompositeElement owner in axisTitleOwners) {
+            IReadOnlyList<OfficeXmlNode> axisTitleOwners = GetImageExportAxisTitleTextOwners(plotArea).ToArray();
+            foreach (OfficeXmlNode owner in axisTitleOwners) {
                 if (HasUnsupportedImageExportTextStyle(owner, allowSolidFill: true, allowFontFamily: true, allowFontSize: true, allowFontStyle: true, workbookPart)) {
                     return true;
                 }
             }
 
-            IReadOnlyList<OpenXmlCompositeElement> legendOwners = GetImageExportLegendTextOwners(chart).ToArray();
-            IReadOnlyList<OpenXmlCompositeElement> dataLabelOwners = GetImageExportDataLabelTextOwners(plotArea).ToArray();
+            IReadOnlyList<OfficeXmlNode> legendOwners = GetImageExportLegendTextOwners(chart).ToArray();
+            IReadOnlyList<OfficeXmlNode> dataLabelOwners = GetImageExportDataLabelTextOwners(plotArea).ToArray();
             return HasConflictingImageExportTextColors(legendOwners, workbookPart) ||
                 HasConflictingImageExportTextColors(dataLabelOwners, workbookPart) ||
                 HasConflictingImageExportAxisLabelTextColors(axisLabelOwners, workbookPart) ||
@@ -151,36 +151,37 @@ namespace OfficeIMO.Excel {
                 HasConflictingImageExportTextFontStyles(axisTitleOwners);
         }
 
-        private static IEnumerable<OpenXmlCompositeElement> GetImageExportLegendTextOwners(C.Chart? chart) {
-            C.Legend? legend = chart?.GetFirstChild<C.Legend>();
-            if (legend != null) {
+        private static IEnumerable<OfficeXmlNode> GetImageExportLegendTextOwners(OfficeXmlNode chart) {
+            OfficeXmlNode legend = chart.Child(C, "legend");
+            if (legend.Exists) {
                 yield return legend;
             }
         }
 
-        private static IEnumerable<OpenXmlCompositeElement> GetImageExportDataLabelTextOwners(C.PlotArea? plotArea) {
-            if (plotArea == null) {
+        private static IEnumerable<OfficeXmlNode> GetImageExportDataLabelTextOwners(OfficeXmlNode plotArea) {
+            if (plotArea.IsNone) {
                 yield break;
             }
 
-            foreach (C.DataLabels labels in plotArea.Descendants<C.DataLabels>()) {
+            foreach (OfficeXmlNode labels in plotArea.Descendants(C, "dLbls")) {
+                if (!IsImageExportSchemaPlaced(labels)) continue;
                 yield return labels;
             }
         }
 
-        private static IEnumerable<OpenXmlCompositeElement> GetImageExportBodyTextOwners(C.Chart? chart, C.PlotArea? plotArea) {
-            foreach (OpenXmlCompositeElement legend in GetImageExportLegendTextOwners(chart)) {
+        private static IEnumerable<OfficeXmlNode> GetImageExportBodyTextOwners(OfficeXmlNode chart, OfficeXmlNode plotArea) {
+            foreach (OfficeXmlNode legend in GetImageExportLegendTextOwners(chart)) {
                 yield return legend;
             }
 
-            foreach (OpenXmlCompositeElement labels in GetImageExportDataLabelTextOwners(plotArea)) {
+            foreach (OfficeXmlNode labels in GetImageExportDataLabelTextOwners(plotArea)) {
                 yield return labels;
             }
         }
 
-        private static bool TryGetFirstImageExportShapeFill(IEnumerable<OpenXmlCompositeElement> owners, WorkbookPart workbookPart, out OfficeColor color) {
-            foreach (OpenXmlCompositeElement owner in owners) {
-                if (TryGetSolidFill(owner.GetFirstChild<C.ChartShapeProperties>(), workbookPart, out color)) {
+        private static bool TryGetFirstImageExportShapeFill(IEnumerable<OfficeXmlNode> owners, ExcelPartRef workbookPart, out OfficeColor color) {
+            foreach (OfficeXmlNode owner in owners) {
+                if (TryGetSolidFill(owner.Child(C, "spPr"), workbookPart, out color)) {
                     return true;
                 }
             }
@@ -189,9 +190,9 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetFirstImageExportShapeLine(IEnumerable<OpenXmlCompositeElement> owners, WorkbookPart workbookPart, out OfficeColor color) {
-            foreach (OpenXmlCompositeElement owner in owners) {
-                if (TryGetSolidLine(owner.GetFirstChild<C.ChartShapeProperties>(), workbookPart, out color)) {
+        private static bool TryGetFirstImageExportShapeLine(IEnumerable<OfficeXmlNode> owners, ExcelPartRef workbookPart, out OfficeColor color) {
+            foreach (OfficeXmlNode owner in owners) {
+                if (TryGetSolidLine(owner.Child(C, "spPr"), workbookPart, out color)) {
                     return true;
                 }
             }
@@ -200,9 +201,9 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetFirstImageExportShapeLineWidth(IEnumerable<OpenXmlCompositeElement> owners, out double width) {
-            foreach (OpenXmlCompositeElement owner in owners) {
-                if (TryGetLineWidth(owner.GetFirstChild<C.ChartShapeProperties>(), out width)) {
+        private static bool TryGetFirstImageExportShapeLineWidth(IEnumerable<OfficeXmlNode> owners, out double width) {
+            foreach (OfficeXmlNode owner in owners) {
+                if (TryGetImageExportLineWidth(owner.Child(C, "spPr"), out width)) {
                     return true;
                 }
             }
@@ -211,9 +212,9 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetFirstImageExportShapeLineDashStyle(IEnumerable<OpenXmlCompositeElement> owners, out OfficeStrokeDashStyle dashStyle) {
-            foreach (OpenXmlCompositeElement owner in owners) {
-                if (TryGetLineDashStyle(owner.GetFirstChild<C.ChartShapeProperties>(), out dashStyle)) {
+        private static bool TryGetFirstImageExportShapeLineDashStyle(IEnumerable<OfficeXmlNode> owners, out OfficeStrokeDashStyle dashStyle) {
+            foreach (OfficeXmlNode owner in owners) {
+                if (TryGetLineDashStyle(owner.Child(C, "spPr"), out dashStyle)) {
                     return true;
                 }
             }
@@ -222,42 +223,42 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static IEnumerable<OpenXmlCompositeElement> GetImageExportAxisTextOwners(C.PlotArea? plotArea) {
-            foreach (OpenXmlCompositeElement axis in GetImageExportAxisLabelTextOwners(plotArea)) {
+        private static IEnumerable<OfficeXmlNode> GetImageExportAxisTextOwners(OfficeXmlNode plotArea) {
+            foreach (OfficeXmlNode axis in GetImageExportAxisLabelTextOwners(plotArea)) {
                 yield return axis;
             }
 
-            foreach (OpenXmlCompositeElement title in GetImageExportAxisTitleTextOwners(plotArea)) {
+            foreach (OfficeXmlNode title in GetImageExportAxisTitleTextOwners(plotArea)) {
                 yield return title;
             }
         }
 
-        private static IEnumerable<OpenXmlCompositeElement> GetImageExportAxisLabelTextOwners(C.PlotArea? plotArea) {
-            if (plotArea == null) {
+        private static IEnumerable<OfficeXmlNode> GetImageExportAxisLabelTextOwners(OfficeXmlNode plotArea) {
+            if (plotArea.IsNone) {
                 yield break;
             }
 
-            foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
+            foreach (OfficeXmlNode axis in GetImageExportAxes(plotArea)) {
                 yield return axis;
             }
         }
 
-        private static IEnumerable<OpenXmlCompositeElement> GetImageExportAxisTitleTextOwners(C.PlotArea? plotArea) {
-            if (plotArea == null) {
+        private static IEnumerable<OfficeXmlNode> GetImageExportAxisTitleTextOwners(OfficeXmlNode plotArea) {
+            if (plotArea.IsNone) {
                 yield break;
             }
 
-            foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
-                C.Title? title = axis.GetFirstChild<C.Title>();
-                if (title != null) {
+            foreach (OfficeXmlNode axis in GetImageExportAxes(plotArea)) {
+                OfficeXmlNode title = axis.Child(C, "title");
+                if (title.Exists) {
                     yield return title;
                 }
             }
         }
 
-        private static bool TryGetFirstImageExportTextColor(IEnumerable<OpenXmlCompositeElement> owners, WorkbookPart workbookPart, out OfficeColor color) {
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportTextRunProperties(owner)) {
+        private static bool TryGetFirstImageExportTextColor(IEnumerable<OfficeXmlNode> owners, ExcelPartRef workbookPart, out OfficeColor color) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportTextRunProperties(owner)) {
                     if (TryGetSolidFill(properties, workbookPart, out color)) {
                         return true;
                     }
@@ -268,10 +269,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetFirstImageExportAxisLabelTextColor(C.PlotArea? plotArea, WorkbookPart workbookPart, out OfficeColor color) {
-            if (plotArea != null) {
-                foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
-                    foreach (OpenXmlCompositeElement properties in GetImageExportAxisLabelTextRunProperties(axis)) {
+        private static bool TryGetFirstImageExportAxisLabelTextColor(OfficeXmlNode plotArea, ExcelPartRef workbookPart, out OfficeColor color) {
+            if (plotArea.Exists) {
+                foreach (OfficeXmlNode axis in GetImageExportAxes(plotArea)) {
+                    foreach (OfficeXmlNode properties in GetImageExportAxisLabelTextRunProperties(axis)) {
                         if (TryGetSolidFill(properties, workbookPart, out color)) {
                             return true;
                         }
@@ -283,9 +284,9 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetFirstImageExportTextFontFamily(IEnumerable<OpenXmlCompositeElement> owners, out string? fontFamily) {
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportTextRunProperties(owner)) {
+        private static bool TryGetFirstImageExportTextFontFamily(IEnumerable<OfficeXmlNode> owners, out string? fontFamily) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportTextRunProperties(owner)) {
                     if (TryGetImageExportTextFontFamily(properties, out fontFamily)) {
                         return true;
                     }
@@ -296,9 +297,9 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetFirstImageExportTextFontSize(IEnumerable<OpenXmlCompositeElement> owners, out double fontSize) {
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportTextRunProperties(owner)) {
+        private static bool TryGetFirstImageExportTextFontSize(IEnumerable<OfficeXmlNode> owners, out double fontSize) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportTextRunProperties(owner)) {
                     if (TryGetImageExportTextFontSize(properties, out fontSize)) {
                         return true;
                     }
@@ -309,10 +310,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetFirstImageExportAxisLabelTextFontSize(C.PlotArea? plotArea, out double fontSize) {
-            if (plotArea != null) {
-                foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
-                    foreach (OpenXmlCompositeElement properties in GetImageExportAxisLabelTextRunProperties(axis)) {
+        private static bool TryGetFirstImageExportAxisLabelTextFontSize(OfficeXmlNode plotArea, out double fontSize) {
+            if (plotArea.Exists) {
+                foreach (OfficeXmlNode axis in GetImageExportAxes(plotArea)) {
+                    foreach (OfficeXmlNode properties in GetImageExportAxisLabelTextRunProperties(axis)) {
                         if (TryGetImageExportTextFontSize(properties, out fontSize)) {
                             return true;
                         }
@@ -324,10 +325,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetFirstImageExportAxisLabelTextFontFamily(C.PlotArea? plotArea, out string? fontFamily) {
-            if (plotArea != null) {
-                foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
-                    foreach (OpenXmlCompositeElement properties in GetImageExportAxisLabelTextRunProperties(axis)) {
+        private static bool TryGetFirstImageExportAxisLabelTextFontFamily(OfficeXmlNode plotArea, out string? fontFamily) {
+            if (plotArea.Exists) {
+                foreach (OfficeXmlNode axis in GetImageExportAxes(plotArea)) {
+                    foreach (OfficeXmlNode properties in GetImageExportAxisLabelTextRunProperties(axis)) {
                         if (TryGetImageExportTextFontFamily(properties, out fontFamily)) {
                             return true;
                         }
@@ -339,9 +340,9 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetFirstImageExportTextFontStyle(IEnumerable<OpenXmlCompositeElement> owners, out OfficeFontStyle fontStyle) {
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportTextRunProperties(owner)) {
+        private static bool TryGetFirstImageExportTextFontStyle(IEnumerable<OfficeXmlNode> owners, out OfficeFontStyle fontStyle) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportTextRunProperties(owner)) {
                     if (TryGetImageExportTextFontStyle(properties, out fontStyle)) {
                         return true;
                     }
@@ -352,10 +353,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetFirstImageExportAxisLabelTextFontStyle(C.PlotArea? plotArea, out OfficeFontStyle fontStyle) {
-            if (plotArea != null) {
-                foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
-                    foreach (OpenXmlCompositeElement properties in GetImageExportAxisLabelTextRunProperties(axis)) {
+        private static bool TryGetFirstImageExportAxisLabelTextFontStyle(OfficeXmlNode plotArea, out OfficeFontStyle fontStyle) {
+            if (plotArea.Exists) {
+                foreach (OfficeXmlNode axis in GetImageExportAxes(plotArea)) {
+                    foreach (OfficeXmlNode properties in GetImageExportAxisLabelTextRunProperties(axis)) {
                         if (TryGetImageExportTextFontStyle(properties, out fontStyle)) {
                             return true;
                         }
@@ -367,10 +368,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasConflictingImageExportTextColors(IEnumerable<OpenXmlCompositeElement> owners, WorkbookPart workbookPart) {
+        private static bool HasConflictingImageExportTextColors(IEnumerable<OfficeXmlNode> owners, ExcelPartRef workbookPart) {
             string? first = null;
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportTextRunProperties(owner)) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportTextRunProperties(owner)) {
                     if (!TryGetSolidFill(properties, workbookPart, out OfficeColor color)) {
                         continue;
                     }
@@ -387,10 +388,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasConflictingImageExportAxisLabelTextColors(IEnumerable<OpenXmlCompositeElement> owners, WorkbookPart workbookPart) {
+        private static bool HasConflictingImageExportAxisLabelTextColors(IEnumerable<OfficeXmlNode> owners, ExcelPartRef workbookPart) {
             string? first = null;
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportAxisLabelTextRunProperties(owner)) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportAxisLabelTextRunProperties(owner)) {
                     if (!TryGetSolidFill(properties, workbookPart, out OfficeColor color)) {
                         continue;
                     }
@@ -407,10 +408,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasConflictingImageExportTextFontFamilies(IEnumerable<OpenXmlCompositeElement> owners) {
+        private static bool HasConflictingImageExportTextFontFamilies(IEnumerable<OfficeXmlNode> owners) {
             string? first = null;
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportTextRunProperties(owner)) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportTextRunProperties(owner)) {
                     if (!TryGetImageExportTextFontFamily(properties, out string? current) || string.IsNullOrWhiteSpace(current)) {
                         continue;
                     }
@@ -426,10 +427,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasConflictingImageExportTextFontSizes(IEnumerable<OpenXmlCompositeElement> owners) {
+        private static bool HasConflictingImageExportTextFontSizes(IEnumerable<OfficeXmlNode> owners) {
             double? first = null;
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportTextRunProperties(owner)) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportTextRunProperties(owner)) {
                     if (!TryGetImageExportTextFontSize(properties, out double current)) {
                         continue;
                     }
@@ -445,10 +446,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasConflictingImageExportAxisLabelTextFontFamilies(IEnumerable<OpenXmlCompositeElement> owners) {
+        private static bool HasConflictingImageExportAxisLabelTextFontFamilies(IEnumerable<OfficeXmlNode> owners) {
             string? first = null;
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportAxisLabelTextRunProperties(owner)) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportAxisLabelTextRunProperties(owner)) {
                     if (!TryGetImageExportTextFontFamily(properties, out string? current) || string.IsNullOrWhiteSpace(current)) {
                         continue;
                     }
@@ -464,10 +465,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasConflictingImageExportAxisLabelTextFontSizes(IEnumerable<OpenXmlCompositeElement> owners) {
+        private static bool HasConflictingImageExportAxisLabelTextFontSizes(IEnumerable<OfficeXmlNode> owners) {
             double? first = null;
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportAxisLabelTextRunProperties(owner)) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportAxisLabelTextRunProperties(owner)) {
                     if (!TryGetImageExportTextFontSize(properties, out double current)) {
                         continue;
                     }
@@ -483,10 +484,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasConflictingImageExportAxisLabelTextFontStyles(IEnumerable<OpenXmlCompositeElement> owners) {
+        private static bool HasConflictingImageExportAxisLabelTextFontStyles(IEnumerable<OfficeXmlNode> owners) {
             OfficeFontStyle? first = null;
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportAxisLabelTextRunProperties(owner)) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportAxisLabelTextRunProperties(owner)) {
                     if (!TryGetImageExportTextFontStyle(properties, out OfficeFontStyle current)) {
                         continue;
                     }
@@ -502,10 +503,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasConflictingImageExportTextFontStyles(IEnumerable<OpenXmlCompositeElement> owners) {
+        private static bool HasConflictingImageExportTextFontStyles(IEnumerable<OfficeXmlNode> owners) {
             OfficeFontStyle? first = null;
-            foreach (OpenXmlCompositeElement owner in owners) {
-                foreach (OpenXmlCompositeElement properties in GetImageExportTextRunProperties(owner)) {
+            foreach (OfficeXmlNode owner in owners) {
+                foreach (OfficeXmlNode properties in GetImageExportTextRunProperties(owner)) {
                     if (!TryGetImageExportTextFontStyle(properties, out OfficeFontStyle current)) {
                         continue;
                     }
@@ -521,8 +522,8 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasUnsupportedImageExportTextStyle(OpenXmlCompositeElement owner, bool allowSolidFill, bool allowFontFamily, bool allowFontSize, bool allowFontStyle, WorkbookPart workbookPart) {
-            foreach (OpenXmlCompositeElement properties in GetImageExportTextRunProperties(owner)) {
+        private static bool HasUnsupportedImageExportTextStyle(OfficeXmlNode owner, bool allowSolidFill, bool allowFontFamily, bool allowFontSize, bool allowFontStyle, ExcelPartRef workbookPart) {
+            foreach (OfficeXmlNode properties in GetImageExportTextRunProperties(owner)) {
                 if (!IsSimpleSupportedImageExportTextProperties(properties, allowSolidFill, allowFontFamily, allowFontSize, allowFontStyle, workbookPart)) {
                     return true;
                 }
@@ -531,8 +532,8 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasUnsupportedImageExportAxisLabelTextStyle(OpenXmlCompositeElement owner, bool allowSolidFill, bool allowFontFamily, bool allowFontSize, bool allowFontStyle, WorkbookPart workbookPart) {
-            foreach (OpenXmlCompositeElement properties in GetImageExportAxisLabelTextRunProperties(owner)) {
+        private static bool HasUnsupportedImageExportAxisLabelTextStyle(OfficeXmlNode owner, bool allowSolidFill, bool allowFontFamily, bool allowFontSize, bool allowFontStyle, ExcelPartRef workbookPart) {
+            foreach (OfficeXmlNode properties in GetImageExportAxisLabelTextRunProperties(owner)) {
                 if (!IsSimpleSupportedImageExportTextProperties(properties, allowSolidFill, allowFontFamily, allowFontSize, allowFontStyle, workbookPart)) {
                     return true;
                 }
@@ -541,20 +542,20 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsSimpleSupportedImageExportTextProperties(OpenXmlCompositeElement properties, bool allowSolidFill, bool allowFontFamily, bool allowFontSize, bool allowFontStyle, WorkbookPart workbookPart) {
-            if (properties is A.TextCharacterPropertiesType textProperties &&
-                (textProperties.Bold != null || textProperties.Italic != null) &&
+        // The text run properties read here are a:rPr and a:defRPr, both character properties.
+        private static bool IsSimpleSupportedImageExportTextProperties(OfficeXmlNode properties, bool allowSolidFill, bool allowFontFamily, bool allowFontSize, bool allowFontStyle, ExcelPartRef workbookPart) {
+            if ((properties.Attribute("b") != null || properties.Attribute("i") != null) &&
                 !allowFontStyle) {
                 return false;
             }
-            if (properties is A.TextCharacterPropertiesType fontProperties && fontProperties.FontSize != null) {
+            if (properties.Attribute("sz") != null) {
                 if (!allowFontSize || !TryGetImageExportTextFontSize(properties, out _)) {
                     return false;
                 }
             }
 
-            foreach (OpenXmlElement child in properties.ChildElements) {
-                if (allowSolidFill && child is A.SolidFill) {
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (allowSolidFill && child.Is(A, "solidFill")) {
                     if (!TryGetSolidFill(properties, workbookPart, out _)) {
                         return false;
                     }
@@ -562,7 +563,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (allowFontFamily && child is A.LatinFont) {
+                if (allowFontFamily && child.Is(A, "latin")) {
                     if (!TryGetImageExportTextFontFamily(properties, out _)) {
                         return false;
                     }
@@ -576,8 +577,8 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool TryGetImageExportTextFontFamily(OpenXmlCompositeElement properties, out string? fontFamily) {
-            string? typeface = properties.GetFirstChild<A.LatinFont>()?.Typeface?.Value;
+        private static bool TryGetImageExportTextFontFamily(OfficeXmlNode properties, out string? fontFamily) {
+            string? typeface = properties.Child(A, "latin").Attribute("typeface");
             if (!string.IsNullOrWhiteSpace(typeface)) {
                 fontFamily = typeface;
                 return true;
@@ -590,11 +591,9 @@ namespace OfficeIMO.Excel {
         private static bool IsThemeFontFamilyPlaceholder(string fontFamily) =>
             fontFamily.Length > 0 && fontFamily[0] == '+';
 
-        private static bool TryGetImageExportTextFontSize(OpenXmlCompositeElement properties, out double fontSize) {
-            if (properties is A.TextCharacterPropertiesType textProperties &&
-                textProperties.FontSize != null &&
-                textProperties.FontSize.Value > 0) {
-                fontSize = textProperties.FontSize.Value / 100D;
+        private static bool TryGetImageExportTextFontSize(OfficeXmlNode properties, out double fontSize) {
+            if (properties.Int32Attribute("sz") is int size && size > 0) {
+                fontSize = size / 100D;
                 return true;
             }
 
@@ -602,22 +601,18 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetImageExportTextFontStyle(OpenXmlCompositeElement properties, out OfficeFontStyle fontStyle) {
+        private static bool TryGetImageExportTextFontStyle(OfficeXmlNode properties, out OfficeFontStyle fontStyle) {
             fontStyle = OfficeFontStyle.Regular;
-            if (properties is not A.TextCharacterPropertiesType textProperties) {
-                return false;
-            }
-
             bool hasStyle = false;
-            if (textProperties.Bold != null) {
+            if (properties.Attribute("b") != null) {
                 hasStyle = true;
-                if (textProperties.Bold.Value) {
+                if (properties.BooleanAttribute("b") == true) {
                     fontStyle |= OfficeFontStyle.Bold;
                 }
             }
-            if (textProperties.Italic != null) {
+            if (properties.Attribute("i") != null) {
                 hasStyle = true;
-                if (textProperties.Italic.Value) {
+                if (properties.BooleanAttribute("i") == true) {
                     fontStyle |= OfficeFontStyle.Italic;
                 }
             }
@@ -625,15 +620,14 @@ namespace OfficeIMO.Excel {
             return hasStyle;
         }
 
-        private static IEnumerable<OpenXmlCompositeElement> GetImageExportTextRunProperties(OpenXmlCompositeElement owner) =>
-            owner.Descendants<A.RunProperties>().Cast<OpenXmlCompositeElement>()
-                .Concat(owner.Descendants<A.DefaultRunProperties>());
+        private static IEnumerable<OfficeXmlNode> GetImageExportTextRunProperties(OfficeXmlNode owner) =>
+            owner.Descendants(A, "rPr")
+                .Concat(owner.Descendants(A, "defRPr"));
 
-        private static IEnumerable<OpenXmlCompositeElement> GetImageExportAxisLabelTextRunProperties(OpenXmlCompositeElement owner) =>
-            owner.Descendants<A.RunProperties>()
-                .Where(properties => !properties.Ancestors<C.Title>().Any())
-                .Cast<OpenXmlCompositeElement>()
-                .Concat(owner.Descendants<A.DefaultRunProperties>()
-                    .Where(properties => !properties.Ancestors<C.Title>().Any()));
+        private static IEnumerable<OfficeXmlNode> GetImageExportAxisLabelTextRunProperties(OfficeXmlNode owner) =>
+            owner.Descendants(A, "rPr")
+                .Where(properties => properties.Ancestor(C, "title").IsNone)
+                .Concat(owner.Descendants(A, "defRPr")
+                    .Where(properties => properties.Ancestor(C, "title").IsNone));
     }
 }

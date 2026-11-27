@@ -1,17 +1,34 @@
-using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     // Represents a chart on a worksheet.
     public sealed partial class ExcelChart {
-        private bool ApplySeriesByIndex(int seriesIndex, Action<OpenXmlCompositeElement> apply) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+        // Chart groups whose series are searched, in lookup order.
+        private static readonly string[] SeriesChartNames = {
+            "barChart", "bar3DChart", "lineChart", "line3DChart", "areaChart", "area3DChart", "pieChart", "pie3DChart",
+            "ofPieChart", "doughnutChart", "scatterChart", "bubbleChart", "radarChart", "stockChart", "surface3DChart",
+            "surfaceChart"
+        };
+
+        // Chart groups whose series take markers, in lookup order.
+        private static readonly string[] MarkerSeriesChartNames = {
+            "lineChart", "line3DChart", "scatterChart", "radarChart", "stockChart"
+        };
+
+        // Elements that follow c:marker in a series, in the order the insertion point is looked up.
+        private static readonly string[] SeriesChildrenAfterMarker = {
+            "dPt", "dLbls", "trendline", "errBars", "cat", "val", "xVal", "yVal", "bubbleSize", "smooth", "extLst"
+        };
+
+        // Elements that follow c:dPt in a series, in the order the insertion point is looked up.
+        private static readonly string[] SeriesChildrenAfterDataPoint = {
+            "dLbls", "trendline", "errBars", "cat", "val", "xVal", "yVal", "bubbleSize", "smooth", "extLst"
+        };
+
+        private bool ApplySeriesByIndex(int seriesIndex, Action<OfficeXmlNode> apply) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return false;
             }
 
@@ -19,130 +36,100 @@ namespace OfficeIMO.Excel {
             // layers before using a positional fallback from any individual layer.
             if (ApplySeriesByChartIndex(seriesIndex, apply)) return true;
 
-            if (ApplySeriesByIndex(plotArea.Elements<C.BarChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.Bar3DChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.LineChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.Line3DChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.AreaChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.Area3DChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.PieChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.Pie3DChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.OfPieChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.DoughnutChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.ScatterChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.BubbleChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.RadarChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.StockChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.Surface3DChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.SurfaceChart>(), seriesIndex, apply)) return true;
+            foreach (string chartName in SeriesChartNames) {
+                if (ApplySeriesByIndex(plotArea.Children(C, chartName), seriesIndex, apply)) return true;
+            }
 
             return false;
         }
 
-        private bool ApplySeriesByChartIndex(int seriesIndex, Action<OpenXmlCompositeElement> apply) {
-            OpenXmlCompositeElement? series = FindSeriesByChartIndex(seriesIndex);
-            if (series == null) return false;
+        private bool ApplySeriesByChartIndex(int seriesIndex, Action<OfficeXmlNode> apply) {
+            OfficeXmlNode series = FindSeriesByChartIndex(seriesIndex);
+            if (series.IsNone) return false;
             apply(series);
             return true;
         }
 
-        private OpenXmlCompositeElement? FindSeriesByChartIndex(int seriesIndex) {
-            C.PlotArea? plotArea = GetChart().GetFirstChild<C.PlotArea>();
-            return plotArea?.Descendants()
-                .OfType<OpenXmlCompositeElement>()
-                .FirstOrDefault(element => IsSeriesElement(element) && GetSeriesIndex(element) == seriesIndex);
+        private OfficeXmlNode FindSeriesByChartIndex(int seriesIndex) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            return plotArea.IsNone ? OfficeXmlNode.None : FindSeriesDescendant(plotArea, seriesIndex);
         }
 
-        private bool ApplySeriesMarkerByChartIndex(int seriesIndex, Action<C.Marker> apply) {
-            OpenXmlCompositeElement? series = FindSeriesByChartIndex(seriesIndex);
-            if (series == null || !IsMarkerCapableSeriesElement(series)) return false;
+        // The first series below the element, in document order, with this c:idx.
+        private static OfficeXmlNode FindSeriesDescendant(OfficeXmlNode element, int seriesIndex) {
+            for (OfficeXmlNode child = element.FirstChild; child.Exists; child = child.NextSibling) {
+                if (IsSeriesElement(child) && GetSeriesIndex(child) == seriesIndex) return child;
+                OfficeXmlNode found = FindSeriesDescendant(child, seriesIndex);
+                if (found.Exists) return found;
+            }
+            return OfficeXmlNode.None;
+        }
 
-            C.Marker marker = series.GetFirstChild<C.Marker>() ?? new C.Marker();
+        private bool ApplySeriesMarkerByChartIndex(int seriesIndex, Action<OfficeXmlNode> apply) {
+            OfficeXmlNode series = FindSeriesByChartIndex(seriesIndex);
+            if (series.IsNone || !IsMarkerCapableSeriesElement(series)) return false;
+
+            OfficeXmlNode marker = series.Child(C, "marker");
+            if (marker.IsNone) marker = series.New(C, "marker");
             apply(marker);
-            OpenXmlElement? insertBefore = series.GetFirstChild<C.DataPoint>();
-            insertBefore ??= series.GetFirstChild<C.DataLabels>();
-            insertBefore ??= series.GetFirstChild<C.Trendline>();
-            insertBefore ??= series.GetFirstChild<C.ErrorBars>();
-            insertBefore ??= series.GetFirstChild<C.CategoryAxisData>();
-            insertBefore ??= series.GetFirstChild<C.Values>();
-            insertBefore ??= series.GetFirstChild<C.XValues>();
-            insertBefore ??= series.GetFirstChild<C.YValues>();
-            insertBefore ??= series.GetFirstChild<C.BubbleSize>();
-            insertBefore ??= series.GetFirstChild<C.Smooth>();
-            insertBefore ??= series.GetFirstChild<C.ExtensionList>();
+            OfficeXmlNode insertBefore = FirstExistingChild(series, SeriesChildrenAfterMarker);
             EnsureSeriesChildPosition(series, marker, insertBefore);
             return true;
         }
 
-        private bool ApplySeriesByName(string seriesName, bool ignoreCase, Action<OpenXmlCompositeElement> apply) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+        private bool ApplySeriesByName(string seriesName, bool ignoreCase, Action<OfficeXmlNode> apply) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return false;
             }
 
-            if (ApplySeriesByName(plotArea.Elements<C.BarChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.Bar3DChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.LineChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.Line3DChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.AreaChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.Area3DChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.PieChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.Pie3DChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.OfPieChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.DoughnutChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.ScatterChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.BubbleChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.RadarChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.StockChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.Surface3DChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesByName(plotArea.Elements<C.SurfaceChart>(), seriesName, ignoreCase, apply)) return true;
+            foreach (string chartName in SeriesChartNames) {
+                if (ApplySeriesByName(plotArea.Children(C, chartName), seriesName, ignoreCase, apply)) return true;
+            }
 
             return false;
         }
 
-        private bool ApplySeriesMarkerByIndex(int seriesIndex, Action<C.Marker> apply) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+        private bool ApplySeriesMarkerByIndex(int seriesIndex, Action<OfficeXmlNode> apply) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return false;
             }
 
-            if (ApplySeriesMarkerByIndex(plotArea.Elements<C.LineChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesMarkerByIndex(plotArea.Elements<C.Line3DChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesMarkerByIndex(plotArea.Elements<C.ScatterChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesMarkerByIndex(plotArea.Elements<C.RadarChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesMarkerByIndex(plotArea.Elements<C.StockChart>(), seriesIndex, apply)) return true;
+            foreach (string chartName in MarkerSeriesChartNames) {
+                if (ApplySeriesMarkerByIndex(plotArea.Children(C, chartName), seriesIndex, apply)) return true;
+            }
 
             return false;
         }
 
-        private bool ApplySeriesMarkerByName(string seriesName, bool ignoreCase, Action<C.Marker> apply) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+        private bool ApplySeriesMarkerByName(string seriesName, bool ignoreCase, Action<OfficeXmlNode> apply) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 return false;
             }
 
-            if (ApplySeriesMarkerByName(plotArea.Elements<C.LineChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesMarkerByName(plotArea.Elements<C.Line3DChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesMarkerByName(plotArea.Elements<C.ScatterChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesMarkerByName(plotArea.Elements<C.RadarChart>(), seriesName, ignoreCase, apply)) return true;
-            if (ApplySeriesMarkerByName(plotArea.Elements<C.StockChart>(), seriesName, ignoreCase, apply)) return true;
+            foreach (string chartName in MarkerSeriesChartNames) {
+                if (ApplySeriesMarkerByName(plotArea.Children(C, chartName), seriesName, ignoreCase, apply)) return true;
+            }
 
             return false;
         }
 
-        private static bool ApplySeriesByIndex<TChart>(IEnumerable<TChart> charts, int seriesIndex,
-            Action<OpenXmlCompositeElement> apply) where TChart : OpenXmlCompositeElement {
-            foreach (TChart chart in charts) {
-                List<OpenXmlCompositeElement> series = chart.ChildElements
-                    .OfType<OpenXmlCompositeElement>()
-                    .Where(IsSeriesElement)
-                    .ToList();
+        private static List<OfficeXmlNode> GetChartSeries(OfficeXmlNode chart) {
+            var series = new List<OfficeXmlNode>();
+            foreach (OfficeXmlNode child in chart.Children()) {
+                if (IsSeriesElement(child)) series.Add(child);
+            }
+            return series;
+        }
 
-                OpenXmlCompositeElement? match = series.FirstOrDefault(s => GetSeriesIndex(s) == seriesIndex);
-                if (match != null) {
+        private static bool ApplySeriesByIndex(OfficeXmlNode.ChildList charts, int seriesIndex, Action<OfficeXmlNode> apply) {
+            foreach (OfficeXmlNode chart in charts) {
+                List<OfficeXmlNode> series = GetChartSeries(chart);
+
+                OfficeXmlNode match = series.Find(s => GetSeriesIndex(s) == seriesIndex);
+                if (match.Exists) {
                     apply(match);
                     return true;
                 }
@@ -158,11 +145,12 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool ApplySeriesByName<TChart>(IEnumerable<TChart> charts, string seriesName, bool ignoreCase,
-            Action<OpenXmlCompositeElement> apply) where TChart : OpenXmlCompositeElement {
+        private static bool ApplySeriesByName(OfficeXmlNode.ChildList charts, string seriesName, bool ignoreCase,
+            Action<OfficeXmlNode> apply) {
             StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            foreach (TChart chart in charts) {
-                foreach (OpenXmlCompositeElement series in chart.ChildElements.OfType<OpenXmlCompositeElement>().Where(IsSeriesElement)) {
+            foreach (OfficeXmlNode chart in charts) {
+                foreach (OfficeXmlNode series in chart.Children()) {
+                    if (!IsSeriesElement(series)) continue;
                     string? name = GetSeriesName(series);
                     if (name != null && string.Equals(name, seriesName, comparison)) {
                         apply(series);
@@ -174,59 +162,33 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool ApplySeriesMarkerByIndex<TChart>(IEnumerable<TChart> charts, int seriesIndex, Action<C.Marker> apply) where TChart : OpenXmlCompositeElement {
-            foreach (TChart chart in charts) {
-                List<OpenXmlCompositeElement> series = chart.ChildElements
-                    .OfType<OpenXmlCompositeElement>()
-                    .Where(IsSeriesElement)
-                    .ToList();
+        private static bool ApplySeriesMarkerByIndex(OfficeXmlNode.ChildList charts, int seriesIndex, Action<OfficeXmlNode> apply) {
+            foreach (OfficeXmlNode chart in charts) {
+                List<OfficeXmlNode> series = GetChartSeries(chart);
 
-                OpenXmlCompositeElement? seriesElement = series.FirstOrDefault(s => GetSeriesIndex(s) == seriesIndex);
-                if (seriesElement == null) {
+                OfficeXmlNode seriesElement = series.Find(s => GetSeriesIndex(s) == seriesIndex);
+                if (seriesElement.IsNone) {
                     if (seriesIndex < 0 || seriesIndex >= series.Count) {
                         continue;
                     }
                     seriesElement = series[seriesIndex];
                 }
 
-                C.Marker marker = seriesElement.GetFirstChild<C.Marker>() ?? new C.Marker();
-                apply(marker);
-                OpenXmlElement? insertBefore = seriesElement.GetFirstChild<C.DataLabels>();
-                insertBefore ??= seriesElement.GetFirstChild<C.Trendline>();
-                insertBefore ??= seriesElement.GetFirstChild<C.ErrorBars>();
-                insertBefore ??= seriesElement.GetFirstChild<C.CategoryAxisData>();
-                insertBefore ??= seriesElement.GetFirstChild<C.Values>();
-                insertBefore ??= seriesElement.GetFirstChild<C.XValues>();
-                insertBefore ??= seriesElement.GetFirstChild<C.YValues>();
-                insertBefore ??= seriesElement.GetFirstChild<C.BubbleSize>();
-                insertBefore ??= seriesElement.GetFirstChild<C.Smooth>();
-                insertBefore ??= seriesElement.GetFirstChild<C.ExtensionList>();
-                EnsureSeriesChildPosition(seriesElement, marker, insertBefore);
+                ApplySeriesMarker(seriesElement, apply);
                 return true;
             }
 
             return false;
         }
 
-        private static bool ApplySeriesMarkerByName<TChart>(IEnumerable<TChart> charts, string seriesName, bool ignoreCase, Action<C.Marker> apply) where TChart : OpenXmlCompositeElement {
+        private static bool ApplySeriesMarkerByName(OfficeXmlNode.ChildList charts, string seriesName, bool ignoreCase, Action<OfficeXmlNode> apply) {
             StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            foreach (TChart chart in charts) {
-                foreach (OpenXmlCompositeElement series in chart.ChildElements.OfType<OpenXmlCompositeElement>().Where(IsSeriesElement)) {
+            foreach (OfficeXmlNode chart in charts) {
+                foreach (OfficeXmlNode series in chart.Children()) {
+                    if (!IsSeriesElement(series)) continue;
                     string? name = GetSeriesName(series);
                     if (name != null && string.Equals(name, seriesName, comparison)) {
-                        C.Marker marker = series.GetFirstChild<C.Marker>() ?? new C.Marker();
-                        apply(marker);
-                        OpenXmlElement? insertBefore = series.GetFirstChild<C.DataLabels>();
-                        insertBefore ??= series.GetFirstChild<C.Trendline>();
-                        insertBefore ??= series.GetFirstChild<C.ErrorBars>();
-                        insertBefore ??= series.GetFirstChild<C.CategoryAxisData>();
-                        insertBefore ??= series.GetFirstChild<C.Values>();
-                        insertBefore ??= series.GetFirstChild<C.XValues>();
-                        insertBefore ??= series.GetFirstChild<C.YValues>();
-                        insertBefore ??= series.GetFirstChild<C.BubbleSize>();
-                        insertBefore ??= series.GetFirstChild<C.Smooth>();
-                        insertBefore ??= series.GetFirstChild<C.ExtensionList>();
-                        EnsureSeriesChildPosition(series, marker, insertBefore);
+                        ApplySeriesMarker(series, apply);
                         return true;
                     }
                 }
@@ -235,89 +197,110 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsSeriesElement(OpenXmlCompositeElement element) {
-            return element is C.BarChartSeries ||
-                   element is C.LineChartSeries ||
-                   element is C.AreaChartSeries ||
-                   element is C.PieChartSeries ||
-                   element is C.ScatterChartSeries ||
-                   element is C.BubbleChartSeries ||
-                   element is C.RadarChartSeries ||
-                   element is C.SurfaceChartSeries;
+        // Applies the marker settings and puts c:marker before the series children that follow it, data points aside.
+        private static void ApplySeriesMarker(OfficeXmlNode series, Action<OfficeXmlNode> apply) {
+            OfficeXmlNode marker = series.Child(C, "marker");
+            if (marker.IsNone) marker = series.New(C, "marker");
+            apply(marker);
+            OfficeXmlNode insertBefore = FirstExistingChild(series, SeriesChildrenAfterDataPoint);
+            EnsureSeriesChildPosition(series, marker, insertBefore);
         }
 
-        private static bool IsMarkerCapableSeriesElement(OpenXmlCompositeElement element) =>
-            element is C.LineChartSeries ||
-            element is C.ScatterChartSeries ||
-            element is C.RadarChartSeries;
-
-        private static int GetSeriesIndex(OpenXmlCompositeElement series) {
-            return (int)(series.GetFirstChild<C.Index>()?.Val?.Value ?? 0U);
+        /// <summary>Whether the element is a <c>c:ser</c> of one of the chart groups.</summary>
+        private static bool IsSeriesElement(OfficeXmlNode element) {
+            if (!element.Is(C, "ser")) return false;
+            OfficeXmlNode parent = element.Parent;
+            if (parent.NamespaceId != C) return false;
+            return Array.IndexOf(SeriesChartNames, parent.LocalName) >= 0;
         }
 
-        private static string? GetSeriesName(OpenXmlCompositeElement series) {
-            C.SeriesText? seriesText = series.GetFirstChild<C.SeriesText>();
-            if (seriesText == null) {
+        /// <summary>Whether the element is a <c>c:ser</c> directly under a chart group with one of these names.</summary>
+        private static bool IsSeriesUnder(OfficeXmlNode element, string chartName, string? otherChartName = null) {
+            if (!element.Is(C, "ser")) return false;
+            OfficeXmlNode parent = element.Parent;
+            return parent.Is(C, chartName) || otherChartName != null && parent.Is(C, otherChartName);
+        }
+
+        // Line, 3-D line and stock chart groups hold line series.
+        private static bool IsLineSeries(OfficeXmlNode element) =>
+            IsSeriesUnder(element, "lineChart", "line3DChart") || IsSeriesUnder(element, "stockChart");
+
+        private static bool IsMarkerCapableSeriesElement(OfficeXmlNode element) =>
+            IsLineSeries(element) ||
+            IsSeriesUnder(element, "scatterChart") ||
+            IsSeriesUnder(element, "radarChart");
+
+        private static int GetSeriesIndex(OfficeXmlNode series) {
+            return (int)(series.Child(C, "idx").UInt32Val() ?? 0U);
+        }
+
+        // The c:v text of the first c:pt under the element, or null.
+        private static string? FirstPointText(OfficeXmlNode points) {
+            OfficeXmlNode value = points.Child(C, "pt").Child(C, "v");
+            return value.IsNone ? null : value.InnerText;
+        }
+
+        private static string? GetSeriesName(OfficeXmlNode series) {
+            OfficeXmlNode seriesText = series.Child(C, "tx");
+            if (seriesText.IsNone) {
                 return null;
             }
 
-            C.StringReference? reference = seriesText.GetFirstChild<C.StringReference>();
-            C.StringCache? cache = reference?.GetFirstChild<C.StringCache>();
-            string? cachedText = cache?.Elements<C.StringPoint>()
-                .FirstOrDefault()?
-                .NumericValue?
-                .Text;
+            string? cachedText = FirstPointText(seriesText.Child(C, "strRef").Child(C, "strCache"));
             if (!string.IsNullOrWhiteSpace(cachedText)) {
                 return cachedText;
             }
 
-            C.StringLiteral? literal = seriesText.GetFirstChild<C.StringLiteral>();
-            string? literalText = literal?.Elements<C.StringPoint>()
-                .FirstOrDefault()?
-                .NumericValue?
-                .Text;
+            string? literalText = FirstPointText(seriesText.Child(C, "strLit"));
             if (!string.IsNullOrWhiteSpace(literalText)) {
                 return literalText;
             }
 
-            return string.IsNullOrWhiteSpace(seriesText.InnerText) ? null : seriesText.InnerText;
+            string innerText = seriesText.InnerText;
+            return string.IsNullOrWhiteSpace(innerText) ? null : innerText;
         }
 
-        private static C.ChartText CreateChartText(string title) {
-            return new C.ChartText(
-                new C.RichText(
-                    new A.BodyProperties(),
-                    new A.ListStyle(),
-                    new A.Paragraph(
-                        new A.Run(
-                            new A.RunProperties { Language = "en-US" },
-                            new A.Text { Text = title })
-                    )));
+        /// <summary>A new <c>c:tx</c> holding <paramref name="title"/> as rich text, made for <paramref name="context"/>'s part.</summary>
+        private static OfficeXmlNode CreateChartText(OfficeXmlNode context, string title) {
+            OfficeXmlNode chartText = context.New(C, "tx");
+            FillChartText(chartText, title);
+            return chartText;
         }
 
-        private static C.Title CreateAxisTitle(string title) {
-            return new C.Title(
-                new C.ChartText(
-                    new C.RichText(
-                        new A.BodyProperties(),
-                        new A.ListStyle(),
-                        new A.Paragraph(
-                            new A.Run(
-                                new A.RunProperties { Language = "en-US" },
-                                new A.Text { Text = title })))
-                ),
-                new C.Layout(),
-                new C.Overlay { Val = false }
-            );
+        // c:tx/c:rich with a:bodyPr, a:lstStyle and one paragraph holding one en-US run of the text.
+        private static void FillChartText(OfficeXmlNode chartText, string title) {
+            OfficeXmlNode richText = chartText.New(C, "rich");
+            OfficeXmlNode paragraph = richText.New(A, "p");
+            OfficeXmlNode run = paragraph.New(A, "r");
+            run.With(
+                run.New(A, "rPr").Attr("lang", "en-US"),
+                run.NewText(A, "t", title));
+            paragraph.Append(run);
+            richText.With(
+                richText.New(A, "bodyPr"),
+                richText.New(A, "lstStyle"),
+                paragraph);
+            chartText.Append(richText);
         }
 
-        private static void ReplaceChild<T>(OpenXmlCompositeElement parent, T child) where T : OpenXmlElement {
-            T? existing = parent.GetFirstChild<T>();
-            if (existing != null) {
-                parent.ReplaceChild(child, existing);
-            } else {
-                parent.Append(child);
-            }
+        private static OfficeXmlNode CreateAxisTitle(OfficeXmlNode context, string title) {
+            OfficeXmlNode axisTitle = context.New(C, "title");
+            FillAxisTitle(axisTitle, title);
+            return axisTitle;
+        }
+
+        // c:title with the text, a c:layout and c:overlay off.
+        private static void FillAxisTitle(OfficeXmlNode axisTitle, string title) {
+            axisTitle.With(
+                CreateChartText(axisTitle, title),
+                axisTitle.New(C, "layout"),
+                axisTitle.NewVal(C, "overlay", false));
+        }
+
+        /// <summary>Replaces the first child with the same name as <paramref name="child"/>, or appends it; returns it as held.</summary>
+        private static OfficeXmlNode ReplaceChild(OfficeXmlNode parent, OfficeXmlNode child) {
+            OfficeXmlNode existing = parent.Child(child.NamespaceId, child.LocalName);
+            return existing.Exists ? existing.ReplaceWith(child) : parent.Append(child);
         }
 
         private static string NormalizeHexColor(string hex) {

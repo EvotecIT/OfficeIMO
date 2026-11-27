@@ -1,9 +1,5 @@
-using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     // Represents a chart on a worksheet.
@@ -15,73 +11,11 @@ namespace OfficeIMO.Excel {
             if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
             }
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            if (!ForEachDataLabelChartGroup(chartGroup => {
+                ApplyDataLabels(chartGroup, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
+                    position, numberFormat, sourceLinked);
+            })) {
                 return this;
-            }
-
-            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                ApplyDataLabels(barChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-            foreach (C.Bar3DChart barChart in plotArea.Elements<C.Bar3DChart>()) {
-                ApplyDataLabels(barChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-
-            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                ApplyDataLabels(lineChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-            foreach (C.Line3DChart lineChart in plotArea.Elements<C.Line3DChart>()) {
-                ApplyDataLabels(lineChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-
-            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                ApplyDataLabels(areaChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-            foreach (C.Area3DChart areaChart in plotArea.Elements<C.Area3DChart>()) {
-                ApplyDataLabels(areaChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-
-            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                ApplyDataLabels(pieChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-            foreach (C.Pie3DChart pieChart in plotArea.Elements<C.Pie3DChart>()) {
-                ApplyDataLabels(pieChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-            foreach (C.OfPieChart pieChart in plotArea.Elements<C.OfPieChart>()) {
-                ApplyDataLabels(pieChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-
-            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                ApplyDataLabels(doughnutChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-
-            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                ApplyDataLabels(scatterChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-
-            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
-                ApplyDataLabels(bubbleChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-            foreach (C.RadarChart radarChart in plotArea.Elements<C.RadarChart>()) {
-                ApplyDataLabels(radarChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
-            }
-            foreach (C.StockChart stockChart in plotArea.Elements<C.StockChart>()) {
-                ApplyDataLabels(stockChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
             }
 
             Save();
@@ -95,53 +29,10 @@ namespace OfficeIMO.Excel {
             OfficeColor? color = null, string? fontFamily = null) {
             ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            if (!ForEachDataLabelChartGroup(chartGroup => {
+                ApplyDataLabelTextStyle(EnsureDataLabels(chartGroup), fontSize, bold, italic, color, fontFamily);
+            })) {
                 return this;
-            }
-
-            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(barChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.Bar3DChart barChart in plotArea.Elements<C.Bar3DChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(barChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(lineChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.Line3DChart lineChart in plotArea.Elements<C.Line3DChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(lineChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(areaChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.Area3DChart areaChart in plotArea.Elements<C.Area3DChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(areaChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.Pie3DChart pieChart in plotArea.Elements<C.Pie3DChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.OfPieChart pieChart in plotArea.Elements<C.OfPieChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(doughnutChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(scatterChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(bubbleChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.RadarChart radarChart in plotArea.Elements<C.RadarChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(radarChart), fontSize, bold, italic, color, fontFamily);
-            }
-            foreach (C.StockChart stockChart in plotArea.Elements<C.StockChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(stockChart), fontSize, bold, italic, color, fontFamily);
             }
 
             Save();
@@ -155,53 +46,10 @@ namespace OfficeIMO.Excel {
             bool noFill = false, bool noLine = false) {
             ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            if (!ForEachDataLabelChartGroup(chartGroup => {
+                ApplyDataLabelShapeStyle(EnsureDataLabels(chartGroup), fillColor, lineColor, lineWidth, noFill, noLine);
+            })) {
                 return this;
-            }
-
-            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(barChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.Bar3DChart barChart in plotArea.Elements<C.Bar3DChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(barChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(lineChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.Line3DChart lineChart in plotArea.Elements<C.Line3DChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(lineChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(areaChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.Area3DChart areaChart in plotArea.Elements<C.Area3DChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(areaChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(pieChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.Pie3DChart pieChart in plotArea.Elements<C.Pie3DChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(pieChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.OfPieChart pieChart in plotArea.Elements<C.OfPieChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(pieChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(doughnutChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(scatterChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(bubbleChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.RadarChart radarChart in plotArea.Elements<C.RadarChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(radarChart), fillColor, lineColor, lineWidth, noFill, noLine);
-            }
-            foreach (C.StockChart stockChart in plotArea.Elements<C.StockChart>()) {
-                ApplyDataLabelShapeStyle(EnsureDataLabels(stockChart), fillColor, lineColor, lineWidth, noFill, noLine);
             }
 
             Save();
@@ -254,53 +102,10 @@ namespace OfficeIMO.Excel {
         public ExcelChart SetDataLabelLeaderLines(bool showLeaderLines = true, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
             ValidateDataLabelLeaderLines(lineColor, lineWidth);
 
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            if (!ForEachDataLabelChartGroup(chartGroup => {
+                ApplyDataLabelLeaderLines(EnsureDataLabels(chartGroup), showLeaderLines, lineColor, lineWidth);
+            })) {
                 return this;
-            }
-
-            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(barChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.Bar3DChart barChart in plotArea.Elements<C.Bar3DChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(barChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(lineChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.Line3DChart lineChart in plotArea.Elements<C.Line3DChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(lineChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(areaChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.Area3DChart areaChart in plotArea.Elements<C.Area3DChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(areaChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(pieChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.Pie3DChart pieChart in plotArea.Elements<C.Pie3DChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(pieChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.OfPieChart pieChart in plotArea.Elements<C.OfPieChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(pieChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(doughnutChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(scatterChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(bubbleChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.RadarChart radarChart in plotArea.Elements<C.RadarChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(radarChart), showLeaderLines, lineColor, lineWidth);
-            }
-            foreach (C.StockChart stockChart in plotArea.Elements<C.StockChart>()) {
-                ApplyDataLabelLeaderLines(EnsureDataLabels(stockChart), showLeaderLines, lineColor, lineWidth);
             }
 
             Save();
@@ -475,7 +280,7 @@ namespace OfficeIMO.Excel {
             }
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelOverrides(label, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
                     showBubbleSize, position, numberFormat, numberFormat != null ? sourceLinked : (bool?)null);
             });
@@ -499,10 +304,10 @@ namespace OfficeIMO.Excel {
             }
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.DataLabels labels = EnsureDataLabels(series);
-                var labelsByIndex = new Dictionary<uint, C.DataLabel>();
-                foreach (C.DataLabel existing in labels.Elements<C.DataLabel>()) {
-                    uint? existingIndex = existing.GetFirstChild<C.Index>()?.Val?.Value;
+                OfficeXmlNode labels = EnsureDataLabels(series);
+                var labelsByIndex = new Dictionary<uint, OfficeXmlNode>();
+                foreach (OfficeXmlNode existing in labels.Children(C, "dLbl")) {
+                    uint? existingIndex = existing.Child(C, "idx").UInt32Val();
                     if (existingIndex.HasValue && !labelsByIndex.ContainsKey(existingIndex.Value)) {
                         labelsByIndex.Add(existingIndex.Value, existing);
                     }
@@ -516,14 +321,8 @@ namespace OfficeIMO.Excel {
 
                     uint index = (uint)pointIndex;
                     if (!requested.Add(index)) continue;
-                    if (!labelsByIndex.TryGetValue(index, out C.DataLabel? label)) {
-                        label = new C.DataLabel(new C.Index { Val = index });
-                        OpenXmlElement? insertBefore = labels.ChildElements.FirstOrDefault(child => child is not C.DataLabel);
-                        if (insertBefore != null) {
-                            labels.InsertBefore(label, insertBefore);
-                        } else {
-                            labels.Append(label);
-                        }
+                    if (!labelsByIndex.TryGetValue(index, out OfficeXmlNode label)) {
+                        label = InsertDataLabel(labels, index);
                         labelsByIndex.Add(index, label);
                     }
 
@@ -555,7 +354,7 @@ namespace OfficeIMO.Excel {
             }
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelOverrides(label, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
                     showBubbleSize, position, numberFormat, numberFormat != null ? sourceLinked : (bool?)null);
             });
@@ -579,7 +378,7 @@ namespace OfficeIMO.Excel {
             ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontFamily);
             });
 
@@ -602,7 +401,7 @@ namespace OfficeIMO.Excel {
             ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontFamily);
             });
 
@@ -625,7 +424,7 @@ namespace OfficeIMO.Excel {
             ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelShapeStyle(label, fillColor, lineColor, lineWidth, noFill, noLine);
             });
 
@@ -649,7 +448,7 @@ namespace OfficeIMO.Excel {
             ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelShapeStyle(label, fillColor, lineColor, lineWidth, noFill, noLine);
             });
 
@@ -665,53 +464,10 @@ namespace OfficeIMO.Excel {
         /// Sets the separator for all data labels.
         /// </summary>
         public ExcelChart SetDataLabelSeparator(string? separator) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            if (!ForEachDataLabelChartGroup(chartGroup => {
+                ApplyDataLabelSeparator(EnsureDataLabels(chartGroup), separator);
+            })) {
                 return this;
-            }
-
-            foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(barChart), separator);
-            }
-            foreach (C.Bar3DChart barChart in plotArea.Elements<C.Bar3DChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(barChart), separator);
-            }
-            foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(lineChart), separator);
-            }
-            foreach (C.Line3DChart lineChart in plotArea.Elements<C.Line3DChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(lineChart), separator);
-            }
-            foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(areaChart), separator);
-            }
-            foreach (C.Area3DChart areaChart in plotArea.Elements<C.Area3DChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(areaChart), separator);
-            }
-            foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(pieChart), separator);
-            }
-            foreach (C.Pie3DChart pieChart in plotArea.Elements<C.Pie3DChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(pieChart), separator);
-            }
-            foreach (C.OfPieChart pieChart in plotArea.Elements<C.OfPieChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(pieChart), separator);
-            }
-            foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(doughnutChart), separator);
-            }
-            foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(scatterChart), separator);
-            }
-            foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(bubbleChart), separator);
-            }
-            foreach (C.RadarChart radarChart in plotArea.Elements<C.RadarChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(radarChart), separator);
-            }
-            foreach (C.StockChart stockChart in plotArea.Elements<C.StockChart>()) {
-                ApplyDataLabelSeparator(EnsureDataLabels(stockChart), separator);
             }
 
             Save();
@@ -762,7 +518,7 @@ namespace OfficeIMO.Excel {
             ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelSeparator(label, separator);
             });
 
@@ -783,7 +539,7 @@ namespace OfficeIMO.Excel {
             ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelSeparator(label, separator);
             });
 
@@ -844,5 +600,25 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
+        // Data labels are set on these chart groups, in this order.
+        private static readonly string[] DataLabelChartGroupNames = {
+            "barChart", "bar3DChart", "lineChart", "line3DChart", "areaChart", "area3DChart", "pieChart", "pie3DChart",
+            "ofPieChart", "doughnutChart", "scatterChart", "bubbleChart", "radarChart", "stockChart"
+        };
+
+        // Runs apply on every chart group that takes data labels; false when the chart has no plot area.
+        private bool ForEachDataLabelChartGroup(Action<OfficeXmlNode> apply) {
+            OfficeXmlNode plotArea = ChartNode().Child(C, "plotArea");
+            if (plotArea.IsNone) {
+                return false;
+            }
+
+            foreach (string chartGroupName in DataLabelChartGroupNames) {
+                foreach (OfficeXmlNode chartGroup in plotArea.Children(C, chartGroupName)) {
+                    apply(chartGroup);
+                }
+            }
+            return true;
+        }
     }
 }

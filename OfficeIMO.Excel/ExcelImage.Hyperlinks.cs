@@ -1,11 +1,9 @@
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelImage {
-        private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-
         /// <summary>
         /// Gets or sets the picture's external hyperlink target. Null removes the click link.
         /// Targets are stored in the workbook and are never opened by OfficeIMO.
@@ -18,32 +16,29 @@ namespace OfficeIMO.Excel {
         public Uri? HyperlinkUri {
             get => Locking.ExecuteRead(_document.EnsureLock(), () => {
                 RequireCurrentHyperlinkOwner();
-                string? id = DrawingProperties?.GetFirstChild<A.HyperlinkOnClick>()?.Id?.Value;
+                string? id = DrawingProperties.Child(A, "hlinkClick").RelationshipAttribute("id");
                 return string.IsNullOrEmpty(id)
                     ? null
-                    : _drawingsPart.HyperlinkRelationships.FirstOrDefault(item => item.Id == id && item.IsExternal)?.Uri;
+                    : DrawingsPartRef.GetHyperlinkUri(id!, externalOnly: true);
             });
             set => Locking.ExecuteWrite(_document.EnsureLock(), () => {
                 RequireCurrentHyperlinkOwner();
-                if (_document._spreadSheetDocument.FileOpenAccess == FileAccess.Read) {
+                if (ExcelPartRef.IsReadOnlyPackage(_document)) {
                     throw new InvalidOperationException("Picture hyperlinks cannot be changed in a read-only workbook.");
                 }
-                Xdr.NonVisualDrawingProperties properties = DrawingProperties
-                    ?? throw new InvalidOperationException("The picture is missing its drawing properties.");
-                A.HyperlinkOnClick? link = properties.GetFirstChild<A.HyperlinkOnClick>();
-                string? previousId = link?.Id?.Value;
+                OfficeXmlNode properties = DrawingProperties;
+                if (properties.IsNone) throw new InvalidOperationException("The picture is missing its drawing properties.");
+                OfficeXmlNode link = properties.Child(A, "hlinkClick");
+                string? previousId = link.RelationshipAttribute("id");
                 if (value == null) {
-                    link?.Remove();
+                    if (link.Exists) link.Remove();
                 } else {
-                    HyperlinkRelationship relationship = _drawingsPart.HyperlinkRelationships
-                        .FirstOrDefault(item => item.IsExternal && string.Equals(item.Uri.OriginalString, value.OriginalString, StringComparison.Ordinal))
-                        ?? _drawingsPart.AddHyperlinkRelationship(value, true);
-                    if (link == null) {
-                        link = new A.HyperlinkOnClick();
-                        properties.AddChild(link, true);
+                    string relationshipId = DrawingsPartRef.GetOrAddExternalHyperlinkWithSameText(value);
+                    if (link.IsNone) {
+                        link = properties.AddOrdered(properties.New(A, "hlinkClick"), ExcelDrawingXml.NonVisualDrawingPropertiesOrder);
                     }
-                    link.Id = relationship.Id;
-                    link.Action = null;
+                    link.SetAttribute(R, "id", relationshipId);
+                    link.SetAttribute("action", null);
                 }
                 RemoveUnusedPictureHyperlink(previousId);
                 Save();
@@ -51,10 +46,9 @@ namespace OfficeIMO.Excel {
         }
 
         private void RequireCurrentHyperlinkOwner() {
-            WorkbookPart? workbook = _document._spreadSheetDocument.WorkbookPart;
-            if (workbook == null
-                || !workbook.WorksheetParts.Any(part => ReferenceEquals(part.DrawingsPart, _drawingsPart))
-                || !ReferenceEquals(_picture.Ancestors<Xdr.WorksheetDrawing>().FirstOrDefault(), _drawingsPart.WorksheetDrawing)) {
+            ExcelPartRef drawingsPart = DrawingsPartRef;
+            if (!ExcelPartRef.WorksheetParts(_document).Any(part => part.Drawings == drawingsPart)
+                || PictureNode.Ancestor(Xdr, "wsDr") != drawingsPart.Root) {
                 throw new InvalidOperationException(
                     "The picture is no longer part of the current workbook package. Obtain a current image from ExcelDocument.Sheets before reading or changing its hyperlink.");
             }
@@ -62,12 +56,10 @@ namespace OfficeIMO.Excel {
 
         private void RemoveUnusedPictureHyperlink(string? id) {
             if (string.IsNullOrEmpty(id)) return;
-            HyperlinkRelationship? relationship = _drawingsPart.HyperlinkRelationships.FirstOrDefault(item => item.Id == id);
-            if (relationship == null) return;
-            bool referenced = _drawingsPart.WorksheetDrawing!.Descendants().Any(element =>
-                element.GetAttributes().Any(attribute => attribute.NamespaceUri == RelationshipNamespace
-                    && attribute.LocalName == "id" && attribute.Value == id));
-            if (!referenced) _drawingsPart.DeleteReferenceRelationship(relationship);
+            ExcelPartRef drawingsPart = DrawingsPartRef;
+            if (!drawingsPart.HasHyperlink(id!)) return;
+            bool referenced = ExcelDrawingXml.HasRelationshipAttribute(drawingsPart.Root, "id", id!);
+            if (!referenced) drawingsPart.RemoveHyperlink(id!);
         }
     }
 }

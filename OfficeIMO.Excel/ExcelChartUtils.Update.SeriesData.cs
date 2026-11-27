@@ -1,27 +1,25 @@
-using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
-using ChartIndex = DocumentFormat.OpenXml.Drawing.Charts.Index;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
-        private static void UpdateSeriesIndexOrder(OpenXmlCompositeElement series, int index) {
-            ChartIndex idx = series.GetFirstChild<ChartIndex>() ?? new ChartIndex();
-            idx.Val = (uint)index;
-            if (idx.Parent == null) {
-                series.PrependChild(idx);
+        private static void UpdateSeriesIndexOrder(OfficeXmlNode series, int index) {
+            OfficeXmlNode idx = series.Child(C, "idx");
+            if (idx.IsNone) {
+                idx = series.InsertBefore(series.New(C, "idx"), series.FirstChild);
             }
+            idx.SetVal((uint)index);
 
-            Order order = series.GetFirstChild<Order>() ?? new Order();
-            order.Val = (uint)index;
-            if (order.Parent == null) {
-                series.InsertAfter(order, idx);
+            OfficeXmlNode order = series.Child(C, "order");
+            if (order.IsNone) {
+                order = idx.InsertAfterSelf(series.New(C, "order"));
             }
+            order.SetVal((uint)index);
         }
 
-        private static int GetSeriesIndex(OpenXmlCompositeElement series) {
-            return (int)(series.GetFirstChild<ChartIndex>()?.Val?.Value ?? 0U);
+        private static int GetSeriesIndex(OfficeXmlNode series) {
+            return (int)(series.Child(C, "idx").UInt32Val() ?? 0U);
         }
 
         private static HashSet<int> CreateDescriptorIndexSet(IReadOnlyList<SeriesDescriptor> descriptors) {
@@ -33,9 +31,8 @@ namespace OfficeIMO.Excel {
             return indexes;
         }
 
-        private static Dictionary<int, TSeries> CreateSeriesIndexMap<TSeries>(IReadOnlyList<TSeries> series)
-            where TSeries : OpenXmlCompositeElement {
-            var map = new Dictionary<int, TSeries>(series.Count);
+        private static Dictionary<int, OfficeXmlNode> CreateSeriesIndexMap(IReadOnlyList<OfficeXmlNode> series) {
+            var map = new Dictionary<int, OfficeXmlNode>(series.Count);
             for (int i = 0; i < series.Count; i++) {
                 map.Add(GetSeriesIndex(series[i]), series[i]);
             }
@@ -43,81 +40,111 @@ namespace OfficeIMO.Excel {
             return map;
         }
 
-        private static void UpdateSeriesText(OpenXmlCompositeElement series, ExcelChartDataRange range, int seriesIndex, string seriesName) {
-            SeriesText text = range.HasHeaderRow
-                ? new SeriesText(CreateSingleStringReference(BuildSheetQualifiedRange(range.SheetName, range.SeriesNameCellA1(seriesIndex)), seriesName))
-                : new SeriesText(new NumericValue { Text = seriesName });
-            series.AddChild(text, true);
-        }
-
-        private static void UpdateCategoryAxisData(OpenXmlCompositeElement series, ExcelChartDataRange range, IReadOnlyList<string> categories) {
-            string formula = BuildSheetQualifiedRange(range.SheetName, range.CategoriesRangeA1);
-            series.AddChild(new CategoryAxisData(CreateStringReference(formula, categories)), true);
-        }
-
-        private static void UpdateValues(OpenXmlCompositeElement series, ExcelChartDataRange range, int seriesIndex, IReadOnlyList<double> values) {
-            string formula = BuildSheetQualifiedRange(range.SheetName, range.SeriesValuesRangeA1(seriesIndex));
-            series.AddChild(new Values(CreateNumberReference(formula, values)), true);
-        }
-
-        private static void UpdateXValues(ScatterChartSeries series, ExcelChartDataRange range, IReadOnlyList<double> xValues, bool useLiteralXValues = false) {
-            string formula = BuildSheetQualifiedRange(range.SheetName, range.CategoriesRangeA1);
-            series.AddChild(new XValues(useLiteralXValues ? CreateNumberLiteral(xValues) : CreateNumberReference(formula, xValues)), true);
-        }
-
-        private static void UpdateYValues(ScatterChartSeries series, ExcelChartDataRange range, int seriesIndex, IReadOnlyList<double> values) {
-            string formula = BuildSheetQualifiedRange(range.SheetName, range.SeriesValuesRangeA1(seriesIndex));
-            series.AddChild(new YValues(CreateNumberReference(formula, values)), true);
-        }
-        private static void InsertSeries(OpenXmlCompositeElement chart, OpenXmlElement series) {
-            OpenXmlElement? insertBefore = chart.ChildElements.FirstOrDefault(child =>
-                child is DataLabels ||
-                child is GapWidth ||
-                child is GapDepth ||
-                child is Overlap ||
-                child is HighLowLines ||
-                child is UpDownBars ||
-                child is BandFormats ||
-                child is Shape ||
-                child is AxisId ||
-                child is Marker ||
-                child is Smooth ||
-                child is SeriesLines);
-
-            if (insertBefore != null) {
-                chart.InsertBefore(series, insertBefore);
-            } else {
-                chart.Append(series);
+        // The child order of a c:ser, which depends on the chart element holding it.
+        private static OfficeXmlChildOrder SeriesOrder(OfficeXmlNode series) {
+            switch (series.Parent.LocalName) {
+                case "barChart":
+                case "bar3DChart":
+                    return CBarSerView.Order;
+                case "lineChart":
+                case "line3DChart":
+                case "stockChart":
+                    return CLineSerView.Order;
+                case "areaChart":
+                case "area3DChart":
+                    return CAreaSerView.Order;
+                case "pieChart":
+                case "pie3DChart":
+                case "ofPieChart":
+                case "doughnutChart":
+                    return CPieSerView.Order;
+                case "radarChart":
+                    return CRadarSerView.Order;
+                case "surfaceChart":
+                case "surface3DChart":
+                    return CSurfaceSerView.Order;
+                case "scatterChart":
+                    return CScatterSerView.Order;
+                default:
+                    return CBubbleSerView.Order;
             }
         }
 
-        private static void EnsureStockChartLines(StockChart stockChart, int seriesCount) {
-            if (stockChart.GetFirstChild<HighLowLines>() == null) {
-                OpenXmlElement? insertBefore = stockChart.GetFirstChild<UpDownBars>();
-                insertBefore ??= stockChart.GetFirstChild<AxisId>();
-                if (insertBefore != null) {
-                    stockChart.InsertBefore(new HighLowLines(), insertBefore);
-                } else {
-                    stockChart.Append(new HighLowLines());
+        // Puts a series child in schema order, replacing the one already there, as the SDK's AddChild does for an
+        // element the series holds once.
+        private static void SetSeriesChild(OfficeXmlNode series, OfficeXmlNode child) => series.SetOrdered(child, SeriesOrder(series));
+
+        private static void UpdateSeriesText(OfficeXmlNode series, ExcelChartDataRange range, int seriesIndex, string seriesName) {
+            OfficeXmlNode text = series.New(C, "tx");
+            if (range.HasHeaderRow) {
+                text.Append(CreateSingleStringReference(text, BuildSheetQualifiedRange(range.SheetName, range.SeriesNameCellA1(seriesIndex)), seriesName));
+            } else {
+                text.Append(text.NewText(C, "v", seriesName));
+            }
+            SetSeriesChild(series, text);
+        }
+
+        private static void UpdateCategoryAxisData(OfficeXmlNode series, ExcelChartDataRange range, IReadOnlyList<string> categories) {
+            string formula = BuildSheetQualifiedRange(range.SheetName, range.CategoriesRangeA1);
+            OfficeXmlNode element = series.New(C, "cat");
+            element.Append(CreateStringReference(element, formula, categories));
+            SetSeriesChild(series, element);
+        }
+
+        private static void UpdateValues(OfficeXmlNode series, ExcelChartDataRange range, int seriesIndex, IReadOnlyList<double> values) {
+            string formula = BuildSheetQualifiedRange(range.SheetName, range.SeriesValuesRangeA1(seriesIndex));
+            OfficeXmlNode element = series.New(C, "val");
+            element.Append(CreateNumberReference(element, formula, values));
+            SetSeriesChild(series, element);
+        }
+
+        private static void UpdateXValues(OfficeXmlNode series, ExcelChartDataRange range, IReadOnlyList<double> xValues, bool useLiteralXValues = false) {
+            string formula = BuildSheetQualifiedRange(range.SheetName, range.CategoriesRangeA1);
+            OfficeXmlNode element = series.New(C, "xVal");
+            element.Append(useLiteralXValues ? CreateNumberLiteral(element, xValues) : CreateNumberReference(element, formula, xValues));
+            SetSeriesChild(series, element);
+        }
+
+        private static void UpdateYValues(OfficeXmlNode series, ExcelChartDataRange range, int seriesIndex, IReadOnlyList<double> values) {
+            string formula = BuildSheetQualifiedRange(range.SheetName, range.SeriesValuesRangeA1(seriesIndex));
+            OfficeXmlNode element = series.New(C, "yVal");
+            element.Append(CreateNumberReference(element, formula, values));
+            SetSeriesChild(series, element);
+        }
+
+        // The chart element children a new series goes before. A chart element's own c:marker (a line chart's marker
+        // flag) is not one of them: only a series marker was, and no chart element holds one.
+        private static readonly string[] SeriesInsertBeforeNames = {
+            "dLbls", "gapWidth", "gapDepth", "overlap", "hiLowLines", "upDownBars", "bandFmts", "shape", "axId", "serLines"
+        };
+
+        private static OfficeXmlNode InsertSeries(OfficeXmlNode chart, OfficeXmlNode series) {
+            OfficeXmlNode insertBefore = OfficeXmlNode.None;
+            foreach (OfficeXmlNode child in chart.Children()) {
+                if (child.NamespaceId == C && Array.IndexOf(SeriesInsertBeforeNames, child.LocalName) >= 0) {
+                    insertBefore = child;
+                    break;
                 }
             }
 
-            UpDownBars? bars = stockChart.GetFirstChild<UpDownBars>();
+            return chart.InsertBefore(series, insertBefore);
+        }
+
+        private static void EnsureStockChartLines(OfficeXmlNode stockChart, int seriesCount) {
+            if (stockChart.Child(C, "hiLowLines").IsNone) {
+                OfficeXmlNode insertBefore = stockChart.Child(C, "upDownBars");
+                if (insertBefore.IsNone) insertBefore = stockChart.Child(C, "axId");
+                stockChart.InsertBefore(stockChart.New(C, "hiLowLines"), insertBefore);
+            }
+
+            OfficeXmlNode bars = stockChart.Child(C, "upDownBars");
             if (seriesCount == 4) {
-                if (bars == null) {
-                    bars = new UpDownBars(
-                        new GapWidth { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent },
-                        new UpBars(),
-                        new DownBars());
-                    OpenXmlElement? insertBefore = stockChart.GetFirstChild<AxisId>();
-                    if (insertBefore != null) {
-                        stockChart.InsertBefore(bars, insertBefore);
-                    } else {
-                        stockChart.Append(bars);
-                    }
+                if (bars.IsNone) {
+                    bars = CreateUpDownBars(stockChart, (uint)OfficeTheme.Default.ChartStyle.BarGapPercent);
+                    stockChart.InsertBefore(bars, stockChart.Child(C, "axId"));
                 }
-            } else {
-                bars?.Remove();
+            } else if (bars.Exists) {
+                bars.Remove();
             }
         }
     }

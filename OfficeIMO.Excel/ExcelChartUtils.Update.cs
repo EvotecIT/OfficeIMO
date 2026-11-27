@@ -1,46 +1,35 @@
-using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
-using ChartIndex = DocumentFormat.OpenXml.Drawing.Charts.Index;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
-        internal static void UpdateChartData(ChartPart chartPart, ExcelChartData data, ExcelChartDataRange range) {
-            ArgumentNullException.ThrowIfNull(chartPart);
-            ArgumentNullException.ThrowIfNull(data);
-            ExcelChartAxisIdGenerator.EnsureInitialized(chartPart.OpenXmlPackage);
+        // The plot area children that hold series, counted to tell a combination chart from a single chart.
+        private static readonly string[] SeriesChartElementNames = {
+            "barChart", "bar3DChart", "lineChart", "line3DChart", "areaChart", "area3DChart", "pieChart", "pie3DChart",
+            "ofPieChart", "doughnutChart", "scatterChart", "bubbleChart", "radarChart", "stockChart", "surface3DChart", "surfaceChart"
+        };
 
-            ChartSpace? chartSpace = chartPart.ChartSpace;
-            Chart? chart = chartSpace?.GetFirstChild<Chart>();
-            PlotArea? plotArea = chart?.GetFirstChild<PlotArea>();
-            if (plotArea == null) {
+        internal static void UpdateChartData(ExcelPartRef chartPart, ExcelChartData data, ExcelChartDataRange range) {
+            if (chartPart.IsNone) throw new ArgumentNullException(nameof(chartPart));
+            ArgumentNullException.ThrowIfNull(data);
+            ExcelChartAxisIdGenerator.EnsureInitialized(chartPart);
+
+            OfficeXmlNode plotArea = chartPart.Root.Child(C, "chart").Child(C, "plotArea");
+            if (plotArea.IsNone) {
                 throw new InvalidOperationException("Chart plot area not found.");
             }
 
-            int chartElementCount =
-                plotArea.Elements<BarChart>().Count()
-                + plotArea.Elements<Bar3DChart>().Count()
-                + plotArea.Elements<LineChart>().Count()
-                + plotArea.Elements<Line3DChart>().Count()
-                + plotArea.Elements<AreaChart>().Count()
-                + plotArea.Elements<Area3DChart>().Count()
-                + plotArea.Elements<PieChart>().Count()
-                + plotArea.Elements<Pie3DChart>().Count()
-                + plotArea.Elements<OfPieChart>().Count()
-                + plotArea.Elements<DoughnutChart>().Count()
-                + plotArea.Elements<ScatterChart>().Count()
-                + plotArea.Elements<BubbleChart>().Count()
-                + plotArea.Elements<RadarChart>().Count()
-                + plotArea.Elements<StockChart>().Count()
-                + plotArea.Elements<Surface3DChart>().Count()
-                + plotArea.Elements<SurfaceChart>().Count();
+            int chartElementCount = 0;
+            foreach (OfficeXmlNode child in plotArea.Children()) {
+                if (child.NamespaceId == C && Array.IndexOf(SeriesChartElementNames, child.LocalName) >= 0) chartElementCount++;
+            }
 
             OfficeChartType defaultType = InferChartType(plotArea);
             List<SeriesDescriptor> descriptors = BuildSeriesDescriptors(range, data, defaultType, useSeriesOverrides: chartElementCount > 1);
             ValidateSingleSeriesPieVariants(descriptors);
 
-            if (plotArea.GetFirstChild<ScatterChart>() is ScatterChart scatterChart) {
+            if (plotArea.Child(C, "scatterChart") is { Exists: true } scatterChart) {
                 if (chartElementCount > 1) {
                     UpdateComboChartData(plotArea, data, range, descriptors);
                 } else {
@@ -49,28 +38,28 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (plotArea.GetFirstChild<BubbleChart>() != null) {
+            if (plotArea.Child(C, "bubbleChart").Exists) {
                 throw new NotSupportedException("Updating bubble charts is not supported. Use range-based charts for bubble data.");
             }
-            if (plotArea.GetFirstChild<StockChart>() is StockChart stockChart) {
+            if (plotArea.Child(C, "stockChart") is { Exists: true } stockChart) {
                 if (chartElementCount > 1) {
                     throw new NotSupportedException("Stock charts cannot be updated as combination charts.");
                 }
                 UpdateStockChartSeries(stockChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<Surface3DChart>() is Surface3DChart surface3DChart) {
+            if (plotArea.Child(C, "surface3DChart") is { Exists: true } surface3DChart) {
                 if (chartElementCount > 1) {
                     throw new NotSupportedException("Surface charts cannot be updated as combination charts.");
                 }
-                UpdateSurfaceChartSeries(surface3DChart, data, range, descriptors);
+                UpdateCategoryChartSeries(surface3DChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<SurfaceChart>() is SurfaceChart surfaceChart) {
+            if (plotArea.Child(C, "surfaceChart") is { Exists: true } surfaceChart) {
                 if (chartElementCount > 1) {
                     throw new NotSupportedException("Surface charts cannot be updated as combination charts.");
                 }
-                UpdateSurfaceChartSeries(surfaceChart, data, range, descriptors);
+                UpdateCategoryChartSeries(surfaceChart, data, range, descriptors);
                 return;
             }
 
@@ -79,48 +68,48 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (plotArea.GetFirstChild<BarChart>() is BarChart barChart) {
+            if (plotArea.Child(C, "barChart") is { Exists: true } barChart) {
                 UpdateBarChartSeries(barChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<Bar3DChart>() is Bar3DChart bar3DChart) {
-                UpdateBar3DChartSeries(bar3DChart, data, range, descriptors);
+            if (plotArea.Child(C, "bar3DChart") is { Exists: true } bar3DChart) {
+                UpdateCategoryChartSeries(bar3DChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<LineChart>() is LineChart lineChart) {
+            if (plotArea.Child(C, "lineChart") is { Exists: true } lineChart) {
                 UpdateLineChartSeries(lineChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<Line3DChart>() is Line3DChart line3DChart) {
-                UpdateLine3DChartSeries(line3DChart, data, range, descriptors);
+            if (plotArea.Child(C, "line3DChart") is { Exists: true } line3DChart) {
+                UpdateCategoryChartSeries(line3DChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<AreaChart>() is AreaChart areaChart) {
+            if (plotArea.Child(C, "areaChart") is { Exists: true } areaChart) {
                 UpdateAreaChartSeries(areaChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<Area3DChart>() is Area3DChart area3DChart) {
-                UpdateArea3DChartSeries(area3DChart, data, range, descriptors);
+            if (plotArea.Child(C, "area3DChart") is { Exists: true } area3DChart) {
+                UpdateCategoryChartSeries(area3DChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<RadarChart>() is RadarChart radarChart) {
-                UpdateRadarChartSeries(radarChart, data, range, descriptors);
+            if (plotArea.Child(C, "radarChart") is { Exists: true } radarChart) {
+                UpdateCategoryChartSeries(radarChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<PieChart>() is PieChart pieChart) {
-                UpdatePieChartSeries(pieChart, data, range, descriptors);
+            if (plotArea.Child(C, "pieChart") is { Exists: true } pieChart) {
+                UpdateCategoryChartSeries(pieChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<Pie3DChart>() is Pie3DChart pie3DChart) {
-                UpdatePie3DChartSeries(pie3DChart, data, range, descriptors);
+            if (plotArea.Child(C, "pie3DChart") is { Exists: true } pie3DChart) {
+                UpdateCategoryChartSeries(pie3DChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<OfPieChart>() is OfPieChart ofPieChart) {
-                UpdateOfPieChartSeries(ofPieChart, data, range, descriptors);
+            if (plotArea.Child(C, "ofPieChart") is { Exists: true } ofPieChart) {
+                UpdateCategoryChartSeries(ofPieChart, data, range, descriptors);
                 return;
             }
-            if (plotArea.GetFirstChild<DoughnutChart>() is DoughnutChart doughnutChart) {
-                UpdateDoughnutChartSeries(doughnutChart, data, range, descriptors);
+            if (plotArea.Child(C, "doughnutChart") is { Exists: true } doughnutChart) {
+                UpdateCategoryChartSeries(doughnutChart, data, range, descriptors);
                 return;
             }
 

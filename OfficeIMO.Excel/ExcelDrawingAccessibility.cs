@@ -1,43 +1,57 @@
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
-using A19 = DocumentFormat.OpenXml.Office2019.Drawing;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     /// <summary>Alternative-text and decorative metadata on worksheet drawing objects.</summary>
     internal static class ExcelDrawingAccessibility {
         private const string DecorativeExtensionUri = "{C183D7F6-B498-43B3-948B-1728B52AA6E4}";
+        private const string DecorativeNamespace = "http://schemas.microsoft.com/office/drawing/2017/decorative";
 
         /// <summary>Clears the title and description and sets the Office decorative flag that Excel and checkers read.</summary>
-        internal static void MarkDecorative(Xdr.NonVisualDrawingProperties properties) {
-            properties.Description = string.Empty;
-            properties.Title = string.Empty;
-            A.NonVisualDrawingPropertiesExtensionList list = properties.GetFirstChild<A.NonVisualDrawingPropertiesExtensionList>()
-                ?? properties.AppendChild(new A.NonVisualDrawingPropertiesExtensionList());
-            A.NonVisualDrawingPropertiesExtension? extension = list.Elements<A.NonVisualDrawingPropertiesExtension>()
-                .FirstOrDefault(item => string.Equals(item.Uri?.Value, DecorativeExtensionUri, StringComparison.OrdinalIgnoreCase));
-            if (extension == null) {
-                extension = new A.NonVisualDrawingPropertiesExtension { Uri = DecorativeExtensionUri };
-                list.Append(extension);
+        /// <param name="properties">The drawing's <c>xdr:cNvPr</c>.</param>
+        internal static void MarkDecorative(OfficeXmlNode properties) {
+            properties.SetAttribute("descr", string.Empty);
+            properties.SetAttribute("title", string.Empty);
+            OfficeXmlNode list = properties.Child(A, "extLst");
+            if (list.IsNone) list = properties.Append(properties.New(A, "extLst"));
+            OfficeXmlNode extension = default;
+            foreach (OfficeXmlNode item in list.Children(A, "ext")) {
+                if (string.Equals(item.Attribute("uri"), DecorativeExtensionUri, StringComparison.OrdinalIgnoreCase)) {
+                    extension = item;
+                    break;
+                }
             }
-            extension.RemoveAllChildren<A19.Decorative>();
-            extension.Append(new A19.Decorative { Val = true });
+            if (extension.IsNone) extension = list.Append(list.New(A, "ext").Attr("uri", DecorativeExtensionUri));
+            for (OfficeXmlNode child = extension.FirstChild; !child.IsNone;) {
+                OfficeXmlNode next = child.NextSibling;
+                if (child.Is(DecorativeNamespace, "decorative")) child.Remove();
+                child = next;
+            }
+            extension.Append(extension.CreateElement(DecorativeNamespace, "decorative", "adec").SetVal(true));
         }
 
         /// <summary>Removes the decorative flag, for example when alternative text is set.</summary>
-        internal static void ClearDecorative(Xdr.NonVisualDrawingProperties properties) {
-            A.NonVisualDrawingPropertiesExtensionList? list = properties.GetFirstChild<A.NonVisualDrawingPropertiesExtensionList>();
-            if (list == null) return;
-            foreach (A.NonVisualDrawingPropertiesExtension extension in list.Elements<A.NonVisualDrawingPropertiesExtension>()
-                .Where(item => string.Equals(item.Uri?.Value, DecorativeExtensionUri, StringComparison.OrdinalIgnoreCase)).ToList()) {
-                extension.Remove();
+        /// <param name="properties">The drawing's <c>xdr:cNvPr</c>.</param>
+        internal static void ClearDecorative(OfficeXmlNode properties) {
+            OfficeXmlNode list = properties.Child(A, "extLst");
+            if (list.IsNone) return;
+            foreach (OfficeXmlNode extension in list.Children(A, "ext").ToList()) {
+                if (string.Equals(extension.Attribute("uri"), DecorativeExtensionUri, StringComparison.OrdinalIgnoreCase)) extension.Remove();
             }
-            if (!list.HasChildren) list.Remove();
+            if (list.FirstChild.IsNone) list.Remove();
         }
 
-        internal static bool IsDecorative(OpenXmlElement? properties) =>
-            properties != null && properties.Descendants().Any(element => element.LocalName == "decorative" &&
-                element.GetAttributes().Any(attribute => attribute.LocalName == "val" &&
-                    (attribute.Value == "1" || string.Equals(attribute.Value, "true", StringComparison.OrdinalIgnoreCase))));
+        /// <summary>Whether any element below the drawing properties is a <c>decorative</c> flag set to true.</summary>
+        internal static bool IsDecorative(OfficeXmlNode properties) {
+            if (properties.IsNone) return false;
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (child.LocalName == "decorative") {
+                    string? value = child.Attribute("val");
+                    if (value == "1" || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)) return true;
+                }
+                if (IsDecorative(child)) return true;
+            }
+            return false;
+        }
     }
 }
