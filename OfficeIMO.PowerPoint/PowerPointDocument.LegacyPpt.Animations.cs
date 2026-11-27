@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint {
@@ -16,7 +15,7 @@ namespace OfficeIMO.PowerPoint {
                 string? relationshipId = null;
                 string? soundName = null;
                 if (animation.PlaysSound
-                    && soundContext.TryProject(slide.SlidePart,
+                    && soundContext.TryProject(slide.PartRef,
                         animation.SoundIdReference,
                         out LegacyPptSound? sound, out relationshipId)) {
                     soundName = sound?.Name;

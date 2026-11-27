@@ -1,17 +1,17 @@
-using DocumentFormat.OpenXml.Packaging;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        private static void ProjectLegacyComments(PowerPointDocument presentation,
-            LegacyPptDocument legacy) {
+        private static void ProjectLegacyComments(LegacyPptImportParts parts,
+            LegacyPptDocument legacy,
+            IReadOnlyList<PowerPointPartRef> slideParts) {
             LegacyPptComment[] comments = legacy.Slides.SelectMany(slide => slide.Comments).ToArray();
             if (comments.Length == 0) return;
 
-            PresentationPart presentationPart = presentation.SdkPresentationPart;
-            CommentAuthorsPart authorsPart = presentationPart.AddNewPart<CommentAuthorsPart>();
             var authors = new Dictionary<string, ProjectedLegacyCommentAuthor>(StringComparer.Ordinal);
             var authorOrder = new List<ProjectedLegacyCommentAuthor>();
             foreach (LegacyPptComment comment in comments) {
@@ -24,38 +24,43 @@ namespace OfficeIMO.PowerPoint {
                 }
                 author.LastIndex = Math.Max(author.LastIndex, checked((uint)comment.Index));
             }
-            authorsPart.CommentAuthorList = new P.CommentAuthorList(authorOrder.Select(author =>
-                new P.CommentAuthor {
-                    Id = author.Id,
-                    Name = author.Name,
-                    Initials = author.Initials,
-                    LastIndex = author.LastIndex,
-                    ColorIndex = author.Id
-                }));
+            parts.AddXmlPart(parts.PresentationPart, LegacyCommentAuthorsRelationshipType, "/ppt/commentAuthors.xml",
+                LegacyCommentAuthorsContentType, LegacyPptXml.P, "cmAuthorLst", list => {
+                    foreach (ProjectedLegacyCommentAuthor author in authorOrder) {
+                        list.AddP("cmAuthor")
+                            .Set("id", (long)author.Id)
+                            .Set("name", author.Name)
+                            .Set("initials", author.Initials)
+                            .Set("lastIdx", (long)author.LastIndex)
+                            .Set("clrIdx", (long)author.Id);
+                    }
+                }, out _, numbered: false);
 
             for (int slideIndex = 0; slideIndex < legacy.Slides.Count; slideIndex++) {
                 LegacyPptSlide sourceSlide = legacy.Slides[slideIndex];
                 if (sourceSlide.Comments.Count == 0) continue;
-                PowerPointSlide targetSlide = presentation.Slides[slideIndex];
-                SlideCommentsPart commentsPart = targetSlide.SlidePart.AddNewPart<SlideCommentsPart>();
-                var commentList = new P.CommentList();
-                foreach (LegacyPptComment comment in sourceSlide.Comments) {
-                    ProjectedLegacyCommentAuthor author = authors[
-                        comment.Author + "\0" + comment.Initials];
-                    var projected = new P.Comment(
-                        new P.Position { X = comment.X, Y = comment.Y },
-                        new P.Text(comment.Text)) {
-                        AuthorId = author.Id,
-                        Index = checked((uint)comment.Index)
-                    };
-                    if (comment.CreatedAtUtc.HasValue) {
-                        projected.DateTime = comment.CreatedAtUtc.Value;
-                    }
-                    commentList.Append(projected);
-                }
-                commentsPart.CommentList = commentList;
+                PowerPointPartRef targetSlide = slideParts[slideIndex];
+                parts.AddXmlPart(targetSlide, LegacyCommentsRelationshipType, "/ppt/comments/comment.xml",
+                    LegacyCommentsContentType, LegacyPptXml.P, "cmLst", list => {
+                        foreach (LegacyPptComment comment in sourceSlide.Comments) {
+                            ProjectedLegacyCommentAuthor author = authors[
+                                comment.Author + "\0" + comment.Initials];
+                            OfficeXmlNode projected = list.AddP("cm")
+                                .Set("authorId", (long)author.Id);
+                            if (comment.CreatedAtUtc.HasValue) {
+                                projected.Set("dt", FormatLegacyCommentDate(comment.CreatedAtUtc.Value));
+                            }
+                            projected.Set("idx", (long)checked((uint)comment.Index));
+                            projected.AddP("pos").Set("x", (long)comment.X).Set("y", (long)comment.Y);
+                            projected.AddP("text").SetInnerText(comment.Text);
+                        }
+                    }, out _);
             }
         }
+
+        // xsd:dateTime as the SDK writes a DateTimeValue.
+        private static string FormatLegacyCommentDate(DateTime value) =>
+            System.Xml.XmlConvert.ToString(value, System.Xml.XmlDateTimeSerializationMode.RoundtripKind);
 
         private sealed class ProjectedLegacyCommentAuthor {
             internal ProjectedLegacyCommentAuthor(uint id, string name, string initials) {

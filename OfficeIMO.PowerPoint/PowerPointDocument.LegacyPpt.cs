@@ -1,13 +1,11 @@
-using OfficeIMO.OpenXml.Internal;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Presentation;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.PowerPoint.LegacyPpt.Write;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
@@ -93,6 +91,7 @@ namespace OfficeIMO.PowerPoint {
                 cancellationToken: cancellationToken), bytes, options, "encrypted-source-container");
         }
 
+
         internal static PowerPointDocument ProjectLoadedLegacyPpt(LegacyPptDocument legacy,
             string? sourcePath, PowerPointFileFormat sourceFormat, PowerPointLoadOptions loadOptions,
             Stream? sourceStream = null,
@@ -101,18 +100,27 @@ namespace OfficeIMO.PowerPoint {
             cancellationToken.ThrowIfCancellationRequested();
             ValidateLegacyContentSecurity(legacy, loadOptions);
             using PowerPointDocument projected = CreateForImport();
-            ApplyLegacyDocumentSettings(projected, legacy);
+            LegacyPptImportParts parts = LegacyPptImportParts.For(projected);
+            if (!parts.IsPackageHeld) {
+                throw new InvalidOperationException("The scratch presentation of a binary import must start on its own package.");
+            }
+
+            // Everything that adds parts runs while the scratch presentation is on its own package: document settings,
+            // masters, layouts, themes, special masters, the VBA project, slides with their designs, custom shows,
+            // master interactions that wait for the slides, and comments.
+            ApplyLegacyDocumentSettings(projected, parts, legacy);
             var soundContext = new LegacyPptSoundProjectionContext(legacy);
             var deferredInteractions =
                 new List<LegacyPptDeferredProjection>();
-            LegacyPptLayoutCatalog layoutTargets = ProjectLegacyMasters(projected,
+            LegacyPptLayoutCatalog layoutTargets = ProjectLegacyMasters(parts,
                 legacy, soundContext, deferredInteractions);
-            ProjectLegacySpecialMasters(projected, legacy, soundContext,
+            ProjectLegacySpecialMasters(parts, legacy, soundContext,
                 deferredInteractions);
+            ProjectLegacyVbaProject(parts, legacy);
 
             var slideProjections = new List<(LegacyPptSlide Source, PowerPointSlide Target)>(
                 legacy.Slides.Count);
-            var slidePartsByLegacyId = new Dictionary<uint, SlidePart>();
+            var slidePartsByLegacyId = new LegacyPptSlidePartMap();
             foreach (LegacyPptSlide legacySlide in legacy.Slides) {
                 cancellationToken.ThrowIfCancellationRequested();
                 PowerPointSlide slide = layoutTargets.TryGet(legacySlide,
@@ -120,27 +128,37 @@ namespace OfficeIMO.PowerPoint {
                     ? projected.AddSlide(target.MasterIndex, target.LayoutIndex)
                     : projected.AddSlide();
                 slide.Hidden = legacySlide.Hidden;
-                ProjectLegacySlideDesign(slide, legacySlide);
-                ProjectLegacyTransition(slide, legacySlide.Transition, soundContext);
+                ProjectLegacySlideDesign(parts, slide, legacySlide);
                 slideProjections.Add((legacySlide, slide));
                 if (slidePartsByLegacyId.ContainsKey(legacySlide.SlideId)) {
                     throw new InvalidDataException(
                         $"Binary slide identifier {legacySlide.SlideId} occurs more than once.");
                 }
-                slidePartsByLegacyId.Add(legacySlide.SlideId, slide.SlidePart);
+                slidePartsByLegacyId.Add(legacySlide.SlideId, slide);
             }
 
-            ProjectLegacyCustomShows(projected, legacy, slidePartsByLegacyId);
+            ProjectLegacyCustomShows(parts, legacy, slidePartsByLegacyId);
             foreach (LegacyPptDeferredProjection interaction in
                      deferredInteractions) {
                 interaction.Apply(slidePartsByLegacyId);
             }
+            ProjectLegacyComments(parts, legacy,
+                slideProjections.Select(item => item.Target.PartRef).ToList());
+
+            // From here the engine may open the SDK (titles, OLE objects, media, tables, notes); parts the slides still
+            // need are written into the saved package.
+            ProjectLegacyLateTables(parts, slidePartsByLegacyId, soundContext);
             foreach ((LegacyPptSlide legacySlide, PowerPointSlide slide) in slideProjections) {
                 cancellationToken.ThrowIfCancellationRequested();
+                ProjectLegacyTransition(slide, legacySlide.Transition, soundContext);
+                if (HasLegacyGroupedTable(legacySlide.Shapes)) {
+                    // Grouped tables are built through the SDK, so it opens before the group's tree is read.
+                    EnsureLegacySdk(projected);
+                }
                 var projectedShapeIds = new Dictionary<uint, uint>();
                 foreach (LegacyPptShape shape in legacySlide.Shapes) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    OpenXmlElement? projectedShape = ProjectLegacyShape(slide, shape,
+                    ProjectLegacyShape(slide, shape,
                         slidePartsByLegacyId, soundContext,
                         projectedShapeIds);
                 }
@@ -148,15 +166,13 @@ namespace OfficeIMO.PowerPoint {
                 ProjectLegacyAnimations(slide, legacySlide.Shapes,
                     projectedShapeIds, soundContext);
                 if (legacySlide.NotesPage != null) {
-                    ProjectLegacyNotesPage(slide, legacySlide.NotesPage,
+                    ProjectLegacyNotesPageThroughSdk(slide, legacySlide.NotesPage,
                         slidePartsByLegacyId, soundContext);
                 } else if (!string.IsNullOrWhiteSpace(legacySlide.NotesText)) {
                     slide.Notes.Text = legacySlide.NotesText;
                 }
             }
 
-            ProjectLegacyComments(projected, legacy);
-            ProjectLegacyVbaProject(projected, legacy);
             cancellationToken.ThrowIfCancellationRequested();
             bool readOnlyProjection = loadOptions.AccessMode ==
                 DocumentAccessMode.ReadOnly;
@@ -164,8 +180,8 @@ namespace OfficeIMO.PowerPoint {
                 LegacyPptPropertySetCodec.Apply(projected, legacy.Package);
             }
 
-            byte[] packageBytes = projected.CreatePackageBytesForSave(
-                options: null, preserveVbaProject: true);
+            byte[] packageBytes = CreateLegacyProjectedPackageBytes(projected);
+            packageBytes = parts.ApplyPending(packageBytes);
             cancellationToken.ThrowIfCancellationRequested();
             if (legacy.VbaProject != null) {
                 packageBytes = ConvertProjectedVbaPackageToMacroEnabled(
@@ -191,8 +207,42 @@ namespace OfficeIMO.PowerPoint {
             return presentation;
         }
 
-        private static OpenXmlElement? ProjectLegacyShape(PowerPointSlide slide, LegacyPptShape shape,
-            IReadOnlyDictionary<uint, SlidePart> slidePartsByLegacyId,
+        /// <summary>
+        /// The projected slides by binary slide id. Each lookup reads the slide's part as the scratch presentation holds it
+        /// then, a part of its package or, once the SDK opened, the SDK part.
+        /// </summary>
+        private sealed class LegacyPptSlidePartMap : IReadOnlyDictionary<uint, PowerPointPartRef> {
+            private readonly Dictionary<uint, PowerPointSlide> _slides = new();
+
+            internal void Add(uint slideId, PowerPointSlide slide) => _slides.Add(slideId, slide);
+
+            public PowerPointPartRef this[uint key] => _slides[key].PartRef;
+            public IEnumerable<uint> Keys => _slides.Keys;
+            public IEnumerable<PowerPointPartRef> Values => _slides.Values.Select(slide => slide.PartRef);
+            public int Count => _slides.Count;
+            public bool ContainsKey(uint key) => _slides.ContainsKey(key);
+
+            public bool TryGetValue(uint key, out PowerPointPartRef value) {
+                if (_slides.TryGetValue(key, out PowerPointSlide? slide)) {
+                    value = slide.PartRef;
+                    return true;
+                }
+                value = default;
+                return false;
+            }
+
+            public IEnumerator<KeyValuePair<uint, PowerPointPartRef>> GetEnumerator() =>
+                _slides.Select(item => new KeyValuePair<uint, PowerPointPartRef>(item.Key, item.Value.PartRef)).GetEnumerator();
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        private static bool HasLegacyGroupedTable(IEnumerable<LegacyPptShape> shapes) =>
+            shapes.Any(shape => shape.Kind == LegacyPptShapeKind.Group
+                && EnumerateLegacyShapes(shape.Children).Any(child => child.Kind == LegacyPptShapeKind.Table));
+
+        private static OfficeXmlNode ProjectLegacyShape(PowerPointSlide slide, LegacyPptShape shape,
+            IReadOnlyDictionary<uint, PowerPointPartRef> slidePartsByLegacyId,
             LegacyPptSoundProjectionContext soundContext,
             IDictionary<uint, uint> projectedShapeIds) {
             long left = ToEmus(shape.Bounds.Left);
@@ -200,6 +250,7 @@ namespace OfficeIMO.PowerPoint {
             long width = Math.Max(1L, ToEmus(shape.Bounds.Width));
             long height = Math.Max(1L, ToEmus(shape.Bounds.Height));
             PowerPointShape? projectedShape = null;
+            OfficeXmlNode projectedElement = default;
             switch (shape.Kind) {
                 case LegacyPptShapeKind.TextBox:
                     PowerPointTextBox textBox = shape.PlaceholderKind == LegacyPptPlaceholderKind.Title
@@ -207,22 +258,21 @@ namespace OfficeIMO.PowerPoint {
                         || shape.PlaceholderKind == LegacyPptPlaceholderKind.VerticalTitle
                         ? slide.AddTitle(shape.Text,global::OfficeIMO.OfficeLength.Emus(left),global::OfficeIMO.OfficeLength.Emus(top),global::OfficeIMO.OfficeLength.Emus(width),global::OfficeIMO.OfficeLength.Emus(height))
                         : slide.AddTextBox(shape.Text,global::OfficeIMO.OfficeLength.Emus(left),global::OfficeIMO.OfficeLength.Emus(top),global::OfficeIMO.OfficeLength.Emus(width),global::OfficeIMO.OfficeLength.Emus(height));
-                    PlaceholderValues? placeholder = MapPlaceholder(shape.PlaceholderKind);
-                    if (placeholder.HasValue) textBox.PlaceholderType = placeholder.Value.ToOfficeEnum();
-                    LegacyPptTextProjection.Apply(
-                        (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element,
+                    PowerPointPlaceholderType? placeholder = MapPlaceholder(shape.PlaceholderKind);
+                    if (placeholder.HasValue) textBox.PlaceholderType = placeholder.Value;
+                    PowerPointPartRef slidePart = slide.PartRef;
+                    LegacyPptTextProjection.Apply(textBox.XmlElement,
                         shape.TextBody, shape.TextFrame,
-                        interaction => ProjectLegacyInteraction(slide.SlidePart, interaction,
-                            slidePartsByLegacyId: slidePartsByLegacyId,
-                            soundContext: soundContext),
+                        CreateLegacyTextInteractionProjector(slidePart, slidePartsByLegacyId, soundContext),
                         pictureBullet => ProjectLegacyPictureBullet(
-                            slide.SlidePart, pictureBullet));
+                            slidePart, pictureBullet));
                     if (shape.OfficeArtShapeType != 202
                         && LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
                             out OfficePresetShapeType textGeometry)
-                        && textBox.Element is DocumentFormat.OpenXml.Presentation.Shape textShape
-                        && textShape.ShapeProperties?.GetFirstChild<A.PresetGeometry>() is A.PresetGeometry preset) {
-                        preset.Preset = textGeometry.ToOpenXml();
+                        && textBox.XmlElement is { IsNone: false } textShape
+                        && textShape.Is(LegacyPptXml.P, "sp")
+                        && textShape.Child(LegacyPptXml.P, "spPr").Child(LegacyPptXml.A, "prstGeom") is { IsNone: false } preset) {
+                        preset.Set("prst", textGeometry.ToOpenXmlToken());
                     }
                     projectedShape = textBox;
                     break;
@@ -244,7 +294,7 @@ namespace OfficeIMO.PowerPoint {
                 case LegacyPptShapeKind.Connector:
                     if (LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
                             out OfficePresetShapeType connectorGeometry)) {
-                        projectedShape = slide.AddConnectionShape(connectorGeometry.ToOpenXml(), left, top, width, height);
+                        projectedElement = slide.AddLegacyConnectionShape(connectorGeometry, left, top, width, height);
                     }
                     break;
                 case LegacyPptShapeKind.Picture:
@@ -272,7 +322,7 @@ namespace OfficeIMO.PowerPoint {
                                 PowerPointOleFollowColorScheme.TextAndBackground,
                             _ => PowerPointOleFollowColorScheme.None
                         };
-                        ApplyLegacyOlePreview(slide.SlidePart, ole, shape);
+                        ApplyLegacyOlePreview(slide.PartRef, ole.XmlElement, shape);
                         projectedShape = ole;
                     }
                     break;
@@ -285,76 +335,64 @@ namespace OfficeIMO.PowerPoint {
                     }
                     break;
                 case LegacyPptShapeKind.Table:
-                    projectedShape = ProjectLegacyTable(slide, shape,
+                    projectedShape = ProjectLegacyTableThroughSdk(slide, shape,
                         slidePartsByLegacyId, soundContext);
                     break;
                 case LegacyPptShapeKind.Group:
-                    ShapeTree tree = slide.SlidePart.Slide?.CommonSlideData?.ShapeTree
-                        ?? throw new InvalidDataException("The projected slide has no shape tree.");
-                    uint nextShapeId = tree.Descendants<NonVisualDrawingProperties>()
-                        .Select(item => item.Id?.Value ?? 0U)
+                    OfficeXmlNode tree = slide.PartRef.Root.Path(LegacyPptXml.P, "cSld", "spTree");
+                    if (tree.IsNone) throw new InvalidDataException("The projected slide has no shape tree.");
+                    uint nextShapeId = tree.Descendants(LegacyPptXml.P, "cNvPr")
+                        .Select(item => item.UInt("id") ?? 0U)
                         .DefaultIfEmpty(1U)
                         .Max() + 1U;
-                    OpenXmlElement? group = CreateLegacyOpenXmlShape(slide.SlidePart, shape,
+                    OfficeXmlNode group = CreateLegacyOpenXmlShape(slide.PartRef, tree, shape,
                         ref nextShapeId, slidePartsByLegacyId, soundContext,
                         projectedShapeIds);
-                    if (group != null) {
-                        tree.Append(group);
+                    if (!group.IsNone) {
                         slide.ReserveShapeIdsThrough(nextShapeId);
+                        slide.PartRef.MarkEdited();
                     }
                     return group;
             }
-            DocumentFormat.OpenXml.Presentation.ShapeProperties? projectedProperties =
-                projectedShape?.Element switch {
-                    DocumentFormat.OpenXml.Presentation.Shape projected => projected.ShapeProperties,
-                    DocumentFormat.OpenXml.Presentation.ConnectionShape projected => projected.ShapeProperties,
-                    DocumentFormat.OpenXml.Presentation.Picture projected => projected.ShapeProperties,
-                    _ => null
-                };
-            if (projectedProperties != null) {
+            if (projectedShape != null) projectedElement = projectedShape.XmlElement;
+            if (projectedElement.IsNone) return default;
+            OfficeXmlNode projectedProperties = projectedElement.NamespaceId == LegacyPptXml.P
+                && projectedElement.LocalName is "sp" or "cxnSp" or "pic"
+                ? projectedElement.Child(LegacyPptXml.P, "spPr")
+                : default;
+            if (!projectedProperties.IsNone) {
                 if (shape.Kind != LegacyPptShapeKind.Picture) {
                     ApplyLegacyShapeStyle(projectedProperties, shape);
                 }
-                projectedProperties.Transform2D ??= new A.Transform2D();
-                ApplyLegacyShapeTransform(projectedProperties.Transform2D, shape);
-                if (projectedProperties.GetFirstChild<A.PresetGeometry>() is A.PresetGeometry preset) {
+                ApplyLegacyShapeTransform(projectedProperties.GetOrAddChild(LegacyPptXml.A, "xfrm",
+                    LegacyPptImportXml.ShapePropertiesOrder), shape);
+                OfficeXmlNode preset = projectedProperties.Child(LegacyPptXml.A, "prstGeom");
+                if (!preset.IsNone) {
                     LegacyPptShapeGeometryMapper.ApplyExactPresetAdjustments(shape.OfficeArtShapeType,
-                        shape.Geometry, OfficeXmlNode.FromSdk(preset));
+                        shape.Geometry, preset);
                 }
             }
-            if (projectedShape?.Element is Picture projectedPicture) {
-                ApplyLegacyPictureEditingProperties(projectedPicture, shape);
-                ApplyLegacyPictureCrop(projectedPicture.BlipFill, shape);
-                ApplyLegacyPictureEffects(projectedPicture.BlipFill?.Blip, shape);
+            if (projectedElement.Is(LegacyPptXml.P, "pic")) {
+                ApplyLegacyPictureEditingProperties(projectedElement, shape);
+                OfficeXmlNode blipFill = projectedElement.Child(LegacyPptXml.P, "blipFill");
+                ApplyLegacyPictureCrop(blipFill, shape);
+                ApplyLegacyPictureEffects(blipFill.Child(LegacyPptXml.A, "blip"), shape);
             }
-            if (projectedShape?.Element is OpenXmlElement projectedElement) {
-                ApplyLegacyPlaceholder(projectedElement, shape);
-                ApplyLegacyShapeMetadata(projectedElement, shape);
-                ApplyLegacyShapeInteractions(slide.SlidePart, projectedElement, shape,
-                    slidePartsByLegacyId, soundContext);
-                RegisterLegacyShapeId(shape, projectedElement,
-                    projectedShapeIds);
-            }
-            return projectedShape?.Element;
+            ApplyLegacyPlaceholder(projectedElement, shape);
+            ApplyLegacyShapeMetadata(projectedElement, shape);
+            ApplyLegacyShapeInteractions(slide.PartRef, projectedElement, shape,
+                slidePartsByLegacyId, soundContext);
+            RegisterLegacyShapeId(shape, projectedElement,
+                projectedShapeIds);
+            slide.PartRef.MarkEdited();
+            return projectedElement;
         }
 
         private static void RegisterLegacyShapeId(LegacyPptShape source,
-            OpenXmlElement projected,
+            OfficeXmlNode projected,
             IDictionary<uint, uint>? projectedShapeIds) {
             if (projectedShapeIds == null) return;
-            uint? projectedId = projected switch {
-                DocumentFormat.OpenXml.Presentation.Shape item => item.NonVisualShapeProperties?
-                    .NonVisualDrawingProperties?.Id?.Value,
-                DocumentFormat.OpenXml.Presentation.ConnectionShape item => item.NonVisualConnectionShapeProperties?
-                    .NonVisualDrawingProperties?.Id?.Value,
-                DocumentFormat.OpenXml.Presentation.Picture item => item.NonVisualPictureProperties?
-                    .NonVisualDrawingProperties?.Id?.Value,
-                DocumentFormat.OpenXml.Presentation.GroupShape item => item.NonVisualGroupShapeProperties?
-                    .NonVisualDrawingProperties?.Id?.Value,
-                DocumentFormat.OpenXml.Presentation.GraphicFrame item => item.NonVisualGraphicFrameProperties?
-                    .NonVisualDrawingProperties?.Id?.Value,
-                _ => null
-            };
+            uint? projectedId = GetLegacyNonVisualDrawingProperties(projected).UInt("id");
             if (projectedId.HasValue) projectedShapeIds[source.ShapeId] = projectedId.Value;
         }
 
@@ -362,21 +400,22 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<LegacyPptConnectorRule> rules,
             IReadOnlyDictionary<uint, uint> projectedShapeIds) {
             if (rules.Count == 0) return;
-            ShapeTree? tree = slide.SlidePart.Slide?.CommonSlideData?.ShapeTree;
-            if (tree == null) return;
+            OfficeXmlNode tree = slide.PartRef.Root.Path(LegacyPptXml.P, "cSld", "spTree");
+            if (tree.IsNone) return;
             ProjectLegacyConnectorRules(tree, rules, projectedShapeIds);
+            slide.PartRef.MarkEdited();
         }
 
-        private static void ProjectLegacyConnectorRules(ShapeTree tree,
+        private static readonly OfficeXmlChildOrder LegacyConnectionShapeOrder = new(
+            new[] { LegacyPptXml.P, LegacyPptXml.P, LegacyPptXml.P, LegacyPptXml.P },
+            new[] { "nvCxnSpPr", "spPr", "style", "extLst" });
+
+        private static void ProjectLegacyConnectorRules(OfficeXmlNode tree,
             IReadOnlyList<LegacyPptConnectorRule> rules,
             IReadOnlyDictionary<uint, uint> projectedShapeIds) {
-            var connectorsById = new Dictionary<uint,
-                DocumentFormat.OpenXml.Presentation.ConnectionShape>();
-            foreach (DocumentFormat.OpenXml.Presentation.ConnectionShape
-                     connector in tree.Descendants<
-                         DocumentFormat.OpenXml.Presentation.ConnectionShape>()) {
-                uint? id = connector.NonVisualConnectionShapeProperties?
-                    .NonVisualDrawingProperties?.Id?.Value;
+            var connectorsById = new Dictionary<uint, OfficeXmlNode>();
+            foreach (OfficeXmlNode connector in tree.Descendants(LegacyPptXml.P, "cxnSp")) {
+                uint? id = connector.Path(LegacyPptXml.P, "nvCxnSpPr", "cNvPr").UInt("id");
                 if (id.HasValue && !connectorsById.ContainsKey(id.Value)) {
                     connectorsById.Add(id.Value, connector);
                 }
@@ -384,48 +423,87 @@ namespace OfficeIMO.PowerPoint {
             foreach (LegacyPptConnectorRule rule in rules) {
                 if (!projectedShapeIds.TryGetValue(rule.ConnectorShapeId, out uint connectorId)) continue;
                 if (!connectorsById.TryGetValue(connectorId,
-                        out DocumentFormat.OpenXml.Presentation.ConnectionShape?
-                            connector)) continue;
-                NonVisualConnectorShapeDrawingProperties drawingProperties =
-                    connector.NonVisualConnectionShapeProperties?.NonVisualConnectorShapeDrawingProperties
-                    ?? new NonVisualConnectorShapeDrawingProperties();
-                connector.NonVisualConnectionShapeProperties ??= new NonVisualConnectionShapeProperties();
-                connector.NonVisualConnectionShapeProperties.NonVisualConnectorShapeDrawingProperties =
-                    drawingProperties;
-                drawingProperties.RemoveAllChildren<A.StartConnection>();
-                drawingProperties.RemoveAllChildren<A.EndConnection>();
+                        out OfficeXmlNode connector)) continue;
+                OfficeXmlNode nonVisual = connector.GetOrAddChild(LegacyPptXml.P, "nvCxnSpPr", LegacyConnectionShapeOrder);
+                OfficeXmlNode drawingProperties = nonVisual.GetOrAddChild(LegacyPptXml.P, "cNvCxnSpPr",
+                    LegacyPptImportXml.NonVisualConnectorOrder);
+                drawingProperties.RemoveChildren(LegacyPptXml.A, "stCxn");
+                drawingProperties.RemoveChildren(LegacyPptXml.A, "endCxn");
                 if (projectedShapeIds.TryGetValue(rule.StartShapeId, out uint startShapeId)) {
-                    drawingProperties.Append(new A.StartConnection {
-                        Id = startShapeId,
-                        Index = rule.StartConnectionSiteIndex
-                    });
+                    drawingProperties.AddA("stCxn")
+                        .Set("id", (long)startShapeId)
+                        .Set("idx", (long)rule.StartConnectionSiteIndex);
                 }
                 if (projectedShapeIds.TryGetValue(rule.EndShapeId, out uint endShapeId)) {
-                    drawingProperties.Append(new A.EndConnection {
-                        Id = endShapeId,
-                        Index = rule.EndConnectionSiteIndex
-                    });
+                    drawingProperties.AddA("endCxn")
+                        .Set("id", (long)endShapeId)
+                        .Set("idx", (long)rule.EndConnectionSiteIndex);
                 }
             }
         }
 
-        private static void ApplyLegacyOlePreview(SlidePart slidePart,
-            PowerPointOleObject target, LegacyPptShape source) {
+        private static void ApplyLegacyOlePreview(PowerPointPartRef slidePart,
+            OfficeXmlNode target, LegacyPptShape source) {
             if (source.Picture?.HasImportableImage != true
                 || source.Picture.ContentType == null
-                || target.Element is not GraphicFrame frame) return;
-            OleObject? ole = frame.Graphic?.GraphicData?
-                .GetFirstChild<OleObject>();
-            Picture? picture = ole?.GetFirstChild<Picture>();
-            if (picture == null) return;
-            ImagePart imagePart = AddLegacyImagePart(slidePart,
+                || !target.Is(LegacyPptXml.P, "graphicFrame")) return;
+            OfficeXmlNode ole = target.Path(LegacyPptXml.A, "graphic", "graphicData")
+                .Child(LegacyPptXml.P, "oleObj");
+            OfficeXmlNode picture = ole.Child(LegacyPptXml.P, "pic");
+            if (picture.IsNone) return;
+            string relationshipId = AddLegacyImagePart(slidePart,
                 source.Picture);
-            string relationshipId = slidePart.GetIdOfPart(imagePart);
-            picture.BlipFill = new BlipFill(
-                new A.Blip { Embed = relationshipId },
-                new A.Stretch(new A.FillRectangle()));
-            ApplyLegacyPictureCrop(picture.BlipFill, source);
-            ApplyLegacyPictureEffects(picture.BlipFill.Blip, source);
+            OfficeXmlNode blipFill = picture.SetChild(LegacyPptXml.P, "blipFill", LegacyPptImportXml.PictureOrder);
+            OfficeXmlNode blip = blipFill.AddA("blip").SetRelationship("embed", relationshipId);
+            blipFill.AddA("stretch").AddA("fillRect");
+            ApplyLegacyPictureCrop(blipFill, source);
+            ApplyLegacyPictureEffects(blip, source);
+            slidePart.MarkEdited();
+        }
+
+        /// <summary>A placeholder for a table on a master or special master, replaced once the slides are projected.</summary>
+        private static OfficeXmlNode AddLegacyLateTable(LegacyPptImportParts parts, PowerPointPartRef ownerPart,
+            OfficeXmlNode parent, LegacyPptShape source, uint shapeId) {
+            OfficeXmlNode frame = parent.AddP("graphicFrame");
+            OfficeXmlNode nonVisual = frame.AddP("nvGraphicFramePr");
+            nonVisual.AddP("cNvPr").Set("id", (long)shapeId).Set("name", $"Binary Table {shapeId - 1U}");
+            nonVisual.AddP("cNvGraphicFramePr");
+            nonVisual.AddP("nvPr");
+            parts.LateTables.Add(new LegacyPptLateTable(ownerPart, shapeId, source));
+            return frame;
+        }
+
+        private static void ProjectLegacyLateTables(LegacyPptImportParts parts,
+            IReadOnlyDictionary<uint, PowerPointPartRef> slidePartsByLegacyId,
+            LegacyPptSoundProjectionContext soundContext) {
+            if (parts.LateTables.Count == 0) return;
+            EnsureLegacySdk(parts.Document);
+            foreach (LegacyPptLateTable table in parts.LateTables) {
+                OfficeXmlNode placeholder = FindLegacyShapeById(table.Owner.Root, table.ShapeId);
+                if (placeholder.IsNone) {
+                    throw new InvalidDataException("A projected master table lost its place before the slides were projected.");
+                }
+                OfficeXmlNode frame = placeholder.Parent.InsertBefore(CreateLegacyTableFrameElement(table.Owner,
+                    table.Source, table.ShapeId, slidePartsByLegacyId, soundContext, deferredInteractions: null), placeholder);
+                placeholder.Remove();
+                ApplyLegacyShapeMetadata(frame, table.Source);
+                ApplyLegacyShapeInteractions(table.Owner, frame, table.Source,
+                    slidePartsByLegacyId, soundContext);
+                table.Owner.MarkEdited();
+            }
+            parts.LateTables.Clear();
+        }
+
+        internal sealed class LegacyPptLateTable {
+            internal LegacyPptLateTable(PowerPointPartRef owner, uint shapeId, LegacyPptShape source) {
+                Owner = owner;
+                ShapeId = shapeId;
+                Source = source;
+            }
+
+            internal PowerPointPartRef Owner { get; }
+            internal uint ShapeId { get; }
+            internal LegacyPptShape Source { get; }
         }
 
         private static OfficeImageFormat GetLegacyPicturePartType(string contentType) => contentType switch {
@@ -438,34 +516,34 @@ namespace OfficeIMO.PowerPoint {
             _ => throw new NotSupportedException($"Legacy picture content type '{contentType}' is not supported.")
         };
 
-        private static PlaceholderValues? MapPlaceholder(LegacyPptPlaceholderKind placeholder) {
+        private static PowerPointPlaceholderType? MapPlaceholder(LegacyPptPlaceholderKind placeholder) {
             switch (placeholder) {
                 case LegacyPptPlaceholderKind.MasterTitle:
-                case LegacyPptPlaceholderKind.Title: return PlaceholderValues.Title;
+                case LegacyPptPlaceholderKind.Title: return PowerPointPlaceholderType.Title;
                 case LegacyPptPlaceholderKind.MasterCenterTitle:
-                case LegacyPptPlaceholderKind.CenterTitle: return PlaceholderValues.CenteredTitle;
+                case LegacyPptPlaceholderKind.CenterTitle: return PowerPointPlaceholderType.CenteredTitle;
                 case LegacyPptPlaceholderKind.MasterSubtitle:
-                case LegacyPptPlaceholderKind.Subtitle: return PlaceholderValues.SubTitle;
+                case LegacyPptPlaceholderKind.Subtitle: return PowerPointPlaceholderType.SubTitle;
                 case LegacyPptPlaceholderKind.MasterBody:
-                case LegacyPptPlaceholderKind.Body: return PlaceholderValues.Body;
-                case LegacyPptPlaceholderKind.VerticalTitle: return PlaceholderValues.Title;
-                case LegacyPptPlaceholderKind.VerticalBody: return PlaceholderValues.Body;
+                case LegacyPptPlaceholderKind.Body: return PowerPointPlaceholderType.Body;
+                case LegacyPptPlaceholderKind.VerticalTitle: return PowerPointPlaceholderType.Title;
+                case LegacyPptPlaceholderKind.VerticalBody: return PowerPointPlaceholderType.Body;
                 case LegacyPptPlaceholderKind.MasterNotesSlideImage:
-                case LegacyPptPlaceholderKind.NotesSlideImage: return PlaceholderValues.SlideImage;
+                case LegacyPptPlaceholderKind.NotesSlideImage: return PowerPointPlaceholderType.SlideImage;
                 case LegacyPptPlaceholderKind.MasterNotesBody:
-                case LegacyPptPlaceholderKind.NotesBody: return PlaceholderValues.Body;
-                case LegacyPptPlaceholderKind.MasterDate: return PlaceholderValues.DateAndTime;
-                case LegacyPptPlaceholderKind.MasterSlideNumber: return PlaceholderValues.SlideNumber;
-                case LegacyPptPlaceholderKind.MasterFooter: return PlaceholderValues.Footer;
-                case LegacyPptPlaceholderKind.MasterHeader: return PlaceholderValues.Header;
-                case LegacyPptPlaceholderKind.Graph: return PlaceholderValues.Chart;
-                case LegacyPptPlaceholderKind.Table: return PlaceholderValues.Table;
-                case LegacyPptPlaceholderKind.ClipArt: return PlaceholderValues.ClipArt;
-                case LegacyPptPlaceholderKind.Media: return PlaceholderValues.Media;
-                case LegacyPptPlaceholderKind.Picture: return PlaceholderValues.Picture;
+                case LegacyPptPlaceholderKind.NotesBody: return PowerPointPlaceholderType.Body;
+                case LegacyPptPlaceholderKind.MasterDate: return PowerPointPlaceholderType.DateAndTime;
+                case LegacyPptPlaceholderKind.MasterSlideNumber: return PowerPointPlaceholderType.SlideNumber;
+                case LegacyPptPlaceholderKind.MasterFooter: return PowerPointPlaceholderType.Footer;
+                case LegacyPptPlaceholderKind.MasterHeader: return PowerPointPlaceholderType.Header;
+                case LegacyPptPlaceholderKind.Graph: return PowerPointPlaceholderType.Chart;
+                case LegacyPptPlaceholderKind.Table: return PowerPointPlaceholderType.Table;
+                case LegacyPptPlaceholderKind.ClipArt: return PowerPointPlaceholderType.ClipArt;
+                case LegacyPptPlaceholderKind.Media: return PowerPointPlaceholderType.Media;
+                case LegacyPptPlaceholderKind.Picture: return PowerPointPlaceholderType.Picture;
                 case LegacyPptPlaceholderKind.Object:
-                case LegacyPptPlaceholderKind.VerticalObject: return PlaceholderValues.Object;
-                case LegacyPptPlaceholderKind.OrganizationChart: return PlaceholderValues.Diagram;
+                case LegacyPptPlaceholderKind.VerticalObject: return PowerPointPlaceholderType.Object;
+                case LegacyPptPlaceholderKind.OrganizationChart: return PowerPointPlaceholderType.Diagram;
                 default: return null;
             }
         }

@@ -1,52 +1,34 @@
-using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing.Binary;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
+        /// <summary>Replaces the <c>p:cNvPicPr</c> of a projected picture with the binary picture's locks.</summary>
         private static void ApplyLegacyPictureEditingProperties(
-            P.Picture picture, LegacyPptShape source) {
-            if (picture.NonVisualPictureProperties == null) return;
-            picture.NonVisualPictureProperties
-                .NonVisualPictureDrawingProperties =
-                CreateLegacyNonVisualPictureDrawingProperties(source);
+            OfficeXmlNode picture, LegacyPptShape source) {
+            OfficeXmlNode nonVisual = picture.Child(LegacyPptXml.P, "nvPicPr");
+            if (nonVisual.IsNone) return;
+            WriteLegacyNonVisualPictureDrawingProperties(
+                nonVisual.SetChild(LegacyPptXml.P, "cNvPicPr", LegacyPptImportXml.NonVisualPictureOrder), source);
         }
 
-        private static P.NonVisualPictureDrawingProperties
-            CreateLegacyNonVisualPictureDrawingProperties(
-                LegacyPptShape source) {
-            return new P.NonVisualPictureDrawingProperties(
-                CreateLegacyPictureLocks(source)) {
-                PreferRelativeResize = ToBooleanValue(
-                    source.Style.PreferRelativeResize)
-            };
-        }
-
-        private static A.PictureLocks CreateLegacyPictureLocks(
-            LegacyPptShape source) {
+        private static void WriteLegacyNonVisualPictureDrawingProperties(
+            OfficeXmlNode target, LegacyPptShape source) {
+            target.Set("preferRelativeResize", source.Style.PreferRelativeResize);
             OfficeArtShapeProtection protection =
                 OfficeArtShapeProtection.Decode(source.Style.Properties);
-            return new A.PictureLocks {
-                NoGrouping = ToBooleanValue(
-                    protection.LockAgainstGrouping),
-                NoSelection = ToBooleanValue(
-                    protection.LockAgainstSelect),
-                NoRotation = ToBooleanValue(protection.LockRotation),
-                NoChangeAspect = ToBooleanValue(
-                    protection.LockAspectRatio),
-                NoMove = ToBooleanValue(protection.LockPosition),
-                NoEditPoints = ToBooleanValue(protection.LockVertices),
-                NoAdjustHandles = ToBooleanValue(
-                    protection.LockAdjustHandles),
-                NoCrop = ToBooleanValue(protection.LockCropping),
-                NoChangeShapeType = ToBooleanValue(
-                    source.Style.LockShapeType)
-            };
+            target.AddA("picLocks")
+                .Set("noGrp", protection.LockAgainstGrouping)
+                .Set("noSelect", protection.LockAgainstSelect)
+                .Set("noRot", protection.LockRotation)
+                .Set("noChangeAspect", protection.LockAspectRatio)
+                .Set("noMove", protection.LockPosition)
+                .Set("noEditPoints", protection.LockVertices)
+                .Set("noAdjustHandles", protection.LockAdjustHandles)
+                .Set("noChangeShapeType", source.Style.LockShapeType)
+                .Set("noCrop", protection.LockCropping);
         }
-
-        private static BooleanValue? ToBooleanValue(bool? value) =>
-            value.HasValue ? new BooleanValue(value.Value) : null;
     }
 }

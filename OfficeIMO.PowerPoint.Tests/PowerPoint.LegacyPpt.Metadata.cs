@@ -65,8 +65,10 @@ namespace OfficeIMO.Tests {
             uint nextShapeId = 2;
 
             P.GroupShape group = Assert.IsType<P.GroupShape>(
-                PowerPointDocument.CreateLegacyOpenXmlShape(slide.SlidePart, source,
-                    ref nextShapeId));
+                PowerPointDocument.CreateLegacyOpenXmlShape(
+                    OfficeIMO.PowerPoint.OpenXml.PowerPointPartRef.FromSdk(slide.SlidePart),
+                    OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(slide.SlidePart.Slide!.CommonSlideData!.ShapeTree!),
+                    source, ref nextShapeId).SdkElement);
             P.Shape projectedChild = Assert.Single(group.Elements<P.Shape>());
 
             Assert.Equal("Named Group", group.NonVisualGroupShapeProperties!

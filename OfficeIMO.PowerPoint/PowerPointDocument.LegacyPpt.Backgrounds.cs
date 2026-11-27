@@ -1,92 +1,109 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        private static void ApplyLegacyBackground(OpenXmlPart ownerPart,
-            CommonSlideData commonSlideData, LegacyPptBackground source) {
-            OpenXmlElement? fill = CreateLegacyBackgroundFill(ownerPart, source);
-            if (fill == null) {
+        private const int LegacyA = LegacyPptXml.A;
+
+        /// <summary>Gives <c>p:cSld</c> the binary background, adding its picture to <paramref name="ownerPart"/>.</summary>
+        private static void ApplyLegacyBackground(PowerPointPartRef ownerPart,
+            OfficeXmlNode commonSlideData, LegacyPptBackground source) {
+            OfficeXmlNode background = commonSlideData.CreateElement(LegacyPptXml.P, "bg");
+            OfficeXmlNode properties = background.AddP("bgPr");
+            if (!AppendLegacyBackgroundFill(ownerPart, properties, source)) {
                 if (source.ForegroundColor != null) {
                     ApplyLegacyBackground(commonSlideData, source.ForegroundColor);
                 }
                 return;
             }
-            commonSlideData.Background = new Background(new BackgroundProperties(fill));
+            ReplaceLegacyBackground(commonSlideData, background);
         }
 
-        private static OpenXmlElement? CreateLegacyBackgroundFill(OpenXmlPart ownerPart,
+        /// <summary>Gives <c>p:cSld</c> a solid background of one colour.</summary>
+        private static void ApplyLegacyBackground(OfficeXmlNode commonSlideData, string color) {
+            OfficeXmlNode background = commonSlideData.CreateElement(LegacyPptXml.P, "bg");
+            background.AddP("bgPr").AddA("solidFill").AddA("srgbClr").Set("val", color);
+            ReplaceLegacyBackground(commonSlideData, background);
+        }
+
+        private static void ReplaceLegacyBackground(OfficeXmlNode commonSlideData, OfficeXmlNode background) {
+            OfficeXmlNode existing = commonSlideData.Child(LegacyPptXml.P, "bg");
+            if (existing.IsNone) {
+                commonSlideData.InsertOrdered(background, LegacyPptImportXml.CommonSlideDataOrder);
+            } else {
+                commonSlideData.InsertBefore(background, existing);
+                existing.Remove();
+            }
+        }
+
+        // Appends the background fill; false, adding nothing, when the binary background has no fill to project.
+        private static bool AppendLegacyBackgroundFill(PowerPointPartRef ownerPart, OfficeXmlNode parent,
             LegacyPptBackground source) {
             switch (source.Kind) {
                 case LegacyPptBackgroundKind.None:
-                    return new A.NoFill();
+                    parent.AddA("noFill");
+                    return true;
                 case LegacyPptBackgroundKind.Solid:
-                    return source.ForegroundColor == null
-                        ? null
-                        : new A.SolidFill(CreateLegacyBackgroundColor(source.ForegroundColor,
-                            source.ForegroundOpacity));
+                    if (source.ForegroundColor == null) return false;
+                    AppendLegacyBackgroundColor(parent.AddA("solidFill"), source.ForegroundColor,
+                        source.ForegroundOpacity);
+                    return true;
                 case LegacyPptBackgroundKind.LinearGradient:
                 case LegacyPptBackgroundKind.CenterGradient:
                 case LegacyPptBackgroundKind.ShapeGradient:
                 case LegacyPptBackgroundKind.ScaleGradient:
                 case LegacyPptBackgroundKind.TitleGradient:
-                    return CreateLegacyGradientFill(source);
+                    return AppendLegacyGradientFill(parent, source);
                 case LegacyPptBackgroundKind.Pattern:
                 case LegacyPptBackgroundKind.Texture:
                 case LegacyPptBackgroundKind.Picture:
-                    return CreateLegacyBackgroundBlipFill(ownerPart, source);
+                    return AppendLegacyBackgroundBlipFill(ownerPart, parent, source);
                 case LegacyPptBackgroundKind.Inherited:
-                    return new A.GroupFill();
+                    parent.AddA("grpFill");
+                    return true;
                 default:
-                    return null;
+                    return false;
             }
         }
 
-        private static A.GradientFill? CreateLegacyGradientFill(
+        private static bool AppendLegacyGradientFill(OfficeXmlNode parent,
             LegacyPptBackground source) {
-            if (source.ForegroundColor == null || source.BackgroundColor == null) return null;
-            var gradient = new A.GradientFill { RotateWithShape = true };
-            var stops = new A.GradientStopList();
+            if (source.ForegroundColor == null || source.BackgroundColor == null) return false;
+            OfficeXmlNode gradient = parent.AddA("gradFill").Set("rotWithShape", true);
+            OfficeXmlNode stops = gradient.AddA("gsLst");
             LegacyPptGradientStop[] customStops = source.GradientStops
                 .Where(stop => stop.Color != null)
                 .ToArray();
             if (customStops.Length >= 2
                 && customStops.Length == source.GradientStops.Count) {
                 foreach (LegacyPptGradientStop stop in customStops) {
-                    stops.Append(new A.GradientStop(CreateLegacyBackgroundColor(stop.Color!,
-                        InterpolateLegacyGradientOpacity(source, stop.Position))) {
-                        Position = checked((int)Math.Round(stop.Position * 100000D,
-                            MidpointRounding.AwayFromZero))
-                    });
+                    AppendLegacyGradientStop(stops, stop.Color!,
+                        InterpolateLegacyGradientOpacity(source, stop.Position),
+                        checked((int)Math.Round(stop.Position * 100000D, MidpointRounding.AwayFromZero)));
                 }
             } else {
-                stops.Append(
-                    new A.GradientStop(CreateLegacyBackgroundColor(source.ForegroundColor,
-                        source.ForegroundOpacity)) { Position = 0 },
-                    new A.GradientStop(CreateLegacyBackgroundColor(source.BackgroundColor,
-                        source.BackgroundOpacity)) { Position = 100000 });
+                AppendLegacyGradientStop(stops, source.ForegroundColor, source.ForegroundOpacity, 0);
+                AppendLegacyGradientStop(stops, source.BackgroundColor, source.BackgroundOpacity, 100000);
             }
-            gradient.Append(stops);
             if (source.Kind is LegacyPptBackgroundKind.LinearGradient
                     or LegacyPptBackgroundKind.ScaleGradient) {
                 double angle = NormalizeLegacyGradientAngle(
                     270D - source.AngleDegrees.GetValueOrDefault());
-                gradient.Append(new A.LinearGradientFill {
-                    Angle = checked((int)Math.Round(angle * 60000D,
-                        MidpointRounding.AwayFromZero)),
-                    Scaled = source.Kind == LegacyPptBackgroundKind.ScaleGradient
-                });
+                gradient.AddA("lin")
+                    .Set("ang", checked((int)Math.Round(angle * 60000D, MidpointRounding.AwayFromZero)))
+                    .Set("scaled", source.Kind == LegacyPptBackgroundKind.ScaleGradient);
             } else {
-                gradient.Append(new A.PathGradientFill {
-                    Path = source.Kind == LegacyPptBackgroundKind.CenterGradient
-                        ? A.PathShadeValues.Circle
-                        : A.PathShadeValues.Shape
-                });
+                gradient.AddA("path")
+                    .Set("path", source.Kind == LegacyPptBackgroundKind.CenterGradient ? "circle" : "shape");
             }
-            return gradient;
+            return true;
+        }
+
+        private static void AppendLegacyGradientStop(OfficeXmlNode stops, string color, double? opacity, int position) {
+            OfficeXmlNode stop = stops.AddA("gs").Set("pos", position);
+            AppendLegacyBackgroundColor(stop, color, opacity);
         }
 
         private static double? InterpolateLegacyGradientOpacity(
@@ -99,55 +116,53 @@ namespace OfficeIMO.PowerPoint {
             return first + (last - first) * position;
         }
 
-        private static A.GradientFill? CreateLegacyShapeGradientFill(LegacyPptShape source) {
+        /// <summary>
+        /// A detached <c>a:gradFill</c> created under <paramref name="context"/>'s part for an OfficeArt gradient fill, or
+        /// none when the shape has no gradient to project.
+        /// </summary>
+        private static OfficeXmlNode CreateLegacyShapeGradientFill(OfficeXmlNode context, LegacyPptShape source) {
             uint fillType = source.Style.FillType.GetValueOrDefault();
             if (fillType is < 4 or > 8) {
-                return null;
+                return default;
             }
 
-            var gradient = new A.GradientFill { RotateWithShape = false };
-            var stops = new A.GradientStopList();
             LegacyPptGradientStop[] customStops = source.FillGradientStops
                 .Where(stop => stop.Color != null)
                 .ToArray();
-            if (customStops.Length >= 2
-                && customStops.Length == source.FillGradientStops.Count) {
-                foreach (LegacyPptGradientStop stop in customStops) {
-                    stops.Append(new A.GradientStop(CreateLegacyBackgroundColor(stop.Color!,
-                        InterpolateLegacyShapeGradientOpacity(source, stop.Position))) {
-                        Position = checked((int)Math.Round(stop.Position * 100000D,
-                            MidpointRounding.AwayFromZero))
-                    });
-                }
-            } else {
-                string? foreground = source.FillColor
+            bool useCustomStops = customStops.Length >= 2
+                && customStops.Length == source.FillGradientStops.Count;
+            string? foreground = null;
+            string? background = null;
+            if (!useCustomStops) {
+                foreground = source.FillColor
                     ?? (source.Style.FillColor.HasValue ? null : "FFFFFF");
-                string? background = source.FillBackColor
+                background = source.FillBackColor
                     ?? (source.Style.FillBackColor.HasValue ? null : "FFFFFF");
                 if (foreground == null || background == null) {
-                    return null;
+                    return default;
                 }
-                stops.Append(
-                    new A.GradientStop(CreateLegacyBackgroundColor(foreground,
-                        source.Style.FillOpacity)) { Position = 0 },
-                    new A.GradientStop(CreateLegacyBackgroundColor(background,
-                        source.Style.FillBackOpacity)) { Position = 100000 });
             }
-            gradient.Append(stops);
+
+            OfficeXmlNode gradient = context.CreateElement(LegacyA, "gradFill").Set("rotWithShape", false);
+            OfficeXmlNode stops = gradient.AddA("gsLst");
+            if (useCustomStops) {
+                foreach (LegacyPptGradientStop stop in customStops) {
+                    AppendLegacyGradientStop(stops, stop.Color!,
+                        InterpolateLegacyShapeGradientOpacity(source, stop.Position),
+                        checked((int)Math.Round(stop.Position * 100000D, MidpointRounding.AwayFromZero)));
+                }
+            } else {
+                AppendLegacyGradientStop(stops, foreground!, source.Style.FillOpacity, 0);
+                AppendLegacyGradientStop(stops, background!, source.Style.FillBackOpacity, 100000);
+            }
             if (fillType is 4 or 7) {
                 double angle = NormalizeLegacyGradientAngle(
                     90D - source.Style.FillAngleDegrees.GetValueOrDefault());
-                gradient.Append(new A.LinearGradientFill {
-                    Angle = checked((int)Math.Round(angle * 60000D,
-                        MidpointRounding.AwayFromZero)),
-                    Scaled = fillType == 7
-                });
+                gradient.AddA("lin")
+                    .Set("ang", checked((int)Math.Round(angle * 60000D, MidpointRounding.AwayFromZero)))
+                    .Set("scaled", fillType == 7);
             } else {
-                gradient.Append(new A.PathGradientFill {
-                    Path = fillType == 5
-                        ? A.PathShadeValues.Circle
-                        : A.PathShadeValues.Shape
-                });
+                gradient.AddA("path").Set("path", fillType == 5 ? "circle" : "shape");
             }
             return gradient;
         }
@@ -162,31 +177,29 @@ namespace OfficeIMO.PowerPoint {
             return first + (last - first) * position;
         }
 
-        private static A.BlipFill? CreateLegacyBackgroundBlipFill(OpenXmlPart ownerPart,
+        private static bool AppendLegacyBackgroundBlipFill(PowerPointPartRef ownerPart, OfficeXmlNode parent,
             LegacyPptBackground source) {
-            if (source.Picture?.HasImportableImage != true) return null;
-            ImagePart imagePart = AddLegacyImagePart(ownerPart, source.Picture);
-            string relationshipId = ownerPart.GetIdOfPart(imagePart);
-            var result = new A.BlipFill(new A.Blip { Embed = relationshipId });
+            if (source.Picture?.HasImportableImage != true) return false;
+            string relationshipId = AddLegacyImagePart(ownerPart, source.Picture);
+            OfficeXmlNode result = parent.AddA("blipFill");
+            result.AddA("blip").SetRelationship("embed", relationshipId);
             if (source.Kind is LegacyPptBackgroundKind.Pattern
                     or LegacyPptBackgroundKind.Texture) {
-                result.Append(new A.Tile());
+                result.AddA("tile");
             } else {
-                result.Append(new A.Stretch(new A.FillRectangle()));
+                result.AddA("stretch").AddA("fillRect");
             }
-            return result;
+            return true;
         }
 
-        private static A.RgbColorModelHex CreateLegacyBackgroundColor(string color,
+        private static void AppendLegacyBackgroundColor(OfficeXmlNode parent, string color,
             double? opacity) {
-            var result = new A.RgbColorModelHex { Val = color };
+            OfficeXmlNode result = parent.AddA("srgbClr").Set("val", color);
             if (opacity.HasValue) {
-                result.Append(new A.Alpha {
-                    Val = checked((int)Math.Round(Math.Max(0D, Math.Min(1D, opacity.Value))
-                        * 100000D, MidpointRounding.AwayFromZero))
-                });
+                result.AddA("alpha").Set("val",
+                    checked((int)Math.Round(Math.Max(0D, Math.Min(1D, opacity.Value))
+                        * 100000D, MidpointRounding.AwayFromZero)));
             }
-            return result;
         }
 
         private static double NormalizeLegacyGradientAngle(double angle) {
