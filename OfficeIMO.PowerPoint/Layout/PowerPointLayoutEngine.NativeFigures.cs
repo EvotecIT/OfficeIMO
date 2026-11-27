@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Presentation;
+using Ns = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointLayoutEngine {
@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint {
         private static PowerPointImage RenderNativeImage(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
             PowerPointLayoutImage image, PowerPointLayoutRect box, bool cover) {
             PowerPointImage picture = image.NativePicture!;
-            bool hasCrop = ((Picture)picture.Element).BlipFill?.SourceRectangle != null;
+            bool hasCrop = picture.XmlElement.Child(Ns.PresentationML, "blipFill").Child(Ns.DrawingML, "srcRect").Exists;
             if (PowerPointImageSize.TryRead(picture.GetImageBytes(), out int width, out int height)) {
                 if (!cover) {
                     double scale = Math.Min(box.Width / width, box.Height / height);

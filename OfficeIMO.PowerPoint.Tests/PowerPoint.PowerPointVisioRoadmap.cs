@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 "surface3DChart" => new C.Surface3DChart(),
                 _ => throw new InvalidOperationException()
             };
-            Assert.Equal(expected, PowerPointChart.GetAdvancedProjection(group));
+            Assert.Equal(expected, PowerPointChart.GetAdvancedProjection(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(group)));
         }
 
         [Fact]

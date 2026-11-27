@@ -1,31 +1,31 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
         private const int ImageExportMaxAxisNumberFormatLength = 1024;
 
-        private string? GetImageExportHorizontalAxisNumberFormat(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private string? GetImageExportHorizontalAxisNumberFormat(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             string? valueAxisNumberFormat = GetImageExportAxisNumberFormat(valueAxis);
             if (HasHorizontalBarChart(plotArea)) {
                 return valueAxisNumberFormat;
             }
 
-            return categoryAxis is C.ValueAxis ? GetImageExportAxisNumberFormat(categoryAxis) : null;
+            return categoryAxis.Is(C, "valAx") ? GetImageExportAxisNumberFormat(categoryAxis) : null;
         }
 
-        private string? GetImageExportVerticalAxisNumberFormat(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private string? GetImageExportVerticalAxisNumberFormat(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             if (!HasHorizontalBarChart(plotArea)) {
                 return GetImageExportAxisNumberFormat(valueAxis);
             }
 
-            return categoryAxis is C.ValueAxis ? GetImageExportAxisNumberFormat(categoryAxis) : null;
+            return categoryAxis.Is(C, "valAx") ? GetImageExportAxisNumberFormat(categoryAxis) : null;
         }
 
-        private string? GetImageExportCategoryAxisNumberFormat(OpenXmlCompositeElement? categoryAxis) {
-            if (categoryAxis is not C.CategoryAxis && categoryAxis is not C.DateAxis) {
+        private string? GetImageExportCategoryAxisNumberFormat(OfficeXmlNode categoryAxis) {
+            if (!categoryAxis.Is(C, "catAx") && !categoryAxis.Is(C, "dateAx")) {
                 return null;
             }
 
@@ -33,40 +33,40 @@ namespace OfficeIMO.Excel {
             return formatCode != null && IsSimpleSupportedImageExportAxisNumberFormat(formatCode) ? formatCode : null;
         }
 
-        private static (double? Divisor, string? Label) GetImageExportHorizontalAxisDisplayUnit(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private static (double? Divisor, string? Label) GetImageExportHorizontalAxisDisplayUnit(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             (double? Divisor, string? Label) valueAxisDisplayUnit = GetImageExportAxisDisplayUnit(valueAxis);
             if (HasHorizontalBarChart(plotArea)) {
                 return valueAxisDisplayUnit;
             }
 
-            return categoryAxis is C.ValueAxis ? GetImageExportAxisDisplayUnit(categoryAxis) : default;
+            return categoryAxis.Is(C, "valAx") ? GetImageExportAxisDisplayUnit(categoryAxis) : default;
         }
 
-        private static (double? Divisor, string? Label) GetImageExportVerticalAxisDisplayUnit(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private static (double? Divisor, string? Label) GetImageExportVerticalAxisDisplayUnit(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             if (!HasHorizontalBarChart(plotArea)) {
                 return GetImageExportAxisDisplayUnit(valueAxis);
             }
 
-            return categoryAxis is C.ValueAxis ? GetImageExportAxisDisplayUnit(categoryAxis) : default;
+            return categoryAxis.Is(C, "valAx") ? GetImageExportAxisDisplayUnit(categoryAxis) : default;
         }
 
-        private static (double? Minimum, double? Maximum, double? MajorUnit, double? MinorUnit) GetImageExportHorizontalAxisScale(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private static (double? Minimum, double? Maximum, double? MajorUnit, double? MinorUnit) GetImageExportHorizontalAxisScale(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             if (HasHorizontalBarChart(plotArea)) {
                 return GetImageExportAxisScale(valueAxis);
             }
 
-            return categoryAxis is C.ValueAxis ? GetImageExportAxisScale(categoryAxis) : default;
+            return categoryAxis.Is(C, "valAx") ? GetImageExportAxisScale(categoryAxis) : default;
         }
 
-        private static (double? Minimum, double? Maximum, double? MajorUnit, double? MinorUnit) GetImageExportVerticalAxisScale(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private static (double? Minimum, double? Maximum, double? MajorUnit, double? MinorUnit) GetImageExportVerticalAxisScale(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             if (!HasHorizontalBarChart(plotArea)) {
                 return GetImageExportAxisScale(valueAxis);
             }
 
-            return categoryAxis is C.ValueAxis ? GetImageExportAxisScale(categoryAxis) : default;
+            return categoryAxis.Is(C, "valAx") ? GetImageExportAxisScale(categoryAxis) : default;
         }
 
-        private static OfficeChartAxisTickMark GetImageExportHorizontalAxisMajorTickMark(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private static OfficeChartAxisTickMark GetImageExportHorizontalAxisMajorTickMark(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             if (HasHorizontalBarChart(plotArea)) {
                 return GetImageExportAxisTickMark(valueAxis, major: true);
             }
@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel {
             return GetImageExportAxisTickMark(categoryAxis, major: true);
         }
 
-        private static OfficeChartAxisTickMark GetImageExportVerticalAxisMajorTickMark(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private static OfficeChartAxisTickMark GetImageExportVerticalAxisMajorTickMark(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             if (!HasHorizontalBarChart(plotArea)) {
                 return GetImageExportAxisTickMark(valueAxis, major: true);
             }
@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel {
             return GetImageExportAxisTickMark(categoryAxis, major: true);
         }
 
-        private static OfficeChartAxisTickMark GetImageExportHorizontalAxisMinorTickMark(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private static OfficeChartAxisTickMark GetImageExportHorizontalAxisMinorTickMark(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             if (HasHorizontalBarChart(plotArea)) {
                 return GetImageExportAxisTickMark(valueAxis, major: false);
             }
@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel {
             return GetImageExportAxisTickMark(categoryAxis, major: false);
         }
 
-        private static OfficeChartAxisTickMark GetImageExportVerticalAxisMinorTickMark(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private static OfficeChartAxisTickMark GetImageExportVerticalAxisMinorTickMark(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             if (!HasHorizontalBarChart(plotArea)) {
                 return GetImageExportAxisTickMark(valueAxis, major: false);
             }
@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel {
             return GetImageExportAxisTickMark(categoryAxis, major: false);
         }
 
-        private static OfficeChartAxisTickLabelPosition GetImageExportHorizontalAxisTickLabelPosition(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private static OfficeChartAxisTickLabelPosition GetImageExportHorizontalAxisTickLabelPosition(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             if (HasHorizontalBarChart(plotArea)) {
                 return GetImageExportAxisTickLabelPosition(valueAxis);
             }
@@ -106,7 +106,7 @@ namespace OfficeIMO.Excel {
             return GetImageExportAxisTickLabelPosition(categoryAxis);
         }
 
-        private static OfficeChartAxisTickLabelPosition GetImageExportVerticalAxisTickLabelPosition(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private static OfficeChartAxisTickLabelPosition GetImageExportVerticalAxisTickLabelPosition(OfficeXmlNode plotArea, OfficeXmlNode categoryAxis, OfficeXmlNode valueAxis) {
             if (!HasHorizontalBarChart(plotArea)) {
                 return GetImageExportAxisTickLabelPosition(valueAxis);
             }
@@ -114,69 +114,50 @@ namespace OfficeIMO.Excel {
             return GetImageExportAxisTickLabelPosition(categoryAxis);
         }
 
-        private static bool GetImageExportReverseCategoryAxis(OpenXmlCompositeElement? categoryAxis) =>
-            (categoryAxis is C.CategoryAxis || categoryAxis is C.DateAxis) &&
-            categoryAxis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin;
+        private static bool GetImageExportReverseCategoryAxis(OfficeXmlNode categoryAxis) =>
+            (categoryAxis.Is(C, "catAx") || categoryAxis.Is(C, "dateAx")) &&
+            categoryAxis.Child(C, "scaling").Child(C, "orientation").Val() == "maxMin";
 
-        private static bool HasImageExportCategoryAxisOrientation(OpenXmlCompositeElement? categoryAxis) =>
-            (categoryAxis is C.CategoryAxis || categoryAxis is C.DateAxis) &&
-            categoryAxis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val != null;
+        private static bool HasImageExportCategoryAxisOrientation(OfficeXmlNode categoryAxis) =>
+            (categoryAxis.Is(C, "catAx") || categoryAxis.Is(C, "dateAx")) &&
+            categoryAxis.Child(C, "scaling").Child(C, "orientation").Val() != null;
 
-        private string? GetImageExportAxisNumberFormat(OpenXmlCompositeElement? axis) {
-            C.NumberingFormat? nativeFormat = axis?.GetFirstChild<C.NumberingFormat>();
-            string? value = nativeFormat?.SourceLinked?.Value == true ? ResolveSourceLinkedAxisNumberFormat(axis!) ?? nativeFormat.FormatCode?.Value : nativeFormat?.FormatCode?.Value;
+        private string? GetImageExportAxisNumberFormat(OfficeXmlNode axis) {
+            OfficeXmlNode nativeFormat = axis.Child(C, "numFmt");
+            string? formatCode = nativeFormat.Attribute("formatCode");
+            string? value = nativeFormat.BooleanAttribute("sourceLinked") == true ? ResolveSourceLinkedAxisNumberFormat(axis) ?? formatCode : formatCode;
             return string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
         }
 
-        private static OfficeChartAxisTickMark GetImageExportAxisTickMark(OpenXmlCompositeElement? axis, bool major) {
-            C.TickMarkValues? value = major
-                ? axis?.GetFirstChild<C.MajorTickMark>()?.Val?.Value
-                : axis?.GetFirstChild<C.MinorTickMark>()?.Val?.Value;
-            if (value == null || value.Value == C.TickMarkValues.None) {
-                return OfficeChartAxisTickMark.None;
-            }
-
-            if (value.Value == C.TickMarkValues.Inside) {
-                return OfficeChartAxisTickMark.Inside;
-            }
-
-            if (value.Value == C.TickMarkValues.Outside) {
-                return OfficeChartAxisTickMark.Outside;
-            }
-
-            return value.Value == C.TickMarkValues.Cross
-                ? OfficeChartAxisTickMark.Cross
-                : OfficeChartAxisTickMark.None;
+        private static OfficeChartAxisTickMark GetImageExportAxisTickMark(OfficeXmlNode axis, bool major) {
+            string? value = axis.Child(C, major ? "majorTickMark" : "minorTickMark").Val();
+            return value switch {
+                "in" => OfficeChartAxisTickMark.Inside,
+                "out" => OfficeChartAxisTickMark.Outside,
+                "cross" => OfficeChartAxisTickMark.Cross,
+                _ => OfficeChartAxisTickMark.None
+            };
         }
 
-        private static OfficeChartAxisTickLabelPosition GetImageExportAxisTickLabelPosition(OpenXmlCompositeElement? axis) {
-            C.TickLabelPositionValues? value = axis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value;
-            if (value == null || value.Value == C.TickLabelPositionValues.NextTo) {
-                return OfficeChartAxisTickLabelPosition.NextTo;
-            }
-
-            if (value.Value == C.TickLabelPositionValues.None) {
-                return OfficeChartAxisTickLabelPosition.None;
-            }
-
-            if (value.Value == C.TickLabelPositionValues.Low) {
-                return OfficeChartAxisTickLabelPosition.Low;
-            }
-
-            return value.Value == C.TickLabelPositionValues.High
-                ? OfficeChartAxisTickLabelPosition.High
-                : OfficeChartAxisTickLabelPosition.NextTo;
+        private static OfficeChartAxisTickLabelPosition GetImageExportAxisTickLabelPosition(OfficeXmlNode axis) {
+            string? value = axis.Child(C, "tickLblPos").Val();
+            return value switch {
+                "none" => OfficeChartAxisTickLabelPosition.None,
+                "low" => OfficeChartAxisTickLabelPosition.Low,
+                "high" => OfficeChartAxisTickLabelPosition.High,
+                _ => OfficeChartAxisTickLabelPosition.NextTo
+            };
         }
 
-        private static (double? Divisor, string? Label) GetImageExportAxisDisplayUnit(OpenXmlCompositeElement? axis) =>
-            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.ReadDisplayUnits(axis);
+        private static (double? Divisor, string? Label) GetImageExportAxisDisplayUnit(OfficeXmlNode axis) =>
+            ImageExportReadDisplayUnits(axis);
 
-        private static (double? Minimum, double? Maximum, double? MajorUnit, double? MinorUnit) GetImageExportAxisScale(OpenXmlCompositeElement? axis) {
-            C.Scaling? scaling = axis?.GetFirstChild<C.Scaling>();
-            double? minimum = TryGetFiniteAxisValue(scaling?.GetFirstChild<C.MinAxisValue>()?.Val?.Value, out double minValue) ? minValue : null;
-            double? maximum = TryGetFiniteAxisValue(scaling?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value, out double maxValue) ? maxValue : null;
-            double? majorUnit = TryGetPositiveAxisValue(axis?.GetFirstChild<C.MajorUnit>()?.Val?.Value, out double majorValue) ? majorValue : null;
-            double? minorUnit = TryGetPositiveAxisValue(axis?.GetFirstChild<C.MinorUnit>()?.Val?.Value, out double minorValue) ? minorValue : null;
+        private static (double? Minimum, double? Maximum, double? MajorUnit, double? MinorUnit) GetImageExportAxisScale(OfficeXmlNode axis) {
+            OfficeXmlNode scaling = axis.Child(C, "scaling");
+            double? minimum = TryGetFiniteAxisValue(scaling.Child(C, "min").DoubleVal(), out double minValue) ? minValue : null;
+            double? maximum = TryGetFiniteAxisValue(scaling.Child(C, "max").DoubleVal(), out double maxValue) ? maxValue : null;
+            double? majorUnit = TryGetPositiveAxisValue(axis.Child(C, "majorUnit").DoubleVal(), out double majorValue) ? majorValue : null;
+            double? minorUnit = TryGetPositiveAxisValue(axis.Child(C, "minorUnit").DoubleVal(), out double minorValue) ? minorValue : null;
             return (minimum, maximum, majorUnit, minorUnit);
         }
 
@@ -194,14 +175,15 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private bool HasUnsupportedImageExportAxisNumberFormat(C.ChartSpace chartSpace) {
-            foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
-                foreach (var axis in plotArea.ChildElements.OfType<OpenXmlCompositeElement>().Where(axis => axis is C.ValueAxis or C.CategoryAxis or C.DateAxis)) {
-                    if (axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
+        private bool HasUnsupportedImageExportAxisNumberFormat(OfficeXmlNode chartSpace) {
+            foreach (OfficeXmlNode plotArea in chartSpace.Descendants(C, "plotArea")) {
+                foreach (OfficeXmlNode axis in plotArea.Children()) {
+                    if (!axis.Is(C, "valAx") && !axis.Is(C, "catAx") && !axis.Is(C, "dateAx")) continue;
+                    if (axis.Child(C, "numFmt").BooleanAttribute("sourceLinked") == true &&
                         HasSourceLinkedNumericAxisReference(plotArea, axis) && ResolveSourceLinkedAxisNumberFormat(axis) == null) return true;
                 }
-                OpenXmlCompositeElement? categoryAxis = ResolveImageExportCategoryAxis(plotArea);
-                OpenXmlCompositeElement? valueAxis = ResolveImageExportValueAxis(plotArea);
+                OfficeXmlNode categoryAxis = ResolveImageExportCategoryAxis(plotArea);
+                OfficeXmlNode valueAxis = ResolveImageExportValueAxis(plotArea);
 
                 string? horizontalFormatCode = GetImageExportHorizontalAxisNumberFormat(plotArea, categoryAxis, valueAxis);
                 if (horizontalFormatCode != null && !IsSimpleSupportedImageExportAxisNumberFormat(horizontalFormatCode)) {
@@ -217,16 +199,16 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private bool HasUnsupportedImageExportCategoryAxisNumberFormat(C.ChartSpace chartSpace) {
-            foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
-                foreach (C.CategoryAxis axis in plotArea.Elements<C.CategoryAxis>()) {
-                    if (HasUnsupportedImageExportCategoryAxisNumberFormat(axis)) {
+        private bool HasUnsupportedImageExportCategoryAxisNumberFormat(OfficeXmlNode chartSpace) {
+            foreach (OfficeXmlNode plotArea in chartSpace.Descendants(C, "plotArea")) {
+                foreach (OfficeXmlNode axis in plotArea.Children(C, "catAx")) {
+                    if (HasUnsupportedImageExportCategoryAxisNumberFormatCore(axis)) {
                         return true;
                     }
                 }
 
-                foreach (C.DateAxis axis in plotArea.Elements<C.DateAxis>()) {
-                    if (HasUnsupportedImageExportCategoryAxisNumberFormat(axis)) {
+                foreach (OfficeXmlNode axis in plotArea.Children(C, "dateAx")) {
+                    if (HasUnsupportedImageExportCategoryAxisNumberFormatCore(axis)) {
                         return true;
                     }
                 }
@@ -235,7 +217,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private bool HasUnsupportedImageExportCategoryAxisNumberFormat(OpenXmlCompositeElement axis) {
+        private bool HasUnsupportedImageExportCategoryAxisNumberFormatCore(OfficeXmlNode axis) {
             string? formatCode = GetImageExportAxisNumberFormat(axis);
             return formatCode != null && !IsSimpleSupportedImageExportAxisNumberFormat(formatCode);
         }

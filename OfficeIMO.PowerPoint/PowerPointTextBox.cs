@@ -544,7 +544,7 @@ namespace OfficeIMO.PowerPoint {
 
         // A detached empty paragraph after the template: its properties, one empty run with its first run's formatting,
         // and its end properties.
-        private static OfficeXmlNode CreateEmptyParagraph(OfficeXmlNode context, OfficeXmlNode template) {
+        internal static OfficeXmlNode CreateEmptyParagraph(OfficeXmlNode context, OfficeXmlNode template) {
             OfficeXmlNode paragraph = context.CreateElement(OfficeXmlNamespaces.DrawingML, "p");
             OfficeXmlNode paragraphProperties = template.Child(OfficeXmlNamespaces.DrawingML, "pPr");
             if (!paragraphProperties.IsNone) paragraph.Append(paragraphProperties.Clone());
@@ -558,7 +558,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // The a:rPr of the first run of a paragraph that has one, or none.
-        private static OfficeXmlNode FirstRunProperties(OfficeXmlNode paragraph) {
+        internal static OfficeXmlNode FirstRunProperties(OfficeXmlNode paragraph) {
             foreach (OfficeXmlNode run in paragraph.Children(OfficeXmlNamespaces.DrawingML, "r")) {
                 OfficeXmlNode properties = run.Child(OfficeXmlNamespaces.DrawingML, "rPr");
                 if (!properties.IsNone) return properties;
@@ -567,7 +567,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // A copy of run or end properties whose hyperlinks no longer play the sounds the original text played.
-        private static OfficeXmlNode CloneWithoutSounds(OfficeXmlNode properties) {
+        internal static OfficeXmlNode CloneWithoutSounds(OfficeXmlNode properties) {
             OfficeXmlNode copy = properties.Clone();
             foreach (OfficeXmlNode child in copy.Children().ToList()) {
                 if (child.Is(OfficeXmlNamespaces.DrawingML, "hlinkClick") || child.Is(OfficeXmlNamespaces.DrawingML, "hlinkMouseOver")) {
@@ -577,7 +577,7 @@ namespace OfficeIMO.PowerPoint {
             return copy;
         }
 
-        private static List<string> SoundIds(OfficeXmlNode element) {
+        internal static List<string> SoundIds(OfficeXmlNode element) {
             var ids = new List<string>();
             CollectSoundIds(element, ids);
             return ids;

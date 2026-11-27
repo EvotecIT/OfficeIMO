@@ -99,7 +99,8 @@ namespace OfficeIMO.Excel {
         public ExcelWorkbookDataReader CreateDataReader(ExcelReaderOptions? options = null) {
             ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
-            if (_spreadSheetDocument is null) {
+            // A workbook that has not opened its SDK package reads through its own package; checking the SDK one would open it.
+            if (IsSdkDeferred ? _disposed : _spreadSheetDocument is null) {
                 throw new ObjectDisposedException(nameof(ExcelDocument));
             }
             ExcelSheet? selected = effectiveOptions.SheetName is string name ? TryGetExistingSheet(name) : null;

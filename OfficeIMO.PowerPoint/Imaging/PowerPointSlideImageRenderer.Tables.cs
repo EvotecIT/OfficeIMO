@@ -1,5 +1,5 @@
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
@@ -25,8 +25,8 @@ namespace OfficeIMO.PowerPoint {
                 var diagnostics = new List<OfficeImageExportDiagnostic>();
                 var mapping = new PowerPointShapeBoundsMapping(-left, -top,
                     1D, 1D);
-                A.ColorScheme? colorScheme = table.OwnerSlide == null
-                    ? null
+                OfficeXmlNode colorScheme = table.OwnerSlide == null
+                    ? default
                     : GetSlideColorScheme(table.OwnerSlide);
                 AddTable(drawing, table, diagnostics, mapping, colorScheme);
                 OfficeImageExportDiagnostic? failure = diagnostics
@@ -49,21 +49,19 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static OfficeColor ResolveTableCellFillColor(PowerPointTable table, PowerPointTableCell cell, int row, int column, A.TableStyleEntry? tableStyle, A.ColorScheme? colorScheme) =>
+        private static OfficeColor ResolveTableCellFillColor(PowerPointTable table, PowerPointTableCell cell, int row, int column, OfficeXmlNode tableStyle, OfficeXmlNode colorScheme) =>
             cell.NoFill ? OfficeColor.Transparent
-                : OfficeOpenXmlThemeColorResolver.ResolveColor(cell.Cell.TableCellProperties?.GetFirstChild<A.SolidFill>(), colorScheme)
+                : OfficeXmlThemeColors.ResolveColor(cell.Element.Child(D, "tcPr").Child(D, "solidFill"), colorScheme)
                 ?? ResolveTableStyleFillColor(table, row, column, tableStyle, colorScheme)
                 ?? OfficeColor.White;
 
         internal static OfficeColor ResolveTableCellFillColorForExport(
             PowerPointTable table, int row, int column) =>
-            ResolveTableCellFillColorForExport(table, row, column, ResolveTableStyle(table));
+            ResolveTableCellFillColorForExport(table, row, column, ResolveTableStyleElement(table));
 
         internal static OfficeColor ResolveTableCellFillColorForExport(
-            PowerPointTable table, int row, int column, A.TableStyleEntry? tableStyle) {
-            A.ColorScheme? colorScheme = table.OwnerSlide == null
-                ? PowerPointEffectiveRunStyleResolver.ResolveColorScheme(table.RelationshipOwnerPart)
-                : GetSlideColorScheme(table.OwnerSlide);
+            PowerPointTable table, int row, int column, OfficeXmlNode tableStyle) {
+            OfficeXmlNode colorScheme = ResolveTableColorScheme(table);
             return ResolveTableCellFillColor(table,
                 table.GetCell(row, column), row, column,
                 tableStyle, colorScheme);
@@ -71,13 +69,11 @@ namespace OfficeIMO.PowerPoint {
 
         internal static OfficeBorderBox ResolveTableCellBordersForExport(
             PowerPointTable table, int row, int column) =>
-            ResolveTableCellBordersForExport(table, row, column, ResolveTableStyle(table));
+            ResolveTableCellBordersForExport(table, row, column, ResolveTableStyleElement(table));
 
         internal static OfficeBorderBox ResolveTableCellBordersForExport(
-            PowerPointTable table, int row, int column, A.TableStyleEntry? tableStyle) {
-            A.ColorScheme? colorScheme = table.OwnerSlide == null
-                ? PowerPointEffectiveRunStyleResolver.ResolveColorScheme(table.RelationshipOwnerPart)
-                : GetSlideColorScheme(table.OwnerSlide);
+            PowerPointTable table, int row, int column, OfficeXmlNode tableStyle) {
+            OfficeXmlNode colorScheme = ResolveTableColorScheme(table);
             PowerPointTableCell cell = table.GetCell(row, column);
             (int rowSpan, int columnSpan) = cell.Merge;
             return ResolveTableCellBorders(table,
@@ -93,42 +89,43 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTable table, int row, int column) =>
             ResolveTableCellBordersForExport(table, row, column);
 
-        private static OfficeBorderBox ResolveTableCellBorders(PowerPointTable table, PowerPointTableCell cell, int row, int column, int rowSpan, int columnSpan, A.TableStyleEntry? tableStyle, A.ColorScheme? colorScheme) {
-            A.TableCellProperties? properties = cell.Cell.TableCellProperties;
+        private static OfficeBorderBox ResolveTableCellBorders(PowerPointTable table, PowerPointTableCell cell, int row, int column, int rowSpan, int columnSpan, OfficeXmlNode tableStyle, OfficeXmlNode colorScheme) {
+            OfficeXmlNode properties = cell.Element.Child(D, "tcPr");
             return new OfficeBorderBox(
-                ResolveTableCellBorderSide(properties?.LeftBorderLineProperties, colorScheme, ResolveTableStyleBorderSide(table, row, column, rowSpan, columnSpan, tableStyle, TableCellBorderEdge.Left, colorScheme)),
-                ResolveTableCellBorderSide(properties?.TopBorderLineProperties, colorScheme, ResolveTableStyleBorderSide(table, row, column, rowSpan, columnSpan, tableStyle, TableCellBorderEdge.Top, colorScheme)),
-                ResolveTableCellBorderSide(properties?.RightBorderLineProperties, colorScheme, ResolveTableStyleBorderSide(table, row, column, rowSpan, columnSpan, tableStyle, TableCellBorderEdge.Right, colorScheme)),
-                ResolveTableCellBorderSide(properties?.BottomBorderLineProperties, colorScheme, ResolveTableStyleBorderSide(table, row, column, rowSpan, columnSpan, tableStyle, TableCellBorderEdge.Bottom, colorScheme)),
-                ResolveOptionalTableCellBorderSide(properties?.TopLeftToBottomRightBorderLineProperties, colorScheme),
-                ResolveOptionalTableCellBorderSide(properties?.BottomLeftToTopRightBorderLineProperties, colorScheme));
+                ResolveTableCellBorderSide(properties.Child(D, "lnL"), colorScheme, ResolveTableStyleBorderSide(table, row, column, rowSpan, columnSpan, tableStyle, TableCellBorderEdge.Left, colorScheme)),
+                ResolveTableCellBorderSide(properties.Child(D, "lnT"), colorScheme, ResolveTableStyleBorderSide(table, row, column, rowSpan, columnSpan, tableStyle, TableCellBorderEdge.Top, colorScheme)),
+                ResolveTableCellBorderSide(properties.Child(D, "lnR"), colorScheme, ResolveTableStyleBorderSide(table, row, column, rowSpan, columnSpan, tableStyle, TableCellBorderEdge.Right, colorScheme)),
+                ResolveTableCellBorderSide(properties.Child(D, "lnB"), colorScheme, ResolveTableStyleBorderSide(table, row, column, rowSpan, columnSpan, tableStyle, TableCellBorderEdge.Bottom, colorScheme)),
+                ResolveOptionalTableCellBorderSide(properties.Child(D, "lnTlToBr"), colorScheme),
+                ResolveOptionalTableCellBorderSide(properties.Child(D, "lnBlToTr"), colorScheme));
         }
 
-        private static OfficeBorderSide ResolveTableCellBorderSide(A.LinePropertiesType? line, A.ColorScheme? colorScheme, OfficeBorderSide? fallback = null) {
-            if (line == null) {
+        private static OfficeBorderSide ResolveTableCellBorderSide(OfficeXmlNode line, OfficeXmlNode colorScheme, OfficeBorderSide? fallback = null) {
+            if (line.IsNone) {
                 return fallback ?? new OfficeBorderSide(OfficeColor.FromRgb(191, 191, 191), 0.5D);
             }
 
-            if (line.GetFirstChild<A.NoFill>() != null) {
+            if (!line.Child(D, "noFill").IsNone) {
                 return new OfficeBorderSide(OfficeColor.FromRgba(0, 0, 0, 0), 0D);
             }
 
-            double width = line?.Width?.Value > 0
-                ? line.Width.Value / 12700D
+            int? lineWidth = line.Int32Attribute("w");
+            double width = lineWidth > 0
+                ? lineWidth.Value / 12700D
                 : 0.75D;
-            OfficeColor color = OfficeOpenXmlThemeColorResolver.ResolveColor(line?.GetFirstChild<A.SolidFill>(), colorScheme)
+            OfficeColor color = OfficeXmlThemeColors.ResolveColor(line.Child(D, "solidFill"), colorScheme)
                 ?? OfficeColor.FromRgb(191, 191, 191);
-            A.PresetDash? dash = line?.GetFirstChild<A.PresetDash>();
+            string? dash = line.Child(D, "prstDash").Attribute("val");
             // DrawingML's double-line width includes both strokes and the intervening gap.
-            if (line?.CompoundLineType?.Value == A.CompoundLineValues.Double) {
-                return new OfficeBorderSide(color, width / 3D, MapDash(dash?.Val?.Value),
+            if (line.Attribute("cmpd") == "dbl") {
+                return new OfficeBorderSide(color, width / 3D, MapDash(dash),
                     OfficeBorderLineKind.Double, 2D * width / 3D);
             }
-            return new OfficeBorderSide(color, width, MapDash(dash?.Val?.Value));
+            return new OfficeBorderSide(color, width, MapDash(dash));
         }
 
-        private static OfficeBorderSide? ResolveOptionalTableCellBorderSide(A.LinePropertiesType? line, A.ColorScheme? colorScheme) =>
-            line == null ? null : ResolveTableCellBorderSide(line, colorScheme);
+        private static OfficeBorderSide? ResolveOptionalTableCellBorderSide(OfficeXmlNode line, OfficeXmlNode colorScheme) =>
+            line.IsNone ? null : ResolveTableCellBorderSide(line, colorScheme);
 
     }
 }

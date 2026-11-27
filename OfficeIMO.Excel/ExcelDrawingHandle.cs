@@ -1,19 +1,20 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 using DrawingIdentity = System.ValueTuple<string, uint, string, string>;
 
 namespace OfficeIMO.Excel {
     /// <summary>Tracks a live drawing wrapper through replacement of its worksheet package.</summary>
     internal sealed class ExcelDrawingHandle {
-        private OpenXmlElement _element;
-        private DrawingsPart _part;
+        private OfficeXmlNode _element;
+        private ExcelPartRef _part;
         private readonly Action? _afterReload;
 
-        internal ExcelDrawingHandle(OpenXmlElement element, DrawingsPart part, ExcelSheet sheet, Action? afterReload = null) {
-            _element = element ?? throw new ArgumentNullException(nameof(element));
-            _part = part ?? throw new ArgumentNullException(nameof(part));
+        internal ExcelDrawingHandle(OfficeXmlNode element, ExcelPartRef part, ExcelSheet sheet, Action? afterReload = null) {
+            if (element.IsNone) throw new ArgumentNullException(nameof(element));
+            if (part.IsNone) throw new ArgumentNullException(nameof(part));
+            _element = element;
+            _part = part;
             Sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
             _afterReload = afterReload;
             sheet.Document.RegisterDrawingHandle(this);
@@ -21,37 +22,43 @@ namespace OfficeIMO.Excel {
 
         // Retaining a drawing also retains its parent, even when worksheet caching is disabled.
         internal ExcelSheet Sheet { get; }
-        internal OpenXmlElement Element { get { EnsureActive(); return _element; } }
-        internal DrawingsPart Part { get { EnsureActive(); return _part; } }
+        internal OfficeXmlNode Element { get { EnsureActive(); return _element; } }
+        internal ExcelPartRef Part { get { EnsureActive(); return _part; } }
 
-        private bool IsActive => Sheet.SheetElement.Parent != null
-            && ReferenceEquals(_part, Sheet.DeferredMetadataWorksheetPart.DrawingsPart)
-            && ReferenceEquals(_element.Ancestors<Xdr.WorksheetDrawing>().FirstOrDefault(), _part.WorksheetDrawing);
+        private bool IsActive => ExcelPartRef.IsSheetAttached(Sheet)
+            && _part == ExcelPartRef.WorksheetForMetadata(Sheet).Drawings
+            && _element.AncestorOrSelf(Xdr, "wsDr") == _part.Root;
 
         private void EnsureActive() {
             if (!IsActive) throw new InvalidOperationException("This drawing is no longer attached to the active worksheet.");
         }
 
         /// <summary>Captures only attached originals, so removed or newly replaced drawings cannot acquire an old identity.</summary>
-        internal ReloadSnapshot? Capture(IReadOnlyDictionary<uint, WorksheetPart> activeParts) {
-            uint? sheetId = Sheet.SheetElement.SheetId?.Value;
-            if (sheetId == null || !activeParts.TryGetValue(sheetId.Value, out WorksheetPart? part)
-                || !ReferenceEquals(part, Sheet.DeferredMetadataWorksheetPart) || !IsActive
+        internal ReloadSnapshot? Capture(IReadOnlyDictionary<uint, ExcelPartRef> activeParts) {
+            uint? sheetId = ExcelPartRef.SheetId(Sheet);
+            if (sheetId == null || !activeParts.TryGetValue(sheetId.Value, out ExcelPartRef part)
+                || part != ExcelPartRef.WorksheetForMetadata(Sheet) || !IsActive
                 || !TryGetIdentity(_element, _part, out DrawingIdentity identity)) return null;
             return new ReloadSnapshot(this, identity);
         }
 
-        internal static bool TryGetIdentity(OpenXmlElement element, DrawingsPart part, out DrawingIdentity identity) {
+        internal static bool TryGetIdentity(OfficeXmlNode element, ExcelPartRef part, out DrawingIdentity identity) {
             identity = default;
-            uint? id = element.Descendants<Xdr.NonVisualDrawingProperties>().FirstOrDefault()?.Id?.Value;
-            string? relationshipId = element is Xdr.GraphicFrame frame
-                ? frame.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>()?.Id?.Value
-                : (element as Xdr.Picture)?.BlipFill?.Blip?.Embed?.Value
-                    ?? (element as Xdr.Picture)?.BlipFill?.Blip?.Link?.Value;
+            uint? id = element.FirstDescendantOutsideExtensions(Xdr, "cNvPr").UInt32Attribute("id");
+            string? relationshipId;
+            if (element.Is(Xdr, "graphicFrame")) {
+                relationshipId = element.Child(A, "graphic").Child(A, "graphicData").Child(C, "chart").RelationshipAttribute("id");
+            } else if (element.Is(Xdr, "pic")) {
+                OfficeXmlNode blip = element.Child(Xdr, "blipFill").Child(A, "blip");
+                relationshipId = blip.RelationshipAttribute("embed") ?? blip.RelationshipAttribute("link");
+            } else {
+                relationshipId = null;
+            }
             if (id == null || string.IsNullOrEmpty(relationshipId)) return false;
-            string? target = part.TryGetPartById(relationshipId!, out OpenXmlPart? related)
-                ? related!.Uri.ToString()
-                : part.ExternalRelationships.FirstOrDefault(item => item.Id == relationshipId)?.Uri.ToString();
+            ExcelPartRef related = part.GetPartById(relationshipId);
+            string? target = related.Exists
+                ? related.Uri!.ToString()
+                : part.GetExternalRelationshipUri(relationshipId!)?.ToString();
             if (target == null) return false;
             identity = (element.LocalName, id.Value, relationshipId!, target);
             return true;
@@ -63,8 +70,8 @@ namespace OfficeIMO.Excel {
             internal ReloadSnapshot(ExcelDrawingHandle handle, DrawingIdentity identity) { _handle = handle; _identity = identity; }
             internal ExcelSheet Sheet => _handle.Sheet;
 
-            internal void Restore(DrawingsPart part, IReadOnlyDictionary<DrawingIdentity, OpenXmlElement?> elements) {
-                if (!elements.TryGetValue(_identity, out OpenXmlElement? element) || element == null) return;
+            internal void Restore(ExcelPartRef part, IReadOnlyDictionary<DrawingIdentity, OfficeXmlNode> elements) {
+                if (!elements.TryGetValue(_identity, out OfficeXmlNode element) || element.IsNone) return;
                 _handle._element = element;
                 _handle._part = part;
                 _handle._afterReload?.Invoke();

@@ -11,6 +11,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Package catalog](officeimo.package-catalog.md) — every package, what it covers, its dependencies and the conversion graph.
 - Format guides — the API beyond each package README: [Word](officeimo.word-guide.md), [Excel](officeimo.excel-guide.md), [PowerPoint](officeimo.powerpoint-guide.md) and [PDF](officeimo.pdf-guide.md).
 - [API design](officeimo.api-design.md) — naming, lifecycle, conversion and PowerShell rules shared by every package.
+- [README guide](officeimo.readme-guide.md) — how the root README and package READMEs are structured and what belongs elsewhere.
 - [Migration guide](../MIGRATION.md) — version-to-version package, API, and behavior changes.
 - [Examples](../OfficeIMO.Examples/README.md) — runnable examples across the package family.
 - [Agent plugin](../.agents/plugins/officeimo-document-tools/README.md) — local MCP and portable skills, Codex and Claude installation, authorized file access, and supported operations.

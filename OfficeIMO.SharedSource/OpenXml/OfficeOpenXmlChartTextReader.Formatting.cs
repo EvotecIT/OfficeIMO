@@ -1,6 +1,7 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using System.Runtime.CompilerServices;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
@@ -17,30 +18,60 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
             string.Equals(Family, other.Family, StringComparison.OrdinalIgnoreCase);
     }
 
-    internal static NativeText ReadNativeText(C.Chart chart, OpenXmlElement? owner, A.ColorScheme? scheme, bool allowMultiline = false) {
-        if (owner == null) return default;
-        OpenXmlElement? colorMap = (chart.Parent as C.ChartSpace)?.OpenXmlPart is ChartPart chartPart
-            ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart) : null;
-        NativeText inherited = ReadTextPropertyDefaults(default, chart.Parent?.GetFirstChild<C.TextProperties>(), scheme, colorMap);
+    // Chart parts of OfficeIMO's own trees, registered by the host that holds them.
+    private static readonly ConditionalWeakTable<OfficeXmlTree, IOfficeChartPart> TreeChartParts = new();
+
+    /// <summary>
+    /// Records the chart part a tree holds, so text read from a chart element in that tree resolves its color map and
+    /// chart style the way an SDK chart part's does.
+    /// </summary>
+    internal static void AttachChartPart(OfficeXmlTree tree, IOfficeChartPart part) {
+        TreeChartParts.Remove(tree);
+        TreeChartParts.Add(tree, part);
+    }
+
+    /// <summary>
+    /// The chart part whose <c>c:chartSpace</c> root holds <paramref name="chart"/>, or null when the chart's parent is
+    /// not a part's chart space root.
+    /// </summary>
+    internal static IOfficeChartPart? ChartPartOf(OfficeXmlNode chart) => ChartPartOfSpace(chart.Parent);
+
+    /// <summary>The chart part whose root is <paramref name="space"/>, or null when it is not a part's chart space root.</summary>
+    internal static IOfficeChartPart? ChartPartOfSpace(OfficeXmlNode space) {
+        if (!space.Is(NsC, "chartSpace") || !space.Parent.IsNone) return null;
+        if (space.SdkElement is { } element)
+            return OfficeSdkXml.PartOf(element) is DocumentFormat.OpenXml.Packaging.ChartPart part ? new OfficeSdkChartPart(part) : null;
+        if (space.Tree is { } tree && space.Node == tree.Root && TreeChartParts.TryGetValue(tree, out IOfficeChartPart? held)) return held;
+        return null;
+    }
+
+    internal static NativeText ReadNativeText(OfficeXmlNode chart, OfficeXmlNode owner, OfficeXmlNode scheme, bool allowMultiline = false) {
+        if (owner.IsNone) return default;
+        IOfficeChartPart? chartPart = ChartPartOf(chart);
+        OfficeXmlNode colorMap = chartPart != null
+            ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart) : default;
+        NativeText inherited = ReadTextPropertyDefaults(default, chart.Parent.Child(NsC, "txPr"), scheme, colorMap);
         return ReadNativeText(owner, scheme, colorMap, inherited, allowMultiline);
     }
 
-    private static NativeText ReadNativeText(OpenXmlElement owner, A.ColorScheme? scheme,
-        OpenXmlElement? colorMap, NativeText inherited, bool allowMultiline = false) {
-        inherited = ReadTextPropertyDefaults(inherited, owner.GetFirstChild<C.TextProperties>(), scheme, colorMap);
-        var rich = owner.GetFirstChild<C.ChartText>()?.GetFirstChild<C.RichText>();
-        if (rich == null) return inherited;
+    private static NativeText ReadNativeText(OfficeXmlNode owner, OfficeXmlNode scheme,
+        OfficeXmlNode colorMap, NativeText inherited, bool allowMultiline = false) {
+        inherited = ReadTextPropertyDefaults(inherited, owner.Child(NsC, "txPr"), scheme, colorMap);
+        OfficeXmlNode rich = owner.Child(NsC, "tx").Child(NsC, "rich");
+        if (rich.IsNone) return inherited;
         QualifyTextLayout(rich, allowMultiline);
-        Dictionary<string, OpenXmlElement> listLevels = ReadListLevels(rich);
+        Dictionary<string, OfficeXmlNode> listLevels = ReadListLevels(rich);
         NativeText? selected = null;
-        foreach (var paragraph in rich.Elements<A.Paragraph>()) {
-            int level = paragraph.ParagraphProperties?.Level?.Value ?? 0;
-            listLevels.TryGetValue($"lvl{level + 1}pPr", out OpenXmlElement? list);
-            NativeText paragraphText = ApplyNativeText(inherited, list?.GetFirstChild<A.DefaultRunProperties>(), scheme, colorMap);
-            paragraphText = ApplyNativeText(paragraphText, paragraph.ParagraphProperties?.GetFirstChild<A.DefaultRunProperties>(), scheme, colorMap);
-            foreach (var run in paragraph.ChildElements.Where(element => element is A.Run or A.Field)) {
-                if (string.IsNullOrEmpty(run.GetFirstChild<A.Text>()?.Text)) continue;
-                NativeText current = ApplyNativeText(paragraphText, run.GetFirstChild<A.RunProperties>(), scheme, colorMap);
+        foreach (OfficeXmlNode paragraph in rich.Children(NsA, "p")) {
+            OfficeXmlNode paragraphProperties = paragraph.Child(NsA, "pPr");
+            int level = paragraphProperties.IntAttr("lvl") ?? 0;
+            listLevels.TryGetValue($"lvl{level + 1}pPr", out OfficeXmlNode list);
+            NativeText paragraphText = ApplyNativeText(inherited, list.Child(NsA, "defRPr"), scheme, colorMap);
+            paragraphText = ApplyNativeText(paragraphText, paragraphProperties.Child(NsA, "defRPr"), scheme, colorMap);
+            foreach (OfficeXmlNode run in paragraph.Children()) {
+                if (!(run.NamespaceId == NsA && run.LocalName is "r" or "fld")) continue;
+                if (string.IsNullOrEmpty(run.Child(NsA, "t").InnerText)) continue;
+                NativeText current = ApplyNativeText(paragraphText, run.Child(NsA, "rPr"), scheme, colorMap);
                 if (selected.HasValue && !selected.Value.SameAs(current))
                     throw new NotSupportedException("Mixed chart text formatting cannot be projected.");
                 selected = current;
@@ -49,24 +80,27 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
         return selected ?? inherited;
     }
 
-    internal static NativeText ReadTextPropertyDefaults(NativeText inherited, C.TextProperties? properties, A.ColorScheme? scheme, OpenXmlElement? colorMap) {
-        if (properties == null) return inherited;
+    internal static NativeText ReadTextPropertyDefaults(NativeText inherited, OfficeXmlNode properties, OfficeXmlNode scheme, OfficeXmlNode colorMap) {
+        if (properties.IsNone) return inherited;
         QualifyTextLayout(properties);
-        Dictionary<string, OpenXmlElement> listLevels = ReadListLevels(properties);
+        Dictionary<string, OfficeXmlNode> listLevels = ReadListLevels(properties);
         NativeText? selected = null;
-        foreach (var paragraph in properties.Elements<A.Paragraph>()) {
-            int level = paragraph.ParagraphProperties?.Level?.Value ?? 0;
-            listLevels.TryGetValue($"lvl{level + 1}pPr", out OpenXmlElement? list);
-            NativeText current = ApplyNativeText(inherited, list?.GetFirstChild<A.DefaultRunProperties>(), scheme, colorMap);
-            current = ApplyNativeText(current, paragraph.ParagraphProperties?.GetFirstChild<A.DefaultRunProperties>(), scheme, colorMap);
-            var explicitRuns = paragraph.Elements<A.Run>().Where(run => !string.IsNullOrEmpty(run.GetFirstChild<A.Text>()?.Text)).ToArray();
-            if (explicitRuns.Length == 0) current = ApplyNativeText(current, paragraph.GetFirstChild<A.EndParagraphRunProperties>(), scheme, colorMap);
-            foreach (var run in explicitRuns) {
-                NativeText runText = ApplyNativeText(current, run.GetFirstChild<A.RunProperties>(), scheme, colorMap);
+        foreach (OfficeXmlNode paragraph in properties.Children(NsA, "p")) {
+            OfficeXmlNode paragraphProperties = paragraph.Child(NsA, "pPr");
+            int level = paragraphProperties.IntAttr("lvl") ?? 0;
+            listLevels.TryGetValue($"lvl{level + 1}pPr", out OfficeXmlNode list);
+            NativeText current = ApplyNativeText(inherited, list.Child(NsA, "defRPr"), scheme, colorMap);
+            current = ApplyNativeText(current, paragraphProperties.Child(NsA, "defRPr"), scheme, colorMap);
+            var explicitRuns = new List<OfficeXmlNode>();
+            foreach (OfficeXmlNode run in paragraph.Children(NsA, "r"))
+                if (!string.IsNullOrEmpty(run.Child(NsA, "t").InnerText)) explicitRuns.Add(run);
+            if (explicitRuns.Count == 0) current = ApplyNativeText(current, paragraph.Child(NsA, "endParaRPr"), scheme, colorMap);
+            foreach (OfficeXmlNode run in explicitRuns) {
+                NativeText runText = ApplyNativeText(current, run.Child(NsA, "rPr"), scheme, colorMap);
                 if (selected.HasValue && !selected.Value.SameAs(runText)) throw new NotSupportedException("Mixed chart text defaults cannot be projected.");
                 selected = runText;
             }
-            if (explicitRuns.Length == 0) {
+            if (explicitRuns.Count == 0) {
                 if (selected.HasValue && !selected.Value.SameAs(current)) throw new NotSupportedException("Mixed chart text defaults cannot be projected.");
                 selected = current;
             }
@@ -74,9 +108,9 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
         return selected ?? inherited;
     }
 
-    private static Dictionary<string, OpenXmlElement> ReadListLevels(OpenXmlCompositeElement text) {
-        var levels = new Dictionary<string, OpenXmlElement>(StringComparer.Ordinal);
-        foreach (OpenXmlElement child in text.GetFirstChild<A.ListStyle>()?.ChildElements ?? Enumerable.Empty<OpenXmlElement>()) {
+    private static Dictionary<string, OfficeXmlNode> ReadListLevels(OfficeXmlNode text) {
+        var levels = new Dictionary<string, OfficeXmlNode>(StringComparer.Ordinal);
+        foreach (OfficeXmlNode child in text.Child(NsA, "lstStyle").Children()) {
             if (levels.ContainsKey(child.LocalName))
                 throw new NotSupportedException("Duplicate chart text list levels cannot be projected.");
             levels.Add(child.LocalName, child);
@@ -84,12 +118,13 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
         return levels;
     }
 
-    internal static NativeText ReadUniformNativeText(C.Chart chart, System.Collections.Generic.IEnumerable<OpenXmlElement> owners, A.ColorScheme? scheme, bool allowMultiline = false) {
-        OpenXmlElement? colorMap = (chart.Parent as C.ChartSpace)?.OpenXmlPart is ChartPart chartPart
-            ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart) : null;
-        NativeText inherited = ReadTextPropertyDefaults(default, chart.Parent?.GetFirstChild<C.TextProperties>(), scheme, colorMap);
+    internal static NativeText ReadUniformNativeText(OfficeXmlNode chart, IEnumerable<OfficeXmlNode> owners, OfficeXmlNode scheme, bool allowMultiline = false) {
+        IOfficeChartPart? chartPart = ChartPartOf(chart);
+        OfficeXmlNode colorMap = chartPart != null
+            ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart) : default;
+        NativeText inherited = ReadTextPropertyDefaults(default, chart.Parent.Child(NsC, "txPr"), scheme, colorMap);
         NativeText? selected = null;
-        foreach (var owner in owners) {
+        foreach (OfficeXmlNode owner in owners) {
             NativeText current = ReadNativeText(owner, scheme, colorMap, inherited, allowMultiline);
             if (selected.HasValue && !selected.Value.SameAs(current))
                 throw new NotSupportedException("Independent chart text formatting cannot be projected by the shared text role.");
@@ -98,17 +133,17 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
         return selected ?? default;
     }
 
-    private static void QualifyTextLayout(OpenXmlCompositeElement text, bool allowMultiline = false) {
-        if (!allowMultiline && text is C.RichText && (text.Elements<A.Paragraph>().Skip(1).Any() || text.Descendants<A.Break>().Any()))
+    private static void QualifyTextLayout(OfficeXmlNode text, bool allowMultiline = false) {
+        if (!allowMultiline && text.Is(NsC, "rich") && (text.Children(NsA, "p").Count > 1 || !text.FirstDescendant(NsA, "br").IsNone))
             throw new NotSupportedException("Multiline native chart text cannot be projected.");
-        var body = text.GetFirstChild<A.BodyProperties>();
-        if (body != null && (body.GetAttributes().Any(attribute => !IsNeutralTextBodyAttribute(attribute, text)) ||
-                body.ChildElements.Any(child => child is not A.NoAutoFit and not A.ShapeAutoFit)))
+        OfficeXmlNode body = text.Child(NsA, "bodyPr");
+        if (!body.IsNone && (body.Attributes().Any(attribute => !IsNeutralTextBodyAttribute(attribute, text)) ||
+                body.Children().ToList().Any(child => !(child.NamespaceId == NsA && child.LocalName is "noAutofit" or "spAutoFit"))))
             throw new NotSupportedException("The native chart text body layout cannot be projected.");
-        foreach (var paragraphProperties in text.Descendants().Where(element => element is A.ParagraphProperties ||
-            element.Parent is A.ListStyle)) {
-            if (paragraphProperties.GetAttributes().Any(attribute => attribute.LocalName != "lvl") ||
-                paragraphProperties.ChildElements.Any(child => child is not A.DefaultRunProperties))
+        foreach (OfficeXmlNode paragraphProperties in text.DescendantsWhere(element => element.Is(NsA, "pPr") ||
+            element.Parent.Is(NsA, "lstStyle"))) {
+            if (paragraphProperties.Attributes().Any(attribute => attribute.LocalName != "lvl") ||
+                paragraphProperties.Children().ToList().Any(child => !child.Is(NsA, "defRPr")))
                 throw new NotSupportedException("The native chart paragraph layout cannot be projected.");
         }
     }
@@ -117,7 +152,7 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
     // centred, unrotated text they leave the shared layout unchanged. Office writes the
     // -60000000 sentinel for automatic axis-label rotation and a quarter turn on the title of a
     // vertical axis, which is how the shared renderer draws both.
-    private static bool IsNeutralTextBodyAttribute(OpenXmlAttribute attribute, OpenXmlElement text) => attribute.LocalName switch {
+    private static bool IsNeutralTextBodyAttribute(OfficeXmlAttribute attribute, OfficeXmlNode text) => attribute.LocalName switch {
         "rot" => attribute.Value is "0" or "-60000000" || attribute.Value == "-5400000" && IsVerticalAxisTitle(text),
         "vert" => attribute.Value == "horz",
         "wrap" => attribute.Value == "square" || attribute.Value == "none",
@@ -128,24 +163,24 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
         _ => false
     };
 
-    private static bool IsVerticalAxisTitle(OpenXmlElement text) {
-        OpenXmlElement? axis = text.Ancestors<C.Title>().FirstOrDefault()?.Parent;
-        C.AxisPositionValues? position = axis?.GetFirstChild<C.AxisPosition>()?.Val?.Value;
-        return axis is C.ValueAxis or C.CategoryAxis or C.DateAxis &&
-            (position == C.AxisPositionValues.Left || position == C.AxisPositionValues.Right);
+    private static bool IsVerticalAxisTitle(OfficeXmlNode text) {
+        OfficeXmlNode axis = text.Ancestor(NsC, "title").Parent;
+        string? position = axis.ChildVal(NsC, "axPos");
+        return axis.NamespaceId == NsC && axis.LocalName is "valAx" or "catAx" or "dateAx" &&
+            (position == "l" || position == "r");
     }
 
-    private static NativeText ApplyNativeText(NativeText inherited, OpenXmlElement? properties, A.ColorScheme? scheme, OpenXmlElement? colorMap) {
-        if (properties == null) return inherited;
+    private static NativeText ApplyNativeText(NativeText inherited, OfficeXmlNode properties, OfficeXmlNode scheme, OfficeXmlNode colorMap) {
+        if (properties.IsNone) return inherited;
         double? size = inherited.Size;
         OfficeFontStyle? style = inherited.Style;
         OfficeColor? color = inherited.Color;
         string? family = inherited.Family;
-        string? latinTypeface = properties.GetFirstChild<A.LatinFont>()?.Typeface?.Value;
+        string? latinTypeface = properties.Child(NsA, "latin").Attribute("typeface");
         if (latinTypeface != null) {
             family = ResolveNativeTypeface(latinTypeface, scheme);
         }
-        foreach (var attribute in properties.GetAttributes()) {
+        foreach (OfficeXmlAttribute attribute in properties.Attributes()) {
             if (attribute.LocalName == "sz") {
                 if (!int.TryParse(attribute.Value, out int hundredths) || hundredths <= 0)
                     throw new NotSupportedException("The chart text size cannot be projected.");
@@ -168,20 +203,21 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
                 throw new NotSupportedException("The chart text attributes cannot be projected.");
             }
         }
-        foreach (var child in properties.ChildElements) {
-            if (child is A.SolidFill fill) {
-                if (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(fill))
+        foreach (OfficeXmlNode child in properties.Children()) {
+            bool drawing = child.NamespaceId == NsA;
+            if (drawing && child.LocalName == "solidFill") {
+                if (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(child))
                     throw new NotSupportedException("The chart text colour transforms cannot be projected.");
-                color = OfficeOpenXmlThemeColorResolver.ResolveColor(fill, scheme, colorMap: colorMap) ?? throw new NotSupportedException("The chart text colour cannot be resolved.");
-            } else if (child is A.EastAsianFont or A.ComplexScriptFont) {
-                string? scriptTypeface = child is A.EastAsianFont eastAsian ? eastAsian.Typeface?.Value : ((A.ComplexScriptFont)child).Typeface?.Value;
+                color = OfficeOpenXmlThemeColorResolver.ResolveColor(child, scheme, colorMap: colorMap) ?? throw new NotSupportedException("The chart text colour cannot be resolved.");
+            } else if (drawing && child.LocalName is "ea" or "cs") {
+                string? scriptTypeface = child.Attribute("typeface");
                 // Office pairs +mn-lt with +mn-ea and +mn-cs (and +mj-lt with +mj-ea and +mj-cs). The
                 // script slots only apply to East Asian and complex-script runs of the same theme group.
                 if (IsSameThemeFontGroup(latinTypeface, scriptTypeface)) continue;
                 if (string.IsNullOrWhiteSpace(latinTypeface) ||
                     !string.Equals(family, ResolveNativeTypeface(scriptTypeface, scheme), StringComparison.OrdinalIgnoreCase))
                     throw new NotSupportedException("Different chart text script typefaces cannot be projected by one font family.");
-            } else if (child is not A.LatinFont and not A.EastAsianFont and not A.ComplexScriptFont)
+            } else if (!(drawing && child.LocalName is "latin" or "ea" or "cs"))
                 throw new NotSupportedException("The chart text appearance cannot be projected.");
         }
         return new NativeText(size, style, color, family);
@@ -191,18 +227,23 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
         latinTypeface is "+mn-lt" && scriptTypeface is "+mn-ea" or "+mn-cs" ||
         latinTypeface is "+mj-lt" && scriptTypeface is "+mj-ea" or "+mj-cs";
 
-    private static string ResolveNativeTypeface(string? typeface, A.ColorScheme? scheme) {
+    private static string ResolveNativeTypeface(string? typeface, OfficeXmlNode scheme) {
         if (string.IsNullOrWhiteSpace(typeface))
             throw new NotSupportedException("The chart text typeface cannot be projected.");
         if (!typeface!.StartsWith("+", StringComparison.Ordinal)) return typeface;
-        A.FontScheme? fonts = scheme?.Parent?.GetFirstChild<A.FontScheme>();
+        OfficeXmlNode fonts = scheme.Parent.Child(NsA, "fontScheme");
         string? resolved = typeface switch {
-            "+mj-lt" => fonts?.MajorFont?.LatinFont?.Typeface?.Value,
-            "+mn-lt" => fonts?.MinorFont?.LatinFont?.Typeface?.Value,
+            "+mj-lt" => SchemeTypeface(fonts, "majorFont"),
+            "+mn-lt" => SchemeTypeface(fonts, "minorFont"),
             _ => null
         };
         return !string.IsNullOrWhiteSpace(resolved) ? resolved! :
             throw new NotSupportedException("The chart text typeface cannot be projected without a resolved font scheme.");
     }
 
+    // SDK callers
+    internal static NativeText ReadNativeText(C.Chart chart, DocumentFormat.OpenXml.OpenXmlElement? owner, A.ColorScheme? scheme, bool allowMultiline = false) =>
+        ReadNativeText(OfficeXmlNode.FromSdk(chart), OfficeXmlNode.FromSdk(owner), OfficeXmlNode.FromSdk(scheme), allowMultiline);
+    internal static NativeText ReadUniformNativeText(C.Chart chart, IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> owners, A.ColorScheme? scheme, bool allowMultiline = false) =>
+        ReadUniformNativeText(OfficeXmlNode.FromSdk(chart), owners.Select(owner => OfficeXmlNode.FromSdk(owner)), OfficeXmlNode.FromSdk(scheme), allowMultiline);
 }

@@ -1,7 +1,7 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
+using Ns = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -9,6 +9,9 @@ namespace OfficeIMO.PowerPoint {
     /// the authored paragraph/run nodes remain the ones returned to the caller, including across continuation.
     /// </summary>
     internal sealed class PowerPointLayoutNativeText {
+        private const int D = Ns.DrawingML;
+        private const int P = Ns.PresentationML;
+
         private readonly PowerPointLayoutNativeText _root;
         private IReadOnlyList<PowerPointParagraph>? _paragraphs;
         private bool _used;
@@ -23,13 +26,10 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Repeating context gets independent native nodes; the original frame stays on its first page.</summary>
         internal PowerPointLayoutNativeText CopyForRepeat() {
-            var shape = (Shape)Box.Element.CloneNode(true);
-            shape.TextBody!.RemoveAllChildren<A.Paragraph>();
-            foreach (var paragraph in Paragraphs) shape.TextBody.Append(paragraph.Paragraph.CloneNode(true));
-            var box = Box.RelationshipOwnerPart != null
-                ? new PowerPointTextBox(shape, Box.RelationshipOwnerPart)
-                : new PowerPointTextBox(shape, Box.SlidePart);
-            if (Box.OwnerSlide != null) box.AttachTo(Box.OwnerSlide, Box.RelationshipOwnerPart);
+            PowerPointTextBox box = PowerPointSlide.CopyLayoutTextBox(Box);
+            OfficeXmlNode body = box.XmlElement.Child(P, "txBody");
+            body.RemoveChildren(D, "p");
+            foreach (var paragraph in Paragraphs) body.Append(paragraph.Element.Clone());
             var copy = new PowerPointLayoutNativeText(box);
             copy.Freeze();
             return copy;
@@ -52,127 +52,150 @@ namespace OfficeIMO.PowerPoint {
             var root = nativeBody._root;
             var defaults = generated.Paragraphs;
             var result = root._used ? generated : root.Box;
-            var nodes = new List<A.Paragraph>();
+            var nodes = new List<OfficeXmlNode>();
             for (int i = 0; i < planned.Count; i++) {
                 var actual = planned[i].NativeParagraph;
-                var fallback = defaults[i].Paragraph;
-                if (actual == null) { nodes.Add((A.Paragraph)fallback.CloneNode(true)); continue; }
-                A.Paragraph paragraph = actual.Paragraph;
-                var oldPart = actual.OwnerPart as OpenXmlPart;
-                if (!ReferenceEquals(oldPart, slide.SlidePart)) RehomeRelationships(paragraph, oldPart, slide.SlidePart);
-                paragraph.ParagraphProperties ??= new A.ParagraphProperties();
-                MergeMissing(paragraph.ParagraphProperties, fallback.ParagraphProperties);
-                var runDefaults = fallback.Elements<A.Run>().FirstOrDefault()?.RunProperties;
-                foreach (var child in paragraph.ChildElements) {
-                    if (child is A.Run run) MergeMissing(run.RunProperties ??= new A.RunProperties(), runDefaults);
-                    else if (child is A.Field field) MergeMissing(field.RunProperties ??= new A.RunProperties(), runDefaults);
+                OfficeXmlNode fallback = defaults[i].Element;
+                if (actual == null) { nodes.Add(fallback.Clone()); continue; }
+                OfficeXmlNode paragraph = actual.Element;
+                slide.RehomeLayoutRelationships(paragraph, actual.OwnerPartRef);
+                MergeMissing(paragraph.GetOrAddChild(D, "pPr", ATextParagraphView.Order), fallback.Child(D, "pPr"));
+                OfficeXmlNode runDefaults = fallback.Child(D, "r").Child(D, "rPr");
+                foreach (OfficeXmlNode child in paragraph.Children()) {
+                    if (child.Is(D, "r") || child.Is(D, "fld")) MergeMissing(child.GetOrPrependChild(D, "rPr"), runDefaults);
                 }
-                if (paragraph.GetFirstChild<A.EndParagraphRunProperties>() == null && fallback.GetFirstChild<A.EndParagraphRunProperties>() is A.EndParagraphRunProperties end)
-                    paragraph.Append(end.CloneNode(true));
+                if (paragraph.Child(D, "endParaRPr").IsNone && fallback.Child(D, "endParaRPr") is { Exists: true } end)
+                    paragraph.Append(end.Clone());
                 nodes.Add(paragraph);
             }
-            if (planned.Count == 0) nodes.Add(defaults[0].Paragraph);
+            if (planned.Count == 0) nodes.Add(defaults[0].Element);
             // Capture all references before detaching: the source frame can contain later continuation paragraphs.
-            foreach (var node in nodes) if (node.Parent != null) node.Remove();
-            var shape = (Shape)result.Element;
-            var template = (Shape)generated.Element;
+            foreach (var node in nodes) if (node.Parent.Exists) node.Remove();
+            OfficeXmlNode shape = result.XmlElement;
+            OfficeXmlNode template = generated.XmlElement;
             if (root._used) {
                 // The continuation has its own ID and geometry, but inherits the authored frame appearance.
-                var source = (Shape)root.Box.Element;
-                var geometry = shape.ShapeProperties!.Transform2D!.CloneNode(true);
-                shape.ShapeProperties = (ShapeProperties)source.ShapeProperties!.CloneNode(true);
-                shape.ShapeProperties.Transform2D = (A.Transform2D)geometry;
-                result.TextBody!.BodyProperties = (A.BodyProperties)root.Box.TextBody!.BodyProperties!.CloneNode(true);
-                result.TextBody.ListStyle = (A.ListStyle)root.Box.TextBody.ListStyle!.CloneNode(true);
+                OfficeXmlNode source = root.Box.XmlElement;
+                OfficeXmlNode geometry = shape.Child(P, "spPr").Child(D, "xfrm").Clone();
+                OfficeXmlNode properties = Replace(shape, P, "spPr", source.Child(P, "spPr").Clone(), PShapeView.Order);
+                Replace(properties, D, "xfrm", geometry, AShapePropertiesView.Order);
+                OfficeXmlNode body = shape.Child(P, "txBody"), sourceBody = source.Child(P, "txBody");
+                Replace(body, D, "bodyPr", sourceBody.Child(D, "bodyPr").Clone(), ATextBodyView.Order);
+                Replace(body, D, "lstStyle", sourceBody.Child(D, "lstStyle").Clone(), ATextBodyView.Order);
             }
             if (!ReferenceEquals(result, generated)) {
-                shape.ShapeProperties ??= new ShapeProperties();
-                shape.ShapeProperties.Transform2D = (A.Transform2D)template.ShapeProperties!.Transform2D!.CloneNode(true);
-                MergeMissing(shape.ShapeProperties, template.ShapeProperties);
-                MergeMissing(shape.NonVisualShapeProperties!.NonVisualShapeDrawingProperties!, template.NonVisualShapeProperties!.NonVisualShapeDrawingProperties);
-                MergeMissing(shape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties!, template.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties);
-                MergeMissing(result.TextBody!.BodyProperties ??= new A.BodyProperties(), generated.TextBody!.BodyProperties);
-                MergeMissing(result.TextBody.ListStyle ??= new A.ListStyle(), generated.TextBody.ListStyle);
+                OfficeXmlNode properties = shape.GetOrAddChild(P, "spPr", PShapeView.Order);
+                OfficeXmlNode templateProperties = template.Child(P, "spPr");
+                Replace(properties, D, "xfrm", templateProperties.Child(D, "xfrm").Clone(), AShapePropertiesView.Order);
+                MergeMissing(properties, templateProperties);
+                OfficeXmlNode nonVisual = shape.Child(P, "nvSpPr"), templateNonVisual = template.Child(P, "nvSpPr");
+                MergeMissing(nonVisual.Child(P, "cNvSpPr"), templateNonVisual.Child(P, "cNvSpPr"));
+                MergeMissing(nonVisual.Child(P, "nvPr"), templateNonVisual.Child(P, "nvPr"));
+                OfficeXmlNode body = shape.Child(P, "txBody"), templateBody = template.Child(P, "txBody");
+                MergeMissing(body.GetOrAddChild(D, "bodyPr", ATextBodyView.Order), templateBody.Child(D, "bodyPr"));
+                MergeMissing(body.GetOrAddChild(D, "lstStyle", ATextBodyView.Order), templateBody.Child(D, "lstStyle"));
                 slide.RemoveShape(generated);
                 slide.AdoptLayoutTextBox(result);
             }
-            result.TextBody!.RemoveAllChildren<A.Paragraph>();
-            foreach (var node in nodes) result.TextBody.Append(node);
+            OfficeXmlNode textBody = result.XmlElement.Child(P, "txBody");
+            textBody.RemoveChildren(D, "p");
+            foreach (var node in nodes) textBody.Append(node);
             root._used = true;
             return result;
         }
 
-        internal static void MergeMissing(OpenXmlCompositeElement target, OpenXmlCompositeElement? defaults) {
-            if (defaults == null) return;
-            foreach (var attribute in defaults.GetAttributes()) {
-                if (!target.GetAttributes().Any(a => a.LocalName == attribute.LocalName && a.NamespaceUri == attribute.NamespaceUri))
-                    target.SetAttribute(attribute);
+        /// <summary>
+        /// Replaces the child of that name with <paramref name="replacement"/> where it stands, or adds it in schema order,
+        /// and returns it as it is now held.
+        /// </summary>
+        internal static OfficeXmlNode Replace(OfficeXmlNode parent, int namespaceId, string localName, OfficeXmlNode replacement, OfficeXmlChildOrder order) {
+            OfficeXmlNode existing = parent.Child(namespaceId, localName);
+            if (existing.IsNone) return parent.InsertOrdered(replacement, order);
+            OfficeXmlNode inserted = existing.InsertAfterSelf(replacement);
+            existing.Remove();
+            return inserted;
+        }
+
+        /// <summary>
+        /// Copies the attributes and children of <paramref name="defaults"/> that <paramref name="target"/> lacks: a child is
+        /// missing when the target has none of its name and none of the same DrawingML choice.
+        /// </summary>
+        internal static void MergeMissing(OfficeXmlNode target, OfficeXmlNode defaults) {
+            if (defaults.IsNone) return;
+            (string[] attributes, OfficeXmlChildOrder order) = MergeShape(target.LocalName);
+            foreach (string attribute in attributes) {
+                if (defaults.Attribute(attribute) is { } value && !target.HasAttribute(attribute)) target.SetAttribute(attribute, value);
             }
-            foreach (var child in defaults.ChildElements) {
-                if (!target.ChildElements.Any(c => c.LocalName == child.LocalName && c.NamespaceUri == child.NamespaceUri
-                    || Choice(c) != 0 && Choice(c) == Choice(child)))
-                    target.AddChild(child.CloneNode(true), true);
+            foreach (OfficeXmlNode child in defaults.Children().ToList()) {
+                bool present = false;
+                int choice = Choice(child);
+                foreach (OfficeXmlNode existing in target.Children()) {
+                    if (existing.LocalName == child.LocalName && existing.NamespaceUri == child.NamespaceUri || choice != 0 && Choice(existing) == choice) {
+                        present = true;
+                        break;
+                    }
+                }
+                if (!present) target.InsertOrdered(child.Clone(), order);
             }
         }
 
+        // The attributes the schema gives each element defaults are merged into, and its child order.
+        private static (string[] Attributes, OfficeXmlChildOrder Order) MergeShape(string localName) => localName switch {
+            "pPr" => (ParagraphAttributes, ATextParagraphPropertiesView.Order),
+            "rPr" or "endParaRPr" or "defRPr" => (CharacterAttributes, ATextCharacterPropertiesView.Order),
+            "spPr" => (new[] { "bwMode" }, AShapePropertiesView.Order),
+            "cNvSpPr" => (new[] { "txBox" }, ANonVisualDrawingShapePropsView.Order),
+            "nvPr" => (new[] { "isPhoto", "userDrawn" }, PApplicationNonVisualDrawingPropsView.Order),
+            "bodyPr" => (BodyAttributes, ATextBodyPropertiesView.Order),
+            "lstStyle" => (Array.Empty<string>(), ATextListStyleView.Order),
+            "tcPr" => (new[] { "marL", "marR", "marT", "marB", "vert", "anchor", "anchorCtr", "horzOverflow" }, ATableCellPropertiesView.Order),
+            _ => throw new ArgumentException("Layout defaults don't merge into '" + localName + "'.", nameof(localName))
+        };
+
+        private static readonly string[] ParagraphAttributes = {
+            "marL", "marR", "lvl", "indent", "algn", "defTabSz", "rtl", "eaLnBrk", "fontAlgn", "latinLnBrk", "hangingPunct"
+        };
+
+        private static readonly string[] CharacterAttributes = {
+            "kumimoji", "lang", "altLang", "sz", "b", "i", "u", "strike", "kern", "cap", "spc", "normalizeH", "baseline",
+            "noProof", "dirty", "err", "smtClean", "smtId", "bmk"
+        };
+
+        private static readonly string[] BodyAttributes = {
+            "rot", "spcFirstLastPara", "vertOverflow", "horzOverflow", "vert", "wrap", "lIns", "tIns", "rIns", "bIns", "numCol",
+            "spcCol", "rtlCol", "fromWordArt", "anchor", "anchorCtr", "forceAA", "upright", "compatLnSpc"
+        };
+
         // Native edits can select another member of a DrawingML choice, such as a character bullet on a numbered list.
-        private static int Choice(OpenXmlElement element) => element switch {
-            A.NoBullet or A.AutoNumberedBullet or A.CharacterBullet => 1,
-            A.BulletColor or A.BulletColorText => 2,
-            A.BulletFont or A.BulletFontText => 3,
-            A.BulletSizePoints or A.BulletSizePercentage or A.BulletSizeText => 4,
-            A.NoFill or A.SolidFill or A.GradientFill or A.BlipFill or A.PatternFill or A.GroupFill => 5,
-            A.NoAutoFit or A.NormalAutoFit or A.ShapeAutoFit => 6,
-            A.PresetGeometry or A.CustomGeometry => 7,
-            A.EffectList or A.EffectDag => 8,
+        private static int Choice(OfficeXmlNode element) => element.NamespaceId != D ? 0 : element.LocalName switch {
+            "buNone" or "buAutoNum" or "buChar" => 1,
+            "buClr" or "buClrTx" => 2,
+            "buFont" or "buFontTx" => 3,
+            "buSzPts" or "buSzPct" or "buSzTx" => 4,
+            "noFill" or "solidFill" or "gradFill" or "blipFill" or "pattFill" or "grpFill" => 5,
+            "noAutofit" or "normAutofit" or "spAutoFit" => 6,
+            "prstGeom" or "custGeom" => 7,
+            "effectLst" or "effectDag" => 8,
             _ => 0
         };
 
-        internal static void RehomeRelationships(OpenXmlElement element, OpenXmlPart? source, SlidePart target) {
-            if (source == null || ReferenceEquals(source, target)) return;
-            var ids = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var node in new[] { element }.Concat(element.Descendants())) {
-                foreach (var attribute in node.GetAttributes().ToArray()) {
-                    if (attribute.NamespaceUri != PowerPointUtils.RelationshipIdNamespace || string.IsNullOrEmpty(attribute.Value)) continue;
-                    string id = attribute.Value!;
-                    if (!ids.TryGetValue(id, out string? replacement)) {
-                        var audio = PowerPointEmbeddedSound.Find(source, id);
-                        var hyperlink = source.HyperlinkRelationships.FirstOrDefault(r => r.Id == id);
-                        var part = source.Parts.FirstOrDefault(p => p.RelationshipId == id).OpenXmlPart;
-                        var external = source.ExternalRelationships.FirstOrDefault(r => r.Id == id);
-                        if (audio != null) replacement = target.AddAudioReferenceRelationship(audio).Id;
-                        else if (hyperlink != null) replacement = target.HyperlinkRelationships
-                            .FirstOrDefault(candidate => candidate.Uri == hyperlink.Uri && candidate.IsExternal == hyperlink.IsExternal)?.Id
-                            ?? target.AddHyperlinkRelationship(hyperlink.Uri, hyperlink.IsExternal).Id;
-                        else if (part != null) {
-                            target.AddPart(part);
-                            replacement = target.GetIdOfPart(part);
-                        } else if (external != null) replacement = target.AddExternalRelationship(external.RelationshipType, external.Uri).Id;
-                        else continue;
-                        ids.Add(id, replacement);
-                    }
-                    node.SetAttribute(new OpenXmlAttribute(attribute.Prefix, attribute.LocalName, attribute.NamespaceUri, replacement));
-                }
-            }
-        }
-
         /// <summary>Splits a native paragraph at the same sentence boundaries as value-based layout input.</summary>
         internal static IReadOnlyList<PowerPointParagraph> SplitParagraph(PowerPointParagraph source, IReadOnlyList<string> pieces) {
-            var inlines = source.Paragraph.ChildElements
-                .Where(n => n is A.Run or A.Field or A.Break).ToList();
+            OfficeXmlNode sourceElement = source.Element;
+            var inlines = sourceElement.Children().ToList().Where(IsInline).ToList();
             string full = source.Text;
             var ranges = new List<(int Start, int End)>();
             var result = new List<PowerPointParagraph>();
             bool contiguous = string.Concat(pieces) == full;
             int offset = 0;
             for (int i = 0; i < pieces.Count; i++) {
-                var node = i == 0 ? source.Paragraph : (A.Paragraph)source.Paragraph.CloneNode(true);
+                var node = i == 0 ? sourceElement : sourceElement.Clone();
                 if (i > 0) {
-                    node.RemoveAllChildren<A.Run>();
-                    node.RemoveAllChildren<A.Field>();
-                    node.RemoveAllChildren<A.Break>();
+                    node.RemoveChildren(D, "r");
+                    node.RemoveChildren(D, "fld");
+                    node.RemoveChildren(D, "br");
                 }
-                result.Add(i == 0 ? source : new PowerPointParagraph(node, ownerPart: source.OwnerPart));
+                result.Add(i == 0 ? source : new PowerPointParagraph(node, default, source.OwnerPartRef));
                 ranges.Add((offset, offset + pieces[i].Length));
                 offset += pieces[i].Length;
                 if (!contiguous) while (offset < full.Length && char.IsWhiteSpace(full[offset])) offset++;
@@ -180,19 +203,19 @@ namespace OfficeIMO.PowerPoint {
             foreach (var inline in inlines) inline.Remove();
             int position = 0;
             foreach (var inline in inlines) {
-                var template = inline.CloneNode(true);
-                A.Text? text = (template as A.Run)?.Text ?? (template as A.Field)?.Text;
-                int length = text?.Text.Length ?? Environment.NewLine.Length;
+                var template = inline.Clone();
+                string? text = TextOf(template).IsNone ? null : TextOf(template).InnerText;
+                int length = text?.Length ?? Environment.NewLine.Length;
                 bool used = false;
                 for (int i = 0; i < ranges.Count; i++) {
                     int start = Math.Max(ranges[i].Start, position), end = Math.Min(ranges[i].End, position + length);
                     if (end <= start) continue;
-                    var fragment = used ? template.CloneNode(true) : inline;
-                    A.Text? fragmentText = (fragment as A.Run)?.Text ?? (fragment as A.Field)?.Text;
-                    if (fragmentText != null) fragmentText.Text = text!.Text.Substring(start - position, end - start);
-                    var paragraph = result[i].Paragraph;
-                    var endProperties = paragraph.GetFirstChild<A.EndParagraphRunProperties>();
-                    if (endProperties == null) paragraph.Append(fragment);
+                    var fragment = used ? template.Clone() : inline;
+                    OfficeXmlNode fragmentText = TextOf(fragment);
+                    if (fragmentText.Exists) fragmentText.SetInnerText(text!.Substring(start - position, end - start));
+                    var paragraph = result[i].Element;
+                    var endProperties = paragraph.Child(D, "endParaRPr");
+                    if (endProperties.IsNone) paragraph.Append(fragment);
                     else paragraph.InsertBefore(fragment, endProperties);
                     used = true;
                 }
@@ -200,5 +223,11 @@ namespace OfficeIMO.PowerPoint {
             }
             return result;
         }
+
+        private static bool IsInline(OfficeXmlNode node) => node.Is(D, "r") || node.Is(D, "fld") || node.Is(D, "br");
+
+        // The text (a:t) of a run or field; a break has none.
+        private static OfficeXmlNode TextOf(OfficeXmlNode inline) =>
+            inline.Is(D, "r") || inline.Is(D, "fld") ? inline.Child(D, "t") : default;
     }
 }

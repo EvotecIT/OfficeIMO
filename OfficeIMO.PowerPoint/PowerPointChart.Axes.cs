@@ -1,8 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
         //     Represents a chart on a slide.
@@ -11,14 +8,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the category axis title.
         /// </summary>
         public PowerPointChart SetCategoryAxisTitle(string title) {
-            return SetAxisTitle<C.CategoryAxis>(title);
+            return SetAxisTitle(CategoryAxisName, title);
         }
 
         /// <summary>
         ///     Sets the value axis title.
         /// </summary>
         public PowerPointChart SetValueAxisTitle(string title) {
-            return SetAxisTitle<C.ValueAxis>(title);
+            return SetAxisTitle(ValueAxisName, title);
         }
 
         /// <summary>
@@ -26,14 +23,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetCategoryAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, OfficeColor? color = null, string? fontFamily = null) {
-            return SetAxisTitleTextStyle<C.CategoryAxis>(fontSize, bold, italic, color, fontFamily);
+            return SetAxisTitleTextStyle(CategoryAxisName, fontSize, bold, italic, color, fontFamily);
         }
 
         /// <summary>
         ///     Clears the category axis title text style.
         /// </summary>
         public PowerPointChart ClearCategoryAxisTitleTextStyle() {
-            return ClearAxisTitleTextStyle<C.CategoryAxis>();
+            return ClearAxisTitleTextStyle(CategoryAxisName);
         }
 
         /// <summary>
@@ -41,14 +38,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetValueAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, OfficeColor? color = null, string? fontFamily = null) {
-            return SetAxisTitleTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontFamily);
+            return SetAxisTitleTextStyle(ValueAxisName, fontSize, bold, italic, color, fontFamily);
         }
 
         /// <summary>
         ///     Clears the value axis title text style.
         /// </summary>
         public PowerPointChart ClearValueAxisTitleTextStyle() {
-            return ClearAxisTitleTextStyle<C.ValueAxis>();
+            return ClearAxisTitleTextStyle(ValueAxisName);
         }
 
         /// <summary>
@@ -56,14 +53,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetCategoryAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, OfficeColor? color = null, string? fontFamily = null) {
-            return SetAxisLabelTextStyle<C.CategoryAxis>(fontSize, bold, italic, color, fontFamily);
+            return SetAxisLabelTextStyle(CategoryAxisName, fontSize, bold, italic, color, fontFamily);
         }
 
         /// <summary>
         ///     Clears the category axis label text style.
         /// </summary>
         public PowerPointChart ClearCategoryAxisLabelTextStyle() {
-            return ClearAxisLabelTextStyle<C.CategoryAxis>();
+            return ClearAxisLabelTextStyle(CategoryAxisName);
         }
 
         /// <summary>
@@ -71,42 +68,42 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetValueAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, OfficeColor? color = null, string? fontFamily = null) {
-            return SetAxisLabelTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontFamily);
+            return SetAxisLabelTextStyle(ValueAxisName, fontSize, bold, italic, color, fontFamily);
         }
 
         /// <summary>
         ///     Clears the value axis label text style.
         /// </summary>
         public PowerPointChart ClearValueAxisLabelTextStyle() {
-            return ClearAxisLabelTextStyle<C.ValueAxis>();
+            return ClearAxisLabelTextStyle(ValueAxisName);
         }
 
         /// <summary>
         ///     Sets the category axis label rotation in degrees (-90..90).
         /// </summary>
         public PowerPointChart SetCategoryAxisLabelRotation(double rotationDegrees) {
-            return SetAxisLabelRotation<C.CategoryAxis>(rotationDegrees);
+            return SetAxisLabelRotation(CategoryAxisName, rotationDegrees);
         }
 
         /// <summary>
         ///     Sets the value axis label rotation in degrees (-90..90).
         /// </summary>
         public PowerPointChart SetValueAxisLabelRotation(double rotationDegrees) {
-            return SetAxisLabelRotation<C.ValueAxis>(rotationDegrees);
+            return SetAxisLabelRotation(ValueAxisName, rotationDegrees);
         }
 
         /// <summary>
         ///     Sets the category axis tick label position.
         /// </summary>
         public PowerPointChart SetCategoryAxisTickLabelPosition(OfficeChartAxisTickLabelPosition position) {
-            return SetAxisTickLabelPosition<C.CategoryAxis>(position);
+            return SetAxisTickLabelPosition(CategoryAxisName, position);
         }
 
         /// <summary>
         ///     Sets the value axis tick label position.
         /// </summary>
         public PowerPointChart SetValueAxisTickLabelPosition(OfficeChartAxisTickLabelPosition position) {
-            return SetAxisTickLabelPosition<C.ValueAxis>(position);
+            return SetAxisTickLabelPosition(ValueAxisName, position);
         }
 
         /// <summary>
@@ -114,14 +111,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false,
             OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
-            return SetAxisGridlines<C.CategoryAxis>(showMajor, showMinor, lineColor, lineWidth);
+            return SetAxisGridlines(CategoryAxisName, showMajor, showMinor, lineColor, lineWidth);
         }
 
         /// <summary>
         ///     Clears category axis gridlines.
         /// </summary>
         public PowerPointChart ClearCategoryAxisGridlines() {
-            return ClearAxisGridlines<C.CategoryAxis>();
+            return ClearAxisGridlines(CategoryAxisName);
         }
 
         /// <summary>
@@ -129,14 +126,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetValueAxisGridlines(bool showMajor = true, bool showMinor = false,
             OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
-            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidth);
+            return SetAxisGridlines(ValueAxisName, showMajor, showMinor, lineColor, lineWidth);
         }
 
         /// <summary>
         ///     Clears value axis gridlines.
         /// </summary>
         public PowerPointChart ClearValueAxisGridlines() {
-            return ClearAxisGridlines<C.ValueAxis>();
+            return ClearAxisGridlines(ValueAxisName);
         }
 
         /// <summary>
@@ -148,8 +145,8 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidth,
-                axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return SetAxisGridlines(ValueAxisName, showMajor, showMinor, lineColor, lineWidth,
+                IsBottomAxis);
         }
 
         /// <summary>
@@ -160,7 +157,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return ClearAxisGridlines<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return ClearAxisGridlines(ValueAxisName, IsBottomAxis);
         }
 
         /// <summary>
@@ -172,8 +169,8 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisGridlines<C.ValueAxis>(showMajor, showMinor, lineColor, lineWidth,
-                axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return SetAxisGridlines(ValueAxisName, showMajor, showMinor, lineColor, lineWidth,
+                IsLeftAxis);
         }
 
         /// <summary>
@@ -184,7 +181,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return ClearAxisGridlines<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return ClearAxisGridlines(ValueAxisName, IsLeftAxis);
         }
 
         /// <summary>
@@ -195,7 +192,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisTitle<C.ValueAxis>(title, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return SetAxisTitle(ValueAxisName, title, IsBottomAxis);
         }
 
         /// <summary>
@@ -206,7 +203,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisTitle<C.ValueAxis>(title, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return SetAxisTitle(ValueAxisName, title, IsLeftAxis);
         }
 
         /// <summary>
@@ -218,8 +215,8 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisTitleTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontFamily,
-                axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return SetAxisTitleTextStyle(ValueAxisName, fontSize, bold, italic, color, fontFamily,
+                IsBottomAxis);
         }
 
         /// <summary>
@@ -231,8 +228,8 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisTitleTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontFamily,
-                axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return SetAxisTitleTextStyle(ValueAxisName, fontSize, bold, italic, color, fontFamily,
+                IsLeftAxis);
         }
 
         /// <summary>
@@ -243,7 +240,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return ClearAxisTitleTextStyle<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return ClearAxisTitleTextStyle(ValueAxisName, IsBottomAxis);
         }
 
         /// <summary>
@@ -254,7 +251,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return ClearAxisTitleTextStyle<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return ClearAxisTitleTextStyle(ValueAxisName, IsLeftAxis);
         }
 
         /// <summary>
@@ -266,8 +263,8 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisLabelTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontFamily,
-                axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return SetAxisLabelTextStyle(ValueAxisName, fontSize, bold, italic, color, fontFamily,
+                IsBottomAxis);
         }
 
         /// <summary>
@@ -278,7 +275,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return ClearAxisLabelTextStyle<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return ClearAxisLabelTextStyle(ValueAxisName, IsBottomAxis);
         }
 
         /// <summary>
@@ -290,8 +287,8 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisLabelTextStyle<C.ValueAxis>(fontSize, bold, italic, color, fontFamily,
-                axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return SetAxisLabelTextStyle(ValueAxisName, fontSize, bold, italic, color, fontFamily,
+                IsLeftAxis);
         }
 
         /// <summary>
@@ -302,7 +299,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return ClearAxisLabelTextStyle<C.ValueAxis>(axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return ClearAxisLabelTextStyle(ValueAxisName, IsLeftAxis);
         }
 
         /// <summary>
@@ -313,7 +310,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisLabelRotation<C.ValueAxis>(rotationDegrees, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return SetAxisLabelRotation(ValueAxisName, rotationDegrees, IsBottomAxis);
         }
 
         /// <summary>
@@ -324,7 +321,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisLabelRotation<C.ValueAxis>(rotationDegrees, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return SetAxisLabelRotation(ValueAxisName, rotationDegrees, IsLeftAxis);
         }
 
         /// <summary>
@@ -335,7 +332,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisTickLabelPosition<C.ValueAxis>(position, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return SetAxisTickLabelPosition(ValueAxisName, position, IsBottomAxis);
         }
 
         /// <summary>
@@ -346,26 +343,20 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisTickLabelPosition<C.ValueAxis>(position, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return SetAxisTickLabelPosition(ValueAxisName, position, IsLeftAxis);
         }
 
         /// <summary>
         ///     Sets how the value axis crosses between categories.
         /// </summary>
         public PowerPointChart SetValueAxisCrossBetween(OfficeChartAxisCrossBetween between) {
-            C.Chart chart = GetChart();
-            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
+            OfficeXmlNode axis = FindAxis(ValueAxisName, null);
+            if (axis.IsNone) {
                 return this;
             }
 
-            C.ValueAxis? axis = plotArea.Elements<C.ValueAxis>().FirstOrDefault();
-            if (axis == null) {
-                return this;
-            }
-
-            ReplaceValueAxisCrossBetween(axis, new C.CrossBetween { Val = between.ToOpenXml() });
-            Save();
+            ReplaceValueAxisCrossBetween(axis, between.ToOpenXmlToken());
+            MarkChartEdited();
             return this;
         }
 
@@ -373,14 +364,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the category axis number format.
         /// </summary>
         public PowerPointChart SetCategoryAxisNumberFormat(string formatCode, bool sourceLinked = false) {
-            return SetAxisNumberFormat<C.CategoryAxis>(formatCode, sourceLinked);
+            return SetAxisNumberFormat(CategoryAxisName, formatCode, sourceLinked);
         }
 
         /// <summary>
         ///     Sets the value axis number format.
         /// </summary>
         public PowerPointChart SetValueAxisNumberFormat(string formatCode, bool sourceLinked = false) {
-            return SetAxisNumberFormat<C.ValueAxis>(formatCode, sourceLinked);
+            return SetAxisNumberFormat(ValueAxisName, formatCode, sourceLinked);
         }
 
         /// <summary>
@@ -391,8 +382,8 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisNumberFormat<C.ValueAxis>(formatCode, sourceLinked,
-                axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return SetAxisNumberFormat(ValueAxisName, formatCode, sourceLinked,
+                IsBottomAxis);
         }
 
         /// <summary>
@@ -403,8 +394,8 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetAxisNumberFormat<C.ValueAxis>(formatCode, sourceLinked,
-                axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return SetAxisNumberFormat(ValueAxisName, formatCode, sourceLinked,
+                IsLeftAxis);
         }
 
         /// <summary>
@@ -415,11 +406,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
-            }, showLabel, null, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetBuiltInDisplayUnit(displayUnits, unit), showLabel, null, IsBottomAxis);
         }
 
         /// <summary>
@@ -431,11 +418,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
-            }, showLabel, labelText, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetBuiltInDisplayUnit(displayUnits, unit), showLabel, labelText, IsBottomAxis);
         }
 
         /// <summary>
@@ -449,11 +432,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
-            }, showLabel, null, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetCustomDisplayUnit(displayUnits, customUnit), showLabel, null, IsBottomAxis);
         }
 
         /// <summary>
@@ -468,11 +447,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
-            }, showLabel, labelText, axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetCustomDisplayUnit(displayUnits, customUnit), showLabel, labelText, IsBottomAxis);
         }
 
         /// <summary>
@@ -483,7 +458,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return ClearValueAxisDisplayUnits(axis => HasAxisPosition(axis, C.AxisPositionValues.Bottom));
+            return ClearValueAxisDisplayUnits(IsBottomAxis);
         }
 
         /// <summary>
@@ -494,11 +469,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
-            }, showLabel, null, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetBuiltInDisplayUnit(displayUnits, unit), showLabel, null, IsLeftAxis);
         }
 
         /// <summary>
@@ -510,11 +481,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
-            }, showLabel, labelText, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetBuiltInDisplayUnit(displayUnits, unit), showLabel, labelText, IsLeftAxis);
         }
 
         /// <summary>
@@ -528,11 +495,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
-            }, showLabel, null, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetCustomDisplayUnit(displayUnits, customUnit), showLabel, null, IsLeftAxis);
         }
 
         /// <summary>
@@ -547,11 +510,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
-            }, showLabel, labelText, axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetCustomDisplayUnit(displayUnits, customUnit), showLabel, labelText, IsLeftAxis);
         }
 
         /// <summary>
@@ -562,18 +521,14 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            return ClearValueAxisDisplayUnits(axis => HasAxisPosition(axis, C.AxisPositionValues.Left));
+            return ClearValueAxisDisplayUnits(IsLeftAxis);
         }
 
         /// <summary>
         ///     Sets display units for the value axis.
         /// </summary>
         public PowerPointChart SetValueAxisDisplayUnits(OfficeChartDisplayUnit unit, bool showLabel = true) {
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
-            }, showLabel);
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetBuiltInDisplayUnit(displayUnits, unit), showLabel);
         }
 
         /// <summary>
@@ -582,11 +537,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointChart SetValueAxisDisplayUnits(OfficeChartDisplayUnit unit, string labelText, bool showLabel = true) {
             ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
 
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.Append(new C.BuiltInUnit { Val = unit.ToOpenXml() });
-            }, showLabel, labelText);
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetBuiltInDisplayUnit(displayUnits, unit), showLabel, labelText);
         }
 
         /// <summary>
@@ -597,11 +548,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(customUnit));
             }
 
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
-            }, showLabel);
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetCustomDisplayUnit(displayUnits, customUnit), showLabel);
         }
 
         /// <summary>
@@ -613,11 +560,7 @@ namespace OfficeIMO.PowerPoint {
             }
             ArgumentException.ThrowIfNullOrWhiteSpace(labelText);
 
-            return SetValueAxisDisplayUnitsCore(displayUnits => {
-                displayUnits.RemoveAllChildren<C.BuiltInUnit>();
-                displayUnits.RemoveAllChildren<C.CustomDisplayUnit>();
-                displayUnits.Append(new C.CustomDisplayUnit { Val = customUnit });
-            }, showLabel, labelText);
+            return SetValueAxisDisplayUnitsCore(displayUnits => SetCustomDisplayUnit(displayUnits, customUnit), showLabel, labelText);
         }
 
         /// <summary>

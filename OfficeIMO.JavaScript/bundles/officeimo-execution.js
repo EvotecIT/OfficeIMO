@@ -307,19 +307,24 @@ _modules.set("5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b",
 return _exports;
 })();
 
-const _m5 = _modules.get("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f") ?? (() => {
+const _m5 = _modules.get("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244") ?? (() => {
 /** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
 function notifyProgress(callback, progress) {
+    notifySynchronously("onProgress", callback, progress);
+}
+/** @internal Run a host notification that must finish before the export continues. A returned promise is observed,
+ * so its rejection is never unhandled, and the export fails instead of reporting success before the callback ends. */
+function notifySynchronously(name, callback, value) {
     if (!callback)
         return;
-    const result = callback(progress);
+    const result = callback(value);
     if (result && typeof result.then === "function") {
         void Promise.resolve(result).catch(() => { });
-        throw new TypeError("onProgress must be synchronous.");
+        throw new TypeError(name + " must be synchronous.");
     }
 }
-const _exports = Object.freeze({ notifyProgress: notifyProgress });
-_modules.set("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f", _exports);
+const _exports = Object.freeze({ notifyProgress: notifyProgress, notifySynchronously: notifySynchronously });
+_modules.set("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244", _exports);
 return _exports;
 })();
 
@@ -1171,7 +1176,7 @@ _modules.set("3aeb365cb54a2f47af0ef0db0c06b8eab1c49f3bb740e70535ee0115d45ce698",
 return _exports;
 })();
 
-const _m1 = _modules.get("5eb1b2f44c2625f90d0da30bfaacdba77d42da043ff12996de9c650d4ea249fe") ?? (() => {
+const _m1 = _modules.get("a6ecf64fa145e57d60bbe8ffd5b836113aa20d82c160798eff81976f3f19383e") ?? (() => {
 const { checkAbort, inputRows, withAbort } = _m2;
 
 const { withDestination } = _m3;
@@ -1343,7 +1348,7 @@ async function executeWorkerExport(endpoint, rows, destination, options = {}) {
     }
 }
 const _exports = Object.freeze({ executeWorkerExport: executeWorkerExport });
-_modules.set("5eb1b2f44c2625f90d0da30bfaacdba77d42da043ff12996de9c650d4ea249fe", _exports);
+_modules.set("a6ecf64fa145e57d60bbe8ffd5b836113aa20d82c160798eff81976f3f19383e", _exports);
 return _exports;
 })();
 
@@ -1503,10 +1508,10 @@ _modules.set("1debadc47480abb9b6d830fe7108967a2b45877aa9ce0e2ae81914f343463ede",
 return _exports;
 })();
 
-const _m0 = _modules.get("85e009dee350af7c8594b36740a1100f30104a08ab6b887240ef3113714be29e") ?? (() => {
+const _m0 = _modules.get("308d5786269159f42ac8f645d95770762aea52ac9df2e553cdcff37828664054") ?? (() => {
 
 const _exports = Object.freeze({ executeWorkerExport: _m1.executeWorkerExport, handleWorkerExports: _m17.handleWorkerExports });
-_modules.set("85e009dee350af7c8594b36740a1100f30104a08ab6b887240ef3113714be29e", _exports);
+_modules.set("308d5786269159f42ac8f645d95770762aea52ac9df2e553cdcff37828664054", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

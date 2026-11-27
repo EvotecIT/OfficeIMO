@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint;
 

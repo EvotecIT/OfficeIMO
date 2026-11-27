@@ -1,12 +1,9 @@
 using System.Globalization;
 using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenXml.Internal;
-using OfficeIMO.Core.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointChart {
@@ -24,8 +21,8 @@ namespace OfficeIMO.PowerPoint {
             OfficeChartType chartKind = MapKind(current.ChartKind);
             OfficeOpenXmlChartWriter.ValidateSharedChartData(data, chartKind);
 
-            ChartPart chartPart = GetChartPart();
-            EmbeddedPackagePart? embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(chartPart);
+            IOfficeChartPart chartPart = SharedChartPart;
+            IOfficeChartEmbeddedPackage? embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(chartPart);
             if (chartKind == OfficeChartType.Bubble && embedded == null) {
                 throw new NotSupportedException(
                     "Bubble chart data cannot be updated without an embedded workbook.");
@@ -33,16 +30,13 @@ namespace OfficeIMO.PowerPoint {
             byte[]? workbookBytes = embedded != null ? OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind) : null;
             Action? preserveBindings = embedded != null ? OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
                 chartPart, data.Series.Select(series => series.Values.Count).ToArray()) : null;
-            PowerPointChartAxisIdGenerator.EnsureSeeded(chartPart.OpenXmlPackage);
+            PowerPointChartAxisIdGenerator.EnsureSeeded(ChartPartRef.Document);
             OfficeOpenXmlChartWriter.UpdateSharedChartData(chartPart, data, chartKind,
                 ColorTheme);
             preserveBindings?.Invoke();
 
-            if (embedded != null) {
-                using var stream = new MemoryStream(workbookBytes!);
-                embedded.FeedData(stream);
-            }
-            Save();
+            embedded?.Replace(workbookBytes!);
+            MarkChartEdited();
             return this;
         }
 
@@ -162,79 +156,48 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private bool HasUnprojectedNativeAxisUnits(OfficeChartLayout layout) {
-            C.ValueAxis? secondaryAxis = OfficeOpenXmlChartSecondaryAxis.Resolve(GetChart().PlotArea);
-            foreach (C.ValueAxis axis in GetChartPart().ChartSpace?.Descendants<C.ValueAxis>() ??
-                Enumerable.Empty<C.ValueAxis>()) {
-                bool secondary = ReferenceEquals(axis, secondaryAxis);
-                C.AxisPositionValues? position = axis.AxisPosition?.Val?.Value;
-                if (position == null && (axis.GetFirstChild<C.MajorUnit>() != null ||
-                    axis.GetFirstChild<C.MinorUnit>() != null)) return true;
-                bool horizontal = position == C.AxisPositionValues.Bottom ||
-                    position == C.AxisPositionValues.Top;
+            OfficeXmlNode secondaryAxis = OfficeOpenXmlChartSecondaryAxis.Resolve(PlotAreaNode);
+            foreach (OfficeXmlNode axis in ChartSpaceNode.ContentDescendants(CNs, "valAx")) {
+                bool secondary = axis == secondaryAxis;
+                string? position = axis.ChildVal(CNs, "axPos");
+                OfficeXmlNode majorUnit = axis.Child(CNs, "majorUnit"), minorUnit = axis.Child(CNs, "minorUnit");
+                if (position == null && (majorUnit.Exists || minorUnit.Exists)) return true;
+                bool horizontal = position is "b" or "t";
                 double? projectedMajor = secondary ? layout.SecondaryValueAxis?.MajorUnit :
                     horizontal ? layout.HorizontalAxisMajorUnit : layout.VerticalAxisMajorUnit;
                 double? projectedMinor = secondary ? layout.SecondaryValueAxis?.MinorUnit :
                     horizontal ? layout.HorizontalAxisMinorUnit : layout.VerticalAxisMinorUnit;
-                if (axis.GetFirstChild<C.MajorUnit>()?.Val?.Value is double major &&
+                if (majorUnit.DoubleVal() is double major &&
                     major != projectedMajor ||
-                    axis.GetFirstChild<C.MinorUnit>()?.Val?.Value is double minor &&
+                    minorUnit.DoubleVal() is double minor &&
                     minor != projectedMinor) return true;
             }
             return false;
         }
 
-        private OfficeChartStyle? ReadSharedTextStyle(C.Chart chart) {
+        private OfficeChartStyle? ReadSharedTextStyle(OfficeXmlNode chart) {
             return TryReadSharedTextStyle(chart,
                 out OfficeChartStyle? style)
                 ? style
                 : null;
         }
 
-        private bool TryReadSharedTextStyle(C.Chart chart, out OfficeChartStyle? style) =>
+        private bool TryReadSharedTextStyle(OfficeXmlNode chart, out OfficeChartStyle? style) =>
             new OfficeOpenXmlChartTextReader(GetChartThemeFontScheme()).TryReadSharedTextStyle(chart, out style);
 
-        private static string? ReadChartDefaultTypeface(C.Chart chart) =>
+        private static string? ReadChartDefaultTypeface(OfficeXmlNode chart) =>
             OfficeOpenXmlChartTextReader.ReadChartDefaultTypeface(chart);
 
-        private bool TryReadAxisTitleTypeface(C.Chart chart, string? chartDefaultTypeface, out string? axisTitleFont) =>
+        private bool TryReadAxisTitleTypeface(OfficeXmlNode chart, string? chartDefaultTypeface, out string? axisTitleFont) =>
             new OfficeOpenXmlChartTextReader(GetChartThemeFontScheme()).TryReadAxisTitleTypeface(chart, chartDefaultTypeface, out axisTitleFont);
-        private A.FontScheme? GetChartThemeFontScheme() {
-            if (_ownerPart is SlidePart slidePart) {
-                return slidePart.ThemeOverridePart?.ThemeOverride?.FontScheme
-                    ?? slidePart.SlideLayoutPart?.ThemeOverridePart?
-                        .ThemeOverride?.FontScheme
-                    ?? slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?
-                        .Theme?.ThemeElements?.FontScheme;
-            }
-            if (_ownerPart is SlideLayoutPart layoutPart) {
-                return layoutPart.ThemeOverridePart?.ThemeOverride?.FontScheme
-                    ?? layoutPart.SlideMasterPart?.ThemePart?.Theme?
-                        .ThemeElements?.FontScheme;
-            }
-            if (_ownerPart is SlideMasterPart masterPart) {
-                return masterPart.ThemePart?.Theme?.ThemeElements?.FontScheme;
-            }
-            if (_ownerPart is NotesSlidePart notesPart) {
-                return notesPart.ThemeOverridePart?.ThemeOverride?.FontScheme
-                    ?? notesPart.NotesMasterPart?.ThemePart?.Theme?
-                        .ThemeElements?.FontScheme;
-            }
-            if (_ownerPart is NotesMasterPart notesMasterPart) {
-                return notesMasterPart.ThemePart?.Theme?.ThemeElements?
-                    .FontScheme;
-            }
-            return (_ownerPart as HandoutMasterPart)?.ThemePart?.Theme?
-                .ThemeElements?.FontScheme;
-        }
 
-        private static HashSet<uint> GetHiddenLegendSeriesIndexes(C.Chart chart) {
+        private OfficeXmlNode GetChartThemeFontScheme() => PowerPointChartPart.HostScheme(OwnerPartRef, "fontScheme");
+
+        private static HashSet<uint> GetHiddenLegendSeriesIndexes(OfficeXmlNode chart) {
             var result = new HashSet<uint>();
-            C.Legend? legend = chart.GetFirstChild<C.Legend>();
-            if (legend == null) return result;
-            foreach (C.LegendEntry entry in legend.Elements<C.LegendEntry>()) {
-                C.Delete? delete = entry.GetFirstChild<C.Delete>();
-                if (delete != null && delete.Val?.Value != false &&
-                    entry.Index?.Val?.Value is uint seriesIndex) {
+            foreach (OfficeXmlNode entry in chart.Child(CNs, "legend").Children(CNs, "legendEntry")) {
+                if (IsOn(entry.Child(CNs, "delete")) &&
+                    entry.Child(CNs, "idx").UIntVal() is uint seriesIndex) {
                     result.Add(seriesIndex);
                 }
             }

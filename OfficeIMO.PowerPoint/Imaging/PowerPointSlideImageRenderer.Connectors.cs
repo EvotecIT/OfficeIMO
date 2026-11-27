@@ -1,9 +1,9 @@
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
-        private static bool TryAddZeroThicknessLine(OfficeDrawing drawing, PowerPointShape shape, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, string? presetName, A.ColorScheme? colorScheme) {
+        private static bool TryAddZeroThicknessLine(OfficeDrawing drawing, PowerPointShape shape, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, string? presetName, OfficeXmlNode colorScheme) {
             if (!shape.TryGetBoundsPoints(out double rawLeft, out double rawTop, out double rawWidth, out double rawHeight)) {
                 AddUnsupportedShapeDiagnostic(diagnostics, shape, "Skipped a PowerPoint shape because its bounds are outside the slide drawing canvas.");
                 return true;
@@ -56,7 +56,7 @@ namespace OfficeIMO.PowerPoint {
             string.Equals(presetName, "curvedConnector4", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(presetName, "curvedConnector5", StringComparison.OrdinalIgnoreCase);
 
-        private static bool TryAddBentConnector(OfficeDrawing drawing, PowerPointShape shape, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
+        private static bool TryAddBentConnector(OfficeDrawing drawing, PowerPointShape shape, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, OfficeXmlNode colorScheme) {
             if (!TryGetBounds(shape, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
                 return true;
             }
@@ -80,7 +80,7 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static bool TryAddCurvedConnector(OfficeDrawing drawing, PowerPointShape shape, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
+        private static bool TryAddCurvedConnector(OfficeDrawing drawing, PowerPointShape shape, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, OfficeXmlNode colorScheme) {
             if (!TryGetBounds(shape, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
                 return true;
             }

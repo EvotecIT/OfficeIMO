@@ -1,33 +1,32 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel.OpenXml;
 using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Excel.Utilities;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
         private OfficeChartStyle? CreateImageExportStyle(int radialPointCount) {
-            C.ChartSpace? chartSpace = GetChartPart().ChartSpace;
-            if (chartSpace == null) {
+            OfficeXmlNode chartSpace = ChartSpaceNode();
+            if (chartSpace.IsNone) {
                 return null;
             }
 
-            C.Chart? chart = chartSpace.GetFirstChild<C.Chart>();
-            C.PlotArea? plotArea = chart?.GetFirstChild<C.PlotArea>();
-            C.ShapeProperties? chartAreaProperties = chartSpace.GetFirstChild<C.ShapeProperties>();
-            OpenXmlCompositeElement? plotAreaProperties = plotArea?.GetFirstChild<C.ShapeProperties>();
-            WorkbookPart workbookPart = _document.WorkbookPartRoot;
+            OfficeXmlNode chart = chartSpace.Child(C, "chart");
+            OfficeXmlNode plotArea = chart.Child(C, "plotArea");
+            OfficeXmlNode chartAreaProperties = chartSpace.Child(C, "spPr");
+            OfficeXmlNode plotAreaProperties = plotArea.Child(C, "spPr");
+            ExcelPartRef workbookPart = ExcelPartRef.Workbook(_document);
 
             OfficeColor? chartFill = TryGetSolidFill(chartAreaProperties, workbookPart, out OfficeColor resolvedChartFill) ? resolvedChartFill : null;
             OfficeColor? chartLine = TryGetSolidLine(chartAreaProperties, workbookPart, out OfficeColor resolvedChartLine) ? resolvedChartLine : null;
             OfficeColor? plotFill = TryGetSolidFill(plotAreaProperties, workbookPart, out OfficeColor resolvedPlotFill) ? resolvedPlotFill : null;
             OfficeColor? plotLine = TryGetSolidLine(plotAreaProperties, workbookPart, out OfficeColor resolvedPlotLine) ? resolvedPlotLine : null;
-            OpenXmlCompositeElement? categoryAxis = plotArea == null ? null : ResolveImageExportCategoryAxis(plotArea);
-            OpenXmlCompositeElement? valueAxis = plotArea == null ? null : ResolveImageExportValueAxis(plotArea);
-            double? chartLineWidth = TryGetLineWidth(chartAreaProperties, out double resolvedChartLineWidth) ? resolvedChartLineWidth : null;
-            double? plotLineWidth = TryGetLineWidth(plotAreaProperties, out double resolvedPlotLineWidth) ? resolvedPlotLineWidth : null;
+            OfficeXmlNode categoryAxis = plotArea.IsNone ? OfficeXmlNode.None : ResolveImageExportCategoryAxis(plotArea);
+            OfficeXmlNode valueAxis = plotArea.IsNone ? OfficeXmlNode.None : ResolveImageExportValueAxis(plotArea);
+            double? chartLineWidth = TryGetImageExportLineWidth(chartAreaProperties, out double resolvedChartLineWidth) ? resolvedChartLineWidth : null;
+            double? plotLineWidth = TryGetImageExportLineWidth(plotAreaProperties, out double resolvedPlotLineWidth) ? resolvedPlotLineWidth : null;
             OfficeStrokeDashStyle? chartLineDashStyle = TryGetLineDashStyle(chartAreaProperties, out OfficeStrokeDashStyle resolvedChartLineDashStyle) ? resolvedChartLineDashStyle : null;
             OfficeStrokeDashStyle? plotLineDashStyle = TryGetLineDashStyle(plotAreaProperties, out OfficeStrokeDashStyle resolvedPlotLineDashStyle) ? resolvedPlotLineDashStyle : null;
             OfficeColor? categoryAxisLine = TryGetImageExportAxisLineColor(categoryAxis, workbookPart, out OfficeColor resolvedCategoryAxisLine) ? resolvedCategoryAxisLine : null;
@@ -62,18 +61,17 @@ namespace OfficeIMO.Excel {
             OfficeColor? axisTitleColor = TryGetImageExportAxisTitleTextColor(plotArea, workbookPart, out OfficeColor resolvedAxisTitleColor) ? resolvedAxisTitleColor : null;
             bool hasNoChartFill = HasNoFill(chartAreaProperties);
             bool hasNoChartLine = HasNoLine(chartAreaProperties);
-            bool hasGridLineVisibility = plotArea != null && HasImageExportCartesianAxis(plotArea);
+            bool hasGridLineVisibility = plotArea.Exists && HasImageExportCartesianAxis(plotArea);
             bool showCategoryGridLines = HasImageExportMajorGridlines(categoryAxis);
             bool showValueGridLines = HasImageExportMajorGridlines(valueAxis);
             bool showCategoryMinorGridLines = HasImageExportMinorGridlines(categoryAxis);
             bool showValueMinorGridLines = HasImageExportMinorGridlines(valueAxis);
-            OpenXmlCompositeElement? radialSeries = ChartType is OfficeChartType.Pie or OfficeChartType.Doughnut
-                ? plotArea?.Descendants<C.PieChartSeries>().FirstOrDefault()
-                : OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.GetPointColoredSeries(plotArea);
-            OfficeColor[]? radialPalette = radialSeries == null ? null :
-                OfficeOpenXmlThemeColorResolver.ReadRadialPalette(GetChartPart(), radialSeries,
-                    radialPointCount, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme,
-                    useSpreadsheetDefaultTheme: true);
+            OfficeXmlNode radialSeries = ChartType is OfficeChartType.Pie or OfficeChartType.Doughnut
+                ? FirstImageExportPieSeries(plotArea)
+                : ImageExportPointColoredSeries(plotArea);
+            OfficeColor[]? radialPalette = radialSeries.IsNone ? null :
+                ImageExportReadRadialPalette(ChartPartRef(), radialSeries,
+                    radialPointCount, ImageExportColorScheme(workbookPart));
             if (radialPalette == null && chartFill == null &&
                 chartLine == null &&
                 plotFill == null &&
@@ -169,42 +167,43 @@ namespace OfficeIMO.Excel {
         }
 
         private OfficeChartLayout? CreateImageExportLayout() {
-            C.Chart? chart = GetChartPart().ChartSpace?.GetFirstChild<C.Chart>();
-            C.PlotArea? plotArea = chart?.GetFirstChild<C.PlotArea>();
-            if (chart == null || plotArea == null) {
+            OfficeXmlNode chart = ChartSpaceNode().Child(C, "chart");
+            OfficeXmlNode plotArea = chart.Child(C, "plotArea");
+            if (chart.IsNone || plotArea.IsNone) {
                 return null;
             }
 
-            C.DataLabels[] visibleLabels = plotArea.Descendants<C.DataLabels>()
-                .Where(HasAnyVisibleDataLabelPart).ToArray();
-            C.DataLabels? dataLabels = visibleLabels.FirstOrDefault();
+            OfficeXmlNode[] visibleLabels = plotArea.Descendants(C, "dLbls")
+                .Where(labels => IsImageExportSchemaPlaced(labels) && HasAnyVisibleDataLabelPart(labels)).ToArray();
+            OfficeXmlNode dataLabels = visibleLabels.FirstOrDefault();
             int[]? radialLabelSeriesIndexes = null;
-            OpenXmlCompositeElement? radialChart = (OpenXmlCompositeElement?)plotArea.GetFirstChild<C.PieChart>() ??
-                plotArea.GetFirstChild<C.DoughnutChart>();
-            C.DataLabels? chartLevelRadialLabels = radialChart?.GetFirstChild<C.DataLabels>();
-            if (radialChart != null &&
-                (chartLevelRadialLabels == null || !HasAnyVisibleDataLabelPart(chartLevelRadialLabels))) {
-                C.PieChartSeries[] nativeSeries = radialChart.Elements<C.PieChartSeries>()
-                    .OrderBy(series => series.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue).ToArray();
+            OfficeXmlNode radialChart = plotArea.Child(C, "pieChart");
+            if (radialChart.IsNone) radialChart = plotArea.Child(C, "doughnutChart");
+            OfficeXmlNode chartLevelRadialLabels = radialChart.Child(C, "dLbls");
+            if (radialChart.Exists &&
+                (chartLevelRadialLabels.IsNone || !HasAnyVisibleDataLabelPart(chartLevelRadialLabels))) {
+                OfficeXmlNode[] nativeSeries = radialChart.Children(C, "ser").ToList()
+                    .OrderBy(series => series.Child(C, "idx").UInt32Val() ?? uint.MaxValue).ToArray();
                 int[] labeled = nativeSeries.Select((series, index) => (series, index))
-                    .Where(item => item.series.GetFirstChild<C.DataLabels>() is C.DataLabels labels &&
+                    .Where(item => item.series.Child(C, "dLbls") is { Exists: true } labels &&
                         HasAnyVisibleDataLabelPart(labels))
                     .Select(item => item.index).ToArray();
                 if (labeled.Length > 0 && labeled.Length < nativeSeries.Length)
                     radialLabelSeriesIndexes = labeled;
             }
-            if (radialChart != null && visibleLabels.Skip(1).Any(labels =>
-                !string.Equals(labels.OuterXml, dataLabels?.OuterXml, StringComparison.Ordinal)))
+            byte[]? firstLabelsXml = radialChart.Exists && visibleLabels.Length > 1 ? dataLabels.OuterXml() : null;
+            if (radialChart.Exists && visibleLabels.Skip(1).Any(labels =>
+                !labels.OuterXml().AsSpan().SequenceEqual(firstLabelsXml)))
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Approximate(
                     "Different radial data-label layouts cannot be projected by one shared layout.",
                     "Radial data labels with different layouts per series are drawn with the first labelled series' layout.");
-            C.Legend? legend = chart.GetFirstChild<C.Legend>();
-            C.Title? title = chart.GetFirstChild<C.Title>();
+            OfficeXmlNode legend = chart.Child(C, "legend");
+            OfficeXmlNode title = chart.Child(C, "title");
             OfficeChartValueAxisLayout? secondaryValueAxis = ReadImageExportSecondaryValueAxis(plotArea);
-            OpenXmlCompositeElement? categoryAxis = ResolveImageExportCategoryAxis(plotArea);
-            OpenXmlCompositeElement? valueAxis = ResolveImageExportValueAxis(plotArea);
-            string? categoryAxisTitle = GetAxisTitleText(categoryAxis?.GetFirstChild<C.Title>());
-            string? valueAxisTitle = GetAxisTitleText(valueAxis?.GetFirstChild<C.Title>());
+            OfficeXmlNode categoryAxis = ResolveImageExportCategoryAxis(plotArea);
+            OfficeXmlNode valueAxis = ResolveImageExportValueAxis(plotArea);
+            string? categoryAxisTitle = GetAxisTitleText(categoryAxis.Child(C, "title"));
+            string? valueAxisTitle = GetAxisTitleText(valueAxis.Child(C, "title"));
             string? horizontalAxisNumberFormat = GetImageExportHorizontalAxisNumberFormat(plotArea, categoryAxis, valueAxis);
             string? verticalAxisNumberFormat = GetImageExportVerticalAxisNumberFormat(plotArea, categoryAxis, valueAxis);
             string? categoryAxisNumberFormat = GetImageExportCategoryAxisNumberFormat(categoryAxis);
@@ -238,7 +237,7 @@ namespace OfficeIMO.Excel {
             bool showValueAxisLine = IsImageExportAxisLineVisible(valueAxis);
             bool showCategoryAxisLabels = IsImageExportAxisLabelsVisible(categoryAxis);
             bool showValueAxisLabels = IsImageExportAxisLabelsVisible(valueAxis);
-            C.ScatterStyleValues? scatterStyle = GetImageExportScatterStyle(plotArea);
+            string? scatterStyle = GetImageExportScatterStyle(plotArea);
             bool connectScatterPoints = GetImageExportConnectScatterPoints(scatterStyle);
             bool hasAxisVisibility = !showCategoryAxis || !showValueAxis;
             bool hasAxisLineVisibility = !showCategoryAxisLine || !showValueAxisLine;
@@ -260,9 +259,9 @@ namespace OfficeIMO.Excel {
             bool fillRadarSeries = GetImageExportFillRadarSeries(plotArea);
             bool hasRadarFillLayout = !fillRadarSeries;
             bool hasScatterStyleLayout = !connectScatterPoints;
-            bool hasLegendLayout = legend == null ||
-                legend.GetFirstChild<C.LegendPosition>() != null ||
-                legend.GetFirstChild<C.Overlay>() != null;
+            bool hasLegendLayout = legend.IsNone ||
+                legend.Child(C, "legendPos").Exists ||
+                legend.Child(C, "overlay").Exists;
             bool hasTextFont = legendFontSize != null ||
                 legendFontFamily != null ||
                 legendFontStyle != null ||
@@ -277,9 +276,9 @@ namespace OfficeIMO.Excel {
                 axisTitleFontStyle != null;
             bool hasLayout =
                 secondaryValueAxis != null ||
-                dataLabels != null ||
+                dataLabels.Exists ||
                 hasLegendLayout ||
-                title?.GetFirstChild<C.Overlay>() != null ||
+                title.Child(C, "overlay").Exists ||
                 categoryAxisTitle != null ||
                 valueAxisTitle != null ||
                 hasAxisVisibility ||
@@ -297,25 +296,25 @@ namespace OfficeIMO.Excel {
                 hasTextFont;
             if (!hasLayout) {
                 // Blank cells and axis crossings still apply to an otherwise default layout.
-                OfficeChartLayout semantics = OfficeChartLayout.Default.WithPlotSemantics(chart, includeDisplayUnits: false);
+                OfficeChartLayout semantics = ImageExportWithPlotSemantics(OfficeChartLayout.Default, chart);
                 return HasDefaultPlotSemantics(semantics) ? null : semantics;
             }
 
-            bool showLegend = legend != null;
-            OfficeChartLegendPosition legendPosition = MapLegendPosition(legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value);
-            bool overlayLegend = IsEnabled(legend?.GetFirstChild<C.Overlay>());
-            bool showDataLabels = dataLabels != null;
-            return new OfficeChartLayout(
+            bool showLegend = legend.Exists;
+            OfficeChartLegendPosition legendPosition = MapLegendPosition(legend.Child(C, "legendPos").Val());
+            bool overlayLegend = IsEnabled(legend.Child(C, "overlay"));
+            bool showDataLabels = dataLabels.Exists;
+            OfficeChartLayout layout = new OfficeChartLayout(
                 overlayLegend: overlayLegend,
                 showLegend: showLegend,
                 legendPosition: legendPosition,
                 showDataLabels: showDataLabels,
-                showDataLabelValues: IsEnabled(dataLabels?.GetFirstChild<C.ShowValue>()),
-                showDataLabelPercentages: IsEnabled(dataLabels?.GetFirstChild<C.ShowPercent>()),
-                showDataLabelCategoryNames: IsEnabled(dataLabels?.GetFirstChild<C.ShowCategoryName>()),
-                showDataLabelSeriesNames: IsEnabled(dataLabels?.GetFirstChild<C.ShowSeriesName>()),
+                showDataLabelValues: IsEnabled(dataLabels.Child(C, "showVal")),
+                showDataLabelPercentages: IsEnabled(dataLabels.Child(C, "showPercent")),
+                showDataLabelCategoryNames: IsEnabled(dataLabels.Child(C, "showCatName")),
+                showDataLabelSeriesNames: IsEnabled(dataLabels.Child(C, "showSerName")),
                 dataLabelSeriesIndexes: radialLabelSeriesIndexes,
-                dataLabelSeparator: dataLabels?.GetFirstChild<C.Separator>()?.Text,
+                dataLabelSeparator: dataLabels.ChildText(C, "separator"),
                 legendFontSize: legendFontSize,
                 legendFontFamily: legendFontFamily,
                 axisLabelFontSize: axisLabelFontSize,
@@ -328,8 +327,8 @@ namespace OfficeIMO.Excel {
                 axisTitleFontSize: axisTitleFontSize,
                 axisTitleFontFamily: axisTitleFontFamily,
                 axisTitleFontStyle: axisTitleFontStyle,
-                dataLabelPosition: MapDataLabelPosition(dataLabels?.GetFirstChild<C.DataLabelPosition>()?.Val?.Value),
-                dataLabelNumberFormat: dataLabels?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
+                dataLabelPosition: MapDataLabelPosition(dataLabels.Child(C, "dLblPos").Val()),
+                dataLabelNumberFormat: dataLabels.Child(C, "numFmt").Attribute("formatCode"),
                 categoryAxisTitle: categoryAxisTitle,
                 valueAxisTitle: valueAxisTitle,
                 horizontalAxisNumberFormat: horizontalAxisNumberFormat,
@@ -363,11 +362,11 @@ namespace OfficeIMO.Excel {
                 showCategoryAxisLabels: showCategoryAxisLabels,
                 showValueAxisLabels: showValueAxisLabels,
                 connectScatterPoints: connectScatterPoints,
-                overlayTitle: IsEnabled(title?.GetFirstChild<C.Overlay>()))
-                .WithSecondaryValueAxis(secondaryValueAxis)
-                .WithDataLabelLeaderLines(IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>()))
-                .WithCategoryGeometry(plotArea, _document.WorkbookPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme)
-                .WithPlotSemantics(chart, includeDisplayUnits: false);
+                overlayTitle: IsEnabled(title.Child(C, "overlay")))
+                .WithSecondaryValueAxis(secondaryValueAxis);
+            layout = ImageExportWithCategoryGeometry(layout.WithDataLabelLeaderLines(IsEnabled(dataLabels.Child(C, "showLeaderLines"))),
+                plotArea, ImageExportColorScheme(ExcelPartRef.Workbook(_document)));
+            return ImageExportWithPlotSemantics(layout, chart);
         }
 
         private static bool HasDefaultPlotSemantics(OfficeChartLayout layout) =>
@@ -378,9 +377,9 @@ namespace OfficeIMO.Excel {
             !layout.ReverseHorizontalValueAxis && !layout.ReverseVerticalValueAxis && !layout.VaryColorsByPoint &&
             layout.PlotAreaLayout == null && layout.TitleLayout == null && layout.LegendLayout == null;
 
-        private OfficeChartValueAxisLayout? ReadImageExportSecondaryValueAxis(C.PlotArea plotArea) {
-            var axis = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Resolve(plotArea);
-            if (axis == null) return null;
+        private OfficeChartValueAxisLayout? ReadImageExportSecondaryValueAxis(OfficeXmlNode plotArea) {
+            OfficeXmlNode axis = ImageExportResolveSecondaryAxis(plotArea);
+            if (axis.IsNone) return null;
             string? numberFormat = GetImageExportAxisNumberFormat(axis);
             // Qualify the format before the axis layout is built: an axis format the renderer cannot reproduce falls
             // back to General instead of dropping the chart.
@@ -389,7 +388,7 @@ namespace OfficeIMO.Excel {
                     "The secondary axis number format '" + numberFormat + "' is drawn as General.");
                 numberFormat = null;
             }
-            OfficeChartValueAxisLayout? native = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(
+            OfficeChartValueAxisLayout? native = ImageExportReadSecondaryAxis(
                 plotArea, () => numberFormat ?? "General");
             if (native == null) return null;
             var resolved = new OfficeChartValueAxisLayout(native.Minimum, native.Maximum, native.MajorUnit,
@@ -398,12 +397,12 @@ namespace OfficeIMO.Excel {
             return native.Title == null ? resolved : resolved.WithTitle(native.Title);
         }
 
-        private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data, WorkbookPart workbookPart,
-            Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts = null) {
-            C.PlotArea? plotArea = chartPart.ChartSpace?
-                .GetFirstChild<C.Chart>()?
-                .GetFirstChild<C.PlotArea>();
-            if (plotArea == null || data.Series.Count == 0) {
+        private static ExcelChartData ApplyImageExportSeriesStyles(ExcelPartRef chartPart, ExcelChartData data, ExcelPartRef workbookPart,
+            Func<OfficeXmlNode, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts = null) {
+            OfficeXmlNode plotArea = chartPart.Root
+                .Child(C, "chart")
+                .Child(C, "plotArea");
+            if (plotArea.IsNone || data.Series.Count == 0) {
                 return data;
             }
 
@@ -429,16 +428,19 @@ namespace OfficeIMO.Excel {
             return changed ? new ExcelChartData(data.Categories, series) : data;
         }
 
-        private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data, WorkbookPart workbookPart,
-            Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts) {
+        private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(OfficeXmlNode plotArea, ExcelChartData data, ExcelPartRef workbookPart,
+            Func<OfficeXmlNode, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts) {
             var styles = new Dictionary<int, ImageExportSeriesStyle>();
             var automaticColors = new OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext();
+            OfficeXmlNode scheme = ImageExportColorScheme(workbookPart);
             int seriesOrder = 0;
-            foreach (OpenXmlCompositeElement series in plotArea.Descendants<OpenXmlCompositeElement>()
-                         .Where(IsSeriesElement)
-                         .OrderBy(item => item is C.BubbleChartSeries
-                             ? item.GetFirstChild<C.Order>()?.Val?.Value ?? uint.MaxValue
-                             : item.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue)) {
+            // Series of the chart groups under the plot area, the ones the chart data reader returns; a c:ser inside
+            // extension content was an unknown element to the SDK and never matched.
+            foreach (OfficeXmlNode series in plotArea.Descendants(C, "ser")
+                         .Where(item => item.Parent.Parent == plotArea && IsImageExportSeriesElement(item))
+                         .OrderBy(item => item.Parent.Is(C, "bubbleChart")
+                             ? item.Child(C, "order").UInt32Val() ?? uint.MaxValue
+                             : item.Child(C, "idx").UInt32Val() ?? uint.MaxValue)) {
                 int index = seriesOrder++;
                 if (index < 0 || index >= data.Series.Count) {
                     continue;
@@ -446,9 +448,9 @@ namespace OfficeIMO.Excel {
 
                 ImageExportSeriesStyle style = new ImageExportSeriesStyle();
 
-                C.ChartShapeProperties? properties = series.GetFirstChild<C.ChartShapeProperties>();
-                if (properties != null) {
-                    style.SeriesStyle = OfficeOpenXmlChartPointStyles.ReadSeriesStyle(series, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
+                OfficeXmlNode properties = series.Child(C, "spPr");
+                if (properties.Exists) {
+                    style.SeriesStyle = ImageExportReadSeriesStyle(series, scheme);
                     style.SeriesColorArgb = GetImageExportSeriesColor(properties, workbookPart);
                     style.SeriesLineWidth = GetImageExportSeriesLineWidth(properties);
                     style.SeriesLineDashStyle = GetImageExportSeriesLineDashStyle(properties);
@@ -458,25 +460,25 @@ namespace OfficeIMO.Excel {
                 }
 
                 style.Trendline = ReadImageExportTrendline(series, workbookPart, data.Series[index].Name);
-                style.ErrorBars = OfficeOpenXmlChartErrorBars.Read(series, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, 100000,
+                style.ErrorBars = ImageExportReadErrorBars(series, scheme, 100000,
                     selectVisibleAmounts);
                 int valueCount = data.Series[index].Values.Count;
-                C.Marker? marker = series.GetFirstChild<C.Marker>();
-                C.ScatterStyleValues? scatterStyle = (series.Parent as C.ScatterChart)?.GetFirstChild<C.ScatterStyle>()?.Val?.Value;
-                style.ShowMarkers = series is C.BubbleChartSeries || GetImageExportShowMarkers(marker, scatterStyle);
+                OfficeXmlNode marker = ImageExportSeriesChild(series, "marker");
+                OfficeXmlNode seriesParent = series.Parent;
+                string? scatterStyle = seriesParent.Is(C, "scatterChart") ? seriesParent.Child(C, "scatterStyle").Val() : null;
+                style.ShowMarkers = seriesParent.Is(C, "bubbleChart") || GetImageExportShowMarkers(marker, scatterStyle);
                 style.MarkerSize = GetImageExportMarkerSize(marker);
                 style.MarkerShape = GetImageExportMarkerShape(marker);
                 style.MarkerOutlineColorArgb = GetImageExportMarkerOutlineColor(marker, workbookPart);
-                style.MarkerOutlineWidth = GetImageExportMarkerOutlineWidth(marker);
+                style.MarkerOutlineWidth = ReadImageExportMarkerOutlineWidth(marker);
                 ApplyImageExportAutomaticAppearance(series, marker, scatterStyle, style,
-                    workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, automaticColors);
+                    scheme, automaticColors);
                 string? markerFill = GetImageExportMarkerFillColor(marker, workbookPart);
                 style.PointColorArgb = GetImageExportPointColors(series, valueCount, markerFill, workbookPart);
-                var pointOverrides = OfficeOpenXmlChartPointStyles.GetBoundedPoints(series);
-                style.PointStyles = OfficeOpenXmlChartPointStyles.Read(pointOverrides, valueCount,
-                    workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
-                if (series is C.PieChartSeries) {
-                    if (!OfficeOpenXmlChartExplosions.TryRead(series, pointOverrides, valueCount,
+                IReadOnlyList<OfficeXmlNode> pointOverrides = ImageExportBoundedPoints(series);
+                style.PointStyles = ImageExportReadPointStyles(pointOverrides, valueCount, scheme);
+                if (IsImageExportPieSeries(series)) {
+                    if (!ImageExportTryReadExplosions(series, pointOverrides, valueCount,
                         out int[]? explosions)) {
                         OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Approximate(
                             "The native pie or doughnut point explosion cannot be rendered.",
@@ -485,10 +487,8 @@ namespace OfficeIMO.Excel {
                     }
                     style.PointExplosions = explosions;
                 }
-                if (series.Parent is C.Line3DChart) {
-                    var ribbon = OfficeOpenXmlChartPointStyles.ReadRibbonPaint(series,
-                        workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, automaticColors,
-                        useSpreadsheetDefaultTheme: true);
+                if (seriesParent.Is(C, "line3DChart")) {
+                    var ribbon = ImageExportReadRibbonPaint(series, scheme, automaticColors);
                     style.SeriesStyle = ribbon.Paint;
                     style.SeriesColorArgb = ribbon.Color?.ToRgbHex();
                     style.AutomaticColor = ribbon.Automatic;
@@ -506,48 +506,44 @@ namespace OfficeIMO.Excel {
 
         // Excel colours series without a stored colour from the chart style and theme, and gives
         // line, scatter and marked radar series without a stored symbol its automatic markers.
-        private static void ApplyImageExportAutomaticAppearance(OpenXmlCompositeElement series, C.Marker? marker,
-            C.ScatterStyleValues? scatterStyle, ImageExportSeriesStyle style, A.ColorScheme? scheme,
+        private static void ApplyImageExportAutomaticAppearance(OfficeXmlNode series, OfficeXmlNode marker,
+            string? scatterStyle, ImageExportSeriesStyle style, OfficeXmlNode scheme,
             OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext automaticColors) {
-            if (style.SeriesColorArgb == null && series is not C.PieChartSeries &&
-                OfficeOpenXmlChartAutomaticColors.ResolveSeries(series, scheme, automaticColors,
-                    useSpreadsheetDefaultTheme: true) is OfficeColor automatic) {
+            if (style.SeriesColorArgb == null && !IsImageExportPieSeries(series) &&
+                ImageExportResolveAutomaticSeriesColor(series, scheme, automaticColors) is OfficeColor automatic) {
                 style.SeriesColorArgb = automatic.ToRgbHex();
                 style.AutomaticColor = true;
             }
             // Office draws automatic markers on line series without a stored marker even when the
             // group's c:marker is 0.
-            bool groupMarkers = series.Parent switch {
-                C.LineChart => true,
-                C.ScatterChart => GetImageExportScatterStyleShowMarkers(scatterStyle),
-                C.RadarChart radar => radar.RadarStyle?.Val?.Value == C.RadarStyleValues.Marker,
-                _ => false
-            };
-            C.MarkerStyleValues? symbol = marker?.Symbol?.Val?.Value;
-            if (groupMarkers && (symbol == null || symbol.Value == C.MarkerStyleValues.Auto)) {
+            OfficeXmlNode group = series.Parent;
+            bool groupMarkers = group.Is(C, "lineChart") ? true
+                : group.Is(C, "scatterChart") ? GetImageExportScatterStyleShowMarkers(scatterStyle)
+                : group.Is(C, "radarChart") && group.Child(C, "radarStyle").Val() == "marker";
+            string? symbol = marker.Child(C, "symbol").Val();
+            if (groupMarkers && (symbol == null || symbol == "auto")) {
                 style.ShowMarkers = true;
-                style.MarkerShape = OfficeOpenXmlChartAutomaticColors.ResolveMarker(series.GetFirstChild<C.Index>()?.Val?.Value ?? 0U);
+                style.MarkerShape = OfficeOpenXmlChartAutomaticColors.ResolveMarker(series.Child(C, "idx").UInt32Val() ?? 0U);
                 style.MarkerSize ??= OfficeOpenXmlChartAutomaticColors.AutomaticMarkerSize;
             }
         }
 
-        private static bool GetImageExportFillRadarSeries(C.PlotArea plotArea) {
-            C.RadarChart? radarChart = plotArea.GetFirstChild<C.RadarChart>();
-            C.RadarStyleValues? radarStyle = radarChart?.GetFirstChild<C.RadarStyle>()?.Val?.Value;
-            return radarStyle == null || radarStyle.Value != C.RadarStyleValues.Standard;
+        private static bool GetImageExportFillRadarSeries(OfficeXmlNode plotArea) {
+            string? radarStyle = plotArea.Child(C, "radarChart").Child(C, "radarStyle").Val();
+            return radarStyle == null || radarStyle != "standard";
         }
 
-        private static C.ScatterStyleValues? GetImageExportScatterStyle(C.PlotArea plotArea) =>
-            plotArea.GetFirstChild<C.ScatterChart>()?.GetFirstChild<C.ScatterStyle>()?.Val?.Value;
+        private static string? GetImageExportScatterStyle(OfficeXmlNode plotArea) =>
+            plotArea.Child(C, "scatterChart").Child(C, "scatterStyle").Val();
 
-        private static bool GetImageExportConnectScatterPoints(C.ScatterStyleValues? style) =>
-            style == null || style.Value != C.ScatterStyleValues.Marker;
+        private static bool GetImageExportConnectScatterPoints(string? style) =>
+            style == null || style != "marker";
 
         // The first trendline of a series; the renderer draws one fitted line per series.
-        private static OfficeChartTrendline? ReadImageExportTrendline(OpenXmlCompositeElement series, WorkbookPart workbookPart, string seriesName) {
-            C.Trendline? trendline = series.GetFirstChild<C.Trendline>();
-            if (trendline == null) return null;
-            OfficeChartTrendlineType? type = trendline.GetFirstChild<C.TrendlineType>()?.Val?.InnerText switch {
+        private static OfficeChartTrendline? ReadImageExportTrendline(OfficeXmlNode series, ExcelPartRef workbookPart, string seriesName) {
+            OfficeXmlNode trendline = ImageExportSeriesChild(series, "trendline");
+            if (trendline.IsNone) return null;
+            OfficeChartTrendlineType? type = trendline.Child(C, "trendlineType").Val() switch {
                 "exp" => OfficeChartTrendlineType.Exponential,
                 "linear" => OfficeChartTrendlineType.Linear,
                 "log" => OfficeChartTrendlineType.Logarithmic,
@@ -557,8 +553,8 @@ namespace OfficeIMO.Excel {
                 _ => null
             };
             if (type == null) return null;
-            int? order = trendline.GetFirstChild<C.PolynomialOrder>()?.Val?.Value is byte polynomialOrder ? polynomialOrder : null;
-            int? period = trendline.GetFirstChild<C.Period>()?.Val?.Value is uint averagePeriod && averagePeriod <= int.MaxValue ? (int)averagePeriod : null;
+            int? order = ReadImageExportByteVal(trendline.Child(C, "order"));
+            int? period = trendline.Child(C, "period").UInt32Val() is uint averagePeriod && averagePeriod <= int.MaxValue ? (int)averagePeriod : null;
             if (type == OfficeChartTrendlineType.Polynomial && order is null or < 2 or > 6) return null;
             if (type == OfficeChartTrendlineType.MovingAverage && period is null or < 2) return null;
             // Rendering limits are checked only while the chart is projected for export; reading chart data alone
@@ -570,25 +566,24 @@ namespace OfficeIMO.Excel {
                         "A trendline the renderer cannot fit is left out.");
                 return null;
             }
-            C.ChartShapeProperties? properties = trendline.GetFirstChild<C.ChartShapeProperties>();
-            A.Outline? outline = properties?.GetFirstChild<A.Outline>();
+            OfficeXmlNode properties = trendline.Child(C, "spPr");
+            OfficeXmlNode outline = properties.Child(A, "ln");
             OfficeColor? color = TryGetSolidLine(properties, workbookPart, out OfficeColor line) ? line : null;
-            double? width = TryGetLineWidth(properties, out double lineWidth) && lineWidth > 0D ? lineWidth : null;
-            double? intercept = trendline.GetFirstChild<C.Intercept>()?.Val?.Value is double fixedIntercept && !double.IsNaN(fixedIntercept) && !double.IsInfinity(fixedIntercept)
+            double? width = TryGetImageExportLineWidth(properties, out double lineWidth) && lineWidth > 0D ? lineWidth : null;
+            double? intercept = trendline.Child(C, "intercept").DoubleVal() is double fixedIntercept && !double.IsNaN(fixedIntercept) && !double.IsInfinity(fixedIntercept)
                 ? fixedIntercept : null;
             var result = new OfficeChartTrendline(type.Value, order, period,
-                displayEquation: trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value == true,
-                displayRSquared: trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value == true,
+                displayEquation: trendline.Child(C, "dispEq").BoolVal() == true,
+                displayRSquared: trendline.Child(C, "dispRSqr").BoolVal() == true,
                 color: color, width: width.HasValue ? OfficeLength.Points(width.Value) : null, intercept: intercept)
-                .WithNativeDetails(trendline.GetFirstChild<C.Forward>()?.Val?.Value ?? 0D, trendline.GetFirstChild<C.Backward>()?.Val?.Value ?? 0D,
-                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadLegendName(series, trendline, type.Value, order, period, seriesName));
-            if (OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.HidesLine(outline)) return result.WithHiddenLine();
-            return result.WithDashStyle(projecting
-                ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadDashOrApproximate(outline)
-                : OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadDash(outline));
+                .WithNativeDetails(trendline.Child(C, "forward").DoubleVal() ?? 0D, trendline.Child(C, "backward").DoubleVal() ?? 0D,
+                    ImageExportReadTrendlineLegendName(series, trendline, type.Value, order, period, seriesName));
+            // Same test as OfficeOpenXmlChartTrendlines.HidesLine.
+            if (outline.Child(A, "noFill").Exists) return result.WithHiddenLine();
+            return result.WithDashStyle(ImageExportReadTrendlineDash(outline, projecting));
         }
 
-        private static string? GetImageExportSeriesColor(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
+        private static string? GetImageExportSeriesColor(OfficeXmlNode properties, ExcelPartRef workbookPart) {
             if (TryGetSolidFill(properties, workbookPart, out OfficeColor fill)) {
                 return fill.ToRgbHex();
             }
@@ -600,128 +595,128 @@ namespace OfficeIMO.Excel {
             return null;
         }
 
-        private static double? GetImageExportSeriesLineWidth(C.ChartShapeProperties properties) =>
-            TryGetLineWidth(properties, out double width) ? width : null;
+        private static double? GetImageExportSeriesLineWidth(OfficeXmlNode properties) =>
+            TryGetImageExportLineWidth(properties, out double width) ? width : null;
 
-        private static OfficeStrokeDashStyle? GetImageExportSeriesLineDashStyle(C.ChartShapeProperties properties) =>
+        private static OfficeStrokeDashStyle? GetImageExportSeriesLineDashStyle(OfficeXmlNode properties) =>
             TryGetLineDashStyle(properties, out OfficeStrokeDashStyle dashStyle) ? dashStyle : null;
 
-        private static bool TryGetImageExportAxisLineColor(OpenXmlCompositeElement? axis, WorkbookPart workbookPart, out OfficeColor color) {
+        private static bool TryGetImageExportAxisLineColor(OfficeXmlNode axis, ExcelPartRef workbookPart, out OfficeColor color) {
             color = default;
-            if (axis == null) {
+            if (axis.IsNone) {
                 return false;
             }
 
-            C.ShapeProperties? properties = axis.GetFirstChild<C.ShapeProperties>();
+            OfficeXmlNode properties = ImageExportAxisShapeProperties(axis);
             return TryGetSolidLine(properties, workbookPart, out color);
         }
 
-        private static bool TryGetImageExportAxisLineWidth(OpenXmlCompositeElement? axis, out double width) {
+        private static bool TryGetImageExportAxisLineWidth(OfficeXmlNode axis, out double width) {
             width = default;
-            if (axis == null) {
+            if (axis.IsNone) {
                 return false;
             }
 
-            C.ShapeProperties? properties = axis.GetFirstChild<C.ShapeProperties>();
-            return TryGetLineWidth(properties, out width);
+            OfficeXmlNode properties = ImageExportAxisShapeProperties(axis);
+            return TryGetImageExportLineWidth(properties, out width);
         }
 
-        private static bool TryGetImageExportAxisLineDashStyle(OpenXmlCompositeElement? axis, out OfficeStrokeDashStyle dashStyle) {
+        private static bool TryGetImageExportAxisLineDashStyle(OfficeXmlNode axis, out OfficeStrokeDashStyle dashStyle) {
             dashStyle = default;
-            if (axis == null) {
+            if (axis.IsNone) {
                 return false;
             }
 
-            C.ShapeProperties? properties = axis.GetFirstChild<C.ShapeProperties>();
+            OfficeXmlNode properties = ImageExportAxisShapeProperties(axis);
             return TryGetLineDashStyle(properties, out dashStyle);
         }
 
-        private static bool TryGetImageExportGridLineColor(OpenXmlCompositeElement? axis, WorkbookPart workbookPart, out OfficeColor color) {
+        private static bool TryGetImageExportGridLineColor(OfficeXmlNode axis, ExcelPartRef workbookPart, out OfficeColor color) {
             color = default;
-            return TryGetImageExportGridLineColorCore(axis?.GetFirstChild<C.MajorGridlines>(), workbookPart, out color);
+            return TryGetImageExportGridLineColorCore(axis.Child(C, "majorGridlines"), workbookPart, out color);
         }
 
-        private static bool TryGetImageExportMinorGridLineColor(OpenXmlCompositeElement? axis, WorkbookPart workbookPart, out OfficeColor color) {
+        private static bool TryGetImageExportMinorGridLineColor(OfficeXmlNode axis, ExcelPartRef workbookPart, out OfficeColor color) {
             color = default;
-            return TryGetImageExportGridLineColorCore(axis?.GetFirstChild<C.MinorGridlines>(), workbookPart, out color);
+            return TryGetImageExportGridLineColorCore(axis.Child(C, "minorGridlines"), workbookPart, out color);
         }
 
-        private static bool TryGetImageExportGridLineColorCore(OpenXmlCompositeElement? gridlines, WorkbookPart workbookPart, out OfficeColor color) {
+        private static bool TryGetImageExportGridLineColorCore(OfficeXmlNode gridlines, ExcelPartRef workbookPart, out OfficeColor color) {
             color = default;
-            C.ChartShapeProperties? properties = gridlines?.GetFirstChild<C.ChartShapeProperties>();
+            OfficeXmlNode properties = gridlines.Child(C, "spPr");
             return TryGetSolidLine(properties, workbookPart, out color);
         }
 
-        private static bool TryGetImageExportGridLineWidth(OpenXmlCompositeElement? axis, out double width) {
+        private static bool TryGetImageExportGridLineWidth(OfficeXmlNode axis, out double width) {
             width = default;
-            return TryGetImageExportGridLineWidthCore(axis?.GetFirstChild<C.MajorGridlines>(), out width);
+            return TryGetImageExportGridLineWidthCore(axis.Child(C, "majorGridlines"), out width);
         }
 
-        private static bool TryGetImageExportMinorGridLineWidth(OpenXmlCompositeElement? axis, out double width) {
+        private static bool TryGetImageExportMinorGridLineWidth(OfficeXmlNode axis, out double width) {
             width = default;
-            return TryGetImageExportGridLineWidthCore(axis?.GetFirstChild<C.MinorGridlines>(), out width);
+            return TryGetImageExportGridLineWidthCore(axis.Child(C, "minorGridlines"), out width);
         }
 
-        private static bool TryGetImageExportGridLineWidthCore(OpenXmlCompositeElement? gridlines, out double width) {
+        private static bool TryGetImageExportGridLineWidthCore(OfficeXmlNode gridlines, out double width) {
             width = default;
-            C.ChartShapeProperties? properties = gridlines?.GetFirstChild<C.ChartShapeProperties>();
-            return TryGetLineWidth(properties, out width);
+            OfficeXmlNode properties = gridlines.Child(C, "spPr");
+            return TryGetImageExportLineWidth(properties, out width);
         }
 
-        private static bool TryGetImageExportGridLineDashStyle(OpenXmlCompositeElement? axis, out OfficeStrokeDashStyle dashStyle) {
+        private static bool TryGetImageExportGridLineDashStyle(OfficeXmlNode axis, out OfficeStrokeDashStyle dashStyle) {
             dashStyle = default;
-            return TryGetImageExportGridLineDashStyleCore(axis?.GetFirstChild<C.MajorGridlines>(), out dashStyle);
+            return TryGetImageExportGridLineDashStyleCore(axis.Child(C, "majorGridlines"), out dashStyle);
         }
 
-        private static bool TryGetImageExportMinorGridLineDashStyle(OpenXmlCompositeElement? axis, out OfficeStrokeDashStyle dashStyle) {
+        private static bool TryGetImageExportMinorGridLineDashStyle(OfficeXmlNode axis, out OfficeStrokeDashStyle dashStyle) {
             dashStyle = default;
-            return TryGetImageExportGridLineDashStyleCore(axis?.GetFirstChild<C.MinorGridlines>(), out dashStyle);
+            return TryGetImageExportGridLineDashStyleCore(axis.Child(C, "minorGridlines"), out dashStyle);
         }
 
-        private static bool TryGetImageExportGridLineDashStyleCore(OpenXmlCompositeElement? gridlines, out OfficeStrokeDashStyle dashStyle) {
+        private static bool TryGetImageExportGridLineDashStyleCore(OfficeXmlNode gridlines, out OfficeStrokeDashStyle dashStyle) {
             dashStyle = default;
-            C.ChartShapeProperties? properties = gridlines?.GetFirstChild<C.ChartShapeProperties>();
+            OfficeXmlNode properties = gridlines.Child(C, "spPr");
             return TryGetLineDashStyle(properties, out dashStyle);
         }
 
-        private static bool HasImageExportCartesianAxis(C.PlotArea plotArea) =>
-            GetImageExportAxes(plotArea).Any();
+        private static bool HasImageExportCartesianAxis(OfficeXmlNode plotArea) =>
+            GetImageExportAxes(plotArea).Count > 0;
 
-        private static bool HasImageExportMajorGridlines(C.PlotArea plotArea) =>
-            GetImageExportMajorGridlines(plotArea).Any();
+        private static bool HasImageExportMajorGridlines(OfficeXmlNode axis) =>
+            axis.Child(C, "majorGridlines").Exists;
 
-        private static bool HasImageExportMajorGridlines(OpenXmlCompositeElement? axis) =>
-            axis?.GetFirstChild<C.MajorGridlines>() != null;
+        private static bool HasImageExportMinorGridlines(OfficeXmlNode axis) =>
+            axis.Child(C, "minorGridlines").Exists;
 
-        private static bool HasImageExportMinorGridlines(OpenXmlCompositeElement? axis) =>
-            axis?.GetFirstChild<C.MinorGridlines>() != null;
+        // The category, value and date axes, in that order.
+        private static List<OfficeXmlNode> GetImageExportAxes(OfficeXmlNode plotArea) {
+            var axes = new List<OfficeXmlNode>();
+            foreach (OfficeXmlNode axis in plotArea.Children(C, "catAx")) axes.Add(axis);
+            foreach (OfficeXmlNode axis in plotArea.Children(C, "valAx")) axes.Add(axis);
+            foreach (OfficeXmlNode axis in plotArea.Children(C, "dateAx")) axes.Add(axis);
+            return axes;
+        }
 
-        private static IEnumerable<OpenXmlCompositeElement> GetImageExportAxes(C.PlotArea plotArea) =>
-            plotArea.Elements<C.CategoryAxis>().Cast<OpenXmlCompositeElement>()
-                .Concat(plotArea.Elements<C.ValueAxis>())
-                .Concat(plotArea.Elements<C.DateAxis>());
+        private static OfficeXmlNode ResolveImageExportCategoryAxis(OfficeXmlNode plotArea) {
+            OfficeXmlNode axis = ResolveCategoryAxis(plotArea, OfficeChartAxisGroup.Primary);
+            return axis.Exists ? axis : ResolveScatterXAxis(plotArea);
+        }
 
-        private static IEnumerable<C.MajorGridlines> GetImageExportMajorGridlines(C.PlotArea plotArea) =>
-            GetImageExportAxes(plotArea)
-                .Select(axis => axis.GetFirstChild<C.MajorGridlines>())
-                .OfType<C.MajorGridlines>();
+        private static OfficeXmlNode ResolveImageExportValueAxis(OfficeXmlNode plotArea) {
+            OfficeXmlNode axis = ResolveValueAxis(plotArea, OfficeChartAxisGroup.Primary);
+            return axis.Exists ? axis : ResolveScatterYAxis(plotArea);
+        }
 
-        private static OpenXmlCompositeElement? ResolveImageExportCategoryAxis(C.PlotArea plotArea) =>
-            (OpenXmlCompositeElement?)ResolveCategoryAxis(plotArea, OfficeChartAxisGroup.Primary) ?? ResolveScatterXAxis(plotArea);
+        private static bool IsImageExportAxisVisible(OfficeXmlNode axis) =>
+            axis.IsNone || !IsEnabled(axis.Child(C, "delete"));
 
-        private static OpenXmlCompositeElement? ResolveImageExportValueAxis(C.PlotArea plotArea) =>
-            (OpenXmlCompositeElement?)ResolveValueAxis(plotArea, OfficeChartAxisGroup.Primary) ?? ResolveScatterYAxis(plotArea);
+        private static bool IsImageExportAxisLineVisible(OfficeXmlNode axis) =>
+            axis.IsNone || (IsImageExportAxisVisible(axis) && !HasNoLine(ImageExportAxisShapeProperties(axis)));
 
-        private static bool IsImageExportAxisVisible(OpenXmlCompositeElement? axis) =>
-            axis == null || !IsEnabled(axis.GetFirstChild<C.Delete>());
+        private static bool IsImageExportAxisLabelsVisible(OfficeXmlNode axis) =>
+            axis.IsNone || (IsImageExportAxisVisible(axis) && axis.Child(C, "tickLblPos").Val() != "none");
 
-        private static bool IsImageExportAxisLineVisible(OpenXmlCompositeElement? axis) =>
-            axis == null || (IsImageExportAxisVisible(axis) && !HasNoLine(axis.GetFirstChild<C.ShapeProperties>()));
-
-        private static bool IsImageExportAxisLabelsVisible(OpenXmlCompositeElement? axis) =>
-            axis == null || (IsImageExportAxisVisible(axis) && axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value != C.TickLabelPositionValues.None);
-
-        private static IReadOnlyList<string?>? GetImageExportPointColors(OpenXmlCompositeElement series, int valueCount, string? markerFill, WorkbookPart workbookPart) {
+        private static IReadOnlyList<string?>? GetImageExportPointColors(OfficeXmlNode series, int valueCount, string? markerFill, ExcelPartRef workbookPart) {
             if (valueCount <= 0 && string.IsNullOrWhiteSpace(markerFill)) {
                 return null;
             }
@@ -736,8 +731,8 @@ namespace OfficeIMO.Excel {
                 any = colors.Length > 0;
             }
 
-            foreach (C.DataPoint point in OfficeOpenXmlChartPointStyles.GetBoundedPoints(series)) {
-                uint? rawIndex = point.GetFirstChild<C.Index>()?.Val?.Value;
+            foreach (OfficeXmlNode point in ImageExportBoundedPoints(series)) {
+                uint? rawIndex = point.Child(C, "idx").UInt32Val();
                 if (rawIndex == null || rawIndex.Value > int.MaxValue) {
                     continue;
                 }
@@ -747,8 +742,8 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                C.ChartShapeProperties? properties = point.GetFirstChild<C.ChartShapeProperties>();
-                if (properties == null || !TryGetSolidFill(properties, workbookPart, out OfficeColor color)) {
+                OfficeXmlNode properties = point.Child(C, "spPr");
+                if (properties.IsNone || !TryGetSolidFill(properties, workbookPart, out OfficeColor color)) {
                     continue;
                 }
 
@@ -759,111 +754,98 @@ namespace OfficeIMO.Excel {
             return any ? colors : null;
         }
 
-        private static bool GetImageExportShowMarkers(C.Marker? marker, C.ScatterStyleValues? scatterStyle) {
-            if (marker == null) {
-                return scatterStyle.HasValue && GetImageExportScatterStyleShowMarkers(scatterStyle);
+        private static bool GetImageExportShowMarkers(OfficeXmlNode marker, string? scatterStyle) {
+            if (marker.IsNone) {
+                return scatterStyle != null && GetImageExportScatterStyleShowMarkers(scatterStyle);
             }
 
-            C.MarkerStyleValues? symbol = marker?.Symbol?.Val?.Value;
-            return symbol == null || symbol.Value != C.MarkerStyleValues.None;
+            string? symbol = marker.Child(C, "symbol").Val();
+            return symbol == null || symbol != "none";
         }
 
-        private static bool GetImageExportScatterStyleShowMarkers(C.ScatterStyleValues? style) {
+        private static bool GetImageExportScatterStyleShowMarkers(string? style) {
             if (style == null) {
                 return true;
             }
 
-            return style.Value == C.ScatterStyleValues.Marker ||
-                style.Value == C.ScatterStyleValues.LineMarker ||
-                style.Value == C.ScatterStyleValues.SmoothMarker;
+            return style == "marker" ||
+                style == "lineMarker" ||
+                style == "smoothMarker";
         }
 
-        private static int? GetImageExportMarkerSize(C.Marker? marker) {
-            byte? size = marker?.Size?.Val?.Value;
+        private static int? GetImageExportMarkerSize(OfficeXmlNode marker) {
+            int? size = ReadImageExportByteVal(marker.Child(C, "size"));
             return size.HasValue && size.Value > 0 ? size.Value : null;
         }
 
-        private static OfficeChartMarkerShape? GetImageExportMarkerShape(C.Marker? marker) {
-            if (marker == null) {
+        private static OfficeChartMarkerShape? GetImageExportMarkerShape(OfficeXmlNode marker) {
+            if (marker.IsNone) {
                 return null;
             }
 
-            C.MarkerStyleValues? symbol = marker?.Symbol?.Val?.Value;
-            if (symbol == null || symbol.Value == C.MarkerStyleValues.Auto || symbol.Value == C.MarkerStyleValues.Circle) {
-                return OfficeChartMarkerShape.Circle;
+            switch (marker.Child(C, "symbol").Val()) {
+                case null:
+                case "auto":
+                case "circle":
+                    return OfficeChartMarkerShape.Circle;
+                case "square":
+                    return OfficeChartMarkerShape.Square;
+                case "diamond":
+                    return OfficeChartMarkerShape.Diamond;
+                case "triangle":
+                    return OfficeChartMarkerShape.Triangle;
+                case "dash":
+                    return OfficeChartMarkerShape.Dash;
+                case "dot":
+                    return OfficeChartMarkerShape.Dot;
+                case "plus":
+                    return OfficeChartMarkerShape.Plus;
+                case "x":
+                    return OfficeChartMarkerShape.X;
+                case "star":
+                    return OfficeChartMarkerShape.Star;
+                default:
+                    return null;
             }
-
-            if (symbol.Value == C.MarkerStyleValues.Square) {
-                return OfficeChartMarkerShape.Square;
-            }
-
-            if (symbol.Value == C.MarkerStyleValues.Diamond) {
-                return OfficeChartMarkerShape.Diamond;
-            }
-
-            if (symbol.Value == C.MarkerStyleValues.Triangle) {
-                return OfficeChartMarkerShape.Triangle;
-            }
-
-            if (symbol.Value == C.MarkerStyleValues.Dash) {
-                return OfficeChartMarkerShape.Dash;
-            }
-
-            if (symbol.Value == C.MarkerStyleValues.Dot) {
-                return OfficeChartMarkerShape.Dot;
-            }
-
-            if (symbol.Value == C.MarkerStyleValues.Plus) {
-                return OfficeChartMarkerShape.Plus;
-            }
-
-            if (symbol.Value == C.MarkerStyleValues.X) {
-                return OfficeChartMarkerShape.X;
-            }
-
-            if (symbol.Value == C.MarkerStyleValues.Star) {
-                return OfficeChartMarkerShape.Star;
-            }
-
-            return null;
         }
 
-        private static string? GetImageExportMarkerFillColor(C.Marker? marker, WorkbookPart workbookPart) {
-            C.ChartShapeProperties? properties = marker?.GetFirstChild<C.ChartShapeProperties>();
-            return properties != null && TryGetSolidFill(properties, workbookPart, out OfficeColor color)
+        private static string? GetImageExportMarkerFillColor(OfficeXmlNode marker, ExcelPartRef workbookPart) {
+            OfficeXmlNode properties = marker.Child(C, "spPr");
+            return properties.Exists && TryGetSolidFill(properties, workbookPart, out OfficeColor color)
                 ? color.A == 255 ? color.ToRgbHex() : color.ToArgbHex()
                 : null;
         }
 
-        private static string? GetImageExportMarkerOutlineColor(C.Marker? marker, WorkbookPart workbookPart) {
-            C.ChartShapeProperties? properties = marker?.GetFirstChild<C.ChartShapeProperties>();
-            return properties != null && TryGetSolidLine(properties, workbookPart, out OfficeColor color)
+        private static string? GetImageExportMarkerOutlineColor(OfficeXmlNode marker, ExcelPartRef workbookPart) {
+            OfficeXmlNode properties = marker.Child(C, "spPr");
+            return properties.Exists && TryGetSolidLine(properties, workbookPart, out OfficeColor color)
                 ? color.A == 255 ? color.ToRgbHex() : color.ToArgbHex()
                 : null;
         }
 
-        private static double? GetImageExportMarkerOutlineWidth(C.Marker? marker) {
-            A.Outline? outline = marker?
-                .GetFirstChild<C.ChartShapeProperties>()?
-                .GetFirstChild<A.Outline>();
-            long? emu = outline?.Width?.Value;
+        private static double? ReadImageExportMarkerOutlineWidth(OfficeXmlNode marker) {
+            OfficeXmlNode outline = marker
+                .Child(C, "spPr")
+                .Child(A, "ln");
+            long? emu = outline.Int32Attribute("w");
             return emu.HasValue && emu.Value > 0
                 ? ExcelImageExportLimits.ClampStrokeWidth(emu.Value / 12700D)
                 : null;
         }
 
         private IReadOnlyList<OfficeImageExportDiagnostic> CreateImageExportDiagnostics() {
-            C.ChartSpace? chartSpace = GetChartPart().ChartSpace;
-            if (chartSpace == null) {
+            OfficeXmlNode chartSpace = ChartSpaceNode();
+            if (chartSpace.IsNone) {
                 return Array.Empty<OfficeImageExportDiagnostic>();
             }
 
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             string source = GetImageExportSource();
-            WorkbookPart workbookPart = _document.WorkbookPartRoot;
+            ExcelPartRef workbookPart = ExcelPartRef.Workbook(_document);
             // Every trendline type, its forecasts and its legend entry are drawn; only the first trendline
             // of a series is, so further trendlines still warn.
-            if (chartSpace.Descendants<C.Trendline>().Any(trendline => trendline.Parent?.Elements<C.Trendline>().Count() > 1)) {
+            if (chartSpace.Descendants(C, "trendline").Any(trendline => IsImageExportSchemaPlaced(trendline) &&
+                trendline.Parent.Children(C, "trendline").Count > 1)) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartTrendlineUnsupported,
@@ -871,7 +853,7 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
-            if (chartSpace.Descendants<C.DataLabel>().Any()) {
+            if (chartSpace.Descendants(C, "dLbl").Any(IsImageExportSchemaPlaced)) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartDataLabelPointOverridesApproximated,
@@ -880,13 +862,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Outside-end and best-fit pie labels draw their leader lines in the default line style.
-            if (chartSpace.Descendants<C.LeaderLines>().Any(lines => lines.HasChildren || lines.HasAttributes ||
-                lines.Ancestors().FirstOrDefault(element => element is C.PieChart or C.DoughnutChart) == null ||
-                lines.Parent is not C.DataLabels labels ||
-                labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value is C.DataLabelPositionValues position &&
-                    position != C.DataLabelPositionValues.OutsideEnd && position != C.DataLabelPositionValues.BestFit ||
-                labels.GetFirstChild<C.ShowLeaderLines>() is not C.ShowLeaderLines showLeaderLines ||
-                showLeaderLines.Val?.Value == false)) {
+            if (chartSpace.Descendants(C, "leaderLines").Any(lines => IsImageExportSchemaPlaced(lines) && HasUnsupportedImageExportLeaderLines(lines))) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartDataLabelLeaderLinesUnsupported,
@@ -974,7 +950,8 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
-            if (chartSpace.Descendants<C.ChartShapeProperties>().Any(properties => IsUnsupportedImageExportSeriesOrMarkerShapeProperties(properties, workbookPart))) {
+            if (chartSpace.Descendants(C, "spPr").Any(properties => IsImageExportSchemaPlaced(properties) &&
+                IsUnsupportedImageExportSeriesOrMarkerShapeProperties(properties, workbookPart))) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartSeriesStyleApproximation,
@@ -988,31 +965,43 @@ namespace OfficeIMO.Excel {
         private string GetImageExportSource() =>
             _sheetName + "!" + (string.IsNullOrWhiteSpace(Name) ? ChartType.ToString() : Name);
 
-        private static bool HasAnyVisibleDataLabelPart(C.DataLabels labels) =>
-            IsEnabled(labels.GetFirstChild<C.ShowValue>()) ||
-            IsEnabled(labels.GetFirstChild<C.ShowPercent>()) ||
-            IsEnabled(labels.GetFirstChild<C.ShowCategoryName>()) ||
-            IsEnabled(labels.GetFirstChild<C.ShowSeriesName>());
+        // Pie and doughnut labels at the outside end or best fit draw their leader lines in the default line style.
+        private static bool HasUnsupportedImageExportLeaderLines(OfficeXmlNode lines) {
+            if (lines.FirstChild.Exists || ImageExportHasAttributes(lines)) return true;
+            if (lines.Ancestor(C, "pieChart").IsNone && lines.Ancestor(C, "doughnutChart").IsNone) return true;
+            OfficeXmlNode labels = lines.Parent;
+            if (!labels.Is(C, "dLbls")) return true;
+            string? position = labels.Child(C, "dLblPos").Val();
+            if (position != null && position != "outEnd" && position != "bestFit") return true;
+            OfficeXmlNode showLeaderLines = labels.Child(C, "showLeaderLines");
+            return showLeaderLines.IsNone || showLeaderLines.BoolVal() == false;
+        }
 
-        private static bool IsEnabled(C.BooleanType? value) =>
-            value != null && (value.Val?.Value ?? true);
+        private static bool HasAnyVisibleDataLabelPart(OfficeXmlNode labels) =>
+            IsEnabled(labels.Child(C, "showVal")) ||
+            IsEnabled(labels.Child(C, "showPercent")) ||
+            IsEnabled(labels.Child(C, "showCatName")) ||
+            IsEnabled(labels.Child(C, "showSerName"));
 
-        private static bool TryGetSolidFill(OpenXmlCompositeElement? properties, out OfficeColor color) =>
-            TryGetSolidFill(properties, null, out color);
+        private static bool IsEnabled(OfficeXmlNode value) =>
+            value.Exists && (value.BoolVal() ?? true);
 
-        private static bool TryGetSolidFill(OpenXmlCompositeElement? properties, WorkbookPart? workbookPart, out OfficeColor color) {
-            string? value = ExcelThemeColorResolver.Resolve(properties?.GetFirstChild<A.SolidFill>(), workbookPart);
+        private static bool TryGetSolidFill(OfficeXmlNode properties, out OfficeColor color) =>
+            TryGetSolidFill(properties, ExcelPartRef.None, out color);
+
+        private static bool TryGetSolidFill(OfficeXmlNode properties, ExcelPartRef workbookPart, out OfficeColor color) {
+            string? value = ResolveImageExportSolidFill(properties.Child(A, "solidFill"), workbookPart);
             return TryParseResolvedDrawingColor(value, out color);
         }
 
-        private static bool TryGetSolidLine(OpenXmlCompositeElement? properties, out OfficeColor color) =>
-            TryGetSolidLine(properties, null, out color);
+        private static bool TryGetSolidLine(OfficeXmlNode properties, out OfficeColor color) =>
+            TryGetSolidLine(properties, ExcelPartRef.None, out color);
 
-        private static bool TryGetSolidLine(OpenXmlCompositeElement? properties, WorkbookPart? workbookPart, out OfficeColor color) {
-            string? value = ExcelThemeColorResolver.Resolve(
-                properties?
-                    .GetFirstChild<A.Outline>()?
-                    .GetFirstChild<A.SolidFill>(),
+        private static bool TryGetSolidLine(OfficeXmlNode properties, ExcelPartRef workbookPart, out OfficeColor color) {
+            string? value = ResolveImageExportSolidFill(
+                properties
+                    .Child(A, "ln")
+                    .Child(A, "solidFill"),
                 workbookPart);
             return TryParseResolvedDrawingColor(value, out color);
         }
@@ -1031,18 +1020,17 @@ namespace OfficeIMO.Excel {
             return OfficeColor.TryParseHex(value, out color);
         }
 
-        private static bool HasNoFill(OpenXmlCompositeElement? properties) =>
-            properties?.GetFirstChild<A.NoFill>() != null;
+        private static bool HasNoFill(OfficeXmlNode properties) =>
+            properties.Child(A, "noFill").Exists;
 
-        private static bool HasNoLine(OpenXmlCompositeElement? properties) =>
-            properties?.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
+        private static bool HasNoLine(OfficeXmlNode properties) =>
+            properties.Child(A, "ln").Child(A, "noFill").Exists;
 
-        private static bool TryGetLineWidth(OpenXmlCompositeElement? properties, out double width) {
+        private static bool TryGetImageExportLineWidth(OfficeXmlNode properties, out double width) {
             width = default;
-            long? emu = properties?
-                .GetFirstChild<A.Outline>()?
-                .Width?
-                .Value;
+            long? emu = properties
+                .Child(A, "ln")
+                .Int32Attribute("w");
             if (!emu.HasValue || emu.Value <= 0) {
                 return false;
             }
@@ -1051,78 +1039,47 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool TryGetLineDashStyle(OpenXmlCompositeElement? properties, out OfficeStrokeDashStyle dashStyle) {
+        private static bool TryGetLineDashStyle(OfficeXmlNode properties, out OfficeStrokeDashStyle dashStyle) {
             dashStyle = default;
-            A.PresetDash? dash = properties?
-                .GetFirstChild<A.Outline>()?
-                .GetFirstChild<A.PresetDash>();
-            A.PresetLineDashValues? value = dash?.Val?.Value;
-            if (value == null || value.Value == A.PresetLineDashValues.Solid) {
+            string? value = properties
+                .Child(A, "ln")
+                .Child(A, "prstDash")
+                .Val();
+            if (value == null || value == "solid") {
                 return false;
             }
 
-            return TryMapPresetLineDash(value.Value, out dashStyle);
+            return TryMapPresetLineDash(value, out dashStyle);
         }
 
-        private static bool TryMapPresetLineDash(A.PresetLineDashValues value, out OfficeStrokeDashStyle dashStyle) {
+        private static bool TryMapPresetLineDash(string value, out OfficeStrokeDashStyle dashStyle) {
             return OfficeStrokeDashStyleMapper.TryMapOfficePresetDash(GetPresetLineDashToken(value), out dashStyle);
         }
 
-        private static string? GetPresetLineDashToken(A.PresetLineDashValues value) {
-            if (value == A.PresetLineDashValues.Dash) {
-                return "dash";
-            }
+        // The schema tokens the shared mapper knows; solid and anything else map to none.
+        private static string? GetPresetLineDashToken(string value) => value switch {
+            "dash" or "lgDash" or "sysDash" or "dot" or "sysDot" or "dashDot" or "lgDashDot" or "sysDashDot" or
+                "lgDashDotDot" or "sysDashDotDot" => value,
+            _ => null
+        };
 
-            if (value == A.PresetLineDashValues.LargeDash) {
-                return "lgDash";
-            }
-
-            if (value == A.PresetLineDashValues.SystemDash) {
-                return "sysDash";
-            }
-
-            if (value == A.PresetLineDashValues.Dot) {
-                return "dot";
-            }
-
-            if (value == A.PresetLineDashValues.SystemDot) {
-                return "sysDot";
-            }
-
-            if (value == A.PresetLineDashValues.DashDot) {
-                return "dashDot";
-            }
-
-            if (value == A.PresetLineDashValues.LargeDashDot) {
-                return "lgDashDot";
-            }
-
-            if (value == A.PresetLineDashValues.SystemDashDot) {
-                return "sysDashDot";
-            }
-
-            if (value == A.PresetLineDashValues.LargeDashDotDot) {
-                return "lgDashDotDot";
-            }
-
-            if (value == A.PresetLineDashValues.SystemDashDotDot) {
-                return "sysDashDotDot";
-            }
-
-            return null;
+        // A dash value the preset dash mapper cannot draw; solid and a missing value are drawable.
+        private static bool IsUndrawableImageExportDash(OfficeXmlNode dash) {
+            string? value = dash.Val();
+            return value != null && value != "solid" && !TryMapPresetLineDash(value, out _);
         }
 
-        private static bool HasUnsupportedImageExportGridlineStyle(C.ChartSpace chartSpace, WorkbookPart workbookPart) {
-            foreach (C.MajorGridlines gridlines in chartSpace.Descendants<C.MajorGridlines>()) {
-                C.ChartShapeProperties? properties = gridlines.GetFirstChild<C.ChartShapeProperties>();
-                if (properties != null && !IsSimpleSupportedGridlineShapeProperties(properties, workbookPart)) {
+        private static bool HasUnsupportedImageExportGridlineStyle(OfficeXmlNode chartSpace, ExcelPartRef workbookPart) {
+            foreach (OfficeXmlNode gridlines in chartSpace.Descendants(C, "majorGridlines")) {
+                OfficeXmlNode properties = gridlines.Child(C, "spPr");
+                if (properties.Exists && !IsSimpleSupportedGridlineShapeProperties(properties, workbookPart)) {
                     return true;
                 }
             }
 
-            foreach (C.MinorGridlines gridlines in chartSpace.Descendants<C.MinorGridlines>()) {
-                C.ChartShapeProperties? properties = gridlines.GetFirstChild<C.ChartShapeProperties>();
-                if (properties != null && !IsSimpleSupportedGridlineShapeProperties(properties, workbookPart)) {
+            foreach (OfficeXmlNode gridlines in chartSpace.Descendants(C, "minorGridlines")) {
+                OfficeXmlNode properties = gridlines.Child(C, "spPr");
+                if (properties.Exists && !IsSimpleSupportedGridlineShapeProperties(properties, workbookPart)) {
                     return true;
                 }
             }
@@ -1130,15 +1087,15 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsSimpleSupportedGridlineShapeProperties(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
-            if (!properties.ChildElements.Any()) {
+        private static bool IsSimpleSupportedGridlineShapeProperties(OfficeXmlNode properties, ExcelPartRef workbookPart) {
+            if (properties.FirstChild.IsNone) {
                 return true;
             }
 
-            foreach (OpenXmlElement child in properties.ChildElements) {
-                if (child is A.Outline outline) {
-                    foreach (OpenXmlElement outlineChild in outline.ChildElements) {
-                        if (outlineChild is A.SolidFill) {
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (child.Is(A, "ln")) {
+                    foreach (OfficeXmlNode outlineChild in child.Children()) {
+                        if (outlineChild.Is(A, "solidFill")) {
                             if (!TryGetSolidLine(properties, workbookPart, out _)) {
                                 return false;
                             }
@@ -1146,9 +1103,8 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        if (outlineChild is A.PresetDash dash) {
-                            A.PresetLineDashValues? value = dash.Val?.Value;
-                            if (value != null && value.Value != A.PresetLineDashValues.Solid && !TryMapPresetLineDash(value.Value, out _)) {
+                        if (outlineChild.Is(A, "prstDash")) {
+                            if (IsUndrawableImageExportDash(outlineChild)) {
                                 return false;
                             }
 
@@ -1167,11 +1123,11 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool HasUnsupportedImageExportAxisStyle(C.ChartSpace chartSpace, WorkbookPart workbookPart) {
-            foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
-                foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
-                    C.ShapeProperties? properties = axis.GetFirstChild<C.ShapeProperties>();
-                    if (properties != null && !IsSimpleSupportedAxisShapeProperties(properties, workbookPart)) {
+        private static bool HasUnsupportedImageExportAxisStyle(OfficeXmlNode chartSpace, ExcelPartRef workbookPart) {
+            foreach (OfficeXmlNode plotArea in chartSpace.Descendants(C, "plotArea")) {
+                foreach (OfficeXmlNode axis in GetImageExportAxes(plotArea)) {
+                    OfficeXmlNode properties = ImageExportAxisShapeProperties(axis);
+                    if (properties.Exists && !IsSimpleSupportedAxisShapeProperties(properties, workbookPart)) {
                         return true;
                     }
                 }
@@ -1180,15 +1136,15 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsSimpleSupportedAxisShapeProperties(C.ShapeProperties properties, WorkbookPart workbookPart) {
-            if (!properties.ChildElements.Any()) {
+        private static bool IsSimpleSupportedAxisShapeProperties(OfficeXmlNode properties, ExcelPartRef workbookPart) {
+            if (properties.FirstChild.IsNone) {
                 return true;
             }
 
-            foreach (OpenXmlElement child in properties.ChildElements) {
-                if (child is A.Outline outline) {
-                    foreach (OpenXmlElement outlineChild in outline.ChildElements) {
-                        if (outlineChild is A.SolidFill) {
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (child.Is(A, "ln")) {
+                    foreach (OfficeXmlNode outlineChild in child.Children()) {
+                        if (outlineChild.Is(A, "solidFill")) {
                             if (!TryGetSolidLine(properties, workbookPart, out _)) {
                                 return false;
                             }
@@ -1196,13 +1152,12 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        if (outlineChild is A.NoFill) {
+                        if (outlineChild.Is(A, "noFill")) {
                             continue;
                         }
 
-                        if (outlineChild is A.PresetDash dash) {
-                            A.PresetLineDashValues? value = dash.Val?.Value;
-                            if (value != null && value.Value != A.PresetLineDashValues.Solid && !TryMapPresetLineDash(value.Value, out _)) {
+                        if (outlineChild.Is(A, "prstDash")) {
+                            if (IsUndrawableImageExportDash(outlineChild)) {
                                 return false;
                             }
 
@@ -1221,15 +1176,15 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool HasUnsupportedImageExportAxisTickLabelPosition(C.ChartSpace chartSpace) {
-            foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
-                foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
-                    C.TickLabelPositionValues? position = axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value;
+        private static bool HasUnsupportedImageExportAxisTickLabelPosition(OfficeXmlNode chartSpace) {
+            foreach (OfficeXmlNode plotArea in chartSpace.Descendants(C, "plotArea")) {
+                foreach (OfficeXmlNode axis in GetImageExportAxes(plotArea)) {
+                    string? position = axis.Child(C, "tickLblPos").Val();
                     if (position != null &&
-                        position.Value != C.TickLabelPositionValues.NextTo &&
-                        position.Value != C.TickLabelPositionValues.None &&
-                        position.Value != C.TickLabelPositionValues.High &&
-                        position.Value != C.TickLabelPositionValues.Low) {
+                        position != "nextTo" &&
+                        position != "none" &&
+                        position != "high" &&
+                        position != "low") {
                         return true;
                     }
                 }
@@ -1238,9 +1193,9 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasApproximatedImageExportAxisMinorTickMarks(C.ChartSpace chartSpace) {
-            foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
-                foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
+        private static bool HasApproximatedImageExportAxisMinorTickMarks(OfficeXmlNode chartSpace) {
+            foreach (OfficeXmlNode plotArea in chartSpace.Descendants(C, "plotArea")) {
+                foreach (OfficeXmlNode axis in GetImageExportAxes(plotArea)) {
                     if (HasApproximatedImageExportAxisMinorTickMark(axis)) {
                         return true;
                     }
@@ -1250,34 +1205,34 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasApproximatedImageExportAxisMinorTickMark(OpenXmlCompositeElement axis) {
-            C.TickMarkValues? tickMark = axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value;
-            if (tickMark == null || tickMark.Value == C.TickMarkValues.None) {
+        private static bool HasApproximatedImageExportAxisMinorTickMark(OfficeXmlNode axis) {
+            string? tickMark = axis.Child(C, "minorTickMark").Val();
+            if (tickMark == null || tickMark == "none") {
                 return false;
             }
 
-            if (axis is not C.ValueAxis) {
+            if (!axis.Is(C, "valAx")) {
                 return true;
             }
 
-            double? minorUnit = axis.GetFirstChild<C.MinorUnit>()?.Val?.Value;
+            double? minorUnit = axis.Child(C, "minorUnit").DoubleVal();
             return !minorUnit.HasValue ||
                    double.IsNaN(minorUnit.Value) ||
                    double.IsInfinity(minorUnit.Value) ||
                    minorUnit.Value <= 0D;
         }
 
-        private static bool HasUnsupportedImageExportAxisCrossing(C.ChartSpace chartSpace) {
-            foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
-                foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
-                    if (axis.GetFirstChild<C.CrossesAt>() != null) {
+        private static bool HasUnsupportedImageExportAxisCrossing(OfficeXmlNode chartSpace) {
+            foreach (OfficeXmlNode plotArea in chartSpace.Descendants(C, "plotArea")) {
+                foreach (OfficeXmlNode axis in GetImageExportAxes(plotArea)) {
+                    if (axis.Child(C, "crossesAt").Exists) {
                         return true;
                     }
 
-                    C.CrossesValues? crosses = axis.GetFirstChild<C.Crosses>()?.Val?.Value;
+                    string? crosses = axis.Child(C, "crosses").Val();
                     if (crosses != null &&
-                        crosses.Value != C.CrossesValues.AutoZero &&
-                        !IsSupportedImageExportAxisCrossing(plotArea, axis, crosses.Value)) {
+                        crosses != "autoZero" &&
+                        !IsSupportedImageExportAxisCrossing(plotArea, axis, crosses)) {
                         return true;
                     }
                 }
@@ -1286,27 +1241,28 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsSupportedImageExportAxisCrossing(C.PlotArea plotArea, OpenXmlCompositeElement axis, C.CrossesValues crosses) =>
-            crosses == C.CrossesValues.Maximum &&
-            (axis is C.ValueAxis || axis is C.CategoryAxis || axis is C.DateAxis) &&
+        private static bool IsSupportedImageExportAxisCrossing(OfficeXmlNode plotArea, OfficeXmlNode axis, string crosses) =>
+            crosses == "max" &&
+            (axis.Is(C, "valAx") || axis.Is(C, "catAx") || axis.Is(C, "dateAx")) &&
             !HasHorizontalBarChart(plotArea);
 
-        private static bool HasUnsupportedImageExportAxisScale(C.ChartSpace chartSpace) {
-            foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
-                foreach (OpenXmlCompositeElement axis in GetImageExportAxes(plotArea)) {
-                    C.Scaling? scaling = axis.GetFirstChild<C.Scaling>();
-                    if (scaling != null && HasUnsupportedImageExportAxisScaling(plotArea, axis, scaling)) {
+        private static bool HasUnsupportedImageExportAxisScale(OfficeXmlNode chartSpace) {
+            foreach (OfficeXmlNode plotArea in chartSpace.Descendants(C, "plotArea")) {
+                foreach (OfficeXmlNode axis in GetImageExportAxes(plotArea)) {
+                    bool valueAxis = axis.Is(C, "valAx");
+                    OfficeXmlNode scaling = axis.Child(C, "scaling");
+                    if (scaling.Exists && HasUnsupportedImageExportAxisScaling(plotArea, axis, scaling)) {
                         return true;
                     }
 
-                    if (axis.GetFirstChild<C.MajorUnit>() != null && axis is not C.ValueAxis) {
+                    if (axis.Child(C, "majorUnit").Exists && !valueAxis) {
                         return true;
                     }
 
-                    C.MinorUnit? minorUnit = axis.GetFirstChild<C.MinorUnit>();
-                    double? minorUnitValue = minorUnit?.Val?.Value;
-                    if (minorUnit != null &&
-                        (axis is not C.ValueAxis ||
+                    OfficeXmlNode minorUnit = axis.Child(C, "minorUnit");
+                    double? minorUnitValue = minorUnit.DoubleVal();
+                    if (minorUnit.Exists &&
+                        (!valueAxis ||
                          !minorUnitValue.HasValue ||
                          double.IsNaN(minorUnitValue.Value) ||
                          double.IsInfinity(minorUnitValue.Value) ||
@@ -1314,8 +1270,8 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    C.CrossBetweenValues? crossBetween = axis.GetFirstChild<C.CrossBetween>()?.Val?.Value;
-                    if (crossBetween != null && crossBetween.Value != C.CrossBetweenValues.Between) {
+                    string? crossBetween = axis.Child(C, "crossBetween").Val();
+                    if (crossBetween != null && crossBetween != "between") {
                         return true;
                     }
                 }
@@ -1324,20 +1280,21 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasUnsupportedImageExportAxisScaling(C.PlotArea plotArea, OpenXmlCompositeElement axis, C.Scaling scaling) {
+        private static bool HasUnsupportedImageExportAxisScaling(OfficeXmlNode plotArea, OfficeXmlNode axis, OfficeXmlNode scaling) {
             // Reversed value and category axes and logarithmic value axes are drawn by the shared renderer.
-            if (scaling.GetFirstChild<C.LogBase>() != null && axis is not C.ValueAxis) {
+            bool valueAxis = axis.Is(C, "valAx");
+            if (scaling.Child(C, "logBase").Exists && !valueAxis) {
                 return true;
             }
 
-            C.MinAxisValue? minimum = scaling.GetFirstChild<C.MinAxisValue>();
-            C.MaxAxisValue? maximum = scaling.GetFirstChild<C.MaxAxisValue>();
-            if ((minimum != null || maximum != null) && axis is not C.ValueAxis) {
+            OfficeXmlNode minimum = scaling.Child(C, "min");
+            OfficeXmlNode maximum = scaling.Child(C, "max");
+            if ((minimum.Exists || maximum.Exists) && !valueAxis) {
                 return true;
             }
 
-            double? min = minimum?.Val?.Value;
-            double? max = maximum?.Val?.Value;
+            double? min = minimum.DoubleVal();
+            double? max = maximum.DoubleVal();
             if (min.HasValue && (double.IsNaN(min.Value) || double.IsInfinity(min.Value))) {
                 return true;
             }
@@ -1350,15 +1307,15 @@ namespace OfficeIMO.Excel {
         }
 
 
-        private static bool HasUnsupportedImageExportChartAreaStyle(C.ChartSpace chartSpace, WorkbookPart workbookPart) {
-            C.ShapeProperties? chartAreaProperties = chartSpace.GetFirstChild<C.ShapeProperties>();
-            if (chartAreaProperties != null && !IsSimpleSupportedChartAreaShapeProperties(chartAreaProperties, workbookPart)) {
+        private static bool HasUnsupportedImageExportChartAreaStyle(OfficeXmlNode chartSpace, ExcelPartRef workbookPart) {
+            OfficeXmlNode chartAreaProperties = chartSpace.Child(C, "spPr");
+            if (chartAreaProperties.Exists && !IsSimpleSupportedChartAreaShapeProperties(chartAreaProperties, workbookPart)) {
                 return true;
             }
 
-            foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
-                C.ShapeProperties? properties = plotArea.GetFirstChild<C.ShapeProperties>();
-                if (properties != null && !IsSimpleSupportedChartAreaShapeProperties(properties, workbookPart)) {
+            foreach (OfficeXmlNode plotArea in chartSpace.Descendants(C, "plotArea")) {
+                OfficeXmlNode properties = plotArea.Child(C, "spPr");
+                if (properties.Exists && !IsSimpleSupportedChartAreaShapeProperties(properties, workbookPart)) {
                     return true;
                 }
             }
@@ -1366,13 +1323,13 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsSimpleSupportedChartAreaShapeProperties(C.ShapeProperties properties, WorkbookPart workbookPart) {
-            if (!properties.ChildElements.Any()) {
+        private static bool IsSimpleSupportedChartAreaShapeProperties(OfficeXmlNode properties, ExcelPartRef workbookPart) {
+            if (properties.FirstChild.IsNone) {
                 return true;
             }
 
-            foreach (OpenXmlElement child in properties.ChildElements) {
-                if (child is A.SolidFill) {
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (child.Is(A, "solidFill")) {
                     if (!TryGetSolidFill(properties, workbookPart, out _)) {
                         return false;
                     }
@@ -1380,17 +1337,17 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (child is A.NoFill) {
+                if (child.Is(A, "noFill")) {
                     continue;
                 }
 
-                if (child is A.Outline outline) {
-                    if (outline.Width != null && !TryGetLineWidth(properties, out _)) {
+                if (child.Is(A, "ln")) {
+                    if (child.Attribute("w") != null && !TryGetImageExportLineWidth(properties, out _)) {
                         return false;
                     }
 
-                    foreach (OpenXmlElement outlineChild in outline.ChildElements) {
-                        if (outlineChild is A.SolidFill) {
+                    foreach (OfficeXmlNode outlineChild in child.Children()) {
+                        if (outlineChild.Is(A, "solidFill")) {
                             if (!TryGetSolidLine(properties, workbookPart, out _)) {
                                 return false;
                             }
@@ -1398,13 +1355,12 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        if (outlineChild is A.NoFill) {
+                        if (outlineChild.Is(A, "noFill")) {
                             continue;
                         }
 
-                        if (outlineChild is A.PresetDash dash) {
-                            A.PresetLineDashValues? value = dash.Val?.Value;
-                            if (value != null && value.Value != A.PresetLineDashValues.Solid && !TryMapPresetLineDash(value.Value, out _)) {
+                        if (outlineChild.Is(A, "prstDash")) {
+                            if (IsUndrawableImageExportDash(outlineChild)) {
                                 return false;
                             }
 
@@ -1423,55 +1379,49 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool IsSeriesOrMarkerShapeProperties(C.ChartShapeProperties properties) {
-            OpenXmlElement? parent = properties.Parent;
-            return parent is C.AreaChartSeries
-                || parent is C.BarChartSeries
-                || parent is C.BubbleChartSeries
-                || parent is C.LineChartSeries
-                || parent is C.PieChartSeries
-                || parent is C.RadarChartSeries
-                || parent is C.ScatterChartSeries
-                || parent is C.SurfaceChartSeries
-                || parent is C.DataPoint
-                || parent is C.Marker
-                || parent is C.DataLabels
-                || parent is C.DataLabel
-                || parent is C.Trendline;
+        // The c:spPr of a series, data point, marker, data label or trendline.
+        private static bool IsSeriesOrMarkerShapeProperties(OfficeXmlNode properties) {
+            OfficeXmlNode parent = properties.Parent;
+            return IsImageExportSeriesElement(parent)
+                || parent.Is(C, "dPt")
+                || parent.Is(C, "marker")
+                || parent.Is(C, "dLbls")
+                || parent.Is(C, "dLbl")
+                || parent.Is(C, "trendline");
         }
 
-        private static bool IsUnsupportedImageExportSeriesOrMarkerShapeProperties(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
+        private static bool IsUnsupportedImageExportSeriesOrMarkerShapeProperties(OfficeXmlNode properties, ExcelPartRef workbookPart) {
             if (!IsSeriesOrMarkerShapeProperties(properties)) {
                 return false;
             }
 
-            OpenXmlElement? parent = properties.Parent;
-            if (parent is C.Marker marker) {
-                return !IsSimpleSupportedMarker(marker, workbookPart);
+            OfficeXmlNode parent = properties.Parent;
+            if (parent.Is(C, "marker")) {
+                return !IsSimpleSupportedMarker(parent, workbookPart);
             }
 
-            if (parent is C.DataPoint point) {
-                return !IsSimpleSupportedDataPoint(point, workbookPart);
+            if (parent.Is(C, "dPt")) {
+                return !IsSimpleSupportedDataPoint(parent, workbookPart);
             }
 
-            if (parent is C.DataLabels) {
+            if (parent.Is(C, "dLbls")) {
                 return !IsSimpleSupportedSeriesShapeProperties(properties, workbookPart);
             }
 
-            if (parent is C.DataLabel || parent is C.Trendline) {
+            if (parent.Is(C, "dLbl") || parent.Is(C, "trendline")) {
                 return true;
             }
 
             return !IsSimpleSupportedSeriesShapeProperties(properties, workbookPart);
         }
 
-        private static bool IsSimpleSupportedSeriesShapeProperties(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
-            if (!properties.ChildElements.Any()) {
+        private static bool IsSimpleSupportedSeriesShapeProperties(OfficeXmlNode properties, ExcelPartRef workbookPart) {
+            if (properties.FirstChild.IsNone) {
                 return true;
             }
 
-            foreach (OpenXmlElement child in properties.ChildElements) {
-                if (child is A.SolidFill) {
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (child.Is(A, "solidFill")) {
                     if (!TryGetSolidFill(properties, workbookPart, out _)) {
                         return false;
                     }
@@ -1479,13 +1429,13 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (child is A.Outline outline) {
-                    if (outline.Width != null && !TryGetLineWidth(properties, out _)) {
+                if (child.Is(A, "ln")) {
+                    if (child.Attribute("w") != null && !TryGetImageExportLineWidth(properties, out _)) {
                         return false;
                     }
 
-                    foreach (OpenXmlElement outlineChild in outline.ChildElements) {
-                        if (outlineChild is A.SolidFill) {
+                    foreach (OfficeXmlNode outlineChild in child.Children()) {
+                        if (outlineChild.Is(A, "solidFill")) {
                             if (!TryGetSolidLine(properties, workbookPart, out _)) {
                                 return false;
                             }
@@ -1493,9 +1443,8 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        if (outlineChild is A.PresetDash dash) {
-                            A.PresetLineDashValues? value = dash.Val?.Value;
-                            if (value != null && value.Value != A.PresetLineDashValues.Solid && !TryMapPresetLineDash(value.Value, out _)) {
+                        if (outlineChild.Is(A, "prstDash")) {
+                            if (IsUndrawableImageExportDash(outlineChild)) {
                                 return false;
                             }
 
@@ -1514,38 +1463,37 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool IsSimpleSupportedMarker(C.Marker marker, WorkbookPart workbookPart) {
-            C.MarkerStyleValues? symbol = marker.Symbol?.Val?.Value;
+        private static bool IsSimpleSupportedMarker(OfficeXmlNode marker, ExcelPartRef workbookPart) {
+            string? symbol = marker.Child(C, "symbol").Val();
             if (symbol != null &&
-                symbol.Value != C.MarkerStyleValues.Circle &&
-                symbol.Value != C.MarkerStyleValues.Auto &&
-                symbol.Value != C.MarkerStyleValues.Square &&
-                symbol.Value != C.MarkerStyleValues.Diamond &&
-                symbol.Value != C.MarkerStyleValues.Triangle &&
-                symbol.Value != C.MarkerStyleValues.Dash &&
-                symbol.Value != C.MarkerStyleValues.Dot &&
-                symbol.Value != C.MarkerStyleValues.Plus &&
-                symbol.Value != C.MarkerStyleValues.X &&
-                symbol.Value != C.MarkerStyleValues.Star &&
-                symbol.Value != C.MarkerStyleValues.None) {
+                symbol != "circle" &&
+                symbol != "auto" &&
+                symbol != "square" &&
+                symbol != "diamond" &&
+                symbol != "triangle" &&
+                symbol != "dash" &&
+                symbol != "dot" &&
+                symbol != "plus" &&
+                symbol != "x" &&
+                symbol != "star" &&
+                symbol != "none") {
                 return false;
             }
 
-            C.ChartShapeProperties? properties = marker.GetFirstChild<C.ChartShapeProperties>();
-            if (properties == null) return true;
-            return marker.Parent is C.DataPoint
-                ? OfficeOpenXmlChartPointStyles.IsSupported(properties,
-                    workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme)
+            OfficeXmlNode properties = marker.Child(C, "spPr");
+            if (properties.IsNone) return true;
+            return marker.Parent.Is(C, "dPt")
+                ? ImageExportIsSupportedPointStyle(properties, ImageExportColorScheme(workbookPart))
                 : IsSimpleSupportedMarkerShapeProperties(properties, workbookPart);
         }
 
-        private static bool IsSimpleSupportedMarkerShapeProperties(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
-            if (!properties.ChildElements.Any()) {
+        private static bool IsSimpleSupportedMarkerShapeProperties(OfficeXmlNode properties, ExcelPartRef workbookPart) {
+            if (properties.FirstChild.IsNone) {
                 return true;
             }
 
-            foreach (OpenXmlElement child in properties.ChildElements) {
-                if (child is A.SolidFill) {
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (child.Is(A, "solidFill")) {
                     if (!TryGetSolidFill(properties, workbookPart, out _)) {
                         return false;
                     }
@@ -1553,9 +1501,9 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (child is A.Outline outline) {
-                    foreach (OpenXmlElement outlineChild in outline.ChildElements) {
-                        if (outlineChild is A.SolidFill) {
+                if (child.Is(A, "ln")) {
+                    foreach (OfficeXmlNode outlineChild in child.Children()) {
+                        if (outlineChild.Is(A, "solidFill")) {
                             if (!TryGetSolidLine(properties, workbookPart, out _)) {
                                 return false;
                             }
@@ -1575,82 +1523,121 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool IsSimpleSupportedDataPoint(C.DataPoint point, WorkbookPart workbookPart) {
-            C.ChartShapeProperties? properties = point.GetFirstChild<C.ChartShapeProperties>();
-            return properties == null || OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.IsSupported(
-                properties, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
+        private static bool IsSimpleSupportedDataPoint(OfficeXmlNode point, ExcelPartRef workbookPart) {
+            OfficeXmlNode properties = point.Child(C, "spPr");
+            return properties.IsNone || ImageExportIsSupportedPointStyle(properties, ImageExportColorScheme(workbookPart));
         }
 
-        private static string? GetAxisTitleText(C.Title? title) {
-            if (title == null) {
+        private static string? GetAxisTitleText(OfficeXmlNode title) {
+            if (title.IsNone) {
                 return null;
             }
 
-            string text = string.Concat(title.Descendants<A.Text>().Select(item => item.Text));
+            string text = string.Concat(title.Descendants(A, "t").Select(item => item.InnerText));
             return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
         }
 
-        private static OfficeChartLegendPosition MapLegendPosition(C.LegendPositionValues? position) {
-            if (position == null) {
-                return OfficeChartLegendPosition.Right;
-            }
+        private static OfficeChartLegendPosition MapLegendPosition(string? position) => position switch {
+            null => OfficeChartLegendPosition.Right,
+            "l" => OfficeChartLegendPosition.Left,
+            "t" => OfficeChartLegendPosition.Top,
+            "b" => OfficeChartLegendPosition.Bottom,
+            "tr" => OfficeChartLegendPosition.TopRight,
+            _ => OfficeChartLegendPosition.Right
+        };
 
-            C.LegendPositionValues value = position.Value;
-            if (value == C.LegendPositionValues.Left) {
-                return OfficeChartLegendPosition.Left;
-            }
+        private static OfficeChartDataLabelPosition MapDataLabelPosition(string? position) => position switch {
+            "ctr" => OfficeChartDataLabelPosition.Center,
+            "inBase" => OfficeChartDataLabelPosition.InsideBase,
+            "inEnd" => OfficeChartDataLabelPosition.InsideEnd,
+            "outEnd" => OfficeChartDataLabelPosition.OutsideEnd,
+            "l" => OfficeChartDataLabelPosition.Left,
+            "r" => OfficeChartDataLabelPosition.Right,
+            "t" => OfficeChartDataLabelPosition.Top,
+            "b" => OfficeChartDataLabelPosition.Bottom,
+            _ => OfficeChartDataLabelPosition.BestFit
+        };
 
-            if (value == C.LegendPositionValues.Top) {
-                return OfficeChartLegendPosition.Top;
+        // The child sequence a series of this chart group allows, or null for a parent that is not a chart group.
+        private static OfficeXmlChildOrder? ImageExportSeriesChildOrder(OfficeXmlNode group) {
+            if (group.NamespaceId != C) return null;
+            switch (group.LocalName) {
+                case "barChart": case "bar3DChart": return CBarSerView.Order;
+                case "lineChart": case "line3DChart": case "stockChart": return CLineSerView.Order;
+                case "areaChart": case "area3DChart": return CAreaSerView.Order;
+                case "pieChart": case "pie3DChart": case "doughnutChart": case "ofPieChart": return CPieSerView.Order;
+                case "scatterChart": return CScatterSerView.Order;
+                case "bubbleChart": return CBubbleSerView.Order;
+                case "radarChart": return CRadarSerView.Order;
+                case "surfaceChart": case "surface3DChart": return CSurfaceSerView.Order;
+                default: return null;
             }
-
-            if (value == C.LegendPositionValues.Bottom) {
-                return OfficeChartLegendPosition.Bottom;
-            }
-
-            return value == C.LegendPositionValues.TopRight ? OfficeChartLegendPosition.TopRight : OfficeChartLegendPosition.Right;
         }
 
-        private static OfficeChartDataLabelPosition MapDataLabelPosition(C.DataLabelPositionValues? position) {
-            if (position == null) {
-                return OfficeChartDataLabelPosition.BestFit;
+        // Whether an element sits where the chart schema allows it under its series and chart group. Markup a series or
+        // chart type does not list, such as data labels on a surface series, is unknown markup to the readers, with
+        // everything inside it, so the image export never reads it.
+        private static bool IsImageExportSchemaPlaced(OfficeXmlNode element) {
+            OfficeXmlNode child = element;
+            for (OfficeXmlNode parent = element.Parent; parent.Exists; child = parent, parent = parent.Parent) {
+                if (parent.Is(C, "ser")) {
+                    OfficeXmlChildOrder? order = ImageExportSeriesChildOrder(parent.Parent);
+                    if (order != null && order.RankOf(child.NamespaceId, child.LocalName) < 0) return false;
+                } else if (parent.Is(C, "surfaceChart") || parent.Is(C, "surface3DChart")) {
+                    if (child.Is(C, "dLbls")) return false;
+                } else if (parent.Is(C, "plotArea")) {
+                    break;
+                }
             }
-
-            C.DataLabelPositionValues value = position.Value;
-            if (value == C.DataLabelPositionValues.Center) {
-                return OfficeChartDataLabelPosition.Center;
-            }
-
-            if (value == C.DataLabelPositionValues.InsideBase) {
-                return OfficeChartDataLabelPosition.InsideBase;
-            }
-
-            if (value == C.DataLabelPositionValues.InsideEnd) {
-                return OfficeChartDataLabelPosition.InsideEnd;
-            }
-
-            if (value == C.DataLabelPositionValues.OutsideEnd) {
-                return OfficeChartDataLabelPosition.OutsideEnd;
-            }
-
-            if (value == C.DataLabelPositionValues.Left) {
-                return OfficeChartDataLabelPosition.Left;
-            }
-
-            if (value == C.DataLabelPositionValues.Right) {
-                return OfficeChartDataLabelPosition.Right;
-            }
-
-            if (value == C.DataLabelPositionValues.Top) {
-                return OfficeChartDataLabelPosition.Top;
-            }
-
-            if (value == C.DataLabelPositionValues.Bottom) {
-                return OfficeChartDataLabelPosition.Bottom;
-            }
-
-            return OfficeChartDataLabelPosition.BestFit;
+            return true;
         }
+
+        // The first child of a series with this name when the series type allows it.
+        private static OfficeXmlNode ImageExportSeriesChild(OfficeXmlNode series, string localName) {
+            OfficeXmlChildOrder? order = ImageExportSeriesChildOrder(series.Parent);
+            return order != null && order.RankOf(C, localName) < 0 ? OfficeXmlNode.None : series.Child(C, localName);
+        }
+
+        // The series element of any chart group: a c:ser under one of the c: chart types.
+        private static bool IsImageExportSeriesElement(OfficeXmlNode element) {
+            if (!element.Is(C, "ser")) return false;
+            OfficeXmlNode group = element.Parent;
+            if (group.NamespaceId != C) return false;
+            switch (group.LocalName) {
+                case "barChart": case "bar3DChart":
+                case "lineChart": case "line3DChart": case "stockChart":
+                case "areaChart": case "area3DChart":
+                case "pieChart": case "pie3DChart": case "doughnutChart": case "ofPieChart":
+                case "scatterChart": case "bubbleChart": case "radarChart":
+                case "surfaceChart": case "surface3DChart":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        // A pie, 3-D pie, doughnut or pie-of-pie series.
+        private static bool IsImageExportPieSeries(OfficeXmlNode series) {
+            if (!series.Is(C, "ser")) return false;
+            OfficeXmlNode group = series.Parent;
+            return group.Is(C, "pieChart") || group.Is(C, "pie3DChart") || group.Is(C, "doughnutChart") || group.Is(C, "ofPieChart");
+        }
+
+        private static OfficeXmlNode FirstImageExportPieSeries(OfficeXmlNode plotArea) {
+            if (plotArea.IsNone) return OfficeXmlNode.None;
+            foreach (OfficeXmlNode series in plotArea.Descendants(C, "ser")) {
+                if (IsImageExportPieSeries(series)) return series;
+            }
+            return OfficeXmlNode.None;
+        }
+
+        // The theme's colour scheme, as the shared chart readers resolve scheme colours with it.
+        private static OfficeXmlNode ImageExportColorScheme(ExcelPartRef workbookPart) =>
+            workbookPart.Theme.Root.Child(A, "themeElements").Child(A, "clrScheme");
+
+        // An unsigned byte value, as the schema's xsd:unsignedByte settings hold.
+        private static int? ReadImageExportByteVal(OfficeXmlNode element) =>
+            element.Int32Val() is int value && value >= byte.MinValue && value <= byte.MaxValue ? value : null;
 
         private sealed class ImageExportSeriesStyle {
             internal string? SeriesColorArgb { get; set; }

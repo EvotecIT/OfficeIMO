@@ -1,8 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
         //     Represents a chart on a slide.
@@ -18,14 +15,14 @@ namespace OfficeIMO.PowerPoint {
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 ApplySeriesLeaderLineTemplate(series, template);
-                ApplyDataLabelTemplate(EnsureDataLabel(series, pointIndex), template);
+                ApplyPointDataLabelTemplate(EnsureDataLabel(series, pointIndex), template);
             });
 
             if (!applied) {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -40,14 +37,14 @@ namespace OfficeIMO.PowerPoint {
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 ApplySeriesLeaderLineTemplate(series, template);
-                ApplyDataLabelTemplate(EnsureDataLabel(series, pointIndex), template);
+                ApplyPointDataLabelTemplate(EnsureDataLabel(series, pointIndex), template);
             });
 
             if (!applied) {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -66,7 +63,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -85,7 +82,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -103,7 +100,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelOverrides(label, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
                     position, numberFormat, sourceLinked);
             });
@@ -112,7 +109,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -130,7 +127,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelOverrides(label, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
                     position, numberFormat, sourceLinked);
             });
@@ -139,7 +136,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -156,7 +153,7 @@ namespace OfficeIMO.PowerPoint {
             ValidateTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontFamily);
             });
 
@@ -164,7 +161,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -181,7 +178,7 @@ namespace OfficeIMO.PowerPoint {
             ValidateTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontFamily);
             });
 
@@ -189,7 +186,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -206,7 +203,7 @@ namespace OfficeIMO.PowerPoint {
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelShapeStyle(label, fillColor, lineColor, lineWidth, noFill, noLine);
             });
 
@@ -214,7 +211,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -231,7 +228,7 @@ namespace OfficeIMO.PowerPoint {
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelShapeStyle(label, fillColor, lineColor, lineWidth, noFill, noLine);
             });
 
@@ -239,7 +236,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -253,7 +250,7 @@ namespace OfficeIMO.PowerPoint {
 
             OfficeChartDataLabelPosition? resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelOverrides(label, showLegendKey: false, showValue: enabled, showCategoryName: false,
                     showSeriesName: false, showPercent: false, position: resolvedPosition, numberFormat: null,
                     sourceLinked: false);
@@ -264,7 +261,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -279,7 +276,7 @@ namespace OfficeIMO.PowerPoint {
 
             OfficeChartDataLabelPosition? resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelOverrides(label, showLegendKey: false, showValue: enabled, showCategoryName: false,
                     showSeriesName: false, showPercent: false, position: resolvedPosition, numberFormat: null,
                     sourceLinked: false);
@@ -290,7 +287,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -305,7 +302,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelSeparator(label, separator);
             });
 
@@ -313,7 +310,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
 
@@ -329,7 +326,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                C.DataLabel label = EnsureDataLabel(series, pointIndex);
+                OfficeXmlNode label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelSeparator(label, separator);
             });
 
@@ -337,7 +334,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException($"Series '{seriesName}' was not found.");
             }
 
-            Save();
+            MarkChartEdited();
             return this;
         }
     }
