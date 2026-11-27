@@ -119,14 +119,13 @@ namespace OfficeIMO.OpenXml.Internal {
             return owner.NamespaceId == NsC && owner.LocalName is "title" or "dLbl" or "trendlineLbl" or "dispUnitsLbl";
         }
 
-        // The series name, category, value and bubble size sources the replacement workbook rewrites.
+        // The series name, category, value and bubble size sources the replacement workbook rewrites: direct children of
+        // a series of a chart group in the plot area, where the SDK typed them. Same-named elements kept inside extension
+        // content were unknown elements to the SDK, and the replacement leaves them as they are.
         private static bool IsRewrittenSeriesSource(OfficeXmlNode element) {
-            if (element.NamespaceId != NsC) return false;
-            return element.LocalName switch {
-                "tx" => element.Parent.LocalName == "ser" && element.Parent.NamespaceId == NsC,
-                "cat" or "val" or "xVal" or "yVal" or "bubbleSize" => true,
-                _ => false
-            };
+            if (element.NamespaceId != NsC || element.LocalName is not ("tx" or "cat" or "val" or "xVal" or "yVal" or "bubbleSize")) return false;
+            OfficeXmlNode series = element.Parent;
+            return series.Is(NsC, "ser") && series.Parent.Parent.Is(NsC, "plotArea");
         }
 
         // SDK callers

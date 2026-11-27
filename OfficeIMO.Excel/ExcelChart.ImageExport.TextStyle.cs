@@ -604,15 +604,16 @@ namespace OfficeIMO.Excel {
         private static bool TryGetImageExportTextFontStyle(OfficeXmlNode properties, out OfficeFontStyle fontStyle) {
             fontStyle = OfficeFontStyle.Regular;
             bool hasStyle = false;
-            if (properties.Attribute("b") != null) {
+            // A value that isn't an xsd:boolean throws, as the SDK's typed read did, so the snapshot reports the style.
+            if (properties.Attribute("b") is string bold) {
                 hasStyle = true;
-                if (properties.BooleanAttribute("b") == true) {
+                if (System.Xml.XmlConvert.ToBoolean(bold)) {
                     fontStyle |= OfficeFontStyle.Bold;
                 }
             }
-            if (properties.Attribute("i") != null) {
+            if (properties.Attribute("i") is string italic) {
                 hasStyle = true;
-                if (properties.BooleanAttribute("i") == true) {
+                if (System.Xml.XmlConvert.ToBoolean(italic)) {
                     fontStyle |= OfficeFontStyle.Italic;
                 }
             }

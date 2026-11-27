@@ -61,16 +61,13 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Indexes graphic frames and pictures in document order, as the SDK's descendant walk visits them.</summary>
-        private static void IndexDrawingElements(OfficeXmlNode parent, ExcelPartRef part, Dictionary<DrawingIdentity, OfficeXmlNode> elements) {
-            foreach (OfficeXmlNode element in parent.Children()) {
-                if (element.Is(Xdr, "graphicFrame") || element.Is(Xdr, "pic")) {
-                    if (ExcelDrawingHandle.TryGetIdentity(element, part, out DrawingIdentity identity)) {
-                        // Ambiguous malformed drawing identities must not attach a retained handle to an arbitrary node.
-                        if (elements.ContainsKey(identity)) elements[identity] = OfficeXmlNode.None;
-                        else elements.Add(identity, element);
-                    }
-                }
-                IndexDrawingElements(element, part, elements);
+        private static void IndexDrawingElements(OfficeXmlNode root, ExcelPartRef part, Dictionary<DrawingIdentity, OfficeXmlNode> elements) {
+            for (OfficeXmlNode element = root.FirstChild; !element.IsNone; element = element.NextInSubtree(root)) {
+                if (!element.Is(Xdr, "graphicFrame") && !element.Is(Xdr, "pic")) continue;
+                if (!ExcelDrawingHandle.TryGetIdentity(element, part, out DrawingIdentity identity)) continue;
+                // Ambiguous malformed drawing identities must not attach a retained handle to an arbitrary node.
+                if (elements.ContainsKey(identity)) elements[identity] = OfficeXmlNode.None;
+                else elements.Add(identity, element);
             }
         }
     }

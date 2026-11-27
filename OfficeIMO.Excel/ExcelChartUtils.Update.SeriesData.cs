@@ -40,6 +40,13 @@ namespace OfficeIMO.Excel {
             return map;
         }
 
+        // A line series as the SDK orders it: the schema has no c:pictureOptions there, but the SDK's line series takes one
+        // after c:marker, so data written into a series that has one stays after it.
+        private static readonly OfficeXmlChildOrder LineSeriesOrder = new(
+            new[] { C, C, C, C, C, C, C, C, C, C, C, C, C, C },
+            new[] { "idx", "order", "tx", "spPr", "marker", "pictureOptions", "dPt", "dLbls", "trendline", "errBars", "cat", "val", "smooth", "extLst" },
+            new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 });
+
         // The child order of a c:ser, which depends on the chart element holding it.
         private static OfficeXmlChildOrder SeriesOrder(OfficeXmlNode series) {
             switch (series.Parent.LocalName) {
@@ -49,7 +56,7 @@ namespace OfficeIMO.Excel {
                 case "lineChart":
                 case "line3DChart":
                 case "stockChart":
-                    return CLineSerView.Order;
+                    return LineSeriesOrder;
                 case "areaChart":
                 case "area3DChart":
                     return CAreaSerView.Order;
@@ -113,9 +120,10 @@ namespace OfficeIMO.Excel {
         }
 
         // The chart element children a new series goes before. A chart element's own c:marker (a line chart's marker
-        // flag) is not one of them: only a series marker was, and no chart element holds one.
+        // flag) is not one of them: only a series marker was, and no chart element holds one. A line chart's own
+        // c:smooth is.
         private static readonly string[] SeriesInsertBeforeNames = {
-            "dLbls", "gapWidth", "gapDepth", "overlap", "hiLowLines", "upDownBars", "bandFmts", "shape", "axId", "serLines"
+            "dLbls", "gapWidth", "gapDepth", "overlap", "hiLowLines", "upDownBars", "bandFmts", "shape", "axId", "smooth", "serLines"
         };
 
         private static OfficeXmlNode InsertSeries(OfficeXmlNode chart, OfficeXmlNode series) {

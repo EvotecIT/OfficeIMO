@@ -125,18 +125,12 @@ namespace OfficeIMO.Excel {
             // An SDK-held drawing is walked through the SDK's typed elements, which each chart and image added scans.
             if (worksheetDrawing.IsSdk) return dp.MaxSdkDrawingId() + 1;
             uint max = 0;
-            MaxDrawingId(worksheetDrawing, ref max);
-            return max + 1;
-        }
-
-        private static void MaxDrawingId(OfficeXmlNode element, ref uint max) {
-            for (OfficeXmlNode child = element.FirstChild; child.Exists; child = child.NextSibling) {
-                if (child.Is(Xdr, "cNvPr")) {
-                    uint? id = child.UInt32Attribute("id");
-                    if (id.HasValue && id.Value > max) max = id.Value;
-                }
-                MaxDrawingId(child, ref max);
+            for (OfficeXmlNode current = worksheetDrawing.FirstChild; current.Exists; current = current.NextInSubtree(worksheetDrawing)) {
+                if (!current.Is(Xdr, "cNvPr")) continue;
+                uint? id = current.UInt32Attribute("id");
+                if (id.HasValue && id.Value > max) max = id.Value;
             }
+            return max + 1;
         }
     }
 }

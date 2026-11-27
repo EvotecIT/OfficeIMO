@@ -29,19 +29,16 @@ namespace OfficeIMO.Excel.OpenXml {
         }
 
         private static void CollectNamed(OfficeXmlNode element, string localName, List<OfficeXmlNode> found) {
-            for (OfficeXmlNode child = element.FirstChild; !child.IsNone; child = child.NextSibling) {
-                if (string.Equals(child.LocalName, localName, StringComparison.Ordinal)) found.Add(child);
-                CollectNamed(child, localName, found);
+            for (OfficeXmlNode current = element.FirstChild; !current.IsNone; current = current.NextInSubtree(element)) {
+                if (string.Equals(current.LocalName, localName, StringComparison.Ordinal)) found.Add(current);
             }
         }
 
         /// <summary>The first descendant with this local name in any namespace, in document order, or none.</summary>
         internal static OfficeXmlNode FirstDescendantNamed(OfficeXmlNode element, string localName) {
             if (element.IsNone) return default;
-            for (OfficeXmlNode child = element.FirstChild; !child.IsNone; child = child.NextSibling) {
-                if (string.Equals(child.LocalName, localName, StringComparison.Ordinal)) return child;
-                OfficeXmlNode found = FirstDescendantNamed(child, localName);
-                if (!found.IsNone) return found;
+            for (OfficeXmlNode current = element.FirstChild; !current.IsNone; current = current.NextInSubtree(element)) {
+                if (string.Equals(current.LocalName, localName, StringComparison.Ordinal)) return current;
             }
             return default;
         }
@@ -49,10 +46,8 @@ namespace OfficeIMO.Excel.OpenXml {
         /// <summary>The first descendant with this name in a namespace outside the fixed ids, or none.</summary>
         internal static OfficeXmlNode FirstDescendant(OfficeXmlNode element, string namespaceUri, string localName) {
             if (element.IsNone) return default;
-            for (OfficeXmlNode child = element.FirstChild; !child.IsNone; child = child.NextSibling) {
-                if (child.Is(namespaceUri, localName)) return child;
-                OfficeXmlNode found = FirstDescendant(child, namespaceUri, localName);
-                if (!found.IsNone) return found;
+            for (OfficeXmlNode current = element.FirstChild; !current.IsNone; current = current.NextInSubtree(element)) {
+                if (current.Is(namespaceUri, localName)) return current;
             }
             return default;
         }
@@ -65,9 +60,8 @@ namespace OfficeIMO.Excel.OpenXml {
         }
 
         private static void CollectNamespaced(OfficeXmlNode element, string namespaceUri, string localName, List<OfficeXmlNode> found) {
-            for (OfficeXmlNode child = element.FirstChild; !child.IsNone; child = child.NextSibling) {
-                if (child.Is(namespaceUri, localName)) found.Add(child);
-                CollectNamespaced(child, namespaceUri, localName, found);
+            for (OfficeXmlNode current = element.FirstChild; !current.IsNone; current = current.NextInSubtree(element)) {
+                if (current.Is(namespaceUri, localName)) found.Add(current);
             }
         }
 
@@ -89,15 +83,12 @@ namespace OfficeIMO.Excel.OpenXml {
 
         // Visits the element and its descendants in document order. Stops when the visitor returns true.
         private static bool ForEachRelationshipAttribute(OfficeXmlNode element, Func<string, string, bool> visit) {
-            if (element.IsNone) return false;
-            if (element.HasAttributes) {
-                foreach (OfficeXmlAttribute attribute in element.Attributes()) {
+            for (OfficeXmlNode current = element; !current.IsNone; current = current.NextInSubtree(element)) {
+                if (!current.HasAttributes) continue;
+                foreach (OfficeXmlAttribute attribute in current.Attributes()) {
                     if (string.Equals(attribute.NamespaceUri, RelationshipsUri, StringComparison.Ordinal)
                         && visit(attribute.LocalName, attribute.Value)) return true;
                 }
-            }
-            for (OfficeXmlNode child = element.FirstChild; !child.IsNone; child = child.NextSibling) {
-                if (ForEachRelationshipAttribute(child, visit)) return true;
             }
             return false;
         }

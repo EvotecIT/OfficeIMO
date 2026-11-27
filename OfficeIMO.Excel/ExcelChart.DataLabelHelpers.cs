@@ -373,7 +373,12 @@ namespace OfficeIMO.Excel {
                     : label.New(C, "numFmt").Attr("formatCode", "General").Attr("sourceLinked", false);
                 if (numberFormat != null) format.SetAttribute("formatCode", numberFormat);
                 if (sourceLinked.HasValue) format.Attr("sourceLinked", sourceLinked.Value);
-                if (existing.IsNone) label.AddOrdered(format, label.Is(C, "dLbls") ? CDLblsView.Order : CDLblView.Order);
+                if (existing.IsNone) {
+                    // c:delete and the formatting children are the two branches of one choice; adding a format leaves
+                    // the formatting branch, as the SDK's AddChild did.
+                    label.RemoveChildren(C, "delete");
+                    label.AddOrdered(format, label.Is(C, "dLbls") ? CDLblsView.Order : CDLblView.Order);
+                }
             }
 
             NormalizeDataLabelContainerOrder(label);

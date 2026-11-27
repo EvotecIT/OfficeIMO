@@ -334,10 +334,8 @@ namespace OfficeIMO.Excel {
 
         private static OfficeXmlNode FirstDescendant(OfficeXmlNode element, string localName) {
             if (element.IsNone) return default;
-            foreach (OfficeXmlNode child in element.Children()) {
-                if (child.Is(ChartExUri, localName)) return child;
-                OfficeXmlNode found = FirstDescendant(child, localName);
-                if (found.Exists) return found;
+            for (OfficeXmlNode current = element.FirstChild; current.Exists; current = current.NextInSubtree(element)) {
+                if (current.Is(ChartExUri, localName)) return current;
             }
             return default;
         }
@@ -350,9 +348,8 @@ namespace OfficeIMO.Excel {
 
         private static void CollectDescendants(OfficeXmlNode element, string localName, List<OfficeXmlNode> found) {
             if (element.IsNone) return;
-            foreach (OfficeXmlNode child in element.Children()) {
-                if (child.Is(ChartExUri, localName)) found.Add(child);
-                CollectDescendants(child, localName, found);
+            for (OfficeXmlNode current = element.FirstChild; current.Exists; current = current.NextInSubtree(element)) {
+                if (current.Is(ChartExUri, localName)) found.Add(current);
             }
         }
 

@@ -175,10 +175,19 @@ namespace OfficeIMO.OpenXml.Internal {
             return found;
         }
 
+        // Walks the subtree in document order without recursion, so deeply nested markup can't exhaust the stack.
         private static void CollectDescendants(OfficeXmlNode element, int namespaceId, string localName, List<OfficeXmlNode> found) {
-            foreach (OfficeXmlNode child in element.Children()) {
-                if (child.Is(namespaceId, localName)) found.Add(child);
-                CollectDescendants(child, namespaceId, localName, found);
+            OfficeXmlNode current = element.FirstChild;
+            while (!current.IsNone) {
+                if (current.Is(namespaceId, localName)) found.Add(current);
+                OfficeXmlNode next = current.FirstChild;
+                if (next.IsNone) {
+                    for (OfficeXmlNode up = current; !up.IsNone && up != element; up = up.Parent) {
+                        next = up.NextSibling;
+                        if (!next.IsNone) break;
+                    }
+                }
+                current = next;
             }
         }
 
@@ -219,8 +228,8 @@ namespace OfficeIMO.OpenXml.Internal {
             : _sdk != null ? OfficeSdkXml.GetAttribute(_sdk, namespaceId, localName) : null;
 
         /// <summary>
-        /// The element's attributes in document order, without namespace declarations and markup compatibility
-        /// attributes, as the SDK lists them.
+        /// The element's attributes in document order, without namespace declarations. Markup compatibility attributes
+        /// such as <c>mc:Ignorable</c> are included, as the SDK lists them.
         /// </summary>
         internal List<OfficeXmlAttribute> Attributes() {
             var attributes = new List<OfficeXmlAttribute>();
@@ -228,7 +237,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 int count = _tree.AttributeCountOf(_node);
                 for (int index = 0; index < count; index++) {
                     _tree.GetAttributeAt(_node, index, out int namespaceId, out string localName, out string value);
-                    if (namespaceId is OfficeXmlNamespaces.Xmlns or OfficeXmlNamespaces.MarkupCompatibility) continue;
+                    if (namespaceId == OfficeXmlNamespaces.Xmlns) continue;
                     string uri = namespaceId == OfficeXmlNamespaces.None ? string.Empty : _tree.Namespaces.GetUri(namespaceId);
                     attributes.Add(new OfficeXmlAttribute(uri, localName, value));
                 }
@@ -245,7 +254,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     int count = _tree.AttributeCountOf(_node);
                     for (int index = 0; index < count; index++) {
                         _tree.GetAttributeAt(_node, index, out int namespaceId, out _, out _);
-                        if (namespaceId is not (OfficeXmlNamespaces.Xmlns or OfficeXmlNamespaces.MarkupCompatibility)) return true;
+                        if (namespaceId != OfficeXmlNamespaces.Xmlns) return true;
                     }
                     return false;
                 }

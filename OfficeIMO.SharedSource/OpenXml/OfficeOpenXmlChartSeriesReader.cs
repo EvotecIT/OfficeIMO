@@ -164,14 +164,16 @@ namespace OfficeIMO.OpenXml.Internal {
         /// as the SDK types them.
         /// </summary>
         private static IEnumerable<OfficeXmlNode> CachePoints(OfficeXmlNode node, bool numeric) {
-            bool pointParent = node.NamespaceId == NsC && (numeric
-                ? node.LocalName is "numCache" or "numLit"
-                : node.LocalName is "strCache" or "strLit" or "lvl");
-            for (OfficeXmlNode child = node.FirstChild; !child.IsNone; child = child.NextSibling) {
-                if (pointParent && child.IsChart("pt")) yield return child;
-                foreach (OfficeXmlNode descendant in CachePoints(child, numeric)) yield return descendant;
+            // Walked without recursion, so deeply nested markup under a cache can't exhaust the stack.
+            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = current.NextInSubtree(node)) {
+                if (current.IsChart("pt") && IsPointParent(current.Parent, numeric)) yield return current;
             }
         }
+
+        private static bool IsPointParent(OfficeXmlNode node, bool numeric) =>
+            node.NamespaceId == NsC && (numeric
+                ? node.LocalName is "numCache" or "numLit"
+                : node.LocalName is "strCache" or "strLit" or "lvl");
 
         private static Series ReadSeries(OfficeXmlNode element, IReadOnlyList<double> values,
             IReadOnlyList<double>? xValues, OfficeChartType kind, OfficeXmlNode scheme,

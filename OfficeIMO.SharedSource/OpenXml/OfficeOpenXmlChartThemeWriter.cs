@@ -66,8 +66,12 @@ internal static class OfficeOpenXmlChartThemeWriter {
             if (newProperties) SetOrdered(series, properties, CLineSerView.Order);
         }
         foreach (OfficeXmlNode labels in plot.Descendants(NsC, "dLbls")) {
-            if (labels.Child(NsC, "showVal").IsNone)
+            if (labels.Child(NsC, "showVal").IsNone) {
+                // c:delete and the formatting children are the two branches of one choice; adding c:showVal leaves the
+                // formatting branch, as the SDK's AddChild did.
+                labels.RemoveChildren(NsC, "delete");
                 SetOrdered(labels, labels.CreateVal(NsC, "showVal", Text(style.ShowDataLabels)), CDLblsView.Order);
+            }
             AddTextDefaults(labels, style.AxisFont.Family, style.AxisFontSize, theme.Palette.Text);
         }
     }

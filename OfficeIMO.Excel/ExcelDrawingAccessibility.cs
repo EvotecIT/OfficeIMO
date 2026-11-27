@@ -44,12 +44,10 @@ namespace OfficeIMO.Excel {
         /// <summary>Whether any element below the drawing properties is a <c>decorative</c> flag set to true.</summary>
         internal static bool IsDecorative(OfficeXmlNode properties) {
             if (properties.IsNone) return false;
-            foreach (OfficeXmlNode child in properties.Children()) {
-                if (child.LocalName == "decorative") {
-                    string? value = child.Attribute("val");
-                    if (value == "1" || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)) return true;
-                }
-                if (IsDecorative(child)) return true;
+            for (OfficeXmlNode current = properties.FirstChild; !current.IsNone; current = current.NextInSubtree(properties)) {
+                if (current.LocalName != "decorative") continue;
+                string? value = current.Attribute("val");
+                if (value == "1" || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)) return true;
             }
             return false;
         }

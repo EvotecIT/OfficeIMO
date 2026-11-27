@@ -434,8 +434,10 @@ namespace OfficeIMO.Excel {
             var automaticColors = new OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext();
             OfficeXmlNode scheme = ImageExportColorScheme(workbookPart);
             int seriesOrder = 0;
+            // Series of the chart groups under the plot area, the ones the chart data reader returns; a c:ser inside
+            // extension content was an unknown element to the SDK and never matched.
             foreach (OfficeXmlNode series in plotArea.Descendants(C, "ser")
-                         .Where(IsImageExportSeriesElement)
+                         .Where(item => item.Parent.Parent == plotArea && IsImageExportSeriesElement(item))
                          .OrderBy(item => item.Parent.Is(C, "bubbleChart")
                              ? item.Child(C, "order").UInt32Val() ?? uint.MaxValue
                              : item.Child(C, "idx").UInt32Val() ?? uint.MaxValue)) {
