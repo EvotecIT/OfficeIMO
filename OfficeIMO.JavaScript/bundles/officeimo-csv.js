@@ -500,19 +500,24 @@ _modules.set("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5",
 return _exports;
 })();
 
-const _m9 = _modules.get("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f") ?? (() => {
+const _m9 = _modules.get("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244") ?? (() => {
 /** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
 function notifyProgress(callback, progress) {
+    notifySynchronously("onProgress", callback, progress);
+}
+/** @internal Run a host notification that must finish before the export continues. A returned promise is observed,
+ * so its rejection is never unhandled, and the export fails instead of reporting success before the callback ends. */
+function notifySynchronously(name, callback, value) {
     if (!callback)
         return;
-    const result = callback(progress);
+    const result = callback(value);
     if (result && typeof result.then === "function") {
         void Promise.resolve(result).catch(() => { });
-        throw new TypeError("onProgress must be synchronous.");
+        throw new TypeError(name + " must be synchronous.");
     }
 }
-const _exports = Object.freeze({ notifyProgress: notifyProgress });
-_modules.set("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f", _exports);
+const _exports = Object.freeze({ notifyProgress: notifyProgress, notifySynchronously: notifySynchronously });
+_modules.set("4eea31c4336d3c43bc743739843a3ef31803d8f0ed553f5645ee9de2554eb244", _exports);
 return _exports;
 })();
 
@@ -1110,7 +1115,7 @@ _modules.set("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00",
 return _exports;
 })();
 
-const _m0 = _modules.get("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4") ?? (() => {
+const _m0 = _modules.get("406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580") ?? (() => {
 const { beginTask, checkAbort, consumeRows, taskYieldDue, withAbort } = _m1;
 
 const { BlobByteSink, ChunkedTextSink, withDestination } = _m2;
@@ -1260,7 +1265,7 @@ async function writeCsv(rows, configuration) {
     }
 }
 const _exports = Object.freeze({ saveBlob: _m16.saveBlob, ExportCell: _m6.ExportCell, writeCsvTo: writeCsvTo, writeCsv: writeCsv });
-_modules.set("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4", _exports);
+_modules.set("406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0, { core: _m16, csv: _m0 });

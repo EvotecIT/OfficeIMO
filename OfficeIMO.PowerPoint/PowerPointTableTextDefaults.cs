@@ -1,29 +1,29 @@
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static class PowerPointTableTextDefaults {
         internal const string Language = "en-US";
 
-        internal static A.TextBody CreateTextBody(string text = "") {
-            return new A.TextBody(
-                new A.BodyProperties(),
-                new A.ListStyle(),
-                CreateParagraph(text));
-        }
-
-        internal static A.Paragraph CreateParagraph(string text = "") {
-            var paragraph = string.IsNullOrEmpty(text)
-                ? new A.Paragraph(CreateRun(string.Empty))
-                : new A.Paragraph(PowerPointTextContent.CreateInlineContent(
-                    text, new A.RunProperties { Language = Language }));
-            paragraph.Append(new A.EndParagraphRunProperties { Language = Language });
+        /// <summary>A detached paragraph of a new cell: one run of text, or one empty run, and end properties with a language.</summary>
+        internal static OfficeXmlNode CreateParagraph(OfficeXmlNode context, string text = "") {
+            OfficeXmlNode paragraph = context.CreateElement(OfficeXmlNamespaces.DrawingML, "p");
+            if (string.IsNullOrEmpty(text)) {
+                OfficeXmlNode run = paragraph.Append(paragraph.CreateElement(OfficeXmlNamespaces.DrawingML, "r"));
+                run.Append(CreateProperties(run, "rPr"));
+                run.Append(run.CreateElement(OfficeXmlNamespaces.DrawingML, "t"));
+            } else {
+                PowerPointTextContent.InsertInlineContent(paragraph, text, CreateProperties(paragraph, "rPr"), default);
+            }
+            paragraph.Append(CreateProperties(paragraph, "endParaRPr"));
             return paragraph;
         }
 
-        internal static A.Run CreateRun(string text) {
-            return new A.Run(
-                new A.RunProperties { Language = Language },
-                new A.Text(text ?? string.Empty));
+        /// <summary>Detached run or end properties carrying only the default language.</summary>
+        internal static OfficeXmlNode CreateProperties(OfficeXmlNode context, string localName) {
+            OfficeXmlNode properties = context.CreateElement(OfficeXmlNamespaces.DrawingML, localName);
+            properties.SetAttribute("lang", Language);
+            return properties;
         }
     }
 }

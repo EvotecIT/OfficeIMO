@@ -1,17 +1,18 @@
 using DocumentFormat.OpenXml;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         /// <summary>Describes what a flat projection of a native chart group leaves out, or null when nothing is.</summary>
-        internal static string? DescribeProjection(OpenXmlElement group) {
+        internal static string? DescribeProjection(OfficeXmlNode group) {
             string? omitted = group.LocalName switch {
                 "bar3DChart" or "line3DChart" or "area3DChart" or "pie3DChart" =>
                     "3-D depth, perspective and lighting",
                 "ofPieChart" => "the secondary pie or bar that details the split slices",
                 "surfaceChart" or "surface3DChart" => "surface bands and their colour scale; the series are drawn as lines",
-                "stockChart" when group.GetFirstChild<C.UpDownBars>() != null => "up and down bars",
+                "stockChart" when !group.Child(NsC, "upDownBars").IsNone => "up and down bars",
                 _ => null
             };
             return omitted == null ? null :
@@ -19,16 +20,16 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         /// <summary>Reads the shared data family; 3-D groups still require separate projection qualification.</summary>
-        internal static bool TryReadKind(OpenXmlElement group, out OfficeChartType kind) {
+        internal static bool TryReadKind(OfficeXmlNode group, out OfficeChartType kind) {
             kind = default;
             switch (group.LocalName) {
                 case "barChart":
                 case "bar3DChart":
-                    bool horizontal = group.GetFirstChild<C.BarDirection>()?.Val?.Value == C.BarDirectionValues.Bar;
-                    var barGrouping = group.GetFirstChild<C.BarGrouping>()?.Val?.Value;
-                    kind = barGrouping == C.BarGroupingValues.Stacked
+                    bool horizontal = group.ChildVal(NsC, "barDir") == "bar";
+                    string? barGrouping = group.ChildVal(NsC, "grouping");
+                    kind = barGrouping == "stacked"
                         ? horizontal ? OfficeChartType.BarStacked : OfficeChartType.ColumnStacked
-                        : barGrouping == C.BarGroupingValues.PercentStacked
+                        : barGrouping == "percentStacked"
                             ? horizontal ? OfficeChartType.BarStacked100 : OfficeChartType.ColumnStacked100
                             : horizontal ? OfficeChartType.BarClustered : OfficeChartType.ColumnClustered;
                     return true;
@@ -37,10 +38,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 case "areaChart":
                 case "area3DChart":
                     bool area = group.LocalName.StartsWith("area", System.StringComparison.Ordinal);
-                    var grouping = group.GetFirstChild<C.Grouping>()?.Val?.Value;
-                    kind = grouping == C.GroupingValues.Stacked
+                    string? grouping = group.ChildVal(NsC, "grouping");
+                    kind = grouping == "stacked"
                         ? area ? OfficeChartType.AreaStacked : OfficeChartType.LineStacked
-                        : grouping == C.GroupingValues.PercentStacked
+                        : grouping == "percentStacked"
                             ? area ? OfficeChartType.AreaStacked100 : OfficeChartType.LineStacked100
                             : area ? OfficeChartType.Area : OfficeChartType.Line;
                     return true;
@@ -55,5 +56,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 default: return false;
             }
         }
+
+        // SDK callers
+        internal static string? DescribeProjection(OpenXmlElement group) => DescribeProjection(OfficeXmlNode.FromSdk(group));
+
+        internal static bool TryReadKind(OpenXmlElement group, out OfficeChartType kind) => TryReadKind(OfficeXmlNode.FromSdk(group), out kind);
     }
 }

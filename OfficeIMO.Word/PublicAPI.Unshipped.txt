@@ -716,3 +716,4 @@ OfficeIMO.Word.WordChart.SaveAsImage(string! path, OfficeIMO.Drawing.OfficeChart
 OfficeIMO.Word.WordChart.ToImage(OfficeIMO.Drawing.OfficeChartImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
 OfficeIMO.Word.WordDocument.AllCharts.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordChart!>!
 OfficeIMO.Word.WordDocument.OpenXmlSdkFallbacks.get -> System.Collections.Generic.IReadOnlyList<string!>!
+static OfficeIMO.Word.WordFontResolver.ToDocumentFont(string? fontFamily) -> string?

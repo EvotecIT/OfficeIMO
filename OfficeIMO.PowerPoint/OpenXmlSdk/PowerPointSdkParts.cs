@@ -72,11 +72,17 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
             return owner.OpenXmlPackage.GetAllParts().FirstOrDefault(candidate => string.Equals(candidate.Uri.OriginalString, name, StringComparison.OrdinalIgnoreCase));
         }
 
-        internal static IEnumerable<object> RelatedParts(object part, string relationshipType) {
+        internal static IEnumerable<KeyValuePair<string, object>> RelatedParts(object part, string relationshipType) {
             foreach (IdPartPair pair in P(part).Parts) {
-                if (string.Equals(pair.OpenXmlPart.RelationshipType, relationshipType, StringComparison.Ordinal)) yield return pair.OpenXmlPart;
+                if (string.Equals(pair.OpenXmlPart.RelationshipType, relationshipType, StringComparison.Ordinal)) yield return new(pair.RelationshipId, pair.OpenXmlPart);
             }
         }
+
+        internal static string ContentType(object part) => P(part).ContentType;
+
+        internal static Stream GetStream(object part, FileMode mode, FileAccess access) => P(part).GetStream(mode, access);
+
+        internal static void SaveRoot(object part) => P(part).RootElement?.Save();
 
         internal static string AddHyperlink(object part, Uri uri, bool external) => P(part).AddHyperlinkRelationship(uri, external).Id;
 
@@ -117,6 +123,8 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
         /// <summary>Removes a relationship the part's content no longer uses, with media only it used.</summary>
         internal static void RemoveRelationshipIfUnused(object part, string id, object? owningSlide) {
             OpenXmlPart owner = P(part);
+            // A read-only presentation can't be saved, so its relationships are left as they are, as on the package.
+            if (owner.OpenXmlPackage.FileOpenAccess == FileAccess.Read) return;
             if (owner.RootElement != null && ReferencesRelationship(owner.RootElement, id)) return;
             if (owner is NotesSlidePart && owningSlide != null
                 && owner.Parts.Any(pair => string.Equals(pair.RelationshipId, id, StringComparison.Ordinal) && ReferenceEquals(pair.OpenXmlPart, owningSlide))) return;

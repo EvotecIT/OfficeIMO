@@ -1,8 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>One editable node in an imported SmartArt topology.</summary>
@@ -146,12 +146,12 @@ namespace OfficeIMO.PowerPoint {
                 connection.SetAttributeValue("srcOrd", node.Order.ToString(CultureInfo.InvariantCulture));
             }
             if (!TrySynchronizePersistedBasicProcessTopology(xdoc, ns,
-                    current, requested, out DiagramPersistLayoutPart? persistPart,
+                    current, requested, out PowerPointPartRef persistPart,
                     out XDocument? persistDocument,
                     out string persistDiagnostic)) {
                 throw new NotSupportedException(persistDiagnostic);
             }
-            if (persistPart != null && persistDocument != null) {
+            if (!persistPart.IsNone && persistDocument != null) {
                 SaveDiagramTopologyAtomically(dataPart, xdoc, persistPart,
                     persistDocument);
             } else {

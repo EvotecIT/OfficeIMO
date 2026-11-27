@@ -1,15 +1,26 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using ChartIndex = DocumentFormat.OpenXml.Drawing.Charts.Index;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
         private const string ChartNamespace = "http://schemas.openxmlformats.org/drawingml/2006/chart";
         private const string DrawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
         private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+        // Schema tokens of the chart enumerations this code reads and writes.
+        private const string BarDirectionBar = "bar";
+        private const string BarDirectionColumn = "col";
+        private const string BarGroupingClustered = "clustered";
+        private const string GroupingStandard = "standard";
+        private const string GroupingStacked = "stacked";
+        private const string GroupingPercentStacked = "percentStacked";
+        private const string OfPieTypePie = "pie";
+        private const string OfPieTypeBar = "bar";
+        private const string AxisPositionBottom = "b";
+        private const string AxisPositionLeft = "l";
+        private const string AxisPositionRight = "r";
+        private const string AxisPositionTop = "t";
 
         private sealed class SeriesDescriptor {
             public SeriesDescriptor(int index, ExcelChartSeries? series, OfficeChartType chartType, OfficeChartAxisGroup axisGroup) {
@@ -159,60 +170,68 @@ namespace OfficeIMO.Excel {
             return descriptors;
         }
 
-        internal static OfficeChartType InferChartType(PlotArea plotArea) {
-            if (plotArea.GetFirstChild<BarChart>() is BarChart barChart) {
-                BarDirectionValues direction = barChart.GetFirstChild<BarDirection>()?.Val ?? BarDirectionValues.Column;
-                BarGroupingValues grouping = barChart.GetFirstChild<BarGrouping>()?.Val ?? BarGroupingValues.Clustered;
-                if (direction == BarDirectionValues.Bar) {
-                    if (grouping == BarGroupingValues.PercentStacked) return OfficeChartType.BarStacked100;
-                    return grouping == BarGroupingValues.Stacked ? OfficeChartType.BarStacked : OfficeChartType.BarClustered;
+        internal static OfficeChartType InferChartType(OfficeXmlNode plotArea) {
+            OfficeXmlNode barChart = plotArea.Child(C, "barChart");
+            if (barChart.Exists) {
+                string direction = barChart.ChildVal(C, "barDir") ?? BarDirectionColumn;
+                string grouping = barChart.ChildVal(C, "grouping") ?? BarGroupingClustered;
+                if (direction == BarDirectionBar) {
+                    if (grouping == GroupingPercentStacked) return OfficeChartType.BarStacked100;
+                    return grouping == GroupingStacked ? OfficeChartType.BarStacked : OfficeChartType.BarClustered;
                 }
-                if (grouping == BarGroupingValues.PercentStacked) return OfficeChartType.ColumnStacked100;
-                return grouping == BarGroupingValues.Stacked ? OfficeChartType.ColumnStacked : OfficeChartType.ColumnClustered;
+                if (grouping == GroupingPercentStacked) return OfficeChartType.ColumnStacked100;
+                return grouping == GroupingStacked ? OfficeChartType.ColumnStacked : OfficeChartType.ColumnClustered;
             }
-            if (plotArea.GetFirstChild<Bar3DChart>() is Bar3DChart bar3DChart) {
-                BarDirectionValues direction = bar3DChart.GetFirstChild<BarDirection>()?.Val ?? BarDirectionValues.Column;
-                BarGroupingValues grouping = bar3DChart.GetFirstChild<BarGrouping>()?.Val ?? BarGroupingValues.Clustered;
-                if (direction == BarDirectionValues.Bar) {
-                    if (grouping == BarGroupingValues.PercentStacked) return OfficeChartType.Bar3DStacked100;
-                    return grouping == BarGroupingValues.Stacked ? OfficeChartType.Bar3DStacked : OfficeChartType.Bar3DClustered;
+            OfficeXmlNode bar3DChart = plotArea.Child(C, "bar3DChart");
+            if (bar3DChart.Exists) {
+                string direction = bar3DChart.ChildVal(C, "barDir") ?? BarDirectionColumn;
+                string grouping = bar3DChart.ChildVal(C, "grouping") ?? BarGroupingClustered;
+                if (direction == BarDirectionBar) {
+                    if (grouping == GroupingPercentStacked) return OfficeChartType.Bar3DStacked100;
+                    return grouping == GroupingStacked ? OfficeChartType.Bar3DStacked : OfficeChartType.Bar3DClustered;
                 }
-                if (grouping == BarGroupingValues.PercentStacked) return OfficeChartType.Column3DStacked100;
-                return grouping == BarGroupingValues.Stacked ? OfficeChartType.Column3DStacked : OfficeChartType.Column3DClustered;
+                if (grouping == GroupingPercentStacked) return OfficeChartType.Column3DStacked100;
+                return grouping == GroupingStacked ? OfficeChartType.Column3DStacked : OfficeChartType.Column3DClustered;
             }
-            if (plotArea.GetFirstChild<Line3DChart>() != null) return OfficeChartType.Line3D;
-            if (plotArea.GetFirstChild<LineChart>() is LineChart lineChart) {
-                GroupingValues grouping = lineChart.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard;
-                if (grouping == GroupingValues.PercentStacked) return OfficeChartType.LineStacked100;
-                return grouping == GroupingValues.Stacked ? OfficeChartType.LineStacked : OfficeChartType.Line;
+            if (plotArea.Child(C, "line3DChart").Exists) return OfficeChartType.Line3D;
+            OfficeXmlNode lineChart = plotArea.Child(C, "lineChart");
+            if (lineChart.Exists) {
+                string grouping = lineChart.ChildVal(C, "grouping") ?? GroupingStandard;
+                if (grouping == GroupingPercentStacked) return OfficeChartType.LineStacked100;
+                return grouping == GroupingStacked ? OfficeChartType.LineStacked : OfficeChartType.Line;
             }
-            if (plotArea.GetFirstChild<Area3DChart>() is Area3DChart area3DChart) {
-                GroupingValues grouping = area3DChart.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard;
-                if (grouping == GroupingValues.PercentStacked) return OfficeChartType.Area3DStacked100;
-                return grouping == GroupingValues.Stacked ? OfficeChartType.Area3DStacked : OfficeChartType.Area3D;
+            OfficeXmlNode area3DChart = plotArea.Child(C, "area3DChart");
+            if (area3DChart.Exists) {
+                string grouping = area3DChart.ChildVal(C, "grouping") ?? GroupingStandard;
+                if (grouping == GroupingPercentStacked) return OfficeChartType.Area3DStacked100;
+                return grouping == GroupingStacked ? OfficeChartType.Area3DStacked : OfficeChartType.Area3D;
             }
-            if (plotArea.GetFirstChild<AreaChart>() is AreaChart areaChart) {
-                GroupingValues grouping = areaChart.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard;
-                if (grouping == GroupingValues.PercentStacked) return OfficeChartType.AreaStacked100;
-                return grouping == GroupingValues.Stacked ? OfficeChartType.AreaStacked : OfficeChartType.Area;
+            OfficeXmlNode areaChart = plotArea.Child(C, "areaChart");
+            if (areaChart.Exists) {
+                string grouping = areaChart.ChildVal(C, "grouping") ?? GroupingStandard;
+                if (grouping == GroupingPercentStacked) return OfficeChartType.AreaStacked100;
+                return grouping == GroupingStacked ? OfficeChartType.AreaStacked : OfficeChartType.Area;
             }
-            if (plotArea.GetFirstChild<OfPieChart>() is OfPieChart ofPieChart) {
-                OfPieValues type = ofPieChart.GetFirstChild<OfPieType>()?.Val ?? OfPieValues.Pie;
-                return type == OfPieValues.Bar ? OfficeChartType.BarOfPie : OfficeChartType.PieOfPie;
+            OfficeXmlNode ofPieChart = plotArea.Child(C, "ofPieChart");
+            if (ofPieChart.Exists) {
+                string type = ofPieChart.ChildVal(C, "ofPieType") ?? OfPieTypePie;
+                return type == OfPieTypeBar ? OfficeChartType.BarOfPie : OfficeChartType.PieOfPie;
             }
-            if (plotArea.GetFirstChild<Pie3DChart>() != null) return OfficeChartType.Pie3D;
-            if (plotArea.GetFirstChild<PieChart>() != null) return OfficeChartType.Pie;
-            if (plotArea.GetFirstChild<DoughnutChart>() != null) return OfficeChartType.Doughnut;
-            if (plotArea.GetFirstChild<ScatterChart>() != null) return OfficeChartType.Scatter;
-            if (plotArea.GetFirstChild<BubbleChart>() != null) return OfficeChartType.Bubble;
-            if (plotArea.GetFirstChild<RadarChart>() != null) return OfficeChartType.Radar;
-            if (plotArea.GetFirstChild<StockChart>() != null) return OfficeChartType.Stock;
-            if (plotArea.GetFirstChild<Surface3DChart>() is Surface3DChart surface3DChart) {
-                bool wireframe = surface3DChart.GetFirstChild<Wireframe>()?.Val ?? false;
+            if (plotArea.Child(C, "pie3DChart").Exists) return OfficeChartType.Pie3D;
+            if (plotArea.Child(C, "pieChart").Exists) return OfficeChartType.Pie;
+            if (plotArea.Child(C, "doughnutChart").Exists) return OfficeChartType.Doughnut;
+            if (plotArea.Child(C, "scatterChart").Exists) return OfficeChartType.Scatter;
+            if (plotArea.Child(C, "bubbleChart").Exists) return OfficeChartType.Bubble;
+            if (plotArea.Child(C, "radarChart").Exists) return OfficeChartType.Radar;
+            if (plotArea.Child(C, "stockChart").Exists) return OfficeChartType.Stock;
+            OfficeXmlNode surface3DChart = plotArea.Child(C, "surface3DChart");
+            if (surface3DChart.Exists) {
+                bool wireframe = surface3DChart.ChildBoolVal(C, "wireframe") ?? false;
                 return wireframe ? OfficeChartType.SurfaceWireframe : OfficeChartType.Surface;
             }
-            if (plotArea.GetFirstChild<SurfaceChart>() is SurfaceChart surfaceChart) {
-                bool wireframe = surfaceChart.GetFirstChild<Wireframe>()?.Val ?? false;
+            OfficeXmlNode surfaceChart = plotArea.Child(C, "surfaceChart");
+            if (surfaceChart.Exists) {
+                bool wireframe = surfaceChart.ChildBoolVal(C, "wireframe") ?? false;
                 return wireframe ? OfficeChartType.SurfaceContourWireframe : OfficeChartType.SurfaceContour;
             }
             return OfficeChartType.ColumnClustered;
@@ -354,39 +373,39 @@ namespace OfficeIMO.Excel {
             return groups;
         }
 
-        private static GroupingValues GetAreaGrouping(OfficeChartType chartType) {
+        private static string GetAreaGrouping(OfficeChartType chartType) {
             return chartType switch {
-                OfficeChartType.AreaStacked => GroupingValues.Stacked,
-                OfficeChartType.AreaStacked100 => GroupingValues.PercentStacked,
-                OfficeChartType.Area3DStacked => GroupingValues.Stacked,
-                OfficeChartType.Area3DStacked100 => GroupingValues.PercentStacked,
-                _ => GroupingValues.Standard
+                OfficeChartType.AreaStacked => GroupingStacked,
+                OfficeChartType.AreaStacked100 => GroupingPercentStacked,
+                OfficeChartType.Area3DStacked => GroupingStacked,
+                OfficeChartType.Area3DStacked100 => GroupingPercentStacked,
+                _ => GroupingStandard
             };
         }
 
-        private static GroupingValues GetLineGrouping(OfficeChartType chartType) {
+        private static string GetLineGrouping(OfficeChartType chartType) {
             return chartType switch {
-                OfficeChartType.LineStacked => GroupingValues.Stacked,
-                OfficeChartType.LineStacked100 => GroupingValues.PercentStacked,
-                _ => GroupingValues.Standard
+                OfficeChartType.LineStacked => GroupingStacked,
+                OfficeChartType.LineStacked100 => GroupingPercentStacked,
+                _ => GroupingStandard
             };
         }
 
-        private static (BarDirectionValues Direction, BarGroupingValues Grouping) GetBarChartSettings(OfficeChartType chartType) {
+        private static (string Direction, string Grouping) GetBarChartSettings(OfficeChartType chartType) {
             return chartType switch {
-                OfficeChartType.ColumnClustered => (BarDirectionValues.Column, BarGroupingValues.Clustered),
-                OfficeChartType.ColumnStacked => (BarDirectionValues.Column, BarGroupingValues.Stacked),
-                OfficeChartType.ColumnStacked100 => (BarDirectionValues.Column, BarGroupingValues.PercentStacked),
-                OfficeChartType.Column3DClustered => (BarDirectionValues.Column, BarGroupingValues.Clustered),
-                OfficeChartType.Column3DStacked => (BarDirectionValues.Column, BarGroupingValues.Stacked),
-                OfficeChartType.Column3DStacked100 => (BarDirectionValues.Column, BarGroupingValues.PercentStacked),
-                OfficeChartType.BarClustered => (BarDirectionValues.Bar, BarGroupingValues.Clustered),
-                OfficeChartType.BarStacked => (BarDirectionValues.Bar, BarGroupingValues.Stacked),
-                OfficeChartType.BarStacked100 => (BarDirectionValues.Bar, BarGroupingValues.PercentStacked),
-                OfficeChartType.Bar3DClustered => (BarDirectionValues.Bar, BarGroupingValues.Clustered),
-                OfficeChartType.Bar3DStacked => (BarDirectionValues.Bar, BarGroupingValues.Stacked),
-                OfficeChartType.Bar3DStacked100 => (BarDirectionValues.Bar, BarGroupingValues.PercentStacked),
-                _ => (BarDirectionValues.Column, BarGroupingValues.Clustered)
+                OfficeChartType.ColumnClustered => (BarDirectionColumn, BarGroupingClustered),
+                OfficeChartType.ColumnStacked => (BarDirectionColumn, GroupingStacked),
+                OfficeChartType.ColumnStacked100 => (BarDirectionColumn, GroupingPercentStacked),
+                OfficeChartType.Column3DClustered => (BarDirectionColumn, BarGroupingClustered),
+                OfficeChartType.Column3DStacked => (BarDirectionColumn, GroupingStacked),
+                OfficeChartType.Column3DStacked100 => (BarDirectionColumn, GroupingPercentStacked),
+                OfficeChartType.BarClustered => (BarDirectionBar, BarGroupingClustered),
+                OfficeChartType.BarStacked => (BarDirectionBar, GroupingStacked),
+                OfficeChartType.BarStacked100 => (BarDirectionBar, GroupingPercentStacked),
+                OfficeChartType.Bar3DClustered => (BarDirectionBar, BarGroupingClustered),
+                OfficeChartType.Bar3DStacked => (BarDirectionBar, GroupingStacked),
+                OfficeChartType.Bar3DStacked100 => (BarDirectionBar, GroupingPercentStacked),
+                _ => (BarDirectionColumn, BarGroupingClustered)
             };
         }
 

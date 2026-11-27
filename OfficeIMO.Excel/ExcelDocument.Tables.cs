@@ -6,7 +6,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Returns all Excel tables defined in the workbook.
         /// </summary>
-        public IReadOnlyList<ExcelTableInfo> GetTables() => GetTables(null);
+        public IReadOnlyList<ExcelTableInfo> GetTables() =>
+            TryGetDeferredTables(null, out List<ExcelTableInfo> deferred) ? deferred : GetTables(null);
 
         /// <summary>
         /// Describes the table of a pending direct table on <paramref name="sheet"/> as loading its rows would leave it,

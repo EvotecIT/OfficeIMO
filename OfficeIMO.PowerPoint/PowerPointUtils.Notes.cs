@@ -7,6 +7,64 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointUtils {
 
+        /// <summary>
+        /// The notes slide part of a slide the SDK holds, created as the notes model first uses it: an empty body
+        /// placeholder, with relationships back to the slide and to the presentation's notes master, which is created
+        /// too when the presentation has none. Takes and returns SDK parts as <see cref="object"/>.
+        /// </summary>
+        internal static object EnsureNotesSlidePart(object slide) {
+            SlidePart slidePart = (SlidePart)slide;
+            NotesSlidePart? notesPart = slidePart.NotesSlidePart;
+            if (notesPart == null) {
+                var used = new HashSet<string>(
+                    slidePart.Parts.Select(part => part.RelationshipId)
+                        .Concat(slidePart.DataPartReferenceRelationships.Select(relationship => relationship.Id))
+                        .Concat(slidePart.ExternalRelationships.Select(relationship => relationship.Id))
+                        .Concat(slidePart.HyperlinkRelationships.Select(relationship => relationship.Id))
+                        .Where(id => !string.IsNullOrEmpty(id)),
+                    StringComparer.Ordinal);
+                int number = 1;
+                string relationshipId;
+                do {
+                    relationshipId = "rId" + number++;
+                } while (!used.Add(relationshipId));
+                notesPart = slidePart.AddNewPart<NotesSlidePart>(relationshipId);
+            }
+
+            if (!notesPart.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, slidePart))) notesPart.AddPart(slidePart);
+            if (slidePart.GetParentPresentationPart() is { } presentationPart) {
+                NotesMasterPart notesMasterPart = EnsureNotesMasterPart(presentationPart);
+                if (!notesPart.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, notesMasterPart))) notesPart.AddPart(notesMasterPart);
+            }
+
+            if (notesPart.NotesSlide == null) {
+                ShapeTree shapeTree = new ShapeTree(
+                    new P.NonVisualGroupShapeProperties(
+                        new P.NonVisualDrawingProperties { Id = 1U, Name = "Notes Group Shape" },
+                        new P.NonVisualGroupShapeDrawingProperties(),
+                        new ApplicationNonVisualDrawingProperties()),
+                    CreateDefaultGroupShapeProperties());
+                shapeTree.Append(new P.Shape(
+                    new P.NonVisualShapeProperties(
+                        new P.NonVisualDrawingProperties { Id = 2U, Name = "Notes Placeholder 1" },
+                        new P.NonVisualShapeDrawingProperties(new D.ShapeLocks { NoGrouping = true }),
+                        new ApplicationNonVisualDrawingProperties(new PlaceholderShape { Type = PlaceholderValues.Body, Index = 1U })),
+                    new P.ShapeProperties(),
+                    new P.TextBody(
+                        new D.BodyProperties(),
+                        new D.ListStyle(),
+                        new D.Paragraph(
+                            new D.Run(new D.RunProperties { Language = "en-US" }, new D.Text()),
+                            new D.EndParagraphRunProperties { Language = "en-US" }))));
+                notesPart.NotesSlide = new NotesSlide(new CommonSlideData(shapeTree), new ColorMapOverride(new D.MasterColorMapping()));
+            }
+
+            return notesPart;
+        }
+
+        /// <summary>Writes the notes slide of a slide the SDK holds, when it has one loaded.</summary>
+        internal static void SaveNotesSlide(object slide) => ((SlidePart)slide).NotesSlidePart?.NotesSlide?.Save();
+
         internal static NotesMasterPart EnsureNotesMasterPart(PresentationPart presentationPart) {
             NotesMasterPart notesMasterPart = presentationPart.NotesMasterPart ?? presentationPart.AddNewPart<NotesMasterPart>();
 

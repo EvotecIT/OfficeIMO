@@ -1,27 +1,32 @@
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a table column.
     /// </summary>
     public sealed class PowerPointTableColumn {
+        private const int D = OfficeXmlNamespaces.DrawingML;
         private readonly PowerPointTable _table;
+        private readonly PowerPointHeldNode _column;
 
-        internal PowerPointTableColumn(PowerPointTable table, A.GridColumn column) {
+        internal PowerPointTableColumn(PowerPointTable table, OfficeXmlNode column) {
             _table = table ?? throw new ArgumentNullException(nameof(table));
-            Column = column ?? throw new ArgumentNullException(nameof(column));
+            if (column.IsNone) throw new ArgumentNullException(nameof(column));
+            _column = new PowerPointHeldNode(column, table);
         }
 
-        internal A.GridColumn Column { get; }
+        internal OfficeXmlNode Column => _column.Element;
 
         /// <summary>
         ///     Gets the zero-based index of the column within the table.
         /// </summary>
         public int Index {
             get {
+                OfficeXmlNode current = Column;
                 int index = 0;
-                foreach (A.GridColumn column in _table.TableElement.TableGrid?.Elements<A.GridColumn>() ?? Enumerable.Empty<A.GridColumn>()) {
-                    if (ReferenceEquals(column, Column)) {
+                foreach (OfficeXmlNode column in _table.TableNode.Child(D, "tblGrid").Children(D, "gridCol")) {
+                    if (column.Equals(current)) {
                         return index;
                     }
                     index++;
@@ -34,8 +39,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the column width as a physical length.
         /// </summary>
         public OfficeLength? Width {
-            get => Column.Width?.Value is { } extent ? OfficeLength.Emus(extent) : null;
-            set => Column.Width = value?.ToEmus();
+            get => Column.Int64Attribute("w") is { } extent ? OfficeLength.Emus(extent) : null;
+            set {
+                Column.SetInt64Attribute("w", value?.ToEmus());
+                _table.OwnerPartRef.MarkEdited();
+            }
         }
 
         /// <summary>
@@ -48,9 +56,9 @@ namespace OfficeIMO.PowerPoint {
                     return Array.Empty<PowerPointTableCell>();
                 }
 
-                return _table.TableElement.Elements<A.TableRow>()
-                    .Select(row => _table.WrapCell(row.Elements<A.TableCell>().ElementAt(index)))
-                    .ToList();
+                var cells = new List<PowerPointTableCell>();
+                foreach (OfficeXmlNode row in _table.TableNode.Children(D, "tr")) cells.Add(_table.CellFor(CellAt(row, index)));
+                return cells;
             }
         }
 
@@ -66,9 +74,18 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException("Column is no longer attached to the table.");
             }
 
-            A.TableRow row = _table.TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
-            A.TableCell cell = row.Elements<A.TableCell>().ElementAt(index);
-            return _table.WrapCell(cell);
+            int remaining = rowIndex;
+            foreach (OfficeXmlNode row in _table.TableNode.Children(D, "tr")) {
+                if (remaining-- == 0) return _table.CellFor(CellAt(row, index));
+            }
+            throw new ArgumentOutOfRangeException(nameof(rowIndex));
+        }
+
+        private static OfficeXmlNode CellAt(OfficeXmlNode row, int index) {
+            foreach (OfficeXmlNode cell in row.Children(D, "tc")) {
+                if (index-- == 0) return cell;
+            }
+            throw new ArgumentOutOfRangeException(nameof(index));
         }
 
         /// <summary>

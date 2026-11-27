@@ -14,15 +14,6 @@ namespace OfficeIMO.PowerPoint {
             : this(OfficeXmlNode.FromSdk(run), PowerPointPartRef.FromSdk(slidePart ?? ownerPart as SlidePart), PowerPointPartRef.FromSdk(ownerPart as OpenXmlPart ?? slidePart)) {
         }
 
-        internal PowerPointTextRun(A.Run run, SlidePart? slidePart, OpenXmlPartContainer? ownerPart, List<OpenXmlElement> lineContinuation)
-            : this(OfficeXmlNode.FromSdk(run), PowerPointPartRef.FromSdk(slidePart ?? ownerPart as SlidePart), PowerPointPartRef.FromSdk(ownerPart as OpenXmlPart ?? slidePart),
-                lineContinuation.Select(OfficeXmlNode.FromSdk).ToList()) {
-        }
-
-        internal PowerPointTextRun(A.Field field, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null)
-            : this(OfficeXmlNode.FromSdk(field), PowerPointPartRef.FromSdk(slidePart ?? ownerPart as SlidePart), PowerPointPartRef.FromSdk(ownerPart as OpenXmlPart ?? slidePart)) {
-        }
-
         private A.Run? _detachedFieldRun;
 
         /// <summary>The SDK run; a field has none of its own, so it reads as a detached run.</summary>
@@ -40,9 +31,6 @@ namespace OfficeIMO.PowerPoint {
             return properties;
         }
 
-        /// <summary>The last SDK run of the text this wrapper wrote.</summary>
-        internal A.Run LastLine => (A.Run)ToSdk(LastLineElement);
-
         /// <summary>The SDK part that holds the run.</summary>
         internal OpenXmlPartContainer? OwnerPart => ToSdkPart(OwnerPartRef);
 
@@ -56,7 +44,7 @@ namespace OfficeIMO.PowerPoint {
         // An element as an SDK element, opening the SDK for one held in a package tree.
         private OpenXmlElement ToSdk(OfficeXmlNode node) {
             if (node.SdkElement is OpenXmlElement element) return element;
-            if (_packageSlide is { RemovedFromPackage: true }) throw new InvalidOperationException("The slide is no longer part of the presentation.");
+            if (_packageSlide is { RemovedFromPackage: true } || _owningSlide is { RemovedFromPackage: true }) throw new InvalidOperationException("The slide is no longer part of the presentation.");
             if (node.Tree != null && !_packagePart.IsNone) return (OpenXmlElement)PowerPointSlide.BindPackageNode(_packagePart, node.Tree, node.Node);
             throw new InvalidOperationException("The run is not held in an SDK part.");
         }
@@ -66,9 +54,5 @@ namespace OfficeIMO.PowerPoint {
             if (part.Current.SdkPart == null && part.Document is { } document) _ = document.OpenXmlDocument;
             return part.Current.SdkPart as OpenXmlPart;
         }
-
-        /// <summary>Removes a content subtree and the relationships no surviving content uses.</summary>
-        internal static void DiscardContent(OpenXmlElement content, OpenXmlPart? ownerPart) =>
-            DiscardContent(OfficeXmlNode.FromSdk(content), PowerPointPartRef.FromSdk(ownerPart));
     }
 }

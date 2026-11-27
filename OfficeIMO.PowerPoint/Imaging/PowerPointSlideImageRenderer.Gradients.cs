@@ -1,8 +1,5 @@
-using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenXml.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
@@ -15,7 +12,7 @@ namespace OfficeIMO.PowerPoint {
         private static ShapeFillGradientProjection ApplyShapeFillGradient(
             OfficeShape target,
             PowerPointShape source,
-            A.ColorScheme? colorScheme,
+            OfficeXmlNode colorScheme,
             bool hasTransformedAncestor) {
             ShapeFillGradientProjection projection = TryCreateShapeFillGradient(
                 source,
@@ -38,7 +35,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static ShapeFillGradientProjection TryCreateShapeFillGradient(
             PowerPointShape source,
-            A.ColorScheme? colorScheme,
+            OfficeXmlNode colorScheme,
             double width,
             double height,
             bool hasTransformedAncestor,
@@ -48,20 +45,21 @@ namespace OfficeIMO.PowerPoint {
             linear = null;
             radial = null;
             fallback = default;
-            if (!TryGetShapeFillGradient(source, out A.GradientFill? gradient,
-                    out OpenXmlElement? placeholderColor)) {
+            if (!TryGetShapeFillGradient(source, out OfficeXmlNode gradient,
+                    out OfficeXmlNode placeholderColor)) {
                 return ShapeFillGradientProjection.None;
             }
-            if (!TryResolveGradientStops(gradient!, colorScheme, placeholderColor, source.OwnerSlide?.ResolvedColorMap,
+            if (!TryResolveGradientStops(gradient, colorScheme, placeholderColor, GetSlideColorMap(source.OwnerSlide),
                     out IReadOnlyList<OfficeGradientStop>? stops)) {
                 return ShapeFillGradientProjection.Unsupported;
             }
 
             fallback = stops![0].Color;
-            A.LinearGradientFill? linearFill = gradient!.GetFirstChild<A.LinearGradientFill>();
-            if (linearFill != null) {
-                double angle = (linearFill.Angle?.Value ?? 0) / 60000D;
-                if (gradient.RotateWithShape?.Value == false) {
+            bool? rotateWithShape = gradient.BooleanAttribute("rotWithShape");
+            OfficeXmlNode linearFill = gradient.Child(D, "lin");
+            if (!linearFill.IsNone) {
+                double angle = (linearFill.Int32Attribute("ang") ?? 0) / 60000D;
+                if (rotateWithShape == false) {
                     if (hasTransformedAncestor) {
                         return ShapeFillGradientProjection.Unsupported;
                     }
@@ -80,13 +78,13 @@ namespace OfficeIMO.PowerPoint {
                 return ShapeFillGradientProjection.Applied;
             }
 
-            A.PathGradientFill? path = gradient.GetFirstChild<A.PathGradientFill>();
-            if (path != null
-                && path.Path?.Value == A.PathShadeValues.Circle
-                && path.GetFirstChild<A.FillToRectangle>() == null
+            OfficeXmlNode path = gradient.Child(D, "path");
+            if (!path.IsNone
+                && path.Attribute("path") == "circle"
+                && path.Child(D, "fillToRect").IsNone
                 && !hasTransformedAncestor
                 && CanProjectCenteredRadialGradient(source, width, height,
-                    gradient.RotateWithShape?.Value != false)) {
+                    rotateWithShape != false)) {
                 radial = new OfficeRadialGradient(
                     0.5D, 0.5D, 0D,
                     0.5D, 0.5D, 0.5D,
@@ -114,28 +112,26 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool TryGetShapeFillGradient(PowerPointShape source,
-            out A.GradientFill? gradient,
-            out OpenXmlElement? placeholderColor) {
-            gradient = null;
-            placeholderColor = null;
-            P.ShapeProperties? properties = GetOpenXmlShapeProperties(source);
-            gradient = properties?.GetFirstChild<A.GradientFill>();
-            if (gradient != null) {
+            out OfficeXmlNode gradient,
+            out OfficeXmlNode placeholderColor) {
+            placeholderColor = default;
+            OfficeXmlNode properties = GetShapePropertiesElement(source);
+            gradient = properties.Child(D, "gradFill");
+            if (!gradient.IsNone) {
                 return true;
             }
-            if (properties != null && HasExplicitShapeFill(properties)) {
+            if (!properties.IsNone && HasExplicitShapeFill(properties)) {
                 return false;
             }
 
-            A.FillReference? fillReference = GetOpenXmlShapeStyle(source)?.FillReference;
-            uint? index = fillReference?.Index?.Value;
-            A.FormatScheme? formatScheme = source.OwnerSlide == null
-                ? null
+            OfficeXmlNode fillReference = GetShapeStyleElement(source).Child(D, "fillRef");
+            uint? index = fillReference.UInt32Attribute("idx");
+            OfficeXmlNode formatScheme = source.OwnerSlide == null
+                ? default
                 : GetSlideFormatScheme(source.OwnerSlide);
-            OpenXmlElement? themeFill = ResolveThemeShapeFill(formatScheme, index);
-            gradient = themeFill as A.GradientFill
-                ?? themeFill?.GetFirstChild<A.GradientFill>();
-            if (gradient == null) {
+            OfficeXmlNode themeFill = ResolveThemeShapeFill(formatScheme, index);
+            gradient = themeFill.Is(D, "gradFill") ? themeFill : themeFill.Child(D, "gradFill");
+            if (gradient.IsNone) {
                 return false;
             }
 
@@ -143,76 +139,68 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static P.ShapeStyle? GetOpenXmlShapeStyle(PowerPointShape source) =>
-            source.Element switch {
-                P.Shape shape => shape.ShapeStyle,
-                P.ConnectionShape connector => connector.ShapeStyle,
-                _ => null
-            };
+        /// <summary>The <c>p:style</c> of a shape or connector, or none for other elements.</summary>
+        private static OfficeXmlNode GetShapeStyleElement(PowerPointShape source) {
+            OfficeXmlNode element = source.XmlElement;
+            return element.Is(Pml, "sp") || element.Is(Pml, "cxnSp") ? element.Child(Pml, "style") : default;
+        }
 
-        private static bool HasExplicitShapeFill(P.ShapeProperties properties) =>
-            properties.ChildElements.Any(child => child is A.NoFill
-                or A.SolidFill
-                or A.GradientFill
-                or A.BlipFill
-                or A.PatternFill
-                or A.GroupFill);
+        private static bool HasExplicitShapeFill(OfficeXmlNode properties) {
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (child.NamespaceId == D && child.LocalName is "noFill" or "solidFill" or "gradFill" or "blipFill" or "pattFill" or "grpFill") {
+                    return true;
+                }
+            }
+            return false;
+        }
 
-        private static OpenXmlElement? ResolveThemeShapeFill(A.FormatScheme? formatScheme,
+        private static OfficeXmlNode ResolveThemeShapeFill(OfficeXmlNode formatScheme,
             uint? index) {
-            if (formatScheme == null || !index.HasValue) {
-                return null;
+            if (formatScheme.IsNone || !index.HasValue) {
+                return default;
             }
             if (index.Value >= 1001U) {
-                OpenXmlElementList fills = formatScheme
-                    .GetFirstChild<A.BackgroundFillStyleList>()?
-                    .ChildElements ?? default;
-                uint zeroBased = index.Value - 1001U;
-                return zeroBased < unchecked((uint)fills.Count)
-                    ? fills[unchecked((int)zeroBased)]
-                    : null;
+                return ChildAt(formatScheme.Child(D, "bgFillStyleLst"), index.Value - 1001U);
             }
-            if (index.Value < 1U) return null;
-            OpenXmlElementList styles = formatScheme
-                .GetFirstChild<A.FillStyleList>()?.ChildElements ?? default;
-            uint styleIndex = index.Value - 1U;
-            return styleIndex < unchecked((uint)styles.Count)
-                ? styles[unchecked((int)styleIndex)]
-                : null;
+            if (index.Value < 1U) return default;
+            return ChildAt(formatScheme.Child(D, "fillStyleLst"), index.Value - 1U);
         }
 
-        private static OpenXmlElement? ResolveThemeShapeLine(
-            A.FormatScheme? formatScheme, uint? index) {
-            if (formatScheme == null || !index.HasValue || index.Value < 1U) {
-                return null;
+        private static OfficeXmlNode ResolveThemeShapeLine(
+            OfficeXmlNode formatScheme, uint? index) {
+            if (formatScheme.IsNone || !index.HasValue || index.Value < 1U) {
+                return default;
             }
-            OpenXmlElementList styles = formatScheme
-                .GetFirstChild<A.LineStyleList>()?.ChildElements ?? default;
-            uint styleIndex = index.Value - 1U;
-            return styleIndex < unchecked((uint)styles.Count)
-                ? styles[unchecked((int)styleIndex)]
-                : null;
+            return ChildAt(formatScheme.Child(D, "lnStyleLst"), index.Value - 1U);
         }
 
-        private static bool TryResolveGradientStops(A.GradientFill gradient,
-            A.ColorScheme? colorScheme,
-            OpenXmlElement? placeholderColor,
-            OpenXmlElement? colorMap,
+        /// <summary>The child element at a zero-based position, or none past the last child.</summary>
+        private static OfficeXmlNode ChildAt(OfficeXmlNode parent, uint position) {
+            uint current = 0U;
+            foreach (OfficeXmlNode child in parent.Children()) {
+                if (current++ == position) return child;
+            }
+            return default;
+        }
+
+        private static bool TryResolveGradientStops(OfficeXmlNode gradient,
+            OfficeXmlNode colorScheme,
+            OfficeXmlNode placeholderColor,
+            OfficeXmlNode colorMap,
             out IReadOnlyList<OfficeGradientStop>? result) {
             result = null;
-            A.GradientStop[] sourceStops = gradient.GetFirstChild<A.GradientStopList>()?
-                .Elements<A.GradientStop>()
-                .OrderBy(stop => stop.Position?.Value ?? 0)
-                .ToArray() ?? Array.Empty<A.GradientStop>();
+            OfficeXmlNode[] sourceStops = gradient.Child(D, "gsLst").Children(D, "gs").ToList()
+                .OrderBy(stop => stop.Int32Attribute("pos") ?? 0)
+                .ToArray();
             if (sourceStops.Length < 2) return false;
 
             var stops = new List<OfficeGradientStop>(sourceStops.Length + 2);
-            foreach (A.GradientStop sourceStop in sourceStops) {
-                OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(
+            foreach (OfficeXmlNode sourceStop in sourceStops) {
+                OfficeColor? color = OfficeXmlThemeColors.ResolveColor(
                     sourceStop, colorScheme, placeholderColor, colorMap);
                 if (!color.HasValue) return false;
                 double offset = Math.Max(0D, Math.Min(1D,
-                    (sourceStop.Position?.Value ?? 0) / 100000D));
+                    (sourceStop.Int32Attribute("pos") ?? 0) / 100000D));
                 stops.Add(new OfficeGradientStop(offset, color.Value));
             }
 

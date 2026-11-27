@@ -1,6 +1,6 @@
 # OfficeIMO entity recognition design
 
-This is the architecture and API direction for recognizing identifiers and personal data in text: validating a value someone typed, normalizing it to one canonical form, formatting it for display, and finding such values inside documents. Nothing here is implemented yet. The first stage is specified in the [implementation brief](#appendix-a-stage-1-implementation-brief) at the end.
+This is the architecture and API direction for recognizing identifiers and personal data in text: validating a value someone typed, normalizing it to one canonical form, formatting it for display, and finding such values inside documents. The validation, recognition and masking API is documented in the [entity recognition guide](officeimo.entities.md). The consumer sections describe future integrations.
 
 Redaction, the Reader, Excel and CSV cleaning, invoicing, email, mail merge, PSWriteOffice and Studio all need the same answers: is `123-456-32-18` a valid Polish NIP, is this 11-digit number a PESEL or an order number, where are the IBANs on this page. Today each of those would grow its own regular expressions and checksums. One engine in `OfficeIMO.Core` answers them once, and each host asks it.
 
@@ -82,7 +82,7 @@ public abstract class EntityScheme {
     public abstract string DisplayName { get; }       // "PESEL"
     public virtual string? Country => null;           // ISO 3166-1 alpha-2
     public virtual string? Issuer => null;            // "Ministry of Digital Affairs"
-    public virtual Uri? Specification => null;        // primary source for the format
+    public virtual Uri? Specification => null;        // format or check documentation
     public virtual IReadOnlyList<EntityCheckInfo> Checks => [];  // every check the scheme can run
     public virtual int MinLength => 1;                // normalized length bounds
     public virtual int MaxLength => 64;
@@ -92,8 +92,10 @@ public abstract class EntityScheme {
     public abstract EntityValidationResult Validate(string? value);
     public bool IsValid(string? value) => Validate(value).IsValid;
     public bool TryNormalize(string? value, out string normalized);
+    public string? Normalize(string? value);
     public virtual string Format(string normalized, EntityFormatStyle style = EntityFormatStyle.Display);
     public virtual EntityDetails? Decode(string normalized) => null;  // opt-in
+    public virtual string MaskPartial(string normalized);
 }
 ```
 
@@ -138,13 +140,15 @@ public interface IEntityRecognizer {
 }
 ```
 
-The finder tokenizes the text once into runs, and recognizers read the runs rather than scanning characters themselves:
+The finder tokenizes each logical text chain once and shares its runs and anchors across recognizers.
 
 - **Digit runs**: maximal sequences of digits joined by single separators (space, hyphen, dot, slash, non-breaking space, thin space), with the separator pattern recorded (`3-3-2-2`, `4 4 4 4`).
-- **Alphanumeric runs**: letters and digits with the same separator rules, for IBAN, VAT, NINO, passport and ISIN shapes.
-- **Anchors**: `@` positions for email and `://` or `www.` positions for URLs; the email and URL recognizers expand outward under RFC limits.
+- **Alphanumeric runs**: contiguous ASCII groups and boundary information for IBAN, VAT, NINO, passport and ISIN shapes.
+- **Anchors**: `@` positions for email and `://`, `mailto:` or `www.` positions for URLs. The email and URL recognizers expand outward under RFC limits.
 
-Runs keep their groups (the stretches between separators). Candidates start and end on group boundaries and never inside a group, so a label joined to its value by a space is no obstacle: in `IBAN PL61 1090 1014 0000 0712 1981 2874` the IBAN recognizer tries candidates starting at each group and finds the value after `IBAN`, which then serves as the context keyword. What stays rejected is a value inside a longer unbroken group: the middle 11 digits of a 20-digit number are not a PESEL. For digit-only schemes, a candidate that leaves neighbouring digit groups in the same run must either match the scheme's issuer grouping or be set apart from its neighbours by a different separator than the one repeated through the run, so that one group of a longer spaced number is not read as an identifier on its own. Every recognizer has a fixed maximum candidate length, so scanning is linear in the text and there is no backtracking to exploit.
+The tokenizer identifies contiguous alphanumeric groups and maximal digit runs. Recognizers can extend an alphanumeric group across supported separators within the length allowed by the scheme. For example, the IBAN recognizer starts at `PL61` after the label and includes the following account groups. Candidates start and end at group boundaries. A digit-only candidate that leaves adjacent groups in the same run needs issuer formatting or a different separator to distinguish it from the adjacent grouping. Boundaries prevent a candidate inside a longer unbroken word or number. The finder also recognizes the declared NIP inside a Polish VAT number and the parent REGON inside a branch REGON.
+
+Unprefixed VAT recognition in prose requires a numeric national part, a passing check and scheme-specific context. Known fields can validate an unprefixed alphanumeric value directly with the country scheme.
 
 Recognizers are separate from schemes because one recognizer can serve many schemes (one EU VAT recognizer for 28 prefixes, one IBAN recognizer for every country) and because a scheme is useful without any finder (validating an Excel column, an invoice field or a PowerShell parameter).
 
@@ -153,7 +157,7 @@ Recognizers are separate from schemes because one recognizer can serve many sche
 ```csharp
 public sealed class EntityMatch {
     public int Start { get; }
-    public int Length { get; }                        // covers separators and prefix as written
+    public int Length { get; }                        // length of the first part as written
     public EntityKind Kind { get; }
     public EntityScheme Scheme { get; }
     public string Normalized { get; }                 // sensitive
@@ -163,9 +167,9 @@ public sealed class EntityMatch {
     public EntityEvidence Evidence { get; }           // flags
     public string? ContextKeyword { get; }            // "NIP", "nr rachunku"
     public string? ContextLanguage { get; }           // BCP 47: "pl", "en"
-    public int SegmentIndex { get; }                  // index of the input segment where the match starts (0 for a string)
-    public EntitySegmentLocation? Location { get; }   // from that segment, see below
-    public IReadOnlyList<EntityMatchPart> Parts { get; }     // one per segment the match covers: SegmentIndex, Start, Length
+    public int SegmentIndex { get; }                  // input segment where the match starts (0 for a string)
+    public EntitySegmentLocation? Location { get; }   // from the first segment covered
+    public IReadOnlyList<EntityMatchPart> Parts { get; } // source segment index, start and length for each part
     public IReadOnlyList<EntityMatch> Alternatives { get; }  // other readings of the same span
     public IReadOnlyList<EntityMatch> Contained { get; }     // e.g. the NIP inside a PL VAT number
     public override string ToString();                // "TaxId/PL.NIP [12..25] 0.92", never the value
@@ -195,7 +199,7 @@ Hosts rarely have one flat string. The finder accepts either a string or a list 
 ```csharp
 public readonly struct EntityTextSegment {
     public EntityTextSegment(string text, EntitySegmentLocation? location = null, string? label = null,
-        bool continuesPrevious = false);
+        bool structuredSource = false, bool continuesPrevious = false);
 }
 
 public sealed class EntitySegmentLocation {
@@ -207,7 +211,7 @@ public sealed class EntitySegmentLocation {
 
 Excel passes each cell with its column header as `label`; the Reader passes chunks with their source location; invoicing passes a field value with the element name as `label` and the match gets `StructuredSource`.
 
-`Start` and `Length` are offsets within the segment named by `SegmentIndex`, so a match is unambiguous even when `Location` is null. Matches do not cross segment boundaries, except into a segment marked `continuesPrevious`: the finder joins such a chain into one logical text (exactly as given, without inserting characters) and a match inside it may span several segments. `Parts` then lists the covered piece of each segment, which lets PDF map every part back to its own glyphs. For a match inside one segment, `Parts` has one entry equal to `SegmentIndex`, `Start` and `Length`. For a match that spans segments, `Start` is its offset in the first segment and `Length` is its length in the joined text, so `Start + Length` can run past the end of that segment; `Parts` is the authoritative list of what to touch, and every consumer that changes text (masking, redaction, cleaning) works from `Parts`.
+Segments are independent by default. A segment with `continuesPrevious: true` joins the previous segment verbatim. Context and matches can cross those joins. The match's `SegmentIndex`, `Start` and `Length` give its first part's coordinates in UTF-16 code units, and `Location` comes from that segment. `Parts` lists the portion in every segment the match covers.
 
 ## Scoring
 
@@ -219,22 +223,22 @@ Confidence is a number from 0 to 1 built from the scheme's base strength and the
 | Distinctive shape, no check | Email, URL, UK NINO pattern with valid prefix and suffix | 0.80 |
 | Country prefix and VIES format, no documented check | an EU VAT variant for which no check is documented at all | 0.60 |
 | Check digit over a plain digit run | PESEL, NIP, REGON, card number (Luhn) with a payment-card major industry identifier, EU VAT digits without prefix | 0.40 |
-| Check digit over a short letter-digit shape | PL identity card, PL passport | 0.30 |
-| Shape only, no check | KRS, SSN, EIN, BIC, UK company number | 0.20 |
+| Check digit over a short letter-digit shape | PL identity card and passport | 0.30 |
+| Shape only | KRS, SSN, EIN, BIC, UK company number | 0.20 |
 
-Community-documented checks use the same base as issuer-published ones; they are no weaker mathematically. The difference is provenance, which stays visible in `CheckProvenance` and the `CommunityDocumentedCheck` evidence flag.
+Checks use the same base across both provenance categories. Provenance is available in `CheckProvenance` and the `CommunityDocumentedCheck` evidence flag.
 
 Adjustments, applied in order and clamped to [0, 1]:
 
-- `Label` matching the scheme (`NIP`, `PESEL`, `IBAN`, `VAT ID`): +0.50. `ContextKeyword` within the window (default 48 characters before the value, same segment, nothing but punctuation, spaces and short connecting words between): +0.40.
+- `Label` matching the scheme (`NIP`, `PESEL`, `IBAN`, `VAT ID`): +0.50. `ContextKeyword` within the window (default 48 characters before the value in the logical text, nothing but punctuation, spaces and short connecting words between): +0.40.
 - `IssuerFormatting`: +0.10. `CountryPrefix` where optional: +0.10. `KnownIssuerRange`: +0.10.
 - `PlausibleDate` missing for PESEL (future date or older than 130 years): -0.30.
 - `AmbiguousReading` without disambiguating context: -0.15 for each competing reading.
 - `StructuredSource`: the value is taken as given, so confidence equals 1.0 when valid.
 
-The default `MinimumConfidence` is 0.50. Consequences that tests pin:
+The default `MinimumConfidence` is 0.50.
 
-- `44051401359` alone in prose is not reported (0.40). `PESEL: 44051401359` is (0.90). The same number in a column headed `PESEL` is (0.90).
+- `44051401359` alone in prose is not reported (0.40). `PESEL: 44051401359` is (0.80). The same number in a column headed `PESEL` is (0.90).
 - `1234563218` alone is not reported as a NIP; `NIP 123-456-32-18` is (0.90 after formatting and keyword); `PL1234563218` is reported as an EU VAT number (0.85) with the NIP in `Contained`.
 - A Luhn-valid 16-digit number starting with 3-6 (banking and financial major industry identifiers) reaches 0.50 and is reported; with `card` or `karta` nearby it reaches 0.90.
 - `SSN 123-45-6789` is reported (0.60 + formatting); a bare `123-45-6789` is not (0.30).
@@ -300,7 +304,7 @@ EntityFindResult cells = finder.Find(segments, cancellationToken);
 
 Options also take `IncludeSchemes` and `ExcludeSchemes` by id. Limits fail soft: when `MaxMatches` or `MaxInputCharacters` is reached the result says `Truncated` and the host decides what to tell the user. `Find` is synchronous and CPU-bound; it checks the cancellation token between segments and every 64 KB inside long segments.
 
-Validation allocates only the normalized string; the finder allocates per match, not per character. On .NET 8+ the tokenizer and checks work on spans internally; the public API is string-based so the same surface compiles for `netstandard2.0` and `net472`.
+The public API uses strings across all supported targets. Checksum arithmetic streams digits and letter expansions without allocating an expanded numeric string.
 
 ## Privacy
 
@@ -322,7 +326,7 @@ string safe = EntityMasker.Mask(text, result.Matches, new EntityMaskOptions {
 //                                            so the same NIP gets the same token across documents
 ```
 
-Masking works on `Parts`, never on `Start` and `Length` alone, so a match that spans segments is masked in every segment it touches. `EntityMasker.Mask(IReadOnlyList<EntityTextSegment>, matches, options)` returns the masked text of each segment. `Fixed` replaces every matched character in every part. `Partial` applies the scheme's rule to the joined value, so the characters it keeps can fall in any part. `KindLabel` and `Pseudonym` put the replacement token in the first part and empty the remaining parts.
+The segment overload `EntityMasker.Mask(segments, matches, options)` returns a string for each input segment. It uses every match part to mask the original source text. Fixed masking replaces each matched UTF-16 code unit. Partial masking applies the scheme to the full value and distributes its result across the covered parts. Kind labels and pseudonyms replace the first part and clear the matched text from subsequent parts.
 
 Partial masking follows each scheme's rule (`Scheme.MaskPartial`): card numbers keep the last four digits as payment standards allow, IBANs keep the country code and the last four, emails keep the first character of the local part and the domain. Pseudonyms need a caller-supplied key; there is no default key, and the engine keeps no map. A host that needs to restore values after an AI round trip keeps its own `token → value` map from `EntityMasker.Pseudonymize`, which returns both the masked text and the map.
 
@@ -338,13 +342,13 @@ Each source gets an entry in `Build/third-party-material.json`, its licence text
 
 Core never references this package. The Data package references Core and plugs into `EntityCatalogBuilder` through extension methods.
 
-## Existing code to consolidate
+## Ownership and consumer migration
 
-There is no shared validation code yet. What exists is small and moves into the engine rather than living beside it:
+The engine owns IBAN validation. The other consumer migrations below are proposed.
 
-| Today | Where | Stage 1 action |
+| Capability | Previous or current implementation | Integration |
 | --- | --- | --- |
-| IBAN normalization, SWIFT IBAN Registry BBAN structures and MOD 97-10 (`InvoiceBankAccountIdentity`, internal) | `OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs`, source-linked into `OfficeIMO.Invoicing` and `OfficeIMO.Pdf` | Move into Core as the implementation of the public `FinancialSchemes.Iban` and delete the shared source file. `OfficeIMO.Invoicing` gains a reference to `OfficeIMO.Core` (any package may reference Core); both Invoicing and Pdf call the public scheme. |
+| IBAN normalization, SWIFT IBAN Registry BBAN structures and MOD 97-10 (`InvoiceBankAccountIdentity`, internal) | `OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs`, source-linked into `OfficeIMO.Invoicing` and `OfficeIMO.Pdf` | Moved into Core as the implementation of the public `FinancialSchemes.Iban`; the shared IBAN file is deleted. `OfficeIMO.Invoicing` references `OfficeIMO.Core`, and every former `IsValidIban` caller in Invoicing and Pdf uses the public scheme. The `OfficeIMO.SharedSource/Invoicing/*.cs` links stay, because they still supply the other shared invoice types (`InvoiceProfiles`, `InvoiceXml`, `InvoiceSyntax` and others). |
 | NIP shape check without checksum (regular expression), `PL` prefix stripping | `OfficeIMO.Invoicing/Poland/Fa3InvoiceWriter.MappingChecks.cs`, `Fa3InvoiceWriter.Fields.cs`, `OfficeIMO.Invoicing.KSeF/KsefProtocol.cs` | Stage 2: call `PolandSchemes.Nip` for NIP and EU VAT values on FA(3) parties; keep the schema regular expression only where the schema itself defines it. |
 | BIC shape check (8 or 11 characters) | `Fa3InvoiceWriter.MappingChecks.cs` | Stage 2: `FinancialSchemes.Bic`, which also checks the ISO 3166 country part. |
 | Tax registration presence check only | `OfficeIMO.Invoicing.Validation/InvoiceModelValidator.TaxRegistrations.cs` | Stage 2: optional format and check-digit validation of `InvoiceTaxRegistration` with `VatId`/`TaxId` schemes, reported as warnings because invoices can legitimately carry foreign identifiers outside the catalog. |
@@ -373,7 +377,7 @@ PdfRedactionPlan plan = pdf.Redactions.Search(search);
 // each PdfRedactionMatch carries criterion "entity:PL.PESEL" (never the value) and the confidence
 ```
 
-The planner already extracts page text with glyph geometry. PDF text extraction can split one identifier across consecutive runs, so the planner passes the runs of one line as a chain of `EntityTextSegment`s with `continuesPrevious` set, and maps each `EntityMatchPart` back to the glyph boxes of its own run, so the redaction covers every matched character. This goes further than the regular expression path, which matches only within one logical block today; it follows what the literal search already does with `MatchLiteralsAcrossBlocks`. The workflow recipe (`officeimo.pdf.redaction.recipe.v1`) gains `PdfRedactionRuleKind.Entity`, with `Value` holding a kind or scheme list such as `NationalId,PL.NIP` and an optional minimum confidence; evidence keeps the rule name and scheme ids, as it does now.
+The planner already extracts page text with glyph geometry. The Stage 2 redaction criterion can send consecutive runs as continued segments and map each returned `EntityMatchPart` to the glyphs of its source run. The workflow recipe (`officeimo.pdf.redaction.recipe.v1`) gains `PdfRedactionRuleKind.Entity` with a kind or scheme list and an optional minimum confidence. Evidence carries the rule name and scheme IDs.
 
 Word, Excel and PowerPoint have no text redaction yet. When they get it, they follow the same plan shape (find, review, apply, verify): Word over runs with paragraph locations, Excel over cells with the header as label, PowerPoint over shape text. Entities arrive as a criterion from day one rather than a later bolt-on. Until then, these formats offer inspection only (`Find-OfficeEntity` below).
 
@@ -435,24 +439,30 @@ An inspection panel listing entity findings per document with jump-to-location, 
 
 Each scheme records its primary source in `Specification`, and its tests use the issuer's published example values where the issuer publishes any. Where an issuer publishes the algorithm but no example, tests compute vectors from the published weights and record the derivation next to the test.
 
-Where no issuer publication exists, a community-documented algorithm may be used. The check's `EntityCheckInfo` then has `Provenance = CommunityDocumented` and cites the description in `Source`, and its tests include at least one value from a public issuer artifact (a specimen document, a register extract or the issuer's own sample) that the algorithm accepts. The description is implemented from its prose; code from other projects is never copied or ported.
+Where no issuer publication exists, a community-documented algorithm may be used. The check's `EntityCheckInfo` then has `Provenance = CommunityDocumented` and cites the description in `Source`, and its tests use issuer artifacts when available or worked vectors with a documented derivation. The description is implemented from its prose; code from other projects is never copied or ported.
 
 Two findings shape stage 1:
 
-- The European Commission does not publish national VAT check algorithms ([VIES FAQ](https://ec.europa.eu/taxation_customs/vies/#/faq), question 11). The Austrian Federal Ministry of Finance publishes the construction rules that member states agreed to disclose, with a worked example for each ([BMF, *UID-Konstruktionsregeln*, November 2020](https://bmf.gv.at/dam/jcr:d6794f8f-d321-43df-9840-1a841f9bf5dc/BMF_UID_Konstruktionsregeln_Stand_November%202020.pdf)). Ten states did not agree (BG, CY, CZ, EL, ES, FR, HR, LV, MT, RO); for them the scheme uses a community-documented check where one exists (`CheckProvenance = CommunityDocumented`) and otherwise checks the VIES format only (`CheckDigit = NotDefined`).
+- The European Commission does not publish national VAT check algorithms ([VIES FAQ](https://ec.europa.eu/taxation_customs/vies/#/faq), question 11). The Austrian Federal Ministry of Finance publishes the construction rules that member states agreed to disclose, with a worked example for each ([BMF, *UID-Konstruktionsregeln*, November 2020](https://bmf.gv.at/dam/jcr:d6794f8f-d321-43df-9840-1a841f9bf5dc/BMF_UID_Konstruktionsregeln_Stand_November%202020.pdf)). For additional variants the engine follows the sources below. Formats without an applicable documented check report `CheckDigit = NotDefined`.
 - Several Polish identifiers have a legal basis for their structure but no published check algorithm: REGON (structure in the REGON regulation, weights not published), KRS, identity card and passport numbers. Stage 1 uses community-documented checks for REGON (9 and 14 digits), the identity card and the passport, marked as such; KRS has no check digit and is validated by length. An issuer publication, if one turns up, replaces the community source and flips the provenance.
 
 | Scheme | Primary source | Defines | Issuer example |
 | --- | --- | --- | --- |
 | PL PESEL | [Population Register Act, art. 15(2)](https://api.sejm.gov.pl/eli/acts/DU/2026/384/text/U/D20260384Lj.pdf) (Dz.U. 2026 poz. 384); [MSW regulation on assigning PESEL, § 7](https://api.sejm.gov.pl/eli/acts/DU/2015/1984/text.html) (Dz.U. 2015 poz. 1984) | Date of birth with month offsets +80 (1800-1899), +0 (1900-1999), +20 (2000-2099) only; serial; sex in the 10th digit (even = female); weights 1-3-7-9-1-3-7-9-1-3, check = (10 − sum mod 10) mod 10 | none |
 | PL NIP | [BMF, *UID-Konstruktionsregeln*, November 2020](https://bmf.gv.at/dam/jcr:d6794f8f-d321-43df-9840-1a841f9bf5dc/BMF_UID_Konstruktionsregeln_Stand_November%202020.pdf), PL section | Weights 6-5-7-2-3-4-5-6-7, mod 11, remainder 10 is invalid | 5260001246 |
-| PL REGON 9/14 | [REGON regulation, § 12](https://api.sejm.gov.pl/eli/acts/DU/2015/2009/text.html) (Dz.U. 2015 poz. 2009) | 9 digits (8 serial + check) and 14 digits (REGON 9 + 4-digit local unit + check); weights not published | none |
-| PL KRS | KRS Act and [MS regulation](https://api.sejm.gov.pl/eli/acts/DU/2026/649/text.pdf) | Refer to the KRS number without defining its length; format (10 digits, leading zeros) is taken from register extracts | none |
-| PL identity card | [MSWiA regulation on the ID card template](https://api.sejm.gov.pl/eli/acts/DU/2025/1031/text.pdf) (Dz.U. 2025 poz. 1031) | Field "series and number" only; MRZ check digits follow ICAO Doc 9303 Part 3 (7-3-1 weights) | none |
-| PL passport | [MSWiA passport regulation](https://api.sejm.gov.pl/eli/acts/DU/2022/2050/text.html) (Dz.U. 2022 poz. 2050) | No number format; MRZ per ICAO Doc 9303 | none |
+| PL REGON 9/14 | [REGON regulation, § 12](https://api.sejm.gov.pl/eli/acts/DU/2015/2009/text.html), [Numerik](https://numerik.slashlab.pl/guide/algorithms/) | Separate community-documented modulus 11 checks for the nine-digit parent and the 14-digit branch | |
+| PL KRS | [Court register regulation](https://api.sejm.gov.pl/eli/acts/DU/2026/649/text.pdf) | Ten digits in register extracts. The finder pads shorter labelled values. | |
+| PL identity card | [MSWiA ID card template](https://api.sejm.gov.pl/eli/acts/DU/2025/1031/text.pdf), [itMock](https://itmock.pl/blog/numer-dowodu-osobistego) | Community-documented check uses the first digit following the letter series | |
+| PL passport | [MSWiA passport regulation](https://api.sejm.gov.pl/eli/acts/DU/2022/2050/text.html), [Romuald Dębski’s passport checksum notes](https://romek.info/ut/paszport.html) | Community-documented number check uses the first digit following the letter series. The legacy BM series uses format-only validation. | |
 | EU VAT formats | [VIES FAQ](https://ec.europa.eu/taxation_customs/vies/#/faq), question 11 | Structure per state, `EL` for Greece, `XI` for Northern Ireland (including `GD`/`HA` forms) | none |
 | EU VAT checks | [BMF, *UID-Konstruktionsregeln*, November 2020](https://bmf.gv.at/dam/jcr:d6794f8f-d321-43df-9840-1a841f9bf5dc/BMF_UID_Konstruktionsregeln_Stand_November%202020.pdf) | Rules and examples for AT, BE (old and 2020+), DE, DK, EE, FI, HU, IE, IT, LT, LU, NL (old and 2020+: mod 11 first, then mod 97), PL, PT, SE, SI, SK, GB/XI | AT U10223006, BE 0776091951, DE 111111125, FI 09853608, NL 010000446B01, PL 5260001246 |
 | ES personal NIF/NIE letter | [Ministerio del Interior, control digit of the NIF/NIE](https://www.interior.gob.es/opencms/es/servicios-al-ciudadano/tramites-y-gestiones/dni/calculo-del-digito-de-control-del-nif-nie/) | Number mod 23 and letter table; NIE X/Y/Z replaced by 0/1/2. Applies to Spanish VAT numbers of individuals; company NIF control is not published | 12345678Z |
+| BG and CZ company VAT | [VatDB Bulgaria](https://vatdb.com/guides/validate-bg-vat-number/), [VatDB Czechia](https://vatdb.com/guides/validate-cz-vat-number/) | Weighted company checks. Bulgarian ten-digit and Czech nine- and ten-digit variants are format-only. | |
+| CY | [VatDB Cyprus](https://vatdb.com/guides/validate-cy-vat-number/) | Positional lookup, modulus 26 and reserved `12` prefix | |
+| EL, FR, LV, MT, RO | [CDQ check-digit descriptions](https://meta.cdq.com/Public:Rule_Category/IDENTIFIER_CHECKDIGIT) | National checks, including French numeric and alphanumeric VAT keys. Latvia’s personal variant is format-only. | |
+| ES K/L/M personal NIF | [Spanish Tax Agency technical note](https://www.caib.es/sites/civitasmanualsisuport/f/41519) | Applies the personal control letter to the seven digits following the prefix | |
+| ES company VAT | [NIF/CIF control-character documentation](https://josegoval.github.io/nif-dni-nie-cif-validation/es/guides/control-character/) | Weighted modulus 10 and numeric or alphabetic control character | |
+| HR | [Croatian central register OIB check](https://regos.hr/app/uploads/2018/07/KONTROLA-OIB-a.pdf) | Issuer-published ISO 7064 MOD 11,10 | |
 | UK NINO | [HMRC NIM39110](https://www.gov.uk/hmrc-internal-manuals/national-insurance-manual/nim39110) | Two letters, six digits, suffix A-D; D, F, I, Q, U, V never first or second letter; O never second; BG, GB, KN, NK, NT, TN, ZZ not used | QQ 12 34 56 A (labelled specimen) |
 | UK VAT | [BMF, *UID-Konstruktionsregeln*, November 2020](https://bmf.gv.at/dam/jcr:d6794f8f-d321-43df-9840-1a841f9bf5dc/BMF_UID_Konstruktionsregeln_Stand_November%202020.pdf), GB section; HMRC [VATAFRS2500](https://www.gov.uk/hmrc-internal-manuals/vat-agricultural-flat-rate-scheme/vatafrs2500) confirms a modulus 97 check | Weights 8..2 plus the last two digits; valid when (sum mod 97) or ((sum + 55) mod 97) is 0; excluded ranges; GD000-499 government departments, HA500-999 health authorities | 434031494 |
 | UK company number | Companies House [URI customer guide](https://assets.publishing.service.gov.uk/media/5d08c0f340f0b6094a379078/uniformResourceIdentifiersCustomerGuide.pdf) | 8 characters, prefix table (SC, NI, OC, SO, SL, LP, FC, ...); no check digit. The guide is from 2012 and lacks newer prefixes such as OE | 02050399, SC002180 |
@@ -466,145 +476,8 @@ Two findings shape stage 1:
 | Email | [RFC 5321](https://www.rfc-editor.org/rfc/rfc5321) §4.5.3.1, RFC 5322, RFC 6531, RFC 5890/5891, [UTS #46](https://www.unicode.org/reports/tr46/) | Local part ≤ 64 octets, domain ≤ 255, path ≤ 256; SMTPUTF8; IDNA mapping | [IdnaTestV2.txt](https://www.unicode.org/Public/idna/latest/IdnaTestV2.txt) |
 | URL | [WHATWG URL Standard](https://url.spec.whatwg.org/), [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) | Parsing and serialization | web-platform-tests `urltestdata.json` |
 
-ISO standards are paid and are cited by number only; every issuer-published algorithm above is also stated in a free publication in the same row. Community-documented checks are listed in the brief with the source each scheme must cite.
+The scheme metadata links to the format or checksum documentation. Where a scheme has more than one check, `EntityCheckInfo.Source` identifies the documentation used for that check.
 
-## Delivery stages
+## Integration roadmap
 
-1. **Stage 1, engine in Core:** kinds, scheme base, catalog and builder, tokenizer, finder with scoring and overlap resolution, masker, and the schemes listed in the [brief](#appendix-a-stage-1-implementation-brief). Move the IBAN helper into the engine; `OfficeIMO.Invoicing` references Core, and Invoicing and Pdf switch to the public IBAN scheme. No other consumer changes.
-2. **Stage 2, first consumers:** PDF redaction entity criterion and workflow rule kind; PSWriteOffice `Test-OfficeEntity`, `Find-OfficeEntity`, `Get-OfficeEntityScheme` and `-Entity` on the PDF redaction cmdlets; invoicing and email adoption; CLI and MCP operations.
-3. **Stage 3, documents and data:** cross-format inspection report, Reader processor with masking, AI request masking, CSV and Excel column profiling, validation, normalization and masking.
-4. **Stage 4, `OfficeIMO.Entities.Data`:** phones from libphonenumber metadata, then postal address formats (invoices, mail merge), then ISO 20275 legal forms.
-5. **Stage 5, more countries:** national identifiers for further EU states (DE Steuer-ID, FR NIR, ES DNI/NIE, IT codice fiscale, NL BSN, ...) as country packs, each with its own primary sources and keywords. Studio panels follow the engine stages they present.
-
-## Decisions
-
-- **Any package may reference `OfficeIMO.Core`.** `OfficeIMO.Invoicing` references Core and uses the public schemes; there is no linked source copy of entity code anywhere.
-- **Community-documented checks are allowed** where no issuer publication exists, with the provenance of every check (`IssuerPublished` or `CommunityDocumented`) visible on schemes, validation results and matches.
-
-## Open decisions
-
-- **SWIFT IBAN Registry data.** The existing BBAN structure table is transcribed from the SWIFT IBAN Registry. Check whether its terms require an entry in `Build/third-party-material.json` when it moves into Core; add one if they do.
-- **Payment card ranges.** Card brand detection by IIN range needs a maintained range table; stage 1 uses only the first digit (ISO/IEC 7812 major industry identifier) and Luhn. A brand table is a later, sourced addition.
-- **Issuer sources for community-documented checks.** REGON weights, the identity card and passport check digits, and the checks for the ten EU states that did not disclose theirs ship as community-documented. If GUS, MSWiA or a national tax authority publishes them (for example in the GUS BIR service specification), the citation and provenance change; behaviour should not.
-
-## Appendix A: stage 1 implementation brief
-
-This brief is self-contained: it is what an implementer needs for the first PR. The sections above explain why.
-
-### Goal
-
-Add `OfficeIMO.Entities` to `OfficeIMO.Core`: an extensible model and engine to validate, normalize, format, decode and find identifiers and personal data in text, plus masking. One PR, titled as a plain sentence (for example `Add entity recognition for identifiers and personal data to OfficeIMO.Core`). Nothing is released before 4.0, so the API can still change.
-
-### Constraints
-
-- Warnings are errors, nullable is on, follow `.editorconfig`. Targets are Core's: `netstandard2.0`, `net8.0`, `net10.0`, plus `net472` on Windows. The public API is string-based; span-based internals under `#if NET8_0_OR_GREATER` are fine.
-- No new package references. No reflection, no `Regex` in recognizers or schemes, no runtime code generation, no static constructors that do heavy work. Must stay trim- and NativeAOT-safe (Core is used by the AOT smoke projects).
-- No code copied, ported or adapted from other projects (python-stdnum, libphonenumber, Presidio, OneContact or any other). Implement every algorithm from the source cited in the [sources table](#sources-and-test-vectors) or, for community-documented checks, from a public prose description that you cite in the check's `EntityCheckInfo.Source` and in an XML doc comment. Every check has an `EntityCheckInfo` with its provenance, and results and matches report the check that actually ran (for example `EU.VAT.ES` reports the issuer-published NIF letter check for an individual's number and the community-documented company check otherwise).
-- Never put input values into `ToString()`, exception messages or diagnostics.
-- Update Core's public API tracking files the way recent Core API additions did.
-- Tests: apply the test-audit authoring gate. Test contracts (validation status, normalized output, scoring thresholds, overlap outcomes, masking output), not implementation details. Use issuer-published examples where they exist; otherwise compute vectors from the published weights and add a one-line comment with the derivation. No timing or allocation assertions outside `[Trait("Category", "Performance")]`.
-
-### Files
-
-```text
-OfficeIMO.Core/Entities/
-  EntityKind.cs                      readonly struct, well-known values, case-insensitive equality
-  EntityScheme.cs                    abstract base (see design "Schemes"), Contains relations, MaskPartial
-  EntityValidationResult.cs, EntityValidationStatus.cs, EntityCheckOutcome.cs, EntityCheckKind.cs, EntityCheckProvenance.cs, EntityCheckInfo.cs
-  EntityDetails.cs, EntitySex.cs, EntitySensitivity.cs, EntityFormatStyle.cs
-  EntityCatalog.cs, EntityCatalogBuilder.cs   immutable catalog; Default = every pack below
-  EntityFinder.cs, EntityFinderOptions.cs, EntityFindResult.cs, EntityOverlapPolicy.cs
-  EntityMatch.cs, EntityMatchPart.cs, EntityEvidence.cs, EntityTextSegment.cs, EntitySegmentLocation.cs
-  EntityMasker.cs, EntityMaskOptions.cs, EntityMaskStyle.cs, EntityPseudonymResult.cs
-  IEntityRecognizer.cs, EntityRecognitionContext.cs, EntityCandidate.cs, EntityTokenShape.cs
-  Internal/EntityTokenizer.cs        digit runs, alphanumeric runs, @ and URL anchors, boundary flags
-  Internal/EntityScoring.cs          base classes and adjustments exactly as in the design's Scoring table
-  Internal/EntityOverlapResolver.cs  rules 1-4 from the design's Overlaps section
-  Internal/EntityContextMatcher.cs   keyword window, case- and diacritic-insensitive whole words
-  Internal/CheckDigits.cs            weighted mod 10/11, ISO 7064 MOD 97-10 (streaming, no BigInteger), Luhn
-  Poland/PolandSchemes.cs + one file per scheme, PolandRecognizers.cs, PolandKeywords.cs
-  EuropeanUnion/EuVatSchemes.cs + one file per member state, EuVatRecognizer.cs, EuVatKeywords.cs
-  UnitedKingdom/..., UnitedStates/..., Financial/..., Internet/...  same layout
-  EntityCatalogBuilderExtensions.cs  AddPoland, AddEuVat, AddUnitedKingdom, AddUnitedStates, AddFinancial, AddInternet
-  Financial/IbanStructure.cs         internal; moved from SharedSource/Invoicing/InvoiceBankAccountIdentity.cs, which is deleted
-OfficeIMO.Entities.Tests/          new xUnit project referencing only OfficeIMO.Core (net8.0, net10.0, net472 on Windows); add to OfficeIMO.slnx and OfficeIMO.Core.slnf
-```
-
-### Schemes and rules
-
-Each scheme: `Id`, `Kind`, `Country`, `DisplayName`, `Issuer`, `Specification`, normalized length bounds, `Check`, `Sensitivity`, `Validate`, `Normalize`, `Format` (`Compact`, `Display`), `MaskPartial`, and `Decode` where noted.
-
-| Id | Kind | Normalized form | Validation | Base class | Notes |
-| --- | --- | --- | --- | --- | --- |
-| `PL.PESEL` | NationalId | 11 digits | Weights 1-3-7-9-1-3-7-9-1-3, check = (10 − sum mod 10) mod 10; date must exist with month offsets +80/+0/+20 only (+40/+60 → `UnsupportedVariant`) | check over digit run | `Decode`: birth date, sex (10th digit even = female). Future date or > 130 years old: valid but no `PlausibleDate`. |
-| `PL.NIP` | TaxId | 10 digits | Weights 6-5-7-2-3-4-5-6-7, sum mod 11 = check; remainder 10 invalid. Accept optional `PL` prefix and groupings 3-3-2-2, 3-2-2-3 | check over digit run | `Display` = `123-456-32-18`. Issuer example 5260001246. |
-| `PL.REGON` | CompanyId | 9 or 14 digits | Community-documented: 9 digits weights 8-9-2-3-4-5-6-7, 14 digits weights 2-4-8-5-0-9-7-3-6-1-2-4-8; sum mod 11, remainder 10 gives 0. A REGON 14 must also have a valid REGON 9 prefix | check over digit run | `Decode` for 14 digits: parent REGON 9 in `Properties["parent"]`; `Contains` REGON 9. |
-| `PL.KRS` | CompanyId | 10 digits | Format only, left-pad shorter digit runs only when labelled | shape only | Context or label required to be reported. |
-| `PL.IDCARD` | IdentityDocument | 3 letters + 6 digits | Community-documented: letters A=10..Z=35, weights 7-3-1-9-7-3-1-7-3 over all nine characters (the first digit is the check digit), sum mod 10 = 0 | short letter-digit check (0.30) | Context or label required. The MSWiA specimen `ABA300000` must validate. |
-| `PL.PASSPORT` | IdentityDocument | 2 letters + 7 digits | Community-documented: letters A=10..Z=35, weights 7-3-9-1-7-3-1-7-3 over all nine characters (the first digit is the check digit), sum mod 10 = 0 | short letter-digit check (0.30) | Context or label required. Test against a published specimen number. |
-| `EU.VAT.{CC}` | VatId | VIES prefix + national part | VIES format for all 27 + XI; check rules from the BMF document for AT, BE, DE, DK, EE, FI, HU, IE, IT, LT, LU, NL, PL, PT, SE, SI, SK, XI; ES individuals via the NIF/NIE letter rule; community-documented checks for BG, CY, CZ, EL, ES companies, FR, HR, LV, MT, RO, each citing its source; `NotDefined` only where none is documented | strong check with prefix; prefix without any check 0.60 | One recognizer for all. Country = ISO code (EL → GR, XI → GB). EU.VAT.PL `Contains` PL.NIP. Use each issuer example as a test. |
-| `GB.VAT` | VatId | `GB` + 9 or 12 digits, or `GBGD`/`GBHA` + 3 | Weights 8..2 plus last two digits; valid when sum mod 97 = 0 or (sum + 55) mod 97 = 0; excluded ranges per BMF; GD 000-499, HA 500-999 | strong check with prefix | Shares rules with EU.VAT.XI. Example 434031494. |
-| `GB.NINO` | NationalId | 2 letters + 6 digits + A-D | HMRC NIM39110 letter rules and excluded prefixes; suffix optional on input, normalized without spaces | distinctive shape | HMRC's specimen `QQ 12 34 56 A` fails the letter rule (Q is never used), so it is rejected. |
-| `GB.COMPANY` | CompanyId | 8 characters | Digits, or a listed 2-letter prefix + 6 digits | shape only | Context or label required. |
-| `US.SSN` | NationalId | 9 digits | Area not 000, 666, 900-999; group not 00; serial not 0000 | shape only | `Display` = `123-45-6789`; the hyphenated form gets `IssuerFormatting`. |
-| `US.EIN` | TaxId | 9 digits | Prefix in the IRS valid-prefix list (as a constant table with the page's update date in a comment) | shape only | `Display` = `12-3456789`. |
-| `IBAN` | BankAccount | country + 2 check digits + BBAN, upper case | Registry length and BBAN structure, check digits 02-98, MOD 97-10 (reuse `IbanStructure`) | strong check | `Decode`: country, BBAN. Registry examples as tests. |
-| `BIC` | BankIdentifier | 8 or 11 upper-case characters | 4 letters + ISO 3166 country + 2 alphanumerics + optional 3 alphanumerics | shape only | Context or label required (8 capitals look like words). |
-| `CARD` | PaymentCard | 12-19 digits | Luhn; first digit (major industry identifier) recorded | check over digit run | `KnownIssuerRange` when the first digit is 3-6. `Sensitivity = Financial`. |
-| `ISIN` | SecurityId | 12 characters | 2 letters + 9 alphanumerics + check digit, letters mapped A=10..Z=35, then Luhn | strong check | Sensitivity `Public`. |
-| `LEI` | LegalEntityId | 20 characters | Characters 5-6 `00`; MOD 97-10 over the whole value = 1 | strong check | Sensitivity `Organizational`. |
-| `EMAIL` | Email | local@domain, domain lower-cased | RFC 5321 lengths; RFC 5322 dot-atom or quoted local part; SMTPUTF8 allowed; domain labels ≤ 63, IDNA-mapped via `IdnMapping` for the comparison key | distinctive shape | `Properties["key"]` = comparison key. No obsolete syntax, no comments, no IP literals in the finder (validation accepts IP literals). |
-| `URL` | Url | as written, scheme and host lower-cased | `http`, `https`, `ftp`, `mailto` and `www.` forms; host must have a dot or be `localhost`; trailing sentence punctuation and unbalanced closing brackets excluded | distinctive shape | Sensitivity `Public`; masking off by default. |
-
-### Finder behaviour to implement and test
-
-- Tokenize once; recognizers read runs. Separators inside runs: single space, hyphen, dot, slash, U+00A0, U+2009, U+202F. A candidate never starts or ends inside a longer letter/digit run of the same class.
-- Scoring exactly as the design's table; default `MinimumConfidence` 0.50; context window 48 characters before the value within the segment; label match via `EntityTextSegment.label`.
-- Overlap rules 1-4; `Contains` relations: EU VAT PL contains PL NIP; REGON 14 contains REGON 9; GB VAT is not related to anything in stage 1.
-- Reject before checks: all-same-digit runs, runs that parse as dates (`dd.mm.yyyy`, `yyyy-mm-dd`, `dd/mm/yyyy`) for digit-only schemes, runs immediately preceded by a currency sign or followed by a currency code or decimal separator plus two digits.
-- Limits: `MaxMatches` (default 10,000), `MaxInputCharacters` (default 16,777,216); `Truncated` flag; cancellation checked between segments and every 64 KB.
-- `EntityMatch.ToString()` = `"{Kind}/{Scheme.Id} [{Start}..{Start+Length}] {Confidence:0.00}"`.
-
-Acceptance tests that must exist (values below are computed from the published weights):
-
-| Input | Expected |
-| --- | --- |
-| `44051401359` alone in a sentence | no match at default threshold; one PL.PESEL match at 0.40 with `MinimumConfidence = 0.3` |
-| `PESEL: 44051401359` | PL.PESEL, confidence ≥ 0.80, `ContextKeyword = "PESEL"`, `ContextLanguage = "pl"`; `Decode` gives 1944-05-14, male |
-| `44051401358` with `PESEL:` | no match (check digit fails); `Validate` returns `InvalidCheckDigit` |
-| `NIP 123-456-32-18` | PL.NIP, confidence ≥ 0.80, `IssuerFormatting` set |
-| `VAT: PL1234563218` | EU.VAT.PL as the match, PL.NIP in `Contained` |
-| cell `1234563218` with label `NIP` | PL.NIP ≥ 0.80 |
-| `REGON 123456785` | PL.REGON (9), `CheckProvenance = CommunityDocumented`, confidence 0.80 from the keyword; `123456784` fails |
-| `NIP 5260001246`, `ATU10223006`, `DE111111125`, `GB434031494`, `BE0776091951` | each valid with its issuer example |
-| `FR40303265045` | EU.VAT.FR valid through the community-documented key (12 + 3 × (SIREN mod 97)) mod 97, `CheckProvenance = CommunityDocumented`; `FR41303265045` fails |
-| `NIP 5260001246` | `CheckProvenance = IssuerPublished` |
-| `ES12345678Z` | EU.VAT.ES valid through the NIF letter rule |
-| `IBAN PL61 1090 1014 0000 0712 1981 2874` | IBAN, normalized `PL61109010140000071219812874`, `Display` round-trips to the grouped form, `MaskPartial` = `PL61 •••• •••• •••• •••• •••• 2874` |
-| `GB82 WEST 1234 5698 7654 32`, `DE89 3704 0044 0532 0130 00` | IBAN valid (SWIFT registry examples) |
-| `4111 1111 1111 1111` with `card` nearby | PaymentCard ≥ 0.80; partial mask keeps last four |
-| `US0378331005` | ISIN valid; `US0378331006` invalid |
-| `5493001KJTIIGC8Y1R12` | LEI valid (ISO 7064 MOD 97-10) |
-| a 20-digit number containing a valid PESEL in its middle | no match |
-| segments `["PESEL: 4405", "1401359"]`, the second with `continuesPrevious` | one PL.PESEL match, `SegmentIndex = 0`, two `Parts` covering `4405` and `1401359` |
-| the same two segments without `continuesPrevious` | no match |
-| three segments where only the third holds `NIP 5260001246` | `SegmentIndex = 2`, offsets relative to that segment |
-| `ES12345678Z` and a Spanish company VAT number | `Check.Name` and `CheckProvenance` differ: `IssuerPublished` for the NIF letter rule, `CommunityDocumented` for the company check |
-| `12.05.2023` | no digit-scheme match |
-| `jan.kowalski@example.com`, `jan@bücher.example` | Email; comparison key lower-cases and IDNA-maps the domain only |
-| `https://example.com/a?b=c` in prose with trailing `.` | Url without the trailing dot |
-
-Masking tests: `KindLabel`, `Fixed`, `Partial` per scheme, `Pseudonym` stable for the same normalized value and key and different for different keys; `Pseudonymize` returns the map; overlapping and adjacent matches mask once; for the split `["PESEL: 4405", "1401359"]` match, every style leaves no digit of the PESEL in either segment (`KindLabel` gives `"PESEL: [NationalId]"` and `""`).
-
-### Consolidation in the same PR
-
-- Move `OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs` into Core as `Entities/Financial/IbanStructure.cs` (internal) and build `FinancialSchemes.Iban` on it. Delete the shared source file and both `Compile Include` links.
-- Add a `ProjectReference` to `OfficeIMO.Core` in `OfficeIMO.Invoicing.csproj`.
-- Remove `OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs` from the expected file list in `SharedSource_IsLimitedToApprovedInternalInfrastructure` (`OfficeIMO.Shared.Tests/PackageDependencyGuardrails.cs`). No guardrail pins Invoicing's project references today.
-- Switch every caller to `FinancialSchemes.Iban.IsValid`: in Invoicing `Poland/Fa3InvoiceWriter.MappingChecks.cs`, `Poland/Fa3InvoiceReader.Fields.cs`, `Xml/InvoiceSerializer.cs`, `Xml/InvoiceParser.CiiParties.cs`, `Xml/InvoiceParser.UblParties.cs`; in Pdf `PdfCiiDocumentHeaderInspector.PaymentAccounts.cs` and `PdfComplianceAnalyzer.ElectronicInvoice.PaymentAccounts.cs`. Behaviour must not change; run the Invoicing and Pdf test projects.
-
-### Done means
-
-- `dotnet build OfficeIMO.Core.slnf -c Release` and `dotnet test OfficeIMO.Entities.Tests -c Release` pass on net8.0 and net10.0; Pdf and Invoicing tests still pass; the AOT smoke project for Core still publishes without new warnings.
-- The design doc's stage 1 roadmap item is removed from `Docs/ROADMAP.md` and the delivered contract is described in a short `OfficeIMO.Core` README section or `Docs/officeimo.entities.md` user guide (API, catalog, limits), with the design doc updated where the implementation differs.
-- PR open, ready for review, CI green, CodeRabbit review addressed.
+The [entity recognition roadmap](ROADMAP.md#entity-recognition) tracks open document, host and country-pack work. Core provides the scheme catalog, finder and masker. Invoicing and PDF use the same Core IBAN implementation and registry table.

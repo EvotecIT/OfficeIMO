@@ -561,6 +561,18 @@ jobs:
             dotnet test OfficeIMO.Provenance.C2pa.Tests/OfficeIMO.Provenance.C2pa.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
           }
 
+      - name: Test entity recognition contracts
+        if: runner.os != 'macOS'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          if ('${{ needs.changes.outputs.full }}' -eq 'true') {
+            dotnet test OfficeIMO.Entities.Tests/OfficeIMO.Entities.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
+          } else {
+            dotnet test OfficeIMO.Entities.Tests/OfficeIMO.Entities.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
+          }
+
       - name: Test electronic invoice contracts
         if: runner.os != 'macOS'
         shell: pwsh
@@ -1510,6 +1522,7 @@ jobs:
             add_project OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj
             add_project OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj
             add_project OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj
+            add_project OfficeIMO.Reader.DocumentExtraction.Tests/OfficeIMO.Reader.DocumentExtraction.Tests.csproj
             add_project OfficeIMO.Notebook.Tests/OfficeIMO.Notebook.Tests.csproj
             add_project OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj
             add_project OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj
@@ -1737,11 +1750,13 @@ jobs:
               run_excel_tests "excel-save-pdf" 'FullyQualifiedName~OfficeIMO.Tests.Excel.SaveAsPdf|FullyQualifiedName~OfficeIMO.Tests.Excel.ToPdfDocument|FullyQualifiedName~OfficeIMO.Tests.Excel.PdfTables|FullyQualifiedName~OfficeIMO.Tests.Excel.ReportWorkflow'
               ;;
             excel-core-named)
+              # excel-core takes every Excel test the other slices don't, so a new test class can't be left out of CI.
               run_excel_tests "excel-named-typed" 'FullyQualifiedName~OfficeIMO.Tests.ExcelCellAndRangeTests|FullyQualifiedName~OfficeIMO.Tests.ExcelDelimitedImportTests|FullyQualifiedName~OfficeIMO.Tests.ExcelFluent|FullyQualifiedName~OfficeIMO.Tests.ExcelInfoBuilderTests|FullyQualifiedName~OfficeIMO.Tests.ExcelNamed|FullyQualifiedName~OfficeIMO.Tests.ExcelPowerShell|FullyQualifiedName~OfficeIMO.Tests.ExcelRange|FullyQualifiedName~OfficeIMO.Tests.ExcelRows|FullyQualifiedName~OfficeIMO.Tests.ExcelSheet|FullyQualifiedName~OfficeIMO.Tests.ExcelCoerce|FullyQualifiedName~OfficeIMO.Tests.ExcelAllSeverityBatch16SecurityTests'
-              run_excel_tests "excel-core" '(FullyQualifiedName~OfficeIMO.Tests.Excel.&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ExcelChart&FullyQualifiedName!~OfficeIMO.Tests.Excel.SharedChartRenderer&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ClosedXmlGap&FullyQualifiedName!~OfficeIMO.Tests.Excel.LegacyXls&FullyQualifiedName!~OfficeIMO.Tests.Excel.PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Excel.SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Excel.ToPdfDocument&FullyQualifiedName!~OfficeIMO.Tests.Excel.PdfTables&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReportWorkflow&FullyQualifiedName!~OfficeIMO.Tests.Excel.Reader&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReadRows&FullyQualifiedName!~OfficeIMO.Tests.Excel.ExcelHttp)'
+              run_excel_tests "excel-core" '(FullyQualifiedName!~OfficeIMO.Tests.ExcelImageExport&FullyQualifiedName!~OfficeIMO.Tests.ExcelCellAndRangeTests&FullyQualifiedName!~OfficeIMO.Tests.ExcelDelimitedImportTests&FullyQualifiedName!~OfficeIMO.Tests.ExcelFluent&FullyQualifiedName!~OfficeIMO.Tests.ExcelInfoBuilderTests&FullyQualifiedName!~OfficeIMO.Tests.ExcelNamed&FullyQualifiedName!~OfficeIMO.Tests.ExcelPowerShell&FullyQualifiedName!~OfficeIMO.Tests.ExcelRange&FullyQualifiedName!~OfficeIMO.Tests.ExcelRows&FullyQualifiedName!~OfficeIMO.Tests.ExcelSheet&FullyQualifiedName!~OfficeIMO.Tests.ExcelCoerce&FullyQualifiedName!~OfficeIMO.Tests.ExcelAllSeverityBatch16SecurityTests&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ExcelChart&FullyQualifiedName!~OfficeIMO.Tests.Excel.SharedChartRenderer&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ClosedXmlGap&FullyQualifiedName!~OfficeIMO.Tests.Excel.LegacyXls&FullyQualifiedName!~OfficeIMO.Tests.Excel.PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Excel.SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Excel.ToPdfDocument&FullyQualifiedName!~OfficeIMO.Tests.Excel.PdfTables&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReportWorkflow&FullyQualifiedName!~OfficeIMO.Tests.Excel.Reader&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReadRows&FullyQualifiedName!~OfficeIMO.Tests.Excel.ExcelHttp)'
               ;;
             word-rtf-html)
-              run_word_tests "word" 'FullyQualifiedName~OfficeIMO.Tests.Word|FullyQualifiedName~OfficeIMO.Tests.ImageEmbedderTests|FullyQualifiedName~OfficeIMO.Tests.ParagraphParentMutationTests'
+              # The word slice takes every Word test except the two classes markdown-large runs.
+              run_word_tests "word" 'FullyQualifiedName!~OfficeIMO.Tests.MarkdownMoreCasesTests&FullyQualifiedName!~OfficeIMO.Tests.MarkdownRoundTripTests'
               run_rtf_tests
               run_html_tests
               ;;
@@ -1768,6 +1783,7 @@ jobs:
               run_access_tests
               run_publisher_tests
               run_reader_tests
+              if ci_project_selected "OfficeIMO.Reader.DocumentExtraction.Tests/OfficeIMO.Reader.DocumentExtraction.Tests.csproj"; then dotnet test OfficeIMO.Reader.DocumentExtraction.Tests/OfficeIMO.Reader.DocumentExtraction.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.Notebook.Tests/OfficeIMO.Notebook.Tests.csproj"; then dotnet test OfficeIMO.Notebook.Tests/OfficeIMO.Notebook.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj"; then dotnet test OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj"; then dotnet test OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi

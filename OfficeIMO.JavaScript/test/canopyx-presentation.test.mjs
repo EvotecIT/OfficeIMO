@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { exportCanopy } from "../dist/integrations/canopyx/index.js";
+import { ExportCell } from "../dist/core/index.js";
+import { writeXlsx } from "../dist/xlsx/index.js";
 import { readZip } from "./zip-reader.mjs";
 import { inspectPdf } from "./pdf-reader.mjs";
 
@@ -65,6 +67,106 @@ test("Canopy badges without labels still export, and malformed badges are reject
   assert.equal((await workbook(await exportCanopy(flagOnly, "xlsx"))).style("A2").text, "X");
   const malformed = capture([{ id: "r", cells: { Name: cell("x", "X", { badges: [{ tone: "danger" }] }) } }]);
   await assert.rejects(exportCanopy(malformed, "xlsx"), /badges/);
+});
+
+test("Canopy cells with more than 64 badges still export, with one count diagnostic per cell", async () => {
+  const labels = Array.from({ length: 100 }, (_, index) => "B" + index);
+  const many = () => capture([{ id: "r", cells: { Name: cell("Alice", "Alice", { badges: labels.map(text => ({ text, tone: "info" })), diagnostics: ["badges"] }) } }]);
+  const expected = ["Alice", ...labels.slice(0, 64)].join(" · ");
+  for (const format of ["xlsx", "pdf", "csv"]) {
+    const diagnostics = [];
+    // Default policies: XLSX and PDF reject unsupported presentation, so the truncation must stay a text fallback.
+    const blob = await exportCanopy(many(), format, { onDiagnostic: item => diagnostics.push([item.code, item.rowId, item.columnId]) });
+    assert.deepEqual(diagnostics, [["badges", "r", "Name"], ["BADGES_TRUNCATED:36", "r", "Name"]], format);
+    if (format === "xlsx") assert.equal((await workbook(blob)).style("A2").text, expected);
+    else if (format === "csv") assert.equal(await blob.text(), "Name\r\n" + expected + "\r\n");
+    else assert.ok((await inspectPdf(blob)).pages.flatMap(page => page.lines).join(" ").includes("B63"));
+  }
+});
+
+test("Canopy text cells keep their captured label when every badge is left out", async () => {
+  const text = "z".repeat(32767);
+  const full = () => capture([{ id: "r", cells: { Name: cell("id-7", text, { badges: ["x"] }) } }]);
+  for (const format of ["xlsx", "csv"]) {
+    const diagnostics = [], blob = await exportCanopy(full(), format, { onDiagnostic: item => diagnostics.push(item.code) });
+    const exported = format === "xlsx" ? (await workbook(blob)).style("A2").text : (await blob.text()).split("\r\n")[1];
+    assert.equal(exported, text, format);
+    assert.deepEqual(diagnostics, ["BADGES_TRUNCATED:1"]);
+  }
+});
+
+test("Canopy badge labels never push a cell past the Excel text limit", async () => {
+  const text = "x".repeat(32760);
+  const long = capture([{ id: "r", cells: { Name: cell(text, text, { badges: ["Kept", "Dropped"] }) } }]);
+  const diagnostics = [];
+  const book = await workbook(await exportCanopy(long, "xlsx", { onDiagnostic: item => diagnostics.push(item.code) }));
+  assert.equal(book.style("A2").text, text + " · Kept");
+  assert.deepEqual(diagnostics, ["BADGES_TRUNCATED:1"]);
+});
+
+const linkRows = count => Array.from({ length: count }, (_, index) => ({ id: "r" + index, cells: { Name: cell("n" + index, "n" + index, { link: { target: "https://example.com/" + index } }) } }));
+async function linkedSheet(input, options = {}) {
+  const diagnostics = [];
+  const zip = await readZip(await exportCanopy(input, "xlsx", { ...options, onDiagnostic: item => diagnostics.push(item.code) }));
+  return { sheet: zip.get("xl/worksheets/sheet1.xml").content, diagnostics };
+}
+
+// Every source of worksheet hyperlinks, with the links it reserves. Captured data-cell links fill only the room left.
+const long = "y".repeat(40000), help = target => new ExportCell("Help", { link: { target } });
+const linkSources = [
+  { name: "no reserved links", rows: 65532, dropped: 2 },
+  { name: "configured sheet hyperlinks", rows: 65530, dropped: 1, kept: ["A1"], xlsx: { sheet: { hyperlinks: [{ cell: "A1", target: "https://example.com/help" }] } } },
+  { name: "linked header rows", rows: 65530, dropped: 1, kept: ["A1"], xlsx: { sheet: { headerRows: [[{ value: new ExportCell("Name", { link: { target: "https://example.com/header" } }) }]] } } },
+  { name: "linked footer values", rows: 65530, dropped: 1, kept: ["A65532"], xlsx: { sheet: { footer: { values: [help("https://example.com/footer")] } } } },
+  { name: "a preserved cell before the links", rows: 65530, dropped: 1, internal: ["B2"], long: 0, xlsx: { oversizedText: "preserve" } },
+  { name: "a preserved cell after the links", rows: 65530, dropped: 1, internal: ["B65531"], long: 65529, xlsx: { oversizedText: "preserve" } }
+];
+
+for (const source of linkSources) {
+  test("Canopy XLSX link truncation reserves worksheet links for " + source.name, async () => {
+    const rows = linkRows(source.rows).map((row, index) => source.long === undefined ? row :
+      { ...row, cells: { ...row.cells, Note: index === source.long ? cell(long, long) : cell("", "") } });
+    const columns = source.long === undefined ? [column("Name")] : [column("Name"), column("Note")];
+    const { sheet, diagnostics } = await linkedSheet(capture(rows, columns), source.xlsx ? { xlsx: source.xlsx } : {});
+    const refs = [...sheet.matchAll(/<hyperlink ref="([A-Z]+\d+)"([^>]*)/g)];
+    assert.equal(refs.length, 65530);
+    for (const reference of source.kept ?? []) assert.ok(refs.some(([, ref, rest]) => ref === reference && / r:id=/.test(rest)), reference);
+    for (const reference of source.internal ?? []) assert.ok(refs.some(([, ref, rest]) => ref === reference && / location=/.test(rest)), reference);
+    // Captured links keep row order: the first data rows keep theirs and the last ones keep only the label.
+    assert.match(sheet, /<hyperlink ref="A2"/);
+    assert.doesNotMatch(sheet, new RegExp('<hyperlink ref="A' + (source.rows + 1) + '"'));
+    assert.match(sheet, new RegExp('<c r="A' + (source.rows + 1) + '"'));
+    assert.deepEqual(diagnostics, ["LINKS_TRUNCATED:" + source.dropped]);
+  });
+}
+
+// onHyperlinkOverflow runs before the worksheet finishes, so a failure or a pending promise must fail the export, never leak.
+const overflowCallbacks = [
+  { name: "a synchronous throw", callback: () => { throw new RangeError("host refused"); }, error: /host refused/ },
+  { name: "an asynchronous rejection", callback: async () => { throw new RangeError("host refused later"); }, error: /onHyperlinkOverflow must be synchronous/ },
+  { name: "an asynchronous resolution", callback: async () => {}, error: /onHyperlinkOverflow must be synchronous/ }
+];
+const overflowHosts = [
+  { name: "XLSX writer", write: onHyperlinkOverflow => writeXlsx(linkRows(65531).map(row => [new ExportCell(row.cells.Name.value, { link: row.cells.Name.link })]),
+    { columns: [{ header: "Name" }], hyperlinkOverflow: "drop", onHyperlinkOverflow }) },
+  { name: "Canopy adapter", write: onHyperlinkOverflow => exportCanopy(capture(linkRows(65531)), "xlsx", { xlsx: { onHyperlinkOverflow } }) }
+];
+
+for (const host of overflowHosts) for (const entry of overflowCallbacks) {
+  test(host.name + " fails the export when onHyperlinkOverflow ends in " + entry.name, async () => {
+    const unhandled = [], listener = reason => unhandled.push(reason);
+    process.on("unhandledRejection", listener);
+    try {
+      await assert.rejects(host.write(entry.callback), entry.error);
+      await new Promise(resolve => setImmediate(resolve));
+      assert.deepEqual(unhandled, []);
+    } finally { process.off("unhandledRejection", listener); }
+  });
+}
+
+test("Canopy XLSX still rejects an unsafe link that the worksheet limit would leave out", async () => {
+  const rows = [...linkRows(65530), { id: "unsafe", cells: { Name: cell("x", "x", { link: { target: "javascript:alert(1)" } }) } }];
+  await assert.rejects(exportCanopy(capture(rows), "xlsx"), /absolute HTTP, HTTPS or mailto/);
 });
 
 const toneCapture = () => capture([
