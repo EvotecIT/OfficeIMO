@@ -85,58 +85,74 @@ public class PowerPointTablesWithoutSdkTests {
     }
 
     [Fact]
-    public void ARemovedRowAndColumnStayDetachedAfterTheSdkOpens() {
-        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
-        PowerPointTable table = presentation.Slides[0].Tables.Single();
-        PowerPointTableRow row = table.GetRow(1);
-        PowerPointTableColumn column = table.GetColumn(0);
-        row.Remove();
-        column.Remove();
-
-        _ = presentation.OpenXmlDocument;
-
-        Assert.Equal(-1, row.Index);
-        Assert.Equal(-1, column.Index);
-        Assert.Empty(column.Cells);
-        column.Remove();
-        Assert.Equal((2, 2), (table.RowCount, table.ColumnCount));
-    }
-
-    [Fact]
-    public void TextOfARemovedRowStaysReadableAfterTheSdkOpens() {
-        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
-        PowerPointTable table = presentation.Slides[0].Tables.Single();
-        PowerPointTableCell cell = table.GetCell(2, 2);
-        PowerPointParagraph paragraph = cell.Paragraphs[0];
-        PowerPointTextRun run = cell.Runs[0];
-        PowerPointTextRun lines = table.GetCell(2, 1).Paragraphs[0].AddText("A\nB");
-        table.RemoveRow(2);
-
-        _ = presentation.OpenXmlDocument;
-
-        Assert.Equal("Total", paragraph.Text);
-        Assert.Equal("Total", run.Text);
-        Assert.Equal("Total", paragraph.Runs[0].Text);
-        Assert.Equal("A" + Environment.NewLine + "B", lines.Text);
-    }
-
-    [Fact]
-    public void WrappersKeptFromARemovedRowShareOneCopyAfterTheSdkOpens() {
+    public void RowsColumnsCellsAndTextKeptFromRemovedContentThrowOnceTheSdkOpens() {
         using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
         PowerPointTable table = presentation.Slides[0].Tables.Single();
         PowerPointTableRow row = table.GetRow(2);
         PowerPointTableCell cell = table.GetCell(2, 2);
         PowerPointParagraph paragraph = cell.Paragraphs[0];
         PowerPointTextRun run = paragraph.Runs[0];
+        PowerPointTextRun lines = table.GetCell(2, 1).Paragraphs[0].AddText("A\nB");
+        PowerPointTableColumn column = table.GetColumn(0);
         table.RemoveRow(2);
+        column.Remove();
+        // Wrappers taken from the removed row after it went are covered too.
+        PowerPointParagraph later = row.Cells[1].Paragraphs[0];
+        Assert.Equal("Total", paragraph.Text);
 
         _ = presentation.OpenXmlDocument;
-        run.Text = "Changed";
 
-        Assert.Equal("Changed", paragraph.Text);
-        Assert.Equal("Changed", cell.Text);
-        Assert.Equal("Changed", row.GetCell(2).Text);
-        Assert.Equal(2, table.RowCount);
+        Assert.Throws<InvalidOperationException>(() => row.Index);
+        Assert.Throws<InvalidOperationException>(() => row.GetCell(0));
+        Assert.Throws<InvalidOperationException>(() => column.Width);
+        Assert.Throws<InvalidOperationException>(() => cell.Text);
+        Assert.Throws<InvalidOperationException>(() => paragraph.Text);
+        Assert.Throws<InvalidOperationException>(() => run.Text = "Changed");
+        Assert.Throws<InvalidOperationException>(() => lines.Text);
+        Assert.Throws<InvalidOperationException>(() => later.Text);
+        Assert.Equal((2, 2), (table.RowCount, table.ColumnCount));
+    }
+
+    [Fact]
+    public void TableTextKeptFromARemovedSlideThrows() {
+        byte[] source;
+        using (var created = PowerPointDocument.Load(new MemoryStream(CreateDeck()))) {
+            created.AddSlide();
+            source = created.ToBytes();
+        }
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source));
+        PowerPointTableCell cell = presentation.Slides[0].Tables.Single().GetCell(2, 2);
+        PowerPointParagraph paragraph = cell.Paragraphs[0];
+        presentation.RemoveSlide(0);
+
+        Assert.Throws<InvalidOperationException>(() => paragraph.Text);
+        Assert.Throws<InvalidOperationException>(() => cell.Text);
+        _ = presentation.OpenXmlDocument;
+        Assert.Throws<InvalidOperationException>(() => cell.Paragraphs);
+        Assert.Throws<InvalidOperationException>(() => cell.Runs);
+    }
+
+    [Fact]
+    public void AReadOnlySnapshotKeepsTheCompatibilityMarkupOfUntouchedSlides() {
+        byte[] source = RewritePart(CreateDeck(), "ppt/slides/slide1.xml", text => text.Replace("</p:spTree>",
+            "<mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\">"
+            + "<mc:Choice xmlns:p14=\"http://schemas.microsoft.com/office/powerpoint/2010/main\" Requires=\"p14\"><p:sp><p:nvSpPr><p:cNvPr id=\"90\" name=\"Choice\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/></p:sp></mc:Choice>"
+            + "<mc:Fallback><p:sp><p:nvSpPr><p:cNvPr id=\"91\" name=\"Fallback\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/></p:sp></mc:Fallback>"
+            + "</mc:AlternateContent></p:spTree>"));
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source), new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        _ = presentation.OpenXmlDocument;
+        _ = presentation.Slides[0].Shapes.Count;
+        byte[] snapshot = presentation.ToBytes();
+
+        Assert.Contains("AlternateContent", Parts(snapshot, "ppt/slides/slide1.xml").Single(), StringComparison.Ordinal);
+    }
+
+    private static byte[] RewritePart(byte[] package, string name, Func<string, string> change) {
+        var output = new MemoryStream();
+        output.Write(package, 0, package.Length);
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Update, leaveOpen: true)) Rewrite(archive, name, change);
+        return output.ToArray();
     }
 
     [Fact]
