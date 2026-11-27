@@ -218,7 +218,12 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         /// <summary>The part's bytes as they would be saved now.</summary>
         internal byte[] ReadBytes() {
             PowerPointPartRef current = Current;
-            if (current._sdk != null) return PowerPointSdkParts.ReadBytes(current._sdk);
+            if (current._sdk != null) {
+                using Stream stream = PowerPointSdkParts.GetStream(current._sdk, FileMode.Open, FileAccess.Read);
+                using var copy = new MemoryStream();
+                stream.CopyTo(copy);
+                return copy.ToArray();
+            }
             OfficeOpcEditablePackage package = current._document?.ReadablePackage ?? throw new InvalidOperationException("The presentation can't be read.");
             return package.ReadPartBytes(current._name!);
         }
@@ -228,7 +233,9 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             ArgumentNullException.ThrowIfNull(data);
             PowerPointPartRef current = Current;
             if (current._sdk != null) {
-                PowerPointSdkParts.FeedBytes(current._sdk, data);
+                // As the SDK's FeedData does: the part's content is replaced by the bytes.
+                using Stream stream = PowerPointSdkParts.GetStream(current._sdk, FileMode.Create, FileAccess.Write);
+                stream.Write(data, 0, data.Length);
                 return;
             }
             current.EditablePackage().ReplacePart(current._name!, data, data.Length);

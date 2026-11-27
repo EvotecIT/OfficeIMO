@@ -1,9 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Support level for one imported native chart family.</summary>
@@ -51,10 +50,10 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Inspects native family, typed-edit support, and export fidelity.</summary>
         public PowerPointImportedChartReport InspectImportedContent() {
-            C.PlotArea? plotArea = GetChart().GetFirstChild<C.PlotArea>();
-            OpenXmlElement[] groups = plotArea?.ChildElements
+            OfficeXmlNode plotArea = ChartNode.Child(CNs, "plotArea");
+            OfficeXmlNode[] groups = plotArea.Children().ToList()
                 .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal))
-                .ToArray() ?? Array.Empty<OpenXmlElement>();
+                .ToArray();
             if (groups.Length != 1) {
                 bool renderableMixed = groups.Length > 1 &&
                     TryGetOfficeSnapshot(out _);
@@ -94,43 +93,44 @@ namespace OfficeIMO.PowerPoint {
                 new[] { $"Producer-specific chart family '{family}' is preserved losslessly but is not modeled for editing or export." });
         }
 
-        private string? DescribeAdvancedEditBlocker(OpenXmlElement group) {
+        /// <summary>The <c>ser</c> children of a chart group, in any namespace, as the imported-chart checks read them.</summary>
+        private static List<OfficeXmlNode> GroupSeries(OfficeXmlNode group) =>
+            group.Children().ToList().Where(element => element.LocalName == "ser").ToList();
+
+        private string? DescribeAdvancedEditBlocker(OfficeXmlNode group) {
             if (!TryGetEditableImportedWorkbook(out _, out string workbookDiagnostic))
                 return $"Imported {group.LocalName} {workbookDiagnostic}";
-            OpenXmlCompositeElement[] series = group.ChildElements
-                .OfType<OpenXmlCompositeElement>()
-                .Where(element => element.LocalName == "ser").ToArray();
-            if (series.Length == 0)
+            List<OfficeXmlNode> series = GroupSeries(group);
+            if (series.Count == 0)
                 return $"Imported {group.LocalName} has no safely editable series and remains preservation-only.";
             bool unsupported = series.Any(item =>
-                item.GetFirstChild<C.SeriesText>()?.GetFirstChild<C.StringReference>() == null ||
-                item.GetFirstChild<C.CategoryAxisData>()?.GetFirstChild<C.StringReference>() == null ||
-                item.GetFirstChild<C.Values>()?.GetFirstChild<C.NumberReference>() == null);
+                item.Child(CNs, "tx").Child(CNs, "strRef").IsNone ||
+                item.Child(CNs, "cat").Child(CNs, "strRef").IsNone ||
+                item.Child(CNs, "val").Child(CNs, "numRef").IsNone);
             return unsupported
                 ? $"Imported {group.LocalName} uses producer-specific literal or numeric category storage; editing is rejected so the native data model remains unchanged."
                 : null;
         }
 
-        internal static OfficeChartType GetAdvancedProjection(OpenXmlElement group) {
-            if (group is C.Bar3DChart bar) {
-                bool horizontal = bar.GetFirstChild<C.BarDirection>()?.Val?.Value == C.BarDirectionValues.Bar;
-                C.BarGroupingValues grouping = bar.GetFirstChild<C.BarGrouping>()?.Val?.Value ??
-                    C.BarGroupingValues.Clustered;
-                if (grouping == C.BarGroupingValues.Stacked)
+        internal static OfficeChartType GetAdvancedProjection(OfficeXmlNode group) {
+            if (group.Is(CNs, "bar3DChart")) {
+                bool horizontal = group.ChildVal(CNs, "barDir") == "bar";
+                string? grouping = group.ChildVal(CNs, "grouping");
+                if (grouping == "stacked")
                     return horizontal ? OfficeChartType.BarStacked : OfficeChartType.ColumnStacked;
-                if (grouping == C.BarGroupingValues.PercentStacked)
+                if (grouping == "percentStacked")
                     return horizontal ? OfficeChartType.BarStacked100 : OfficeChartType.ColumnStacked100;
                 return horizontal ? OfficeChartType.BarClustered : OfficeChartType.ColumnClustered;
             }
-            if (group is C.Line3DChart line) {
-                C.GroupingValues grouping = line.GetFirstChild<C.Grouping>()?.Val?.Value ?? C.GroupingValues.Standard;
-                return grouping == C.GroupingValues.Stacked ? OfficeChartType.LineStacked :
-                    grouping == C.GroupingValues.PercentStacked ? OfficeChartType.LineStacked100 : OfficeChartType.Line;
+            if (group.Is(CNs, "line3DChart")) {
+                string? grouping = group.ChildVal(CNs, "grouping");
+                return grouping == "stacked" ? OfficeChartType.LineStacked :
+                    grouping == "percentStacked" ? OfficeChartType.LineStacked100 : OfficeChartType.Line;
             }
-            if (group is C.Area3DChart area) {
-                C.GroupingValues grouping = area.GetFirstChild<C.Grouping>()?.Val?.Value ?? C.GroupingValues.Standard;
-                return grouping == C.GroupingValues.Stacked ? OfficeChartType.AreaStacked :
-                    grouping == C.GroupingValues.PercentStacked ? OfficeChartType.AreaStacked100 : OfficeChartType.Area;
+            if (group.Is(CNs, "area3DChart")) {
+                string? grouping = group.ChildVal(CNs, "grouping");
+                return grouping == "stacked" ? OfficeChartType.AreaStacked :
+                    grouping == "percentStacked" ? OfficeChartType.AreaStacked100 : OfficeChartType.Area;
             }
             return AdvancedChartProjections[group.LocalName];
         }
@@ -147,68 +147,61 @@ namespace OfficeIMO.PowerPoint {
                 throw new NotSupportedException(report.Diagnostics.FirstOrDefault() ??
                     "This imported chart does not require the advanced in-place editor.");
             PowerPointUtils.ValidateSharedChartData(data, report.ExportProjection.Value);
-            ChartPart chartPart = GetChartPart();
-            if (!TryGetEditableImportedWorkbook(out EmbeddedPackagePart? embedded,
+            IOfficeChartPart chartPart = SharedChartPart;
+            if (!TryGetEditableImportedWorkbook(out IOfficeChartEmbeddedPackage? embedded,
                     out string workbookDiagnostic) || embedded == null)
                 throw new NotSupportedException(workbookDiagnostic);
-            C.PlotArea plotArea = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!
-                .GetFirstChild<C.PlotArea>()!;
-            OpenXmlCompositeElement group = (OpenXmlCompositeElement)plotArea.ChildElements
+            OfficeXmlNode chartSpace = chartPart.ChartSpace;
+            OfficeXmlNode plotArea = chartSpace.Child(CNs, "chart").Child(CNs, "plotArea");
+            OfficeXmlNode group = plotArea.Children().ToList()
                 .Single(element => element.LocalName == report.Family);
-            List<OpenXmlCompositeElement> series = group.ChildElements
-                .OfType<OpenXmlCompositeElement>()
-                .Where(element => element.LocalName == "ser").ToList();
+            List<OfficeXmlNode> series = GroupSeries(group);
             if (series.Count != data.Series.Count)
                 throw new NotSupportedException("Changing the series count of an imported advanced chart can alter its meaning; update the existing series only.");
             byte[] original;
-            using (Stream stream = embedded.GetStream(FileMode.Open,
-                       FileAccess.Read)) {
-                original = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(
-                    stream);
+            using (Stream stream = embedded.OpenRead()) {
+                original = OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(stream);
             }
             byte[] workbook = PowerPointChartWorkbookEditor.Update(original,
                 data);
-            Action preserveBindings = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
+            Action preserveBindings = OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
                 chartPart, data.Series.Select(item => item.Values.Count).ToArray());
             using (var validation = new MemoryStream(workbook,
                        writable: false)) {
-                _ = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(
+                _ = OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(
                     validation);
             }
-            C.ChartSpace originalChartSpace = (C.ChartSpace)chartPart
-                .ChartSpace.CloneNode(true);
+            OfficeXmlNode originalChartSpace = chartSpace.Clone();
             try {
                 int lastRow = data.Categories.Count + 1;
                 for (int index = 0; index < series.Count; index++) {
                     OfficeSeries item = data.Series[index];
                     string column = GetExcelColumn(index + 2);
-                    UpdateStringReference(series[index]
-                            .GetFirstChild<C.SeriesText>()!,
+                    UpdateStringReference(series[index].Child(CNs, "tx"),
                         $"Sheet1!${column}$1", new[] { item.Name });
-                    UpdateStringReference(series[index]
-                            .GetFirstChild<C.CategoryAxisData>()!,
+                    UpdateStringReference(series[index].Child(CNs, "cat"),
                         $"Sheet1!$A$2:$A${lastRow}", data.Categories);
-                    UpdateNumberReference(series[index]
-                            .GetFirstChild<C.Values>()!,
+                    UpdateNumberReference(series[index].Child(CNs, "val"),
                         $"Sheet1!${column}$2:${column}${lastRow}",
                         item.Values);
                 }
                 preserveBindings();
-                using var replacement = new MemoryStream(workbook,
-                    writable: false);
-                embedded.FeedData(replacement);
+                embedded.Replace(workbook);
                 MarkChartEdited();
             } catch {
                 try {
-                    chartPart.ChartSpace = originalChartSpace;
-                    chartPart.ChartSpace.Save();
+                    // The chart space goes back to its content before the update.
+                    chartSpace.RemoveAllChildElements();
+                    foreach (OfficeXmlNode child in originalChartSpace.Children().ToList()) {
+                        child.Remove();
+                        chartSpace.Append(child);
+                    }
+                    MarkChartEdited();
                 } catch {
                     // Best-effort restoration continues with the workbook.
                 }
                 try {
-                    using var rollback = new MemoryStream(original,
-                        writable: false);
-                    embedded.FeedData(rollback);
+                    embedded.Replace(original);
                 } catch {
                     // Preserve the original update exception. A subsequent
                     // save/validation will surface any package I/O failure.
@@ -219,21 +212,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private bool TryGetEditableImportedWorkbook(
-            out EmbeddedPackagePart? workbook, out string diagnostic) {
-            ChartPart chartPart = GetChartPart();
-            C.ExternalData[] references = chartPart.ChartSpace?
-                .Descendants<C.ExternalData>().ToArray() ?? Array.Empty<C.ExternalData>();
-            if (references.Length != 1 ||
-                string.IsNullOrWhiteSpace(references[0].Id?.Value) ||
-                !chartPart.TryGetPartById(references[0].Id!.Value!,
-                    out OpenXmlPart? referencedPart) ||
-                referencedPart is not EmbeddedPackagePart embedded) {
+            out IOfficeChartEmbeddedPackage? workbook, out string diagnostic) {
+            IOfficeChartPart chartPart = SharedChartPart;
+            List<OfficeXmlNode> references = chartPart.ChartSpace.Descendants(CNs, "externalData");
+            string? id = references.Count == 1 ? references[0].Attribute(OfficeXmlNamespaces.Relationships, "id") : null;
+            IOfficeChartEmbeddedPackage? embedded = string.IsNullOrWhiteSpace(id) ? null
+                : chartPart.EmbeddedPackages(int.MaxValue).FirstOrDefault(package => string.Equals(package.RelationshipId, id, StringComparison.Ordinal));
+            if (embedded == null) {
                 workbook = null;
                 diagnostic = "has no single referenced embedded workbook that can be updated consistently; package markup is preserved unchanged.";
                 return false;
             }
-            if (!PowerPointDocument.IsSafeChartWorkbookPart(chartPart,
-                    embedded)) {
+            if (!PowerPointDocument.IsSafeChartWorkbookPart(chartPart, embedded)) {
                 workbook = null;
                 diagnostic = "uses a richer or producer-specific workbook; editing is rejected so sheets, formulas, formatting, macros, and related package content remain unchanged.";
                 return false;
@@ -243,35 +233,47 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static void UpdateStringReference(OpenXmlCompositeElement holder,
+        private static void UpdateStringReference(OfficeXmlNode holder,
             string formula, IReadOnlyList<string> values) {
-            if (holder == null) throw new NotSupportedException("The advanced chart series does not use string-backed category data.");
-            C.StringReference reference = holder.GetFirstChild<C.StringReference>() ??
-                throw new NotSupportedException("The advanced chart series uses producer-specific string storage.");
-            reference.GetFirstChild<C.Formula>()?.Remove();
-            reference.InsertAt(new C.Formula(formula), 0);
-            reference.GetFirstChild<C.StringCache>()?.Remove();
-            var cache = new C.StringCache(new C.PointCount { Val = (uint)values.Count });
-            for (int index = 0; index < values.Count; index++)
-                cache.Append(new C.StringPoint(new C.NumericValue(values[index] ?? string.Empty)) { Index = (uint)index });
-            reference.Append(cache);
+            if (holder.IsNone) throw new NotSupportedException("The advanced chart series does not use string-backed category data.");
+            OfficeXmlNode reference = holder.Child(CNs, "strRef");
+            if (reference.IsNone) throw new NotSupportedException("The advanced chart series uses producer-specific string storage.");
+            ReplaceFormula(reference, formula);
+            OfficeXmlNode existing = reference.Child(CNs, "strCache");
+            if (existing.Exists) existing.Remove();
+            OfficeXmlNode cache = AppendNew(reference, CNs, "strCache");
+            AppendNew(cache, CNs, "ptCount").SetUInt32Attribute("val", (uint)values.Count);
+            for (int index = 0; index < values.Count; index++) {
+                OfficeXmlNode point = AppendNew(cache, CNs, "pt");
+                point.SetUInt32Attribute("idx", (uint)index);
+                AppendNew(point, CNs, "v").SetInnerText(values[index] ?? string.Empty);
+            }
         }
 
-        private static void UpdateNumberReference(OpenXmlCompositeElement holder,
+        private static void UpdateNumberReference(OfficeXmlNode holder,
             string formula, IReadOnlyList<double> values) {
-            if (holder == null) throw new NotSupportedException("The advanced chart series does not expose numeric values.");
-            C.NumberReference reference = holder.GetFirstChild<C.NumberReference>() ??
-                throw new NotSupportedException("The advanced chart series uses producer-specific numeric storage.");
-            string formatCode = reference.GetFirstChild<C.NumberingCache>()?
-                .GetFirstChild<C.FormatCode>()?.Text ?? "General";
-            reference.GetFirstChild<C.Formula>()?.Remove();
-            reference.InsertAt(new C.Formula(formula), 0);
-            reference.GetFirstChild<C.NumberingCache>()?.Remove();
-            var cache = new C.NumberingCache(new C.FormatCode(formatCode),
-                new C.PointCount { Val = (uint)values.Count });
-            for (int index = 0; index < values.Count; index++)
-                cache.Append(new C.NumericPoint(new C.NumericValue(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(values[index], CultureInfo.InvariantCulture))) { Index = (uint)index });
-            reference.Append(cache);
+            if (holder.IsNone) throw new NotSupportedException("The advanced chart series does not expose numeric values.");
+            OfficeXmlNode reference = holder.Child(CNs, "numRef");
+            if (reference.IsNone) throw new NotSupportedException("The advanced chart series uses producer-specific numeric storage.");
+            string formatCode = reference.Child(CNs, "numCache").ChildText(CNs, "formatCode") ?? "General";
+            ReplaceFormula(reference, formula);
+            OfficeXmlNode existing = reference.Child(CNs, "numCache");
+            if (existing.Exists) existing.Remove();
+            OfficeXmlNode cache = AppendNew(reference, CNs, "numCache");
+            AppendNew(cache, CNs, "formatCode").SetInnerText(formatCode);
+            AppendNew(cache, CNs, "ptCount").SetUInt32Attribute("val", (uint)values.Count);
+            for (int index = 0; index < values.Count; index++) {
+                OfficeXmlNode point = AppendNew(cache, CNs, "pt");
+                point.SetUInt32Attribute("idx", (uint)index);
+                AppendNew(point, CNs, "v").SetInnerText(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(values[index], CultureInfo.InvariantCulture));
+            }
+        }
+
+        // Replaces the reference's first c:f with one holding the formula, written first.
+        private static void ReplaceFormula(OfficeXmlNode reference, string formula) {
+            OfficeXmlNode existing = reference.Child(CNs, "f");
+            if (existing.Exists) existing.Remove();
+            reference.InsertBefore(reference.CreateElement(CNs, "f"), reference.FirstChild).SetInnerText(formula);
         }
 
         private static string GetExcelColumn(int index) {

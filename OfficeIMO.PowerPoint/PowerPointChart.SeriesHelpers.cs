@@ -202,11 +202,8 @@ namespace OfficeIMO.PowerPoint {
         };
 
         /// <summary>Replaces an axis child with a new one carrying <paramref name="value"/>, placed in schema order.</summary>
-        private static void ReplaceAxisChild(OfficeXmlNode axis, string localName, string value) {
-            OfficeXmlNode existing = axis.Child(CNs, localName);
-            if (existing.Exists) existing.Remove();
-            axis.AddOrdered(CNs, localName, AxisOrder(axis)).SetAttribute("val", value);
-        }
+        private static void ReplaceAxisChild(OfficeXmlNode axis, string localName, string value) =>
+            OfficeChartXml.SetOrdered(axis, axis.CreateVal(CNs, localName, value), AxisOrder(axis));
 
         // The SDK looked the axis c:spPr up as the chart space's shape properties type, which an axis never holds, so it
         // isn't among the elements new gridlines go before.
