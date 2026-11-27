@@ -89,12 +89,12 @@ namespace OfficeIMO.Word {
             }
 
             byte[] package = LegacyDocDocxWriter.Write(legacyDocument, DefaultDocumentPackage.Value, cancellationToken);
-            // Document properties are written through the property API, which needs an editable document.
-            bool writeProperties = legacyDocument.DocumentProperties.HasAnyProperties;
-            WordDocument document = LoadProjectedLegacyDocPackage(package, readOnly && !writeProperties);
+            // Custom properties are written through the property API, which needs an editable document.
+            bool writeCustomProperties = legacyDocument.DocumentProperties.CustomProperties.Count > 0;
+            WordDocument document = LoadProjectedLegacyDocPackage(package, readOnly && !writeCustomProperties);
             try {
-                if (writeProperties) {
-                    ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);
+                if (writeCustomProperties) {
+                    ApplyLegacyDocCustomProperties(document, legacyDocument.DocumentProperties);
                     if (readOnly) {
                         using var packageStream = new MemoryStream();
                         // An internal package transition that only enforces read-only access; the caller has not asked
@@ -106,9 +106,9 @@ namespace OfficeIMO.Word {
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
+                // The document was loaded from the projected package, so its bookmark, comment and drawing identifiers
+                // are read from that package when first needed.
                 document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave);
-                // Projected bookmarks and drawings carry identifiers from the source file.
-                document.InvalidateIdentifierState();
                 return document;
             } catch {
                 document.Dispose();
@@ -130,31 +130,7 @@ namespace OfficeIMO.Word {
             return document;
         }
 
-        private static void ApplyLegacyDocProperties(WordDocument document, LegacyDocDocumentProperties properties) {
-            if (!properties.HasAnyProperties) {
-                return;
-            }
-
-            document.Properties.Title = properties.Title;
-            document.Properties.Subject = properties.Subject;
-            document.Properties.Creator = properties.Creator;
-            document.Properties.Keywords = properties.Keywords;
-            document.Properties.Description = properties.Description;
-            document.Properties.Category = properties.Category;
-            document.Properties.LastModifiedBy = properties.LastModifiedBy;
-            document.Properties.Revision = properties.Revision;
-            document.Properties.Created = properties.Created;
-            document.Properties.Modified = properties.Modified;
-            document.Properties.LastPrinted = properties.LastPrinted;
-
-            if (properties.Company != null) {
-                document.ApplicationProperties.Company = properties.Company;
-            }
-
-            if (properties.Manager != null) {
-                document.ApplicationProperties.Manager = properties.Manager;
-            }
-
+        private static void ApplyLegacyDocCustomProperties(WordDocument document, LegacyDocDocumentProperties properties) {
             foreach (KeyValuePair<string, LegacyDocDocumentPropertyValue> property in properties.CustomProperties) {
                 if (TryCreateWordCustomProperty(property.Value, out WordCustomProperty? wordProperty)) {
                     document.CustomProperties[property.Key] = wordProperty!;

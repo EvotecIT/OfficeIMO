@@ -206,6 +206,8 @@ namespace OfficeIMO.Word {
             if (model == null || ResolveSavePassword(options) != null || options?.SignatureMutationPolicy != null || AutoUpdateToc) return false;
             // Other extensions change the document type, or the format, which the SDK save handles.
             if (!string.IsNullOrEmpty(filePath) && !string.Equals(Path.GetExtension(filePath!), ".docx", StringComparison.OrdinalIgnoreCase)) return false;
+            // A document imported from a legacy DOC with content it couldn't project saves only when loss is allowed.
+            EnsureLegacyDocSaveDoesNotDropImportedContent(options);
 
             if (WordOwnedSave.FindSaveBlocker(model) is string blocker) {
                 OpenSdkPackage("Save: " + blocker);

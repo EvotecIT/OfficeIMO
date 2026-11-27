@@ -50,6 +50,7 @@ namespace OfficeIMO.Word.LegacyDoc.Docx {
         }
 
         private void WriteDocument() {
+            AddDocumentProperties();
             ApplyParagraphDefaults();
             AddNumberingDefinitions(_source.Numbering);
             AddParagraphStyleDefinitions();
