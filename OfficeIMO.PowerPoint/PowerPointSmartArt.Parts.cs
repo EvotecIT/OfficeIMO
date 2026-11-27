@@ -73,7 +73,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         private static string? ReadRootMarkup(PowerPointPartRef part) {
             OfficeXmlNode root = part.Root;
-            return root.IsNone ? null : System.Text.Encoding.UTF8.GetString(root.OuterXml());
+            if (root.IsNone) return null;
+            return root.SdkElement is { } element ? SdkOuterXml(element) : System.Text.Encoding.UTF8.GetString(root.OuterXml());
         }
 
         private static XDocument LoadPartXml(PowerPointPartRef part, LoadOptions options = LoadOptions.None) {

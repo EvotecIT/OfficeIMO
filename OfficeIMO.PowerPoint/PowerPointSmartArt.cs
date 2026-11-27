@@ -83,8 +83,6 @@ namespace OfficeIMO.PowerPoint {
                 || !TryGetDiagramPart(relationshipId, DiagramLayoutRelationshipType,
                     out PowerPointPartRef layoutPart)
                 || ReadRootMarkup(layoutPart) is not string layoutMarkup
-                || XElement.Parse(layoutMarkup) is not XElement layout
-                || layout.Name != DiagramNamespace + "layoutDef"
                 || Height.ToPoints() <= 0D) {
                 return false;
             }
@@ -99,6 +97,15 @@ namespace OfficeIMO.PowerPoint {
                 _ => throw new ArgumentOutOfRangeException(nameof(kind))
             };
             double aspectRatio = Width.ToPoints() / Height.ToPoints();
+            // A layout written exactly as the slide writes it is known without parsing it; a list layout's own aspect
+            // ratio has to be read first.
+            string? expected = null;
+            if (type != PowerPointSmartArtType.BasicList) {
+                expected = CanonicalLayoutDefinitionXml(type, nodeCount, aspectRatio);
+                if (string.Equals(layoutMarkup, expected, StringComparison.Ordinal)) return true;
+            }
+            XElement layout = XElement.Parse(layoutMarkup);
+            if (layout.Name != DiagramNamespace + "layoutDef") return false;
             if (type == PowerPointSmartArtType.BasicList) {
                 XElement? storedAspectRatio = layout.Descendants(DiagramNamespace + "param")
                     .FirstOrDefault(parameter => string.Equals(
@@ -108,12 +115,11 @@ namespace OfficeIMO.PowerPoint {
                     && storedRatio > 0D && !double.IsInfinity(storedRatio)) {
                     aspectRatio = storedRatio;
                 }
+                expected = CanonicalLayoutDefinitionXml(type, nodeCount, aspectRatio);
+                if (string.Equals(layoutMarkup, expected, StringComparison.Ordinal)) return true;
             }
-            string expected = CanonicalLayoutDefinitionXml(type, nodeCount,
-                aspectRatio);
             // The SDK writes the canonical layout exactly as built; a package tree writes the same markup its own way.
-            if (string.Equals(layoutMarkup, expected, StringComparison.Ordinal)
-                || XNode.DeepEquals(layout, XElement.Parse(expected))) {
+            if (XNode.DeepEquals(layout, XElement.Parse(expected!))) {
                 return true;
             }
             return type == PowerPointSmartArtType.BasicProcess
@@ -224,15 +230,20 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
             return MatchesSmartArtDefinition(styleDefinition,
-                    PowerPointSlide.SmartArtStyleDefinitionXml)
+                    PowerPointSlide.SmartArtStyleDefinitionXml, NormalizedStyleDefinition.Value)
                 && MatchesSmartArtDefinition(colorsDefinition,
-                    PowerPointSlide.SmartArtColorsDefinitionXml);
+                    PowerPointSlide.SmartArtColorsDefinitionXml, NormalizedColorsDefinition.Value);
         }
 
-        private static bool MatchesSmartArtDefinition(string actual,
-            string expected) => XNode.DeepEquals(
-                NormalizeSmartArtDefinition(XElement.Parse(actual)),
-                NormalizeSmartArtDefinition(XElement.Parse(expected)));
+        // The definitions the slide writes, normalized once; they are only compared, never changed.
+        private static readonly Lazy<XElement> NormalizedStyleDefinition =
+            new(() => NormalizeSmartArtDefinition(XElement.Parse(PowerPointSlide.SmartArtStyleDefinitionXml)));
+        private static readonly Lazy<XElement> NormalizedColorsDefinition =
+            new(() => NormalizeSmartArtDefinition(XElement.Parse(PowerPointSlide.SmartArtColorsDefinitionXml)));
+
+        private static bool MatchesSmartArtDefinition(string actual, string expected, XElement normalizedExpected) =>
+            string.Equals(actual, expected, StringComparison.Ordinal)
+            || XNode.DeepEquals(NormalizeSmartArtDefinition(XElement.Parse(actual)), normalizedExpected);
 
         private static XElement NormalizeSmartArtDefinition(
             XElement element) {

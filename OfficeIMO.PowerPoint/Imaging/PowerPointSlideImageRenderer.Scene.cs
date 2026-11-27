@@ -20,6 +20,7 @@ internal static partial class PowerPointSlideImageRenderer {
         PowerPointThemeScope outerScope = _renderingScope;
         _renderingSlide = slide;
         _renderingScopeResolved = false;
+        _styleFlagsTable = null;
         try {
             AddSlide(slide, drawing, options, diagnostics, imageBudget, token);
         } finally {
@@ -27,6 +28,7 @@ internal static partial class PowerPointSlideImageRenderer {
             _renderingScopeResolved = outerResolved;
             _renderingScopeSdk = outerSdk;
             _renderingScope = outerScope;
+            _styleFlagsTable = null;
         }
         return drawing;
     }

@@ -140,53 +140,54 @@ namespace OfficeIMO.PowerPoint {
                 yield break;
             }
 
+            TableStyleFlags flags = StyleFlags(table);
             bool firstRow = row == 0;
-            bool lastRow = row == table.RowCount - 1;
+            bool lastRow = row == flags.RowCount - 1;
             bool firstColumn = column == 0;
-            bool lastColumn = column == table.ColumnCount - 1;
+            bool lastColumn = column == flags.ColumnCount - 1;
             OfficeXmlNode region;
 
-            if (table.FirstRow && table.FirstColumn && firstRow && firstColumn && !(region = tableStyle.Child(D, "nwCell")).IsNone) {
+            if (flags.FirstRow && flags.FirstColumn && firstRow && firstColumn && !(region = tableStyle.Child(D, "nwCell")).IsNone) {
                 yield return region;
             }
 
-            if (table.FirstRow && table.LastColumn && firstRow && lastColumn && !(region = tableStyle.Child(D, "neCell")).IsNone) {
+            if (flags.FirstRow && flags.LastColumn && firstRow && lastColumn && !(region = tableStyle.Child(D, "neCell")).IsNone) {
                 yield return region;
             }
 
-            if (table.LastRow && table.FirstColumn && lastRow && firstColumn && !(region = tableStyle.Child(D, "swCell")).IsNone) {
+            if (flags.LastRow && flags.FirstColumn && lastRow && firstColumn && !(region = tableStyle.Child(D, "swCell")).IsNone) {
                 yield return region;
             }
 
-            if (table.LastRow && table.LastColumn && lastRow && lastColumn && !(region = tableStyle.Child(D, "seCell")).IsNone) {
+            if (flags.LastRow && flags.LastColumn && lastRow && lastColumn && !(region = tableStyle.Child(D, "seCell")).IsNone) {
                 yield return region;
             }
 
-            if (table.FirstRow && firstRow && !(region = tableStyle.Child(D, "firstRow")).IsNone) {
+            if (flags.FirstRow && firstRow && !(region = tableStyle.Child(D, "firstRow")).IsNone) {
                 yield return region;
             }
 
-            if (table.LastRow && lastRow && !(region = tableStyle.Child(D, "lastRow")).IsNone) {
+            if (flags.LastRow && lastRow && !(region = tableStyle.Child(D, "lastRow")).IsNone) {
                 yield return region;
             }
 
-            if (table.FirstColumn && firstColumn && !(region = tableStyle.Child(D, "firstCol")).IsNone) {
+            if (flags.FirstColumn && firstColumn && !(region = tableStyle.Child(D, "firstCol")).IsNone) {
                 yield return region;
             }
 
-            if (table.LastColumn && lastColumn && !(region = tableStyle.Child(D, "lastCol")).IsNone) {
+            if (flags.LastColumn && lastColumn && !(region = tableStyle.Child(D, "lastCol")).IsNone) {
                 yield return region;
             }
 
-            if (table.BandedRows && !IsExcludedTableStyleBandRow(table, row)) {
-                OfficeXmlNode band = ResolveHorizontalBand(table, row, tableStyle);
+            if (flags.BandedRows && !IsExcludedTableStyleBandRow(flags, row)) {
+                OfficeXmlNode band = ResolveHorizontalBand(flags, row, tableStyle);
                 if (!band.IsNone) {
                     yield return band;
                 }
             }
 
-            if (table.BandedColumns && !IsExcludedTableStyleBandColumn(table, column)) {
-                OfficeXmlNode band = ResolveVerticalBand(table, column, tableStyle);
+            if (flags.BandedColumns && !IsExcludedTableStyleBandColumn(flags, column)) {
+                OfficeXmlNode band = ResolveVerticalBand(flags, column, tableStyle);
                 if (!band.IsNone) {
                     yield return band;
                 }
@@ -197,24 +198,60 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static bool IsExcludedTableStyleBandRow(PowerPointTable table, int row) =>
-            (table.FirstRow && row == 0) || (table.LastRow && row == table.RowCount - 1);
+        private static bool IsExcludedTableStyleBandRow(TableStyleFlags flags, int row) =>
+            (flags.FirstRow && row == 0) || (flags.LastRow && row == flags.RowCount - 1);
 
-        private static bool IsExcludedTableStyleBandColumn(PowerPointTable table, int column) =>
-            (table.FirstColumn && column == 0) || (table.LastColumn && column == table.ColumnCount - 1);
+        private static bool IsExcludedTableStyleBandColumn(TableStyleFlags flags, int column) =>
+            (flags.FirstColumn && column == 0) || (flags.LastColumn && column == flags.ColumnCount - 1);
 
-        private static OfficeXmlNode ResolveHorizontalBand(PowerPointTable table, int row, OfficeXmlNode tableStyle) {
-            int visualRow = row - (table.FirstRow ? 1 : 0);
+        private static OfficeXmlNode ResolveHorizontalBand(TableStyleFlags flags, int row, OfficeXmlNode tableStyle) {
+            int visualRow = row - (flags.FirstRow ? 1 : 0);
             return visualRow % 2 == 0
                 ? tableStyle.Child(D, "band1H")
                 : tableStyle.Child(D, "band2H");
         }
 
-        private static OfficeXmlNode ResolveVerticalBand(PowerPointTable table, int column, OfficeXmlNode tableStyle) {
-            int visualColumn = column - (table.FirstColumn ? 1 : 0);
+        private static OfficeXmlNode ResolveVerticalBand(TableStyleFlags flags, int column, OfficeXmlNode tableStyle) {
+            int visualColumn = column - (flags.FirstColumn ? 1 : 0);
             return visualColumn % 2 == 0
                 ? tableStyle.Child(D, "band1V")
                 : tableStyle.Child(D, "band2V");
+        }
+
+        /// <summary>The style options of a table and its size, which style regions are chosen by.</summary>
+        private readonly struct TableStyleFlags {
+            internal TableStyleFlags(PowerPointTable table) {
+                FirstRow = table.FirstRow;
+                LastRow = table.LastRow;
+                FirstColumn = table.FirstColumn;
+                LastColumn = table.LastColumn;
+                BandedRows = table.BandedRows;
+                BandedColumns = table.BandedColumns;
+                RowCount = table.RowCount;
+                ColumnCount = table.ColumnCount;
+            }
+
+            internal bool FirstRow { get; }
+            internal bool LastRow { get; }
+            internal bool FirstColumn { get; }
+            internal bool LastColumn { get; }
+            internal bool BandedRows { get; }
+            internal bool BandedColumns { get; }
+            internal int RowCount { get; }
+            internal int ColumnCount { get; }
+        }
+
+        // While a slide renders, each table's style options are read once rather than for every cell they apply to.
+        [ThreadStatic] private static PowerPointTable? _styleFlagsTable;
+        [ThreadStatic] private static TableStyleFlags _styleFlags;
+
+        private static TableStyleFlags StyleFlags(PowerPointTable table) {
+            if (_renderingSlide == null) return new TableStyleFlags(table);
+            if (!ReferenceEquals(table, _styleFlagsTable)) {
+                _styleFlags = new TableStyleFlags(table);
+                _styleFlagsTable = table;
+            }
+            return _styleFlags;
         }
     }
 }

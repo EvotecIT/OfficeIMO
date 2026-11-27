@@ -17,6 +17,17 @@ namespace OfficeIMO.PowerPoint {
         private static byte[] ReadSdkPartBytes(object part) {
             try {
                 using Stream stream = ((OpenXmlPart)part).GetStream(FileMode.Open, FileAccess.Read);
+                if (stream.CanSeek && stream.Length <= int.MaxValue) {
+                    var bytes = new byte[stream.Length];
+                    int read = 0;
+                    while (read < bytes.Length) {
+                        int count = stream.Read(bytes, read, bytes.Length - read);
+                        if (count == 0) break;
+                        read += count;
+                    }
+                    if (read == bytes.Length && stream.ReadByte() < 0) return bytes;
+                    stream.Position = 0;
+                }
                 using var buffer = new MemoryStream();
                 stream.CopyTo(buffer);
                 return buffer.ToArray();
@@ -55,8 +66,24 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>The layout definition the slide writes for a new diagram of this family, as markup.</summary>
-        private static string CanonicalLayoutDefinitionXml(PowerPointSmartArtType type, int nodeCount, double aspectRatio) =>
-            PowerPointSlide.CreateSmartArtLayoutDefinition(type, nodeCount, aspectRatio).OuterXml;
+        private static string CanonicalLayoutDefinitionXml(PowerPointSmartArtType type, int nodeCount, double aspectRatio) {
+            var key = (type, nodeCount, aspectRatio);
+            lock (CanonicalLayouts) {
+                if (CanonicalLayouts.TryGetValue(key, out string? cached)) return cached;
+            }
+            string markup = PowerPointSlide.CreateSmartArtLayoutDefinition(type, nodeCount, aspectRatio).OuterXml;
+            lock (CanonicalLayouts) {
+                // Bounded, since list layouts key on each diagram's aspect ratio.
+                if (CanonicalLayouts.Count >= 256) CanonicalLayouts.Clear();
+                CanonicalLayouts[key] = markup;
+            }
+            return markup;
+        }
+
+        private static readonly Dictionary<(PowerPointSmartArtType, int, double), string> CanonicalLayouts = new();
+
+        /// <summary>An SDK element's markup as the SDK writes it.</summary>
+        private static string SdkOuterXml(object element) => ((DocumentFormat.OpenXml.OpenXmlElement)element).OuterXml;
 
         /// <summary>
         /// The cached drawing as a group the slide's shape readers take: its markup read into an SDK group whose
