@@ -27,7 +27,8 @@ internal static class EuVatRecognizer {
 
     internal static void RecognizePrefixed(EntityRecognitionContext context, EntityToken token, PrefixedVatScheme scheme) {
         int bestEnd = 0;
-        foreach ((int end, int count) in IdentifierReadings.Endpoints(context.Text, token, scheme.MaxLength)) {
+        foreach ((int end, int count) in IdentifierReadings.Endpoints(context.Text, token, scheme.MaxLength,
+                     vatPunctuation: scheme.AllowsVatPunctuation)) {
             if (count < scheme.MinLength) continue;
             // Extend an already valid spelling only for the UK branch-number variant.
             if (bestEnd > 0 && (scheme.Country != "GB" || count != 14)) break;

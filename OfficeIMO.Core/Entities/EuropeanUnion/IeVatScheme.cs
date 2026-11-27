@@ -6,7 +6,7 @@ namespace OfficeIMO.Entities;
 internal sealed class IeVatScheme : PrefixedVatScheme {
     internal IeVatScheme() : base("IE", 8, 9, EntityCheckKind.Mod23, BmfSpecification) { }
 
-    protected override bool IsAdditionalCharacter(char value) => value is '+' or '*';
+    internal override bool AllowsVatPunctuation => true;
 
     protected override EntityValidationResult ValidateNational(string number) {
         const string checkLetters = "WABCDEFGHIJKLMNOPQRSTUV";

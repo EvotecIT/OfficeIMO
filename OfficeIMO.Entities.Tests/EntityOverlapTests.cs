@@ -62,6 +62,23 @@ public sealed class EntityOverlapTests {
     }
 
     [Fact]
+    public void LosingPublicReadingStillPassesItsSensitiveAlternativeToMasking() {
+        var first = new SampleScheme("first", EntitySensitivity.Public);
+        var second = new SampleScheme("second", EntitySensitivity.Public);
+        var alternative = new SampleScheme("sensitive");
+        EntityCatalog catalog = new EntityCatalogBuilder().Add(first).Add(second).Add(alternative)
+            .AddRecognizer(new SampleRecognizer(
+                (first, 0, 4, EntityCandidateStrength.StrongCheck),
+                (second, 2, 6, EntityCandidateStrength.DistinctiveShape),
+                (alternative, 2, 6, EntityCandidateStrength.DistinctiveShape))).Build();
+
+        const string text = "abcdefghij";
+        var matches = new EntityFinder(catalog).Find(text).Matches;
+        Assert.Same(first, Assert.Single(matches).Scheme);
+        Assert.Equal("ab[Email]ij", EntityMasker.Mask(text, matches));
+    }
+
+    [Fact]
     public void MaskerReplacesTheUnionOfOverlappingAndAdjacentSpansOnce() {
         const string text = "abcdefghijk!";
         var scheme = new SampleScheme("test");
@@ -84,8 +101,12 @@ public sealed class EntityOverlapTests {
     }
 
     private sealed class SampleScheme : EntityScheme {
-        internal SampleScheme(string id) => Id = id;
+        internal SampleScheme(string id, EntitySensitivity sensitivity = EntitySensitivity.Personal) {
+            Id = id;
+            Sensitivity = sensitivity;
+        }
         public override string Id { get; }
+        public override EntitySensitivity Sensitivity { get; }
         public override EntityKind Kind => new("Email");
         public override string DisplayName => Id;
         public override EntityValidationResult Validate(string? value) =>

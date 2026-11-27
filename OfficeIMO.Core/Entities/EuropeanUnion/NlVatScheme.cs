@@ -8,12 +8,14 @@ namespace OfficeIMO.Entities;
 internal sealed class NlVatScheme : PrefixedVatScheme {
     internal NlVatScheme() : base("NL", 12, 12, EntityCheckKind.Other, BmfSpecification) { }
 
+    protected override bool AllowsCountryCodeInNationalStart => true;
+
     protected override IReadOnlyList<EntityCheckInfo> DescribeChecks() => Array.AsReadOnly(new[] {
         new EntityCheckInfo("Legacy VAT modulus 11", EntityCheckKind.Mod11, EntityCheckProvenance.IssuerPublished, Specification),
         new EntityCheckInfo("VAT modulus 97", EntityCheckKind.Mod97_10, EntityCheckProvenance.IssuerPublished, Specification),
     });
 
-    protected override bool IsAdditionalCharacter(char value) => value is '+' or '*';
+    internal override bool AllowsVatPunctuation => true;
 
     protected override EntityValidationResult ValidateNational(string number) {
         if (!EntityCharacters.IsDigits(number, 10, 2)) return Result(EntityValidationStatus.InvalidFormat);
@@ -23,7 +25,7 @@ internal sealed class NlVatScheme : PrefixedVatScheme {
         if (legacy && suffix > 0 && CheckDigits.WeightedSum(number, "98765432") % 11 == number[8] - '0')
             return NationalCheck(number, true);
 
-        if (suffix is < 2 or > 98) return NationalCheck(number, false);
+        if (suffix is < 2 or > 98) return Result(EntityValidationStatus.InvalidFormat);
         int remainder = CheckDigits.Mod97(Prefix);
         foreach (char character in number) {
             remainder = character switch {

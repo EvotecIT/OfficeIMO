@@ -26,6 +26,7 @@ public sealed class EuVatTests {
     [InlineData("SK4030000007")]
     [InlineData("XI434031494")]
     [InlineData("HR12345678903")] // Croatian OIB worked example in the register check guide.
+    [InlineData("ESK1234567L")] // The AEAT note applies mod 23 to the seven digits, with remainder 19.
     [InlineData("ES12345678Z")] // Spanish Ministry of the Interior, number mod 23 = 14 (Z).
     public void PublishedVatChecksAcceptTheirWorkedExample(string value) {
         EntityScheme scheme = EuVatSchemes.Get(value.Substring(0, 2));
@@ -67,6 +68,41 @@ public sealed class EuVatTests {
         Assert.True(result.IsValid);
         Assert.Equal(EntityCheckOutcome.NotDefined, result.CheckDigit);
         Assert.Equal(EntityCheckProvenance.None, result.CheckProvenance);
+    }
+
+    [Fact]
+    public void CyprusReservedPrefixFailsBeforeItsOtherwisePassingCheck() {
+        var scheme = EuVatSchemes.Get("CY");
+        Assert.True(scheme.IsValid("CY10259033P")); // Transformed sum 41, remainder 15 maps to P.
+        EntityValidationResult invalid = scheme.Validate("CY12000000F"); // Transformed sum 5 maps to F.
+        Assert.Equal(EntityValidationStatus.NotAllocated, invalid.Status);
+        Assert.Null(invalid.Check);
+    }
+
+    [Fact]
+    public void SpanishSpecialPersonalVatReportsTheIssuerCheckOnFailure() {
+        EntityValidationResult result = EuVatSchemes.Get("ES").Validate("ESK1234567A");
+        Assert.Equal(EntityValidationStatus.InvalidCheckDigit, result.Status);
+        Assert.Equal(EntityCheckProvenance.IssuerPublished, result.CheckProvenance);
+        Assert.Equal("www.caib.es", result.Check!.Source!.Host);
+    }
+
+    [Fact]
+    public void FrenchNationalKeyCanMatchItsVatCountryPrefix() {
+        // The alphanumeric key FR gives the same modulus 11 residue as the serial portion.
+        var scheme = EuVatSchemes.Get("FR");
+        Assert.Equal("FRFR100000009", scheme.Normalize("FR100000009"));
+    }
+
+    [Fact]
+    public void DutchVatChecksPunctuationButRejectsAnOutOfRangeSuffixBeforeChecking() {
+        // NL expands to 2321 and each asterisk to 37. The resulting number has remainder 1.
+        EntityMatch match = Assert.Single(new EntityFinder().Find("NL**0000000007").Matches);
+        Assert.Equal("NL**0000000007", match.Normalized);
+        Assert.Equal(EntityCheckKind.Mod97_10, match.Check!.Kind);
+        EntityValidationResult invalid = EuVatSchemes.Get("NL").Validate("NLAAAAAAAAAA01");
+        Assert.Equal(EntityValidationStatus.InvalidFormat, invalid.Status);
+        Assert.Null(invalid.Check);
     }
 
     [Fact]

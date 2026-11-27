@@ -52,6 +52,11 @@ internal static class EntityOverlapResolver {
             }
 
             dropped++;
+            if (maskingFallbacks.TryGetValue(reading, out List<ScoredEntity>? inheritedFallbacks)) {
+                foreach (ScoredEntity fallback in inheritedFallbacks) {
+                    if (fallback.Scheme.Sensitivity != winner.Scheme.Sensitivity) AddReading(maskingFallbacks, winner, fallback);
+                }
+            }
             if (reading.Scheme.Sensitivity != winner.Scheme.Sensitivity)
                 AddReading(maskingFallbacks, winner, reading);
             if (children.TryGetValue(reading, out List<ScoredEntity>? nested)) {

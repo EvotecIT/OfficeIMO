@@ -1658,6 +1658,10 @@ Set `OfficeDrawingRasterRenderOptions.ThrowOnImageDecodeFailure` to `true` when 
 
 High-quality image minification shares the operation's `MaximumRasterPixels` budget with decoded images. The renderer charges its additional output buffer and floating-point sampling scratch before allocation. When that budget prevents an SVG safety comparison, structural findings remain available and the report identifies the unavailable visual inspection.
 
+## Entity recognition
+
+Use `OfficeIMO.Entities` to validate a known identifier or find and mask identifiers, email addresses, and URLs in text. The [entity recognition guide](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.entities.md) covers scheme registration, check provenance, confidence and masking.
+
 ## Boundaries
 
 - This package owns shared lifecycle contracts, persistence mechanics, drawing intent, ink/math models and renderers, raster buffers, SVG and raster encoding primitives, image projection, text layout helpers, chart drawing, and document-agnostic visual diagnostics.
@@ -1707,7 +1711,3 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.Core` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
-
-## Entity recognition
-
-Use `OfficeIMO.Entities` to validate a known identifier or find and mask identifiers, email addresses, and URLs in text. The [entity recognition guide](../Docs/officeimo.entities.md) covers scheme registration, check provenance, confidence and masking.

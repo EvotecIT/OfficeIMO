@@ -31,22 +31,31 @@ internal static class IdentifierReadings {
     // A recognizer may extend an alphanumeric atom across single separators, within its scheme's bound.
     // Endpoints always occur at atom boundaries so a check cannot match the middle of a longer token.
     internal static IEnumerable<(int End, int Count)> Endpoints(string text, EntityToken token, int maxCharacters,
-        bool spacesOnly = false) {
+        bool spacesOnly = false, bool vatPunctuation = false) {
         int end = token.Start + token.Length;
         int count = token.CharacterCount;
         while (count <= maxCharacters) {
             if (end < text.Length && EntityContextMatcher.IsWord(text[end])) yield break;
             yield return (end, count);
-            if (end + 1 >= text.Length || !(spacesOnly ? EntityCharacters.IsSpace(text[end]) : EntityCharacters.IsSeparator(text[end])) ||
-                !EntityTokenizer.IsAlphaAt(text, end + 1)) yield break;
+            if (end >= text.Length) yield break;
+            int next = end;
+            if (spacesOnly ? EntityCharacters.IsSpace(text[end]) : EntityCharacters.IsSeparator(text[end])) {
+                next++;
+            } else if (!vatPunctuation || text[end] is not ('+' or '*')) {
+                yield break;
+            }
+            if (next >= text.Length || !IsCandidateCharacter(text, next, vatPunctuation)) yield break;
 
-            end++;
+            end = next;
             do {
                 end++;
                 if (++count > maxCharacters) yield break;
-            } while (end < text.Length && EntityTokenizer.IsAlphaAt(text, end));
+            } while (end < text.Length && IsCandidateCharacter(text, end, vatPunctuation));
         }
     }
+
+    private static bool IsCandidateCharacter(string text, int position, bool vatPunctuation) =>
+        EntityTokenizer.IsAlphaAt(text, position) || vatPunctuation && text[position] is '+' or '*';
 
     internal static bool IsRepeated(string value, int start, int? end = null) {
         int limit = end ?? value.Length;

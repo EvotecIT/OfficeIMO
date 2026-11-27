@@ -3,7 +3,8 @@ using System;
 namespace OfficeIMO.Entities;
 
 /// <summary>Web URL syntax based on <see href="https://url.spec.whatwg.org/">the WHATWG URL Standard</see>
-/// and general URI components from <see href="https://www.rfc-editor.org/rfc/rfc3986">RFC 3986</see>.</summary>
+/// and general URI components from <see href="https://www.rfc-editor.org/rfc/rfc3986">RFC 3986</see>.
+/// Mailto internationalized domains follow <see href="https://www.rfc-editor.org/rfc/rfc6068">RFC 6068</see>.</summary>
 internal sealed class UrlScheme : EntityScheme {
     public override string Id => "URL";
     public override EntityKind Kind => EntityKind.Url;
@@ -31,8 +32,7 @@ internal sealed class UrlScheme : EntityScheme {
         if (scheme is not ("http" or "https" or "ftp")) return new(this, EntityValidationStatus.InvalidFormat);
 
         if (!Uri.TryCreate(webPrefix ? "http://" + url : url, UriKind.Absolute, out Uri? parsed) ||
-            parsed!.HostNameType == UriHostNameType.Unknown ||
-            (parsed.Host.IndexOf('.') < 0 && !parsed.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase))) {
+            parsed!.HostNameType is UriHostNameType.Unknown or UriHostNameType.IPv6) {
             return new(this, EntityValidationStatus.InvalidFormat);
         }
 
@@ -45,12 +45,14 @@ internal sealed class UrlScheme : EntityScheme {
         int hostEnd = hostStart;
         while (hostEnd < authorityEnd && url[hostEnd] != ':') hostEnd++;
 
-        if (hostStart == hostEnd) return new(this, EntityValidationStatus.InvalidFormat);
+        string host = url.Substring(hostStart, hostEnd - hostStart);
+        if (host.IndexOf('.') < 0 && !host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+            return new(this, EntityValidationStatus.InvalidFormat);
 
         string writtenScheme = webPrefix ? string.Empty : scheme + url.Substring(colon, 3);
         int authorityStart = webPrefix ? 0 : colon + 3;
         string normalized = writtenScheme + url.Substring(authorityStart, hostStart - authorityStart) +
-            url.Substring(hostStart, hostEnd - hostStart).ToLowerInvariant() + url.Substring(hostEnd);
+            host.ToLowerInvariant() + url.Substring(hostEnd);
         return new(this, EntityValidationStatus.Valid, normalized);
     }
 
@@ -58,12 +60,26 @@ internal sealed class UrlScheme : EntityScheme {
         int end = url.IndexOf('?', 7);
         if (end < 0) end = url.Length;
         string writtenMailbox = url.Substring(7, end - 7);
-        string? mailbox = InternetSchemes.Email.Normalize(writtenMailbox);
-        if (mailbox == null || mailbox[0] == '"') return new(this, EntityValidationStatus.InvalidFormat);
-        if (mailbox.IndexOf('.', mailbox.IndexOf('@') + 1) < 0 &&
-            !mailbox.EndsWith("@localhost", StringComparison.OrdinalIgnoreCase))
-            return new(this, EntityValidationStatus.InvalidFormat);
+        EntityValidationResult result = ValidateMailtoMailbox(writtenMailbox, out bool encodedDomain);
+        if (!result.IsValid) return new(this, EntityValidationStatus.InvalidFormat);
+
+        string mailbox = result.Normalized!;
+        int at = mailbox.IndexOf('@');
+        string host = mailbox.Substring(at + 1);
+        if (host.IndexOf('.') < 0 && host != "localhost") return new(this, EntityValidationStatus.InvalidFormat);
+        if (encodedDomain) mailbox = mailbox.Substring(0, at + 1) + Uri.EscapeDataString(host);
         return new(this, EntityValidationStatus.Valid, "mailto:" + mailbox + url.Substring(end));
+    }
+
+    internal static EntityValidationResult ValidateMailtoMailbox(string mailbox, out bool encodedDomain) {
+        int at = mailbox.LastIndexOf('@');
+        encodedDomain = at >= 0 && mailbox.IndexOf('%', at + 1) >= 0;
+        if (mailbox.Length == 0 || mailbox[0] == '"' || at < 1 || at == mailbox.Length - 1)
+            return new EntityValidationResult(InternetSchemes.Email, EntityValidationStatus.InvalidFormat);
+        string input = encodedDomain
+            ? mailbox.Substring(0, at + 1) + Uri.UnescapeDataString(mailbox.Substring(at + 1))
+            : mailbox;
+        return InternetSchemes.EmailInstance.ValidateMailbox(input, allowLiteral: false, out _);
     }
 
     internal static bool IsTerminator(char character) => char.IsWhiteSpace(character) || char.IsControl(character) ||

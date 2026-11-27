@@ -33,8 +33,8 @@ internal static class EntityDigitGuards {
         if (end - token.Start >= 4 && text[end - 3] is '.' or ',' &&
             EntityCharacters.IsDigit(text[end - 2]) && EntityCharacters.IsDigit(text[end - 1]) &&
             EntityCharacters.IsDigit(text[end - 4])) return true;
-        if (clipped && end < text.Length && text[end] is '.' or ',' &&
-            (end + 1 == text.Length || end + 2 == text.Length && EntityCharacters.IsDigit(text[end + 1]))) return true;
+        if (clipped && end + 1 == text.Length && (EntityCharacters.IsSeparator(text[end]) || text[end] == ',')) return true;
+        if (clipped && end + 2 == text.Length && text[end] == ',' && EntityCharacters.IsDigit(text[end + 1])) return true;
         if (end + 2 < text.Length && text[end] is '.' or ',' &&
             EntityCharacters.IsDigit(text[end + 1]) && EntityCharacters.IsDigit(text[end + 2]) &&
             (end + 3 == text.Length || !EntityCharacters.IsDigit(text[end + 3]))) return true;

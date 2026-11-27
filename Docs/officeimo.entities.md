@@ -28,6 +28,8 @@ if (result.IsValid) {
 | Financial | IBAN, BIC, payment card, ISIN and LEI |
 | Internet | Email and URL |
 
+The stage 1 profile accepts a UK National Insurance number without its suffix in a known field. The Companies House scheme covers formats with numeric tails, BIC uses assigned ISO 3166 country codes, and LEI requires `00` in positions five and six. URL recognition covers dotted hosts and `localhost`. Unprefixed VAT recognition in text is limited to contextual digit runs.
+
 Validation is offline. Registration, ownership and deliverability require a separate verification step.
 
 ## Find and mask entities

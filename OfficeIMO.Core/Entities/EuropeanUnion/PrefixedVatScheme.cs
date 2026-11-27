@@ -31,7 +31,17 @@ internal abstract class PrefixedVatScheme : CompactEntityScheme {
     public sealed override EntityCheckKind Check { get; }
     public sealed override EntitySensitivity Sensitivity => EntitySensitivity.Organizational;
 
-    protected override string Canonicalize(string compact) => compact.StartsWith(Prefix, StringComparison.Ordinal) ? compact : Prefix + compact;
+    internal virtual bool AllowsVatPunctuation => false;
+    protected virtual bool AllowsCountryCodeInNationalStart => false;
+
+    protected sealed override bool IsAdditionalCharacter(char value) => AllowsVatPunctuation && value is '+' or '*';
+
+    protected override string Canonicalize(string compact) {
+        bool nationalLength = compact.Length >= MinLength - 2 && compact.Length <= MaxLength - 2;
+        bool hasPrefix = compact.StartsWith(Prefix, StringComparison.Ordinal) &&
+            !(AllowsCountryCodeInNationalStart && nationalLength && compact.Length < MinLength);
+        return hasPrefix ? compact : Prefix + compact;
+    }
 
     protected sealed override EntityValidationResult ValidateCompact(string value) => ValidateNational(value.Substring(2));
 

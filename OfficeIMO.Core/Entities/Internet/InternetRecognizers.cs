@@ -7,8 +7,10 @@ internal static class InternetRecognizers {
     internal static void Recognize(EntityRecognitionContext context, EntityToken token) {
         if (token.Shape == EntityTokenShape.At && context.IsEnabled(InternetSchemes.Email))
             FindEmail(context, token.Start);
-        if (token.Shape == EntityTokenShape.Scheme && context.IsEnabled(InternetSchemes.Url))
-            FindUrl(context, token.Start);
+        if (token.Shape != EntityTokenShape.Scheme) return;
+        bool mailto = EntityTokenizer.StartsWith(context.Text, token.Start, "mailto:");
+        if (context.IsEnabled(InternetSchemes.Url) || mailto && context.IsEnabled(InternetSchemes.Email))
+            FindUrl(context, token.Start, mailto);
     }
 
     private static void FindEmail(EntityRecognitionContext context, int at) {
@@ -34,6 +36,7 @@ internal static class InternetRecognizers {
             end < text.Length && (text[end] == '@' || EntityContextMatcher.IsWord(text[end]))) return;
         while (end > at + 1 && text[end - 1] == '.') end--;
         if (end <= at + 1) return;
+        if (end < text.Length && text[end] == '%' && start >= 7 && EntityTokenizer.StartsWith(text, start - 7, "mailto:")) return;
 
         EntityValidationResult validation = InternetSchemes.EmailInstance.ValidateMailbox(text.Substring(start, end - start),
             allowLiteral: false, out _);
@@ -47,7 +50,7 @@ internal static class InternetRecognizers {
         return (escapes & 1) != 0;
     }
 
-    private static void FindUrl(EntityRecognitionContext context, int start) {
+    private static void FindUrl(EntityRecognitionContext context, int start, bool mailto) {
         string text = context.Text;
         int prefixLength = EntityTokenizer.UrlPrefixLength(text, start);
         int limit = Math.Min(text.Length, start + InternetSchemes.Url.MaxLength);
@@ -57,6 +60,17 @@ internal static class InternetRecognizers {
         end = TrimUrl(text, start, end);
         if (end <= start + prefixLength) return;
         IdentifierReadings.Submit(context, InternetSchemes.Url, start, end, EntityCandidateStrength.DistinctiveShape);
+        if (mailto && context.IsEnabled(InternetSchemes.Email)) FindEncodedMailbox(context, start + prefixLength, end);
+    }
+
+    private static void FindEncodedMailbox(EntityRecognitionContext context, int start, int end) {
+        string text = context.Text;
+        int query = text.IndexOf('?', start, end - start);
+        int length = (query >= 0 ? query : end) - start;
+        if (length <= 0 || text.IndexOf('%', start, length) < 0) return;
+        EntityValidationResult result = UrlScheme.ValidateMailtoMailbox(text.Substring(start, length), out bool encodedDomain);
+        if (encodedDomain && result.IsValid)
+            context.Add(new EntityCandidate(result, start, length, EntityCandidateStrength.DistinctiveShape));
     }
 
     private static int TrimUrl(string text, int start, int end) {

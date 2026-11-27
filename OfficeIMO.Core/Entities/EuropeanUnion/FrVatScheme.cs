@@ -6,6 +6,8 @@ namespace OfficeIMO.Entities;
 internal sealed class FrVatScheme : PrefixedVatScheme {
     internal FrVatScheme() : base("FR", 11, 11, EntityCheckKind.Other, CdqSpecification) { }
 
+    protected override bool AllowsCountryCodeInNationalStart => true;
+
     protected override EntityCheckProvenance DefaultCheckProvenance => EntityCheckProvenance.CommunityDocumented;
 
     protected override EntityValidationResult ValidateNational(string number) {

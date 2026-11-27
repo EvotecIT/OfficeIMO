@@ -82,7 +82,15 @@ public sealed class EntityRecognitionContext {
         _candidates.Add(new ScoredEntity(candidate, evidence, keyword, _catalog.RegistrationOrder[scheme.Id]));
     }
 
-    internal bool IsEnabled(string schemeId) => _enabled.Contains(schemeId);
+    internal bool HasRecognizerFor(string schemeId) {
+        if (!_enabled.Contains(schemeId)) return false;
+        foreach (IEntityRecognizer recognizer in _catalog.Recognizers) {
+            foreach (EntityScheme scheme in recognizer.Schemes) {
+                if (string.Equals(scheme.Id, schemeId, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+        }
+        return false;
+    }
     internal bool RejectDigitRun(EntityToken token) => EntityDigitGuards.Reject(Text, token, _clipped);
 
     internal bool HasContext(EntityScheme scheme, int start) {

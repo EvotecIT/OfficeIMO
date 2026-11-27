@@ -40,6 +40,24 @@ public sealed class EntityFinderTests {
     }
 
     [Fact]
+    public void WholeKeywordBeforeConnectorStillCountsWhenConnectorContainsIt() {
+        EntityCatalog catalog = new EntityCatalogBuilder().AddPoland()
+            .AddKeyword("PL.PESEL", "es", "de")
+            .Build();
+        EntityMatch match = Assert.Single(new EntityFinder(catalog).Find("de del 44051401359").Matches);
+        Assert.Equal("de", match.ContextKeyword);
+        Assert.Equal("es", match.ContextLanguage);
+    }
+
+    [Fact]
+    public void ValidationOnlyVatRegistrationDoesNotSuppressPrefixedNipRecognition() {
+        EntityCatalog catalog = new EntityCatalogBuilder().AddPoland().Add(EuVatSchemes.Get("PL")).Build();
+        EntityMatch match = Assert.Single(new EntityFinder(catalog).Find("PL5260001246").Matches);
+        Assert.Same(PolandSchemes.Nip, match.Scheme);
+        Assert.Equal(0.50, match.Confidence);
+    }
+
+    [Fact]
     public void SegmentLabelAndStructuredSourceScoreWithoutChangingSourceOffsets() {
         var location = new EntitySegmentLocation("Sheet1", "B7");
         var result = new EntityFinder().Find(new[] {
@@ -192,6 +210,8 @@ public sealed class EntityFinderTests {
         Assert.Empty(clipped.Find("PESEL: 440514013599").Matches);
         var clippedAmount = new EntityFinder(options: new EntityFinderOptions { MaxInputCharacters = 19 });
         Assert.Empty(clippedAmount.Find("PESEL: 44051401359,50").Matches);
+        Assert.Empty(clippedAmount.Find("PESEL: 44051401359-9").Matches);
+        Assert.Empty(clippedAmount.Find("PESEL: 44051401359/9").Matches);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => finder.Find("first@example.com", cancellation.Token));

@@ -28,16 +28,27 @@ internal static class EntityContextMatcher {
         int bestEnd = -1;
         foreach (EntityKeyword keyword in keywords) {
             if (keyword.Folded.Length == 0 || languages != null && !languages.Contains(keyword.Language)) continue;
-            int start = folded.LastIndexOf(keyword.Folded, StringComparison.Ordinal);
-            if (start < 0 || start > 0 && IsWord(folded[start - 1])) continue;
-            int end = start + keyword.Folded.Length;
-            if (end < folded.Length && IsWord(folded[end])) continue;
-            if (end < bestEnd || end == bestEnd && best != null && best.Folded.Length >= keyword.Folded.Length) continue;
-            if (!HasConnectingWordsOnly(folded, end)) continue;
+            int end = FindKeywordEnd(folded, keyword.Folded);
+            if (end < 0 || end < bestEnd || end == bestEnd && best != null && best.Folded.Length >= keyword.Folded.Length) continue;
             best = keyword;
             bestEnd = end;
         }
         return best;
+    }
+
+    private static int FindKeywordEnd(string value, string keyword) {
+        int searchEnd = value.Length;
+        while (searchEnd >= keyword.Length) {
+            int start = value.LastIndexOf(keyword, searchEnd - 1, StringComparison.Ordinal);
+            if (start < 0) break;
+            int end = start + keyword.Length;
+            if ((start == 0 || !IsWord(value[start - 1])) && (end == value.Length || !IsWord(value[end])) &&
+                HasConnectingWordsOnly(value, end)) return end;
+
+            // Move the matching window one position to the left of the occurrence.
+            searchEnd = end - 1;
+        }
+        return -1;
     }
 
     internal static string Fold(string value) {

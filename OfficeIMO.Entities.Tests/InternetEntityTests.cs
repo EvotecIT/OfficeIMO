@@ -44,9 +44,19 @@ public sealed class InternetEntityTests {
         Assert.Equal(expected.Length, match.Length);
     }
 
+    [Fact]
+    public void MailtoDecodesAnEncodedDomainForValidationAndMasksTheWrittenMailbox() {
+        const string text = "MAILTO:user@b%C3%BCcher.example?subject=Hi";
+        EntityMatch match = Assert.Single(new EntityFinder().Find(text).Matches);
+        Assert.Same(InternetSchemes.Url, match.Scheme);
+        Assert.Equal("mailto:user@b%C3%BCcher.example?subject=Hi", match.Normalized);
+        Assert.Equal("MAILTO:[Email]?subject=Hi", EntityMasker.Mask(text, new[] { match }));
+    }
+
     [Theory]
     [InlineData("file:///tmp/document")]
     [InlineData("https://intranet/a")]
+    [InlineData("https://[2001:db8::1]/")]
     [InlineData("https:///example.com")]
     public void UrlValidationRequiresAnAllowedSchemeAndAnExplicitHost(string written) =>
         Assert.False(InternetSchemes.Url.IsValid(written));

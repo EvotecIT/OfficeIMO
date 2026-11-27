@@ -691,6 +691,8 @@ The [Core entity recognition guide](officeimo.entities.md) covers field validati
 - [ ] Add ISO 20275 company legal forms from the GLEIF ELF list to `OfficeIMO.Entities.Data` for company name recognition.
 - [ ] Add national identifier packs for further EU countries (German tax ID, French NIR, Spanish DNI/NIE, Italian codice fiscale, Dutch BSN and others), each with primary sources and context keywords.
 - [ ] Show entity findings, entity-driven redaction review and masking before AI in Studio.
+- [ ] Verify SWIFT IBAN Registry reuse terms and package notices before refreshing the existing BBAN structure table.
+- [ ] Add card brand detection only with a maintained, sourced issuer range table.
 
 ## Document-format depth
 

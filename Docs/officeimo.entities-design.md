@@ -144,9 +144,11 @@ The finder tokenizes each segment once and shares the resulting runs and anchors
 
 - **Digit runs**: maximal sequences of digits joined by single separators (space, hyphen, dot, slash, non-breaking space, thin space), with the separator pattern recorded (`3-3-2-2`, `4 4 4 4`).
 - **Alphanumeric runs**: contiguous ASCII groups and boundary information for IBAN, VAT, NINO, passport and ISIN shapes.
-- **Anchors**: `@` positions for email and `://` or `www.` positions for URLs; the email and URL recognizers expand outward under RFC limits.
+- **Anchors**: `@` positions for email and `://`, `mailto:` or `www.` positions for URLs. The email and URL recognizers expand outward under RFC limits.
 
 The tokenizer identifies contiguous alphanumeric groups and maximal digit runs. Recognizers can extend an alphanumeric group across supported separators within the length allowed by the scheme. For example, the IBAN recognizer starts at `PL61` after the label and includes the following account groups. Digit-only rules evaluate the full digit run. Boundaries prevent a candidate inside a longer unbroken word or number. The finder also recognizes the declared NIP inside a Polish VAT number and the parent REGON inside a branch REGON.
+
+Unprefixed VAT recognition in prose requires a numeric national part, a passing check and scheme-specific context. Known fields can validate an unprefixed alphanumeric value directly with the country scheme.
 
 Recognizers are separate from schemes because one recognizer can serve many schemes (one EU VAT recognizer for 28 prefixes, one IBAN recognizer for every country) and because a scheme is useful without any finder (validating an Excel column, an invoice field or a PowerShell parameter).
 
@@ -452,8 +454,9 @@ Two findings shape stage 1:
 | EU VAT checks | [BMF, *UID-Konstruktionsregeln*, November 2020](https://bmf.gv.at/dam/jcr:d6794f8f-d321-43df-9840-1a841f9bf5dc/BMF_UID_Konstruktionsregeln_Stand_November%202020.pdf) | Rules and examples for AT, BE (old and 2020+), DE, DK, EE, FI, HU, IE, IT, LT, LU, NL (old and 2020+: mod 11 first, then mod 97), PL, PT, SE, SI, SK, GB/XI | AT U10223006, BE 0776091951, DE 111111125, FI 09853608, NL 010000446B01, PL 5260001246 |
 | ES personal NIF/NIE letter | [Ministerio del Interior, control digit of the NIF/NIE](https://www.interior.gob.es/opencms/es/servicios-al-ciudadano/tramites-y-gestiones/dni/calculo-del-digito-de-control-del-nif-nie/) | Number mod 23 and letter table; NIE X/Y/Z replaced by 0/1/2. Applies to Spanish VAT numbers of individuals; company NIF control is not published | 12345678Z |
 | BG and CZ company VAT | [VatDB Bulgaria](https://vatdb.com/guides/validate-bg-vat-number/), [VatDB Czechia](https://vatdb.com/guides/validate-cz-vat-number/) | Weighted company checks. Bulgarian ten-digit and Czech nine- and ten-digit variants are format-only. | |
-| CY | [Dígito Verificador](https://digitoverificador.com/en/chipre/vat-chipre-check-digit) | Positional lookup and modulus 26 | |
+| CY | [VatDB Cyprus](https://vatdb.com/guides/validate-cy-vat-number/) | Positional lookup, modulus 26 and reserved `12` prefix | |
 | EL, FR, LV, MT, RO | [CDQ check-digit descriptions](https://meta.cdq.com/Public:Rule_Category/IDENTIFIER_CHECKDIGIT) | National checks, including French numeric and alphanumeric VAT keys. Latvia’s personal variant is format-only. | |
+| ES K/L/M personal NIF | [Spanish Tax Agency technical note](https://www.caib.es/sites/civitasmanualsisuport/f/41519) | Applies the personal control letter to the seven digits following the prefix | |
 | ES company VAT | [NIF/CIF control-character documentation](https://josegoval.github.io/nif-dni-nie-cif-validation/es/guides/control-character/) | Weighted modulus 10 and numeric or alphabetic control character | |
 | HR | [Croatian central register OIB check](https://regos.hr/app/uploads/2018/07/KONTROLA-OIB-a.pdf) | Issuer-published ISO 7064 MOD 11,10 | |
 | UK NINO | [HMRC NIM39110](https://www.gov.uk/hmrc-internal-manuals/national-insurance-manual/nim39110) | Two letters, six digits, suffix A-D; D, F, I, Q, U, V never first or second letter; O never second; BG, GB, KN, NK, NT, TN, ZZ not used | QQ 12 34 56 A (labelled specimen) |
@@ -471,21 +474,6 @@ Two findings shape stage 1:
 
 The scheme metadata links to the format or checksum documentation. Where a scheme has more than one check, `EntityCheckInfo.Source` identifies the documentation used for that check.
 
-## Delivery stages
+## Integration roadmap
 
-1. **Stage 1, engine in Core:** kinds, scheme base, catalog and builder, tokenizer, finder with scoring and overlap resolution, masker, and the schemes listed in the [user guide](officeimo.entities.md). Move the IBAN helper into the engine; `OfficeIMO.Invoicing` references Core, and Invoicing and Pdf switch to the public IBAN scheme. No other consumer changes.
-2. **Stage 2, first consumers:** PDF redaction entity criterion and workflow rule kind; PSWriteOffice `Test-OfficeEntity`, `Find-OfficeEntity`, `Get-OfficeEntityScheme` and `-Entity` on the PDF redaction cmdlets; invoicing and email adoption; CLI and MCP operations.
-3. **Stage 3, documents and data:** cross-format inspection report, Reader processor with masking, AI request masking, CSV and Excel column profiling, validation, normalization and masking.
-4. **Stage 4, `OfficeIMO.Entities.Data`:** phones from libphonenumber metadata, then postal address formats (invoices, mail merge), then ISO 20275 legal forms.
-5. **Stage 5, more countries:** national identifiers for further EU states (DE Steuer-ID, FR NIR, ES DNI/NIE, IT codice fiscale, NL BSN, ...) as country packs, each with its own primary sources and keywords. Studio panels follow the engine stages they present.
-
-## Decisions
-
-- **Any package may reference `OfficeIMO.Core`.** `OfficeIMO.Invoicing` references Core and uses the public schemes; there is no linked source copy of entity code anywhere.
-- **Community-documented checks are allowed** where no issuer publication exists, with the provenance of every check (`IssuerPublished` or `CommunityDocumented`) visible on schemes, validation results and matches.
-
-## Open decisions
-
-- **SWIFT IBAN Registry data.** The existing BBAN structure table is transcribed from the SWIFT IBAN Registry. Check whether its terms require an entry in `Build/third-party-material.json` when it moves into Core; add one if they do.
-- **Payment card ranges.** Card brand detection by IIN range needs a maintained range table; stage 1 uses only the first digit (ISO/IEC 7812 major industry identifier) and Luhn. A brand table is a later, sourced addition.
-- **Issuer sources for community-documented checks.** REGON weights, the identity card and passport check digits, and the EU VAT checks sourced from community descriptions carry that provenance. If GUS, MSWiA or a national tax authority publishes them (for example in the GUS BIR service specification), the citation and provenance change; behaviour should not.
+The [entity recognition roadmap](ROADMAP.md#entity-recognition) tracks open document, host and country-pack work. Core provides the scheme catalog, finder and masker. Invoicing and PDF use the same Core IBAN implementation and registry table.

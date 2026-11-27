@@ -12,7 +12,7 @@ internal static class PolandRecognizers {
 
         string text = context.Text;
         if (token.CharacterCount is < 2 or > 12 || !EntityCharacters.IsLetter(EntityCharacters.Upper(text[token.Start]))) return;
-        if (!context.IsEnabled("EU.VAT.PL") && EntityTokenizer.StartsWith(text, token.Start, "PL")) {
+        if (EntityTokenizer.StartsWith(text, token.Start, "PL") && !context.HasRecognizerFor("EU.VAT.PL")) {
             foreach ((int end, int count) in IdentifierReadings.Endpoints(text, token, 12)) {
                 if (count == 12) IdentifierReadings.Submit(context, PolandSchemes.Nip, token.Start, end,
                     EntityCandidateStrength.DigitCheck, EntityEvidence.CountryPrefix, optionalPrefix: true);
