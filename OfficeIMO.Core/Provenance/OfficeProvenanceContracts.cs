@@ -35,7 +35,12 @@ public enum OfficeProvenanceCarrierKind {
     /// <summary>A reference to an external C2PA Manifest Store.</summary>
     C2paExternalManifest,
     /// <summary>An IPTC Digital Source Type declaration carried by XMP.</summary>
-    IptcDigitalSourceType
+    IptcDigitalSourceType,
+    /// <summary>
+    /// Generation settings an AI image tool wrote into the file, such as the prompt, seed, model and workflow stored in
+    /// PNG text chunks. <see cref="OfficeProvenanceEvidence.Value"/> carries the field name, not its content.
+    /// </summary>
+    AiGeneratorMetadata
 }
 
 /// <summary>Describes the origin declared by an IPTC Digital Source Type value.</summary>
@@ -84,7 +89,7 @@ public sealed class OfficeProvenanceEvidence {
     public bool IsStructurallyValid { get; }
     /// <summary>Gets the embedded payload length, when known.</summary>
     public long PayloadLength { get; }
-    /// <summary>Gets the external URI or declared source-type value, when applicable.</summary>
+    /// <summary>Gets the external URI, the declared source-type value, or the AI generator field name, when applicable.</summary>
     public string? Value { get; }
     /// <summary>Gets the classified digital source type, when applicable.</summary>
     public OfficeProvenanceDigitalSourceKind DigitalSourceKind { get; }
@@ -208,7 +213,10 @@ public sealed class OfficeProvenanceRemovalOptions {
     public bool RemoveC2paManifests { get; set; } = true;
     /// <summary>Whether external C2PA references are removed. Defaults to true.</summary>
     public bool RemoveExternalC2paReferences { get; set; } = true;
-    /// <summary>Whether AI-specific IPTC Digital Source Type declarations are removed. Defaults to true.</summary>
+    /// <summary>
+    /// Whether AI source declarations are removed: AI-specific IPTC Digital Source Type values and the generation settings AI
+    /// image tools write into files (<see cref="OfficeProvenanceCarrierKind.AiGeneratorMetadata"/>). Defaults to true.
+    /// </summary>
     public bool RemoveAiSourceMetadata { get; set; } = true;
     /// <summary>Whether malformed carriers are preserved instead of removed. Defaults to true.</summary>
     public bool RequireStructurallyValidCarrier { get; set; } = true;
