@@ -133,7 +133,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static byte[] CreateWorkbookShell(string mainContentType, OfficeTheme? theme) {
-            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Create();
+            using OfficeOpcEditablePackage package = CreateWorkbookPackage(mainContentType, theme);
+            using var output = new MemoryStream(16 * 1024);
+            package.Save(output);
+            return output.ToArray();
+        }
+
+        private static OfficeOpcEditablePackage CreateWorkbookPackage(string mainContentType, OfficeTheme? theme) {
+            OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Create();
             package.CreateBinaryPart(CreatedWorkbookPartName, mainContentType, Encoding.UTF8.GetBytes(CreatedWorkbookXml));
             package.AddRelationship(null, OfficeOpcPackage.OfficeDocumentRelationshipType, "xl/workbook.xml");
             byte[] themeBytes = theme == null ? DefaultThemeBytes.Value : Encoding.UTF8.GetBytes(CreateWorkbookThemeXml(theme));
@@ -142,9 +149,7 @@ namespace OfficeIMO.Excel {
             package.CreateBinaryPart("/xl/styles.xml", "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml",
                 Encoding.UTF8.GetBytes(CreatedStylesXml(theme)));
             package.AddRelationship(CreatedWorkbookPartName, StylesRelationshipType, "styles.xml");
-            using var output = new MemoryStream(16 * 1024);
-            package.Save(output);
-            return output.ToArray();
+            return package;
         }
     }
 }

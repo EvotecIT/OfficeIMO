@@ -14,14 +14,12 @@ namespace OfficeIMO.Excel {
             XlsbWorkbookProjector.EnsureArrayProjectionBudget(source, maxCells, cancellationToken);
             ExcelDocumentType type = source.VbaProjectPartName == null
                 ? ExcelDocumentType.Workbook : ExcelDocumentType.MacroEnabledWorkbook;
-            byte[] shell = CreateWorkbookShell(CreatedMainContentType(type)!, theme: null);
             byte[] bytes;
             long inputVersion = 0, authoredVersion = 0;
             Dictionary<(Uri WorksheetUri, string CellReference), FormulaAuthoredVersions>? formulas = null;
             var worksheetUris = new Dictionary<string, Uri>(StringComparer.Ordinal);
 
-            using (var input = new MemoryStream(shell, writable: false))
-            using (OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(input, leaveOpen: true)) {
+            using (OfficeOpcEditablePackage package = CreateWorkbookPackage(CreatedMainContentType(type)!, theme: null)) {
                 bytes = XlsbOwnedWorkbookProjector.Write(package, source, SanitizeWorksheetName, RecordMutation, cancellationToken);
             }
 
