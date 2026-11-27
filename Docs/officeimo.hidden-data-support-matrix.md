@@ -99,7 +99,7 @@ Saving a Visio drawing writes a new package from the drawing model. Package prop
 | `Attachments` (opt-in) | Embedded files, associated files and file attachment annotations |
 | `Bookmarks` (opt-in) | The document outline |
 | `HiddenContent` (opt-in) | Optional-content (layer) definitions and associations; the page content that belonged to a layer stays visible |
-| `Provenance` | Content Credentials stored as associated files. They sign the whole file and cannot stay valid after the rewrite, so removal always removes them and says so in the finding's `Note`. Use `PdfProvenance.Remove` to change only provenance |
+| `Provenance` | Content Credentials stored as associated files. They sign the whole file and cannot stay valid after the rewrite, so removal always removes them and says so in the finding's `Note`. AI source declarations in the catalog XMP and the Info dictionary, and the carriers inside JPEG images and their XMP, are reported too. Image ones are kept unless `Provenance` is selected; document-level ones live in the XMP packet and Info dictionary, so `DocumentProperties` also removes them. Use `PdfProvenance.Remove` to change only provenance |
 | `PersonalIdentities` | Not supported: comment authors are not anonymized. They appear in the comment finding's description and leave with the comment unless `Comments` is selected |
 
 Removal rewrites the whole file, inspects the output again and throws when a selected item remains or when anything outside the selection changed. Signed PDFs are refused, because the rewrite would invalidate their signatures.

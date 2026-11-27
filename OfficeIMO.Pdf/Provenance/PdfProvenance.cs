@@ -49,6 +49,7 @@ public static partial class PdfProvenance {
             revisionEnds.Length + 1, seen, null, currentCarriers);
         long historicalBytes = InspectHistoricalCarriers(pdf, document, options, effectiveReadOptions, inspectionTimer,
             maximumManifestBytes, evidence, stores, occurrences, revisionEnds, seen, historicalCarriers);
+        InspectDeclarations(document, options, evidence);
         IReadOnlyList<string> diagnostics = SelectActiveManifest(stores);
         return new OfficeProvenanceReport(
             OfficeProvenanceAssetFormat.Pdf,
@@ -68,11 +69,29 @@ public static partial class PdfProvenance {
         return Inspect(pdf, options, readOptions);
     }
 
-    /// <summary>Removes selected structurally valid C2PA associated files through the proven PDF attachment rewrite.</summary>
+    /// <summary>
+    /// Removes selected structurally valid C2PA associated files and AI source declarations (XMP digital source types and generator
+    /// fields, AI generator names in the Info dictionary, and carriers inside JPEG images) through one verified full rewrite.
+    /// </summary>
     public static OfficeProvenanceRemovalResult Remove(
         byte[] pdf,
         OfficeProvenanceRemovalOptions? options = null,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) =>
+        Remove(pdf, options, readOptions, alwaysRemoveAttachedManifests: false);
+
+    /// <summary>Removes provenance; see the public overload.</summary>
+    /// <param name="pdf">The PDF bytes.</param>
+    /// <param name="options">The removal options.</param>
+    /// <param name="readOptions">PDF read options.</param>
+    /// <param name="alwaysRemoveAttachedManifests">
+    /// Removes C2PA associated files even when <see cref="OfficeProvenanceRemovalOptions.RemoveC2paManifests"/> is false, for callers
+    /// that rewrite the whole file afterwards and so cannot keep credentials that cover it. Credentials inside images follow the option.
+    /// </param>
+    internal static OfficeProvenanceRemovalResult Remove(
+        byte[] pdf,
+        OfficeProvenanceRemovalOptions? options,
+        PdfLoadOptions? readOptions,
+        bool alwaysRemoveAttachedManifests) {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceRemovalOptions();
         OfficeProvenanceBinary.ValidateRemovalOptions(options);
@@ -90,7 +109,9 @@ public static partial class PdfProvenance {
         OfficeProvenanceReport before = InspectCore(pdf, options.Limits, effectiveReadOptions, out PdfReadDocument document,
             out var historicalCarriers, out var currentCarriers);
         long initialCurrentExpandedBytes = document.DecodedStreamBudget.UsedBytes;
-        if (!options.RemoveC2paManifests || before.Evidence.Count == 0) {
+        bool removeAttachedManifests = options.RemoveC2paManifests || alwaysRemoveAttachedManifests;
+        bool removeDeclarations = options.RemoveC2paManifests || options.RemoveExternalC2paReferences || options.RemoveAiSourceMetadata;
+        if (!removeAttachedManifests && !removeDeclarations || before.Evidence.Count == 0) {
             return new OfficeProvenanceRemovalResult(
                 OfficeProvenanceBinary.CloneForOutput(pdf, options.EffectiveMaxOutputBytes),
                 before,
@@ -109,7 +130,7 @@ public static partial class PdfProvenance {
         var removeFileSpecifications = new HashSet<int>();
         var removeEmbeddedFiles = new HashSet<int>();
         var changes = new List<OfficeProvenanceChange>();
-        foreach (var current in currentCarriers) {
+        foreach (var current in removeAttachedManifests ? currentCarriers : Enumerable.Empty<KeyValuePair<PdfExtractedAttachment, CurrentCarrier>>()) {
             options.Limits.CancellationToken.ThrowIfCancellationRequested();
             PdfExtractedAttachment attachment = current.Key;
             OfficeProvenanceEvidence evidence = before.Evidence[current.Value.EvidenceIndex];
@@ -125,7 +146,7 @@ public static partial class PdfProvenance {
                 removedBytes: 0));
         }
         bool rewriteHistory = false;
-        foreach (var historical in historicalCarriers) {
+        foreach (var historical in removeAttachedManifests ? historicalCarriers : new List<HistoricalCarrier>()) {
             if (!historical.Evidence.IsStructurallyValid && options.RequireStructurallyValidCarrier) continue;
             rewriteHistory = true;
             // Object numbers may have been reused by an unrelated later definition. Only
@@ -137,7 +158,10 @@ public static partial class PdfProvenance {
                 removeEmbeddedFiles.Add(historical.Stream);
             changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, historical.Evidence.Location, removedBytes: 0));
         }
-        if (removeFileSpecifications.Count == 0 && !rewriteHistory) {
+        List<ObjectGraphEdit> declarationEdits = removeDeclarations
+            ? PlanDeclarationRemoval(document, options, changes)
+            : new List<ObjectGraphEdit>();
+        if (removeFileSpecifications.Count == 0 && !rewriteHistory && declarationEdits.Count == 0) {
             return new OfficeProvenanceRemovalResult(
                 OfficeProvenanceBinary.CloneForOutput(pdf, options.EffectiveMaxOutputBytes),
                 before,
@@ -170,6 +194,9 @@ public static partial class PdfProvenance {
             options.EffectiveMaxOutputBytes,
             removeEmbeddedFiles,
             rewriteHistory,
+            declarationEdits.Count == 0 ? null : (objects, security) => {
+                foreach (ObjectGraphEdit edit in declarationEdits) edit(objects, security);
+            },
             options.Limits.CancellationToken);
         options.Limits.CancellationToken.ThrowIfCancellationRequested();
         before = new OfficeProvenanceReport(

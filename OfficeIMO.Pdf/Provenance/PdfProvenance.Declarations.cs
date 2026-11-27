@@ -1,0 +1,207 @@
+using OfficeIMO.Provenance;
+
+namespace OfficeIMO.Pdf;
+
+/// <summary>
+/// AI source declarations outside the C2PA attachment: IPTC digital source types and AI generator fields in the catalog XMP packet
+/// and in image XMP packets, AI generator names in the Info dictionary's <c>Creator</c> and <c>Producer</c>, and every carrier
+/// inside JPEG image streams (<c>DCTDecode</c>), which are complete JPEG files. Removal edits only those objects, in the same
+/// verified full rewrite that removes C2PA attachments.
+/// </summary>
+public static partial class PdfProvenance {
+    private const string CatalogMetadataLocation = "PDF/Catalog/Metadata";
+    private static readonly string[] InfoGeneratorKeys = { "Creator", "Producer" };
+
+    private delegate void ObjectGraphEdit(Dictionary<int, PdfIndirectObject> objects, PdfDocumentSecurityInfo security);
+
+    private static void InspectDeclarations(PdfReadDocument document, OfficeProvenanceOptions options, List<OfficeProvenanceEvidence> evidence) {
+        var context = new OfficeProvenanceContext(OfficeProvenanceAssetFormat.Pdf, options);
+        WalkDeclarations(document, options, context, removal: null, changes: null, edits: null);
+        evidence.AddRange(context.Evidence);
+    }
+
+    /// <summary>Plans the selected declaration removals; each edit replaces or trims one object in the rewritten graph.</summary>
+    private static List<ObjectGraphEdit> PlanDeclarationRemoval(
+        PdfReadDocument document,
+        OfficeProvenanceRemovalOptions removal,
+        List<OfficeProvenanceChange> changes) {
+        var edits = new List<ObjectGraphEdit>();
+        WalkDeclarations(document, removal.Limits, context: null, removal, changes, edits);
+        return edits;
+    }
+
+    private static void WalkDeclarations(
+        PdfReadDocument document,
+        OfficeProvenanceOptions options,
+        OfficeProvenanceContext? context,
+        OfficeProvenanceRemovalOptions? removal,
+        List<OfficeProvenanceChange>? changes,
+        List<ObjectGraphEdit>? edits) {
+        CancellationToken cancellationToken = options.CancellationToken;
+        Dictionary<int, PdfIndirectObject> objects = document.Objects;
+        PdfDocumentSecurityInfo security = document.Security;
+        bool removeDeclarations = removal?.RemoveAiSourceMetadata == true;
+
+        if (security.RootObjectNumber is int rootNumber &&
+            objects.TryGetValue(rootNumber, out PdfIndirectObject? root) && root.Value is PdfDictionary catalog &&
+            catalog.Items.TryGetValue("Metadata", out PdfObject? catalogMetadata)) {
+            WalkXmp(document, options, catalogMetadata, CatalogMetadataLocation, context, removeDeclarations ? removal : null, changes, edits,
+                replaceDirect: (graph, graphSecurity, stream) => {
+                    if (graphSecurity.RootObjectNumber is int number && graph.TryGetValue(number, out PdfIndirectObject? item) &&
+                        item.Value is PdfDictionary graphCatalog) graphCatalog.Items["Metadata"] = stream;
+                });
+        }
+
+        if (security.InfoObjectNumber is int infoNumber &&
+            objects.TryGetValue(infoNumber, out PdfIndirectObject? infoObject) && infoObject.Value is PdfDictionary info) {
+            foreach (string key in InfoGeneratorKeys) {
+                if (!info.Items.TryGetValue(key, out PdfObject? item) ||
+                    PdfObjectLookup.Resolve(objects, item) is not PdfStringObj text ||
+                    !OfficeProvenanceAiGenerators.IsAiGenerator(text.Value)) continue;
+                string location = "PDF/Info/" + key;
+                context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.AiGeneratorMetadata, location, true,
+                    text.RawBytes.Length, text.Value, OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia));
+                if (!removeDeclarations || changes == null || edits == null) continue;
+                changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.AiGeneratorMetadata, location, text.RawBytes.Length));
+                string removedKey = key;
+                edits.Add((graph, graphSecurity) => {
+                    if (graphSecurity.InfoObjectNumber is int number && graph.TryGetValue(number, out PdfIndirectObject? graphInfo) &&
+                        graphInfo.Value is PdfDictionary dictionary) dictionary.Items.Remove(removedKey);
+                });
+            }
+        }
+
+        bool processImages = removal?.ProcessEmbeddedAssets ?? options.ProcessEmbeddedAssets;
+        int maximumImages = removal?.MaxEmbeddedAssets ?? options.MaxEmbeddedAssets;
+        int images = 0;
+        var visitedMetadata = new HashSet<int>();
+        foreach (KeyValuePair<int, PdfIndirectObject> pair in objects.OrderBy(static item => item.Key).ToArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (pair.Value.Value is not PdfStream image || !IsName(objects, image.Dictionary, "Subtype", "Image")) continue;
+            int objectNumber = pair.Key;
+            if (image.Dictionary.Items.TryGetValue("Metadata", out PdfObject? imageMetadata) &&
+                (imageMetadata is not PdfReference metadataReference || visitedMetadata.Add(metadataReference.ObjectNumber))) {
+                WalkXmp(document, options, imageMetadata, $"PDF/Object[{objectNumber}]/Metadata", context,
+                    removeDeclarations ? removal : null, changes, edits,
+                    replaceDirect: (graph, _, stream) => {
+                        if (graph.TryGetValue(objectNumber, out PdfIndirectObject? item) && item.Value is PdfStream graphImage) {
+                            graphImage.Dictionary.Items["Metadata"] = stream;
+                        }
+                    });
+            }
+            if (!processImages || !IsJpegStream(objects, image)) continue;
+            if (++images > maximumImages) throw new InvalidDataException("The PDF exceeds the configured embedded-asset limit.");
+            WalkJpegImage(objectNumber, pair.Value.Generation, image, options, context, removal, changes, edits);
+        }
+    }
+
+    private static void WalkXmp(
+        PdfReadDocument document,
+        OfficeProvenanceOptions options,
+        PdfObject metadata,
+        string location,
+        OfficeProvenanceContext? context,
+        OfficeProvenanceRemovalOptions? removal,
+        List<OfficeProvenanceChange>? changes,
+        List<ObjectGraphEdit>? edits,
+        Action<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, PdfStream> replaceDirect) {
+        if (PdfObjectLookup.Resolve(document.Objects, metadata) is not PdfStream stream) return;
+        byte[] packet;
+        try {
+            packet = document.DecodedStreamBudget.DecodeRequired(stream, document.Objects, PdfReadDocument.MaxXmpMetadataBytes, options.CancellationToken);
+        } catch (InvalidDataException) {
+            return;
+        }
+        if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location);
+        if (removal == null || changes == null || edits == null ||
+            !OfficeProvenanceXmp.TryRemoveAiDeclarations(packet, removal, location, changes, out byte[] cleaned)) return;
+        PdfDictionary dictionary = PdfXmpMetadataSynchronizer.CloneUnfilteredMetadataDictionary(stream.Dictionary);
+        if (metadata is PdfReference reference) {
+            edits.Add((graph, _) => {
+                int generation = graph.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? existing) ? existing.Generation : reference.Generation;
+                graph[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, generation, new PdfStream(dictionary, cleaned));
+            });
+        } else {
+            edits.Add((graph, security) => replaceDirect(graph, security, new PdfStream(dictionary, cleaned)));
+        }
+    }
+
+    private static void WalkJpegImage(
+        int objectNumber,
+        int generation,
+        PdfStream image,
+        OfficeProvenanceOptions options,
+        OfficeProvenanceContext? context,
+        OfficeProvenanceRemovalOptions? removal,
+        List<OfficeProvenanceChange>? changes,
+        List<ObjectGraphEdit>? edits) {
+        byte[] jpeg = image.GetData(options.CancellationToken);
+        if (jpeg.LongLength > options.MaxAssetBytes) throw new InvalidDataException("A PDF image exceeds the configured asset limit.");
+        string prefix = $"PDF/Object[{objectNumber}]/Image/";
+        string name = $"object-{objectNumber}.jpg";
+        try {
+            if (context != null) {
+                OfficeProvenanceReport nested = OfficeProvenanceInspector.Inspect(jpeg, name, CreateNestedOptions(options));
+                foreach (OfficeProvenanceEvidence item in nested.Evidence) {
+                    context.Add(new OfficeProvenanceEvidence(item.Carrier, prefix + item.Location, item.IsStructurallyValid, item.PayloadLength,
+                        item.Value, item.DigitalSourceKind).WithManifest(item.Manifest));
+                }
+            }
+            if (removal == null || changes == null || edits == null) return;
+            OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, name, CreateNestedRemoval(removal));
+            if (!result.WasChanged) return;
+            foreach (OfficeProvenanceChange change in result.Changes) {
+                changes.Add(new OfficeProvenanceChange(change.Carrier, prefix + change.Location, change.RemovedBytes));
+            }
+            byte[] cleaned = result.ToArray();
+            var dictionary = new PdfDictionary();
+            foreach (KeyValuePair<string, PdfObject> entry in image.Dictionary.Items) {
+                if (entry.Key != "Length") dictionary.Items[entry.Key] = entry.Value;
+            }
+            edits.Add((graph, _) => graph[objectNumber] = new PdfIndirectObject(objectNumber, generation, new PdfStream(dictionary, cleaned)));
+        } catch (InvalidDataException exception) when (!OfficeProvenanceLimitException.Is(exception)) {
+            // A JPEG stream the image reader cannot parse is left exactly as it is.
+            context?.Diagnostics.Add($"{prefix.TrimEnd('/')}: image was preserved because inspection failed: {exception.Message}");
+        }
+    }
+
+    private static bool IsJpegStream(Dictionary<int, PdfIndirectObject> objects, PdfStream image) {
+        if (!image.Dictionary.Items.TryGetValue("Filter", out PdfObject? filter)) return false;
+        PdfObject? resolved = PdfObjectLookup.Resolve(objects, filter);
+        if (resolved is PdfArray array) {
+            if (array.Items.Count != 1) return false;
+            resolved = PdfObjectLookup.Resolve(objects, array.Items[0]);
+        }
+        return resolved is PdfName name && name.Name == "DCTDecode";
+    }
+
+    private static bool IsName(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, string expected) =>
+        dictionary.Items.TryGetValue(key, out PdfObject? value) && PdfObjectLookup.Resolve(objects, value) is PdfName name && name.Name == expected;
+
+    private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source) => new OfficeProvenanceOptions {
+        ProcessEmbeddedAssets = false,
+        MaxAssetBytes = source.MaxAssetBytes,
+        MaxManifestBytes = source.MaxManifestBytes,
+        MaxCarriers = source.MaxCarriers,
+        MaxContainerEntries = source.MaxContainerEntries,
+        MaxExpandedContainerBytes = source.MaxExpandedContainerBytes,
+        CancellationToken = source.CancellationToken
+    };
+
+    private static OfficeProvenanceRemovalOptions CreateNestedRemoval(OfficeProvenanceRemovalOptions source) {
+        var nested = new OfficeProvenanceRemovalOptions {
+            RemoveC2paManifests = source.RemoveC2paManifests,
+            RemoveExternalC2paReferences = source.RemoveExternalC2paReferences,
+            RemoveAiSourceMetadata = source.RemoveAiSourceMetadata,
+            RequireStructurallyValidCarrier = source.RequireStructurallyValidCarrier,
+            ProcessEmbeddedAssets = false
+        };
+        nested.Limits.MaxAssetBytes = source.Limits.MaxAssetBytes;
+        nested.Limits.MaxManifestBytes = source.Limits.MaxManifestBytes;
+        nested.Limits.MaxCarriers = source.Limits.MaxCarriers;
+        nested.Limits.MaxContainerEntries = source.Limits.MaxContainerEntries;
+        nested.Limits.MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes;
+        nested.Limits.CancellationToken = source.Limits.CancellationToken;
+        return nested;
+    }
+}

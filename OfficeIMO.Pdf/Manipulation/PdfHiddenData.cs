@@ -37,12 +37,18 @@ internal static class PdfHiddenData {
         PdfSanitizationReport inventory = InspectInventory(pdf, readOptions, options.Kinds, cancellationToken);
         IReadOnlyList<OfficeProvenanceEvidence> provenance = InspectProvenance(pdf, readOptions, cancellationToken);
 
-        // Content Credentials sign the file's bytes, so the rewrite below would leave them stale. They are removed first through the
-        // provenance engine, which keeps malformed carriers when RequireStructurallyValidCarrier is set.
+        // Content Credentials attached to the file sign its bytes, so the rewrite below would leave them stale. They are removed first
+        // through the provenance engine, which keeps malformed carriers when RequireStructurallyValidCarrier is set. AI declarations and
+        // credentials inside images go only when provenance is selected.
+        bool provenanceSelected = collector.Removes(OfficeHiddenDataKind.Provenance);
         byte[] current = pdf;
         PdfLoadOptions? currentReadOptions = readOptions;
         if (provenance.Count > 0) {
-            OfficeProvenanceRemovalResult removed = PdfProvenance.Remove(pdf, CreateProvenanceRemoval(options.Provenance, pdf.LongLength, cancellationToken), ProvenanceReadOptions(readOptions));
+            OfficeProvenanceRemovalResult removed = PdfProvenance.Remove(
+                pdf,
+                CreateProvenanceRemoval(options.Provenance, provenanceSelected, pdf.LongLength, cancellationToken),
+                ProvenanceReadOptions(readOptions),
+                alwaysRemoveAttachedManifests: true);
             if (removed.WasReserialized) {
                 current = removed.ToArray();
                 currentReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, current.LongLength);
@@ -60,12 +66,19 @@ internal static class PdfHiddenData {
         Record(collector, inventory, includeAlwaysKept: true);
         if (provenance.Count > 0) {
             List<OfficeProvenanceEvidence> remaining = InspectProvenance(sanitized.Bytes, sanitized.ReadOptions, cancellationToken).ToList();
-            bool selected = collector.Removes(OfficeHiddenDataKind.Provenance);
             foreach (OfficeProvenanceEvidence evidence in provenance) {
                 bool removed = !TakeMatch(remaining, evidence);
-                OfficeHiddenDataReason reason = removed
-                    ? (!selected || !options.Provenance.RemoveC2paManifests ? OfficeHiddenDataReason.WholeFileCredentialsCannotSurvive : OfficeHiddenDataReason.None)
-                    : OfficeHiddenDataReason.ContentCredentialsNoLongerVerify;
+                OfficeHiddenDataReason reason;
+                if (IsAttachedManifest(evidence)) {
+                    reason = removed
+                        ? (!provenanceSelected || !options.Provenance.RemoveC2paManifests ? OfficeHiddenDataReason.WholeFileCredentialsCannotSurvive : OfficeHiddenDataReason.None)
+                        : OfficeHiddenDataReason.ContentCredentialsNoLongerVerify;
+                } else if (removed) {
+                    // Document-level declarations live in the XMP packet and the Info dictionary, which DocumentProperties also cleans.
+                    reason = OfficeHiddenDataReason.None;
+                } else {
+                    collector.Resolve(OfficeHiddenDataKind.Provenance, removed: false, OfficeHiddenDataReason.KeptByProvenanceChoices, out reason);
+                }
                 RecordProvenance(collector, evidence, removed ? OfficeHiddenDataOutcome.Removed : OfficeHiddenDataOutcome.Retained, reason);
             }
         }
@@ -165,12 +178,17 @@ internal static class PdfHiddenData {
     private static PdfLoadOptions ProvenanceReadOptions(PdfLoadOptions? readOptions) =>
         PdfLoadOptions.WithPermissionPolicy(readOptions, PdfPermissionPolicy.IgnoreRestrictions);
 
-    private static OfficeProvenanceRemovalOptions CreateProvenanceRemoval(OfficeProvenanceRemovalOptions carriers, long length, CancellationToken cancellationToken) {
+    /// <summary>Whether the evidence is Content Credentials attached to the whole PDF, as opposed to a declaration or an image's own carrier.</summary>
+    private static bool IsAttachedManifest(OfficeProvenanceEvidence evidence) =>
+        evidence.Carrier == OfficeProvenanceCarrierKind.C2paManifest && evidence.Location.StartsWith("PDF/Filespec[", StringComparison.Ordinal);
+
+    private static OfficeProvenanceRemovalOptions CreateProvenanceRemoval(OfficeProvenanceRemovalOptions carriers, bool selected, long length, CancellationToken cancellationToken) {
         var options = new OfficeProvenanceRemovalOptions {
-            RemoveC2paManifests = true,
-            RemoveExternalC2paReferences = carriers.RemoveExternalC2paReferences,
-            RemoveAiSourceMetadata = carriers.RemoveAiSourceMetadata,
-            RequireStructurallyValidCarrier = carriers.RequireStructurallyValidCarrier
+            RemoveC2paManifests = selected && carriers.RemoveC2paManifests,
+            RemoveExternalC2paReferences = selected && carriers.RemoveExternalC2paReferences,
+            RemoveAiSourceMetadata = selected && carriers.RemoveAiSourceMetadata,
+            RequireStructurallyValidCarrier = carriers.RequireStructurallyValidCarrier,
+            ProcessEmbeddedAssets = selected && carriers.ProcessEmbeddedAssets
         };
         options.Limits.MaxAssetBytes = Math.Max(carriers.Limits.MaxAssetBytes, length);
         options.Limits.MaxManifestBytes = carriers.Limits.MaxManifestBytes;
