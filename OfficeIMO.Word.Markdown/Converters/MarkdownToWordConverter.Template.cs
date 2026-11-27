@@ -106,7 +106,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static OfficeXmlNode FindBlockContentControl(WordDocument document, MarkdownWordExportOptions options) {
             return BodyRoot(document)
-                .DescendantElements(WordXml.W, "sdt")
+                .ModelDescendants("sdt")
                 .Where(sdt => sdt.ContentControlLevel() == WordContentControlLevel.Block)
                 .FirstOrDefault(sdt =>
                     MatchesContentControlTag(sdt, options.ContentControlTag) &&
@@ -133,7 +133,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static OfficeXmlNode FindBookmarkParagraph(WordDocument document, string bookmarkName) {
             var bookmark = BodyRoot(document)
-                .DescendantElements(WordXml.W, "bookmarkStart")
+                .ModelDescendants("bookmarkStart")
                 .FirstOrDefault(start => string.Equals(start.WAttr("name"), bookmarkName, StringComparison.Ordinal));
             return bookmark.Ancestor(WordXml.W, "p");
         }

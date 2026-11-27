@@ -514,14 +514,14 @@ namespace OfficeIMO.Word.Markdown {
             OfficeXmlNode paragraphElement = paragraph.Node();
             string? bottom = paragraphElement.WChild("pPr").WChild("pBdr").WChild("bottom").WVal();
             if (bottom == null || bottom == "none" || bottom == "nil") return false;
-            if (paragraphElement.DescendantElements(WordXml.W, "t").Any(text => !string.IsNullOrWhiteSpace(text.InnerText))) return false;
-            return !paragraphElement.HasDescendant(WordXml.W, "drawing")
-                && !paragraphElement.HasDescendant(WordXml.W, "pict")
-                && !paragraphElement.HasDescendant(WordXml.W, "object")
-                && !paragraphElement.HasDescendant(WordXml.W, "fldChar")
-                && !paragraphElement.HasDescendant(WordXml.W, "fldSimple")
-                && !paragraphElement.DescendantElements(WordXml.W, "sdt").Any(sdt => sdt.IsRunContentControl())
-                && !paragraphElement.HasDescendant(WordXml.M, "oMath");
+            if (paragraphElement.ModelDescendants("t").Any(text => !string.IsNullOrWhiteSpace(text.InnerText))) return false;
+            return !HasModelDescendant(paragraphElement, WordXml.W, "drawing")
+                && !HasModelDescendant(paragraphElement, WordXml.W, "pict")
+                && !HasModelDescendant(paragraphElement, WordXml.W, "object")
+                && !HasModelDescendant(paragraphElement, WordXml.W, "fldChar")
+                && !HasModelDescendant(paragraphElement, WordXml.W, "fldSimple")
+                && !paragraphElement.ModelDescendants("sdt").Any(sdt => sdt.IsRunContentControl())
+                && !HasModelDescendant(paragraphElement, WordXml.M, "oMath");
         }
 
         private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocksWithOrderedEquations(
@@ -880,7 +880,7 @@ namespace OfficeIMO.Word.Markdown {
 
             OfficeXmlNode visibleRun = run.VisibleRunNode();
             if (visibleRun.IsNone) visibleRun = run.RunNode();
-            return visibleRun.DescendantElements(WordXml.W, "br").Any(br => br.WAttr("type") == "page");
+            return visibleRun.ModelDescendants("br").Any(br => br.WAttr("type") == "page");
         }
 
         private void AppendParagraphBlocksFromSegment(
@@ -1189,36 +1189,43 @@ namespace OfficeIMO.Word.Markdown {
             return normalized > 9 ? 9 : normalized;
         }
 
+        // Name-matched walks also reach elements held untyped inside unknown markup; the model's typed walks never did.
+        private static bool HasModelDescendant(OfficeXmlNode element, int namespaceId, string localName) =>
+            element.DescendantElements(namespaceId, localName).Any(WordConverterNodes.IsModelElement);
+
+        private static bool HasModelDescendant(OfficeXmlNode element, string namespaceUri, string localName) =>
+            element.DescendantElements(namespaceUri, localName).Any(WordConverterNodes.IsModelElement);
+
         private static bool TryGetUnsupportedParagraphContentKind(WordParagraph paragraph, out string kind) {
             OfficeXmlNode element = paragraph.Node();
-            if (paragraph.IsChart || element.HasDescendant(WordXml.C, "chart")) {
+            if (paragraph.IsChart || HasModelDescendant(element, WordXml.C, "chart")) {
                 kind = "chart";
                 return true;
             }
 
-            if (paragraph.IsSmartArt || element.DescendantElements(WordXml.A, "graphicData").Any(data => string.Equals(data.Attr("uri"), "http://schemas.openxmlformats.org/drawingml/2006/diagram", StringComparison.Ordinal))) {
+            if (paragraph.IsSmartArt || element.DescendantElements(WordXml.A, "graphicData").Any(data => data.IsModelElement() && string.Equals(data.Attr("uri"), "http://schemas.openxmlformats.org/drawingml/2006/diagram", StringComparison.Ordinal))) {
                 kind = "SmartArt";
                 return true;
             }
 
             if (paragraph.IsShape ||
-                element.DescendantElements(WordXml.Wps, "wsp").Any() ||
-                element.HasDescendant(WordXml.V, "shape") ||
-                element.HasDescendant(WordXml.V, "rect") ||
-                element.HasDescendant(WordXml.V, "roundrect") ||
-                element.HasDescendant(WordXml.V, "oval") ||
-                element.HasDescendant(WordXml.V, "line") ||
-                element.HasDescendant(WordXml.V, "polyline")) {
+                HasModelDescendant(element, WordXml.Wps, "wsp") ||
+                HasModelDescendant(element, WordXml.V, "shape") ||
+                HasModelDescendant(element, WordXml.V, "rect") ||
+                HasModelDescendant(element, WordXml.V, "roundrect") ||
+                HasModelDescendant(element, WordXml.V, "oval") ||
+                HasModelDescendant(element, WordXml.V, "line") ||
+                HasModelDescendant(element, WordXml.V, "polyline")) {
                 kind = "shape";
                 return true;
             }
 
-            if (paragraph.IsEmbeddedObject || element.HasDescendant(WordXml.O, "OLEObject")) {
+            if (paragraph.IsEmbeddedObject || HasModelDescendant(element, WordXml.O, "OLEObject")) {
                 kind = "embedded object";
                 return true;
             }
 
-            if (paragraph.IsEquation || element.HasDescendant(WordXml.M, "oMath") || element.HasDescendant(WordXml.M, "oMathPara")) {
+            if (paragraph.IsEquation || HasModelDescendant(element, WordXml.M, "oMath") || HasModelDescendant(element, WordXml.M, "oMathPara")) {
                 kind = "equation";
                 return true;
             }
@@ -1727,8 +1734,8 @@ namespace OfficeIMO.Word.Markdown {
                     return true;
                 if (style.WElements("tblStylePr").Any(properties =>
                     IsActiveConditionalTableStyle(properties.WAttr("type"), table) &&
-                    (properties.DescendantElements(WordXml.W, "tblBorders").Any(borders => borders.HasChildren()) ||
-                     properties.DescendantElements(WordXml.W, "tcBorders").Any(borders => borders.HasChildren()))))
+                    (properties.ModelDescendants("tblBorders").Any(borders => borders.HasChildren()) ||
+                     properties.ModelDescendants("tcBorders").Any(borders => borders.HasChildren()))))
                     return true;
                 styleId = style.ChildVal("basedOn");
             }

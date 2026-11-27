@@ -430,7 +430,7 @@ namespace OfficeIMO.Word.Markdown {
                     double cellTotal = 0;
                     foreach (OfficeXmlNode paragraph in row.Cells[column].Node().WElements("p")) {
                         double current = 0;
-                        foreach (OfficeXmlNode run in paragraph.DescendantElements(WordXml.W, "r")) {
+                        foreach (OfficeXmlNode run in paragraph.ModelDescendants("r")) {
                             string runText = string.Concat(run.WElements("t").Select(text => text.InnerText));
                             double factor = IsMonospaceFont(run.WChild("rPr").WChild("rFonts").WAttr("ascii")) ? MonospaceWidthFactor : 1D;
                             foreach (char character in runText) {

@@ -49,15 +49,15 @@ namespace OfficeIMO.Word.Markdown {
             var registry = MarkdownSlug.CreateRegistry();
             OfficeXmlNode body = document.BodyNode();
             if (body.IsNone) return map;
-            foreach (OfficeXmlNode paragraph in body.DescendantElements(WordXml.W, "p")) {
+            foreach (OfficeXmlNode paragraph in body.ModelDescendants("p")) {
                 string? styleId = paragraph.WChild("pPr").ChildVal("pStyle");
                 if (document.GetHeadingLevel(styleId) == 0) continue;
                 // Headings inside table cells are not Markdown headings, so they take no slug.
                 if (paragraph.Ancestor(WordXml.W, "tc").Exists) continue;
-                string text = string.Concat(paragraph.DescendantElements(WordXml.W, "t").Select(item => item.InnerText)).Trim();
+                string text = string.Concat(paragraph.ModelDescendants("t").Select(item => item.InnerText)).Trim();
                 if (text.Length == 0) continue;
                 string slug = MarkdownSlug.Generate(text, MarkdownHeadingIdentifierStyle.OfficeIMO, registry);
-                foreach (OfficeXmlNode bookmark in paragraph.DescendantElements(WordXml.W, "bookmarkStart")) {
+                foreach (OfficeXmlNode bookmark in paragraph.ModelDescendants("bookmarkStart")) {
                     string? name = bookmark.WAttr("name");
                     if (!string.IsNullOrEmpty(name) && !map.ContainsKey(name!)) map[name!] = slug;
                 }

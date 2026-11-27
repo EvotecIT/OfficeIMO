@@ -15,6 +15,7 @@ internal partial class WordToMarkdownConverter {
             if (root.IsNone) return;
             foreach (OfficeXmlNode item in root.DescendantElements()) {
                 token.ThrowIfCancellationRequested();
+                if (!item.IsModelElement()) continue;
                 if (item.IsW("t") && !string.IsNullOrWhiteSpace(item.InnerText)
                     || IsOmittedRunningContent(item)) {
                     ReportOmission(options, "Word running content was omitted from Markdown because semantic headers and footers are disabled.",
