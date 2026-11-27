@@ -329,6 +329,18 @@ internal sealed partial class OfficeXmlTree {
     internal string AttributeValueAt(int node, int index) => AttributeValue(ref _attrs[_nodes[node].AttrFirst + index]);
 
     /// <summary>
+    /// The namespace, local name and value of the attribute at <paramref name="position"/> among the element's
+    /// <see cref="AttributeCountOf"/> attributes, namespace declarations included.
+    /// </summary>
+    internal string AttributeAt(int node, int position, out int namespaceId, out string localName) {
+        ref Attr attribute = ref _attrs[_nodes[node].AttrFirst + position];
+        ref readonly OfficeXmlName name = ref Namespaces.GetName(attribute.Name);
+        namespaceId = name.NamespaceId;
+        localName = name.LocalName;
+        return AttributeValue(ref attribute);
+    }
+
+    /// <summary>
     /// Whether an element declares a namespace outside the ECMA-376 set. A copy of its descendants placed elsewhere keeps
     /// element and attribute names, which the writer binds again, but a prefix such a namespace lends to a QName value
     /// would be lost.

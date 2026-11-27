@@ -19,9 +19,9 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         var list = document.AddCustomList();
         var level = new WordListLevel(WordListLevelKind.DecimalDot) { LevelText = "A", LevelSuffix = WordListLevelSuffix.Tab };
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
-            new RunFonts { Ascii = family, HighAnsi = family }, new FontSize { Val = "16" });
         list.Numbering.AddLevel(level);
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+            new RunFonts { Ascii = family, HighAnsi = family }, new FontSize { Val = "16" });
         var paragraph = list.AddItem("B");
         paragraph.FontFamily = family; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(8);
         paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(30));

@@ -89,12 +89,11 @@ public static partial class WordIWorkConverter {
             WordListLevelKind levelKind) {
             WordListLevel current = list.Numbering.Levels[level];
             var replacement = new WordListLevel(levelKind);
-            replacement.OpenXmlElement.LevelIndex = level;
+            replacement.SetLevelIndex(level);
             replacement.LevelText = replacement.LevelText.Replace(
                 "%CurrentLevel", "%" + (level + 1).ToString(
                     System.Globalization.CultureInfo.InvariantCulture));
-            current.OpenXmlElement.InsertAfterSelf(replacement.OpenXmlElement);
-            current.Remove();
+            current.ReplaceWith(replacement);
         }
 
         private static WordListLevelKind Classify(string? label) {

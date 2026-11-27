@@ -133,6 +133,40 @@ namespace OfficeIMO.OpenXml.Internal {
             return prototype is OpenXmlUnknownElement ? null : prototype.CloneNode(true);
         }
 
+        /// <summary>
+        /// Builds the SDK element for an element of OfficeIMO's own tree from the typed classes <paramref name="parent"/>
+        /// and its descendants expect, or returns null when part of it has no typed class or holds text, so the caller
+        /// parses its markup instead. Typed classes keep every attribute under the name it has in the tree.
+        /// </summary>
+        internal static object? CreateFromTree(object parent, OfficeXmlTree tree, int node) => Build(E(parent), tree, node);
+
+        private static OpenXmlElement? Build(OpenXmlElement parent, OfficeXmlTree tree, int node) {
+            int namespaceId = tree.NamespaceOf(node);
+            string? uri = OfficeXmlNamespaces.KnownUri(namespaceId);
+            if (uri == null) return null;
+            OpenXmlElement prototype = Prototype(parent, uri, tree.LocalNameOf(node), OfficeXmlPrefixes.Canonical(namespaceId));
+            if (prototype is OpenXmlUnknownElement) return null;
+            OpenXmlElement element = prototype.CloneNode(true);
+            int count = tree.AttributeCountOf(node);
+            for (int position = 0; position < count; position++) {
+                string value = tree.AttributeAt(node, position, out int attributeNamespace, out string localName);
+                if (attributeNamespace == OfficeXmlNamespaces.None) {
+                    element.SetAttribute(new OpenXmlAttribute(string.Empty, localName, string.Empty, value));
+                    continue;
+                }
+                string? attributeUri = attributeNamespace == OfficeXmlNamespaces.Xmlns ? null : OfficeXmlNamespaces.KnownUri(attributeNamespace);
+                if (attributeUri == null) return null;
+                element.SetAttribute(new OpenXmlAttribute(OfficeXmlPrefixes.Canonical(attributeNamespace), localName, attributeUri, value));
+            }
+            for (int child = tree.FirstChildOf(node); child != OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
+                if (tree.KindOf(child) != OfficeXmlTreeNodeKind.Element) return null;
+                OpenXmlElement? built = Build(element, tree, child);
+                if (built == null) return null;
+                element.AppendChild(built);
+            }
+            return element;
+        }
+
         /// <summary>Inserts an SDK element, moving it out of a detached copy, and returns it.</summary>
         internal static object InsertBefore(object parent, object child, object? reference) {
             OpenXmlElement target = E(parent), value = E(child);
@@ -162,9 +196,48 @@ namespace OfficeIMO.OpenXml.Internal {
             OpenXmlElement child = probe.FirstChild ?? throw new InvalidOperationException("The markup holds no element.");
             child.Remove();
             DropInheritedDeclarations(target, child);
+            OfficeXmlTree source = OfficeXmlTree.Parse(markup, markup.Length, new OfficeXmlNamespaces.Table());
+            RestoreAttributeNames(child, source, source.Root);
             if (reference == null) target.AppendChild(child);
             else target.InsertBefore(child, E(reference));
             return child;
+        }
+
+        // The SDK reads a few attributes under another name when it parses markup, such as w:left and w:right on w:ind as
+        // w:start and w:end. Its typed members write the name the markup used, so that name is put back.
+        private static void RestoreAttributeNames(OpenXmlElement element, OfficeXmlTree source, int node) {
+            int count = source.AttributeCountOf(node);
+            for (int position = 0; position < count && element.HasAttributes; position++) {
+                string value = source.AttributeAt(node, position, out int namespaceId, out string localName);
+                if (namespaceId == OfficeXmlNamespaces.Xmlns) continue;
+                string? uri = namespaceId == OfficeXmlNamespaces.None ? string.Empty : OfficeXmlNamespaces.KnownUri(namespaceId);
+                if (uri == null || GetAttribute(element, uri, localName) != null) continue;
+                foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                    if (!string.Equals(attribute.NamespaceUri, uri, StringComparison.Ordinal)
+                        || !string.Equals(attribute.Value, value, StringComparison.Ordinal)
+                        || source.HasAttribute(node, namespaceId, attribute.LocalName)) continue;
+                    element.RemoveAttribute(attribute.LocalName, uri);
+                    element.SetAttribute(new OpenXmlAttribute(attribute.Prefix, localName, uri, value));
+                    break;
+                }
+            }
+            OpenXmlElement? child = SkipForward(element.FirstChild);
+            for (int sourceChild = source.FirstChildOf(node); sourceChild != OfficeXmlTree.NoNode && child != null;
+                sourceChild = source.NextSiblingOf(sourceChild)) {
+                if (source.KindOf(sourceChild) != OfficeXmlTreeNodeKind.Element) continue;
+                if (string.Equals(child.LocalName, source.LocalNameOf(sourceChild), StringComparison.Ordinal)) {
+                    RestoreAttributeNames(child, source, sourceChild);
+                }
+                child = SkipForward(child.NextSibling());
+            }
+        }
+
+        private static string? GetAttribute(OpenXmlElement element, string uri, string localName) {
+            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                if (string.Equals(attribute.LocalName, localName, StringComparison.Ordinal)
+                    && string.Equals(attribute.NamespaceUri, uri, StringComparison.Ordinal)) return attribute.Value;
+            }
+            return null;
         }
 
         // The markup declared every prefix it uses; the ones the parent already binds the same way are dropped again.

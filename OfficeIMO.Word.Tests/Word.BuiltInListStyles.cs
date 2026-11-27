@@ -56,4 +56,41 @@ public partial class Word {
             Assert.Null(indentation.Start);
         });
     }
+
+    [Fact]
+    public void LevelsAddedToAListKeepTheirIndentationAndFont() {
+        using var document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        WordListLevel level = list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSquare));
+
+        // The level is built on its own and becomes the numbering part's element when it is added; the part writes
+        // w:left, as Word does, and the getters read it back.
+        Assert.Equal(720, level.IndentationLeft.ToTwips());
+        Assert.Equal(360, level.IndentationHanging.ToTwips());
+        Level added = level.OpenXmlLevel();
+        Assert.Same(added, list.Numbering.Levels[0].OpenXmlLevel());
+        Assert.Equal("720", added.PreviousParagraphProperties!.Indentation!.Left!.Value);
+        Assert.Null(added.PreviousParagraphProperties.Indentation.Start);
+        Assert.Equal("Wingdings", added.NumberingSymbolRunProperties!.GetFirstChild<RunFonts>()!.Ascii!.Value);
+        Assert.Equal("§", level.LevelText);
+    }
+
+    [Fact]
+    public void FailedLevelEditsLeaveTheListAsItWas() {
+        using var document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        WordListLevel level = list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
+
+        // A level a list already holds can't be added again, and trying changes nothing.
+        Assert.Throws<InvalidOperationException>(() => list.Numbering.AddLevel(level));
+        Assert.Equal(new[] { 0 }, list.Numbering.Levels.Select(existing => existing.LevelIndex));
+
+        // An undefined format or an indentation beyond the range Word stores is rejected before the level changes.
+        Assert.ThrowsAny<ArgumentException>(() => level.NumberFormat = (WordNumberFormat)(-1));
+        Assert.Equal(WordNumberFormat.None, level.NumberFormat);
+        // 200 million points is a valid length, but its four billion twips don't fit the attribute.
+        OfficeIMO.OfficeLength tooWide = OfficeIMO.OfficeLength.Points(200_000_000);
+        Assert.Throws<OverflowException>(() => level.IndentationLeft = tooWide);
+        Assert.Null(level.OpenXmlLevel().PreviousParagraphProperties);
+    }
 }
