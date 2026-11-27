@@ -1,6 +1,4 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Rtf;
 
@@ -27,11 +25,12 @@ public static partial class WordRtfConverterExtensions {
 
         rtf.PageSetup.SetLandscape(document.PageSetup.Orientation == OfficePageOrientation.Landscape);
         rtf.PageSetup.SetDifferentFirstPageHeaderFooter(document.PageSetup.DifferentFirstPage);
-        CopyPageNumbering(document.Sections[0]._sectionProperties.GetFirstChild<PageNumberType>(), rtf.PageSetup);
-        CopyPageBorders(document.Sections[0]._sectionProperties.GetFirstChild<PageBorders>(), rtf.PageSetup.PageBorders, rtf);
+        OfficeXmlNode sectionProperties = document.Sections[0].Node();
+        CopyPageNumbering(sectionProperties.WChild("pgNumType"), rtf.PageSetup);
+        CopyPageBorders(sectionProperties.WChild("pgBorders"), rtf.PageSetup.PageBorders, rtf);
         CopyNoteSettings(
-            document.Sections[0]._sectionProperties.GetFirstChild<FootnoteProperties>(),
-            document.Sections[0]._sectionProperties.GetFirstChild<EndnoteProperties>(),
+            sectionProperties.WChild("footnotePr"),
+            sectionProperties.WChild("endnotePr"),
             rtf.NoteSettings);
     }
 
@@ -83,121 +82,111 @@ public static partial class WordRtfConverterExtensions {
         ApplyNoteSettings(RtfNoteProjection.Resolve(rtfDocument).Settings, document.Sections[0]);
     }
 
-    private static int? ToInt32(UInt32Value? value) {
-        if (value?.Value == null || value.Value > int.MaxValue) {
+    private static int? ToInt32(uint? value) {
+        if (value == null || value.Value > int.MaxValue) {
             return null;
         }
 
         return (int)value.Value;
     }
 
-    private static int? ToInt32(UInt16Value? value) {
-        if (value?.Value == null) {
-            return null;
-        }
-
-        return value.Value;
-    }
-
-    private static int? ToInt32(Int16Value? value) {
-        if (value?.Value == null) {
-            return null;
-        }
-
-        return value.Value;
-    }
-
-    private static int? ToInt32(StringValue? value) {
-        return int.TryParse(value?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed)
+    private static int? ToInt32(string? value) {
+        return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed)
             ? parsed
             : null;
     }
 
-    private static UInt32Value ToUInt32Value(int value) {
+    private static int? ParseUInt16(string? value) =>
+        WordXml.ParseUInt32(value) is uint parsed && parsed <= ushort.MaxValue ? (int)parsed : null;
+
+    private static uint ToUInt32Value(int value) {
         if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), "Twip value cannot be negative.");
-        return (UInt32Value)(uint)value;
+        return (uint)value;
     }
 
-    private static Int16Value ToInt16Value(int value, string parameterName) {
+    private static short ToInt16Value(int value, string parameterName) {
         if (value < 0 || value > short.MaxValue) {
             throw new ArgumentOutOfRangeException(parameterName, "Line-numbering value must fit in a signed 16-bit OpenXML value.");
         }
 
-        return (Int16Value)(short)value;
+        return (short)value;
     }
 
-    private static void CopyPageNumbering(PageNumberType? source, RtfPageSetup destination) {
-        if (source == null) {
+    private static void CopyPageNumbering(OfficeXmlNode source, RtfPageSetup destination) {
+        if (source.IsNone) {
             return;
         }
 
-        destination.PageNumberStart = source.Start?.Value;
+        destination.PageNumberStart = WordXml.ParseInt32(source.WAttr("start"));
         if (destination.PageNumberStart.HasValue) {
             destination.PageNumberRestart = true;
         }
 
-        destination.PageNumberFormat = ToRtfPageNumberFormat(source.Format?.Value);
+        destination.PageNumberFormat = ToRtfPageNumberFormat(ParseNumberFormat(source.WAttr("fmt")));
     }
 
     private static void ApplyPageNumbering(RtfPageSetup source, WordSection destination) {
-        NumberFormatValues? format = ToWordPageNumberFormat(source.PageNumberFormat);
+        WordNumberFormat? format = ToWordPageNumberFormat(source.PageNumberFormat);
         int? start = source.PageNumberStart;
         if (source.PageNumberRestart == true && !start.HasValue) {
             start = 1;
         }
 
         if (start.HasValue || format.HasValue) {
-            destination.AddPageNumbering(start, format.ToOfficeEnum());
+            destination.AddPageNumbering(start, format);
         }
     }
 
-    private static RtfPageNumberFormat? ToRtfPageNumberFormat(NumberFormatValues? format) {
-        if (format == NumberFormatValues.UpperRoman) return RtfPageNumberFormat.UpperRoman;
-        if (format == NumberFormatValues.LowerRoman) return RtfPageNumberFormat.LowerRoman;
-        if (format == NumberFormatValues.UpperLetter) return RtfPageNumberFormat.UpperLetter;
-        if (format == NumberFormatValues.LowerLetter) return RtfPageNumberFormat.LowerLetter;
-        if (format == NumberFormatValues.Decimal) return RtfPageNumberFormat.Decimal;
+    private static WordNumberFormat? ParseNumberFormat(string? token) =>
+        token != null && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordNumberFormat value) ? value : null;
+
+    private static RtfPageNumberFormat? ToRtfPageNumberFormat(WordNumberFormat? format) {
+        if (format == WordNumberFormat.UpperRoman) return RtfPageNumberFormat.UpperRoman;
+        if (format == WordNumberFormat.LowerRoman) return RtfPageNumberFormat.LowerRoman;
+        if (format == WordNumberFormat.UpperLetter) return RtfPageNumberFormat.UpperLetter;
+        if (format == WordNumberFormat.LowerLetter) return RtfPageNumberFormat.LowerLetter;
+        if (format == WordNumberFormat.Decimal) return RtfPageNumberFormat.Decimal;
         return null;
     }
 
-    private static NumberFormatValues? ToWordPageNumberFormat(RtfPageNumberFormat? format) {
-        if (format == RtfPageNumberFormat.UpperRoman) return NumberFormatValues.UpperRoman;
-        if (format == RtfPageNumberFormat.LowerRoman) return NumberFormatValues.LowerRoman;
-        if (format == RtfPageNumberFormat.UpperLetter) return NumberFormatValues.UpperLetter;
-        if (format == RtfPageNumberFormat.LowerLetter) return NumberFormatValues.LowerLetter;
-        if (format == RtfPageNumberFormat.Decimal) return NumberFormatValues.Decimal;
+    private static WordNumberFormat? ToWordPageNumberFormat(RtfPageNumberFormat? format) {
+        if (format == RtfPageNumberFormat.UpperRoman) return WordNumberFormat.UpperRoman;
+        if (format == RtfPageNumberFormat.LowerRoman) return WordNumberFormat.LowerRoman;
+        if (format == RtfPageNumberFormat.UpperLetter) return WordNumberFormat.UpperLetter;
+        if (format == RtfPageNumberFormat.LowerLetter) return WordNumberFormat.LowerLetter;
+        if (format == RtfPageNumberFormat.Decimal) return WordNumberFormat.Decimal;
         return null;
     }
 
-    private static void CopyPageBorders(PageBorders? source, RtfPageBorders destination, RtfDocument document) {
-        if (source == null) {
+    private static void CopyPageBorders(OfficeXmlNode source, RtfPageBorders destination, RtfDocument document) {
+        if (source.IsNone) {
             return;
         }
 
-        destination.Scope = ToRtfPageBorderScope(source.Display?.Value);
-        destination.DisplayBehindText = ToRtfPageBorderZOrder(source.ZOrder?.Value);
-        destination.OffsetFrom = ToRtfPageBorderOffset(source.OffsetFrom?.Value);
-        CopyPageBorder(source.TopBorder, destination.Top, document);
-        CopyPageBorder(source.BottomBorder, destination.Bottom, document);
-        CopyPageBorder(source.LeftBorder, destination.Left, document);
-        CopyPageBorder(source.RightBorder, destination.Right, document);
+        destination.Scope = ToRtfPageBorderScope(source.WAttr("display"));
+        destination.DisplayBehindText = ToRtfPageBorderZOrder(source.WAttr("zOrder"));
+        destination.OffsetFrom = ToRtfPageBorderOffset(source.WAttr("offsetFrom"));
+        CopyPageBorder(source.WChild("top"), destination.Top, document);
+        CopyPageBorder(source.WChild("bottom"), destination.Bottom, document);
+        CopyPageBorder(source.WChild("left"), destination.Left, document);
+        CopyPageBorder(source.WChild("right"), destination.Right, document);
     }
 
-    private static void CopyPageBorder(BorderType? source, RtfPageBorder destination, RtfDocument document) {
-        if (source == null) {
+    private static void CopyPageBorder(OfficeXmlNode source, RtfPageBorder destination, RtfDocument document) {
+        if (source.IsNone) {
             return;
         }
 
-        destination.Style = ToRtfPageBorderStyle(source.Val?.Value);
-        destination.Width = source.Size?.Value is uint size ? ToRtfBorderWidth(size) : null;
-        destination.Space = ToInt32(source.Space);
-        destination.Shadow = source.Shadow?.Value ?? false;
-        destination.Frame = source.Frame?.Value ?? false;
+        destination.Style = ToRtfPageBorderStyle(source.WVal());
+        destination.Width = WordXml.ParseUInt32(source.WAttr("sz")) is uint size ? ToRtfBorderWidth(size) : null;
+        destination.Space = ToInt32(WordXml.ParseUInt32(source.WAttr("space")));
+        destination.Shadow = WordXml.ParseOnOff(source.WAttr("shadow")) ?? false;
+        destination.Frame = WordXml.ParseOnOff(source.WAttr("frame")) ?? false;
         if (destination.Shadow && destination.Style == RtfPageBorderStyle.Single) {
             destination.Style = RtfPageBorderStyle.Shadow;
         }
 
-        string? colorHex = source.Color?.Value;
+        string? colorHex = source.WAttr("color");
         if (!string.IsNullOrWhiteSpace(colorHex) &&
             !string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase) &&
             TryParseHexColor(colorHex!, out byte red, out byte green, out byte blue)) {
@@ -210,129 +199,133 @@ public static partial class WordRtfConverterExtensions {
             return;
         }
 
-        var pageBorders = new PageBorders {
-            Display = ToWordPageBorderScope(source.Scope),
-            ZOrder = ToWordPageBorderZOrder(source.DisplayBehindText),
-            OffsetFrom = ToWordPageBorderOffset(source.OffsetFrom)
-        };
-        ApplyPageBorder(source.Top, new TopBorder(), border => pageBorders.TopBorder = border, document);
-        ApplyPageBorder(source.Bottom, new BottomBorder(), border => pageBorders.BottomBorder = border, document);
-        ApplyPageBorder(source.Left, new LeftBorder(), border => pageBorders.LeftBorder = border, document);
-        ApplyPageBorder(source.Right, new RightBorder(), border => pageBorders.RightBorder = border, document);
+        OfficeXmlNode sectionProperties = destination.Node();
+        OfficeXmlNode pageBorders = sectionProperties.CreateElement(WordXml.W, "pgBorders");
+        pageBorders.SetAttribute(WordXml.W, "display", ToWordPageBorderScope(source.Scope));
+        pageBorders.SetAttribute(WordXml.W, "zOrder", ToWordPageBorderZOrder(source.DisplayBehindText));
+        pageBorders.SetAttribute(WordXml.W, "offsetFrom", ToWordPageBorderOffset(source.OffsetFrom));
+        // The borders go in schema order: top, left, bottom, right.
+        ApplyPageBorder(source.Top, pageBorders, "top", document);
+        ApplyPageBorder(source.Left, pageBorders, "left", document);
+        ApplyPageBorder(source.Bottom, pageBorders, "bottom", document);
+        ApplyPageBorder(source.Right, pageBorders, "right", document);
 
-        PageBorders? existing = destination._sectionProperties.GetFirstChild<PageBorders>();
-        existing?.Remove();
-        destination._sectionProperties.Append(pageBorders);
+        sectionProperties.WChild("pgBorders").Remove();
+        sectionProperties.Append(pageBorders);
     }
 
-    private static void ApplyPageBorder<TBorder>(RtfPageBorder source, TBorder border, Action<TBorder> setBorder, RtfDocument document)
-        where TBorder : BorderType {
+    private static void ApplyPageBorder(RtfPageBorder source, OfficeXmlNode pageBorders, string side, RtfDocument document) {
         if (!source.HasAnyValue) {
             return;
         }
 
-        border.Val = ToWordPageBorderStyle(source.Style);
+        OfficeXmlNode border = pageBorders.CreateElement(WordXml.W, side);
+        border.SetAttribute(WordXml.W, "val", ToWordPageBorderStyle(source.Style).ToOpenXmlToken());
         if (source.Width.HasValue && source.Width.Value >= 0) {
-            border.Size = (UInt32Value)ToWordBorderSize(source.Width.Value);
+            border.SetAttribute(WordXml.W, "sz", ToWordBorderSize(source.Width.Value).ToString(CultureInfo.InvariantCulture));
         }
 
         if (source.Space.HasValue && source.Space.Value >= 0) {
-            border.Space = (UInt32Value)(uint)source.Space.Value;
+            border.SetAttribute(WordXml.W, "space", ((uint)source.Space.Value).ToString(CultureInfo.InvariantCulture));
         }
 
         if (source.ColorIndex.HasValue) {
             string? color = GetColorHex(document, source.ColorIndex.Value);
             if (!string.IsNullOrWhiteSpace(color)) {
-                border.Color = color;
+                border.SetAttribute(WordXml.W, "color", color);
             }
         }
 
         if (source.Shadow || source.Style == RtfPageBorderStyle.Shadow) {
-            border.Shadow = true;
+            border.SetAttribute(WordXml.W, "shadow", FormatOnOff(true));
         }
 
         if (source.Frame) {
-            border.Frame = true;
+            border.SetAttribute(WordXml.W, "frame", FormatOnOff(true));
         }
 
-        setBorder(border);
+        pageBorders.Append(border);
     }
 
-    private static RtfPageBorderStyle ToRtfPageBorderStyle(BorderValues? value) {
-        if (value == BorderValues.Double) return RtfPageBorderStyle.Double;
-        if (value == BorderValues.Dotted) return RtfPageBorderStyle.Dotted;
-        if (value == BorderValues.Dashed) return RtfPageBorderStyle.Dashed;
-        if (value == BorderValues.Nil || value == BorderValues.None) return RtfPageBorderStyle.None;
-        if (value == BorderValues.Single) return RtfPageBorderStyle.Single;
+    // Page border styles are w:val tokens.
+    private static RtfPageBorderStyle ToRtfPageBorderStyle(string? value) {
+        if (value == "double") return RtfPageBorderStyle.Double;
+        if (value == "dotted") return RtfPageBorderStyle.Dotted;
+        if (value == "dashed") return RtfPageBorderStyle.Dashed;
+        if (value == "nil" || value == "none") return RtfPageBorderStyle.None;
+        if (value == "single") return RtfPageBorderStyle.Single;
         return RtfPageBorderStyle.None;
     }
 
-    private static BorderValues? ToWordPageBorderStyle(RtfPageBorderStyle value) {
+    private static WordBorderStyle ToWordPageBorderStyle(RtfPageBorderStyle value) {
         switch (value) {
             case RtfPageBorderStyle.Double:
-                return BorderValues.Double;
+                return WordBorderStyle.Double;
             case RtfPageBorderStyle.Dotted:
-                return BorderValues.Dotted;
+                return WordBorderStyle.Dotted;
             case RtfPageBorderStyle.Dashed:
-                return BorderValues.Dashed;
+                return WordBorderStyle.Dashed;
             case RtfPageBorderStyle.Single:
             case RtfPageBorderStyle.Shadow:
-                return BorderValues.Single;
+                return WordBorderStyle.Single;
             default:
-                return BorderValues.Nil;
+                return WordBorderStyle.Nil;
         }
     }
 
-    private static RtfPageBorderScope? ToRtfPageBorderScope(PageBorderDisplayValues? value) {
-        if (value == PageBorderDisplayValues.FirstPage) return RtfPageBorderScope.FirstPageInSection;
-        if (value == PageBorderDisplayValues.NotFirstPage) return RtfPageBorderScope.AllExceptFirstPageInSection;
-        if (value == PageBorderDisplayValues.AllPages) return RtfPageBorderScope.AllPagesInSection;
+    // Scopes are w:display tokens.
+    private static RtfPageBorderScope? ToRtfPageBorderScope(string? value) {
+        if (value == "firstPage") return RtfPageBorderScope.FirstPageInSection;
+        if (value == "notFirstPage") return RtfPageBorderScope.AllExceptFirstPageInSection;
+        if (value == "allPages") return RtfPageBorderScope.AllPagesInSection;
         return null;
     }
 
-    private static PageBorderDisplayValues? ToWordPageBorderScope(RtfPageBorderScope? value) {
-        if (value == RtfPageBorderScope.FirstPageInSection) return PageBorderDisplayValues.FirstPage;
-        if (value == RtfPageBorderScope.AllExceptFirstPageInSection) return PageBorderDisplayValues.NotFirstPage;
-        if (value == RtfPageBorderScope.AllPagesInSection || value == RtfPageBorderScope.WholeDocument) return PageBorderDisplayValues.AllPages;
+    private static string? ToWordPageBorderScope(RtfPageBorderScope? value) {
+        if (value == RtfPageBorderScope.FirstPageInSection) return "firstPage";
+        if (value == RtfPageBorderScope.AllExceptFirstPageInSection) return "notFirstPage";
+        if (value == RtfPageBorderScope.AllPagesInSection || value == RtfPageBorderScope.WholeDocument) return "allPages";
         return null;
     }
 
-    private static bool? ToRtfPageBorderZOrder(PageBorderZOrderValues? value) {
-        if (value == PageBorderZOrderValues.Back) return true;
-        if (value == PageBorderZOrderValues.Front) return false;
+    // Stacking is a w:zOrder token.
+    private static bool? ToRtfPageBorderZOrder(string? value) {
+        if (value == "back") return true;
+        if (value == "front") return false;
         return null;
     }
 
-    private static PageBorderZOrderValues? ToWordPageBorderZOrder(bool? displayBehindText) {
+    private static string? ToWordPageBorderZOrder(bool? displayBehindText) {
         if (!displayBehindText.HasValue) return null;
-        return displayBehindText.Value ? PageBorderZOrderValues.Back : PageBorderZOrderValues.Front;
+        return displayBehindText.Value ? "back" : "front";
     }
 
-    private static RtfPageBorderOffset? ToRtfPageBorderOffset(PageBorderOffsetValues? value) {
-        if (value == PageBorderOffsetValues.Page) return RtfPageBorderOffset.PageEdge;
-        if (value == PageBorderOffsetValues.Text) return RtfPageBorderOffset.Text;
+    // Offsets are w:offsetFrom tokens.
+    private static RtfPageBorderOffset? ToRtfPageBorderOffset(string? value) {
+        if (value == "page") return RtfPageBorderOffset.PageEdge;
+        if (value == "text") return RtfPageBorderOffset.Text;
         return null;
     }
 
-    private static PageBorderOffsetValues? ToWordPageBorderOffset(RtfPageBorderOffset? value) {
-        if (value == RtfPageBorderOffset.PageEdge) return PageBorderOffsetValues.Page;
-        if (value == RtfPageBorderOffset.Text) return PageBorderOffsetValues.Text;
+    private static string? ToWordPageBorderOffset(RtfPageBorderOffset? value) {
+        if (value == RtfPageBorderOffset.PageEdge) return "page";
+        if (value == RtfPageBorderOffset.Text) return "text";
         return null;
     }
 
-    private static void CopyNoteSettings(FootnoteProperties? footnoteProperties, EndnoteProperties? endnoteProperties, RtfNoteSettings destination) {
-        if (footnoteProperties != null) {
-            destination.FootnoteStartNumber = ToInt32(footnoteProperties.NumberingStart?.Val);
-            destination.FootnoteRestart = ToRtfNoteRestart(footnoteProperties.NumberingRestart?.Val?.Value);
-            destination.FootnoteNumberFormat = ToRtfNoteNumberFormat(footnoteProperties.NumberingFormat?.Val?.Value);
-            destination.FootnotePlacement = ToRtfFootnotePlacement(footnoteProperties.FootnotePosition?.Val?.Value);
+    private static void CopyNoteSettings(OfficeXmlNode footnoteProperties, OfficeXmlNode endnoteProperties, RtfNoteSettings destination) {
+        if (footnoteProperties.Exists) {
+            destination.FootnoteStartNumber = ParseUInt16(footnoteProperties.ChildVal("numStart"));
+            destination.FootnoteRestart = ToRtfNoteRestart(ParseNoteRestart(footnoteProperties.ChildVal("numRestart")));
+            destination.FootnoteNumberFormat = ToRtfNoteNumberFormat(ParseNumberFormat(footnoteProperties.ChildVal("numFmt")));
+            destination.FootnotePlacement = ToRtfFootnotePlacement(ParseFootnotePosition(footnoteProperties.ChildVal("pos")));
         }
 
-        if (endnoteProperties != null) {
-            destination.EndnoteStartNumber = ToInt32(endnoteProperties.NumberingStart?.Val);
-            destination.EndnoteRestart = ToRtfNoteRestart(endnoteProperties.NumberingRestart?.Val?.Value);
-            destination.EndnoteNumberFormat = ToRtfNoteNumberFormat(endnoteProperties.NumberingFormat?.Val?.Value);
-            destination.EndnotePlacement = ToRtfEndnotePlacement(endnoteProperties.EndnotePosition?.Val?.Value);
+        if (endnoteProperties.Exists) {
+            destination.EndnoteStartNumber = ParseUInt16(endnoteProperties.ChildVal("numStart"));
+            destination.EndnoteRestart = ToRtfNoteRestart(ParseNoteRestart(endnoteProperties.ChildVal("numRestart")));
+            destination.EndnoteNumberFormat = ToRtfNoteNumberFormat(ParseNumberFormat(endnoteProperties.ChildVal("numFmt")));
+            destination.EndnotePlacement = ToRtfEndnotePlacement(ParseEndnotePosition(endnoteProperties.ChildVal("pos")));
         }
     }
 
@@ -345,62 +338,71 @@ public static partial class WordRtfConverterExtensions {
 
         if (hasFootnoteSettings) {
             destination.AddFootnoteProperties(
-                ToWordNoteNumberFormat(source.FootnoteNumberFormat).ToOfficeEnum(),
-                ToWordFootnotePlacement(source.FootnotePlacement).ToOfficeEnum(),
-                restartNumbering: ToWordNoteRestart(source.FootnoteRestart).ToOfficeEnum(),
+                ToWordNoteNumberFormat(source.FootnoteNumberFormat),
+                ToWordFootnotePlacement(source.FootnotePlacement),
+                restartNumbering: ToWordNoteRestart(source.FootnoteRestart),
                 startNumber: source.FootnoteStartNumber);
         }
 
         if (hasEndnoteSettings) {
             destination.AddEndnoteProperties(
-                ToWordNoteNumberFormat(source.EndnoteNumberFormat).ToOfficeEnum(),
-                ToWordEndnotePlacement(source.EndnotePlacement).ToOfficeEnum(),
-                restartNumbering: source.EndnoteRestart == RtfNoteNumberRestart.EachPage ? null : ToWordNoteRestart(source.EndnoteRestart).ToOfficeEnum(),
+                ToWordNoteNumberFormat(source.EndnoteNumberFormat),
+                ToWordEndnotePlacement(source.EndnotePlacement),
+                restartNumbering: source.EndnoteRestart == RtfNoteNumberRestart.EachPage ? null : ToWordNoteRestart(source.EndnoteRestart),
                 startNumber: source.EndnoteStartNumber);
         }
     }
 
-    private static RtfNoteNumberFormat? ToRtfNoteNumberFormat(NumberFormatValues? format) {
-        if (format == NumberFormatValues.LowerRoman) return RtfNoteNumberFormat.LowerRoman;
-        if (format == NumberFormatValues.UpperRoman) return RtfNoteNumberFormat.UpperRoman;
-        if (format == NumberFormatValues.LowerLetter) return RtfNoteNumberFormat.LowerLetter;
-        if (format == NumberFormatValues.UpperLetter) return RtfNoteNumberFormat.UpperLetter;
-        if (format == NumberFormatValues.Decimal) return RtfNoteNumberFormat.Arabic;
+    private static WordNoteNumberRestart? ParseNoteRestart(string? token) =>
+        token != null && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordNoteNumberRestart value) ? value : null;
+
+    private static WordFootnotePosition? ParseFootnotePosition(string? token) =>
+        token != null && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordFootnotePosition value) ? value : null;
+
+    private static WordEndnotePosition? ParseEndnotePosition(string? token) =>
+        token != null && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordEndnotePosition value) ? value : null;
+
+    private static RtfNoteNumberFormat? ToRtfNoteNumberFormat(WordNumberFormat? format) {
+        if (format == WordNumberFormat.LowerRoman) return RtfNoteNumberFormat.LowerRoman;
+        if (format == WordNumberFormat.UpperRoman) return RtfNoteNumberFormat.UpperRoman;
+        if (format == WordNumberFormat.LowerLetter) return RtfNoteNumberFormat.LowerLetter;
+        if (format == WordNumberFormat.UpperLetter) return RtfNoteNumberFormat.UpperLetter;
+        if (format == WordNumberFormat.Decimal) return RtfNoteNumberFormat.Arabic;
         return null;
     }
 
-    private static NumberFormatValues? ToWordNoteNumberFormat(RtfNoteNumberFormat? format) {
-        if (format == RtfNoteNumberFormat.LowerRoman) return NumberFormatValues.LowerRoman;
-        if (format == RtfNoteNumberFormat.UpperRoman) return NumberFormatValues.UpperRoman;
-        if (format == RtfNoteNumberFormat.LowerLetter) return NumberFormatValues.LowerLetter;
-        if (format == RtfNoteNumberFormat.UpperLetter) return NumberFormatValues.UpperLetter;
-        if (format == RtfNoteNumberFormat.Arabic) return NumberFormatValues.Decimal;
+    private static WordNumberFormat? ToWordNoteNumberFormat(RtfNoteNumberFormat? format) {
+        if (format == RtfNoteNumberFormat.LowerRoman) return WordNumberFormat.LowerRoman;
+        if (format == RtfNoteNumberFormat.UpperRoman) return WordNumberFormat.UpperRoman;
+        if (format == RtfNoteNumberFormat.LowerLetter) return WordNumberFormat.LowerLetter;
+        if (format == RtfNoteNumberFormat.UpperLetter) return WordNumberFormat.UpperLetter;
+        if (format == RtfNoteNumberFormat.Arabic) return WordNumberFormat.Decimal;
         return null;
     }
 
-    private static RtfNoteNumberRestart? ToRtfNoteRestart(RestartNumberValues? restart) {
-        if (restart == RestartNumberValues.EachPage) return RtfNoteNumberRestart.EachPage;
-        if (restart == RestartNumberValues.EachSection) return RtfNoteNumberRestart.EachSection;
-        if (restart == RestartNumberValues.Continuous) return RtfNoteNumberRestart.Continuous;
+    private static RtfNoteNumberRestart? ToRtfNoteRestart(WordNoteNumberRestart? restart) {
+        if (restart == WordNoteNumberRestart.EachPage) return RtfNoteNumberRestart.EachPage;
+        if (restart == WordNoteNumberRestart.EachSection) return RtfNoteNumberRestart.EachSection;
+        if (restart == WordNoteNumberRestart.Continuous) return RtfNoteNumberRestart.Continuous;
         return null;
     }
 
-    private static RestartNumberValues? ToWordNoteRestart(RtfNoteNumberRestart? restart) {
-        if (restart == RtfNoteNumberRestart.EachPage) return RestartNumberValues.EachPage;
-        if (restart == RtfNoteNumberRestart.EachSection) return RestartNumberValues.EachSection;
-        if (restart == RtfNoteNumberRestart.Continuous) return RestartNumberValues.Continuous;
+    private static WordNoteNumberRestart? ToWordNoteRestart(RtfNoteNumberRestart? restart) {
+        if (restart == RtfNoteNumberRestart.EachPage) return WordNoteNumberRestart.EachPage;
+        if (restart == RtfNoteNumberRestart.EachSection) return WordNoteNumberRestart.EachSection;
+        if (restart == RtfNoteNumberRestart.Continuous) return WordNoteNumberRestart.Continuous;
         return null;
     }
 
-    private static void CopyLineNumbering(LineNumberType? source, RtfLineNumbering destination) {
-        if (source == null) {
+    private static void CopyLineNumbering(OfficeXmlNode source, RtfLineNumbering destination) {
+        if (source.IsNone) {
             return;
         }
 
-        destination.CountBy = ToInt32(source.CountBy);
-        destination.StartNumber = ToInt32(source.Start);
-        destination.DistanceFromTextTwips = ToInt32(source.Distance);
-        destination.Restart = ToRtfLineNumberRestart(source.Restart?.Value);
+        destination.CountBy = WordXml.ParseInt16(source.WAttr("countBy"));
+        destination.StartNumber = WordXml.ParseInt16(source.WAttr("start"));
+        destination.DistanceFromTextTwips = ToInt32(source.WAttr("distance"));
+        destination.Restart = ToRtfLineNumberRestart(source.WAttr("restart"));
     }
 
     private static void ApplyLineNumbering(RtfLineNumbering source, WordSection destination) {
@@ -408,88 +410,95 @@ public static partial class WordRtfConverterExtensions {
             return;
         }
 
-        var lineNumberType = new LineNumberType {
-            Restart = ToWordLineNumberRestart(source.Restart)
-        };
+        OfficeXmlNode sectionProperties = destination.Node();
+        OfficeXmlNode lineNumberType = sectionProperties.CreateElement(WordXml.W, "lnNumType");
+        lineNumberType.SetAttribute(WordXml.W, "restart", ToWordLineNumberRestart(source.Restart));
         if (source.CountBy.HasValue) {
-            lineNumberType.CountBy = ToInt16Value(source.CountBy.Value, nameof(source.CountBy));
+            lineNumberType.SetAttribute(WordXml.W, "countBy",
+                ToInt16Value(source.CountBy.Value, nameof(source.CountBy)).ToString(CultureInfo.InvariantCulture));
         }
 
         if (source.StartNumber.HasValue) {
-            lineNumberType.Start = ToInt16Value(source.StartNumber.Value, nameof(source.StartNumber));
+            lineNumberType.SetAttribute(WordXml.W, "start",
+                ToInt16Value(source.StartNumber.Value, nameof(source.StartNumber)).ToString(CultureInfo.InvariantCulture));
         }
 
         if (source.DistanceFromTextTwips.HasValue) {
-            lineNumberType.Distance = source.DistanceFromTextTwips.Value.ToString(CultureInfo.InvariantCulture);
+            lineNumberType.SetAttribute(WordXml.W, "distance", source.DistanceFromTextTwips.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        destination._sectionProperties.RemoveAllChildren<LineNumberType>();
-        destination._sectionProperties.Append(lineNumberType);
+        sectionProperties.RemoveChildren(WordXml.W, "lnNumType");
+        sectionProperties.Append(lineNumberType);
     }
 
-    private static RtfLineNumberRestart? ToRtfLineNumberRestart(LineNumberRestartValues? restart) {
-        if (restart == LineNumberRestartValues.NewPage) return RtfLineNumberRestart.EachPage;
-        if (restart == LineNumberRestartValues.NewSection) return RtfLineNumberRestart.EachSection;
-        if (restart == LineNumberRestartValues.Continuous) return RtfLineNumberRestart.Continuous;
+    // Restarts are w:restart tokens.
+    private static RtfLineNumberRestart? ToRtfLineNumberRestart(string? restart) {
+        if (restart == "newPage") return RtfLineNumberRestart.EachPage;
+        if (restart == "newSection") return RtfLineNumberRestart.EachSection;
+        if (restart == "continuous") return RtfLineNumberRestart.Continuous;
         return null;
     }
 
-    private static LineNumberRestartValues? ToWordLineNumberRestart(RtfLineNumberRestart? restart) {
-        if (restart == RtfLineNumberRestart.EachPage) return LineNumberRestartValues.NewPage;
-        if (restart == RtfLineNumberRestart.EachSection) return LineNumberRestartValues.NewSection;
-        if (restart == RtfLineNumberRestart.Continuous) return LineNumberRestartValues.Continuous;
+    private static string? ToWordLineNumberRestart(RtfLineNumberRestart? restart) {
+        if (restart == RtfLineNumberRestart.EachPage) return "newPage";
+        if (restart == RtfLineNumberRestart.EachSection) return "newSection";
+        if (restart == RtfLineNumberRestart.Continuous) return "continuous";
         return null;
     }
 
-    private static RtfSectionVerticalAlignment? ToRtfSectionVerticalAlignment(VerticalJustificationValues? alignment) {
-        if (alignment == VerticalJustificationValues.Top) return RtfSectionVerticalAlignment.Top;
-        if (alignment == VerticalJustificationValues.Center) return RtfSectionVerticalAlignment.Center;
-        if (alignment == VerticalJustificationValues.Bottom) return RtfSectionVerticalAlignment.Bottom;
-        if (alignment == VerticalJustificationValues.Both) return RtfSectionVerticalAlignment.Justified;
+    // Vertical alignments are w:vAlign tokens.
+    private static RtfSectionVerticalAlignment? ToRtfSectionVerticalAlignment(string? alignment) {
+        if (alignment == "top") return RtfSectionVerticalAlignment.Top;
+        if (alignment == "center") return RtfSectionVerticalAlignment.Center;
+        if (alignment == "bottom") return RtfSectionVerticalAlignment.Bottom;
+        if (alignment == "both") return RtfSectionVerticalAlignment.Justified;
         return null;
     }
 
     private static void ApplySectionVerticalAlignment(RtfSectionVerticalAlignment? alignment, WordSection destination) {
-        VerticalJustificationValues? wordAlignment = ToWordSectionVerticalAlignment(alignment);
-        if (!wordAlignment.HasValue) {
+        string? wordAlignment = ToWordSectionVerticalAlignment(alignment);
+        if (wordAlignment == null) {
             return;
         }
 
-        destination._sectionProperties.RemoveAllChildren<VerticalTextAlignmentOnPage>();
-        destination._sectionProperties.Append(new VerticalTextAlignmentOnPage { Val = wordAlignment.Value });
+        OfficeXmlNode sectionProperties = destination.Node();
+        sectionProperties.RemoveChildren(WordXml.W, "vAlign");
+        OfficeXmlNode verticalAlignment = sectionProperties.CreateElement(WordXml.W, "vAlign");
+        verticalAlignment.SetAttribute(WordXml.W, "val", wordAlignment);
+        sectionProperties.Append(verticalAlignment);
     }
 
-    private static VerticalJustificationValues? ToWordSectionVerticalAlignment(RtfSectionVerticalAlignment? alignment) {
-        if (alignment == RtfSectionVerticalAlignment.Top) return VerticalJustificationValues.Top;
-        if (alignment == RtfSectionVerticalAlignment.Center) return VerticalJustificationValues.Center;
-        if (alignment == RtfSectionVerticalAlignment.Bottom) return VerticalJustificationValues.Bottom;
-        if (alignment == RtfSectionVerticalAlignment.Justified) return VerticalJustificationValues.Both;
+    private static string? ToWordSectionVerticalAlignment(RtfSectionVerticalAlignment? alignment) {
+        if (alignment == RtfSectionVerticalAlignment.Top) return "top";
+        if (alignment == RtfSectionVerticalAlignment.Center) return "center";
+        if (alignment == RtfSectionVerticalAlignment.Bottom) return "bottom";
+        if (alignment == RtfSectionVerticalAlignment.Justified) return "both";
         return null;
     }
 
-    private static RtfFootnotePlacement? ToRtfFootnotePlacement(FootnotePositionValues? placement) {
-        if (placement == FootnotePositionValues.PageBottom) return RtfFootnotePlacement.PageBottom;
-        if (placement == FootnotePositionValues.BeneathText) return RtfFootnotePlacement.BeneathText;
-        if (placement == FootnotePositionValues.SectionEnd) return RtfFootnotePlacement.SectionEnd;
+    private static RtfFootnotePlacement? ToRtfFootnotePlacement(WordFootnotePosition? placement) {
+        if (placement == WordFootnotePosition.PageBottom) return RtfFootnotePlacement.PageBottom;
+        if (placement == WordFootnotePosition.BeneathText) return RtfFootnotePlacement.BeneathText;
+        if (placement == WordFootnotePosition.SectionEnd) return RtfFootnotePlacement.SectionEnd;
         return null;
     }
 
-    private static FootnotePositionValues? ToWordFootnotePlacement(RtfFootnotePlacement? placement) {
-        if (placement == RtfFootnotePlacement.PageBottom) return FootnotePositionValues.PageBottom;
-        if (placement == RtfFootnotePlacement.BeneathText) return FootnotePositionValues.BeneathText;
-        if (placement == RtfFootnotePlacement.SectionEnd) return FootnotePositionValues.SectionEnd;
+    private static WordFootnotePosition? ToWordFootnotePlacement(RtfFootnotePlacement? placement) {
+        if (placement == RtfFootnotePlacement.PageBottom) return WordFootnotePosition.PageBottom;
+        if (placement == RtfFootnotePlacement.BeneathText) return WordFootnotePosition.BeneathText;
+        if (placement == RtfFootnotePlacement.SectionEnd) return WordFootnotePosition.SectionEnd;
         return null;
     }
 
-    private static RtfEndnotePlacement? ToRtfEndnotePlacement(EndnotePositionValues? placement) {
-        if (placement == EndnotePositionValues.SectionEnd) return RtfEndnotePlacement.SectionEnd;
-        if (placement == EndnotePositionValues.DocumentEnd) return RtfEndnotePlacement.DocumentEnd;
+    private static RtfEndnotePlacement? ToRtfEndnotePlacement(WordEndnotePosition? placement) {
+        if (placement == WordEndnotePosition.SectionEnd) return RtfEndnotePlacement.SectionEnd;
+        if (placement == WordEndnotePosition.DocumentEnd) return RtfEndnotePlacement.DocumentEnd;
         return null;
     }
 
-    private static EndnotePositionValues? ToWordEndnotePlacement(RtfEndnotePlacement? placement) {
-        if (placement == RtfEndnotePlacement.SectionEnd) return EndnotePositionValues.SectionEnd;
-        if (placement == RtfEndnotePlacement.DocumentEnd) return EndnotePositionValues.DocumentEnd;
+    private static WordEndnotePosition? ToWordEndnotePlacement(RtfEndnotePlacement? placement) {
+        if (placement == RtfEndnotePlacement.SectionEnd) return WordEndnotePosition.SectionEnd;
+        if (placement == RtfEndnotePlacement.DocumentEnd) return WordEndnotePosition.DocumentEnd;
         return null;
     }
 

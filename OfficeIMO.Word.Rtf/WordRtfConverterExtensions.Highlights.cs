@@ -1,88 +1,86 @@
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
-    private static bool TryGetRtfHighlightColor(HighlightColorValues value, out byte red, out byte green, out byte blue) {
+    private static bool TryGetRtfHighlightColor(WordHighlightColor value, out byte red, out byte green, out byte blue) {
         red = 0;
         green = 0;
         blue = 0;
 
-        if (value == HighlightColorValues.Black) return true;
-        if (value == HighlightColorValues.Blue) {
+        if (value == WordHighlightColor.Black) return true;
+        if (value == WordHighlightColor.Blue) {
             blue = 255;
             return true;
         }
 
-        if (value == HighlightColorValues.Cyan) {
+        if (value == WordHighlightColor.Cyan) {
             green = 255;
             blue = 255;
             return true;
         }
 
-        if (value == HighlightColorValues.Green) {
+        if (value == WordHighlightColor.Green) {
             green = 255;
             return true;
         }
 
-        if (value == HighlightColorValues.Magenta) {
+        if (value == WordHighlightColor.Magenta) {
             red = 255;
             blue = 255;
             return true;
         }
 
-        if (value == HighlightColorValues.Red) {
+        if (value == WordHighlightColor.Red) {
             red = 255;
             return true;
         }
 
-        if (value == HighlightColorValues.Yellow) {
+        if (value == WordHighlightColor.Yellow) {
             red = 255;
             green = 255;
             return true;
         }
 
-        if (value == HighlightColorValues.DarkBlue) {
+        if (value == WordHighlightColor.DarkBlue) {
             blue = 128;
             return true;
         }
 
-        if (value == HighlightColorValues.DarkCyan) {
+        if (value == WordHighlightColor.DarkCyan) {
             green = 128;
             blue = 128;
             return true;
         }
 
-        if (value == HighlightColorValues.DarkGreen) {
+        if (value == WordHighlightColor.DarkGreen) {
             green = 128;
             return true;
         }
 
-        if (value == HighlightColorValues.DarkMagenta) {
+        if (value == WordHighlightColor.DarkMagenta) {
             red = 128;
             blue = 128;
             return true;
         }
 
-        if (value == HighlightColorValues.DarkRed) {
+        if (value == WordHighlightColor.DarkRed) {
             red = 128;
             return true;
         }
 
-        if (value == HighlightColorValues.DarkYellow) {
+        if (value == WordHighlightColor.DarkYellow) {
             red = 128;
             green = 128;
             return true;
         }
 
-        if (value == HighlightColorValues.DarkGray) {
+        if (value == WordHighlightColor.DarkGray) {
             red = 128;
             green = 128;
             blue = 128;
             return true;
         }
 
-        if (value == HighlightColorValues.LightGray) {
+        if (value == WordHighlightColor.LightGray) {
             red = 192;
             green = 192;
             blue = 192;
@@ -92,7 +90,7 @@ public static partial class WordRtfConverterExtensions {
         return false;
     }
 
-    private static bool TryGetWordHighlightColor(RtfDocument? document, int colorIndex, out HighlightColorValues highlight) {
+    private static bool TryGetWordHighlightColor(RtfDocument? document, int colorIndex, out WordHighlightColor highlight) {
         highlight = default;
         if (document == null) {
             return false;
@@ -105,49 +103,49 @@ public static partial class WordRtfConverterExtensions {
 
         switch (colorHex.ToUpperInvariant()) {
             case "000000":
-                highlight = HighlightColorValues.Black;
+                highlight = WordHighlightColor.Black;
                 return true;
             case "0000FF":
-                highlight = HighlightColorValues.Blue;
+                highlight = WordHighlightColor.Blue;
                 return true;
             case "00FFFF":
-                highlight = HighlightColorValues.Cyan;
+                highlight = WordHighlightColor.Cyan;
                 return true;
             case "00FF00":
-                highlight = HighlightColorValues.Green;
+                highlight = WordHighlightColor.Green;
                 return true;
             case "FF00FF":
-                highlight = HighlightColorValues.Magenta;
+                highlight = WordHighlightColor.Magenta;
                 return true;
             case "FF0000":
-                highlight = HighlightColorValues.Red;
+                highlight = WordHighlightColor.Red;
                 return true;
             case "FFFF00":
-                highlight = HighlightColorValues.Yellow;
+                highlight = WordHighlightColor.Yellow;
                 return true;
             case "000080":
-                highlight = HighlightColorValues.DarkBlue;
+                highlight = WordHighlightColor.DarkBlue;
                 return true;
             case "008080":
-                highlight = HighlightColorValues.DarkCyan;
+                highlight = WordHighlightColor.DarkCyan;
                 return true;
             case "008000":
-                highlight = HighlightColorValues.DarkGreen;
+                highlight = WordHighlightColor.DarkGreen;
                 return true;
             case "800080":
-                highlight = HighlightColorValues.DarkMagenta;
+                highlight = WordHighlightColor.DarkMagenta;
                 return true;
             case "800000":
-                highlight = HighlightColorValues.DarkRed;
+                highlight = WordHighlightColor.DarkRed;
                 return true;
             case "808000":
-                highlight = HighlightColorValues.DarkYellow;
+                highlight = WordHighlightColor.DarkYellow;
                 return true;
             case "808080":
-                highlight = HighlightColorValues.DarkGray;
+                highlight = WordHighlightColor.DarkGray;
                 return true;
             case "C0C0C0":
-                highlight = HighlightColorValues.LightGray;
+                highlight = WordHighlightColor.LightGray;
                 return true;
             default:
                 return false;

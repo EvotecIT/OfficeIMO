@@ -1,71 +1,69 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
     private static void CopyParagraphLayout(WordParagraph source, RtfParagraph destination) {
-        destination.DirectAlignment = ToRtfTextAlignment(source._paragraphProperties?.Justification?.Val?.Value);
+        OfficeXmlNode properties = source.ParagraphPropertiesNode();
+        destination.DirectAlignment = ToRtfTextAlignment(properties.WChild("jc").WVal());
         destination.LeftIndentTwips = checked((int?)(source.IndentationBefore?.ToTwips()));
         destination.RightIndentTwips = checked((int?)(source.IndentationAfter?.ToTwips()));
         destination.FirstLineIndentTwips = checked((int?)(source.IndentationFirstLine?.ToTwips())) ?? Negate(checked((int?)(source.IndentationHanging?.ToTwips())));
-        destination.DirectPageBreakBefore = ReadToggle(source._paragraphProperties?.PageBreakBefore);
-        destination.DirectKeepWithNext = ReadToggle(source._paragraphProperties?.KeepNext);
-        destination.DirectKeepLinesTogether = ReadToggle(source._paragraphProperties?.KeepLines);
-        destination.DirectSuppressLineNumbers = ReadToggle(source._paragraphProperties?.SuppressLineNumbers);
-        destination.AutoHyphenation = source._paragraphProperties?.SuppressAutoHyphens == null ? null : false;
-        destination.ContextualSpacing = GetContextualSpacing(source);
-        destination.AdjustRightIndent = GetAdjustRightIndent(source);
-        destination.SnapToLineGrid = GetSnapToLineGrid(source);
-        destination.WidowControl = GetWidowControl(source);
-        Int32Value? outlineLevel = source._paragraphProperties?.OutlineLevel?.Val;
-        destination.OutlineLevel = outlineLevel?.Value;
+        destination.DirectPageBreakBefore = ReadToggle(properties.WChild("pageBreakBefore"));
+        destination.DirectKeepWithNext = ReadToggle(properties.WChild("keepNext"));
+        destination.DirectKeepLinesTogether = ReadToggle(properties.WChild("keepLines"));
+        destination.DirectSuppressLineNumbers = ReadToggle(properties.WChild("suppressLineNumbers"));
+        destination.AutoHyphenation = properties.WChild("suppressAutoHyphens").IsNone ? null : false;
+        destination.ContextualSpacing = ReadToggle(properties.WChild("contextualSpacing"));
+        destination.AdjustRightIndent = ReadToggle(properties.WChild("adjustRightInd"));
+        destination.SnapToLineGrid = ReadToggle(properties.WChild("snapToGrid"));
+        destination.WidowControl = ReadToggle(properties.WChild("widowControl"));
+        destination.OutlineLevel = WordXml.ParseInt32(properties.WChild("outlineLvl").WVal());
         destination.SpaceBeforeTwips = checked((int?)(source.LineSpacingBefore?.ToTwips()));
         destination.SpaceAfterTwips = checked((int?)(source.LineSpacingAfter?.ToTwips()));
-        SpacingBetweenLines? spacing = source._paragraphProperties?.SpacingBetweenLines;
-        destination.SpaceBeforeAuto = spacing?.BeforeAutoSpacing?.Value;
-        destination.SpaceAfterAuto = spacing?.AfterAutoSpacing?.Value;
-        destination.LineSpacingTwips = ToRtfLineSpacingValue(source.NativeLineSpacingValue, spacing?.LineRule?.Value);
-        destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(source.NativeLineSpacingValue, spacing?.LineRule?.Value);
+        OfficeXmlNode spacing = properties.WChild("spacing");
+        destination.SpaceBeforeAuto = WordXml.ParseOnOff(spacing.WAttr("beforeAutospacing"));
+        destination.SpaceAfterAuto = WordXml.ParseOnOff(spacing.WAttr("afterAutospacing"));
+        string? lineRule = spacing.WAttr("lineRule");
+        destination.LineSpacingTwips = ToRtfLineSpacingValue(source.NativeLineSpacingValue, lineRule);
+        destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(source.NativeLineSpacingValue, lineRule);
         destination.Direction = source.BiDi ? RtfTextDirection.RightToLeft : null;
     }
 
     private static void ApplyParagraphLayout(WordParagraph destination, RtfParagraph source) {
-        ParagraphProperties flow = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
-        flow.PageBreakBefore = source.DirectPageBreakBefore.HasValue ? new PageBreakBefore { Val = source.PageBreakBefore } : null;
-        flow.KeepNext = source.DirectKeepWithNext.HasValue ? new KeepNext { Val = source.KeepWithNext } : null;
-        flow.KeepLines = source.DirectKeepLinesTogether.HasValue ? new KeepLines { Val = source.KeepLinesTogether } : null;
-        flow.SuppressLineNumbers = source.DirectSuppressLineNumbers.HasValue ? new SuppressLineNumbers { Val = source.SuppressLineNumbers } : null;
-        flow.Justification = source.DirectAlignment.HasValue ? new Justification { Val = ToWordTextAlignment(source.DirectAlignment.Value) } : null;
+        OfficeXmlNode flow = GetOrAddParagraphProperties(destination);
+        SetParagraphToggle(flow, "pageBreakBefore", source.DirectPageBreakBefore.HasValue ? source.PageBreakBefore : null);
+        SetParagraphToggle(flow, "keepNext", source.DirectKeepWithNext.HasValue ? source.KeepWithNext : null);
+        SetParagraphToggle(flow, "keepLines", source.DirectKeepLinesTogether.HasValue ? source.KeepLinesTogether : null);
+        SetParagraphToggle(flow, "suppressLineNumbers", source.DirectSuppressLineNumbers.HasValue ? source.SuppressLineNumbers : null);
+        if (source.DirectAlignment.HasValue) {
+            WordXmlEdits.ReplaceChild(flow, "jc", WPPrView.Order, ToWordTextAlignment(source.DirectAlignment.Value));
+        } else {
+            WordXmlEdits.RemoveChild(flow, "jc");
+        }
 
         if (source.LeftIndentTwips.HasValue || source.RightIndentTwips.HasValue || source.FirstLineIndentTwips.HasValue) {
-            flow.Indentation = new Indentation {
-                Left = FormatInt(source.LeftIndentTwips),
-                Right = FormatInt(source.RightIndentTwips),
-                FirstLine = source.FirstLineIndentTwips >= 0 ? FormatInt(source.FirstLineIndentTwips) : null,
-                Hanging = source.FirstLineIndentTwips < 0 ? FormatInt(-source.FirstLineIndentTwips) : null
-            };
+            OfficeXmlNode indentation = WordXmlEdits.ReplaceChild(flow, "ind", WPPrView.Order);
+            indentation.SetAttribute(WordXml.W, "left", FormatInt(source.LeftIndentTwips));
+            indentation.SetAttribute(WordXml.W, "right", FormatInt(source.RightIndentTwips));
+            indentation.SetAttribute(WordXml.W, "hanging", source.FirstLineIndentTwips < 0 ? FormatInt(-source.FirstLineIndentTwips) : null);
+            indentation.SetAttribute(WordXml.W, "firstLine", source.FirstLineIndentTwips >= 0 ? FormatInt(source.FirstLineIndentTwips) : null);
         }
 
         if (source.AutoHyphenation == false) {
-            ParagraphProperties properties = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
-            properties.SuppressAutoHyphens = new SuppressAutoHyphens();
+            WordXmlEdits.ReplaceChild(GetOrAddParagraphProperties(destination), "suppressAutoHyphens", WPPrView.Order);
         }
 
         if (source.ContextualSpacing.HasValue) {
-            ParagraphProperties properties = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
-            properties.ContextualSpacing = new ContextualSpacing { Val = source.ContextualSpacing.Value };
+            SetParagraphToggle(GetOrAddParagraphProperties(destination), "contextualSpacing", source.ContextualSpacing.Value);
         }
 
         if (source.AdjustRightIndent.HasValue) {
-            ParagraphProperties properties = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
-            properties.AdjustRightIndent = new AdjustRightIndent { Val = source.AdjustRightIndent.Value };
+            SetParagraphToggle(GetOrAddParagraphProperties(destination), "adjustRightInd", source.AdjustRightIndent.Value);
         }
 
         if (source.SnapToLineGrid.HasValue) {
-            ParagraphProperties properties = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
-            properties.SnapToGrid = new SnapToGrid { Val = source.SnapToLineGrid.Value };
+            SetParagraphToggle(GetOrAddParagraphProperties(destination), "snapToGrid", source.SnapToLineGrid.Value);
         }
 
         if (source.Direction.HasValue) {
@@ -81,69 +79,38 @@ public static partial class WordRtfConverterExtensions {
         }
 
         if (source.SpaceBeforeAuto.HasValue || source.SpaceAfterAuto.HasValue) {
-            ParagraphProperties properties = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
-            SpacingBetweenLines spacing = properties.SpacingBetweenLines ??= new SpacingBetweenLines();
+            OfficeXmlNode spacing = GetOrAddParagraphProperties(destination).GetOrAddChild(WordXml.W, "spacing", WPPrView.Order);
             if (source.SpaceBeforeAuto.HasValue) {
-                spacing.BeforeAutoSpacing = source.SpaceBeforeAuto.Value;
+                spacing.SetAttribute(WordXml.W, "beforeAutospacing", FormatOnOff(source.SpaceBeforeAuto.Value));
             }
 
             if (source.SpaceAfterAuto.HasValue) {
-                spacing.AfterAutoSpacing = source.SpaceAfterAuto.Value;
+                spacing.SetAttribute(WordXml.W, "afterAutospacing", FormatOnOff(source.SpaceAfterAuto.Value));
             }
         }
 
         int? lineSpacing = ToWordLineSpacingValue(source.LineSpacingTwips, source.LineSpacingMultiple);
         if (lineSpacing.HasValue) destination.NativeLineSpacingValue = lineSpacing.Value;
-        LineSpacingRuleValues? lineSpacingRule = ToWordLineSpacingRule(source.LineSpacingTwips, source.LineSpacingMultiple);
-        if (lineSpacingRule.HasValue) {
-            destination.NativeLineSpacingRule = lineSpacingRule.Value.ToOfficeEnum();
+        string? lineSpacingRule = ToWordLineSpacingRule(source.LineSpacingTwips, source.LineSpacingMultiple);
+        if (lineSpacingRule != null && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(lineSpacingRule, out WordLineSpacingRule rule)) {
+            destination.NativeLineSpacingRule = rule;
         }
 
         if (source.WidowControl.HasValue) {
-            ParagraphProperties properties = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
-            properties.WidowControl = new WidowControl { Val = source.WidowControl.Value };
+            SetParagraphToggle(GetOrAddParagraphProperties(destination), "widowControl", source.WidowControl.Value);
         }
 
         if (source.OutlineLevel.HasValue) {
-            ParagraphProperties properties = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
-            properties.OutlineLevel = new OutlineLevel { Val = source.OutlineLevel.Value };
+            WordXmlEdits.ReplaceChild(GetOrAddParagraphProperties(destination), "outlineLvl", WPPrView.Order, FormatInt(source.OutlineLevel.Value)!);
         }
     }
 
-    private static bool? GetWidowControl(WordParagraph source) {
-        WidowControl? widowControl = source._paragraphProperties?.WidowControl;
-        if (widowControl == null) {
-            return null;
+    /// <summary>Puts an on/off property with an explicit value in place, as assigning a typed SDK property does; null removes it.</summary>
+    private static void SetParagraphToggle(OfficeXmlNode properties, string localName, bool? value) {
+        if (value.HasValue) {
+            WordXmlEdits.ReplaceChild(properties, localName, WPPrView.Order, FormatOnOff(value.Value));
+        } else {
+            WordXmlEdits.RemoveChild(properties, localName);
         }
-
-        return widowControl.Val?.Value ?? true;
     }
-
-    private static bool? GetContextualSpacing(WordParagraph source) {
-        ContextualSpacing? contextualSpacing = source._paragraphProperties?.ContextualSpacing;
-        if (contextualSpacing == null) {
-            return null;
-        }
-
-        return contextualSpacing.Val?.Value ?? true;
-    }
-
-    private static bool? GetAdjustRightIndent(WordParagraph source) {
-        AdjustRightIndent? adjustRightIndent = source._paragraphProperties?.AdjustRightIndent;
-        if (adjustRightIndent == null) {
-            return null;
-        }
-
-        return adjustRightIndent.Val?.Value ?? true;
-    }
-
-    private static bool? GetSnapToLineGrid(WordParagraph source) {
-        SnapToGrid? snapToGrid = source._paragraphProperties?.SnapToGrid;
-        if (snapToGrid == null) {
-            return null;
-        }
-
-        return snapToGrid.Val?.Value ?? true;
-    }
-
 }

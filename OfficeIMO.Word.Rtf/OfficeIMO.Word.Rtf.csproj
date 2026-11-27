@@ -42,6 +42,8 @@
     <Using Include="System.Text" />
     <Using Include="OfficeIMO.Rtf" />
     <Using Include="OfficeIMO.Word" />
+    <Using Include="OfficeIMO.Word.OpenXml" />
+    <Using Include="OfficeIMO.OpenXml.Internal" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" />

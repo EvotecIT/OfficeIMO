@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.ExtendedProperties;
-using DocumentFormat.OpenXml.CustomProperties;
 using System.Globalization;
 
 namespace OfficeIMO.Word.Rtf;

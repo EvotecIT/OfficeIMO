@@ -10,7 +10,7 @@ namespace OfficeIMO.Rtf.Tests;
 /// the Word model and its <c>OfficeXmlNode</c> handles; the count may only go down.
 /// </summary>
 public class WordRtfOpenXmlSdkRatchet {
-    private const int Baseline = 23;
+    private const int Baseline = 0;
     private readonly ITestOutputHelper _output;
 
     public WordRtfOpenXmlSdkRatchet(ITestOutputHelper output) => _output = output;

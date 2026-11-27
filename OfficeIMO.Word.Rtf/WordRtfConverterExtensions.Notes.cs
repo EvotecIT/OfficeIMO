@@ -1,6 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
@@ -47,18 +44,16 @@ public static partial class WordRtfConverterExtensions {
             return;
         }
 
-        OpenXmlCompositeElement? noteElement = projectedKind == RtfNoteKind.Endnote
-            ? referenceRun._document._wordprocessingDocument.MainDocumentPart?.EndnotesPart?.Endnotes?
-                .ChildElements.OfType<Endnote>()
-                .FirstOrDefault(item => item.Id?.Value == referenceId.Value)
-            : referenceRun._document._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
-                .ChildElements.OfType<Footnote>()
-                .FirstOrDefault(item => item.Id?.Value == referenceId.Value);
-        if (noteElement == null) return;
+        OfficeXmlNode noteElement = projectedKind == RtfNoteKind.Endnote
+            ? referenceRun._document.EndnotesNode().WElements("endnote")
+                .FirstOrDefault(item => WordXml.ParseInt64(item.WAttr("id")) == referenceId.Value)
+            : referenceRun._document.FootnotesNode().WElements("footnote")
+                .FirstOrDefault(item => WordXml.ParseInt64(item.WAttr("id")) == referenceId.Value);
+        if (noteElement.IsNone) return;
 
         foreach (RtfParagraph paragraph in note.Paragraphs.Skip(1)) {
             WordParagraph wordParagraph = CreateDetachedWordParagraph(referenceRun._document, paragraph, rtfDocument, numbering);
-            noteElement.Append(wordParagraph._paragraph);
+            noteElement.Append(wordParagraph.Node());
         }
     }
 

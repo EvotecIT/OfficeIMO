@@ -4,8 +4,9 @@ public static partial class WordRtfConverterExtensions {
     private static RtfNoteProjection? ResolveNoteProjection(RtfDocument? source, WordParagraph reference) {
         if (source == null) return null;
         WordSection? owner = reference.GetBodySection();
+        OfficeXmlNode ownerProperties = owner?.Node() ?? default;
         for (int index = 0; index < reference._document.Sections.Count && index < source.Sections.Count; index++) {
-            if (ReferenceEquals(reference._document.Sections[index]._sectionProperties, owner?._sectionProperties))
+            if (reference._document.Sections[index].Node() == ownerProperties)
                 return RtfNoteProjection.Resolve(source, source.Sections[index]);
         }
         return RtfNoteProjection.Resolve(source);

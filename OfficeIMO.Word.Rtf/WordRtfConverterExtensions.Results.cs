@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Rtf.Writing;
 
@@ -225,19 +223,16 @@ public static partial class WordRtfConverterExtensions {
         AddWordParagraphLayoutDiagnostics(document, storyRoots, report);
         var footnoteIds = new HashSet<long>(storyRoots
             .Select(candidate => candidate.Root)
-            .OfType<Footnote>()
-            .Where(note => note.Id?.Value != null)
-            .Select(note => note.Id!.Value));
+            .Where(note => note.IsW("footnote") && WordXml.ParseInt64(note.WAttr("id")) != null)
+            .Select(note => WordXml.ParseInt64(note.WAttr("id"))!.Value));
         var endnoteIds = new HashSet<long>(storyRoots
             .Select(candidate => candidate.Root)
-            .OfType<Endnote>()
-            .Where(note => note.Id?.Value != null)
-            .Select(note => note.Id!.Value));
+            .Where(note => note.IsW("endnote") && WordXml.ParseInt64(note.WAttr("id")) != null)
+            .Select(note => WordXml.ParseInt64(note.WAttr("id"))!.Value));
         var commentIds = new HashSet<string>(storyRoots
             .Select(candidate => candidate.Root)
-            .OfType<Comment>()
-            .Where(comment => !string.IsNullOrWhiteSpace(comment.Id?.Value))
-            .Select(comment => comment.Id!.Value!), StringComparer.Ordinal);
+            .Where(comment => comment.IsW("comment") && !string.IsNullOrWhiteSpace(comment.WAttr("id")))
+            .Select(comment => comment.WAttr("id")!), StringComparer.Ordinal);
         List<WordElement> elements = EnumerateWordElements(document.Elements)
             .Concat(EnumerateHeaderFooterElements(document))
             .Concat(EnumerateNoteElements(document, footnoteIds, endnoteIds))
@@ -346,16 +341,16 @@ public static partial class WordRtfConverterExtensions {
     private static IEnumerable<(WordImage? Image, bool OmittedByConverter)> EnumerateWordImageCandidates(
         WordDocument document,
         IEnumerable<WordStoryRootCandidate> storyRoots) {
-        var visitedParagraphs = new HashSet<Paragraph>();
-        var visitedRuns = new HashSet<Run>();
+        var visitedParagraphs = new HashSet<OfficeXmlNode>();
+        var visitedRuns = new HashSet<OfficeXmlNode>();
         foreach (WordStoryRootCandidate storyRoot in storyRoots) {
-            foreach (Paragraph paragraph in storyRoot.Root.Descendants<Paragraph>()) {
+            foreach (OfficeXmlNode paragraph in storyRoot.Root.DescendantElements(WordXml.W, "p")) {
                 if (!visitedParagraphs.Add(paragraph)) continue;
                 bool paragraphOmitted = storyRoot.OmittedByConverter ||
                                         !IsParagraphConvertedFromStoryRoot(storyRoot.Root, paragraph);
-                foreach ((Run Run, bool OmittedByConverter) runCandidate in EnumerateConvertibleWordRunsWithFieldState(paragraph)) {
+                foreach ((OfficeXmlNode Run, bool OmittedByConverter) runCandidate in EnumerateConvertibleWordRunsWithFieldState(paragraph)) {
                     if (!visitedRuns.Add(runCandidate.Run)) continue;
-                    var candidate = new WordParagraph(document, paragraph, runCandidate.Run);
+                    WordParagraph candidate = document.RunView(paragraph, runCandidate.Run);
                     if (!TryEnumerateImages(candidate, out IReadOnlyList<WordImage> images)) {
                         int unavailableImages = Math.Max(1, CountImageElements(runCandidate.Run));
                         for (int index = 0; index < unavailableImages; index++) {
@@ -371,36 +366,32 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static int CountImageElements(Run run) {
+    private static int CountImageElements(OfficeXmlNode run) {
         int count = 0;
-        foreach (OpenXmlElement element in EnumerateEffectiveRunContent(run)) {
-            IEnumerable<DocumentFormat.OpenXml.Wordprocessing.Drawing> drawings =
-                element is DocumentFormat.OpenXml.Wordprocessing.Drawing directDrawing
-                    ? new[] { directDrawing }
-                    : element.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>();
-            count += drawings.Count(drawing =>
-                drawing.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Any());
+        foreach (OfficeXmlNode element in EnumerateEffectiveRunContent(run)) {
+            IEnumerable<OfficeXmlNode> drawings = element.IsW("drawing")
+                ? new[] { element }
+                : element.DescendantElements(WordXml.W, "drawing");
+            count += drawings.Count(drawing => drawing.HasDescendant(WordXml.Pic, "pic"));
 
-            IEnumerable<DocumentFormat.OpenXml.Vml.Shape> shapes =
-                element is DocumentFormat.OpenXml.Vml.Shape directShape
-                    ? new[] { directShape }
-                    : element.Descendants<DocumentFormat.OpenXml.Vml.Shape>();
-            count += shapes.Count(shape =>
-                shape.GetFirstChild<DocumentFormat.OpenXml.Vml.ImageData>() != null);
+            IEnumerable<OfficeXmlNode> shapes = element.Is(WordXml.V, "shape")
+                ? new[] { element }
+                : element.DescendantElements(WordXml.V, "shape");
+            count += shapes.Count(shape => shape.Child(WordXml.V, "imagedata").Exists);
         }
         return count;
     }
 
-    private static IEnumerable<OpenXmlElement> EnumerateEffectiveRunContent(Run run) {
-        foreach (OpenXmlElement child in run.ChildElements) {
-            if (child is not AlternateContent alternateContent) {
+    private static IEnumerable<OfficeXmlNode> EnumerateEffectiveRunContent(OfficeXmlNode run) {
+        foreach (OfficeXmlNode child in run.Elements()) {
+            if (!child.Is(WordXml.Mc, "AlternateContent")) {
                 yield return child;
                 continue;
             }
 
-            OpenXmlCompositeElement? branch = WordAlternateContentResolver.SelectBranch(alternateContent);
-            if (branch == null) continue;
-            foreach (OpenXmlElement branchChild in branch.ChildElements) {
+            OfficeXmlNode branch = WordConverterNodes.SelectAlternateContentBranch(child);
+            if (branch.IsNone) continue;
+            foreach (OfficeXmlNode branchChild in branch.Elements()) {
                 yield return branchChild;
             }
         }
@@ -418,38 +409,34 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static bool IsParagraphConvertedFromStoryRoot(OpenXmlElement root, Paragraph paragraph) {
-        if (root is Document) return true;
+    private static bool IsParagraphConvertedFromStoryRoot(OfficeXmlNode root, OfficeXmlNode paragraph) {
+        if (root.IsW("document")) return true;
         // The Word-to-RTF bridge reads only the direct paragraph collections exposed by
         // headers, footers, notes, and comments. Nested table/text-box paragraphs are inventoried
         // for diagnostics but are not emitted by those specialized story converters.
-        return ReferenceEquals(paragraph.Parent, root);
+        return paragraph.Parent == root;
     }
 
     private static IEnumerable<WordStoryRootCandidate> EnumerateConvertibleWordStoryRoots(WordDocument document) {
-        DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart = document.OpenXmlDocument.MainDocumentPart;
-        if (mainPart == null) yield break;
+        OfficeXmlNode documentRoot = document.DocumentNode();
+        if (documentRoot.IsNone) yield break;
 
-        var rootOmissions = new Dictionary<OpenXmlElement, bool>();
-        if (mainPart.Document != null) rootOmissions.Add(mainPart.Document, false);
+        var rootOmissions = new Dictionary<OfficeXmlNode, bool>();
+        rootOmissions.Add(documentRoot, false);
         var convertedRelationshipIds = new HashSet<string>(StringComparer.Ordinal);
         if (document.Sections.Count > 0) {
-            foreach (HeaderReference reference in document.Sections[0]._sectionProperties.Elements<HeaderReference>()) {
-                if (!string.IsNullOrWhiteSpace(reference.Id?.Value)) convertedRelationshipIds.Add(reference.Id!.Value!);
+            OfficeXmlNode sectionProperties = document.Sections[0].Node();
+            foreach (OfficeXmlNode reference in sectionProperties.WElements("headerReference")) {
+                string? id = reference.Attribute(WordXml.R, "id");
+                if (!string.IsNullOrWhiteSpace(id)) convertedRelationshipIds.Add(id!);
             }
-            foreach (FooterReference reference in document.Sections[0]._sectionProperties.Elements<FooterReference>()) {
-                if (!string.IsNullOrWhiteSpace(reference.Id?.Value)) convertedRelationshipIds.Add(reference.Id!.Value!);
-            }
-        }
-        foreach (DocumentFormat.OpenXml.Packaging.HeaderPart part in mainPart.HeaderParts) {
-            if (part.Header != null) {
-                rootOmissions[part.Header] = !convertedRelationshipIds.Contains(mainPart.GetIdOfPart(part));
+            foreach (OfficeXmlNode reference in sectionProperties.WElements("footerReference")) {
+                string? id = reference.Attribute(WordXml.R, "id");
+                if (!string.IsNullOrWhiteSpace(id)) convertedRelationshipIds.Add(id!);
             }
         }
-        foreach (DocumentFormat.OpenXml.Packaging.FooterPart part in mainPart.FooterParts) {
-            if (part.Footer != null) {
-                rootOmissions[part.Footer] = !convertedRelationshipIds.Contains(mainPart.GetIdOfPart(part));
-            }
+        foreach ((OfficeXmlNode root, string relationshipId) in document.HeaderFooterRootsWithRelationshipIds()) {
+            rootOmissions[root] = !convertedRelationshipIds.Contains(relationshipId);
         }
 
         bool added;
@@ -458,42 +445,36 @@ public static partial class WordRtfConverterExtensions {
             var referencedCommentIds = new Dictionary<string, bool>(StringComparer.Ordinal);
             var referencedFootnoteIds = new Dictionary<long, bool>();
             var referencedEndnoteIds = new Dictionary<long, bool>();
-            foreach (KeyValuePair<OpenXmlElement, bool> candidate in rootOmissions.ToList()) {
+            foreach (KeyValuePair<OfficeXmlNode, bool> candidate in rootOmissions.ToList()) {
                 foreach (string id in CollectReferencedCommentIds(new[] { candidate.Key })) {
                     RecordStoryReference(referencedCommentIds, id, candidate.Value);
                 }
-                foreach (FootnoteReference reference in candidate.Key.Descendants<FootnoteReference>()) {
-                    if (reference.Id?.Value is long id) RecordStoryReference(referencedFootnoteIds, id, candidate.Value);
+                foreach (OfficeXmlNode reference in candidate.Key.DescendantElements(WordXml.W, "footnoteReference")) {
+                    if (WordXml.ParseInt64(reference.WAttr("id")) is long id) RecordStoryReference(referencedFootnoteIds, id, candidate.Value);
                 }
-                foreach (EndnoteReference reference in candidate.Key.Descendants<EndnoteReference>()) {
-                    if (reference.Id?.Value is long id) RecordStoryReference(referencedEndnoteIds, id, candidate.Value);
+                foreach (OfficeXmlNode reference in candidate.Key.DescendantElements(WordXml.W, "endnoteReference")) {
+                    if (WordXml.ParseInt64(reference.WAttr("id")) is long id) RecordStoryReference(referencedEndnoteIds, id, candidate.Value);
                 }
             }
 
-            if (mainPart.WordprocessingCommentsPart?.Comments != null) {
-                foreach (Comment comment in mainPart.WordprocessingCommentsPart.Comments.Elements<Comment>()) {
-                    if (comment.Id?.Value is string id && referencedCommentIds.TryGetValue(id, out bool omitted)) {
-                        added |= RecordStoryRoot(rootOmissions, comment, omitted);
-                    }
+            foreach (OfficeXmlNode comment in document.CommentsNode().WElements("comment")) {
+                if (comment.WAttr("id") is string id && referencedCommentIds.TryGetValue(id, out bool omitted)) {
+                    added |= RecordStoryRoot(rootOmissions, comment, omitted);
                 }
             }
-            if (mainPart.FootnotesPart?.Footnotes != null) {
-                foreach (Footnote note in mainPart.FootnotesPart.Footnotes.Elements<Footnote>()) {
-                    if (note.Id?.Value is long id && referencedFootnoteIds.TryGetValue(id, out bool omitted)) {
-                        added |= RecordStoryRoot(rootOmissions, note, omitted);
-                    }
+            foreach (OfficeXmlNode note in document.FootnotesNode().WElements("footnote")) {
+                if (WordXml.ParseInt64(note.WAttr("id")) is long id && referencedFootnoteIds.TryGetValue(id, out bool omitted)) {
+                    added |= RecordStoryRoot(rootOmissions, note, omitted);
                 }
             }
-            if (mainPart.EndnotesPart?.Endnotes != null) {
-                foreach (Endnote note in mainPart.EndnotesPart.Endnotes.Elements<Endnote>()) {
-                    if (note.Id?.Value is long id && referencedEndnoteIds.TryGetValue(id, out bool omitted)) {
-                        added |= RecordStoryRoot(rootOmissions, note, omitted);
-                    }
+            foreach (OfficeXmlNode note in document.EndnotesNode().WElements("endnote")) {
+                if (WordXml.ParseInt64(note.WAttr("id")) is long id && referencedEndnoteIds.TryGetValue(id, out bool omitted)) {
+                    added |= RecordStoryRoot(rootOmissions, note, omitted);
                 }
             }
         } while (added);
 
-        foreach (KeyValuePair<OpenXmlElement, bool> candidate in rootOmissions) {
+        foreach (KeyValuePair<OfficeXmlNode, bool> candidate in rootOmissions) {
             yield return new WordStoryRootCandidate(candidate.Key, candidate.Value);
         }
     }
@@ -504,8 +485,8 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static bool RecordStoryRoot(
-        Dictionary<OpenXmlElement, bool> roots,
-        OpenXmlElement root,
+        Dictionary<OfficeXmlNode, bool> roots,
+        OfficeXmlNode root,
         bool omitted) {
         if (!roots.TryGetValue(root, out bool existing)) {
             roots.Add(root, omitted);
@@ -519,55 +500,56 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private readonly struct WordStoryRootCandidate {
-        internal WordStoryRootCandidate(OpenXmlElement root, bool omittedByConverter) {
+        internal WordStoryRootCandidate(OfficeXmlNode root, bool omittedByConverter) {
             Root = root;
             OmittedByConverter = omittedByConverter;
         }
 
-        internal OpenXmlElement Root { get; }
+        internal OfficeXmlNode Root { get; }
 
         internal bool OmittedByConverter { get; }
     }
 
-    private static IEnumerable<(Run Run, bool OmittedByConverter)> EnumerateConvertibleWordRuns(
-        OpenXmlElement container,
+    private static IEnumerable<(OfficeXmlNode Run, bool OmittedByConverter)> EnumerateConvertibleWordRuns(
+        OfficeXmlNode container,
         bool nestedRevisionIsOmitted = false,
         bool omittedByConverter = false) {
-        foreach (OpenXmlElement child in container.ChildElements) {
-            switch (child) {
-                case Run run:
-                    yield return (run, omittedByConverter);
+        foreach (OfficeXmlNode child in container.Elements()) {
+            string kind = child.NamespaceId == WordXml.W ? child.LocalName : string.Empty;
+            switch (kind) {
+                case "r":
+                    yield return (child, omittedByConverter);
                     break;
-                case SimpleField:
-                    foreach ((Run Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
+                case "fldSimple":
+                    foreach ((OfficeXmlNode Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
                                  child,
                                  nestedRevisionIsOmitted: true,
                                  omittedByConverter: omittedByConverter)) {
                         yield return nested;
                     }
                     break;
-                case InsertedRun:
-                case MoveToRun:
-                    foreach ((Run Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
+                case "ins":
+                case "moveTo":
+                    foreach ((OfficeXmlNode Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
                                  child,
                                  nestedRevisionIsOmitted: true,
                                  omittedByConverter: omittedByConverter)) {
                         yield return nested;
                     }
                     break;
-                case DeletedRun:
-                case MoveFromRun:
-                    foreach ((Run Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
+                case "del":
+                case "moveFrom":
+                    foreach ((OfficeXmlNode Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
                                  child,
                                  nestedRevisionIsOmitted: true,
                                  omittedByConverter: omittedByConverter || nestedRevisionIsOmitted)) {
                         yield return nested;
                     }
                     break;
-                case Hyperlink:
-                case SdtRun:
-                case SdtContentRun:
-                    foreach ((Run Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
+                case "hyperlink":
+                case "sdt":
+                case "sdtContent":
+                    foreach ((OfficeXmlNode Run, bool OmittedByConverter) nested in EnumerateConvertibleWordRuns(
                                  child,
                                  nestedRevisionIsOmitted: true,
                                  omittedByConverter: omittedByConverter)) {
@@ -575,7 +557,7 @@ public static partial class WordRtfConverterExtensions {
                     }
                     break;
                 default:
-                    foreach (Run omittedRun in child.Descendants<Run>()) {
+                    foreach (OfficeXmlNode omittedRun in child.DescendantElements(WordXml.W, "r")) {
                         yield return (omittedRun, true);
                     }
                     break;
@@ -583,34 +565,33 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static IEnumerable<(Run Run, bool OmittedByConverter)> EnumerateConvertibleWordRunsWithFieldState(
-        OpenXmlElement container) {
-        List<(Run Run, bool OmittedByConverter)> candidates = EnumerateConvertibleWordRuns(container).ToList();
+    private static IEnumerable<(OfficeXmlNode Run, bool OmittedByConverter)> EnumerateConvertibleWordRunsWithFieldState(
+        OfficeXmlNode container) {
+        List<(OfficeXmlNode Run, bool OmittedByConverter)> candidates = EnumerateConvertibleWordRuns(container).ToList();
         var omittedByFieldState = new bool[candidates.Count];
         var complexFieldResults = new List<bool>();
         var complexFieldStarts = new List<int>();
         int fieldsAwaitingResult = 0;
         for (int index = 0; index < candidates.Count; index++) {
-            (Run Run, bool OmittedByConverter) candidate = candidates[index];
-            Run run = candidate.Run;
-            FieldChar? marker = run.Elements<FieldChar>().FirstOrDefault();
-            FieldCharValues? markerType = marker?.FieldCharType?.Value;
+            (OfficeXmlNode Run, bool OmittedByConverter) candidate = candidates[index];
+            OfficeXmlNode run = candidate.Run;
+            string? markerType = run.WChild("fldChar").WAttr("fldCharType");
             bool omitted = candidate.OmittedByConverter;
-            if (markerType == FieldCharValues.Begin) {
+            if (markerType == "begin") {
                 omitted = true;
                 complexFieldResults.Add(false);
                 complexFieldStarts.Add(index);
                 fieldsAwaitingResult++;
             } else if (complexFieldResults.Count > 0) {
                 omitted |= fieldsAwaitingResult > 0;
-                if (markerType == FieldCharValues.Separate) {
+                if (markerType == "separate") {
                     omitted = true;
                     int last = complexFieldResults.Count - 1;
                     if (!complexFieldResults[last]) {
                         complexFieldResults[last] = true;
                         fieldsAwaitingResult--;
                     }
-                } else if (markerType == FieldCharValues.End) {
+                } else if (markerType == "end") {
                     omitted = true;
                     int last = complexFieldResults.Count - 1;
                     if (!complexFieldResults[last]) fieldsAwaitingResult--;

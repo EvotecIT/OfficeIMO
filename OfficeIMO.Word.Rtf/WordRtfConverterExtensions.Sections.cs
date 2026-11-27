@@ -1,6 +1,4 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Rtf;
 
@@ -11,10 +9,10 @@ public static partial class WordRtfConverterExtensions {
                 section.ColumnCount.HasValue ||
                 section.ColumnsSpace.HasValue ||
                 section.HasColumnSeparator ||
-                section._sectionProperties.GetFirstChild<Columns>()?.Elements<Column>().Any() == true ||
-                section._sectionProperties.GetFirstChild<VerticalTextAlignmentOnPage>() != null ||
-                section._sectionProperties.GetFirstChild<LineNumberType>() != null ||
-                section._sectionProperties.GetFirstChild<SectionType>() != null);
+                section.Node().WChild("cols").WElements("col").Any() ||
+                section.Node().WChild("vAlign").Exists ||
+                section.Node().WChild("lnNumType").Exists ||
+                section.Node().WChild("type").Exists);
     }
 
     private static void CopySections(WordDocument document, RtfDocument rtf, Dictionary<string, int> revisionAuthorIndexes) {
@@ -29,11 +27,11 @@ public static partial class WordRtfConverterExtensions {
 
     private static RtfSectionBreakKind ToRtfSectionBreakKind(WordDocument document, int sectionIndex) {
         WordSection section = document.Sections[sectionIndex];
-        SectionMarkValues? sectionMark = section._sectionProperties.GetFirstChild<SectionType>()?.Val?.Value;
-        if (sectionMark == SectionMarkValues.Continuous) return RtfSectionBreakKind.Continuous;
-        if (sectionMark == SectionMarkValues.NextColumn) return RtfSectionBreakKind.Column;
-        if (sectionMark == SectionMarkValues.EvenPage) return RtfSectionBreakKind.EvenPage;
-        if (sectionMark == SectionMarkValues.OddPage) return RtfSectionBreakKind.OddPage;
+        string? sectionMark = section.Node().WChild("type").WVal();
+        if (sectionMark == "continuous") return RtfSectionBreakKind.Continuous;
+        if (sectionMark == "nextColumn") return RtfSectionBreakKind.Column;
+        if (sectionMark == "evenPage") return RtfSectionBreakKind.EvenPage;
+        if (sectionMark == "oddPage") return RtfSectionBreakKind.OddPage;
         return RtfSectionBreakKind.NextPage;
     }
 
@@ -58,18 +56,19 @@ public static partial class WordRtfConverterExtensions {
             ToInt32(checked((uint)(source.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips()))));
         destination.PageSetup.SetLandscape(source.PageSetup.Orientation == OfficePageOrientation.Landscape);
         destination.PageSetup.SetDifferentFirstPageHeaderFooter(source.PageSetup.DifferentFirstPage);
-        CopyPageNumbering(source._sectionProperties.GetFirstChild<PageNumberType>(), destination.PageSetup);
-        CopyPageBorders(source._sectionProperties.GetFirstChild<PageBorders>(), destination.PageSetup.PageBorders, document);
+        OfficeXmlNode sectionProperties = source.Node();
+        CopyPageNumbering(sectionProperties.WChild("pgNumType"), destination.PageSetup);
+        CopyPageBorders(sectionProperties.WChild("pgBorders"), destination.PageSetup.PageBorders, document);
         CopyNoteSettings(
-            source._sectionProperties.GetFirstChild<FootnoteProperties>(),
-            source._sectionProperties.GetFirstChild<EndnoteProperties>(),
+            sectionProperties.WChild("footnotePr"),
+            sectionProperties.WChild("endnotePr"),
             destination.NoteSettings);
-        CopyLineNumbering(source._sectionProperties.GetFirstChild<LineNumberType>(), destination.LineNumbering);
-        destination.VerticalAlignment = ToRtfSectionVerticalAlignment(source._sectionProperties.GetFirstChild<VerticalTextAlignmentOnPage>()?.Val?.Value);
+        CopyLineNumbering(sectionProperties.WChild("lnNumType"), destination.LineNumbering);
+        destination.VerticalAlignment = ToRtfSectionVerticalAlignment(sectionProperties.WChild("vAlign").WVal());
         destination.ColumnCount = source.ColumnCount;
         destination.ColumnSpaceTwips = checked((int?)(source.ColumnsSpace?.ToTwips()));
         destination.ColumnSeparator = source.HasColumnSeparator;
-        CopySectionColumns(source._sectionProperties.GetFirstChild<Columns>(), destination);
+        CopySectionColumns(sectionProperties.WChild("cols"), destination);
     }
 
     private static void ApplySections(RtfDocument rtfDocument, WordDocument document, RtfWordNumberingPlan numbering) {
@@ -80,7 +79,7 @@ public static partial class WordRtfConverterExtensions {
             RtfSection rtfSection = rtfDocument.Sections[index];
             WordSection wordSection = index == 0
                 ? wordSections[0]
-                : document.AddSection(ToWordSectionMark(rtfSection.BreakKind).ToOfficeEnum());
+                : document.AddSection(ToWordSectionMark(rtfSection.BreakKind));
             wordSections[index] = wordSection;
 
             if (index == 0) {
@@ -159,13 +158,13 @@ public static partial class WordRtfConverterExtensions {
         ApplySectionColumns(source, destination);
     }
 
-    private static void CopySectionColumns(Columns? source, RtfSection destination) {
-        if (source == null) {
+    private static void CopySectionColumns(OfficeXmlNode source, RtfSection destination) {
+        if (source.IsNone) {
             return;
         }
 
-        foreach (Column column in source.Elements<Column>()) {
-            destination.AddColumn(ToInt32(column.Width), ToInt32(column.Space));
+        foreach (OfficeXmlNode column in source.WElements("col")) {
+            destination.AddColumn(ToInt32(column.WAttr("w")), ToInt32(column.WAttr("space")));
         }
 
         if (!destination.ColumnCount.HasValue && destination.Columns.Count > 0) {
@@ -178,23 +177,23 @@ public static partial class WordRtfConverterExtensions {
             return;
         }
 
-        Columns? columns = destination._sectionProperties.GetFirstChild<Columns>();
-        if (columns == null) {
-            columns = new Columns();
-            destination._sectionProperties.Append(columns);
+        OfficeXmlNode sectionProperties = destination.Node();
+        OfficeXmlNode columns = sectionProperties.WChild("cols");
+        if (columns.IsNone) {
+            columns = sectionProperties.Append(sectionProperties.CreateElement(WordXml.W, "cols"));
         }
 
-        columns.EqualWidth = false;
-        columns.ColumnCount = (Int16Value)(short)(source.ColumnCount ?? source.Columns.Count);
-        columns.RemoveAllChildren<Column>();
+        columns.SetAttribute(WordXml.W, "equalWidth", FormatOnOff(false));
+        columns.SetAttribute(WordXml.W, "num", ((short)(source.ColumnCount ?? source.Columns.Count)).ToString(CultureInfo.InvariantCulture));
+        columns.RemoveChildren(WordXml.W, "col");
         foreach (RtfSectionColumn sourceColumn in source.Columns) {
-            var column = new Column();
+            OfficeXmlNode column = columns.CreateElement(WordXml.W, "col");
             if (sourceColumn.WidthTwips.HasValue) {
-                column.Width = sourceColumn.WidthTwips.Value.ToString(CultureInfo.InvariantCulture);
+                column.SetAttribute(WordXml.W, "w", sourceColumn.WidthTwips.Value.ToString(CultureInfo.InvariantCulture));
             }
 
             if (sourceColumn.SpaceAfterTwips.HasValue) {
-                column.Space = sourceColumn.SpaceAfterTwips.Value.ToString(CultureInfo.InvariantCulture);
+                column.SetAttribute(WordXml.W, "space", sourceColumn.SpaceAfterTwips.Value.ToString(CultureInfo.InvariantCulture));
             }
 
             columns.Append(column);
@@ -202,21 +201,21 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplySectionBreakKind(RtfSectionBreakKind kind, WordSection section) {
-        section.BreakType = ToWordSectionMark(kind).ToOfficeEnum();
+        section.BreakType = ToWordSectionMark(kind);
     }
 
-    private static SectionMarkValues ToWordSectionMark(RtfSectionBreakKind kind) {
+    private static WordSectionBreakType ToWordSectionMark(RtfSectionBreakKind kind) {
         switch (kind) {
             case RtfSectionBreakKind.Continuous:
-                return SectionMarkValues.Continuous;
+                return WordSectionBreakType.Continuous;
             case RtfSectionBreakKind.Column:
-                return SectionMarkValues.NextColumn;
+                return WordSectionBreakType.NextColumn;
             case RtfSectionBreakKind.EvenPage:
-                return SectionMarkValues.EvenPage;
+                return WordSectionBreakType.EvenPage;
             case RtfSectionBreakKind.OddPage:
-                return SectionMarkValues.OddPage;
+                return WordSectionBreakType.OddPage;
             default:
-                return SectionMarkValues.NextPage;
+                return WordSectionBreakType.NextPage;
         }
     }
 
