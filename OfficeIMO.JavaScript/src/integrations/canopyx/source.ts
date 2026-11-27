@@ -6,9 +6,12 @@ import { datetime } from "./dates.js";
 import { captureFields } from "../../internal/capture.js";
 import { copyColumns } from "../../internal/rows.js";
 import { copyCellPresentation } from "../../core/presentation.js";
+import { copyExportLink } from "../../core/links.js";
+import { cleanXml } from "../../xml/index.js";
 import { canopyDiagnostics } from "./diagnostics.js";
 import { canopyNumberFormat, canopyXlsxWidth } from "./presentation.js";
 import { canopyDefaultTones } from "./tones.js";
+import type { XlsxOptions } from "../../xlsx/index.js";
 import type { CanopyCapture, CanopyDiagnostic, CanopyExport, CanopyFormat, CanopySourceOptions } from "./types.js";
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"] as const;
@@ -141,8 +144,18 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
     return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured!) });
   });
   const rowCount = request.recordCount;
+  // The XLSX worksheet counts every hyperlink it holds: configured sheet links, the internal link of each preserved
+  // oversized text cell, and captured cell links. Only captured cell links can fall back to their label.
+  // writeCanopyTo passes its complete captured XLSX options through the narrower public source type.
+  const xlsx = options.xlsx as Pick<XlsxOptions, "dateMode" | "oversizedText" | "invalidCharacterPolicy" | "sheet"> | undefined;
+  const preserveText = format === "xlsx" && xlsx?.oversizedText === "preserve";
+  const preserved = (value: unknown): boolean => preserveText && typeof value === "string" && value.length > maximumCellText &&
+    cleanXml(value, xlsx?.invalidCharacterPolicy).length > maximumCellText;
+  const sheetHyperlinks = xlsx?.sheet?.hyperlinks;
+  const reservedLinks = (Array.isArray(sheetHyperlinks) ? sheetHyperlinks.length : 0) +
+    (xlsx?.sheet?.includeHeader === false ? 0 : specs.filter(spec => preserved(spec.column.header)).length);
   const source: CanopyExport = Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
-    checkAbort(signal); let count = 0, links = 0, droppedLinks = 0;
+    checkAbort(signal); let count = 0, links = reservedLinks, droppedLinks = 0;
     for await (const row of inputRows(capture.rows(signal ? { signal } : {}), signal)) {
       checkAbort(signal);
       if (!row || typeof row.id !== "string" || !row.cells || typeof row.cells !== "object") throw new TypeError("Invalid Canopy export record.");
@@ -180,7 +193,11 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         if (format === "csv") result.push(value);
         else {
           let link = cell.link;
-          if (link !== undefined && format === "xlsx" && ++links > maximumWorksheetLinks) { link = undefined; droppedLinks++; }
+          if (format === "xlsx") {
+            if (preserved(value)) links++;
+            // ExportCell validates the links it keeps; a link left out is still validated, so an unsafe target is never hidden.
+            if (link !== undefined && ++links > maximumWorksheetLinks) { copyExportLink(link); link = undefined; links--; droppedLinks++; }
+          }
           const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(link === undefined ? {} : { link }) });
           if (relativeLabel || badgedValue) rawIdentities.set(exported, cell.value);
           // A badge-only label is all suffix: later passes then see the captured label as empty.

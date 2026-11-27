@@ -13,15 +13,16 @@ const _c8 = _core("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f56
 const _c9 = _core("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe");
 const _c10 = _core("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc");
 const _c11 = _core("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5");
-const _c12 = _core("e88a83ca79cd099fc2de29689554c913c7d04b17018098f81c43044064fcdfb8");
-const _c13 = _core("046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0");
-const _c14 = _core("87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3");
-const _c15 = _core("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b");
-const _c16 = _core("227236fd7adc9472e188831b8f16fdc69338c4d779f2b69a8abbd8dbfa95b585");
-const _c17 = _core("62ff1bcbf8ca07e8ab92cd1f6afbd54049346193e18160ab0afec48e03950bba");
-const _c18 = _core("5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b");
-const _c19 = _core("d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596");
-const _c20 = _core("59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070");
+const _c12 = _core("d363b84eac65064b2e372063af61a4e9e5c576501693c862628297c812ba7832");
+const _c13 = _core("227236fd7adc9472e188831b8f16fdc69338c4d779f2b69a8abbd8dbfa95b585");
+const _c14 = _core("e88a83ca79cd099fc2de29689554c913c7d04b17018098f81c43044064fcdfb8");
+const _c15 = _core("046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0");
+const _c16 = _core("87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3");
+const _c17 = _core("c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b");
+const _c18 = _core("62ff1bcbf8ca07e8ab92cd1f6afbd54049346193e18160ab0afec48e03950bba");
+const _c19 = _core("5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b");
+const _c20 = _core("d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596");
+const _c21 = _core("59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070");
 const _m4 = (() => {
 const { captureFields } = _c2;
 
@@ -203,7 +204,7 @@ const _exports = Object.freeze({ datetime: datetime });
 return _exports;
 })();
 
-const _m18 = (() => {
+const _m20 = (() => {
 /** Calibri 11, 96-DPI CSS pixels, seven-pixel maximum digit and five-pixel cell padding.
  * Quantize to native 1/256-character units; this is a reproducible profile, not pixel-identical rendering. */
 function canopyXlsxWidth(pixels) {
@@ -248,7 +249,7 @@ const _exports = Object.freeze({ canopyXlsxWidth: canopyXlsxWidth, canopyNumberF
 return _exports;
 })();
 
-const _m19 = (() => {
+const _m21 = (() => {
 /** Stable document palette for CanopyX's standard tones. Browser CSS variables and resolved cell.format are never interpreted.
  * Each foreground keeps at least a 4.5:1 contrast ratio on its background. */
 const canopyTonePalette = Object.freeze({
@@ -278,11 +279,15 @@ const { copyColumns } = _c10;
 
 const { copyCellPresentation } = _c11;
 
+const { copyExportLink } = _c12;
+
+const { cleanXml } = _c13;
+
 const { canopyDiagnostics } = _m12;
 
-const { canopyNumberFormat, canopyXlsxWidth } = _m18;
+const { canopyNumberFormat, canopyXlsxWidth } = _m20;
 
-const { canopyDefaultTones } = _m19;
+const { canopyDefaultTones } = _m21;
 
 const columnFields = ["width", "format", "wrapText", "alignment", "rowHeader", "groups"];
 // Captured presentations whose cell text already carries the readable content (badge labels are appended below).
@@ -422,9 +427,19 @@ function prepareCanopyExport(capture, format, options = {}) {
         return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured) });
     });
     const rowCount = request.recordCount;
+    // The XLSX worksheet counts every hyperlink it holds: configured sheet links, the internal link of each preserved
+    // oversized text cell, and captured cell links. Only captured cell links can fall back to their label.
+    // writeCanopyTo passes its complete captured XLSX options through the narrower public source type.
+    const xlsx = options.xlsx;
+    const preserveText = format === "xlsx" && xlsx?.oversizedText === "preserve";
+    const preserved = (value) => preserveText && typeof value === "string" && value.length > maximumCellText &&
+        cleanXml(value, xlsx?.invalidCharacterPolicy).length > maximumCellText;
+    const sheetHyperlinks = xlsx?.sheet?.hyperlinks;
+    const reservedLinks = (Array.isArray(sheetHyperlinks) ? sheetHyperlinks.length : 0) +
+        (xlsx?.sheet?.includeHeader === false ? 0 : specs.filter(spec => preserved(spec.column.header)).length);
     const source = Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
             checkAbort(signal);
-            let count = 0, links = 0, droppedLinks = 0;
+            let count = 0, links = reservedLinks, droppedLinks = 0;
             for await (const row of inputRows(capture.rows(signal ? { signal } : {}), signal)) {
                 checkAbort(signal);
                 if (!row || typeof row.id !== "string" || !row.cells || typeof row.cells !== "object")
@@ -468,9 +483,16 @@ function prepareCanopyExport(capture, format, options = {}) {
                         result.push(value);
                     else {
                         let link = cell.link;
-                        if (link !== undefined && format === "xlsx" && ++links > maximumWorksheetLinks) {
-                            link = undefined;
-                            droppedLinks++;
+                        if (format === "xlsx") {
+                            if (preserved(value))
+                                links++;
+                            // ExportCell validates the links it keeps; a link left out is still validated, so an unsafe target is never hidden.
+                            if (link !== undefined && ++links > maximumWorksheetLinks) {
+                                copyExportLink(link);
+                                link = undefined;
+                                links--;
+                                droppedLinks++;
+                            }
                         }
                         const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(link === undefined ? {} : { link }) });
                         if (relativeLabel || badgedValue)
@@ -497,8 +519,8 @@ const _exports = Object.freeze({ canopyBadgeSplit: canopyBadgeSplit, canopyIdent
 return _exports;
 })();
 
-const _m21 = (() => {
-const { columnName, excelDate } = _c12;
+const _m23 = (() => {
+const { columnName, excelDate } = _c14;
 
 const { captureFields } = _c2;
 
@@ -616,12 +638,12 @@ const _exports = Object.freeze({ canopyPredicate: canopyPredicate });
 return _exports;
 })();
 
-const _m20 = (() => {
+const _m22 = (() => {
 const { captureFields } = _c2;
 
-const { canopyPredicate } = _m21;
+const { canopyPredicate } = _m23;
 
-const { canopyDefaultTones, canopyTonePalette: palette } = _m19;
+const { canopyDefaultTones, canopyTonePalette: palette } = _m21;
 
 class UnsupportedRule extends Error {
 }
@@ -798,12 +820,12 @@ const _exports = Object.freeze({ canopyRules: canopyRules });
 return _exports;
 })();
 
-const _m23 = (() => {
-const { createGroupedReport } = _c13;
+const _m25 = (() => {
+const { createGroupedReport } = _c15;
 
-const { checkAbort } = _c14;
+const { checkAbort } = _c16;
 
-const { createTotals } = _c15;
+const { createTotals } = _c17;
 
 const { captureFields } = _c2;
 
@@ -1007,10 +1029,10 @@ const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
 return _exports;
 })();
 
-const _m27 = (() => {
-const { cellText } = _c12;
+const _m29 = (() => {
+const { cellText } = _c14;
 
-const { cleanXml } = _c16;
+const { cleanXml } = _c13;
 
 /** Snapshot optional About metadata before enumeration. The accepted query is serialized, never evaluated. */
 function canopyAbout(request, options) {
@@ -1065,12 +1087,12 @@ const _exports = Object.freeze({ canopyAbout: canopyAbout });
 return _exports;
 })();
 
-const _m29 = (() => {
+const _m30 = (() => {
 const { Workbook, addGroupedXlsx } = _c7;
 
-const { portableWorkbook } = _c17;
+const { portableWorkbook } = _c18;
 
-const { withDestination } = _c18;
+const { withDestination } = _c19;
 
 /** Compose only the adapter's data/grouped sheet and optional metadata sheet in the existing workbook owner. */
 async function writeCanopyWorkbook(source, grouped, destination, options, labels, about) {
@@ -1125,7 +1147,7 @@ const _exports = Object.freeze({ writeCanopyWorkbook: writeCanopyWorkbook });
 return _exports;
 })();
 
-const _m35 = (() => {
+const _m36 = (() => {
 const { ExportCell } = _c0;
 
 const { canopyBadgeSplit } = _m13;
@@ -1253,18 +1275,18 @@ const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
 return _exports;
 })();
 
-const _m32 = (() => {
+const _m33 = (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _c0;
 
-const { inputRows, checkAbort, pause, taskYieldDue } = _c14;
+const { inputRows, checkAbort, pause, taskYieldDue } = _c16;
 
-const { fontProgram } = _c19;
+const { fontProgram } = _c20;
 
-const { resolveScalar, selectFont, validateFonts } = _c20;
+const { resolveScalar, selectFont, validateFonts } = _c21;
 
 const { settings } = _c5;
 
-const { canopyPdfNumbers } = _m35;
+const { canopyPdfNumbers } = _m36;
 
 /** A bounded lookahead is replayed once; no second capture, full-dataset copy or smaller font is needed. */
 async function withCanopyPdfLayout(source, captured, options, write) {
@@ -1380,17 +1402,17 @@ const { canopyDiagnostics } = _m12;
 
 const { prepareCanopyExport } = _m13;
 
-const { canopyPins } = _m18;
+const { canopyPins } = _m20;
 
-const { canopyRules } = _m20;
+const { canopyRules } = _m22;
 
-const { canopyGrouped } = _m23;
+const { canopyGrouped } = _m25;
 
-const { canopyAbout } = _m27;
+const { canopyAbout } = _m29;
 
-const { writeCanopyWorkbook } = _m29;
+const { writeCanopyWorkbook } = _m30;
 
-const { withCanopyPdfLayout } = _m32;
+const { withCanopyPdfLayout } = _m33;
 
 
 
@@ -1501,7 +1523,7 @@ async function exportCanopy(capture, format, options = {}) {
         throw error;
     }
 }
-const _exports = Object.freeze({ createCanopyExport: _m13.createCanopyExport, ExportCell: _c11.ExportCell, PdfFont: _c19.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
+const _exports = Object.freeze({ createCanopyExport: _m13.createCanopyExport, ExportCell: _c11.ExportCell, PdfFont: _c20.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
 return _exports;
 })();
 const { createCanopyExport, ExportCell, PdfFont, writeCanopyTo, exportCanopy } = _m0;

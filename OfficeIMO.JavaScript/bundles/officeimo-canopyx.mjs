@@ -11802,6 +11802,10 @@ const { copyColumns } = _m11;
 
 const { copyCellPresentation } = _m5;
 
+const { copyExportLink } = _m7;
+
+const { cleanXml } = _m28;
+
 const { canopyDiagnostics } = _m95;
 
 const { canopyNumberFormat, canopyXlsxWidth } = _m99;
@@ -11946,9 +11950,19 @@ function prepareCanopyExport(capture, format, options = {}) {
         return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured) });
     });
     const rowCount = request.recordCount;
+    // The XLSX worksheet counts every hyperlink it holds: configured sheet links, the internal link of each preserved
+    // oversized text cell, and captured cell links. Only captured cell links can fall back to their label.
+    // writeCanopyTo passes its complete captured XLSX options through the narrower public source type.
+    const xlsx = options.xlsx;
+    const preserveText = format === "xlsx" && xlsx?.oversizedText === "preserve";
+    const preserved = (value) => preserveText && typeof value === "string" && value.length > maximumCellText &&
+        cleanXml(value, xlsx?.invalidCharacterPolicy).length > maximumCellText;
+    const sheetHyperlinks = xlsx?.sheet?.hyperlinks;
+    const reservedLinks = (Array.isArray(sheetHyperlinks) ? sheetHyperlinks.length : 0) +
+        (xlsx?.sheet?.includeHeader === false ? 0 : specs.filter(spec => preserved(spec.column.header)).length);
     const source = Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
             checkAbort(signal);
-            let count = 0, links = 0, droppedLinks = 0;
+            let count = 0, links = reservedLinks, droppedLinks = 0;
             for await (const row of inputRows(capture.rows(signal ? { signal } : {}), signal)) {
                 checkAbort(signal);
                 if (!row || typeof row.id !== "string" || !row.cells || typeof row.cells !== "object")
@@ -11992,9 +12006,16 @@ function prepareCanopyExport(capture, format, options = {}) {
                         result.push(value);
                     else {
                         let link = cell.link;
-                        if (link !== undefined && format === "xlsx" && ++links > maximumWorksheetLinks) {
-                            link = undefined;
-                            droppedLinks++;
+                        if (format === "xlsx") {
+                            if (preserved(value))
+                                links++;
+                            // ExportCell validates the links it keeps; a link left out is still validated, so an unsafe target is never hidden.
+                            if (link !== undefined && ++links > maximumWorksheetLinks) {
+                                copyExportLink(link);
+                                link = undefined;
+                                links--;
+                                droppedLinks++;
+                            }
                         }
                         const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(link === undefined ? {} : { link }) });
                         if (relativeLabel || badgedValue)

@@ -11894,7 +11894,7 @@ _modules.set("09d56e54463cbff00a2b225e10a62b06c881933290525c614bb5e276167e9eac",
 return _exports;
 })();
 
-const _m96 = _modules.get("bd6e51771eef55272f2929ce51f09a1f4045f99595eb81971b64897075daeb2a") ?? (() => {
+const _m96 = _modules.get("40e45741b2ee0c0925b92af796ffb0543ea6184ddbc29a319fdf2ca1c64b21aa") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { canopyPivot, pivotNumberFormat } = _m97;
@@ -11906,6 +11906,10 @@ const { captureFields } = _m10;
 const { copyColumns } = _m11;
 
 const { copyCellPresentation } = _m5;
+
+const { copyExportLink } = _m7;
+
+const { cleanXml } = _m28;
 
 const { canopyDiagnostics } = _m95;
 
@@ -12051,9 +12055,19 @@ function prepareCanopyExport(capture, format, options = {}) {
         return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured) });
     });
     const rowCount = request.recordCount;
+    // The XLSX worksheet counts every hyperlink it holds: configured sheet links, the internal link of each preserved
+    // oversized text cell, and captured cell links. Only captured cell links can fall back to their label.
+    // writeCanopyTo passes its complete captured XLSX options through the narrower public source type.
+    const xlsx = options.xlsx;
+    const preserveText = format === "xlsx" && xlsx?.oversizedText === "preserve";
+    const preserved = (value) => preserveText && typeof value === "string" && value.length > maximumCellText &&
+        cleanXml(value, xlsx?.invalidCharacterPolicy).length > maximumCellText;
+    const sheetHyperlinks = xlsx?.sheet?.hyperlinks;
+    const reservedLinks = (Array.isArray(sheetHyperlinks) ? sheetHyperlinks.length : 0) +
+        (xlsx?.sheet?.includeHeader === false ? 0 : specs.filter(spec => preserved(spec.column.header)).length);
     const source = Object.freeze({ columns: Object.freeze(specs.map(spec => spec.column)), rowCount, async *rows() {
             checkAbort(signal);
-            let count = 0, links = 0, droppedLinks = 0;
+            let count = 0, links = reservedLinks, droppedLinks = 0;
             for await (const row of inputRows(capture.rows(signal ? { signal } : {}), signal)) {
                 checkAbort(signal);
                 if (!row || typeof row.id !== "string" || !row.cells || typeof row.cells !== "object")
@@ -12097,9 +12111,16 @@ function prepareCanopyExport(capture, format, options = {}) {
                         result.push(value);
                     else {
                         let link = cell.link;
-                        if (link !== undefined && format === "xlsx" && ++links > maximumWorksheetLinks) {
-                            link = undefined;
-                            droppedLinks++;
+                        if (format === "xlsx") {
+                            if (preserved(value))
+                                links++;
+                            // ExportCell validates the links it keeps; a link left out is still validated, so an unsafe target is never hidden.
+                            if (link !== undefined && ++links > maximumWorksheetLinks) {
+                                copyExportLink(link);
+                                link = undefined;
+                                links--;
+                                droppedLinks++;
+                            }
                         }
                         const exported = new ExportCell(value, { text, ...(presentation ? { presentation } : {}), ...(link === undefined ? {} : { link }) });
                         if (relativeLabel || badgedValue)
@@ -12123,7 +12144,7 @@ function prepareCanopyExport(capture, format, options = {}) {
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot, ruleOperands });
 }
 const _exports = Object.freeze({ canopyBadgeSplit: canopyBadgeSplit, canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("bd6e51771eef55272f2929ce51f09a1f4045f99595eb81971b64897075daeb2a", _exports);
+_modules.set("40e45741b2ee0c0925b92af796ffb0543ea6184ddbc29a319fdf2ca1c64b21aa", _exports);
 return _exports;
 })();
 
@@ -12430,7 +12451,7 @@ _modules.set("9e37b2d273c800b7b2952c298b4c50a1368f06b9192f89d6bc3097e4ccb3bcf8",
 return _exports;
 })();
 
-const _m103 = _modules.get("0e5c852b29188f78fd5f9b2bdc694a1424d656dc5c9bf5ea7005f52251f8be3a") ?? (() => {
+const _m103 = _modules.get("7d5f828f953997cf8c1488466fea5fe7fa776ed85491ea4bbf9f3b82f6fc5ebb") ?? (() => {
 const { createGroupedReport } = _m8;
 
 const { checkAbort } = _m4;
@@ -12636,7 +12657,7 @@ function canopyGrouped(source, request, options, limits, report, format) {
         ...(options.signal === undefined ? {} : { signal: options.signal }), ...(sourceLimits === undefined ? {} : { limits: sourceLimits }) });
 }
 const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
-_modules.set("0e5c852b29188f78fd5f9b2bdc694a1424d656dc5c9bf5ea7005f52251f8be3a", _exports);
+_modules.set("7d5f828f953997cf8c1488466fea5fe7fa776ed85491ea4bbf9f3b82f6fc5ebb", _exports);
 return _exports;
 })();
 
@@ -12760,7 +12781,7 @@ _modules.set("ff9ebe6611a20221f004b38be28c8bad2eb2498628f9c024ff76c73699b0eaca",
 return _exports;
 })();
 
-const _m107 = _modules.get("7286b403e4d343540798af02708ec1d185ea2e4bbdfe27a1df1f0bfa4022cfe7") ?? (() => {
+const _m107 = _modules.get("b87301c1c677b9dffbbae961ffd54355fb78067fbb34c177366b02d3fb9cf40c") ?? (() => {
 const { ExportCell } = _m1;
 
 const { canopyBadgeSplit } = _m96;
@@ -12885,11 +12906,11 @@ function canopyPdfNumbers(sample, columns) {
     });
 }
 const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
-_modules.set("7286b403e4d343540798af02708ec1d185ea2e4bbdfe27a1df1f0bfa4022cfe7", _exports);
+_modules.set("b87301c1c677b9dffbbae961ffd54355fb78067fbb34c177366b02d3fb9cf40c", _exports);
 return _exports;
 })();
 
-const _m106 = _modules.get("766296387e336cf8904d0c63385da39ef0a71c4deb4718f4a75b0accef5e2912") ?? (() => {
+const _m106 = _modules.get("b4660ea79df7d7e4fd0b7ce0d90a331bb4b7117a990682c7577d7dc7be947c47") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m1;
 
 const { inputRows, checkAbort, pause, taskYieldDue } = _m4;
@@ -12994,11 +13015,11 @@ async function withCanopyPdfLayout(source, captured, options, write) {
     }
 }
 const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
-_modules.set("766296387e336cf8904d0c63385da39ef0a71c4deb4718f4a75b0accef5e2912", _exports);
+_modules.set("b4660ea79df7d7e4fd0b7ce0d90a331bb4b7117a990682c7577d7dc7be947c47", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("65a1f765eb7c7ba5e35e59e1ddf69cc149c5fee197930e07a7ce8c8b78b270af") ?? (() => {
+const _m0 = _modules.get("05ebf1703cd2b71f80cd5705b12b84928b5264d118911c2f212fc69cd301810f") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -13139,7 +13160,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("65a1f765eb7c7ba5e35e59e1ddf69cc149c5fee197930e07a7ce8c8b78b270af", _exports);
+_modules.set("05ebf1703cd2b71f80cd5705b12b84928b5264d118911c2f212fc69cd301810f", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);
