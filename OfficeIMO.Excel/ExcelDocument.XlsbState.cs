@@ -101,16 +101,17 @@ namespace OfficeIMO.Excel {
             }
 
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
-            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared) ? prepared : null;
+            bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
             bool directWrite = false;
             XlsbWorkbook? generatedWorkbook = null;
             byte[] bytes = existingSource
-                ? unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options)
+                ? ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options))
                 : GenerateNativeXlsb(options, CancellationToken.None, out directWrite, out generatedWorkbook);
             CommitPreparedPackageToFile(path, bytes);
             FilePath = path;
             _xlsbSourcePath = path;
-            if (!unchanged || !IsSdkDeferred) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
+            if (ownedEdit == null && (!unchanged || !IsSdkDeferred)) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(!existingSource
@@ -130,16 +131,17 @@ namespace OfficeIMO.Excel {
             }
 
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
-            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared) ? prepared : null;
+            bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
             bool directWrite = false;
             XlsbWorkbook? generatedWorkbook = null;
             byte[] bytes = existingSource
-                ? unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options)
+                ? ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options))
                 : GenerateNativeXlsb(options, cancellationToken, out directWrite, out generatedWorkbook);
             await CommitPreparedPackageToFileAsync(path, bytes, cancellationToken).ConfigureAwait(false);
             FilePath = path;
             _xlsbSourcePath = path;
-            if (!unchanged || !IsSdkDeferred) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
+            if (ownedEdit == null && (!unchanged || !IsSdkDeferred)) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(!existingSource
@@ -159,7 +161,8 @@ namespace OfficeIMO.Excel {
             }
 
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
-            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared) ? prepared : null;
+            bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
             if (!existingSource) {
                 if (TryGetDirectTabularSaveSource(options, CancellationToken.None, "Xlsb", out ExcelDirectTabularSource source)) {
                     if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, CancellationToken.None, options?.XlsbUseSharedStrings == true)) {
@@ -181,11 +184,11 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            byte[] bytes = unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options);
+            byte[] bytes = ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options));
             PrepareDestinationStreamForWrite(destination);
             destination.Write(bytes, 0, bytes.Length);
             try { destination.Flush(); } catch (NotSupportedException) { }
-            if (!unchanged || !IsSdkDeferred) RefreshXlsbStateAfterNativeWrite(bytes);
+            if (ownedEdit == null && (!unchanged || !IsSdkDeferred)) RefreshXlsbStateAfterNativeWrite(bytes);
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
                 : "XLSB worksheet cell records rewritten while all other package parts were preserved.");
@@ -202,7 +205,8 @@ namespace OfficeIMO.Excel {
             }
 
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
-            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared) ? prepared : null;
+            bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
             if (!existingSource) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (TryGetDirectTabularSaveSource(options, cancellationToken, "Xlsb", out ExcelDirectTabularSource source)) {
@@ -226,11 +230,11 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            byte[] bytes = unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options);
+            byte[] bytes = ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options));
             PrepareDestinationStreamForWrite(destination);
             await destination.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
             try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
-            if (!unchanged || !IsSdkDeferred) RefreshXlsbStateAfterNativeWrite(bytes);
+            if (ownedEdit == null && (!unchanged || !IsSdkDeferred)) RefreshXlsbStateAfterNativeWrite(bytes);
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
                 : "XLSB worksheet cell records rewritten while all other package parts were preserved.");

@@ -66,6 +66,30 @@ public sealed class ExcelXlsbCalculationSaveTests {
         Assert.Empty(document.OpenXmlSdkFallbacks);
     }
 
+    [Fact]
+    public void Imported_scalar_edits_are_written_and_adopted_without_opening_the_sdk() {
+        var options = new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb };
+        using var seed = ExcelDocument.Create();
+        ExcelSheet seedSheet = seed.AddSheet("Data");
+        seedSheet.Cell(1, 1).SetValue(123);
+        seedSheet.Cell(2, 1).SetValue("Sample");
+
+        using ExcelDocument document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(options)));
+        ExcelSheet imported = Assert.Single(document.Sheets);
+        imported.Cell(1, 1).SetValue(456);
+        imported.Cell(3, 1).SetValue(true);
+        byte[] edited = document.ToBytes(options);
+
+        Assert.Empty(document.OpenXmlSdkFallbacks);
+        Assert.Equal(edited, document.ToBytes(options));
+        Assert.Empty(document.OpenXmlSdkFallbacks);
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(edited));
+        ExcelSheet result = Assert.Single(reloaded.Sheets);
+        Assert.Equal(456, result.Cell(1, 1).GetValue<int>());
+        Assert.Equal("Sample", result.Cell(2, 1).GetValue<string>());
+        Assert.True(result.Cell(3, 1).GetValue<bool>());
+    }
+
     [Theory]
     [InlineData("evaluate", false)]
     [InlineData("clear", false)]
