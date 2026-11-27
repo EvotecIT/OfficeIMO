@@ -134,9 +134,39 @@ def verify(directory: Path) -> None:
         if categories != ["Contoso", "Fabrikam", "Northwind", "Tailspin"] or amounts != [12400, 8900, 15100, 6300]:
             raise ValueError(f"Unexpected Excel chart data: {categories}, {amounts}")
 
+    pml = {"p": "http://schemas.openxmlformats.org/presentationml/2006/main",
+           "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
+           "c": "http://schemas.openxmlformats.org/drawingml/2006/chart"}
+    with ZipFile(directory / "Regions.pptx") as deck:
+        presentation_path = related_part(deck, "", None, "officeDocument")
+        presentation = ET.fromstring(deck.read(presentation_path))
+        slide_ids = presentation.findall("p:sldIdLst/p:sldId", pml)
+        if len(slide_ids) != 1:
+            raise ValueError("The PowerPoint quick start must contain one slide")
+        slide_path = related_part(deck, presentation_path, slide_ids[0].get(RELATIONSHIP_ID), "slide")
+        slide = ET.fromstring(deck.read(slide_path))
+        text = ["".join(node.text or "" for node in paragraph.findall(".//a:t", pml))
+                for paragraph in slide.findall(".//a:p", pml)]
+        if "Revenue by region" not in text:
+            raise ValueError("The PowerPoint quick start is missing its title")
+        table = slide.find(".//a:tbl", pml)
+        if table is None:
+            raise ValueError("The PowerPoint quick start is missing its table")
+        rows = [["".join(node.text or "" for node in cell.findall(".//a:t", pml)) for cell in row.findall("a:tc", pml)]
+                for row in table.findall("a:tr", pml)]
+        if [row[0] for row in rows] != ["Name", "North", "South", "West"]:
+            raise ValueError(f"Unexpected PowerPoint table rows: {rows}")
+        charts = slide.findall(".//c:chart", pml)
+        if len(charts) != 1:
+            raise ValueError("The PowerPoint quick start must contain one chart")
+        chart = ET.fromstring(deck.read(related_part(deck, slide_path, charts[0].get(RELATIONSHIP_ID), "chart")))
+        categories = [node.text for node in chart.findall(".//c:cat//c:pt/c:v", pml)]
+        if categories != ["North", "South", "West"]:
+            raise ValueError(f"Unexpected PowerPoint chart categories: {categories}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
     verify(parser.parse_args().directory)
-    print("Current-source Word and Excel quick starts passed native package checks.")
+    print("Current-source Word, Excel and PowerPoint quick starts passed native package checks.")
