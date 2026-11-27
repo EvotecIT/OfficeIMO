@@ -18,7 +18,10 @@ public sealed class OfficeIMODocumentExtractionClient : DocumentExtractionClient
 
     /// <summary>Creates a client over an already configured reader.</summary>
     /// <param name="reader">The reader whose handlers decide which formats can be extracted.</param>
-    /// <param name="options">Optional client defaults. The values are copied when the client is created.</param>
+    /// <param name="options">
+    /// Optional client defaults. The settings are copied when the client is created; the <see cref="ReaderOptions"/>
+    /// instance they point to is borrowed.
+    /// </param>
     public OfficeIMODocumentExtractionClient(OfficeDocumentReader reader, OfficeIMODocumentExtractionOptions? options = null) {
         ArgumentNullException.ThrowIfNull(reader);
         _reader = reader;
@@ -27,7 +30,7 @@ public sealed class OfficeIMODocumentExtractionClient : DocumentExtractionClient
 
     /// <summary>Creates a client over a reader configured by <paramref name="configureReader"/>.</summary>
     /// <param name="configureReader">Registers reader handlers, for example <c>b =&gt; b.AddAllOfficeIMOHandlers()</c>.</param>
-    /// <param name="options">Optional client defaults. The values are copied when the client is created.</param>
+    /// <param name="options">Optional client defaults, copied as in the other constructor.</param>
     public OfficeIMODocumentExtractionClient(Action<OfficeDocumentReaderBuilder> configureReader, OfficeIMODocumentExtractionOptions? options = null)
         : this(BuildReader(configureReader), options) {
     }
@@ -61,8 +64,7 @@ public sealed class OfficeIMODocumentExtractionClient : DocumentExtractionClient
         OfficeDocumentReadResult result = await _reader
             .ReadDocumentAsync(document, sourceName, readerOptions, cancellationToken)
             .ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        return ExtractionDocumentMapper.Map(result, identifier, mapping);
+        return ExtractionDocumentMapper.Map(result, identifier, mapping, cancellationToken);
     }
 
     /// <inheritdoc />

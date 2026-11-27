@@ -96,6 +96,54 @@ public sealed class ExtractionMappingTests {
     }
 
     [Fact]
+    public void IdenticalTablesInDifferentContainersAreBothKept() {
+        static ReaderTable Copy(ReaderLocation location) => new ReaderTable {
+            Columns = new[] { "Name" }, Rows = new IReadOnlyList<string>[] { new[] { "Bolt" } }, Location = location
+        };
+        OfficeDocumentReadResult result = Result(ReaderInputKind.Pdf);
+        result.Tables = new[] {
+            Copy(new ReaderLocation { Page = 1, BlockIndex = 0, BlockAnchor = "page-1-table-0" }),
+            Copy(new ReaderLocation { Page = 2, BlockIndex = 0 })
+        };
+
+        ExtractionDocument document = result.ToExtractionDocument("doc");
+
+        ExtractionDocumentTableElement[] tables = document.EnumerateContent().OfType<ExtractionDocumentTableElement>().ToArray();
+        Assert.Equal(new int?[] { 1, 2 }, tables.Select(table => Assert.Single(table.Sources).Page.PageNumber).OrderBy(page => page).ToArray());
+    }
+
+    [Fact]
+    public void TableBlocksWithoutAStructuredTableKeepTheirText() {
+        ExtractionDocument document = Result(ReaderInputKind.Word, Block("table", "Name | Qty")).ToExtractionDocument("doc");
+
+        var element = Assert.IsType<ExtractionDocumentTextElement>(Assert.Single(document.EnumerateContent()));
+        Assert.Equal("table", element.Role);
+        Assert.Equal("Name | Qty", Text(element));
+    }
+
+    [Fact]
+    public void TablesAboveTheCellLimitBecomeTabSeparatedText() {
+        OfficeDocumentReadResult result = Result(ReaderInputKind.Word);
+        result.Tables = new[] {
+            new ReaderTable {
+                Columns = new[] { "A", "B" },
+                Rows = new IReadOnlyList<string>[] { new[] { "1", "2" }, new[] { "3", "4", "5" } },
+                Location = new ReaderLocation { BlockIndex = 0 }
+            }
+        };
+
+        ExtractionDocument document = result.ToExtractionDocument("doc", new OfficeIMODocumentExtractionOptions { MaxTableCells = 8 });
+
+        var element = Assert.IsType<ExtractionDocumentTextElement>(Assert.Single(document.EnumerateContent()));
+        Assert.Equal("table", element.Role);
+        Assert.Equal("A\tB\n1\t2\n3\t4\t5", Text(element));
+        AdditionalPropertiesDictionary properties = element.Content!.AdditionalProperties!;
+        Assert.Equal(true, properties[OfficeIMOExtractionPropertyNames.TableGridLimitExceeded]);
+        Assert.Equal(3, properties[OfficeIMOExtractionPropertyNames.TableRowCount]);
+        Assert.Equal(3, properties[OfficeIMOExtractionPropertyNames.TableColumnCount]);
+    }
+
+    [Fact]
     public void ImagesCarryPayloadAltTextAndOcrTextWithoutRepeatingTheOcrBlock() {
         byte[] png = { 137, 80, 78, 71, 13, 10, 26, 10 };
         OfficeDocumentBlock caption = Block("paragraph", "Figure follows");
@@ -170,6 +218,21 @@ public sealed class ExtractionMappingTests {
         Assert.Equal(
             new[] { new ExtractionDocumentPoint(10, 650), new ExtractionDocumentPoint(110, 650), new ExtractionDocumentPoint(110, 600), new ExtractionDocumentPoint(10, 600) },
             Assert.Single(content[1].Sources).Polygon.ToArray());
+    }
+
+    [Fact]
+    public void PdfFramesReportTheirCoordinateSystemWithoutKnownDimensions() {
+        OfficeDocumentBlock block = Block("paragraph", "Boxed");
+        block.Location.Page = 3;
+        block.Region = new OfficeDocumentRegion { X = 0, Y = 0, Width = 10, Height = 10 };
+
+        ExtractionDocument document = Result(ReaderInputKind.Pdf, block).ToExtractionDocument("doc");
+
+        ExtractionDocumentSourcePage page = Assert.Single(document.SourcePages);
+        Assert.Null(page.Dimensions);
+        Assert.Equal(ExtractionDocumentCoordinateUnit.Point, page.CoordinateUnit);
+        Assert.Equal(ExtractionDocumentCoordinateOrigin.BottomLeft, page.CoordinateOrigin);
+        Assert.Equal(4, Assert.Single(Assert.Single(document.EnumerateContent()).Sources).Polygon.Count);
     }
 
     [Fact]

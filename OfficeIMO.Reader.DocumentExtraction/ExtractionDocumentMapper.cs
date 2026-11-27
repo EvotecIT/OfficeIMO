@@ -11,6 +11,7 @@ internal sealed class ExtractionDocumentMapper {
 
     private readonly OfficeDocumentReadResult _result;
     private readonly OfficeIMODocumentExtractionOptions _options;
+    private readonly CancellationToken _cancellationToken;
     private readonly ExtractionDocument _document;
     private readonly bool _hasPdfGeometry;
     private readonly Dictionary<string, ExtractionDocumentSourcePage> _frames = new(StringComparer.Ordinal);
@@ -23,18 +24,25 @@ internal sealed class ExtractionDocumentMapper {
     private readonly Dictionary<OfficeDocumentBlock, OfficeDocumentAsset> _imagesForBlocks = new();
     private ExtractionDocumentSection? _preamble;
 
-    private ExtractionDocumentMapper(OfficeDocumentReadResult result, string identifier, OfficeIMODocumentExtractionOptions options) {
+    private ExtractionDocumentMapper(OfficeDocumentReadResult result, string identifier, OfficeIMODocumentExtractionOptions options, CancellationToken cancellationToken) {
         _result = result;
         _options = options;
+        _cancellationToken = cancellationToken;
         _hasPdfGeometry = result.Kind == ReaderInputKind.Pdf;
         _document = new ExtractionDocument(identifier, null) { RawRepresentation = result };
     }
 
-    internal static ExtractionDocument Map(OfficeDocumentReadResult result, string identifier, OfficeIMODocumentExtractionOptions? options) {
+    internal static ExtractionDocument Map(
+        OfficeDocumentReadResult result,
+        string identifier,
+        OfficeIMODocumentExtractionOptions? options,
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(identifier);
-        var mapper = new ExtractionDocumentMapper(result, identifier, options ?? new OfficeIMODocumentExtractionOptions());
-        return mapper.Build();
+        var mapper = new ExtractionDocumentMapper(result, identifier, options ?? new OfficeIMODocumentExtractionOptions(), cancellationToken);
+        ExtractionDocument document = mapper.Build();
+        cancellationToken.ThrowIfCancellationRequested();
+        return document;
     }
 
     private ExtractionDocument Build() {
@@ -46,6 +54,7 @@ internal sealed class ExtractionDocumentMapper {
         IndexTables(content);
         List<OfficeDocumentAsset>?[] imagesAfter = PlaceImages(content, out List<OfficeDocumentAsset> unplacedImages);
         for (int i = 0; i < content.Count; i++) {
+            _cancellationToken.ThrowIfCancellationRequested();
             AddContent(content[i]);
             if (imagesAfter[i] is { } images) {
                 foreach (OfficeDocumentAsset asset in images) AddImage(asset, CurrentSection());
@@ -100,20 +109,37 @@ internal sealed class ExtractionDocumentMapper {
     }
 
     private void IndexTables(List<OfficeDocumentContentItem> content) {
-        HashSet<string> anchoredSignatures = new(StringComparer.Ordinal);
+        Dictionary<string, List<string?>> anchoredContainers = new(StringComparer.Ordinal);
         foreach (OfficeDocumentContentItem item in content) {
-            if (item.Table != null && ItemLocation(item)?.BlockAnchor is { Length: > 0 } anchor) {
+            ReaderLocation? location = ItemLocation(item);
+            if (item.Table != null && location?.BlockAnchor is { Length: > 0 } anchor) {
                 _tableAnchors.Add(anchor);
-                anchoredSignatures.Add(TableSignature(item.Table));
+                string signature = TableSignature(item.Table);
+                if (!anchoredContainers.TryGetValue(signature, out List<string?>? containers)) {
+                    anchoredContainers[signature] = containers = new List<string?>();
+                }
+                containers.Add(ContainerKey(location));
             }
         }
         // A table can reach the traversal twice: from the document and as an unanchored projection of a text chunk.
-        // Keep the anchored one.
+        // Drop the unanchored copy only when it can be the same occurrence: same cells, and no conflicting container.
+        // An identical table on another page or in another file is a separate table and stays.
         foreach (OfficeDocumentContentItem item in content) {
-            if (item.Table != null && string.IsNullOrEmpty(ItemLocation(item)?.BlockAnchor) && anchoredSignatures.Contains(TableSignature(item.Table))) {
+            ReaderLocation? location = ItemLocation(item);
+            if (item.Table == null || !string.IsNullOrEmpty(location?.BlockAnchor)) continue;
+            if (!anchoredContainers.TryGetValue(TableSignature(item.Table), out List<string?>? containers)) continue;
+            string? container = ContainerKey(location);
+            if (container == null || containers.Any(anchored => anchored == null || anchored == container)) {
                 _duplicateTables.Add(item.Table);
             }
         }
+    }
+
+    private static string? ContainerKey(ReaderLocation? location) {
+        if (location == null) return null;
+        string? frame = FrameKey(location, out _);
+        if (frame == null && string.IsNullOrEmpty(location.Path)) return null;
+        return (location.Path ?? string.Empty) + "\u001f" + (frame ?? string.Empty);
     }
 
     private static string TableSignature(ReaderTable table) {
@@ -167,7 +193,6 @@ internal sealed class ExtractionDocumentMapper {
         // A block that shares a table's anchor is that table's text projection (a Word table block, a worksheet
         // block); the structured table is emitted instead.
         if (!string.IsNullOrEmpty(location.BlockAnchor) && _tableAnchors.Contains(location.BlockAnchor!)) return;
-        if (string.Equals(kind, "table", StringComparison.OrdinalIgnoreCase)) return;
 
         var payload = new TextContent(block.Text) { RawRepresentation = block };
         string? role = MapRole(kind);
@@ -202,6 +227,10 @@ internal sealed class ExtractionDocumentMapper {
         foreach (IReadOnlyList<string> row in table.Rows) columnCount = Math.Max(columnCount, row?.Count ?? 0);
         int rowCount = headerRows + table.Rows.Count;
         if (rowCount == 0 || columnCount == 0) return;
+        if ((long)rowCount * columnCount > _options.MaxTableCells) {
+            AddOversizedTable(table, location, rowCount, columnCount);
+            return;
+        }
 
         // A structural table has no text payload of its own; a bare AIContent carries its properties and native table.
         var payload = new AIContent { RawRepresentation = table };
@@ -221,6 +250,7 @@ internal sealed class ExtractionDocumentMapper {
             element.Cells[0, column] = CreateCell(IsFallbackColumnName(name, column) ? null : name, ColumnHeaderRole);
         }
         for (int row = 0; row < table.Rows.Count; row++) {
+            _cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<string>? cells = table.Rows[row];
             if (cells == null) continue;
             for (int column = 0; column < cells.Count; column++) {
@@ -228,6 +258,31 @@ internal sealed class ExtractionDocumentMapper {
             }
         }
 
+        CurrentSection().Elements.Add(element);
+    }
+
+    /// <summary>
+    /// The shared table element allocates its full grid, so a table above the cell limit (for example one very wide
+    /// row) is kept as tab-separated text instead, with every populated cell and a flag saying why.
+    /// </summary>
+    private void AddOversizedTable(ReaderTable table, ReaderLocation? location, int rowCount, int columnCount) {
+        var builder = new StringBuilder();
+        bool hasHeader = table.Columns.Count > 0 && !IsFallbackHeader(table.Columns);
+        if (hasHeader) builder.Append(string.Join("\t", table.Columns));
+        foreach (IReadOnlyList<string> row in table.Rows) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (builder.Length > 0) builder.Append('\n');
+            if (row != null) builder.Append(string.Join("\t", row));
+        }
+        var payload = new TextContent(builder.ToString()) { RawRepresentation = table };
+        var element = new ExtractionDocumentTextElement(payload, "table");
+        AddProperty(payload, OfficeIMOExtractionPropertyNames.TableGridLimitExceeded, true);
+        AddProperty(payload, OfficeIMOExtractionPropertyNames.TableRowCount, rowCount);
+        AddProperty(payload, OfficeIMOExtractionPropertyNames.TableColumnCount, columnCount);
+        if (!string.IsNullOrWhiteSpace(table.Title)) AddProperty(payload, OfficeIMOExtractionPropertyNames.TableTitle, table.Title);
+        ReaderLocation effective = location ?? table.Location ?? new ReaderLocation();
+        AddLocationProperties(payload, effective);
+        AddSources(element.Sources, effective, TableRegion(table));
         CurrentSection().Elements.Add(element);
     }
 
@@ -390,11 +445,14 @@ internal sealed class ExtractionDocumentMapper {
         ExtractionDocumentPageDimensions? dimensions = null;
         ExtractionDocumentCoordinateUnit? unit = null;
         ExtractionDocumentCoordinateOrigin? origin = null;
-        if (_hasPdfGeometry && _pagesByKey.TryGetValue(key, out OfficeDocumentPage? page)
-            && page.Width is double width && page.Height is double height && width > 0 && height > 0) {
-            dimensions = new ExtractionDocumentPageDimensions(width, height);
+        if (_hasPdfGeometry) {
+            // PDF coordinates are always points from the bottom-left corner, whether or not the page size is known.
             unit = ExtractionDocumentCoordinateUnit.Point;
             origin = ExtractionDocumentCoordinateOrigin.BottomLeft;
+            if (_pagesByKey.TryGetValue(key, out OfficeDocumentPage? page)
+                && page.Width is double width && page.Height is double height && width > 0 && height > 0) {
+                dimensions = new ExtractionDocumentPageDimensions(width, height);
+            }
         }
         var frame = new ExtractionDocumentSourcePage(key, pageNumber, dimensions, unit, origin);
         _frames[key] = frame;

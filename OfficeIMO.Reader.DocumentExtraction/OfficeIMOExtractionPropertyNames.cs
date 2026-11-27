@@ -51,6 +51,18 @@ public static class OfficeIMOExtractionPropertyNames {
     /// <summary>Row count of the source table before truncation.</summary>
     public const string TableTotalRowCount = "officeimo.tableTotalRowCount";
 
+    /// <summary>
+    /// True on a text element with role <c>table</c> that holds a table above
+    /// <see cref="OfficeIMODocumentExtractionOptions.MaxTableCells"/>, written as tab-separated rows.
+    /// </summary>
+    public const string TableGridLimitExceeded = "officeimo.tableGridLimitExceeded";
+
+    /// <summary>Row count of an oversized table, including its header row.</summary>
+    public const string TableRowCount = "officeimo.tableRowCount";
+
+    /// <summary>Column count of an oversized table.</summary>
+    public const string TableColumnCount = "officeimo.tableColumnCount";
+
     /// <summary>Asset identifier of an image element.</summary>
     public const string AssetId = "officeimo.assetId";
 
