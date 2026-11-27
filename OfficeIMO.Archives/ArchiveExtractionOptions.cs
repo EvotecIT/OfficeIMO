@@ -11,6 +11,9 @@ public sealed class ArchiveExtractionOptions {
     /// <summary>Allowed formats detected from package bytes. Null permits every supported format.
     /// A disallowed format raises NotSupportedException before staging or payload parsing.</summary>
     public IReadOnlyCollection<ArchiveFormat>? AllowedFormats { get; set; }
+    /// <summary>Maximum history window or dictionary a Zstandard, xz or lzip stream may declare. Defaults to 64 MiB, enough
+    /// for the largest standard presets of each tool; the window is allocated as the stream needs it.</summary>
+    public long MaxWindowBytes { get; set; } = ArchiveReadOptions.DefaultMaxWindowBytes;
     /// <summary>Maximum package size in bytes. Defaults to 512 MiB.</summary>
     public long MaxInputBytes { get; set; } = 512L * 1024 * 1024;
     /// <summary>Maximum number of declared archive members or MSI File rows.</summary>

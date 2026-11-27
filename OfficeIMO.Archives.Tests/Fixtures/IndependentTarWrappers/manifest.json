@@ -1,0 +1,36 @@
+{
+  "producers": [
+    "bsdtar 3.5.3 - libarchive 3.7.4 zlib/1.2.12 liblzma/5.4.3 bz2lib/1.0.8 ",
+    "*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***",
+    "xz (XZ Utils) 5.8.4",
+    "lzip 1.26"
+  ],
+  "verification": "bsdtar -t, zstd -t, xz -t or lzip -t applied to each fixture.",
+  "fixtures": [
+    {
+      "file": "archive.tar",
+      "command": "bsdtar --format pax --no-xattrs --no-mac-metadata --uid 0 --gid 0 --uname \"\" --gname \"\" -cf archive.tar docs/text.txt docs/mixed.bin docs/text-link.txt",
+      "sha256": "ac4211cb352b2278ea1b2dd8139a21e51edd9ff6f4e373e306d1c8dd9910ca3e"
+    },
+    {
+      "file": "archive.tar.zst",
+      "command": "zstd -19 -q -c < archive.tar",
+      "sha256": "c212055fdce9667cf68165cb3a816dd7d2b334cd202c0fbdd1ca557e6d49995f"
+    },
+    {
+      "file": "archive-window128m.tar.zst",
+      "command": "zstd -3 --long=27 -q -c < archive.tar",
+      "sha256": "6379d45536c4c5be2369766793bbf7bbf9ec1b0c44a91d72cb6fb0649a7fccf8"
+    },
+    {
+      "file": "archive.tar.xz",
+      "command": "xz -6 -c < archive.tar",
+      "sha256": "b25eea7365905734bf9aa3c7f517c4704ad09e2ac1d279ad6bd38992c93c737a"
+    },
+    {
+      "file": "archive.tar.lz",
+      "command": "lzip -6 -c < archive.tar",
+      "sha256": "624a6d0baa4f7cd12ecd0fff87e98452c4d4ce86504fd8171a8a21b6dd5b5f97"
+    }
+  ]
+}

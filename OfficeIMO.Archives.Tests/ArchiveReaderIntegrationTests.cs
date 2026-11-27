@@ -66,6 +66,30 @@ namespace OfficeIMO.Archives.Tests {
             Assert.Equal(name + "::docs/readme.txt", chunk.Location.Path);
         }
 
+        [Theory]
+        [InlineData("archive.tar.zst")]
+        [InlineData("archive.tar.xz")]
+        [InlineData("archive.tar.lz")]
+        public void CompressedTarMembersReachDocumentHandlers(string name) {
+            byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "IndependentTarWrappers", name));
+            var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
+            var chunks = reader.Enumerate(new MemoryStream(bytes), name, new() { ComputeHashes = false }).ToArray();
+            Assert.Contains(chunks, chunk => chunk.Location.Path == name + "::docs/text.txt" && chunk.Text.Contains("Line 0 of the harbour log"));
+        }
+
+        [Theory]
+        [InlineData("IndependentZstandard", "text-level1.zst", ".zst")]
+        [InlineData("IndependentXzLzip", "text-preset0.xz", ".xz")]
+        [InlineData("IndependentXzLzip", "text-level0.lz", ".lz")]
+        public void SingleCompressedFilesAreReadAsTheirInnerDocument(string folder, string fixture, string suffix) {
+            byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", folder, fixture));
+            var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
+            var chunks = reader.Enumerate(new MemoryStream(bytes), "log.txt" + suffix, new() { ComputeHashes = false }).ToArray();
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, chunk => Assert.StartsWith("log.txt" + suffix + "::log.txt", chunk.Location.Path));
+            Assert.Contains("Line 0 of the harbour log", chunks[0].Text);
+        }
+
         [Fact]
         public void SingleFileGZipIsReadAsItsInnerDocument() {
             using var archive = new MemoryStream();

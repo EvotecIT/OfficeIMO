@@ -93,7 +93,7 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 - Warning chunks for skipped or failed entries.
 - Bounded nested ZIP traversal with `ReaderZipOptions`.
 - Path and stream dispatch, including non-seekable stream support.
-- TAR, .tar.gz/.tgz and single-file .gz inputs (registered for `.tar`, `.tgz` and `.gz`), detected from content.
+- TAR, plain or compressed with gzip, Zstandard, xz or lzip, and single .gz, .zst, .xz and .lz files (registered for `.tar`, `.tgz`, `.gz`, `.tzst`, `.zst`, `.txz`, `.xz`, `.tlz` and `.lz`), detected from content. Zstandard, xz and lzip store no file name, so a single file is named after the input without its suffix.
 
 TAR and gzip inputs go through `ArchiveReader.ReadTar` and `GZipArchive.Decompress`: every TAR header is checksum- and bounds-checked and every path validated, gzip content is checked against its CRC-32 and length (plain TAR has no content checksum), and only files whose names a registered handler can read are materialized. Symbolic links, hard links, devices and directories are never read, and archives nested inside a TAR are not traversed. `MaxArchiveBytes`, `MaxPhysicalEntries`, `MaxEntryUncompressedBytes` and `MaxTotalUncompressedBytes` bound them as they do ZIP; a corrupt or unsafe TAR fails the read instead of producing per-entry warnings. A single-file gzip is read as the document named by its stored file name, or the source name without `.gz`.
 

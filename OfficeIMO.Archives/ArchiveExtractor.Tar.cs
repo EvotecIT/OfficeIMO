@@ -29,4 +29,25 @@ public static partial class ArchiveExtractor {
         staged.Position = 0;
         WriteStream(staging, path, staged, staged.Length, limits, files, ref total, token);
     }
+
+    /// <summary>Extracts a single Zstandard, xz or lzip file. These formats store no file name, so the package name
+    /// without its suffix is used, or "content".</summary>
+    private static void ExtractCompressedFile(StreamCodec codec, Stream source, string package, string staging, ArchiveLimits limits,
+        List<ExtractedArchiveFile> files, ref long total, CancellationToken token) {
+        using var staged = new ArchiveSpillStream();
+        source.Position = 0;
+        StreamCodecs.Decompress(codec, source, staged, Math.Min(limits.Entry, limits.Expanded), limits,
+            limits.Entry <= limits.Expanded ? nameof(ArchiveExtractionOptions.MaxEntryBytes) : nameof(ArchiveExtractionOptions.MaxExpandedBytes),
+            selected: false, token);
+        limits.Operation.AdmitEntries(1);
+        string suffix = StreamCodecs.Suffix(codec);
+        string file = Path.GetFileName(package);
+        string name = file.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) && file.Length > suffix.Length
+            ? file.Substring(0, file.Length - suffix.Length) : "content";
+        string path = new ArchivePaths(limits).Add(name);
+        if (!limits.Select(path)) return;
+        limits.Operation.Select(staged.Length);
+        staged.Position = 0;
+        WriteStream(staging, path, staged, staged.Length, limits, files, ref total, token);
+    }
 }

@@ -243,3 +243,6 @@ Build/ApiMap/fluent/*.json linguist-generated=true
 # xz and lzip producer fixtures and their inputs are compared byte for byte.
 OfficeIMO.Archives.Tests/Fixtures/IndependentXzLzip/** -text -whitespace -diff
 OfficeIMO.Archives.Tests/Fixtures/IndependentXzLzip/manifest.json text eol=lf diff
+# Compressed TAR producer fixtures are compared byte for byte.
+OfficeIMO.Archives.Tests/Fixtures/IndependentTarWrappers/** -text -whitespace -diff
+OfficeIMO.Archives.Tests/Fixtures/IndependentTarWrappers/manifest.json text eol=lf diff

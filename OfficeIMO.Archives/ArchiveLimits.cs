@@ -7,11 +7,12 @@ internal sealed partial class ArchiveLimits {
         if (options.AllowedFormats != null) {
             AllowedFormats = new HashSet<ArchiveFormat>(options.AllowedFormats);
             foreach (ArchiveFormat format in AllowedFormats)
-                if (format < ArchiveFormat.Cab || format > ArchiveFormat.SevenZip)
+                if (format < ArchiveFormat.Cab || format > ArchiveFormat.Lzip)
                     throw new ArgumentOutOfRangeException(nameof(options.AllowedFormats));
         }
         if (options.ZipLegacyCodePage <= 0) throw new ArgumentOutOfRangeException(nameof(options.ZipLegacyCodePage));
         ZipLegacyCodePage = options.ZipLegacyCodePage;
+        Window = Positive(options.MaxWindowBytes, nameof(options.MaxWindowBytes));
         Operation = options.OperationBudget ?? new ArchiveOperationBudget(new ArchiveOperationLimits {
             MaxInputBytes = long.MaxValue, MaxEntryCount = long.MaxValue, MaxExpandedBytes = long.MaxValue,
             MaxSelectedBytes = long.MaxValue, MaxDecompressionWorkBytes = long.MaxValue, MaxDepth = int.MaxValue
@@ -32,6 +33,7 @@ internal sealed partial class ArchiveLimits {
     }
     internal ArchiveOperationBudget Operation { get; }
     internal int? ZipLegacyCodePage { get; }
+    internal long Window { get; }
     internal long Input { get; }
     internal HashSet<ArchiveFormat>? AllowedFormats { get; }
     internal int Entries { get; }
