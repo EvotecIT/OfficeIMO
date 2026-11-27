@@ -58,6 +58,11 @@ export interface WorkbookOptions extends StreamOptions, CoreProperties {
   readonly cellValueWriters?: Readonly<Record<string, CellValueWriter>>;
   /** Reject by default. Preserve keeps a bounded preview and the full text in numbered overflow-sheet chunks. */
   readonly oversizedText?: "reject" | "preserve";
+  /** Excel allows 65,530 hyperlinks per worksheet. Reject by default. Drop keeps every configured, header, footer and
+   * text-preservation link, and fills the remaining room with data-cell links in row order; later data cells keep their value without the link. */
+  readonly hyperlinkOverflow?: "reject" | "drop";
+  /** Called synchronously once per worksheet that dropped data-cell links under `hyperlinkOverflow: "drop"`. */
+  readonly onHyperlinkOverflow?: (overflow: { readonly sheetName: string; readonly dropped: number }) => void;
 }
 export interface WorkbookLimits extends ExportLimits {
   readonly maxStyles?: number;

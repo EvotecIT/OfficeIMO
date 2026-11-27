@@ -1,38 +1,51 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     // Represents a chart on a worksheet.
     public sealed partial class ExcelChart {
-        private static void ApplyGridlines(OpenXmlCompositeElement axis, bool? showMajor, bool? showMinor,
+        // Elements that follow c:trendline in a series, in the order the insertion point is looked up.
+        private static readonly string[] SeriesChildrenAfterTrendline = {
+            "errBars", "cat", "val", "xVal", "yVal", "bubbleSize", "smooth", "extLst"
+        };
+
+        // Elements that follow c:txPr in a category or value axis, in the order the insertion point is looked up.
+        private static readonly string[] AxisChildrenAfterTextProperties = {
+            "crossAx", "crosses", "crossesAt", "auto", "lblAlgn", "lblOffset", "noMultiLvlLbl", "crossBetween",
+            "majorUnit", "minorUnit", "dispUnits", "extLst"
+        };
+
+        /// <summary>The first existing chart child among <paramref name="names"/>, looked up in that order, or none.</summary>
+        private static OfficeXmlNode FirstExistingChild(OfficeXmlNode parent, string[] names) {
+            foreach (string name in names) {
+                OfficeXmlNode child = parent.Child(C, name);
+                if (child.Exists) return child;
+            }
+            return OfficeXmlNode.None;
+        }
+
+        private static void ApplyGridlines(OfficeXmlNode axis, bool? showMajor, bool? showMinor,
             OfficeColor? lineColor, OfficeLength? lineWidth) {
             OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
-            if (showMajor == true || showMajor == null && axis.GetFirstChild<C.MajorGridlines>() != null) {
-                C.MajorGridlines major = axis.GetFirstChild<C.MajorGridlines>() ?? new C.MajorGridlines();
+            OfficeXmlNode existingMajor = axis.Child(C, "majorGridlines");
+            if (showMajor == true || showMajor == null && existingMajor.Exists) {
+                OfficeXmlNode major = existingMajor.Exists ? existingMajor : axis.Append(axis.New(C, "majorGridlines"));
                 ApplyGridlineStyle(major, lineColor, lineWidth);
-                if (major.Parent == null) {
-                    axis.Append(major);
-                }
-            } else {
-                axis.GetFirstChild<C.MajorGridlines>()?.Remove();
+            } else if (existingMajor.Exists) {
+                existingMajor.Remove();
             }
 
-            if (showMinor == true || showMinor == null && axis.GetFirstChild<C.MinorGridlines>() != null) {
-                C.MinorGridlines minor = axis.GetFirstChild<C.MinorGridlines>() ?? new C.MinorGridlines();
+            OfficeXmlNode existingMinor = axis.Child(C, "minorGridlines");
+            if (showMinor == true || showMinor == null && existingMinor.Exists) {
+                OfficeXmlNode minor = existingMinor.Exists ? existingMinor : axis.Append(axis.New(C, "minorGridlines"));
                 ApplyGridlineStyle(minor, lineColor, lineWidth);
-                if (minor.Parent == null) {
-                    axis.Append(minor);
-                }
-            } else {
-                axis.GetFirstChild<C.MinorGridlines>()?.Remove();
+            } else if (existingMinor.Exists) {
+                existingMinor.Remove();
             }
         }
 
-        private static void ApplyTrendline(OpenXmlCompositeElement series, OfficeChartTrendlineType type, int? order, int? period,
+        private static void ApplyTrendline(OfficeXmlNode series, OfficeChartTrendlineType type, int? order, int? period,
             double? forward, double? backward, double? intercept, bool displayEquation, bool displayRSquared,
             OfficeColor? lineColor, OfficeLength? lineWidth) {
             OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
@@ -40,373 +53,353 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException("Trendlines are only supported for line, bar/column, area, scatter, and bubble series.");
             }
 
-            series.RemoveAllChildren<C.Trendline>();
-            C.Trendline trendline = new C.Trendline();
+            series.RemoveChildren(C, "trendline");
+            // The trendline goes in place empty and is filled there; its position doesn't depend on its content.
+            OfficeXmlNode trendline = InsertTrendline(series, series.New(C, "trendline"));
 
             if (lineColor != null || lineWidth != null) {
-                C.ChartShapeProperties props = new C.ChartShapeProperties();
+                OfficeXmlNode props = trendline.Append(trendline.New(C, "spPr"));
                 OfficeColor? normalizedLine = lineColor != null ? lineColor : null;
                 ApplyOptionalLine(props, normalizedLine, lineWidth);
-                trendline.Append(props);
             }
 
-            trendline.Append(new C.TrendlineType { Val = type.ToOpenXml() });
+            trendline.Append(trendline.NewVal(C, "trendlineType", type.ToOpenXmlToken()));
 
             if (type == OfficeChartTrendlineType.Polynomial && order != null) {
-                trendline.Append(new C.PolynomialOrder { Val = (byte)order.Value });
+                trendline.Append(trendline.NewVal(C, "order", (int)(byte)order.Value));
             }
             if (type == OfficeChartTrendlineType.MovingAverage && period != null) {
-                trendline.Append(new C.Period { Val = (uint)period.Value });
+                trendline.Append(trendline.NewVal(C, "period", (uint)period.Value));
             }
             if (forward != null) {
-                trendline.Append(new C.Forward { Val = forward.Value });
+                trendline.Append(trendline.NewVal(C, "forward", forward.Value));
             }
             if (backward != null) {
-                trendline.Append(new C.Backward { Val = backward.Value });
+                trendline.Append(trendline.NewVal(C, "backward", backward.Value));
             }
             if (intercept != null) {
-                trendline.Append(new C.Intercept { Val = intercept.Value });
+                trendline.Append(trendline.NewVal(C, "intercept", intercept.Value));
             }
 
             if (displayRSquared) {
-                trendline.Append(new C.DisplayRSquaredValue { Val = displayRSquared });
+                trendline.Append(trendline.NewVal(C, "dispRSqr", displayRSquared));
             }
             if (displayEquation) {
-                trendline.Append(new C.DisplayEquation { Val = displayEquation });
-            }
-
-            InsertTrendline(series, trendline);
-        }
-
-        private static bool IsTrendlineSupportedSeries(OpenXmlCompositeElement series) {
-            return series is C.LineChartSeries
-                || series is C.BarChartSeries
-                || series is C.AreaChartSeries
-                || series is C.ScatterChartSeries
-                || series is C.BubbleChartSeries;
-        }
-
-        private static void InsertTrendline(OpenXmlCompositeElement series, C.Trendline trendline) {
-            OpenXmlElement? insertBefore = series.GetFirstChild<C.ErrorBars>();
-            insertBefore ??= series.GetFirstChild<C.CategoryAxisData>();
-            insertBefore ??= series.GetFirstChild<C.Values>();
-            insertBefore ??= series.GetFirstChild<C.XValues>();
-            insertBefore ??= series.GetFirstChild<C.YValues>();
-            insertBefore ??= series.GetFirstChild<C.BubbleSize>();
-            insertBefore ??= series.GetFirstChild<C.Smooth>();
-            insertBefore ??= series.GetFirstChild<C.ExtensionList>();
-
-            if (insertBefore != null) {
-                series.InsertBefore(trendline, insertBefore);
-            } else {
-                series.Append(trendline);
+                trendline.Append(trendline.NewVal(C, "dispEq", displayEquation));
             }
         }
 
-        private static void ApplyGridlineStyle(OpenXmlCompositeElement gridlines, OfficeColor? lineColor, OfficeLength? lineWidth) {
+        private static bool IsTrendlineSupportedSeries(OfficeXmlNode series) {
+            return IsLineSeries(series)
+                || IsSeriesUnder(series, "barChart", "bar3DChart")
+                || IsSeriesUnder(series, "areaChart", "area3DChart")
+                || IsSeriesUnder(series, "scatterChart")
+                || IsSeriesUnder(series, "bubbleChart");
+        }
+
+        private static OfficeXmlNode InsertTrendline(OfficeXmlNode series, OfficeXmlNode trendline) {
+            OfficeXmlNode insertBefore = FirstExistingChild(series, SeriesChildrenAfterTrendline);
+            return series.InsertBefore(trendline, insertBefore);
+        }
+
+        private static void ApplyGridlineStyle(OfficeXmlNode gridlines, OfficeColor? lineColor, OfficeLength? lineWidth) {
             if (lineColor == null && lineWidth == null) {
                 return;
             }
-            C.ChartShapeProperties props = gridlines.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
+            OfficeXmlNode existing = gridlines.Child(C, "spPr");
+            OfficeXmlNode props = existing.Exists ? existing : gridlines.Append(gridlines.New(C, "spPr"));
             OfficeColor? normalizedLine = lineColor != null ? lineColor : null;
             ApplyOptionalLine(props, normalizedLine, lineWidth);
-            if (props.Parent == null) {
-                gridlines.Append(props);
-            }
         }
 
-        private static void ApplyAxisCrossing(OpenXmlCompositeElement axis, OfficeChartAxisCrossingPosition crosses, double? crossesAt) {
-            axis.GetFirstChild<C.Crosses>()?.Remove();
-            axis.GetFirstChild<C.CrossesAt>()?.Remove();
+        private static void ApplyAxisCrossing(OfficeXmlNode axis, OfficeChartAxisCrossingPosition crosses, double? crossesAt) {
+            axis.RemoveChild(C, "crosses");
+            axis.RemoveChild(C, "crossesAt");
 
-            OpenXmlElement crossing = crossesAt != null
-                ? new C.CrossesAt { Val = crossesAt.Value }
-                : new C.Crosses { Val = crosses.ToOpenXml() };
+            OfficeXmlNode crossing = crossesAt != null
+                ? axis.NewVal(C, "crossesAt", crossesAt.Value)
+                : axis.NewVal(C, "crosses", crosses.ToOpenXmlToken());
 
-            C.CrossingAxis? crossAxis = axis.GetFirstChild<C.CrossingAxis>();
-            if (crossAxis != null) {
-                axis.InsertAfter(crossing, crossAxis);
+            OfficeXmlNode crossAxis = axis.Child(C, "crossAx");
+            if (crossAxis.Exists) {
+                crossAxis.InsertAfterSelf(crossing);
             } else {
                 axis.Append(crossing);
             }
         }
 
-        private static void ApplyDisplayUnitsLabel(C.DisplayUnits displayUnits, bool showLabel, string? labelText = null) {
+        private static void ApplyDisplayUnitsLabel(OfficeXmlNode displayUnits, bool showLabel, string? labelText = null) {
+            OfficeXmlNode existing = displayUnits.Child(C, "dispUnitsLbl");
             if (!showLabel) {
-                displayUnits.GetFirstChild<C.DisplayUnitsLabel>()?.Remove();
+                if (existing.Exists) existing.Remove();
                 return;
             }
 
-            C.DisplayUnitsLabel label = displayUnits.GetFirstChild<C.DisplayUnitsLabel>() ?? new C.DisplayUnitsLabel();
-            if (label.GetFirstChild<C.Layout>() == null) {
-                label.Append(new C.Layout());
+            OfficeXmlNode label = existing.Exists ? existing : displayUnits.Append(displayUnits.New(C, "dispUnitsLbl"));
+            if (label.Child(C, "layout").IsNone) {
+                label.Append(label.New(C, "layout"));
             }
             if (labelText != null) {
-                label.RemoveAllChildren<C.ChartText>();
-                label.Append(CreateChartText(labelText));
-            }
-            if (label.Parent == null) {
-                displayUnits.Append(label);
+                label.RemoveChildren(C, "tx");
+                label.Append(CreateChartText(label, labelText));
             }
         }
 
-        private static C.ChartShapeProperties EnsureDataLabelShapeProperties(OpenXmlCompositeElement labels) {
-            C.ChartShapeProperties props = labels.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
-            if (props.Parent == null) {
-                labels.Append(props);
-            }
-            return props;
+        private static OfficeXmlNode EnsureDataLabelShapeProperties(OfficeXmlNode labels) {
+            OfficeXmlNode props = labels.Child(C, "spPr");
+            return props.Exists ? props : labels.Append(labels.New(C, "spPr"));
         }
 
-        private static void ApplyNoFill(OpenXmlCompositeElement props) {
+        private static void ApplyNoFill(OfficeXmlNode props) {
             RemoveShapeFillChoices(props);
-            InsertShapeFill(props, new A.NoFill());
+            InsertShapeFill(props, props.New(A, "noFill"));
         }
 
-        private static void ApplyNoLine(OpenXmlCompositeElement props) {
-            A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
+        private static void ApplyNoLine(OfficeXmlNode props) {
+            OfficeXmlNode existing = props.Child(A, "ln");
+            OfficeXmlNode outline = existing.Exists ? existing : props.New(A, "ln");
             RemoveShapeFillChoices(outline);
-            outline.PrependChild(new A.NoFill());
-            if (outline.Parent == null) {
+            outline.InsertBefore(outline.New(A, "noFill"), outline.FirstChild);
+            if (existing.IsNone) {
                 InsertOutline(props, outline);
             }
         }
 
-        private static A.DefaultRunProperties EnsureTextPropertiesRunProperties(OpenXmlCompositeElement parent) {
-            C.TextProperties textProps = parent.GetFirstChild<C.TextProperties>() ?? new C.TextProperties();
-            if (textProps.GetFirstChild<A.BodyProperties>() == null) {
-                textProps.Append(new A.BodyProperties());
-            }
-            if (textProps.GetFirstChild<A.ListStyle>() == null) {
-                textProps.Append(new A.ListStyle());
-            }
-
-            A.Paragraph paragraph = textProps.GetFirstChild<A.Paragraph>() ?? new A.Paragraph();
-            if (paragraph.Parent == null) {
-                textProps.Append(paragraph);
-            }
-
-            A.ParagraphProperties paragraphProps = paragraph.GetFirstChild<A.ParagraphProperties>() ?? new A.ParagraphProperties();
-            if (paragraphProps.Parent == null) {
-                paragraph.Append(paragraphProps);
-            }
-
-            A.DefaultRunProperties runProps = paragraphProps.GetFirstChild<A.DefaultRunProperties>() ?? new A.DefaultRunProperties();
-            if (runProps.Parent == null) {
-                paragraphProps.Append(runProps);
-            }
-
-            if (textProps.Parent == null) {
-                if (parent is C.CategoryAxis || parent is C.ValueAxis) {
-                    OpenXmlElement? insertBefore = parent.GetFirstChild<C.CrossingAxis>();
-                    insertBefore ??= parent.GetFirstChild<C.Crosses>();
-                    insertBefore ??= parent.GetFirstChild<C.CrossesAt>();
-                    insertBefore ??= parent.GetFirstChild<C.AutoLabeled>();
-                    insertBefore ??= parent.GetFirstChild<C.LabelAlignment>();
-                    insertBefore ??= parent.GetFirstChild<C.LabelOffset>();
-                    insertBefore ??= parent.GetFirstChild<C.NoMultiLevelLabels>();
-                    insertBefore ??= parent.GetFirstChild<C.CrossBetween>();
-                    insertBefore ??= parent.GetFirstChild<C.MajorUnit>();
-                    insertBefore ??= parent.GetFirstChild<C.MinorUnit>();
-                    insertBefore ??= parent.GetFirstChild<C.DisplayUnits>();
-                    insertBefore ??= parent.GetFirstChild<C.ExtensionList>();
-                    if (insertBefore != null) {
-                        parent.InsertBefore(textProps, insertBefore);
-                    } else {
-                        parent.Append(textProps);
-                    }
+        private static OfficeXmlNode EnsureTextPropertiesRunProperties(OfficeXmlNode parent) {
+            OfficeXmlNode textProps = parent.Child(C, "txPr");
+            if (textProps.IsNone) {
+                // The text properties go in place empty and are filled there; where they go doesn't depend on their
+                // content.
+                textProps = parent.New(C, "txPr");
+                if (parent.Is(C, "catAx") || parent.Is(C, "valAx")) {
+                    OfficeXmlNode insertBefore = FirstExistingChild(parent, AxisChildrenAfterTextProperties);
+                    textProps = parent.InsertBefore(textProps, insertBefore);
                 } else {
-                    parent.Append(textProps);
+                    textProps = parent.Append(textProps);
                 }
             }
 
+            return FillTextPropertiesRunProperties(textProps);
+        }
+
+        // Adds what is missing of c:txPr/a:bodyPr, a:lstStyle and a:p/a:pPr/a:defRPr and returns the a:defRPr.
+        private static OfficeXmlNode FillTextPropertiesRunProperties(OfficeXmlNode textProps) {
+            if (textProps.Child(A, "bodyPr").IsNone) {
+                textProps.Append(textProps.New(A, "bodyPr"));
+            }
+            if (textProps.Child(A, "lstStyle").IsNone) {
+                textProps.Append(textProps.New(A, "lstStyle"));
+            }
+
+            OfficeXmlNode paragraph = textProps.Child(A, "p");
+            if (paragraph.IsNone) {
+                paragraph = textProps.Append(textProps.New(A, "p"));
+            }
+
+            OfficeXmlNode paragraphProps = paragraph.Child(A, "pPr");
+            if (paragraphProps.IsNone) {
+                paragraphProps = paragraph.Append(paragraph.New(A, "pPr"));
+            }
+
+            OfficeXmlNode runProps = paragraphProps.Child(A, "defRPr");
+            if (runProps.IsNone) {
+                runProps = paragraphProps.Append(paragraphProps.New(A, "defRPr"));
+            }
+
             return runProps;
         }
 
-        private static A.RunProperties EnsureChartTextRunProperties(C.ChartText chartText) {
-            C.RichText richText = chartText.GetFirstChild<C.RichText>() ?? new C.RichText();
-            if (richText.GetFirstChild<A.BodyProperties>() == null) {
-                richText.Append(new A.BodyProperties());
+        private static OfficeXmlNode EnsureChartTextRunProperties(OfficeXmlNode chartText) {
+            OfficeXmlNode richText = chartText.Child(C, "rich");
+            if (richText.IsNone) {
+                // A new c:rich goes last, as appending it once filled would place it.
+                richText = chartText.Append(chartText.New(C, "rich"));
             }
-            if (richText.GetFirstChild<A.ListStyle>() == null) {
-                richText.Append(new A.ListStyle());
+            if (richText.Child(A, "bodyPr").IsNone) {
+                richText.Append(richText.New(A, "bodyPr"));
             }
-
-            A.Paragraph paragraph = richText.GetFirstChild<A.Paragraph>() ?? new A.Paragraph();
-            if (paragraph.Parent == null) {
-                richText.Append(paragraph);
-            }
-
-            A.Run run = paragraph.GetFirstChild<A.Run>() ?? new A.Run();
-            if (run.Parent == null) {
-                paragraph.Append(run);
+            if (richText.Child(A, "lstStyle").IsNone) {
+                richText.Append(richText.New(A, "lstStyle"));
             }
 
-            A.RunProperties runProps = run.GetFirstChild<A.RunProperties>() ?? new A.RunProperties();
-            if (runProps.Parent == null) {
-                run.InsertAt(runProps, 0);
+            OfficeXmlNode paragraph = richText.Child(A, "p");
+            if (paragraph.IsNone) {
+                paragraph = richText.Append(richText.New(A, "p"));
+            }
+
+            OfficeXmlNode run = paragraph.Child(A, "r");
+            if (run.IsNone) {
+                run = paragraph.Append(paragraph.New(A, "r"));
+            }
+
+            OfficeXmlNode runProps = run.Child(A, "rPr");
+            if (runProps.IsNone) {
+                runProps = run.InsertBefore(run.New(A, "rPr"), run.FirstChild);
             } else if (runProps != run.FirstChild) {
                 runProps.Remove();
-                run.InsertAt(runProps, 0);
-            }
-
-            if (richText.Parent == null) {
-                chartText.Append(richText);
+                runProps = run.InsertBefore(runProps, run.FirstChild);
             }
 
             return runProps;
         }
 
-        private static C.ChartShapeProperties EnsureChartShapeProperties(OpenXmlCompositeElement series) {
-            C.ChartShapeProperties props = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
-            if (props.Parent != null) {
+        private static OfficeXmlNode EnsureChartShapeProperties(OfficeXmlNode series) {
+            OfficeXmlNode props = series.Child(C, "spPr");
+            if (props.Exists) {
                 props.Remove();
-            }
-
-            OpenXmlElement? anchor = series.Elements<C.SeriesText>().LastOrDefault();
-            anchor ??= series.Elements<C.Order>().LastOrDefault();
-            anchor ??= series.Elements<C.Index>().LastOrDefault();
-
-            if (anchor != null) {
-                series.InsertAfter(props, anchor);
             } else {
-                series.PrependChild(props);
+                props = series.New(C, "spPr");
             }
 
-            return props;
+            OfficeXmlNode anchor = series.Children(C, "tx").Last();
+            if (anchor.IsNone) anchor = series.Children(C, "order").Last();
+            if (anchor.IsNone) anchor = series.Children(C, "idx").Last();
+
+            if (anchor.Exists) {
+                return anchor.InsertAfterSelf(props);
+            }
+            return series.InsertBefore(props, series.FirstChild);
         }
 
         // Native theme slots remain linked; status roles are literal colors from the shared theme.
-        private static A.SolidFill CreateChartSolidFill(OfficeColor? color) {
+        private static OfficeXmlNode CreateChartSolidFill(OfficeXmlNode context, OfficeColor? color) {
             OfficeColor value = color ?? throw new ArgumentNullException(nameof(color));
+            OfficeXmlNode fill = context.New(A, "solidFill");
             if (value.ThemeSlot is string slot) {
-                var scheme = new A.SchemeColor();
-                scheme.SetAttribute(new OpenXmlAttribute("val", string.Empty, slot));
-                return new A.SolidFill(scheme);
+                fill.Append(fill.New(A, "schemeClr").Attr("val", slot));
+                return fill;
             }
             value = value.Resolve(OfficeTheme.Default);
-            var rgb = new A.RgbColorModelHex { Val = value.ToRgbHex() };
-            if (value.A != 255) rgb.Append(new A.Alpha { Val = (int)Math.Round(value.A * 100000D / 255) });
-            return new A.SolidFill(rgb);
+            OfficeXmlNode rgb = fill.New(A, "srgbClr").Attr("val", value.ToRgbHex());
+            if (value.A != 255) rgb.Append(rgb.NewVal(A, "alpha", (int)Math.Round(value.A * 100000D / 255)));
+            fill.Append(rgb);
+            return fill;
         }
 
-        private static void ApplySolidFill(OpenXmlCompositeElement props, OfficeColor? color) {
+        private static void ApplySolidFill(OfficeXmlNode props, OfficeColor? color) {
             RemoveShapeFillChoices(props);
-            InsertShapeFill(props, CreateChartSolidFill(color));
+            InsertShapeFill(props, CreateChartSolidFill(props, color));
         }
 
-        private static void RemoveShapeFillChoices(OpenXmlCompositeElement props) {
-            foreach (OpenXmlElement child in props.ChildElements.Where(child =>
-                child.LocalName == "noFill"
-                || child.LocalName == "solidFill"
-                || child.LocalName == "gradFill"
-                || child.LocalName == "blipFill"
-                || child.LocalName == "pattFill"
-                || child.LocalName == "grpFill").ToList()) {
-                child.Remove();
+        private static bool IsShapeFillChoice(string localName) =>
+            localName == "noFill"
+            || localName == "solidFill"
+            || localName == "gradFill"
+            || localName == "blipFill"
+            || localName == "pattFill"
+            || localName == "grpFill";
+
+        private static bool FollowsShapeOutline(string localName) =>
+            localName == "effectLst"
+            || localName == "effectDag"
+            || localName == "scene3d"
+            || localName == "sp3d"
+            || localName == "extLst";
+
+        private static void RemoveShapeFillChoices(OfficeXmlNode props) {
+            OfficeXmlNode child = props.FirstChild;
+            while (child.Exists) {
+                OfficeXmlNode next = child.NextSibling;
+                if (IsShapeFillChoice(child.LocalName)) child.Remove();
+                child = next;
             }
         }
 
-        private static void InsertShapeFill(OpenXmlCompositeElement props, OpenXmlElement fill) {
-            OpenXmlElement? insertBefore = props.ChildElements.FirstOrDefault(child =>
-                child is A.Outline
-                || child.LocalName == "effectLst"
-                || child.LocalName == "effectDag"
-                || child.LocalName == "scene3d"
-                || child.LocalName == "sp3d"
-                || child.LocalName == "extLst");
-            if (insertBefore != null) {
-                props.InsertBefore(fill, insertBefore);
-            } else {
-                props.Append(fill);
+        private static void InsertShapeFill(OfficeXmlNode props, OfficeXmlNode fill) {
+            OfficeXmlNode insertBefore = OfficeXmlNode.None;
+            foreach (OfficeXmlNode child in props.Children()) {
+                if (child.Is(A, "ln") || FollowsShapeOutline(child.LocalName)) {
+                    insertBefore = child;
+                    break;
+                }
             }
+            props.InsertBefore(fill, insertBefore);
         }
 
-        private static void InsertOutline(OpenXmlCompositeElement props, A.Outline outline) {
-            OpenXmlElement? insertBefore = props.ChildElements.FirstOrDefault(child =>
-                child.LocalName == "effectLst"
-                || child.LocalName == "effectDag"
-                || child.LocalName == "scene3d"
-                || child.LocalName == "sp3d"
-                || child.LocalName == "extLst");
-            if (insertBefore != null) {
-                props.InsertBefore(outline, insertBefore);
-            } else {
-                props.Append(outline);
+        private static OfficeXmlNode InsertOutline(OfficeXmlNode props, OfficeXmlNode outline) {
+            OfficeXmlNode insertBefore = OfficeXmlNode.None;
+            foreach (OfficeXmlNode child in props.Children()) {
+                if (FollowsShapeOutline(child.LocalName)) {
+                    insertBefore = child;
+                    break;
+                }
             }
+            return props.InsertBefore(outline, insertBefore);
         }
 
-        private static void ApplyTextSolidFill(A.TextCharacterPropertiesType props, OfficeColor? color) {
-            props.RemoveAllChildren<A.SolidFill>();
-            props.RemoveAllChildren<A.NoFill>();
-            props.RemoveAllChildren<A.GradientFill>();
-            props.RemoveAllChildren<A.PatternFill>();
+        private static void ApplyTextSolidFill(OfficeXmlNode props, OfficeColor? color) {
+            props.RemoveChildren(A, "solidFill");
+            props.RemoveChildren(A, "noFill");
+            props.RemoveChildren(A, "gradFill");
+            props.RemoveChildren(A, "pattFill");
 
-            var fill = CreateChartSolidFill(color);
-            OpenXmlElement? insertBefore = props.ChildElements.FirstOrDefault(child =>
-                child is A.LatinFont
-                || child is A.EastAsianFont
-                || child is A.ComplexScriptFont
-                || child is A.SymbolFont
-                || child is A.HyperlinkOnClick
-                || child is A.HyperlinkOnMouseOver
-                || child is A.ExtensionList);
-
-            if (insertBefore != null) {
-                props.InsertBefore(fill, insertBefore);
-            } else {
-                props.Append(fill);
+            OfficeXmlNode fill = CreateChartSolidFill(props, color);
+            OfficeXmlNode insertBefore = OfficeXmlNode.None;
+            foreach (OfficeXmlNode child in props.Children()) {
+                if (child.Is(A, "latin")
+                    || child.Is(A, "ea")
+                    || child.Is(A, "cs")
+                    || child.Is(A, "sym")
+                    || child.Is(A, "hlinkClick")
+                    || child.Is(A, "hlinkMouseOver")
+                    || child.Is(A, "extLst")) {
+                    insertBefore = child;
+                    break;
+                }
             }
+
+            props.InsertBefore(fill, insertBefore);
         }
 
-        private static void ApplyLine(OpenXmlCompositeElement props, OfficeColor? color, OfficeLength? width) {
+        private static void ApplyLine(OfficeXmlNode props, OfficeColor? color, OfficeLength? width) {
             OfficeChartStyleBounds.ValidateLineWidth(width?.ToPoints(), nameof(width), allowZero: true);
-            A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
+            OfficeXmlNode existing = props.Child(A, "ln");
+            OfficeXmlNode outline = existing.Exists ? existing : props.New(A, "ln");
             RemoveShapeFillChoices(outline);
-            outline.PrependChild(CreateChartSolidFill(color));
+            outline.InsertBefore(CreateChartSolidFill(outline, color), outline.FirstChild);
             if (width != null) {
-                outline.Width = checked((int)width.Value.ToEmus());
+                outline.SetAttribute("w", checked((int)width.Value.ToEmus()).ToString(CultureInfo.InvariantCulture));
             }
 
-            if (outline.Parent == null) {
+            if (existing.IsNone) {
                 InsertOutline(props, outline);
             }
         }
 
-        private static void ApplyOptionalLine(OpenXmlCompositeElement props, OfficeColor? color, OfficeLength? width) {
+        private static void ApplyOptionalLine(OfficeXmlNode props, OfficeColor? color, OfficeLength? width) {
             OfficeChartStyleBounds.ValidateLineWidth(width?.ToPoints(), nameof(width), allowZero: true);
-            A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
+            OfficeXmlNode existing = props.Child(A, "ln");
+            OfficeXmlNode outline = existing.Exists ? existing : props.New(A, "ln");
             if (color != null) {
                 RemoveShapeFillChoices(outline);
-                outline.PrependChild(CreateChartSolidFill(color));
+                outline.InsertBefore(CreateChartSolidFill(outline, color), outline.FirstChild);
             }
             if (width != null) {
-                outline.Width = checked((int)width.Value.ToEmus());
+                outline.SetAttribute("w", checked((int)width.Value.ToEmus()).ToString(CultureInfo.InvariantCulture));
             }
-            if (outline.Parent == null) {
+            if (existing.IsNone) {
                 InsertOutline(props, outline);
             }
         }
 
-        private static void ApplyMarker(C.Marker marker, OfficeChartMarkerShape? style, OfficeLength? size, OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth) {
+        private static void ApplyMarker(OfficeXmlNode marker, OfficeChartMarkerShape? style, OfficeLength? size, OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth) {
             OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth), allowZero: true);
             if (size.HasValue && (size.Value < OfficeLength.Points(2) || size.Value > OfficeLength.Points(72))) throw new ArgumentOutOfRangeException(nameof(size), "Native marker sizes must be between 2 and 72.");
-            if (style.HasValue) marker.Symbol = new C.Symbol { Val = style.Value.ToOpenXml() };
+            if (style.HasValue) marker.SetOrdered(marker.NewVal(C, "symbol", style.Value.ToOpenXmlToken()), CMarkerView.Order);
             if (size != null) {
-                marker.Size = new C.Size { Val = checked((byte)decimal.Round(size.Value.ToEmus() / 12700m, 0, MidpointRounding.AwayFromZero)) };
+                byte nativeSize = checked((byte)decimal.Round(size.Value.ToEmus() / 12700m, 0, MidpointRounding.AwayFromZero));
+                marker.SetOrdered(marker.NewVal(C, "size", (int)nativeSize), CMarkerView.Order);
             }
 
             if (fillColor != null || lineColor != null || lineWidth != null) {
-                C.ChartShapeProperties props = marker.ChartShapeProperties ?? new C.ChartShapeProperties();
+                OfficeXmlNode existing = marker.Child(C, "spPr");
+                OfficeXmlNode props = existing.Exists ? existing : marker.Append(marker.New(C, "spPr"));
                 if (fillColor != null) {
                     ApplySolidFill(props, fillColor);
                 }
                 if (lineColor != null || lineWidth != null) {
                     OfficeColor? normalizedLine = lineColor != null ? lineColor : null;
                     ApplyOptionalLine(props, normalizedLine, lineWidth);
-                }
-                if (props.Parent == null) {
-                    marker.Append(props);
                 }
             }
         }

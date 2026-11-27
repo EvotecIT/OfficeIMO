@@ -1,6 +1,6 @@
 import { BlobByteSink, ExportCell } from "../../core/index.js";
 import type { OutputDestination, ExportResult, ExportProgress } from "../../core/index.js";
-import { notifyProgress } from "../../core/progress.js";
+import { notifyProgress, notifySynchronously } from "../../core/progress.js";
 import { captureFields } from "../../internal/capture.js";
 import { captureCommonLimits, captureXlsxOptions, captureCsvOptions, capturePdfOptions, mergeAdapterLimits } from "../options.js";
 import { writeXlsxTo } from "../../xlsx/index.js";
@@ -70,7 +70,13 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
       freezeHeader: xlsx.sheet?.freezeHeader ?? (xlsx.sheet?.includeHeader !== false),
       freezeColumns: xlsx.sheet?.freezeColumns ?? (pinned ? pinned + (grouped ? 1 : 0) : 0),
       conditionalFormats: [...rules, ...(xlsx.sheet?.conditionalFormats ?? [])] };
-    const settings = { ...xlsx, ...stream, columns: source.columns, sheet, dateMode: xlsx.dateMode ?? request.timeZone, limits: formatLimits };
+    // Data-cell links past Excel's per-worksheet limit keep their label; the worksheet reserves every link it cannot drop.
+    const linkFallback = canopyDiagnostics(format, { ...selected, unsupportedPresentation: "text" }), onHyperlinkOverflow = xlsx.onHyperlinkOverflow;
+    const settings = { ...xlsx, ...stream, columns: source.columns, sheet, dateMode: xlsx.dateMode ?? request.timeZone, limits: formatLimits,
+      hyperlinkOverflow: xlsx.hyperlinkOverflow ?? "drop" as const,
+      onHyperlinkOverflow: (overflow: { readonly sheetName: string; readonly dropped: number }) => {
+        notifySynchronously("onHyperlinkOverflow", onHyperlinkOverflow, overflow); linkFallback({ code: "LINKS_TRUNCATED:" + overflow.dropped });
+      } };
     if (grouped || about) return writeCanopyWorkbook(source, grouped, destination, settings, capturedLabels, about);
     return writeXlsxTo(source.rows(), destination, settings);
   }

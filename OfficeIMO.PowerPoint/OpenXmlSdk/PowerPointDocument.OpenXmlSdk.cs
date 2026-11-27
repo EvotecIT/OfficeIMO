@@ -19,6 +19,7 @@ namespace OfficeIMO.PowerPoint {
 
         private PresentationDocument OpenDeferredSdk() {
             // The SDK opens the package with any edits made without it.
+            InvalidateRemovedPackageObjects(sdkOpening: true);
             CommitPendingEdits();
             ReleaseLoadedPackage();
             Stream packageStream = _packageStream ?? throw new InvalidOperationException("The presentation has no Open XML package to open.");
@@ -72,5 +73,14 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>The presentation part through the SDK, opening it.</summary>
         private OpenXml.PowerPointPartRef SdkPresentationPartRef => OpenXml.PowerPointPartRef.FromSdk(SdkPresentationPart);
+
+        /// <summary>Opens the SDK for a part too large for the package to read.</summary>
+        internal void OpenSdkForOversizedPart() => EnsureSdk();
+
+        // The SDK document's table styles part, added with the built-in styles when it has none.
+        private OpenXml.PowerPointPartRef SdkEnsureTableStylesPart() {
+            PowerPointUtils.CreateTableStylesPart(SdkPresentationPart);
+            return OpenXml.PowerPointPartRef.FromSdk(SdkPresentationPart.TableStylesPart);
+        }
     }
 }

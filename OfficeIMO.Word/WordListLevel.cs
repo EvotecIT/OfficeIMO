@@ -1,4 +1,8 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
+
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -127,77 +131,70 @@ namespace OfficeIMO.Word {
     /// Represents a single level within a list and provides access to numbering and indentation settings.
     /// </summary>
     public class WordListLevel {
+        private const int W = OfficeXmlNamespaces.WordprocessingML;
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="WordListLevel"/> class
-        /// based on an existing Open XML <see cref="Level"/> element.
+        /// Initializes a new instance of the <see cref="WordListLevel"/> class over an existing <c>w:lvl</c> element.
         /// </summary>
-        /// <param name="level">The underlying Open XML list level element.</param>
-        internal WordListLevel(Level level) {
-            _level = level ?? throw new ArgumentNullException(nameof(level));
+        /// <param name="level">The list level element.</param>
+        internal WordListLevel(OfficeXmlNode level) {
+            if (level.IsNone) throw new ArgumentNullException(nameof(level));
+            Node = level;
         }
 
         /// <summary>
-        /// Gets the underlying Open XML list level element for advanced interop scenarios.
-        /// Prefer the typed properties on <see cref="WordListLevel"/> for normal list configuration.
+        /// The <c>w:lvl</c> element: in a small tree of its own until the level is added to a list, then the element
+        /// the numbering part holds.
         /// </summary>
-        internal Level OpenXmlElement => _level;
-
-        internal Level _level { get; set; } = null!;
+        internal OfficeXmlNode Node { get; set; }
 
         /// <summary>Gets the zero-based list level index.</summary>
-        public int LevelIndex => _level.LevelIndex?.Value ?? 0;
+        public int LevelIndex => OfficeXmlViewValues.ParseInt32(Node.Attribute(W, "ilvl")) ?? 0;
 
-        private StartNumberingValue GetStartNumberingValueElement() {
-            var element = _level.Descendants<StartNumberingValue>().FirstOrDefault();
-            if (element == null) {
-                element = new StartNumberingValue { Val = 1 };
-                _level.AddChild(element, true);
-            } else if (element.Val == null || !element.Val.HasValue) {
-                element.Val = 1;
-            }
+        /// <summary>Sets the zero-based list level index.</summary>
+        internal void SetLevelIndex(int levelIndex) =>
+            Node.SetAttribute(W, "ilvl", levelIndex.ToString(CultureInfo.InvariantCulture));
 
-            return element;
+        /// <summary>The level's w:start, added with a value of 1 when missing.</summary>
+        private OfficeXmlNode GetStartNumberingValueElement() {
+            // Only the level's own w:start counts, not one inside extension markup.
+            OfficeXmlNode existing = Node.Child(W, "start");
+            return existing.IsNone ? AddValueElement("start", "1") : existing;
         }
 
-        private Indentation GetIndentationElement() {
-            var indentation = _level.Descendants<Indentation>().FirstOrDefault();
-            if (indentation != null) {
-                return indentation;
-            }
+        private OfficeXmlNode GetIndentationElement() {
+            // The level's paragraph properties hold its indentation; one inside extension markup isn't the level's.
+            OfficeXmlNode existing = Node.Child(W, "pPr").Child(W, "ind");
+            if (!existing.IsNone) return existing;
 
-            var paragraphProperties = _level.GetFirstChild<PreviousParagraphProperties>();
-            if (paragraphProperties == null) {
-                paragraphProperties = new PreviousParagraphProperties();
-                _level.AddChild(paragraphProperties, true);
-            }
-
-            indentation = new Indentation { Left = "0", Hanging = "0" };
-            paragraphProperties.AddChild(indentation, true);
+            OfficeXmlNode paragraphProperties = Node.GetOrAddChild(W, "pPr", WLvlView.Order);
+            OfficeXmlNode indentation = paragraphProperties.AddOrdered(W, "ind", WPPrView.Order);
+            indentation.SetAttribute(W, "left", "0");
+            indentation.SetAttribute(W, "hanging", "0");
             return indentation;
         }
 
-        private LevelText GetLevelTextElement() {
-            var levelText = _level.GetFirstChild<LevelText>();
-            if (levelText == null) {
-                levelText = new LevelText { Val = string.Empty };
-                _level.AddChild(levelText, true);
-            } else if (levelText.Val == null) {
-                levelText.Val = string.Empty;
-            }
-
-            return levelText;
+        /// <summary>The child element with this name, added with <paramref name="defaultValue"/> when missing.</summary>
+        private OfficeXmlNode GetValueElement(string localName, string defaultValue) {
+            OfficeXmlNode element = Node.Child(W, localName);
+            return element.IsNone ? AddValueElement(localName, defaultValue) : element;
         }
 
-        private LevelJustification GetLevelJustificationElement() {
-            var justification = _level.GetFirstChild<LevelJustification>();
-            if (justification == null) {
-                justification = new LevelJustification { Val = LevelJustificationValues.Left };
-                _level.AddChild(justification, true);
-            } else if (justification.Val == null || ReadLevelJustification(justification) == null) {
-                justification.Val = LevelJustificationValues.Left;
-            }
+        private OfficeXmlNode AddValueElement(string localName, string value) {
+            OfficeXmlNode element = Node.AddOrdered(W, localName, WLvlView.Order);
+            element.SetAttribute(W, "val", value);
+            return element;
+        }
 
-            return justification;
+        /// <summary>
+        /// Reads the value of a level setting, adding the element with <paramref name="defaultValue"/> when it is missing
+        /// and writing the default over a value <paramref name="isValid"/> rejects, so the level always holds what it reports.
+        /// </summary>
+        private string ReadValue(OfficeXmlNode element, string defaultValue, Func<string, bool> isValid) {
+            string? value = element.Attribute(W, "val");
+            if (value != null && isValid(value)) return value;
+            element.SetAttribute(W, "val", defaultValue);
+            return defaultValue;
         }
 
         /// <summary>
@@ -206,8 +203,7 @@ namespace OfficeIMO.Word {
         /// other office suites and strict producers) map to left/right for left-to-right lists;
         /// paragraph-only values such as <c>both</c> fall back to left, as Word does.
         /// </summary>
-        internal static LevelJustificationValues? ReadLevelJustification(LevelJustification? element) {
-            string? token = element?.Val?.InnerText;
+        internal static WordListLevelAlignment? ReadLevelJustification(string? token) {
             if (string.IsNullOrWhiteSpace(token)) {
                 return null;
             }
@@ -215,12 +211,12 @@ namespace OfficeIMO.Word {
             switch (token!.Trim()) {
                 case "left":
                 case "start":
-                    return LevelJustificationValues.Left;
+                    return WordListLevelAlignment.Left;
                 case "right":
                 case "end":
-                    return LevelJustificationValues.Right;
+                    return WordListLevelAlignment.Right;
                 case "center":
-                    return LevelJustificationValues.Center;
+                    return WordListLevelAlignment.Center;
                 case "both":
                 case "distribute":
                 case "mediumKashida":
@@ -228,51 +224,50 @@ namespace OfficeIMO.Word {
                 case "lowKashida":
                 case "thaiDistribute":
                 case "numTab":
-                    return LevelJustificationValues.Left;
+                    return WordListLevelAlignment.Left;
                 default:
                     return null;
             }
-        }
-
-        private LevelSuffix GetLevelSuffixElement() {
-            var suffix = _level.GetFirstChild<LevelSuffix>();
-            if (suffix == null) {
-                suffix = new LevelSuffix { Val = LevelSuffixValues.Tab };
-                _level.AddChild(suffix, true);
-            } else if (suffix.Val == null || !suffix.Val.HasValue) {
-                suffix.Val = LevelSuffixValues.Tab;
-            }
-
-            return suffix;
         }
 
         /// <summary>
         /// Gets or sets the start numbering value.
         /// </summary>
         public int StartNumberingValue {
-            get {
-                var element = GetStartNumberingValueElement();
-                return element.Val?.Value ?? 0;
-            }
-            set {
-                var element = GetStartNumberingValueElement();
-                element.Val = value;
-            }
+            get => int.Parse(ReadValue(GetStartNumberingValueElement(), "1", static value => OfficeXmlViewValues.ParseInt32(value) != null).Trim(),
+                NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+            set => GetStartNumberingValueElement().SetAttribute(W, "val", value.ToString(CultureInfo.InvariantCulture));
         }
 
         /// <summary>Gets or sets whether this level shows the numbers of the levels above it as Arabic numerals ("1.1" under "I"), Word's legal numbering (<c>w:isLgl</c>).</summary>
         public bool LegalNumbering {
-            get => _level.IsLegalNumberingStyle is IsLegalNumberingStyle legal && (legal.Val?.Value ?? true);
+            get {
+                OfficeXmlNode legal = Node.Child(W, "isLgl");
+                if (legal.IsNone) return false;
+                string? value = legal.Attribute(W, "val")?.Trim();
+                return value == null || value == "1" || value == "true" || value == "on";
+            }
             set {
-                _level.IsLegalNumberingStyle?.Remove();
-                if (value) _level.AddChild(new IsLegalNumberingStyle(), true);
+                OfficeXmlNode legal = Node.Child(W, "isLgl");
+                if (!legal.IsNone) legal.Remove();
+                if (value) Node.AddOrdered(W, "isLgl", WLvlView.Order);
             }
         }
 
         /// <summary>Gets or sets the numbering format of this list level.</summary>
         public WordNumberFormat NumberFormat {
-            get => _level.NumberingFormat?.Val?.Value.ToOfficeEnum() ?? WordNumberFormat.Decimal;
-            set => _level.NumberingFormat = new NumberingFormat { Val = value.ToOpenXml() };
+            get {
+                string? token = Node.Child(W, "numFmt").Attribute(W, "val");
+                return token != null && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordNumberFormat format) ? format : WordNumberFormat.Decimal;
+            }
+            set {
+                // A new element, as the format replaces any other attributes the old one had. The token is resolved
+                // first, so an undefined format leaves the level as it was.
+                string token = value.ToOpenXmlToken();
+                OfficeXmlNode existing = Node.Child(W, "numFmt");
+                if (!existing.IsNone) existing.Remove();
+                Node.AddOrdered(W, "numFmt", WLvlView.Order).SetAttribute(W, "val", token);
+            }
         }
 
         /// <summary>
@@ -297,57 +292,43 @@ namespace OfficeIMO.Word {
 
         /// <summary>Gets or sets the physical text indentation for this level.</summary>
         public OfficeLength IndentationLeft {
-            get {
-                var indentation = GetIndentationElement();
-                int.TryParse(indentation.Left, out int nativeValue);
-                return OfficeLength.Points(nativeValue / 20D);
-            }
+            get => ReadTwips(GetIndentationElement().Attribute(W, "left"));
             set {
-                int nativeValue = checked((int)value.ToTwips());
-                var indentation = GetIndentationElement();
-                indentation.Left = nativeValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string twips = checked((int)value.ToTwips()).ToString(CultureInfo.InvariantCulture);
+                GetIndentationElement().SetAttribute(W, "left", twips);
             }
         }
 
         /// <summary>Gets or sets the physical number position for this level.</summary>
         public OfficeLength IndentationHanging {
-            get {
-                var indentation = GetIndentationElement();
-                int.TryParse(indentation.Hanging, out int nativeValue);
-                return OfficeLength.Points(nativeValue / 20D);
-            }
+            get => ReadTwips(GetIndentationElement().Attribute(W, "hanging"));
             set {
-                int nativeValue = checked((int)value.ToTwips());
-                var indentation = GetIndentationElement();
-                indentation.Hanging = nativeValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string twips = checked((int)value.ToTwips()).ToString(CultureInfo.InvariantCulture);
+                GetIndentationElement().SetAttribute(W, "hanging", twips);
             }
+        }
+
+        private static OfficeLength ReadTwips(string? value) {
+            int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int nativeValue);
+            return OfficeLength.Points(nativeValue / 20D);
         }
 
         /// <summary>
         /// Gets or sets the level text.
         /// </summary>
         public string LevelText {
-            get {
-                var element = GetLevelTextElement();
-                return element.Val?.Value ?? string.Empty;
-            }
-            set {
-                var element = GetLevelTextElement();
-                element.Val = value ?? string.Empty;
-            }
+            get => ReadValue(GetValueElement("lvlText", string.Empty), string.Empty, static _ => true);
+            set => GetValueElement("lvlText", string.Empty).SetAttribute(W, "val", value ?? string.Empty);
         }
 
         /// <summary>
         /// Gets or sets the level justification.
         /// </summary>
         public WordListLevelAlignment LevelJustification {
-            get {
-                var element = GetLevelJustificationElement();
-                return (ReadLevelJustification(element) ?? LevelJustificationValues.Left).ToOfficeEnum();
-            }
+            get => ReadLevelJustification(ReadValue(GetValueElement("lvlJc", "left"), "left", static token => ReadLevelJustification(token) != null))!.Value;
             set {
-                var element = GetLevelJustificationElement();
-                element.Val = value.ToOpenXml();
+                string token = value.ToOpenXmlToken();
+                GetValueElement("lvlJc", "left").SetAttribute(W, "val", token);
             }
         }
 
@@ -356,12 +337,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordListLevelSuffix LevelSuffix {
             get {
-                var element = GetLevelSuffixElement();
-                return (element.Val?.Value ?? LevelSuffixValues.Tab).ToOfficeEnum();
+                string token = ReadValue(GetValueElement("suff", "tab"), "tab",
+                    static value => WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(value, out WordListLevelSuffix _));
+                WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordListLevelSuffix suffix);
+                return suffix;
             }
             set {
-                var element = GetLevelSuffixElement();
-                element.Val = value.ToOpenXml();
+                string token = value.ToOpenXmlToken();
+                GetValueElement("suff", "tab").SetAttribute(W, "val", token);
             }
         }
 
@@ -369,9 +352,15 @@ namespace OfficeIMO.Word {
         /// Removes this level from the list.
         /// </summary>
         public void Remove() {
-            Numbering? numbering = _level.Ancestors<Numbering>().FirstOrDefault();
-            _level.Remove();
+            object? numbering = Node.AncestorOrSelf(W, "numbering").SdkElement;
+            Node.Remove();
             WordListNumberingResolver.InvalidateNumbering(numbering);
+        }
+
+        /// <summary>Puts <paramref name="replacement"/> where this level is, and removes this level.</summary>
+        internal void ReplaceWith(WordListLevel replacement) {
+            replacement.Node = Node.InsertAfterSelf(replacement.Node);
+            Remove();
         }
 
         /// <summary>
@@ -380,375 +369,67 @@ namespace OfficeIMO.Word {
         /// <param name="simplifiedListNumbers"></param>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public WordListLevel(WordListLevelKind simplifiedListNumbers) {
-            switch (simplifiedListNumbers) {
-                case WordListLevelKind.None:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.None },
-                        LevelText = new LevelText() { Val = string.Empty }
-                    };
-                    break;
-                case WordListLevelKind.Bullet:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "\u2022" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletSquareSymbol:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "\u25A0" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletBlackCircle:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "\u25CF" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletDiamondSymbol:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "\u25C6" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletArrowSymbol:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "\u25BA" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletSolidRound:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "·" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        },
-                        NumberingSymbolRunProperties = new NumberingSymbolRunProperties() {
-                            RunFonts = new RunFonts() { Hint = FontTypeHintValues.Default, Ascii = "Symbol", HighAnsi = "Symbol" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletOpenCircle:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "o" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        },
-                        NumberingSymbolRunProperties = new NumberingSymbolRunProperties() {
-                            RunFonts = new RunFonts() { Hint = FontTypeHintValues.Default, Ascii = "Symbol", HighAnsi = "Symbol" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletSquare2:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "■" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletSquare:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "§" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        },
-                        NumberingSymbolRunProperties = new NumberingSymbolRunProperties() {
-                            RunFonts = new RunFonts() { Hint = FontTypeHintValues.Default, Ascii = "Wingdings", HighAnsi = "Wingdings" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletClubs:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "v" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        },
-                        NumberingSymbolRunProperties = new NumberingSymbolRunProperties() {
-                            RunFonts = new RunFonts() { Hint = FontTypeHintValues.Default, Ascii = "Wingdings", HighAnsi = "Wingdings" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletArrow:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "Ø" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        },
-                        NumberingSymbolRunProperties = new NumberingSymbolRunProperties() {
-                            RunFonts = new RunFonts() { Hint = FontTypeHintValues.Default, Ascii = "Wingdings", HighAnsi = "Wingdings" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletDiamond:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "¨" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        },
-                        NumberingSymbolRunProperties = new NumberingSymbolRunProperties() {
-                            RunFonts = new RunFonts() { Hint = FontTypeHintValues.Default, Ascii = "Symbol", HighAnsi = "Symbol" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.BulletCheckmark:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
-                        LevelText = new LevelText() { Val = "ü" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        },
-                        NumberingSymbolRunProperties = new NumberingSymbolRunProperties() {
-                            RunFonts = new RunFonts() { Hint = FontTypeHintValues.Default, Ascii = "Wingdings", HighAnsi = "Wingdings" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.Decimal:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Decimal },
-                        LevelText = new LevelText() { Val = "%CurrentLevel" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.DecimalBracket:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Decimal },
-                        LevelText = new LevelText() { Val = "%CurrentLevel)" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.DecimalDot:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Decimal },
-                        LevelText = new LevelText() { Val = "%CurrentLevel." },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.LowerLetter:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerLetter },
-                        LevelText = new LevelText() { Val = "%CurrentLevel" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.LowerLetterBracket:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerLetter },
-                        LevelText = new LevelText() { Val = "%CurrentLevel)" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.LowerLetterDot:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerLetter },
-                        LevelText = new LevelText() { Val = "%CurrentLevel." },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.UpperLetter:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperLetter },
-                        LevelText = new LevelText() { Val = "%CurrentLevel" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.UpperLetterBracket:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperLetter },
-                        LevelText = new LevelText() { Val = "%CurrentLevel)" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.UpperLetterDot:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperLetter },
-                        LevelText = new LevelText() { Val = "%CurrentLevel." },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.LowerRoman:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerRoman },
-                        LevelText = new LevelText() { Val = "%CurrentLevel" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        },
-                    };
-                    break;
-                case WordListLevelKind.LowerRomanBracket:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerRoman },
-                        LevelText = new LevelText() { Val = "%CurrentLevel)" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.LowerRomanDot:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerRoman },
-                        LevelText = new LevelText() { Val = "%CurrentLevel." },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.UpperRoman:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperRoman },
-                        LevelText = new LevelText() { Val = "%CurrentLevel" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.UpperRomanBracket:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperRoman },
-                        LevelText = new LevelText() { Val = "%CurrentLevel)" },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                case WordListLevelKind.UpperRomanDot:
-                    _level = new Level() {
-                        LevelIndex = 0,
-                        StartNumberingValue = new StartNumberingValue() { Val = 1 },
-                        NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperRoman },
-                        LevelText = new LevelText() { Val = "%CurrentLevel." },
-                        LevelJustification = new LevelJustification() { Val = LevelJustificationValues.Left },
-                        PreviousParagraphProperties = new PreviousParagraphProperties() {
-                            Indentation = new Indentation() { Left = "720", Hanging = "360" }
-                        }
-                    };
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(simplifiedListNumbers), simplifiedListNumbers, null);
+            Node = CreateLevel(simplifiedListNumbers);
+        }
+
+        /// <summary>
+        /// A detached level of the given kind: the number format and level text, then, for every kind but
+        /// <see cref="WordListLevelKind.None"/>, left justification, a half inch of indentation with a quarter inch
+        /// hanging, and for some bullets the symbol font.
+        /// </summary>
+        private static OfficeXmlNode CreateLevel(WordListLevelKind kind) {
+            (string format, string text, string? font) = kind switch {
+                WordListLevelKind.None => ("none", string.Empty, null),
+                WordListLevelKind.Bullet => ("bullet", "•", null),
+                WordListLevelKind.BulletSquareSymbol => ("bullet", "■", null),
+                WordListLevelKind.BulletBlackCircle => ("bullet", "●", null),
+                WordListLevelKind.BulletDiamondSymbol => ("bullet", "◆", null),
+                WordListLevelKind.BulletArrowSymbol => ("bullet", "►", null),
+                WordListLevelKind.BulletSolidRound => ("bullet", "·", "Symbol"),
+                WordListLevelKind.BulletOpenCircle => ("bullet", "o", "Symbol"),
+                WordListLevelKind.BulletSquare2 => ("bullet", "■", null),
+                WordListLevelKind.BulletSquare => ("bullet", "§", "Wingdings"),
+                WordListLevelKind.BulletClubs => ("bullet", "v", "Wingdings"),
+                WordListLevelKind.BulletArrow => ("bullet", "Ø", "Wingdings"),
+                WordListLevelKind.BulletDiamond => ("bullet", "¨", "Symbol"),
+                WordListLevelKind.BulletCheckmark => ("bullet", "ü", "Wingdings"),
+                WordListLevelKind.Decimal => ("decimal", "%CurrentLevel", null),
+                WordListLevelKind.DecimalBracket => ("decimal", "%CurrentLevel)", null),
+                WordListLevelKind.DecimalDot => ("decimal", "%CurrentLevel.", null),
+                WordListLevelKind.LowerLetter => ("lowerLetter", "%CurrentLevel", null),
+                WordListLevelKind.LowerLetterBracket => ("lowerLetter", "%CurrentLevel)", null),
+                WordListLevelKind.LowerLetterDot => ("lowerLetter", "%CurrentLevel.", null),
+                WordListLevelKind.UpperLetter => ("upperLetter", "%CurrentLevel", null),
+                WordListLevelKind.UpperLetterBracket => ("upperLetter", "%CurrentLevel)", null),
+                WordListLevelKind.UpperLetterDot => ("upperLetter", "%CurrentLevel.", null),
+                WordListLevelKind.LowerRoman => ("lowerRoman", "%CurrentLevel", null),
+                WordListLevelKind.LowerRomanBracket => ("lowerRoman", "%CurrentLevel)", null),
+                WordListLevelKind.LowerRomanDot => ("lowerRoman", "%CurrentLevel.", null),
+                WordListLevelKind.UpperRoman => ("upperRoman", "%CurrentLevel", null),
+                WordListLevelKind.UpperRomanBracket => ("upperRoman", "%CurrentLevel)", null),
+                WordListLevelKind.UpperRomanDot => ("upperRoman", "%CurrentLevel.", null),
+                _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+            };
+
+            OfficeXmlTree tree = OfficeXmlTree.Create(new OfficeXmlNamespaces.Table(), W, "lvl", 16);
+            var level = new OfficeXmlNode(tree, tree.Root);
+            level.SetAttribute(W, "ilvl", "0");
+            level.Append(level.CreateElement(W, "start")).SetAttribute(W, "val", "1");
+            level.Append(level.CreateElement(W, "numFmt")).SetAttribute(W, "val", format);
+            level.Append(level.CreateElement(W, "lvlText")).SetAttribute(W, "val", text);
+            if (kind == WordListLevelKind.None) return level;
+
+            level.Append(level.CreateElement(W, "lvlJc")).SetAttribute(W, "val", "left");
+            OfficeXmlNode indentation = level.Append(level.CreateElement(W, "pPr")).Append(level.CreateElement(W, "ind"));
+            indentation.SetAttribute(W, "left", "720");
+            indentation.SetAttribute(W, "hanging", "360");
+            if (font != null) {
+                OfficeXmlNode fonts = level.Append(level.CreateElement(W, "rPr")).Append(level.CreateElement(W, "rFonts"));
+                fonts.SetAttribute(W, "hint", "default");
+                fonts.SetAttribute(W, "ascii", font);
+                fonts.SetAttribute(W, "hAnsi", font);
             }
+            return level;
         }
     }
 }

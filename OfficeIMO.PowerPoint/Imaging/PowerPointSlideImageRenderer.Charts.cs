@@ -1,9 +1,8 @@
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
-        private static void AddChart(OfficeDrawing drawing, PowerPointChart chart, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme,
+        private static void AddChart(OfficeDrawing drawing, PowerPointChart chart, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, OfficeIMO.OpenXml.Internal.OfficeXmlNode colorScheme,
             OfficeChartFidelity fidelity) {
             if (!TryGetBounds(chart, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
                 return;

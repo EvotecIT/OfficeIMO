@@ -23,8 +23,8 @@ namespace OfficeIMO.PowerPoint {
             internal int List { get; }
             internal List<(int Node, string Relationship, string Part)> Entries { get; } = new();
 
-            // Null when an entry's slide is missing, external or listed twice.
-            internal static PackageSlideList? Read(OfficeOpcEditablePackage package) {
+            /// <summary>The presentation part and its slide list node, without reading the entries.</summary>
+            internal static PackageSlideList? ReadPresentation(OfficeOpcEditablePackage package) {
                 string? main = null;
                 OfficeXmlTree packageRelationships = package.GetRelationships(null);
                 for (int node = packageRelationships.FindChild(packageRelationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship");
@@ -38,8 +38,15 @@ namespace OfficeIMO.PowerPoint {
                 }
                 if (main == null || !package.PartExists(main)) return null;
                 OfficeXmlTree presentation = package.GetXml(main);
-                var slides = new PackageSlideList(main, presentation, presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldIdLst"));
+                return new PackageSlideList(main, presentation, presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldIdLst"));
+            }
+
+            // Null when an entry's slide is missing, external or listed twice.
+            internal static PackageSlideList? Read(OfficeOpcEditablePackage package) {
+                if (ReadPresentation(package) is not { } slides) return null;
                 if (slides.List == OfficeXmlTree.NoNode) return slides;
+                string main = slides.Main;
+                OfficeXmlTree presentation = slides.Presentation;
                 // The first relationship with an id is the one it resolves to, and an external one resolves to no part.
                 var targets = new Dictionary<string, string?>(StringComparer.Ordinal);
                 string mainRelationships = OfficeOpcPartNames.GetRelationshipsPartName(main);
@@ -144,6 +151,9 @@ namespace OfficeIMO.PowerPoint {
                 OfficeXmlTree relationships = package.GetXml(presentationRelationships);
                 relationships.Remove(presentationRelationship);
                 RelationshipsOf(package, main).RemoveAll(edge => string.Equals(edge.Id, relationship, StringComparison.Ordinal));
+                // Text a caller still holds from the slide or its notes stops working before their parts go.
+                MarkPackageSlideRemoved(slide);
+                InvalidateRemovedPackageObjects(sdkOpening: false);
                 foreach (string part in removed) {
                     _pendingRelationships!.Remove(part);
                     string partRelationships = OfficeOpcPartNames.GetRelationshipsPartName(part);

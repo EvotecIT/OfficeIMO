@@ -956,15 +956,20 @@ return _exports;
 const _m14 = (() => {
 /** @internal Notify synchronously; observe an accidental promise before rejecting its unsupported use. */
 function notifyProgress(callback, progress) {
+    notifySynchronously("onProgress", callback, progress);
+}
+/** @internal Run a host notification that must finish before the export continues. A returned promise is observed,
+ * so its rejection is never unhandled, and the export fails instead of reporting success before the callback ends. */
+function notifySynchronously(name, callback, value) {
     if (!callback)
         return;
-    const result = callback(progress);
+    const result = callback(value);
     if (result && typeof result.then === "function") {
         void Promise.resolve(result).catch(() => { });
-        throw new TypeError("onProgress must be synchronous.");
+        throw new TypeError(name + " must be synchronous.");
     }
 }
-const _exports = Object.freeze({ notifyProgress: notifyProgress });
+const _exports = Object.freeze({ notifyProgress: notifyProgress, notifySynchronously: notifySynchronously });
 return _exports;
 })();
 
@@ -1387,7 +1392,7 @@ const _m22 = (() => {
 const { captureFields } = _m10;
 
 /** @internal The workbook owner captures these settings before validation or adapter merging. */
-const workbookOptionFields = ["signal", "onProgress", "limits", "sink", "dateMode", "compression", "invalidCharacterPolicy", "appProperties", "cellValueWriters", "oversizedText", "creator", "title", "subject", "description", "created", "modified"];
+const workbookOptionFields = ["signal", "onProgress", "limits", "sink", "dateMode", "compression", "invalidCharacterPolicy", "appProperties", "cellValueWriters", "oversizedText", "hyperlinkOverflow", "onHyperlinkOverflow", "creator", "title", "subject", "description", "created", "modified"];
 /** @internal Worksheet settings also used by the portable sheet owner. */
 const sheetOptionFields = ["columns", "includeHeader", "headerRows", "freezeHeader", "autoFilter", "boldHeader", "headerFill", "headerBorder", "headerWrap", "headerStyle", "alternatingRowStyle", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel", "outlineSummaryBelow", "outlineSummaryRight", "columnOutlines", "rowHeight", "headerHeight", "defaultColumnWidth", "freezeColumns", "table", "autoSize", "footer", "print", "title", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"];
 /** @internal Includes inherited format-specific ceilings before a wrapper combines stream settings. */
@@ -3765,7 +3770,7 @@ const { ChunkedTextSink, BlobByteSink } = _m3;
 
 const { OfficeIMOError } = _m2;
 
-const { notifyProgress } = _m14;
+const { notifyProgress, notifySynchronously } = _m14;
 
 const { copyColumns, createRowProjector } = _m11;
 
@@ -3837,8 +3842,14 @@ class Worksheet {
     pendingCharacters = 0;
     reservedLayout = false;
     internalLinks = [];
+    // Evicted entries become holes and are compacted in one pass when the links are read, keeping eviction O(1).
     links = [];
+    evictedLinks = 0;
     linkedCells = new Set();
+    /** Indexes in `links` of data-cell links that `hyperlinkOverflow: "drop"` may give up, in row order. */
+    droppable = [];
+    droppableLinks = new WeakSet();
+    droppedLinks = 0;
     pictures = [];
     nativeCharts = [];
     conditional;
@@ -4050,7 +4061,8 @@ class Worksheet {
             const cell = col.letter + row;
             if (link || this.linkedCells.has(cell))
                 throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
-            checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
+            this.makeLinkRoom();
+            checkHyperlinkCount(this.linkCount + 1);
             this.book.checkLinks(1);
             // Replace a generated cell's original reservation with its preview and overflow records.
             if (reservedCharacters !== undefined) {
@@ -4064,7 +4076,7 @@ class Worksheet {
             value = preserved.preview;
         }
         if (link)
-            this.appendHyperlink({ cell: col.letter + row, ...link });
+            this.appendHyperlink({ cell: col.letter + row, ...link }, !header && !footer && !title && this.book.settings.hyperlinkOverflow === "drop");
         if (type === "date")
             value = excelDate(value, this.book.settings.dateMode);
         if (!header && !footer && visible && (!formula || !isSubtotalFormula(formula)))
@@ -4373,20 +4385,61 @@ class Worksheet {
             throw this.error;
         this.appendHyperlink(link);
     }
-    appendHyperlink(link) {
+    appendHyperlink(link, droppable = false) {
+        // Validate before any overflow decision, so a dropped link can never hide an unsafe target.
         const copied = copyHyperlink(link, this.book.settings.invalidCharacterPolicy);
         const position = cellPosition(copied.cell);
         if (this.layout.regions.covered(position.column, position.row))
             throw new TypeError("Hyperlinks cannot address a covered merged cell.");
         if (this.linkedCells.has(copied.cell))
             throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
-        checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
+        if (droppable && this.linkCount >= maximumHyperlinks) {
+            this.droppedLinks++;
+            return;
+        }
+        if (!droppable)
+            this.makeLinkRoom();
+        checkHyperlinkCount(this.linkCount + 1);
         this.book.retainLink();
+        if (droppable) {
+            this.droppable.push(this.links.length);
+            this.droppableLinks.add(copied);
+        }
         this.links.push(copied);
         this.linkedCells.add(copied.cell);
     }
+    /** Links the worksheet holds now, not counting evicted holes. */
+    get linkCount() { return this.links.length - this.evictedLinks + this.internalLinks.length; }
+    /** A full worksheet gives up its latest data-cell link for a link that cannot be dropped. Hyperlinks are serialized after
+     * the rows, so the cell keeps its written value. The entry becomes a hole, so other indexes stay valid until compaction. */
+    makeLinkRoom() {
+        if (this.linkCount < maximumHyperlinks || !this.droppable.length)
+            return;
+        const index = this.droppable.pop(), removed = this.links[index];
+        this.links[index] = undefined;
+        this.evictedLinks++;
+        this.linkedCells.delete(removed.cell);
+        this.book.releaseLink();
+        this.droppedLinks++;
+    }
+    /** One ordered pass removes evicted holes and rebuilds the droppable indexes. */
+    compactLinks() {
+        if (this.evictedLinks) {
+            const kept = [], droppable = [];
+            for (const link of this.links)
+                if (link) {
+                    if (this.droppableLinks.has(link))
+                        droppable.push(kept.length);
+                    kept.push(link);
+                }
+            this.links = kept;
+            this.droppable = droppable;
+            this.evictedLinks = 0;
+        }
+        return this.links;
+    }
     /** @internal */
-    get hyperlinks() { return this.links; }
+    get hyperlinks() { return this.compactLinks(); }
     /** @internal */
     get images() { return this.pictures; }
     /** @internal An empty export has no data table; it still emits the declared headers. */
@@ -4437,7 +4490,7 @@ class Worksheet {
                 for (const binding of this.chartSources)
                     binding.finish();
                 this.chartSources.length = 0;
-                for (const link of this.links) {
+                for (const link of this.compactLinks()) {
                     const position = cellPosition(link.cell);
                     if (position.column > this.columns.length || position.row > this.totalRows)
                         throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");
@@ -4467,8 +4520,11 @@ class Worksheet {
                     await this.buffer.write(xml);
                 for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count, detailRanges))
                     await this.buffer.write(xml);
-                if (this.links.length || this.internalLinks.length)
-                    await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
+                if (this.droppedLinks)
+                    notifySynchronously("onHyperlinkOverflow", this.book.settings.onHyperlinkOverflow, Object.freeze({ sheetName: this.name, dropped: this.droppedLinks }));
+                const links = this.compactLinks();
+                if (links.length || this.internalLinks.length)
+                    await this.buffer.write(hyperlinksXml(links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
                 await this.buffer.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
                 if (this.pictures.length || this.nativeCharts.length)
                     await this.buffer.write('<drawing r:id="drawing"/>');
@@ -5043,6 +5099,10 @@ class Workbook {
             throw new RangeError("compression must be auto or store.");
         if (options.oversizedText !== undefined && !["reject", "preserve"].includes(options.oversizedText))
             throw new RangeError("oversizedText must be reject or preserve.");
+        if (options.hyperlinkOverflow !== undefined && !["reject", "drop"].includes(options.hyperlinkOverflow))
+            throw new RangeError("hyperlinkOverflow must be reject or drop.");
+        if (options.onHyperlinkOverflow !== undefined && typeof options.onHyperlinkOverflow !== "function")
+            throw new TypeError("onHyperlinkOverflow must be a function.");
         cleanXml("", policy);
         corePropertiesXml(options, policy);
         this.budget = new ExportBudget(options.limits);
@@ -5120,6 +5180,8 @@ class Workbook {
     }
     /** @internal Reserve a preflighted worksheet batch or one row hyperlink. */
     retainLink(count = 1) { this.checkLinks(count); this.links += count; }
+    /** @internal A worksheet dropped a data-cell link it had retained. */
+    releaseLink() { this.links--; }
     /** @internal */
     checkImage(bytes) {
         if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes)
@@ -11828,19 +11890,29 @@ function canopyIdentityValue(value) {
     const original = rawIdentities.get(value);
     return original === undefined ? value.value : original;
 }
-function badgeText(input) {
-    if (!Array.isArray(input) || input.length > 64)
-        throw new TypeError("Canopy cell badges must be a bounded array of { text, tone?, title? }.");
-    const labels = [];
+// Grids accept any number of badges. Exports keep the first labels that stay readable and fit an Excel text cell,
+// and report how many were left out instead of failing the whole document.
+const maximumBadges = 64, maximumCellText = 32767;
+function badgeText(input, text) {
+    if (!Array.isArray(input))
+        throw new TypeError("Canopy cell badges must be an array of { text, tone?, title? }.");
+    let labels = "", kept = 0, dropped = 0;
     for (const badge of input) {
-        const text = typeof badge === "string" ? badge : badge && typeof badge === "object" ? badge.text : undefined;
-        if (typeof text !== "string")
-            throw new TypeError("Canopy cell badges must be a bounded array of { text, tone?, title? }.");
-        const label = text.trim();
-        if (label)
-            labels.push(label);
+        const value = typeof badge === "string" ? badge : badge && typeof badge === "object" ? badge.text : undefined;
+        if (typeof value !== "string")
+            throw new TypeError("Canopy cell badges must be an array of { text, tone?, title? }.");
+        const label = value.trim();
+        if (!label)
+            continue;
+        const next = labels ? labels + badgeSeparator + label : label;
+        if (kept >= maximumBadges || (text ? text.length + badgeSeparator.length : 0) + next.length > maximumCellText) {
+            dropped++;
+            continue;
+        }
+        labels = next;
+        kept++;
     }
-    return labels.length ? labels.join(badgeSeparator) : undefined;
+    return { labels: labels || undefined, dropped };
 }
 /** Map an immutable CanopyX record capture to a writer without querying the grid or retaining its body. */
 function createCanopyExport(capture, format, options = {}) {
@@ -11957,11 +12029,14 @@ function prepareCanopyExport(capture, format, options = {}) {
                     // History captures already carry their frozen latest scalar (or null).
                     // Columns read by an emitted native rule keep the raw scalar the rule compares, so the label goes to the text only.
                     const relativeLabel = spec.kind === "text" && cell.diagnostics?.includes("relative-link") && !ruleOperands.has(spec.id);
-                    const badges = cell.badges === undefined ? undefined : badgeText(cell.badges);
+                    const badged = cell.badges === undefined ? undefined : badgeText(cell.badges, cell.text), badges = badged?.labels;
+                    if (badged?.dropped)
+                        fallback({ code: "BADGES_TRUNCATED:" + badged.dropped, rowId: row.id, columnId: spec.id });
                     const text = badges ? cell.text ? cell.text + badgeSeparator + badges : badges : cell.text;
                     // Badges belong to the visible label, so a badged text cell exports that composed label rather than a raw/label hybrid.
                     // Typed columns keep their scalar, and native rule operands keep the raw value the rule compares; both carry badges in the text only.
-                    const badgedValue = !!badges && values === "raw" && !relativeLabel && spec.kind === "text" && !ruleOperands.has(spec.id);
+                    // A cell whose badges were all left out still exports its captured label, as it would with the badges.
+                    const badgedValue = (!!badges || !!badged?.dropped) && values === "raw" && !relativeLabel && spec.kind === "text" && !ruleOperands.has(spec.id);
                     let value = values === "display" || relativeLabel || badgedValue ? text : cell.value;
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
@@ -12867,7 +12942,7 @@ return _exports;
 const _m0 = (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
-const { notifyProgress } = _m14;
+const { notifyProgress, notifySynchronously } = _m14;
 
 const { captureFields } = _m10;
 
@@ -12952,7 +13027,14 @@ async function writeCanopyTo(capture, format, destination, options = {}) {
             freezeHeader: xlsx.sheet?.freezeHeader ?? (xlsx.sheet?.includeHeader !== false),
             freezeColumns: xlsx.sheet?.freezeColumns ?? (pinned ? pinned + (grouped ? 1 : 0) : 0),
             conditionalFormats: [...rules, ...(xlsx.sheet?.conditionalFormats ?? [])] };
-        const settings = { ...xlsx, ...stream, columns: source.columns, sheet, dateMode: xlsx.dateMode ?? request.timeZone, limits: formatLimits };
+        // Data-cell links past Excel's per-worksheet limit keep their label; the worksheet reserves every link it cannot drop.
+        const linkFallback = canopyDiagnostics(format, { ...selected, unsupportedPresentation: "text" }), onHyperlinkOverflow = xlsx.onHyperlinkOverflow;
+        const settings = { ...xlsx, ...stream, columns: source.columns, sheet, dateMode: xlsx.dateMode ?? request.timeZone, limits: formatLimits,
+            hyperlinkOverflow: xlsx.hyperlinkOverflow ?? "drop",
+            onHyperlinkOverflow: (overflow) => {
+                notifySynchronously("onHyperlinkOverflow", onHyperlinkOverflow, overflow);
+                linkFallback({ code: "LINKS_TRUNCATED:" + overflow.dropped });
+            } };
         if (grouped || about)
             return writeCanopyWorkbook(source, grouped, destination, settings, capturedLabels, about);
         return writeXlsxTo(source.rows(), destination, settings);

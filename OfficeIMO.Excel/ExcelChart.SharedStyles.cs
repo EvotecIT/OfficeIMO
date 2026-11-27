@@ -1,7 +1,6 @@
-using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
@@ -12,7 +11,7 @@ namespace OfficeIMO.Excel {
                 ExcelChartSeries style = seriesStyles[seriesIndex];
                 OfficeSeries? authored = authoredSeries?[seriesIndex];
                 changed |= ApplySeriesByChartIndex(seriesIndex,
-                    series => ApplyAuthoredSeriesStyle(series, style, authored?.Color));
+                    (OfficeXmlNode series) => ApplyAuthoredSeriesStyle(series, style, authored?.Color));
 
                 if (style.PointColorArgb != null) {
                     for (int pointIndex = 0; pointIndex < style.PointColorArgb.Count; pointIndex++) {
@@ -21,14 +20,14 @@ namespace OfficeIMO.Excel {
                             int currentPoint = pointIndex;
                             string currentColor = color!;
                             changed |= ApplySeriesByChartIndex(seriesIndex,
-                                series => ApplyPointFill(series, currentPoint, GetAuthoredColor(authored?.PointColors?[currentPoint], currentColor)));
+                                (OfficeXmlNode series) => ApplyPointFill(series, currentPoint, GetAuthoredColor(authored?.PointColors?[currentPoint], currentColor)));
                         }
                     }
                 }
 
-                changed |= ApplySeriesMarkerByChartIndex(seriesIndex, marker => ApplyMarker(
+                changed |= ApplySeriesMarkerByChartIndex(seriesIndex, (OfficeXmlNode marker) => ApplyMarker(
                     marker,
-                    style.ShowMarkers ? MapMarkerStyle(style.MarkerShape).ToOfficeEnum() : OfficeChartMarkerShape.None,
+                    style.ShowMarkers ? MapMarkerStyle(style.MarkerShape) : OfficeChartMarkerShape.None,
                     style.MarkerSize.HasValue ? OfficeChartStyleBounds.ClampNativeMarkerSize(style.MarkerSize.Value) : (OfficeLength?)null,
                     style.ShowMarkers && style.SeriesColorArgb != null ? GetAuthoredColor(authored?.Color, style.SeriesColorArgb) : (OfficeColor?)null,
                     style.ShowMarkers && style.MarkerOutlineColorArgb != null ? GetAuthoredColor(authored?.MarkerOutlineColor, style.MarkerOutlineColorArgb) : (OfficeColor?)null,
@@ -43,8 +42,8 @@ namespace OfficeIMO.Excel {
         }
 
         private bool ApplySeriesLegendVisibility(IReadOnlyList<bool> seriesLegendVisibility, IReadOnlyList<ExcelChartSeries> seriesStyles) {
-            C.Chart chart = GetChart();
-            C.Legend? legend = chart.GetFirstChild<C.Legend>();
+            OfficeXmlNode chart = ChartNode();
+            OfficeXmlNode legend = chart.Child(C, "legend");
             bool hasHiddenSeries = false;
             for (int index = 0; index < seriesLegendVisibility.Count; index++) {
                 if (!seriesLegendVisibility[index]) {
@@ -52,49 +51,53 @@ namespace OfficeIMO.Excel {
                     break;
                 }
             }
-            if (legend == null && !hasHiddenSeries) return false;
+            if (legend.IsNone && !hasHiddenSeries) return false;
 
-            if (legend == null) {
-                legend = new C.Legend(
-                    new C.LegendPosition { Val = C.LegendPositionValues.Bottom },
-                    new C.Layout(),
-                    new C.Overlay { Val = false });
-                C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-                if (plotArea != null) chart.InsertAfter(legend, plotArea);
-                else chart.Append(legend);
+            if (legend.IsNone) {
+                legend = chart.New(C, "legend");
+                legend.With(
+                    legend.NewVal(C, "legendPos", "b"),
+                    legend.New(C, "layout"),
+                    legend.NewVal(C, "overlay", false));
+                OfficeXmlNode plotArea = chart.Child(C, "plotArea");
+                legend = plotArea.Exists ? plotArea.InsertAfterSelf(legend) : chart.Append(legend);
             }
 
             bool changed = false;
-            C.LegendEntry? existing;
-            while ((existing = legend.GetFirstChild<C.LegendEntry>()) != null) {
+            OfficeXmlNode existing;
+            while ((existing = legend.Child(C, "legendEntry")).Exists) {
                 existing.Remove();
                 changed = true;
             }
-            var trailing = legend.ChildElements.Where(child => child is not C.LegendPosition).ToArray();
-            foreach (OpenXmlElement child in trailing) child.Remove();
+            var trailing = new List<OfficeXmlNode>();
+            for (OfficeXmlNode child = legend.FirstChild; !child.IsNone; child = child.NextSibling) {
+                if (!child.Is(C, "legendPos")) trailing.Add(child);
+            }
+            foreach (OfficeXmlNode child in trailing) child.Remove();
             bool radial = ChartType == OfficeChartType.Pie || ChartType == OfficeChartType.Doughnut;
             int entryCount = radial ? (seriesStyles.Count == 0 ? 0 : seriesStyles[0].Values.Count) : seriesLegendVisibility.Count;
             for (int index = 0; index < entryCount; index++) {
                 if (radial ? !hasHiddenSeries : seriesLegendVisibility[index]) continue;
-                var entry = new C.LegendEntry(new C.Index { Val = (uint)index }, new C.Delete { Val = true });
+                OfficeXmlNode entry = legend.New(C, "legendEntry");
+                entry.With(entry.NewVal(C, "idx", (uint)index), entry.NewVal(C, "delete", true));
                 legend.Append(entry);
                 changed = true;
             }
-            foreach (OpenXmlElement child in trailing) legend.Append(child);
+            foreach (OfficeXmlNode child in trailing) legend.Append(child);
             return changed;
         }
 
-        private static void ApplyAuthoredSeriesStyle(OpenXmlCompositeElement series,
+        private static void ApplyAuthoredSeriesStyle(OfficeXmlNode series,
             ExcelChartSeries style, OfficeColor? authoredColor = null) {
-            bool reenableLine = style.ConnectLine && (series is C.LineChartSeries || series is C.ScatterChartSeries || series is C.RadarChartSeries) &&
-                series.GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
+            bool reenableLine = style.ConnectLine && IsLineScatterOrRadarSeries(series) &&
+                series.Child(C, "spPr").Child(A, "ln").Child(A, "noFill").Exists;
             bool hasShapeStyle = !string.IsNullOrWhiteSpace(style.SeriesColorArgb) ||
                                  style.SeriesLineWidth.HasValue || style.SeriesLineDashStyle.HasValue ||
                                  !style.ConnectLine || reenableLine;
             if (!hasShapeStyle && style.SeriesStyle == null) return;
 
-            C.ChartShapeProperties properties = EnsureChartShapeProperties(series);
-            if (reenableLine) properties.GetFirstChild<A.Outline>()!.RemoveAllChildren<A.NoFill>();
+            OfficeXmlNode properties = EnsureChartShapeProperties(series);
+            if (reenableLine) properties.Child(A, "ln").RemoveChildren(A, "noFill");
             if (!string.IsNullOrWhiteSpace(style.SeriesColorArgb)) {
                 OfficeColor color = GetAuthoredColor(authoredColor, style.SeriesColorArgb!);
                 ApplySolidFill(properties, color);
@@ -104,40 +107,50 @@ namespace OfficeIMO.Excel {
             }
 
             if (style.SeriesLineDashStyle.HasValue) {
-                A.Outline outline = properties.GetFirstChild<A.Outline>() ?? properties.AppendChild(new A.Outline());
-                outline.RemoveAllChildren<A.PresetDash>();
-                outline.Append(new A.PresetDash { Val = MapDashStyle(style.SeriesLineDashStyle.Value) });
+                OfficeXmlNode outline = properties.Child(A, "ln");
+                if (outline.IsNone) outline = properties.Append(properties.New(A, "ln"));
+                outline.RemoveChildren(A, "prstDash");
+                outline.Append(outline.NewVal(A, "prstDash", MapDashStyle(style.SeriesLineDashStyle.Value)));
             }
             if (!style.ConnectLine) ApplyNoLine(properties);
-            if (style.SeriesStyle != null) OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.ApplySeriesPaint(properties, style.SeriesStyle);
+            if (style.SeriesStyle != null) OfficeOpenXmlChartPointStyles.ApplySeriesPaint(properties, style.SeriesStyle);
+        }
+
+        /// <summary>Whether a series is a line (including stock and 3-D line), scatter or radar <c>c:ser</c>.</summary>
+        private static bool IsLineScatterOrRadarSeries(OfficeXmlNode series) {
+            if (!series.Is(C, "ser")) return false;
+            OfficeXmlNode parent = series.Parent;
+            return parent.Is(C, "lineChart") || parent.Is(C, "line3DChart") || parent.Is(C, "stockChart")
+                || parent.Is(C, "scatterChart") || parent.Is(C, "radarChart");
         }
 
         // Slots stay native; metadata already contains creation-theme-resolved status roles and literal ARGB.
         private static OfficeColor GetAuthoredColor(OfficeColor? authored, string argb) =>
             authored?.ThemeSlot != null ? authored.Value
-                : ExcelColor.FromSpreadsheetColor(null, argb)!.Value;
+                : ColorFromArgb(argb)!.Value;
 
-        private static C.MarkerStyleValues MapMarkerStyle(OfficeChartMarkerShape? shape) {
+        private static OfficeChartMarkerShape MapMarkerStyle(OfficeChartMarkerShape? shape) {
             switch (shape ?? OfficeChartMarkerShape.Circle) {
-                case OfficeChartMarkerShape.Square: return C.MarkerStyleValues.Square;
-                case OfficeChartMarkerShape.Diamond: return C.MarkerStyleValues.Diamond;
-                case OfficeChartMarkerShape.Triangle: return C.MarkerStyleValues.Triangle;
-                case OfficeChartMarkerShape.Dash: return C.MarkerStyleValues.Dash;
-                case OfficeChartMarkerShape.Dot: return C.MarkerStyleValues.Dot;
-                case OfficeChartMarkerShape.Plus: return C.MarkerStyleValues.Plus;
-                case OfficeChartMarkerShape.X: return C.MarkerStyleValues.X;
-                case OfficeChartMarkerShape.Star: return C.MarkerStyleValues.Star;
-                default: return C.MarkerStyleValues.Circle;
+                case OfficeChartMarkerShape.Square: return OfficeChartMarkerShape.Square;
+                case OfficeChartMarkerShape.Diamond: return OfficeChartMarkerShape.Diamond;
+                case OfficeChartMarkerShape.Triangle: return OfficeChartMarkerShape.Triangle;
+                case OfficeChartMarkerShape.Dash: return OfficeChartMarkerShape.Dash;
+                case OfficeChartMarkerShape.Dot: return OfficeChartMarkerShape.Dot;
+                case OfficeChartMarkerShape.Plus: return OfficeChartMarkerShape.Plus;
+                case OfficeChartMarkerShape.X: return OfficeChartMarkerShape.X;
+                case OfficeChartMarkerShape.Star: return OfficeChartMarkerShape.Star;
+                default: return OfficeChartMarkerShape.Circle;
             }
         }
 
-        private static A.PresetLineDashValues MapDashStyle(OfficeStrokeDashStyle style) {
+        /// <summary>The <c>a:prstDash</c> token for a stroke dash style.</summary>
+        private static string MapDashStyle(OfficeStrokeDashStyle style) {
             switch (style) {
-                case OfficeStrokeDashStyle.Dash: return A.PresetLineDashValues.Dash;
-                case OfficeStrokeDashStyle.Dot: return A.PresetLineDashValues.Dot;
-                case OfficeStrokeDashStyle.DashDot: return A.PresetLineDashValues.DashDot;
-                case OfficeStrokeDashStyle.DashDotDot: return A.PresetLineDashValues.LargeDashDotDot;
-                default: return A.PresetLineDashValues.Solid;
+                case OfficeStrokeDashStyle.Dash: return "dash";
+                case OfficeStrokeDashStyle.Dot: return "dot";
+                case OfficeStrokeDashStyle.DashDot: return "dashDot";
+                case OfficeStrokeDashStyle.DashDotDot: return "lgDashDotDot";
+                default: return "solid";
             }
         }
     }

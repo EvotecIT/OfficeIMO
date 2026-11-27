@@ -67,7 +67,7 @@ public sealed class AddOfficePowerPointListItemCommand : OfficeCmdlet {
                 PowerPointTextFormatting.Apply(run, scope, BoundSwitch(nameof(Bold)), BoundSwitch(nameof(Italic)), BoundSwitch(nameof(Strikethrough)), Underline, Color, Highlight, Font, Size);
             if (PassThru) WriteObject(item);
         } catch {
-            PowerPointTextRun.DiscardContent(item.Paragraph, item.OwnerPart as DocumentFormat.OpenXml.Packaging.OpenXmlPart);
+            PowerPointTextRun.DiscardContent(item.Element, item.OwnerPartRef, item.SlidePartRef);
             throw;
         }
     }

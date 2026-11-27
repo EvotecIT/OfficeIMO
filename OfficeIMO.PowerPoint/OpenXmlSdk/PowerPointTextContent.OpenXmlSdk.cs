@@ -22,12 +22,6 @@ namespace OfficeIMO.PowerPoint {
             return content;
         }
 
-        /// <summary>Applies a change to the properties of every run and line break below <paramref name="container"/>.</summary>
-        internal static void FormatRuns(OpenXmlElement container, Action<A.RunProperties> change) {
-            foreach (A.Run run in container.Descendants<A.Run>()) change(run.RunProperties ??= new A.RunProperties());
-            foreach (A.Break lineBreak in container.Descendants<A.Break>()) change(lineBreak.RunProperties ??= new A.RunProperties());
-        }
-
         /// <summary>Copies run properties to a run or line break; a break cannot be clicked, so it keeps no interaction.</summary>
         internal static void ApplyProperties(OpenXmlElement node, A.RunProperties? properties) =>
             ApplyProperties(OfficeXmlNode.FromSdk(node), OfficeXmlNode.FromSdk(properties));

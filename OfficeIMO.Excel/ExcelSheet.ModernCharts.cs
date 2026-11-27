@@ -1,11 +1,9 @@
 using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Packaging;
-using Cx = DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -25,22 +23,23 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelModernChart[] GetModernChartsCore() {
-            DrawingsPart? drawingsPart = _worksheetPart.DrawingsPart;
-            if (drawingsPart?.WorksheetDrawing == null) return Array.Empty<ExcelModernChart>();
-            return drawingsPart.WorksheetDrawing.Descendants<Xdr.GraphicFrame>()
-                .Where(frame => string.Equals(
-                    frame.Graphic?.GraphicData?.Uri?.Value,
-                    ChartExGraphicDataUri,
-                    StringComparison.Ordinal))
-                .Select(frame => {
-                    ExtendedChartPart? part = TryGetModernChartPart(frame, drawingsPart);
-                    return new ExcelModernChart(
-                        frame,
-                        drawingsPart,
-                        this,
-                        part == null ? null : TryExtractModernChartDataRange(part));
-                })
-                .ToArray();
+            ExcelPartRef drawingsPart = ExcelPartRef.WorksheetForMetadata(this).Drawings;
+            OfficeXmlNode worksheetDrawing = drawingsPart.IsNone ? default : drawingsPart.Root;
+            if (worksheetDrawing.IsNone) return Array.Empty<ExcelModernChart>();
+            var charts = new List<ExcelModernChart>();
+            foreach (OfficeXmlNode frame in worksheetDrawing.Descendants(Xdr, "graphicFrame")) {
+                if (!string.Equals(
+                        frame.Child(A, "graphic").Child(A, "graphicData").Attribute("uri"),
+                        ChartExGraphicDataUri,
+                        StringComparison.Ordinal)) continue;
+                ExcelPartRef part = TryGetModernChartPart(frame, drawingsPart);
+                charts.Add(new ExcelModernChart(
+                    frame,
+                    drawingsPart,
+                    this,
+                    part.IsNone ? null : TryExtractModernChartDataRange(part)));
+            }
+            return charts.ToArray();
         }
 
         /// <summary>Adds a native ChartEx chart backed by OfficeIMO's shared hidden chart-data owner.</summary>
@@ -62,15 +61,15 @@ namespace OfficeIMO.Excel {
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateDuringDirtyMarks();
             ExcelChartDataRange? range = null;
-            Xdr.GraphicFrame? frame = null;
-            DrawingsPart? drawingsPart = null;
+            OfficeXmlNode frame = default;
+            ExcelPartRef drawingsPart = default;
             WriteLock(() => {
-                DocumentFormat.OpenXml.Spreadsheet.Drawing? drawing = WorksheetRoot
-                    .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
-                if (drawing != null) {
-                    string drawingRelationshipId = drawing.Id?.Value ?? string.Empty;
-                    if (drawingRelationshipId.Length == 0
-                        || TryGetPartById(_worksheetPart, drawingRelationshipId) is not DrawingsPart existingDrawingsPart) {
+                ExcelPartRef worksheetPart = ExcelPartRef.WorksheetForMetadata(this);
+                OfficeXmlNode drawing = ExcelPartRef.WorksheetDrawingElement(this);
+                if (drawing.Exists) {
+                    string drawingRelationshipId = drawing.RelationshipAttribute("id") ?? string.Empty;
+                    ExcelPartRef existingDrawingsPart = drawingRelationshipId.Length == 0 ? default : worksheetPart.GetPartById(drawingRelationshipId);
+                    if (existingDrawingsPart.Kind != ExcelPartKind.Drawings) {
                         throw new InvalidOperationException("Worksheet drawing relationship is missing or invalid.");
                     }
                     drawingsPart = existingDrawingsPart;
@@ -81,47 +80,28 @@ namespace OfficeIMO.Excel {
                     dataSheet,
                     GetChartDataPointCount(data) + 1);
                 range = dataSheet.WriteChartData(data, startRow, 1);
-                if (drawing == null) {
-                    drawingsPart = _worksheetPart.AddNewPart<DrawingsPart>();
-                    drawingsPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
-                    WorksheetRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing {
-                        Id = _worksheetPart.GetIdOfPart(drawingsPart)
-                    });
-                } else {
-                    drawingsPart!.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
+                if (drawing.IsNone) {
+                    drawingsPart = worksheetPart.AddNewPart(ExcelPartKind.Drawings);
+                    drawingsPart.SetRootMarkup(WorksheetDrawingRootMarkup);
+                    ExcelPartRef.LinkWorksheetDrawing(this, worksheetPart.GetIdOfPart(drawingsPart)!);
+                } else if (drawingsPart.Root.IsNone) {
+                    drawingsPart.SetRootMarkup(WorksheetDrawingRootMarkup);
                 }
 
-                ExtendedChartPart chartPart = drawingsPart!.AddNewPart<ExtendedChartPart>();
-                chartPart.ChartSpace = BuildModernChartSpace(data, range!, layout, title);
-                chartPart.ChartSpace.Save();
-                string relationshipId = drawingsPart.GetIdOfPart(chartPart);
+                ExcelPartRef chartPart = drawingsPart.AddNewPart(ExcelPartKind.ExtendedChart);
+                chartPart.SetRootMarkup(System.Text.Encoding.UTF8.GetBytes(BuildModernChartSpaceMarkup(data, range!, layout, title)));
+                chartPart.SaveRoot();
+                string relationshipId = drawingsPart.GetIdOfPart(chartPart)!;
                 long widthEmu = width.Value.ToEmus();
                 long heightEmu = height.Value.ToEmus();
-                UInt32Value id = NextDrawingId(drawingsPart);
-                string name = "Modern Chart " + id.Value.ToString(CultureInfo.InvariantCulture);
-                frame = new Xdr.GraphicFrame(
-                    new Xdr.NonVisualGraphicFrameProperties(
-                        new Xdr.NonVisualDrawingProperties { Id = id, Name = name },
-                        new Xdr.NonVisualGraphicFrameDrawingProperties(new GraphicFrameLocks { NoChangeAspect = true })),
-                    new Xdr.Transform(
-                        new Offset { X = 0, Y = 0 },
-                        new Extents { Cx = widthEmu, Cy = heightEmu }),
-                    new Graphic(
-                        new GraphicData(
-                            new Cx.RelId { Id = relationshipId }) { Uri = ChartExGraphicDataUri }));
-                drawingsPart.WorksheetDrawing!.Append(new Xdr.OneCellAnchor(
-                    new Xdr.FromMarker(
-                        new Xdr.ColumnId((column - 1).ToString(CultureInfo.InvariantCulture)),
-                        new Xdr.ColumnOffset("0"),
-                        new Xdr.RowId((row - 1).ToString(CultureInfo.InvariantCulture)),
-                        new Xdr.RowOffset("0")),
-                    new Xdr.Extent { Cx = widthEmu, Cy = heightEmu },
-                    frame,
-                    new Xdr.ClientData()));
-                drawingsPart.WorksheetDrawing.Save();
+                uint id = NextDrawingId(drawingsPart);
+                string name = "Modern Chart " + id.ToString(CultureInfo.InvariantCulture);
+                frame = AppendGraphicFrameAnchor(drawingsPart.Root, row, column, widthEmu, heightEmu, id, name,
+                    ChartExGraphicDataUri, context => NewChartExReference(context, relationshipId));
+                drawingsPart.SaveRoot();
                 MarkRequiresSavePreparation();
             });
-            return new ExcelModernChart(frame!, drawingsPart!, this, range!);
+            return new ExcelModernChart(frame, drawingsPart, this, range!);
         }
 
         internal static void ValidateModernChartPlacement(int row, int column, OfficeLength width, OfficeLength height) {
@@ -193,43 +173,31 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static ExtendedChartPart? TryGetModernChartPart(Xdr.GraphicFrame frame, DrawingsPart drawingsPart) {
-            OpenXmlElement? reference = frame.Graphic?.GraphicData?.ChildElements.FirstOrDefault(element =>
-                string.Equals(element.LocalName, "chart", StringComparison.Ordinal)
-                && string.Equals(element.NamespaceUri, ChartExGraphicDataUri, StringComparison.Ordinal));
-            string relationshipId = reference?.GetAttribute(
-                "id",
-                "http://schemas.openxmlformats.org/officeDocument/2006/relationships").Value ?? string.Empty;
-            if (relationshipId.Length == 0) return null;
-            return drawingsPart.Parts.FirstOrDefault(pair =>
-                string.Equals(pair.RelationshipId, relationshipId, StringComparison.Ordinal)).OpenXmlPart as ExtendedChartPart;
+        private static ExcelPartRef TryGetModernChartPart(OfficeXmlNode frame, ExcelPartRef drawingsPart) {
+            OfficeXmlNode reference = frame.Child(A, "graphic").Child(A, "graphicData").Child(ChartExGraphicDataUri, "chart");
+            string relationshipId = reference.RelationshipAttribute("id") ?? string.Empty;
+            if (relationshipId.Length == 0) return default;
+            foreach ((string Id, ExcelPartRef Part) pair in drawingsPart.Parts) {
+                if (string.Equals(pair.Id, relationshipId, StringComparison.Ordinal)) {
+                    return pair.Part.Kind == ExcelPartKind.ExtendedChart ? pair.Part : default;
+                }
+            }
+            return default;
         }
 
-        private ExcelChartDataRange? TryExtractModernChartDataRange(ExtendedChartPart part) {
-            OpenXmlElement? root = part.ChartSpace;
-            OpenXmlElement[] data = root?.Descendants()
-                .Where(element => element.LocalName == "data")
-                .ToArray() ?? Array.Empty<OpenXmlElement>();
-            if (data.Length == 0) return null;
+        private ExcelChartDataRange? TryExtractModernChartDataRange(ExcelPartRef part) {
+            OfficeXmlNode root = part.Root;
+            List<OfficeXmlNode> data = ExcelDrawingXml.DescendantsNamed(root, "data");
+            if (data.Count == 0) return null;
 
-            string? categoryFormula = data[0].Descendants()
-                .FirstOrDefault(element => element.LocalName == "strDim"
-                    && element.GetAttribute("type", string.Empty).Value == "cat")?
-                .Descendants()
-                .FirstOrDefault(element => element.LocalName == "f")?
-                .InnerText;
+            string? categoryFormula = FirstFormulaOfDimension(data[0], "strDim", "cat");
             if (!ExcelChartUtils.TryParseSheetQualifiedRange(categoryFormula, out string sheetName, out string categoryRange)
                 || !_excelDocument.IsOwnedChartDataSheet(sheetName)
                 || !ExcelA1.TryParseRange(categoryRange, out int firstRow, out int categoryColumn, out int lastRow, out int lastCategoryColumn)
                 || categoryColumn != lastCategoryColumn) return null;
 
-            for (int index = 0; index < data.Length; index++) {
-                string? valueFormula = data[index].Descendants()
-                    .FirstOrDefault(element => element.LocalName == "numDim"
-                        && element.GetAttribute("type", string.Empty).Value == "val")?
-                    .Descendants()
-                    .FirstOrDefault(element => element.LocalName == "f")?
-                    .InnerText;
+            for (int index = 0; index < data.Count; index++) {
+                string? valueFormula = FirstFormulaOfDimension(data[index], "numDim", "val");
                 if (!ExcelChartUtils.TryParseSheetQualifiedRange(valueFormula, out string valueSheet, out string valueRange)
                     || !string.Equals(sheetName, valueSheet, StringComparison.OrdinalIgnoreCase)
                     || !ExcelA1.TryParseRange(valueRange, out int valueFirstRow, out int valueColumn, out int valueLastRow, out int valueLastColumn)
@@ -242,10 +210,11 @@ namespace OfficeIMO.Excel {
             bool hasHeaderRow = firstRow > 1;
             if (hasHeaderRow) {
                 ExcelSheet dataSheet = _excelDocument.GetSheetForLockedOperation(sheetName);
-                Cx.Series[] series = root?.Descendants<Cx.Series>().ToArray() ?? Array.Empty<Cx.Series>();
-                hasHeaderRow = series.Length == data.Length;
-                for (int index = 0; hasHeaderRow && index < series.Length; index++) {
-                    string expectedName = series[index].Descendants<Cx.VXsdstring>().FirstOrDefault()?.Text ?? string.Empty;
+                List<OfficeXmlNode> series = ExcelDrawingXml.Descendants(root, ChartExGraphicDataUri, "series");
+                hasHeaderRow = series.Count == data.Count;
+                for (int index = 0; hasHeaderRow && index < series.Count; index++) {
+                    OfficeXmlNode expected = ExcelDrawingXml.FirstDescendant(series[index], ChartExGraphicDataUri, "v");
+                    string expectedName = expected.IsNone ? string.Empty : expected.InnerText;
                     hasHeaderRow = dataSheet.TryGetCellText(firstRow - 1, categoryColumn + index + 1, out string actualName)
                         && string.Equals(expectedName, actualName, StringComparison.Ordinal);
                 }
@@ -256,11 +225,21 @@ namespace OfficeIMO.Excel {
                 hasHeaderRow ? firstRow - 1 : firstRow,
                 categoryColumn,
                 lastRow - firstRow + 1,
-                data.Length,
+                data.Count,
                 hasHeaderRow);
         }
 
-        internal static Cx.ChartSpace BuildModernChartSpace(
+        // The text of the first f under the first descendant dimension of this name and type, in any namespace.
+        private static string? FirstFormulaOfDimension(OfficeXmlNode data, string dimensionName, string type) {
+            foreach (OfficeXmlNode dimension in ExcelDrawingXml.DescendantsNamed(data, dimensionName)) {
+                if (dimension.Attribute("type") != type) continue;
+                OfficeXmlNode formula = ExcelDrawingXml.FirstDescendantNamed(dimension, "f");
+                return formula.IsNone ? null : formula.InnerText;
+            }
+            return null;
+        }
+
+        internal static string BuildModernChartSpaceMarkup(
             ExcelChartData data,
             ExcelChartDataRange range,
             string layout,
@@ -322,7 +301,7 @@ namespace OfficeIMO.Excel {
                 new XAttribute("version", "1"),
                 chart,
                 chartData);
-            return new Cx.ChartSpace(root.ToString(SaveOptions.DisableFormatting));
+            return root.ToString(SaveOptions.DisableFormatting);
         }
     }
 }

@@ -1,5 +1,4 @@
 using System.Globalization;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -99,14 +98,13 @@ namespace OfficeIMO.Excel {
 
                 // Plain numbers read back as their stored text; dates, durations, Booleans and other values keep the cell read.
                 if (value is not (double or float or decimal or int or long or short or sbyte or uint or ulong or ushort or byte)) return false;
-                var (cellValue, cellType) = CoerceValueHelper.Coerce(value, static shared => new CellValue(shared), dateSystem: DateSystem);
-                if (cellType != CellValues.Number) return false;
+                if (!TryCoerceNumberCellText(value, out string? numberText)) return false;
                 if (numbersReadAsNumbers && sheetModel.ColumnNumberFormats is { } formats && columnIndex < formats.Count
                     && ExcelNumberFormatClassifier.LooksLikeDateFormat(formats[columnIndex])) {
                     return false;
                 }
 
-                result[i] = cellValue.Text;
+                result[i] = numberText;
             }
 
             texts = result;

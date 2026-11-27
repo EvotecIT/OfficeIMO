@@ -1,187 +1,101 @@
+using System.Text;
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
-using System.Text;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
-    internal interface INotesMasterPartFactory {
-        NotesMasterPart EnsureNotesMasterPart(PresentationPart presentationPart);
-    }
-
-    internal sealed class DefaultNotesMasterPartFactory : INotesMasterPartFactory {
-        internal static DefaultNotesMasterPartFactory Instance { get; } = new();
-
-        private DefaultNotesMasterPartFactory() {
-        }
-
-        public NotesMasterPart EnsureNotesMasterPart(PresentationPart presentationPart) {
-            return PowerPointUtils.EnsureNotesMasterPart(presentationPart);
-        }
-    }
-
     /// <summary>
     ///     Represents notes for a slide.
     /// </summary>
     public partial class PowerPointNotes {
-        private readonly SlidePart? _ownerSlidePart;
-        private readonly PowerPointSlide? _slide;
-        private readonly INotesMasterPartFactory _notesMasterPartFactory;
-        private HashSet<string>? _cachedRelationshipIds;
+        private const int P = OfficeXmlNamespaces.PresentationML;
+        private const int D = OfficeXmlNamespaces.DrawingML;
 
-        internal PowerPointNotes(SlidePart slidePart, INotesMasterPartFactory? notesMasterPartFactory = null) {
-            _ownerSlidePart = slidePart;
-            _notesMasterPartFactory = notesMasterPartFactory ?? DefaultNotesMasterPartFactory.Instance;
-        }
+        private readonly PowerPointSlide _slide;
 
-        // The notes of a slide that may work on the document's package: they read and edit existing notes there, and
-        // anything else opens the SDK through the slide.
         internal PowerPointNotes(PowerPointSlide slide) {
             _slide = slide;
-            _notesMasterPartFactory = DefaultNotesMasterPartFactory.Instance;
         }
 
-        private SlidePart OwnerSlidePart => _ownerSlidePart ?? _slide!.SlidePart;
-
-        private NotesSlide NotesSlide {
+        // The slide's notes slide part when it has one, or none; a relationship to a part that holds no p:notes doesn't count,
+        // as the SDK rejects it and HasSpeakerNotes reads it.
+        private PowerPointPartRef ExistingNotesPart {
             get {
-                NotesSlidePart? notesPart = OwnerSlidePart.NotesSlidePart;
-                if (notesPart == null) {
-                    // Generate a unique relationship ID for the notes part
-                    HashSet<string> slideRelationships = GetRelationshipIds();
-
-                    int notesIdNum = 1;
-                    string notesRelId;
-                    do {
-                        notesRelId = "rId" + notesIdNum;
-                        notesIdNum++;
-                    } while (!slideRelationships.Add(notesRelId));
-
-                    notesPart = OwnerSlidePart.AddNewPart<NotesSlidePart>(notesRelId);
-
-                    ShapeTree shapeTree = CreateEmptyShapeTree();
-                    uint placeholderId = GetNextShapeId(shapeTree);
-                    shapeTree.Append(CreateNotesPlaceholderShape(placeholderId));
-
-                    notesPart.NotesSlide = new NotesSlide(
-                        new CommonSlideData(shapeTree),
-                        new ColorMapOverride(new A.MasterColorMapping()));
-                }
-
-                EnsureSlideRelationship(notesPart);
-                EnsureNotesMasterRelationship(notesPart);
-
-                if (notesPart.NotesSlide == null) {
-                    ShapeTree shapeTree = CreateEmptyShapeTree();
-                    uint placeholderId = GetNextShapeId(shapeTree);
-                    shapeTree.Append(CreateNotesPlaceholderShape(placeholderId));
-
-                    notesPart.NotesSlide = new NotesSlide(
-                        new CommonSlideData(shapeTree),
-                        new ColorMapOverride(new A.MasterColorMapping()));
-                }
-
-                return notesPart.NotesSlide!;
+                PowerPointPartRef notes = _slide.PartRef.RelatedPart(PowerPointPartRef.NotesSlideRelationshipType);
+                return notes.Root.Is(P, "notes") ? notes : default;
             }
         }
 
-        private void EnsureSlideRelationship(NotesSlidePart notesPart) {
-            if (!notesPart.Parts.Any(pair => ReferenceEquals(
-                    pair.OpenXmlPart, OwnerSlidePart))) {
-                notesPart.AddPart(OwnerSlidePart);
-            }
-        }
+        // The notes slide part, created as the notes model first uses it when the slide has none.
+        private PowerPointPartRef EnsureNotesPart() =>
+            _slide.OwnerDocument?.EnsureNotesSlidePart(_slide) ?? throw new InvalidOperationException("The slide is not part of a presentation.");
 
-        private void EnsureNotesMasterRelationship(NotesSlidePart notesPart) {
-            PresentationPart? presentationPart = OwnerSlidePart
-                .GetParentPresentationPart();
-
-            if (presentationPart == null) {
-                return;
-            }
-
-            NotesMasterPart notesMasterPart = _notesMasterPartFactory.EnsureNotesMasterPart(presentationPart);
-
-            bool hasNotesMasterRelationship = notesPart.Parts
-                .Any(pair => ReferenceEquals(pair.OpenXmlPart, notesMasterPart));
-
-            if (!hasNotesMasterRelationship) {
-                notesPart.AddPart(notesMasterPart);
-            }
-        }
+        // The p:spTree of a notes slide, or none.
+        private static OfficeXmlNode ShapeTreeOf(PowerPointPartRef notes) => notes.Root.Child(P, "cSld").Child(P, "spTree");
 
         /// <summary>
         ///     Gets or sets the notes text.
         /// </summary>
         public string Text {
             get {
-                if (TryGetPackageNotesBody(out OfficeXmlTree? packageTree, out int packageBody)) {
-                    if (packageBody == OfficeXmlTree.NoNode) return string.Empty;
-                    if (PowerPointTreeText.TryReadBody(packageTree!, packageBody, out string packageText)) return packageText;
-                }
-                Shape? shape = GetNotesTextShape(NotesSlide.CommonSlideData?.ShapeTree);
-                if (shape?.TextBody == null) {
-                    return string.Empty;
-                }
-
-                List<string> paragraphs = shape.TextBody.Elements<A.Paragraph>()
-                    .Select(ReadParagraphText)
-                    .ToList();
-                return paragraphs.Count == 0 ? string.Empty : string.Join(Environment.NewLine, paragraphs);
+                OfficeXmlNode shape = GetNotesTextShape(ShapeTreeOf(EnsureNotesPart()));
+                return ReadParagraphs(shape.Child(P, "txBody"), Environment.NewLine, skipBlank: false);
             }
-            set {
-                if (TrySetPackageText(value)) return;
-                SetParagraphs(PowerPointTextContent.SplitParagraphs(value));
-            }
+            set => SetParagraphs(PowerPointTextContent.SplitParagraphs(value));
         }
 
         /// <summary>Gets the paragraphs in the existing speaker-notes text body without creating a notes part.</summary>
         public IReadOnlyList<PowerPointParagraph> Paragraphs {
             get {
-                NotesSlidePart? notesPart = OwnerSlidePart.NotesSlidePart;
-                Shape? shape = GetNotesTextShape(notesPart?.NotesSlide?.CommonSlideData?.ShapeTree);
-                return shape?.TextBody?.Elements<A.Paragraph>()
-                    .Select(paragraph => new PowerPointParagraph(paragraph, OwnerSlidePart, notesPart))
-                    .ToList() ?? (IReadOnlyList<PowerPointParagraph>)Array.Empty<PowerPointParagraph>();
+                PowerPointPartRef notes = ExistingNotesPart;
+                var paragraphs = new List<PowerPointParagraph>();
+                if (notes.IsNone) return paragraphs;
+                PowerPointPartRef slide = _slide.PartRef;
+                foreach (OfficeXmlNode paragraph in GetNotesTextShape(ShapeTreeOf(notes)).Child(P, "txBody").Children(D, "p")) {
+                    paragraphs.Add(new PowerPointParagraph(paragraph, slide, notes, _slide));
+                }
+                return paragraphs;
             }
         }
 
         /// <summary>Replaces the speaker notes with paragraphs that can be further styled through their typed runs.</summary>
         public IReadOnlyList<PowerPointParagraph> SetParagraphs(IEnumerable<string> paragraphs) {
             ArgumentNullException.ThrowIfNull(paragraphs);
+            // The texts are read before anything changes, so a source that reads the notes sees them as they were.
+            List<string> texts = paragraphs as List<string> ?? paragraphs.ToList();
 
-            NotesSlide notesSlide = NotesSlide;
-            NotesSlidePart notesPart = OwnerSlidePart.NotesSlidePart
-                ?? throw new InvalidOperationException("The notes slide part could not be created.");
-            CommonSlideData common = notesSlide.CommonSlideData ??= new CommonSlideData(CreateEmptyShapeTree());
-            ShapeTree tree = EnsureShapeTree(common);
-            Shape shape = GetOrCreateNotesTextShape(tree);
-            TextBody textBody = shape.TextBody ?? new TextBody(new A.BodyProperties(), new A.ListStyle());
-            shape.TextBody ??= textBody;
+            PowerPointPartRef notes = EnsureNotesPart();
+            OfficeXmlNode tree = EnsureShapeTree(notes.Root);
+            OfficeXmlNode shape = GetNotesTextShape(tree);
+            if (shape.IsNone) shape = tree.Append(CreateNotesPlaceholderShape(tree, NextShapeId(tree)));
+            OfficeXmlNode body = shape.Child(P, "txBody");
+            if (body.IsNone) {
+                body = shape.CreateElement(P, "txBody");
+                body.Append(body.CreateElement(D, "bodyPr"));
+                body.Append(body.CreateElement(D, "lstStyle"));
+                body = shape.InsertOrdered(body, PShapeView.Order);
+            }
 
-            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
-            A.ParagraphProperties? templateParagraphProperties = templateParagraph?.GetFirstChild<A.ParagraphProperties>();
-            A.EndParagraphRunProperties? templateEndParagraphRunProperties = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
-            A.RunProperties? templateRunProperties = templateParagraph?
-                .Elements<A.Run>()
-                .Select(run => run.RunProperties)
-                .FirstOrDefault(properties => properties != null);
+            OfficeXmlNode template = body.Child(D, "p");
+            OfficeXmlNode paragraphProperties = template.Child(D, "pPr");
+            paragraphProperties = paragraphProperties.IsNone ? default : paragraphProperties.Clone();
+            OfficeXmlNode endProperties = template.Child(D, "endParaRPr");
+            endProperties = endProperties.IsNone ? default : endProperties.Clone();
+            OfficeXmlNode runProperties = PowerPointTextBox.FirstRunProperties(template);
+            runProperties = runProperties.IsNone ? default : runProperties.Clone();
 
-            textBody.RemoveAllChildren<A.Paragraph>();
+            body.RemoveChildren(D, "p");
+            if (texts.Count == 0) texts = new List<string> { string.Empty };
+            PowerPointPartRef slide = _slide.PartRef;
             var result = new List<PowerPointParagraph>();
-            foreach (string text in paragraphs) {
-                A.Paragraph paragraph = CreateParagraph(text ?? string.Empty, templateParagraphProperties,
-                    templateRunProperties, templateEndParagraphRunProperties);
-                textBody.Append(paragraph);
-                result.Add(new PowerPointParagraph(paragraph, OwnerSlidePart, notesPart));
+            foreach (string text in texts) {
+                OfficeXmlNode paragraph = body.Append(body.CreateElement(D, "p"));
+                if (!paragraphProperties.IsNone) paragraph.Append(paragraphProperties.Clone());
+                PowerPointTextContent.InsertInlineContent(paragraph, text ?? string.Empty, runProperties, default);
+                if (!endProperties.IsNone) paragraph.Append(endProperties.Clone());
+                result.Add(new PowerPointParagraph(paragraph, slide, notes, _slide));
             }
-            if (result.Count == 0) {
-                A.Paragraph paragraph = CreateParagraph(string.Empty, templateParagraphProperties,
-                    templateRunProperties, templateEndParagraphRunProperties);
-                textBody.Append(paragraph);
-                result.Add(new PowerPointParagraph(paragraph, OwnerSlidePart, notesPart));
-            }
+            notes.MarkEdited();
             return result;
         }
 
@@ -189,17 +103,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Reads existing speaker notes without creating notes or notes-master parts when none exist.
         /// </summary>
         public bool TryGetText(out string text) {
-            NotesSlide? notesSlide = OwnerSlidePart.NotesSlidePart?.NotesSlide;
-            Shape? shape = GetNotesTextShape(notesSlide?.CommonSlideData?.ShapeTree);
-            if (shape?.TextBody == null) {
+            PowerPointPartRef notes = ExistingNotesPart;
+            OfficeXmlNode body = notes.IsNone ? default : GetNotesTextShape(ShapeTreeOf(notes)).Child(P, "txBody");
+            if (body.IsNone) {
                 text = string.Empty;
                 return false;
             }
 
-            List<string> paragraphs = shape.TextBody.Elements<A.Paragraph>()
-                .Select(ReadParagraphText)
-                .ToList();
-            text = paragraphs.Count == 0 ? string.Empty : string.Join(Environment.NewLine, paragraphs);
+            text = ReadParagraphs(body, Environment.NewLine, skipBlank: false);
             return text.Length > 0;
         }
 
@@ -211,17 +122,18 @@ namespace OfficeIMO.PowerPoint {
         public bool TryGetExistingText(out string text) {
             text = string.Empty;
             try {
-                NotesSlide? notesSlide = OwnerSlidePart.NotesSlidePart?.NotesSlide;
-                ShapeTree? shapeTree = notesSlide?.CommonSlideData?.ShapeTree;
-                if (shapeTree == null) {
+                PowerPointPartRef notes = ExistingNotesPart;
+                OfficeXmlNode tree = notes.IsNone ? default : ShapeTreeOf(notes);
+                if (tree.IsNone) {
                     return false;
                 }
 
-                text = string.Join(
-                    Environment.NewLine + Environment.NewLine,
-                    shapeTree.Elements<Shape>()
-                        .Select(ReadShapeText)
-                        .Where(static value => !string.IsNullOrWhiteSpace(value))).Trim();
+                var blocks = new List<string>();
+                foreach (OfficeXmlNode shape in tree.Children(P, "sp")) {
+                    string block = ReadParagraphs(shape.Child(P, "txBody"), Environment.NewLine, skipBlank: true);
+                    if (!string.IsNullOrWhiteSpace(block)) blocks.Add(block);
+                }
+                text = string.Join(Environment.NewLine + Environment.NewLine, blocks).Trim();
                 return text.Length > 0;
             } catch {
                 text = string.Empty;
@@ -229,151 +141,104 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>Writes the notes slide of a slide the SDK holds; notes on the package are written with it.</summary>
         internal void Save() {
-            OwnerSlidePart.NotesSlidePart?.NotesSlide?.Save();
+            if (_slide.OwnerDocument is { IsSdkLoaded: true }) PowerPointUtils.SaveNotesSlide(_slide.SdkSlidePart);
         }
 
-        private static ShapeTree CreateEmptyShapeTree() {
-            return new ShapeTree(
-                new NonVisualGroupShapeProperties(
-                    new NonVisualDrawingProperties { Id = 1U, Name = "Notes Group Shape" },
-                    new NonVisualGroupShapeDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties()),
-                PowerPointUtils.CreateDefaultGroupShapeProperties());
-        }
-
-        private static ShapeTree EnsureShapeTree(CommonSlideData commonSlideData) {
-            ShapeTree tree = commonSlideData.ShapeTree ??= new ShapeTree();
-
-            if (tree.GetFirstChild<NonVisualGroupShapeProperties>() == null) {
-                tree.PrependChild(new NonVisualGroupShapeProperties(
-                    new NonVisualDrawingProperties { Id = 1U, Name = "Notes Group Shape" },
-                    new NonVisualGroupShapeDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties()));
+        // The notes slide's shape tree, with the group properties the model adds when they are missing.
+        private static OfficeXmlNode EnsureShapeTree(OfficeXmlNode root) {
+            OfficeXmlNode data = root.GetOrAddChild(P, "cSld", PNotesSlideView.Order);
+            OfficeXmlNode tree = data.GetOrAddChild(P, "spTree", PCommonSlideDataView.Order);
+            if (tree.Child(P, "nvGrpSpPr").IsNone) {
+                OfficeXmlNode group = tree.CreateElement(P, "nvGrpSpPr");
+                OfficeXmlNode drawing = group.Append(group.CreateElement(P, "cNvPr"));
+                drawing.SetAttribute("id", "1");
+                drawing.SetAttribute("name", "Notes Group Shape");
+                group.Append(group.CreateElement(P, "cNvGrpSpPr"));
+                group.Append(group.CreateElement(P, "nvPr"));
+                tree.InsertBefore(group, tree.FirstChild);
             }
-
-            if (tree.GetFirstChild<GroupShapeProperties>() == null) {
-                tree.AppendChild(PowerPointUtils.CreateDefaultGroupShapeProperties());
-            }
-
+            if (tree.Child(P, "grpSpPr").IsNone) tree.Append(CreateGroupShapeProperties(tree));
             return tree;
         }
 
-        private static Shape CreateNotesPlaceholderShape(uint id) {
-            return new Shape(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = id, Name = "Notes Placeholder 1" },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties(
-                        new PlaceholderShape { Type = PlaceholderValues.Body, Index = 1U })
-                ),
-                new ShapeProperties(),
-                new TextBody(
-                    new A.BodyProperties(),
-                    new A.ListStyle(),
-                    new A.Paragraph(
-                        new A.Run(
-                            new A.RunProperties { Language = "en-US" },
-                            new A.Text()),
-                        new A.EndParagraphRunProperties { Language = "en-US" }))
-            );
-        }
-
-        private static uint GetNextShapeId(ShapeTree shapeTree) {
-            uint maxId = shapeTree
-                .Descendants<NonVisualDrawingProperties>()
-                .Select(properties => properties.Id?.Value ?? 0U)
-                .DefaultIfEmpty(0U)
-                .Max();
-
-            return maxId + 1U;
-        }
-
-        private static Shape? GetNotesTextShape(ShapeTree? shapeTree) {
-            if (shapeTree == null) {
-                return null;
+        // The group properties a new shape tree gets: a transform with zero offset and extents for itself and its children.
+        private static OfficeXmlNode CreateGroupShapeProperties(OfficeXmlNode context) {
+            OfficeXmlNode properties = context.CreateElement(P, "grpSpPr");
+            OfficeXmlNode transform = properties.Append(properties.CreateElement(D, "xfrm"));
+            foreach ((string name, string first, string second) in new[] { ("off", "x", "y"), ("ext", "cx", "cy"), ("chOff", "x", "y"), ("chExt", "cx", "cy") }) {
+                OfficeXmlNode point = transform.Append(transform.CreateElement(D, name));
+                point.SetAttribute(first, "0");
+                point.SetAttribute(second, "0");
             }
-
-            return shapeTree.Elements<Shape>().FirstOrDefault(IsNotesTextShape)
-                ?? shapeTree.Elements<Shape>().FirstOrDefault(shape => shape.TextBody != null);
+            return properties;
         }
 
-        private static Shape GetOrCreateNotesTextShape(ShapeTree shapeTree) {
-            Shape? shape = GetNotesTextShape(shapeTree);
-            if (shape != null) {
-                return shape;
-            }
-
-            uint placeholderId = GetNextShapeId(shapeTree);
-            shape = CreateNotesPlaceholderShape(placeholderId);
-            shapeTree.AppendChild(shape);
+        // The body placeholder the model adds to notes without one: an empty run and end properties in en-US.
+        private static OfficeXmlNode CreateNotesPlaceholderShape(OfficeXmlNode context, uint id) {
+            OfficeXmlNode shape = context.CreateElement(P, "sp");
+            OfficeXmlNode nonVisual = shape.Append(shape.CreateElement(P, "nvSpPr"));
+            OfficeXmlNode drawing = nonVisual.Append(nonVisual.CreateElement(P, "cNvPr"));
+            drawing.SetAttribute("id", id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            drawing.SetAttribute("name", "Notes Placeholder 1");
+            nonVisual.Append(nonVisual.CreateElement(P, "cNvSpPr")).Append(nonVisual.CreateElement(D, "spLocks")).SetAttribute("noGrp", "1");
+            OfficeXmlNode placeholder = nonVisual.Append(nonVisual.CreateElement(P, "nvPr")).Append(nonVisual.CreateElement(P, "ph"));
+            placeholder.SetAttribute("type", "body");
+            placeholder.SetAttribute("idx", "1");
+            shape.Append(shape.CreateElement(P, "spPr"));
+            OfficeXmlNode body = shape.Append(shape.CreateElement(P, "txBody"));
+            body.Append(body.CreateElement(D, "bodyPr"));
+            body.Append(body.CreateElement(D, "lstStyle"));
+            body.Append(PowerPointTableTextDefaults.CreateParagraph(body));
             return shape;
         }
 
-        private static bool IsNotesTextShape(Shape shape) {
-            PlaceholderShape? placeholder = shape.NonVisualShapeProperties?
-                .ApplicationNonVisualDrawingProperties?
-                .GetFirstChild<PlaceholderShape>();
-            return placeholder?.Type?.Value == PlaceholderValues.Body;
+        // One more than the largest drawing id in the shape tree.
+        private static uint NextShapeId(OfficeXmlNode tree) {
+            uint max = 0U;
+            foreach (OfficeXmlNode drawing in tree.Descendants(P, "cNvPr")) {
+                if (drawing.UInt32Attribute("id") is { } id && id > max) max = id;
+            }
+            return max + 1U;
         }
 
-        private static string ReadParagraphText(A.Paragraph paragraph) {
-            StringBuilder builder = new();
-            foreach (DocumentFormat.OpenXml.OpenXmlElement child in paragraph.ChildElements) {
-                switch (child) {
-                    case A.Run run:
-                        builder.Append(run.Text?.Text ?? string.Empty);
+        // The body placeholder, or else the first shape with text.
+        private static OfficeXmlNode GetNotesTextShape(OfficeXmlNode tree) {
+            OfficeXmlNode withText = default;
+            foreach (OfficeXmlNode shape in tree.Children(P, "sp")) {
+                if (shape.Child(P, "nvSpPr").Child(P, "nvPr").Child(P, "ph").Attribute("type") == "body") return shape;
+                if (withText.IsNone && !shape.Child(P, "txBody").IsNone) withText = shape;
+            }
+            return withText;
+        }
+
+        // The text of a body's paragraphs joined by a separator, leaving out blank ones when asked.
+        private static string ReadParagraphs(OfficeXmlNode body, string separator, bool skipBlank) {
+            var paragraphs = new List<string>();
+            foreach (OfficeXmlNode paragraph in body.Children(D, "p")) {
+                string text = ReadParagraphText(paragraph);
+                if (!skipBlank || !string.IsNullOrWhiteSpace(text)) paragraphs.Add(text);
+            }
+            return string.Join(separator, paragraphs);
+        }
+
+        /// <summary>The text of a notes paragraph: runs and fields, with a new line for each break.</summary>
+        internal static string ReadParagraphText(OfficeXmlNode paragraph) {
+            var builder = new StringBuilder();
+            foreach (OfficeXmlNode child in paragraph.Children()) {
+                if (child.NamespaceId != D) continue;
+                switch (child.LocalName) {
+                    case "r":
+                    case "fld":
+                        builder.Append(child.ChildText(D, "t") ?? string.Empty);
                         break;
-                    case A.Break:
+                    case "br":
                         builder.AppendLine();
-                        break;
-                    case A.Field field:
-                        builder.Append(field.Text?.Text ?? string.Empty);
                         break;
                 }
             }
-
             return builder.ToString();
-        }
-
-        private static string ReadShapeText(Shape shape) {
-            return string.Join(
-                Environment.NewLine,
-                shape.TextBody?.Elements<A.Paragraph>()
-                    .Select(ReadParagraphText)
-                    .Where(static value => !string.IsNullOrWhiteSpace(value))
-                ?? Enumerable.Empty<string>());
-        }
-
-        private static A.Paragraph CreateParagraph(
-            string text,
-            A.ParagraphProperties? templateParagraphProperties,
-            A.RunProperties? templateRunProperties,
-            A.EndParagraphRunProperties? templateEndParagraphRunProperties) {
-            var paragraph = new A.Paragraph();
-            if (templateParagraphProperties != null) {
-                paragraph.Append((A.ParagraphProperties)templateParagraphProperties.CloneNode(true));
-            }
-            paragraph.Append(PowerPointTextContent.CreateInlineContent(text, templateRunProperties));
-            if (templateEndParagraphRunProperties != null) {
-                paragraph.Append((A.EndParagraphRunProperties)templateEndParagraphRunProperties.CloneNode(true));
-            }
-            return paragraph;
-        }
-
-        private HashSet<string> GetRelationshipIds() {
-            if (_cachedRelationshipIds == null) {
-                _cachedRelationshipIds = new HashSet<string>(
-                    OwnerSlidePart.Parts.Select(p => p.RelationshipId)
-                        .Concat(OwnerSlidePart.DataPartReferenceRelationships
-                            .Select(r => r.Id))
-                        .Concat(OwnerSlidePart.ExternalRelationships.Select(r => r.Id))
-                        .Concat(OwnerSlidePart.HyperlinkRelationships.Select(r => r.Id))
-                        .Where(id => !string.IsNullOrEmpty(id)),
-                    StringComparer.Ordinal);
-            }
-
-            return _cachedRelationshipIds;
         }
     }
 }

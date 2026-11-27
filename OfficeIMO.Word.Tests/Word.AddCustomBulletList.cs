@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
                 Assert.Throws<OverflowException>(() => first.IndentationLeft = OfficeIMO.OfficeLength.Emus(long.MaxValue));
                 Assert.Equal(OfficeIMO.OfficeLength.Points(36), first.IndentationLeft);
                 fifth.IndentationHanging = OfficeIMO.OfficeLength.Points(18);
-                Assert.Same(first.OpenXmlElement, list.Numbering.Levels[0].OpenXmlElement);
-                Assert.Same(fifth.OpenXmlElement, list.Numbering.Levels[4].OpenXmlElement);
+                Assert.Same(first.OpenXmlLevel(), list.Numbering.Levels[0].OpenXmlLevel());
+                Assert.Same(fifth.OpenXmlLevel(), list.Numbering.Levels[4].OpenXmlLevel());
                 list.AddItem("Level1");
                 list.AddItem("Level5", 4);
                 document.Save();
@@ -26,18 +26,18 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Load(filePath)) {
                 var list = document.Lists[0];
                 Assert.Equal(5, list.Numbering.Levels.Count);
-                Assert.Equal("720", list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<PreviousParagraphProperties>()!.Indentation!.Left!.Value);
-                Assert.Equal("360", list.Numbering.Levels[4].OpenXmlElement.GetFirstChild<PreviousParagraphProperties>()!.Indentation!.Hanging!.Value);
+                Assert.Equal("720", list.Numbering.Levels[0].OpenXmlLevel().GetFirstChild<PreviousParagraphProperties>()!.Indentation!.Left!.Value);
+                Assert.Equal("360", list.Numbering.Levels[4].OpenXmlLevel().GetFirstChild<PreviousParagraphProperties>()!.Indentation!.Hanging!.Value);
                 Assert.Equal("■", list.Numbering.Levels[0].LevelText);
                 Assert.Equal("■", list.Numbering.Levels[3].LevelText);
                 Assert.Equal("●", list.Numbering.Levels[4].LevelText);
 
-                var level1Props = list.Numbering.Levels[0].OpenXmlElement.NumberingSymbolRunProperties!;
+                var level1Props = list.Numbering.Levels[0].OpenXmlLevel().NumberingSymbolRunProperties!;
                 Assert.Equal("Courier New", level1Props.GetFirstChild<RunFonts>()?.Ascii);
                 Assert.Equal("FF0000", level1Props.GetFirstChild<Color>()?.Val);
                 Assert.Equal("28", level1Props.GetFirstChild<FontSize>()?.Val);
 
-                var level5Props = list.Numbering.Levels[4].OpenXmlElement.NumberingSymbolRunProperties!;
+                var level5Props = list.Numbering.Levels[4].OpenXmlLevel().NumberingSymbolRunProperties!;
                 Assert.Equal("Arial", level5Props.GetFirstChild<RunFonts>()?.Ascii);
                 Assert.Equal("00FF00", level5Props.GetFirstChild<Color>()?.Val);
                 Assert.Equal("20", level5Props.GetFirstChild<FontSize>()?.Val);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(list.Numbering.Levels);
                 Assert.Equal("◆", list.Numbering.Levels[0].LevelText);
 
-                var props = list.Numbering.Levels[0].OpenXmlElement.NumberingSymbolRunProperties!;
+                var props = list.Numbering.Levels[0].OpenXmlLevel().NumberingSymbolRunProperties!;
                 Assert.Equal("Wingdings", props.GetFirstChild<RunFonts>()?.Ascii);
                 Assert.Equal("0000FF", props.GetFirstChild<Color>()?.Val);
                 Assert.Equal("24", props.GetFirstChild<FontSize>()?.Val);

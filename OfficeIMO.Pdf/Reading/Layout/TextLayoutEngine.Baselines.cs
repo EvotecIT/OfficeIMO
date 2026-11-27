@@ -71,6 +71,7 @@ internal static partial class TextLayoutEngine {
     // OrderByDescending(Normal).ThenBy(Along) would produce, with each key computed once.
     private static List<PdfTextSpan> OrderByBaselineThenAlong(IReadOnlyList<PdfTextSpan> spans, PdfTextBaselineCoordinates coordinates) {
         int count = spans.Count;
+        if (count == 1) return new List<PdfTextSpan>(1) { spans[0] };
         var normals = new double[count];
         var alongs = new double[count];
         var order = new int[count];

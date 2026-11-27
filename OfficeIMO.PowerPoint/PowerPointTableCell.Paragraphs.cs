@@ -1,28 +1,35 @@
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTableCell {
         /// <summary>
         ///     Gets the paragraphs contained in the table cell.
         /// </summary>
-        public IReadOnlyList<PowerPointParagraph> Paragraphs =>
-            EnsureTextBody().Elements<A.Paragraph>()
-                .Select(paragraph => new PowerPointParagraph(paragraph, _slidePart, _ownerPart))
-                .ToList();
+        public IReadOnlyList<PowerPointParagraph> Paragraphs {
+            get {
+                var paragraphs = new List<PowerPointParagraph>();
+                foreach (OfficeXmlNode paragraph in EnsureTextBody().Children(D, "p")) paragraphs.Add(ParagraphFor(paragraph));
+                return paragraphs;
+            }
+        }
 
         /// <summary>
         ///     Adds a paragraph to the table cell.
         /// </summary>
         public PowerPointParagraph AddParagraph(string text = "", Action<PowerPointParagraph>? configure = null, Action<PowerPointTextRun>? run = null) {
-            A.TextBody textBody = EnsureTextBody();
-            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
-            if (templateParagraph != null && IsEmptyPlaceholderParagraph(templateParagraph) && textBody.Elements<A.Paragraph>().Skip(1).FirstOrDefault() == null) {
-                templateParagraph.Remove();
+            OfficeXmlNode body = EnsureTextBody();
+            OfficeXmlNode template = body.Child(D, "p");
+            // The empty paragraph a new cell starts with gives way to the first one added.
+            if (!template.IsNone && IsEmptyPlaceholderParagraph(template) && template.NextSiblingNamed(D, "p").IsNone) {
+                template.Remove();
+                MarkEdited();
             }
 
-            PowerPointParagraph paragraph = AppendParagraph(textBody, text ?? string.Empty, templateParagraph, out PowerPointTextRun authoredRun);
+            PowerPointParagraph paragraph = AppendParagraph(body, text ?? string.Empty, template, out PowerPointTextRun authoredRun);
             configure?.Invoke(paragraph);
-            if (run != null) run(authoredRun.Run.Parent != null ? authoredRun : paragraph.AddText(text ?? string.Empty));
+            if (run != null) run(authoredRun.BelongsTo(paragraph) ? authoredRun : paragraph.AddText(text ?? string.Empty));
 
             return paragraph;
         }
@@ -48,114 +55,97 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> SetParagraphs(IEnumerable<string> paragraphs, Action<PowerPointParagraph>? configure = null) {
             ArgumentNullException.ThrowIfNull(paragraphs);
+            return ReplaceTableCellParagraphs(paragraphs, (paragraphText, template) => {
+                PowerPointParagraph paragraph = AppendParagraph(EnsureTextBody(), paragraphText ?? string.Empty, template);
+                configure?.Invoke(paragraph);
+                return paragraph;
+            });
+        }
 
-            A.TextBody textBody = EnsureTextBody();
-            string[] discardedSoundIds = PowerPointEmbeddedSound
-                .GetRelationshipIds(textBody);
-            A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();
-            textBody.RemoveAllChildren<A.Paragraph>();
+        // Replaces the paragraphs with those the callback adds, each copying from the first paragraph the cell had; with
+        // none added, one empty paragraph like it stays.
+        private IReadOnlyList<PowerPointParagraph> ReplaceTableCellParagraphs<T>(IEnumerable<T> items, Func<T, OfficeXmlNode, PowerPointParagraph> addParagraph) {
+            // The items are read before anything is removed, so a source that changes the cell sees it unchanged.
+            List<T> list = items as List<T> ?? items.ToList();
+            OfficeXmlNode body = EnsureTextBody();
+            List<string> soundIds = PowerPointTextBox.SoundIds(body);
+            OfficeXmlNode template = body.Child(D, "p");
+            if (!template.IsNone) template.Remove();
+            body.RemoveChildren(D, "p");
+            MarkEdited();
 
             var results = new List<PowerPointParagraph>();
-            foreach (string paragraphText in paragraphs) {
-                PowerPointParagraph paragraph = AppendParagraph(textBody, paragraphText ?? string.Empty, templateParagraph);
-                configure?.Invoke(paragraph);
-                results.Add(paragraph);
+            foreach (T item in list) {
+                results.Add(addParagraph(item, template));
             }
 
             if (results.Count == 0) {
-                textBody.Append(CreateEmptyParagraph(templateParagraph));
+                body.Append(CreateEmptyParagraph(body, template));
             }
 
-            PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as DocumentFormat.OpenXml.Packaging.OpenXmlPart ?? _slidePart,
-                discardedSoundIds);
-
+            RemoveUnusedSounds(soundIds);
             return results;
         }
 
-        private A.TextBody EnsureTextBody() {
-            Cell.TextBody ??= PowerPointTableTextDefaults.CreateTextBody();
-            return Cell.TextBody;
+        private void RemoveUnusedSounds(List<string> soundIds) {
+            if (soundIds.Count == 0) return;
+            PowerPointPartRef owner = OwnerPartRef;
+            if (owner.IsNone) return;
+            foreach (string id in soundIds) owner.RemoveRelationshipIfUnused(id, default);
         }
 
-        private PowerPointParagraph AppendParagraph(A.TextBody textBody, string text, A.Paragraph? templateParagraph) =>
-            AppendParagraph(textBody, text, templateParagraph, out _);
+        // The cell's text body; a cell without one gets the default body with one empty paragraph.
+        private OfficeXmlNode EnsureTextBody() {
+            OfficeXmlNode body = BodyElement;
+            return body.IsNone ? CreateBody(withParagraph: true) : body;
+        }
 
-        private PowerPointParagraph AppendParagraph(A.TextBody textBody, string text, A.Paragraph? templateParagraph, out PowerPointTextRun authoredRun) {
-            A.Paragraph paragraph = new();
-            if (templateParagraph?.ParagraphProperties != null) {
-                paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
-            }
+        private PowerPointParagraph AppendParagraph(OfficeXmlNode body, string text, OfficeXmlNode template) =>
+            AppendParagraph(body, text, template, out _);
 
-            A.RunProperties? templateRunProperties = templateParagraph?
-                .Elements<A.Run>()
-                .Select(existingRun => existingRun.RunProperties)
-                .FirstOrDefault(runProperties => runProperties != null);
+        // Appends a paragraph with the template's paragraph and end properties and one run of text with its first run's
+        // formatting, without hyperlinks and with a language.
+        private PowerPointParagraph AppendParagraph(OfficeXmlNode body, string text, OfficeXmlNode template, out PowerPointTextRun authoredRun) {
+            OfficeXmlNode paragraph = body.CreateElement(D, "p");
+            OfficeXmlNode paragraphProperties = template.Child(D, "pPr");
+            if (!paragraphProperties.IsNone) paragraph.Append(paragraphProperties.Clone());
+            paragraph.Append(CleanProperties(template.Child(D, "endParaRPr"), paragraph, "endParaRPr"));
+            OfficeXmlNode runProperties = PowerPointTextBox.FirstRunProperties(template);
 
-            A.EndParagraphRunProperties? templateEndProperties = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
-            if (templateEndProperties != null) {
-                paragraph.Append(CleanEndParagraphRunProperties((A.EndParagraphRunProperties)templateEndProperties.CloneNode(true)));
-            } else {
-                paragraph.Append(new A.EndParagraphRunProperties { Language = PowerPointTableTextDefaults.Language });
-            }
-
-            textBody.Append(paragraph);
-            var wrapper = new PowerPointParagraph(paragraph, _slidePart, _ownerPart);
-            authoredRun = wrapper.InsertRun(text, templateRunProperties != null
-                ? CleanRunProperties((A.RunProperties)templateRunProperties.CloneNode(true))
-                : new A.RunProperties { Language = PowerPointTableTextDefaults.Language });
+            paragraph = body.Append(paragraph);
+            MarkEdited();
+            PowerPointParagraph wrapper = ParagraphFor(paragraph);
+            authoredRun = wrapper.InsertRun(text, CleanProperties(runProperties, paragraph, "rPr"));
             return wrapper;
         }
 
-        private static A.Paragraph CreateEmptyParagraph(A.Paragraph? templateParagraph) {
-            A.Paragraph paragraph = new();
-            if (templateParagraph?.ParagraphProperties != null) {
-                paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
-            }
-
-            A.Run run = PowerPointTableTextDefaults.CreateRun(string.Empty);
-            A.RunProperties? templateRunProperties = templateParagraph?
-                .Elements<A.Run>()
-                .Select(existingRun => existingRun.RunProperties)
-                .FirstOrDefault(runProperties => runProperties != null);
-            if (templateRunProperties != null) {
-                run.RunProperties = CleanRunProperties((A.RunProperties)templateRunProperties.CloneNode(true));
-            }
-
-            paragraph.Append(run);
-
-            A.EndParagraphRunProperties? templateEndProperties = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
-            if (templateEndProperties != null) {
-                paragraph.Append(CleanEndParagraphRunProperties((A.EndParagraphRunProperties)templateEndProperties.CloneNode(true)));
-            } else {
-                paragraph.Append(new A.EndParagraphRunProperties { Language = PowerPointTableTextDefaults.Language });
-            }
-
+        // A detached empty paragraph after the template: its properties, one empty run and its end properties.
+        private static OfficeXmlNode CreateEmptyParagraph(OfficeXmlNode context, OfficeXmlNode template) {
+            OfficeXmlNode paragraph = context.CreateElement(D, "p");
+            OfficeXmlNode paragraphProperties = template.Child(D, "pPr");
+            if (!paragraphProperties.IsNone) paragraph.Append(paragraphProperties.Clone());
+            OfficeXmlNode run = paragraph.Append(paragraph.CreateElement(D, "r"));
+            OfficeXmlNode runProperties = PowerPointTextBox.FirstRunProperties(template);
+            run.Append(runProperties.IsNone ? PowerPointTableTextDefaults.CreateProperties(run, "rPr") : CleanProperties(runProperties, run, "rPr"));
+            run.Append(run.CreateElement(D, "t"));
+            paragraph.Append(CleanProperties(template.Child(D, "endParaRPr"), paragraph, "endParaRPr"));
             return paragraph;
         }
 
-        private static bool IsEmptyPlaceholderParagraph(A.Paragraph paragraph) {
-            foreach (A.Run run in paragraph.Elements<A.Run>()) {
-                if (!string.IsNullOrEmpty(run.Text?.Text)) {
-                    return false;
-                }
+        private static bool IsEmptyPlaceholderParagraph(OfficeXmlNode paragraph) {
+            foreach (OfficeXmlNode run in paragraph.Children(D, "r")) {
+                if (!string.IsNullOrEmpty(run.ChildText(D, "t"))) return false;
             }
-
-            return paragraph.Elements<A.Break>().FirstOrDefault() == null &&
-                paragraph.Elements<A.Field>().FirstOrDefault() == null;
+            return paragraph.Child(D, "br").IsNone && paragraph.Child(D, "fld").IsNone;
         }
 
-        private static A.RunProperties CleanRunProperties(A.RunProperties properties) {
-            properties.RemoveAllChildren<A.HyperlinkOnClick>();
-            properties.RemoveAllChildren<A.HyperlinkOnMouseOver>();
-            properties.Language ??= PowerPointTableTextDefaults.Language;
-            return properties;
-        }
-
-        private static A.EndParagraphRunProperties CleanEndParagraphRunProperties(A.EndParagraphRunProperties properties) {
-            properties.RemoveAllChildren<A.HyperlinkOnClick>();
-            properties.RemoveAllChildren<A.HyperlinkOnMouseOver>();
-            properties.Language ??= PowerPointTableTextDefaults.Language;
-            return properties;
+        // A copy of run or end properties without hyperlinks and with a language; new properties when there are none.
+        private static OfficeXmlNode CleanProperties(OfficeXmlNode properties, OfficeXmlNode context, string localName) {
+            if (properties.IsNone) return PowerPointTableTextDefaults.CreateProperties(context, localName);
+            OfficeXmlNode copy = properties.Clone();
+            WithoutHyperlinks(copy);
+            if (copy.Attribute("lang") == null) copy.SetAttribute("lang", PowerPointTableTextDefaults.Language);
+            return copy;
         }
     }
 }

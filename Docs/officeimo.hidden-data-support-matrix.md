@@ -39,6 +39,8 @@ The report also answers what provenance leaves with the file. Content Credential
 
 Provenance is kept unless you add `OfficeHiddenDataKind.Provenance`. While it is kept, `ImageMetadata` cleanup reduces an image's XMP to its digital source type declaration instead of deleting it, and leaves images that carry Content Credentials untouched, because changing their bytes would invalidate the credential; those images are reported as `Retained`. Selecting `Provenance` removes the carriers through the same engine as `RemoveProvenance`, and then image metadata is stripped as usual. `OfficeHiddenDataOptions.Provenance` chooses the carriers with the same switches as `RemoveProvenance`: to keep Content Credentials but drop AI-generated declarations, set `RemoveC2paManifests` to false. Removing a declaration changes the image, so a kept credential is reported with a note that it no longer verifies. Each finding's `Scope` says whether it belongs to the document, one embedded image, or the whole file.
 
+The [AI label gap matrix](officeimo.provenance-support-matrix.md#ai-labels-and-generator-metadata) lists which AI labels, generator fields and AI tool parameters each format reports today and which are still planned.
+
 Content Credentials stored for the whole package (`META-INF/content_credential.c2pa`) cover every byte of the file, so any change to a loaded document invalidates them. `RemoveHiddenData` always removes them and says so in the finding's `Note`. To remove only provenance from a file and leave every other byte alone, use the static `RemoveProvenance(inputPath, outputPath)` instead; it also handles package signatures through `SignatureMutationPolicy`.
 
 ## Outcomes

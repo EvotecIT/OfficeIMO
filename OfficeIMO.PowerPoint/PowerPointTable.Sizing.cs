@@ -1,7 +1,5 @@
-using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTable {
@@ -13,9 +11,9 @@ namespace OfficeIMO.PowerPoint {
             long nativeWidth = width.ToEmus();
             ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, ColumnCount);
-            A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
-            column.Width = nativeWidth;
+            NthChild(GridNode, "gridCol", columnIndex).SetInt64Attribute("w", nativeWidth);
             SyncFrameWidthToGrid();
+            MarkEdited();
             return this;
         }
 
@@ -30,15 +28,36 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void SyncFrameWidthToGrid() {
-            long width = TableElement.TableGrid?.Elements<A.GridColumn>().Sum(c => c.Width?.Value ?? 0L) ?? 0L;
-            A.Extents? extents = Frame.Transform?.Extents;
-            if (extents != null && width > 0) extents.Cx = width;
+            long width = GridWidth();
+            OfficeXmlNode extents = FrameExtents;
+            if (!extents.IsNone && width > 0) {
+                extents.SetInt64Attribute("cx", width);
+                MarkEdited();
+            }
         }
 
         internal void SyncFrameHeightToGrid() {
-            long height = TableElement.Elements<A.TableRow>().Sum(r => r.Height?.Value ?? 0L);
-            A.Extents? extents = Frame.Transform?.Extents;
-            if (extents != null && height > 0) extents.Cy = height;
+            long height = GridHeight();
+            OfficeXmlNode extents = FrameExtents;
+            if (!extents.IsNone && height > 0) {
+                extents.SetInt64Attribute("cy", height);
+                MarkEdited();
+            }
+        }
+
+        // The frame's a:ext in its p:xfrm, or none.
+        private OfficeXmlNode FrameExtents => XmlElement.Child(OfficeXmlNamespaces.PresentationML, "xfrm").Child(D, "ext");
+
+        private long GridWidth() {
+            long width = 0;
+            foreach (OfficeXmlNode column in GridNode.Children(D, "gridCol")) width += column.Int64Attribute("w") ?? 0L;
+            return width;
+        }
+
+        private long GridHeight() {
+            long height = 0;
+            foreach (OfficeXmlNode row in TableNode.Children(D, "tr")) height += row.Int64Attribute("h") ?? 0L;
+            return height;
         }
 
 
@@ -48,8 +67,7 @@ namespace OfficeIMO.PowerPoint {
         public OfficeLength GetColumnWidth(int columnIndex) {
             ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, ColumnCount);
-            A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
-            return OfficeLength.Emus(column.Width?.Value ?? 0L);
+            return OfficeLength.Emus(NthChild(GridNode, "gridCol", columnIndex).Int64Attribute("w") ?? 0L);
         }
         /// <summary>Sets physical sizes for the first rows or columns supplied.</summary>
         public PowerPointTable SetColumnWidths(params OfficeLength[] widths) {
@@ -81,8 +99,7 @@ namespace OfficeIMO.PowerPoint {
 
             long totalWidth = Width.ToEmus();
             if (totalWidth <= 0) {
-                totalWidth = TableElement.TableGrid?.Elements<A.GridColumn>()
-                    .Sum(c => c.Width?.Value ?? 0) ?? 0;
+                totalWidth = GridWidth();
             }
             if (totalWidth <= 0) {
                 throw new InvalidOperationException("Table width is not available.");
@@ -97,10 +114,11 @@ namespace OfficeIMO.PowerPoint {
 
             if (assigned != totalWidth && count > 0) {
                 int adjustIndex = count - 1;
-                A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(adjustIndex);
-                column.Width = (column.Width ?? 0) + (totalWidth - assigned);
+                OfficeXmlNode column = NthChild(GridNode, "gridCol", adjustIndex);
+                column.SetInt64Attribute("w", (column.Int64Attribute("w") ?? 0) + (totalWidth - assigned));
             }
             SyncFrameWidthToGrid();
+            MarkEdited();
             return this;
         }
 
@@ -122,9 +140,9 @@ namespace OfficeIMO.PowerPoint {
             long nativeHeight = height.ToEmus();
             ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, RowCount);
-            A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
-            row.Height = nativeHeight;
+            NthChild(TableNode, "tr", rowIndex).SetInt64Attribute("h", nativeHeight);
             SyncFrameHeightToGrid();
+            MarkEdited();
             return this;
         }
 
@@ -134,8 +152,7 @@ namespace OfficeIMO.PowerPoint {
         public OfficeLength GetRowHeight(int rowIndex) {
             ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, RowCount);
-            A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
-            return OfficeLength.Emus(row.Height?.Value ?? 0L);
+            return OfficeLength.Emus(NthChild(TableNode, "tr", rowIndex).Int64Attribute("h") ?? 0L);
         }
         /// <summary>Sets physical sizes for the first rows or columns supplied.</summary>
         public PowerPointTable SetRowHeights(params OfficeLength[] heights) {
@@ -157,8 +174,7 @@ namespace OfficeIMO.PowerPoint {
 
             long totalHeight = Height.ToEmus();
             if (totalHeight <= 0) {
-                totalHeight = TableElement.Elements<A.TableRow>()
-                    .Sum(r => r.Height?.Value ?? 0L);
+                totalHeight = GridHeight();
             }
             if (totalHeight <= 0) {
                 return this;
@@ -173,10 +189,11 @@ namespace OfficeIMO.PowerPoint {
 
             if (assigned != totalHeight && RowCount > 0) {
                 int adjustIndex = RowCount - 1;
-                A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(adjustIndex);
-                row.Height = (row.Height ?? 0) + (totalHeight - assigned);
+                OfficeXmlNode row = NthChild(TableNode, "tr", adjustIndex);
+                row.SetInt64Attribute("h", (row.Int64Attribute("h") ?? 0) + (totalHeight - assigned));
             }
             SyncFrameHeightToGrid();
+            MarkEdited();
             return this;
         }
 
@@ -200,8 +217,7 @@ namespace OfficeIMO.PowerPoint {
 
             long totalHeight = Height.ToEmus();
             if (totalHeight <= 0) {
-                totalHeight = TableElement.Elements<A.TableRow>()
-                    .Sum(r => r.Height?.Value ?? 0L);
+                totalHeight = GridHeight();
             }
             if (totalHeight <= 0) {
                 throw new InvalidOperationException("Table height is not available.");
@@ -216,10 +232,11 @@ namespace OfficeIMO.PowerPoint {
 
             if (assigned != totalHeight && count > 0) {
                 int adjustIndex = count - 1;
-                A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(adjustIndex);
-                row.Height = (row.Height ?? 0) + (totalHeight - assigned);
+                OfficeXmlNode row = NthChild(TableNode, "tr", adjustIndex);
+                row.SetInt64Attribute("h", (row.Int64Attribute("h") ?? 0) + (totalHeight - assigned));
             }
             SyncFrameHeightToGrid();
+            MarkEdited();
             return this;
         }
 

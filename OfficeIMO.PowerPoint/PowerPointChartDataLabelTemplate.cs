@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Drawing.Charts;
-
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Defines reusable data label settings for PowerPoint chart series.

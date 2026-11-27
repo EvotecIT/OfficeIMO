@@ -1,5 +1,7 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -14,6 +16,25 @@ namespace OfficeIMO.Word {
         /// makes the next allocation rescan. Callers own the document for the whole scope and must not
         /// renumber or insert definitions in the middle of the numbering part in the meantime.
         /// </summary>
+        /// <summary>
+        /// The root element of the numbering part, or <see cref="OfficeXmlNode.None"/> when there is none. With
+        /// <paramref name="create"/>, a missing part and root are added.
+        /// </summary>
+        internal OfficeXmlNode GetNumberingNode(bool create) {
+            MainDocumentPart? mainPart = _wordprocessingDocument.MainDocumentPart;
+            if (mainPart == null) {
+                if (create) throw new InvalidOperationException("The document does not contain a main document part.");
+                return OfficeXmlNode.None;
+            }
+            NumberingDefinitionsPart? part = mainPart.NumberingDefinitionsPart;
+            if (part == null) {
+                if (!create) return OfficeXmlNode.None;
+                part = mainPart.AddNewPart<NumberingDefinitionsPart>();
+            }
+            if (create) part.Numbering ??= new Numbering();
+            return OfficeXmlNode.FromSdk(part.Numbering);
+        }
+
         internal IDisposable UseNumberingIdCache() {
             _numberingIdCacheDepth++;
             return new NumberingIdCacheScope(this);

@@ -36,7 +36,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             if (!_items.Add(item)) {
                 WordParagraph continuation = createParagraph();
                 WordListLevel? definition = targetList.Numbering.Levels
-                    .FirstOrDefault(value => value._level.LevelIndex?.Value == level);
+                    .FirstOrDefault(value => value.LevelIndex == level);
                 if (definition != null) {
                     continuation.IndentationBefore = global::OfficeIMO.OfficeLength.Points((checked((int)(definition.IndentationLeft.ToTwips()))) / 20D);
                     continuation.IndentationFirstLine = global::OfficeIMO.OfficeLength.Zero;

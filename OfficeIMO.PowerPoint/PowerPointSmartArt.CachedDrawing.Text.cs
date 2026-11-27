@@ -1,24 +1,30 @@
 using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint;
 
 public partial class PowerPointSmartArt {
     /// <summary>Stages a text-only update to a current producer cache, preserving its shape geometry and text style.</summary>
     private bool TryPrepareCachedNodeTextEdit(XDocument data, XElement sourceBody, string text,
-        out DiagramPersistLayoutPart? part, out XDocument? drawing) {
-        part = FindCachedDrawingPart(data);
+        out PowerPointPartRef part, out XDocument? drawing) {
         drawing = null;
         string? sourceId = (string?)sourceBody.Parent?.Attribute("modelId");
-        OpenXmlCompositeElement? tree = part?.Drawing?.ChildElements.OfType<OpenXmlCompositeElement>()
-            .FirstOrDefault(element => element.LocalName == "spTree");
-        if (tree == null || string.IsNullOrEmpty(sourceId) ||
-            !MatchesDiagramText(data, tree, out Dictionary<string, string> associations)) return false;
+        if (!TryFindCachedDrawingPart(data, out part)) return false;
+        byte[] markup = ReadCachedDrawingMarkup(part, null);
+        OfficeXmlTree cached = ParseCachedDrawing(markup);
+        int tree = FindShapeTree(cached);
+        if (tree == OfficeXmlTree.NoNode || string.IsNullOrEmpty(sourceId) ||
+            !MatchesDiagramText(data, cached, tree, out Dictionary<string, string> associations)) return false;
 
         XNamespace dsp = PersistedDiagramNamespace;
         XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
-        XDocument candidate = XDocument.Parse(part!.Drawing!.OuterXml, LoadOptions.PreserveWhitespace);
+        XDocument candidate;
+        using (var stream = new MemoryStream(markup, writable: false)) {
+            candidate = PowerPointXmlReader.LoadPackagePartXml(stream, LoadOptions.PreserveWhitespace);
+        }
+        // The model reads the drawing element alone, so a declaration in the part's bytes doesn't carry over.
+        candidate.Declaration = null;
         int updated = 0;
         foreach (XElement shape in candidate.Descendants(dsp + "sp")) {
             string? id = (string?)shape.Attribute("modelId");
