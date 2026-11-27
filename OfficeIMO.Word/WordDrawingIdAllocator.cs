@@ -86,12 +86,48 @@ namespace OfficeIMO.Word {
             UpdateMax(mainPart?.Document, ref max);
             if (mainPart == null) return max;
 
-            foreach (HeaderPart headerPart in mainPart.HeaderParts) UpdateMax(headerPart.Header, ref max);
-            foreach (FooterPart footerPart in mainPart.FooterParts) UpdateMax(footerPart.Footer, ref max);
-            UpdateMax(mainPart.FootnotesPart?.Footnotes, ref max);
-            UpdateMax(mainPart.EndnotesPart?.Endnotes, ref max);
-            UpdateMax(mainPart.WordprocessingCommentsPart?.Comments, ref max);
+            foreach (HeaderPart headerPart in mainPart.HeaderParts) UpdateMax(headerPart, ref max);
+            foreach (FooterPart footerPart in mainPart.FooterParts) UpdateMax(footerPart, ref max);
+            UpdateMax(mainPart.FootnotesPart, ref max);
+            UpdateMax(mainPart.EndnotesPart, ref max);
+            UpdateMax(mainPart.WordprocessingCommentsPart, ref max);
             return max;
+        }
+
+        // A part nobody has loaded yet is parsed only when its markup can hold a drawing id at all, so a new document's
+        // notes and comments stay unparsed.
+        private static void UpdateMax(OpenXmlPart? part, ref uint max) {
+            if (part == null) return;
+            if (!part.IsRootElementLoaded && !MayHoldDrawingIds(part)) return;
+            UpdateMax(part.RootElement, ref max);
+        }
+
+        private static readonly byte[] DocPrName = System.Text.Encoding.ASCII.GetBytes("docPr");
+        private static readonly byte[] CNvPrName = System.Text.Encoding.ASCII.GetBytes("cNvPr");
+
+        private static bool MayHoldDrawingIds(OpenXmlPart part) {
+            byte[] bytes;
+            using (Stream stream = part.GetStream(FileMode.Open, FileAccess.Read)) {
+                using var buffer = new MemoryStream();
+                stream.CopyTo(buffer);
+                bytes = buffer.ToArray();
+            }
+            // Element names are searched as UTF-8; a part in another encoding is parsed.
+            if (bytes.Length >= 2 && (bytes[0] == 0xFF || bytes[0] == 0xFE || bytes[0] == 0x00 || bytes[1] == 0x00)) return true;
+            return IndexOf(bytes, DocPrName) >= 0 || IndexOf(bytes, CNvPrName) >= 0;
+        }
+
+        private static int IndexOf(byte[] data, byte[] value) {
+#if NET
+            return data.AsSpan().IndexOf(value);
+#else
+            for (int start = 0; start <= data.Length - value.Length; start++) {
+                int offset = 0;
+                while (offset < value.Length && data[start + offset] == value[offset]) offset++;
+                if (offset == value.Length) return start;
+            }
+            return -1;
+#endif
         }
 
         private static void UpdateMax(OpenXmlElement? root, ref uint max) {
