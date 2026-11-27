@@ -67,6 +67,42 @@ test("Canopy badges without labels still export, and malformed badges are reject
   await assert.rejects(exportCanopy(malformed, "xlsx"), /badges/);
 });
 
+test("Canopy cells with more than 64 badges still export, with one count diagnostic per cell", async () => {
+  const labels = Array.from({ length: 100 }, (_, index) => "B" + index);
+  const many = () => capture([{ id: "r", cells: { Name: cell("Alice", "Alice", { badges: labels.map(text => ({ text, tone: "info" })), diagnostics: ["badges"] }) } }]);
+  const expected = ["Alice", ...labels.slice(0, 64)].join(" · ");
+  for (const format of ["xlsx", "pdf", "csv"]) {
+    const diagnostics = [];
+    // Default policies: XLSX and PDF reject unsupported presentation, so the truncation must stay a text fallback.
+    const blob = await exportCanopy(many(), format, { onDiagnostic: item => diagnostics.push([item.code, item.rowId, item.columnId]) });
+    assert.deepEqual(diagnostics, [["badges", "r", "Name"], ["BADGES_TRUNCATED:36", "r", "Name"]], format);
+    if (format === "xlsx") assert.equal((await workbook(blob)).style("A2").text, expected);
+    else if (format === "csv") assert.equal(await blob.text(), "Name\r\n" + expected + "\r\n");
+    else assert.ok((await inspectPdf(blob)).pages.flatMap(page => page.lines).join(" ").includes("B63"));
+  }
+});
+
+test("Canopy badge labels never push a cell past the Excel text limit", async () => {
+  const text = "x".repeat(32760);
+  const long = capture([{ id: "r", cells: { Name: cell(text, text, { badges: ["Kept", "Dropped"] }) } }]);
+  const diagnostics = [];
+  const book = await workbook(await exportCanopy(long, "xlsx", { onDiagnostic: item => diagnostics.push(item.code) }));
+  assert.equal(book.style("A2").text, text + " · Kept");
+  assert.deepEqual(diagnostics, ["BADGES_TRUNCATED:1"]);
+});
+
+test("Canopy XLSX keeps link labels past the worksheet hyperlink limit and reports the dropped links once", async () => {
+  const rows = Array.from({ length: 65532 }, (_, index) => ({ id: "r" + index, cells: { Name: cell("n" + index, "n" + index, { link: { target: "https://example.com/" + index } }) } }));
+  const diagnostics = [];
+  const zip = await readZip(await exportCanopy(capture(rows), "xlsx", { onDiagnostic: item => diagnostics.push(item.code) }));
+  const sheet = zip.get("xl/worksheets/sheet1.xml").content;
+  assert.equal(sheet.match(/<hyperlink\b/g).length, 65530);
+  assert.match(sheet, /<hyperlink ref="A65531"/);
+  assert.doesNotMatch(sheet, /<hyperlink ref="A6553[23]"/);
+  assert.match(sheet, /<c r="A65533"[^>]*>/);
+  assert.deepEqual(diagnostics, ["LINKS_TRUNCATED:2"]);
+});
+
 const toneCapture = () => capture([
   { id: "ok", cells: { Name: cell("a", "A", { tone: "success" }), State: cell("Fine", "Fine", { tone: "info" }) } },
   { id: "bad", tone: "danger", cells: { Name: cell("b", "B"), State: cell("Late", "Late", { tone: "warning" }) } },
