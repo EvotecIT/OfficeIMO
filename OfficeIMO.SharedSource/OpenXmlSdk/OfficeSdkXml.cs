@@ -133,6 +133,40 @@ namespace OfficeIMO.OpenXml.Internal {
             return prototype is OpenXmlUnknownElement ? null : prototype.CloneNode(true);
         }
 
+        /// <summary>
+        /// Builds the SDK element for an element of OfficeIMO's own tree from the typed classes <paramref name="parent"/>
+        /// and its descendants expect, or returns null when part of it has no typed class or holds text, so the caller
+        /// parses its markup instead. Typed classes keep every attribute under the name it has in the tree.
+        /// </summary>
+        internal static object? CreateFromTree(object parent, OfficeXmlTree tree, int node) => Build(E(parent), tree, node);
+
+        private static OpenXmlElement? Build(OpenXmlElement parent, OfficeXmlTree tree, int node) {
+            int namespaceId = tree.NamespaceOf(node);
+            string? uri = OfficeXmlNamespaces.KnownUri(namespaceId);
+            if (uri == null) return null;
+            OpenXmlElement prototype = Prototype(parent, uri, tree.LocalNameOf(node), OfficeXmlPrefixes.Canonical(namespaceId));
+            if (prototype is OpenXmlUnknownElement) return null;
+            OpenXmlElement element = prototype.CloneNode(true);
+            int count = tree.AttributeCountOf(node);
+            for (int position = 0; position < count; position++) {
+                string value = tree.AttributeAt(node, position, out int attributeNamespace, out string localName);
+                if (attributeNamespace == OfficeXmlNamespaces.None) {
+                    element.SetAttribute(new OpenXmlAttribute(string.Empty, localName, string.Empty, value));
+                    continue;
+                }
+                string? attributeUri = attributeNamespace == OfficeXmlNamespaces.Xmlns ? null : OfficeXmlNamespaces.KnownUri(attributeNamespace);
+                if (attributeUri == null) return null;
+                element.SetAttribute(new OpenXmlAttribute(OfficeXmlPrefixes.Canonical(attributeNamespace), localName, attributeUri, value));
+            }
+            for (int child = tree.FirstChildOf(node); child != OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
+                if (tree.KindOf(child) != OfficeXmlTreeNodeKind.Element) return null;
+                OpenXmlElement? built = Build(element, tree, child);
+                if (built == null) return null;
+                element.AppendChild(built);
+            }
+            return element;
+        }
+
         /// <summary>Inserts an SDK element, moving it out of a detached copy, and returns it.</summary>
         internal static object InsertBefore(object parent, object child, object? reference) {
             OpenXmlElement target = E(parent), value = E(child);
