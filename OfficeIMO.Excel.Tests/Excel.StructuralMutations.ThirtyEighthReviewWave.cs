@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
                 .Single(cell => cell.CellReference?.Value == "A1");
             formulaCell.CellFormula!.CalculateCell = false;
             document.MarkFormulaSheetRecalculated(
-                calculations.WorksheetPart,
+                calculations.WorksheetPart.Uri,
                 document.CaptureFormulaInputMutationVersion());
 
             ExcelFormulaCellInfo evaluated = Assert.Single(calculations.GetFormulaCells());

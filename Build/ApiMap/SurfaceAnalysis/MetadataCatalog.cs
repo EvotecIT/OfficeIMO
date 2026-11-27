@@ -10,17 +10,17 @@ internal sealed class MetadataCatalog {
     internal IReadOnlyDictionary<string, IAssemblySymbol> Assemblies { get; }
     internal IReadOnlyList<INamedTypeSymbol> Types { get; }
 
-    internal MetadataCatalog(string root, IEnumerable<string> packages) {
+    internal MetadataCatalog(string root, IEnumerable<string> packages, string framework = "net10.0") {
         var paths = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
             .GroupBy(path => Path.GetFileNameWithoutExtension(path), StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
         var targets = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (string package in packages) {
-            string path = Path.Combine(root, package, "bin", "Release", "net10.0", package + ".dll");
-            if (!File.Exists(path)) throw new FileNotFoundException("Build the net10.0 Release surface before analysis.", path);
+            string path = Path.Combine(root, package, "bin", "Release", framework, package + ".dll");
+            if (!File.Exists(path)) throw new FileNotFoundException($"Build the {framework} Release surface before analysis.", path);
             paths[package] = path;
             targets[package] = path;
-            AddCompileDependencies(root, package, paths);
+            AddCompileDependencies(root, package, framework, paths);
         }
         var references = paths.Values.Distinct(StringComparer.Ordinal).Select(path => MetadataReference.CreateFromFile(path)).ToArray();
         Compilation = CSharpCompilation.Create("OfficeIMO.SurfaceAnalysis", references: references,
@@ -30,11 +30,11 @@ internal sealed class MetadataCatalog {
         Types = Assemblies.Values.SelectMany(assembly => PublicTypes(assembly.GlobalNamespace)).ToArray();
     }
 
-    private static void AddCompileDependencies(string root, string package, Dictionary<string, string> paths) {
+    private static void AddCompileDependencies(string root, string package, string framework, Dictionary<string, string> paths) {
         string path = Path.Combine(root, package, "obj", "project.assets.json");
         if (!File.Exists(path)) return;
         using var assets = JsonDocument.Parse(File.ReadAllText(path));
-        if (!assets.RootElement.GetProperty("targets").TryGetProperty("net10.0", out var target)) return;
+        if (!assets.RootElement.GetProperty("targets").TryGetProperty(framework, out var target)) return;
         string cache = assets.RootElement.GetProperty("packageFolders").EnumerateObject().First().Name;
         foreach (var dependency in target.EnumerateObject()) {
             if (!dependency.Value.TryGetProperty("compile", out var compile)) continue;

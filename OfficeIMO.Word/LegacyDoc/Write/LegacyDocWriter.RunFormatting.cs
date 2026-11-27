@@ -1,88 +1,85 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritablePictures pictures, OpenXmlPart ownerPart) {
+        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocElement run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritablePictures pictures, LegacyDocPart ownerPart) {
             AppendSupportedRunText(text, runs, run, footnotes, endnotes, LegacyDocWritableFormatting.Plain, allowHyperlinkRunStyle: false, pictures, ownerPart);
         }
 
-        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
+        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocElement run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
             AppendSupportedRunText(text, runs, run, footnotes, endnotes, LegacyDocWritableFormatting.Plain);
         }
 
-        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritableFormatting inheritedFormatting) {
+        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocElement run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritableFormatting inheritedFormatting) {
             AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: false);
         }
 
-        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritableFormatting inheritedFormatting, bool allowHyperlinkRunStyle, LegacyDocWritablePictures? pictures = null, OpenXmlPart? ownerPart = null) {
-            if (run.Elements<FootnoteReference>().Any()) {
+        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocElement run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritableFormatting inheritedFormatting, bool allowHyperlinkRunStyle, LegacyDocWritablePictures? pictures = null, LegacyDocPart? ownerPart = null) {
+            if (run.HasChild("footnoteReference")) {
                 AppendFootnoteReferenceRun(text, runs, footnotes, run, inheritedFormatting);
                 return;
             }
 
-            if (run.Elements<EndnoteReference>().Any()) {
+            if (run.HasChild("endnoteReference")) {
                 AppendEndnoteReferenceRun(text, runs, endnotes, run, inheritedFormatting);
                 return;
             }
 
-            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties, allowHyperlinkRunStyle)
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.Child("rPr"), allowHyperlinkRunStyle)
                 .WithInheritedFormatting(inheritedFormatting);
 
-            foreach (OpenXmlElement child in run.ChildElements) {
-                switch (child) {
-                    case RunProperties:
+            foreach (LegacyDocElement child in run.Elements()) {
+                switch (child.WName) {
+                    case "rPr":
                         break;
-                    case LastRenderedPageBreak:
+                    case "lastRenderedPageBreak":
                         break;
-                    case DocumentFormat.OpenXml.Wordprocessing.PageNumber:
+                    case "pgNum":
                         AppendSupportedPageNumberField(text, runs, formatting);
                         break;
-                    case Text textNode:
-                        AppendFormattedText(text, runs, textNode.Text, formatting);
+                    case "t":
+                        AppendFormattedText(text, runs, child.Text, formatting);
                         break;
-                    case DeletedText deletedTextNode:
-                        AppendFormattedText(text, runs, deletedTextNode.Text, formatting);
+                    case "delText":
+                        AppendFormattedText(text, runs, child.Text, formatting);
                         break;
-                    case TabChar:
+                    case "tab":
                         AppendFormattedText(text, runs, "\t", formatting);
                         break;
-                    case CarriageReturn:
+                    case "cr":
                         AppendFormattedText(text, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting);
                         break;
-                    case NoBreakHyphen:
+                    case "noBreakHyphen":
                         AppendFormattedText(text, runs, LegacyDocSpecialCharacters.NoBreakHyphen.ToString(), formatting);
                         break;
-                    case SoftHyphen:
+                    case "softHyphen":
                         AppendFormattedText(text, runs, LegacyDocSpecialCharacters.SoftHyphen.ToString(), formatting);
                         break;
-                    case Break breakNode:
-                        AppendSupportedBreak(text, runs, breakNode, formatting);
+                    case "br":
+                        AppendSupportedBreak(text, runs, child, formatting);
                         break;
-                    case FootnoteReference footnoteReference:
-                        AppendFootnoteReference(text, runs, footnotes, footnoteReference, formatting);
+                    case "footnoteReference":
+                        AppendFootnoteReference(text, runs, footnotes, child, formatting);
                         break;
-                    case EndnoteReference endnoteReference:
-                        AppendEndnoteReference(text, runs, endnotes, endnoteReference, formatting);
+                    case "endnoteReference":
+                        AppendEndnoteReference(text, runs, endnotes, child, formatting);
                         break;
-                    case CommentReference:
+                    case "commentReference":
                         AppendFormattedText(
                             text,
                             runs,
                             LegacyDocCommentReader.CommentReferenceCharacter.ToString(),
                             formatting.WithSpecialCharacter());
                         break;
-                    case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
+                    case "drawing":
                         if (pictures == null || ownerPart == null) {
                             throw new NotSupportedException(
                                 "Native DOC saving does not support inline pictures inside this run context.");
                         }
 
                         int picturePosition = text.Length;
-                        int pictureDataOffset = pictures.AddInlinePicture(drawing, ownerPart);
+                        int pictureDataOffset = pictures.AddInlinePicture(child, ownerPart.Value);
                         text.Append('\u0001');
                         runs.Add(new LegacyDocWritableRun(
                             picturePosition,
@@ -96,19 +93,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendSupportedBreak(StringBuilder text, List<LegacyDocWritableRun> runs, Break breakNode, LegacyDocWritableFormatting formatting) {
-            BreakValues? breakType = breakNode.Type?.Value;
-            if (breakType == null || breakType == BreakValues.TextWrapping) {
+        private static void AppendSupportedBreak(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocElement breakNode, LegacyDocWritableFormatting formatting) {
+            string? breakType = breakNode.Attr("type");
+            if (breakType == null || breakType == "textWrapping") {
                 AppendFormattedText(text, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting);
                 return;
             }
 
-            if (breakType == BreakValues.Page) {
+            if (breakType == "page") {
                 AppendFormattedText(text, runs, LegacyDocSpecialCharacters.PageBreak.ToString(), formatting);
                 return;
             }
 
-            if (breakType == BreakValues.Column) {
+            if (breakType == "column") {
                 AppendFormattedText(text, runs, LegacyDocSpecialCharacters.ColumnBreak.ToString(), formatting);
                 return;
             }
@@ -116,12 +113,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             throw new NotSupportedException($"Native DOC saving currently supports text-wrapping, page, and column breaks only. Unsupported break type: {breakType}.");
         }
 
-        private static LegacyDocWritableFormatting ReadSupportedRunFormatting(OpenXmlCompositeElement? runProperties) {
+        private static LegacyDocWritableFormatting ReadSupportedRunFormatting(LegacyDocElement runProperties) {
             return ReadSupportedRunFormatting(runProperties, allowHyperlinkRunStyle: false);
         }
 
-        private static LegacyDocWritableFormatting ReadSupportedParagraphMarkRunFormatting(ParagraphProperties? paragraphProperties) {
-            return ReadSupportedRunFormatting(paragraphProperties?.GetFirstChild<ParagraphMarkRunProperties>());
+        private static LegacyDocWritableFormatting ReadSupportedParagraphMarkRunFormatting(LegacyDocElement paragraphProperties) {
+            return ReadSupportedRunFormatting(paragraphProperties.Child("rPr"));
         }
 
         private static void AddParagraphMarkRunFormatting(List<LegacyDocWritableRun> runs, int paragraphMarkPosition, LegacyDocWritableFormatting formatting) {
@@ -130,8 +127,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableFormatting ReadSupportedRunFormatting(OpenXmlCompositeElement? runProperties, bool allowHyperlinkRunStyle, bool allowNoteReferenceRunStyle = false) {
-            if (runProperties == null || !runProperties.HasChildren) {
+        private static LegacyDocWritableFormatting ReadSupportedRunFormatting(LegacyDocElement runProperties, bool allowHyperlinkRunStyle, bool allowNoteReferenceRunStyle = false) {
+            if (runProperties.IsNone || !runProperties.HasElements) {
                 return LegacyDocWritableFormatting.Plain;
             }
 
@@ -158,106 +155,106 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ushort? languageId = null;
             ushort? eastAsiaLanguageId = null;
             LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None;
-            foreach (OpenXmlElement property in runProperties.ChildElements) {
-                switch (property) {
-                    case Bold boldProperty:
+            foreach (LegacyDocElement property in runProperties.Elements()) {
+                switch (property.WName) {
+                    case "b":
                         specified |= LegacyDocWritableFormattingProperties.Bold;
-                        bold = MergeSingleRunToggle(bold, IsEnabled(boldProperty), "bold", "Bold", "BoldComplexScript");
+                        bold = MergeSingleRunToggle(bold, IsEnabled(property), "bold", "Bold", "BoldComplexScript");
                         break;
-                    case BoldComplexScript boldComplexScript:
+                    case "bCs":
                         specified |= LegacyDocWritableFormattingProperties.Bold;
-                        bold = MergeSingleRunToggle(bold, IsEnabled(boldComplexScript), "bold", "Bold", "BoldComplexScript");
+                        bold = MergeSingleRunToggle(bold, IsEnabled(property), "bold", "Bold", "BoldComplexScript");
                         break;
-                    case Italic italicProperty:
+                    case "i":
                         specified |= LegacyDocWritableFormattingProperties.Italic;
-                        italic = MergeSingleRunToggle(italic, IsEnabled(italicProperty), "italic", "Italic", "ItalicComplexScript");
+                        italic = MergeSingleRunToggle(italic, IsEnabled(property), "italic", "Italic", "ItalicComplexScript");
                         break;
-                    case ItalicComplexScript italicComplexScript:
+                    case "iCs":
                         specified |= LegacyDocWritableFormattingProperties.Italic;
-                        italic = MergeSingleRunToggle(italic, IsEnabled(italicComplexScript), "italic", "Italic", "ItalicComplexScript");
+                        italic = MergeSingleRunToggle(italic, IsEnabled(property), "italic", "Italic", "ItalicComplexScript");
                         break;
-                    case Strike strikeProperty:
+                    case "strike":
                         specified |= LegacyDocWritableFormattingProperties.Strike;
-                        strike = IsEnabled(strikeProperty);
+                        strike = IsEnabled(property);
                         break;
-                    case DoubleStrike doubleStrikeProperty:
+                    case "dstrike":
                         specified |= LegacyDocWritableFormattingProperties.DoubleStrike;
-                        doubleStrike = IsEnabled(doubleStrikeProperty);
+                        doubleStrike = IsEnabled(property);
                         break;
-                    case Outline outlineProperty:
+                    case "outline":
                         specified |= LegacyDocWritableFormattingProperties.Outline;
-                        outline = IsEnabled(outlineProperty);
+                        outline = IsEnabled(property);
                         break;
-                    case Shadow shadowProperty:
+                    case "shadow":
                         specified |= LegacyDocWritableFormattingProperties.Shadow;
-                        shadow = IsEnabled(shadowProperty);
+                        shadow = IsEnabled(property);
                         break;
-                    case Emboss embossProperty:
+                    case "emboss":
                         specified |= LegacyDocWritableFormattingProperties.Emboss;
-                        emboss = IsEnabled(embossProperty);
+                        emboss = IsEnabled(property);
                         break;
-                    case Imprint imprintProperty:
+                    case "imprint":
                         specified |= LegacyDocWritableFormattingProperties.Imprint;
-                        imprint = IsEnabled(imprintProperty);
+                        imprint = IsEnabled(property);
                         break;
-                    case Vanish vanishProperty:
+                    case "vanish":
                         specified |= LegacyDocWritableFormattingProperties.Hidden;
-                        hidden = IsEnabled(vanishProperty);
+                        hidden = IsEnabled(property);
                         break;
-                    case NoProof noProofProperty:
+                    case "noProof":
                         specified |= LegacyDocWritableFormattingProperties.NoProof;
-                        noProof = IsEnabled(noProofProperty);
+                        noProof = IsEnabled(property);
                         break;
-                    case Caps capsProperty:
+                    case "caps":
                         specified |= LegacyDocWritableFormattingProperties.Caps;
-                        caps = MergeCapsKind(caps, IsEnabled(capsProperty), 1);
+                        caps = MergeCapsKind(caps, IsEnabled(property), 1);
                         break;
-                    case SmallCaps smallCapsProperty:
+                    case "smallCaps":
                         specified |= LegacyDocWritableFormattingProperties.Caps;
-                        caps = MergeCapsKind(caps, IsEnabled(smallCapsProperty), 2);
+                        caps = MergeCapsKind(caps, IsEnabled(property), 2);
                         break;
-                    case VerticalTextAlignment verticalTextAlignment:
+                    case "vertAlign":
                         specified |= LegacyDocWritableFormattingProperties.VerticalPosition;
-                        verticalPosition = ReadSupportedVerticalPosition(verticalTextAlignment);
+                        verticalPosition = ReadSupportedVerticalPosition(property);
                         break;
-                    case Underline underlineProperty:
+                    case "u":
                         specified |= LegacyDocWritableFormattingProperties.Underline;
-                        underline = ReadSupportedUnderline(underlineProperty);
+                        underline = ReadSupportedUnderline(property);
                         break;
-                    case Highlight highlightProperty:
+                    case "highlight":
                         specified |= LegacyDocWritableFormattingProperties.Highlight;
-                        highlight = ReadSupportedHighlight(highlightProperty);
+                        highlight = ReadSupportedHighlight(property);
                         break;
-                    case FontSize fontSize:
+                    case "sz":
                         specified |= LegacyDocWritableFormattingProperties.FontSize;
-                        fontSizeHalfPoints = MergeFontSizeHalfPoints(fontSizeHalfPoints, ReadFontSizeHalfPoints(fontSize.Val?.Value));
+                        fontSizeHalfPoints = MergeFontSizeHalfPoints(fontSizeHalfPoints, ReadFontSizeHalfPoints(property.Val));
                         break;
-                    case FontSizeComplexScript fontSizeComplexScript:
+                    case "szCs":
                         specified |= LegacyDocWritableFormattingProperties.FontSize;
-                        fontSizeHalfPoints = MergeFontSizeHalfPoints(fontSizeHalfPoints, ReadFontSizeHalfPoints(fontSizeComplexScript.Val?.Value));
+                        fontSizeHalfPoints = MergeFontSizeHalfPoints(fontSizeHalfPoints, ReadFontSizeHalfPoints(property.Val));
                         break;
-                    case Color color:
+                    case "color":
                         specified |= LegacyDocWritableFormattingProperties.Color;
-                        colorHex = ReadSupportedColorHex(color);
+                        colorHex = ReadSupportedColorHex(property);
                         break;
-                    case RunFonts runFonts:
+                    case "rFonts":
                         specified |= LegacyDocWritableFormattingProperties.FontFamily;
-                        fontFamily = ReadSupportedRunFontFamily(runFonts);
+                        fontFamily = ReadSupportedRunFontFamily(property);
                         break;
-                    case Kern kern:
+                    case "kern":
                         specified |= LegacyDocWritableFormattingProperties.Kerning;
-                        kerningMinimumFontSizeHalfPoints = ReadSupportedKerning(kern);
+                        kerningMinimumFontSizeHalfPoints = ReadSupportedKerning(property);
                         break;
-                    case CharacterScale characterScale:
+                    case "w":
                         specified |= LegacyDocWritableFormattingProperties.CharacterScale;
-                        characterScalePercentage = ReadSupportedCharacterScale(characterScale);
+                        characterScalePercentage = ReadSupportedCharacterScale(property);
                         break;
-                    case Spacing spacing:
+                    case "spacing":
                         specified |= LegacyDocWritableFormattingProperties.CharacterSpacing;
-                        characterSpacingTwips = ReadSupportedCharacterSpacing(spacing);
+                        characterSpacingTwips = ReadSupportedCharacterSpacing(property);
                         break;
-                    case Languages languages:
-                        LegacyDocWritableLanguageIds languageIds = ReadSupportedRunLanguages(languages);
+                    case "lang":
+                        LegacyDocWritableLanguageIds languageIds = ReadSupportedRunLanguages(property);
                         if (languageIds.HasAny) {
                             specified |= LegacyDocWritableFormattingProperties.Language;
                             languageId = languageIds.LanguageId;
@@ -265,11 +262,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         break;
-                    case RunStyle noteStyle when allowNoteReferenceRunStyle &&
-                        (string.Equals(noteStyle.Val?.Value, "FootnoteReference", StringComparison.Ordinal) ||
-                         string.Equals(noteStyle.Val?.Value, "EndnoteReference", StringComparison.Ordinal)):
+                    case "rStyle" when allowNoteReferenceRunStyle &&
+                        (string.Equals(property.Val, "FootnoteReference", StringComparison.Ordinal) ||
+                         string.Equals(property.Val, "EndnoteReference", StringComparison.Ordinal)):
                         break;
-                    case RunStyle runStyle when allowHyperlinkRunStyle && string.Equals(runStyle.Val?.Value, "Hyperlink", StringComparison.Ordinal):
+                    case "rStyle" when allowHyperlinkRunStyle && string.Equals(property.Val, "Hyperlink", StringComparison.Ordinal):
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, font family, character spacing, character scale, kerning, and language run formatting. Unsupported run property: {property.LocalName}.");
@@ -279,8 +276,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified, characterSpacingTwips: characterSpacingTwips, characterScalePercentage: characterScalePercentage, kerningMinimumFontSizeHalfPoints: kerningMinimumFontSizeHalfPoints, languageId: languageId, eastAsiaLanguageId: eastAsiaLanguageId);
         }
 
-        private static bool IsEnabled(OnOffType property) {
-            return property.Val == null || property.Val.Value;
+        private static bool IsEnabled(LegacyDocElement property) {
+            return LegacyDocValues.IsOn(property);
         }
 
         private static bool MergeSingleRunToggle(bool? currentValue, bool nextValue, string description, string directPropertyName, string complexScriptPropertyName) {
@@ -303,88 +300,91 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return nextKind;
         }
 
-        private static byte? ReadSupportedUnderline(Underline underline) {
-            UnderlineValues value = underline.Val?.Value ?? UnderlineValues.Single;
-            if (value == UnderlineValues.None) {
-                return null;
-            } else if (value == UnderlineValues.Single) {
-                return 1;
-            } else if (value == UnderlineValues.Words) {
-                return 2;
-            } else if (value == UnderlineValues.Double) {
-                return 3;
-            } else if (value == UnderlineValues.Dotted) {
-                return 4;
-            } else if (value == UnderlineValues.Thick) {
-                return 6;
-            } else if (value == UnderlineValues.Dash) {
-                return 7;
-            } else if (value == UnderlineValues.DotDash) {
-                return 8;
-            } else if (value == UnderlineValues.DotDotDash) {
-                return 9;
-            } else if (value == UnderlineValues.Wave) {
-                return 10;
-            } else if (value == UnderlineValues.DottedHeavy) {
-                return 11;
-            } else if (value == UnderlineValues.DashedHeavy) {
-                return 12;
-            } else if (value == UnderlineValues.DashDotHeavy) {
-                return 13;
-            } else if (value == UnderlineValues.DashDotDotHeavy) {
-                return 14;
-            } else if (value == UnderlineValues.WavyHeavy) {
-                return 15;
-            } else if (value == UnderlineValues.DashLong) {
-                return 16;
-            } else if (value == UnderlineValues.WavyDouble) {
-                return 17;
-            } else if (value == UnderlineValues.DashLongHeavy) {
-                return 18;
+        private static byte? ReadSupportedUnderline(LegacyDocElement underline) {
+            string value = underline.Val ?? "single";
+            switch (value) {
+                case "none":
+                    return null;
+                case "single":
+                    return 1;
+                case "words":
+                    return 2;
+                case "double":
+                    return 3;
+                case "dotted":
+                    return 4;
+                case "thick":
+                    return 6;
+                case "dash":
+                    return 7;
+                case "dotDash":
+                    return 8;
+                case "dotDotDash":
+                    return 9;
+                case "wave":
+                    return 10;
+                case "dottedHeavy":
+                    return 11;
+                case "dashedHeavy":
+                    return 12;
+                case "dashDotHeavy":
+                    return 13;
+                case "dashDotDotHeavy":
+                    return 14;
+                case "wavyHeavy":
+                    return 15;
+                case "dashLong":
+                    return 16;
+                case "wavyDouble":
+                    return 17;
+                case "dashLongHeavy":
+                    return 18;
             }
 
             throw new NotSupportedException($"Native DOC saving does not support underline style '{value}'.");
         }
 
-        private static byte? ReadSupportedVerticalPosition(VerticalTextAlignment verticalTextAlignment) {
-            VerticalPositionValues? value = verticalTextAlignment.Val?.Value;
+        private static byte? ReadSupportedVerticalPosition(LegacyDocElement verticalTextAlignment) {
+            string? value = verticalTextAlignment.Val;
             if (value == null) {
                 return null;
             }
 
-            if (value == VerticalPositionValues.Baseline) {
+            if (value == "baseline") {
                 return null;
-            } else if (value == VerticalPositionValues.Superscript) {
+            } else if (value == "superscript") {
                 return 1;
-            } else if (value == VerticalPositionValues.Subscript) {
+            } else if (value == "subscript") {
                 return 2;
             }
 
             throw new NotSupportedException($"Native DOC saving does not support vertical text alignment '{value}'.");
         }
 
-        private static byte? ReadSupportedHighlight(Highlight highlight) {
-            HighlightColorValues? value = highlight.Val?.Value;
-            if (value == null || value == HighlightColorValues.None) {
+        private static byte? ReadSupportedHighlight(LegacyDocElement highlight) {
+            string? value = highlight.Val;
+            if (value == null || value == "none") {
                 return null;
             }
 
-            if (value == HighlightColorValues.Black) return 1;
-            if (value == HighlightColorValues.Blue) return 2;
-            if (value == HighlightColorValues.Cyan) return 3;
-            if (value == HighlightColorValues.Green) return 4;
-            if (value == HighlightColorValues.Magenta) return 5;
-            if (value == HighlightColorValues.Red) return 6;
-            if (value == HighlightColorValues.Yellow) return 7;
-            if (value == HighlightColorValues.White) return 8;
-            if (value == HighlightColorValues.DarkBlue) return 9;
-            if (value == HighlightColorValues.DarkCyan) return 10;
-            if (value == HighlightColorValues.DarkGreen) return 11;
-            if (value == HighlightColorValues.DarkMagenta) return 12;
-            if (value == HighlightColorValues.DarkRed) return 13;
-            if (value == HighlightColorValues.DarkYellow) return 14;
-            if (value == HighlightColorValues.DarkGray) return 15;
-            if (value == HighlightColorValues.LightGray) return 16;
+            switch (value) {
+                case "black": return 1;
+                case "blue": return 2;
+                case "cyan": return 3;
+                case "green": return 4;
+                case "magenta": return 5;
+                case "red": return 6;
+                case "yellow": return 7;
+                case "white": return 8;
+                case "darkBlue": return 9;
+                case "darkCyan": return 10;
+                case "darkGreen": return 11;
+                case "darkMagenta": return 12;
+                case "darkRed": return 13;
+                case "darkYellow": return 14;
+                case "darkGray": return 15;
+                case "lightGray": return 16;
+            }
 
             throw new NotSupportedException($"Native DOC saving does not support highlight color '{value}'.");
         }
@@ -405,8 +405,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return nextHalfPoints;
         }
 
-        private static string? ReadSupportedColorHex(Color color) {
-            string? value = color.Val?.Value;
+        private static string? ReadSupportedColorHex(LegacyDocElement color) {
+            string? value = color.Val;
             if (string.IsNullOrWhiteSpace(value)) {
                 return null;
             }
@@ -425,12 +425,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return hex;
         }
 
-        private static string? ReadSupportedRunFontFamily(RunFonts runFonts) {
-            runFonts = ResolveNativeThemeRunFonts(runFonts);
-            string? ascii = NormalizeFontFamily(runFonts.Ascii?.Value);
-            string? highAnsi = NormalizeFontFamily(runFonts.HighAnsi?.Value);
-            string? eastAsia = NormalizeFontFamily(runFonts.EastAsia?.Value);
-            string? complexScript = NormalizeFontFamily(runFonts.ComplexScript?.Value);
+        private static string? ReadSupportedRunFontFamily(LegacyDocElement runFonts) {
+            return ReadSupportedRunFontFamily(ResolveNativeThemeRunFonts(runFonts));
+        }
+
+        private static string? ReadSupportedRunFontFamily(LegacyDocRunFonts runFonts) {
+            string? ascii = NormalizeFontFamily(runFonts.Ascii);
+            string? highAnsi = NormalizeFontFamily(runFonts.HighAnsi);
+            string? eastAsia = NormalizeFontFamily(runFonts.EastAsia);
+            string? complexScript = NormalizeFontFamily(runFonts.ComplexScript);
 
             string? fontFamily = ascii ?? highAnsi ?? eastAsia ?? complexScript;
             if (fontFamily == null) {
@@ -454,8 +457,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return value!.Trim();
         }
 
-        private static int ReadSupportedCharacterSpacing(Spacing spacing) {
-            int value = spacing.Val?.Value ?? 0;
+        private static int ReadSupportedCharacterSpacing(LegacyDocElement spacing) {
+            int value = LegacyDocValues.Int32(spacing.Val) ?? 0;
             if (value < short.MinValue || value > short.MaxValue) {
                 throw new NotSupportedException("Native DOC saving supports character spacing only within the Word 97-2003 signed twip range.");
             }
@@ -463,10 +466,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return value;
         }
 
-        private static LegacyDocWritableLanguageIds ReadSupportedRunLanguages(Languages languages) {
-            ushort? languageId = LegacyDocLanguageMapper.TryReadLanguageId(languages.Val?.Value, "run language");
-            ushort? eastAsiaLanguageId = LegacyDocLanguageMapper.TryReadLanguageId(languages.EastAsia?.Value, "run East Asian language");
-            ushort? bidiLanguageId = LegacyDocLanguageMapper.TryReadLanguageId(languages.Bidi?.Value, "run bidirectional language");
+        private static LegacyDocWritableLanguageIds ReadSupportedRunLanguages(LegacyDocElement languages) {
+            ushort? languageId = LegacyDocLanguageMapper.TryReadLanguageId(languages.Val, "run language");
+            ushort? eastAsiaLanguageId = LegacyDocLanguageMapper.TryReadLanguageId(languages.Attr("eastAsia"), "run East Asian language");
+            ushort? bidiLanguageId = LegacyDocLanguageMapper.TryReadLanguageId(languages.Attr("bidi"), "run bidirectional language");
 
             if (bidiLanguageId != null) {
                 if (languageId != null && languageId.Value != bidiLanguageId.Value) {

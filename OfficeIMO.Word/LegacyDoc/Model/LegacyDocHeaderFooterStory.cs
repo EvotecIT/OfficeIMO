@@ -1,8 +1,7 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal sealed class LegacyDocHeaderFooterStory {
-        internal LegacyDocHeaderFooterStory(int sectionIndex, bool isHeader, HeaderFooterValues type, IReadOnlyList<LegacyDocHeaderFooterParagraph> paragraphs) {
+        internal LegacyDocHeaderFooterStory(int sectionIndex, bool isHeader, LegacyDocHeaderFooterType type, IReadOnlyList<LegacyDocHeaderFooterParagraph> paragraphs) {
             SectionIndex = sectionIndex;
             IsHeader = isHeader;
             Type = type;
@@ -11,7 +10,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 paragraph.Runs, paragraph.Format, paragraph.StartCharacter, paragraph.EndCharacter, paragraph.Bookmarks)).ToArray();
         }
 
-        internal LegacyDocHeaderFooterStory(int sectionIndex, bool isHeader, HeaderFooterValues type, IReadOnlyList<LegacyDocBodyBlock> blocks) {
+        internal LegacyDocHeaderFooterStory(int sectionIndex, bool isHeader, LegacyDocHeaderFooterType type, IReadOnlyList<LegacyDocBodyBlock> blocks) {
             SectionIndex = sectionIndex;
             IsHeader = isHeader;
             Type = type;
@@ -24,7 +23,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool IsHeader { get; }
 
-        internal HeaderFooterValues Type { get; }
+        internal LegacyDocHeaderFooterType Type { get; }
 
         internal IReadOnlyList<LegacyDocHeaderFooterParagraph> Paragraphs { get; }
 

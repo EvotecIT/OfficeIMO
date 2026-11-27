@@ -1,12 +1,10 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         private static void AppendSupportedComplexPageNumberField(
-            IReadOnlyList<OpenXmlElement> paragraphChildren,
+            IReadOnlyList<LegacyDocElement> paragraphChildren,
             ref int childIndex,
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
@@ -19,7 +17,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         /// <summary>Reads one adjacent-run field; result content uses the same collector as simple fields and note stories.</summary>
         private static LegacyDocWritableFieldResult ReadSupportedComplexField(
-            IReadOnlyList<OpenXmlElement> paragraphChildren,
+            IReadOnlyList<LegacyDocElement> paragraphChildren,
             ref int childIndex,
             LegacyDocWritableFormatting inheritedFormatting,
             out string fieldInstruction,
@@ -29,8 +27,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool sawBegin = false;
             bool sawSeparator = false;
             for (int index = childIndex; index < paragraphChildren.Count; index++) {
-                OpenXmlElement fieldChild = paragraphChildren[index];
-                if (fieldChild is not Run run) {
+                LegacyDocElement fieldChild = paragraphChildren[index];
+                if (!fieldChild.Is("r")) {
                     if (sawSeparator) {
                         result.AppendChild(fieldChild);
                     } else if (!IsIgnorableParagraphMarkup(fieldChild)) {
@@ -39,28 +37,29 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     continue;
                 }
 
-                LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties)
+                LegacyDocElement run = fieldChild;
+                LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.Child("rPr"))
                     .WithInheritedFormatting(inheritedFormatting);
-                foreach (OpenXmlElement child in run.ChildElements) {
-                    switch (child) {
-                        case RunProperties:
-                        case LastRenderedPageBreak:
+                foreach (LegacyDocElement child in run.Elements()) {
+                    switch (child.WName) {
+                        case "rPr":
+                        case "lastRenderedPageBreak":
                             break;
-                        case FieldCode code when !sawSeparator:
-                            instruction.Append(code.Text);
+                        case "instrText" when !sawSeparator:
+                            instruction.Append(child.Text);
                             break;
-                        case FieldChar fieldChar:
-                            FieldCharValues? kind = fieldChar.FieldCharType?.Value;
-                            if (kind == FieldCharValues.Begin) {
+                        case "fldChar":
+                            string? kind = child.Attr("fldCharType");
+                            if (kind == "begin") {
                                 if (sawBegin || index != childIndex) {
                                     throw new NotSupportedException($"Native DOC saving does not support nested complex fields in {SupportedFieldNames} field runs.");
                                 }
                                 // The begin character owns the lock. Public setters also repeat it on separator/end characters.
-                                result.FieldLocked = fieldChar.FieldLock?.Value == true;
+                                result.FieldLocked = child.Attr("fldLock") is { } fieldLock && LegacyDocValues.ParseOnOff(fieldLock);
                                 sawBegin = true;
-                            } else if (kind == FieldCharValues.Separate && !sawSeparator) {
+                            } else if (kind == "separate" && !sawSeparator) {
                                 sawSeparator = true;
-                            } else if (kind == FieldCharValues.End) {
+                            } else if (kind == "end") {
                                 fieldInstruction = instruction.ToString();
                                 if (!TryReadSupportedFieldKind(fieldInstruction, out fieldKind)) {
                                     throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} complex fields. Other field types are not supported yet.");

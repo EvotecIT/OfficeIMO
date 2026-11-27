@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Word.LegacyDoc.Model;
 
@@ -12,16 +11,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ArgumentNullException.ThrowIfNull(document);
             var timer = System.Diagnostics.Stopwatch.StartNew();
             using var palette = new LegacyDocPaletteProjection();
-            byte[] bytes = WriteDocumentCore(document, options, isTemplate);
-            report = palette.CreateReport(document, timer.Elapsed);
+            byte[] bytes = WriteDocumentCore(document, options, isTemplate, out int sectionCount);
+            report = palette.CreateReport(document, sectionCount, timer.Elapsed);
             if (options?.AllowLoss != true) report.ThrowIfLoss();
             return bytes;
         }
 
         private static byte[] WriteDocumentCore(
             WordDocument document,
-            WordSaveOptions? options = null,
-            bool isTemplate = false) {
+            WordSaveOptions? options,
+            bool isTemplate,
+            out int sectionCount) {
             ArgumentNullException.ThrowIfNull(document);
 
             if (document.IsWord69Source) {
@@ -30,20 +30,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             ThrowIfUnsupportedLegacyDocImportState(document, options);
 
-            MainDocumentPart? previousMainPart = t_writingMainPart;
-            t_writingMainPart = document._wordprocessingDocument?.MainDocumentPart;
+            using LegacyDocSourcePackage source = document.OpenLegacyDocSource();
+            LegacyDocSourcePackage? previousSource = t_writingSource;
+            t_writingSource = source;
             try {
-                return WriteDocumentBody(document, options, isTemplate);
+                sectionCount = LegacyDocWordHelpers.GetDocumentSectionProperties(source).Count;
+                return WriteDocumentBody(document, source, options, isTemplate);
             } finally {
-                t_writingMainPart = previousMainPart;
+                t_writingSource = previousSource;
             }
         }
 
-        private static byte[] WriteDocumentBody(WordDocument document, WordSaveOptions? options, bool isTemplate) {
-            LegacyDocWritableBody body = BuildBody(document);
+        private static byte[] WriteDocumentBody(WordDocument document, LegacyDocSourcePackage source, WordSaveOptions? options, bool isTemplate) {
+            LegacyDocWritableBody body = BuildBody(document, source);
             byte[] wordDocumentStream = PadToRegularOleStream(CreateWordDocumentStream(body, isTemplate));
             byte[] tableStream = PadToRegularOleStream(CreateTableStream(body));
-            IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyDocPropertySetWriter.CreateDocumentPropertyStreams(document);
+            IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyDocPropertySetWriter.CreateDocumentPropertyStreams(document, source);
             var streams = new List<OfficeCompoundStream>(propertyStreams.Count + 2) {
                 new OfficeCompoundStream("WordDocument", wordDocumentStream),
                 new OfficeCompoundStream("1Table", tableStream)

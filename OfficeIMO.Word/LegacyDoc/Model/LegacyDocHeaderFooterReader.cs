@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal static class LegacyDocHeaderFooterReader {
@@ -55,7 +54,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 int relativeStoryIndex = storyIndex - SeparatorStoryCount;
                 int sectionIndex = relativeStoryIndex / StoriesPerSection;
                 int sectionStorySlot = relativeStoryIndex % StoriesPerSection;
-                if (!TryMapStorySlot(sectionStorySlot, out bool isHeader, out HeaderFooterValues type)) {
+                if (!TryMapStorySlot(sectionStorySlot, out bool isHeader, out LegacyDocHeaderFooterType type)) {
                     continue;
                 }
 
@@ -94,30 +93,30 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return stories;
         }
 
-        private static bool TryMapStorySlot(int storySlot, out bool isHeader, out HeaderFooterValues type) {
+        private static bool TryMapStorySlot(int storySlot, out bool isHeader, out LegacyDocHeaderFooterType type) {
             isHeader = false;
-            type = HeaderFooterValues.Default;
+            type = LegacyDocHeaderFooterType.Default;
             switch (storySlot) {
                 case 0:
                     isHeader = true;
-                    type = HeaderFooterValues.Even;
+                    type = LegacyDocHeaderFooterType.Even;
                     return true;
                 case 1:
                     isHeader = true;
-                    type = HeaderFooterValues.Default;
+                    type = LegacyDocHeaderFooterType.Default;
                     return true;
                 case 2:
-                    type = HeaderFooterValues.Even;
+                    type = LegacyDocHeaderFooterType.Even;
                     return true;
                 case 3:
-                    type = HeaderFooterValues.Default;
+                    type = LegacyDocHeaderFooterType.Default;
                     return true;
                 case 4:
                     isHeader = true;
-                    type = HeaderFooterValues.First;
+                    type = LegacyDocHeaderFooterType.First;
                     return true;
                 case 5:
-                    type = HeaderFooterValues.First;
+                    type = LegacyDocHeaderFooterType.First;
                     return true;
                 default:
                     return false;

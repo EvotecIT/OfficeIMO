@@ -1150,7 +1150,9 @@ internal static partial class TextContentParser {
         void MarkSpansCannotRestamp(int firstSpanIndex, int spanCount) {
             if (!retainEditingEvidence) return;
             int end = Math.Min(spans.Count, firstSpanIndex + spanCount);
-            for (int index = firstSpanIndex; index < end; index++) spans[index] = spans[index].WithCanRestamp(false);
+            for (int index = firstSpanIndex; index < end; index++) {
+                if (spans[index].CanRestamp) spans[index] = spans[index].WithCanRestamp(false);
+            }
         }
 
         static PersistentGraphicsStateFlags GetPersistentGraphicsStateFlag(string name) => name switch {
@@ -1640,6 +1642,9 @@ internal static partial class TextContentParser {
                     paintedText = spanText;
                 }
 
+                int spanGlyphCharacters = 0;
+                for (int index = 0; index < spanGlyphCharacterLengths.Count; index++) spanGlyphCharacters += spanGlyphCharacterLengths[index];
+                bool spanGlyphsCoverPaintedText = retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacters == paintedText.Length;
                 var span = new PdfTextSpan(
                     spanText,
                     font,
@@ -1669,15 +1674,12 @@ internal static partial class TextContentParser {
                     currentTextObjectOrderKey,
                     Matrix2D.Multiply(ctm, spanTextMatrix),
                     retainGlyphAndPaintEvidence ? GetVisualPaintIdentity() : null,
-                    retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length
-                        ? spanGlyphCharacterLengths
-                        : null,
-                    retainGlyphAndPaintEvidence && !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length &&
-                        spanGlyphBytes.Count == spanGlyphCharacterLengths.Count
+                    spanGlyphsCoverPaintedText ? spanGlyphCharacterLengths : null,
+                    spanGlyphsCoverPaintedText && spanGlyphBytes.Count == spanGlyphCharacterLengths.Count
                         ? spanGlyphBytes
                         : null,
                     spanGlyphPaintedAdvances?.Length == spanGlyphCharacterLengths.Count &&
-                        !hasUndecodableGlyph && spanGlyphCharacterLengths.Sum() == paintedText.Length
+                        !hasUndecodableGlyph && spanGlyphCharacters == paintedText.Length
                         ? spanGlyphPaintedAdvances
                         : null,
                     characterAdvanceDirection,
@@ -1692,7 +1694,8 @@ internal static partial class TextContentParser {
                     isArtifactContent: hasActiveArtifact,
                     fontWeight: fontWeightForResource?.Invoke(font),
                     fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font),
-                    embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length));
+                    embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length),
+                    adoptEvidenceArrays: true);
                 PdfTextDecodingEvidence decodingEvidence = wholeRunMappingFailure is not null
                     ? new PdfTextDecodingEvidence(PdfTextDecodingSource.Unmappable,
                         wholeRunMappingFailure.EncodingName, wholeRunMappingFailure.HasDeclaredToUnicode)

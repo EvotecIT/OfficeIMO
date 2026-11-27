@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             unsupported.DataType = CellValues.Number;
             unsupported.CellFormula!.CalculateCell = false;
             document.MarkFormulaSheetRecalculated(
-                sheet.WorksheetPart,
+                sheet.WorksheetPart.Uri,
                 document.CaptureFormulaInputMutationVersion());
             sheet.Cell(1, 1).SetValue(2d);
             Assert.All(sheet.GetFormulaCells(), formula =>

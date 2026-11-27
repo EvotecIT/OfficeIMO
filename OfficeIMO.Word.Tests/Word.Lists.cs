@@ -400,8 +400,9 @@ public partial class Word {
             var abstractNums = document._wordprocessingDocument!.MainDocumentPart!.NumberingDefinitionsPart!
                 .Numbering.ChildElements.OfType<AbstractNum>().ToArray();
             for (var idx = 0; idx < abstractNums.Length; idx++) {
-                var style = WordListStyles.GetStyle(wordListStyles[idx]);
+                var style = new AbstractNum(WordListStyles.GetDefinitionMarkup(wordListStyles[idx]));
                 Assert.Equal(style, abstractNums[idx]);
+                Assert.Equal(wordListStyles[idx], WordListStyles.MatchStyle(abstractNums[idx].GetFirstChild<TemplateCode>()?.Val?.Value));
             }
         }
     }
