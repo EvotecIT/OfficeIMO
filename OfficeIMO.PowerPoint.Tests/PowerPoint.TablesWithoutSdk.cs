@@ -133,6 +133,22 @@ public class PowerPointTablesWithoutSdkTests {
     }
 
     [Fact]
+    public void ReplacingHyperlinkedCellTextOnAReadOnlyPresentationKeepsTheEdit() {
+        byte[] source;
+        using (var deck = PowerPointDocument.Load(new MemoryStream(CreateDeck()))) {
+            deck.Slides[0].Tables.Single().GetCell(0, 0).AddText("Linked").SetHyperlink("https://example.com");
+            source = deck.ToBytes();
+        }
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source), new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        _ = presentation.OpenXmlDocument;
+        presentation.Slides[0].Tables.Single().GetCell(0, 0).Text = "Plain";
+
+        using var snapshot = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
+        Assert.Equal("Plain", snapshot.Slides[0].Tables.Single().GetCell(0, 0).Text);
+    }
+
+    [Fact]
     public void AReadOnlySnapshotKeepsTheCompatibilityMarkupOfUntouchedSlides() {
         byte[] source = RewritePart(CreateDeck(), "ppt/slides/slide1.xml", text => text.Replace("</p:spTree>",
             "<mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\">"
