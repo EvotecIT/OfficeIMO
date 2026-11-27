@@ -44,8 +44,8 @@ namespace OfficeIMO.PowerPoint {
         // An element as an SDK element, opening the SDK for one held in a package tree.
         private OpenXmlElement ToSdk(OfficeXmlNode node) {
             if (node.SdkElement is OpenXmlElement element) return element;
-            if (_packageSlide is { RemovedFromPackage: true }) throw new InvalidOperationException("The slide is no longer part of the presentation.");
-            if (node.Tree != null && !_packagePart.IsNone) return (OpenXmlElement)PowerPointSlide.BindPackageNode(_packagePart, node.Tree, node.Node);
+            if (_packageSlide is { RemovedFromPackage: true } || _owningSlide is { RemovedFromPackage: true }) throw new InvalidOperationException("The slide is no longer part of the presentation.");
+            if (!_standalone && node.Tree != null && !_packagePart.IsNone) return (OpenXmlElement)PowerPointSlide.BindPackageNode(_packagePart, node.Tree, node.Node);
             throw new InvalidOperationException("The run is not held in an SDK part.");
         }
 

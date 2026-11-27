@@ -5,6 +5,12 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>An object that works on the package and binds to its SDK element once the SDK opens.</summary>
     internal interface IPackageSdkBinding {
         void BindSdk();
+
+        /// <summary>
+        /// Copies an element that was removed from its part into a tree of its own, before the SDK opens and the package
+        /// goes, so the wrapper keeps reading what it last held.
+        /// </summary>
+        void KeepDetached();
     }
 
     /// <summary>
@@ -53,6 +59,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private int _packageBindingsPruneAt;
+
+        // Lets every object still alive keep an element that was removed from its part; called before the package goes.
+        private void KeepDetachedPackageObjects() {
+            if (_packageBindings == null) return;
+            foreach (WeakReference<IPackageSdkBinding> reference in _packageBindings) {
+                if (reference.TryGetTarget(out IPackageSdkBinding? binding)) binding.KeepDetached();
+            }
+        }
 
         // Binds every object still alive while the slides the SDK opened are as the package wrote them.
         private void BindPackageObjects() {

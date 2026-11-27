@@ -20,6 +20,10 @@ namespace OfficeIMO.PowerPoint {
         private readonly PowerPointPartRef _initialSlidePart;
         private readonly PowerPointPartRef _initialOwnerPart;
         private readonly PowerPointSlide? _packageSlide;
+        // The slide whose part (its own or its notes) holds the run, when known: once removed, nothing binds.
+        private readonly PowerPointSlide? _owningSlide;
+        // Whether the element is a standalone copy of one removed from its part.
+        private bool _standalone;
         private readonly PowerPointPartRef _packagePart;
         private List<OfficeXmlNode>? _lineContinuation;
 
@@ -28,8 +32,10 @@ namespace OfficeIMO.PowerPoint {
         /// <paramref name="slidePart"/> is the slide the text belongs to and <paramref name="ownerPart"/> the part that
         /// holds it, such as a notes slide or a layout.
         /// </summary>
-        internal PowerPointTextRun(OfficeXmlNode element, PowerPointPartRef slidePart, PowerPointPartRef ownerPart, List<OfficeXmlNode>? lineContinuation = null) {
+        internal PowerPointTextRun(OfficeXmlNode element, PowerPointPartRef slidePart, PowerPointPartRef ownerPart, List<OfficeXmlNode>? lineContinuation = null,
+            PowerPointSlide? owningSlide = null) {
             _element = element;
+            _owningSlide = owningSlide;
             _isField = element.Is(OfficeXmlNamespaces.DrawingML, "fld");
             _initialSlidePart = !slidePart.IsNone ? slidePart : ownerPart.Kind == PowerPointPartKind.Slide ? ownerPart : default;
             _initialOwnerPart = !ownerPart.IsNone ? ownerPart : slidePart;
@@ -64,17 +70,33 @@ namespace OfficeIMO.PowerPoint {
         internal OfficeXmlNode Element {
             get {
                 // A removed slide's part name can be reused by a new slide, so its content never binds.
-                if (_element.Tree != null && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }) {
+                if (!_standalone && _element.Tree != null && _element.IsAttached && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }
+                    && _owningSlide is not { RemovedFromPackage: true }) {
                     // The lines the run continues on bind with it, so formatting keeps reaching them.
                     if (_lineContinuation != null) {
                         for (int index = 0; index < _lineContinuation.Count; index++) {
                             OfficeXmlNode line = _lineContinuation[index];
-                            if (line.Tree != null) _lineContinuation[index] = OfficeXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, line.Tree, line.Node));
+                            // A line copied out when it was removed stays with its copy.
+                            if (ReferenceEquals(line.Tree, _element.Tree)) _lineContinuation[index] = OfficeXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, line.Tree, line.Node));
                         }
                     }
                     _element = OfficeXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, _element.Tree, _element.Node));
                 }
                 return _element;
+            }
+        }
+
+        void IPackageSdkBinding.KeepDetached() {
+            // The lines the run continues on are copied with it, so its text and formatting stay whole.
+            if (_lineContinuation != null) {
+                for (int index = 0; index < _lineContinuation.Count; index++) {
+                    OfficeXmlNode line = _lineContinuation[index];
+                    if (line.Tree != null && !line.IsAttached) _lineContinuation[index] = PowerPointHeldNode.Standalone(line);
+                }
+            }
+            if (!_standalone && _element.Tree != null && !_element.IsAttached) {
+                _element = PowerPointHeldNode.Standalone(_element);
+                _standalone = true;
             }
         }
 

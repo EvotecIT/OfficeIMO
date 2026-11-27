@@ -27,8 +27,8 @@ public class PowerPointNotesWithoutSdkTests {
             withoutSdk = presentation.ToBytes();
         }
 
-        Assert.Equal(PowerPointTablesWithoutSdkTests.Parts(throughSdk, "ppt/notesSlides/"), PowerPointTablesWithoutSdkTests.Parts(withoutSdk, "ppt/notesSlides/"));
-        Assert.Equal(PowerPointTablesWithoutSdkTests.Parts(throughSdk, "ppt/slides/_rels/"), PowerPointTablesWithoutSdkTests.Parts(withoutSdk, "ppt/slides/_rels/"));
+        Assert.Equal(PowerPointTablesWithoutSdkTests.Parts(throughSdk, "ppt/notesSlides/notesSlide"), PowerPointTablesWithoutSdkTests.Parts(withoutSdk, "ppt/notesSlides/notesSlide"));
+        Assert.Equal(SlideRelationships(throughSdk), SlideRelationships(withoutSdk));
     }
 
     [Fact]
@@ -93,6 +93,23 @@ public class PowerPointNotesWithoutSdkTests {
         using var presentation = PowerPointDocument.Create();
         for (int index = 0; index < 3; index++) presentation.AddSlide().AddTextBox("Slide " + index);
         return presentation.ToBytes();
+    }
+
+    // Each slide's relationships as id, type and the part they resolve to; the SDK writes absolute targets where the
+    // package writes relative ones.
+    private static string[] SlideRelationships(byte[] package) {
+        using var archive = new ZipArchive(new MemoryStream(package));
+        var result = new List<string>();
+        foreach (ZipArchiveEntry entry in archive.Entries.Where(entry => entry.FullName.StartsWith("ppt/slides/_rels/", StringComparison.Ordinal)).OrderBy(entry => entry.FullName, StringComparer.Ordinal)) {
+            XElement root;
+            using (Stream stream = entry.Open()) root = XElement.Load(stream);
+            foreach (XElement relationship in root.Elements().OrderBy(element => (string?)element.Attribute("Id"), StringComparer.Ordinal)) {
+                string target = (string)relationship.Attribute("Target")!;
+                string resolved = target.StartsWith("/", StringComparison.Ordinal) ? target : new Uri(new Uri("http://package/ppt/slides/"), target).AbsolutePath;
+                result.Add(entry.FullName + "|" + (string?)relationship.Attribute("Id") + "|" + (string?)relationship.Attribute("Type") + "|" + resolved);
+            }
+        }
+        return result.ToArray();
     }
 
     // The deck without its notes master: the parts, their relationships, content types and the presentation's list.

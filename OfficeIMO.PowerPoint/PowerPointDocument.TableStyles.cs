@@ -14,8 +14,19 @@ namespace OfficeIMO.PowerPoint {
             if (IsSdkLoaded) return SdkEnsureTableStylesPart();
             PowerPointPartRef presentation = PresentationPartRef;
             if (presentation.IsNone) return default;
+            // Reading the presentation part can open the SDK (a load limit leaves parts to it).
+            if (IsSdkLoaded) return SdkEnsureTableStylesPart();
             PowerPointPartRef styles = presentation.RelatedPart(TableStylesRelationshipType);
-            if (!styles.IsNone || GetPackage(edit: true) is not { } package) return styles;
+            if (GetPackage(edit: true) is not { } package) return styles;
+            if (!styles.IsNone) {
+                // An empty styles part gets the built-in styles, as the SDK path fills it.
+                if (package.ReadPartBytes(styles.Name).Length == 0) {
+                    byte[] content = PowerPointUtils.TableStylesBytes.Value;
+                    package.ReplacePart(styles.Name, content, content.Length);
+                    MarkPackageEdited();
+                }
+                return styles;
+            }
             string partName = package.PartExists("/ppt/tableStyles.xml")
                 ? NextPartName(package, TableStylesContentType, "/ppt/tableStyles", ".xml")
                 : "/ppt/tableStyles.xml";

@@ -84,6 +84,56 @@ public class PowerPointTablesWithoutSdkTests {
         Assert.Equal(OfficeLength.Points(40).ToEmus(), reread.GetRow(2).Height!.Value.ToEmus());
     }
 
+    [Fact]
+    public void ARemovedRowAndColumnStayDetachedAfterTheSdkOpens() {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
+        PowerPointTable table = presentation.Slides[0].Tables.Single();
+        PowerPointTableRow row = table.GetRow(1);
+        PowerPointTableColumn column = table.GetColumn(0);
+        row.Remove();
+        column.Remove();
+
+        _ = presentation.OpenXmlDocument;
+
+        Assert.Equal(-1, row.Index);
+        Assert.Equal(-1, column.Index);
+        Assert.Empty(column.Cells);
+        column.Remove();
+        Assert.Equal((2, 2), (table.RowCount, table.ColumnCount));
+    }
+
+    [Fact]
+    public void TextOfARemovedRowStaysReadableAfterTheSdkOpens() {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
+        PowerPointTable table = presentation.Slides[0].Tables.Single();
+        PowerPointTableCell cell = table.GetCell(2, 2);
+        PowerPointParagraph paragraph = cell.Paragraphs[0];
+        PowerPointTextRun run = cell.Runs[0];
+        PowerPointTextRun lines = table.GetCell(2, 1).Paragraphs[0].AddText("A\nB");
+        table.RemoveRow(2);
+
+        _ = presentation.OpenXmlDocument;
+
+        Assert.Equal("Total", paragraph.Text);
+        Assert.Equal("Total", run.Text);
+        Assert.Equal("Total", paragraph.Runs[0].Text);
+        Assert.Equal("A\nB", lines.Text);
+    }
+
+    [Fact]
+    public void ANegativeInsertionIndexLeavesTheTableUnchanged() {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
+        PowerPointTable table = presentation.Slides[0].Tables.Single();
+        table.MergeCells(0, 0, 0, 1);
+        string before = Describe(table);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => table.AddRowFromTemplate(0, index: -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => table.AddColumnFromTemplate(0, index: -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => table.AddRow(-1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => table.AddColumn(-1));
+        Assert.Equal(before, Describe(table));
+    }
+
     private static void Edit(PowerPointDocument presentation) {
         PowerPointTable table = presentation.Slides[0].Tables.Single();
         table.GetCell(0, 0).Text = "Region";
@@ -170,7 +220,8 @@ public class PowerPointTablesWithoutSdkTests {
 
     internal static string[] Parts(byte[] package, string prefix) {
         using var archive = new ZipArchive(new MemoryStream(package));
-        return archive.Entries.Where(entry => entry.FullName.StartsWith(prefix, StringComparison.Ordinal) && entry.FullName.EndsWith(".xml", StringComparison.Ordinal))
+        return archive.Entries.Where(entry => entry.FullName.StartsWith(prefix, StringComparison.Ordinal)
+                && (entry.FullName.EndsWith(".xml", StringComparison.Ordinal) || entry.FullName.EndsWith(".rels", StringComparison.Ordinal)))
             .OrderBy(entry => entry.FullName, StringComparer.Ordinal)
             .Select(entry => {
                 using var reader = new StreamReader(entry.Open(), Encoding.UTF8);
