@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -128,11 +129,23 @@ namespace OfficeIMO.Tests {
                 // A new document's section gets a random revision id, and a table of contents a random placeholder name.
                 text = Regex.Replace(text, "<w:sectPr w:rsidR=\"[0-9A-F]{8}\"", "<w:sectPr w:rsidR=\"00000000\"");
                 text = Regex.Replace(text, "OfficeIMO_TocPlaceholder_[0-9a-f]{32}", "OfficeIMO_TocPlaceholder");
+                // The package layer writes relationship parts, and .NET Framework formats them differently; they are
+                // compared by their relationships.
+                if (part.Name.EndsWith(".rels", StringComparison.Ordinal)) text = DescribeRelationships(text);
                 string hash;
                 using (var sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text))).Replace("-", string.Empty);
                 lines.Add($"{name} {part.Name} {hash}");
             }
             return lines;
+        }
+
+        private static string DescribeRelationships(string text) {
+            XNamespace ns = "http://schemas.openxmlformats.org/package/2006/relationships";
+            return string.Join("\n", XDocument.Parse(text).Root!.Elements(ns + "Relationship")
+                .Select(relationship => string.Join("|",
+                    (string?)relationship.Attribute("Id"), (string?)relationship.Attribute("Type"),
+                    (string?)relationship.Attribute("Target"), (string?)relationship.Attribute("TargetMode") ?? "Internal"))
+                .OrderBy(line => line, StringComparer.Ordinal));
         }
 
         private static string FindTestProjectDirectory() {
