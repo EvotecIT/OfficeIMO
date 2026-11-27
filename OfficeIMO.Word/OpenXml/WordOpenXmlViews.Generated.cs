@@ -1730,3 +1730,211 @@ internal readonly partial struct WLanguageView {
         set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "bidi", value);
     }
 }
+
+/// <summary>View over an element of schema type <c>CT_Numbering</c>.</summary>
+internal readonly partial struct WNumberingView {
+    internal WNumberingView(OfficeXmlTree tree, int node) {
+        Tree = tree;
+        Node = node;
+    }
+
+    internal OfficeXmlTree Tree { get; }
+    internal int Node { get; }
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "numPicBullet", "abstractNum", "num", "numIdMacAtCleanup" }, new int[] { 0, 1, 2, 3 });
+
+    internal OfficeXmlElementList AbstractNumList => new(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "abstractNum");
+
+    /// <summary>Adds a <c>abstractNum</c> after the existing ones, in sequence order.</summary>
+    internal WAbstractNumView AddAbstractNum() {
+        int child = Tree.CreateElement(OfficeXmlNamespaces.WordprocessingML, "abstractNum");
+        Tree.InsertOrdered(Node, child, Order);
+        return new WAbstractNumView(Tree, child);
+    }
+
+    internal OfficeXmlElementList NumList => new(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "num");
+
+    /// <summary>Adds a <c>num</c> after the existing ones, in sequence order.</summary>
+    internal WNumView AddNum() {
+        int child = Tree.CreateElement(OfficeXmlNamespaces.WordprocessingML, "num");
+        Tree.InsertOrdered(Node, child, Order);
+        return new WNumView(Tree, child);
+    }
+}
+
+/// <summary>View over an element of schema type <c>CT_AbstractNum</c>.</summary>
+internal readonly partial struct WAbstractNumView {
+    internal WAbstractNumView(OfficeXmlTree tree, int node) {
+        Tree = tree;
+        Node = node;
+    }
+
+    internal OfficeXmlTree Tree { get; }
+    internal int Node { get; }
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "nsid", "multiLevelType", "tmpl", "name", "styleLink", "numStyleLink", "lvl" }, new int[] { 0, 1, 2, 3, 4, 5, 6 });
+
+    internal int? AbstractNumId {
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "abstractNumId");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "abstractNumId", value);
+    }
+
+    internal WStringView? Name {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "name");
+            return child == OfficeXmlTree.NoNode ? null : new WStringView(Tree, child);
+        }
+    }
+
+    internal WStringView GetOrAddName() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "name", Order));
+
+    internal WStringView? StyleLink {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "styleLink");
+            return child == OfficeXmlTree.NoNode ? null : new WStringView(Tree, child);
+        }
+    }
+
+    internal WStringView GetOrAddStyleLink() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "styleLink", Order));
+
+    internal WStringView? NumStyleLink {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "numStyleLink");
+            return child == OfficeXmlTree.NoNode ? null : new WStringView(Tree, child);
+        }
+    }
+
+    internal WStringView GetOrAddNumStyleLink() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "numStyleLink", Order));
+
+    internal OfficeXmlElementList LvlList => new(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "lvl");
+
+    /// <summary>Adds a <c>lvl</c> after the existing ones, in sequence order.</summary>
+    internal WLvlView AddLvl() {
+        int child = Tree.CreateElement(OfficeXmlNamespaces.WordprocessingML, "lvl");
+        Tree.InsertOrdered(Node, child, Order);
+        return new WLvlView(Tree, child);
+    }
+}
+
+/// <summary>View over an element of schema type <c>CT_Lvl</c>.</summary>
+internal readonly partial struct WLvlView {
+    internal WLvlView(OfficeXmlTree tree, int node) {
+        Tree = tree;
+        Node = node;
+    }
+
+    internal OfficeXmlTree Tree { get; }
+    internal int Node { get; }
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "start", "numFmt", "lvlRestart", "pStyle", "isLgl", "suff", "lvlText", "lvlPicBulletId", "legacy", "lvlJc", "pPr", "rPr" }, new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 });
+
+    internal int? Ilvl {
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "ilvl");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "ilvl", value);
+    }
+
+    internal string? Tplc {
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "tplc");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "tplc", value);
+    }
+
+    internal string? Tentative {
+        get => Tree.GetAttribute(Node, OfficeXmlNamespaces.None, "tentative");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "tentative", value);
+    }
+
+    internal WStringView? PStyle {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "pStyle");
+            return child == OfficeXmlTree.NoNode ? null : new WStringView(Tree, child);
+        }
+    }
+
+    internal WStringView GetOrAddPStyle() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "pStyle", Order));
+
+    internal WOnOffView? IsLgl {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "isLgl");
+            return child == OfficeXmlTree.NoNode ? null : new WOnOffView(Tree, child);
+        }
+    }
+
+    internal WOnOffView GetOrAddIsLgl() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "isLgl", Order));
+
+    internal WJcView? LvlJc {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "lvlJc");
+            return child == OfficeXmlTree.NoNode ? null : new WJcView(Tree, child);
+        }
+    }
+
+    internal WJcView GetOrAddLvlJc() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "lvlJc", Order));
+
+    internal WRPrView? RPr {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "rPr");
+            return child == OfficeXmlTree.NoNode ? null : new WRPrView(Tree, child);
+        }
+    }
+
+    internal WRPrView GetOrAddRPr() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "rPr", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_Num</c>.</summary>
+internal readonly partial struct WNumView {
+    internal WNumView(OfficeXmlTree tree, int node) {
+        Tree = tree;
+        Node = node;
+    }
+
+    internal OfficeXmlTree Tree { get; }
+    internal int Node { get; }
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "abstractNumId", "lvlOverride" }, new int[] { 0, 1 });
+
+    internal int? NumId {
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "numId");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "numId", value);
+    }
+
+    internal OfficeXmlElementList LvlOverrideList => new(Tree, Node, OfficeXmlNamespaces.WordprocessingML, "lvlOverride");
+
+    /// <summary>Adds a <c>lvlOverride</c> after the existing ones, in sequence order.</summary>
+    internal WNumLvlView AddLvlOverride() {
+        int child = Tree.CreateElement(OfficeXmlNamespaces.WordprocessingML, "lvlOverride");
+        Tree.InsertOrdered(Node, child, Order);
+        return new WNumLvlView(Tree, child);
+    }
+}
+
+/// <summary>View over an element of schema type <c>CT_NumLvl</c>.</summary>
+internal readonly partial struct WNumLvlView {
+    internal WNumLvlView(OfficeXmlTree tree, int node) {
+        Tree = tree;
+        Node = node;
+    }
+
+    internal OfficeXmlTree Tree { get; }
+    internal int Node { get; }
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "startOverride", "lvl" }, new int[] { 0, 1 });
+
+    internal int? Ilvl {
+        get => OfficeXmlViewValues.ReadInt32(Tree, Node, OfficeXmlNamespaces.None, "ilvl");
+        set => OfficeXmlViewValues.Write(Tree, Node, OfficeXmlNamespaces.None, "ilvl", value);
+    }
+
+    internal WLvlView? Lvl {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "lvl");
+            return child == OfficeXmlTree.NoNode ? null : new WLvlView(Tree, child);
+        }
+    }
+
+    internal WLvlView GetOrAddLvl() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "lvl", Order));
+}

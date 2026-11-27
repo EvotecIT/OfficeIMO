@@ -68,7 +68,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-        list.Numbering.Levels[0].OpenXmlElement.Append(new ParagraphStyleIdInLevel { Val = "Issue2510RemovableLevel" });
+        list.Numbering.Levels[0].OpenXmlLevel().Append(new ParagraphStyleIdInLevel { Val = "Issue2510RemovableLevel" });
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(new Style { Type = StyleValues.Paragraph, StyleId = "Issue2510RemovableLevel" });
         WordParagraph item = document.AddParagraph("Linked item");
@@ -86,7 +86,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-        list.Numbering.Levels[0].OpenXmlElement.Append(new ParagraphStyleIdInLevel { Val = "Issue2510ReplaceDefinition" });
+        list.Numbering.Levels[0].OpenXmlLevel().Append(new ParagraphStyleIdInLevel { Val = "Issue2510ReplaceDefinition" });
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(new Style { Type = StyleValues.Paragraph, StyleId = "Issue2510ReplaceDefinition" });
         WordParagraph item = document.AddParagraph("Linked item");

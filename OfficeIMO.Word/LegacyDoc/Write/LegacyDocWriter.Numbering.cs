@@ -185,9 +185,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
             if (rawText.Length > ushort.MaxValue || format == NumberFormatValues.Bullet && (rawText.Length != 1 || placeholders.Count != 0))
                 throw new NotSupportedException("Native DOC list marker text cannot be represented.");
-            LevelJustificationValues alignment = WordListLevel.ReadLevelJustification(level.LevelJustification) ?? LevelJustificationValues.Left;
-            byte flags = alignment == LevelJustificationValues.Right ? (byte)2 : alignment == LevelJustificationValues.Center ? (byte)1
-                : alignment == LevelJustificationValues.Left ? (byte)0 : throw new NotSupportedException("Unsupported native list alignment.");
+            WordListLevelAlignment alignment = WordListLevel.ReadLevelJustification(level.LevelJustification?.Val?.InnerText) ?? WordListLevelAlignment.Left;
+            byte flags = alignment == WordListLevelAlignment.Right ? (byte)2 : alignment == WordListLevelAlignment.Center ? (byte)1 : (byte)0;
             if (level.IsLegalNumberingStyle != null && IsOnOffEnabled(level.IsLegalNumberingStyle)) flags |= 4;
             int? restart = level.LevelRestart?.Val?.Value;
             if (restart.HasValue) {

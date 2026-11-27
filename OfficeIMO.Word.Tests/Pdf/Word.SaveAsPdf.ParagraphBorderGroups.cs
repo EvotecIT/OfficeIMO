@@ -18,9 +18,9 @@ public partial class Word {
         if (route == "numbered") {
             WordList list = document.AddCustomList();
             var level = new WordListLevel(WordListLevelKind.DecimalDot) { LevelSuffix = WordListLevelSuffix.Tab };
-            level.OpenXmlElement.NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
-                new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new W.FontSize { Val = "24" });
             list.Numbering.AddLevel(level);
+            level.OpenXmlLevel().NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
+                new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new W.FontSize { Val = "24" });
             special = list.AddItem("Special");
         } else {
             special = document.AddParagraph("Special");

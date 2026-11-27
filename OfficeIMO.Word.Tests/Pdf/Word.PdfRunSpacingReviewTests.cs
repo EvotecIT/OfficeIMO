@@ -123,13 +123,13 @@ public sealed class WordPdfRunSpacingReviewTests {
         if (markerScale.HasValue) {
             var properties = new NumberingSymbolRunProperties(new Spacing { Val = markerSpacing }, new CharacterScale { Val = markerScale.Value });
             if (fullOverride) {
-                level._level.AddChild(new NumberingSymbolRunProperties(new Spacing { Val = 20 }, new CharacterScale { Val = 200L }), true);
-                var effective = (Level)level._level.CloneNode(true);
+                level.OpenXmlLevel().AddChild(new NumberingSymbolRunProperties(new Spacing { Val = 20 }, new CharacterScale { Val = 200L }), true);
+                var effective = (Level)level.OpenXmlLevel().CloneNode(true);
                 effective.RemoveAllChildren<NumberingSymbolRunProperties>();
                 effective.AddChild(properties, true);
                 document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
                     .Elements<NumberingInstance>().First().Append(new LevelOverride(effective) { LevelIndex = 0 });
-            } else level._level.AddChild(properties, true);
+            } else level.OpenXmlLevel().AddChild(properties, true);
         }
         WordParagraph item = list.AddItem("BODY");
         WordParagraph paragraph = item;

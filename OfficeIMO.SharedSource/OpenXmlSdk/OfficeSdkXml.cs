@@ -162,9 +162,48 @@ namespace OfficeIMO.OpenXml.Internal {
             OpenXmlElement child = probe.FirstChild ?? throw new InvalidOperationException("The markup holds no element.");
             child.Remove();
             DropInheritedDeclarations(target, child);
+            OfficeXmlTree source = OfficeXmlTree.Parse(markup, markup.Length, new OfficeXmlNamespaces.Table());
+            RestoreAttributeNames(child, source, source.Root);
             if (reference == null) target.AppendChild(child);
             else target.InsertBefore(child, E(reference));
             return child;
+        }
+
+        // The SDK reads a few attributes under another name when it parses markup, such as w:left and w:right on w:ind as
+        // w:start and w:end. Its typed members write the name the markup used, so that name is put back.
+        private static void RestoreAttributeNames(OpenXmlElement element, OfficeXmlTree source, int node) {
+            int count = source.AttributeCountOf(node);
+            for (int position = 0; position < count && element.HasAttributes; position++) {
+                string value = source.AttributeAt(node, position, out int namespaceId, out string localName);
+                if (namespaceId == OfficeXmlNamespaces.Xmlns) continue;
+                string? uri = namespaceId == OfficeXmlNamespaces.None ? string.Empty : OfficeXmlNamespaces.KnownUri(namespaceId);
+                if (uri == null || GetAttribute(element, uri, localName) != null) continue;
+                foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                    if (!string.Equals(attribute.NamespaceUri, uri, StringComparison.Ordinal)
+                        || !string.Equals(attribute.Value, value, StringComparison.Ordinal)
+                        || source.HasAttribute(node, namespaceId, attribute.LocalName)) continue;
+                    element.RemoveAttribute(attribute.LocalName, uri);
+                    element.SetAttribute(new OpenXmlAttribute(attribute.Prefix, localName, uri, value));
+                    break;
+                }
+            }
+            OpenXmlElement? child = SkipForward(element.FirstChild);
+            for (int sourceChild = source.FirstChildOf(node); sourceChild != OfficeXmlTree.NoNode && child != null;
+                sourceChild = source.NextSiblingOf(sourceChild)) {
+                if (source.KindOf(sourceChild) != OfficeXmlTreeNodeKind.Element) continue;
+                if (string.Equals(child.LocalName, source.LocalNameOf(sourceChild), StringComparison.Ordinal)) {
+                    RestoreAttributeNames(child, source, sourceChild);
+                }
+                child = SkipForward(child.NextSibling());
+            }
+        }
+
+        private static string? GetAttribute(OpenXmlElement element, string uri, string localName) {
+            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                if (string.Equals(attribute.LocalName, localName, StringComparison.Ordinal)
+                    && string.Equals(attribute.NamespaceUri, uri, StringComparison.Ordinal)) return attribute.Value;
+            }
+            return null;
         }
 
         // The markup declared every prefix it uses; the ones the parent already binds the same way are dropped again.

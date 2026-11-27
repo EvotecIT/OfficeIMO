@@ -56,4 +56,22 @@ public partial class Word {
             Assert.Null(indentation.Start);
         });
     }
+
+    [Fact]
+    public void LevelsAddedToAListKeepTheirIndentationAndFont() {
+        using var document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        WordListLevel level = list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSquare));
+
+        // The level is built on its own and becomes the numbering part's element when it is added; the part writes
+        // w:left, as Word does, and the getters read it back.
+        Assert.Equal(720, level.IndentationLeft.ToTwips());
+        Assert.Equal(360, level.IndentationHanging.ToTwips());
+        Level added = level.OpenXmlLevel();
+        Assert.Same(added, list.Numbering.Levels[0].OpenXmlLevel());
+        Assert.Equal("720", added.PreviousParagraphProperties!.Indentation!.Left!.Value);
+        Assert.Null(added.PreviousParagraphProperties.Indentation.Start);
+        Assert.Equal("Wingdings", added.NumberingSymbolRunProperties!.GetFirstChild<RunFonts>()!.Ascii!.Value);
+        Assert.Equal("§", level.LevelText);
+    }
 }

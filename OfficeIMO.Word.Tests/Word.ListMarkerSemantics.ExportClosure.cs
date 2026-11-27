@@ -36,7 +36,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         for (int level = 0; level <= 3; level++) {
             list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         }
-        list.Numbering.Levels[1].OpenXmlElement.Append(new ParagraphStyleIdInLevel { Val = "DirectLevelWins" });
+        list.Numbering.Levels[1].OpenXmlLevel().Append(new ParagraphStyleIdInLevel { Val = "DirectLevelWins" });
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(new Style(new StyleParagraphProperties(new NumberingProperties(
             new NumberingId { Val = list.NumberId }))) {
@@ -58,7 +58,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordListLevel level = list.Numbering.Levels[0];
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
-        level.OpenXmlElement.GetFirstChild<LevelSuffix>()?.Remove();
+        level.OpenXmlLevel().GetFirstChild<LevelSuffix>()?.Remove();
         WordParagraph item = document.AddParagraph("DefaultTabSuffix");
         AttachToList(item, list.NumberId);
 
@@ -98,7 +98,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderNestedTextBoxMarkerStylesFollowFlattenedTextOrder() {
         using WordDocument document = WordDocument.Create();
         WordList nestedList = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeLength.Points(18));
-        nestedList.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
+        nestedList.Numbering.Levels[0].OpenXmlLevel().GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
         WordList laterList = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("0000FF"), global::OfficeIMO.OfficeLength.Points(10));
         WordList outerList = document.AddCustomBulletList('•', "Arial", OfficeColor.Parse("000000"), global::OfficeIMO.OfficeLength.Points(9));
         WordParagraph host = document.PageSetup.Header.AddParagraph("Before ");
@@ -186,7 +186,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         _ = document.PageSetup.Header;
         WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
-        Level level = list.Numbering.Levels[0].OpenXmlElement;
+        Level level = list.Numbering.Levels[0].OpenXmlLevel();
         level.GetFirstChild<LevelSuffix>()?.Remove();
         level.Append(new LevelSuffix { Val = suffix.ToOpenXml() });
         WordParagraph header = document.PageSetup.Header.AddParagraph("HeaderSuffix");
@@ -201,7 +201,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderListMarkerPreservesMarkerSpecificFormatting() {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeLength.Points(18));
-        list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
+        list.Numbering.Levels[0].OpenXmlLevel().GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
         WordParagraph header = document.PageSetup.Header.AddParagraph("HeaderStyledMarker");
         header.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         AttachToList(header, list.NumberId);
@@ -253,8 +253,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = alignment;
         level.LevelSuffix = WordListLevelSuffix.Nothing;
-        NumberingSymbolRunProperties markerProperties = level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>() ??
-            level.OpenXmlElement.AppendChild(new NumberingSymbolRunProperties());
+        NumberingSymbolRunProperties markerProperties = level.OpenXmlLevel().GetFirstChild<NumberingSymbolRunProperties>() ??
+            level.OpenXmlLevel().AppendChild(new NumberingSymbolRunProperties());
         markerProperties.Append(new Bold(), new FontSize { Val = "36" });
         WordParagraph nineItem = document.PageSetup.Header.AddParagraph("HeaderNine");
         nineItem.FontSize = global::OfficeIMO.OfficeLength.Points(9);
@@ -297,7 +297,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderTextBoxPreservesInnerMarkerStyle() {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeLength.Points(18));
-        list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
+        list.Numbering.Levels[0].OpenXmlLevel().GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
         WordParagraph host = document.PageSetup.Header.AddParagraph("Before ");
         WordTextBox box = host.AddTextBox("StyledHeaderBox", WordImageTextWrapping.Square);
         host.AddText(" After");
@@ -344,8 +344,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = alignment;
         level.LevelSuffix = WordListLevelSuffix.Nothing;
-        NumberingSymbolRunProperties markerProperties = level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>() ??
-            level.OpenXmlElement.AppendChild(new NumberingSymbolRunProperties());
+        NumberingSymbolRunProperties markerProperties = level.OpenXmlLevel().GetFirstChild<NumberingSymbolRunProperties>() ??
+            level.OpenXmlLevel().AppendChild(new NumberingSymbolRunProperties());
         markerProperties.Append(new Bold(), new FontSize { Val = "36" });
         WordTextBox box = document.AddTextBox("TextBoxNine");
         box.Width = OfficeLength.Centimeters(12D);
@@ -530,7 +530,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfTableCellListMarkerHonorsNumberingSuffix(WordListLevelSuffix suffix, double minimumGap, double maximumGap) {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
-        Level level = list.Numbering.Levels[0].OpenXmlElement;
+        Level level = list.Numbering.Levels[0].OpenXmlLevel();
         level.GetFirstChild<LevelSuffix>()?.Remove();
         level.Append(new LevelSuffix { Val = suffix.ToOpenXml() });
         WordTable table = document.AddTable(1, 1);
