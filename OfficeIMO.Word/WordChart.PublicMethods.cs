@@ -434,14 +434,24 @@ namespace OfficeIMO.Word {
             var map = OutcomeColors(overrides);
 
             int idxPal = 0;
-            List<OfficeXmlNode> points = catAxis.ContentDescendants(NsC, "pt")
-                .OrderBy(point => point.UIntAttr("idx") ?? 0U).ToList();
-            foreach (OfficeXmlNode point in points) {
-                string name = point.ChildText(NsC, "v") ?? string.Empty;
+            List<OfficeXmlNode> found = catAxis.ContentDescendants(NsC, "pt");
+            var points = new (uint Index, string Name)[found.Count];
+            for (int i = 0; i < found.Count; i++) points[i] = (found[i].UIntAttr("idx") ?? 0U, found[i].ChildText(NsC, "v") ?? string.Empty);
+            // A stable insertion sort by index: slices are usually in order already.
+            for (int i = 1; i < points.Length; i++) {
+                var point = points[i];
+                int j = i - 1;
+                while (j >= 0 && points[j].Index > point.Index) {
+                    points[j + 1] = points[j];
+                    j--;
+                }
+                points[j + 1] = point;
+            }
+            foreach (var (index, name) in points) {
                 var c = (semanticOutcomes && !string.IsNullOrWhiteSpace(name) && map.TryGetValue(name, out var sem))
                     ? sem
                     : palette[idxPal++ % palette.Length];
-                SetPieSliceColor(point.UIntAttr("idx") ?? 0U, c);
+                SetPieSliceColor(index, c);
             }
             return this;
         }
