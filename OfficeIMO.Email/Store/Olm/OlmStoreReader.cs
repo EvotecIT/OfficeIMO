@@ -307,7 +307,7 @@ internal sealed partial class OlmStoreReader {
         }
     }
 
-    private static bool TryNormalizeArchivePath(string path, out string normalized) {
+    internal static bool TryNormalizeArchivePath(string path, out string normalized) {
         normalized = NormalizeSlashes(path).Trim().TrimEnd('/');
         if (normalized.Length == 0 || normalized[0] == '/' || normalized.IndexOf('\0') >= 0) return false;
         if (normalized.Any(char.IsControl)) return false;

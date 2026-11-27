@@ -720,6 +720,37 @@ to the preservation manifest, retaining arrival metadata beside EML files.
 EMLX metadata stores whole-second arrival times. With the manifest disabled,
 export reports an omitted arrival time or loss of sub-second EMLX precision.
 
+### Recovering damaged DBX and OLM files
+
+`EmailStoreSalvage` recovers readable items from a DBX message database or an OLM archive that the normal
+readers reject, for example after truncation, a broken index or a missing ZIP central directory. Each item is
+written on its own, and a tab-separated manifest records whether it came back fully, partially or not at all,
+with the source offset and the offset of the damage that stopped it. The source is never modified and nothing is
+written outside the destination folder.
+
+```csharp
+using OfficeIMO.Email.Store;
+
+EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory("Inbox.dbx", "Recovered");
+foreach (EmailStoreSalvageEntry entry in report.Entries) {
+    Console.WriteLine($"{entry.ItemId} {entry.Status} {entry.DamageCode}");
+}
+
+EmailStoreSalvageReport archive = EmailStoreSalvage.RecoverOlmToDirectory("Outlook.olm", "Recovered OLM");
+```
+
+DBX recovery scans for message records and fragments instead of trusting the active index, so it still finds
+messages when the index or header is damaged. A broken fragment chain yields the readable prefix as a partial
+EML; fragment chains that no surviving record references are rebuilt when they start with a message header.
+Recovered DBX MIME bytes are written unchanged by default.
+
+OLM recovery reads entries from the central directory, or from local entry headers when the directory is missing
+or damaged, and checks each entry against its CRC-32. A damaged XML entry is skipped and reported; when it is
+truncated or fails its checksum, its complete records are still recovered and marked partial because they cannot
+be verified. A message whose attachment entry is damaged is recovered without that attachment and marked partial.
+OLM items are written as MSG by default. Conversion loss is reported in each item's diagnostics rather than
+rejecting the item; pass `EmailWriterOptions` to change that.
+
 ### Apple Mail and Outlook for Mac
 
 Open an exported Apple Mail `.mbox` package, its containing folder, or a copied Mail directory

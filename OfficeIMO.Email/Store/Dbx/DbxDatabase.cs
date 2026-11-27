@@ -4,7 +4,7 @@ namespace OfficeIMO.Email.Store;
 
 /// <summary>Reads the active index and records of an Outlook Express DBX database.</summary>
 internal sealed class DbxDatabase {
-    private const int FileHeaderLength = 0x24bc;
+    internal const int FileHeaderLength = 0x24bc;
     private const int TreeNodeLength = 0x27c;
     private const int TreeNodeHeaderLength = 0x18;
     private const int TreeEntryLength = 12;
