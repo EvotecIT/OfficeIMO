@@ -1,6 +1,5 @@
 using System.Text;
-using DocumentFormat.OpenXml.Wordprocessing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
@@ -40,23 +39,23 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static string? ResolveStyleFont(WordDocument document, string styleId) {
-            var mainPart = document._wordprocessingDocument?.MainDocumentPart;
             WordStyleCatalog styles = WordStyleCatalog.For(document);
-            if (mainPart?.StyleDefinitionsPart == null) {
+            if (document.StylesNode().IsNone) {
                 return null;
             }
 
             // A localized template stores Normal under a translated identifier, such as Standard.
             string normalStyleId = document.ResolveBuiltInStyleId("Normal");
             bool isNormal = string.Equals(styleId, normalStyleId, StringComparison.Ordinal);
-            foreach (Style style in styles.EnumerateChain(styleId, StyleValues.Paragraph)) {
-                if (!string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal) &&
+            foreach (OfficeXmlNode style in styles.StyleChainNodes(styleId, "paragraph")) {
+                string? chainStyleId = style.WAttr("styleId");
+                if (!string.Equals(chainStyleId, styleId, StringComparison.Ordinal) &&
                     !isNormal &&
-                    string.Equals(style.StyleId?.Value, normalStyleId, StringComparison.Ordinal)) {
+                    string.Equals(chainStyleId, normalStyleId, StringComparison.Ordinal)) {
                     // A heading that names no font of its own uses the body font.
                     return null;
                 }
-                string? font = ResolveRunFonts(style.StyleRunProperties?.RunFonts, mainPart);
+                string? font = ResolveRunFonts(style.WChild("rPr").WChild("rFonts"), document);
                 if (font != null) {
                     return font;
                 }
@@ -66,28 +65,28 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
-            RunFonts? defaults = styles.DocumentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.RunFonts;
-            return ResolveRunFonts(defaults, mainPart);
+            OfficeXmlNode defaults = styles.DocumentDefaultsNode().WChild("rPrDefault").WChild("rPr").WChild("rFonts");
+            return ResolveRunFonts(defaults, document);
         }
 
-        private static string? ResolveRunFonts(RunFonts? fonts, DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart) {
-            if (fonts == null) {
+        private static string? ResolveRunFonts(OfficeXmlNode fonts, WordDocument document) {
+            if (fonts.IsNone) {
                 return null;
             }
+            string? ascii = fonts.WAttr("ascii");
+            string? highAnsi = fonts.WAttr("hAnsi");
             // A theme font selection takes precedence over the family name cached beside it, as in Word.
-            ThemeFontValues? theme = fonts.AsciiTheme?.Value ?? fonts.HighAnsiTheme?.Value;
-            if (theme == null) {
-                if (!string.IsNullOrWhiteSpace(fonts.Ascii?.Value)) return fonts.Ascii!.Value!.Trim();
-                return string.IsNullOrWhiteSpace(fonts.HighAnsi?.Value) ? null : fonts.HighAnsi!.Value!.Trim();
+            string? themeFont = fonts.WAttr("asciiTheme") ?? fonts.WAttr("hAnsiTheme");
+            if (themeFont == null) {
+                if (!string.IsNullOrWhiteSpace(ascii)) return ascii!.Trim();
+                return string.IsNullOrWhiteSpace(highAnsi) ? null : highAnsi!.Trim();
             }
 
-            A.FontScheme? scheme = mainPart?.ThemePart?.Theme?.ThemeElements?.FontScheme;
-            bool major = theme == ThemeFontValues.MajorAscii || theme == ThemeFontValues.MajorHighAnsi ||
-                theme == ThemeFontValues.MajorBidi || theme == ThemeFontValues.MajorEastAsia;
-            string? typeface = major
-                ? scheme?.MajorFont?.LatinFont?.Typeface?.Value
-                : scheme?.MinorFont?.LatinFont?.Typeface?.Value;
-            if (string.IsNullOrWhiteSpace(typeface)) typeface = fonts.Ascii?.Value ?? fonts.HighAnsi?.Value;
+            OfficeXmlNode scheme = document.ThemeNode().Child(WordXml.A, "themeElements").Child(WordXml.A, "fontScheme");
+            bool major = themeFont == "majorAscii" || themeFont == "majorHAnsi" ||
+                themeFont == "majorBidi" || themeFont == "majorEastAsia";
+            string? typeface = scheme.Child(WordXml.A, major ? "majorFont" : "minorFont").Child(WordXml.A, "latin").Attr("typeface");
+            if (string.IsNullOrWhiteSpace(typeface)) typeface = ascii ?? highAnsi;
             return string.IsNullOrWhiteSpace(typeface) ? null : typeface!.Trim();
         }
 

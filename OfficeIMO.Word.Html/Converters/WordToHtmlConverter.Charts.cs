@@ -2,12 +2,13 @@ using AngleSharp.Dom;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using System.Globalization;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
-        private static bool HasExtendedChart(DocumentFormat.OpenXml.OpenXmlElement? element) =>
-            element?.Descendants().Any(child => child.LocalName == "chart" &&
-                child.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2014/chartex") == true;
+        private static bool HasExtendedChart(OfficeXmlNode element) =>
+            element.DescendantElements().Any(child => child.LocalName == "chart" &&
+                child.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2014/chartex");
         private static IElement? CreateChartImage(IDocument owner, WordChart chart,
             WordHtmlExportOptions options, ref long embeddedImageBytes) {
             if (!chart.TryGetOfficeSnapshot(out var snapshot)) {

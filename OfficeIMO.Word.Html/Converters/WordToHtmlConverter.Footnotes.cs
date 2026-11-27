@@ -1,6 +1,5 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
@@ -14,14 +13,14 @@ namespace OfficeIMO.Word.Html {
             Dictionary<long, int> footnoteMap,
             List<(int Number, WordEndNote Note)> endnotes,
             Dictionary<long, int> endnoteMap,
-            OpenXmlElement? artifactElement = null) {
+            OfficeXmlNode artifactElement = default) {
             if (!processNotes) {
                 return false;
             }
 
-            WordFootNote? footnote = artifactElement is FootnoteReference footnoteReference
-                ? new WordFootNote(run._document, run._paragraph, new Run((FootnoteReference)footnoteReference.CloneNode(true)))
-                : artifactElement == null ? run.FootNote : null;
+            WordFootNote? footnote = artifactElement.IsW("footnoteReference")
+                ? run.FootNoteForReference(artifactElement)
+                : artifactElement.IsNone ? run.FootNote : null;
             if (options.ExportFootnotes && footnote != null) {
                 if (IsBlockquoteCiteReference(run.CharacterStyleId)) {
                     return true;
@@ -48,9 +47,9 @@ namespace OfficeIMO.Word.Html {
                 return true;
             }
 
-            WordEndNote? endnote = artifactElement is EndnoteReference endnoteReference
-                ? new WordEndNote(run._document, run._paragraph, new Run((EndnoteReference)endnoteReference.CloneNode(true)))
-                : artifactElement == null ? run.EndNote : null;
+            WordEndNote? endnote = artifactElement.IsW("endnoteReference")
+                ? run.EndNoteForReference(artifactElement)
+                : artifactElement.IsNone ? run.EndNote : null;
             if (options.ExportEndnotes && endnote != null) {
                 if (IsBlockquoteCiteReference(run.CharacterStyleId)) {
                     return true;
@@ -182,25 +181,22 @@ namespace OfficeIMO.Word.Html {
                         if (IsBlockquoteCiteReference(run.CharacterStyleId) ||
                             string.Equals(run.CharacterStyleId, "HtmlAbbr", StringComparison.Ordinal))
                             continue;
-                        IEnumerable<OpenXmlElement> children = run._visibleRunSourceChildren ??
-                            (IEnumerable<OpenXmlElement>?)run._run?.ChildElements ?? Array.Empty<OpenXmlElement>();
-                        foreach (OpenXmlElement child in children) {
-                            foreach (FootnoteReference reference in child is FootnoteReference directFootnote
-                                ? new[] { directFootnote } : child.Descendants<FootnoteReference>()) {
+                        IEnumerable<OfficeXmlNode> children = run.VisibleRunSourceChildNodes() ?? run.RunNode().Elements();
+                        foreach (OfficeXmlNode child in children) {
+                            foreach (OfficeXmlNode reference in child.IsW("footnoteReference")
+                                ? new[] { child } : child.DescendantElements(WordXml.W, "footnoteReference")) {
                                 if (!options.ExportFootnotes) continue;
-                                var note = new WordFootNote(run._document, run._paragraph,
-                                    new Run((FootnoteReference)reference.CloneNode(true)));
+                                var note = run.FootNoteForReference(reference);
                                 long id = note.ReferenceId ?? 0;
                                 if (footnoteMap.ContainsKey(id)) continue;
                                 int number = footnotes.Count + 1;
                                 footnoteMap.Add(id, number);
                                 footnotes.Add((number, note));
                             }
-                            foreach (EndnoteReference reference in child is EndnoteReference directEndnote
-                                ? new[] { directEndnote } : child.Descendants<EndnoteReference>()) {
+                            foreach (OfficeXmlNode reference in child.IsW("endnoteReference")
+                                ? new[] { child } : child.DescendantElements(WordXml.W, "endnoteReference")) {
                                 if (!options.ExportEndnotes) continue;
-                                var note = new WordEndNote(run._document, run._paragraph,
-                                    new Run((EndnoteReference)reference.CloneNode(true)));
+                                var note = run.EndNoteForReference(reference);
                                 long id = note.ReferenceId ?? 0;
                                 if (endnoteMap.ContainsKey(id)) continue;
                                 int number = endnotes.Count + 1;
@@ -239,8 +235,8 @@ namespace OfficeIMO.Word.Html {
 
             foreach (var (number, note) in footnotes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                foreach (var paragraph in note.Paragraphs?.Skip(1).GroupBy(item => item._paragraph).Select(group => group.First()) ?? Enumerable.Empty<WordParagraph>())
-                    ReserveOutputCharacters(htmlDoc, MeasureOutputContentCharacters(paragraph._paragraph, options.TrackedChangePolicy),
+                foreach (var paragraph in note.Paragraphs?.Skip(1).GroupBy(item => item.Node()).Select(group => group.First()) ?? Enumerable.Empty<WordParagraph>())
+                    ReserveOutputCharacters(htmlDoc, MeasureOutputContentCharacters(paragraph.Node(), options.TrackedChangePolicy),
                         "Referenced footnote content exceeds the configured HTML output-character limit before DOM construction.",
                         "Footnote:" + number.ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
@@ -273,8 +269,8 @@ namespace OfficeIMO.Word.Html {
 
             foreach (var (number, note) in endnotes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                foreach (var paragraph in note.Paragraphs?.Skip(1).GroupBy(item => item._paragraph).Select(group => group.First()) ?? Enumerable.Empty<WordParagraph>())
-                    ReserveOutputCharacters(htmlDoc, MeasureOutputContentCharacters(paragraph._paragraph, options.TrackedChangePolicy),
+                foreach (var paragraph in note.Paragraphs?.Skip(1).GroupBy(item => item.Node()).Select(group => group.First()) ?? Enumerable.Empty<WordParagraph>())
+                    ReserveOutputCharacters(htmlDoc, MeasureOutputContentCharacters(paragraph.Node(), options.TrackedChangePolicy),
                         "Referenced endnote content exceeds the configured HTML output-character limit before DOM construction.",
                         "Endnote:" + number.ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
@@ -297,7 +293,7 @@ namespace OfficeIMO.Word.Html {
 
         private static void AppendNoteParagraphs(IDocument htmlDoc, IElement li, IEnumerable<WordParagraph>? noteParagraphs,
             AppendWordParagraphHtml appendParagraph, Action resetParagraphFlow) {
-            var paragraphs = noteParagraphs?.GroupBy(paragraph => paragraph._paragraph).Select(group => group.First()).ToArray() ?? Array.Empty<WordParagraph>();
+            var paragraphs = noteParagraphs?.GroupBy(paragraph => paragraph.Node()).Select(group => group.First()).ToArray() ?? Array.Empty<WordParagraph>();
             resetParagraphFlow();
             if (paragraphs.Length == 0) {
                 li.AppendChild(CreateOutputElement(htmlDoc, "p"));

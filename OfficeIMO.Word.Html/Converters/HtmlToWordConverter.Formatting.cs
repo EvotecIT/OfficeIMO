@@ -687,7 +687,7 @@ namespace OfficeIMO.Word.Html {
             if (!string.IsNullOrWhiteSpace(language)) {
                 formatting.Language = language;
             }
-            if (string.IsNullOrWhiteSpace(styleText) && declaration.Length == 0 && parsed.BackgroundColor == null && !parsed.Underline.HasValue && !parsed.Strike.HasValue && !parsed.UnderlineStyle.HasValue && string.IsNullOrWhiteSpace(exactUnderline) && string.IsNullOrWhiteSpace(exactDoubleStrike)) {
+            if (string.IsNullOrWhiteSpace(styleText) && declaration.Length == 0 && parsed.BackgroundColor == null && !parsed.Underline.HasValue && !parsed.Strike.HasValue && parsed.UnderlineStyle == null && string.IsNullOrWhiteSpace(exactUnderline) && string.IsNullOrWhiteSpace(exactDoubleStrike)) { // SDK-SHIM
                 return;
             }
 
@@ -773,8 +773,8 @@ namespace OfficeIMO.Word.Html {
             if (parsed.Underline.HasValue) {
                 formatting.Underline = parsed.Underline.Value;
             }
-            if (parsed.UnderlineStyle.HasValue && (parsed.Underline == true || parsed.Strike != true)) {
-                formatting.UnderlineStyle = parsed.UnderlineStyle.Value;
+            if (parsed.UnderlineStyle != null && (parsed.Underline == true || parsed.Strike != true)) { // SDK-SHIM
+                formatting.UnderlineStyle = new UnderlineValues(parsed.UnderlineStyle); // SDK-SHIM
             } else if (formatting.Underline == true && !formatting.UnderlineStyle.HasValue) {
                 formatting.UnderlineStyle = UnderlineValues.Single;
             }
@@ -782,7 +782,7 @@ namespace OfficeIMO.Word.Html {
                 formatting.Strike = parsed.Strike.Value;
                 if (!parsed.Strike.Value) formatting.DoubleStrike = false;
             }
-            if (parsed.Strike == true && parsed.UnderlineStyle == UnderlineValues.Double) {
+            if (parsed.Strike == true && parsed.UnderlineStyle == "double") { // SDK-SHIM
                 formatting.Strike = false;
                 formatting.DoubleStrike = true;
             }

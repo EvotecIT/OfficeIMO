@@ -671,4 +671,210 @@ internal static class WordConverterNodes {
         foreach (OfficeXmlNode node in nodes) elements.Add((OpenXmlElement)node.SdkElement!);
         return elements;
     }
+
+    // ---- Word.Html (read) ---
+
+    /// <summary>
+    /// A style and its ancestors of the <c>w:type</c> token <paramref name="type"/> (<c>paragraph</c>, <c>character</c>,
+    /// <c>table</c>, <c>numbering</c>), as <see cref="WordStyleCatalog.EnumerateChain"/> reads them.
+    /// </summary>
+    internal static IEnumerable<OfficeXmlNode> StyleChainNodes(this WordStyleCatalog catalog, string? styleId, string type) {
+        W.StyleValues styleType = type switch {
+            "paragraph" => W.StyleValues.Paragraph,
+            "character" => W.StyleValues.Character,
+            "table" => W.StyleValues.Table,
+            "numbering" => W.StyleValues.Numbering,
+            _ => new W.StyleValues(type)
+        };
+        foreach (W.Style style in catalog.EnumerateChain(styleId, styleType)) yield return OfficeXmlNode.FromSdk(style);
+    }
+
+    /// <summary>The first <c>w:style</c> with this identifier, as <see cref="WordStyleCatalog.FindById"/>.</summary>
+    internal static OfficeXmlNode FindStyleNodeById(this WordStyleCatalog catalog, string? styleId) =>
+        OfficeXmlNode.FromSdk(catalog.FindById(styleId));
+
+    /// <summary>Whether the table's look turns first-row formatting on, as <see cref="WordTable.HasFirstRowFormatting"/>.</summary>
+    internal static bool HasFirstRowFormatting(OfficeXmlNode table) => WordTable.HasFirstRowFormatting((W.Table)table.SdkElement!);
+
+    /// <summary>The check box's <c>w:sdt</c>.</summary>
+    internal static OfficeXmlNode SdtRunNode(this WordCheckBox checkBox) => OfficeXmlNode.FromSdk(checkBox._sdtRun);
+
+    /// <summary>The drop-down list's <c>w:sdt</c>.</summary>
+    internal static OfficeXmlNode SdtRunNode(this WordDropDownList dropDownList) => OfficeXmlNode.FromSdk(dropDownList._sdtRun);
+
+    /// <summary>The combo box's <c>w:sdt</c>.</summary>
+    internal static OfficeXmlNode SdtRunNode(this WordComboBox comboBox) => OfficeXmlNode.FromSdk(comboBox._sdtRun);
+
+    /// <summary>The date picker's <c>w:sdt</c>.</summary>
+    internal static OfficeXmlNode SdtRunNode(this WordDatePicker datePicker) => OfficeXmlNode.FromSdk(datePicker._sdtRun);
+
+    /// <summary>The content control's inline or block <c>w:sdt</c>, or <see cref="OfficeXmlNode.None"/>.</summary>
+    internal static OfficeXmlNode SdtElementNode(this WordStructuredDocumentTag tag) => OfficeXmlNode.FromSdk(tag.SdtElement);
+
+    /// <summary>The cell's resolved border on <paramref name="side"/>, as <see cref="WordRunFormatting.ResolveTableCellBorder(WordTableCell, WordTableBorderSide)"/>.</summary>
+    internal static OfficeXmlNode ResolveTableCellBorderNode(WordTableCell cell, WordTableBorderSide side) =>
+        OfficeXmlNode.FromSdk(WordRunFormatting.ResolveTableCellBorder(cell, side));
+
+    /// <summary>The cell's resolved diagonal border, as <see cref="WordRunFormatting.ResolveTableCellDiagonalBorder"/>.</summary>
+    internal static OfficeXmlNode ResolveTableCellDiagonalBorderNode(WordTableCell cell, bool descending) =>
+        OfficeXmlNode.FromSdk(WordRunFormatting.ResolveTableCellDiagonalBorder(cell, descending));
+
+    /// <summary>The footnote a <c>w:footnoteReference</c> in <paramref name="run"/>'s paragraph names, read from a detached run holding a copy of the reference.</summary>
+    internal static WordFootNote FootNoteForReference(this WordParagraph run, OfficeXmlNode footnoteReference) =>
+        new(run._document, run._paragraph, new W.Run((W.FootnoteReference)((W.FootnoteReference)footnoteReference.SdkElement!).CloneNode(true)));
+
+    /// <summary>The endnote a <c>w:endnoteReference</c> in <paramref name="run"/>'s paragraph names, read from a detached run holding a copy of the reference.</summary>
+    internal static WordEndNote EndNoteForReference(this WordParagraph run, OfficeXmlNode endnoteReference) =>
+        new(run._document, run._paragraph, new W.Run((W.EndnoteReference)((W.EndnoteReference)endnoteReference.SdkElement!).CloneNode(true)));
+
+    /// <summary>
+    /// The part roots the HTML export inspects, in the order it reads them: custom properties (when asked), the field
+    /// roots (body, headers, footers, notes, comments), chart parts of the stories and the charts they hold, comments,
+    /// styles, numbering, theme, font table, settings and web settings. A styles part the streaming reader can count
+    /// without loading has no root and carries its element count instead.
+    /// </summary>
+    internal static IEnumerable<(OfficeXmlNode Root, string PartUri, long StreamedElements)> HtmlExportRoots(
+        this WordDocument document, bool includeCustomProperties) {
+        MainDocumentPart? mainPart = Main(document);
+        if (mainPart == null) yield break;
+        CustomFilePropertiesPart? customPropertiesPart = includeCustomProperties ? document._wordprocessingDocument.CustomFilePropertiesPart : null;
+        if (customPropertiesPart?.Properties is OpenXmlElement customProperties) {
+            yield return (OfficeXmlNode.FromSdk(customProperties), customPropertiesPart.Uri.ToString(), 0);
+        }
+
+        foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
+            yield return (OfficeXmlNode.FromSdk(root.Root), root.PartUri, 0);
+        }
+        var chartUris = new HashSet<Uri>();
+        IEnumerable<OpenXmlPart> stories = new OpenXmlPart[] { mainPart }
+            .Concat(mainPart.HeaderParts).Concat(mainPart.FooterParts);
+        if (mainPart.FootnotesPart != null) stories = stories.Append(mainPart.FootnotesPart);
+        if (mainPart.EndnotesPart != null) stories = stories.Append(mainPart.EndnotesPart);
+        foreach (var story in stories) {
+            foreach (var chart in story.Parts.Select(relationship => relationship.OpenXmlPart)
+                .Where(part => part.ContentType.IndexOf("chart", StringComparison.OrdinalIgnoreCase) >= 0)) {
+                if (chartUris.Add(chart.Uri) && chart.RootElement is OpenXmlElement chartRoot)
+                    yield return (OfficeXmlNode.FromSdk(chartRoot), chart.Uri.ToString(), 0);
+                foreach (var presentation in chart.Parts.Select(relationship => relationship.OpenXmlPart)
+                    .Where(part => part.ContentType.IndexOf("chart", StringComparison.OrdinalIgnoreCase) >= 0)) {
+                    if (chartUris.Add(presentation.Uri) && presentation.RootElement is OpenXmlElement presentationRoot)
+                        yield return (OfficeXmlNode.FromSdk(presentationRoot), presentation.Uri.ToString(), 0);
+                }
+            }
+        }
+        if (mainPart.WordprocessingCommentsPart?.Comments is OpenXmlElement comments) {
+            yield return (OfficeXmlNode.FromSdk(comments), mainPart.WordprocessingCommentsPart.Uri.ToString(), 0);
+        }
+        foreach (StylesPart? stylesPart in new StylesPart?[] { mainPart.StyleDefinitionsPart, mainPart.StylesWithEffectsPart }) {
+            if (stylesPart == null) continue;
+            if (WordStyleDefinitionsReader.TryCountElements(stylesPart) is long count) {
+                yield return (default, stylesPart.Uri.ToString(), count);
+            } else if (stylesPart.Styles is OpenXmlElement styles) {
+                yield return (OfficeXmlNode.FromSdk(styles), stylesPart.Uri.ToString(), 0);
+            }
+        }
+        if (mainPart.NumberingDefinitionsPart?.Numbering is OpenXmlElement numbering) {
+            yield return (OfficeXmlNode.FromSdk(numbering), mainPart.NumberingDefinitionsPart.Uri.ToString(), 0);
+        }
+        if (mainPart.ThemePart?.Theme is OpenXmlElement theme) {
+            yield return (OfficeXmlNode.FromSdk(theme), mainPart.ThemePart.Uri.ToString(), 0);
+        }
+        if (mainPart.FontTablePart?.Fonts is OpenXmlElement fonts) {
+            yield return (OfficeXmlNode.FromSdk(fonts), mainPart.FontTablePart.Uri.ToString(), 0);
+        }
+        if (mainPart.DocumentSettingsPart?.Settings is OpenXmlElement settings) {
+            yield return (OfficeXmlNode.FromSdk(settings), mainPart.DocumentSettingsPart.Uri.ToString(), 0);
+        }
+        if (mainPart.WebSettingsPart?.WebSettings is OpenXmlElement webSettings) {
+            yield return (OfficeXmlNode.FromSdk(webSettings), mainPart.WebSettingsPart.Uri.ToString(), 0);
+        }
+    }
+
+    /// <summary>The text of an element the SDK reads as a leaf text element (<c>w:t</c>, <c>w:instrText</c>, <c>m:t</c>, ...), or null for any other element.</summary>
+    internal static string? LeafText(this OfficeXmlNode element) => element.SdkElement is OpenXmlLeafTextElement text ? text.Text : null;
+
+    /// <summary>Whether the package holds a digital signature origin part.</summary>
+    internal static bool HasDigitalSignatureOriginPart(this WordDocument document) =>
+        document._wordprocessingDocument.DigitalSignatureOriginPart != null;
+
+    /// <summary>Puts <paramref name="body"/> in place of the document's <c>w:body</c>.</summary>
+    internal static void SetBodyNode(this WordDocument document, OfficeXmlNode body) => document._document.Body = (W.Body)body.SdkElement!;
+
+    /// <summary>
+    /// Makes <paramref name="replacement"/> the root of the part <paramref name="currentRoot"/> (a <c>w:hdr</c>,
+    /// <c>w:ftr</c>, <c>w:footnotes</c>, <c>w:endnotes</c> or <c>w:comments</c>) belongs to. False when it belongs to none.
+    /// </summary>
+    internal static bool ReplacePartRootNode(OfficeXmlNode currentRoot, OfficeXmlNode replacement) {
+        switch (currentRoot.SdkElement) {
+            case W.Header { HeaderPart: { } part }: part.Header = (W.Header)replacement.SdkElement!; return true;
+            case W.Footer { FooterPart: { } part }: part.Footer = (W.Footer)replacement.SdkElement!; return true;
+            case W.Footnotes { FootnotesPart: { } part }: part.Footnotes = (W.Footnotes)replacement.SdkElement!; return true;
+            case W.Endnotes { EndnotesPart: { } part }: part.Endnotes = (W.Endnotes)replacement.SdkElement!; return true;
+            case W.Comments { WordprocessingCommentsPart: { } part }: part.Comments = (W.Comments)replacement.SdkElement!; return true;
+            default: return false;
+        }
+    }
+
+    /// <summary>Makes the header or footer object read <paramref name="root"/> (a <c>w:hdr</c> or <c>w:ftr</c>).</summary>
+    internal static void SetRootNode(this WordHeaderFooter headerFooter, OfficeXmlNode root) {
+        if (root.SdkElement is W.Header header) headerFooter._header = header;
+        else headerFooter._footer = (W.Footer)root.SdkElement!;
+    }
+
+    /// <summary>
+    /// Opens the Word package in <paramref name="package"/> read-only and validates it with the validator's default
+    /// file format version.
+    /// </summary>
+    internal static List<OfficeOpenXmlValidationError> ValidatePackage(Stream package) {
+        using WordprocessingDocument document = WordprocessingDocument.Open(package, false);
+        var errors = new List<OfficeOpenXmlValidationError>();
+        foreach (DocumentFormat.OpenXml.Validation.ValidationErrorInfo error in new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(document)) {
+            errors.Add(error.ToOfficeValidationError());
+        }
+        return errors;
+    }
+
+    /// <summary>
+    /// The identifier the main document part gives the header part (<paramref name="header"/>) or footer part of the
+    /// story, or null when the story has no such part or the main part doesn't reference it.
+    /// </summary>
+    internal static string? MainPartRelationshipId(this WordHeaderFooter story, bool header) {
+        MainDocumentPart? main = Main(story.Document);
+        OpenXmlPart? part = header ? story._header?.HeaderPart : story._footer?.FooterPart;
+        if (main == null || part == null || !main.Parts.Any(relationship => ReferenceEquals(relationship.OpenXmlPart, part))) return null;
+        return main.GetIdOfPart(part);
+    }
+
+    /// <summary>The run properties the run's formatting reads, its content control's included, or <see cref="OfficeXmlNode.None"/>.</summary>
+    internal static OfficeXmlNode ScopedRunPropertiesNode(this WordParagraph run) => OfficeXmlNode.FromSdk(run.ScopedRunProperties);
+
+    /// <summary>A hyperlink object over the <c>w:hyperlink</c> <paramref name="hyperlink"/> in <paramref name="paragraph"/>.</summary>
+    internal static WordHyperLink HyperlinkView(this WordDocument document, OfficeXmlNode paragraph, OfficeXmlNode hyperlink) =>
+        new(document, (W.Paragraph)paragraph.SdkElement!, (W.Hyperlink)hyperlink.SdkElement!);
+
+    /// <summary>Whether the <c>w:drawing</c> holds a chart, as <see cref="WordParagraph.DrawingOwnsChart"/>.</summary>
+    internal static bool DrawingOwnsChart(OfficeXmlNode drawing) => WordParagraph.DrawingOwnsChart((W.Drawing)drawing.SdkElement!);
+
+    /// <summary>A chart object over the chart <c>w:drawing</c> <paramref name="drawing"/> in <paramref name="run"/>.</summary>
+    internal static WordChart ChartView(WordParagraph run, OfficeXmlNode drawing) =>
+        new(run._document, run, (W.Drawing)drawing.SdkElement!);
+
+    /// <summary>An image object over the picture <c>w:drawing</c> <paramref name="drawing"/>.</summary>
+    internal static WordImage ImageView(this WordDocument document, OfficeXmlNode drawing) =>
+        new(document, (W.Drawing)drawing.SdkElement!);
+
+    /// <summary>An image object over the VML <c>v:shape</c> <paramref name="shape"/> in <paramref name="run"/>.</summary>
+    internal static WordImage VmlImageView(WordParagraph run, OfficeXmlNode shape) =>
+        new(run._document, run._paragraph, run._run!, (V.Shape)shape.SdkElement!);
+
+    /// <summary>Whether the paragraph child carries visible equation content, as <see cref="WordEquation.IsVisibleEquationContentContainer"/>.</summary>
+    internal static bool IsVisibleEquationContentContainer(OfficeXmlNode element) =>
+        WordEquation.IsVisibleEquationContentContainer((OpenXmlElement)element.SdkElement!);
+
+    /// <summary>The direct child of <paramref name="paragraph"/> that holds <paramref name="element"/>, as <see cref="WordEquation.GetDirectParagraphChild"/>.</summary>
+    internal static OfficeXmlNode GetDirectParagraphChild(OfficeXmlNode paragraph, OfficeXmlNode element) =>
+        OfficeXmlNode.FromSdk(WordEquation.GetDirectParagraphChild((W.Paragraph)paragraph.SdkElement!, element.SdkElement as OpenXmlElement));
+
+    /// <summary>The hyperlink's <c>w:hyperlink</c>.</summary>
+    internal static OfficeXmlNode Node(this WordHyperLink hyperlink) => OfficeXmlNode.FromSdk(hyperlink._hyperlink);
 }

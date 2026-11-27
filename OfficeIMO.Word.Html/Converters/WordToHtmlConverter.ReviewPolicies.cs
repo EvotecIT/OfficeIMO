@@ -1,8 +1,7 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
@@ -11,16 +10,16 @@ namespace OfficeIMO.Word.Html {
 
             var restore = new List<Action>();
             try {
-                Body? body = document._document.Body;
-                if (body != null) {
-                    Body projectedBody = (Body)body.CloneNode(true);
+                OfficeXmlNode body = document.BodyNode();
+                if (body.Exists) {
+                    OfficeXmlNode projectedBody = body.Clone();
                     ApplyTrackedChangePolicy(projectedBody, options.TrackedChangePolicy);
-                    document._document.Body = projectedBody;
-                    restore.Add(() => document._document.Body = body);
+                    document.SetBodyNode(projectedBody);
+                    restore.Add(() => document.SetBodyNode(body));
                 }
 
                 if (options.ExportHeadersAndFooters) {
-                    var projectedRegions = new Dictionary<OpenXmlPartRootElement, OpenXmlPartRootElement>();
+                    var projectedRegions = new Dictionary<OfficeXmlNode, OfficeXmlNode>();
                     foreach (WordSection section in document.Sections) {
                         ProjectHeaderFooter(section.PageSetup.GetHeader(WordHeaderFooterType.Default), projectedRegions, options.TrackedChangePolicy, restore);
                         ProjectHeaderFooter(section.PageSetup.GetHeader(WordHeaderFooterType.First), projectedRegions, options.TrackedChangePolicy, restore);
@@ -31,25 +30,9 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
 
-                var mainPart = document._wordprocessingDocument.MainDocumentPart;
-                if (options.ExportFootnotes && mainPart?.FootnotesPart?.Footnotes is Footnotes footnotes) {
-                    Footnotes projected = (Footnotes)footnotes.CloneNode(true);
-                    ApplyTrackedChangePolicy(projected, options.TrackedChangePolicy);
-                    mainPart.FootnotesPart.Footnotes = projected;
-                    restore.Add(() => mainPart.FootnotesPart.Footnotes = footnotes);
-                }
-                if (options.ExportEndnotes && mainPart?.EndnotesPart?.Endnotes is Endnotes endnotes) {
-                    Endnotes projected = (Endnotes)endnotes.CloneNode(true);
-                    ApplyTrackedChangePolicy(projected, options.TrackedChangePolicy);
-                    mainPart.EndnotesPart.Endnotes = projected;
-                    restore.Add(() => mainPart.EndnotesPart.Endnotes = endnotes);
-                }
-                if (options.ExportComments && mainPart?.WordprocessingCommentsPart?.Comments is Comments comments) {
-                    Comments projected = (Comments)comments.CloneNode(true);
-                    ApplyTrackedChangePolicy(projected, options.TrackedChangePolicy);
-                    mainPart.WordprocessingCommentsPart.Comments = projected;
-                    restore.Add(() => mainPart.WordprocessingCommentsPart.Comments = comments);
-                }
+                if (options.ExportFootnotes) ProjectPartRoot(document.FootnotesNode(), options.TrackedChangePolicy, restore);
+                if (options.ExportEndnotes) ProjectPartRoot(document.EndnotesNode(), options.TrackedChangePolicy, restore);
+                if (options.ExportComments) ProjectPartRoot(document.CommentsNode(), options.TrackedChangePolicy, restore);
             } catch {
                 RestoreProjectedRoots(restore);
                 throw;
@@ -58,50 +41,47 @@ namespace OfficeIMO.Word.Html {
             return () => RestoreProjectedRoots(restore);
         }
 
+        private static void ProjectPartRoot(OfficeXmlNode root, WordTrackedChangeExportPolicy policy, List<Action> restore) {
+            if (root.IsNone) return;
+            OfficeXmlNode projected = root.Clone();
+            ApplyTrackedChangePolicy(projected, policy);
+            WordConverterNodes.ReplacePartRootNode(root, projected);
+            restore.Add(() => WordConverterNodes.ReplacePartRootNode(projected, root));
+        }
+
         private static void RestoreProjectedRoots(IReadOnlyList<Action> restore) {
             for (int index = restore.Count - 1; index >= 0; index--) restore[index]();
         }
 
-        private static void ProjectHeaderFooter(WordHeaderFooter? region, Dictionary<OpenXmlPartRootElement, OpenXmlPartRootElement> projectedRegions,
+        private static void ProjectHeaderFooter(WordHeaderFooter? region, Dictionary<OfficeXmlNode, OfficeXmlNode> projectedRegions,
             WordTrackedChangeExportPolicy policy, List<Action> restore) {
             if (region == null) return;
-            if (region._header is Header header) {
-                if (!projectedRegions.TryGetValue(header, out var existing)) {
-                    Header projectedRoot = (Header)header.CloneNode(true);
-                    ApplyTrackedChangePolicy(projectedRoot, policy);
-                    var part = header.HeaderPart ?? throw new InvalidOperationException("The header projection has no owning part.");
-                    part.Header = projectedRoot;
-                    restore.Add(() => part.Header = header);
-                    projectedRegions.Add(header, projectedRoot);
-                    projectedRegions.Add(projectedRoot, projectedRoot);
-                    existing = projectedRoot;
+            OfficeXmlNode root = region.Node();
+            if (root.IsNone) return;
+            bool header = root.IsW("hdr");
+            if (!projectedRegions.TryGetValue(root, out OfficeXmlNode existing)) {
+                OfficeXmlNode projectedRoot = root.Clone();
+                ApplyTrackedChangePolicy(projectedRoot, policy);
+                if (!WordConverterNodes.ReplacePartRootNode(root, projectedRoot)) {
+                    throw new InvalidOperationException(header
+                        ? "The header projection has no owning part."
+                        : "The footer projection has no owning part.");
                 }
-                Header projected = (Header)existing;
-                region._header = projected;
-                restore.Add(() => region._header = header);
-            } else if (region._footer is Footer footer) {
-                if (!projectedRegions.TryGetValue(footer, out var existing)) {
-                    Footer projectedRoot = (Footer)footer.CloneNode(true);
-                    ApplyTrackedChangePolicy(projectedRoot, policy);
-                    var part = footer.FooterPart ?? throw new InvalidOperationException("The footer projection has no owning part.");
-                    part.Footer = projectedRoot;
-                    restore.Add(() => part.Footer = footer);
-                    projectedRegions.Add(footer, projectedRoot);
-                    projectedRegions.Add(projectedRoot, projectedRoot);
-                    existing = projectedRoot;
-                }
-                Footer projected = (Footer)existing;
-                region._footer = projected;
-                restore.Add(() => region._footer = footer);
+                restore.Add(() => WordConverterNodes.ReplacePartRootNode(projectedRoot, root));
+                projectedRegions.Add(root, projectedRoot);
+                projectedRegions.Add(projectedRoot, projectedRoot);
+                existing = projectedRoot;
             }
+            region.SetRootNode(existing);
+            restore.Add(() => region.SetRootNode(root));
         }
 
-        private static void ApplyTrackedChangePolicy(OpenXmlCompositeElement root, WordTrackedChangeExportPolicy policy) {
-            OpenXmlElement[] revisions = root.Descendants()
+        private static void ApplyTrackedChangePolicy(OfficeXmlNode root, WordTrackedChangeExportPolicy policy) {
+            OfficeXmlNode[] revisions = root.DescendantElements()
                 .Where(element => element.LocalName is "ins" or "del" or "moveFrom" or "moveTo")
                 .Reverse()
                 .ToArray();
-            foreach (OpenXmlElement revision in revisions) {
+            foreach (OfficeXmlNode revision in revisions) {
                 bool insertedView = revision.LocalName is "ins" or "moveTo";
                 bool include = policy switch {
                     WordTrackedChangeExportPolicy.Final => insertedView,
@@ -120,53 +100,50 @@ namespace OfficeIMO.Word.Html {
                 ReplaceRevisionContainer(revision, styleId);
             }
 
-            foreach (OpenXmlElement formattingChange in root.Descendants()
+            foreach (OfficeXmlNode formattingChange in root.DescendantElements()
                          .Where(element => element.LocalName.EndsWith("PrChange", StringComparison.Ordinal))
                          .ToArray()) {
                 formattingChange.Remove();
             }
         }
 
-        private static void ReplaceRevisionContainer(OpenXmlElement revision, string? styleId) {
-            OpenXmlElement? parent = revision.Parent;
-            if (parent == null) return;
-            foreach (OpenXmlElement source in revision.ChildElements.ToArray()) {
-                OpenXmlElement child = source.CloneNode(true);
+        private static void ReplaceRevisionContainer(OfficeXmlNode revision, string? styleId) {
+            OfficeXmlNode parent = revision.Parent;
+            if (parent.IsNone) return;
+            foreach (OfficeXmlNode source in revision.Elements().ToArray()) {
+                OfficeXmlNode child = source.Clone();
                 RestoreDeletedText(child);
                 if (styleId != null) {
-                    foreach (Run run in EnumerateRuns(child)) ApplyReviewStyle(run, styleId);
+                    foreach (OfficeXmlNode run in EnumerateRuns(child).ToArray()) ApplyReviewStyle(run, styleId);
                 }
                 parent.InsertBefore(child, revision);
             }
             revision.Remove();
         }
 
-        private static IEnumerable<Run> EnumerateRuns(OpenXmlElement element) {
-            if (element is Run run) yield return run;
-            foreach (Run descendant in element.Descendants<Run>()) yield return descendant;
+        private static IEnumerable<OfficeXmlNode> EnumerateRuns(OfficeXmlNode element) {
+            if (element.IsW("r")) yield return element;
+            foreach (OfficeXmlNode descendant in element.DescendantElements(WordXml.W, "r")) yield return descendant;
         }
 
-        private static void RestoreDeletedText(OpenXmlElement element) {
-            foreach (DeletedText deleted in element.Descendants<DeletedText>().ToArray()) {
-                var text = new Text(deleted.Text) { Space = deleted.Space };
+        private static void RestoreDeletedText(OfficeXmlNode element) {
+            foreach (OfficeXmlNode deleted in element.DescendantElements(WordXml.W, "delText").ToArray()) {
+                OfficeXmlNode text = deleted.Parent.CreateElement(WordXml.W, "t");
+                text.SetInnerText(deleted.InnerText);
+                if (deleted.Attribute(WordXml.Xml, "space") is { } space) text.SetAttribute(WordXml.Xml, "space", space);
                 deleted.InsertAfterSelf(text);
                 deleted.Remove();
             }
-            if (element is DeletedText rootDeleted) {
+            if (element.IsW("delText")) {
                 // DeletedText is normally nested in a run; this guard keeps malformed producer input deterministic.
-                rootDeleted.Text = rootDeleted.Text ?? string.Empty;
+                element.SetInnerText(element.InnerText);
             }
         }
 
-        private static void ApplyReviewStyle(Run run, string styleId) {
-            RunProperties properties = run.RunProperties ?? new RunProperties();
-            RunStyle? style = properties.GetFirstChild<RunStyle>();
-            if (style == null) {
-                style = new RunStyle();
-                properties.PrependChild(style);
-            }
-            style.Val = styleId;
-            if (run.RunProperties == null) run.PrependChild(properties);
+        private static void ApplyReviewStyle(OfficeXmlNode run, string styleId) {
+            OfficeXmlNode properties = run.GetOrPrependChild(WordXml.W, "rPr");
+            OfficeXmlNode style = properties.GetOrPrependChild(WordXml.W, "rStyle");
+            style.SetAttribute(WordXml.W, "val", styleId);
         }
 
         private static bool IsSelectedFieldLocation(WordFieldLocationKind location, WordHtmlExportOptions options) => location switch {

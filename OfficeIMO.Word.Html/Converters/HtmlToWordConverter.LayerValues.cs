@@ -53,7 +53,7 @@ internal partial class HtmlToWordConverter {
         // CSS parsing is native-shaped; the Word owner interprets its units.
         paragraph.LineSpacing = WordLineSpacing.Read(new SpacingBetweenLines {
             Line = parsed.LineHeight.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            LineRule = parsed.LineHeightRule
+            LineRule = parsed.LineHeightRule == null ? null : new LineSpacingRuleValues(parsed.LineHeightRule) // SDK-SHIM
         });
     }
 }

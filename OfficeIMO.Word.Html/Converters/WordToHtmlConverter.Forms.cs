@@ -1,11 +1,11 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml;
 using System.Globalization;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
         IElement CreateCheckBoxInput(IDocument htmlDoc, WordCheckBox checkBox) {
-            ReleaseReplacedContentControlContent(htmlDoc, checkBox._sdtRun);
+            ReleaseReplacedContentControlContent(htmlDoc, checkBox.SdtRunNode());
             var input = CreateOutputElement(htmlDoc, "input");
             SetOutputAttribute(input, "type", "checkbox", "CheckBox:type");
             SetOutputAttribute(input, "disabled", string.Empty, "CheckBox:disabled");
@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         IElement CreateDropDownListSelect(IDocument htmlDoc, WordDropDownList dropDownList) {
-            ReleaseReplacedContentControlContent(htmlDoc, dropDownList._sdtRun);
+            ReleaseReplacedContentControlContent(htmlDoc, dropDownList.SdtRunNode());
             var select = CreateOutputElement(htmlDoc, "select");
             SetOutputAttribute(select, "disabled", string.Empty, "DropDown:disabled");
             ApplyContentControlMetadata(select, dropDownList.Alias, dropDownList.Tag);
@@ -61,7 +61,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         IEnumerable<INode> CreateComboBoxNodes(IDocument htmlDoc, WordComboBox comboBox, int formListIndex) {
-            ReleaseReplacedContentControlContent(htmlDoc, comboBox._sdtRun);
+            ReleaseReplacedContentControlContent(htmlDoc, comboBox.SdtRunNode());
             string listId = "word-combo-" + formListIndex.ToString(CultureInfo.InvariantCulture);
             IReadOnlyList<(string Value, string DisplayText)> items = comboBox.ExportItems;
             string? selectedValue = comboBox.SelectedValue;
@@ -113,7 +113,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         IElement CreateDatePickerInput(IDocument htmlDoc, WordDatePicker datePicker) {
-            ReleaseReplacedContentControlContent(htmlDoc, datePicker._sdtRun);
+            ReleaseReplacedContentControlContent(htmlDoc, datePicker.SdtRunNode());
             var input = CreateOutputElement(htmlDoc, "input");
             SetOutputAttribute(input, "type", "date", "DatePicker:type");
             SetOutputAttribute(input, "disabled", string.Empty, "DatePicker:disabled");
@@ -125,7 +125,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         IElement CreateStructuredDocumentTagInput(IDocument htmlDoc, WordStructuredDocumentTag structuredDocumentTag) {
-            ReleaseReplacedContentControlContent(htmlDoc, structuredDocumentTag.SdtElement);
+            ReleaseReplacedContentControlContent(htmlDoc, structuredDocumentTag.SdtElementNode());
             if (HasLineBreaks(structuredDocumentTag.Text)) {
                 var textArea = CreateOutputElement(htmlDoc, "textarea");
                 SetOutputAttribute(textArea, "disabled", string.Empty, "ContentControl:disabled");
@@ -146,8 +146,8 @@ namespace OfficeIMO.Word.Html {
 
         static void ReleaseReplacedContentControlContent(
             IDocument htmlDoc,
-            OpenXmlElement? sourceControl) {
-            if (sourceControl == null) return;
+            OfficeXmlNode sourceControl) {
+            if (sourceControl.IsNone) return;
             ReleaseOutputCharacters(htmlDoc, MeasureOutputContentCharacters(sourceControl));
         }
 

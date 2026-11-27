@@ -1,24 +1,23 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
         private static IEnumerable<WordElement> ExpandTableCellBlockContent(WordTableCell cell) =>
             ExpandTableCellBlockContent(
                 cell.Document,
-                cell._tableCell,
+                cell.Node(),
                 int.MaxValue,
                 CancellationToken.None);
 
         private static IEnumerable<WordElement> ExpandTableCellBlockContent(
             WordDocument document,
-            OpenXmlCompositeElement container,
+            OfficeXmlNode container,
             long maxElements,
             CancellationToken cancellationToken) {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxElements);
-            var pending = new Stack<OpenXmlElement>();
+            var pending = new Stack<OfficeXmlNode>();
             PushChildrenInDocumentOrder(container, pending);
             long visited = 0;
             while (pending.Count > 0) {
@@ -27,34 +26,37 @@ namespace OfficeIMO.Word.Html {
                     throw new InvalidDataException(
                         $"The Word table-cell content exceeds the {maxElements}-element HTML conversion limit.");
                 }
-                OpenXmlElement child = pending.Pop();
-                if (child is Paragraph paragraph) {
-                    foreach (WordParagraph converted in WordSection.ConvertParagraphToWordParagraphs(document, paragraph)) {
+                OfficeXmlNode child = pending.Pop();
+                if (child.IsW("p")) {
+                    foreach (WordParagraph converted in document.ConvertParagraphNodeToWordParagraphs(child)) {
                         yield return converted;
                     }
-                } else if (child is Table table) {
-                    yield return new WordTable(document, table);
-                } else if (child is OpenXmlCompositeElement blockWrapper && child is not TableCellProperties) {
-                    PushChildrenInDocumentOrder(blockWrapper, pending);
+                } else if (child.IsW("tbl")) {
+                    yield return WordConverterNodes.CreateTable(document, child);
+                } else if (!child.IsW("tcPr")) {
+                    // Leaf elements hold no children, so only wrappers (content controls, custom XML,
+                    // alternate content) add anything here.
+                    PushChildrenInDocumentOrder(child, pending);
                 }
             }
         }
 
         private static void PushChildrenInDocumentOrder(
-            OpenXmlCompositeElement container,
-            Stack<OpenXmlElement> pending) {
-            for (int index = container.ChildElements.Count - 1; index >= 0; index--) {
-                pending.Push(container.ChildElements[index]);
+            OfficeXmlNode container,
+            Stack<OfficeXmlNode> pending) {
+            for (OfficeXmlNode child = container.LastChild; !child.IsNone; child = child.PreviousSibling) {
+                pending.Push(child);
             }
         }
 
         private static bool IsMarkedListItemTable(WordTable table) {
-            if (table._table.Parent is not SdtContentBlock content ||
-                content.Parent is not SdtBlock control) {
+            OfficeXmlNode content = table.Node().Parent;
+            OfficeXmlNode control = content.Parent;
+            if (!content.IsW("sdtContent") || control.ContentControlLevel() != WordContentControlLevel.Block) {
                 return false;
             }
             return string.Equals(
-                control.SdtProperties?.GetFirstChild<Tag>()?.Val?.Value,
+                control.WChild("sdtPr").ChildVal("tag"),
                 HtmlWordRoundTripMarkers.ListItemTableTag,
                 StringComparison.Ordinal);
         }
@@ -190,65 +192,65 @@ namespace OfficeIMO.Word.Html {
                 return Math.Round(value, 2).ToString("0.##", CultureInfo.InvariantCulture);
             }
 
-            string? GetTextAlignCss(JustificationValues? justification) {
+            string? GetTextAlignCss(WordParagraphAlignment? justification) {
                 if (justification == null) {
                     return null;
                 }
 
-                if (justification == JustificationValues.Center) {
+                if (justification == WordParagraphAlignment.Center) {
                     return "center";
                 }
 
-                if (justification == JustificationValues.Right) {
+                if (justification == WordParagraphAlignment.Right) {
                     return "right";
                 }
 
-                if (justification == JustificationValues.Left) {
+                if (justification == WordParagraphAlignment.Left) {
                     return "left";
                 }
 
-                if (justification == JustificationValues.Both) {
+                if (justification == WordParagraphAlignment.Both) {
                     return "justify";
                 }
 
                 return null;
             }
 
-            JustificationValues? GetCellAlignment(WordTableCell cell) {
-                JustificationValues? align = null;
+            WordParagraphAlignment? GetCellAlignment(WordTableCell cell) {
+                WordParagraphAlignment? align = null;
                 foreach (var p in cell.Paragraphs) {
                     if (p.ParagraphAlignment == null) {
                         continue;
                     }
                     if (align == null) {
-                        align = p.ParagraphAlignment?.ToOpenXml();
-                    } else if (align != p.ParagraphAlignment?.ToOpenXml()) {
+                        align = p.ParagraphAlignment;
+                    } else if (align != p.ParagraphAlignment) {
                         return null;
                     }
                 }
                 return align;
             }
 
-            string? BuildBorderCss(BorderValues? style, string? colorHex, UInt32Value? size) {
+            string? BuildBorderCss(string? style, string? colorHex, uint? size) {
                 if (style == null) {
                     return null;
                 }
 
-                if (style == BorderValues.Nil) {
+                if (style == "nil") {
                     // Word nil wins a collapsed-border conflict against a visible neighbour.
                     return "hidden";
                 }
-                if (style == BorderValues.None) {
+                if (style == "none") {
                     // Word none yields to the opposing border in a collapsed conflict.
                     return "none";
                 }
 
                 string cssStyle = "solid";
-                if (style == BorderValues.Dashed) {
+                if (style == "dashed") {
                     cssStyle = "dashed";
-                } else if (style == BorderValues.Dotted) {
+                } else if (style == "dotted") {
                     cssStyle = "dotted";
-                } else if (style == BorderValues.Double) {
+                } else if (style == "double") {
                     cssStyle = "double";
                 }
 
@@ -262,8 +264,8 @@ namespace OfficeIMO.Word.Html {
             List<string> GetBorderCss(WordTableCell cell) {
                 List<string> styles = new();
                 string? ReadBorder(WordTableBorderSide side) {
-                    BorderType? border = WordRunFormatting.ResolveTableCellBorder(cell, side);
-                    return BuildBorderCss(border?.Val?.Value, WordRunFormatting.ResolveBorderColorHex(border, cell.Document), border?.Size);
+                    OfficeXmlNode border = WordConverterNodes.ResolveTableCellBorderNode(cell, side);
+                    return BuildBorderCss(border.WVal(), WordConverterNodes.ResolveBorderColorHex(border, cell.Document), border.WUInt32("sz"));
                 }
                 var left = ReadBorder(WordTableBorderSide.Left);
                 var right = ReadBorder(WordTableBorderSide.Right);
@@ -300,10 +302,10 @@ namespace OfficeIMO.Word.Html {
                 if (b == null) return styles;
 
                 // Preserve native eighth-point quantization in the CSS point width.
-                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorValue, WordBorderLengths.ToSize(b.LeftSize));
-                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorValue, WordBorderLengths.ToSize(b.RightSize));
-                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorValue, WordBorderLengths.ToSize(b.TopSize));
-                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorValue, WordBorderLengths.ToSize(b.BottomSize));
+                var left = BuildBorderCss(b.LeftStyle?.ToOpenXmlToken(), b.LeftColorValue, WordBorderLengths.ToSize(b.LeftSize));
+                var right = BuildBorderCss(b.RightStyle?.ToOpenXmlToken(), b.RightColorValue, WordBorderLengths.ToSize(b.RightSize));
+                var top = BuildBorderCss(b.TopStyle?.ToOpenXmlToken(), b.TopColorValue, WordBorderLengths.ToSize(b.TopSize));
+                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXmlToken(), b.BottomColorValue, WordBorderLengths.ToSize(b.BottomSize));
 
                 if (left == null && right == null && top == null && bottom == null) {
                     return styles;
