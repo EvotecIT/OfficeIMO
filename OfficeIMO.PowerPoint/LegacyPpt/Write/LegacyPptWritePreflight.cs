@@ -476,8 +476,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             PresentationPart? presentationPart = slide.SlidePart
                 .GetParentParts().OfType<PresentationPart>().FirstOrDefault();
             if (presentationPart == null
+                || slide.OwnerDocument == null
                 || !LegacyPptWriter.TryReadPictureBulletCatalog(
-                    presentationPart, out LegacyPptWriter
+                    slide.OwnerDocument, out LegacyPptWriter
                         .LegacyPptWriterPictureBulletCatalog pictureBullets,
                     out _)) return false;
             foreach (PowerPointShape shape in shapes) {

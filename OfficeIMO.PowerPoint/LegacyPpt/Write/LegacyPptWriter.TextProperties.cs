@@ -1,32 +1,45 @@
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using static OfficeIMO.PowerPoint.LegacyPpt.Internal.LegacyPptXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
+        // Character attributes the binary character style leaves to the TextSIException, and the hyperlink children the
+        // interaction records carry, so they are not formatting of the run itself.
+        private static readonly HashSet<string> CharacterMetadataAttributes = new(StringComparer.Ordinal) {
+            "lang", "altLang", "noProof", "dirty", "err", "smtClean"
+        };
+
+        // Paragraph attributes the shared text ruler carries instead of the paragraph exception.
+        private static readonly HashSet<string> ParagraphRulerAttributes = new(StringComparer.Ordinal) {
+            "lvl", "marL", "indent", "defTabSz"
+        };
+
+        /// <summary>
+        /// Writes a paragraph exception for <c>a:pPr</c> or a list-style level. With <paramref name="excludeRuler"/> the
+        /// level, margins, default tab size and tab stops are left out, as the shared text ruler carries them.
+        /// </summary>
         private static bool TryWriteParagraphException(Stream output,
-            A.TextParagraphPropertiesType? properties,
+            OfficeXmlNode properties,
             LegacyPptWriterFontCatalog fonts, out string? reason,
-            bool allowAutoNumbering = false) {
+            bool allowAutoNumbering = false, bool excludeRuler = false) {
             reason = null;
-            if (properties == null) {
+            if (properties.IsNone) {
                 WriteUInt32(output, 0);
                 return true;
             }
-            if (!HasOnlyAttributes(properties, "algn", "marL", "indent",
+            if (!HasOnlyAttributes(properties, excludeRuler ? ParagraphRulerAttributes : null, "algn", "marL", "indent",
                     "defTabSz", "fontAlgn", "rtl", "eaLnBrk",
                     "latinLnBrk", "hangingPunct")) {
                 reason = "A master paragraph style uses attributes outside the base binary text-property contract.";
                 return false;
             }
-            if (!HasAtMostOneOfEachParagraphChild(properties)) {
+            if (!HasAtMostOneOfEachParagraphChild(properties, excludeRuler)) {
                 reason = "A master paragraph style contains duplicate or unsupported formatting children.";
                 return false;
             }
-            A.AutoNumberedBullet? autoNumberedBullet = properties
-                .GetFirstChild<A.AutoNumberedBullet>();
-            A.PictureBullet? pictureBullet = properties
-                .GetFirstChild<A.PictureBullet>();
-            if (autoNumberedBullet != null && !allowAutoNumbering) {
+            OfficeXmlNode autoNumberedBullet = properties.Child(A, "buAutoNum");
+            OfficeXmlNode pictureBullet = properties.Child(A, "buBlip");
+            if (!autoNumberedBullet.IsNone && !allowAutoNumbering) {
                 reason = "A master paragraph style uses automatic numbering that requires a TextMasterStyle9Atom.";
                 return false;
             }
@@ -34,106 +47,97 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             uint masks = 0;
             ushort bulletFlags = 0;
             bool hasBulletFlags = false;
-            A.NoBullet? noBullet = properties.GetFirstChild<A.NoBullet>();
-            A.CharacterBullet? characterBullet = properties
-                .GetFirstChild<A.CharacterBullet>();
-            if (noBullet != null
-                && (noBullet.HasAttributes
-                    || noBullet.ChildElements.Count != 0)) {
+            OfficeXmlNode noBullet = properties.Child(A, "buNone");
+            OfficeXmlNode characterBullet = properties.Child(A, "buChar");
+            if (!noBullet.IsNone
+                && (HasAnyAttribute(noBullet) || HasChildElements(noBullet))) {
                 reason = "A master no-bullet marker contains unsupported metadata.";
                 return false;
             }
-            if (noBullet != null || characterBullet != null
-                || autoNumberedBullet != null || pictureBullet != null) {
+            if (!noBullet.IsNone || !characterBullet.IsNone
+                || !autoNumberedBullet.IsNone || !pictureBullet.IsNone) {
                 masks |= 1U;
                 hasBulletFlags = true;
-                if (characterBullet != null || autoNumberedBullet != null
-                    || pictureBullet != null) {
+                if (!characterBullet.IsNone || !autoNumberedBullet.IsNone
+                    || !pictureBullet.IsNone) {
                     bulletFlags |= 1;
                 }
             }
-            A.BulletFont? bulletFont = properties.GetFirstChild<A.BulletFont>();
-            A.BulletFontText? bulletFontText = properties
-                .GetFirstChild<A.BulletFontText>();
-            if (bulletFontText != null
-                && (bulletFontText.HasAttributes
-                    || bulletFontText.ChildElements.Count != 0)) {
+            OfficeXmlNode bulletFont = properties.Child(A, "buFont");
+            OfficeXmlNode bulletFontText = properties.Child(A, "buFontTx");
+            if (!bulletFontText.IsNone
+                && (HasAnyAttribute(bulletFontText) || HasChildElements(bulletFontText))) {
                 reason = "A master text-inherited bullet font contains unsupported metadata.";
                 return false;
             }
             ushort? bulletFontIndex = null;
-            if (bulletFont != null || bulletFontText != null) {
+            if (!bulletFont.IsNone || !bulletFontText.IsNone) {
                 masks |= 1U << 1;
                 hasBulletFlags = true;
-                if (bulletFont != null) {
+                if (!bulletFont.IsNone) {
                     if (!HasOnlyAttributes(bulletFont, "typeface")
-                        || bulletFont.ChildElements.Count != 0) {
+                        || HasChildElements(bulletFont)) {
                         reason = "A master bullet font contains metadata that has no base binary equivalent.";
                         return false;
                     }
                     bulletFlags |= 1 << 1;
-                    if (!fonts.TryGetOrAdd(bulletFont.Typeface?.Value,
+                    if (!fonts.TryGetOrAdd(bulletFont.Attribute("typeface"),
                             out ushort index, out reason)) return false;
                     bulletFontIndex = index;
                     masks |= 1U << 4;
                 }
             }
-            A.BulletColor? bulletColor = properties.GetFirstChild<A.BulletColor>();
-            A.BulletColorText? bulletColorText = properties
-                .GetFirstChild<A.BulletColorText>();
-            if (bulletColorText != null
-                && (bulletColorText.HasAttributes
-                    || bulletColorText.ChildElements.Count != 0)) {
+            OfficeXmlNode bulletColor = properties.Child(A, "buClr");
+            OfficeXmlNode bulletColorText = properties.Child(A, "buClrTx");
+            if (!bulletColorText.IsNone
+                && (HasAnyAttribute(bulletColorText) || HasChildElements(bulletColorText))) {
                 reason = "A master text-inherited bullet color contains unsupported metadata.";
                 return false;
             }
             byte[]? bulletColorBytes = null;
-            if (bulletColor != null || bulletColorText != null) {
+            if (!bulletColor.IsNone || !bulletColorText.IsNone) {
                 masks |= 1U << 2;
                 hasBulletFlags = true;
-                if (bulletColor != null) {
+                if (!bulletColor.IsNone) {
                     bulletFlags |= 1 << 2;
                     if (!TryReadBinaryColor(bulletColor, out bulletColorBytes,
                             out reason)) return false;
                     masks |= 1U << 5;
                 }
             }
-            A.BulletSizePercentage? bulletPercent = properties
-                .GetFirstChild<A.BulletSizePercentage>();
-            A.BulletSizePoints? bulletPoints = properties
-                .GetFirstChild<A.BulletSizePoints>();
-            A.BulletSizeText? bulletSizeText = properties
-                .GetFirstChild<A.BulletSizeText>();
-            if (bulletSizeText != null
-                && (bulletSizeText.HasAttributes
-                    || bulletSizeText.ChildElements.Count != 0)) {
+            OfficeXmlNode bulletPercent = properties.Child(A, "buSzPct");
+            OfficeXmlNode bulletPoints = properties.Child(A, "buSzPts");
+            OfficeXmlNode bulletSizeText = properties.Child(A, "buSzTx");
+            if (!bulletSizeText.IsNone
+                && (HasAnyAttribute(bulletSizeText) || HasChildElements(bulletSizeText))) {
                 reason = "A master text-inherited bullet size contains unsupported metadata.";
                 return false;
             }
             short? bulletSize = null;
-            if (bulletPercent != null || bulletPoints != null
-                || bulletSizeText != null) {
+            if (!bulletPercent.IsNone || !bulletPoints.IsNone
+                || !bulletSizeText.IsNone) {
                 masks |= 1U << 3;
                 hasBulletFlags = true;
-                if (bulletPercent != null || bulletPoints != null) {
-                    OpenXmlElement numericSize = (OpenXmlElement?)bulletPercent
-                        ?? bulletPoints!;
+                if (!bulletPercent.IsNone || !bulletPoints.IsNone) {
+                    OfficeXmlNode numericSize = !bulletPercent.IsNone ? bulletPercent : bulletPoints;
                     if (!HasOnlyAttributes(numericSize, "val")
-                        || numericSize.ChildElements.Count != 0) {
+                        || HasChildElements(numericSize)) {
                         reason = "A master bullet size contains metadata that has no base binary equivalent.";
                         return false;
                     }
                     bulletFlags |= 1 << 3;
-                    if (bulletPercent?.Val?.HasValue == true) {
-                        int value = bulletPercent.Val.Value;
+                    int? percentValue = bulletPercent.IsNone ? null : bulletPercent.Int("val");
+                    int? pointValue = bulletPoints.IsNone ? null : bulletPoints.Int("val");
+                    if (percentValue.HasValue) {
+                        int value = percentValue.Value;
                         if (value % 1000 != 0 || value < 25000
                             || value > 400000) {
                             reason = "A master bullet percentage cannot be represented exactly by the binary PowerPoint integer percentage field.";
                             return false;
                         }
                         bulletSize = checked((short)(value / 1000));
-                    } else if (bulletPoints?.Val?.HasValue == true) {
-                        int value = bulletPoints.Val.Value;
+                    } else if (pointValue.HasValue) {
+                        int value = pointValue.Value;
                         if (value % 100 != 0 || value < 100
                             || value > 400000) {
                             reason = "A master bullet point size cannot be represented exactly by the binary PowerPoint point field.";
@@ -148,13 +152,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
             }
             char? bulletCharacter = null;
-            if (characterBullet != null) {
+            if (!characterBullet.IsNone) {
                 if (!HasOnlyAttributes(characterBullet, "char")
-                    || characterBullet.ChildElements.Count != 0) {
+                    || HasChildElements(characterBullet)) {
                     reason = "A master character bullet contains metadata that has no base binary equivalent.";
                     return false;
                 }
-                string value = characterBullet.Char?.Value ?? string.Empty;
+                string value = characterBullet.Attribute("char") ?? string.Empty;
                 if (value.Length != 1 || value[0] == '\0') {
                     reason = "A binary PowerPoint character bullet must contain exactly one non-NUL UTF-16 character.";
                     return false;
@@ -164,8 +168,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             short? leftMargin = null;
-            if (properties.LeftMargin?.HasValue == true) {
-                if (!TryToMasterInt16(properties.LeftMargin.Value,
+            int? leftMarginValue = excludeRuler ? null : properties.Int("marL");
+            if (leftMarginValue.HasValue) {
+                if (!TryToMasterInt16(leftMarginValue.Value,
                         out short value)) {
                     reason = "A master paragraph left margin lies outside the binary PowerPoint range.";
                     return false;
@@ -174,8 +179,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 masks |= 1U << 8;
             }
             short? indent = null;
-            if (properties.Indent?.HasValue == true) {
-                if (!TryToMasterInt16(properties.Indent.Value,
+            int? indentValue = excludeRuler ? null : properties.Int("indent");
+            if (indentValue.HasValue) {
+                if (!TryToMasterInt16(indentValue.Value,
                         out short value)) {
                     reason = "A master paragraph first-line indent lies outside the binary PowerPoint range.";
                     return false;
@@ -184,27 +190,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 masks |= 1U << 10;
             }
             ushort? alignment = null;
-            if (properties.Alignment?.HasValue == true) {
-                if (!TryMapAlignment(properties.Alignment.Value,
-                        out ushort value)) {
+            string? alignmentToken = properties.Attribute("algn");
+            if (IsParagraphAlignmentToken(alignmentToken)) {
+                if (!TryMapAlignment(alignmentToken, out ushort value)) {
                     reason = "A master paragraph alignment has no base binary PowerPoint equivalent.";
                     return false;
                 }
                 alignment = value;
                 masks |= 1U << 11;
             }
-            if (!TryReadSpacing(properties.GetFirstChild<A.LineSpacing>(),
+            if (!TryReadSpacing(properties.Child(A, "lnSpc"),
                     out short? lineSpacing, out reason)
-                || !TryReadSpacing(properties.GetFirstChild<A.SpaceBefore>(),
+                || !TryReadSpacing(properties.Child(A, "spcBef"),
                     out short? spaceBefore, out reason)
-                || !TryReadSpacing(properties.GetFirstChild<A.SpaceAfter>(),
+                || !TryReadSpacing(properties.Child(A, "spcAft"),
                     out short? spaceAfter, out reason)) return false;
             if (lineSpacing.HasValue) masks |= 1U << 12;
             if (spaceBefore.HasValue) masks |= 1U << 13;
             if (spaceAfter.HasValue) masks |= 1U << 14;
             short? defaultTab = null;
-            if (properties.DefaultTabSize?.HasValue == true) {
-                if (!TryToMasterInt16(properties.DefaultTabSize.Value,
+            int? defaultTabValue = excludeRuler ? null : properties.Int("defTabSz");
+            if (defaultTabValue.HasValue) {
+                if (!TryToMasterInt16(defaultTabValue.Value,
                         out short value) || value < 0) {
                     reason = "A master default tab size lies outside the binary PowerPoint range.";
                     return false;
@@ -213,9 +220,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 masks |= 1U << 15;
             }
             ushort? fontAlignment = null;
-            if (properties.FontAlignment?.HasValue == true) {
-                if (!TryMapFontAlignment(properties.FontAlignment.Value,
-                        out ushort value)) {
+            string? fontAlignmentToken = properties.Attribute("fontAlgn");
+            if (fontAlignmentToken is "auto" or "t" or "ctr" or "base" or "b") {
+                if (!TryMapFontAlignment(fontAlignmentToken, out ushort value)) {
                     reason = "A master font alignment has no base binary PowerPoint equivalent.";
                     return false;
                 }
@@ -224,42 +231,32 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             ushort wrapFlags = 0;
             bool hasWrapFlags = false;
-            if (properties.EastAsianLineBreak?.HasValue == true) {
+            bool? eastAsianLineBreak = properties.Bool("eaLnBrk");
+            if (eastAsianLineBreak.HasValue) {
                 masks |= 1U << 17;
                 hasWrapFlags = true;
-                if (properties.EastAsianLineBreak.Value) wrapFlags |= 1;
+                if (eastAsianLineBreak.Value) wrapFlags |= 1;
             }
-            if (properties.LatinLineBreak?.HasValue == true) {
+            bool? latinLineBreak = properties.Bool("latinLnBrk");
+            if (latinLineBreak.HasValue) {
                 masks |= 1U << 18;
                 hasWrapFlags = true;
-                if (!properties.LatinLineBreak.Value) wrapFlags |= 1 << 1;
+                if (!latinLineBreak.Value) wrapFlags |= 1 << 1;
             }
-            if (properties.Height?.HasValue == true) {
+            bool? hangingPunctuation = properties.Bool("hangingPunct");
+            if (hangingPunctuation.HasValue) {
                 masks |= 1U << 19;
                 hasWrapFlags = true;
-                if (properties.Height.Value) wrapFlags |= 1 << 2;
+                if (hangingPunctuation.Value) wrapFlags |= 1 << 2;
             }
-            A.TabStopList? tabList = properties.GetFirstChild<A.TabStopList>();
+            OfficeXmlNode tabList = excludeRuler ? default : properties.Child(A, "tabLst");
             var tabStops = new List<KeyValuePair<short, ushort>>();
-            if (tabList != null) {
-                if (tabList.HasAttributes || tabList.Elements<A.TabStop>().Count()
-                        != tabList.ChildElements.Count) {
-                    reason = "A master tab-stop list contains unsupported content.";
+            if (!tabList.IsNone) {
+                if (!TryReadTabStops(tabList, tabStops, out bool unsupportedList)) {
+                    reason = unsupportedList
+                        ? "A master tab-stop list contains unsupported content."
+                        : "A master tab stop has an unsupported position or alignment.";
                     return false;
-                }
-                foreach (A.TabStop tab in tabList.Elements<A.TabStop>()) {
-                    if (!HasOnlyAttributes(tab, "pos", "algn")
-                        || tab.Position?.HasValue != true
-                        || tab.Alignment?.HasValue != true
-                        || !TryToMasterInt16(tab.Position.Value,
-                            out short position)
-                        || !TryMapTabAlignment(tab.Alignment.Value,
-                            out ushort tabAlignment)) {
-                        reason = "A master tab stop has an unsupported position or alignment.";
-                        return false;
-                    }
-                    tabStops.Add(new KeyValuePair<short, ushort>(position,
-                        tabAlignment));
                 }
                 if (tabStops.Count > ushort.MaxValue) {
                     reason = "A master paragraph has too many binary tab stops.";
@@ -268,8 +265,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 masks |= 1U << 20;
             }
             ushort? direction = null;
-            if (properties.RightToLeft?.HasValue == true) {
-                direction = properties.RightToLeft.Value ? (ushort)1 : (ushort)0;
+            bool? rightToLeft = properties.Bool("rtl");
+            if (rightToLeft.HasValue) {
+                direction = rightToLeft.Value ? (ushort)1 : (ushort)0;
                 masks |= 1U << 21;
             }
 
@@ -289,7 +287,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (leftMargin.HasValue) WriteInt16(output, leftMargin.Value);
             if (indent.HasValue) WriteInt16(output, indent.Value);
             if (defaultTab.HasValue) WriteInt16(output, defaultTab.Value);
-            if (tabList != null) {
+            if (!tabList.IsNone) {
                 WriteUInt16(output, checked((ushort)tabStops.Count));
                 foreach (KeyValuePair<short, ushort> tab in tabStops) {
                     WriteInt16(output, tab.Key);
@@ -303,56 +301,60 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
+        /// <summary>
+        /// Writes a character exception for run properties (<c>a:rPr</c>, <c>a:endParaRPr</c>, <c>a:defRPr</c>). With
+        /// <paramref name="excludeMetadata"/> the proofing and language attributes and the hyperlink children are left
+        /// out, as other records carry them.
+        /// </summary>
         private static bool TryWriteCharacterException(Stream output,
-            A.TextCharacterPropertiesType? properties,
+            OfficeXmlNode properties,
             LegacyPptWriterFontCatalog fonts, out string? reason,
-            byte? ppt9RunId = null) {
+            byte? ppt9RunId = null, bool excludeMetadata = false) {
             reason = null;
-            if (properties == null && !ppt9RunId.HasValue) {
+            if (properties.IsNone && !ppt9RunId.HasValue) {
                 WriteUInt32(output, 0);
                 return true;
             }
-            if (properties != null && !HasOnlyAttributes(properties, "b", "i", "u", "kumimoji",
+            if (!properties.IsNone && !HasOnlyAttributes(properties,
+                    excludeMetadata ? CharacterMetadataAttributes : null, "b", "i", "u", "kumimoji",
                     "sz", "baseline")) {
                 reason = "A text run uses attributes outside the base binary character-style contract.";
                 return false;
             }
-            if (properties != null) {
-                foreach (OpenXmlElement child in properties.ChildElements) {
-                    if (child is not A.SolidFill and not A.LatinFont
-                        and not A.EastAsianFont and not A.SymbolFont) {
-                        reason = $"A text run contains unsupported '{child.LocalName}' content.";
-                        return false;
-                    }
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (excludeMetadata && IsHyperlinkChild(child)) continue;
+                if (!child.Is(A, "solidFill") && !child.Is(A, "latin")
+                    && !child.Is(A, "ea") && !child.Is(A, "sym")) {
+                    reason = $"A text run contains unsupported '{child.LocalName}' content.";
+                    return false;
                 }
             }
-            if (properties != null
-                && (properties.Elements<A.SolidFill>().Count() > 1
-                    || properties.Elements<A.LatinFont>().Count() > 1
-                    || properties.Elements<A.EastAsianFont>().Count() > 1
-                    || properties.Elements<A.SymbolFont>().Count() > 1)) {
+            if (!properties.IsNone
+                && (properties.Children(A, "solidFill").Count > 1
+                    || properties.Children(A, "latin").Count > 1
+                    || properties.Children(A, "ea").Count > 1
+                    || properties.Children(A, "sym").Count > 1)) {
                 reason = "A text run contains duplicate color or typeface elements.";
                 return false;
             }
             uint masks = 0;
             ushort style = 0;
             bool hasStyle = false;
-            AddStyleFlag(properties?.Bold, 0, ref masks, ref style,
+            AddStyleFlag(properties.IsNone ? null : properties.Bool("b"), 0, ref masks, ref style,
                 ref hasStyle);
-            AddStyleFlag(properties?.Italic, 1, ref masks, ref style,
+            AddStyleFlag(properties.IsNone ? null : properties.Bool("i"), 1, ref masks, ref style,
                 ref hasStyle);
-            if (properties?.Underline?.HasValue == true) {
-                A.TextUnderlineValues value = properties.Underline.Value;
-                if (value != A.TextUnderlineValues.None
-                    && value != A.TextUnderlineValues.Single) {
+            string? underline = properties.IsNone ? null : properties.Attribute("u");
+            if (IsUnderlineToken(underline)) {
+                if (underline != "none" && underline != "sng") {
                     reason = "Only none and single underline map exactly to the base binary character style.";
                     return false;
                 }
                 masks |= 1U << 2;
                 hasStyle = true;
-                if (value == A.TextUnderlineValues.Single) style |= 1 << 2;
+                if (underline == "sng") style |= 1 << 2;
             }
-            AddStyleFlag(properties?.Kumimoji, 7, ref masks, ref style,
+            AddStyleFlag(properties.IsNone ? null : properties.Bool("kumimoji"), 7, ref masks, ref style,
                 ref hasStyle);
             if (ppt9RunId.HasValue) {
                 if (ppt9RunId.Value > 0x0F) {
@@ -365,39 +367,39 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             ushort? latinFont = null;
-            A.LatinFont? latin = properties?.GetFirstChild<A.LatinFont>();
-            if (latin != null) {
+            OfficeXmlNode latin = properties.Child(A, "latin");
+            if (!latin.IsNone) {
                 if (!HasOnlyAttributes(latin, "typeface")
-                    || latin.ChildElements.Count != 0
-                    || !fonts.TryGetOrAdd(latin.Typeface?.Value,
+                    || HasChildElements(latin)
+                    || !fonts.TryGetOrAdd(latin.Attribute("typeface"),
                         out ushort index, out reason)) return false;
                 latinFont = index;
                 masks |= 1U << 16;
             }
             ushort? eastAsianFont = null;
-            A.EastAsianFont? eastAsian = properties?
-                .GetFirstChild<A.EastAsianFont>();
-            if (eastAsian != null) {
+            OfficeXmlNode eastAsian = properties.Child(A, "ea");
+            if (!eastAsian.IsNone) {
                 if (!HasOnlyAttributes(eastAsian, "typeface")
-                    || eastAsian.ChildElements.Count != 0
-                    || !fonts.TryGetOrAdd(eastAsian.Typeface?.Value,
+                    || HasChildElements(eastAsian)
+                    || !fonts.TryGetOrAdd(eastAsian.Attribute("typeface"),
                         out ushort index, out reason)) return false;
                 eastAsianFont = index;
                 masks |= 1U << 21;
             }
             ushort? symbolFont = null;
-            A.SymbolFont? symbol = properties?.GetFirstChild<A.SymbolFont>();
-            if (symbol != null) {
+            OfficeXmlNode symbol = properties.Child(A, "sym");
+            if (!symbol.IsNone) {
                 if (!HasOnlyAttributes(symbol, "typeface")
-                    || symbol.ChildElements.Count != 0
-                    || !fonts.TryGetOrAdd(symbol.Typeface?.Value,
+                    || HasChildElements(symbol)
+                    || !fonts.TryGetOrAdd(symbol.Attribute("typeface"),
                         out ushort index, out reason)) return false;
                 symbolFont = index;
                 masks |= 1U << 23;
             }
             short? fontSize = null;
-            if (properties?.FontSize?.HasValue == true) {
-                int value = properties.FontSize.Value;
+            int? fontSizeValue = properties.IsNone ? null : properties.Int("sz");
+            if (fontSizeValue.HasValue) {
+                int value = fontSizeValue.Value;
                 if (value % 100 != 0 || value < 100 || value > 400000) {
                     reason = "A master font size cannot be represented exactly as whole binary PowerPoint points.";
                     return false;
@@ -406,16 +408,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 masks |= 1U << 17;
             }
             byte[]? color = null;
-            A.SolidFill? fill = properties?.GetFirstChild<A.SolidFill>();
-            if (fill != null) {
+            OfficeXmlNode fill = properties.Child(A, "solidFill");
+            if (!fill.IsNone) {
                 if (!TryReadBinaryColor(fill, out color, out reason)) {
                     return false;
                 }
                 masks |= 1U << 18;
             }
             short? baseline = null;
-            if (properties?.Baseline?.HasValue == true) {
-                int value = properties.Baseline.Value;
+            int? baselineValue = properties.IsNone ? null : properties.Int("baseline");
+            if (baselineValue.HasValue) {
+                int value = baselineValue.Value;
                 if (value % 1000 != 0 || value < -100000
                     || value > 100000) {
                     reason = "A master baseline offset cannot be represented exactly as a binary PowerPoint percentage.";
@@ -437,88 +440,164 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static void AddStyleFlag(BooleanValue? value, int bit,
+        private static void AddStyleFlag(bool? value, int bit,
             ref uint masks, ref ushort style, ref bool hasStyle) {
-            if (value?.HasValue != true) return;
+            if (!value.HasValue) return;
             masks |= 1U << bit;
             hasStyle = true;
             if (value.Value) style |= checked((ushort)(1 << bit));
         }
 
+        private static bool IsHyperlinkChild(OfficeXmlNode child) =>
+            child.Is(A, "hlinkClick") || child.Is(A, "hlinkMouseOver");
+
+        /// <summary>
+        /// Whether run properties carry formatting beyond the proofing, language and hyperlink metadata other records
+        /// hold.
+        /// </summary>
+        private static bool HasCharacterFormatting(OfficeXmlNode properties) {
+            if (properties.IsNone) return false;
+            foreach (string name in AttributeLocalNames(properties)) {
+                if (!CharacterMetadataAttributes.Contains(name)) return true;
+            }
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (!IsHyperlinkChild(child)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Whether paragraph properties carry formatting beyond what the shared text ruler holds.</summary>
+        private static bool HasParagraphFormattingOutsideRuler(OfficeXmlNode properties) {
+            if (properties.IsNone) return false;
+            foreach (string name in AttributeLocalNames(properties)) {
+                if (!ParagraphRulerAttributes.Contains(name)) return true;
+            }
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (!child.Is(A, "tabLst")) return true;
+            }
+            return false;
+        }
+
+        private static readonly string[] ParagraphChildNames = {
+            "lnSpc", "spcBef", "spcAft", "buClrTx", "buClr", "buSzTx", "buSzPct", "buSzPts", "buFontTx", "buFont",
+            "buNone", "buChar", "buAutoNum", "buBlip", "tabLst"
+        };
+
         private static bool HasAtMostOneOfEachParagraphChild(
-            A.TextParagraphPropertiesType properties) {
-            if (properties.Elements<A.DefaultRunProperties>().Count() > 1) {
+            OfficeXmlNode properties, bool excludeRuler = false) {
+            if (properties.Children(A, "defRPr").Count > 1) {
                 return false;
             }
-            var seen = new HashSet<Type>();
-            foreach (OpenXmlElement child in properties.ChildElements) {
-                if (child is A.DefaultRunProperties) continue;
-                if (child is not A.LineSpacing and not A.SpaceBefore
-                    and not A.SpaceAfter and not A.BulletColorText
-                    and not A.BulletColor and not A.BulletSizeText
-                    and not A.BulletSizePercentage and not A.BulletSizePoints
-                    and not A.BulletFontText and not A.BulletFont
-                    and not A.NoBullet and not A.CharacterBullet
-                    and not A.AutoNumberedBullet
-                    and not A.PictureBullet
-                    and not A.TabStopList) return false;
-                if (!seen.Add(child.GetType())) return false;
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (OfficeXmlNode child in properties.Children()) {
+                if (child.Is(A, "defRPr")) continue;
+                if (excludeRuler && child.Is(A, "tabLst")) continue;
+                if (child.NamespaceId != A
+                    || Array.IndexOf(ParagraphChildNames, child.LocalName) < 0) return false;
+                if (!seen.Add(child.LocalName)) return false;
             }
-            return CountPresent(properties.GetFirstChild<A.NoBullet>(),
-                    properties.GetFirstChild<A.CharacterBullet>(),
-                    properties.GetFirstChild<A.AutoNumberedBullet>(),
-                    properties.GetFirstChild<A.PictureBullet>()) <= 1
-                && CountPresent(properties.GetFirstChild<A.BulletFont>(),
-                    properties.GetFirstChild<A.BulletFontText>()) <= 1
-                && CountPresent(properties.GetFirstChild<A.BulletColor>(),
-                    properties.GetFirstChild<A.BulletColorText>()) <= 1
-                && CountPresent(properties.GetFirstChild<A.BulletSizePercentage>(),
-                    properties.GetFirstChild<A.BulletSizePoints>(),
-                    properties.GetFirstChild<A.BulletSizeText>()) <= 1;
+            return CountPresent(properties, "buNone", "buChar", "buAutoNum", "buBlip") <= 1
+                && CountPresent(properties, "buFont", "buFontTx") <= 1
+                && CountPresent(properties, "buClr", "buClrTx") <= 1
+                && CountPresent(properties, "buSzPct", "buSzPts", "buSzTx") <= 1;
         }
 
-        private static int CountPresent(params OpenXmlElement?[] values) =>
-            values.Count(value => value != null);
+        private static int CountPresent(OfficeXmlNode parent, params string[] localNames) =>
+            localNames.Count(name => !parent.Child(A, name).IsNone);
 
-        private static bool HasOnlyAttributes(OpenXmlElement element,
-            params string[] allowed) {
-            var names = new HashSet<string>(allowed, StringComparer.Ordinal);
-            return element.GetAttributes().All(attribute =>
-                names.Contains(attribute.LocalName));
+        /// <summary>
+        /// The local names of an element's attributes, namespace declarations left out. An SDK element is read from its
+        /// markup, as the node offers no attribute list for it.
+        /// </summary>
+        private static List<string> AttributeLocalNames(OfficeXmlNode element) {
+            var names = new List<string>();
+            if (element.IsNone) return names;
+            OfficeXmlTree? tree = element.Tree;
+            int node = element.Node;
+            if (tree == null) {
+                byte[] markup = element.OuterXml();
+                tree = OfficeXmlTree.Parse(markup, markup.Length, new OfficeXmlNamespaces.Table());
+                node = tree.Root;
+            }
+            int count = tree.AttributeCountOf(node);
+            for (int index = 0; index < count; index++) {
+                tree.GetAttributeAt(node, index, out int namespaceId, out string localName, out _);
+                if (namespaceId == OfficeXmlNamespaces.Xmlns
+                    || namespaceId == OfficeXmlNamespaces.None && string.Equals(localName, "xmlns", StringComparison.Ordinal)) continue;
+                names.Add(localName);
+            }
+            return names;
         }
 
-        private static bool TryReadSpacing(OpenXmlCompositeElement? spacing,
+        private static bool HasAnyAttribute(OfficeXmlNode element) => AttributeLocalNames(element).Count != 0;
+
+        private static bool HasChildElements(OfficeXmlNode element) => !element.FirstChild.IsNone;
+
+        private static bool HasOnlyAttributes(OfficeXmlNode element,
+            params string[] allowed) => HasOnlyAttributes(element, null, allowed);
+
+        private static bool HasOnlyAttributes(OfficeXmlNode element,
+            HashSet<string>? ignored, params string[] allowed) {
+            foreach (string name in AttributeLocalNames(element)) {
+                if (ignored != null && ignored.Contains(name)) continue;
+                if (Array.IndexOf(allowed, name) < 0) return false;
+            }
+            return true;
+        }
+
+        /// <summary>Reads <c>a:tabLst</c> into binary tab stops; false for anything without an exact mapping.</summary>
+        private static bool TryReadTabStops(OfficeXmlNode list, List<KeyValuePair<short, ushort>> result,
+            out bool unsupportedList) {
+            unsupportedList = HasAnyAttribute(list) || list.Children(A, "tab").Count
+                != list.Children().Count;
+            if (unsupportedList) return false;
+            foreach (OfficeXmlNode tab in list.Children(A, "tab")) {
+                int? position = tab.Int("pos");
+                string? alignment = tab.Attribute("algn");
+                if (!HasOnlyAttributes(tab, "pos", "algn")
+                    || !position.HasValue
+                    || !TryToMasterInt16(position.Value,
+                        out short binaryPosition)
+                    || !TryMapTabAlignment(alignment,
+                        out ushort binaryAlignment)) {
+                    return false;
+                }
+                result.Add(new KeyValuePair<short, ushort>(binaryPosition,
+                    binaryAlignment));
+            }
+            return true;
+        }
+
+        private static bool TryReadSpacing(OfficeXmlNode spacing,
             out short? value, out string? reason) {
             value = null;
             reason = null;
-            if (spacing == null) return true;
-            if (spacing.HasAttributes || spacing.ChildElements.Count != 1) {
+            if (spacing.IsNone) return true;
+            if (HasAnyAttribute(spacing) || spacing.Children().Count != 1) {
                 reason = "A master paragraph spacing element contains unsupported content.";
                 return false;
             }
-            if (spacing.GetFirstChild<A.SpacingPercent>() is { } percent
-                && percent.Val?.HasValue == true) {
+            OfficeXmlNode percent = spacing.Child(A, "spcPct");
+            if (!percent.IsNone && percent.Int("val") is int rawPercent) {
                 if (!HasOnlyAttributes(percent, "val")
-                    || percent.ChildElements.Count != 0) {
+                    || HasChildElements(percent)) {
                     reason = "A master paragraph percentage spacing contains unsupported metadata.";
                     return false;
                 }
-                int raw = percent.Val.Value;
-                if (raw % 1000 != 0 || raw < 0 || raw > 13200000) {
+                if (rawPercent % 1000 != 0 || rawPercent < 0 || rawPercent > 13200000) {
                     reason = "A master paragraph percentage spacing cannot be represented exactly by the binary field.";
                     return false;
                 }
-                value = checked((short)(raw / 1000));
+                value = checked((short)(rawPercent / 1000));
                 return true;
             }
-            if (spacing.GetFirstChild<A.SpacingPoints>() is { } points
-                && points.Val?.HasValue == true) {
+            OfficeXmlNode points = spacing.Child(A, "spcPts");
+            if (!points.IsNone && points.Int("val") is int raw) {
                 if (!HasOnlyAttributes(points, "val")
-                    || points.ChildElements.Count != 0) {
+                    || HasChildElements(points)) {
                     reason = "A master paragraph point spacing contains unsupported metadata.";
                     return false;
                 }
-                int raw = points.Val.Value;
                 if (raw < 0) {
                     reason = "A master paragraph point spacing cannot be represented exactly by the binary 1/8-point field.";
                     return false;
@@ -542,20 +621,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return false;
         }
 
-        private static bool TryReadBinaryColor(OpenXmlCompositeElement parent,
+        private static bool TryReadBinaryColor(OfficeXmlNode parent,
             out byte[]? color, out string? reason) {
             color = null;
             reason = null;
-            if (parent.HasAttributes || parent.ChildElements.Count != 1) {
+            if (HasAnyAttribute(parent) || parent.Children().Count != 1) {
                 reason = "A master text color contains transforms or unsupported color metadata.";
                 return false;
             }
-            if (parent.GetFirstChild<A.RgbColorModelHex>() is { } rgb
-                && rgb.Val?.Value is string value) {
+            OfficeXmlNode rgb = parent.Child(A, "srgbClr");
+            if (!rgb.IsNone && rgb.Attribute("val") is string value) {
                 string normalized = value.Trim().TrimStart('#');
                 if (normalized.Length != 6 || !normalized.All(Uri.IsHexDigit)
-                    || (rgb.HasAttributes && !HasOnlyAttributes(rgb, "val"))
-                    || rgb.ChildElements.Count != 0) {
+                    || !HasOnlyAttributes(rgb, "val")
+                    || HasChildElements(rgb)) {
                     reason = "A master text RGB color is not an exact six-digit value without transforms.";
                     return false;
                 }
@@ -567,11 +646,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 };
                 return true;
             }
-            if (parent.GetFirstChild<A.SchemeColor>() is { } scheme
-                && scheme.Val?.HasValue == true
+            OfficeXmlNode scheme = parent.Child(A, "schemeClr");
+            if (!scheme.IsNone
                 && HasOnlyAttributes(scheme, "val")
-                && scheme.ChildElements.Count == 0
-                && TryMapSchemeColor(scheme.Val.Value, out byte index)) {
+                && !HasChildElements(scheme)
+                && TryMapSchemeColor(scheme.Attribute("val"), out byte index)) {
                 color = new byte[] { 0, 0, 0, index };
                 return true;
             }
@@ -579,33 +658,41 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return false;
         }
 
-        private static bool TryMapSchemeColor(A.SchemeColorValues value,
+        private static bool TryMapSchemeColor(string? token,
             out byte index) {
-            if (value == A.SchemeColorValues.Background1
-                || value == A.SchemeColorValues.Light1) {
-                index = 0;
-            } else if (value == A.SchemeColorValues.Text1
-                || value == A.SchemeColorValues.Dark1) {
-                index = 1;
-            } else if (value == A.SchemeColorValues.Accent4) {
-                index = 2;
-            } else if (value == A.SchemeColorValues.Text2
-                || value == A.SchemeColorValues.Dark2) {
-                index = 3;
-            } else if (value == A.SchemeColorValues.Background2
-                || value == A.SchemeColorValues.Light2) {
-                index = 4;
-            } else if (value == A.SchemeColorValues.Accent1) {
-                index = 5;
-            } else if (value == A.SchemeColorValues.Accent2) {
-                index = 6;
-            } else if (value == A.SchemeColorValues.Accent3) {
-                index = 7;
-            } else {
-                index = byte.MaxValue;
-                return false;
+            switch (token) {
+                case "bg1":
+                case "lt1":
+                    index = 0;
+                    return true;
+                case "tx1":
+                case "dk1":
+                    index = 1;
+                    return true;
+                case "accent4":
+                    index = 2;
+                    return true;
+                case "tx2":
+                case "dk2":
+                    index = 3;
+                    return true;
+                case "bg2":
+                case "lt2":
+                    index = 4;
+                    return true;
+                case "accent1":
+                    index = 5;
+                    return true;
+                case "accent2":
+                    index = 6;
+                    return true;
+                case "accent3":
+                    index = 7;
+                    return true;
+                default:
+                    index = byte.MaxValue;
+                    return false;
             }
-            return true;
         }
 
         private static bool TryToMasterInt16(long emus, out short value) {
@@ -621,46 +708,55 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return projected == emus;
         }
 
-        private static bool TryMapAlignment(A.TextAlignmentTypeValues value,
+        // ST_TextAlignType: every token has a binary alignment.
+        private static bool IsParagraphAlignmentToken(string? token) =>
+            token is "l" or "ctr" or "r" or "just" or "justLow" or "dist" or "thaiDist";
+
+        private static bool TryMapAlignment(string? token,
             out ushort mapped) {
-            if (value == A.TextAlignmentTypeValues.Left) mapped = 0;
-            else if (value == A.TextAlignmentTypeValues.Center) mapped = 1;
-            else if (value == A.TextAlignmentTypeValues.Right) mapped = 2;
-            else if (value == A.TextAlignmentTypeValues.Justified) mapped = 3;
-            else if (value == A.TextAlignmentTypeValues.Distributed) mapped = 4;
-            else if (value == A.TextAlignmentTypeValues.ThaiDistributed) mapped = 5;
-            else if (value == A.TextAlignmentTypeValues.JustifiedLow) mapped = 6;
-            else {
-                mapped = ushort.MaxValue;
-                return false;
+            switch (token) {
+                case "l": mapped = 0; return true;
+                case "ctr": mapped = 1; return true;
+                case "r": mapped = 2; return true;
+                case "just": mapped = 3; return true;
+                case "dist": mapped = 4; return true;
+                case "thaiDist": mapped = 5; return true;
+                case "justLow": mapped = 6; return true;
+                default:
+                    mapped = ushort.MaxValue;
+                    return false;
             }
-            return true;
         }
 
-        private static bool TryMapFontAlignment(A.TextFontAlignmentValues value,
+        private static bool TryMapFontAlignment(string? token,
             out ushort mapped) {
-            if (value == A.TextFontAlignmentValues.Baseline) mapped = 0;
-            else if (value == A.TextFontAlignmentValues.Top) mapped = 1;
-            else if (value == A.TextFontAlignmentValues.Center) mapped = 2;
-            else if (value == A.TextFontAlignmentValues.Bottom) mapped = 3;
-            else {
-                mapped = ushort.MaxValue;
-                return false;
+            switch (token) {
+                case "base": mapped = 0; return true;
+                case "t": mapped = 1; return true;
+                case "ctr": mapped = 2; return true;
+                case "b": mapped = 3; return true;
+                default:
+                    mapped = ushort.MaxValue;
+                    return false;
             }
-            return true;
         }
 
-        private static bool TryMapTabAlignment(A.TextTabAlignmentValues value,
+        private static bool TryMapTabAlignment(string? token,
             out ushort mapped) {
-            if (value == A.TextTabAlignmentValues.Left) mapped = 0;
-            else if (value == A.TextTabAlignmentValues.Center) mapped = 1;
-            else if (value == A.TextTabAlignmentValues.Right) mapped = 2;
-            else if (value == A.TextTabAlignmentValues.Decimal) mapped = 3;
-            else {
-                mapped = ushort.MaxValue;
-                return false;
+            switch (token) {
+                case "l": mapped = 0; return true;
+                case "ctr": mapped = 1; return true;
+                case "r": mapped = 2; return true;
+                case "dec": mapped = 3; return true;
+                default:
+                    mapped = ushort.MaxValue;
+                    return false;
             }
-            return true;
         }
+
+        // ST_TextUnderlineType; a value outside it reads as absent, as the schema type would.
+        private static bool IsUnderlineToken(string? token) => token is "none" or "words" or "sng" or "dbl" or "heavy"
+            or "dotted" or "dottedHeavy" or "dash" or "dashHeavy" or "dashLong" or "dashLongHeavy" or "dotDash"
+            or "dotDashHeavy" or "dotDotDash" or "dotDotDashHeavy" or "wavy" or "wavyHeavy" or "wavyDbl";
     }
 }

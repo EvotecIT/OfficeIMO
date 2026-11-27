@@ -326,10 +326,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             for (int level = 0; level < levelCount; level++) {
                 levels.TryGetValue(level,
                     out A.TextParagraphPropertiesType? properties);
-                if (!TryWriteParagraphException(payload, properties, fonts,
+                if (!TryWriteParagraphException(payload,
+                        OfficeXmlNode.FromSdk(properties), fonts,
                         out reason, allowAutoNumbering: true)
                     || !TryWriteCharacterException(payload,
-                        properties?.GetFirstChild<A.DefaultRunProperties>(),
+                        OfficeXmlNode.FromSdk(properties?.GetFirstChild<A.DefaultRunProperties>()),
                         fonts, out reason)) {
                     return false;
                 }
@@ -363,8 +364,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 A.AutoNumberedBullet? numbering = properties?
                     .GetFirstChild<A.AutoNumberedBullet>();
                 if (!TryWriteAutomaticNumberingException9(payload,
-                        numbering, numbering?.StartAt?.Value ?? 1,
-                        properties?.GetFirstChild<A.PictureBullet>(),
+                        OfficeXmlNode.FromSdk(numbering), numbering?.StartAt?.Value ?? 1,
+                        OfficeXmlNode.FromSdk(properties?.GetFirstChild<A.PictureBullet>()),
                         pictureBullets,
                         out reason)) return false;
                 WriteUInt32(payload, 0);

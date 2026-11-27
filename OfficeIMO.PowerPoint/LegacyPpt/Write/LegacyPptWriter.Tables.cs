@@ -1,13 +1,30 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using System.Text;
+using static OfficeIMO.PowerPoint.LegacyPpt.Internal.LegacyPptXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         private const ushort TablePropertiesIdForWrite = 0x039F;
         private const ushort TableRowPropertiesIdForWrite = 0x03A0;
 
+        /// <summary>
+        /// Checks a table against the presentation the picture-bullet catalog was read from, or against the document as
+        /// it is now when the catalog has no presentation.
+        /// </summary>
         internal static bool TryReadTableForWrite(PowerPointTable table,
+            LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            out string? reason) {
+            ArgumentNullException.ThrowIfNull(pictureBullets);
+            return TryReadTableForWrite(pictureBullets.View, table, fonts,
+                pictureBullets, out reason);
+        }
+
+        /// <summary>Checks a table against the presentation captured for the write.</summary>
+        internal static bool TryReadTableForWrite(LegacyPptPackageView? view,
+            PowerPointTable table,
             LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out string? reason) {
@@ -34,6 +51,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
             }
+            OfficeXmlNode tableElement = TableElementForWrite(
+                ResolveShapeForWrite(view, table));
             for (int row = 0; row < table.RowCount; row++) {
                 for (int column = 0; column < table.ColumnCount; column++) {
                     PowerPointTableCell cell = table.GetCell(row, column);
@@ -41,7 +60,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         reason = "Merged DrawingML table cells do not yet have a lossless native binary table mapping.";
                         return false;
                     }
-                    if (!TryBuildTableCellContent(cell, fonts,
+                    if (!TryBuildTableCellContent(
+                            TableCellForWrite(tableElement, row, column), fonts,
                             pictureBullets, out _, out reason)) {
                         return false;
                     }
@@ -104,13 +124,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterAnimationCatalog animationCatalog,
             LegacyPptWriterShapeContext shapeContext,
             LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog? pictureBullets) =>
+            BuildTableRecord(pictureBullets?.View, table, ref nextShapeId,
+                interactionCatalog, animationCatalog, shapeContext, fonts,
+                pictureBullets);
+
+        private static byte[] BuildTableRecord(LegacyPptPackageView? view,
+            PowerPointTable table,
+            ref uint nextShapeId,
+            LegacyPptWriterInteractionCatalog interactionCatalog,
+            LegacyPptWriterAnimationCatalog animationCatalog,
+            LegacyPptWriterShapeContext shapeContext,
+            LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterPictureBulletCatalog? pictureBullets) {
             LegacyPptWriterPictureBulletCatalog bullets = pictureBullets
                 ?? LegacyPptWriterPictureBulletCatalog.Empty;
-            if (!TryReadTableForWrite(table, fonts, bullets,
+            if (!TryReadTableForWrite(view, table, fonts, bullets,
                     out string? reason)) {
                 throw new NotSupportedException(reason);
             }
+            OfficeXmlNode frame = ResolveShapeForWrite(view, table);
+            OfficeXmlNode tableElement = TableElementForWrite(frame);
             int[] columnWidths = table.Columns.Select(column =>
                 ToMasterUnits(column.Width!.Value.ToEmus())).ToArray();
             int[] rowHeights = table.Rows.Select(row =>
@@ -121,7 +155,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             uint groupShapeId = nextShapeId++;
             var descriptorChildren = new List<byte[]> {
                 BuildTableCoordinateRecord(tableWidth, tableHeight),
-                BuildTableGroupFsp(table, groupShapeId),
+                BuildTableGroupFsp(frame, groupShapeId),
                 BuildTablePrimaryPropertiesRecord(table),
                 BuildTablePropertiesRecord(rowHeights),
                 BuildAnchor(table)
@@ -144,6 +178,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 for (int column = 0; column < table.ColumnCount; column++) {
                     PowerPointTableCell cell = table.GetCell(row, column);
                     children.Add(BuildTableCellRecord(cell,
+                        TableCellForWrite(tableElement, row, column),
                         nextShapeId++, row, column, table, left, top,
                         columnWidths[column],
                         rowHeights[row], interactionCatalog, fonts, bullets));
@@ -220,12 +255,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildFoptRecord(properties);
         }
 
-        private static byte[] BuildTableGroupFsp(PowerPointTable table,
+        private static byte[] BuildTableGroupFsp(OfficeXmlNode frame,
             uint shapeId) {
             var payload = new byte[8];
             WriteUInt32(payload, 0, shapeId);
             uint flags = 0x00000201U;
-            if (table.Element.Parent is DocumentFormat.OpenXml.Presentation.GroupShape) {
+            if (frame.Parent.Is(P, "grpSp")) {
                 flags |= 1U << 1;
             }
             WriteUInt32(payload, 4, flags);
@@ -234,12 +269,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildTableCellRecord(PowerPointTableCell cell,
+            OfficeXmlNode cellElement,
             uint shapeId, int row, int column, PowerPointTable table,
             int left, int top, int width, int height,
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets) {
-            if (!TryBuildTableCellContent(cell, fonts, pictureBullets,
+            if (!TryBuildTableCellContent(cellElement, fonts, pictureBullets,
                     out LegacyPptWriterTextBoxContent? textContent,
                     out string? reason)) {
                 throw new NotSupportedException(reason);
@@ -255,11 +291,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         textContent.Style9Record) }));
             }
             LegacyPptWriterShapeInteractions interactions =
-                interactionCatalog.Get(cell.Cell);
+                interactionCatalog.Get(cell);
             children.Add(BuildTextBox((uint)LegacyPptTextType.Other,
                 interactions.TextInteractions, textContent));
             return BuildContainer(OfficeArtSpContainer, instance: 0,
                 children);
+        }
+
+        // The a:tbl of a table's p:graphicFrame, or none.
+        private static OfficeXmlNode TableElementForWrite(OfficeXmlNode frame) =>
+            frame.Child(A, "graphic").Path(A, "graphicData", "tbl");
+
+        // The cell at a row and column of a:tbl, counted as the table wrapper counts them, or none.
+        private static OfficeXmlNode TableCellForWrite(OfficeXmlNode tableElement,
+            int row, int column) {
+            OfficeXmlNode rowElement = NthChildForWrite(tableElement, "tr", row);
+            return NthChildForWrite(rowElement, "tc", column);
+        }
+
+        private static OfficeXmlNode NthChildForWrite(OfficeXmlNode parent,
+            string localName, int index) {
+            int position = 0;
+            foreach (OfficeXmlNode child in parent.Children(A, localName)) {
+                if (position++ == index) return child;
+            }
+            return default;
         }
 
         private static byte[] BuildTableCellFsp(uint shapeId) {

@@ -602,6 +602,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal LegacyPptWriterShapeInteractions Get(PowerPointShape shape) =>
                 Get(shape.Element);
 
+            internal LegacyPptWriterShapeInteractions Get(PowerPointTableCell cell) =>
+                Get(cell.Cell);
+
             internal LegacyPptWriterShapeInteractions Get(OpenXmlElement element) =>
                 _shapes.TryGetValue(element, out LegacyPptWriterShapeInteractions? value)
                     ? value

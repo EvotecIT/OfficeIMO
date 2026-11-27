@@ -1,6 +1,5 @@
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using static OfficeIMO.PowerPoint.LegacyPpt.Internal.LegacyPptXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -10,30 +9,45 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static LegacyPptWriterFontCatalog
             CreateFontCatalogForWrite() => new(Template.Value.Document);
 
+        /// <summary>The logical text of a text shape in the presentation captured for the write.</summary>
+        internal static string ReadLogicalTextForWrite(
+            LegacyPptPackageView view, PowerPointTextBox textBox) {
+            ArgumentNullException.ThrowIfNull(view);
+            ArgumentNullException.ThrowIfNull(textBox);
+            return ReadLogicalTextForWrite(ResolveShapeForWrite(view, textBox));
+        }
+
+        /// <summary>The logical text of a text shape as the document holds it now.</summary>
         internal static string ReadLogicalTextForWrite(
             PowerPointTextBox textBox) {
             ArgumentNullException.ThrowIfNull(textBox);
-            if (textBox.Element is not P.Shape shape
-                || shape.TextBody == null) return string.Empty;
+            return ReadLogicalTextForWrite(textBox.XmlElement);
+        }
+
+        /// <summary>The logical text of a <c>p:sp</c> element: paragraphs, line breaks and field placeholders.</summary>
+        internal static string ReadLogicalTextForWrite(OfficeXmlNode shape) {
+            OfficeXmlNode body = shape.Is(P, "sp") ? shape.Child(P, "txBody") : default;
+            if (body.IsNone) return string.Empty;
             var result = new System.Text.StringBuilder();
-            A.Paragraph[] paragraphs = shape.TextBody
-                .Elements<A.Paragraph>().ToArray();
-            for (int paragraphIndex = 0;
-                 paragraphIndex < paragraphs.Length; paragraphIndex++) {
-                if (paragraphIndex > 0) result.Append('\n');
-                foreach (OpenXmlElement child in paragraphs[paragraphIndex]
-                             .ChildElements) {
-                    if (child is A.Run run) {
-                        result.Append(run.Text?.Text ?? string.Empty);
-                    } else if (child is A.Field field) {
+            bool first = true;
+            foreach (OfficeXmlNode paragraph in body.Children(A, "p")) {
+                if (!first) result.Append('\n');
+                first = false;
+                foreach (OfficeXmlNode child in paragraph.Children()) {
+                    if (child.Is(A, "r")) {
+                        result.Append(RunText(child) ?? string.Empty);
+                    } else if (child.Is(A, "fld")) {
                         result.Append('*');
-                    } else if (child is A.Break) {
+                    } else if (child.Is(A, "br")) {
                         result.Append('\v');
                     }
                 }
             }
             return result.ToString();
         }
+
+        // The text of a run's (or field's) a:t, or null when it has none.
+        private static string? RunText(OfficeXmlNode run) => run.ChildText(A, "t");
 
         internal static bool TryReadTextBoxForWrite(
             PowerPointTextBox textBox, LegacyPptWriterFontCatalog fonts,
@@ -46,6 +60,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out string? reason) => TryBuildTextBoxContent(textBox, fonts,
             pictureBullets, out _, out reason);
 
+        internal static bool TryReadTextBoxForWrite(LegacyPptPackageView view,
+            PowerPointTextBox textBox, LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            out string? reason) => TryBuildTextBoxContent(view, textBox, fonts,
+            pictureBullets, out _, out reason);
+
         internal static bool TryBuildTextBoxContent(
             PowerPointTextBox textBox, LegacyPptWriterFontCatalog fonts,
             out LegacyPptWriterTextBoxContent? content,
@@ -53,66 +73,98 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 LegacyPptWriterPictureBulletCatalog.Empty, out content,
                 out reason);
 
+        /// <summary>
+        /// Builds a text shape's binary text from the presentation the picture-bullet catalog was read from, or from the
+        /// document as it is now when the catalog has no presentation.
+        /// </summary>
         internal static bool TryBuildTextBoxContent(
             PowerPointTextBox textBox, LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out LegacyPptWriterTextBoxContent? content,
             out string? reason) {
             ArgumentNullException.ThrowIfNull(textBox);
-            ArgumentNullException.ThrowIfNull(fonts);
-            content = null;
-            reason = null;
-            if (textBox.Element is not P.Shape shape
-                || shape.TextBody == null) {
-                reason = "The text shape has no DrawingML text body.";
-                return false;
-            }
-            P.TextBody body = shape.TextBody;
-            if (!TryReadTextFrameForWrite(textBox, out _, out reason)) {
-                return false;
-            }
-            return TryBuildTextBodyContent(body, body.BodyProperties,
-                body.ListStyle, fonts, pictureBullets, out content,
-                out reason);
+            ArgumentNullException.ThrowIfNull(pictureBullets);
+            return TryBuildTextBoxContent(ResolveShapeForWrite(pictureBullets.View, textBox),
+                fonts, pictureBullets, out content, out reason);
         }
 
-        internal static bool TryBuildTableCellContent(
-            PowerPointTableCell cell, LegacyPptWriterFontCatalog fonts,
+        /// <summary>Builds a text shape's binary text from the presentation captured for the write.</summary>
+        internal static bool TryBuildTextBoxContent(LegacyPptPackageView view,
+            PowerPointTextBox textBox, LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out LegacyPptWriterTextBoxContent? content,
             out string? reason) {
-            ArgumentNullException.ThrowIfNull(cell);
+            ArgumentNullException.ThrowIfNull(view);
+            ArgumentNullException.ThrowIfNull(textBox);
+            return TryBuildTextBoxContent(ResolveShapeForWrite(view, textBox),
+                fonts, pictureBullets, out content, out reason);
+        }
+
+        /// <summary>Builds the binary text of a <c>p:sp</c> element.</summary>
+        internal static bool TryBuildTextBoxContent(
+            OfficeXmlNode shape, LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            out LegacyPptWriterTextBoxContent? content,
+            out string? reason) {
             ArgumentNullException.ThrowIfNull(fonts);
             ArgumentNullException.ThrowIfNull(pictureBullets);
-            A.TextBody? body = cell.Cell.TextBody;
-            if (body == null) {
+            content = null;
+            reason = null;
+            OfficeXmlNode body = shape.Is(P, "sp") ? shape.Child(P, "txBody") : default;
+            if (body.IsNone) {
+                reason = "The text shape has no DrawingML text body.";
+                return false;
+            }
+            if (!TryReadTextFrameForWrite(shape, out _, out reason)) {
+                return false;
+            }
+            return TryBuildTextBodyContent(body, fonts, pictureBullets, out content,
+                out reason);
+        }
+
+        /// <summary>Builds the binary text of a table cell (<c>a:tc</c>).</summary>
+        internal static bool TryBuildTableCellContent(
+            OfficeXmlNode cell, LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            out LegacyPptWriterTextBoxContent? content,
+            out string? reason) {
+            ArgumentNullException.ThrowIfNull(fonts);
+            ArgumentNullException.ThrowIfNull(pictureBullets);
+            OfficeXmlNode body = cell.Child(A, "txBody");
+            if (body.IsNone) {
                 content = null;
                 reason = "The table cell has no DrawingML text body.";
                 return false;
             }
-            return TryBuildTextBodyContent(body, body.BodyProperties,
-                body.ListStyle, fonts, pictureBullets, out content,
+            return TryBuildTextBodyContent(body, fonts, pictureBullets, out content,
                 out reason);
         }
 
         private static bool TryBuildTextBodyContent(
-            OpenXmlCompositeElement body, A.BodyProperties? bodyProperties,
-            A.ListStyle? listStyle, LegacyPptWriterFontCatalog fonts,
+            OfficeXmlNode body, LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out LegacyPptWriterTextBoxContent? content,
             out string? reason) {
             content = null;
             reason = null;
-            if (bodyProperties == null || listStyle == null
-                || body.HasAttributes
-                || listStyle.HasAttributes || listStyle.HasChildren
-                || body.ChildElements.Any(child => child is not A.BodyProperties
-                    and not A.ListStyle and not A.Paragraph)) {
+            OfficeXmlNode bodyProperties = body.Child(A, "bodyPr");
+            OfficeXmlNode listStyle = body.Child(A, "lstStyle");
+            bool unsupportedChild = false;
+            foreach (OfficeXmlNode child in body.Children()) {
+                if (!child.Is(A, "bodyPr") && !child.Is(A, "lstStyle") && !child.Is(A, "p")) {
+                    unsupportedChild = true;
+                    break;
+                }
+            }
+            if (bodyProperties.IsNone || listStyle.IsNone
+                || HasAnyAttribute(body)
+                || HasAnyAttribute(listStyle) || HasChildElements(listStyle)
+                || unsupportedChild) {
                 reason = "The text body contains content outside the base binary text contract.";
                 return false;
             }
-            A.Paragraph[] paragraphs = body.Elements<A.Paragraph>().ToArray();
-            if (paragraphs.Length == 0) {
+            List<OfficeXmlNode> paragraphs = body.Children(A, "p").ToList();
+            if (paragraphs.Count == 0) {
                 reason = "The text body must contain at least one paragraph.";
                 return false;
             }
@@ -129,8 +181,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             using var paragraphRuns = new MemoryStream();
             using var characterRuns = new MemoryStream();
             var fieldRecords = new List<byte[]>();
-            for (int index = 0; index < paragraphs.Length; index++) {
-                A.Paragraph paragraph = paragraphs[index];
+            for (int index = 0; index < paragraphs.Count; index++) {
+                OfficeXmlNode paragraph = paragraphs[index];
                 byte? ppt9RunId = style9Record == null
                     ? null
                     : checked((byte)(index % 16));
@@ -165,49 +217,51 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool TryWriteParagraphRun(A.Paragraph paragraph,
+        private static bool TryWriteParagraphRun(OfficeXmlNode paragraph,
             LegacyPptWriterFontCatalog fonts,
             System.Text.StringBuilder logicalText, Stream paragraphRuns,
             Stream characterRuns, ICollection<byte[]> fieldRecords,
             byte? ppt9RunId,
             out string? reason) {
             reason = null;
-            if (paragraph.HasAttributes
-                || paragraph.ChildElements.Any(child => child
-                    is not A.ParagraphProperties and not A.Run
-                    and not A.Break and not A.Field
-                    and not A.EndParagraphRunProperties)
-                || paragraph.Elements<A.ParagraphProperties>().Count() > 1
-                || paragraph.Elements<A.EndParagraphRunProperties>().Count()
-                    > 1) {
+            bool unsupportedChild = false;
+            foreach (OfficeXmlNode child in paragraph.Children()) {
+                if (!child.Is(A, "pPr") && !child.Is(A, "r") && !child.Is(A, "br")
+                    && !child.Is(A, "fld") && !child.Is(A, "endParaRPr")) {
+                    unsupportedChild = true;
+                    break;
+                }
+            }
+            if (HasAnyAttribute(paragraph)
+                || unsupportedChild
+                || paragraph.Children(A, "pPr").Count > 1
+                || paragraph.Children(A, "endParaRPr").Count > 1) {
                 reason = "A paragraph contains extensions or duplicate properties that are not in the base binary text contract.";
                 return false;
             }
-            A.ParagraphProperties? sourceProperties = paragraph
-                .ParagraphProperties;
-            if (sourceProperties?.GetFirstChild<A.DefaultRunProperties>()
-                != null) {
+            OfficeXmlNode sourceProperties = paragraph.Child(A, "pPr");
+            if (!sourceProperties.Child(A, "defRPr").IsNone) {
                 reason = "Shape-level default run properties must be materialized on individual runs before binary writing.";
                 return false;
             }
-            int level = sourceProperties?.Level?.Value ?? 0;
+            int level = sourceProperties.Int("lvl") ?? 0;
             if (level < 0 || level > 4) {
                 reason = "Base binary PowerPoint text supports paragraph levels zero through four.";
                 return false;
             }
             var paragraphText = new System.Text.StringBuilder();
-            foreach (OpenXmlElement child in paragraph.ChildElements) {
-                if (child is A.Run run) {
-                    if (!TryWriteCharacterRun(run, fonts, paragraphText,
+            foreach (OfficeXmlNode child in paragraph.Children()) {
+                if (child.Is(A, "r")) {
+                    if (!TryWriteCharacterRun(child, fonts, paragraphText,
                             characterRuns, ppt9RunId, out reason)) {
                         return false;
                     }
-                } else if (child is A.Break lineBreak) {
-                    if (!TryWriteLineBreak(lineBreak, fonts,
+                } else if (child.Is(A, "br")) {
+                    if (!TryWriteLineBreak(child, fonts,
                             paragraphText, characterRuns, ppt9RunId,
                             out reason)) return false;
-                } else if (child is A.Field field) {
-                    if (!TryWriteField(field, fonts,
+                } else if (child.Is(A, "fld")) {
+                    if (!TryWriteField(child, fonts,
                             checked(logicalText.Length
                                 + paragraphText.Length), paragraphText,
                             characterRuns, fieldRecords, ppt9RunId,
@@ -218,42 +272,37 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             logicalText.Append(paragraphText);
             WriteUInt32(paragraphRuns, checked((uint)paragraphText.Length));
             WriteUInt16(paragraphRuns, checked((ushort)level));
-            A.ParagraphProperties? properties = sourceProperties == null
-                ? null
-                : (A.ParagraphProperties)sourceProperties.CloneNode(true);
-            if (properties != null) {
-                properties.Level = null;
-                properties.LeftMargin = null;
-                properties.Indent = null;
-                properties.DefaultTabSize = null;
-                properties.RemoveAllChildren<A.TabStopList>();
-            }
-            if (!TryWriteParagraphException(paragraphRuns, properties,
+            // The level, margins, default tab size and tab stops go to the shared text ruler instead.
+            if (!TryWriteParagraphException(paragraphRuns, sourceProperties,
                     fonts, out reason,
-                    allowAutoNumbering: true)) return false;
+                    allowAutoNumbering: true, excludeRuler: true)) return false;
 
-            A.EndParagraphRunProperties? endProperties = paragraph
-                .GetFirstChild<A.EndParagraphRunProperties>();
+            OfficeXmlNode endProperties = paragraph.Child(A, "endParaRPr");
             WriteUInt32(characterRuns, 1U);
             return TryWriteCharacterException(characterRuns,
-                NormalizeCharacterProperties(endProperties), fonts,
-                out reason, ppt9RunId);
+                endProperties, fonts, out reason, ppt9RunId, excludeMetadata: true);
         }
 
-        private static bool TryWriteCharacterRun(A.Run run,
+        private static bool TryWriteCharacterRun(OfficeXmlNode run,
             LegacyPptWriterFontCatalog fonts,
             System.Text.StringBuilder paragraphText, Stream characterRuns,
             byte? ppt9RunId, out string? reason) {
             reason = null;
-            if (run.HasAttributes
-                || run.ChildElements.Any(child => child is not A.RunProperties
-                    and not A.Text)
-                || run.Elements<A.RunProperties>().Count() > 1
-                || run.Elements<A.Text>().Count() != 1) {
+            bool unsupportedChild = false;
+            foreach (OfficeXmlNode child in run.Children()) {
+                if (!child.Is(A, "rPr") && !child.Is(A, "t")) {
+                    unsupportedChild = true;
+                    break;
+                }
+            }
+            if (HasAnyAttribute(run)
+                || unsupportedChild
+                || run.Children(A, "rPr").Count > 1
+                || run.Children(A, "t").Count != 1) {
                 reason = "A text run contains unsupported or duplicate content.";
                 return false;
             }
-            string value = (run.Text?.Text ?? string.Empty)
+            string value = (RunText(run) ?? string.Empty)
                 .Replace("\r\n", "\r").Replace("\n", "\r");
             if (value.IndexOf('\0') >= 0) {
                 reason = "Run text contains a NUL character that has no binary PowerPoint text representation.";
@@ -263,62 +312,73 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             paragraphText.Append(value);
             WriteUInt32(characterRuns, checked((uint)value.Length));
             return TryWriteCharacterException(characterRuns,
-                NormalizeCharacterProperties(run.RunProperties), fonts,
-                out reason, ppt9RunId);
+                run.Child(A, "rPr"), fonts,
+                out reason, ppt9RunId, excludeMetadata: true);
         }
 
-        private static bool TryWriteLineBreak(A.Break lineBreak,
+        private static bool TryWriteLineBreak(OfficeXmlNode lineBreak,
             LegacyPptWriterFontCatalog fonts,
             System.Text.StringBuilder paragraphText,
             Stream characterRuns, byte? ppt9RunId,
             out string? reason) {
             reason = null;
-            if (lineBreak.HasAttributes
-                || lineBreak.ChildElements.Any(child => child
-                    is not A.RunProperties)
-                || lineBreak.Elements<A.RunProperties>().Count() > 1) {
+            bool unsupportedChild = false;
+            foreach (OfficeXmlNode child in lineBreak.Children()) {
+                if (!child.Is(A, "rPr")) {
+                    unsupportedChild = true;
+                    break;
+                }
+            }
+            if (HasAnyAttribute(lineBreak)
+                || unsupportedChild
+                || lineBreak.Children(A, "rPr").Count > 1) {
                 reason = "A line break contains unsupported or duplicate run properties.";
                 return false;
             }
             paragraphText.Append('\v');
             WriteUInt32(characterRuns, 1U);
             return TryWriteCharacterException(characterRuns,
-                NormalizeCharacterProperties(lineBreak.RunProperties),
-                fonts, out reason, ppt9RunId);
+                lineBreak.Child(A, "rPr"),
+                fonts, out reason, ppt9RunId, excludeMetadata: true);
         }
 
-        private static bool TryWriteField(A.Field field,
+        private static bool TryWriteField(OfficeXmlNode field,
             LegacyPptWriterFontCatalog fonts, int position,
             System.Text.StringBuilder paragraphText,
             Stream characterRuns, ICollection<byte[]> fieldRecords,
             byte? ppt9RunId, out string? reason) {
             reason = null;
+            bool unsupportedChild = false;
+            foreach (OfficeXmlNode child in field.Children()) {
+                if (!child.Is(A, "rPr") && !child.Is(A, "pPr") && !child.Is(A, "t")) {
+                    unsupportedChild = true;
+                    break;
+                }
+            }
+            string? fieldType = field.Attribute("type");
             if (!HasOnlyAttributes(field, "id", "type")
-                || !Guid.TryParse(field.Id?.Value, out _)
-                || string.IsNullOrWhiteSpace(field.Type?.Value)
-                || field.ChildElements.Any(child => child
-                    is not A.RunProperties
-                        and not A.ParagraphProperties and not A.Text)
-                || field.Elements<A.RunProperties>().Count() > 1
-                || field.Elements<A.ParagraphProperties>().Count() > 1
-                || field.Elements<A.Text>().Count() != 1) {
+                || !Guid.TryParse(field.Attribute("id"), out _)
+                || string.IsNullOrWhiteSpace(fieldType)
+                || unsupportedChild
+                || field.Children(A, "rPr").Count > 1
+                || field.Children(A, "pPr").Count > 1
+                || field.Children(A, "t").Count != 1) {
                 reason = "A DrawingML field must contain a valid id, one supported type, one text value, and at most one run or paragraph property element.";
                 return false;
             }
-            A.ParagraphProperties? fieldParagraph = field
-                .ParagraphProperties;
-            if (fieldParagraph is { HasAttributes: true }
-                || fieldParagraph is { HasChildren: true }) {
+            OfficeXmlNode fieldParagraph = field.Child(A, "pPr");
+            if (!fieldParagraph.IsNone
+                && (HasAnyAttribute(fieldParagraph) || HasChildElements(fieldParagraph))) {
                 reason = "Field-local paragraph formatting has no native classic binary PowerPoint mapping.";
                 return false;
             }
-            if (!TryBuildTextFieldRecord(field.Type!.Value!, position,
+            if (!TryBuildTextFieldRecord(fieldType!, position,
                     out byte[] fieldRecord, out reason)) return false;
             paragraphText.Append('*');
             WriteUInt32(characterRuns, 1U);
             if (!TryWriteCharacterException(characterRuns,
-                    NormalizeCharacterProperties(field.RunProperties),
-                    fonts, out reason, ppt9RunId)) return false;
+                    field.Child(A, "rPr"),
+                    fonts, out reason, ppt9RunId, excludeMetadata: true)) return false;
             fieldRecords.Add(fieldRecord);
             return true;
         }
@@ -390,73 +450,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             type is 0x0FD8 or 0x0FF7 or 0x0FF8 or 0x0FF9
                 or 0x0FFA or 0x1015;
 
-        private static A.TextCharacterPropertiesType?
-            NormalizeCharacterProperties(
-                A.TextCharacterPropertiesType? properties) {
-            if (properties == null) return null;
-            var clone = (A.TextCharacterPropertiesType)properties
-                .CloneNode(true);
-            foreach (OpenXmlAttribute attribute in clone.GetAttributes()
-                         .Where(attribute => attribute.LocalName is "lang"
-                             or "altLang" or "noProof" or "dirty" or "err"
-                             or "smtClean")
-                         .ToArray()) {
-                clone.RemoveAttribute(attribute.LocalName,
-                    attribute.NamespaceUri);
-            }
-            clone.RemoveAllChildren<A.HyperlinkOnClick>();
-            clone.RemoveAllChildren<A.HyperlinkOnMouseOver>();
-            return clone;
-        }
-
         private static bool HasBinaryTextFormatting(
-            IEnumerable<A.Paragraph> paragraphs, bool hasRuler) {
+            IEnumerable<OfficeXmlNode> paragraphs, bool hasRuler) {
             if (hasRuler) return true;
-            foreach (A.Paragraph paragraph in paragraphs) {
-                A.ParagraphProperties? source = paragraph
-                    .ParagraphProperties;
-                if (source != null) {
-                    if ((source.Level?.Value ?? 0) != 0) return true;
-                    var clone = (A.ParagraphProperties)source
-                        .CloneNode(true);
-                    clone.Level = null;
-                    clone.LeftMargin = null;
-                    clone.Indent = null;
-                    clone.DefaultTabSize = null;
-                    clone.RemoveAllChildren<A.TabStopList>();
-                    if (clone.HasAttributes || clone.HasChildren) return true;
+            foreach (OfficeXmlNode paragraph in paragraphs) {
+                OfficeXmlNode source = paragraph.Child(A, "pPr");
+                if (!source.IsNone) {
+                    if ((source.Int("lvl") ?? 0) != 0) return true;
+                    if (HasParagraphFormattingOutsideRuler(source)) return true;
                 }
-                foreach (A.Run run in paragraph.Elements<A.Run>()) {
-                    A.TextCharacterPropertiesType? properties =
-                        NormalizeCharacterProperties(run.RunProperties);
-                    if (properties is { HasAttributes: true }
-                        || properties is { HasChildren: true }) return true;
+                foreach (OfficeXmlNode run in paragraph.Children(A, "r")) {
+                    if (HasCharacterFormatting(run.Child(A, "rPr"))) return true;
                 }
-                foreach (A.Field field in paragraph.Elements<A.Field>()) {
-                    A.TextCharacterPropertiesType? properties =
-                        NormalizeCharacterProperties(field.RunProperties);
-                    if (properties is { HasAttributes: true }
-                        || properties is { HasChildren: true }) return true;
+                foreach (OfficeXmlNode field in paragraph.Children(A, "fld")) {
+                    if (HasCharacterFormatting(field.Child(A, "rPr"))) return true;
                 }
-                foreach (A.Break lineBreak in paragraph
-                             .Elements<A.Break>()) {
-                    A.TextCharacterPropertiesType? properties =
-                        NormalizeCharacterProperties(
-                            lineBreak.RunProperties);
-                    if (properties is { HasAttributes: true }
-                        || properties is { HasChildren: true }) return true;
+                foreach (OfficeXmlNode lineBreak in paragraph.Children(A, "br")) {
+                    if (HasCharacterFormatting(lineBreak.Child(A, "rPr"))) return true;
                 }
-                A.TextCharacterPropertiesType? end =
-                    NormalizeCharacterProperties(paragraph
-                        .GetFirstChild<A.EndParagraphRunProperties>());
-                if (end is { HasAttributes: true }
-                    || end is { HasChildren: true }) return true;
+                if (HasCharacterFormatting(paragraph.Child(A, "endParaRPr"))) return true;
             }
             return false;
         }
 
         private static bool TryBuildTextRulerRecord(
-            IReadOnlyList<A.Paragraph> paragraphs, out byte[]? record,
+            IReadOnlyList<OfficeXmlNode> paragraphs, out byte[]? record,
             out string? reason) {
             record = null;
             reason = null;
@@ -465,34 +483,33 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var leftMargins = new Dictionary<int, short>();
             var indents = new Dictionary<int, short>();
             int maximumLevel = 0;
-            foreach (A.Paragraph paragraph in paragraphs) {
-                A.ParagraphProperties? properties = paragraph
-                    .ParagraphProperties;
-                if (properties == null) continue;
-                int level = properties.Level?.Value ?? 0;
+            foreach (OfficeXmlNode paragraph in paragraphs) {
+                OfficeXmlNode properties = paragraph.Child(A, "pPr");
+                if (properties.IsNone) continue;
+                int level = properties.Int("lvl") ?? 0;
                 if (level < 0 || level > 4) {
                     reason = "Base binary PowerPoint text supports paragraph levels zero through four.";
                     return false;
                 }
                 maximumLevel = Math.Max(maximumLevel, level);
-                if (properties.LeftMargin?.HasValue == true) {
-                    if (!TryToMasterInt16(properties.LeftMargin.Value,
+                if (properties.Int("marL") is int leftMargin) {
+                    if (!TryToMasterInt16(leftMargin,
                             out short value)
                         || !TrySetLevelValue(leftMargins, level, value)) {
                         reason = "Paragraphs at one level use incompatible or out-of-range left margins for the shared binary text ruler.";
                         return false;
                     }
                 }
-                if (properties.Indent?.HasValue == true) {
-                    if (!TryToMasterInt16(properties.Indent.Value,
+                if (properties.Int("indent") is int indent) {
+                    if (!TryToMasterInt16(indent,
                             out short value)
                         || !TrySetLevelValue(indents, level, value)) {
                         reason = "Paragraphs at one level use incompatible or out-of-range first-line indents for the shared binary text ruler.";
                         return false;
                     }
                 }
-                if (properties.DefaultTabSize?.HasValue == true) {
-                    if (!TryToMasterInt16(properties.DefaultTabSize.Value,
+                if (properties.Int("defTabSz") is int defaultTabSize) {
+                    if (!TryToMasterInt16(defaultTabSize,
                             out short value) || value < 0
                         || defaultTab.HasValue
                         && defaultTab.Value != value) {
@@ -501,12 +518,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     defaultTab = value;
                 }
-                A.TabStopList? list = properties
-                    .GetFirstChild<A.TabStopList>();
-                if (list == null) continue;
-                if (!TryReadRulerTabStops(list,
-                        out IReadOnlyList<KeyValuePair<short, ushort>> values,
-                        out reason)) return false;
+                OfficeXmlNode list = properties.Child(A, "tabLst");
+                if (list.IsNone) continue;
+                var values = new List<KeyValuePair<short, ushort>>();
+                if (!TryReadTabStops(list, values, out bool unsupportedList)) {
+                    reason = unsupportedList
+                        ? "A paragraph tab-stop list contains unsupported content."
+                        : "A paragraph tab stop has an unsupported position or alignment.";
+                    return false;
+                }
                 if (tabStops != null && !tabStops.SequenceEqual(values)) {
                     reason = "Paragraphs use different explicit tab-stop lists that cannot share one binary text ruler.";
                     return false;
@@ -552,34 +572,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return existing == value;
             }
             values.Add(level, value);
-            return true;
-        }
-
-        private static bool TryReadRulerTabStops(A.TabStopList list,
-            out IReadOnlyList<KeyValuePair<short, ushort>> values,
-            out string? reason) {
-            var result = new List<KeyValuePair<short, ushort>>();
-            values = result;
-            reason = null;
-            if (list.HasAttributes || list.Elements<A.TabStop>().Count()
-                    != list.ChildElements.Count) {
-                reason = "A paragraph tab-stop list contains unsupported content.";
-                return false;
-            }
-            foreach (A.TabStop tab in list.Elements<A.TabStop>()) {
-                if (!HasOnlyAttributes(tab, "pos", "algn")
-                    || tab.Position?.HasValue != true
-                    || tab.Alignment?.HasValue != true
-                    || !TryToMasterInt16(tab.Position.Value,
-                        out short position)
-                    || !TryMapTabAlignment(tab.Alignment.Value,
-                        out ushort alignment)) {
-                    reason = "A paragraph tab stop has an unsupported position or alignment.";
-                    return false;
-                }
-                result.Add(new KeyValuePair<short, ushort>(position,
-                    alignment));
-            }
             return true;
         }
 

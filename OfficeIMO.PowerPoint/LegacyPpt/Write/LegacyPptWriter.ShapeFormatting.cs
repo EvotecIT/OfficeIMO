@@ -789,7 +789,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 uint rewriteMask = TextFitShapeMasks;
                 A.BodyProperties body = ((P.Shape)textBox.Element)
                     .TextBody!.BodyProperties!;
-                if (HasExplicitTextInsets(body)) {
+                if (HasExplicitTextInsets(OfficeXmlNode.FromSdk(body))) {
                     rewriteMask |= TextAutoMarginMasks;
                 }
                 uint preservedFlags = (sourceProperties.LastOrDefault(

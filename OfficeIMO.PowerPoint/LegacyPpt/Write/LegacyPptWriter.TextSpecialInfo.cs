@@ -1,45 +1,36 @@
-using DocumentFormat.OpenXml;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
+using static OfficeIMO.PowerPoint.LegacyPpt.Internal.LegacyPptXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         internal static bool TryBuildTextSpecialInfoRecord(
-            IReadOnlyList<A.Paragraph> paragraphs, out byte[]? record,
+            IReadOnlyList<OfficeXmlNode> paragraphs, out byte[]? record,
             out string? reason) {
             ArgumentNullException.ThrowIfNull(paragraphs);
             record = null;
             reason = null;
             var runs = new List<LegacyPptWriterTextSpecialInfoRun>();
             bool hasMetadata = false;
-            foreach (A.Paragraph paragraph in paragraphs) {
-                foreach (OpenXmlElement child in paragraph.ChildElements) {
-                    if (child is A.Run run) {
+            foreach (OfficeXmlNode paragraph in paragraphs) {
+                foreach (OfficeXmlNode child in paragraph.Children()) {
+                    if (child.Is(A, "r")) {
                         int count = NormalizeTextForWrite(
-                            run.Text?.Text).Length;
+                            RunText(child)).Length;
                         if (count == 0) continue;
-                        if (!TryReadTextSpecialInfo(run.RunProperties,
+                        if (!TryReadTextSpecialInfo(child.Child(A, "rPr"),
                                 out LegacyPptWriterTextSpecialInfo info,
                                 out reason)) return false;
                         AddTextSpecialInfoRun(runs, count, info);
                         hasMetadata |= info.HasMetadata;
-                    } else if (child is A.Break lineBreak) {
-                        if (!TryReadTextSpecialInfo(
-                                lineBreak.RunProperties,
-                                out LegacyPptWriterTextSpecialInfo info,
-                                out reason)) return false;
-                        AddTextSpecialInfoRun(runs, 1, info);
-                        hasMetadata |= info.HasMetadata;
-                    } else if (child is A.Field field) {
-                        if (!TryReadTextSpecialInfo(field.RunProperties,
+                    } else if (child.Is(A, "br") || child.Is(A, "fld")) {
+                        if (!TryReadTextSpecialInfo(child.Child(A, "rPr"),
                                 out LegacyPptWriterTextSpecialInfo info,
                                 out reason)) return false;
                         AddTextSpecialInfoRun(runs, 1, info);
                         hasMetadata |= info.HasMetadata;
                     }
                 }
-                if (!TryReadTextSpecialInfo(paragraph
-                        .GetFirstChild<A.EndParagraphRunProperties>(),
+                if (!TryReadTextSpecialInfo(paragraph.Child(A, "endParaRPr"),
                         out LegacyPptWriterTextSpecialInfo endInfo,
                         out reason)) return false;
                 AddTextSpecialInfoRun(runs, 1, endInfo);
@@ -72,16 +63,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryReadTextSpecialInfo(
-            A.TextCharacterPropertiesType? properties,
+            OfficeXmlNode properties,
             out LegacyPptWriterTextSpecialInfo info,
             out string? reason) {
             info = default;
             reason = null;
-            if (properties == null) return true;
-            string? language = properties.Language?.Value;
-            string? alternativeLanguage = properties.AlternativeLanguage?
-                .Value;
-            bool noProof = properties.NoProof?.Value == true;
+            if (properties.IsNone) return true;
+            string? language = properties.Attribute("lang");
+            string? alternativeLanguage = properties.Attribute("altLang");
+            bool noProof = properties.Bool("noProof") == true;
             if (noProof && !string.IsNullOrWhiteSpace(language)) {
                 reason = "A classic PowerPoint text run cannot combine an explicit language LCID with no-proofing in the same TextSIException.";
                 return false;
@@ -98,13 +88,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!LegacyPptTextSpecialInfoCodec.TryEncodeLanguage(
                     alternativeLanguage, out ushort alternativeLanguageId,
                     out reason)) return false;
-            bool hasSpelling = properties.SpellingError?.HasValue == true
-                || properties.Dirty?.HasValue == true;
+            bool? spellingError = properties.Bool("err");
+            bool? dirty = properties.Bool("dirty");
+            bool hasSpelling = spellingError.HasValue || dirty.HasValue;
             ushort spellingFlags = 0;
-            if (properties.SpellingError?.Value == true) {
+            if (spellingError == true) {
                 spellingFlags |= 0x0001;
             }
-            if (properties.Dirty?.Value == true) {
+            if (dirty == true) {
                 spellingFlags |= 0x0002;
             }
             info = new LegacyPptWriterTextSpecialInfo(hasSpelling,
