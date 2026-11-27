@@ -49,6 +49,7 @@
   <ItemGroup>
     <Using Include="System.Text" />
     <Using Include="System.Text.RegularExpressions" />
+    <Using Include="OfficeIMO.Word.OpenXml" />
   </ItemGroup>
 
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
