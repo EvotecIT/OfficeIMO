@@ -41,6 +41,64 @@ public sealed class WordPdfChartExtensionMarkupTests {
         Assert.Equal(new[] { 3d, 4d, 5d }, snapshot!.Data.Series[0].Values);
     }
 
+    [Fact]
+    public void ErrorBarsInsideAVendorWrapperOnASeriesDoNotStopAChartWithADataTable() {
+        using var document = WordDocument.Create();
+        WordChart chart = AddChart(document);
+        C.PlotArea plotArea = AddDataTable(chart);
+        C.BarChartSeries series = plotArea.Descendants<C.BarChartSeries>().First();
+        series.AppendChild(VendorWrapper("<c:errBars><c:errDir val=\"y\"/><c:errBarType val=\"both\"/><c:errValType val=\"fixedVal\"/>" +
+            "<c:noEndCap val=\"0\"/><c:val val=\"1\"/></c:errBars>"));
+
+        Assert.True(WordPdfConverterExtensions.TryCreateNativeWordChartSnapshot(chart, out OfficeChartSnapshot? snapshot, out string? warning), warning);
+        Assert.Equal(new[] { 3d, 4d, 5d }, snapshot!.Data.Series[0].Values);
+    }
+
+    [Fact]
+    public void SeriesErrorBarsOnAChartWithADataTableAreStillRefused() {
+        using var document = WordDocument.Create();
+        WordChart chart = AddChart(document);
+        C.PlotArea plotArea = AddDataTable(chart);
+        C.BarChartSeries series = plotArea.Descendants<C.BarChartSeries>().First();
+        series.InsertBefore(new C.ErrorBars(new C.ErrorDirection { Val = C.ErrorBarDirectionValues.Y },
+            new C.ErrorBarType { Val = C.ErrorBarValues.Both }, new C.ErrorBarValueType { Val = C.ErrorValues.FixedValue },
+            new C.NoEndCap { Val = false }, new C.ErrorBarValue { Val = 1D }), series.GetFirstChild<C.CategoryAxisData>()!);
+
+        Assert.False(WordPdfConverterExtensions.TryCreateNativeWordChartSnapshot(chart, out _, out string? warning));
+        Assert.Contains("Error bars", warning);
+    }
+
+    [Fact]
+    public void CachedPointsInsideAnExtensionAreNotSeriesValuesOnTheSharedChartReader() {
+        using var document = WordDocument.Create();
+        WordChart chart = AddChart(document);
+        C.PlotArea plotArea = chart.ChartPart!.ChartSpace!.Descendants<C.PlotArea>().Single();
+        // An explicit major unit sends the chart to the shared chart reader.
+        C.ValueAxis axis = plotArea.Elements<C.ValueAxis>().First();
+        axis.InsertAfter(new C.MajorUnit { Val = 1D }, axis.GetFirstChild<C.CrossBetween>()!);
+        C.BarChartSeries series = plotArea.Descendants<C.BarChartSeries>().First();
+        C.NumberingCache cache = series.GetFirstChild<C.Values>()!.Descendants<C.NumberingCache>().Single();
+        cache.AppendChild(Extension("<c:numCache><c:ptCount val=\"6\"/><c:pt idx=\"5\"><c:v>99</c:v></c:pt></c:numCache>"));
+
+        Assert.True(WordPdfConverterExtensions.TryCreateNativeWordChartSnapshot(chart, out OfficeChartSnapshot? snapshot, out string? warning), warning);
+        Assert.Equal(new[] { 3d, 4d, 5d }, snapshot!.Data.Series[0].Values);
+        Assert.Equal(new[] { "A", "B", "C" }, snapshot.Data.Categories);
+    }
+
+    // A data table keeps the chart on the PDF projection, which can't draw error bars and refuses them.
+    private static C.PlotArea AddDataTable(WordChart chart) {
+        C.PlotArea plotArea = chart.ChartPart!.ChartSpace!.Descendants<C.PlotArea>().Single();
+        plotArea.InsertAfter(new C.DataTable(new C.ShowHorizontalBorder { Val = true }), plotArea.Elements<C.ValueAxis>().Last());
+        return plotArea;
+    }
+
+    // Markup from a producer this reader doesn't know, preserved on the series and holding chart elements of its own.
+    private static OpenXmlUnknownElement VendorWrapper(string chartMarkup) {
+        var wrapper = new OpenXmlUnknownElement("x", "series", "urn:officeimo:tests:vendor");
+        wrapper.InnerXml = $"<c:root xmlns:c=\"{ChartNamespace}\">{chartMarkup}</c:root>";
+        return wrapper;
+    }
+
     private static WordChart AddChart(WordDocument document) =>
         document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
             new OfficeSeries("Values", new[] { 3d, 4d, 5d }) }));

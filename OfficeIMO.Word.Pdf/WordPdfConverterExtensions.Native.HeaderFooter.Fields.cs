@@ -67,13 +67,13 @@ namespace OfficeIMO.Word.Pdf {
                 string fieldCode = element.WAttr("instr") ?? string.Empty;
                 if (TryGetNativeHeaderFooterFieldToken(fieldCode, out string? token, out PdfCore.PdfPageNumberStyle? style)) {
                     hasFieldToken = true;
-                    OfficeXmlNode[] resultRuns = element.Descendants(WordXml.W, "r").Where(run => run.Child(WordXml.W, "t").Exists).ToArray();
+                    OfficeXmlNode[] resultRuns = element.ModelDescendants("r").Where(run => run.Child(WordXml.W, "t").Exists).ToArray();
                     OfficeXmlNode resultRun = resultRuns.FirstOrDefault(run => !IsNativeHiddenHeaderFooterRun(run, state.Paragraph));
                     if (resultRun.Exists) {
                         AppendNativeHeaderFooterVisibleFieldToken(builder, resultRun, token!, style, state, ref pageNumberStyle, ref hasConflictingStyles);
                     } else if (resultRuns.Length == 0) {
                         // An uncached field still calculates a value using its effective formatting.
-                        OfficeXmlNode emptyRun = element.FirstDescendantElement(WordXml.W, "r");
+                        OfficeXmlNode emptyRun = element.ModelDescendants("r").FirstOrDefault();
                         bool hidden = IsNativeHiddenHeaderFooterRun(emptyRun.Exists ? emptyRun : WordConverterNodes.CreateDetachedRun(), state.Paragraph);
                         if (!hidden) AppendNativeHeaderFooterVisibleFieldToken(builder, emptyRun, token!, style, state, ref pageNumberStyle, ref hasConflictingStyles);
                     }

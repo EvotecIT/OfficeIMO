@@ -116,120 +116,12 @@ namespace OfficeIMO.Word {
             throw new ArgumentOutOfRangeException(nameof(style));
         }
 
-        private static Style DefaultParagraphFont {
-            get {
-                Style style1 = new Style() { Type = StyleValues.Character, StyleId = "DefaultParagraphFont", Default = true };
-                StyleName styleName1 = new StyleName() { Val = "Default Paragraph Font" };
-                UIPriority uIPriority1 = new UIPriority() { Val = 1 };
-                SemiHidden semiHidden1 = new SemiHidden();
-                UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
+        private static Style DefaultParagraphFont => WordEmbeddedMarkup.CreateDefaultStyleElement("DefaultParagraphFont", xml => new Style(xml));
 
-                style1.Append(styleName1);
-                style1.Append(uIPriority1);
-                style1.Append(semiHidden1);
-                style1.Append(unhideWhenUsed1);
-                return style1;
-            }
-        }
+        private static Style StyleHeading7 => WordEmbeddedMarkup.CreateDefaultStyleElement("Heading7Char", xml => new Style(xml));
 
-        private static Style StyleHeading7 {
-            get {
-                Style style1 = new Style() { Type = StyleValues.Character, StyleId = "Heading7Char", CustomStyle = true };
-                StyleName styleName1 = new StyleName() { Val = "Heading 7 Char" };
-                BasedOn basedOn1 = new BasedOn() { Val = "DefaultParagraphFont" };
-                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading7" };
-                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
-                SemiHidden semiHidden1 = new SemiHidden();
-                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
+        private static Style StyleHeading8 => WordEmbeddedMarkup.CreateDefaultStyleElement("Heading8Char", xml => new Style(xml));
 
-                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
-                Italic italic1 = new Italic();
-                ItalicComplexScript italicComplexScript1 = new ItalicComplexScript();
-                Color color1 = new Color() { Val = "1F3763", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "7F" };
-
-                styleRunProperties1.Append(runFonts1);
-                styleRunProperties1.Append(italic1);
-                styleRunProperties1.Append(italicComplexScript1);
-                styleRunProperties1.Append(color1);
-
-                style1.Append(styleName1);
-                style1.Append(basedOn1);
-                style1.Append(linkedStyle1);
-                style1.Append(uIPriority1);
-                style1.Append(semiHidden1);
-                style1.Append(rsid1);
-                style1.Append(styleRunProperties1);
-                return style1;
-            }
-        }
-
-        private static Style StyleHeading8 {
-            get {
-                Style style1 = new Style() { Type = StyleValues.Character, StyleId = "Heading8Char", CustomStyle = true };
-                StyleName styleName1 = new StyleName() { Val = "Heading 8 Char" };
-                BasedOn basedOn1 = new BasedOn() { Val = "DefaultParagraphFont" };
-                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading8" };
-                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
-                SemiHidden semiHidden1 = new SemiHidden();
-                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
-
-                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
-                Color color1 = new Color() { Val = "272727", ThemeColor = ThemeColorValues.Text1, ThemeTint = "D8" };
-                FontSize fontSize1 = new FontSize() { Val = "21" };
-                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "21" };
-
-                styleRunProperties1.Append(runFonts1);
-                styleRunProperties1.Append(color1);
-                styleRunProperties1.Append(fontSize1);
-                styleRunProperties1.Append(fontSizeComplexScript1);
-
-                style1.Append(styleName1);
-                style1.Append(basedOn1);
-                style1.Append(linkedStyle1);
-                style1.Append(uIPriority1);
-                style1.Append(semiHidden1);
-                style1.Append(rsid1);
-                style1.Append(styleRunProperties1);
-                return style1;
-            }
-        }
-
-        private static Style StyleHeading9 {
-            get {
-                Style style1 = new Style() { Type = StyleValues.Character, StyleId = "Heading9Char", CustomStyle = true };
-                StyleName styleName1 = new StyleName() { Val = "Heading 9 Char" };
-                BasedOn basedOn1 = new BasedOn() { Val = "DefaultParagraphFont" };
-                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading9" };
-                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
-                SemiHidden semiHidden1 = new SemiHidden();
-                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
-
-                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
-                Italic italic1 = new Italic();
-                ItalicComplexScript italicComplexScript1 = new ItalicComplexScript();
-                Color color1 = new Color() { Val = "272727", ThemeColor = ThemeColorValues.Text1, ThemeTint = "D8" };
-                FontSize fontSize1 = new FontSize() { Val = "21" };
-                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "21" };
-
-                styleRunProperties1.Append(runFonts1);
-                styleRunProperties1.Append(italic1);
-                styleRunProperties1.Append(italicComplexScript1);
-                styleRunProperties1.Append(color1);
-                styleRunProperties1.Append(fontSize1);
-                styleRunProperties1.Append(fontSizeComplexScript1);
-
-                style1.Append(styleName1);
-                style1.Append(basedOn1);
-                style1.Append(linkedStyle1);
-                style1.Append(uIPriority1);
-                style1.Append(semiHidden1);
-                style1.Append(rsid1);
-                style1.Append(styleRunProperties1);
-                return style1;
-            }
-        }
+        private static Style StyleHeading9 => WordEmbeddedMarkup.CreateDefaultStyleElement("Heading9Char", xml => new Style(xml));
     }
 }

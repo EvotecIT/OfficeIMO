@@ -7,7 +7,7 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     private static bool CanProjectNativeInlineContentControl(OfficeXmlNode control) =>
         (IsNativeCheckBoxControl(control) || IsNativeSupportedFormFieldContentControl(control)) &&
-        control.WChild("sdtContent").HasDescendant(WordXml.W, "r") &&
+        control.WChild("sdtContent").ModelDescendants("r").Any() &&
         !control.HasDescendant(WordXml.W, "fldChar") &&
         control.Ancestor(WordXml.W, "p").HasDescendant(WordXml.M, "oMath") != true &&
         (IsNativeCheckBoxControl(control)
@@ -43,7 +43,7 @@ public static partial class WordPdfConverterExtensions {
     // a view containing the control's current logical value.
     private static WordParagraph CreateNativeInlineControlFallbackRun(WordParagraph paragraph, OfficeXmlNode control,
         OfficeXmlNode hyperlink) {
-        OfficeXmlNode source = control.WChild("sdtContent").FirstDescendantElement(WordXml.W, "r");
+        OfficeXmlNode source = control.WChild("sdtContent").ModelDescendants("r").First();
         return paragraph._document.RunView(paragraph.Node(), source, hyperlink,
             CreateNativeResolvedSdtRun(paragraph.Node(), control, GetNativeContentControlDisplayValue(control)));
     }
@@ -68,7 +68,7 @@ public static partial class WordPdfConverterExtensions {
                 // beneath that text and can overlap neighboring glyphs. Keep
                 // the whole source control in ordinary paragraph paint rather
                 // than moving only part of its cache into an overlay widget.
-                staticBackground = control.WChild("sdtContent").DescendantElements(WordXml.W, "r").Any(source => {
+                staticBackground = control.WChild("sdtContent").ModelDescendants("r").Any(source => {
                     WordParagraph candidate = run._document.RunView(run.Node(), source);
                     return !IsNativeHiddenTextRun(candidate) && ResolveNativeTextRunStyle(candidate,
                         tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults,

@@ -72,28 +72,6 @@ public partial class WordPageNumber {
         wordFooter._footer?.Append(_sdtBlock);
     }
 
-    private static SdtBlock GetStyle(WordPageNumberStyle style) {
-        switch (style) {
-            case WordPageNumberStyle.PlainNumber: return PlainNumber1;
-            case WordPageNumberStyle.AccentBar: return AccentBar1;
-            case WordPageNumberStyle.PageNumberXofY: return PageNumberXofY1;
-            case WordPageNumberStyle.Brackets1: return Brackets1;
-            case WordPageNumberStyle.Brackets2: return Brackets2;
-            case WordPageNumberStyle.Dots: return Dots1;
-            case WordPageNumberStyle.LargeItalics: return LargeItalics1;
-            case WordPageNumberStyle.Roman: return Roman1;
-            case WordPageNumberStyle.Tildes: return Tildes1;
-            case WordPageNumberStyle.TwoBars: return FooterTwoBars1;
-            case WordPageNumberStyle.TopLine: return TopLine1;
-            case WordPageNumberStyle.Tab: return Tab1;
-            case WordPageNumberStyle.ThickLine: return ThickLine1;
-            //case WordPageNumberStyle.ThinLine: return ThinLine1;
-            case WordPageNumberStyle.RoundedRectangle: return RoundedRectangle1;
-            case WordPageNumberStyle.Circle: return Circle1;
-            case WordPageNumberStyle.VeryLarge: return VeryLarge1;
-            case WordPageNumberStyle.VerticalOutline1: return VerticalOutline1;
-            case WordPageNumberStyle.VerticalOutline2: return VerticalOutline2;
-        }
-        throw new ArgumentOutOfRangeException(nameof(style));
-    }
+    private static SdtBlock GetStyle(WordPageNumberStyle style) =>
+        WordEmbeddedMarkup.CreateBuildingBlock(WordEmbeddedMarkup.PageNumbers, style.ToString(), nameof(style));
 }
