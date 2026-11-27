@@ -1,3 +1,4 @@
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Packaging;
@@ -217,10 +218,10 @@ namespace OfficeIMO.PowerPoint {
                             slide.SlidePart, pictureBullet));
                     if (shape.OfficeArtShapeType != 202
                         && LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
-                            out A.ShapeTypeValues textGeometry)
+                            out OfficePresetShapeType textGeometry)
                         && textBox.Element is DocumentFormat.OpenXml.Presentation.Shape textShape
                         && textShape.ShapeProperties?.GetFirstChild<A.PresetGeometry>() is A.PresetGeometry preset) {
-                        preset.Preset = textGeometry;
+                        preset.Preset = textGeometry.ToOpenXml();
                     }
                     projectedShape = textBox;
                     break;
@@ -235,14 +236,14 @@ namespace OfficeIMO.PowerPoint {
                     break;
                 case LegacyPptShapeKind.AutoShape:
                     if (LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
-                            out A.ShapeTypeValues geometry)) {
-                        projectedShape = slide.AddShape(geometry.ToOfficeEnum(), OfficeIMO.OfficeLength.Emus(left), OfficeIMO.OfficeLength.Emus(top), OfficeIMO.OfficeLength.Emus(width), OfficeIMO.OfficeLength.Emus(height));
+                            out OfficePresetShapeType geometry)) {
+                        projectedShape = slide.AddShape(geometry, OfficeIMO.OfficeLength.Emus(left), OfficeIMO.OfficeLength.Emus(top), OfficeIMO.OfficeLength.Emus(width), OfficeIMO.OfficeLength.Emus(height));
                     }
                     break;
                 case LegacyPptShapeKind.Connector:
                     if (LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
-                            out A.ShapeTypeValues connectorGeometry)) {
-                        projectedShape = slide.AddConnectionShape(connectorGeometry, left, top, width, height);
+                            out OfficePresetShapeType connectorGeometry)) {
+                        projectedShape = slide.AddConnectionShape(connectorGeometry.ToOpenXml(), left, top, width, height);
                     }
                     break;
                 case LegacyPptShapeKind.Picture:
@@ -317,7 +318,7 @@ namespace OfficeIMO.PowerPoint {
                 ApplyLegacyShapeTransform(projectedProperties.Transform2D, shape);
                 if (projectedProperties.GetFirstChild<A.PresetGeometry>() is A.PresetGeometry preset) {
                     LegacyPptShapeGeometryMapper.ApplyExactPresetAdjustments(shape.OfficeArtShapeType,
-                        shape.Geometry, preset);
+                        shape.Geometry, OfficeXmlNode.FromSdk(preset));
                 }
             }
             if (projectedShape?.Element is Picture projectedPicture) {

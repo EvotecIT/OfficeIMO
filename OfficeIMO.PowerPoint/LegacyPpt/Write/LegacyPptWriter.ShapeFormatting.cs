@@ -1,3 +1,4 @@
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
@@ -860,12 +861,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool requireConnector, out ushort shapeType,
             out string? reason) {
             shapeType = 0;
-            A.ShapeTypeValues? preset = shape switch {
-                PowerPointConnectionShape connector => connector.ShapeType.ToOpenXml(),
-                PowerPointAutoShape autoShape => autoShape.ShapeType.ToOpenXml(),
+            OfficePresetShapeType? preset = shape switch {
+                PowerPointConnectionShape connector => connector.ShapeType,
+                PowerPointAutoShape autoShape => autoShape.ShapeType,
                 _ when shape.Element is P.Shape source => source
                     .ShapeProperties?.GetFirstChild<A.PresetGeometry>()?
-                    .Preset?.Value,
+                    .Preset?.Value.ToOfficeEnum(),
                 _ => null
             };
             if (!preset.HasValue

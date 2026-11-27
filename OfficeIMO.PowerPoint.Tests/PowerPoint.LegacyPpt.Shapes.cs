@@ -2,6 +2,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.Binary;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -25,22 +26,22 @@ namespace OfficeIMO.Tests {
             "Documents", "LegacyPptCorpus", "ShadowPowerPoint.ppt");
 
         public static IEnumerable<object[]> RepresentativeOfficeArtPresets => new[] {
-            new object[] { (ushort)4, A.ShapeTypeValues.Diamond },
-            new object[] { (ushort)9, A.ShapeTypeValues.Hexagon },
-            new object[] { (ushort)12, A.ShapeTypeValues.Star5 },
-            new object[] { (ushort)55, A.ShapeTypeValues.Chevron },
-            new object[] { (ushort)110, A.ShapeTypeValues.FlowChartDecision },
-            new object[] { (ushort)32, A.ShapeTypeValues.StraightConnector1 },
-            new object[] { (ushort)34, A.ShapeTypeValues.BentConnector3 },
-            new object[] { (ushort)38, A.ShapeTypeValues.CurvedConnector3 }
+            new object[] { (ushort)4, OfficePresetShapeType.Diamond },
+            new object[] { (ushort)9, OfficePresetShapeType.Hexagon },
+            new object[] { (ushort)12, OfficePresetShapeType.Star5 },
+            new object[] { (ushort)55, OfficePresetShapeType.Chevron },
+            new object[] { (ushort)110, OfficePresetShapeType.FlowChartDecision },
+            new object[] { (ushort)32, OfficePresetShapeType.StraightConnector1 },
+            new object[] { (ushort)34, OfficePresetShapeType.BentConnector3 },
+            new object[] { (ushort)38, OfficePresetShapeType.CurvedConnector3 }
         };
 
         [Theory]
         [MemberData(nameof(RepresentativeOfficeArtPresets))]
         public void OfficeArtGeometryMapper_MapsRepresentativePresetFamilies(ushort officeArtType,
-            A.ShapeTypeValues expected) {
+            OfficePresetShapeType expected) {
             Assert.True(LegacyPptShapeGeometryMapper.TryGetPreset(officeArtType,
-                out A.ShapeTypeValues actual));
+                out OfficePresetShapeType actual));
             Assert.Equal(expected, actual);
             Assert.True(LegacyPptShapeGeometryMapper.TryGetShapeType(expected,
                 out ushort roundTripType));

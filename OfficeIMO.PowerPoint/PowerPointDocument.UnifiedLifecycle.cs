@@ -75,8 +75,31 @@ public sealed partial class PowerPointDocument {
     }
 
     private byte[] CaptureReadOnlyPackage(PowerPointSaveOptions? options) {
-        ThrowIfDisposed();
         using var package = new MemoryStream();
+        CapturePackage(package);
+        package.Position = 0;
+        using var snapshot = Load(package, new PowerPointLoadOptions {
+            MaxInputBytes = package.Length,
+            OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = _maximumSlideXmlCharacters },
+            PersistenceMode = DocumentPersistenceMode.Explicit
+        });
+        var effective = options?.Clone() ?? new PowerPointSaveOptions();
+        if (!effective.HasPasswordOverride) effective.Password = ResolveSavePassword(options);
+        return snapshot.ToBytes(effective);
+    }
+
+    /// <summary>
+    /// The package as it is now, edits included, copied without saving the document, so readers can work on it through
+    /// the Open XML layer whichever model holds the document.
+    /// </summary>
+    internal byte[] CapturePackageBytes() {
+        using var package = new MemoryStream();
+        CapturePackage(package);
+        return package.ToArray();
+    }
+
+    private void CapturePackage(Stream package) {
+        ThrowIfDisposed();
         if (_sdkDocument == null && _sdkDeferred && _pendingEdits && _pendingPackage != null) {
             // Edits made in the package without the SDK are part of the copy, as they would be through the SDK.
             _pendingPackage.Save(package);
@@ -87,15 +110,6 @@ public sealed partial class PowerPointDocument {
         } else {
             using (SdkDocument.Clone(package)) { }
         }
-        package.Position = 0;
-        using var snapshot = Load(package, new PowerPointLoadOptions {
-            MaxInputBytes = package.Length,
-            OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = _maximumSlideXmlCharacters },
-            PersistenceMode = DocumentPersistenceMode.Explicit
-        });
-        var effective = options?.Clone() ?? new PowerPointSaveOptions();
-        if (!effective.HasPasswordOverride) effective.Password = ResolveSavePassword(options);
-        return snapshot.ToBytes(effective);
     }
 
     /// <summary>Saves the native presentation to a caller-owned stream.</summary>

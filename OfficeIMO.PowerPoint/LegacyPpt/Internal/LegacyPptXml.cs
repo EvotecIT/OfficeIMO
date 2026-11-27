@@ -1,0 +1,185 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+
+namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
+    /// <summary>
+    /// Small helpers for reading and writing PresentationML and DrawingML through <see cref="OfficeXmlNode"/>: namespace
+    /// ids, typed attribute values parsed as the schema defines them, element creation, and a markup digest that does not
+    /// depend on how the part was serialized.
+    /// </summary>
+    internal static class LegacyPptXml {
+        internal const int P = OfficeXmlNamespaces.PresentationML;
+        internal const int A = OfficeXmlNamespaces.DrawingML;
+        internal const int R = OfficeXmlNamespaces.Relationships;
+        internal const int Mc = OfficeXmlNamespaces.MarkupCompatibility;
+        internal const int Pic = OfficeXmlNamespaces.Picture;
+        internal const int C = OfficeXmlNamespaces.Chart;
+        internal const int Dgm = OfficeXmlNamespaces.Diagram;
+
+        internal const string P14Uri = "http://schemas.microsoft.com/office/powerpoint/2010/main";
+        internal const string P15Uri = "http://schemas.microsoft.com/office/powerpoint/2012/main";
+        internal const string A14Uri = "http://schemas.microsoft.com/office/drawing/2010/main";
+
+        /// <summary>An <c>xsd:boolean</c> attribute: <c>true</c>/<c>1</c> or <c>false</c>/<c>0</c>; null when absent or invalid.</summary>
+        internal static bool? Bool(this OfficeXmlNode element, string localName) => ParseBoolean(element.Attribute(localName));
+
+        internal static bool Bool(this OfficeXmlNode element, string localName, bool defaultValue) => element.Bool(localName) ?? defaultValue;
+
+        internal static bool? ParseBoolean(string? value) => value switch {
+            "true" or "1" => true,
+            "false" or "0" => false,
+            _ => null
+        };
+
+        internal static int? Int(this OfficeXmlNode element, string localName) => ParseInt32(element.Attribute(localName));
+
+        internal static uint? UInt(this OfficeXmlNode element, string localName) => ParseUInt32(element.Attribute(localName));
+
+        internal static long? Long(this OfficeXmlNode element, string localName) => ParseInt64(element.Attribute(localName));
+
+        internal static int? ParseInt32(string? value) =>
+            value != null && int.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int parsed) ? parsed : null;
+
+        internal static uint? ParseUInt32(string? value) =>
+            value != null && uint.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed) ? parsed : null;
+
+        internal static long? ParseInt64(string? value) =>
+            value != null && long.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long parsed) ? parsed : null;
+
+        internal static string Format(long value) => value.ToString(CultureInfo.InvariantCulture);
+
+        internal static string Format(bool value) => value ? "1" : "0";
+
+        /// <summary>The <c>r:id</c>-style attribute in the relationships namespace.</summary>
+        internal static string? RelationshipId(this OfficeXmlNode element, string localName = "id") => element.Attribute(R, localName);
+
+        /// <summary>The first child with this name in PresentationML.</summary>
+        internal static OfficeXmlNode PChild(this OfficeXmlNode element, string localName) => element.Child(P, localName);
+
+        /// <summary>The first child with this name in DrawingML.</summary>
+        internal static OfficeXmlNode AChild(this OfficeXmlNode element, string localName) => element.Child(A, localName);
+
+        /// <summary>Walks a path of children in one namespace; none as soon as one is missing.</summary>
+        internal static OfficeXmlNode Path(this OfficeXmlNode element, int namespaceId, params string[] localNames) {
+            OfficeXmlNode current = element;
+            foreach (string localName in localNames) {
+                if (current.IsNone) return default;
+                current = current.Child(namespaceId, localName);
+            }
+            return current;
+        }
+
+        /// <summary>Elements below <paramref name="element"/> in document order, at any depth.</summary>
+        internal static IEnumerable<OfficeXmlNode> AllDescendants(this OfficeXmlNode element) {
+            if (element.IsNone) yield break;
+            var pending = new Stack<OfficeXmlNode>();
+            for (OfficeXmlNode child = element.LastChild; !child.IsNone; child = child.PreviousSibling) pending.Push(child);
+            while (pending.Count > 0) {
+                OfficeXmlNode current = pending.Pop();
+                yield return current;
+                for (OfficeXmlNode child = current.LastChild; !child.IsNone; child = child.PreviousSibling) pending.Push(child);
+            }
+        }
+
+        /// <summary>Whether an ancestor (not the element itself) has this name.</summary>
+        internal static bool HasAncestor(this OfficeXmlNode element, int namespaceId, string localName) =>
+            !element.IsNone && !element.Parent.AncestorOrSelf(namespaceId, localName).IsNone;
+
+        /// <summary>Creates an element under the same part as <paramref name="parent"/> and appends it.</summary>
+        internal static OfficeXmlNode AppendNew(this OfficeXmlNode parent, int namespaceId, string localName) =>
+            parent.Append(parent.CreateElement(namespaceId, localName));
+
+        /// <summary>
+        /// A SHA-256 digest of an element's markup that depends only on names, attributes (namespace declarations left
+        /// out, in name order) and text, so the same content digests the same however it was written.
+        /// </summary>
+        internal static string Digest(OfficeXmlNode element) {
+            var builder = new StringBuilder();
+            AppendCanonical(element, builder);
+            return DigestText(builder.ToString());
+        }
+
+        internal static string DigestText(string text) {
+            byte[] bytes = Encoding.UTF8.GetBytes(text);
+#if NET5_0_OR_GREATER
+            byte[] hash = SHA256.HashData(bytes);
+#else
+            byte[] hash;
+            using (SHA256 sha = SHA256.Create()) hash = sha.ComputeHash(bytes);
+#endif
+            var hex = new StringBuilder(hash.Length * 2);
+            foreach (byte value in hash) hex.Append(value.ToString("x2", CultureInfo.InvariantCulture));
+            return hex.ToString();
+        }
+
+        /// <summary>Writes the canonical form <see cref="Digest"/> hashes.</summary>
+        internal static void AppendCanonical(OfficeXmlNode element, StringBuilder builder) {
+            if (element.IsNone) return;
+            if (element.Tree is not { } tree) throw new InvalidOperationException("Canonical markup is read from Open XML layer trees.");
+            AppendCanonical(tree, element.Node, builder);
+        }
+
+        private static void AppendCanonical(OfficeXmlTree tree, int node, StringBuilder builder) {
+            if (tree.KindOf(node) == OfficeXmlTreeNodeKind.Text) {
+                builder.Append('"');
+                AppendEscaped(builder, tree.GetText(node));
+                builder.Append('"');
+                return;
+            }
+            builder.Append('<');
+            AppendNamespace(builder, tree, tree.NamespaceOf(node));
+            builder.Append(tree.LocalNameOf(node));
+            int count = tree.AttributeCountOf(node);
+            if (count > 0) {
+                var attributes = new List<(string Name, string Value)>(count);
+                for (int index = 0; index < count; index++) {
+                    tree.GetAttributeAt(node, index, out int namespaceId, out string localName, out string value);
+                    if (namespaceId == OfficeXmlNamespaces.Xmlns
+                        || namespaceId == OfficeXmlNamespaces.None && string.Equals(localName, "xmlns", StringComparison.Ordinal)) continue;
+                    var name = new StringBuilder();
+                    AppendNamespace(name, tree, namespaceId);
+                    name.Append(localName);
+                    attributes.Add((name.ToString(), value));
+                }
+                attributes.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
+                foreach ((string name, string value) in attributes) {
+                    builder.Append(' ').Append(name).Append("=\"");
+                    AppendEscaped(builder, value);
+                    builder.Append('"');
+                }
+            }
+            builder.Append('>');
+            bool hasElements = false;
+            for (int child = tree.FirstChildOf(node); child != OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
+                if (tree.KindOf(child) == OfficeXmlTreeNodeKind.Element) {
+                    hasElements = true;
+                    break;
+                }
+            }
+            for (int child = tree.FirstChildOf(node); child != OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
+                // Indentation between elements is formatting, which serializers add or drop.
+                if (hasElements && tree.KindOf(child) == OfficeXmlTreeNodeKind.Text && string.IsNullOrWhiteSpace(tree.GetText(child))) continue;
+                AppendCanonical(tree, child, builder);
+            }
+            builder.Append("</>");
+        }
+
+        private static void AppendNamespace(StringBuilder builder, OfficeXmlTree tree, int namespaceId) {
+            if (namespaceId == OfficeXmlNamespaces.None) return;
+            builder.Append('{');
+            if (namespaceId < OfficeXmlNamespaces.FirstDynamic) builder.Append(namespaceId.ToString(CultureInfo.InvariantCulture));
+            else builder.Append(tree.Namespaces.GetUri(namespaceId));
+            builder.Append('}');
+        }
+
+        private static void AppendEscaped(StringBuilder builder, string value) {
+            foreach (char character in value) {
+                if (character is '"' or '\\') builder.Append('\\');
+                builder.Append(character);
+            }
+        }
+    }
+}

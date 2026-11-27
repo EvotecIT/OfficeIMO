@@ -1,3 +1,4 @@
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -369,16 +370,16 @@ namespace OfficeIMO.PowerPoint {
                 deferredInteractions) {
             if (source.Kind == LegacyPptShapeKind.Connector
                 && LegacyPptShapeGeometryMapper.TryGetPreset(source.OfficeArtShapeType,
-                    out A.ShapeTypeValues connectorGeometry)) {
-                return CreateLegacyConnectionShape(source, shapeId, connectorGeometry);
+                    out OfficePresetShapeType connectorGeometry)) {
+                return CreateLegacyConnectionShape(source, shapeId, connectorGeometry.ToOpenXml());
             }
             A.ShapeTypeValues geometry;
             switch (source.Kind) {
                 case LegacyPptShapeKind.TextBox:
                     geometry = source.OfficeArtShapeType != 202
                         && LegacyPptShapeGeometryMapper.TryGetPreset(source.OfficeArtShapeType,
-                            out A.ShapeTypeValues textGeometry)
-                        ? textGeometry
+                            out OfficePresetShapeType textGeometry)
+                        ? textGeometry.ToOpenXml()
                         : A.ShapeTypeValues.Rectangle;
                     break;
                 case LegacyPptShapeKind.Rectangle:
@@ -392,7 +393,8 @@ namespace OfficeIMO.PowerPoint {
                     break;
                 case LegacyPptShapeKind.AutoShape:
                     if (!LegacyPptShapeGeometryMapper.TryGetPreset(source.OfficeArtShapeType,
-                            out geometry)) return null;
+                            out OfficePresetShapeType autoGeometry)) return null;
+                    geometry = autoGeometry.ToOpenXml();
                     break;
                 default:
                     return null;
@@ -412,7 +414,7 @@ namespace OfficeIMO.PowerPoint {
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = geometry });
             if (geometry == A.ShapeTypeValues.Line) shapeProperties.Append(new A.NoFill());
             LegacyPptShapeGeometryMapper.ApplyExactPresetAdjustments(source.OfficeArtShapeType,
-                source.Geometry, shapeProperties.GetFirstChild<A.PresetGeometry>()!);
+                source.Geometry, OfficeXmlNode.FromSdk(shapeProperties.GetFirstChild<A.PresetGeometry>()!));
             ApplyLegacyShapeStyle(shapeProperties, source);
             ApplyLegacyShapeTransform(shapeProperties.Transform2D!, source);
 
@@ -480,7 +482,7 @@ namespace OfficeIMO.PowerPoint {
                     }),
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = geometry });
             LegacyPptShapeGeometryMapper.ApplyExactPresetAdjustments(source.OfficeArtShapeType,
-                source.Geometry, properties.GetFirstChild<A.PresetGeometry>()!);
+                source.Geometry, OfficeXmlNode.FromSdk(properties.GetFirstChild<A.PresetGeometry>()!));
             ApplyLegacyShapeStyle(properties, source);
             ApplyLegacyShapeTransform(properties.Transform2D!, source);
             return new ConnectionShape(
