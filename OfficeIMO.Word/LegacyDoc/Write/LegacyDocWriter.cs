@@ -99,6 +99,24 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static readonly byte[] PlainParagraphPapx = { 0x00, 0x01, 0x00, 0x00 };
         private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, (byte)NoteTextParagraphStyleIndex, (byte)(NoteTextParagraphStyleIndex >> 8) };
 
+        // The legacy DOC model carries WordprocessingML values as its own enums; this writer still reads them from the SDK.
+        private static TModel? ToModel<TModel, TSdk>(TSdk? value) where TModel : struct, Enum where TSdk : struct, IEnumValue =>
+            value.HasValue ? LegacyDocWordValues.TryParseXml<TModel>(value.Value.Value) : null;
+
+        private static TModel? ToModel<TModel>(IEnumValue value) where TModel : struct, Enum =>
+            LegacyDocWordValues.TryParseXml<TModel>(value.Value);
+
+        private static byte? ToNfc(NumberFormatValues format) =>
+            ToModel<LegacyDocNumberFormat>(format) is { } model ? LegacyDocNumberFormatMapper.ToNfc(model) : null;
+
+        private static SectionMarkValues ToSdk(LegacyDocSectionMark value) => new(value.ToXml());
+        private static NumberFormatValues ToSdk(LegacyDocNumberFormat value) => new(value.ToXml());
+        private static FootnotePositionValues ToSdk(LegacyDocFootnotePosition value) => new(value.ToXml());
+        private static EndnotePositionValues ToSdk(LegacyDocEndnotePosition value) => new(value.ToXml());
+        private static RestartNumberValues ToSdk(LegacyDocRestartNumber value) => new(value.ToXml());
+        private static LineNumberRestartValues ToSdk(LegacyDocLineNumberRestart value) => new(value.ToXml());
+        private static VerticalJustificationValues ToSdk(LegacyDocVerticalJustification value) => new(value.ToXml());
+
         private static void ThrowIfUnsupportedLegacyDocImportState(WordDocument document, WordSaveOptions? options) {
             bool hasLegacyDigitalSignature = document.LegacyDocCompoundFeatures.Any(feature =>
                 feature.Kind == LegacyDocCompoundFeatureKind.DigitalSignature);

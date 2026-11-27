@@ -20,17 +20,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static byte[] CreateDopBase(LegacyDocWritableBody body) {
             var dop = new byte[body.DopLength];
             // Word 97/2000 reads document note options from DOP rather than section SPRMs.
-            byte footnotePosition = GetFootnotePositionOperand(ReadDocumentNoteValue(body.Sections,
-                section => section.FootnotePosition, FootnotePositionValues.PageBottom, "footnote placement"))!.Value;
+            byte footnotePosition = GetFootnotePositionOperand(ToSdk(ReadDocumentNoteValue(body.Sections,
+                section => section.FootnotePosition, LegacyDocFootnotePosition.PageBottom, "footnote placement")))!.Value;
             ushort baseFlags = (ushort)(footnotePosition << 5);
             if (body.FacingPages) baseFlags |= FacingPagesDopFlag;
             WriteUInt16(dop, 0, baseFlags);
             WriteUInt16(dop, 2, CreateDocumentNoteSequence(body.Sections, false));
             WriteUInt16(dop, 10, body.DefaultTabStop);
-            WriteUInt16(dop, 492, GetPageNumberFormatOperand(ReadDocumentNoteValue(body.Sections,
-                section => section.FootnoteNumberFormat, NumberFormatValues.Decimal, "footnote numbering format"))!.Value);
-            WriteUInt16(dop, 494, GetPageNumberFormatOperand(ReadDocumentNoteValue(body.Sections,
-                section => section.EndnoteNumberFormat, NumberFormatValues.LowerRoman, "endnote numbering format"))!.Value);
+            WriteUInt16(dop, 492, GetPageNumberFormatOperand(ToSdk(ReadDocumentNoteValue(body.Sections,
+                section => section.FootnoteNumberFormat, LegacyDocNumberFormat.Decimal, "footnote numbering format")))!.Value);
+            WriteUInt16(dop, 494, GetPageNumberFormatOperand(ToSdk(ReadDocumentNoteValue(body.Sections,
+                section => section.EndnoteNumberFormat, LegacyDocNumberFormat.LowerRoman, "endnote numbering format")))!.Value);
 
             // MS-DOC DopBase's second flags word contains revision tracking and mirrored margins.
             uint flags = 0;
@@ -56,8 +56,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int start = ReadDocumentNoteValue(sections, section => endnotes ? section.EndnoteStart : section.FootnoteStart,
                 1, endnotes ? "endnote starting number" : "footnote starting number");
             var restart = ReadDocumentNoteValue(sections, section => endnotes ? section.EndnoteRestart : section.FootnoteRestart,
-                RestartNumberValues.Continuous, endnotes ? "endnote numbering restart" : "footnote numbering restart");
-            return (ushort)((start << 2) | GetNoteRestartOperand(restart)!.Value);
+                LegacyDocRestartNumber.Continuous, endnotes ? "endnote numbering restart" : "footnote numbering restart");
+            return (ushort)((start << 2) | GetNoteRestartOperand(ToSdk(restart))!.Value);
         }
 
         private static T ReadDocumentNoteValue<T>(IReadOnlyList<LegacyDocWritableSection> sections,

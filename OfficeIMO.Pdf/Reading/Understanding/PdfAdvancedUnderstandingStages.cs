@@ -26,8 +26,17 @@ internal static partial class PdfAdvancedUnderstandingStages {
     internal static T[] CopyAndSort<T>(
         PdfUnderstandingPageContext context,
         IReadOnlyList<T> values,
-        Comparison<T> comparison) {
+        Comparison<T> comparison) => CopyAndSort(context, values, comparison, out _);
+
+    // Stable merge sort that charges one work unit per copied value and per comparison.
+    // The total is reported so a caller that reuses the result can charge the same work again.
+    internal static T[] CopyAndSort<T>(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<T> values,
+        Comparison<T> comparison,
+        out long work) {
         var source = new T[values.Count];
+        work = source.Length;
         for (int index = 0; index < values.Count; index++) {
             context.ConsumeWork();
             source[index] = values[index];
@@ -44,6 +53,7 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 int output = left;
                 while (first < middle && second < right) {
                     context.ConsumeWork();
+                    work++;
                     target[output++] = comparison(source[first], source[second]) <= 0
                         ? source[first++]
                         : source[second++];
@@ -1210,6 +1220,9 @@ internal static partial class PdfAdvancedUnderstandingStages {
         internal double Angle { get; }
         internal double Normal { get; set; }
         internal List<PdfUnderstandingWord> Words { get; } = new();
+        // Words ordered along the baseline, computed once after grouping, and the work that ordering cost.
+        internal PdfUnderstandingWord[]? AlongOrdered { get; set; }
+        internal long AlongOrderWork { get; set; }
     }
 
     private static double WordAnchorX(PdfUnderstandingWord word) => (word.XStart + word.XEnd) / 2D;
