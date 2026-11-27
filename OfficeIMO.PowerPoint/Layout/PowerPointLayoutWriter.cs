@@ -1,8 +1,6 @@
 using System.Globalization;
 using System.Security;
 using System.Text;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>One text run written by the layout system.</summary>
@@ -150,11 +148,10 @@ namespace OfficeIMO.PowerPoint {
             if (font.StartsWith("+", StringComparison.Ordinal)) {
                 b.Append("<a:latin typeface=\"").Append(font).Append("\"/>");
             } else {
-                var latin = new A.LatinFont();
-                PowerPointFontClassification.Apply(latin, font);
+                PowerPointFontClassification.Classify(font, out string? panose, out sbyte? pitchFamily, out _);
                 b.Append("<a:latin typeface=\"").Append(X(font)).Append('"');
-                if (latin.Panose != null) b.Append(" panose=\"").Append(latin.Panose.Value).Append('"');
-                if (latin.PitchFamily != null) b.Append(" pitchFamily=\"").Append(latin.PitchFamily.Value).Append('"');
+                if (panose != null) b.Append(" panose=\"").Append(panose).Append('"');
+                if (pitchFamily != null) b.Append(" pitchFamily=\"").Append(pitchFamily.Value).Append('"');
                 b.Append(" charset=\"0\"/>");
             }
             b.Append("</a:rPr>");
@@ -217,7 +214,7 @@ namespace OfficeIMO.PowerPoint {
             if (list.Count == 0) b.Append("<a:p><a:endParaRPr lang=\"en-US\"/></a:p>");
             foreach (PowerPointLayoutParagraph paragraph in list) b.Append(ParagraphXml(paragraph));
             b.Append("</p:txBody></p:sp>");
-            var generated = (PowerPointTextBox)_slide.AppendLayoutShape(new Shape(b.ToString()), textBox: true);
+            var generated = (PowerPointTextBox)_slide.AppendLayoutShape(b.ToString(), textBox: true);
             return PowerPointLayoutNativeText.Bind(_slide, generated, list, nativeBody);
         }
 
@@ -233,7 +230,7 @@ namespace OfficeIMO.PowerPoint {
             b.Append(gradient ?? Fill(fill, fillAlpha, explicitFill));
             b.Append(outline == null ? "<a:ln><a:noFill/></a:ln>" : "<a:ln w=\"" + E(outlineWidth) + "\">" + Fill(outline) + "</a:ln>");
             b.Append("</p:spPr></p:sp>");
-            return (PowerPointAutoShape)_slide.AppendLayoutShape(new Shape(b.ToString()), textBox: false);
+            return (PowerPointAutoShape)_slide.AppendLayoutShape(b.ToString(), textBox: false);
         }
 
         /// <summary>A linear gradient of one colour; each stop is (position 0..1, alpha 0..1). Angle in degrees (90 = top to bottom).</summary>
@@ -262,7 +259,7 @@ namespace OfficeIMO.PowerPoint {
                 b.Append("<a:p><a:endParaRPr lang=\"en-US\"/></a:p>");
             }
             b.Append("</p:txBody></p:sp>");
-            return _slide.AppendLayoutShape(new Shape(b.ToString()), textBox: !shape);
+            return _slide.AppendLayoutShape(b.ToString(), textBox: !shape);
         }
 
         /// <summary>A straight connector line, optionally with an arrowhead at the end point.</summary>
@@ -281,7 +278,7 @@ namespace OfficeIMO.PowerPoint {
             }
             if (arrow) b.Append("<a:tailEnd type=\"triangle\" w=\"med\" len=\"med\"/>");
             b.Append("</a:ln></p:spPr></p:sp>");
-            return (PowerPointAutoShape)_slide.AppendLayoutShape(new Shape(b.ToString()), textBox: false);
+            return (PowerPointAutoShape)_slide.AppendLayoutShape(b.ToString(), textBox: false);
         }
 
         /// <summary>Sets a solid slide background.</summary>
