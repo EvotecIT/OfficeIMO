@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
                     Preset = A.ShapeTypeValues.Rectangle
                 });
 
-            PowerPointDocument.ApplyLegacyShapeStyle(properties, source);
+            PowerPointDocument.ApplyLegacyShapeStyle(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(properties), source);
 
             A.GradientStop[] stops = properties.GetFirstChild<A.GradientFill>()!
                 .GetFirstChild<A.GradientStopList>()!
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
                     Preset = A.ShapeTypeValues.Rectangle
                 });
 
-            PowerPointDocument.ApplyLegacyShapeStyle(properties, source);
+            PowerPointDocument.ApplyLegacyShapeStyle(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(properties), source);
 
             A.GradientStop[] stops = properties.GetFirstChild<A.GradientFill>()!
                 .GetFirstChild<A.GradientStopList>()!
@@ -358,8 +358,10 @@ namespace OfficeIMO.Tests {
             uint nextShapeId = 2;
 
             P.GroupShape group = Assert.IsType<P.GroupShape>(
-                PowerPointDocument.CreateLegacyOpenXmlShape(slide.SlidePart, source,
-                    ref nextShapeId));
+                PowerPointDocument.CreateLegacyOpenXmlShape(
+                    OfficeIMO.PowerPoint.OpenXml.PowerPointPartRef.FromSdk(slide.SlidePart),
+                    OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(slide.SlidePart.Slide!.CommonSlideData!.ShapeTree!),
+                    source, ref nextShapeId).SdkElement);
             A.TransformGroup projected = group.GroupShapeProperties!.TransformGroup!;
 
             Assert.Equal(15 * 60000, projected.Rotation!.Value);

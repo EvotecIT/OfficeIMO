@@ -1,11 +1,13 @@
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
         private static void ApplyLegacyDocumentSettings(PowerPointDocument target,
-            LegacyPptDocument source) {
+            LegacyPptImportParts parts, LegacyPptDocument source) {
             LegacyPptDocumentSettings? settings = source.DocumentSettings;
             PowerPointSlideSizeType sizeType = settings?.SlideSizeType is LegacyPptSlideSizeType type
                 ? MapLegacySlideSizeType(type, source.SlideWidth, source.SlideHeight)
@@ -13,26 +15,31 @@ namespace OfficeIMO.PowerPoint {
             target.SlideSize.SetSize(OfficeIMO.OfficeLength.Emus(ToEmus(source.SlideWidth)),                OfficeIMO.OfficeLength.Emus(ToEmus(source.SlideHeight)),sizeType);
             if (settings == null) return;
 
-            Presentation root = target.PresentationRoot;
+            PowerPointPartRef presentationPart = parts.PresentationPart;
+            OfficeXmlNode root = presentationPart.Root;
             if (settings.ServerZoomNumerator > 0 && settings.ServerZoomDenominator > 0) {
                 long scaledZoom = ((long)settings.ServerZoomNumerator * 100000L
                     + settings.ServerZoomDenominator / 2L) / settings.ServerZoomDenominator;
-                root.ServerZoom = checked((int)Math.Min(int.MaxValue,
-                    Math.Max(1L, scaledZoom)));
+                root.Set("serverZoom", checked((int)Math.Min(int.MaxValue,
+                    Math.Max(1L, scaledZoom))));
             }
             if (settings.NotesWidth > 0 && settings.NotesHeight > 0) {
-                root.NotesSize = new NotesSize {
-                    Cx = checked((int)ToEmus(settings.NotesWidth)),
-                    Cy = checked((int)ToEmus(settings.NotesHeight))
-                };
+                root.SetChild(LegacyPptXml.P, "notesSz", PPresentationView.Order)
+                    .Set("cx", checked((int)ToEmus(settings.NotesWidth)))
+                    .Set("cy", checked((int)ToEmus(settings.NotesHeight)));
             }
-            root.FirstSlideNum = settings.FirstSlideNumber;
-            root.ShowSpecialPlaceholderOnTitleSlide = !settings.OmitTitlePlaceholders;
-            root.RightToLeft = settings.RightToLeft;
-            root.EmbedTrueTypeFonts = settings.SaveWithFonts;
-            root.SaveSubsetFonts = settings.SaveWithFonts;
-            ViewProperties? view = target.SdkPresentationPart.ViewPropertiesPart?.ViewProperties;
-            if (view != null) view.ShowComments = settings.ShowComments;
+            root.Set("firstSlideNum", settings.FirstSlideNumber);
+            root.Set("showSpecialPlsOnTitleSld", !settings.OmitTitlePlaceholders);
+            root.Set("rtl", settings.RightToLeft);
+            root.Set("embedTrueTypeFonts", settings.SaveWithFonts);
+            root.Set("saveSubsetFonts", settings.SaveWithFonts);
+            presentationPart.MarkEdited();
+            PowerPointPartRef viewPart = presentationPart.RelatedPart(LegacyViewPropertiesRelationshipType);
+            OfficeXmlNode view = viewPart.IsNone ? default : viewPart.Root;
+            if (!view.IsNone && view.Is(LegacyPptXml.P, "viewPr")) {
+                view.Set("showComments", settings.ShowComments);
+                viewPart.MarkEdited();
+            }
         }
 
         private static PowerPointSlideSizeType MapLegacySlideSizeType(LegacyPptSlideSizeType type,

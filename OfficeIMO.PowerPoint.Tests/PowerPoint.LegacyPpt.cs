@@ -625,7 +625,7 @@ namespace OfficeIMO.Tests {
                 new A.Transform2D(),
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle });
 
-            PowerPointDocument.ApplyLegacyShapeStyle(properties, source);
+            PowerPointDocument.ApplyLegacyShapeStyle(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(properties), source);
 
             A.RgbColorModelHex fill = properties.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!;
             Assert.Equal("112233", fill.Val!.Value);

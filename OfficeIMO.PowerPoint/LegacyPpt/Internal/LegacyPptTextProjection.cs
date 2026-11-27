@@ -1,125 +1,108 @@
-using DocumentFormat.OpenXml;
-using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using System.Security.Cryptography;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Projects decoded binary text runs into native DrawingML text and fingerprints formatting.</summary>
-    internal static class LegacyPptTextProjection {
-        internal static void Apply(P.Shape shape, LegacyPptTextBody source,
-            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction = null) {
-            Apply(shape, source, frame: null, projectInteraction,
-                projectPictureBullet: null);
-        }
+    internal static partial class LegacyPptTextProjection {
+        /// <summary>Adds the markup of an interaction (hyperlink elements) to the run properties it applies to.</summary>
+        internal delegate void InteractionProjector(LegacyPptInteraction interaction, OfficeXmlNode runProperties);
 
-        internal static void Apply(P.Shape shape, LegacyPptTextBody source,
+        private const int A = LegacyPptXml.A;
+
+        /// <summary>
+        /// Gives a projected <c>p:sp</c> the binary text: a new text body when the text carries formatting, interactions,
+        /// fields or language runs; otherwise only the text frame on the body the shape has.
+        /// </summary>
+        internal static void Apply(OfficeXmlNode shape, LegacyPptTextBody source,
             LegacyPptTextFrameProperties? frame,
-            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>?
-                projectInteraction = null,
+            InteractionProjector? projectInteraction = null,
             Func<LegacyPptPictureBullet, string?>? projectPictureBullet = null) {
-            ArgumentNullException.ThrowIfNull(shape);
+            if (shape.IsNone) throw new ArgumentNullException(nameof(shape));
             ArgumentNullException.ThrowIfNull(source);
-            if (source.HasExplicitCharacterFormatting
-                || source.HasParagraphFormatting || source.HasInteractions
-                || source.Fields.Count > 0 || source.HasLanguageInformation) {
-                shape.TextBody = CreateTextBody(source, frame,
-                    projectInteraction, projectPictureBullet);
+            if (HasRichText(source)) {
+                OfficeXmlNode body = shape.SetChild(LegacyPptXml.P, "txBody", LegacyPptImportXml.ShapeOrder);
+                WriteTextBody(body, source, frame, projectInteraction, projectPictureBullet);
                 return;
             }
-            ApplyTextFrame(shape.TextBody?.BodyProperties, frame);
+            ApplyTextFrame(shape.Child(LegacyPptXml.P, "txBody").Child(A, "bodyPr"), frame);
         }
 
-        internal static P.TextBody CreateTextBody(LegacyPptTextBody source) =>
-            CreateTextBody(source, frame: null, projectInteraction: null,
-                projectPictureBullet: null);
+        /// <summary>Whether the text needs a text body of its own rather than the plain text the engine writes.</summary>
+        internal static bool HasRichText(LegacyPptTextBody source) =>
+            source.HasExplicitCharacterFormatting || source.HasParagraphFormatting || source.HasInteractions
+            || source.Fields.Count > 0 || source.HasLanguageInformation;
 
-        internal static P.TextBody CreateTextBody(LegacyPptTextBody source,
-            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction) {
-            return CreateTextBody(source, frame: null, projectInteraction,
-                projectPictureBullet: null);
-        }
-
-        internal static P.TextBody CreateTextBody(LegacyPptTextBody source,
-            LegacyPptTextFrameProperties? frame,
-            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>?
-                projectInteraction,
-            Func<LegacyPptPictureBullet, string?>? projectPictureBullet = null) {
+        /// <summary>The projected text body of <paramref name="source"/>, as a <c>p:txBody</c> in a tree of its own.</summary>
+        internal static OfficeXmlNode CreateTextBody(LegacyPptTextBody source) {
             ArgumentNullException.ThrowIfNull(source);
-            var textBody = new P.TextBody(new A.BodyProperties(), new A.ListStyle());
-            ApplyTextFrame(textBody.BodyProperties, frame);
+            OfficeXmlNode body = LegacyPptImportXml.CreateDetached(LegacyPptXml.P, "txBody");
+            WriteTextBody(body, source, frame: null, projectInteraction: null, projectPictureBullet: null);
+            return body;
+        }
+
+        /// <summary>Fills an empty text body element (<c>p:txBody</c> or <c>a:txBody</c>) with the projected text.</summary>
+        internal static void WriteTextBody(OfficeXmlNode textBody, LegacyPptTextBody source,
+            LegacyPptTextFrameProperties? frame,
+            InteractionProjector? projectInteraction,
+            Func<LegacyPptPictureBullet, string?>? projectPictureBullet) {
+            ArgumentNullException.ThrowIfNull(source);
+            OfficeXmlNode bodyProperties = textBody.AppendNew(A, "bodyPr");
+            textBody.AppendNew(A, "lstStyle");
+            ApplyTextFrame(bodyProperties, frame);
             var projectionPlan = new LegacyPptTextProjectionPlan(source);
             string[] paragraphs = source.Text.Split(new[] { '\n' }, StringSplitOptions.None);
             int paragraphStart = 0;
             foreach (string paragraphText in paragraphs) {
                 int paragraphEnd = checked(paragraphStart + paragraphText.Length);
-                var paragraph = new A.Paragraph();
+                OfficeXmlNode paragraph = textBody.AppendNew(A, "p");
                 ApplyParagraphProperties(paragraph, source, projectionPlan,
                     paragraphStart, projectPictureBullet);
                 AppendParagraphRuns(paragraph, source, projectionPlan,
                     paragraphStart, paragraphEnd, projectInteraction);
-                if (!paragraph.ChildElements.Any(child => child is A.Run
-                        or A.Field or A.Break)) {
-                    paragraph.Append(new A.Run(new A.Text(string.Empty)));
+                if (paragraph.Child(A, "r").IsNone && paragraph.Child(A, "fld").IsNone
+                    && paragraph.Child(A, "br").IsNone) {
+                    paragraph.AppendNew(A, "r").AppendNew(A, "t").SetInnerText(string.Empty);
                 }
-                ApplyParagraphEndLanguage(paragraph, projectionPlan,
-                    paragraphEnd);
-                textBody.Append(paragraph);
+                ApplyParagraphEndLanguage(paragraph, projectionPlan, paragraphEnd);
                 paragraphStart = checked(paragraphEnd + 1);
             }
-            return textBody;
         }
 
-        internal static void ApplyTextFrame(A.BodyProperties? target,
+        internal static void ApplyTextFrame(OfficeXmlNode target,
             LegacyPptTextFrameProperties? source) {
-            if (target == null || source == null) return;
+            if (target.IsNone || source == null) return;
             if (source.AutoTextMargin != true) {
-                if (source.LeftInsetEmus.HasValue) {
-                    target.LeftInset = source.LeftInsetEmus.Value;
-                }
-                if (source.TopInsetEmus.HasValue) {
-                    target.TopInset = source.TopInsetEmus.Value;
-                }
-                if (source.RightInsetEmus.HasValue) {
-                    target.RightInset = source.RightInsetEmus.Value;
-                }
-                if (source.BottomInsetEmus.HasValue) {
-                    target.BottomInset = source.BottomInsetEmus.Value;
-                }
+                if (source.LeftInsetEmus.HasValue) target.Set("lIns", source.LeftInsetEmus.Value);
+                if (source.TopInsetEmus.HasValue) target.Set("tIns", source.TopInsetEmus.Value);
+                if (source.RightInsetEmus.HasValue) target.Set("rIns", source.RightInsetEmus.Value);
+                if (source.BottomInsetEmus.HasValue) target.Set("bIns", source.BottomInsetEmus.Value);
             }
             if (source.WrapMode.HasValue) {
-                target.Wrap = source.WrapMode.Value == 2
-                    ? A.TextWrappingValues.None
-                    : A.TextWrappingValues.Square;
+                target.Set("wrap", source.WrapMode.Value == 2 ? "none" : "square");
             }
             if (source.AnchorMode.HasValue) {
                 uint anchor = source.AnchorMode.Value;
-                target.Anchor = anchor switch {
-                    1U or 4U => A.TextAnchoringTypeValues.Center,
-                    2U or 5U or 7U or 9U =>
-                        A.TextAnchoringTypeValues.Bottom,
-                    _ => A.TextAnchoringTypeValues.Top
-                };
-                if (anchor is 3U or 4U or 5U or 8U or 9U) {
-                    target.AnchorCenter = true;
-                }
+                target.Set("anchor", anchor switch {
+                    1U or 4U => "ctr",
+                    2U or 5U or 7U or 9U => "b",
+                    _ => "t"
+                });
+                if (anchor is 3U or 4U or 5U or 8U or 9U) target.Set("anchorCtr", true);
             }
             if (source.TextFlow.HasValue) {
-                target.Vertical = source.TextFlow.Value switch {
-                    0U or 4U => A.TextVerticalValues.Horizontal,
-                    2U => A.TextVerticalValues.Vertical270,
-                    _ => A.TextVerticalValues.Vertical
-                };
+                target.Set("vert", source.TextFlow.Value switch {
+                    0U or 4U => "horz",
+                    2U => "vert270",
+                    _ => "vert"
+                });
             }
             if (source.FitShapeToText.HasValue) {
-                target.Append(source.FitShapeToText.Value
-                    ? new A.ShapeAutoFit()
-                    : new A.NoAutoFit());
+                target.AppendNew(A, source.FitShapeToText.Value ? "spAutoFit" : "noAutofit");
             }
         }
 
-        private static void ApplyParagraphProperties(A.Paragraph paragraph,
+        private static void ApplyParagraphProperties(OfficeXmlNode paragraph,
             LegacyPptTextBody source,
             LegacyPptTextProjectionPlan projectionPlan, int paragraphStart,
             Func<LegacyPptPictureBullet, string?>? projectPictureBullet) {
@@ -128,64 +111,64 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if ((run == null || !run.HasExplicitFormatting)
                 && source.Ruler?.HasFormatting != true) return;
             ushort level = run?.IndentLevel ?? 0;
-            var properties = new A.ParagraphProperties { Level = level };
+            OfficeXmlNode properties = paragraph.AppendNew(A, "pPr").Set("lvl", level);
             ApplyRulerProperties(properties, source.Ruler, level);
             if (run != null) ApplyParagraphFormatting(properties, run,
                 includeLevel: true, projectPictureBullet);
             if (run == null || run.TabStops.Count == 0) {
                 AppendTabStops(properties, source.Ruler?.TabStops ?? Array.Empty<LegacyPptTabStop>());
             }
-            paragraph.Append(properties);
         }
 
-        internal static void ApplyParagraphFormatting(A.TextParagraphPropertiesType properties,
+        /// <summary>Writes paragraph formatting into paragraph properties (<c>a:pPr</c> or a list style level).</summary>
+        internal static void ApplyParagraphFormatting(OfficeXmlNode properties,
             LegacyPptParagraphRun run, bool includeLevel,
             Func<LegacyPptPictureBullet, string?>? projectPictureBullet = null) {
-            ArgumentNullException.ThrowIfNull(properties);
+            if (properties.IsNone) throw new ArgumentNullException(nameof(properties));
             ArgumentNullException.ThrowIfNull(run);
-            if (includeLevel) properties.Level = run.IndentLevel;
-            if (run.LeftMargin.HasValue) properties.LeftMargin = ToEmus(run.LeftMargin.Value);
-            if (run.Indent.HasValue) properties.Indent = ToEmus(run.Indent.Value);
+            if (includeLevel) properties.Set("lvl", run.IndentLevel);
+            if (run.LeftMargin.HasValue) properties.Set("marL", ToEmus(run.LeftMargin.Value));
+            if (run.Indent.HasValue) properties.Set("indent", ToEmus(run.Indent.Value));
             if (run.DefaultTabSize >= 0) {
-                properties.DefaultTabSize = ToEmus(run.DefaultTabSize.Value);
+                properties.Set("defTabSz", ToEmus(run.DefaultTabSize.Value));
             }
-            if (run.Alignment.HasValue) properties.Alignment = MapAlignment(run.Alignment.Value);
+            if (run.Alignment.HasValue) properties.Set("algn", MapAlignment(run.Alignment.Value));
             if (run.FontAlignment.HasValue) {
-                properties.FontAlignment = MapFontAlignment(run.FontAlignment.Value);
+                properties.Set("fontAlgn", MapFontAlignment(run.FontAlignment.Value));
             }
             if (run.TextDirection.HasValue) {
-                properties.RightToLeft = run.TextDirection.Value == LegacyPptTextDirection.RightToLeft;
+                properties.Set("rtl", run.TextDirection.Value == LegacyPptTextDirection.RightToLeft);
             }
-            if (run.CharacterWrap.HasValue) properties.EastAsianLineBreak = run.CharacterWrap.Value;
-            if (run.WordWrap.HasValue) properties.LatinLineBreak = !run.WordWrap.Value;
-            if (run.Overflow.HasValue) properties.Height = run.Overflow.Value;
+            if (run.CharacterWrap.HasValue) properties.Set("eaLnBrk", run.CharacterWrap.Value);
+            if (run.WordWrap.HasValue) properties.Set("latinLnBrk", !run.WordWrap.Value);
+            if (run.Overflow.HasValue) properties.Set("hangingPunct", run.Overflow.Value);
             if (run.LineSpacing.HasValue) {
-                properties.Append(new A.LineSpacing(CreateSpacing(run.LineSpacing.Value)));
+                AppendSpacing(properties.AppendNew(A, "lnSpc"), run.LineSpacing.Value);
             }
             if (run.SpaceBefore.HasValue) {
-                properties.Append(new A.SpaceBefore(CreateSpacing(run.SpaceBefore.Value)));
+                AppendSpacing(properties.AppendNew(A, "spcBef"), run.SpaceBefore.Value);
             }
             if (run.SpaceAfter.HasValue) {
-                properties.Append(new A.SpaceAfter(CreateSpacing(run.SpaceAfter.Value)));
+                AppendSpacing(properties.AppendNew(A, "spcAft"), run.SpaceAfter.Value);
             }
             AppendBulletProperties(properties, run, projectPictureBullet);
             AppendTabStops(properties, run.TabStops);
         }
 
-        private static void ApplyRulerProperties(A.TextParagraphPropertiesType properties,
+        private static void ApplyRulerProperties(OfficeXmlNode properties,
             LegacyPptTextRuler? ruler, ushort level) {
             if (ruler == null) return;
             LegacyPptTextRulerLevel? rulerLevel = ruler.FindLevel(level);
             if (rulerLevel?.LeftMargin != null) {
-                properties.LeftMargin = ToEmus(rulerLevel.LeftMargin.Value);
+                properties.Set("marL", ToEmus(rulerLevel.LeftMargin.Value));
             }
-            if (rulerLevel?.Indent != null) properties.Indent = ToEmus(rulerLevel.Indent.Value);
+            if (rulerLevel?.Indent != null) properties.Set("indent", ToEmus(rulerLevel.Indent.Value));
             if (ruler.DefaultTabSize >= 0) {
-                properties.DefaultTabSize = ToEmus(ruler.DefaultTabSize.Value);
+                properties.Set("defTabSz", ToEmus(ruler.DefaultTabSize.Value));
             }
         }
 
-        private static void AppendBulletProperties(A.TextParagraphPropertiesType properties,
+        private static void AppendBulletProperties(OfficeXmlNode properties,
             LegacyPptParagraphRun run,
             Func<LegacyPptPictureBullet, string?>? projectPictureBullet) {
             if (run.PictureBullet != null && projectPictureBullet != null) {
@@ -193,216 +176,225 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     run.PictureBullet);
                 if (!string.IsNullOrWhiteSpace(relationshipId)) {
                     AppendBulletDecorationProperties(properties, run);
-                    properties.Append(new A.PictureBullet(
-                        new A.Blip { Embed = relationshipId }));
+                    properties.AppendNew(A, "buBlip").AppendNew(A, "blip").SetRelationship("embed", relationshipId);
                     return;
                 }
             }
             if (run.HasAutoNumber == true
                 && run.AutoNumberScheme.HasValue) {
                 AppendBulletDecorationProperties(properties, run);
-                properties.Append(new A.AutoNumberedBullet {
-                    Type = MapAutoNumberScheme(run.AutoNumberScheme.Value),
-                    StartAt = run.AutoNumberStartAt ?? 1
-                });
+                properties.AppendNew(A, "buAutoNum")
+                    .Set("type", MapAutoNumberScheme(run.AutoNumberScheme.Value).ToOpenXmlToken())
+                    .Set("startAt", (long)(run.AutoNumberStartAt ?? 1));
                 return;
             }
             if (run.HasBullet == false) {
-                properties.Append(new A.NoBullet());
+                properties.AppendNew(A, "buNone");
                 return;
             }
             AppendBulletDecorationProperties(properties, run);
             if (run.HasBullet == true && run.BulletCharacter.HasValue
                 && LegacyPptXmlText.IsValidAttributeCharacter(
                     run.BulletCharacter.Value)) {
-                properties.Append(new A.CharacterBullet { Char = run.BulletCharacter.Value.ToString() });
+                properties.AppendNew(A, "buChar").Set("char", run.BulletCharacter.Value.ToString());
             }
         }
 
         private static void AppendBulletDecorationProperties(
-            A.TextParagraphPropertiesType properties,
+            OfficeXmlNode properties,
             LegacyPptParagraphRun run) {
             if (run.BulletHasColor == false) {
-                properties.Append(new A.BulletColorText());
+                properties.AppendNew(A, "buClrTx");
             } else if (run.BulletHasColor == true) {
-                OpenXmlElement? color = run.BulletColorSchemeIndex.HasValue
-                    ? CreateSchemeColor(run.BulletColorSchemeIndex.Value)
-                    : run.BulletColor != null
-                        ? new A.RgbColorModelHex { Val = run.BulletColor }
-                        : null;
-                if (color != null) properties.Append(new A.BulletColor(color));
+                if (run.BulletColorSchemeIndex.HasValue) {
+                    AppendSchemeColor(properties.AppendNew(A, "buClr"), run.BulletColorSchemeIndex.Value);
+                } else if (run.BulletColor != null) {
+                    properties.AppendNew(A, "buClr").AppendNew(A, "srgbClr").Set("val", run.BulletColor);
+                }
             }
             if (run.BulletHasSize == false) {
-                properties.Append(new A.BulletSizeText());
+                properties.AppendNew(A, "buSzTx");
             } else if (run.BulletHasSize == true && run.BulletSize.HasValue) {
                 short size = run.BulletSize.Value;
                 if (size >= 25 && size <= 400) {
-                    properties.Append(new A.BulletSizePercentage { Val = checked(size * 1000) });
+                    properties.AppendNew(A, "buSzPct").Set("val", checked(size * 1000));
                 } else if (size >= -4000 && size <= -1) {
-                    properties.Append(new A.BulletSizePoints { Val = checked(-size * 100) });
+                    properties.AppendNew(A, "buSzPts").Set("val", checked(-size * 100));
                 }
             }
             if (run.BulletHasFont == false) {
-                properties.Append(new A.BulletFontText());
+                properties.AppendNew(A, "buFontTx");
             } else if (run.BulletHasFont == true) {
                 string? typeface = LegacyPptXmlText.SanitizeAttributeValue(
                     run.BulletTypeface);
                 if (!string.IsNullOrEmpty(typeface)) {
-                    properties.Append(new A.BulletFont { Typeface = typeface });
+                    properties.AppendNew(A, "buFont").Set("typeface", typeface);
                 }
             }
         }
 
-        internal static A.TextAutoNumberSchemeValues MapAutoNumberScheme(
+        internal static PowerPointNumberingScheme MapAutoNumberScheme(
             LegacyPptAutoNumberScheme value) => value switch {
-                LegacyPptAutoNumberScheme.AlphaLowerPeriod => A.TextAutoNumberSchemeValues.AlphaLowerCharacterPeriod,
-                LegacyPptAutoNumberScheme.AlphaUpperPeriod => A.TextAutoNumberSchemeValues.AlphaUpperCharacterPeriod,
-                LegacyPptAutoNumberScheme.ArabicParenRight => A.TextAutoNumberSchemeValues.ArabicParenR,
-                LegacyPptAutoNumberScheme.ArabicPeriod => A.TextAutoNumberSchemeValues.ArabicPeriod,
-                LegacyPptAutoNumberScheme.RomanLowerParenBoth => A.TextAutoNumberSchemeValues.RomanLowerCharacterParenBoth,
-                LegacyPptAutoNumberScheme.RomanLowerParenRight => A.TextAutoNumberSchemeValues.RomanLowerCharacterParenR,
-                LegacyPptAutoNumberScheme.RomanLowerPeriod => A.TextAutoNumberSchemeValues.RomanLowerCharacterPeriod,
-                LegacyPptAutoNumberScheme.RomanUpperPeriod => A.TextAutoNumberSchemeValues.RomanUpperCharacterPeriod,
-                LegacyPptAutoNumberScheme.AlphaLowerParenBoth => A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenBoth,
-                LegacyPptAutoNumberScheme.AlphaLowerParenRight => A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenR,
-                LegacyPptAutoNumberScheme.AlphaUpperParenBoth => A.TextAutoNumberSchemeValues.AlphaUpperCharacterParenBoth,
-                LegacyPptAutoNumberScheme.AlphaUpperParenRight => A.TextAutoNumberSchemeValues.AlphaUpperCharacterParenR,
-                LegacyPptAutoNumberScheme.ArabicParenBoth => A.TextAutoNumberSchemeValues.ArabicParenBoth,
-                LegacyPptAutoNumberScheme.ArabicPlain => A.TextAutoNumberSchemeValues.ArabicPlain,
-                LegacyPptAutoNumberScheme.RomanUpperParenBoth => A.TextAutoNumberSchemeValues.RomanUpperCharacterParenBoth,
-                LegacyPptAutoNumberScheme.RomanUpperParenRight => A.TextAutoNumberSchemeValues.RomanUpperCharacterParenR,
-                LegacyPptAutoNumberScheme.SimplifiedChinesePlain => A.TextAutoNumberSchemeValues.EastAsianSimplifiedChinesePlain,
-                LegacyPptAutoNumberScheme.SimplifiedChinesePeriod => A.TextAutoNumberSchemeValues.EastAsianSimplifiedChinesePeriod,
-                LegacyPptAutoNumberScheme.CircleNumberDoubleBytePlain => A.TextAutoNumberSchemeValues.CircleNumberDoubleBytePlain,
-                LegacyPptAutoNumberScheme.CircleNumberWingdingsWhitePlain => A.TextAutoNumberSchemeValues.CircleNumberWingdingsWhitePlain,
-                LegacyPptAutoNumberScheme.CircleNumberWingdingsBlackPlain => A.TextAutoNumberSchemeValues.CircleNumberWingdingsBlackPlain,
-                LegacyPptAutoNumberScheme.TraditionalChinesePlain => A.TextAutoNumberSchemeValues.EastAsianTraditionalChinesePlain,
-                LegacyPptAutoNumberScheme.TraditionalChinesePeriod => A.TextAutoNumberSchemeValues.EastAsianTraditionalChinesePeriod,
-                LegacyPptAutoNumberScheme.Arabic1Minus => A.TextAutoNumberSchemeValues.Arabic1Minus,
-                LegacyPptAutoNumberScheme.Arabic2Minus => A.TextAutoNumberSchemeValues.Arabic2Minus,
-                LegacyPptAutoNumberScheme.Hebrew2Minus => A.TextAutoNumberSchemeValues.Hebrew2Minus,
-                LegacyPptAutoNumberScheme.JapaneseKoreanPlain => A.TextAutoNumberSchemeValues.EastAsianJapaneseKoreanPlain,
-                LegacyPptAutoNumberScheme.JapaneseKoreanPeriod => A.TextAutoNumberSchemeValues.EastAsianJapaneseKoreanPeriod,
-                LegacyPptAutoNumberScheme.ArabicDoubleBytePlain => A.TextAutoNumberSchemeValues.ArabicDoubleBytePlain,
-                LegacyPptAutoNumberScheme.ArabicDoubleBytePeriod => A.TextAutoNumberSchemeValues.ArabicDoubleBytePeriod,
-                LegacyPptAutoNumberScheme.ThaiAlphaPeriod => A.TextAutoNumberSchemeValues.ThaiAlphaPeriod,
-                LegacyPptAutoNumberScheme.ThaiAlphaParenRight => A.TextAutoNumberSchemeValues.ThaiAlphaParenthesisRight,
-                LegacyPptAutoNumberScheme.ThaiAlphaParenBoth => A.TextAutoNumberSchemeValues.ThaiAlphaParenthesisBoth,
-                LegacyPptAutoNumberScheme.ThaiNumberPeriod => A.TextAutoNumberSchemeValues.ThaiNumberPeriod,
-                LegacyPptAutoNumberScheme.ThaiNumberParenRight => A.TextAutoNumberSchemeValues.ThaiNumberParenthesisRight,
-                LegacyPptAutoNumberScheme.ThaiNumberParenBoth => A.TextAutoNumberSchemeValues.ThaiNumberParenthesisBoth,
-                LegacyPptAutoNumberScheme.HindiAlphaPeriod => A.TextAutoNumberSchemeValues.HindiAlphaPeriod,
-                LegacyPptAutoNumberScheme.HindiNumberPeriod => A.TextAutoNumberSchemeValues.HindiNumPeriod,
-                LegacyPptAutoNumberScheme.JapaneseDoubleBytePeriod => A.TextAutoNumberSchemeValues.EastAsianJapaneseDoubleBytePeriod,
-                LegacyPptAutoNumberScheme.HindiNumberParenRight => A.TextAutoNumberSchemeValues.HindiNumberParenthesisRight,
-                LegacyPptAutoNumberScheme.HindiAlpha1Period => A.TextAutoNumberSchemeValues.HindiAlpha1Period,
+                LegacyPptAutoNumberScheme.AlphaLowerPeriod => PowerPointNumberingScheme.AlphaLowerCharacterPeriod,
+                LegacyPptAutoNumberScheme.AlphaUpperPeriod => PowerPointNumberingScheme.AlphaUpperCharacterPeriod,
+                LegacyPptAutoNumberScheme.ArabicParenRight => PowerPointNumberingScheme.ArabicParenR,
+                LegacyPptAutoNumberScheme.ArabicPeriod => PowerPointNumberingScheme.ArabicPeriod,
+                LegacyPptAutoNumberScheme.RomanLowerParenBoth => PowerPointNumberingScheme.RomanLowerCharacterParenBoth,
+                LegacyPptAutoNumberScheme.RomanLowerParenRight => PowerPointNumberingScheme.RomanLowerCharacterParenR,
+                LegacyPptAutoNumberScheme.RomanLowerPeriod => PowerPointNumberingScheme.RomanLowerCharacterPeriod,
+                LegacyPptAutoNumberScheme.RomanUpperPeriod => PowerPointNumberingScheme.RomanUpperCharacterPeriod,
+                LegacyPptAutoNumberScheme.AlphaLowerParenBoth => PowerPointNumberingScheme.AlphaLowerCharacterParenBoth,
+                LegacyPptAutoNumberScheme.AlphaLowerParenRight => PowerPointNumberingScheme.AlphaLowerCharacterParenR,
+                LegacyPptAutoNumberScheme.AlphaUpperParenBoth => PowerPointNumberingScheme.AlphaUpperCharacterParenBoth,
+                LegacyPptAutoNumberScheme.AlphaUpperParenRight => PowerPointNumberingScheme.AlphaUpperCharacterParenR,
+                LegacyPptAutoNumberScheme.ArabicParenBoth => PowerPointNumberingScheme.ArabicParenBoth,
+                LegacyPptAutoNumberScheme.ArabicPlain => PowerPointNumberingScheme.ArabicPlain,
+                LegacyPptAutoNumberScheme.RomanUpperParenBoth => PowerPointNumberingScheme.RomanUpperCharacterParenBoth,
+                LegacyPptAutoNumberScheme.RomanUpperParenRight => PowerPointNumberingScheme.RomanUpperCharacterParenR,
+                LegacyPptAutoNumberScheme.SimplifiedChinesePlain => PowerPointNumberingScheme.EastAsianSimplifiedChinesePlain,
+                LegacyPptAutoNumberScheme.SimplifiedChinesePeriod => PowerPointNumberingScheme.EastAsianSimplifiedChinesePeriod,
+                LegacyPptAutoNumberScheme.CircleNumberDoubleBytePlain => PowerPointNumberingScheme.CircleNumberDoubleBytePlain,
+                LegacyPptAutoNumberScheme.CircleNumberWingdingsWhitePlain => PowerPointNumberingScheme.CircleNumberWingdingsWhitePlain,
+                LegacyPptAutoNumberScheme.CircleNumberWingdingsBlackPlain => PowerPointNumberingScheme.CircleNumberWingdingsBlackPlain,
+                LegacyPptAutoNumberScheme.TraditionalChinesePlain => PowerPointNumberingScheme.EastAsianTraditionalChinesePlain,
+                LegacyPptAutoNumberScheme.TraditionalChinesePeriod => PowerPointNumberingScheme.EastAsianTraditionalChinesePeriod,
+                LegacyPptAutoNumberScheme.Arabic1Minus => PowerPointNumberingScheme.Arabic1Minus,
+                LegacyPptAutoNumberScheme.Arabic2Minus => PowerPointNumberingScheme.Arabic2Minus,
+                LegacyPptAutoNumberScheme.Hebrew2Minus => PowerPointNumberingScheme.Hebrew2Minus,
+                LegacyPptAutoNumberScheme.JapaneseKoreanPlain => PowerPointNumberingScheme.EastAsianJapaneseKoreanPlain,
+                LegacyPptAutoNumberScheme.JapaneseKoreanPeriod => PowerPointNumberingScheme.EastAsianJapaneseKoreanPeriod,
+                LegacyPptAutoNumberScheme.ArabicDoubleBytePlain => PowerPointNumberingScheme.ArabicDoubleBytePlain,
+                LegacyPptAutoNumberScheme.ArabicDoubleBytePeriod => PowerPointNumberingScheme.ArabicDoubleBytePeriod,
+                LegacyPptAutoNumberScheme.ThaiAlphaPeriod => PowerPointNumberingScheme.ThaiAlphaPeriod,
+                LegacyPptAutoNumberScheme.ThaiAlphaParenRight => PowerPointNumberingScheme.ThaiAlphaParenthesisRight,
+                LegacyPptAutoNumberScheme.ThaiAlphaParenBoth => PowerPointNumberingScheme.ThaiAlphaParenthesisBoth,
+                LegacyPptAutoNumberScheme.ThaiNumberPeriod => PowerPointNumberingScheme.ThaiNumberPeriod,
+                LegacyPptAutoNumberScheme.ThaiNumberParenRight => PowerPointNumberingScheme.ThaiNumberParenthesisRight,
+                LegacyPptAutoNumberScheme.ThaiNumberParenBoth => PowerPointNumberingScheme.ThaiNumberParenthesisBoth,
+                LegacyPptAutoNumberScheme.HindiAlphaPeriod => PowerPointNumberingScheme.HindiAlphaPeriod,
+                LegacyPptAutoNumberScheme.HindiNumberPeriod => PowerPointNumberingScheme.HindiNumPeriod,
+                LegacyPptAutoNumberScheme.JapaneseDoubleBytePeriod => PowerPointNumberingScheme.EastAsianJapaneseDoubleBytePeriod,
+                LegacyPptAutoNumberScheme.HindiNumberParenRight => PowerPointNumberingScheme.HindiNumberParenthesisRight,
+                LegacyPptAutoNumberScheme.HindiAlpha1Period => PowerPointNumberingScheme.HindiAlpha1Period,
                 _ => throw new ArgumentOutOfRangeException(nameof(value))
             };
 
-        private static void AppendTabStops(A.TextParagraphPropertiesType properties,
+        private static void AppendTabStops(OfficeXmlNode properties,
             IReadOnlyList<LegacyPptTabStop> tabStops) {
             if (tabStops.Count == 0) return;
-            var list = new A.TabStopList();
+            OfficeXmlNode list = properties.AppendNew(A, "tabLst");
             foreach (LegacyPptTabStop tabStop in tabStops.Take(PowerPointParagraph.MaximumTabStops)) {
-                list.Append(new A.TabStop {
-                    Position = ToEmus(tabStop.Position),
-                    Alignment = MapTabAlignment(tabStop.Alignment)
-                });
+                list.AppendNew(A, "tab")
+                    .Set("pos", ToEmus(tabStop.Position))
+                    .Set("algn", MapTabAlignment(tabStop.Alignment));
             }
-            properties.Append(list);
         }
 
         private static int ToEmus(short masterUnits) => checked((int)Math.Round(
             masterUnits * 1587.5D, MidpointRounding.AwayFromZero));
 
-        private static OpenXmlElement CreateSpacing(short value) {
-            if (value >= 0) return new A.SpacingPercent { Val = checked(value * 1000) };
+        private static void AppendSpacing(OfficeXmlNode spacing, short value) {
+            if (value >= 0) {
+                spacing.AppendNew(A, "spcPct").Set("val", checked(value * 1000));
+                return;
+            }
             int points = checked((int)Math.Round(-(long)value * 12.5D,
                 MidpointRounding.AwayFromZero));
-            return new A.SpacingPoints { Val = points };
+            spacing.AppendNew(A, "spcPts").Set("val", points);
         }
 
-        private static A.TextAlignmentTypeValues MapAlignment(LegacyPptTextAlignment value) => value switch {
-            LegacyPptTextAlignment.Left => A.TextAlignmentTypeValues.Left,
-            LegacyPptTextAlignment.Center => A.TextAlignmentTypeValues.Center,
-            LegacyPptTextAlignment.Right => A.TextAlignmentTypeValues.Right,
-            LegacyPptTextAlignment.Justify => A.TextAlignmentTypeValues.Justified,
-            LegacyPptTextAlignment.Distributed => A.TextAlignmentTypeValues.Distributed,
-            LegacyPptTextAlignment.ThaiDistributed => A.TextAlignmentTypeValues.ThaiDistributed,
-            LegacyPptTextAlignment.JustifyLow => A.TextAlignmentTypeValues.JustifiedLow,
+        private static string MapAlignment(LegacyPptTextAlignment value) => value switch {
+            LegacyPptTextAlignment.Left => "l",
+            LegacyPptTextAlignment.Center => "ctr",
+            LegacyPptTextAlignment.Right => "r",
+            LegacyPptTextAlignment.Justify => "just",
+            LegacyPptTextAlignment.Distributed => "dist",
+            LegacyPptTextAlignment.ThaiDistributed => "thaiDist",
+            LegacyPptTextAlignment.JustifyLow => "justLow",
             _ => throw new ArgumentOutOfRangeException(nameof(value))
         };
 
-        private static A.TextFontAlignmentValues MapFontAlignment(LegacyPptFontAlignment value) => value switch {
-            LegacyPptFontAlignment.Baseline => A.TextFontAlignmentValues.Baseline,
-            LegacyPptFontAlignment.Hanging => A.TextFontAlignmentValues.Top,
-            LegacyPptFontAlignment.Center => A.TextFontAlignmentValues.Center,
-            LegacyPptFontAlignment.Bottom => A.TextFontAlignmentValues.Bottom,
+        private static string MapFontAlignment(LegacyPptFontAlignment value) => value switch {
+            LegacyPptFontAlignment.Baseline => "base",
+            LegacyPptFontAlignment.Hanging => "t",
+            LegacyPptFontAlignment.Center => "ctr",
+            LegacyPptFontAlignment.Bottom => "b",
             _ => throw new ArgumentOutOfRangeException(nameof(value))
         };
 
-        private static A.TextTabAlignmentValues MapTabAlignment(LegacyPptTabAlignment value) => value switch {
-            LegacyPptTabAlignment.Left => A.TextTabAlignmentValues.Left,
-            LegacyPptTabAlignment.Center => A.TextTabAlignmentValues.Center,
-            LegacyPptTabAlignment.Right => A.TextTabAlignmentValues.Right,
-            LegacyPptTabAlignment.Decimal => A.TextTabAlignmentValues.Decimal,
+        private static string MapTabAlignment(LegacyPptTabAlignment value) => value switch {
+            LegacyPptTabAlignment.Left => "l",
+            LegacyPptTabAlignment.Center => "ctr",
+            LegacyPptTabAlignment.Right => "r",
+            LegacyPptTabAlignment.Decimal => "dec",
             _ => throw new ArgumentOutOfRangeException(nameof(value))
         };
 
-        internal static string CreateFormattingFingerprint(
-            P.TextBody? textBody, OpenXmlPart? ownerPart = null) {
-            if (textBody == null) return string.Empty;
-            var clone = (P.TextBody)textBody.CloneNode(true);
-            if (clone.BodyProperties != null) {
-                clone.ReplaceChild(new A.BodyProperties(),
-                    clone.BodyProperties);
+        /// <summary>
+        /// A fingerprint of a text body's formatting: its markup with the text frame, the text and run interactions left
+        /// out, plus the content of each picture bullet image. Read from a package view; values compare only with other
+        /// values of this method.
+        /// </summary>
+        internal static string CreateFormattingFingerprint(OfficeXmlNode textBody, LegacyPptPartView ownerPart) {
+            if (textBody.IsNone) return string.Empty;
+            OfficeXmlNode clone = textBody.Clone();
+            OfficeXmlNode bodyProperties = clone.Child(A, "bodyPr");
+            if (!bodyProperties.IsNone) {
+                clone.InsertBefore(clone.CreateElement(A, "bodyPr"), bodyProperties);
+                bodyProperties.Remove();
             }
-            foreach (A.Text text in clone.Descendants<A.Text>()) text.Text = string.Empty;
-            foreach (A.RunProperties properties in clone.Descendants<A.RunProperties>()
-                         .ToArray()) {
-                properties.RemoveAllChildren<A.HyperlinkOnClick>();
-                properties.RemoveAllChildren<A.HyperlinkOnMouseOver>();
-                if (!properties.HasAttributes && !properties.HasChildren) properties.Remove();
+            foreach (OfficeXmlNode text in clone.Descendants(A, "t")) text.SetInnerText(string.Empty);
+            foreach (OfficeXmlNode properties in clone.Descendants(A, "rPr")) {
+                properties.RemoveChildren(A, "hlinkClick");
+                properties.RemoveChildren(A, "hlinkMouseOver");
+                if (properties.FirstChild.IsNone && !HasAttributes(properties)) properties.Remove();
             }
-            return clone.OuterXml + CreatePictureBulletImageFingerprint(
-                textBody, ownerPart);
+            return LegacyPptXml.Digest(clone) + CreatePictureBulletImageFingerprint(textBody, ownerPart);
         }
 
-        internal static string CreatePictureBulletImageFingerprint(
-            OpenXmlElement? root, OpenXmlPart? ownerPart) {
-            if (root == null || ownerPart == null) return string.Empty;
+        /// <summary>The content type and content digest of each picture bullet image below <paramref name="root"/>.</summary>
+        internal static string CreatePictureBulletImageFingerprint(OfficeXmlNode root, LegacyPptPartView ownerPart) {
+            if (root.IsNone || ownerPart.IsNone) return string.Empty;
             var result = new System.Text.StringBuilder();
-            foreach (A.PictureBullet bullet in root
-                         .Descendants<A.PictureBullet>()) {
-                string? relationshipId = bullet.GetFirstChild<A.Blip>()?
-                    .Embed?.Value;
+            foreach (OfficeXmlNode bullet in root.Descendants(A, "buBlip")) {
+                string? relationshipId = bullet.Child(A, "blip").RelationshipId("embed");
                 result.Append("|buBlip:").Append(relationshipId);
-                IdPartPair? pair = ownerPart.Parts.FirstOrDefault(item =>
-                    string.Equals(item.RelationshipId, relationshipId,
-                        StringComparison.Ordinal));
-                if (pair?.OpenXmlPart is not ImagePart imagePart) {
+                LegacyPptPartView image = ownerPart.PartById(relationshipId);
+                if (image.IsNone || image.ContentType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) != true) {
                     result.Append(":missing");
                     continue;
                 }
-                result.Append(':').Append(imagePart.ContentType).Append(':');
-                using Stream stream = imagePart.GetStream(FileMode.Open,
-                    FileAccess.Read);
+                result.Append(':').Append(image.ContentType).Append(':');
                 using SHA256 sha = SHA256.Create();
-                result.Append(Convert.ToBase64String(
-                    sha.ComputeHash(stream)));
+                result.Append(Convert.ToBase64String(sha.ComputeHash(image.GetBytes())));
             }
             return result.ToString();
         }
 
-        internal static string CreateTextFrameFingerprint(
-            P.TextBody? textBody) => textBody?.BodyProperties?.OuterXml
-                ?? string.Empty;
+        /// <summary>A fingerprint of a text body's frame properties.</summary>
+        internal static string CreateTextFrameFingerprint(OfficeXmlNode textBody) {
+            OfficeXmlNode bodyProperties = textBody.Child(A, "bodyPr");
+            return bodyProperties.IsNone ? string.Empty : LegacyPptXml.Digest(bodyProperties);
+        }
 
-        private static void AppendParagraphRuns(A.Paragraph paragraph,
+        // Whether an element has attributes other than namespace declarations.
+        private static bool HasAttributes(OfficeXmlNode element) {
+            if (element.Tree is not { } tree) throw new InvalidOperationException("Fingerprints are read from Open XML layer trees.");
+            int count = tree.AttributeCountOf(element.Node);
+            for (int index = 0; index < count; index++) {
+                tree.GetAttributeAt(element.Node, index, out int namespaceId, out string localName, out _);
+                if (namespaceId == OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Xmlns
+                    || namespaceId == OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.None && localName == "xmlns") continue;
+                return true;
+            }
+            return false;
+        }
+
+        private static void AppendParagraphRuns(OfficeXmlNode paragraph,
             LegacyPptTextBody source,
             LegacyPptTextProjectionPlan projectionPlan,
             int paragraphStart, int paragraphEnd,
-            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction) {
+            InteractionProjector? projectInteraction) {
             IReadOnlyList<int> boundaries = projectionPlan
                 .GetParagraphBoundaries(paragraphStart, paragraphEnd);
             for (int index = 0; index < boundaries.Count - 1; index++) {
@@ -424,55 +416,41 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
         }
 
-        private static void AppendRun(A.Paragraph paragraph, string text,
+        private static void AppendRun(OfficeXmlNode paragraph, string text,
             LegacyPptCharacterRun? source,
             LegacyPptTextLanguageRun? language,
             LegacyPptTextField? field,
             IReadOnlyList<LegacyPptInteraction> interactions,
-            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction) {
-            A.RunProperties? properties = CreateRunProperties(source,
+            InteractionProjector? projectInteraction) {
+            OfficeXmlNode properties = CreateRunProperties(paragraph, source,
                 language);
             if (projectInteraction != null && interactions.Count > 0) {
-                properties ??= new A.RunProperties();
+                if (properties.IsNone) properties = paragraph.CreateElement(A, "rPr");
                 foreach (LegacyPptInteraction interaction in interactions
                              .GroupBy(item => item.Trigger)
                              .Select(group => group.First())) {
-                    foreach (OpenXmlElement element in projectInteraction(interaction)) {
-                        properties.Append(element);
-                    }
+                    projectInteraction(interaction, properties);
                 }
             }
             if (field != null) {
-                var nativeField = new A.Field {
-                    Id = CreateFieldId(field),
-                    Type = MapFieldType(field)
-                };
-                if (properties != null) {
-                    nativeField.RunProperties = (A.RunProperties)properties
-                        .CloneNode(true);
-                }
-                nativeField.Text = new A.Text(text);
-                paragraph.Append(nativeField);
+                OfficeXmlNode nativeField = paragraph.AppendNew(A, "fld")
+                    .Set("id", CreateFieldId(field))
+                    .Set("type", MapFieldType(field));
+                if (!properties.IsNone) nativeField.Append(properties.Clone());
+                nativeField.AppendNew(A, "t").SetInnerText(text);
                 return;
             }
             string[] segments = text.Split(new[] { '\v' },
                 StringSplitOptions.None);
             for (int index = 0; index < segments.Length; index++) {
                 if (segments[index].Length > 0) {
-                    var run = new A.Run(new A.Text(segments[index]));
-                    if (properties != null) {
-                        run.PrependChild((A.RunProperties)properties
-                            .CloneNode(true));
-                    }
-                    paragraph.Append(run);
+                    OfficeXmlNode run = paragraph.AppendNew(A, "r");
+                    if (!properties.IsNone) run.Append(properties.Clone());
+                    run.AppendNew(A, "t").SetInnerText(segments[index]);
                 }
                 if (index < segments.Length - 1) {
-                    var lineBreak = new A.Break();
-                    if (properties != null) {
-                        lineBreak.RunProperties = (A.RunProperties)properties
-                            .CloneNode(true);
-                    }
-                    paragraph.Append(lineBreak);
+                    OfficeXmlNode lineBreak = paragraph.AppendNew(A, "br");
+                    if (!properties.IsNone) lineBreak.Append(properties.Clone());
                 }
             }
         }
@@ -506,25 +484,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return new Guid(guidBytes).ToString("B").ToUpperInvariant();
         }
 
-        private static A.RunProperties? CreateRunProperties(
+        // Detached run properties created in the paragraph's part, or none when the run has nothing to carry.
+        private static OfficeXmlNode CreateRunProperties(OfficeXmlNode context,
             LegacyPptCharacterRun? source,
             LegacyPptTextLanguageRun? language) {
             if ((source == null || !HasNativeCharacterFormatting(source))
                 && !HasNativeLanguageInformation(language)) {
-                return null;
+                return default;
             }
-            var properties = new A.RunProperties();
+            OfficeXmlNode properties = context.CreateElement(A, "rPr");
             if (source != null) ApplyCharacterFormatting(properties, source);
             ApplyLanguageInformation(properties, language);
             return properties;
         }
 
-        internal static A.DefaultRunProperties? CreateDefaultRunProperties(
+        /// <summary>Appends <c>a:defRPr</c> with the character formatting; false, adding nothing, when there is none.</summary>
+        internal static bool AppendDefaultRunProperties(OfficeXmlNode parent,
             LegacyPptCharacterRun source) {
-            if (!HasNativeCharacterFormatting(source)) return null;
-            var properties = new A.DefaultRunProperties();
-            ApplyCharacterFormatting(properties, source);
-            return properties;
+            if (!HasNativeCharacterFormatting(source)) return false;
+            ApplyCharacterFormatting(parent.AppendNew(A, "defRPr"), source);
+            return true;
         }
 
         private static bool HasNativeCharacterFormatting(LegacyPptCharacterRun source) =>
@@ -542,85 +521,80 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     || source.NeedsRecheck.HasValue);
 
         private static void ApplyLanguageInformation(
-            A.TextCharacterPropertiesType properties,
+            OfficeXmlNode properties,
             LegacyPptTextLanguageRun? source) {
             if (source == null) return;
-            if (source.Language != null) properties.Language = source.Language;
+            if (source.Language != null) properties.Set("lang", source.Language);
             if (source.AlternativeLanguage != null) {
-                properties.AlternativeLanguage = source.AlternativeLanguage;
+                properties.Set("altLang", source.AlternativeLanguage);
             }
-            if (source.NoProof) properties.NoProof = true;
+            if (source.NoProof) properties.Set("noProof", true);
             if (source.SpellingError.HasValue) {
-                properties.SpellingError = source.SpellingError.Value;
+                properties.Set("err", source.SpellingError.Value);
             }
             if (source.NeedsRecheck.HasValue) {
-                properties.Dirty = source.NeedsRecheck.Value;
+                properties.Set("dirty", source.NeedsRecheck.Value);
             }
         }
 
-        private static void ApplyParagraphEndLanguage(A.Paragraph paragraph,
+        private static void ApplyParagraphEndLanguage(OfficeXmlNode paragraph,
             LegacyPptTextProjectionPlan projectionPlan,
             int paragraphEnd) {
             LegacyPptTextLanguageRun? language = projectionPlan
                 .FindLanguageRun(paragraphEnd);
             if (!HasNativeLanguageInformation(language)) return;
-            var properties = new A.EndParagraphRunProperties();
-            ApplyLanguageInformation(properties, language);
-            paragraph.Append(properties);
+            ApplyLanguageInformation(paragraph.AppendNew(A, "endParaRPr"), language);
         }
 
-        private static void ApplyCharacterFormatting(A.TextCharacterPropertiesType properties,
+        private static void ApplyCharacterFormatting(OfficeXmlNode properties,
             LegacyPptCharacterRun source) {
-            if (source.Bold.HasValue) properties.Bold = source.Bold.Value;
-            if (source.Italic.HasValue) properties.Italic = source.Italic.Value;
-            if (source.Kumi.HasValue) properties.Kumimoji = source.Kumi.Value;
+            if (source.Bold.HasValue) properties.Set("b", source.Bold.Value);
+            if (source.Italic.HasValue) properties.Set("i", source.Italic.Value);
+            if (source.Kumi.HasValue) properties.Set("kumimoji", source.Kumi.Value);
             if (source.Underline.HasValue) {
-                properties.Underline = source.Underline.Value
-                    ? A.TextUnderlineValues.Single
-                    : A.TextUnderlineValues.None;
+                properties.Set("u", source.Underline.Value ? "sng" : "none");
             }
             if (source.FontSizePoints.HasValue && source.FontSizePoints.Value > 0) {
-                properties.FontSize = checked(source.FontSizePoints.Value * 100);
+                properties.Set("sz", checked(source.FontSizePoints.Value * 100));
             }
             if (source.BaselinePositionPercent.HasValue) {
-                properties.Baseline = checked(source.BaselinePositionPercent.Value * 1000);
+                properties.Set("baseline", checked(source.BaselinePositionPercent.Value * 1000));
             }
             if (source.ColorSchemeIndex.HasValue) {
-                properties.Append(new A.SolidFill(
-                    CreateSchemeColor(source.ColorSchemeIndex.Value)));
+                AppendSchemeColor(properties.AppendNew(A, "solidFill"), source.ColorSchemeIndex.Value);
             } else if (source.Color != null) {
-                properties.Append(new A.SolidFill(
-                    new A.RgbColorModelHex { Val = source.Color }));
+                properties.AppendNew(A, "solidFill").AppendNew(A, "srgbClr").Set("val", source.Color);
             }
             string? latinTypeface = source.AnsiTypeface ?? source.Typeface;
             latinTypeface = LegacyPptXmlText.SanitizeAttributeValue(latinTypeface);
             if (!string.IsNullOrEmpty(latinTypeface)) {
-                properties.Append(new A.LatinFont { Typeface = latinTypeface });
+                properties.AppendNew(A, "latin").Set("typeface", latinTypeface);
             }
             string? eastAsianTypeface = LegacyPptXmlText.SanitizeAttributeValue(
                 source.OldEastAsianTypeface);
             if (!string.IsNullOrEmpty(eastAsianTypeface)) {
-                properties.Append(new A.EastAsianFont { Typeface = eastAsianTypeface });
+                properties.AppendNew(A, "ea").Set("typeface", eastAsianTypeface);
             }
             string? symbolTypeface = LegacyPptXmlText.SanitizeAttributeValue(
                 source.SymbolTypeface);
             if (!string.IsNullOrEmpty(symbolTypeface)) {
-                properties.Append(new A.SymbolFont { Typeface = symbolTypeface });
+                properties.AppendNew(A, "sym").Set("typeface", symbolTypeface);
             }
         }
 
-        private static A.SchemeColor CreateSchemeColor(byte index) => new() {
-            Val = index switch {
-                0 => A.SchemeColorValues.Background1,
-                1 => A.SchemeColorValues.Text1,
-                2 => A.SchemeColorValues.Accent4,
-                3 => A.SchemeColorValues.Text2,
-                4 => A.SchemeColorValues.Background2,
-                5 => A.SchemeColorValues.Accent1,
-                6 => A.SchemeColorValues.Accent2,
-                7 => A.SchemeColorValues.Accent3,
+        private static void AppendSchemeColor(OfficeXmlNode parent, byte index) {
+            string value = index switch {
+                0 => "bg1",
+                1 => "tx1",
+                2 => "accent4",
+                3 => "tx2",
+                4 => "bg2",
+                5 => "accent1",
+                6 => "accent2",
+                7 => "accent3",
                 _ => throw new ArgumentOutOfRangeException(nameof(index))
-            }
-        };
+            };
+            parent.AppendNew(A, "schemeClr").Set("val", value);
+        }
     }
 }

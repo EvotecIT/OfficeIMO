@@ -1,149 +1,119 @@
+using OfficeIMO.Core.Internal.OpenXml;
+using System.Text;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        private static void ApplyLegacyRoundTripTheme(
-            SlideMasterPart target, LegacyPptRoundTripTheme? source) {
+        /// <summary>
+        /// Gives a slide master, notes master or handout master the binary round-trip theme: the theme part's content and
+        /// the colour map of the master root.
+        /// </summary>
+        private static void ApplyLegacyMasterRoundTripTheme(LegacyPptImportParts parts,
+            PowerPointPartRef target, LegacyPptRoundTripTheme? source) {
             if (source == null) return;
-            if (!source.IsOverride && !string.IsNullOrWhiteSpace(
-                    source.ThemeXml)) {
-                ThemePart themePart = target.ThemePart
-                    ?? target.AddNewPart<ThemePart>();
-                themePart.Theme = new A.Theme(
-                    NormalizeLegacyThemeRootXml(source.ThemeXml!));
-                themePart.Theme.Save();
+            if (!source.IsOverride && !string.IsNullOrWhiteSpace(source.ThemeXml)) {
+                string xml = NormalizeLegacyThemeRootXml(source.ThemeXml!);
+                PowerPointPartRef themePart = target.RelatedPart(LegacyThemeRelationshipType);
+                if (themePart.IsNone) {
+                    parts.AddXmlPart(target, LegacyThemeRelationshipType, LegacyPartFolder(target) + "theme/theme.xml",
+                        LegacyThemeContentType, xml, out _);
+                } else {
+                    OfficeOpcEditablePackage package = parts.Package;
+                    byte[] content = Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?>" + xml);
+                    package.ReplacePart(themePart.Name, content, content.Length);
+                    themePart.MarkEdited();
+                }
             }
-            ApplyLegacyRoundTripColorMap(target.SlideMaster,
-                source.ColorMappingXml);
-        }
-
-        private static void ApplyLegacyRoundTripTheme(
-            NotesMasterPart target, LegacyPptRoundTripTheme? source) {
-            if (source == null) return;
-            if (!source.IsOverride && !string.IsNullOrWhiteSpace(
-                    source.ThemeXml)) {
-                ThemePart themePart = target.ThemePart
-                    ?? target.AddNewPart<ThemePart>();
-                themePart.Theme = new A.Theme(
-                    NormalizeLegacyThemeRootXml(source.ThemeXml!));
-                themePart.Theme.Save();
-            }
-            ApplyLegacyRoundTripColorMap(target.NotesMaster,
-                source.ColorMappingXml);
-        }
-
-        private static void ApplyLegacyRoundTripTheme(
-            HandoutMasterPart target, LegacyPptRoundTripTheme? source) {
-            if (source == null) return;
-            if (!source.IsOverride && !string.IsNullOrWhiteSpace(
-                    source.ThemeXml)) {
-                ThemePart themePart = target.ThemePart
-                    ?? target.AddNewPart<ThemePart>();
-                themePart.Theme = new A.Theme(
-                    NormalizeLegacyThemeRootXml(source.ThemeXml!));
-                themePart.Theme.Save();
-            }
-            ApplyLegacyRoundTripColorMap(target.HandoutMaster,
-                source.ColorMappingXml);
-        }
-
-        private static void ApplyLegacyRoundTripTheme(
-            OpenXmlPartContainer target, LegacyPptRoundTripTheme? source) {
-            if (source == null) return;
-            if (!string.IsNullOrWhiteSpace(source.ThemeXml)) {
-                ThemeOverridePart themePart = target switch {
-                    SlidePart slidePart => slidePart.ThemeOverridePart
-                        ?? slidePart.AddNewPart<ThemeOverridePart>(),
-                    SlideLayoutPart layoutPart => layoutPart.ThemeOverridePart
-                        ?? layoutPart.AddNewPart<ThemeOverridePart>(),
-                    NotesSlidePart notesPart => notesPart.ThemeOverridePart
-                        ?? notesPart.AddNewPart<ThemeOverridePart>(),
-                    _ => throw new ArgumentException(
-                        "The target part cannot own a theme override.",
-                        nameof(target))
-                };
-                themePart.ThemeOverride = CreateLegacyThemeOverride(source);
-                themePart.ThemeOverride.Save();
-            }
-
-            P.ColorMapOverride? colorMap = CreateLegacyColorMapOverride(
-                source.ColorMappingXml);
-            if (colorMap == null) return;
-            switch (target) {
-                case SlidePart slidePart when slidePart.Slide != null:
-                    slidePart.Slide.ColorMapOverride = colorMap;
-                    break;
-                case SlideLayoutPart layoutPart
-                    when layoutPart.SlideLayout != null:
-                    layoutPart.SlideLayout.ColorMapOverride = colorMap;
-                    break;
-                case NotesSlidePart notesPart when notesPart.NotesSlide != null:
-                    notesPart.NotesSlide.ColorMapOverride = colorMap;
-                    break;
-            }
-        }
-
-        private static A.ThemeOverride CreateLegacyThemeOverride(
-            LegacyPptRoundTripTheme source) {
-            string xml = NormalizeLegacyThemeRootXml(source.ThemeXml!);
-            if (source.IsOverride) return new A.ThemeOverride(xml);
-            var theme = new A.Theme(xml);
-            OpenXmlElement?[] candidates = {
-                theme.ThemeElements?.ColorScheme?.CloneNode(true),
-                theme.ThemeElements?.FontScheme?.CloneNode(true),
-                theme.ThemeElements?.FormatScheme?.CloneNode(true)
+            OfficeXmlNode root = target.Root;
+            OfficeXmlChildOrder? order = root.LocalName switch {
+                "sldMaster" => LegacyPptImportXml.SlideMasterOrder,
+                "notesMaster" => LegacyPptImportXml.NotesMasterOrder,
+                "handoutMaster" => LegacyPptImportXml.HandoutMasterOrder,
+                _ => null
             };
-            OpenXmlElement[] elements = candidates.Where(element =>
-                    element != null).Cast<OpenXmlElement>()
-                .ToArray();
-            return new A.ThemeOverride(elements);
+            if (order == null || !TryReadLegacyColorMap(source.ColorMappingXml,
+                    out IReadOnlyDictionary<string, string> values)) return;
+            OfficeXmlNode map = root.GetOrAddChild(LegacyPptXml.P, "clrMap", order);
+            ApplyLegacyColorMapValues(map, values);
+            target.MarkEdited();
         }
 
-        private static void ApplyLegacyRoundTripColorMap(
-            P.SlideMaster? target, string? xml) {
-            if (target == null || !TryReadLegacyColorMap(xml,
-                    out IReadOnlyDictionary<string, A.ColorSchemeIndexValues>
-                        values)) return;
-            P.ColorMap map = target.ColorMap ??= new P.ColorMap();
-            ApplyLegacyColorMapValues(map, values);
+        /// <summary>
+        /// Gives a slide, layout or notes slide the binary round-trip theme as a theme override part, and its colour map
+        /// override.
+        /// </summary>
+        private static void ApplyLegacyRoundTripTheme(LegacyPptImportParts parts,
+            PowerPointPartRef target, LegacyPptRoundTripTheme? source) {
+            if (source == null) return;
+            OfficeXmlNode root = target.Root;
+            OfficeXmlChildOrder? order = root.LocalName switch {
+                "sld" => LegacyPptImportXml.SlideOrder,
+                "sldLayout" => LegacyPptImportXml.SlideLayoutOrder,
+                "notes" => LegacyPptImportXml.NotesSlideOrder,
+                _ => null
+            };
+            if (order == null) {
+                throw new ArgumentException(
+                    "The target part cannot own a theme override.",
+                    nameof(target));
+            }
+            if (!string.IsNullOrWhiteSpace(source.ThemeXml)) {
+                PowerPointPartRef overridePart = target.RelatedPart(LegacyThemeOverrideRelationshipType);
+                if (overridePart.IsNone) {
+                    parts.AddXmlPart(target, LegacyThemeOverrideRelationshipType,
+                        LegacyPartFolder(target) + "theme/themeOverride.xml", LegacyThemeOverrideContentType,
+                        LegacyPptXml.A, "themeOverride", themeOverride => WriteLegacyThemeOverride(themeOverride, source), out _);
+                } else {
+                    OfficeXmlNode themeOverride = overridePart.Root;
+                    foreach (OfficeXmlNode child in themeOverride.Children().ToList()) child.Remove();
+                    WriteLegacyThemeOverride(themeOverride, source);
+                    overridePart.MarkEdited();
+                }
+            }
+
+            if (!TryCreateLegacyColorMapOverride(source.ColorMappingXml, out XElement? mapping)) return;
+            OfficeXmlNode colorMap = root.SetChild(LegacyPptXml.P, "clrMapOvr", order);
+            if (mapping == null) {
+                colorMap.AddA("masterClrMapping");
+            } else {
+                OfficeXmlNode overrideMapping = colorMap.AddA("overrideClrMapping");
+                foreach (XAttribute attribute in mapping.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration)) {
+                    overrideMapping.Set(attribute.Name.LocalName, attribute.Value);
+                }
+            }
+            target.MarkEdited();
         }
 
-        private static void ApplyLegacyRoundTripColorMap(
-            P.NotesMaster? target, string? xml) {
-            if (target == null || !TryReadLegacyColorMap(xml,
-                    out IReadOnlyDictionary<string, A.ColorSchemeIndexValues>
-                        values)) return;
-            P.ColorMap map = target.ColorMap ??= new P.ColorMap();
-            ApplyLegacyColorMapValues(map, values);
-        }
-
-        private static void ApplyLegacyRoundTripColorMap(
-            P.HandoutMaster? target, string? xml) {
-            if (target == null || !TryReadLegacyColorMap(xml,
-                    out IReadOnlyDictionary<string, A.ColorSchemeIndexValues>
-                        values)) return;
-            P.ColorMap map = target.ColorMap ??= new P.ColorMap();
-            ApplyLegacyColorMapValues(map, values);
+        // The colour, font and format schemes of a theme, or the content of a theme override, under a:themeOverride.
+        private static void WriteLegacyThemeOverride(OfficeXmlNode target,
+            LegacyPptRoundTripTheme source) {
+            OfficeXmlNode parsed = LegacyPptImportXml.Parse(NormalizeLegacyThemeRootXml(source.ThemeXml!));
+            if (source.IsOverride) {
+                foreach (OfficeXmlNode child in parsed.Children().ToList()) target.Append(child);
+                return;
+            }
+            OfficeXmlNode elements = parsed.Child(LegacyPptXml.A, "themeElements");
+            foreach (string name in new[] { "clrScheme", "fontScheme", "fmtScheme" }) {
+                OfficeXmlNode scheme = elements.Child(LegacyPptXml.A, name);
+                if (!scheme.IsNone) target.Append(scheme);
+            }
         }
 
         private static bool TryReadLegacyColorMap(string? xml,
-            out IReadOnlyDictionary<string, A.ColorSchemeIndexValues> values) {
-            var result = new Dictionary<string, A.ColorSchemeIndexValues>(
-                StringComparer.Ordinal);
+            out IReadOnlyDictionary<string, string> values) {
+            var result = new Dictionary<string, string>(StringComparer.Ordinal);
             values = result;
             if (string.IsNullOrWhiteSpace(xml)) return false;
             XElement root = XElement.Parse(xml, LoadOptions.None);
             if (root.Name.LocalName != "clrMap") return false;
             foreach (XAttribute attribute in root.Attributes().Where(
                          attribute => !attribute.IsNamespaceDeclaration)) {
-                if (TryMapLegacyColorSchemeIndex(attribute.Value,
-                        out A.ColorSchemeIndexValues value)) {
-                    result[attribute.Name.LocalName] = value;
+                if (IsLegacyColorSchemeIndex(attribute.Value)) {
+                    result[attribute.Name.LocalName] = attribute.Value;
                 }
             }
             return result.Count > 0;
@@ -153,80 +123,36 @@ namespace OfficeIMO.PowerPoint {
             XElement.Parse(xml, LoadOptions.PreserveWhitespace)
                 .ToString(SaveOptions.DisableFormatting);
 
-        private static P.ColorMapOverride? CreateLegacyColorMapOverride(
-            string? xml) {
-            if (string.IsNullOrWhiteSpace(xml)) return null;
+        // The mapping of a colour map override: null for the master mapping, the override mapping otherwise; false when
+        // the markup has no mapping.
+        private static bool TryCreateLegacyColorMapOverride(
+            string? xml, out XElement? mapping) {
+            mapping = null;
+            if (string.IsNullOrWhiteSpace(xml)) return false;
             XElement root = XElement.Parse(xml, LoadOptions.None);
-            XElement? mapping = root.Name.LocalName == "clrMap"
-                ? ConvertToOverrideColorMapping(root)
+            XElement? found = root.Name.LocalName == "clrMap"
+                ? root
                 : root.Elements().FirstOrDefault(element =>
                     element.Name.LocalName is "masterClrMapping"
                         or "overrideClrMapping");
-            if (mapping == null) return null;
-            if (mapping.Name.LocalName == "masterClrMapping") {
-                return new P.ColorMapOverride(new A.MasterColorMapping());
-            }
-            XElement normalized = ConvertToOverrideColorMapping(mapping);
-            return new P.ColorMapOverride(new A.OverrideColorMapping(
-                normalized.ToString(SaveOptions.DisableFormatting)));
+            if (found == null) return false;
+            if (found.Name.LocalName == "masterClrMapping") return true;
+            mapping = found;
+            return true;
         }
 
-        private static XElement ConvertToOverrideColorMapping(
-            XElement source) => new(
-            XName.Get("overrideClrMapping",
-                "http://schemas.openxmlformats.org/drawingml/2006/main"),
-            new XAttribute(XNamespace.Xmlns + "a",
-                "http://schemas.openxmlformats.org/drawingml/2006/main"),
-            source.Attributes().Where(attribute =>
-                    !attribute.IsNamespaceDeclaration)
-                .Select(attribute => new XAttribute(
-                    attribute.Name.LocalName, attribute.Value)));
+        private static bool IsLegacyColorSchemeIndex(string value) => value is "dk1" or "lt1" or "dk2" or "lt2"
+            or "accent1" or "accent2" or "accent3" or "accent4" or "accent5" or "accent6" or "hlink" or "folHlink";
 
-        private static bool TryMapLegacyColorSchemeIndex(string value,
-            out A.ColorSchemeIndexValues result) {
-            switch (value) {
-                case "dk1": result = A.ColorSchemeIndexValues.Dark1; return true;
-                case "lt1": result = A.ColorSchemeIndexValues.Light1; return true;
-                case "dk2": result = A.ColorSchemeIndexValues.Dark2; return true;
-                case "lt2": result = A.ColorSchemeIndexValues.Light2; return true;
-                case "accent1": result = A.ColorSchemeIndexValues.Accent1; return true;
-                case "accent2": result = A.ColorSchemeIndexValues.Accent2; return true;
-                case "accent3": result = A.ColorSchemeIndexValues.Accent3; return true;
-                case "accent4": result = A.ColorSchemeIndexValues.Accent4; return true;
-                case "accent5": result = A.ColorSchemeIndexValues.Accent5; return true;
-                case "accent6": result = A.ColorSchemeIndexValues.Accent6; return true;
-                case "hlink": result = A.ColorSchemeIndexValues.Hyperlink; return true;
-                case "folHlink": result = A.ColorSchemeIndexValues.FollowedHyperlink; return true;
-                default: result = default; return false;
+        private static readonly string[] LegacyColorMapAttributes = {
+            "bg1", "tx1", "bg2", "tx2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink"
+        };
+
+        private static void ApplyLegacyColorMapValues(OfficeXmlNode target,
+            IReadOnlyDictionary<string, string> values) {
+            foreach (string name in LegacyColorMapAttributes) {
+                if (values.TryGetValue(name, out string? value)) target.Set(name, value);
             }
-        }
-
-        private static void ApplyLegacyColorMapValues(P.ColorMap target,
-            IReadOnlyDictionary<string, A.ColorSchemeIndexValues> values) {
-            if (values.TryGetValue("bg1", out A.ColorSchemeIndexValues bg1))
-                target.Background1 = bg1;
-            if (values.TryGetValue("tx1", out A.ColorSchemeIndexValues tx1))
-                target.Text1 = tx1;
-            if (values.TryGetValue("bg2", out A.ColorSchemeIndexValues bg2))
-                target.Background2 = bg2;
-            if (values.TryGetValue("tx2", out A.ColorSchemeIndexValues tx2))
-                target.Text2 = tx2;
-            if (values.TryGetValue("accent1", out A.ColorSchemeIndexValues accent1))
-                target.Accent1 = accent1;
-            if (values.TryGetValue("accent2", out A.ColorSchemeIndexValues accent2))
-                target.Accent2 = accent2;
-            if (values.TryGetValue("accent3", out A.ColorSchemeIndexValues accent3))
-                target.Accent3 = accent3;
-            if (values.TryGetValue("accent4", out A.ColorSchemeIndexValues accent4))
-                target.Accent4 = accent4;
-            if (values.TryGetValue("accent5", out A.ColorSchemeIndexValues accent5))
-                target.Accent5 = accent5;
-            if (values.TryGetValue("accent6", out A.ColorSchemeIndexValues accent6))
-                target.Accent6 = accent6;
-            if (values.TryGetValue("hlink", out A.ColorSchemeIndexValues hyperlink))
-                target.Hyperlink = hyperlink;
-            if (values.TryGetValue("folHlink", out A.ColorSchemeIndexValues followed))
-                target.FollowedHyperlink = followed;
         }
     }
 }

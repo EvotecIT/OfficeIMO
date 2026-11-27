@@ -1,14 +1,14 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
-        private static void ProjectLegacyMainMasterLayouts(LegacyPptLayoutCatalog catalog,
-            LegacyPptDocument legacy, LegacyPptMaster master, SlideMasterPart masterPart,
+        private static void ProjectLegacyMainMasterLayouts(LegacyPptImportParts parts, LegacyPptLayoutCatalog catalog,
+            LegacyPptDocument legacy, LegacyPptMaster master, PowerPointPartRef masterPart,
             int masterIndex) {
             LegacyPptSlide[] slides = legacy.Slides.Where(slide => slide.MasterId == master.MasterId)
                 .ToArray();
@@ -17,83 +17,113 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            SlideLayoutPart firstLayout = masterPart.SlideLayoutParts.First();
+            PowerPointPartRef firstLayout = LegacyPptImportParts.Related(masterPart, LegacySlideLayoutRelationshipType).First();
             LegacyPptSlide[] representativeSlides = slides
                 .GroupBy(LegacyPptLayoutCatalog.CreateKey, StringComparer.Ordinal)
                 .Select(group => group.First())
                 .ToArray();
             for (int index = 0; index < representativeSlides.Length; index++) {
                 LegacyPptSlide representative = representativeSlides[index];
-                SlideLayoutPart layoutPart;
+                PowerPointPartRef layoutPart;
                 int layoutIndex;
                 if (index == 0) {
                     layoutPart = firstLayout;
                     layoutIndex = 0;
                 } else {
-                    layoutPart = AddLegacyLayoutPart(masterPart);
-                    layoutIndex = masterPart.SlideLayoutParts.Count() - 1;
+                    layoutPart = AddLegacyLayoutPart(parts, masterPart);
+                    layoutIndex = LegacyPptImportParts.Related(masterPart, LegacySlideLayoutRelationshipType).Count - 1;
                 }
 
                 string name = GetLegacySlideLayoutName(master, representative);
-                layoutPart.SlideLayout = CreateLegacySlideLayout(name, representative,
+                WriteLegacySlideLayout(layoutPart.Root, name, representative,
                     legacy.SlideWidth, legacy.SlideHeight);
-                layoutPart.SlideLayout.Save();
+                layoutPart.MarkEdited();
                 catalog.Add(representative, new LegacyPptLayoutTarget(masterIndex, layoutIndex));
             }
             catalog.AddMasterFallback(master.MasterId, new LegacyPptLayoutTarget(masterIndex, 0));
-            masterPart.SlideMaster?.Save();
         }
 
-        private static SlideLayoutPart AddLegacyLayoutPart(SlideMasterPart masterPart) {
-            string relationshipId = GetNextRelationshipId(masterPart);
-            SlideLayoutPart layoutPart = masterPart.AddNewPart<SlideLayoutPart>(relationshipId);
-            layoutPart.AddPart(masterPart);
-            SlideMaster slideMaster = masterPart.SlideMaster
-                ?? throw new InvalidDataException("The projected PowerPoint package has no slide master.");
-            SlideLayoutIdList layoutIds = slideMaster.SlideLayoutIdList ??= new SlideLayoutIdList();
-            uint layoutId = layoutIds.Elements<SlideLayoutId>()
-                .Select(item => item.Id?.Value ?? 2147483648U)
+        /// <summary>
+        /// Adds an empty layout part to a master: the master's relationship to it with the next free <c>rIdN</c>, the
+        /// layout's relationship back, and its entry in the master's layout list.
+        /// </summary>
+        private static PowerPointPartRef AddLegacyLayoutPart(LegacyPptImportParts parts, PowerPointPartRef masterPart) {
+            OfficeOpcEditablePackage package = parts.Package;
+            string relationshipId = LegacyPptImportParts.SmallestFreeRelationshipId(package, masterPart.Name);
+            parts.AddXmlPart(masterPart, LegacySlideLayoutRelationshipType, "/ppt/slideLayouts/slideLayout.xml",
+                LegacySlideLayoutContentType, LegacyPptXml.P, "sldLayout", _ => { }, out LegacyPptImportPart added,
+                relationshipId);
+            PowerPointPartRef layoutPart = PowerPointPartRef.Package(parts.Document, added.PartName!);
+            package.AddRelationship(layoutPart.Name, LegacySlideMasterRelationshipType,
+                masterPart.RelativeTo(layoutPart), id: LegacyPptImportParts.NewSdkRelationshipId());
+            OfficeXmlNode slideMaster = masterPart.Root;
+            if (!slideMaster.Is(LegacyPptXml.P, "sldMaster")) {
+                throw new InvalidDataException("The projected PowerPoint package has no slide master.");
+            }
+            OfficeXmlNode layoutIds = slideMaster.GetOrAddChild(LegacyPptXml.P, "sldLayoutIdLst", LegacyPptImportXml.SlideMasterOrder);
+            uint layoutId = layoutIds.Children(LegacyPptXml.P, "sldLayoutId").ToList()
+                .Select(item => item.UInt("id") ?? 2147483648U)
                 .DefaultIfEmpty(2147483648U)
                 .Max() + 1U;
-            layoutIds.Append(new SlideLayoutId { Id = layoutId, RelationshipId = relationshipId });
+            layoutIds.AddP("sldLayoutId").Set("id", (long)layoutId).SetRelationship("id", relationshipId);
+            masterPart.MarkEdited();
+            parts.Document.InvalidatePackageRelationships();
             return layoutPart;
         }
 
-        private static SlideLayout CreateLegacySlideLayout(string name,
+        // Writes a layout root for slides of one binary layout: placeholders, header and footer placeholders and settings.
+        private static void WriteLegacySlideLayout(OfficeXmlNode layout, string name,
             LegacyPptSlide source, int slideWidth, int slideHeight) {
-            var layout = new SlideLayout(
-                new CommonSlideData(CreateLegacyLayoutPlaceholderTree(source.Shapes,
-                    source.HeaderFooter, slideWidth, slideHeight)) {
-                    Name = name
-                },
-                new ColorMapOverride(new A.MasterColorMapping())) {
-                    Type = MapLegacyLayoutType(source.Layout, source.LayoutPlaceholderTypes)
-                };
-            ApplyLegacyHeaderFooter(layout, layout.CommonSlideData,
+            ClearLegacyRoot(layout);
+            layout.Set("type", MapLegacyLayoutType(source.Layout, source.LayoutPlaceholderTypes));
+            OfficeXmlNode commonSlideData = layout.AddP("cSld").Set("name", name);
+            WriteLegacyLayoutPlaceholderTree(commonSlideData.AddP("spTree"), source.Shapes,
+                source.HeaderFooter, slideWidth, slideHeight);
+            layout.AddP("clrMapOvr").AddA("masterClrMapping");
+            ApplyLegacyHeaderFooter(layout, commonSlideData,
                 source.HeaderFooter, allowHeader: false);
-            return layout;
         }
 
-        private static ShapeTree CreateLegacyLayoutPlaceholderTree(
+        // Removes a root's children and attributes other than namespace declarations, as replacing the root does.
+        private static void ClearLegacyRoot(OfficeXmlNode root) {
+            foreach (OfficeXmlNode child in root.Children().ToList()) child.Remove();
+            if (root.Tree is { } tree) {
+                for (int index = tree.AttributeCountOf(root.Node) - 1; index >= 0; index--) {
+                    tree.GetAttributeAt(root.Node, index, out int namespaceId, out string localName, out _);
+                    if (namespaceId == Core.Internal.OpenXml.OfficeXmlNamespaces.Xmlns
+                        || namespaceId == Core.Internal.OpenXml.OfficeXmlNamespaces.None && localName == "xmlns") continue;
+                    root.RemoveAttribute(namespaceId, localName);
+                }
+            }
+        }
+
+        /// <summary>Writes the group header of a shape tree: its non-visual properties and an empty transform.</summary>
+        private static void WriteLegacyShapeTreeHeader(OfficeXmlNode tree) {
+            OfficeXmlNode nonVisual = tree.AddP("nvGrpSpPr");
+            nonVisual.AddP("cNvPr").Set("id", 1L).Set("name", string.Empty);
+            nonVisual.AddP("cNvGrpSpPr");
+            nonVisual.AddP("nvPr");
+            OfficeXmlNode transform = tree.AddP("grpSpPr").AddA("xfrm");
+            transform.AddA("off").Set("x", 0L).Set("y", 0L);
+            transform.AddA("ext").Set("cx", 0L).Set("cy", 0L);
+            transform.AddA("chOff").Set("x", 0L).Set("y", 0L);
+            transform.AddA("chExt").Set("cx", 0L).Set("cy", 0L);
+        }
+
+        private static void WriteLegacyLayoutPlaceholderTree(OfficeXmlNode tree,
             IReadOnlyList<LegacyPptShape> shapes,
             LegacyPptHeaderFooterSettings? headerFooter,
             int slideWidth, int slideHeight) {
-            var tree = new ShapeTree(
-                new NonVisualGroupShapeProperties(
-                    new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
-                    new NonVisualGroupShapeDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties()),
-                PowerPointUtils.CreateDefaultGroupShapeProperties());
+            WriteLegacyShapeTreeHeader(tree);
             uint shapeId = 2U;
             foreach (LegacyPptShape source in shapes.Where(shape => shape.Placeholder != null)) {
-                tree.Append(CreateLegacyLayoutPlaceholderShape(source, shapeId++));
+                AppendLegacyLayoutPlaceholderShape(tree, source, shapeId++);
             }
             AppendLegacyHeaderFooterPlaceholders(tree, headerFooter, slideWidth,
                 slideHeight, ref shapeId);
-            return tree;
         }
 
-        private static void AppendLegacyHeaderFooterPlaceholders(ShapeTree tree,
+        private static void AppendLegacyHeaderFooterPlaceholders(OfficeXmlNode tree,
             LegacyPptHeaderFooterSettings? settings, int slideWidth,
             int slideHeight, ref uint shapeId) {
             if (settings == null) return;
@@ -105,155 +135,144 @@ namespace OfficeIMO.PowerPoint {
             long sideWidth = Math.Max(1L, width / 5L);
             long centerWidth = Math.Max(1L, width / 3L);
             if (settings.ShowDate || settings.UserDateText.Length > 0) {
-                AppendLegacyHeaderFooterPlaceholder(tree, PlaceholderValues.DateAndTime,
+                AppendLegacyHeaderFooterPlaceholder(tree, PowerPointPlaceholderType.DateAndTime,
                     settings.UserDateText, margin, top, sideWidth, placeholderHeight,
                     ref shapeId);
             }
             if (settings.ShowFooter || settings.FooterText.Length > 0) {
-                AppendLegacyHeaderFooterPlaceholder(tree, PlaceholderValues.Footer,
+                AppendLegacyHeaderFooterPlaceholder(tree, PowerPointPlaceholderType.Footer,
                     settings.FooterText, (width - centerWidth) / 2L, top,
                     centerWidth, placeholderHeight, ref shapeId);
             }
             if (settings.ShowSlideNumber) {
-                AppendLegacyHeaderFooterPlaceholder(tree, PlaceholderValues.SlideNumber,
+                AppendLegacyHeaderFooterPlaceholder(tree, PowerPointPlaceholderType.SlideNumber,
                     string.Empty, width - margin - sideWidth, top, sideWidth,
                     placeholderHeight, ref shapeId);
             }
         }
 
-        private static void AppendLegacyHeaderFooterPlaceholder(ShapeTree tree,
-            PlaceholderValues type, string text, long left, long top, long width,
+        private static void AppendLegacyHeaderFooterPlaceholder(OfficeXmlNode tree,
+            PowerPointPlaceholderType type, string text, long left, long top, long width,
             long height, ref uint shapeId) {
-            bool exists = tree.Elements<Shape>().Any(shape => shape.NonVisualShapeProperties?
-                .ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value == type);
+            string token = type.ToOpenXmlToken();
+            bool exists = tree.Children(LegacyPptXml.P, "sp").ToList().Any(shape =>
+                shape.Path(LegacyPptXml.P, "nvSpPr", "nvPr", "ph").Attribute("type") == token);
             if (exists) return;
-            string name = type == PlaceholderValues.DateAndTime
+            string name = type == PowerPointPlaceholderType.DateAndTime
                 ? "Binary Date Placeholder"
-                : type == PlaceholderValues.Footer
+                : type == PowerPointPlaceholderType.Footer
                     ? "Binary Footer Placeholder"
-                    : type == PlaceholderValues.SlideNumber
+                    : type == PowerPointPlaceholderType.SlideNumber
                         ? "Binary Slide Number Placeholder"
                         : "Binary Header/Footer Placeholder";
-            tree.Append(new Shape(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = shapeId++, Name = name },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties(
-                        new PlaceholderShape { Type = type })),
-                new ShapeProperties(new A.Transform2D(
-                    new A.Offset { X = left, Y = top },
-                    new A.Extents { Cx = width, Cy = height })),
-                new TextBody(
-                    new A.BodyProperties(),
-                    new A.ListStyle(),
-                    new A.Paragraph(PowerPointTextContent.CreateInlineContent(text)
-                        .Append(new A.EndParagraphRunProperties())))));
+            OfficeXmlNode shape = tree.AddP("sp");
+            OfficeXmlNode nonVisual = shape.AddP("nvSpPr");
+            nonVisual.AddP("cNvPr").Set("id", (long)shapeId++).Set("name", name);
+            nonVisual.AddP("cNvSpPr").AddA("spLocks").Set("noGrp", true);
+            nonVisual.AddP("nvPr").AddP("ph").Set("type", token);
+            AppendLegacyOffsetAndExtents(shape.AddP("spPr").AddA("xfrm"), left, top, width, height);
+            OfficeXmlNode textBody = shape.AddP("txBody");
+            textBody.AddA("bodyPr");
+            textBody.AddA("lstStyle");
+            AppendLegacyPlainParagraph(textBody, text);
         }
 
-        private static Shape CreateLegacyLayoutPlaceholderShape(LegacyPptShape source,
+        private static void AppendLegacyOffsetAndExtents(OfficeXmlNode transform, long left, long top, long width, long height) {
+            transform.AddA("off").Set("x", left).Set("y", top);
+            transform.AddA("ext").Set("cx", width).Set("cy", height);
+        }
+
+        private static void AppendLegacyLayoutPlaceholderShape(OfficeXmlNode tree, LegacyPptShape source,
             uint shapeId) {
             LegacyPptPlaceholder placeholder = source.Placeholder
                 ?? throw new InvalidOperationException("A layout placeholder source has no PlaceholderAtom.");
             string name = source.Metadata.Name
                 ?? $"Binary {placeholder.Kind} Placeholder {placeholder.Position}";
-            var shape = new Shape(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = shapeId, Name = name },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties(
-                        CreateLegacyPlaceholderShape(placeholder))),
-                new ShapeProperties(
-                    new A.Transform2D(
-                        new A.Offset {
-                            X = ToEmus(source.Bounds.Left),
-                            Y = ToEmus(source.Bounds.Top)
-                        },
-                        new A.Extents {
-                            Cx = Math.Max(1L, ToEmus(source.Bounds.Width)),
-                            Cy = Math.Max(1L, ToEmus(source.Bounds.Height))
-                        })),
-                new TextBody(
-                    new A.BodyProperties(),
-                    new A.ListStyle(),
-                    new A.Paragraph(new A.EndParagraphRunProperties())));
+            OfficeXmlNode shape = tree.AddP("sp");
+            OfficeXmlNode nonVisual = shape.AddP("nvSpPr");
+            OfficeXmlNode drawing = nonVisual.AddP("cNvPr").Set("id", (long)shapeId).Set("name", name);
+            nonVisual.AddP("cNvSpPr").AddA("spLocks").Set("noGrp", true);
+            WriteLegacyPlaceholderShape(nonVisual.AddP("nvPr").AddP("ph"), placeholder);
+            AppendLegacyOffsetAndExtents(shape.AddP("spPr").AddA("xfrm"),
+                ToEmus(source.Bounds.Left), ToEmus(source.Bounds.Top),
+                Math.Max(1L, ToEmus(source.Bounds.Width)), Math.Max(1L, ToEmus(source.Bounds.Height)));
+            OfficeXmlNode textBody = shape.AddP("txBody");
+            textBody.AddA("bodyPr");
+            textBody.AddA("lstStyle");
+            textBody.AddA("p").AddA("endParaRPr");
             if (source.Metadata.Description != null) {
-                shape.NonVisualShapeProperties!.NonVisualDrawingProperties!.Description =
-                    source.Metadata.Description;
+                drawing.Set("descr", source.Metadata.Description);
             }
-            return shape;
         }
 
-        private static PlaceholderShape CreateLegacyPlaceholderShape(
+        private static void WriteLegacyPlaceholderShape(OfficeXmlNode target,
             LegacyPptPlaceholder source) {
-            PlaceholderValues? type = MapPlaceholder(source.Kind);
-            var target = new PlaceholderShape {
-                Index = checked((uint)source.Position),
-                Size = source.Size switch {
-                    LegacyPptPlaceholderSize.Full => PlaceholderSizeValues.Full,
-                    LegacyPptPlaceholderSize.Half => PlaceholderSizeValues.Half,
-                    LegacyPptPlaceholderSize.Quarter => PlaceholderSizeValues.Quarter,
-                    _ => throw new ArgumentOutOfRangeException(nameof(source))
-                }
+            PowerPointPlaceholderType? type = MapPlaceholder(source.Kind);
+            string size = source.Size switch {
+                LegacyPptPlaceholderSize.Full => "full",
+                LegacyPptPlaceholderSize.Half => "half",
+                LegacyPptPlaceholderSize.Quarter => "quarter",
+                _ => throw new ArgumentOutOfRangeException(nameof(source))
             };
-            if (type.HasValue) target.Type = type.Value;
+            uint index = checked((uint)source.Position);
+            if (type.HasValue) target.Set("type", type.Value.ToOpenXmlToken());
             if (source.Kind == LegacyPptPlaceholderKind.VerticalTitle
                 || source.Kind == LegacyPptPlaceholderKind.VerticalBody
                 || source.Kind == LegacyPptPlaceholderKind.VerticalObject) {
-                target.Orientation = DirectionValues.Vertical;
+                target.Set("orient", "vert");
             }
-            return target;
+            target.Set("sz", size).Set("idx", (long)index);
         }
 
-        private static void ApplyLegacyPlaceholder(OpenXmlElement target,
+        private static void ApplyLegacyPlaceholder(OfficeXmlNode target,
             LegacyPptShape source) {
-            if (source.Placeholder == null) return;
-            ApplicationNonVisualDrawingProperties? applicationProperties = target switch {
-                Shape shape => shape.NonVisualShapeProperties?
-                    .ApplicationNonVisualDrawingProperties,
-                ConnectionShape connector => connector.NonVisualConnectionShapeProperties?
-                    .ApplicationNonVisualDrawingProperties,
-                Picture picture => picture.NonVisualPictureProperties?
-                    .ApplicationNonVisualDrawingProperties,
-                GraphicFrame frame => frame.NonVisualGraphicFrameProperties?
-                    .ApplicationNonVisualDrawingProperties,
+            if (source.Placeholder == null || target.IsNone || target.NamespaceId != LegacyPptXml.P) return;
+            string? nonVisual = target.LocalName switch {
+                "sp" => "nvSpPr",
+                "cxnSp" => "nvCxnSpPr",
+                "pic" => "nvPicPr",
+                "graphicFrame" => "nvGraphicFramePr",
                 _ => null
             };
-            if (applicationProperties == null) return;
-            applicationProperties.PlaceholderShape = CreateLegacyPlaceholderShape(source.Placeholder);
+            if (nonVisual == null) return;
+            OfficeXmlNode applicationProperties = target.Child(LegacyPptXml.P, nonVisual).Child(LegacyPptXml.P, "nvPr");
+            if (applicationProperties.IsNone) return;
+            WriteLegacyPlaceholderShape(
+                applicationProperties.SetChild(LegacyPptXml.P, "ph", LegacyPptImportXml.ApplicationPropertiesOrder),
+                source.Placeholder);
         }
 
-        private static SlideLayoutValues MapLegacyLayoutType(LegacyPptSlideLayoutType? type,
+        private static string MapLegacyLayoutType(LegacyPptSlideLayoutType? type,
             IReadOnlyList<LegacyPptPlaceholderKind> placeholderTypes) => type switch {
-                LegacyPptSlideLayoutType.TitleSlide => SlideLayoutValues.Title,
+                LegacyPptSlideLayoutType.TitleSlide => "title",
                 LegacyPptSlideLayoutType.TitleBody => MapTitleBodyLayout(placeholderTypes),
-                LegacyPptSlideLayoutType.MasterTitle => SlideLayoutValues.Title,
-                LegacyPptSlideLayoutType.TitleOnly => SlideLayoutValues.TitleOnly,
-                LegacyPptSlideLayoutType.TwoColumns => SlideLayoutValues.TwoColumnText,
-                LegacyPptSlideLayoutType.TwoRows => SlideLayoutValues.TwoObjects,
-                LegacyPptSlideLayoutType.ColumnTwoRows => SlideLayoutValues.ObjectAndTwoObjects,
-                LegacyPptSlideLayoutType.TwoRowsColumn => SlideLayoutValues.TwoObjectsAndObject,
-                LegacyPptSlideLayoutType.TwoColumnsRow => SlideLayoutValues.TwoObjectsOverText,
-                LegacyPptSlideLayoutType.FourObjects => SlideLayoutValues.FourObjects,
-                LegacyPptSlideLayoutType.BigObject => SlideLayoutValues.ObjectOnly,
-                LegacyPptSlideLayoutType.Blank => SlideLayoutValues.Blank,
-                LegacyPptSlideLayoutType.VerticalTitleBody => SlideLayoutValues.VerticalTitleAndText,
-                LegacyPptSlideLayoutType.VerticalTwoRows =>
-                    SlideLayoutValues.VerticalTitleAndTextOverChart,
-                _ => SlideLayoutValues.Custom
+                LegacyPptSlideLayoutType.MasterTitle => "title",
+                LegacyPptSlideLayoutType.TitleOnly => "titleOnly",
+                LegacyPptSlideLayoutType.TwoColumns => "twoColTx",
+                LegacyPptSlideLayoutType.TwoRows => "twoObj",
+                LegacyPptSlideLayoutType.ColumnTwoRows => "objAndTwoObj",
+                LegacyPptSlideLayoutType.TwoRowsColumn => "twoObjAndObj",
+                LegacyPptSlideLayoutType.TwoColumnsRow => "twoObjOverTx",
+                LegacyPptSlideLayoutType.FourObjects => "fourObj",
+                LegacyPptSlideLayoutType.BigObject => "objOnly",
+                LegacyPptSlideLayoutType.Blank => "blank",
+                LegacyPptSlideLayoutType.VerticalTitleBody => "vertTitleAndTx",
+                LegacyPptSlideLayoutType.VerticalTwoRows => "vertTitleAndTxOverChart",
+                _ => "cust"
             };
 
-        private static SlideLayoutValues MapTitleBodyLayout(
+        private static string MapTitleBodyLayout(
             IReadOnlyList<LegacyPptPlaceholderKind> placeholderTypes) {
             LegacyPptPlaceholderKind content = placeholderTypes.Skip(1)
                 .FirstOrDefault(value => value != LegacyPptPlaceholderKind.None);
             return content switch {
-                LegacyPptPlaceholderKind.Table => SlideLayoutValues.Table,
-                LegacyPptPlaceholderKind.Graph => SlideLayoutValues.Chart,
-                LegacyPptPlaceholderKind.ClipArt => SlideLayoutValues.TextAndClipArt,
-                LegacyPptPlaceholderKind.Media => SlideLayoutValues.TextAndMedia,
+                LegacyPptPlaceholderKind.Table => "tbl",
+                LegacyPptPlaceholderKind.Graph => "chart",
+                LegacyPptPlaceholderKind.ClipArt => "txAndClipArt",
+                LegacyPptPlaceholderKind.Media => "txAndMedia",
                 LegacyPptPlaceholderKind.Object or LegacyPptPlaceholderKind.OrganizationChart
-                    or LegacyPptPlaceholderKind.VerticalObject => SlideLayoutValues.TextAndObject,
-                _ => SlideLayoutValues.Text
+                    or LegacyPptPlaceholderKind.VerticalObject => "txAndObj",
+                _ => "tx"
             };
         }
 
