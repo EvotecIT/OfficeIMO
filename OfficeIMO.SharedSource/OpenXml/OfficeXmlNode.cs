@@ -329,9 +329,14 @@ namespace OfficeIMO.OpenXml.Internal {
             return new OfficeXmlNode(scratch, scratch.Root);
         }
 
-        /// <summary>Creates a detached element in a namespace outside the fixed ones, written with <paramref name="prefix"/>.</summary>
+        /// <summary>
+        /// Creates a detached element in a namespace outside the fixed ones, written with <paramref name="prefix"/>. For an
+        /// SDK element it is the SDK's typed class this element expects as its child, or an unknown element where the SDK
+        /// has none, made directly rather than parsed from markup.
+        /// </summary>
         internal OfficeXmlNode CreateElement(string namespaceUri, string localName, string prefix) {
             if (_tree != null) return new OfficeXmlNode(_tree, _tree.CreateElement(namespaceUri, localName, prefix));
+            if (_sdk != null) return FromSdk(OfficeSdkXml.CreateElement(_sdk, namespaceUri, localName, prefix));
             var table = new OfficeXmlNamespaces.Table();
             OfficeXmlTree scratch = OfficeXmlTree.Create(table, OfficeXmlNamespaces.None, "scratch", 8);
             int node = scratch.CreateElement(namespaceUri, localName, prefix);

@@ -145,6 +145,16 @@ namespace OfficeIMO.OpenXml.Internal {
             return prototype is OpenXmlUnknownElement ? null : prototype.CloneNode(true);
         }
 
+        /// <summary>
+        /// A new, detached element in a namespace outside the fixed ones: the typed class <paramref name="context"/> expects
+        /// as its child, or an unknown element. Neither is parsed from markup, which would leave the element's namespace
+        /// declaration repeated on the part root once the subtree is attached.
+        /// </summary>
+        internal static object CreateElement(object context, string namespaceUri, string localName, string prefix) {
+            OpenXmlElement prototype = Prototype(E(context), namespaceUri, localName, prefix);
+            return prototype is OpenXmlUnknownElement ? new OpenXmlUnknownElement(prefix, localName, namespaceUri) : prototype.CloneNode(true);
+        }
+
         /// <summary>Inserts an SDK element, moving it out of a detached copy, and returns it.</summary>
         internal static object InsertBefore(object parent, object child, object? reference) {
             OpenXmlElement target = E(parent), value = E(child);
