@@ -322,6 +322,18 @@ internal sealed partial class OfficeXmlTree {
     internal int AttributeCountOf(int node) => _nodes[node].AttrCount;
 
     /// <summary>
+    /// The value of the element's attribute at <paramref name="index"/>, from zero to <see cref="AttributeCountOf"/>, with its
+    /// name. Namespace declarations are attributes in the <see cref="OfficeXmlNamespaces.Xmlns"/> namespace.
+    /// </summary>
+    internal string GetAttributeAt(int node, int index, out OfficeXmlName name) {
+        ref Node record = ref _nodes[node];
+        if ((uint)index >= (uint)record.AttrCount) throw new ArgumentOutOfRangeException(nameof(index));
+        ref Attr attribute = ref _attrs[record.AttrFirst + index];
+        name = Namespaces.GetName(attribute.Name);
+        return AttributeValue(ref attribute);
+    }
+
+    /// <summary>
     /// Whether an element declares a namespace outside the ECMA-376 set. A copy of its descendants placed elsewhere keeps
     /// element and attribute names, which the writer binds again, but a prefix such a namespace lends to a QName value
     /// would be lost.
