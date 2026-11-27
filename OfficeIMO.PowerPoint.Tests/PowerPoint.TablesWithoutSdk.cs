@@ -109,12 +109,15 @@ public class PowerPointTablesWithoutSdkTests {
         PowerPointTableCell cell = table.GetCell(2, 2);
         PowerPointParagraph paragraph = cell.Paragraphs[0];
         PowerPointTextRun run = cell.Runs[0];
+        PowerPointTextRun lines = table.GetCell(2, 1).Paragraphs[0].AddText("A\nB");
         table.RemoveRow(2);
 
         _ = presentation.OpenXmlDocument;
 
         Assert.Equal("Total", paragraph.Text);
         Assert.Equal("Total", run.Text);
+        Assert.Equal("Total", paragraph.Runs[0].Text);
+        Assert.Equal("A\nB", lines.Text);
     }
 
     [Fact]

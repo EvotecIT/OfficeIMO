@@ -96,8 +96,10 @@ namespace OfficeIMO.PowerPoint {
 
         // A run wrapper for a child of this paragraph, bound the same way the paragraph is.
         // A node taken from the package tree binds by its place there, even when the SDK opened after it was taken.
+        // A run of a standalone copy belongs to no part, so it never binds either.
         private PowerPointTextRun RunFor(OfficeXmlNode element) =>
-            _packageSlide != null && element.Tree != null
+            _standalone ? new PowerPointTextRun(element, default, default)
+            : _packageSlide != null && element.Tree != null
                 ? new PowerPointTextRun(_packageSlide, element.Tree, element.Node)
                 : new PowerPointTextRun(element, SlidePartRef, OwnerPartRef, owningSlide: _owningSlide);
 

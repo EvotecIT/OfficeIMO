@@ -76,7 +76,8 @@ namespace OfficeIMO.PowerPoint {
                     if (_lineContinuation != null) {
                         for (int index = 0; index < _lineContinuation.Count; index++) {
                             OfficeXmlNode line = _lineContinuation[index];
-                            if (line.Tree != null) _lineContinuation[index] = OfficeXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, line.Tree, line.Node));
+                            // A line copied out when it was removed stays with its copy.
+                            if (ReferenceEquals(line.Tree, _element.Tree)) _lineContinuation[index] = OfficeXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, line.Tree, line.Node));
                         }
                     }
                     _element = OfficeXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, _element.Tree, _element.Node));
@@ -86,6 +87,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         void IPackageSdkBinding.KeepDetached() {
+            // The lines the run continues on are copied with it, so its text and formatting stay whole.
+            if (_lineContinuation != null) {
+                for (int index = 0; index < _lineContinuation.Count; index++) {
+                    OfficeXmlNode line = _lineContinuation[index];
+                    if (line.Tree != null && !line.IsAttached) _lineContinuation[index] = PowerPointHeldNode.Standalone(line);
+                }
+            }
             if (!_standalone && _element.Tree != null && !_element.IsAttached) {
                 _element = PowerPointHeldNode.Standalone(_element);
                 _standalone = true;
