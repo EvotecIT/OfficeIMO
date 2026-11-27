@@ -25,7 +25,7 @@ public static partial class WordPdfConverterExtensions {
         void Record(WordHeaderFooter? story, string source, bool mapped) {
             OfficeXmlNode root = story?.Node() ?? default;
             if (root.IsNone) return;
-            foreach (OfficeXmlNode element in root.Descendants(WordXml.W, "p")) {
+            foreach (OfficeXmlNode element in root.ModelDescendants("p")) {
                 // Rich tables suppress merge-continuation content; the flat
                 // projection has a different established image enumeration.
                 if (mapped && element.Ancestors().Where(ancestor => ancestor.IsW("tc")).Any(cell =>

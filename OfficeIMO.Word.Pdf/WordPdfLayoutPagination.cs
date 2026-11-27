@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.Pdf {
         /// </summary>
         private static void AddUnprojectedBookmarks(OfficeXmlNode body, Dictionary<string, int> pages, int lastPage) {
             var paragraphs = new List<(List<string> Names, int? Page)>();
-            foreach (OfficeXmlNode paragraph in body.Descendants(WordXml.W, "p")) {
+            foreach (OfficeXmlNode paragraph in body.ModelDescendants("p")) {
                 List<string> names = paragraph.Descendants(WordXml.W, "bookmarkStart")
                     .Select(_ => _.WAttr("name"))
                     .OfType<string>()
@@ -151,7 +151,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 // The first paragraph in document order: a following paragraph, or the first one inside a following table.
                 OfficeXmlNode next = bookmark.ElementsAfter()
-                    .Select(_ => _.IsW("p") ? _ : _.FirstDescendantElement(WordXml.W, "p"))
+                    .Select(_ => _.IsW("p") ? _ : _.ModelDescendants("p").FirstOrDefault())
                     .FirstOrDefault(_ => !_.IsNone);
                 if (next.IsNone) {
                     continue;

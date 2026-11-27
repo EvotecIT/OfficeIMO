@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.Pdf {
                 table,
                 nativeDefaults,
                 ignoreFallbackTableStyle: hasExplicitDefaultTableStyle);
-            bool hasNestedTables = table.Node().HasDescendant(WordXml.W, "tbl");
+            bool hasNestedTables = table.Node().ModelDescendants("tbl").Any();
             bool preservesNestedTables = hasNestedTables &&
                 nativeDefaults.RunningContentContext == null &&
                 (tableNestingDepth > 0 || supportsPositionedTables || nativeDefaults.NoteContentSection != null) &&

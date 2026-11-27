@@ -325,6 +325,22 @@ internal static class WordConverterNodes {
 
     // ---- Model views over nodes -----------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Whether the model has an object for <paramref name="element"/>. Walks that match elements by name also reach
+    /// elements the package holds untyped, inside unknown or ignorable markup (a <c>w:p</c> in a vendor wrapper, for
+    /// example); the model can't wrap those (<see cref="ParagraphView"/> and the other views need a typed element), and
+    /// its own typed walks never return them. Elements of OfficeIMO's own tree always qualify.
+    /// </summary>
+    internal static bool IsModelElement(this OfficeXmlNode element) =>
+        element.Exists && element.SdkElement is not OpenXmlUnknownElement;
+
+    /// <summary>
+    /// The <c>w:</c> descendants named <paramref name="localName"/> the model can wrap, in document order: the elements
+    /// the model's own typed walks return.
+    /// </summary>
+    internal static IEnumerable<OfficeXmlNode> ModelDescendants(this OfficeXmlNode element, string localName) =>
+        OpenXml.WordXml.DescendantElements(element, OpenXml.WordXml.W, localName).Where(IsModelElement);
+
     /// <summary>A paragraph object over a <c>w:p</c>, standing for its bookmark when <paramref name="bookmarkStart"/> is given.</summary>
     internal static WordParagraph ParagraphView(this WordDocument document, OfficeXmlNode paragraph, OfficeXmlNode bookmarkStart = default) {
         var view = new WordParagraph(document, (W.Paragraph)paragraph.SdkElement!);
@@ -428,8 +444,10 @@ internal static class WordConverterNodes {
     /// <summary>Lets detached paragraph copies resolve the list information of the paragraphs they were copied from.</summary>
     internal static IDisposable UseListParagraphAliases(WordDocument document, IReadOnlyDictionary<OfficeXmlNode, OfficeXmlNode> copiesToSources) {
         var aliases = new Dictionary<W.Paragraph, W.Paragraph>(copiesToSources.Count);
-        foreach (KeyValuePair<OfficeXmlNode, OfficeXmlNode> alias in copiesToSources)
-            aliases[(W.Paragraph)alias.Key.SdkElement!] = (W.Paragraph)alias.Value.SdkElement!;
+        foreach (KeyValuePair<OfficeXmlNode, OfficeXmlNode> alias in copiesToSources) {
+            // Paragraphs the model can't wrap have no list information to resolve.
+            if (alias.Key.SdkElement is W.Paragraph copy && alias.Value.SdkElement is W.Paragraph source) aliases[copy] = source;
+        }
         return WordDocumentTraversal.UseListParagraphAliases(document, aliases);
     }
 

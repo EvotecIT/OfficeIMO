@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeFirstBodyParagraph(WordParagraph paragraph) =>
             paragraph.Node().Exists && paragraph._document != null &&
-            paragraph.Node() == paragraph._document.BodyNode().FirstDescendantElement(WordXml.W, "p");
+            paragraph.Node() == paragraph._document.BodyNode().ModelDescendants("p").FirstOrDefault();
 
         private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph) =>
             CreateNativeParagraphStyle(paragraph, GetNativeDocumentDefaults(paragraph._document));

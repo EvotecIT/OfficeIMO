@@ -103,7 +103,7 @@ namespace OfficeIMO.Word.Pdf {
             if (source.IsNone) return;
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: false),
-                Text = string.Join(" ", source.Descendants(WordXml.W, "p").Select(paragraph => paragraph.VisibleText(' '))),
+                Text = string.Join(" ", source.ModelDescendants("p").Select(paragraph => paragraph.VisibleText(' '))),
                 ReferenceId = referenceId, Source = source
             });
         }
@@ -125,7 +125,7 @@ namespace OfficeIMO.Word.Pdf {
             if (source.IsNone) return;
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: true),
-                Text = string.Join(" ", source.Descendants(WordXml.W, "p").Select(paragraph => paragraph.VisibleText(' '))),
+                Text = string.Join(" ", source.ModelDescendants("p").Select(paragraph => paragraph.VisibleText(' '))),
                 IsEndnote = true, ReferenceId = referenceId, Source = source
             });
         }
@@ -221,7 +221,7 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
                     if (footnote.Source.Exists && options != null)
-                        foreach (OfficeXmlNode paragraph in footnote.Source.Descendants(WordXml.W, "p")) {
+                        foreach (OfficeXmlNode paragraph in footnote.Source.ModelDescendants("p")) {
                             RecordNativeFieldResultDiagnostics(WordConverterNodes.ParagraphView(section._document, paragraph), options,
                                 footnote.IsEndnote ? "endnote" : "footnote", runningStory: false);
                             RecordNativeParagraphFrameDiagnostics(WordConverterNodes.ParagraphView(section._document, paragraph), options,

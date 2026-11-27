@@ -371,7 +371,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             // Text-box paragraphs are laid out with their own fonts.
-            foreach (OfficeXmlNode source in headerFooter.Node().Elements().SelectMany(element => element.Descendants(WordXml.W, "p"))
+            foreach (OfficeXmlNode source in headerFooter.Node().Elements().SelectMany(element => element.ModelDescendants("p"))
                 .Where(source => source.Parent.AncestorOrSelf(WordXml.W, "txbxContent").Exists)) {
                 RegisterNativeParagraphContentFonts(headerFooter.Document.ParagraphView(source), NativeTableRunStyleDefaults.Empty,
                     pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);

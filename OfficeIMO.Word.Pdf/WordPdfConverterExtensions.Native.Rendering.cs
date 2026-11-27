@@ -500,7 +500,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (!interactiveControls) continue;
-                foreach (OfficeXmlNode control in paragraphElement.DescendantElements(WordXml.W, "sdt").Where(WordXml.IsRunContentControl)) {
+                foreach (OfficeXmlNode control in paragraphElement.ModelDescendants("sdt").Where(WordXml.IsRunContentControl)) {
                     if (CanProjectNativeInlineContentControl(control)) continue;
                     OfficeXmlNode sdtRun = control;
                     if (IsNativeCheckBoxControl(sdtRun)) {
@@ -553,7 +553,7 @@ namespace OfficeIMO.Word.Pdf {
                 IEnumerable<OfficeXmlNode> visibleChildren = imageRun.VisibleRunSourceChildNodes() ?? run.Elements();
                 foreach (OfficeXmlNode content in visibleChildren.SelectMany(child => child.DescendantElements(WordXml.W, "txbxContent"))
                     .Where(content => content.Ancestor(WordXml.W, "txbxContent") == currentTextBox)) {
-                    foreach (OfficeXmlNode inner in content.DescendantElements(WordXml.W, "p")
+                    foreach (OfficeXmlNode inner in content.ModelDescendants("p")
                         .Where(inner => inner.Ancestor(WordXml.W, "txbxContent") == content)) {
                         WordParagraph innerParagraph = paragraph._document.ParagraphView(inner);
                         foreach (WordImage image in EnumerateNativeParagraphImages(innerParagraph, cancellationToken, textBoxDepth + 1))
@@ -974,10 +974,10 @@ namespace OfficeIMO.Word.Pdf {
             OfficeXmlNode content = textBox.ContentNode();
             IReadOnlyList<WordParagraph> directParagraphs = content.IsNone
                 ? Array.Empty<WordParagraph>()
-                : content.DescendantElements(WordXml.W, "p")
+                : content.ModelDescendants("p")
                     .Where(paragraph => paragraph.Ancestor(WordXml.W, "txbxContent") == content)
                     .Select(paragraph => {
-                        OfficeXmlNode firstRun = paragraph.DescendantElements(WordXml.W, "r")
+                        OfficeXmlNode firstRun = paragraph.ModelDescendants("r")
                             .FirstOrDefault(run => run.Ancestor(WordXml.W, "p") == paragraph);
                         return firstRun.IsNone
                             ? textBox.Document.ParagraphView(paragraph)

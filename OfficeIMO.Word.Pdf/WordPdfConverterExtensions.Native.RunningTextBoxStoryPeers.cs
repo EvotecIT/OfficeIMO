@@ -21,7 +21,7 @@ public static partial class WordPdfConverterExtensions {
             if (result.ContainsKey(root)) continue;
             int count = 0;
             bool disallowed = false;
-            foreach (OfficeXmlNode source in root.Descendants(WordXml.W, "p")) {
+            foreach (OfficeXmlNode source in root.ModelDescendants("p")) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 // Nested textbox content belongs to its outer box, including
                 // when that outer hosting run is hidden. It is not a story peer.

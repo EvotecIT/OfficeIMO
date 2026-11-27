@@ -51,7 +51,7 @@ public static partial class WordPdfConverterExtensions {
         roots.AddRange(document.HeaderFooterRootNodes());
         if (document.FootnotesNode().Exists) roots.Add(document.FootnotesNode());
         if (document.EndnotesNode().Exists) roots.Add(document.EndnotesNode());
-        if (!roots.Any(root => root.Descendants(WordXml.W, "hyperlink").Any(link => !string.IsNullOrWhiteSpace(link.WAttr("anchor")))))
+        if (!roots.Any(root => root.ModelDescendants("hyperlink").Any(link => !string.IsNullOrWhiteSpace(link.WAttr("anchor")))))
             return null;
         var known = new HashSet<string>(roots.SelectMany(root => root.Descendants(WordXml.W, "bookmarkStart"))
             .Select(bookmark => bookmark.WAttr("name")).OfType<string>().Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.Ordinal);
@@ -78,7 +78,7 @@ public static partial class WordPdfConverterExtensions {
                     reference.IsW("endnoteReference") ? document.FindEndnoteNode(WordXml.ParseInt64(reference.WAttr("id"))) : default;
                 WordSection targetSection = source.IsW("endnote") && notes.EndnotesAtDocumentEnd ? sections[sections.Count - 1] : section;
                 if (source.Exists && (source.HasDescendant(WordXml.W, "bookmarkStart") ||
-                    source.Descendants(WordXml.W, "hyperlink").Any(link => !string.IsNullOrWhiteSpace(link.WAttr("anchor")))) &&
+                    source.ModelDescendants("hyperlink").Any(link => !string.IsNullOrWhiteSpace(link.WAttr("anchor")))) &&
                     referencedNotes.Add((source, targetSection)) &&
                     CanProjectNativePageNote(source, targetSection, defaults, fonts, options, recordDiagnostics: false))
                     Collect(GetNativeNoteElements(document, source), admitBookmarks: true);
