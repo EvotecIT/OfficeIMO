@@ -1,6 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
@@ -146,157 +143,153 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return hasBorders ? borders : Array.Empty<LegacyDocTableCellBorders>();
         }
 
-        private static LegacyDocTableCellHorizontalMerge ReadSupportedTableCellHorizontalMerge(TableCell cell) {
-            HorizontalMerge? horizontalMerge = cell.TableCellProperties?.GetFirstChild<HorizontalMerge>();
-            if (horizontalMerge == null) {
+        private static LegacyDocTableCellHorizontalMerge ReadSupportedTableCellHorizontalMerge(LegacyDocElement cell) {
+            LegacyDocElement horizontalMerge = cell.Child("tcPr").Child("hMerge");
+            if (horizontalMerge.IsNone) {
                 return LegacyDocTableCellHorizontalMerge.None;
             }
 
-            MergedCellValues? value = horizontalMerge.Val?.Value;
-            if (value == MergedCellValues.Restart) {
+            string? value = horizontalMerge.Val;
+            if (value == "restart") {
                 return LegacyDocTableCellHorizontalMerge.Restart;
             }
 
-            if (value == MergedCellValues.Continue) {
+            if (value == "continue") {
                 return LegacyDocTableCellHorizontalMerge.Continue;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support table cell horizontal merge value '{value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support table cell horizontal merge value '{FormatSdkEnumValue(value, "MergedCellValues")}'.");
         }
 
-        private static LegacyDocTableCellVerticalMerge ReadSupportedTableCellVerticalMerge(TableCell cell) {
-            VerticalMerge? verticalMerge = cell.TableCellProperties?.GetFirstChild<VerticalMerge>();
-            if (verticalMerge == null) {
+        private static LegacyDocTableCellVerticalMerge ReadSupportedTableCellVerticalMerge(LegacyDocElement cell) {
+            LegacyDocElement verticalMerge = cell.Child("tcPr").Child("vMerge");
+            if (verticalMerge.IsNone) {
                 return LegacyDocTableCellVerticalMerge.None;
             }
 
-            MergedCellValues? value = verticalMerge.Val?.Value;
-            if (value == MergedCellValues.Restart) {
+            string? value = verticalMerge.Val;
+            if (value == "restart") {
                 return LegacyDocTableCellVerticalMerge.Restart;
             }
 
-            if (value == null || value == MergedCellValues.Continue) {
+            if (value == null || value == "continue") {
                 return LegacyDocTableCellVerticalMerge.Continue;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support table cell vertical merge value '{value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support table cell vertical merge value '{FormatSdkEnumValue(value, "MergedCellValues")}'.");
         }
 
-        private static LegacyDocTableCellVerticalAlignment ReadSupportedTableCellVerticalAlignment(TableCellProperties? cellProperties) {
-            TableCellVerticalAlignment? verticalAlignment = cellProperties?.GetFirstChild<TableCellVerticalAlignment>();
+        private static LegacyDocTableCellVerticalAlignment ReadSupportedTableCellVerticalAlignmentFromProperties(LegacyDocElement cellProperties) {
+            LegacyDocElement verticalAlignment = cellProperties.Child("vAlign");
             return ReadSupportedTableCellVerticalAlignment(verticalAlignment) ?? LegacyDocTableCellVerticalAlignment.Top;
         }
 
-        private static LegacyDocTableCellVerticalAlignment? ReadSupportedTableCellVerticalAlignment(TableCellVerticalAlignment? verticalAlignment) {
-            if (verticalAlignment == null) {
+        private static LegacyDocTableCellVerticalAlignment? ReadSupportedTableCellVerticalAlignment(LegacyDocElement verticalAlignment) {
+            if (verticalAlignment.IsNone) {
                 return null;
             }
 
-            TableVerticalAlignmentValues? value = verticalAlignment.Val?.Value;
-            if (value == null || value == TableVerticalAlignmentValues.Top) {
+            string? value = verticalAlignment.Val;
+            if (value == null || value == "top") {
                 return LegacyDocTableCellVerticalAlignment.Top;
             }
 
-            if (value == TableVerticalAlignmentValues.Center) {
+            if (value == "center") {
                 return LegacyDocTableCellVerticalAlignment.Center;
             }
 
-            if (value == TableVerticalAlignmentValues.Bottom) {
+            if (value == "bottom") {
                 return LegacyDocTableCellVerticalAlignment.Bottom;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support table cell vertical alignment value '{value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support table cell vertical alignment value '{FormatSdkEnumValue(value, "TableVerticalAlignmentValues")}'.");
         }
 
-        private static LegacyDocTableCellTextDirection ReadSupportedTableCellTextDirection(TableCellProperties? cellProperties) {
-            TextDirection? textDirection = cellProperties?.GetFirstChild<TextDirection>();
+        private static LegacyDocTableCellTextDirection ReadSupportedTableCellTextDirectionFromProperties(LegacyDocElement cellProperties) {
+            LegacyDocElement textDirection = cellProperties.Child("textDirection");
             return ReadSupportedTableCellTextDirection(textDirection) ?? LegacyDocTableCellTextDirection.LeftToRightTopToBottom;
         }
 
-        private static LegacyDocTableCellTextDirection? ReadSupportedTableCellTextDirection(TextDirection? textDirection) {
-            if (textDirection == null) {
+        private static LegacyDocTableCellTextDirection? ReadSupportedTableCellTextDirection(LegacyDocElement textDirection) {
+            if (textDirection.IsNone) {
                 return null;
             }
 
-            TextDirectionValues? value = textDirection.Val?.Value;
-            if (value == null || value == TextDirectionValues.LefToRightTopToBottom) {
+            string? value = textDirection.Val;
+            if (value == null || value == "lrTb") {
                 return LegacyDocTableCellTextDirection.LeftToRightTopToBottom;
             }
 
-            if (value == TextDirectionValues.TopToBottomRightToLeft) {
+            if (value == "tbRl") {
                 return LegacyDocTableCellTextDirection.TopToBottomRightToLeft;
             }
 
-            if (value == TextDirectionValues.BottomToTopLeftToRight) {
+            if (value == "btLr") {
                 return LegacyDocTableCellTextDirection.BottomToTopLeftToRight;
             }
 
-            if (value == TextDirectionValues.LefttoRightTopToBottomRotated) {
+            if (value == "lrTbV") {
                 return LegacyDocTableCellTextDirection.LeftToRightTopToBottomRotated;
             }
 
-            if (value == TextDirectionValues.TopToBottomRightToLeftRotated) {
+            if (value == "tbRlV") {
                 return LegacyDocTableCellTextDirection.TopToBottomRightToLeftRotated;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support table cell text direction value '{value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support table cell text direction value '{FormatSdkEnumValue(value, "TextDirectionValues")}'.");
         }
 
-        private static bool ReadSupportedTableCellFitText(TableCellProperties? cellProperties) {
-            TableCellFitText? fitText = cellProperties?.GetFirstChild<TableCellFitText>();
+        private static bool ReadSupportedTableCellFitTextFromProperties(LegacyDocElement cellProperties) {
+            LegacyDocElement fitText = cellProperties.Child("tcFitText");
             return ReadSupportedTableCellFitText(fitText) == true;
         }
 
-        private static bool? ReadSupportedTableCellFitText(TableCellFitText? fitText) {
-            return fitText == null ? null : ReadTableCellOnOffValue(fitText);
+        private static bool? ReadSupportedTableCellFitText(LegacyDocElement fitText) {
+            return fitText.IsNone ? null : ReadTableCellOnOffValue(fitText);
         }
 
-        private static bool ReadSupportedTableCellNoWrap(TableCellProperties? cellProperties) {
-            NoWrap? noWrap = cellProperties?.GetFirstChild<NoWrap>();
+        private static bool ReadSupportedTableCellNoWrapFromProperties(LegacyDocElement cellProperties) {
+            LegacyDocElement noWrap = cellProperties.Child("noWrap");
             return ReadSupportedTableCellNoWrap(noWrap) == true;
         }
 
-        private static bool? ReadSupportedTableCellNoWrap(NoWrap? noWrap) {
-            return noWrap == null ? null : ReadTableCellOnOffValue(noWrap);
+        private static bool? ReadSupportedTableCellNoWrap(LegacyDocElement noWrap) {
+            return noWrap.IsNone ? null : ReadTableCellOnOffValue(noWrap);
         }
 
-        private static bool ReadSupportedTableCellHideMark(TableCellProperties? cellProperties) {
-            HideMark? hideMark = cellProperties?.GetFirstChild<HideMark>();
+        private static bool ReadSupportedTableCellHideMarkFromProperties(LegacyDocElement cellProperties) {
+            LegacyDocElement hideMark = cellProperties.Child("hideMark");
             return ReadSupportedTableCellHideMark(hideMark) == true;
         }
 
-        private static bool? ReadSupportedTableCellHideMark(HideMark? hideMark) {
-            return hideMark == null ? null : ReadTableCellOnOffValue(hideMark);
+        private static bool? ReadSupportedTableCellHideMark(LegacyDocElement hideMark) {
+            return hideMark.IsNone ? null : ReadTableCellOnOffValue(hideMark);
         }
 
-        private static LegacyDocTableCellMargins ReadSupportedTableCellMargins(TableCellProperties? cellProperties) {
-            TableCellMargin? margins = cellProperties?.GetFirstChild<TableCellMargin>();
+        private static LegacyDocTableCellMargins ReadSupportedTableCellMarginsFromProperties(LegacyDocElement cellProperties) {
+            LegacyDocElement margins = cellProperties.Child("tcMar");
             return ReadSupportedTableCellMargins(margins);
         }
 
-        private static LegacyDocTableCellMargins ReadSupportedTableCellMargins(TableCellMargin? margins) {
-            if (margins == null) {
+        private static LegacyDocTableCellMargins ReadSupportedTableCellMargins(LegacyDocElement margins) {
+            if (margins.IsNone) {
                 return default;
             }
 
             return new LegacyDocTableCellMargins(
-                ReadSupportedTableCellMarginWidth(margins.TopMargin, "top"),
-                ReadSupportedTableCellMarginWidth(margins.RightMargin, "right"),
-                ReadSupportedTableCellMarginWidth(margins.BottomMargin, "bottom"),
-                ReadSupportedTableCellMarginWidth(margins.LeftMargin, "left"));
+                ReadSupportedTableCellMarginWidth(margins.Child("top"), "top"),
+                ReadSupportedTableCellMarginWidth(margins.Child("right"), "right"),
+                ReadSupportedTableCellMarginWidth(margins.Child("bottom"), "bottom"),
+                ReadSupportedTableCellMarginWidth(margins.Child("left"), "left"));
         }
 
-        private static int? ReadSupportedTableCellMarginWidth(OpenXmlElement? margin, string sideName) {
-            if (margin == null) {
+        private static int? ReadSupportedTableCellMarginWidth(LegacyDocElement margin, string sideName) {
+            if (margin.IsNone) {
                 return null;
             }
 
-            string? widthText = margin.GetAttributes()
-                .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "w", StringComparison.OrdinalIgnoreCase))
-                .Value;
-            string? typeText = margin.GetAttributes()
-                .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "type", StringComparison.OrdinalIgnoreCase))
-                .Value;
+            string? widthText = FindTableAttributeIgnoringCase(margin, "w");
+            string? typeText = FindTableAttributeIgnoringCase(margin, "type");
             if (!string.IsNullOrEmpty(typeText) && !string.Equals(typeText, "dxa", StringComparison.OrdinalIgnoreCase)) {
                 throw new NotSupportedException($"Native DOC saving supports table cell {sideName} margins only as DXA twip values.");
             }
@@ -314,10 +307,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return width;
         }
 
-        private static bool ReadTableCellOnOffValue(OpenXmlElement element) {
-            string? value = element.GetAttributes()
-                .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "val", StringComparison.OrdinalIgnoreCase))
-                .Value;
+        private static bool ReadTableCellOnOffValue(LegacyDocElement element) {
+            string? value = FindTableAttributeIgnoringCase(element, "val");
             return ReadTableRowOnOffValue(value);
         }
 
@@ -325,7 +316,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return columnIndex < gridColumnWidthsTwips.Count ? gridColumnWidthsTwips[columnIndex] : 0;
         }
 
-        private static int ReadSupportedTableCellWidth(TableCellProperties? cellProperties, int gridColumnWidthTwips) {
+        private static int ReadSupportedTableCellWidth(LegacyDocElement cellProperties, int gridColumnWidthTwips) {
             int? explicitWidth = ReadSupportedExplicitTableCellWidth(cellProperties);
             if (explicitWidth != null) {
                 return explicitWidth.Value;
@@ -334,7 +325,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return gridColumnWidthTwips > 0 ? gridColumnWidthTwips : 2400;
         }
 
-        private static int ReadSupportedTableCellWidthForSpan(TableCellProperties? cellProperties, IReadOnlyList<int> gridColumnWidthsTwips, int logicalColumnIndex, int spanIndex, int gridSpan) {
+        private static int ReadSupportedTableCellWidthForSpan(LegacyDocElement cellProperties, IReadOnlyList<int> gridColumnWidthsTwips, int logicalColumnIndex, int spanIndex, int gridSpan) {
             int gridColumnWidth = GetGridColumnWidth(gridColumnWidthsTwips, logicalColumnIndex + spanIndex);
             if (gridColumnWidth > 0) {
                 return gridColumnWidth;
@@ -355,17 +346,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return width > 0 ? width : 1;
         }
 
-        private static int? ReadSupportedExplicitTableCellWidth(TableCellProperties? cellProperties) {
-            TableCellWidth? cellWidth = cellProperties?.GetFirstChild<TableCellWidth>();
-            if (cellWidth == null) {
+        private static int? ReadSupportedExplicitTableCellWidth(LegacyDocElement cellProperties) {
+            LegacyDocElement cellWidth = cellProperties.Child("tcW");
+            if (cellWidth.IsNone) {
                 return null;
             }
 
-            if (cellWidth.Type == null || WordTableWidthNative.NativeType(cellWidth) != TableWidthUnitValues.Dxa) {
+            if (cellWidth.Attr("type") == null || LegacyDocWordHelpers.NativeTableWidthType(cellWidth) != "dxa") {
                 throw new NotSupportedException("Native DOC saving supports simple table cell widths only as explicit DXA twip values.");
             }
 
-            string? widthText = cellWidth.Width?.Value;
+            string? widthText = cellWidth.Attr("w");
             if (string.IsNullOrWhiteSpace(widthText)
                 || !int.TryParse(widthText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int width)
                 || width <= 0
@@ -376,22 +367,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return width;
         }
 
-        private static LegacyDocTableCellShading ReadSupportedTableCellShading(TableCellProperties? cellProperties) {
-            Shading? shading = cellProperties?.GetFirstChild<Shading>();
-            if (shading == null) {
+        private static LegacyDocTableCellShading ReadSupportedTableCellShading(LegacyDocElement cellProperties) {
+            LegacyDocElement shading = cellProperties.Child("shd");
+            if (shading.IsNone) {
                 return default;
             }
 
             return ReadSupportedTableCellShading(shading, "table cell shading");
         }
 
-        private static LegacyDocTableCellShading ReadSupportedTableCellShading(Shading shading, string featureName) {
-            ShadingPatternValues? pattern = shading.Val?.Value;
-            if (pattern != null && pattern != ShadingPatternValues.Clear) {
+        private static LegacyDocTableCellShading ReadSupportedTableCellShading(LegacyDocElement shading, string featureName) {
+            string? pattern = shading.Val;
+            if (pattern != null && pattern != "clear") {
                 throw new NotSupportedException($"Native DOC saving supports {featureName} only for clear fill patterns.");
             }
 
-            string? fillColorHex = shading.Fill?.Value;
+            string? fillColorHex = shading.Attr("fill");
             if (string.IsNullOrWhiteSpace(fillColorHex)
                 || string.Equals(fillColorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
                 return new LegacyDocTableCellShading(null);
@@ -404,43 +395,43 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocTableCellShading(fillColorHex);
         }
 
-        private static LegacyDocTableCellBorders ReadSupportedTableCellBorders(TableCellProperties? cellProperties) {
-            TableCellBorders? borders = cellProperties?.GetFirstChild<TableCellBorders>();
-            if (borders == null) {
+        private static LegacyDocTableCellBorders ReadSupportedTableCellBorders(LegacyDocElement cellProperties) {
+            LegacyDocElement borders = cellProperties.Child("tcBorders");
+            if (borders.IsNone) {
                 return default;
             }
 
             return new LegacyDocTableCellBorders(
-                ReadSupportedTableCellBorder(borders.TopBorder),
-                ReadSupportedTableCellBorder(borders.LeftBorder),
-                ReadSupportedTableCellBorder(borders.BottomBorder),
-                ReadSupportedTableCellBorder(borders.RightBorder));
+                ReadSupportedTableCellBorder(borders.Child("top")),
+                ReadSupportedTableCellBorder(borders.Child("left")),
+                ReadSupportedTableCellBorder(borders.Child("bottom")),
+                ReadSupportedTableCellBorder(borders.Child("right")));
         }
 
-        private static LegacyDocTableBorders ReadSupportedTableBorders(TableProperties? tableProperties, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            TableBorders? borders = tableProperties?.GetFirstChild<TableBorders>();
-            if (borders != null) {
+        private static LegacyDocTableBorders ReadSupportedTableBorders(LegacyDocElement tableProperties, string? tableStyleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+            LegacyDocElement borders = tableProperties.Child("tblBorders");
+            if (borders.Exists) {
                 return ReadSupportedTableBorders(borders);
             }
 
-            return ReadSupportedTableStyleBorders(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
+            return ReadSupportedTableStyleBorders(tableStyleId, tableStyleDefinitions);
         }
 
-        private static LegacyDocTableCellShading ReadSupportedTableShading(TableProperties? tableProperties, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static LegacyDocTableCellShading ReadSupportedTableShading(string? tableStyleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             // Direct tblPr shading paints table-spacing gaps, not cell defaults.
             // Its validation remains separate from ordinary style tcPr shading.
-            return ReadSupportedTableStyleShading(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
+            return ReadSupportedTableStyleShading(tableStyleId, tableStyleDefinitions);
         }
 
-        private static LegacyDocTableBorders ReadSupportedTableBorders(TableBorders borders) {
-            foreach (OpenXmlElement child in borders.ChildElements) {
-                switch (child) {
-                    case TopBorder:
-                    case LeftBorder:
-                    case BottomBorder:
-                    case RightBorder:
-                    case InsideHorizontalBorder:
-                    case InsideVerticalBorder:
+        private static LegacyDocTableBorders ReadSupportedTableBorders(LegacyDocElement borders) {
+            foreach (LegacyDocElement child in borders.Elements()) {
+                switch (child.WName) {
+                    case "top":
+                    case "left":
+                    case "bottom":
+                    case "right":
+                    case "insideH":
+                    case "insideV":
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple table borders only. Unsupported table border: {child.LocalName}.");
@@ -448,30 +439,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return new LegacyDocTableBorders(
-                ReadSupportedTableCellBorder(borders.TopBorder),
-                ReadSupportedTableCellBorder(borders.LeftBorder),
-                ReadSupportedTableCellBorder(borders.BottomBorder),
-                ReadSupportedTableCellBorder(borders.RightBorder),
-                ReadSupportedTableCellBorder(borders.InsideHorizontalBorder),
-                ReadSupportedTableCellBorder(borders.InsideVerticalBorder));
+                ReadSupportedTableCellBorder(borders.Child("top")),
+                ReadSupportedTableCellBorder(borders.Child("left")),
+                ReadSupportedTableCellBorder(borders.Child("bottom")),
+                ReadSupportedTableCellBorder(borders.Child("right")),
+                ReadSupportedTableCellBorder(borders.Child("insideH")),
+                ReadSupportedTableCellBorder(borders.Child("insideV")));
         }
 
-        private static LegacyDocTableCellBorder ReadSupportedTableCellBorder(BorderType? border) {
-            if (border == null) {
+        private static LegacyDocTableCellBorder ReadSupportedTableCellBorder(LegacyDocElement border) {
+            if (border.IsNone) {
                 return default;
             }
 
-            BorderValues? value = border.Val?.Value;
+            string? value = border.Val;
             if (value == null) {
                 return default;
             }
 
-            if (value == BorderValues.None || value == BorderValues.Nil) {
+            if (value == "none" || value == "nil") {
                 return new LegacyDocTableCellBorder(LegacyDocTableCellBorderStyle.ExplicitNone, null, 0, 0);
             }
 
-            LegacyDocTableCellBorderStyle style = MapSupportedTableCellBorderStyle(value.Value);
-            string? colorHex = border.Color?.Value;
+            LegacyDocTableCellBorderStyle style = MapSupportedTableCellBorderStyle(value);
+            string? colorHex = border.Attr("color");
             if (string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
                 colorHex = null;
             }
@@ -480,8 +471,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports table cell borders only with Word 97-2003 palette colors.");
             }
 
-            int size = border.Size?.Value == null ? 4 : checked((int)border.Size.Value);
-            int space = border.Space?.Value == null ? 0 : checked((int)border.Space.Value);
+            uint? sizeValue = LegacyDocValues.UInt32(border.Attr("sz"));
+            int size = sizeValue == null ? 4 : checked((int)sizeValue.Value);
+            uint? spaceValue = LegacyDocValues.UInt32(border.Attr("space"));
+            int space = spaceValue == null ? 0 : checked((int)spaceValue.Value);
             if (size <= 0 || size > byte.MaxValue || space < 0 || space > byte.MaxValue) {
                 throw new NotSupportedException("Native DOC saving supports table cell border size and spacing only within Word 97-2003 BRC80 byte ranges.");
             }
@@ -489,33 +482,33 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocTableCellBorder(style, colorHex, size, space);
         }
 
-        private static LegacyDocTableCellBorderStyle MapSupportedTableCellBorderStyle(BorderValues value) {
-            if (value == BorderValues.Single) {
+        private static LegacyDocTableCellBorderStyle MapSupportedTableCellBorderStyle(string value) {
+            if (value == "single") {
                 return LegacyDocTableCellBorderStyle.Single;
             }
 
-            if (value == BorderValues.Double) {
+            if (value == "double") {
                 return LegacyDocTableCellBorderStyle.Double;
             }
 
-            if (value == BorderValues.Dotted) {
+            if (value == "dotted") {
                 return LegacyDocTableCellBorderStyle.Dotted;
             }
 
-            if (value == BorderValues.Dashed || value == BorderValues.DashSmallGap) {
+            if (value == "dashed" || value == "dashSmallGap") {
                 return LegacyDocTableCellBorderStyle.Dashed;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support table cell border style '{value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support table cell border style '{FormatSdkEnumValue(value, "BorderValues")}'.");
         }
 
-        private static int ReadSupportedGridSpan(TableCellProperties? cellProperties) {
-            GridSpan? gridSpan = cellProperties?.GetFirstChild<GridSpan>();
-            if (gridSpan == null) {
+        private static int ReadSupportedGridSpan(LegacyDocElement cellProperties) {
+            LegacyDocElement gridSpan = cellProperties.Child("gridSpan");
+            if (gridSpan.IsNone) {
                 return 1;
             }
 
-            int span = gridSpan.Val?.Value ?? 1;
+            int span = LegacyDocValues.Int32(gridSpan.Val) ?? 1;
             if (span <= 0 || span > byte.MaxValue) {
                 throw new NotSupportedException("Native DOC saving supports table cell gridSpan only as a positive value within the DOC table column limit.");
             }

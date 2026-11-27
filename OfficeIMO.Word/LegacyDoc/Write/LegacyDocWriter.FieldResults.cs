@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
@@ -37,9 +35,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             foreach (LegacyDocFieldBookmarkMarker marker in result.BookmarkMarkers) {
                 int characterPosition = resultStartCharacter + marker.ResultOffset;
-                if (marker.BookmarkStart != null) {
+                if (marker.BookmarkStart.Exists) {
                     bookmarks.AddStart(marker.BookmarkStart, characterPosition);
-                } else if (marker.BookmarkEnd != null) {
+                } else if (marker.BookmarkEnd.Exists) {
                     bookmarks.AddEnd(marker.BookmarkEnd, characterPosition);
                 }
             }
@@ -49,53 +47,53 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocWritableFieldResult ReadSimpleFieldResult(
-            SimpleField field,
+            LegacyDocElement field,
             bool allowHyperlinkRunStyle = false,
             LegacyDocWritableFormatting inheritedFormatting = default) {
-            var result = new LegacyDocWritableFieldResult(inheritedFormatting, allowHyperlinkRunStyle) { FieldLocked = field.FieldLock?.Value == true };
-            foreach (OpenXmlElement child in field.ChildElements) {
+            var result = new LegacyDocWritableFieldResult(inheritedFormatting, allowHyperlinkRunStyle) { FieldLocked = field.Attr("fldLock") is { } fieldLock && LegacyDocValues.ParseOnOff(fieldLock) };
+            foreach (LegacyDocElement child in field.Elements()) {
                 result.AppendChild(child);
             }
             return result;
         }
 
-        private static void AppendSupportedFieldResultElementText(StringBuilder result, OpenXmlElement element) {
-            switch (element) {
-                case Text text:
-                    result.Append(text.Text);
+        private static void AppendSupportedFieldResultElementText(StringBuilder result, LegacyDocElement element) {
+            switch (element.WName) {
+                case "t":
+                    result.Append(element.Text);
                     break;
-                case DeletedText deletedText:
-                    result.Append(deletedText.Text);
+                case "delText":
+                    result.Append(element.Text);
                     break;
-                case TabChar:
+                case "tab":
                     result.Append('\t');
                     break;
-                case CarriageReturn:
+                case "cr":
                     result.Append(LegacyDocSpecialCharacters.TextWrappingBreak);
                     break;
-                case NoBreakHyphen:
+                case "noBreakHyphen":
                     result.Append(LegacyDocSpecialCharacters.NoBreakHyphen);
                     break;
-                case SoftHyphen:
+                case "softHyphen":
                     result.Append(LegacyDocSpecialCharacters.SoftHyphen);
                     break;
-                case Break breakNode:
-                    result.Append(GetSupportedFieldResultBreakCharacter(breakNode));
+                case "br":
+                    result.Append(GetSupportedFieldResultBreakCharacter(element));
                     break;
                 default:
                     throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} field result runs only when they contain text, tabs, carriage returns, soft/no-break hyphens, and supported breaks. Unsupported field result element: {element.LocalName}.");
             }
         }
 
-        private static char GetSupportedFieldResultBreakCharacter(Break breakNode) {
-            BreakValues? breakType = breakNode.Type?.Value;
-            if (breakType == null || breakType == BreakValues.TextWrapping) {
+        private static char GetSupportedFieldResultBreakCharacter(LegacyDocElement breakNode) {
+            string? breakType = breakNode.Attr("type");
+            if (breakType == null || breakType == "textWrapping") {
                 return LegacyDocSpecialCharacters.TextWrappingBreak;
             }
-            if (breakType == BreakValues.Page) {
+            if (breakType == "page") {
                 return LegacyDocSpecialCharacters.PageBreak;
             }
-            if (breakType == BreakValues.Column) {
+            if (breakType == "column") {
                 return LegacyDocSpecialCharacters.ColumnBreak;
             }
             throw new NotSupportedException($"Native DOC saving currently supports text-wrapping, page, and column breaks in {SupportedFieldNames} field result runs only. Unsupported break type: {breakType}.");
@@ -118,31 +116,31 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal List<LegacyDocFieldBookmarkMarker> BookmarkMarkers { get; } = new();
             internal LegacyDocWritableFormatting EmptyFormatting => _emptyFormatting ?? _inheritedFormatting;
 
-            internal void AppendChild(OpenXmlElement child, LegacyDocRevision revision = default) {
-                switch (child) {
-                    case Run run:
-                        LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties, _allowHyperlinkRunStyle)
+            internal void AppendChild(LegacyDocElement child, LegacyDocRevision revision = default) {
+                switch (child.WName) {
+                    case "r":
+                        LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(child.Child("rPr"), _allowHyperlinkRunStyle)
                             .WithInheritedFormatting(_inheritedFormatting);
                         if (revision.HasValue) formatting = formatting.WithRevision(revision);
                         _emptyFormatting ??= formatting;
                         var runText = new StringBuilder();
-                        foreach (OpenXmlElement element in run.ChildElements) {
-                            if (element is RunProperties || element is LastRenderedPageBreak) continue;
+                        foreach (LegacyDocElement element in child.Elements()) {
+                            if (element.Is("rPr") || element.Is("lastRenderedPageBreak")) continue;
                             AppendSupportedFieldResultElementText(runText, element);
                         }
                         AppendText(runText.ToString(), formatting);
                         break;
-                    case BookmarkStart bookmarkStart:
-                        BookmarkMarkers.Add(new LegacyDocFieldBookmarkMarker(bookmarkStart, null, Text.Length));
+                    case "bookmarkStart":
+                        BookmarkMarkers.Add(new LegacyDocFieldBookmarkMarker(child, LegacyDocElement.None, Text.Length));
                         break;
-                    case BookmarkEnd bookmarkEnd:
-                        BookmarkMarkers.Add(new LegacyDocFieldBookmarkMarker(null, bookmarkEnd, Text.Length));
+                    case "bookmarkEnd":
+                        BookmarkMarkers.Add(new LegacyDocFieldBookmarkMarker(LegacyDocElement.None, child, Text.Length));
                         break;
-                    case InsertedRun inserted when !revision.HasValue && !_inheritedFormatting.Revision.HasValue:
-                        AppendRevision(inserted, LegacyDocRevisionKind.Inserted);
+                    case "ins" when !revision.HasValue && !_inheritedFormatting.Revision.HasValue:
+                        AppendRevision(child, LegacyDocRevisionKind.Inserted);
                         break;
-                    case DeletedRun deleted when !revision.HasValue && !_inheritedFormatting.Revision.HasValue:
-                        AppendRevision(deleted, LegacyDocRevisionKind.Deleted);
+                    case "del" when !revision.HasValue && !_inheritedFormatting.Revision.HasValue:
+                        AppendRevision(child, LegacyDocRevisionKind.Deleted);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) return;
@@ -150,7 +148,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            internal void AppendElement(OpenXmlElement element, LegacyDocWritableFormatting formatting) {
+            internal void AppendElement(LegacyDocElement element, LegacyDocWritableFormatting formatting) {
                 var value = new StringBuilder();
                 AppendSupportedFieldResultElementText(value, element);
                 AppendText(value.ToString(), formatting);
@@ -161,23 +159,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AppendFormattedText(Text, Runs, value, formatting);
             }
 
-            private void AppendRevision(OpenXmlCompositeElement wrapper, LegacyDocRevisionKind kind) {
+            private void AppendRevision(LegacyDocElement wrapper, LegacyDocRevisionKind kind) {
                 LegacyDocRevision revision = ReadSupportedRevision(wrapper, kind);
-                foreach (OpenXmlElement child in wrapper.ChildElements) {
+                foreach (LegacyDocElement child in wrapper.Elements()) {
                     AppendChild(child, revision);
                 }
             }
         }
 
         private readonly struct LegacyDocFieldBookmarkMarker {
-            internal LegacyDocFieldBookmarkMarker(BookmarkStart? bookmarkStart, BookmarkEnd? bookmarkEnd, int resultOffset) {
+            internal LegacyDocFieldBookmarkMarker(LegacyDocElement bookmarkStart, LegacyDocElement bookmarkEnd, int resultOffset) {
                 BookmarkStart = bookmarkStart;
                 BookmarkEnd = bookmarkEnd;
                 ResultOffset = resultOffset;
             }
 
-            internal BookmarkStart? BookmarkStart { get; }
-            internal BookmarkEnd? BookmarkEnd { get; }
+            internal LegacyDocElement BookmarkStart { get; }
+            internal LegacyDocElement BookmarkEnd { get; }
             internal int ResultOffset { get; }
         }
     }

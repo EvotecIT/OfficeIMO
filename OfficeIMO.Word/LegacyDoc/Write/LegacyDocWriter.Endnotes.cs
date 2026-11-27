@@ -1,25 +1,24 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static LegacyDocWritableEndnotes ReadSupportedEndnotes(MainDocumentPart mainPart, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes) {
-            Endnotes? endnotes = mainPart.EndnotesPart?.Endnotes;
-            if (endnotes == null) {
+        private static LegacyDocWritableEndnotes ReadSupportedEndnotes(LegacyDocSourcePackage source, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes) {
+            LegacyDocElement endnotes = source.Endnotes;
+            if (endnotes.IsNone) {
                 return LegacyDocWritableEndnotes.Empty;
             }
 
             IReadOnlyDictionary<string, ushort> noteStyleIndexes = CreateNoteParagraphStyleIndexes(styleIndexes, "EndnoteText");
+            LegacyDocPart relationshipOwner = source.Part(source.EndnotesPart!);
             var stories = new Dictionary<long, LegacyDocWritableNoteStory>();
-            foreach (Endnote endnote in endnotes.Elements<Endnote>()) {
+            foreach (LegacyDocElement endnote in endnotes.Elements("endnote")) {
                 if (!IsUserEndnote(endnote)) {
                     continue;
                 }
 
-                long? id = endnote.Id?.Value;
+                long? id = LegacyDocValues.Int64(endnote.Attr("id"));
                 if (id == null || id.Value <= 0) {
                     throw new NotSupportedException("Native DOC saving supports endnotes only when every user endnote has a positive identifier.");
                 }
@@ -28,7 +27,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException($"Native DOC saving cannot write duplicate endnote id '{id.Value}'.");
                 }
 
-                stories.Add(id.Value, ReadSimpleEndnoteStory(endnote, id.Value, mainPart.EndnotesPart!, pictures, noteStyleIndexes));
+                stories.Add(id.Value, ReadSimpleEndnoteStory(endnote, id.Value, relationshipOwner, pictures, noteStyleIndexes));
             }
 
             return stories.Count == 0
@@ -36,7 +35,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : new LegacyDocWritableEndnotes(stories);
         }
 
-        private static LegacyDocWritableNoteStory ReadSimpleEndnoteStory(Endnote endnote, long id, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> noteStyleIndexes) {
+        private static LegacyDocWritableNoteStory ReadSimpleEndnoteStory(LegacyDocElement endnote, long id, LegacyDocPart relationshipOwner, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> noteStyleIndexes) {
             var builder = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
@@ -45,7 +44,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (!HasExplicitNoteReferenceSeparator(endnote)) builder.Append(' ');
             bool hasBodyText = false;
             bool isFirstParagraph = true;
-            foreach (OpenXmlElement child in endnote.ChildElements) {
+            foreach (LegacyDocElement child in endnote.Elements()) {
                 AppendSimpleEndnoteStoryChild(
                     child,
                     id,
@@ -70,9 +69,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void AppendSimpleEndnoteStoryChild(
-            OpenXmlElement child,
+            LegacyDocElement child,
             long id,
-            EndnotesPart relationshipOwner,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> noteStyleIndexes,
             StringBuilder builder,
@@ -82,11 +81,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ref bool hasBodyText,
             ref bool isFirstParagraph,
             string containerDescription) {
-            switch (child) {
-                case Paragraph paragraph:
+            switch (child.WName) {
+                case "p":
                     int paragraphStart = isFirstParagraph ? 0 : builder.Length;
-                    LegacyDocWritableFormatting paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, pictures, noteStyleIndexes, out string paragraphText);
+                    LegacyDocWritableFormatting paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(child.Child("pPr"));
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(child, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, pictures, noteStyleIndexes, out string paragraphText);
                     if (!string.IsNullOrEmpty(paragraphText)) {
                         hasBodyText = true;
                     }
@@ -100,9 +99,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                     isFirstParagraph = false;
                     break;
-                case SdtBlock sdtBlock:
+                case "sdt":
                     AppendSimpleEndnoteContentControl(
-                        sdtBlock,
+                        child,
                         id,
                         relationshipOwner,
                         pictures,
@@ -114,11 +113,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ref hasBodyText,
                         ref isFirstParagraph);
                     break;
-                case BookmarkStart bookmarkStart:
-                    bookmarks.AddStart(bookmarkStart, builder.Length);
+                case "bookmarkStart":
+                    bookmarks.AddStart(child, builder.Length);
                     break;
-                case BookmarkEnd bookmarkEnd:
-                    bookmarks.AddEnd(bookmarkEnd, builder.Length);
+                case "bookmarkEnd":
+                    bookmarks.AddEnd(child, builder.Length);
                     break;
                 default:
                     throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs, content controls, and bookmarks only. Unsupported {containerDescription} element: {child.LocalName}.");
@@ -126,9 +125,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void AppendSimpleEndnoteContentControl(
-            SdtBlock sdtBlock,
+            LegacyDocElement sdtBlock,
             long id,
-            EndnotesPart relationshipOwner,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> noteStyleIndexes,
             StringBuilder builder,
@@ -137,12 +136,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableBookmarksBuilder bookmarks,
             ref bool hasBodyText,
             ref bool isFirstParagraph) {
-            SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
-            if (contentBlock == null) {
+            LegacyDocElement contentBlock = sdtBlock.Child("sdtContent");
+            if (contentBlock.IsNone) {
                 throw new NotSupportedException($"Native DOC saving supports endnote id '{id}' content controls only when they contain simple paragraphs and bookmarks.");
             }
 
-            foreach (OpenXmlElement child in contentBlock.ChildElements) {
+            foreach (LegacyDocElement child in contentBlock.Elements()) {
                 AppendSimpleEndnoteStoryChild(
                     child,
                     id,
@@ -159,53 +158,52 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> noteStyleIndexes, out string paragraphText) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(LegacyDocElement paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, LegacyDocPart relationshipOwner, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> noteStyleIndexes, out string paragraphText) {
             var builder = new StringBuilder();
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph, id, "endnote", noteStyleIndexes);
             if (isFirstParagraph && paragraphFormatting.HasFormatting && paragraphFormatting.StyleIndex == null) {
                 paragraphFormatting = paragraphFormatting.WithStyleIndex(NoteTextParagraphStyleIndex);
             }
 
-            OpenXmlElement[] children = paragraph.ChildElements.ToArray();
+            LegacyDocElement[] children = paragraph.Elements().ToArray();
             for (int index = 0; index < children.Length; index++) {
-                OpenXmlElement child = children[index];
-                switch (child) {
-                    case ParagraphProperties:
+                LegacyDocElement child = children[index];
+                if (child.Is(OfficeXmlNamespaces.Math, "oMath") || child.Is(OfficeXmlNamespaces.Math, "oMathPara")) {
+                    AppendMathEquationNoteField(builder, runs, bookmarks, child, storyStart);
+                    continue;
+                }
+
+                switch (child.WName) {
+                    case "pPr":
                         break;
-                    case Run run:
-                        if (IsComplexFieldBeginRun(run)) {
+                    case "r":
+                        if (IsComplexFieldBeginRun(child)) {
                             AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, bookmarks, storyStart);
                         } else {
-                            AppendSimpleEndnoteRun(builder, runs, run, id, storyStart, relationshipOwner, pictures);
+                            AppendSimpleEndnoteRun(builder, runs, child, id, storyStart, relationshipOwner, pictures);
                         }
 
                         break;
-                    case InsertedRun insertedRun:
-                        AppendSimpleEndnoteRevision(builder, runs, insertedRun, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
+                    case "ins":
+                        AppendSimpleEndnoteRevision(builder, runs, child, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
                         break;
-                    case DeletedRun deletedRun:
-                        AppendSimpleEndnoteRevision(builder, runs, deletedRun, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
+                    case "del":
+                        AppendSimpleEndnoteRevision(builder, runs, child, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
                         break;
-                    case Hyperlink hyperlink:
-                        AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "endnote", storyStart);
+                    case "hyperlink":
+                        AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, child, relationshipOwner, id, "endnote", storyStart);
                         break;
-                    case SimpleField simpleField:
-                        AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, simpleField, storyStart);
+                    case "fldSimple":
+                        AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, child, storyStart);
                         break;
-                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
-                        AppendMathEquationNoteField(builder, runs, bookmarks, officeMath, storyStart);
+                    case "sdt":
+                        AppendSupportedEndnoteInlineContentControl(builder, runs, bookmarks, child, relationshipOwner, pictures, id, storyStart);
                         break;
-                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
-                        AppendMathEquationNoteField(builder, runs, bookmarks, mathParagraph, storyStart);
+                    case "bookmarkStart":
+                        bookmarks.AddStart(child, storyStart + builder.Length);
                         break;
-                    case SdtRun sdtRun:
-                        AppendSupportedEndnoteInlineContentControl(builder, runs, bookmarks, sdtRun, relationshipOwner, pictures, id, storyStart);
-                        break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);
-                        break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, storyStart + builder.Length);
+                    case "bookmarkEnd":
+                        bookmarks.AddEnd(child, storyStart + builder.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {
@@ -223,16 +221,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendSimpleEndnoteRevision(
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
-            OpenXmlCompositeElement revisionElement,
+            LegacyDocElement revisionElement,
             LegacyDocRevisionKind revisionKind,
             long id,
             int storyStart,
-            EndnotesPart relationshipOwner,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures) {
             LegacyDocRevision revision = ReadSupportedRevision(revisionElement, revisionKind);
-            foreach (OpenXmlElement child in revisionElement.ChildElements) {
-                if (child is Run run) {
-                    AppendSimpleEndnoteRun(builder, runs, run, id, storyStart, relationshipOwner, pictures, revision);
+            foreach (LegacyDocElement child in revisionElement.Elements()) {
+                if (child.Is("r")) {
+                    AppendSimpleEndnoteRun(builder, runs, child, id, storyStart, relationshipOwner, pictures, revision);
                     continue;
                 }
 
@@ -240,43 +238,43 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendSimpleEndnoteRun(StringBuilder builder, List<LegacyDocWritableRun> runs, Run run, long id, int storyStart, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures, LegacyDocRevision revision = default) {
+        private static void AppendSimpleEndnoteRun(StringBuilder builder, List<LegacyDocWritableRun> runs, LegacyDocElement run, long id, int storyStart, LegacyDocPart relationshipOwner, LegacyDocWritablePictures pictures, LegacyDocRevision revision = default) {
             if (IsEndnoteReferenceMarkRun(run)) {
                 return;
             }
 
-            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties).WithRevision(revision);
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.Child("rPr")).WithRevision(revision);
 
-            foreach (OpenXmlElement child in run.ChildElements) {
-                switch (child) {
-                    case RunProperties:
+            foreach (LegacyDocElement child in run.Elements()) {
+                switch (child.WName) {
+                    case "rPr":
                         break;
-                    case LastRenderedPageBreak:
+                    case "lastRenderedPageBreak":
                         break;
-                    case Text text:
-                        AppendFormattedNoteText(builder, runs, text.Text, formatting, storyStart);
+                    case "t":
+                        AppendFormattedNoteText(builder, runs, child.Text, formatting, storyStart);
                         break;
-                    case DeletedText deletedText:
-                        AppendFormattedNoteText(builder, runs, deletedText.Text, formatting, storyStart);
+                    case "delText":
+                        AppendFormattedNoteText(builder, runs, child.Text, formatting, storyStart);
                         break;
-                    case TabChar:
+                    case "tab":
                         AppendFormattedNoteText(builder, runs, "\t", formatting, storyStart);
                         break;
-                    case CarriageReturn:
+                    case "cr":
                         AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting, storyStart);
                         break;
-                    case NoBreakHyphen:
+                    case "noBreakHyphen":
                         AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.NoBreakHyphen.ToString(), formatting, storyStart);
                         break;
-                    case SoftHyphen:
+                    case "softHyphen":
                         AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.SoftHyphen.ToString(), formatting, storyStart);
                         break;
-                    case Break breakNode:
-                        AppendSimpleEndnoteBreak(builder, runs, breakNode, id, formatting, storyStart);
+                    case "br":
+                        AppendSimpleEndnoteBreak(builder, runs, child, id, formatting, storyStart);
                         break;
-                    case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
+                    case "drawing":
                         int picturePosition = storyStart + builder.Length;
-                        int pictureDataOffset = pictures.AddInlinePicture(drawing, relationshipOwner);
+                        int pictureDataOffset = pictures.AddInlinePicture(child, relationshipOwner);
                         builder.Append('\u0001');
                         runs.Add(new LegacyDocWritableRun(
                             picturePosition,
@@ -290,14 +288,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static bool IsEndnoteReferenceMarkRun(Run run) {
+        private static bool IsEndnoteReferenceMarkRun(LegacyDocElement run) {
             bool hasReferenceMark = false;
-            foreach (OpenXmlElement child in run.ChildElements) {
-                switch (child) {
-                    case RunProperties:
-                    case LastRenderedPageBreak:
+            foreach (LegacyDocElement child in run.Elements()) {
+                switch (child.WName) {
+                    case "rPr":
+                    case "lastRenderedPageBreak":
                         break;
-                    case EndnoteReferenceMark:
+                    case "endnoteRef":
                         hasReferenceMark = true;
                         break;
                     default:
@@ -308,19 +306,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return hasReferenceMark;
         }
 
-        private static void AppendSimpleEndnoteBreak(StringBuilder builder, List<LegacyDocWritableRun> runs, Break breakNode, long id, LegacyDocWritableFormatting formatting, int storyStart) {
-            BreakValues? breakType = breakNode.Type?.Value;
-            if (breakType == null || breakType == BreakValues.TextWrapping) {
+        private static void AppendSimpleEndnoteBreak(StringBuilder builder, List<LegacyDocWritableRun> runs, LegacyDocElement breakNode, long id, LegacyDocWritableFormatting formatting, int storyStart) {
+            string? breakType = breakNode.Attr("type");
+            if (breakType == null || breakType == "textWrapping") {
                 AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting, storyStart);
                 return;
             }
 
-            if (breakType == BreakValues.Page) {
+            if (breakType == "page") {
                 AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.PageBreak.ToString(), formatting, storyStart);
                 return;
             }
 
-            if (breakType == BreakValues.Column) {
+            if (breakType == "column") {
                 AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.ColumnBreak.ToString(), formatting, storyStart);
                 return;
             }
