@@ -83,9 +83,7 @@ public abstract class EntityScheme {
     public virtual string? Country => null;           // ISO 3166-1 alpha-2
     public virtual string? Issuer => null;            // "Ministry of Digital Affairs"
     public virtual Uri? Specification => null;        // primary source for the format
-    public virtual EntityCheckProvenance CheckProvenance => EntityCheckProvenance.None;
-                                                      // IssuerPublished, CommunityDocumented, None
-    public virtual Uri? CheckSource => null;          // where the check algorithm is documented
+    public virtual IReadOnlyList<EntityCheckInfo> Checks => [];  // every check the scheme can run
     public virtual int MinLength => 1;                // normalized length bounds
     public virtual int MaxLength => 64;
     public virtual EntityCheckKind Check => EntityCheckKind.None;  // Mod11, Mod97_10, Luhn, ...
@@ -102,7 +100,7 @@ public abstract class EntityScheme {
 - **Validate** accepts the forms people write: surrounding whitespace, the scheme's own separators (spaces, hyphens, dots, non-breaking spaces), lower case where the scheme is case-insensitive, and an optional country prefix where one is customary (`PL` before a NIP). It returns a result, never throws for bad input.
 - **Normalize** returns the canonical compact form: digits and upper-case letters only, with the prefix the scheme defines (`PL1234563218` for a Polish VAT number, `1234563218` for a NIP).
 - **Format** renders a normalized value: `Compact`, `Display` (the issuer's printed grouping, such as `123-456-32-18` or `PL61 1090 1014 0000 0712 1981 2874`) and `Electronic` where it differs.
-- **Check provenance** says where a check algorithm comes from. `IssuerPublished` means the issuer (or a ministry publishing the rules member states agreed to disclose) states it. `CommunityDocumented` means no issuer publication exists and the algorithm is taken from a documented description that matches real issued numbers; the scheme cites it in `CheckSource`. Results and matches carry the provenance, so a host can treat a community-documented check as weaker or ignore it.
+- **Check provenance** says where a check algorithm comes from. `IssuerPublished` means the issuer (or a ministry publishing the rules member states agreed to disclose) states it. `CommunityDocumented` means no issuer publication exists and the algorithm is taken from a documented description that matches real issued numbers. Provenance belongs to each check, not to the scheme, because one scheme can run different checks for different variants: `EU.VAT.ES` uses the Ministry of the Interior's NIF/NIE letter rule (issuer-published) for individuals and a community-documented check for companies. `EntityCheckInfo` describes each check (`Name` such as `"NIF letter"`, `Provenance`, `Source` URI). Validation results and matches name the check that actually ran and carry its provenance, so a host can treat a community-documented result as weaker or ignore it.
 - **Decode** is opt-in and returns only what the specification encodes: PESEL birth date and sex, IBAN country and BBAN, card issuer category from the IIN's first digit, REGON 14's parent REGON 9. It never guesses.
 
 ```csharp
@@ -114,7 +112,8 @@ public sealed class EntityValidationResult {
     public string? Normalized { get; }                 // set when the format parsed, even if the check failed
     public EntityScheme Scheme { get; }
     public EntityCheckOutcome CheckDigit { get; }      // Passed, Failed, NotDefined
-    public EntityCheckProvenance CheckProvenance { get; }  // copied from the scheme
+    public EntityCheckInfo? Check { get; }             // the check that ran, null when none applies
+    public EntityCheckProvenance CheckProvenance { get; }  // Check?.Provenance ?? None
 }
 
 public sealed class EntityDetails {
@@ -145,7 +144,7 @@ The finder tokenizes the text once into runs, and recognizers read the runs rath
 - **Alphanumeric runs**: letters and digits with the same separator rules, for IBAN, VAT, NINO, passport and ISIN shapes.
 - **Anchors**: `@` positions for email and `://` or `www.` positions for URLs; the email and URL recognizers expand outward under RFC limits.
 
-Each run knows whether a letter or digit touches either end. A recognizer never reports a candidate inside a longer run of the same character class: the middle 11 digits of a 20-digit number are not a PESEL. Every recognizer has a fixed maximum candidate length, so scanning is linear in the text and there is no backtracking to exploit.
+Runs keep their groups (the stretches between separators). Candidates start and end on group boundaries and never inside a group, so a label joined to its value by a space is no obstacle: in `IBAN PL61 1090 1014 0000 0712 1981 2874` the IBAN recognizer tries candidates starting at each group and finds the value after `IBAN`, which then serves as the context keyword. What stays rejected is a value inside a longer unbroken group: the middle 11 digits of a 20-digit number are not a PESEL. For digit-only schemes, a candidate that leaves neighbouring digit groups in the same run must either match the scheme's issuer grouping or be set apart from its neighbours by a different separator than the one repeated through the run, so that one group of a longer spaced number is not read as an identifier on its own. Every recognizer has a fixed maximum candidate length, so scanning is linear in the text and there is no backtracking to exploit.
 
 Recognizers are separate from schemes because one recognizer can serve many schemes (one EU VAT recognizer for 28 prefixes, one IBAN recognizer for every country) and because a scheme is useful without any finder (validating an Excel column, an invoice field or a PowerShell parameter).
 
@@ -158,12 +157,15 @@ public sealed class EntityMatch {
     public EntityKind Kind { get; }
     public EntityScheme Scheme { get; }
     public string Normalized { get; }                 // sensitive
+    public EntityCheckInfo? Check { get; }            // the check that produced this match
     public EntityCheckProvenance CheckProvenance { get; }
     public double Confidence { get; }                 // 0..1
     public EntityEvidence Evidence { get; }           // flags
     public string? ContextKeyword { get; }            // "NIP", "nr rachunku"
     public string? ContextLanguage { get; }           // BCP 47: "pl", "en"
-    public EntitySegmentLocation? Location { get; }   // from the input segment, see below
+    public int SegmentIndex { get; }                  // index of the input segment where the match starts (0 for a string)
+    public EntitySegmentLocation? Location { get; }   // from that segment, see below
+    public IReadOnlyList<EntityMatchPart> Parts { get; }     // one per segment the match covers: SegmentIndex, Start, Length
     public IReadOnlyList<EntityMatch> Alternatives { get; }  // other readings of the same span
     public IReadOnlyList<EntityMatch> Contained { get; }     // e.g. the NIP inside a PL VAT number
     public override string ToString();                // "TaxId/PL.NIP [12..25] 0.92", never the value
@@ -192,7 +194,8 @@ Hosts rarely have one flat string. The finder accepts either a string or a list 
 
 ```csharp
 public readonly struct EntityTextSegment {
-    public EntityTextSegment(string text, EntitySegmentLocation? location = null, string? label = null);
+    public EntityTextSegment(string text, EntitySegmentLocation? location = null, string? label = null,
+        bool continuesPrevious = false);
 }
 
 public sealed class EntitySegmentLocation {
@@ -202,7 +205,9 @@ public sealed class EntitySegmentLocation {
 }
 ```
 
-Excel passes each cell with its column header as `label`; the Reader passes chunks with their source location; invoicing passes a field value with the element name as `label` and the match gets `StructuredSource`. Matches never cross segment boundaries.
+Excel passes each cell with its column header as `label`; the Reader passes chunks with their source location; invoicing passes a field value with the element name as `label` and the match gets `StructuredSource`.
+
+`Start` and `Length` are offsets within the segment named by `SegmentIndex`, so a match is unambiguous even when `Location` is null. Matches do not cross segment boundaries, except into a segment marked `continuesPrevious`: the finder joins such a chain into one logical text (exactly as given, without inserting characters) and a match inside it may span several segments. `Parts` then lists the covered piece of each segment, which lets PDF map every part back to its own glyphs. For a match inside one segment, `Parts` has one entry equal to `SegmentIndex`, `Start` and `Length`.
 
 ## Scoring
 
@@ -366,7 +371,7 @@ PdfRedactionPlan plan = pdf.Redactions.Search(search);
 // each PdfRedactionMatch carries criterion "entity:PL.PESEL" (never the value) and the confidence
 ```
 
-The planner already extracts page text with glyph geometry; it passes each text run as an `EntityTextSegment`, and maps match offsets back to glyph boxes exactly as it does for regex matches today. The workflow recipe (`officeimo.pdf.redaction.recipe.v1`) gains `PdfRedactionRuleKind.Entity`, with `Value` holding a kind or scheme list such as `NationalId,PL.NIP` and an optional minimum confidence; evidence keeps the rule name and scheme ids, as it does now.
+The planner already extracts page text with glyph geometry. PDF text extraction can split one identifier across consecutive runs, so the planner passes the runs of one line as a chain of `EntityTextSegment`s with `continuesPrevious` set, and maps each `EntityMatchPart` back to the glyph boxes of its own run, so the redaction covers every matched character. This goes further than the regular expression path, which matches only within one logical block today; it follows what the literal search already does with `MatchLiteralsAcrossBlocks`. The workflow recipe (`officeimo.pdf.redaction.recipe.v1`) gains `PdfRedactionRuleKind.Entity`, with `Value` holding a kind or scheme list such as `NationalId,PL.NIP` and an optional minimum confidence; evidence keeps the rule name and scheme ids, as it does now.
 
 Word, Excel and PowerPoint have no text redaction yet. When they get it, they follow the same plan shape (find, review, apply, verify): Word over runs with paragraph locations, Excel over cells with the header as label, PowerPoint over shape text. Entities arrive as a criterion from day one rather than a later bolt-on. Until then, these formats offer inspection only (`Find-OfficeEntity` below).
 
@@ -428,7 +433,7 @@ An inspection panel listing entity findings per document with jump-to-location, 
 
 Each scheme records its primary source in `Specification`, and its tests use the issuer's published example values where the issuer publishes any. Where an issuer publishes the algorithm but no example, tests compute vectors from the published weights and record the derivation next to the test.
 
-Where no issuer publication exists, a community-documented algorithm may be used. The scheme then sets `CheckProvenance = CommunityDocumented`, cites the description in `CheckSource`, and its tests include at least one value from a public issuer artifact (a specimen document, a register extract or the issuer's own sample) that the algorithm accepts. The description is implemented from its prose; code from other projects is never copied or ported.
+Where no issuer publication exists, a community-documented algorithm may be used. The check's `EntityCheckInfo` then has `Provenance = CommunityDocumented` and cites the description in `Source`, and its tests include at least one value from a public issuer artifact (a specimen document, a register extract or the issuer's own sample) that the algorithm accepts. The description is implemented from its prose; code from other projects is never copied or ported.
 
 Two findings shape stage 1:
 
@@ -492,7 +497,7 @@ Add `OfficeIMO.Entities` to `OfficeIMO.Core`: an extensible model and engine to 
 
 - Warnings are errors, nullable is on, follow `.editorconfig`. Targets are Core's: `netstandard2.0`, `net8.0`, `net10.0`, plus `net472` on Windows. The public API is string-based; span-based internals under `#if NET8_0_OR_GREATER` are fine.
 - No new package references. No reflection, no `Regex` in recognizers or schemes, no runtime code generation, no static constructors that do heavy work. Must stay trim- and NativeAOT-safe (Core is used by the AOT smoke projects).
-- No code copied, ported or adapted from other projects (python-stdnum, libphonenumber, Presidio, OneContact or any other). Implement every algorithm from the source cited in the [sources table](#sources-and-test-vectors) or, for community-documented checks, from a public prose description that you cite in `CheckSource` and in an XML doc comment. Set `CheckProvenance` on every scheme that has a check.
+- No code copied, ported or adapted from other projects (python-stdnum, libphonenumber, Presidio, OneContact or any other). Implement every algorithm from the source cited in the [sources table](#sources-and-test-vectors) or, for community-documented checks, from a public prose description that you cite in the check's `EntityCheckInfo.Source` and in an XML doc comment. Every check has an `EntityCheckInfo` with its provenance, and results and matches report the check that actually ran (for example `EU.VAT.ES` reports the issuer-published NIF letter check for an individual's number and the community-documented company check otherwise).
 - Never put input values into `ToString()`, exception messages or diagnostics.
 - Update Core's public API tracking files the way recent Core API additions did.
 - Tests: apply the test-audit authoring gate. Test contracts (validation status, normalized output, scoring thresholds, overlap outcomes, masking output), not implementation details. Use issuer-published examples where they exist; otherwise compute vectors from the published weights and add a one-line comment with the derivation. No timing or allocation assertions outside `[Trait("Category", "Performance")]`.
@@ -503,11 +508,11 @@ Add `OfficeIMO.Entities` to `OfficeIMO.Core`: an extensible model and engine to 
 OfficeIMO.Core/Entities/
   EntityKind.cs                      readonly struct, well-known values, case-insensitive equality
   EntityScheme.cs                    abstract base (see design "Schemes"), Contains relations, MaskPartial
-  EntityValidationResult.cs, EntityValidationStatus.cs, EntityCheckOutcome.cs, EntityCheckKind.cs, EntityCheckProvenance.cs
+  EntityValidationResult.cs, EntityValidationStatus.cs, EntityCheckOutcome.cs, EntityCheckKind.cs, EntityCheckProvenance.cs, EntityCheckInfo.cs
   EntityDetails.cs, EntitySex.cs, EntitySensitivity.cs, EntityFormatStyle.cs
   EntityCatalog.cs, EntityCatalogBuilder.cs   immutable catalog; Default = every pack below
   EntityFinder.cs, EntityFinderOptions.cs, EntityFindResult.cs, EntityOverlapPolicy.cs
-  EntityMatch.cs, EntityEvidence.cs, EntityTextSegment.cs, EntitySegmentLocation.cs
+  EntityMatch.cs, EntityMatchPart.cs, EntityEvidence.cs, EntityTextSegment.cs, EntitySegmentLocation.cs
   EntityMasker.cs, EntityMaskOptions.cs, EntityMaskStyle.cs, EntityPseudonymResult.cs
   IEntityRecognizer.cs, EntityRecognitionContext.cs, EntityCandidate.cs, EntityTokenShape.cs
   Internal/EntityTokenizer.cs        digit runs, alphanumeric runs, @ and URL anchors, boundary flags
@@ -579,6 +584,10 @@ Acceptance tests that must exist (values below are computed from the published w
 | `US0378331005` | ISIN valid; `US0378331006` invalid |
 | `5493001KJTIIGC8Y1R12` | LEI valid (ISO 7064 MOD 97-10) |
 | a 20-digit number containing a valid PESEL in its middle | no match |
+| segments `["PESEL: 4405", "1401359"]`, the second with `continuesPrevious` | one PL.PESEL match, `SegmentIndex = 0`, two `Parts` covering `4405` and `1401359` |
+| the same two segments without `continuesPrevious` | no match |
+| three segments where only the third holds `NIP 5260001246` | `SegmentIndex = 2`, offsets relative to that segment |
+| `ES12345678Z` and a Spanish company VAT number | `Check.Name` and `CheckProvenance` differ: `IssuerPublished` for the NIF letter rule, `CommunityDocumented` for the company check |
 | `12.05.2023` | no digit-scheme match |
 | `jan.kowalski@example.com`, `jan@bücher.example` | Email; comparison key lower-cases and IDNA-maps the domain only |
 | `https://example.com/a?b=c` in prose with trailing `.` | Url without the trailing dot |
@@ -589,6 +598,7 @@ Masking tests: `KindLabel`, `Fixed`, `Partial` per scheme, `Pseudonym` stable fo
 
 - Move `OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs` into Core as `Entities/Financial/IbanStructure.cs` (internal) and build `FinancialSchemes.Iban` on it. Delete the shared source file and both `Compile Include` links.
 - Add a `ProjectReference` to `OfficeIMO.Core` in `OfficeIMO.Invoicing.csproj`.
+- Remove `OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs` from the expected file list in `SharedSource_IsLimitedToApprovedInternalInfrastructure` (`OfficeIMO.Shared.Tests/PackageDependencyGuardrails.cs`). No guardrail pins Invoicing's project references today.
 - Switch every caller to `FinancialSchemes.Iban.IsValid`: in Invoicing `Poland/Fa3InvoiceWriter.MappingChecks.cs`, `Poland/Fa3InvoiceReader.Fields.cs`, `Xml/InvoiceSerializer.cs`, `Xml/InvoiceParser.CiiParties.cs`, `Xml/InvoiceParser.UblParties.cs`; in Pdf `PdfCiiDocumentHeaderInspector.PaymentAccounts.cs` and `PdfComplianceAnalyzer.ElectronicInvoice.PaymentAccounts.cs`. Behaviour must not change; run the Invoicing and Pdf test projects.
 
 ### Done means
