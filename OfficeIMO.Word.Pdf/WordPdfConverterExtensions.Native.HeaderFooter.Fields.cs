@@ -1,36 +1,32 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using V = DocumentFormat.OpenXml.Vml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
-        private static bool TryBuildNativeHeaderFooterParagraphText(WordParagraph paragraph, out string? text, out PdfCore.PdfPageNumberStyle? pageNumberStyle, List<(W.Run Run, string Text, bool IsField, DocumentFormat.OpenXml.OpenXmlElement? SourceChild, PdfCore.PdfPageNumberStyle? FieldStyle)>? serializedRuns = null) {
+        private static bool TryBuildNativeHeaderFooterParagraphText(WordParagraph paragraph, out string? text, out PdfCore.PdfPageNumberStyle? pageNumberStyle, List<(OfficeXmlNode Run, string Text, bool IsField, OfficeXmlNode SourceChild, PdfCore.PdfPageNumberStyle? FieldStyle)>? serializedRuns = null) {
             text = null;
             pageNumberStyle = null;
-            if (paragraph._paragraph == null) {
+            OfficeXmlNode source = paragraph.Node();
+            if (source.IsNone) {
                 return false;
             }
 
             var builder = new StringBuilder();
-            WordComplexFieldRunVisibility prefix = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
+            WordComplexFieldRunVisibility prefix = WordConverterNodes.FieldVisibilityForParagraph(source);
             var state = new NativeHeaderFooterFieldState {
                 Paragraph = paragraph,
                 SerializedRuns = serializedRuns,
                 CollectingFieldCode = prefix.HasOpenField && !prefix.IsVisible,
                 SkippingFieldResult = prefix.HasOpenField && prefix.IsVisible
             };
-            string prefixCode = ReadNativeHeaderFooterFieldPrefixCode(prefix.CurrentState?.BeginMarker, paragraph._paragraph);
+            string prefixCode = ReadNativeHeaderFooterFieldPrefixCode(prefix.BeginMarkerNode(), source);
             if (state.CollectingFieldCode) state.FieldCode.Append(prefixCode);
             bool hasFieldToken = state.SkippingFieldResult && TryGetNativeHeaderFooterFieldToken(prefixCode, out _, out _);
             bool hasConflictingStyles = false;
-            foreach (var element in paragraph._paragraph.ChildElements) {
+            foreach (OfficeXmlNode element in source.Elements()) {
                 AppendNativeHeaderFooterElementText(element, builder, state, ref pageNumberStyle, ref hasConflictingStyles, ref hasFieldToken);
             }
 
@@ -44,78 +40,78 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static void AppendNativeHeaderFooterElementText(DocumentFormat.OpenXml.OpenXmlElement element, StringBuilder builder, NativeHeaderFooterFieldState state, ref PdfCore.PdfPageNumberStyle? pageNumberStyle, ref bool hasConflictingStyles, ref bool hasFieldToken) {
-            if (element is W.Run run) {
-                AppendNativeHeaderFooterRunText(run, builder, state, ref pageNumberStyle, ref hasConflictingStyles, ref hasFieldToken);
+        private static void AppendNativeHeaderFooterElementText(OfficeXmlNode element, StringBuilder builder, NativeHeaderFooterFieldState state, ref PdfCore.PdfPageNumberStyle? pageNumberStyle, ref bool hasConflictingStyles, ref bool hasFieldToken) {
+            if (element.IsW("r")) {
+                AppendNativeHeaderFooterRunText(element, builder, state, ref pageNumberStyle, ref hasConflictingStyles, ref hasFieldToken);
                 return;
             }
 
-            if (element is W.Hyperlink hyperlink) {
-                foreach (W.Run childRun in hyperlink.Elements<W.Run>()) {
+            if (element.IsW("hyperlink")) {
+                foreach (OfficeXmlNode childRun in element.WElements("r")) {
                     AppendNativeHeaderFooterRunText(childRun, builder, state, ref pageNumberStyle, ref hasConflictingStyles, ref hasFieldToken);
                 }
 
                 return;
             }
 
-            if (element is W.SdtRun sdtRun) {
-                foreach (var child in sdtRun.SdtContentRun?.ChildElements ?? Enumerable.Empty<DocumentFormat.OpenXml.OpenXmlElement>()) {
+            if (element.IsW("sdt")) {
+                foreach (OfficeXmlNode child in element.WChild("sdtContent").Elements()) {
                     AppendNativeHeaderFooterElementText(child, builder, state, ref pageNumberStyle, ref hasConflictingStyles, ref hasFieldToken);
                 }
 
                 return;
             }
 
-            if (element is W.SimpleField simpleField) {
+            if (element.IsW("fldSimple")) {
                 if (state.CollectingFieldCode || state.SkippingFieldResult) return;
-                string fieldCode = simpleField.Instruction?.Value ?? string.Empty;
+                string fieldCode = element.WAttr("instr") ?? string.Empty;
                 if (TryGetNativeHeaderFooterFieldToken(fieldCode, out string? token, out PdfCore.PdfPageNumberStyle? style)) {
                     hasFieldToken = true;
-                    W.Run[] resultRuns = simpleField.Descendants<W.Run>().Where(run => run.Elements<W.Text>().Any()).ToArray();
-                    W.Run? resultRun = resultRuns.FirstOrDefault(run => !IsNativeHiddenHeaderFooterRun(run, state.Paragraph));
-                    if (resultRun != null) {
+                    OfficeXmlNode[] resultRuns = element.Descendants(WordXml.W, "r").Where(run => run.Child(WordXml.W, "t").Exists).ToArray();
+                    OfficeXmlNode resultRun = resultRuns.FirstOrDefault(run => !IsNativeHiddenHeaderFooterRun(run, state.Paragraph));
+                    if (resultRun.Exists) {
                         AppendNativeHeaderFooterVisibleFieldToken(builder, resultRun, token!, style, state, ref pageNumberStyle, ref hasConflictingStyles);
                     } else if (resultRuns.Length == 0) {
                         // An uncached field still calculates a value using its effective formatting.
-                        W.Run? emptyRun = simpleField.Descendants<W.Run>().FirstOrDefault();
-                        bool hidden = IsNativeHiddenHeaderFooterRun(emptyRun ?? new W.Run(), state.Paragraph);
+                        OfficeXmlNode emptyRun = element.FirstDescendant(WordXml.W, "r");
+                        bool hidden = IsNativeHiddenHeaderFooterRun(emptyRun.Exists ? emptyRun : WordConverterNodes.CreateDetachedRun(), state.Paragraph);
                         if (!hidden) AppendNativeHeaderFooterVisibleFieldToken(builder, emptyRun, token!, style, state, ref pageNumberStyle, ref hasConflictingStyles);
                     }
                     return;
                 }
 
-                foreach (var child in simpleField.ChildElements) {
+                foreach (OfficeXmlNode child in element.Elements()) {
                     AppendNativeHeaderFooterElementText(child, builder, state, ref pageNumberStyle, ref hasConflictingStyles, ref hasFieldToken);
                 }
             }
         }
 
-        private static void AppendNativeHeaderFooterRunText(W.Run run, StringBuilder builder, NativeHeaderFooterFieldState state, ref PdfCore.PdfPageNumberStyle? pageNumberStyle, ref bool hasConflictingStyles, ref bool hasFieldToken) {
-            var sourceRun = new WordParagraph(state.Paragraph._document, state.Paragraph._paragraph!, run);
+        private static void AppendNativeHeaderFooterRunText(OfficeXmlNode run, StringBuilder builder, NativeHeaderFooterFieldState state, ref PdfCore.PdfPageNumberStyle? pageNumberStyle, ref bool hasConflictingStyles, ref bool hasFieldToken) {
+            WordParagraph sourceRun = state.Paragraph._document.RunView(state.Paragraph.Node(), run);
             bool hidden = IsNativeHiddenTextRun(sourceRun, state.Paragraph);
 
-            foreach (var child in run.ChildElements) {
-                if (child is W.FieldChar fieldChar) {
-                    W.FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
-                    if (fieldCharType == W.FieldCharValues.Begin) {
+            foreach (OfficeXmlNode child in run.Elements()) {
+                if (child.IsW("fldChar")) {
+                    string? fieldCharType = child.WAttr("fldCharType");
+                    if (fieldCharType == "begin") {
                         state.CollectingFieldCode = true;
                         state.SkippingFieldResult = false;
                         state.FieldCode.Clear();
-                    } else if (fieldCharType == W.FieldCharValues.Separate) {
+                    } else if (fieldCharType == "separate") {
                         if (TryGetNativeHeaderFooterFieldToken(state.FieldCode.ToString(), out string? token, out PdfCore.PdfPageNumberStyle? style)) {
-                            bool visibleResult = TryGetVisibleNativeHeaderFooterFieldResult(fieldChar, state.Paragraph,
-                                ref state.FieldScanWork, out W.Run? resultRun);
+                            bool visibleResult = TryGetVisibleNativeHeaderFooterFieldResult(child, state.Paragraph,
+                                ref state.FieldScanWork, out OfficeXmlNode resultRun);
                             if (visibleResult) {
                                 builder.Append(token);
                                 MergeNativeHeaderFooterPageNumberStyle(ref pageNumberStyle, ref hasConflictingStyles, style);
-                                state.SerializedRuns?.Add((resultRun!, token!, true, null, style));
+                                state.SerializedRuns?.Add((resultRun, token!, true, default, style));
                             }
                             hasFieldToken = true;
                             state.SkippingFieldResult = true;
                         }
 
                         state.CollectingFieldCode = false;
-                    } else if (fieldCharType == W.FieldCharValues.End) {
+                    } else if (fieldCharType == "end") {
                         // The separator is optional when a complex field has no cached result.
                         if (state.CollectingFieldCode && TryGetNativeHeaderFooterFieldToken(state.FieldCode.ToString(),
                             out string? token, out PdfCore.PdfPageNumberStyle? style)) {
@@ -131,9 +127,9 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                if (child is W.FieldCode fieldCode) {
+                if (child.IsW("instrText")) {
                     if (state.CollectingFieldCode) {
-                        state.FieldCode.Append(fieldCode.Text);
+                        state.FieldCode.Append(child.InnerText);
                     }
 
                     continue;
@@ -144,7 +140,7 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                if (child is W.PageNumber) {
+                if (child.IsW("pgNum")) {
                     hasFieldToken = true;
                     if (!hidden) AppendNativeHeaderFooterVisibleFieldToken(builder, run, "{page}", null, state,
                         ref pageNumberStyle, ref hasConflictingStyles);
@@ -152,35 +148,35 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (hidden) continue;
-                if (child is W.Text text) {
-                    string sourceText = WordParagraph.ReadVisibleText(text);
+                if (child.IsW("t")) {
+                    string sourceText = WordConverterNodes.VisibleText(child);
                     string visibleText = ApplyNativeTextTransform(sourceText, sourceRun, state.Paragraph);
                     builder.Append(visibleText);
                     // Keep source case until styled replacement segmentation has
                     // distinguished original capitals from synthetic small caps.
                     state.SerializedRuns?.Add((run, sourceText, false, child, null));
-                } else if (child is W.TabChar or W.PositionalTab) {
+                } else if (child.IsW("tab") || child.IsW("ptab")) {
                     builder.Append('\t');
                     state.SerializedRuns?.Add((run, "\t", false, child, null));
-                } else if (child is W.Break) {
+                } else if (child.IsW("br")) {
                     builder.AppendLine();
                     state.SerializedRuns?.Add((run, Environment.NewLine, false, child, null));
-                } else if (child is W.Drawing or W.Picture or DocumentFormat.OpenXml.AlternateContent) {
-                    string drawingText = WordParagraph.ReadVisibleText(child);
+                } else if (child.IsW("drawing") || child.IsW("pict") || child.Is(WordXml.Mc, "AlternateContent")) {
+                    string drawingText = WordConverterNodes.VisibleText(child);
                     builder.Append(drawingText);
                     state.SerializedRuns?.Add((run, drawingText, false, child, null));
                 }
             }
         }
 
-        private static bool IsNativeHiddenHeaderFooterRun(W.Run run, WordParagraph paragraph) =>
-            IsNativeHiddenTextRun(new WordParagraph(paragraph._document, paragraph._paragraph!, run), paragraph);
+        private static bool IsNativeHiddenHeaderFooterRun(OfficeXmlNode run, WordParagraph paragraph) =>
+            IsNativeHiddenTextRun(paragraph._document.RunView(paragraph.Node(), run), paragraph);
 
-        private static void AppendNativeHeaderFooterVisibleFieldToken(StringBuilder builder, W.Run? run, string token,
+        private static void AppendNativeHeaderFooterVisibleFieldToken(StringBuilder builder, OfficeXmlNode run, string token,
             PdfCore.PdfPageNumberStyle? style, NativeHeaderFooterFieldState state,
             ref PdfCore.PdfPageNumberStyle? pageNumberStyle, ref bool hasConflictingStyles) {
             builder.Append(token);
-            state.SerializedRuns?.Add((run ?? new W.Run(), token, true, null, style));
+            state.SerializedRuns?.Add((run.Exists ? run : WordConverterNodes.CreateDetachedRun(), token, true, default, style));
             MergeNativeHeaderFooterPageNumberStyle(ref pageNumberStyle, ref hasConflictingStyles, style);
         }
 
@@ -315,7 +311,7 @@ namespace OfficeIMO.Word.Pdf {
             public bool CollectingFieldCode { get; set; }
             public bool SkippingFieldResult { get; set; }
             public int FieldScanWork;
-            public List<(W.Run Run, string Text, bool IsField, DocumentFormat.OpenXml.OpenXmlElement? SourceChild, PdfCore.PdfPageNumberStyle? FieldStyle)>? SerializedRuns { get; set; }
+            public List<(OfficeXmlNode Run, string Text, bool IsField, OfficeXmlNode SourceChild, PdfCore.PdfPageNumberStyle? FieldStyle)>? SerializedRuns { get; set; }
             public StringBuilder FieldCode { get; } = new StringBuilder();
         }
 

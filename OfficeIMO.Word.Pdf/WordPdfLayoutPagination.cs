@@ -1,8 +1,7 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     /// <summary>
     /// Page numbers of body bookmarks taken from OfficeIMO's own page layout (the native PDF layout engine).
     /// </summary>
@@ -14,8 +13,7 @@ namespace OfficeIMO.Word.Pdf {
         /// </summary>
         internal static WordLayoutPagination Create(WordDocument document, WordPdfExportOptions layoutOptions) {
             using var cloneStream = new MemoryStream();
-            using (document._wordprocessingDocument.Clone(cloneStream, true)) {
-            }
+            document.ClonePackage(cloneStream);
 
             cloneStream.Position = 0;
             using WordDocument clone = WordDocument.Load(cloneStream, new WordLoadOptions {
@@ -28,8 +26,8 @@ namespace OfficeIMO.Word.Pdf {
                 clone.NormalizeTablesForOnline();
             }
 
-            Body? body = clone._wordprocessingDocument.MainDocumentPart?.Document?.Body;
-            if (body == null) {
+            OfficeXmlNode body = clone.BodyNode();
+            if (body.IsNone) {
                 return new WordLayoutPagination(new Dictionary<string, (int Number, string? Label)>(StringComparer.Ordinal), 1);
             }
 
@@ -74,11 +72,11 @@ namespace OfficeIMO.Word.Pdf {
         /// recorded, or a page that the recorded bookmarks before and after it pin down (both on the same page, or the
         /// last page with none after it, or page 1 with none before it). Any other bookmark stays unplaced.
         /// </summary>
-        private static void AddUnprojectedBookmarks(Body body, Dictionary<string, int> pages, int lastPage) {
+        private static void AddUnprojectedBookmarks(OfficeXmlNode body, Dictionary<string, int> pages, int lastPage) {
             var paragraphs = new List<(List<string> Names, int? Page)>();
-            foreach (Paragraph paragraph in body.Descendants<Paragraph>()) {
-                List<string> names = paragraph.Descendants<BookmarkStart>()
-                    .Select(_ => _.Name?.Value)
+            foreach (OfficeXmlNode paragraph in body.Descendants(WordXml.W, "p")) {
+                List<string> names = paragraph.Descendants(WordXml.W, "bookmarkStart")
+                    .Select(_ => _.WAttr("name"))
                     .OfType<string>()
                     .Where(_ => _.Length > 0)
                     .ToList();
@@ -145,26 +143,23 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Bookmarks that start between paragraphs are moved into the following paragraph so the layout records them.
         /// </summary>
-        private static void MoveBookmarksIntoParagraphs(Body body) {
-            foreach (BookmarkStart bookmark in body.Descendants<BookmarkStart>().ToList()) {
-                if (bookmark.Ancestors<Paragraph>().Any()) {
+        private static void MoveBookmarksIntoParagraphs(OfficeXmlNode body) {
+            foreach (OfficeXmlNode bookmark in body.Descendants(WordXml.W, "bookmarkStart")) {
+                if (!bookmark.Ancestor(WordXml.W, "p").IsNone) {
                     continue;
                 }
 
                 // The first paragraph in document order: a following paragraph, or the first one inside a following table.
-                Paragraph? next = bookmark.ElementsAfter()
-                    .Select(_ => _ as Paragraph ?? _.Descendants<Paragraph>().FirstOrDefault())
-                    .FirstOrDefault(_ => _ != null);
-                if (next == null) {
+                OfficeXmlNode next = bookmark.ElementsAfter()
+                    .Select(_ => _.IsW("p") ? _ : _.FirstDescendant(WordXml.W, "p"))
+                    .FirstOrDefault(_ => !_.IsNone);
+                if (next.IsNone) {
                     continue;
                 }
 
                 bookmark.Remove();
-                if (next.ParagraphProperties != null) {
-                    next.InsertAfter(bookmark, next.ParagraphProperties);
-                } else {
-                    next.PrependChild(bookmark);
-                }
+                OfficeXmlNode properties = next.WChild("pPr");
+                next.InsertBefore(bookmark, properties.IsNone ? next.FirstChild : properties.NextSibling);
             }
         }
 

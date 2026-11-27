@@ -1,33 +1,38 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
 using PdfCore = OfficeIMO.Pdf;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
 
 namespace OfficeIMO.Word.Pdf;
 
+
 public static partial class WordPdfConverterExtensions {
-    private static bool CanProjectNativeInlineContentControl(W.SdtRun control) =>
+    private static bool CanProjectNativeInlineContentControl(OfficeXmlNode control) =>
         (IsNativeCheckBoxControl(control) || IsNativeSupportedFormFieldContentControl(control)) &&
-        control.SdtContentRun?.Descendants<W.Run>().Any() == true &&
-        !control.Descendants<W.FieldChar>().Any() &&
-        control.Ancestors<W.Paragraph>().FirstOrDefault()?.Descendants<DocumentFormat.OpenXml.Math.OfficeMath>().Any() != true &&
+        control.WChild("sdtContent").HasDescendant(WordXml.W, "r") &&
+        !control.HasDescendant(WordXml.W, "fldChar") &&
+        control.Ancestor(WordXml.W, "p").HasDescendant(WordXml.M, "oMath") != true &&
         (IsNativeCheckBoxControl(control)
             ? !string.IsNullOrEmpty(GetNativeSdtText(control))
             : !string.IsNullOrEmpty(GetNativeContentControlDisplayValue(control)));
 
-    private static string GetNativeContentControlDisplayValue(W.SdtRun control) {
-        string? cached = GetNativeSdtText(control);
+    private static string GetNativeContentControlDisplayValue(OfficeXmlNode control) {
+        OfficeXmlNode sdtRun = control;
+        string? cached = GetNativeSdtText(sdtRun);
         if (!string.IsNullOrEmpty(cached)) return cached!;
-        if (IsNativeDatePickerControl(control)) return GetNativeDatePickerValue(control);
-        return GetNativeChoiceFieldValue(control, GetNativeChoiceFieldOptions(control)) ?? string.Empty;
+        if (IsNativeDatePickerControl(sdtRun)) return GetNativeDatePickerValue(sdtRun);
+        return GetNativeChoiceFieldValue(sdtRun, GetNativeChoiceFieldOptions(sdtRun)) ?? string.Empty;
     }
 
+
+    /// <summary>The inline content controls enclosing <paramref name="element"/>, nearest first.</summary>
+    private static IEnumerable<OfficeXmlNode> GetNativeAncestorSdtRuns(OfficeXmlNode element) =>
+        element.Ancestors().Where(WordXml.IsRunContentControl);
+
     private static IEnumerable<string> GetNativeCheckBoxAppearanceFontFamilies(WordParagraph paragraph) {
-        foreach (W.SdtRun control in GetNativeCheckBoxControls(paragraph).Where(CanProjectNativeInlineContentControl)) {
-            W14.SdtContentCheckBox properties = control.SdtProperties!.GetFirstChild<W14.SdtContentCheckBox>()!;
-            string? checkedFont = properties.GetFirstChild<W14.CheckedState>()?.Font?.Value;
-            string? uncheckedFont = properties.GetFirstChild<W14.UncheckedState>()?.Font?.Value;
+        foreach (OfficeXmlNode control in GetNativeCheckBoxControls(paragraph)
+            .Where(CanProjectNativeInlineContentControl)) {
+            OfficeXmlNode properties = control.WChild("sdtPr").Child(WordXml.W14, "checkbox");
+            string? checkedFont = properties.Child(WordXml.W14, "checkedState").Attr(WordXml.W14, "font");
+            string? uncheckedFont = properties.Child(WordXml.W14, "uncheckedState").Attr(WordXml.W14, "font");
             if (!string.IsNullOrWhiteSpace(checkedFont)) yield return checkedFont!;
             if (!string.IsNullOrWhiteSpace(uncheckedFont)) yield return uncheckedFont!;
         }
@@ -36,19 +41,17 @@ public static partial class WordPdfConverterExtensions {
     // The source run remains attached to the SDT so ordering, visibility and
     // formatting still use the original document. Only absent cached text needs
     // a view containing the control's current logical value.
-    private static WordParagraph CreateNativeInlineControlFallbackRun(WordParagraph paragraph, W.SdtRun control,
-        W.Hyperlink? hyperlink) {
-        W.Run source = control.SdtContentRun!.Descendants<W.Run>().First();
-        return new WordParagraph(paragraph._document, paragraph._paragraph!, source) {
-            _visibleRun = CreateNativeResolvedSdtRun(control, GetNativeContentControlDisplayValue(control)),
-            _hyperlink = hyperlink
-        };
+    private static WordParagraph CreateNativeInlineControlFallbackRun(WordParagraph paragraph, OfficeXmlNode control,
+        OfficeXmlNode hyperlink) {
+        OfficeXmlNode source = control.WChild("sdtContent").FirstDescendant(WordXml.W, "r");
+        return paragraph._document.RunView(paragraph.Node(), source, hyperlink,
+            CreateNativeResolvedSdtRun(paragraph.Node(), control, GetNativeContentControlDisplayValue(control)));
     }
 
     private sealed class NativeInlineContentControlProjection {
-        private readonly Dictionary<W.SdtRun, PdfCore.PdfInlineFormField> _fields = new();
-        private readonly HashSet<W.SdtRun> _paintedCheckBoxes = new();
-        private readonly Dictionary<W.SdtRun, bool> _staticBackgroundControls = new();
+        private readonly Dictionary<OfficeXmlNode, PdfCore.PdfInlineFormField> _fields = new();
+        private readonly HashSet<OfficeXmlNode> _paintedCheckBoxes = new();
+        private readonly Dictionary<OfficeXmlNode, bool> _staticBackgroundControls = new();
         private readonly bool _tableCell;
 
         internal NativeInlineContentControlProjection(bool tableCell) => _tableCell = tableCell;
@@ -57,34 +60,35 @@ public static partial class WordPdfConverterExtensions {
             NativeDocumentDefaults nativeDefaults, NativeFontMap? fontMap,
             IReadOnlyList<WordTabStop> tabStops, ref int tabIndex, out IReadOnlyList<PdfCore.PdfTextRun> result) {
             result = Array.Empty<PdfCore.PdfTextRun>();
-            W.SdtRun? control = run._run?.Ancestors<W.SdtRun>().FirstOrDefault(CanProjectNativeInlineContentControl);
-            if (control == null || nativeDefaults.RunningContentContext != null) return false;
+            OfficeXmlNode control = GetNativeAncestorSdtRuns(run.RunNode()).FirstOrDefault(CanProjectNativeInlineContentControl);
+            if (control.IsNone || nativeDefaults.RunningContentContext != null) return false;
+            OfficeXmlNode sdtRun = control;
             if (!_staticBackgroundControls.TryGetValue(control, out bool staticBackground)) {
                 // PDF widgets paint above page text. A run background belongs
                 // beneath that text and can overlap neighboring glyphs. Keep
                 // the whole source control in ordinary paragraph paint rather
                 // than moving only part of its cache into an overlay widget.
-                staticBackground = control.SdtContentRun!.Descendants<W.Run>().Any(source => {
-                    var candidate = new WordParagraph(run._document, run._paragraph!, source);
+                staticBackground = control.WChild("sdtContent").DescendantElements(WordXml.W, "r").Any(source => {
+                    WordParagraph candidate = run._document.RunView(run.Node(), source);
                     return !IsNativeHiddenTextRun(candidate) && ResolveNativeTextRunStyle(candidate,
                         tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults,
                         nativeFontMap: fontMap).BackgroundColor.HasValue;
                 });
                 _staticBackgroundControls.Add(control, staticBackground);
                 if (staticBackground) fontMap?.ReportInlineControlStaticBackground(
-                    GetNativeContentControlFieldName(control, _staticBackgroundControls.Count - 1, "ContentControl"));
+                    GetNativeContentControlFieldName(sdtRun, _staticBackgroundControls.Count - 1, "ContentControl"));
             }
             if (staticBackground) return false;
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(run, tableRunStyleDefaults: tableStyleDefaults.RunStyle,
                 nativeDefaults: nativeDefaults, nativeFontMap: fontMap);
             double size = style.EffectiveFontSize;
 
-            if (IsNativeCheckBoxControl(control)) {
+            if (IsNativeCheckBoxControl(sdtRun)) {
                 if (!_paintedCheckBoxes.Add(control)) return true;
                 PdfCore.PdfTextRun measured = CreateNativeCellTextRun(run.Text, run,
                     tableStyleDefaults, nativeDefaults, fontMap, style);
                 PdfCore.PdfWriter.PositionedTextBoxMeasurement? box = fontMap?.MeasureTextBox(measured);
-                bool isChecked = IsNativeCheckBoxChecked(control);
+                bool isChecked = IsNativeCheckBoxChecked(sdtRun);
                 PdfCore.PdfTextRun? cachedAppearance = box == null ? null : measured;
                 PdfCore.PdfTextRun? otherAppearance = CreateCheckBoxStateAppearance(control, !isChecked, run,
                     tableStyleDefaults, nativeDefaults, fontMap);
@@ -115,57 +119,65 @@ public static partial class WordPdfConverterExtensions {
             return true;
         }
 
-        private static PdfCore.PdfTextRun? CreateCheckBoxStateAppearance(W.SdtRun control, bool isChecked,
+        private static PdfCore.PdfTextRun? CreateCheckBoxStateAppearance(OfficeXmlNode control, bool isChecked,
             WordParagraph source, NativeTableStyleDefaults tableStyleDefaults,
             NativeDocumentDefaults nativeDefaults, NativeFontMap? fontMap) {
-            W14.SdtContentCheckBox properties = control.SdtProperties!.GetFirstChild<W14.SdtContentCheckBox>()!;
-            W14.CheckedState? checkedState = properties.GetFirstChild<W14.CheckedState>();
-            W14.UncheckedState? uncheckedState = properties.GetFirstChild<W14.UncheckedState>();
-            string? value = isChecked ? checkedState?.Val?.Value : uncheckedState?.Val?.Value;
+            OfficeXmlNode properties = control.WChild("sdtPr").Child(WordXml.W14, "checkbox");
+            OfficeXmlNode checkedState = properties.Child(WordXml.W14, "checkedState");
+            OfficeXmlNode uncheckedState = properties.Child(WordXml.W14, "uncheckedState");
+            string? value = isChecked ? checkedState.Attr(WordXml.W14, "val") : uncheckedState.Attr(WordXml.W14, "val");
             if (!int.TryParse(value, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int scalar) ||
                 scalar <= 0 || scalar > 0x10FFFF || scalar is >= 0xD800 and <= 0xDFFF) return null;
-            string? font = isChecked ? checkedState?.Font?.Value : uncheckedState?.Font?.Value;
-            W.RunProperties runProperties = (W.RunProperties?)GetNativeRunProperties(source)?.CloneNode(true)
-                ?? new W.RunProperties();
+            string? font = isChecked ? checkedState.Attr(WordXml.W14, "font") : uncheckedState.Attr(WordXml.W14, "font");
+            OfficeXmlNode paragraph = source.Node();
+            OfficeXmlNode runElement = paragraph.CreateElement(WordXml.W, "r");
+            OfficeXmlNode sourceProperties = GetNativeRunProperties(source);
+            OfficeXmlNode runProperties = runElement.Append(sourceProperties.Exists
+                ? sourceProperties.Clone() : runElement.CreateElement(WordXml.W, "rPr"));
             if (!string.IsNullOrWhiteSpace(font)) {
-                runProperties.RunFonts = new W.RunFonts {
-                    Ascii = font, HighAnsi = font, EastAsia = font, ComplexScript = font
-                };
+                OfficeXmlNode fonts = WordXmlEdits.ReplaceChild(runProperties, "rFonts", WRPrView.Order);
+                fonts.SetAttribute(WordXml.W, "ascii", font);
+                fonts.SetAttribute(WordXml.W, "hAnsi", font);
+                fonts.SetAttribute(WordXml.W, "eastAsia", font);
+                fonts.SetAttribute(WordXml.W, "cs", font);
             }
             string glyph = char.ConvertFromUtf32(scalar);
-            var run = new WordParagraph(source._document, source._paragraph,
-                new W.Run(runProperties, new W.Text(glyph)));
+            OfficeXmlNode text = runElement.CreateElement(WordXml.W, "t");
+            text.SetInnerText(glyph);
+            runElement.Append(text);
+            WordParagraph run = source._document.RunView(paragraph, runElement);
             PdfCore.PdfTextRun appearance = CreateNativeCellTextRun(glyph, run,
                 tableStyleDefaults, nativeDefaults, fontMap);
             return fontMap?.MeasureTextBox(appearance) == null ? null : appearance;
         }
 
-        private PdfCore.PdfInlineFormField CreateField(W.SdtRun control, double fontSize, global::OfficeIMO.OfficeColor? color,
+        private PdfCore.PdfInlineFormField CreateField(OfficeXmlNode control, double fontSize, global::OfficeIMO.OfficeColor? color,
             PdfCore.PdfTextRun? checkedAppearanceRun = null, PdfCore.PdfTextRun? uncheckedAppearanceRun = null) {
+            OfficeXmlNode sdtRun = control;
             var style = new PdfCore.PdfFormFieldStyle {
                 BorderWidth = global::OfficeIMO.OfficeLength.Points(0D), BorderColor = null, BackgroundColor = null,
                 TextColor = color ?? global::OfficeIMO.OfficeColor.Black
             };
             string prefix = _tableCell ? "WordTable" : "Word";
-            if (IsNativeCheckBoxControl(control)) {
+            if (IsNativeCheckBoxControl(sdtRun)) {
                 style.BorderWidth = global::OfficeIMO.OfficeLength.Points(.5D);
                 style.BorderColor = global::OfficeIMO.OfficeColor.Black;
                 return new PdfCore.PdfInlineFormField(PdfCore.PdfCanvasFormFieldItem.CheckBox(
-                    GetNativeCheckBoxFieldName(control, _fields.Count, prefix + "CheckBox"),
-                    IsNativeCheckBoxChecked(control), "Yes", "Yes", 0D, 0D, fontSize, fontSize, style),
+                    GetNativeCheckBoxFieldName(sdtRun, _fields.Count, prefix + "CheckBox"),
+                    IsNativeCheckBoxChecked(sdtRun), "Yes", "Yes", 0D, 0D, fontSize, fontSize, style),
                     checkedAppearanceRun, uncheckedAppearanceRun);
             }
-            if (IsNativeDatePickerControl(control)) {
+            if (IsNativeDatePickerControl(sdtRun)) {
                 return new PdfCore.PdfInlineFormField(PdfCore.PdfCanvasFormFieldItem.Text(
-                    GetNativeContentControlFieldName(control, _fields.Count, prefix + "DatePicker"),
-                    GetNativeDatePickerValue(control), GetNativeContentControlDisplayValue(control),
+                    GetNativeContentControlFieldName(sdtRun, _fields.Count, prefix + "DatePicker"),
+                    GetNativeDatePickerValue(sdtRun), GetNativeContentControlDisplayValue(control),
                     0D, 0D, 1D, fontSize, fontSize, style, style));
             }
-            IReadOnlyList<string> options = GetNativeChoiceFieldOptions(control);
-            string value = GetNativeChoiceFieldValue(control, options) ?? string.Empty;
-            string kind = control.SdtProperties?.Elements<W.SdtContentComboBox>().Any() == true ? "ComboBox" : "DropDownList";
+            IReadOnlyList<string> options = GetNativeChoiceFieldOptions(sdtRun);
+            string value = GetNativeChoiceFieldValue(sdtRun, options) ?? string.Empty;
+            string kind = control.WChild("sdtPr").WChild("comboBox").Exists ? "ComboBox" : "DropDownList";
             return new PdfCore.PdfInlineFormField(PdfCore.PdfCanvasFormFieldItem.Choice(
-                GetNativeContentControlFieldName(control, _fields.Count, prefix + kind), options,
+                GetNativeContentControlFieldName(sdtRun, _fields.Count, prefix + kind), options,
                 new[] { value }, 0D, 0D, 1D, fontSize, fontSize, isComboBox: true,
                 allowsMultipleSelection: false, style: style));
         }

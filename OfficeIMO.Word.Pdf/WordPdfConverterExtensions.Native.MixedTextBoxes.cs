@@ -1,8 +1,7 @@
-using DocumentFormat.OpenXml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     // Text and a text box can share the same source run. Keep their original
@@ -30,9 +29,9 @@ public static partial class WordPdfConverterExtensions {
         foreach (WordParagraph run in GetNativeMixedTextBoxContentRuns(paragraph, runs, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
-            foreach (OpenXmlElement child in run.EnumerateEffectiveRunContent()) {
+            foreach (OfficeXmlNode child in run.EffectiveRunContentNodes()) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (child is W.RunProperties) continue;
+                if (child.IsW("rPr")) continue;
                 WordParagraph view = CreateNativeRunContentView(run, new[] { child });
                 List<WordTextBox> boxes = view.GetTextBoxes().ToList();
                 if (boxes.Count == 0) {
@@ -126,8 +125,8 @@ public static partial class WordPdfConverterExtensions {
         if (WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true) return true;
         foreach (WordParagraph run in GetNativeMixedTextBoxContentRuns(paragraph, runs, default)) {
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
-            foreach (OpenXmlElement child in run.EnumerateEffectiveRunContent()) {
-                if (child is W.RunProperties) continue;
+            foreach (OfficeXmlNode child in run.EffectiveRunContentNodes()) {
+                if (child.IsW("rPr")) continue;
                 WordParagraph view = CreateNativeRunContentView(run, new[] { child });
                 if (view.GetTextBoxes().Any() || view.IsImage && view.Image != null) continue;
                 if (HasNativeParagraphShapeGroups(new[] { view })) {
@@ -139,9 +138,8 @@ public static partial class WordPdfConverterExtensions {
                 }
                 if (view.Shape != null || view.Chart != null) continue;
                 if (IsNativeRenderableTextRun(view, paragraph)) return true;
-                var main = paragraph._document._wordprocessingDocument.MainDocumentPart;
-                if (child is W.FootnoteReference foot && WordNoteResolver.FindFootnote(main, foot.Id?.Value) != null ||
-                    child is W.EndnoteReference end && WordNoteResolver.FindEndnote(main, end.Id?.Value) != null) return true;
+                if (child.IsW("footnoteReference") && paragraph._document.FindFootnoteNode(WordXml.ParseInt64(child.WAttr("id"))).Exists ||
+                    child.IsW("endnoteReference") && paragraph._document.FindEndnoteNode(WordXml.ParseInt64(child.WAttr("id"))).Exists) return true;
             }
         }
         return false;
@@ -150,10 +148,10 @@ public static partial class WordPdfConverterExtensions {
     private static List<int> GetNativeMixedTextBoxNoteNumbers(IReadOnlyList<WordParagraph> runs,
         NativeNoteNumbering notes, HashSet<NativeNoteKey> emittedKeys) {
         var numbers = new List<int>();
-        foreach (OpenXmlElement child in runs.SelectMany(run => run.EnumerateEffectiveRunContent())) {
-            NativeNoteKey? key = child is W.FootnoteReference footnote && footnote.Id?.Value is long footnoteId
+        foreach (OfficeXmlNode child in runs.SelectMany(run => run.EffectiveRunContentNodes())) {
+            NativeNoteKey? key = child.IsW("footnoteReference") && WordXml.ParseInt64(child.WAttr("id")) is long footnoteId
                 ? GetNativeFootnoteKey(footnoteId)
-                : child is W.EndnoteReference endnote && endnote.Id?.Value is long endnoteId
+                : child.IsW("endnoteReference") && WordXml.ParseInt64(child.WAttr("id")) is long endnoteId
                     ? GetNativeEndnoteKey(endnoteId) : null;
             if (key.HasValue && notes.TryGetValue(key.Value, out int number) && emittedKeys.Add(key.Value))
                 numbers.Add(number);
@@ -167,51 +165,52 @@ public static partial class WordPdfConverterExtensions {
         // Include each equation in the same source order as its sibling drawing,
         // rather than asking the whole-paragraph equation helper to replay it.
         cancellationToken.ThrowIfCancellationRequested();
-        var equations = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+        OfficeXmlNode paragraphNode = paragraph.Node();
+        var equations = WordConverterNodes.EquationOccurrences(paragraph._document, paragraphNode);
         if (equations.Count == 0) return runs.ToList();
-        var positions = new Dictionary<OpenXmlElement, int>();
-        foreach (OpenXmlElement element in paragraph._paragraph.Descendants()) {
+        var positions = new Dictionary<OfficeXmlNode, int>();
+        foreach (OfficeXmlNode element in paragraphNode.DescendantElements()) {
             cancellationToken.ThrowIfCancellationRequested();
             positions.Add(element, positions.Count);
         }
         var ordered = new List<(int Position, WordParagraph Run)>();
         foreach (WordParagraph run in runs) {
             cancellationToken.ThrowIfCancellationRequested();
-            foreach (OpenXmlElement child in run.EnumerateEffectiveRunContent()) {
+            foreach (OfficeXmlNode child in run.EffectiveRunContentNodes()) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (child is W.RunProperties) continue;
+                if (child.IsW("rPr")) continue;
                 if (child.Ancestors().Prepend(child).Any(element =>
-                    equations.Any(equation => equation.Equation.IsBackingElement(element)))) continue;
+                    equations.Any(equation => equation.Equation.IsBackingNode(element)))) continue;
                 int position = positions.TryGetValue(child, out int childPosition) ? childPosition
-                    : run._run != null && positions.TryGetValue(run._run, out int runPosition) ? runPosition : int.MaxValue;
+                    : !run.RunNode().IsNone && positions.TryGetValue(run.RunNode(), out int runPosition) ? runPosition : int.MaxValue;
                 ordered.Add((position, CreateNativeRunContentView(run, new[] { child })));
             }
         }
-        var segments = WordEquation.GetVisibleContentSegments(paragraph._paragraph, equations,
-            element => element is not W.Run source ||
-                !IsNativeHiddenTextRun(new WordParagraph(paragraph._document, paragraph._paragraph, source), paragraph));
+        var segments = WordConverterNodes.VisibleEquationContentSegments(paragraphNode, equations,
+            element => !element.IsW("r") ||
+                !IsNativeHiddenTextRun(WordConverterNodes.RunView(paragraph._document, paragraphNode, element), paragraph));
         foreach (var equation in equations) {
             cancellationToken.ThrowIfCancellationRequested();
             var segment = segments.FirstOrDefault(item => ReferenceEquals(item.Equation, equation.Equation));
             if (segment == null || string.IsNullOrEmpty(equation.Equation.Text)) continue;
-            OpenXmlElement start = paragraph._paragraph.Descendants().First(element => {
+            OfficeXmlNode start = paragraphNode.DescendantElements().First(element => {
                 cancellationToken.ThrowIfCancellationRequested();
-                return equation.Equation.IsBackingElement(element);
+                return equation.Equation.IsBackingNode(element);
             });
-            WordParagraph source = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
-            if (source._run == null) {
+            WordParagraph source = segment.CreateSourceParagraph(paragraph._document, paragraphNode, paragraph);
+            if (source.RunNode().IsNone) {
                 // A wrapper-backed equation has no Wordprocessing run. Give
                 // its selected visible text a real run, retaining the wrapper's
                 // applicable formatting and hyperlink context without changing XML.
-                W.Run formattingRun = source._stdRun?.Descendants<W.Run>().FirstOrDefault()
-                    ?? source._hyperlink?.Descendants<W.Run>().FirstOrDefault() ?? new W.Run();
-                source = new WordParagraph(paragraph._document, paragraph._paragraph, formattingRun) {
-                    _hyperlink = source._hyperlink
-                };
+                OfficeXmlNode formattingRun = source.SdtRunNode().FirstDescendant(WordXml.W, "r");
+                if (formattingRun.IsNone) formattingRun = source.HyperlinkNode().FirstDescendant(WordXml.W, "r");
+                if (formattingRun.IsNone) formattingRun = paragraphNode.CreateElement(WordXml.W, "r");
+                source = WordConverterNodes.RunView(paragraph._document, paragraphNode, formattingRun, source.HyperlinkNode());
             }
-            ordered.Add((positions[start], CreateNativeRunContentView(source, new OpenXmlElement[] {
-                new W.Text(equation.Equation.Text) { Space = SpaceProcessingModeValues.Preserve }
-            })));
+            OfficeXmlNode text = source.RunNode().CreateElement(WordXml.W, "t");
+            text.SetInnerText(equation.Equation.Text);
+            text.SetAttribute(WordXml.Xml, "space", "preserve");
+            ordered.Add((positions[start], CreateNativeRunContentView(source, new[] { text })));
         }
         return ordered.OrderBy(item => item.Position).Select(item => item.Run).ToList();
     }

@@ -1,15 +1,12 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using V = DocumentFormat.OpenXml.Vml;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
-        private static bool TryGetNativeVmlBox(OpenXmlElement element, NativeVmlFrame frame, double pageWidth, double pageHeight, out NativeVmlBox box) {
+        private static bool TryGetNativeVmlBox(OfficeXmlNode element, NativeVmlFrame frame, double pageWidth, double pageHeight, out NativeVmlBox box) {
             Dictionary<string, string> style = ParseNativeVmlStyle(GetNativeOpenXmlAttribute(element, "style"));
             double width = ResolveNativeVmlLength(style.TryGetValue("width", out string? widthValue) ? widthValue : null, frame.Width, frame.CoordWidth) ??
                            ResolveNativeVmlPercent(style, "mso-width-percent", pageWidth) ?? 0D;
@@ -63,7 +60,7 @@ namespace OfficeIMO.Word.Pdf {
             return width > 0D && height > 0D;
         }
 
-        private static bool TryGetNativeVmlLineBounds(OpenXmlElement element, NativeVmlFrame frame, out double x, out double y, out double width, out double height) {
+        private static bool TryGetNativeVmlLineBounds(OfficeXmlNode element, NativeVmlFrame frame, out double x, out double y, out double width, out double height) {
             (double x1, double y1) = ParseNativeShapePoint(GetNativeOpenXmlAttribute(element, "from") ?? "0pt,0pt", frame);
             (double x2, double y2) = ParseNativeShapePoint(GetNativeOpenXmlAttribute(element, "to") ?? "0pt,0pt", frame);
             x = Math.Min(x1, x2);
@@ -185,7 +182,8 @@ namespace OfficeIMO.Word.Pdf {
             return reference * percent / 1000D;
         }
 
-        private static (double Width, double Height) GetNativeVmlCoordSize(OpenXmlElement element, double fallbackWidth, double fallbackHeight) {
+
+        private static (double Width, double Height) GetNativeVmlCoordSize(OfficeXmlNode element, double fallbackWidth, double fallbackHeight) {
             string? coordSize = GetNativeOpenXmlAttribute(element, "coordsize");
             if (string.IsNullOrWhiteSpace(coordSize)) {
                 return (fallbackWidth, fallbackHeight);
@@ -203,7 +201,8 @@ namespace OfficeIMO.Word.Pdf {
             return (fallbackWidth, fallbackHeight);
         }
 
-        private static (double X, double Y) GetNativeVmlCoordOrigin(OpenXmlElement element) {
+
+        private static (double X, double Y) GetNativeVmlCoordOrigin(OfficeXmlNode element) {
             string? coordOrigin = GetNativeOpenXmlAttribute(element, "coordorigin");
             if (string.IsNullOrWhiteSpace(coordOrigin)) {
                 return (0D, 0D);
@@ -236,8 +235,9 @@ namespace OfficeIMO.Word.Pdf {
         private static bool IsNativeVmlNoColor(string? value) =>
             value?.Trim().Equals("none", StringComparison.OrdinalIgnoreCase) == true;
 
-        private static string? GetNativeOpenXmlAttribute(OpenXmlElement element, string localName) {
-            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+
+        private static string? GetNativeOpenXmlAttribute(OfficeXmlNode element, string localName) {
+            foreach (OfficeXmlAttribute attribute in element.Attributes()) {
                 if (attribute.LocalName.Equals(localName, StringComparison.OrdinalIgnoreCase)) {
                     return attribute.Value;
                 }
@@ -252,7 +252,8 @@ namespace OfficeIMO.Word.Pdf {
              !value.Trim().Equals("false", StringComparison.OrdinalIgnoreCase) &&
              !value.Trim().Equals("0", StringComparison.OrdinalIgnoreCase));
 
-        private static bool IsNativeVmlHidden(OpenXmlElement element) {
+
+        private static bool IsNativeVmlHidden(OfficeXmlNode element) {
             Dictionary<string, string> style = ParseNativeVmlStyle(GetNativeOpenXmlAttribute(element, "style"));
             return style.TryGetValue("visibility", out string? value) &&
                    value.Equals("hidden", StringComparison.OrdinalIgnoreCase);
@@ -267,7 +268,7 @@ namespace OfficeIMO.Word.Pdf {
                 : ResolveNativeVmlLength(value, 1D, 1D);
         }
 
-        private static double GetNativeVmlFirstAdjustment(OpenXmlElement element, double fallback) {
+        private static double GetNativeVmlFirstAdjustment(OfficeXmlNode element, double fallback) {
             string? value = GetNativeOpenXmlAttribute(element, "adj");
             if (string.IsNullOrWhiteSpace(value)) {
                 return fallback;
@@ -280,7 +281,7 @@ namespace OfficeIMO.Word.Pdf {
                 : fallback;
         }
 
-        private static double GetNativeVmlRoundRectCornerRadius(OpenXmlElement element, double width, double height) {
+        private static double GetNativeVmlRoundRectCornerRadius(OfficeXmlNode element, double width, double height) {
             const double defaultArcSize = 0.2D;
             double fraction = ParseNativeVmlOpacity(GetNativeOpenXmlAttribute(element, "arcsize")) ?? defaultArcSize;
             fraction = Math.Max(0D, Math.Min(0.5D, fraction));

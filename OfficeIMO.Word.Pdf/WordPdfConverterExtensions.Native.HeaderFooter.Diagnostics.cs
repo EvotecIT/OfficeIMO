@@ -1,52 +1,43 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
+using System.Xml;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static void ConfigureNativePageNumbering(PdfCore.PdfPageBuilder page, WordSection section) {
-            W.PageNumberType? pageNumberType = section._sectionProperties.GetFirstChild<W.PageNumberType>();
+            string? format = section.Node().WChild("pgNumType").WAttr("fmt");
             if (section.GetEffectivePageNumberStart() is int start) {
                 page.PageNumberStart(start);
             }
 
-            PdfCore.PdfPageNumberStyle? style = MapNativePageNumberStyle(pageNumberType?.Format?.Value);
+            PdfCore.PdfPageNumberStyle? style = MapNativePageNumberStyle(format);
             page.Options.LayoutPageNumberStyle = style ?? PdfCore.PdfPageNumberStyle.Arabic;
-            page.Options.LayoutPageNumberStyleUnsupported = pageNumberType?.Format?.Value != null
-                && (!style.HasValue || pageNumberType.Format.Value == W.NumberFormatValues.DecimalZero);
+            page.Options.LayoutPageNumberStyleUnsupported = format != null
+                && (!style.HasValue || format == "decimalZero");
             if (style.HasValue) {
                 page.PageNumberStyle(style.Value);
             }
         }
 
-        private static PdfCore.PdfPageNumberStyle? MapNativePageNumberStyle(W.NumberFormatValues? format) {
-            if (format == W.NumberFormatValues.LowerRoman) {
-                return PdfCore.PdfPageNumberStyle.LowerRoman;
+        private static PdfCore.PdfPageNumberStyle? MapNativePageNumberStyle(string? format) {
+            switch (format) {
+                case "lowerRoman":
+                    return PdfCore.PdfPageNumberStyle.LowerRoman;
+                case "upperRoman":
+                    return PdfCore.PdfPageNumberStyle.UpperRoman;
+                case "lowerLetter":
+                    return PdfCore.PdfPageNumberStyle.LowerLetter;
+                case "upperLetter":
+                    return PdfCore.PdfPageNumberStyle.UpperLetter;
+                case "decimal":
+                case "decimalZero":
+                    return PdfCore.PdfPageNumberStyle.Arabic;
+                default:
+                    return null;
             }
-
-            if (format == W.NumberFormatValues.UpperRoman) {
-                return PdfCore.PdfPageNumberStyle.UpperRoman;
-            }
-
-            if (format == W.NumberFormatValues.LowerLetter) {
-                return PdfCore.PdfPageNumberStyle.LowerLetter;
-            }
-
-            if (format == W.NumberFormatValues.UpperLetter) {
-                return PdfCore.PdfPageNumberStyle.UpperLetter;
-            }
-
-            if (format == W.NumberFormatValues.Decimal || format == W.NumberFormatValues.DecimalZero) {
-                return PdfCore.PdfPageNumberStyle.Arabic;
-            }
-
-            return null;
         }
 
         private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section, WordPdfExportOptions? options, double headerMarginExpansion, double footerMarginExpansion, NativeFontMap nativeFontMap, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
@@ -165,8 +156,8 @@ namespace OfficeIMO.Word.Pdf {
                         header.Zones(defaultHeader.Left, defaultHeader.Center, defaultHeader.Right);
                     }
 
-                    AddNativeHeaderImages(header, defaultHeaderImages, W.HeaderFooterValues.Default);
-                    AddNativeHeaderShapes(header, defaultHeaderShapes, W.HeaderFooterValues.Default);
+                    AddNativeHeaderImages(header, defaultHeaderImages, "default");
+                    AddNativeHeaderShapes(header, defaultHeaderShapes, "default");
 
                     if (firstHeader?.HasStyledZones == true) {
                         header.FirstPageStyledZones(firstHeader.CreateHeaderZone(NativeHeaderFooterZone.Left), firstHeader.CreateHeaderZone(NativeHeaderFooterZone.Center), firstHeader.CreateHeaderZone(NativeHeaderFooterZone.Right));
@@ -176,8 +167,8 @@ namespace OfficeIMO.Word.Pdf {
                         header.FirstPageText(string.Empty);
                     }
 
-                    AddNativeHeaderImages(header, firstHeaderImages, W.HeaderFooterValues.First);
-                    AddNativeHeaderShapes(header, firstHeaderShapes, W.HeaderFooterValues.First);
+                    AddNativeHeaderImages(header, firstHeaderImages, "first");
+                    AddNativeHeaderShapes(header, firstHeaderShapes, "first");
 
                     if (evenHeader?.HasStyledZones == true) {
                         header.EvenPagesStyledZones(evenHeader.CreateHeaderZone(NativeHeaderFooterZone.Left), evenHeader.CreateHeaderZone(NativeHeaderFooterZone.Center), evenHeader.CreateHeaderZone(NativeHeaderFooterZone.Right));
@@ -187,8 +178,8 @@ namespace OfficeIMO.Word.Pdf {
                         header.EvenPagesText(string.Empty);
                     }
 
-                    AddNativeHeaderImages(header, evenHeaderImages, W.HeaderFooterValues.Even);
-                    AddNativeHeaderShapes(header, evenHeaderShapes, W.HeaderFooterValues.Even);
+                    AddNativeHeaderImages(header, evenHeaderImages, "even");
+                    AddNativeHeaderShapes(header, evenHeaderShapes, "even");
                 });
             }
 
@@ -225,8 +216,8 @@ namespace OfficeIMO.Word.Pdf {
                     footer.Zones(resolvedDefaultFooter.Left, resolvedDefaultFooter.Center, resolvedDefaultFooter.Right);
                 }
 
-                AddNativeFooterImages(footer, defaultFooterImages, W.HeaderFooterValues.Default);
-                AddNativeFooterShapes(footer, defaultFooterShapes, W.HeaderFooterValues.Default);
+                AddNativeFooterImages(footer, defaultFooterImages, "default");
+                AddNativeFooterShapes(footer, defaultFooterShapes, "default");
 
                 NativeHeaderFooterText? resolvedFirstFooter = WithNativeFooterPageNumber(firstFooter, includePageNumbers && firstFooter != null, pageNumberFormat);
                 if (resolvedFirstFooter?.HasStyledZones == true) {
@@ -237,8 +228,8 @@ namespace OfficeIMO.Word.Pdf {
                     footer.FirstPageText(string.Empty);
                 }
 
-                AddNativeFooterImages(footer, firstFooterImages, W.HeaderFooterValues.First);
-                AddNativeFooterShapes(footer, firstFooterShapes, W.HeaderFooterValues.First);
+                AddNativeFooterImages(footer, firstFooterImages, "first");
+                AddNativeFooterShapes(footer, firstFooterShapes, "first");
 
                 NativeHeaderFooterText? resolvedEvenFooter = WithNativeFooterPageNumber(evenFooter, includePageNumbers && evenFooter != null, pageNumberFormat);
                 if (resolvedEvenFooter?.HasStyledZones == true) {
@@ -249,8 +240,8 @@ namespace OfficeIMO.Word.Pdf {
                     footer.EvenPagesText(string.Empty);
                 }
 
-                AddNativeFooterImages(footer, evenFooterImages, W.HeaderFooterValues.Even);
-                AddNativeFooterShapes(footer, evenFooterShapes, W.HeaderFooterValues.Even);
+                AddNativeFooterImages(footer, evenFooterImages, "even");
+                AddNativeFooterShapes(footer, evenFooterShapes, "even");
             });
         }
 
@@ -263,11 +254,11 @@ namespace OfficeIMO.Word.Pdf {
             return options?.PdfOptions?.PageSetup.Footer.Offset.ToPoints() ?? NativeFooterDefaultOffset;
         }
 
-        private static void AddNativeHeaderImages(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
+        private static void AddNativeHeaderImages(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterImage> images, string variant) {
             foreach (NativeHeaderFooterImage image in images) {
-                if (variant == W.HeaderFooterValues.First) {
+                if (string.Equals(variant, "first", StringComparison.Ordinal)) {
                     header.FirstPageImage(image.ToPdfImage());
-                } else if (variant == W.HeaderFooterValues.Even) {
+                } else if (string.Equals(variant, "even", StringComparison.Ordinal)) {
                     header.EvenPagesImage(image.ToPdfImage());
                 } else {
                     header.Image(image.ToPdfImage());
@@ -275,11 +266,11 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeHeaderShapes(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterShape> shapes, W.HeaderFooterValues variant) {
+        private static void AddNativeHeaderShapes(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterShape> shapes, string variant) {
             foreach (NativeHeaderFooterShape shape in shapes) {
-                if (variant == W.HeaderFooterValues.First) {
+                if (string.Equals(variant, "first", StringComparison.Ordinal)) {
                     header.FirstPageShape(shape.Shape, shape.Align);
-                } else if (variant == W.HeaderFooterValues.Even) {
+                } else if (string.Equals(variant, "even", StringComparison.Ordinal)) {
                     header.EvenPagesShape(shape.Shape, shape.Align);
                 } else {
                     header.Shape(shape.Shape, shape.Align);
@@ -287,11 +278,11 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeFooterImages(PdfCore.PdfFooterBuilder footer, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {
+        private static void AddNativeFooterImages(PdfCore.PdfFooterBuilder footer, IReadOnlyList<NativeHeaderFooterImage> images, string variant) {
             foreach (NativeHeaderFooterImage image in images) {
-                if (variant == W.HeaderFooterValues.First) {
+                if (string.Equals(variant, "first", StringComparison.Ordinal)) {
                     footer.FirstPageImage(image.ToPdfImage());
-                } else if (variant == W.HeaderFooterValues.Even) {
+                } else if (string.Equals(variant, "even", StringComparison.Ordinal)) {
                     footer.EvenPagesImage(image.ToPdfImage());
                 } else {
                     footer.Image(image.ToPdfImage());
@@ -299,11 +290,11 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeFooterShapes(PdfCore.PdfFooterBuilder footer, IReadOnlyList<NativeHeaderFooterShape> shapes, W.HeaderFooterValues variant) {
+        private static void AddNativeFooterShapes(PdfCore.PdfFooterBuilder footer, IReadOnlyList<NativeHeaderFooterShape> shapes, string variant) {
             foreach (NativeHeaderFooterShape shape in shapes) {
-                if (variant == W.HeaderFooterValues.First) {
+                if (string.Equals(variant, "first", StringComparison.Ordinal)) {
                     footer.FirstPageShape(shape.Shape, shape.Align);
-                } else if (variant == W.HeaderFooterValues.Even) {
+                } else if (string.Equals(variant, "even", StringComparison.Ordinal)) {
                     footer.EvenPagesShape(shape.Shape, shape.Align);
                 } else {
                     footer.Shape(shape.Shape, shape.Align);
@@ -316,14 +307,14 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            var diagnosedParagraphs = new HashSet<W.Paragraph>();
+            var diagnosedParagraphs = new HashSet<OfficeXmlNode>();
             foreach (WordElement element in headerFooter.Elements) {
                 RecordNativeHeaderFooterElementDiagnostics(element, options, source, diagnosedParagraphs);
             }
         }
 
         private static void RecordNativeHeaderFooterElementDiagnostics(WordElement element, WordPdfExportOptions options, string source,
-            HashSet<W.Paragraph> diagnosedParagraphs) {
+            HashSet<OfficeXmlNode> diagnosedParagraphs) {
             switch (element) {
                 case WordParagraph paragraph:
                     RecordNativeHeaderFooterParagraphDiagnostics(paragraph, options, source, diagnosedParagraphs);
@@ -342,7 +333,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void RecordNativeHeaderFooterTableDiagnostics(WordTable table, WordPdfExportOptions options, string source,
-            HashSet<W.Paragraph> diagnosedParagraphs) {
+            HashSet<OfficeXmlNode> diagnosedParagraphs) {
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     List<WordElement> cellElements = EnumerateNativeTableCellElements(cell).ToList();
@@ -358,7 +349,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void RecordNativeHeaderFooterParagraphDiagnostics(WordParagraph paragraph, WordPdfExportOptions options, string source,
-            HashSet<W.Paragraph> diagnosedParagraphs) {
+            HashSet<OfficeXmlNode> diagnosedParagraphs) {
             if (paragraph.Shape != null && CreateNativeShape(paragraph.Shape) == null) {
                 AddNativeExportWarning(
                     options,
@@ -378,7 +369,8 @@ namespace OfficeIMO.Word.Pdf {
             // Elements expose separate run wrappers over the same source
             // paragraph. Keep the run-specific checks above, but inspect its
             // shared XML content only once, including paragraphs in tables.
-            if (paragraph._paragraph != null && !diagnosedParagraphs.Add(paragraph._paragraph)) return;
+            OfficeXmlNode sourceParagraph = paragraph.Node();
+            if (sourceParagraph.Exists && !diagnosedParagraphs.Add(sourceParagraph)) return;
 
             RecordNativeFieldResultDiagnostics(paragraph, options, source, runningStory: true);
             RecordNativeParagraphFrameDiagnostics(paragraph, options, source);
@@ -468,7 +460,7 @@ namespace OfficeIMO.Word.Pdf {
 
             RecordNativeFieldResultDiagnostics(paragraph, options, source, runningStory: false);
             RecordNativeParagraphFrameDiagnostics(paragraph, options, source);
-            if (paragraph._paragraph.Ancestors<W.TableCell>().Any()) {
+            if (paragraph.Node().Ancestor(WordXml.W, "tc").Exists) {
                 RecordNativeCellBarTabDiagnostics(paragraph, options, source);
                 RecordNativeCellTextBoxDiagnostic(paragraph, options, source);
             }
@@ -503,138 +495,152 @@ namespace OfficeIMO.Word.Pdf {
             ((paragraph.IsDatePicker || paragraph.IsDropDownList || paragraph.IsComboBox) && GetNativeFormFieldControls(paragraph).Count == 0) ||
             (paragraph.IsPictureControl && paragraph.PictureControl?.Image == null) ||
             (paragraph.IsRepeatingSection && paragraph.RepeatingSection?.TextItems.Count == 0) ||
-            paragraph._paragraph?.Descendants<W.SdtRun>().Any(sdtRun =>
+            EnumerateNativeContentControls(paragraph.Node(), WordContentControlLevel.Run).Any(sdtRun =>
                 !IsNativeSimpleTextContentControl(sdtRun) &&
                 !IsNativeCheckBoxControl(sdtRun) &&
                 !IsNativeSupportedFormFieldContentControl(sdtRun) &&
                 !IsNativePictureControlWithImage(paragraph, sdtRun) &&
                 !IsNativeRepeatingSectionWithText(sdtRun) &&
-                !IsNativeRepeatingSectionChildControl(sdtRun)) == true ||
-            paragraph._paragraph?.Descendants<W.SdtBlock>().Any(sdtBlock => !IsNativeSimpleBlockTextContentControl(sdtBlock)) == true ||
-            paragraph._paragraph?.Descendants<W.SdtCell>().Any() == true;
+                !IsNativeRepeatingSectionChildControl(sdtRun)) ||
+            EnumerateNativeContentControls(paragraph.Node(), WordContentControlLevel.Block).Any(sdtBlock => !IsNativeSimpleBlockTextContentControl(sdtBlock)) ||
+            EnumerateNativeContentControls(paragraph.Node(), WordContentControlLevel.Cell).Any();
 
         private static bool HasNativeUnsupportedBodyContentControl(WordParagraph paragraph, bool mapsCheckBoxes, bool mapsFormFields, bool mapsPictureControls, bool mapsRepeatingSections) =>
             (!mapsCheckBoxes && paragraph.IsCheckBox) ||
             (!mapsFormFields && (paragraph.IsDatePicker || paragraph.IsDropDownList || paragraph.IsComboBox)) ||
             (paragraph.IsPictureControl && (!mapsPictureControls || paragraph.PictureControl?.Image == null)) ||
             (paragraph.IsRepeatingSection && (!mapsRepeatingSections || paragraph.RepeatingSection?.TextItems.Count == 0)) ||
-            paragraph._paragraph?.Descendants<W.SdtRun>().Any(sdtRun =>
+            EnumerateNativeContentControls(paragraph.Node(), WordContentControlLevel.Run).Any(sdtRun =>
                 (!mapsCheckBoxes || !IsNativeCheckBoxControl(sdtRun)) &&
                 (!mapsFormFields || !IsNativeSupportedFormFieldContentControl(sdtRun)) &&
                 (!mapsPictureControls || !IsNativePictureControl(sdtRun)) &&
                 (!mapsRepeatingSections || !IsNativeRepeatingSectionControl(sdtRun) && !IsNativeRepeatingSectionChildControl(sdtRun)) &&
-                !IsNativeSimpleTextContentControl(sdtRun)) == true ||
-            paragraph._paragraph?.Descendants<W.SdtBlock>().Any(sdtBlock => !IsNativeSimpleBlockTextContentControl(sdtBlock)) == true ||
-            paragraph._paragraph?.Descendants<W.SdtCell>().Any() == true;
+                !IsNativeSimpleTextContentControl(sdtRun)) ||
+            EnumerateNativeContentControls(paragraph.Node(), WordContentControlLevel.Block).Any(sdtBlock => !IsNativeSimpleBlockTextContentControl(sdtBlock)) ||
+            EnumerateNativeContentControls(paragraph.Node(), WordContentControlLevel.Cell).Any();
 
-        private static IReadOnlyList<W.SdtRun> GetNativeCheckBoxControls(WordParagraph paragraph) {
-            if (paragraph._paragraph == null) {
-                return Array.Empty<W.SdtRun>();
+        /// <summary>The <c>w:sdt</c> elements of one level below <paramref name="container"/>, in document order.</summary>
+        private static IEnumerable<OfficeXmlNode> EnumerateNativeContentControls(OfficeXmlNode container, WordContentControlLevel level) =>
+            container.Descendants(WordXml.W, "sdt").Where(sdt => sdt.ContentControlLevel() == level);
+
+        private static IReadOnlyList<OfficeXmlNode> GetNativeCheckBoxControls(WordParagraph paragraph) {
+            OfficeXmlNode source = paragraph.Node();
+            if (source.IsNone) {
+                return Array.Empty<OfficeXmlNode>();
             }
 
-            return paragraph._paragraph.Descendants<W.SdtRun>()
+            return EnumerateNativeContentControls(source, WordContentControlLevel.Run)
                 .Where(IsNativeCheckBoxControl)
                 .ToList();
         }
 
-        private static bool IsNativeCheckBoxControl(W.SdtRun sdtRun) =>
-            sdtRun.SdtProperties?.Elements<W14.SdtContentCheckBox>().Any() == true;
+        private static bool IsNativeCheckBoxControl(OfficeXmlNode sdtRun) =>
+            sdtRun.WChild("sdtPr").Child(WordXml.W14, "checkbox").Exists;
 
-        private static bool IsNativePictureControl(W.SdtRun sdtRun) =>
-            sdtRun.SdtProperties?.Elements<W.SdtContentPicture>().Any() == true;
+        private static bool IsNativePictureControl(OfficeXmlNode sdtRun) =>
+            sdtRun.WChild("sdtPr").WChild("picture").Exists;
 
-        private static bool IsNativePictureControlWithImage(WordParagraph paragraph, W.SdtRun sdtRun) {
-            if (!IsNativePictureControl(sdtRun) || paragraph._paragraph == null) {
+        private static bool IsNativePictureControlWithImage(WordParagraph paragraph, OfficeXmlNode sdtRun) {
+            OfficeXmlNode source = paragraph.Node();
+            if (!IsNativePictureControl(sdtRun) || source.IsNone) {
                 return false;
             }
 
-            var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph, sdtRun);
+            WordParagraph pictureParagraph = paragraph._document.SdtRunView(source, sdtRun);
             return pictureParagraph.PictureControl?.Image != null;
         }
 
-        private static IReadOnlyList<W.SdtRun> GetNativePictureControls(WordParagraph paragraph) {
-            if (paragraph._paragraph == null) {
-                return Array.Empty<W.SdtRun>();
+        private static IReadOnlyList<OfficeXmlNode> GetNativePictureControls(WordParagraph paragraph) {
+            OfficeXmlNode source = paragraph.Node();
+            if (source.IsNone) {
+                return Array.Empty<OfficeXmlNode>();
             }
-            var controls = new List<W.SdtRun>();
-            var visibility = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
-            CollectNativeVisiblePictureControls(paragraph._paragraph, visibility, controls);
+            var controls = new List<OfficeXmlNode>();
+            var visibility = WordConverterNodes.FieldVisibilityForParagraph(source);
+            CollectNativeVisiblePictureControls(source, visibility, controls);
             return controls;
         }
 
         private static void CollectNativeVisiblePictureControls(
-            DocumentFormat.OpenXml.OpenXmlCompositeElement container,
+            OfficeXmlNode container,
             WordComplexFieldRunVisibility visibility,
-            List<W.SdtRun> controls) {
-            foreach (DocumentFormat.OpenXml.OpenXmlElement child in container.ChildElements) {
-                if (child is W.Run run) {
-                    visibility.GetVisibleRun(run);
-                } else if (child is W.SdtRun control) {
-                    if (visibility.IsVisible && IsNativePictureControl(control)) controls.Add(control);
-                    if (control.SdtContentRun != null)
-                        CollectNativeVisiblePictureControls(control.SdtContentRun, visibility, controls);
-                } else if (child is W.SimpleField field) {
+            List<OfficeXmlNode> controls) {
+            foreach (OfficeXmlNode child in container.Elements()) {
+                if (child.IsW("r")) {
+                    visibility.ObserveRun(child);
+                } else if (child.IsW("sdt")) {
+                    if (visibility.IsVisible && IsNativePictureControl(child)) controls.Add(child);
+                    OfficeXmlNode content = child.WChild("sdtContent");
+                    if (content.Exists)
+                        CollectNativeVisiblePictureControls(content, visibility, controls);
+                } else if (child.IsW("fldSimple")) {
                     if (visibility.IsVisible)
-                        CollectNativeVisiblePictureControls(field, visibility, controls);
+                        CollectNativeVisiblePictureControls(child, visibility, controls);
                     else
-                        visibility.ObserveDescendantRuns(field);
-                } else if (child is W.Hyperlink or W.CustomXmlRun) {
-                    CollectNativeVisiblePictureControls((DocumentFormat.OpenXml.OpenXmlCompositeElement)child, visibility, controls);
+                        visibility.ObserveDescendantRuns(child);
+                } else if (child.IsW("hyperlink") || child.IsW("customXml")) {
+                    CollectNativeVisiblePictureControls(child, visibility, controls);
                 }
             }
         }
 
-        private static bool IsNativeRepeatingSectionControl(W.SdtRun sdtRun) =>
-            sdtRun.SdtProperties?.Elements<W15.SdtRepeatedSection>().Any() == true;
+        private static bool IsNativeRepeatingSectionControl(OfficeXmlNode sdtRun) =>
+            sdtRun.WChild("sdtPr").Child(WordXml.W15, "repeatingSection").Exists;
 
-        private static bool IsNativeRepeatingSectionChildControl(W.SdtRun sdtRun) =>
-            sdtRun.Ancestors<W.SdtRun>().Any(IsNativeRepeatingSectionControl);
+        private static bool IsNativeRepeatingSectionChildControl(OfficeXmlNode sdtRun) =>
+            sdtRun.Ancestors().Any(ancestor => ancestor.ContentControlLevel() == WordContentControlLevel.Run &&
+                IsNativeRepeatingSectionControl(ancestor));
 
-        private static bool IsNativeRepeatingSectionWithText(W.SdtRun sdtRun) =>
+        private static bool IsNativeRepeatingSectionWithText(OfficeXmlNode sdtRun) =>
             IsNativeRepeatingSectionControl(sdtRun) &&
             GetNativeRepeatingSectionItems(sdtRun).Count > 0;
 
-        private static IReadOnlyList<W.SdtRun> GetNativeFormFieldControls(WordParagraph paragraph) {
-            if (paragraph._paragraph == null) {
-                return Array.Empty<W.SdtRun>();
+        private static IReadOnlyList<OfficeXmlNode> GetNativeFormFieldControls(WordParagraph paragraph) {
+            OfficeXmlNode source = paragraph.Node();
+            if (source.IsNone) {
+                return Array.Empty<OfficeXmlNode>();
             }
 
-            return paragraph._paragraph.Descendants<W.SdtRun>()
+            return EnumerateNativeContentControls(source, WordContentControlLevel.Run)
                 .Where(IsNativeSupportedFormFieldContentControl)
                 .ToList();
         }
 
-        private static IReadOnlyList<W.SdtRun> GetNativeRepeatingSectionControls(WordParagraph paragraph) {
-            if (paragraph._paragraph == null) {
-                return Array.Empty<W.SdtRun>();
+        private static IReadOnlyList<OfficeXmlNode> GetNativeRepeatingSectionControls(WordParagraph paragraph) {
+            OfficeXmlNode source = paragraph.Node();
+            if (source.IsNone) {
+                return Array.Empty<OfficeXmlNode>();
             }
 
-            return paragraph._paragraph.Descendants<W.SdtRun>()
+            return EnumerateNativeContentControls(source, WordContentControlLevel.Run)
                 .Where(IsNativeRepeatingSectionControl)
                 .ToList();
         }
 
-        private static bool IsNativeSupportedFormFieldContentControl(W.SdtRun sdtRun) =>
+        private static bool IsNativeSupportedFormFieldContentControl(OfficeXmlNode sdtRun) =>
             IsNativeDatePickerControl(sdtRun) ||
             GetNativeChoiceFieldOptions(sdtRun).Count > 0;
 
-        private static bool IsNativeDatePickerControl(W.SdtRun sdtRun) =>
-            sdtRun.SdtProperties?.Elements<W.SdtContentDate>().Any() == true;
+        private static bool IsNativeDatePickerControl(OfficeXmlNode sdtRun) =>
+            sdtRun.WChild("sdtPr").WChild("date").Exists;
 
-        private static IReadOnlyList<string> GetNativeChoiceFieldOptions(W.SdtRun sdtRun) {
-            W.SdtProperties? properties = sdtRun.SdtProperties;
-            if (properties == null) {
+        // A drop-down list's items, else a combo box's: a present drop-down list wins even when empty.
+        private static IEnumerable<OfficeXmlNode> GetNativeChoiceFieldItems(OfficeXmlNode properties) {
+            OfficeXmlNode list = properties.WChild("dropDownList");
+            if (list.IsNone) list = properties.WChild("comboBox");
+            return list.WElements("listItem");
+        }
+
+        private static IReadOnlyList<string> GetNativeChoiceFieldOptions(OfficeXmlNode sdtRun) {
+            OfficeXmlNode properties = sdtRun.WChild("sdtPr");
+            if (properties.IsNone) {
                 return Array.Empty<string>();
             }
 
-            IEnumerable<W.ListItem> items = properties.Elements<W.SdtContentDropDownList>().FirstOrDefault()?.Elements<W.ListItem>() ??
-                properties.Elements<W.SdtContentComboBox>().FirstOrDefault()?.Elements<W.ListItem>() ??
-                Enumerable.Empty<W.ListItem>();
-
             var options = new List<string>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (W.ListItem item in items) {
-                string? option = item.DisplayText?.Value ?? item.Value?.Value;
+            foreach (OfficeXmlNode item in GetNativeChoiceFieldItems(properties)) {
+                string? option = item.WAttr("displayText") ?? item.WAttr("value");
                 if (string.IsNullOrWhiteSpace(option) || !seen.Add(option!)) {
                     continue;
                 }
@@ -645,9 +651,8 @@ namespace OfficeIMO.Word.Pdf {
             return options;
         }
 
-        private static string? GetNativeChoiceFieldValue(W.SdtRun sdtRun, IReadOnlyList<string> options) {
-            W.SdtContentComboBox? comboBox = sdtRun.SdtProperties?.Elements<W.SdtContentComboBox>().FirstOrDefault();
-            string? lastValue = comboBox?.LastValue?.Value;
+        private static string? GetNativeChoiceFieldValue(OfficeXmlNode sdtRun, IReadOnlyList<string> options) {
+            string? lastValue = sdtRun.WChild("sdtPr").WChild("comboBox").WAttr("lastValue");
             if (!string.IsNullOrWhiteSpace(lastValue)) {
                 string? displayValue = GetNativeChoiceDisplayValue(sdtRun, lastValue!);
                 if (!string.IsNullOrWhiteSpace(displayValue) && options.Contains(displayValue!, StringComparer.Ordinal)) {
@@ -667,36 +672,46 @@ namespace OfficeIMO.Word.Pdf {
             return options.Count > 0 ? options[0] : null;
         }
 
-        private static string? GetNativeChoiceDisplayValue(W.SdtRun sdtRun, string value) {
-            IEnumerable<W.ListItem> items = sdtRun.SdtProperties?.Elements<W.SdtContentDropDownList>().FirstOrDefault()?.Elements<W.ListItem>() ??
-                sdtRun.SdtProperties?.Elements<W.SdtContentComboBox>().FirstOrDefault()?.Elements<W.ListItem>() ??
-                Enumerable.Empty<W.ListItem>();
-
-            W.ListItem? match = items.FirstOrDefault(item => string.Equals(item.Value?.Value, value, StringComparison.Ordinal));
-            return match?.DisplayText?.Value ?? match?.Value?.Value;
+        private static string? GetNativeChoiceDisplayValue(OfficeXmlNode sdtRun, string value) {
+            OfficeXmlNode match = GetNativeChoiceFieldItems(sdtRun.WChild("sdtPr"))
+                .FirstOrDefault(item => string.Equals(item.WAttr("value"), value, StringComparison.Ordinal));
+            return match.WAttr("displayText") ?? match.WAttr("value");
         }
 
-        private static string GetNativeDatePickerValue(W.SdtRun sdtRun) {
-            W.SdtContentDate? datePicker = sdtRun.SdtProperties?.Elements<W.SdtContentDate>().FirstOrDefault();
-            if (datePicker?.FullDate?.Value is DateTime value) {
+        private static string GetNativeDatePickerValue(OfficeXmlNode sdtRun) {
+            string? fullDate = sdtRun.WChild("sdtPr").WChild("date").WAttr("fullDate");
+            if (TryParseNativeXmlDateTime(fullDate, out DateTime value)) {
                 return value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             }
 
             return GetNativeSdtText(sdtRun) ?? string.Empty;
         }
 
-        private static string? GetNativeSdtText(W.SdtRun sdtRun) {
-            if (sdtRun.SdtContentRun == null) {
+        // An xsd:dateTime value, read as the SDK's DateTimeValue reads it.
+        private static bool TryParseNativeXmlDateTime(string? text, out DateTime value) {
+            value = default;
+            if (text == null) return false;
+            try {
+                value = XmlConvert.ToDateTime(text, XmlDateTimeSerializationMode.RoundtripKind);
+                return true;
+            } catch (FormatException) {
+                return false;
+            }
+        }
+
+        private static string? GetNativeSdtText(OfficeXmlNode sdtRun) {
+            OfficeXmlNode content = sdtRun.WChild("sdtContent");
+            if (content.IsNone) {
                 return null;
             }
 
-            string text = string.Concat(sdtRun.SdtContentRun.Descendants<W.Text>().Select(WordParagraph.ReadVisibleText));
+            string text = string.Concat(content.Descendants(WordXml.W, "t").Select(WordConverterNodes.VisibleText));
             return string.IsNullOrWhiteSpace(text) ? null : text;
         }
 
-        private static bool IsNativeSimpleTextContentControl(W.SdtRun sdtRun) {
-            W.SdtProperties? properties = sdtRun.SdtProperties;
-            if (properties == null) {
+        private static bool IsNativeSimpleTextContentControl(OfficeXmlNode sdtRun) {
+            OfficeXmlNode properties = sdtRun.WChild("sdtPr");
+            if (properties.IsNone) {
                 return false;
             }
 
@@ -704,21 +719,21 @@ namespace OfficeIMO.Word.Pdf {
                 return true;
             }
 
-            if (properties.Elements<W14.SdtContentCheckBox>().Any() ||
-                properties.Elements<W.SdtContentDate>().Any() ||
-                properties.Elements<W.SdtContentDropDownList>().Any() ||
-                properties.Elements<W.SdtContentComboBox>().Any() ||
-                properties.Elements<W.SdtContentPicture>().Any() ||
-                properties.Elements<W15.SdtRepeatedSection>().Any()) {
+            if (properties.Child(WordXml.W14, "checkbox").Exists ||
+                properties.WChild("date").Exists ||
+                properties.WChild("dropDownList").Exists ||
+                properties.WChild("comboBox").Exists ||
+                properties.WChild("picture").Exists ||
+                properties.Child(WordXml.W15, "repeatingSection").Exists) {
                 return false;
             }
 
-            return sdtRun.SdtContentRun?.Descendants<W.Text>().Any() == true;
+            return sdtRun.WChild("sdtContent").HasDescendant(WordXml.W, "t");
         }
 
-        private static bool IsNativeSimpleBlockTextContentControl(W.SdtBlock sdtBlock) {
-            W.SdtProperties? properties = sdtBlock.SdtProperties;
-            if (properties == null) {
+        private static bool IsNativeSimpleBlockTextContentControl(OfficeXmlNode sdtBlock) {
+            OfficeXmlNode properties = sdtBlock.WChild("sdtPr");
+            if (properties.IsNone) {
                 return false;
             }
 
@@ -727,31 +742,25 @@ namespace OfficeIMO.Word.Pdf {
                 return true;
             }
 
-            if (properties.Elements<W.SdtContentDocPartObject>().Any() ||
-                properties.Elements<W.SdtContentDate>().Any() ||
-                properties.Elements<W.SdtContentPicture>().Any()) {
+            if (properties.WChild("docPartObj").Exists ||
+                properties.WChild("date").Exists ||
+                properties.WChild("picture").Exists) {
                 return false;
             }
 
-            return sdtBlock.SdtContentBlock?.Descendants<W.Text>().Any() == true;
+            return sdtBlock.WChild("sdtContent").HasDescendant(WordXml.W, "t");
         }
 
-        private static bool IsNativeSupportedDocPartBlockContentControl(W.SdtBlock sdtBlock) {
-            string? gallery = sdtBlock.SdtProperties?
-                .Elements<W.SdtContentDocPartObject>()
-                .FirstOrDefault()?
-                .Elements<W.DocPartGallery>()
-                .FirstOrDefault()?
-                .Val?
-                .Value;
+        private static bool IsNativeSupportedDocPartBlockContentControl(OfficeXmlNode sdtBlock) {
+            string? gallery = sdtBlock.WChild("sdtPr").WChild("docPartObj").WChild("docPartGallery").WVal();
             return gallery != null &&
                    (gallery.Equals("Cover Pages", StringComparison.OrdinalIgnoreCase) ||
                     gallery.Equals("Table of Contents", StringComparison.OrdinalIgnoreCase));
         }
 
-        private static bool IsNativeBuiltInPropertyContentControl(W.SdtProperties properties) {
-            string key = (properties.Elements<W.SdtAlias>().FirstOrDefault()?.Val?.Value ?? string.Empty).Trim();
-            string? xPath = properties.Elements<W.DataBinding>().FirstOrDefault()?.XPath?.Value;
+        private static bool IsNativeBuiltInPropertyContentControl(OfficeXmlNode properties) {
+            string key = (properties.WChild("alias").WVal() ?? string.Empty).Trim();
+            string? xPath = properties.WChild("dataBinding").WAttr("xpath");
             if (string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(xPath)) {
                 key = xPath!;
             }
@@ -766,32 +775,32 @@ namespace OfficeIMO.Word.Pdf {
                    key.Equals("Date", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool IsNativeCheckBoxChecked(W.SdtRun sdtRun) {
-            W14.SdtContentCheckBox? checkBox = sdtRun.SdtProperties?.Elements<W14.SdtContentCheckBox>().FirstOrDefault();
-            W14.Checked? checkedState = checkBox?.Elements<W14.Checked>().FirstOrDefault();
-            return checkedState?.Val?.Value == W14.OnOffValues.One;
-        }
+        private static bool IsNativeCheckBoxChecked(OfficeXmlNode sdtRun) =>
+            string.Equals(sdtRun.WChild("sdtPr").Child(WordXml.W14, "checkbox").Child(WordXml.W14, "checked")
+                .Attr(WordXml.W14, "val"), "1", StringComparison.Ordinal);
 
-        private static string GetNativeCheckBoxFieldName(W.SdtRun sdtRun, int index, string fallbackPrefix = "WordCheckBox") {
+        private static string GetNativeCheckBoxFieldName(OfficeXmlNode sdtRun, int index, string fallbackPrefix = "WordCheckBox") {
             return GetNativeContentControlFieldName(sdtRun, index, fallbackPrefix);
         }
 
-        private static string GetNativeContentControlFieldName(W.SdtRun sdtRun, int index, string fallbackPrefix) {
-            string? tag = sdtRun.SdtProperties?.Elements<W.Tag>().FirstOrDefault()?.Val?.Value;
+        private static string GetNativeContentControlFieldName(OfficeXmlNode sdtRun, int index, string fallbackPrefix) {
+            OfficeXmlNode properties = sdtRun.WChild("sdtPr");
+            string? tag = properties.WChild("tag").WVal();
             if (!string.IsNullOrWhiteSpace(tag)) {
                 return tag!;
             }
 
-            string? alias = sdtRun.SdtProperties?.Elements<W.SdtAlias>().FirstOrDefault()?.Val?.Value;
+            string? alias = properties.WChild("alias").WVal();
             if (!string.IsNullOrWhiteSpace(alias)) {
                 return alias!;
             }
 
-            int? sdtId = sdtRun.SdtProperties?.Elements<W.SdtId>().FirstOrDefault()?.Val?.Value;
+            int? sdtId = WordXml.ParseInt32(properties.WChild("id").WVal());
             return sdtId.HasValue
                 ? fallbackPrefix + "." + sdtId.Value.ToString(CultureInfo.InvariantCulture)
                 : fallbackPrefix + "." + (index + 1).ToString(CultureInfo.InvariantCulture);
         }
+
 
         private static void AddNativeExportWarning(WordPdfExportOptions options, string code, string source, string message) {
             var warning = new PdfExportWarning(code, source, message);

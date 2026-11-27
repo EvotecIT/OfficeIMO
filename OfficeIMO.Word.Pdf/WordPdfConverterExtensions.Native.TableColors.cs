@@ -1,17 +1,26 @@
-using DocumentFormat.OpenXml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     /// <summary>Resolves theme-backed table border colors on a rendering copy, preserving source declarations.</summary>
-    private static T? ResolveNativeTableBorderColors<T>(T? borders, WordDocument document) where T : OpenXmlCompositeElement {
-        if (borders == null || !borders.Elements<W.BorderType>().Any(border => border.ThemeColor != null)) return borders;
-        T resolved = (T)borders.CloneNode(true);
-        foreach (W.BorderType border in resolved.Elements<W.BorderType>()) {
-            string? color = WordRunFormatting.ResolveBorderColorHex(border, document);
-            if (color != null) border.Color = color;
+    private static OfficeXmlNode ResolveNativeTableBorderColors(OfficeXmlNode borders, WordDocument document) {
+        if (borders.IsNone || !borders.Elements().Any(border => IsNativeBorderSideElement(border) && border.WAttr("themeColor") != null)) return borders;
+        OfficeXmlNode resolved = borders.Clone();
+        foreach (OfficeXmlNode border in resolved.Elements()) {
+            if (!IsNativeBorderSideElement(border)) continue;
+            string? color = WordConverterNodes.ResolveBorderColorHex(border, document);
+            if (color != null) border.SetAttribute(WordXml.W, "color", color);
         }
         return resolved;
     }
+
+    /// <summary>Whether the element is one of the <c>w:</c> border sides a table, cell or paragraph border set holds.</summary>
+    private static bool IsNativeBorderSideElement(OfficeXmlNode element) =>
+        element.NamespaceId == WordXml.W && element.LocalName is "top" or "left" or "start" or "bottom" or "right" or "end"
+            or "insideH" or "insideV" or "tl2br" or "tr2bl" or "between" or "bar";
+
+
+
+
+
 }

@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml;
 using PdfCore = OfficeIMO.Pdf;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf;
 
@@ -9,21 +7,22 @@ public static partial class WordPdfConverterExtensions {
     // profile for transitions to a different default header.
     private static bool SupportsNativeContinuousRunningStoryDocument(
         WordDocument document, IReadOnlyList<WordSection> sections) {
-        W.Body? body = document._wordprocessingDocument.MainDocumentPart?.Document?.Body;
-        if (body == null || HasNativeContinuousStoryComplexContent(body)) return false;
+        OfficeXmlNode body = document.BodyNode();
+        if (body.IsNone || HasNativeContinuousStoryComplexContent(body)) return false;
         return sections.All(section =>
             (section.ColumnCount ?? 1) == 1 &&
             !section.PageSetup.DifferentFirstPage && !section.DocumentOddEvenSettingEnabled &&
-            section._sectionProperties.GetFirstChild<W.PageNumberType>() == null &&
-            section._sectionProperties.GetFirstChild<W.PageBorders>() == null);
+            section.Node().WChild("pgNumType").IsNone &&
+            section.Node().WChild("pgBorders").IsNone);
     }
 
     // A note can continue from an earlier section. Check the source body once
     // rather than inspecting only the immediately adjacent section pair.
-    private static bool HasNativeContinuousStoryComplexContent(OpenXmlElement element) =>
-        element.Descendants().Any(descendant => descendant is
-            W.Table or W.FootnoteReference or W.EndnoteReference or W.Drawing or
-            W.Picture or W.TextBoxContent or W.EmbeddedObject or AlternateContent);
+    private static bool HasNativeContinuousStoryComplexContent(OfficeXmlNode element) =>
+        element.DescendantElements().Any(descendant =>
+            descendant.IsW("tbl") || descendant.IsW("footnoteReference") || descendant.IsW("endnoteReference") ||
+            descendant.IsW("drawing") || descendant.IsW("pict") || descendant.IsW("txbxContent") ||
+            descendant.IsW("object") || descendant.Is(WordXml.Mc, "AlternateContent"));
 
     private static bool CanContinueNativeDefaultHeaderStory(
         WordSection previous, WordSection current, WordPdfExportOptions? options) {
@@ -44,19 +43,19 @@ public static partial class WordPdfConverterExtensions {
         // A default-header transition leaves the selected footer and both
         // running edges fixed. First/even variants and numbering stay outside
         // this source profile.
-        return ReferenceEquals(previous.ResolveDefaultFooter()?._footer, current.ResolveDefaultFooter()?._footer) &&
+        return (previous.ResolveDefaultFooter()?.Node() ?? default) == (current.ResolveDefaultFooter()?.Node() ?? default) &&
             NativeDoubleEquals(checked((uint)(previous.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips())), checked((uint)(current.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) &&
             NativeDoubleEquals(checked((uint)(previous.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())), checked((uint)(current.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())));
     }
 
     private static bool IsNativePlainContinuousRunningStory(WordHeaderFooter? story) =>
         story == null ||
-        (story.ChildElements.All(element => element is W.Paragraph) &&
-         story.ChildElements.All(element =>
+        (story.Node().Elements().All(element => element.IsW("p")) &&
+         story.Node().Elements().All(element =>
              !HasNativeContinuousStoryComplexContent(element) &&
-             !element.Descendants<W.SimpleField>().Any() &&
-             !element.Descendants<W.FieldChar>().Any() &&
-             !element.Descendants<W.Break>().Any()));
+             !element.HasDescendant(WordXml.W, "fldSimple") &&
+             !element.HasDescendant(WordXml.W, "fldChar") &&
+             !element.HasDescendant(WordXml.W, "br")));
 
     private static bool NativeSectionGroupChangesRunningStories(
         IReadOnlyList<WordSection> sections, int startIndex, int endIndex) {

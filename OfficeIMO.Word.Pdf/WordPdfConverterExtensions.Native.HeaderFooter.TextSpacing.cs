@@ -1,6 +1,6 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static bool HasNativeTextSpacing(NativeTextSpacing spacing) =>
             (spacing.WidthPercentage ?? 100D) != 100D || (spacing.CharacterSpacing ?? 0D) != 0D ||
@@ -34,12 +34,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IEnumerable<(WordParagraph Run, string Text, bool IsField)> GetNativeHeaderFooterVisibleTextRuns(WordParagraph paragraph) {
-            var serializedRuns = new List<(W.Run Run, string Text, bool IsField, DocumentFormat.OpenXml.OpenXmlElement? SourceChild, OfficeIMO.Pdf.PdfPageNumberStyle? FieldStyle)>();
+            var serializedRuns = new List<(OfficeXmlNode Run, string Text, bool IsField, OfficeXmlNode SourceChild, OfficeIMO.Pdf.PdfPageNumberStyle? FieldStyle)>();
             return TryBuildNativeHeaderFooterParagraphText(paragraph, out _, out _, serializedRuns)
                 ? serializedRuns.Select(item => {
-                    var run = new WordParagraph(paragraph._document,
-                        item.Run.Ancestors<W.Paragraph>().FirstOrDefault() ?? paragraph._paragraph!, item.Run);
-                    return (item.SourceChild == null ? run : CreateNativeRunContentView(run, new[] { item.SourceChild }), item.Text, item.IsField);
+                    OfficeXmlNode sourceParagraph = item.Run.Ancestor(WordXml.W, "p");
+                    WordParagraph run = paragraph._document.RunView(sourceParagraph.Exists ? sourceParagraph : paragraph.Node(), item.Run);
+                    return (item.SourceChild.IsNone ? run : CreateNativeRunContentView(run, new[] { item.SourceChild }), item.Text, item.IsField);
                 })
                 : GetNativeRuns(paragraph).Select(run => (run, run.Text, false));
         }

@@ -1,14 +1,11 @@
-using DocumentFormat.OpenXml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {
     /// <summary>Returns paragraph-level aliases without admitting bookmarks from nested stories.</summary>
     private static IEnumerable<string> GetNativeParagraphBookmarkNames(WordParagraph paragraph) =>
-        paragraph._paragraph?.Elements<W.BookmarkStart>().Select(bookmark => bookmark.Name?.Value)
-            .OfType<string>().Where(name => !string.IsNullOrWhiteSpace(name)).Distinct(StringComparer.Ordinal)
-        ?? Enumerable.Empty<string>();
+        paragraph.Node().WElements("bookmarkStart").Select(bookmark => bookmark.WAttr("name"))
+            .OfType<string>().Where(name => !string.IsNullOrWhiteSpace(name)).Distinct(StringComparer.Ordinal);
 
     private static void RenderNativeParagraphBookmarks(INativePdfFlow flow, WordParagraph paragraph) {
         foreach (string name in GetNativeParagraphBookmarkNames(paragraph)) flow.Bookmark(name);
@@ -49,29 +46,24 @@ public static partial class WordPdfConverterExtensions {
     private static NativeBookmarkTargets? CreateNativeBookmarkTargets(WordDocument document,
         WordPdfExportOptions? options, NativeDocumentDefaults defaults, NativeFontMap fonts,
         NativeNoteNumbering notes) {
-        var main = document._wordprocessingDocument.MainDocumentPart;
-        var roots = new List<OpenXmlElement>();
-        if (main?.Document != null) roots.Add(main.Document);
-        if (main != null) {
-            foreach (var part in main.HeaderParts) if (part.Header != null) roots.Add(part.Header);
-            foreach (var part in main.FooterParts) if (part.Footer != null) roots.Add(part.Footer);
-            if (main.FootnotesPart?.Footnotes != null) roots.Add(main.FootnotesPart.Footnotes);
-            if (main.EndnotesPart?.Endnotes != null) roots.Add(main.EndnotesPart.Endnotes);
-        }
-        if (!roots.Any(root => root.Descendants<W.Hyperlink>().Any(link => !string.IsNullOrWhiteSpace(link.Anchor?.Value))))
+        var roots = new List<OfficeXmlNode>();
+        if (document.DocumentNode().Exists) roots.Add(document.DocumentNode());
+        roots.AddRange(document.HeaderFooterRootNodes());
+        if (document.FootnotesNode().Exists) roots.Add(document.FootnotesNode());
+        if (document.EndnotesNode().Exists) roots.Add(document.EndnotesNode());
+        if (!roots.Any(root => root.Descendants(WordXml.W, "hyperlink").Any(link => !string.IsNullOrWhiteSpace(link.WAttr("anchor")))))
             return null;
-        var known = new HashSet<string>(roots.SelectMany(root => root.Descendants<W.BookmarkStart>())
-            .Select(bookmark => bookmark.Name?.Value).OfType<string>().Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.Ordinal);
+        var known = new HashSet<string>(roots.SelectMany(root => root.Descendants(WordXml.W, "bookmarkStart"))
+            .Select(bookmark => bookmark.WAttr("name")).OfType<string>().Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.Ordinal);
         var projected = new HashSet<string>(StringComparer.Ordinal);
         var paragraphs = new List<WordParagraph>();
         var standaloneLinks = new List<WordHyperLink>();
-        var referencedNotes = new HashSet<(W.FootnoteEndnoteType Source, WordSection Section)>();
+        var referencedNotes = new HashSet<(OfficeXmlNode Source, WordSection Section)>();
         IReadOnlyList<WordSection> sections = document.Sections;
         foreach (WordSection section in sections) {
             IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
-            if (GetNativeEmptySectionMarkSource(section, elements) is { } mark)
-                foreach (W.BookmarkStart bookmark in mark.Elements<W.BookmarkStart>())
-                    if (!string.IsNullOrEmpty(bookmark.Name?.Value)) projected.Add(bookmark.Name!.Value!);
+            foreach (OfficeXmlNode bookmark in GetNativeEmptySectionMarkSource(section, elements).WElements("bookmarkStart"))
+                if (bookmark.WAttr("name") is { Length: > 0 } name) projected.Add(name);
             Collect(elements, admitBookmarks: true);
             foreach (WordHeaderFooter story in EnumerateNativeActiveRunningStories(section))
                 Collect(story.Elements, admitBookmarks: false);
@@ -81,15 +73,12 @@ public static partial class WordPdfConverterExtensions {
             IEnumerable<WordParagraph> sourceParagraphs = EnumerateNativeNoteParagraphs(section.Elements)
                 .Concat(EnumerateNativeActiveRunningStories(section).SelectMany(story =>
                     EnumerateNativeNoteParagraphs(story.Elements)));
-            foreach (OpenXmlElement reference in sourceParagraphs.SelectMany(paragraph => EnumerateNativeVisibleNoteReferences(paragraph))) {
-                W.FootnoteEndnoteType? source = reference switch {
-                    W.FootnoteReference foot => WordNoteResolver.FindFootnote(main, foot.Id?.Value),
-                    W.EndnoteReference end => WordNoteResolver.FindEndnote(main, end.Id?.Value),
-                    _ => null
-                };
-                WordSection targetSection = source is W.Endnote && notes.EndnotesAtDocumentEnd ? sections[sections.Count - 1] : section;
-                if (source != null && (source.Descendants<W.BookmarkStart>().Any() ||
-                    source.Descendants<W.Hyperlink>().Any(link => !string.IsNullOrWhiteSpace(link.Anchor?.Value))) &&
+            foreach (OfficeXmlNode reference in sourceParagraphs.SelectMany(paragraph => EnumerateNativeVisibleNoteReferences(paragraph))) {
+                OfficeXmlNode source = reference.IsW("footnoteReference") ? document.FindFootnoteNode(WordXml.ParseInt64(reference.WAttr("id"))) :
+                    reference.IsW("endnoteReference") ? document.FindEndnoteNode(WordXml.ParseInt64(reference.WAttr("id"))) : default;
+                WordSection targetSection = source.IsW("endnote") && notes.EndnotesAtDocumentEnd ? sections[sections.Count - 1] : section;
+                if (source.Exists && (source.HasDescendant(WordXml.W, "bookmarkStart") ||
+                    source.Descendants(WordXml.W, "hyperlink").Any(link => !string.IsNullOrWhiteSpace(link.WAttr("anchor")))) &&
                     referencedNotes.Add((source, targetSection)) &&
                     CanProjectNativePageNote(source, targetSection, defaults, fonts, options, recordDiagnostics: false))
                     Collect(GetNativeNoteElements(document, source), admitBookmarks: true);
@@ -122,7 +111,7 @@ public static partial class WordPdfConverterExtensions {
                     standaloneLinks.Add(link);
                 } else if (element is WordTableOfContent stored && stored.ShowsStoredEntries) {
                     EnsureNativeStructuredDocumentTagDepth(structuredDepth);
-                    Collect(GetNativeStructuredBlockElements(document, stored.SdtBlock), admitBookmarks, structuredDepth + 1, tableDepth, textBoxDepth);
+                    Collect(GetNativeStructuredBlockElements(document, stored.SdtBlockNode()), admitBookmarks, structuredDepth + 1, tableDepth, textBoxDepth);
                 } else if (element is WordTableOfContent toc && toc.TitleParagraph is { } title) {
                     Collect(new[] { title }, admitBookmarks, structuredDepth, tableDepth, textBoxDepth);
                 } else if (element is WordTable table) {
@@ -133,11 +122,12 @@ public static partial class WordPdfConverterExtensions {
                                 Collect(EnumerateNativeTableCellElements(cell), admitBookmarks: false, structuredDepth, tableDepth + 1, textBoxDepth);
                 } else if (element is WordStructuredDocumentTag structured) {
                     EnsureNativeStructuredDocumentTagDepth(structuredDepth);
-                    if (!TryGetNativeStructuredBlockPropertyValue(document, structured.SdtBlock, out _))
-                        Collect(GetNativeStructuredBlockElements(document, structured.SdtBlock), admitBookmarks, structuredDepth + 1, tableDepth, textBoxDepth);
+                    if (!TryGetNativeStructuredBlockPropertyValue(document, structured.SdtBlockNode(), out _))
+                        Collect(GetNativeStructuredBlockElements(document, structured.SdtBlockNode()), admitBookmarks, structuredDepth + 1, tableDepth, textBoxDepth);
                 } else if (element is WordCoverPage cover) {
                     EnsureNativeStructuredDocumentTagDepth(structuredDepth);
-                    Collect(GetNativeStructuredBlockElements(document, cover.SdtBlock), admitBookmarks, structuredDepth + 1, tableDepth, textBoxDepth);
+                    Collect(GetNativeStructuredBlockElements(document, cover.SdtBlockNode()), admitBookmarks, structuredDepth + 1, tableDepth, textBoxDepth);
+
                 }
             }
         }

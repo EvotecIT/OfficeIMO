@@ -1,6 +1,6 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     private static IReadOnlyList<NativeHeaderFooterStyledReplacement> CreateNativeHeaderFooterTextBoxReplacements(
@@ -31,7 +31,7 @@ public static partial class WordPdfConverterExtensions {
 
             foreach (var item in GetNativeHeaderFooterVisibleTextRuns(paragraph)) {
                 if (IsNativeHiddenTextRun(item.Run, paragraph)) continue;
-                if (item.IsField || item.Run._run?.Descendants<W.TextBoxContent>().Any() != true) {
+                if (item.IsField || !item.Run.RunNode().HasDescendant(WordXml.W, "txbxContent")) {
                     AppendRun(paragraph, item.Run, item.Text, item.IsField);
                     continue;
                 }
@@ -39,7 +39,7 @@ public static partial class WordPdfConverterExtensions {
                 // Preserve document order, including direct prefixes/suffixes and
                 // peer boxes. Matching replacements cannot then consume the text
                 // belonging to an earlier identical but differently styled run.
-                foreach (var child in item.Run.EnumerateEffectiveRunContent()) {
+                foreach (OfficeXmlNode child in item.Run.EffectiveRunContentNodes()) {
                     WordParagraph view = CreateNativeRunContentView(item.Run, new[] { child });
                     if ((view.TextBox ?? view.GetGroupTextBoxes().FirstOrDefault()) is { } box) {
                         IReadOnlyList<WordParagraph> innerParagraphs = GetNativeTextBoxParagraphs(box);

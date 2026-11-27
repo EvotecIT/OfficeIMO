@@ -1,13 +1,9 @@
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, NativeNoteNumbering footnoteNumbersById,
             List<PdfFootnote> documentEndnotes) {
@@ -41,10 +37,10 @@ namespace OfficeIMO.Word.Pdf {
                 case WordParagraph paragraph:
                     // Read actual reference children: a single Word run can carry several
                     // notes, or a note between text siblings, and SDTs retain this order.
-                    foreach (var reference in EnumerateNativeVisibleNoteReferences(paragraph)) {
-                        if (reference is W.FootnoteReference foot && foot.Id?.Value is long footId)
+                    foreach (OfficeXmlNode reference in EnumerateNativeVisibleNoteReferences(paragraph)) {
+                        if (reference.IsW("footnoteReference") && WordXml.ParseInt64(reference.WAttr("id")) is long footId)
                             AddNativeFootnote(paragraph._document, footId, footnotes, footnoteNumbersById);
-                        else if (reference is W.EndnoteReference end && end.Id?.Value is long endId)
+                        else if (reference.IsW("endnoteReference") && WordXml.ParseInt64(reference.WAttr("id")) is long endId)
                             AddNativeEndnote(paragraph._document, endId, footnotes, footnoteNumbersById);
                     }
 
@@ -67,15 +63,15 @@ namespace OfficeIMO.Word.Pdf {
                     break;
                 case WordCoverPage coverPage:
                     EnsureNativeStructuredDocumentTagDepth(structuredDocumentTagDepth);
-                    foreach (WordElement coverElement in GetNativeStructuredBlockElements(coverPage.Document, coverPage.SdtBlock)) {
+                    foreach (WordElement coverElement in GetNativeStructuredBlockElements(coverPage.Document, coverPage.SdtBlockNode())) {
                         CollectNativeFootnotes(coverElement, footnotes, footnoteNumbersById, structuredDocumentTagDepth + 1, tableDepth);
                     }
 
                     break;
                 case WordStructuredDocumentTag structuredDocumentTag:
                     EnsureNativeStructuredDocumentTagDepth(structuredDocumentTagDepth);
-                    if (TryGetNativeStructuredBlockPropertyValue(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock, out _)) break;
-                    foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock)) {
+                    if (TryGetNativeStructuredBlockPropertyValue(structuredDocumentTag.Document, structuredDocumentTag.SdtBlockNode(), out _)) break;
+                    foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlockNode())) {
                         CollectNativeFootnotes(structuredElement, footnotes, footnoteNumbersById, structuredDocumentTagDepth + 1, tableDepth);
                     }
 
@@ -103,11 +99,11 @@ namespace OfficeIMO.Word.Pdf {
             List<PdfFootnote> footnotes, NativeNoteNumbering footnoteNumbersById) {
             NativeNoteKey key = GetNativeFootnoteKey(referenceId);
             if (footnoteNumbersById.ContainsKey(key)) return;
-            W.Footnote? source = WordNoteResolver.FindFootnote(document?._wordprocessingDocument.MainDocumentPart, referenceId);
-            if (source == null) return;
+            OfficeXmlNode source = document.FindFootnoteNode(referenceId);
+            if (source.IsNone) return;
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: false),
-                Text = string.Join(" ", source.Descendants<W.Paragraph>().Select(paragraph => WordParagraph.ReadVisibleText(paragraph, ' '))),
+                Text = string.Join(" ", source.Descendants(WordXml.W, "p").Select(paragraph => paragraph.VisibleText(' '))),
                 ReferenceId = referenceId, Source = source
             });
         }
@@ -125,11 +121,11 @@ namespace OfficeIMO.Word.Pdf {
             List<PdfFootnote> footnotes, NativeNoteNumbering footnoteNumbersById) {
             NativeNoteKey key = GetNativeEndnoteKey(referenceId);
             if (footnoteNumbersById.ContainsKey(key)) return;
-            W.Endnote? source = WordNoteResolver.FindEndnote(document?._wordprocessingDocument.MainDocumentPart, referenceId);
-            if (source == null) return;
+            OfficeXmlNode source = document.FindEndnoteNode(referenceId);
+            if (source.IsNone) return;
             footnotes.Add(new PdfFootnote {
                 Label = footnoteNumbersById.Add(key, endnote: true),
-                Text = string.Join(" ", source.Descendants<W.Paragraph>().Select(paragraph => WordParagraph.ReadVisibleText(paragraph, ' '))),
+                Text = string.Join(" ", source.Descendants(WordXml.W, "p").Select(paragraph => paragraph.VisibleText(' '))),
                 IsEndnote = true, ReferenceId = referenceId, Source = source
             });
         }
@@ -167,10 +163,10 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void AddNativeParagraphFootnoteNumber(WordParagraph paragraph, List<int> numbers, NativeNoteNumbering footnoteNumbersById, HashSet<NativeNoteKey> seenKeys) {
             if (IsNativeHiddenTextRun(paragraph)) return;
-            foreach (var child in paragraph.EnumerateEffectiveRunContent().SelectMany(element => element.Descendants().Prepend(element))) {
-                NativeNoteKey? key = child is W.FootnoteReference foot && foot.Id?.Value is long footId
+            foreach (OfficeXmlNode child in paragraph.EffectiveRunContentNodes().SelectMany(element => element.DescendantElements().Prepend(element))) {
+                NativeNoteKey? key = child.IsW("footnoteReference") && WordXml.ParseInt64(child.WAttr("id")) is long footId
                     ? GetNativeFootnoteKey(footId)
-                    : child is W.EndnoteReference end && end.Id?.Value is long endId
+                    : child.IsW("endnoteReference") && WordXml.ParseInt64(child.WAttr("id")) is long endId
                         ? GetNativeEndnoteKey(endId) : null;
                 if (key.HasValue && footnoteNumbersById.TryGetValue(key.Value, out int number) && seenKeys.Add(key.Value))
                     numbers.Add(number);
@@ -207,7 +203,7 @@ namespace OfficeIMO.Word.Pdf {
                 foreach (PdfFootnote footnote in group) {
                     options?.CancellationToken.ThrowIfCancellationRequested();
                     if (previousKind != footnote.IsEndnote) {
-                        W.FootnoteEndnoteType separator = footnote.IsEndnote
+                        OfficeXmlNode separator = footnote.IsEndnote
                             ? ResolveNativeEndnoteSeparator(section._document)
                             : ResolveNativePageFootnoteStories(section._document).Separator;
                         if (CanProjectNativePageNote(separator, section, defaults, fonts, options))
@@ -220,20 +216,20 @@ namespace OfficeIMO.Word.Pdf {
                     NativeNoteKey key = footnote.IsEndnote ? GetNativeEndnoteKey(footnote.ReferenceId)
                         : GetNativeFootnoteKey(footnote.ReferenceId);
                     pdf.Bookmark(GetNativePageNoteDestination(key));
-                    if (footnote.Source != null && CanProjectNativePageNote(footnote.Source, section, defaults, fonts, options)) {
+                    if (footnote.Source.Exists && CanProjectNativePageNote(footnote.Source, section, defaults, fonts, options)) {
                         RenderNativeNoteParagraphs(pdf, footnote.Source, section, notes, options, defaults, fonts, footnote.Label);
                         continue;
                     }
-                    if (footnote.Source != null && options != null)
-                        foreach (W.Paragraph paragraph in footnote.Source.Descendants<W.Paragraph>()) {
-                            RecordNativeFieldResultDiagnostics(new WordParagraph(section._document, paragraph), options,
+                    if (footnote.Source.Exists && options != null)
+                        foreach (OfficeXmlNode paragraph in footnote.Source.Descendants(WordXml.W, "p")) {
+                            RecordNativeFieldResultDiagnostics(WordConverterNodes.ParagraphView(section._document, paragraph), options,
                                 footnote.IsEndnote ? "endnote" : "footnote", runningStory: false);
-                            RecordNativeParagraphFrameDiagnostics(new WordParagraph(section._document, paragraph), options,
+                            RecordNativeParagraphFrameDiagnostics(WordConverterNodes.ParagraphView(section._document, paragraph), options,
                                 footnote.IsEndnote ? "endnote" : "footnote");
-                            RecordNativeParagraphBarTabDiagnostics(new WordParagraph(section._document, paragraph), options,
+                            RecordNativeParagraphBarTabDiagnostics(WordConverterNodes.ParagraphView(section._document, paragraph), options,
                                 footnote.IsEndnote ? "endnote" : "footnote", omitted: true);
                         }
-                    if (footnote.Source != null && footnote.IsEndnote && options != null)
+                    if (footnote.Source.Exists && footnote.IsEndnote && options != null)
                         AddNativeExportWarning(options, "native-endnote-content-approximated", "endnote",
                             "This endnote's content is outside the supported paragraph profile; visible text is retained in section flow.");
                     pdf.Paragraph(builder => {
@@ -263,8 +259,8 @@ namespace OfficeIMO.Word.Pdf {
             double height = image.Height?.ToPoints() ?? 144D;
             if (anchorStyle != null && TryAddNativeAnchoredImage(pdf, image, preparedBytes, width, height,
                     anchorStyle, anchoredCanvas, anchorParagraph, options, source, anchorSection, runningStory)) return false;
-            if (image._Image?.Anchor != null && options != null &&
-                !options.DiagnosedImageWrapElements.Contains(image._Image))
+            if (!image.DrawingNode().Child(WordXml.Wp, "anchor").IsNone && options != null &&
+                !options.DiagnosedImageWrapElements.Contains(image.DrawingNode()))
                 AddNativeExportWarning(options, "native-anchored-image-flowed", source,
                     "The image's wrap, anchor or transform is outside the fixed-placement contract; it was placed in document flow.");
             string? linkUri = GetNativeImageLink(image);
@@ -289,7 +285,7 @@ namespace OfficeIMO.Word.Pdf {
                     if (TryPrepareNativePdfImageBytes(candidate, out bytes, out unsupportedReason, cancellationToken)) {
                         // A later SVG part that draws keeps the picture vector; only a raster result is a fallback.
                         if (svgFailed && svgFallbackReport != null && !PdfCore.PdfDocument.IsSvgImage(bytes, out _) &&
-                            svgFallbackReport.DiagnosedSvgFallbackImages.Add(image.OccurrenceElement))
+                            svgFallbackReport.DiagnosedSvgFallbackImages.Add(image.OccurrenceNode()))
                             AddNativeExportWarning(svgFallbackReport, OfficeDiagnosticCodes.SvgImageRasterFallback, source,
                                 "Word SVG image could not be drawn as vectors, so its stored raster fallback was exported. " + svgReason);
                         return true;

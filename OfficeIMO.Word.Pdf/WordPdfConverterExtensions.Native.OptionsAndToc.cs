@@ -1,11 +1,6 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
@@ -263,9 +258,11 @@ namespace OfficeIMO.Word.Pdf {
         private static IEnumerable<string?> EnumerateNativeDocumentFallbackText(
             WordDocument document,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
-            yield return document._document.InnerText;
-            yield return document._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes?.InnerText;
-            yield return document._wordprocessingDocument.MainDocumentPart?.EndnotesPart?.Endnotes?.InnerText;
+            yield return document.DocumentNode().InnerText;
+            OfficeXmlNode footnotes = document.FootnotesNode();
+            yield return footnotes.IsNone ? null : footnotes.InnerText;
+            OfficeXmlNode endnotes = document.EndnotesNode();
+            yield return endnotes.IsNone ? null : endnotes.InnerText;
 
             foreach ((int Level, string Marker) marker in listMarkers.Values) {
                 yield return marker.Marker;
@@ -313,7 +310,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordSection section in document.Sections) {
                 foreach (WordElement element in CollapseNativeParagraphElements(section.Elements)) {
                     if (element is WordCoverPage coverPage) {
-                        foreach (WordElement coverElement in GetNativeStructuredBlockElements(coverPage.Document, coverPage.SdtBlock)) {
+                        foreach (WordElement coverElement in GetNativeStructuredBlockElements(coverPage.Document, coverPage.SdtBlockNode())) {
                             RegisterNativeElementFonts(coverElement, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
                         }
 
@@ -322,7 +319,7 @@ namespace OfficeIMO.Word.Pdf {
 
                     // A table of contents drawn as stored uses its entries' own fonts.
                     if (element is WordTableOfContent tableOfContent && tableOfContent.ShowsStoredEntries) {
-                        foreach (WordElement entry in GetNativeStructuredBlockElements(tableOfContent.Document, tableOfContent.SdtBlock)) {
+                        foreach (WordElement entry in GetNativeStructuredBlockElements(tableOfContent.Document, tableOfContent.SdtBlockNode())) {
                             RegisterNativeElementFonts(entry, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
                         }
 
@@ -330,7 +327,7 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     if (element is WordStructuredDocumentTag structuredDocumentTag) {
-                        foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock)) {
+                        foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlockNode())) {
                             RegisterNativeElementFonts(structuredElement, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
                         }
 
@@ -363,7 +360,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            if (!headerFooter.ChildElements.Any()) {
+            if (!headerFooter.Node().HasChildren()) {
                 RegisterNativeElementFonts(CreateNativeImplicitRunningParagraph(headerFooter), pdfOptions,
                     registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
                 return;
@@ -374,9 +371,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             // Text-box paragraphs are laid out with their own fonts.
-            foreach (W.Paragraph source in headerFooter.ChildElements.SelectMany(element => element.Descendants<W.Paragraph>())
-                .Where(source => source.Ancestors<W.TextBoxContent>().Any())) {
-                RegisterNativeParagraphContentFonts(new WordParagraph(headerFooter.Document, source), NativeTableRunStyleDefaults.Empty,
+            foreach (OfficeXmlNode source in headerFooter.Node().Elements().SelectMany(element => element.Descendants(WordXml.W, "p"))
+                .Where(source => source.Parent.AncestorOrSelf(WordXml.W, "txbxContent").Exists)) {
+                RegisterNativeParagraphContentFonts(headerFooter.Document.ParagraphView(source), NativeTableRunStyleDefaults.Empty,
                     pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             }
         }
@@ -437,9 +434,10 @@ namespace OfficeIMO.Word.Pdf {
             bool allowSystemFontEmbedding,
             NativeFontMap nativeFontMap) {
             List<WordParagraph> runs = GetNativeRuns(paragraph, includeInlineContentControls: true);
-            W.RunFonts? markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
-            if (markFonts != null) {
+            OfficeXmlNode markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
+            if (markFonts.Exists) {
                 RegisterNativeFontCandidates(EnumerateNativeLatinFontFamilies(paragraph._document, markFonts),
+
                     pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             }
             if (runs.Count == 0) {

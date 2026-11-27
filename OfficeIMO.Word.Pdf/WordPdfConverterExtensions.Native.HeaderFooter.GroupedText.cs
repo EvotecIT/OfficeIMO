@@ -1,10 +1,7 @@
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     /// <summary>
@@ -18,15 +15,15 @@ public static partial class WordPdfConverterExtensions {
             return color;
         }
 
-        W.TextBoxContent? content = paragraph._paragraph?.Ancestors<W.TextBoxContent>().FirstOrDefault();
-        Wpg.WordprocessingGroup? group = content?.Ancestors<Wpg.WordprocessingGroup>().FirstOrDefault();
-        if (group == null || !content!.Ancestors().Any(parent => parent is W.Header or W.Footer)) {
+        OfficeXmlNode content = paragraph.Node().Ancestor(WordXml.W, "txbxContent");
+        OfficeXmlNode group = content.Ancestors().FirstOrDefault(ancestor => ancestor.Is(WordXml.Wpg, "wgp"));
+        if (group.IsNone || !content.Ancestors().Any(parent => parent.IsW("hdr") || parent.IsW("ftr"))) {
             return color;
         }
 
-        foreach (Wps.WordprocessingShape shape in group.Descendants<Wps.WordprocessingShape>()) {
-            string? fill = shape.GetFirstChild<Wps.ShapeProperties>()?.GetFirstChild<A.SolidFill>()?
-                .GetFirstChild<A.RgbColorModelHex>()?.Val?.Value;
+        foreach (OfficeXmlNode shape in group.DescendantElements(WordXml.Wps, "wsp")) {
+            string? fill = shape.Child(WordXml.Wps, "spPr").Child(WordXml.A, "solidFill")
+                .Child(WordXml.A, "srgbClr").Attr("val");
             if (ParseNativeColor(fill) is { } fillColor) {
                 var fillRgb = fillColor.ToNormalizedRgb();
                 if (fillRgb.R < 0.9D || fillRgb.G < 0.9D || fillRgb.B < 0.9D) return fillColor;

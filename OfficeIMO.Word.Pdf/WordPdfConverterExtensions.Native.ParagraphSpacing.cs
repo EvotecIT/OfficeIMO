@@ -1,8 +1,7 @@
-using DocumentFormat.OpenXml;
 using System.Globalization;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     // Line units and grid snapping inherit independently of the point-valued
@@ -22,25 +21,25 @@ public static partial class WordPdfConverterExtensions {
             SnapToGrid = SnapToGrid ?? inherited.SnapToGrid
         };
 
-        public NativeParagraphSpacing Merge(OpenXmlElement? properties) {
-            W.SpacingBetweenLines? spacing = properties?.GetFirstChild<W.SpacingBetweenLines>();
+        public NativeParagraphSpacing Merge(OfficeXmlNode properties) {
+            OfficeXmlNode spacing = properties.WChild("spacing");
             return new NativeParagraphSpacing {
-                BeforeLines = ReadLineUnits(spacing?.BeforeLines),
-                AfterLines = ReadLineUnits(spacing?.AfterLines),
-                BeforeAuto = spacing?.BeforeAutoSpacing?.Value,
-                AfterAuto = spacing?.AfterAutoSpacing?.Value,
-                SnapToGrid = ReadNativeOnOff(properties?.GetFirstChild<W.SnapToGrid>())
+                BeforeLines = ReadLineUnits(spacing.WAttr("beforeLines")),
+                AfterLines = ReadLineUnits(spacing.WAttr("afterLines")),
+                BeforeAuto = WordXml.ParseOnOff(spacing.WAttr("beforeAutospacing")),
+                AfterAuto = WordXml.ParseOnOff(spacing.WAttr("afterAutospacing")),
+                SnapToGrid = ReadNativeOnOff(properties.WChild("snapToGrid"))
             }.Inherit(this);
         }
 
-        private static int? ReadLineUnits(Int32Value? value) =>
-            int.TryParse(value?.InnerText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int units) && units >= 0 ? units : null;
+        private static int? ReadLineUnits(string? value) =>
+            int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int units) && units >= 0 ? units : null;
     }
 
     private static NativeParagraphSpacing ResolveNativeParagraphSpacing(WordParagraph paragraph,
         NativeParagraphStyleDefaults styles, NativeDocumentDefaults defaults, NativeTableStyleDefaults? table = null) =>
         styles.ParagraphSpacing.Inherit((table ?? NativeTableStyleDefaults.Empty).ParagraphSpacing.Inherit(defaults.ParagraphSpacing))
-            .Merge(paragraph._paragraph.ParagraphProperties);
+            .Merge(paragraph.Node().WChild("pPr"));
 
     private static (double? Before, double? After) ResolveNativeParagraphSpacingInLines(WordParagraph paragraph,
         NativeParagraphStyleDefaults styles, NativeDocumentDefaults defaults, NativeTableStyleDefaults? table = null) {
@@ -53,14 +52,13 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static double? GetNativeSectionLineGridPitch(WordParagraph paragraph, WordSection? sourceSection = null) {
-        W.DocGrid? grid = (sourceSection ?? ResolveNativeFrameSourceParagraph(paragraph).GetBodySection())?._sectionProperties.GetFirstChild<W.DocGrid>();
-        return grid?.Type?.Value != null && grid.Type.Value != W.DocGridValues.Default &&
-            grid.LinePitch?.Value is int pitch && pitch > 0 ? pitch / 20D : null;
+        OfficeXmlNode grid = (sourceSection ?? ResolveNativeFrameSourceParagraph(paragraph).GetBodySection())?.Node().WChild("docGrid") ?? default;
+        return grid.WAttr("type") is { } type && type != "default" &&
+            grid.WInt32("linePitch") is int pitch && pitch > 0 ? pitch / 20D : null;
     }
 
     private static bool RenderNativeDocumentStartSpacing(INativePdfFlow pdf, WordParagraph paragraph, double spacingBefore) {
-        if (spacingBefore <= 0D || !ReferenceEquals(paragraph._paragraph, paragraph._document
-            ._wordprocessingDocument.MainDocumentPart?.Document?.Body?.Descendants<W.Paragraph>().FirstOrDefault())) return false;
+        if (spacingBefore <= 0D || paragraph.Node() != paragraph._document.BodyNode().FirstDescendant(WordXml.W, "p")) return false;
         // Word spacing values can combine with the section line grid into an
         // effectively unbounded number of empty column frames. Reject such
         // geometry before the PDF writer begins advancing through them.

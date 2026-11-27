@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
@@ -12,9 +11,9 @@ namespace OfficeIMO.Word.Pdf {
             internal NativeStyleIndex ParagraphStyles { get; } = new();
             internal NativeStyleIndex CharacterStyles { get; } = new();
             internal NativeStyleIndex TableStyles { get; } = new();
-            internal Dictionary<string, IReadOnlyList<W.Style>> ParagraphChains { get; } = new(StringComparer.Ordinal);
-            internal Dictionary<string, IReadOnlyList<W.Style>> CharacterChains { get; } = new(StringComparer.Ordinal);
-            internal Dictionary<string, IReadOnlyList<W.Style>> TableChains { get; } = new(StringComparer.Ordinal);
+            internal Dictionary<string, IReadOnlyList<OfficeXmlNode>> ParagraphChains { get; } = new(StringComparer.Ordinal);
+            internal Dictionary<string, IReadOnlyList<OfficeXmlNode>> CharacterChains { get; } = new(StringComparer.Ordinal);
+            internal Dictionary<string, IReadOnlyList<OfficeXmlNode>> TableChains { get; } = new(StringComparer.Ordinal);
             internal Dictionary<string, NativeParagraphStyleDefaults> ParagraphDefaults { get; } = new(StringComparer.Ordinal);
             internal Dictionary<string, NativeCharacterStyleDefaults> CharacterDefaults { get; } = new(StringComparer.Ordinal);
             internal string? DefaultParagraphStyleId { get; }
@@ -107,12 +106,13 @@ namespace OfficeIMO.Word.Pdf {
 
             internal void Add(string styleId, WordStyleDefinitionsReader.StyleDefinition style) => _styles.Add(styleId, style);
 
-            internal bool TryGetValue(string styleId, out W.Style style) {
+
+            internal bool TryGetValue(string styleId, out OfficeXmlNode style) {
                 if (_styles.TryGetValue(styleId, out WordStyleDefinitionsReader.StyleDefinition? definition)) {
-                    style = definition.Element;
+                    style = definition.ElementNode();
                     return true;
                 }
-                style = null!;
+                style = default;
                 return false;
             }
         }

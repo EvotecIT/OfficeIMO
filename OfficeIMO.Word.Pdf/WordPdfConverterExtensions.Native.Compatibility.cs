@@ -1,14 +1,14 @@
 using System.Globalization;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf;
 
+
 public static partial class WordPdfConverterExtensions {
     private static bool AreNativeOpenTypeFeaturesEnabled(WordDocument? document) {
-        W.Settings? settings = document?._wordprocessingDocument?.MainDocumentPart?.DocumentSettingsPart?.Settings;
-        string? value = settings?.GetFirstChild<W.Compatibility>()?.Elements<W.CompatibilitySetting>()
-            .LastOrDefault(setting => setting.Name?.InnerText == "enableOpenTypeFeatures" &&
-                setting.Uri?.Value == "http://schemas.microsoft.com/office/word")?.Val?.Value;
+        OfficeXmlNode settings = document.SettingsNode();
+        string? value = settings.WChild("compat").WElements("compatSetting")
+            .LastOrDefault(setting => setting.WAttr("name") == "enableOpenTypeFeatures" &&
+                setting.WAttr("uri") == "http://schemas.microsoft.com/office/word").WAttr("val");
         if (value == "0" || value == "false" || value == "off") return false;
         if (value == "1" || value == "true" || value == "on") return true;
         return document != null && UsesModernNativeWordLayout(document);
@@ -34,9 +34,8 @@ public static partial class WordPdfConverterExtensions {
     /// </summary>
     private static bool UsesNativeWordPerfectLineHeight(WordDocument? document) =>
         document != null && !UsesModernNativeWordLayout(document) &&
-        document._wordprocessingDocument?.MainDocumentPart?.DocumentSettingsPart?.Settings?
-            .GetFirstChild<W.Compatibility>()?.GetFirstChild<W.SuppressTopSpacingWordPerfect>() is { } option &&
-        option.Val?.Value != false;
+        document.SettingsNode().WChild("compat").WChild("suppressTopSpacingWP") is { Exists: true } option &&
+        option.IsOn();
 
     private const double NativeWordPerfectLeading = 2D;
 
@@ -65,9 +64,9 @@ public static partial class WordPdfConverterExtensions {
     /// <summary>Resolves the effective Word layout mode while retaining stored compatibility flags.</summary>
     private static bool UsesModernNativeWordLayout(WordDocument document) {
         if (document.SourceFormat == WordFileFormat.Doc) return false;
-        W.Settings? settings = document._wordprocessingDocument?.MainDocumentPart?.DocumentSettingsPart?.Settings;
-        string? modeText = settings?.GetFirstChild<W.Compatibility>()?.Elements<W.CompatibilitySetting>()
-            .LastOrDefault(setting => setting.Name?.Value == W.CompatSettingNameValues.CompatibilityMode)?.Val?.Value;
+        OfficeXmlNode settings = document.SettingsNode();
+        string? modeText = settings.WChild("compat").WElements("compatSetting")
+            .LastOrDefault(setting => setting.WAttr("name") == "compatibilityMode").WAttr("val");
         return int.TryParse(modeText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int mode) && mode >= 15;
     }
 }

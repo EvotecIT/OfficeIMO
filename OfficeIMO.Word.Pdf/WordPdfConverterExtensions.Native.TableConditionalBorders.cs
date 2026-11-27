@@ -1,7 +1,7 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static void ApplyNativeTableConditionalBorders(WordTable table, TableLayout layout, NativeTableStyleDefaults tableStyleDefaults, PdfCore.PdfTableStyle style) {
             if (layout.Rows.Count == 0) {
@@ -145,17 +145,15 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static PdfCore.PdfCellBorder? CreateNativeTableConditionalCellBorder(W.TableCellBorders? borders) {
-            if (borders == null) {
+        private static PdfCore.PdfCellBorder? CreateNativeTableConditionalCellBorder(OfficeXmlNode borders) {
+            if (borders.IsNone) {
                 return null;
             }
 
-            W.BorderType? top = borders.GetFirstChild<W.TopBorder>();
-            W.BorderType? right = borders.GetFirstChild<W.RightBorder>();
-            right ??= borders.GetFirstChild<W.EndBorder>();
-            W.BorderType? bottom = borders.GetFirstChild<W.BottomBorder>();
-            W.BorderType? left = borders.GetFirstChild<W.LeftBorder>();
-            left ??= borders.GetFirstChild<W.StartBorder>();
+            OfficeXmlNode top = borders.WChild("top");
+            OfficeXmlNode right = FirstNativeBorderSide(borders, "right", "end");
+            OfficeXmlNode bottom = borders.WChild("bottom");
+            OfficeXmlNode left = FirstNativeBorderSide(borders, "left", "start");
             bool hasTop = HasNativeConditionalBorderOverride(top);
             bool hasRight = HasNativeConditionalBorderOverride(right);
             bool hasBottom = HasNativeConditionalBorderOverride(bottom);
@@ -178,13 +176,19 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static bool HasNativeConditionalBorderOverride(W.BorderType? border) =>
-            HasNativeBorder(border?.Val?.Value) ||
-            border?.Val?.Value == W.BorderValues.Nil ||
-            border?.Val?.Value == W.BorderValues.None;
+        /// <summary>The first border side present under one of its two names (physical, then logical).</summary>
+        private static OfficeXmlNode FirstNativeBorderSide(OfficeXmlNode borders, string localName, string alternateLocalName) {
+            OfficeXmlNode side = borders.WChild(localName);
+            return side.Exists ? side : borders.WChild(alternateLocalName);
+        }
 
-        private static PdfCore.PdfCellBorderSide? CreateNativeConditionalBorderSide(W.BorderType? border) {
-            if (border?.Val?.Value == W.BorderValues.Nil || border?.Val?.Value == W.BorderValues.None) {
+        private static bool HasNativeConditionalBorderOverride(OfficeXmlNode border) =>
+            HasNativeBorder(border.WVal()) ||
+            border.WVal() == "nil" ||
+            border.WVal() == "none";
+
+        private static PdfCore.PdfCellBorderSide? CreateNativeConditionalBorderSide(OfficeXmlNode border) {
+            if (border.WVal() == "nil" || border.WVal() == "none") {
                 return new PdfCore.PdfCellBorderSide { Color = null, Width = global::OfficeIMO.OfficeLength.Points(0D) };
             }
 
