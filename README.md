@@ -86,7 +86,7 @@ using (var deck = PowerPointDocument.Create("Sales.pptx")) {
 record Sale(string Region, decimal Revenue, double Growth);
 ```
 <!-- /powerforge:code -->
-Every format follows the same shape: `{Format}Document.Create`, `Load` and `Save`; `AddParagraph`, `AddTable` and `AddChart` return what they created; `SaveAsPdf` and the other `SaveAs` methods write another format and return the conversion report. `OfficeConverter.Convert` converts files and whole folders, with resumable batches; the [OfficeIMO package README](OfficeIMO/README.md) shows how. Themes, colors and lengths are shared by every format and described in [OfficeIMO.Core](OfficeIMO.Core/README.md).
+Word, Excel and PowerPoint share one shape: `{Format}Document.Create`, `Load` and `Save`; `AddParagraph`, `AddTable` and `AddChart` return what they created; `SaveAsPdf` and the other `SaveAs` methods write another format and return the conversion report. The other engines keep the same `Create`, `Load` and `Save` lifecycle with content APIs that fit their format, such as `OneNoteSection` for OneNote. `OfficeConverter.Convert` converts files and whole folders, with resumable batches; the [OfficeIMO package README](OfficeIMO/README.md) shows how. Themes, colors and lengths are shared by every format and described in [OfficeIMO.Core](OfficeIMO.Core/README.md).
 
 ## Formats
 
