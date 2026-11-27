@@ -82,7 +82,10 @@ public abstract class EntityScheme {
     public abstract string DisplayName { get; }       // "PESEL"
     public virtual string? Country => null;           // ISO 3166-1 alpha-2
     public virtual string? Issuer => null;            // "Ministry of Digital Affairs"
-    public virtual Uri? Specification => null;        // primary source
+    public virtual Uri? Specification => null;        // primary source for the format
+    public virtual EntityCheckProvenance CheckProvenance => EntityCheckProvenance.None;
+                                                      // IssuerPublished, CommunityDocumented, None
+    public virtual Uri? CheckSource => null;          // where the check algorithm is documented
     public virtual int MinLength => 1;                // normalized length bounds
     public virtual int MaxLength => 64;
     public virtual EntityCheckKind Check => EntityCheckKind.None;  // Mod11, Mod97_10, Luhn, ...
@@ -99,6 +102,7 @@ public abstract class EntityScheme {
 - **Validate** accepts the forms people write: surrounding whitespace, the scheme's own separators (spaces, hyphens, dots, non-breaking spaces), lower case where the scheme is case-insensitive, and an optional country prefix where one is customary (`PL` before a NIP). It returns a result, never throws for bad input.
 - **Normalize** returns the canonical compact form: digits and upper-case letters only, with the prefix the scheme defines (`PL1234563218` for a Polish VAT number, `1234563218` for a NIP).
 - **Format** renders a normalized value: `Compact`, `Display` (the issuer's printed grouping, such as `123-456-32-18` or `PL61 1090 1014 0000 0712 1981 2874`) and `Electronic` where it differs.
+- **Check provenance** says where a check algorithm comes from. `IssuerPublished` means the issuer (or a ministry publishing the rules member states agreed to disclose) states it. `CommunityDocumented` means no issuer publication exists and the algorithm is taken from a documented description that matches real issued numbers; the scheme cites it in `CheckSource`. Results and matches carry the provenance, so a host can treat a community-documented check as weaker or ignore it.
 - **Decode** is opt-in and returns only what the specification encodes: PESEL birth date and sex, IBAN country and BBAN, card issuer category from the IIN's first digit, REGON 14's parent REGON 9. It never guesses.
 
 ```csharp
@@ -110,6 +114,7 @@ public sealed class EntityValidationResult {
     public string? Normalized { get; }                 // set when the format parsed, even if the check failed
     public EntityScheme Scheme { get; }
     public EntityCheckOutcome CheckDigit { get; }      // Passed, Failed, NotDefined
+    public EntityCheckProvenance CheckProvenance { get; }  // copied from the scheme
 }
 
 public sealed class EntityDetails {
@@ -153,6 +158,7 @@ public sealed class EntityMatch {
     public EntityKind Kind { get; }
     public EntityScheme Scheme { get; }
     public string Normalized { get; }                 // sensitive
+    public EntityCheckProvenance CheckProvenance { get; }
     public double Confidence { get; }                 // 0..1
     public EntityEvidence Evidence { get; }           // flags
     public string? ContextKeyword { get; }            // "NIP", "nr rachunku"
@@ -175,7 +181,8 @@ public enum EntityEvidence {
     PlausibleDate = 1 << 6,         // PESEL date in the past and within 130 years
     KnownIssuerRange = 1 << 7,      // card IIN, EIN prefix
     AmbiguousReading = 1 << 8,      // another scheme also validates this span
-    StructuredSource = 1 << 9       // the value came from a typed field, not prose
+    StructuredSource = 1 << 9,      // the value came from a typed field, not prose
+    CommunityDocumentedCheck = 1 << 10  // the check passed, but its algorithm is not issuer-published
 }
 ```
 
@@ -205,9 +212,12 @@ Confidence is a number from 0 to 1 built from the scheme's base strength and the
 | --- | --- | --- |
 | Strong check over a distinctive shape | IBAN (ISO 7064 MOD 97-10 plus country length), LEI, ISIN, EU VAT with country prefix and check | 0.85 |
 | Distinctive shape, no check | Email, URL, UK NINO pattern with valid prefix and suffix | 0.80 |
-| Country prefix and VIES format, no published check | EU VAT for BG, CY, CZ, EL, ES (companies), FR, HR, LV, MT, RO | 0.60 |
-| Check digit over a plain digit run | PESEL, NIP, card number (Luhn) with a payment-card major industry identifier, EU VAT digits without prefix | 0.40 |
-| Shape only, no check | REGON, KRS, SSN, EIN, BIC, UK company number, PL identity card, PL passport | 0.20 |
+| Country prefix and VIES format, no documented check | an EU VAT variant for which no check is documented at all | 0.60 |
+| Check digit over a plain digit run | PESEL, NIP, REGON, card number (Luhn) with a payment-card major industry identifier, EU VAT digits without prefix | 0.40 |
+| Check digit over a short letter-digit shape | PL identity card, PL passport | 0.30 |
+| Shape only, no check | KRS, SSN, EIN, BIC, UK company number | 0.20 |
+
+Community-documented checks use the same base as issuer-published ones; they are no weaker mathematically. The difference is provenance, which stays visible in `CheckProvenance` and the `CommunityDocumentedCheck` evidence flag.
 
 Adjustments, applied in order and clamped to [0, 1]:
 
@@ -327,7 +337,7 @@ There is no shared validation code yet. What exists is small and moves into the 
 
 | Today | Where | Stage 1 action |
 | --- | --- | --- |
-| IBAN normalization, SWIFT IBAN Registry BBAN structures and MOD 97-10 (`InvoiceBankAccountIdentity`, internal) | `OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs`, source-linked into `OfficeIMO.Invoicing` and `OfficeIMO.Pdf` | Move to `OfficeIMO.SharedSource/Entities/IbanStructure.cs`; the public `FinancialSchemes.Iban` in Core is built on it. `OfficeIMO.Pdf` (which already references Core) switches to the public scheme and drops the link. `OfficeIMO.Invoicing` has no Core reference, so it keeps linking the same single file until it adopts the engine (see [open decisions](#open-decisions)). |
+| IBAN normalization, SWIFT IBAN Registry BBAN structures and MOD 97-10 (`InvoiceBankAccountIdentity`, internal) | `OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs`, source-linked into `OfficeIMO.Invoicing` and `OfficeIMO.Pdf` | Move into Core as the implementation of the public `FinancialSchemes.Iban` and delete the shared source file. `OfficeIMO.Invoicing` gains a reference to `OfficeIMO.Core` (any package may reference Core); both Invoicing and Pdf call the public scheme. |
 | NIP shape check without checksum (regular expression), `PL` prefix stripping | `OfficeIMO.Invoicing/Poland/Fa3InvoiceWriter.MappingChecks.cs`, `Fa3InvoiceWriter.Fields.cs`, `OfficeIMO.Invoicing.KSeF/KsefProtocol.cs` | Stage 2: call `PolandSchemes.Nip` for NIP and EU VAT values on FA(3) parties; keep the schema regular expression only where the schema itself defines it. |
 | BIC shape check (8 or 11 characters) | `Fa3InvoiceWriter.MappingChecks.cs` | Stage 2: `FinancialSchemes.Bic`, which also checks the ISO 3166 country part. |
 | Tax registration presence check only | `OfficeIMO.Invoicing.Validation/InvoiceModelValidator.TaxRegistrations.cs` | Stage 2: optional format and check-digit validation of `InvoiceTaxRegistration` with `VatId`/`TaxId` schemes, reported as warnings because invoices can legitimately carry foreign identifiers outside the catalog. |
@@ -416,12 +426,14 @@ An inspection panel listing entity findings per document with jump-to-location, 
 
 ## Sources and test vectors
 
-Each scheme records its primary source in `Specification`, and its tests use the issuer's published example values where the issuer publishes any. Where an issuer publishes the algorithm but no example, tests compute vectors from the published weights and record the derivation next to the test. Third-party libraries, encyclopedias and blog posts are never a source for an algorithm or a vector.
+Each scheme records its primary source in `Specification`, and its tests use the issuer's published example values where the issuer publishes any. Where an issuer publishes the algorithm but no example, tests compute vectors from the published weights and record the derivation next to the test.
+
+Where no issuer publication exists, a community-documented algorithm may be used. The scheme then sets `CheckProvenance = CommunityDocumented`, cites the description in `CheckSource`, and its tests include at least one value from a public issuer artifact (a specimen document, a register extract or the issuer's own sample) that the algorithm accepts. The description is implemented from its prose; code from other projects is never copied or ported.
 
 Two findings shape stage 1:
 
-- The European Commission does not publish national VAT check algorithms ([VIES FAQ](https://ec.europa.eu/taxation_customs/vies/#/faq), question 11). The Austrian Federal Ministry of Finance publishes the construction rules that member states agreed to disclose, with a worked example for each ([BMF, *UID-Konstruktionsregeln*, November 2020](https://bmf.gv.at/dam/jcr:d6794f8f-d321-43df-9840-1a841f9bf5dc/BMF_UID_Konstruktionsregeln_Stand_November%202020.pdf)). Ten states did not agree (BG, CY, CZ, EL, ES, FR, HR, LV, MT, RO); for them the scheme checks the VIES format only and reports `CheckDigit = NotDefined`.
-- Several Polish identifiers have a legal basis for their structure but no published check algorithm: REGON (structure in the REGON regulation, weights not published), KRS, identity card and passport numbers. Stage 1 validates their format only. They are added to checks when an issuer publication is found, not from libraries.
+- The European Commission does not publish national VAT check algorithms ([VIES FAQ](https://ec.europa.eu/taxation_customs/vies/#/faq), question 11). The Austrian Federal Ministry of Finance publishes the construction rules that member states agreed to disclose, with a worked example for each ([BMF, *UID-Konstruktionsregeln*, November 2020](https://bmf.gv.at/dam/jcr:d6794f8f-d321-43df-9840-1a841f9bf5dc/BMF_UID_Konstruktionsregeln_Stand_November%202020.pdf)). Ten states did not agree (BG, CY, CZ, EL, ES, FR, HR, LV, MT, RO); for them the scheme uses a community-documented check where one exists (`CheckProvenance = CommunityDocumented`) and otherwise checks the VIES format only (`CheckDigit = NotDefined`).
+- Several Polish identifiers have a legal basis for their structure but no published check algorithm: REGON (structure in the REGON regulation, weights not published), KRS, identity card and passport numbers. Stage 1 uses community-documented checks for REGON (9 and 14 digits), the identity card and the passport, marked as such; KRS has no check digit and is validated by length. An issuer publication, if one turns up, replaces the community source and flips the provenance.
 
 | Scheme | Primary source | Defines | Issuer example |
 | --- | --- | --- | --- |
@@ -447,23 +459,26 @@ Two findings shape stage 1:
 | Email | [RFC 5321](https://www.rfc-editor.org/rfc/rfc5321) §4.5.3.1, RFC 5322, RFC 6531, RFC 5890/5891, [UTS #46](https://www.unicode.org/reports/tr46/) | Local part ≤ 64 octets, domain ≤ 255, path ≤ 256; SMTPUTF8; IDNA mapping | [IdnaTestV2.txt](https://www.unicode.org/Public/idna/latest/IdnaTestV2.txt) |
 | URL | [WHATWG URL Standard](https://url.spec.whatwg.org/), [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) | Parsing and serialization | web-platform-tests `urltestdata.json` |
 
-ISO standards are paid and are cited by number only; every algorithm above is also stated in a free issuer publication in the same row.
+ISO standards are paid and are cited by number only; every issuer-published algorithm above is also stated in a free publication in the same row. Community-documented checks are listed in the brief with the source each scheme must cite.
 
 ## Delivery stages
 
-1. **Stage 1, engine in Core:** kinds, scheme base, catalog and builder, tokenizer, finder with scoring and overlap resolution, masker, and the schemes listed in the [brief](#appendix-a-stage-1-implementation-brief). Consolidate the IBAN helper. No consumer changes beyond `OfficeIMO.Pdf` switching to the public IBAN scheme.
+1. **Stage 1, engine in Core:** kinds, scheme base, catalog and builder, tokenizer, finder with scoring and overlap resolution, masker, and the schemes listed in the [brief](#appendix-a-stage-1-implementation-brief). Move the IBAN helper into the engine; `OfficeIMO.Invoicing` references Core, and Invoicing and Pdf switch to the public IBAN scheme. No other consumer changes.
 2. **Stage 2, first consumers:** PDF redaction entity criterion and workflow rule kind; PSWriteOffice `Test-OfficeEntity`, `Find-OfficeEntity`, `Get-OfficeEntityScheme` and `-Entity` on the PDF redaction cmdlets; invoicing and email adoption; CLI and MCP operations.
 3. **Stage 3, documents and data:** cross-format inspection report, Reader processor with masking, AI request masking, CSV and Excel column profiling, validation, normalization and masking.
 4. **Stage 4, `OfficeIMO.Entities.Data`:** phones from libphonenumber metadata, then postal address formats (invoices, mail merge), then ISO 20275 legal forms.
 5. **Stage 5, more countries:** national identifiers for further EU states (DE Steuer-ID, FR NIR, ES DNI/NIE, IT codice fiscale, NL BSN, ...) as country packs, each with its own primary sources and keywords. Studio panels follow the engine stages they present.
 
+## Decisions
+
+- **Any package may reference `OfficeIMO.Core`.** `OfficeIMO.Invoicing` references Core and uses the public schemes; there is no linked source copy of entity code anywhere.
+- **Community-documented checks are allowed** where no issuer publication exists, with the provenance of every check (`IssuerPublished` or `CommunityDocumented`) visible on schemes, validation results and matches.
+
 ## Open decisions
 
-- **Invoicing and Core.** `OfficeIMO.Invoicing` has no reference to Core today. Either it references Core (simplest; `OfficeIMO.Invoicing.Pdf` already does) and uses the public schemes, or it keeps linking the shared IBAN source and gains more linked files for NIP and VAT. Recommendation: reference Core at stage 2.
 - **SWIFT IBAN Registry data.** The existing BBAN structure table is transcribed from the SWIFT IBAN Registry. Check whether its terms require an entry in `Build/third-party-material.json` when it moves into Core; add one if they do.
 - **Payment card ranges.** Card brand detection by IIN range needs a maintained range table; stage 1 uses only the first digit (ISO/IEC 7812 major industry identifier) and Luhn. A brand table is a later, sourced addition.
-- **Unpublished Polish check digits.** REGON check weights, the identity card's in-number check digit and the KRS length are widely used but not published by GUS, MSWiA or the Ministry of Justice in any document found. Stage 1 keeps them format-only. If GUS or MSWiA documentation (for example the BIR service specification) states them, they can be added with that citation; otherwise they stay format-only.
-- **EU VAT for the ten undisclosed states.** Format-only validation means more false positives for FR, ES companies, EL and the others. Accepting them at 0.60 only with the country prefix keeps prose noise down; a stricter default (require context) is an option if redaction tests show noise.
+- **Issuer sources for community-documented checks.** REGON weights, the identity card and passport check digits, and the checks for the ten EU states that did not disclose theirs ship as community-documented. If GUS, MSWiA or a national tax authority publishes them (for example in the GUS BIR service specification), the citation and provenance change; behaviour should not.
 
 ## Appendix A: stage 1 implementation brief
 
@@ -477,7 +492,7 @@ Add `OfficeIMO.Entities` to `OfficeIMO.Core`: an extensible model and engine to 
 
 - Warnings are errors, nullable is on, follow `.editorconfig`. Targets are Core's: `netstandard2.0`, `net8.0`, `net10.0`, plus `net472` on Windows. The public API is string-based; span-based internals under `#if NET8_0_OR_GREATER` are fine.
 - No new package references. No reflection, no `Regex` in recognizers or schemes, no runtime code generation, no static constructors that do heavy work. Must stay trim- and NativeAOT-safe (Core is used by the AOT smoke projects).
-- No code copied, ported or adapted from other projects (python-stdnum, libphonenumber, Presidio, OneContact or any other). Implement every algorithm from the primary source cited in the [sources table](#sources-and-test-vectors) and put the source URL in the scheme's `Specification` and in an XML doc comment.
+- No code copied, ported or adapted from other projects (python-stdnum, libphonenumber, Presidio, OneContact or any other). Implement every algorithm from the source cited in the [sources table](#sources-and-test-vectors) or, for community-documented checks, from a public prose description that you cite in `CheckSource` and in an XML doc comment. Set `CheckProvenance` on every scheme that has a check.
 - Never put input values into `ToString()`, exception messages or diagnostics.
 - Update Core's public API tracking files the way recent Core API additions did.
 - Tests: apply the test-audit authoring gate. Test contracts (validation status, normalized output, scoring thresholds, overlap outcomes, masking output), not implementation details. Use issuer-published examples where they exist; otherwise compute vectors from the published weights and add a one-line comment with the derivation. No timing or allocation assertions outside `[Trait("Category", "Performance")]`.
@@ -488,7 +503,7 @@ Add `OfficeIMO.Entities` to `OfficeIMO.Core`: an extensible model and engine to 
 OfficeIMO.Core/Entities/
   EntityKind.cs                      readonly struct, well-known values, case-insensitive equality
   EntityScheme.cs                    abstract base (see design "Schemes"), Contains relations, MaskPartial
-  EntityValidationResult.cs, EntityValidationStatus.cs, EntityCheckOutcome.cs, EntityCheckKind.cs
+  EntityValidationResult.cs, EntityValidationStatus.cs, EntityCheckOutcome.cs, EntityCheckKind.cs, EntityCheckProvenance.cs
   EntityDetails.cs, EntitySex.cs, EntitySensitivity.cs, EntityFormatStyle.cs
   EntityCatalog.cs, EntityCatalogBuilder.cs   immutable catalog; Default = every pack below
   EntityFinder.cs, EntityFinderOptions.cs, EntityFindResult.cs, EntityOverlapPolicy.cs
@@ -504,7 +519,7 @@ OfficeIMO.Core/Entities/
   EuropeanUnion/EuVatSchemes.cs + one file per member state, EuVatRecognizer.cs, EuVatKeywords.cs
   UnitedKingdom/..., UnitedStates/..., Financial/..., Internet/...  same layout
   EntityCatalogBuilderExtensions.cs  AddPoland, AddEuVat, AddUnitedKingdom, AddUnitedStates, AddFinancial, AddInternet
-OfficeIMO.SharedSource/Entities/IbanStructure.cs   moved from SharedSource/Invoicing/InvoiceBankAccountIdentity.cs
+  Financial/IbanStructure.cs         internal; moved from SharedSource/Invoicing/InvoiceBankAccountIdentity.cs, which is deleted
 OfficeIMO.Entities.Tests/          new xUnit project referencing only OfficeIMO.Core (net8.0, net10.0, net472 on Windows); add to OfficeIMO.slnx and OfficeIMO.Core.slnf
 ```
 
@@ -516,11 +531,11 @@ Each scheme: `Id`, `Kind`, `Country`, `DisplayName`, `Issuer`, `Specification`, 
 | --- | --- | --- | --- | --- | --- |
 | `PL.PESEL` | NationalId | 11 digits | Weights 1-3-7-9-1-3-7-9-1-3, check = (10 − sum mod 10) mod 10; date must exist with month offsets +80/+0/+20 only (+40/+60 → `UnsupportedVariant`) | check over digit run | `Decode`: birth date, sex (10th digit even = female). Future date or > 130 years old: valid but no `PlausibleDate`. |
 | `PL.NIP` | TaxId | 10 digits | Weights 6-5-7-2-3-4-5-6-7, sum mod 11 = check; remainder 10 invalid. Accept optional `PL` prefix and groupings 3-3-2-2, 3-2-2-3 | check over digit run | `Display` = `123-456-32-18`. Issuer example 5260001246. |
-| `PL.REGON` | CompanyId | 9 or 14 digits | Format only (weights not published by GUS); `CheckDigit = NotDefined` | shape only | `Decode` for 14 digits: parent REGON 9 in `Properties["parent"]`; `Contains` REGON 9. |
+| `PL.REGON` | CompanyId | 9 or 14 digits | Community-documented: 9 digits weights 8-9-2-3-4-5-6-7, 14 digits weights 2-4-8-5-0-9-7-3-6-1-2-4-8; sum mod 11, remainder 10 gives 0. A REGON 14 must also have a valid REGON 9 prefix | check over digit run | `Decode` for 14 digits: parent REGON 9 in `Properties["parent"]`; `Contains` REGON 9. |
 | `PL.KRS` | CompanyId | 10 digits | Format only, left-pad shorter digit runs only when labelled | shape only | Context or label required to be reported. |
-| `PL.IDCARD` | IdentityDocument | 3 letters + 6 digits | Format only | shape only | Context or label required. |
-| `PL.PASSPORT` | IdentityDocument | 2 letters + 7 digits | Format only | shape only | Context or label required. |
-| `EU.VAT.{CC}` | VatId | VIES prefix + national part | VIES format for all 27 + XI; check rules from the BMF document for AT, BE, DE, DK, EE, FI, HU, IE, IT, LT, LU, NL, PL, PT, SE, SI, SK, XI; ES individuals via the NIF/NIE letter rule; others `NotDefined` | strong check with prefix; prefix without published check 0.60 | One recognizer for all. Country = ISO code (EL → GR, XI → GB). EU.VAT.PL `Contains` PL.NIP. Use each issuer example as a test. |
+| `PL.IDCARD` | IdentityDocument | 3 letters + 6 digits | Community-documented: letters A=10..Z=35, weights 7-3-1-9-7-3-1-7-3 over all nine characters (the first digit is the check digit), sum mod 10 = 0 | short letter-digit check (0.30) | Context or label required. The MSWiA specimen `ABA300000` must validate. |
+| `PL.PASSPORT` | IdentityDocument | 2 letters + 7 digits | Community-documented: letters A=10..Z=35, weights 7-3-9-1-7-3-1-7-3 over all nine characters (the first digit is the check digit), sum mod 10 = 0 | short letter-digit check (0.30) | Context or label required. Test against a published specimen number. |
+| `EU.VAT.{CC}` | VatId | VIES prefix + national part | VIES format for all 27 + XI; check rules from the BMF document for AT, BE, DE, DK, EE, FI, HU, IE, IT, LT, LU, NL, PL, PT, SE, SI, SK, XI; ES individuals via the NIF/NIE letter rule; community-documented checks for BG, CY, CZ, EL, ES companies, FR, HR, LV, MT, RO, each citing its source; `NotDefined` only where none is documented | strong check with prefix; prefix without any check 0.60 | One recognizer for all. Country = ISO code (EL → GR, XI → GB). EU.VAT.PL `Contains` PL.NIP. Use each issuer example as a test. |
 | `GB.VAT` | VatId | `GB` + 9 or 12 digits, or `GBGD`/`GBHA` + 3 | Weights 8..2 plus last two digits; valid when sum mod 97 = 0 or (sum + 55) mod 97 = 0; excluded ranges per BMF; GD 000-499, HA 500-999 | strong check with prefix | Shares rules with EU.VAT.XI. Example 434031494. |
 | `GB.NINO` | NationalId | 2 letters + 6 digits + A-D | HMRC NIM39110 letter rules and excluded prefixes; suffix optional on input, normalized without spaces | distinctive shape | HMRC's specimen `QQ 12 34 56 A` fails the letter rule (Q is never used), so it is rejected. |
 | `GB.COMPANY` | CompanyId | 8 characters | Digits, or a listed 2-letter prefix + 6 digits | shape only | Context or label required. |
@@ -553,9 +568,10 @@ Acceptance tests that must exist (values below are computed from the published w
 | `NIP 123-456-32-18` | PL.NIP, confidence ≥ 0.80, `IssuerFormatting` set |
 | `VAT: PL1234563218` | EU.VAT.PL as the match, PL.NIP in `Contained` |
 | cell `1234563218` with label `NIP` | PL.NIP ≥ 0.80 |
-| `REGON 123456785` | PL.REGON (9), `CheckDigit = NotDefined`, confidence 0.60 from the keyword |
+| `REGON 123456785` | PL.REGON (9), `CheckProvenance = CommunityDocumented`, confidence 0.80 from the keyword; `123456784` fails |
 | `NIP 5260001246`, `ATU10223006`, `DE111111125`, `GB434031494`, `BE0776091951` | each valid with its issuer example |
-| `FR40303265045` | EU.VAT.FR at 0.60, `CheckDigit = NotDefined` |
+| `FR40303265045` | EU.VAT.FR valid through the community-documented key (12 + 3 × (SIREN mod 97)) mod 97, `CheckProvenance = CommunityDocumented`; `FR41303265045` fails |
+| `NIP 5260001246` | `CheckProvenance = IssuerPublished` |
 | `ES12345678Z` | EU.VAT.ES valid through the NIF letter rule |
 | `IBAN PL61 1090 1014 0000 0712 1981 2874` | IBAN, normalized `PL61109010140000071219812874`, `Display` round-trips to the grouped form, `MaskPartial` = `PL61 •••• •••• •••• •••• •••• 2874` |
 | `GB82 WEST 1234 5698 7654 32`, `DE89 3704 0044 0532 0130 00` | IBAN valid (SWIFT registry examples) |
@@ -571,9 +587,9 @@ Masking tests: `KindLabel`, `Fixed`, `Partial` per scheme, `Pseudonym` stable fo
 
 ### Consolidation in the same PR
 
-- Move `OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs` to `OfficeIMO.SharedSource/Entities/IbanStructure.cs` (internal, namespace `OfficeIMO.Internal.Entities`), link it into Core, and build `FinancialSchemes.Iban` on it.
-- Switch `OfficeIMO.Pdf` callers (`PdfCiiDocumentHeaderInspector.PaymentAccounts.cs`, `PdfComplianceAnalyzer.ElectronicInvoice.PaymentAccounts.cs`) to `FinancialSchemes.Iban.IsValid` and remove Pdf's link to the shared file.
-- Keep `OfficeIMO.Invoicing` linking the moved file under its new path (Invoicing has no Core reference); its behaviour must not change. Run the Invoicing and Pdf test projects.
+- Move `OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs` into Core as `Entities/Financial/IbanStructure.cs` (internal) and build `FinancialSchemes.Iban` on it. Delete the shared source file and both `Compile Include` links.
+- Add a `ProjectReference` to `OfficeIMO.Core` in `OfficeIMO.Invoicing.csproj`.
+- Switch every caller to `FinancialSchemes.Iban.IsValid`: in Invoicing `Poland/Fa3InvoiceWriter.MappingChecks.cs`, `Poland/Fa3InvoiceReader.Fields.cs`, `Xml/InvoiceSerializer.cs`, `Xml/InvoiceParser.CiiParties.cs`, `Xml/InvoiceParser.UblParties.cs`; in Pdf `PdfCiiDocumentHeaderInspector.PaymentAccounts.cs` and `PdfComplianceAnalyzer.ElectronicInvoice.PaymentAccounts.cs`. Behaviour must not change; run the Invoicing and Pdf test projects.
 
 ### Done means
 
