@@ -138,7 +138,7 @@ internal static class LedgerOutput {
     }
 
     private static readonly string[] DecisionCodes = [
-        "name-collision", "generic-set", "returns-other", "bare-set", "use-prefix", "static-set", "set-returns-copy", "with-mutates", "struct-property", "public-field" ];
+        "name-collision", "generic-set", "getter-wraps", "returns-other", "bare-set", "use-prefix", "static-set", "set-returns-copy", "with-mutates", "struct-property", "public-field" ];
 
     private static string DecisionCode(LedgerRow row) =>
         (row.Flags ?? []).FirstOrDefault(flag => DecisionCodes.Contains(flag)) ?? (row.Flags ?? []).FirstOrDefault(flag => !flag.StartsWith("struct-", StringComparison.Ordinal) && flag is not ("void-setter" or "no-property" or "interface-member" or "multi-value")) ?? "other";

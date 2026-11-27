@@ -64,6 +64,10 @@ internal sealed class SourceLocationIndex {
         return matches.Select(entry => entry.Syntax).ToArray();
     }
 
+    /// <summary>The simple parameter types of every source constructor of a type, whatever its accessibility.</summary>
+    internal IReadOnlyList<string[]> ConstructorParameters(INamedTypeSymbol type) =>
+        _types.TryGetValue(TypeId(type), out var entries) ? entries.Where(entry => entry.Name == ".ctor").Select(entry => entry.Parameters).ToArray() : [];
+
     private static string TypeId(INamedTypeSymbol type) => type.GetDocumentationCommentId() ?? type.ToDisplayString();
 
     private static string TypeId(BaseTypeDeclarationSyntax type) {

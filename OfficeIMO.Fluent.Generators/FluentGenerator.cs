@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
 namespace OfficeIMO.Fluent.Generators {
@@ -73,7 +74,7 @@ namespace OfficeIMO.Fluent.Generators {
                     continue;
                 }
                 if (settable) writer.Setter(name, property, diagnostics);
-                if (IsOptionObject(property.Type) && property.GetMethod?.DeclaredAccessibility == Accessibility.Public && type.TypeKind != TypeKind.Struct && !GetterReturnsCopy(property))
+                if (IsOptionObject(property.Type) && property.GetMethod?.DeclaredAccessibility == Accessibility.Public && type.TypeKind != TypeKind.Struct && !GetterReturnsCopy(property, compilation))
                     writer.Configure(name, property, settable, diagnostics);
             }
             if (delegates) writer.ConfigureSelf(diagnostics);
@@ -88,24 +89,65 @@ namespace OfficeIMO.Fluent.Generators {
             return original;
         }
 
-        /// <summary>A getter that returns a new instance or a copy cannot be configured in place: the callback would edit a throwaway object.</summary>
-        private static bool GetterReturnsCopy(IPropertySymbol property) {
+        /// <summary>
+        /// A getter that returns a copy or a detached new instance cannot be configured in place: the callback would edit a
+        /// throwaway object. A new wrapper built over the receiver or its instance state (<c>new Margins(this)</c>,
+        /// <c>new Header(_options)</c>) is a live view and stays configurable; one built from a value of its own type is a
+        /// copy constructor.
+        /// </summary>
+        private static bool GetterReturnsCopy(IPropertySymbol property, Compilation compilation) {
             foreach (var reference in property.DeclaringSyntaxReferences) {
-                if (reference.GetSyntax() is not Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax declaration) continue;
+                if (reference.GetSyntax() is not PropertyDeclarationSyntax declaration) continue;
                 var getter = declaration.AccessorList?.Accessors.FirstOrDefault(a => a.Keyword.ValueText == "get");
-                var body = (SyntaxNode?)declaration.ExpressionBody ?? (SyntaxNode?)getter?.ExpressionBody ?? getter?.Body;
-                if (body == null) continue;
-                var returned = body is Microsoft.CodeAnalysis.CSharp.Syntax.ArrowExpressionClauseSyntax arrow
-                    ? new[] { arrow.Expression }
-                    : body.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ReturnStatementSyntax>().Select(r => r.Expression).Where(e => e != null).Select(e => e!).ToArray();
+                IEnumerable<ExpressionSyntax> returned = declaration.ExpressionBody != null ? new[] { declaration.ExpressionBody.Expression }
+                    : getter?.ExpressionBody != null ? new[] { getter.ExpressionBody.Expression }
+                    : getter?.Body != null ? OwnedReturns(getter.Body) : Array.Empty<ExpressionSyntax>();
+                SemanticModel? model = null;
                 foreach (var expression in returned) {
-                    if (expression is Microsoft.CodeAnalysis.CSharp.Syntax.BaseObjectCreationExpressionSyntax) return true;
-                    if (expression is Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax invocation
-                        && invocation.Expression is Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax member
+                    var value = Unwrap(expression);
+                    if (value is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax member }
                         && (member.Name.Identifier.ValueText.Contains("Clone") || member.Name.Identifier.ValueText.Contains("Copy"))) return true;
+                    if (value is WithExpressionSyntax) return true;
+                    if (value is BaseObjectCreationExpressionSyntax creation) {
+                        model ??= compilation.GetSemanticModel(reference.SyntaxTree);
+                        if (!WrapsReceiver(creation, model, property.ContainingType)) return true;
+                    }
                 }
             }
             return false;
+        }
+
+        private static bool WrapsReceiver(BaseObjectCreationExpressionSyntax creation, SemanticModel model, INamedTypeSymbol receiver) {
+            var created = model.GetTypeInfo(creation).Type;
+            foreach (var argument in creation.ArgumentList?.Arguments ?? default) {
+                var value = Unwrap(argument.Expression);
+                if (value is ThisExpressionSyntax) return true;
+                var symbol = model.GetSymbolInfo(value).Symbol;
+                if (symbol is not (IFieldSymbol { IsStatic: false, IsConst: false } or IPropertySymbol { IsStatic: false })) continue;
+                if (!SymbolEqualityComparer.Default.Equals(symbol.ContainingType, receiver)) continue;
+                var type = symbol is IFieldSymbol field ? field.Type : ((IPropertySymbol)symbol).Type;
+                if (!SymbolEqualityComparer.Default.Equals(type.WithNullableAnnotation(NullableAnnotation.NotAnnotated), created?.WithNullableAnnotation(NullableAnnotation.NotAnnotated))) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Returned expressions of a body, leaving out returns that belong to lambdas and local functions inside it.</summary>
+        private static IEnumerable<ExpressionSyntax> OwnedReturns(BlockSyntax body) => body
+            .DescendantNodes(node => node is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+            .OfType<ReturnStatementSyntax>()
+            .Select(statement => statement.Expression)
+            .Where(expression => expression != null)
+            .Select(expression => expression!);
+
+        private static ExpressionSyntax Unwrap(ExpressionSyntax expression) {
+            while (true) {
+                switch (expression) {
+                    case ParenthesizedExpressionSyntax parenthesized: expression = parenthesized.Expression; continue;
+                    case CastExpressionSyntax cast: expression = cast.Expression; continue;
+                    case PostfixUnaryExpressionSyntax suppressed when suppressed.IsKind(SyntaxKind.SuppressNullableWarningExpression): expression = suppressed.Operand; continue;
+                    default: return expression;
+                }
+            }
         }
 
         private static bool HasAttribute(ISymbol symbol, string name) => symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == name);

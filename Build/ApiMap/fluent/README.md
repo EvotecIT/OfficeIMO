@@ -32,8 +32,8 @@ Built from the Release assemblies for net10.0, netstandard2.0. Treatments and fl
 | [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html.json) |  | 20 |  | 1 |  |  |  | 7 | 7 | 8 |  |  |  |  |  | 43 |
 | [OfficeIMO.Markdown.Pdf](OfficeIMO.Markdown.Pdf.json) |  | 76 |  | 1 | 2 |  | 1 | 9 | 7 |  |  |  | 2 |  | 1 | 99 |
 | [OfficeIMO.OneNote](OfficeIMO.OneNote.json) | 4 | 197 | 3 |  |  |  | 1 | 37 | 26 | 45 |  | 1 | 21 |  |  | 335 |
-| [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument.json) | 18 | 376 | 9 |  | 41 | 4 | 105 | 30 | 18 | 192 |  | 10 | 17 |  | 2 | 822 |
-| [OfficeIMO.Pdf](OfficeIMO.Pdf.json) | 54 | 1154 | 3 | 8 | 225 | 21 | 81 | 263 | 17 | 310 | 64 | 347 | 77 |  | 65 | 2689 |
+| [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument.json) | 18 | 376 | 11 |  | 41 | 4 | 105 | 30 | 18 | 190 |  | 10 | 17 |  | 2 | 822 |
+| [OfficeIMO.Pdf](OfficeIMO.Pdf.json) | 54 | 1154 | 11 | 8 | 225 | 21 | 81 | 263 | 17 | 302 | 64 | 347 | 77 |  | 65 | 2689 |
 | [OfficeIMO.Pdf.Excel](OfficeIMO.Pdf.Excel.json) |  | 21 |  |  |  |  |  | 2 | 7 |  |  |  |  |  |  | 30 |
 | [OfficeIMO.Pdf.PowerPoint](OfficeIMO.Pdf.PowerPoint.json) |  | 30 |  |  |  |  |  | 5 | 7 |  |  |  |  |  |  | 42 |
 | [OfficeIMO.Pdf.Word](OfficeIMO.Pdf.Word.json) |  | 34 |  |  |  |  |  | 4 | 7 | 1 |  |  |  |  |  | 46 |
@@ -45,13 +45,13 @@ Built from the Release assemblies for net10.0, netstandard2.0. Treatments and fl
 | [OfficeIMO.Rtf.Pdf](OfficeIMO.Rtf.Pdf.json) |  | 22 |  | 1 |  |  |  | 4 | 20 |  |  |  | 1 |  |  | 48 |
 | [OfficeIMO.Visio](OfficeIMO.Visio.json) | 70 | 586 | 9 | 2 | 143 |  | 92 | 124 | 48 | 207 |  | 427 | 74 |  | 6 | 1788 |
 | [OfficeIMO.Visio.Pdf](OfficeIMO.Visio.Pdf.json) |  | 7 |  |  |  |  |  | 2 | 7 |  |  |  |  |  |  | 16 |
-| [OfficeIMO.Word](OfficeIMO.Word.json) | 78 | 741 | 49 |  | 179 |  | 228 | 114 | 24 | 474 |  | 3 | 70 | 2 | 9 | 1971 |
+| [OfficeIMO.Word](OfficeIMO.Word.json) | 78 | 741 | 65 |  | 179 |  | 228 | 114 | 24 | 458 |  | 3 | 70 | 2 | 9 | 1971 |
 | [OfficeIMO.Word.Html](OfficeIMO.Word.Html.json) |  | 88 | 1 | 1 |  |  | 12 | 9 | 14 | 13 |  |  | 1 |  |  | 139 |
 | [OfficeIMO.Word.Markdown](OfficeIMO.Word.Markdown.json) |  | 73 | 1 | 5 |  |  |  | 8 | 14 | 3 |  |  | 1 |  |  | 105 |
 | [OfficeIMO.Word.Pdf](OfficeIMO.Word.Pdf.json) |  | 25 |  |  |  | 2 |  | 4 | 21 | 5 |  |  | 3 |  | 2 | 62 |
 | [OfficeIMO.Word.Rtf](OfficeIMO.Word.Rtf.json) |  | 5 |  |  | 2 |  |  | 4 | 14 | 2 |  |  | 1 |  |  | 28 |
 | [OfficeIMO.Xps](OfficeIMO.Xps.json) |  | 7 |  |  | 16 |  | 8 | 10 | 10 | 17 |  |  |  |  |  | 68 |
-| **All** | 774 | 7735 | 187 | 55 | 1426 | 141 | 1015 | 1738 | 500 | 3398 | 102 | 999 | 833 | 9 | 198 | 19110 |
+| **All** | 774 | 7735 | 213 | 55 | 1426 | 141 | 1015 | 1738 | 500 | 3372 | 102 | 999 | 833 | 9 | 198 | 19110 |
 
 ## Decisions by reason
 

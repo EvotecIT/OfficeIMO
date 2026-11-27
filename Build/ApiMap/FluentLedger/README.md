@@ -75,7 +75,8 @@ Decision codes: `name-collision` (the 4.0 name already names a method, static fa
 the receiver or a derived receiver), `returns-other` (a `Set...` that returns something other than the receiver
 or `void`), `with-mutates` (a `With...` that returns the same mutated receiver), `use-prefix` (`Use...`
 configuration, which #3344 has no family for), `bare-set` (`Set(...)` with nothing to name), `static-set`,
-`set-returns-copy`, `generic-set` (a generic `Set...<T>`, whose type parameters a generated mutator call does not carry), `struct-property` (a setter on a value type, which an extension would apply to a copy),
+`set-returns-copy`, `generic-set` (a generic `Set...<T>`, whose type parameters a generated mutator call does not carry),
+`getter-wraps` (a read-only option property whose getter builds a new object through a constructor that may copy it), `struct-property` (a setter on a value type, which an extension would apply to a copy),
 `public-field`, and the open #3344 decisions configured in `fluent-ledger.json` (`pdf-run-factories`,
 `markdown-shorthand`, `word-run-type`, `chart-entry-point`, `conversion-request`).
 
@@ -85,7 +86,9 @@ and no matching property, renamed with its arguments), `keyed-set` (the first ar
 so it stays an action), `merges-set` (a property whose `Set...` method maps to the same extension: one generated
 method), `is-prefix`, `property-rename`, `struct-receiver` (a value-type handle: the extension must call a handle
 mutator), `interface-member`, `init-only`, `non-public-setter`, `set-method`, `collection`, `returns-parent`,
-`returns-void`, `getter-copies` (a read-only option property whose getter returns a copy, so it gets no in-place callback), `copy-unverified` (a `With...` on a mutable type whose body was not proven to copy),
+`returns-void`, `getter-copies` (a read-only option property whose getter returns a copy or a detached new object, so it gets no in-place
+callback), `getter-view` (the getter returns a new wrapper over the receiver or a reference it holds, so the callback
+edits the receiver), `copy-unverified` (a `With...` on a mutable type whose body was not proven to copy),
 `matches-property` and `callback`.
 
 ## Generating the extensions

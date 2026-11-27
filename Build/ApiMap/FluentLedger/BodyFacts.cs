@@ -31,17 +31,70 @@ internal static class BodyFacts {
         return self && fresh ? Mixed : self ? ReturnsReceiver : fresh ? ReturnsNew : Delegates;
     }
 
-    /// <summary>True when a property getter hands out a new instance or a copy, so configuring the result changes nothing.</summary>
-    internal static bool GetterReturnsCopy(IReadOnlyList<SyntaxNode> declarations) {
+    /// <summary>What a read-only property's getter hands out.</summary>
+    internal enum GetterResult {
+        /// <summary>A stored instance, or nothing the source shows to be new.</summary>
+        Stored,
+        /// <summary>A new wrapper over the receiver or a reference it holds (<c>new X(this)</c>, <c>new X(_options)</c>): a live view.</summary>
+        View,
+        /// <summary>A new object over receiver state whose constructor could be a copy constructor: syntax cannot tell a view from a copy.</summary>
+        Wraps,
+        /// <summary>A copy or a detached instance (<c>Clone()</c>, <c>with</c>, <c>new X { ... }</c>, <c>new X(_width)</c>): configuring it changes nothing.</summary>
+        Copy
+    }
+
+    private static readonly HashSet<string> ValueTypes = new(StringComparer.Ordinal) {
+        "bool", "byte", "sbyte", "short", "ushort", "int", "uint", "long", "ulong", "float", "double", "decimal", "char", "string", "object" };
+
+    /// <summary>
+    /// Classifies what a property getter returns; the least configurable result of any return wins. <paramref name="type"/>
+    /// is the property type's simple name and <paramref name="constructors"/> the parameter types of its source constructors.
+    /// </summary>
+    internal static GetterResult Getter(IReadOnlyList<SyntaxNode> declarations, string type, IReadOnlyList<string[]> constructors) {
+        var result = GetterResult.Stored;
         foreach (var property in declarations.OfType<PropertyDeclarationSyntax>()) {
             var getter = property.AccessorList?.Accessors.FirstOrDefault(accessor => accessor.Keyword.ValueText == "get");
-            var expressions = property.ExpressionBody != null ? [property.ExpressionBody.Expression]
+            IEnumerable<ExpressionSyntax> expressions = property.ExpressionBody != null ? [property.ExpressionBody.Expression]
                 : getter?.ExpressionBody != null ? [getter.ExpressionBody.Expression]
-                : getter?.Body?.DescendantNodes().OfType<ReturnStatementSyntax>().Select(statement => statement.Expression).OfType<ExpressionSyntax>().ToArray() ?? [];
-            if (expressions.Any(expression => IsFresh(Unwrap(expression)))) return true;
+                : getter?.Body != null ? OwnedReturns(getter.Body) : [];
+            foreach (var expression in expressions) {
+                var value = Unwrap(expression);
+                var kind = value is BaseObjectCreationExpressionSyntax creation ? Created(creation, type, constructors)
+                    : IsFresh(value) ? GetterResult.Copy : GetterResult.Stored;
+                if (kind > result) result = kind;
+            }
         }
-        return false;
+        return result;
     }
+
+    private static GetterResult Created(BaseObjectCreationExpressionSyntax creation, string type, IReadOnlyList<string[]> constructors) {
+        var arguments = creation.ArgumentList?.Arguments ?? default;
+        if (arguments.Any(argument => Unwrap(argument.Expression) is ThisExpressionSyntax)) return GetterResult.View;
+        bool reads = arguments.Any(argument => HoldsReference(Unwrap(argument.Expression)));
+        if (!reads) return GetterResult.Copy;
+        bool known = creation is ImplicitObjectCreationExpressionSyntax
+            || creation is ObjectCreationExpressionSyntax { Type: var created } && SimpleName(created) == type;
+        var candidates = known ? constructors.Where(parameters => parameters.Length >= arguments.Count).ToArray() : [];
+        if (candidates.Length == 0 || candidates.Any(parameters => parameters.Contains(type, StringComparer.Ordinal))) return GetterResult.Wraps;
+        // A reference the receiver holds, passed where every candidate constructor takes a reference: the result wraps it.
+        for (int i = 0; i < arguments.Count; i++) {
+            if (arguments[i].NameColon != null || !HoldsReference(Unwrap(arguments[i].Expression))) continue;
+            if (candidates.All(parameters => !ValueTypes.Contains(parameters[i]))) return GetterResult.View;
+        }
+        return GetterResult.Copy;
+    }
+
+    /// <summary>A field, property or local the receiver holds (<c>_options</c>, <c>Element</c>, <c>this.Element</c>), as opposed to a literal, a constant or a value read out of it.</summary>
+    private static bool HoldsReference(ExpressionSyntax argument) =>
+        argument is IdentifierNameSyntax || argument is MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax };
+
+    private static string SimpleName(TypeSyntax type) => type switch {
+        QualifiedNameSyntax qualified => SimpleName(qualified.Right),
+        GenericNameSyntax generic => generic.Identifier.ValueText,
+        IdentifierNameSyntax identifier => identifier.Identifier.ValueText,
+        NullableTypeSyntax nullable => SimpleName(nullable.ElementType),
+        _ => type.ToString()
+    };
 
     private static bool IsFresh(ExpressionSyntax value) =>
         value is BaseObjectCreationExpressionSyntax or WithExpressionSyntax
@@ -49,18 +102,16 @@ internal static class BodyFacts {
             && (name.Contains("Clone", StringComparison.Ordinal) || name.Contains("Copy", StringComparison.Ordinal) || name.StartsWith("With", StringComparison.Ordinal));
 
     private static IEnumerable<ExpressionSyntax> Returned(MethodDeclarationSyntax declaration) {
-        if (declaration.ExpressionBody != null) {
-            yield return declaration.ExpressionBody.Expression;
-            yield break;
-        }
-        if (declaration.Body == null) yield break;
-        foreach (var statement in declaration.Body.DescendantNodes().OfType<ReturnStatementSyntax>()) {
-            if (statement.Expression == null) continue;
-            // Returns inside lambdas and local functions belong to them, not to the method.
-            if (statement.Ancestors().TakeWhile(node => node != declaration).Any(node => node is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)) continue;
-            yield return statement.Expression;
-        }
+        if (declaration.ExpressionBody != null) return [declaration.ExpressionBody.Expression];
+        return declaration.Body == null ? [] : OwnedReturns(declaration.Body);
     }
+
+    /// <summary>Returned expressions of a body, leaving out returns that belong to lambdas and local functions inside it.</summary>
+    private static IEnumerable<ExpressionSyntax> OwnedReturns(BlockSyntax body) => body
+        .DescendantNodes(node => node is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+        .OfType<ReturnStatementSyntax>()
+        .Select(statement => statement.Expression)
+        .OfType<ExpressionSyntax>();
 
     private static ExpressionSyntax Unwrap(ExpressionSyntax expression) {
         while (true) {

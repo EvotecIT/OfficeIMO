@@ -312,11 +312,20 @@ internal sealed class Ledger {
             return Row(receiver, property, framework, clash == null ? Treatments.Rename : Treatments.Decision, name, "",
                 clash == null ? rename.Reason : $"{rename.Reason} {name} already names {clash}.", flags);
         }
-        if (IsOptionObject(property.Type) && BodyFacts.GetterReturnsCopy(_source.FindSyntax(property))) {
+        var getter = IsOptionObject(property.Type) && property.Type is INamedTypeSymbol optionType
+            ? BodyFacts.Getter(_source.FindSyntax(property), optionType.Name, _source.ConstructorParameters(optionType))
+            : BodyFacts.GetterResult.Stored;
+        if (getter == BodyFacts.GetterResult.Copy) {
             flags.Add("getter-copies");
             return Row(receiver, property, framework, Treatments.KeepSelector, null, "",
                 "The getter returns a copy, so an in-place callback would change nothing; change it through the receiver's own With... or Set... method.", flags);
         }
+        if (getter == BodyFacts.GetterResult.Wraps) {
+            flags.Add("getter-wraps");
+            return Row(receiver, property, framework, Treatments.Decision, $"{name}({Display(property.Type).TrimEnd('?')} => ...)", "",
+                "The getter builds a new object from receiver state through a constructor that may copy it; generate the in-place callback only once it is confirmed to be a live view.", flags);
+        }
+        if (getter == BodyFacts.GetterResult.View) flags.Add("getter-view");
         if (IsOptionObject(property.Type))
             return Row(receiver, property, framework, Treatments.GenerateNested, $"{name}({Display(property.Type).TrimEnd('?')} => ...)", "",
                 "Read-only option object configured in place through a nested callback.", flags);
