@@ -234,13 +234,15 @@ internal static class OfficeProvenancePng {
         // compressed text is never inflated past what remains of it.
         long remainingBytes = Math.Max(0, options.MaxExpandedContainerBytes - context.ExpandedInspectionBytes);
         bool budgeted = OfficePngReader.TryGetProvenanceDecodeBudget(
-            data, options.CancellationToken, options.MaxContainerEntries, remainingBytes, out long decodedBytes, out long textBytes);
+            data, options.CancellationToken, options.MaxContainerEntries, remainingBytes, out long decodedBytes, out long textBytes,
+            out OfficePngContainerValidation containerValidation);
         const string limitMessage = "PNG decoding exceeds the configured expanded-byte limit.";
         if (textBytes > remainingBytes) throw OfficeProvenanceLimitException.Create(limitMessage);
         context.ReserveExpandedBytes(textBytes, limitMessage);
         if (!budgeted) return false;
         context.ReserveExpandedBytes(decodedBytes, limitMessage);
-        return OfficePngReader.TryValidateDecodedPayload(data, options.CancellationToken);
+        // The container was just validated within the budget; the scanline check reuses that instead of inflating text again.
+        return OfficePngReader.TryValidateDecodedPayload(data, options.CancellationToken, containerValidation: containerValidation);
     }
 
     private static bool IsValidChunkType(byte[] data, int offset) {

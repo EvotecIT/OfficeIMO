@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Provenance;
 using Xunit;
 
@@ -92,6 +93,24 @@ public sealed class ProvenanceAiGeneratorMetadataContracts {
 
         var limited = new OfficeProvenanceOptions { MaxExpandedContainerBytes = 1024 };
         Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(png, "generated.png", limited));
+    }
+
+    [Fact]
+    public void TextAllowanceAdmitsEmptyStreamsAndChargesExceededAndFailedInflation() {
+        byte[] empty = CreatePng(CreateChunk("zTXt", Concat(Encoding.ASCII.GetBytes("parameters"), new byte[] { 0, 0 }, Zlib(Array.Empty<byte>()))));
+        Assert.True(OfficePngContainerValidator.TryValidate(empty, default, int.MaxValue, 0, out _, out _, out long emptyBytes));
+        Assert.Equal(0, emptyBytes);
+
+        const int cap = 1024 * 1024;
+        byte[] large = CreatePng(CreateChunk("zTXt", Concat(Encoding.ASCII.GetBytes("parameters"), new byte[] { 0, 0 }, Zlib(new byte[cap + 1]))));
+        Assert.False(OfficePngContainerValidator.TryValidate(large, default, int.MaxValue, cap, out _, out _, out long largeBytes));
+        Assert.True(largeBytes > cap);
+
+        byte[] stream = Zlib(new byte[4096]);
+        stream[stream.Length - 1] ^= 0xFF;
+        byte[] corrupt = CreatePng(CreateChunk("zTXt", Concat(Encoding.ASCII.GetBytes("parameters"), new byte[] { 0, 0 }, stream)));
+        Assert.False(OfficePngContainerValidator.TryValidate(corrupt, default, int.MaxValue, 1 << 20, out _, out _, out long corruptBytes));
+        Assert.True(corruptBytes >= 4096);
     }
 
     private static byte[] Zlib(byte[] data) {

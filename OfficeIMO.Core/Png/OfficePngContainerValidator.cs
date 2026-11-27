@@ -610,11 +610,9 @@ internal static class OfficePngContainerValidator {
         bool requireUtf8,
         CancellationToken cancellationToken) {
         long allowance = textBudget.RemainingInflationBytes;
-        if (allowance < 1) {
-            textBudget.InflationExceeded = true;
-            return false;
-        }
-        int requested = (int)Math.Min(MaximumPngTextBytes, allowance);
+        bool allowanceBinds = allowance <= MaximumPngTextBytes;
+        // An exhausted allowance still admits an empty stream, so one byte is requested to tell it apart from real output.
+        int requested = (int)Math.Max(1L, Math.Min(MaximumPngTextBytes, allowance));
         if (length < 6 || !TryGetCompressedMetadataOutputLimit(
                 bytes.LongLength,
                 length,
@@ -626,10 +624,15 @@ internal static class OfficePngContainerValidator {
             byte[] text = OfficeZlibCodec.Decompress(
                 compressed, maximumTextBytes, cancellationToken: cancellationToken);
             textBudget.InflatedBytes += text.Length;
+            if (allowanceBinds && text.Length > allowance) {
+                textBudget.InflationExceeded = true;
+                return false;
+            }
             return (!requireUtf8 || HasValidUtf8(text, 0, text.Length, cancellationToken)) &&
                    textBudget.TryAddDecoded(text.Length);
         } catch (OfficeDecompressionSizeLimitException) {
-            if (requested < MaximumPngTextBytes && maximumTextBytes == requested) textBudget.InflationExceeded = true;
+            if (allowanceBinds && maximumTextBytes == requested) textBudget.InflationExceeded = true;
+            textBudget.InflatedBytes += maximumTextBytes;
             return false;
         } catch (Exception exception) when (
             exception is ArgumentException ||
@@ -637,6 +640,9 @@ internal static class OfficePngContainerValidator {
             exception is InvalidDataException ||
             exception is NotSupportedException ||
             exception is OverflowException) {
+            // A stream can expand before its checksum or structure fails, and the decoder does not say how far it got, so a
+            // failed attempt is charged as if it reached its limit.
+            textBudget.InflatedBytes += maximumTextBytes;
             return false;
         }
     }

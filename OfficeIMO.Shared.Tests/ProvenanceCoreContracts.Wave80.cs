@@ -9,7 +9,7 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void CarrierPngChargesItsDecodeToEachInspection() {
         byte[] image = CreatePngWithC2paManifest(CreateManifestStore());
-        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, int.MaxValue, long.MaxValue, out long decodedBytes, out _));
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, int.MaxValue, long.MaxValue, out long decodedBytes, out _, out _));
 
         Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
             image, "image.png", new OfficeProvenanceOptions { MaxExpandedContainerBytes = decodedBytes - 1 }));
@@ -60,7 +60,7 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void HtmlEmbeddedPngDecodeSharesTheDocumentBudget() {
         byte[] image = CreatePngWithC2paManifest(CreateManifestStore());
-        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, int.MaxValue, long.MaxValue, out long decodedBytes, out _));
+        Assert.True(OfficePngReader.TryGetProvenanceDecodeBudget(image, default, int.MaxValue, long.MaxValue, out long decodedBytes, out _, out _));
         string html = "<html><body><img src='data:image/png;base64," + Convert.ToBase64String(image) + "'></body></html>";
         long required = image.Length + decodedBytes;
 

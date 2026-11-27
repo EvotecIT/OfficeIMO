@@ -157,12 +157,13 @@ public static partial class OfficePngReader {
     internal static bool TryValidateDecodedPayload(
         byte[] bytes,
         CancellationToken cancellationToken,
-        long retainedManagedBytes = 0L) {
+        long retainedManagedBytes = 0L,
+        OfficePngContainerValidation containerValidation = default) {
         try {
             if (retainedManagedBytes < 0L) return false;
             if (!TryReadPayload(
                     bytes, cancellationToken, includeRgbaOutput: false,
-                    retainedManagedBytes, out PngPayload payload)) return false;
+                    retainedManagedBytes, out PngPayload payload, containerValidation)) return false;
             if (!ValidatePayloadScanlines(payload, cancellationToken)) return false;
             long retainedPayloadBytes = checked(
                 retainedManagedBytes + payload.Scanlines.LongLength +
@@ -272,9 +273,11 @@ public static partial class OfficePngReader {
         int maximumChunks,
         long maximumTextBytes,
         out long decodedBytes,
-        out long textBytes) {
+        out long textBytes,
+        out OfficePngContainerValidation containerValidation) {
         decodedBytes = 0;
         textBytes = 0;
+        containerValidation = default;
         if (bytes == null || bytes.Length < 33) return false;
         for (int index = 0; index < Signature.Length; index++) {
             if (bytes[index] != Signature[index]) return false;
@@ -321,6 +324,7 @@ public static partial class OfficePngReader {
             }
             if (seenAnimationControl && (controlledFrames != frameCount ||
                     !OfficePngAnimationValidator.TryValidateStructure(bytes, cancellationToken))) return false;
+            containerValidation = OfficePngContainerValidation.ForValidated(bytes, frameCount);
             return true;
         } catch (OverflowException) {
             return false;
