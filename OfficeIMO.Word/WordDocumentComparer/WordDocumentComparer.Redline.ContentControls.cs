@@ -1,10 +1,8 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static void ApplyContentControlFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
+        private static void ApplyContentControlFindings(WordPackageView sourceDocument, WordPackageView targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
             List<RedlineContentControlEntry> sourceControls = GetRedlineContentControlEntries(sourceDocument);
             List<RedlineContentControlEntry> targetControls = GetRedlineContentControlEntries(targetDocument);
             HashSet<int> deletedSourceIndexes = GetDeletedContentControlRedlineSourceIndexes(result, options, sourceControls);
@@ -60,7 +58,7 @@ namespace OfficeIMO.Word {
             IReadOnlyList<RedlineContentControlEntry> sourceControls,
             IReadOnlyList<RedlineContentControlEntry> targetControls,
             ISet<int> deletedSourceIndexes,
-            WordprocessingDocument targetDocument) {
+            WordPackageView targetDocument) {
             if (!ShouldTrackFinding(finding, options) ||
                 finding.Scope != WordComparisonScope.ContentControl ||
                 finding.ChangeKind != WordComparisonChangeKind.Deleted ||
@@ -81,32 +79,33 @@ namespace OfficeIMO.Word {
                 return true;
             }
 
-            SdtElement deletedControl = (SdtElement)sourceControls[sourceIndex].ContentControl.CloneNode(true);
-            WordTable.CopyGridNormalizationState(sourceControls[sourceIndex].ContentControl, deletedControl);
-            if (!RewriteContentControlWithTrackedText(deletedControl, GetContentControlRedlineText(sourceControls, sourceIndex, finding.SourceText), null, options)) {
+            OfficeXmlNode deletedControl = sourceControls[sourceIndex].ContentControl.Clone();
+            WordPackageView.CopyGridNormalizationState(sourceControls[sourceIndex].ContentControl, deletedControl);
+            SdtKind deletedKind = GetSdtKind(sourceControls[sourceIndex].ContentControl);
+            if (!RewriteContentControlWithTrackedText(deletedControl, deletedKind, GetContentControlRedlineText(sourceControls, sourceIndex, finding.SourceText), null, options)) {
                 return false;
             }
 
-            InsertDeletedContentControl(targetDocument, sourceControls, targetControls, sourceIndex, deletedControl);
+            InsertDeletedContentControl(targetDocument, sourceControls, targetControls, sourceIndex, deletedControl, deletedKind);
             return true;
         }
 
-        private static List<RedlineContentControlEntry> GetRedlineContentControlEntries(WordprocessingDocument document) {
-            MainDocumentPart? mainPart = document.MainDocumentPart;
+        private static List<RedlineContentControlEntry> GetRedlineContentControlEntries(WordPackageView document) {
+            WordPartView? mainPart = document.Main;
             if (mainPart == null) {
                 return new List<RedlineContentControlEntry>();
             }
 
             var entries = new List<RedlineContentControlEntry>();
-            foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
+            foreach (WordFieldInventory.NodeFieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
                 foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(root.Root, GetFeatureOrderBase(root.LocationKind))) {
-                    if (ordered.Element is SdtElement contentControl) {
+                    if (ordered.Element.Is(W, "sdt")) {
                         entries.Add(new RedlineContentControlEntry(
                             entries.Count,
                             root.PartUri,
                             root.LocationKind,
-                            GetNoteId(contentControl),
-                            contentControl));
+                            GetContentControlNoteId(ordered.Element),
+                            ordered.Element));
                     }
                 }
             }
@@ -193,7 +192,7 @@ namespace OfficeIMO.Word {
         private static bool HasUnchangedDirectContentControlText(
             WordComparisonFinding finding,
             IReadOnlyList<RedlineContentControlEntry> sourceControls,
-            SdtElement targetControl) {
+            OfficeXmlNode targetControl) {
             int sourceIndex = finding.SourceIndex ?? -1;
             if (sourceIndex < 0 &&
                 !TryParseIndexedLocation(finding.Location, "content-control", out sourceIndex)) {
@@ -209,25 +208,39 @@ namespace OfficeIMO.Word {
             return string.Equals(sourceDirectText, targetDirectText, StringComparison.Ordinal);
         }
 
-        private static string GetDirectContentControlText(SdtElement contentControl) {
-            return string.Concat(contentControl.Descendants<Text>()
-                .Where(text => !text.Ancestors<SdtElement>().Any(ancestor => !ReferenceEquals(ancestor, contentControl)))
-                .Select(text => text.Text ?? string.Empty));
+        private static string GetDirectContentControlText(OfficeXmlNode contentControl) {
+            return string.Concat(DescendantsW(contentControl, "t")
+                .Where(text => !HasOtherContentControlAncestor(text, contentControl))
+                .Select(text => text.InnerText));
+        }
+
+        private static bool HasOtherContentControlAncestor(OfficeXmlNode element, OfficeXmlNode contentControl) {
+            for (OfficeXmlNode ancestor = element.Parent; !ancestor.IsNone; ancestor = ancestor.Parent) {
+                if (ancestor.Is(W, "sdt") && ancestor != contentControl) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool HasAncestorContentControlRedlineFinding(
-            SdtElement contentControl,
+            OfficeXmlNode contentControl,
             IReadOnlyList<RedlineContentControlEntry> contentControls,
             ISet<int> redlineIndexes) {
             if (redlineIndexes.Count == 0) {
                 return false;
             }
 
-            foreach (SdtElement ancestor in contentControl.Ancestors<SdtElement>()) {
+            for (OfficeXmlNode ancestor = contentControl.Parent; !ancestor.IsNone; ancestor = ancestor.Parent) {
+                if (!ancestor.Is(W, "sdt")) {
+                    continue;
+                }
+
                 foreach (int redlineIndex in redlineIndexes) {
                     if (redlineIndex >= 0 &&
                         redlineIndex < contentControls.Count &&
-                        ReferenceEquals(contentControls[redlineIndex].ContentControl, ancestor)) {
+                        contentControls[redlineIndex].ContentControl == ancestor) {
                         return true;
                     }
                 }
@@ -237,7 +250,7 @@ namespace OfficeIMO.Word {
         }
 
         private static bool HasDescendantContentControlRedlineFinding(
-            SdtElement contentControl,
+            OfficeXmlNode contentControl,
             IReadOnlyList<RedlineContentControlEntry> targetControls,
             ISet<int> redlineTargetIndexes) {
             if (redlineTargetIndexes.Count == 0) {
@@ -245,9 +258,8 @@ namespace OfficeIMO.Word {
             }
 
             foreach (int targetIndex in redlineTargetIndexes) {
-                SdtElement candidate = targetControls[targetIndex].ContentControl;
-                if (!ReferenceEquals(candidate, contentControl) &&
-                    candidate.Ancestors<SdtElement>().Any(ancestor => ReferenceEquals(ancestor, contentControl))) {
+                OfficeXmlNode candidate = targetControls[targetIndex].ContentControl;
+                if (candidate != contentControl && candidate.Parent.IsInside(contentControl) && !candidate.Parent.IsNone) {
                     return true;
                 }
             }
@@ -255,96 +267,155 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        private static bool RewriteContentControlWithTrackedText(SdtElement contentControl, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
-            if (contentControl is SdtRun runControl) {
-                runControl.SdtContentRun ??= new SdtContentRun();
-                runControl.SdtContentRun.RemoveAllChildren();
-                AppendTrackedInlineContent(runControl.SdtContentRun, sourceText, targetText, options);
-                return true;
-            }
-
-            if (contentControl is SdtBlock blockControl) {
-                blockControl.SdtContentBlock ??= new SdtContentBlock();
-                blockControl.SdtContentBlock.RemoveAllChildren();
-
-                var paragraph = new Paragraph();
-                AppendTrackedInlineContent(paragraph, sourceText, targetText, options);
-                blockControl.SdtContentBlock.Append(paragraph);
-                return true;
-            }
-
-            if (contentControl is SdtCell cellControl) {
-                cellControl.SdtContentCell ??= new SdtContentCell();
-                TableCell? templateCell = cellControl.SdtContentCell.Elements<TableCell>().FirstOrDefault();
-                TableCell trackedCell = CreateTrackedTableCell(templateCell, sourceText, targetText, options);
-
-                cellControl.SdtContentCell.RemoveAllChildren();
-                cellControl.SdtContentCell.Append(trackedCell);
-                return true;
-            }
-
-            if (contentControl is SdtRow rowControl) {
-                rowControl.SdtContentRow ??= new SdtContentRow();
-                TableRow? templateRow = rowControl.SdtContentRow.Elements<TableRow>().FirstOrDefault();
-                TableRow trackedRow = CreateTrackedTableRow(templateRow, sourceText, targetText, options);
-
-                rowControl.SdtContentRow.RemoveAllChildren();
-                rowControl.SdtContentRow.Append(trackedRow);
-                return true;
-            }
-
-            return false;
+        /// <summary>The typed class the SDK reads a <c>w:sdt</c> as, which depends on where it sits.</summary>
+        private enum SdtKind {
+            Block,
+            Run,
+            Cell,
+            Row
         }
 
-        private static TableRow CreateTrackedTableRow(TableRow? templateRow, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
-            var row = new TableRow();
-            TableRowProperties? rowProperties = templateRow?.GetFirstChild<TableRowProperties>()?.CloneNode(true) as TableRowProperties;
-            if (rowProperties != null) {
-                row.Append(rowProperties);
+        private static SdtKind GetSdtKind(OfficeXmlNode contentControl) {
+            OfficeXmlNode parent = contentControl.Parent;
+            for (int depth = 0; !parent.IsNone && depth < 256; depth++) {
+                if (parent.NamespaceId != W) {
+                    return SdtKind.Block;
+                }
+
+                switch (parent.LocalName) {
+                    case "sdtContent":
+                        // The content of a control holds what the control itself holds.
+                        parent = parent.Parent.Parent;
+                        continue;
+                    case "customXml":
+                    case "smartTag":
+                        parent = parent.Parent;
+                        if (parent.Is(W, "p")) return SdtKind.Run;
+                        continue;
+                    case "p":
+                    case "hyperlink":
+                    case "fldSimple":
+                    case "ins":
+                    case "del":
+                    case "moveFrom":
+                    case "moveTo":
+                    case "dir":
+                    case "bdo":
+                        return SdtKind.Run;
+                    case "tr":
+                        return SdtKind.Cell;
+                    case "tbl":
+                        return SdtKind.Row;
+                    default:
+                        return SdtKind.Block;
+                }
             }
 
-            List<TableCell> templateCells = templateRow?.Elements<TableCell>().ToList() ?? new List<TableCell>();
+            return SdtKind.Block;
+        }
+
+        private static string GetSdtKindName(SdtKind kind) => kind switch {
+            SdtKind.Run => "SdtRun",
+            SdtKind.Cell => "SdtCell",
+            SdtKind.Row => "SdtRow",
+            _ => "SdtBlock"
+        };
+
+        private static bool RewriteContentControlWithTrackedText(OfficeXmlNode contentControl, string? sourceText, string? targetText, WordComparisonRedlineOptions options) =>
+            RewriteContentControlWithTrackedText(contentControl, GetSdtKind(contentControl), sourceText, targetText, options);
+
+        private static bool RewriteContentControlWithTrackedText(OfficeXmlNode contentControl, SdtKind kind, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
+            OfficeXmlNode content = contentControl.Child(W, "sdtContent");
+            if (content.IsNone) {
+                content = contentControl.InsertOrdered(contentControl.CreateElement(W, "sdtContent"), SdtOrder);
+            }
+
+            switch (kind) {
+                case SdtKind.Run:
+                    RemoveAllChildren(content);
+                    AppendTrackedInlineContent(content, sourceText, targetText, options);
+                    return true;
+                case SdtKind.Block: {
+                    RemoveAllChildren(content);
+                    OfficeXmlNode paragraph = content.CreateElement(W, "p");
+                    AppendTrackedInlineContent(paragraph, sourceText, targetText, options);
+                    content.Append(paragraph);
+                    return true;
+                }
+                case SdtKind.Cell: {
+                    OfficeXmlNode templateCell = content.Child(W, "tc");
+                    OfficeXmlNode trackedCell = CreateTrackedTableCell(content, templateCell, sourceText, targetText, options);
+                    RemoveAllChildren(content);
+                    content.Append(trackedCell);
+                    return true;
+                }
+                case SdtKind.Row: {
+                    OfficeXmlNode templateRow = content.Child(W, "tr");
+                    OfficeXmlNode trackedRow = CreateTrackedTableRow(content, templateRow, sourceText, targetText, options);
+                    RemoveAllChildren(content);
+                    content.Append(trackedRow);
+                    return true;
+                }
+                default:
+                    return false;
+            }
+        }
+
+        // w:sdt holds its properties, end properties and content in that order.
+        private static readonly OfficeIMO.Core.Internal.OpenXml.OfficeXmlChildOrder SdtOrder = new(
+            new[] { W, W, W },
+            new[] { "sdtPr", "sdtEndPr", "sdtContent" },
+            new[] { 0, 1, 2 });
+
+        private static OfficeXmlNode CreateTrackedTableRow(OfficeXmlNode context, OfficeXmlNode templateRow, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
+            OfficeXmlNode row = context.CreateElement(W, "tr");
+            OfficeXmlNode rowProperties = templateRow.IsNone ? default : templateRow.Child(W, "trPr");
+            if (!rowProperties.IsNone) {
+                row.Append(rowProperties.Clone());
+            }
+
+            List<OfficeXmlNode> templateCells = templateRow.IsNone ? new List<OfficeXmlNode>() : ChildrenW(templateRow, "tc");
             if (templateCells.Count == 0) {
-                row.Append(CreateTrackedTableCell(null, sourceText, targetText, options));
+                row.Append(CreateTrackedTableCell(row, default, sourceText, targetText, options));
                 return row;
             }
 
             for (int index = 0; index < templateCells.Count; index++) {
-                TableCell templateCell = templateCells[index];
-                TableCell cell = index == 0
-                    ? CreateTrackedTableCell(templateCell, sourceText, targetText, options)
-                    : (TableCell)templateCell.CloneNode(true);
-                if (index != 0) WordTable.CopyGridNormalizationState(templateCell, cell);
+                OfficeXmlNode templateCell = templateCells[index];
+                OfficeXmlNode cell = index == 0
+                    ? CreateTrackedTableCell(row, templateCell, sourceText, targetText, options)
+                    : templateCell.Clone();
+                if (index != 0) WordPackageView.CopyGridNormalizationState(templateCell, cell);
                 row.Append(cell);
             }
 
             return row;
         }
 
-        private static TableCell CreateTrackedTableCell(TableCell? templateCell, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
-            var cell = new TableCell();
-            TableCellProperties? cellProperties = templateCell?.GetFirstChild<TableCellProperties>()?.CloneNode(true) as TableCellProperties;
-            if (cellProperties != null) {
-                cell.Append(cellProperties);
+        private static OfficeXmlNode CreateTrackedTableCell(OfficeXmlNode context, OfficeXmlNode templateCell, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
+            OfficeXmlNode cell = context.CreateElement(W, "tc");
+            OfficeXmlNode cellProperties = templateCell.IsNone ? default : templateCell.Child(W, "tcPr");
+            if (!cellProperties.IsNone) {
+                cell.Append(cellProperties.Clone());
             }
 
-            var paragraph = new Paragraph();
+            OfficeXmlNode paragraph = cell.CreateElement(W, "p");
             AppendTrackedInlineContent(paragraph, sourceText, targetText, options);
             cell.Append(paragraph);
             return cell;
         }
 
-        private static void AppendTrackedInlineContent(OpenXmlCompositeElement container, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
+        private static void AppendTrackedInlineContent(OfficeXmlNode container, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
             if (!string.IsNullOrEmpty(sourceText)) {
-                container.Append(CreateDeletedRun(sourceText!, options));
+                container.Append(CreateDeletedRun(container, sourceText!, options));
             }
 
             if (!string.IsNullOrEmpty(targetText)) {
-                container.Append(CreateInsertedRun(targetText!, options));
+                container.Append(CreateInsertedRun(container, targetText!, options));
             }
 
-            if (!container.ChildElements.Any()) {
-                container.Append(new Run());
+            if (container.FirstChild.IsNone) {
+                container.Append(container.CreateElement(W, "r"));
             }
         }
 
@@ -366,47 +437,75 @@ namespace OfficeIMO.Word {
             if (index.HasValue &&
                 index.Value >= 0 &&
                 index.Value < entries.Count) {
-                return NormalizeFeatureText(entries[index.Value].ContentControl.InnerText ?? string.Empty);
+                return NormalizeFeatureText(InnerText(entries[index.Value].ContentControl));
             }
 
             return ExtractContentControlFindingText(fallbackDisplayText);
         }
 
         private static void InsertDeletedContentControl(
-            WordprocessingDocument targetDocument,
+            WordPackageView targetDocument,
             IReadOnlyList<RedlineContentControlEntry> sourceControls,
             IReadOnlyList<RedlineContentControlEntry> targetControls,
             int sourceIndex,
-            SdtElement deletedControl) {
+            OfficeXmlNode deletedControl,
+            SdtKind deletedKind) {
             RedlineContentControlEntry entry = sourceControls[sourceIndex];
-            if (TryInsertDeletedContentControlAtTargetGap(sourceControls, targetControls, sourceIndex, deletedControl)) {
+            if (TryInsertDeletedContentControlAtTargetGap(sourceControls, targetControls, sourceIndex, deletedControl, deletedKind)) {
                 return;
             }
 
-            OpenXmlCompositeElement? targetContainer = GetRedlineContentControlContainer(targetDocument, entry);
-            if (targetContainer == null) {
+            OfficeXmlNode targetContainer = GetRedlineContentControlContainer(targetDocument, entry);
+            if (targetContainer.IsNone) {
                 return;
             }
 
-            OpenXmlElement block = CreateDeletedContentControlRedlineBlock(deletedControl);
+            OfficeXmlNode block = CreateDeletedContentControlRedlineBlock(targetContainer, deletedControl, deletedKind);
             InsertContentControlRedlineElement(targetContainer, block);
         }
 
-        private static OpenXmlElement CreateDeletedContentControlRedlineBlock(SdtElement deletedControl) {
-            return deletedControl switch {
-                SdtBlock => deletedControl,
-                SdtRun => new Paragraph(deletedControl),
-                SdtCell => new Table(new TableRow(deletedControl)),
-                SdtRow => new Table(deletedControl),
-                _ => new Paragraph()
-            };
+        /// <summary>A block that can hold a deleted control where blocks go: the control itself, or a paragraph or table around it.</summary>
+        private static OfficeXmlNode CreateDeletedContentControlRedlineBlock(OfficeXmlNode context, OfficeXmlNode deletedControl, SdtKind kind) {
+            switch (kind) {
+                case SdtKind.Block:
+                    return deletedControl;
+                case SdtKind.Run: {
+                    OfficeXmlNode paragraph = context.CreateElement(W, "p");
+                    paragraph.Append(deletedControl);
+                    return paragraph;
+                }
+                case SdtKind.Cell: {
+                    OfficeXmlNode table = context.CreateElement(W, "tbl");
+                    OfficeXmlNode row = table.CreateElement(W, "tr");
+                    row.Append(deletedControl);
+                    table.Append(row);
+                    return table;
+                }
+                case SdtKind.Row: {
+                    OfficeXmlNode table = context.CreateElement(W, "tbl");
+                    table.Append(deletedControl);
+                    return table;
+                }
+                default:
+                    return context.CreateElement(W, "p");
+            }
+        }
+
+        /// <summary>How a block made by <see cref="CreateDeletedContentControlRedlineBlock"/> or a deleted control reads where it is inserted.</summary>
+        private enum RedlineBlockKind {
+            Paragraph,
+            Table,
+            BlockControl,
+            RunControl,
+            Other
         }
 
         private static bool TryInsertDeletedContentControlAtTargetGap(
             IReadOnlyList<RedlineContentControlEntry> sourceControls,
             IReadOnlyList<RedlineContentControlEntry> targetControls,
             int sourceIndex,
-            SdtElement deletedControl) {
+            OfficeXmlNode deletedControl,
+            SdtKind deletedKind) {
             if (sourceIndex < 0 || sourceIndex >= sourceControls.Count || targetControls.Count == 0) {
                 return false;
             }
@@ -414,14 +513,14 @@ namespace OfficeIMO.Word {
             RedlineContentControlEntry sourceEntry = sourceControls[sourceIndex];
             for (int index = sourceIndex + 1; index < sourceControls.Count; index++) {
                 RedlineContentControlEntry? targetEntry = FindMatchingTargetContentControl(sourceControls[index], targetControls, sourceEntry);
-                if (TryInsertDeletedContentControlNearTarget(targetEntry, deletedControl, beforeTarget: true)) {
+                if (TryInsertDeletedContentControlNearTarget(targetEntry, deletedControl, deletedKind, beforeTarget: true)) {
                     return true;
                 }
             }
 
             for (int index = sourceIndex - 1; index >= 0; index--) {
                 RedlineContentControlEntry? targetEntry = FindMatchingTargetContentControl(sourceControls[index], targetControls, sourceEntry);
-                if (TryInsertDeletedContentControlNearTarget(targetEntry, deletedControl, beforeTarget: false)) {
+                if (TryInsertDeletedContentControlNearTarget(targetEntry, deletedControl, deletedKind, beforeTarget: false)) {
                     return true;
                 }
             }
@@ -429,14 +528,19 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        private static bool TryInsertDeletedContentControlNearTarget(RedlineContentControlEntry? targetEntry, SdtElement deletedControl, bool beforeTarget) {
-            if (targetEntry?.ContentControl.Parent == null) {
+        private static bool TryInsertDeletedContentControlNearTarget(RedlineContentControlEntry? targetEntry, OfficeXmlNode deletedControl, SdtKind deletedKind, bool beforeTarget) {
+            if (targetEntry == null || targetEntry.ContentControl.Parent.IsNone) {
                 return false;
             }
 
-            if (CanInsertContentControlGapBlockBeside(targetEntry.ContentControl, deletedControl)) {
+            RedlineBlockKind controlKind = deletedKind switch {
+                SdtKind.Block => RedlineBlockKind.BlockControl,
+                SdtKind.Run => RedlineBlockKind.RunControl,
+                _ => RedlineBlockKind.Other
+            };
+            if (CanInsertContentControlGapBlockBeside(targetEntry.ContentControl, controlKind)) {
                 if (beforeTarget) {
-                    targetEntry.ContentControl.InsertBeforeSelf(deletedControl);
+                    targetEntry.ContentControl.Parent.InsertBefore(deletedControl, targetEntry.ContentControl);
                 } else {
                     targetEntry.ContentControl.InsertAfterSelf(deletedControl);
                 }
@@ -444,14 +548,21 @@ namespace OfficeIMO.Word {
                 return true;
             }
 
-            OpenXmlElement block = CreateDeletedContentControlRedlineBlock(deletedControl);
-            OpenXmlElement? anchor = GetContentControlGapAnchor(targetEntry.ContentControl, block);
-            if (anchor?.Parent == null) {
+            RedlineBlockKind blockKind = deletedKind switch {
+                SdtKind.Block => RedlineBlockKind.BlockControl,
+                SdtKind.Run => RedlineBlockKind.Paragraph,
+                SdtKind.Cell => RedlineBlockKind.Table,
+                SdtKind.Row => RedlineBlockKind.Table,
+                _ => RedlineBlockKind.Paragraph
+            };
+            OfficeXmlNode anchor = GetContentControlGapAnchor(targetEntry.ContentControl, blockKind);
+            if (anchor.IsNone || anchor.Parent.IsNone) {
                 return false;
             }
 
+            OfficeXmlNode block = CreateDeletedContentControlRedlineBlock(anchor.Parent, deletedControl, deletedKind);
             if (beforeTarget) {
-                anchor.InsertBeforeSelf(block);
+                anchor.Parent.InsertBefore(block, anchor);
             } else {
                 anchor.InsertAfterSelf(block);
             }
@@ -459,30 +570,49 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static OpenXmlElement? GetContentControlGapAnchor(SdtElement targetControl, OpenXmlElement block) {
+        private static OfficeXmlNode GetContentControlGapAnchor(OfficeXmlNode targetControl, RedlineBlockKind block) {
             if (CanInsertContentControlGapBlockBeside(targetControl, block)) {
                 return targetControl;
             }
 
-            Paragraph? paragraph = targetControl.Ancestors<Paragraph>().FirstOrDefault();
-            if (paragraph != null && CanInsertContentControlGapBlockBeside(paragraph, block)) {
+            OfficeXmlNode paragraph = AncestorW(targetControl, "p");
+            if (!paragraph.IsNone && CanInsertContentControlGapBlockBeside(paragraph, block)) {
                 return paragraph;
             }
 
-            Table? table = targetControl.Ancestors<Table>().FirstOrDefault();
-            if (table != null && CanInsertContentControlGapBlockBeside(table, block)) {
+            OfficeXmlNode table = AncestorW(targetControl, "tbl");
+            if (!table.IsNone && CanInsertContentControlGapBlockBeside(table, block)) {
                 return table;
             }
 
-            return null;
+            return default;
         }
 
-        private static bool CanInsertContentControlGapBlockBeside(OpenXmlElement anchor, OpenXmlElement block) {
-            return anchor.Parent switch {
-                Body or Header or Footer or Footnote or Endnote or SdtContentBlock or TableCell => block is Paragraph or Table or SdtBlock,
-                Paragraph or SdtContentRun => block is SdtRun,
-                _ => false
-            };
+        private static bool CanInsertContentControlGapBlockBeside(OfficeXmlNode anchor, RedlineBlockKind block) {
+            OfficeXmlNode parent = anchor.Parent;
+            if (parent.NamespaceId != W) {
+                return false;
+            }
+
+            switch (parent.LocalName) {
+                case "body":
+                case "hdr":
+                case "ftr":
+                case "footnote":
+                case "endnote":
+                case "tc":
+                    return block is RedlineBlockKind.Paragraph or RedlineBlockKind.Table or RedlineBlockKind.BlockControl;
+                case "sdtContent":
+                    // The content of a block control holds blocks; the content of a run control holds runs.
+                    SdtKind owner = parent.Parent.Is(W, "sdt") ? GetSdtKind(parent.Parent) : SdtKind.Block;
+                    if (owner == SdtKind.Block) return block is RedlineBlockKind.Paragraph or RedlineBlockKind.Table or RedlineBlockKind.BlockControl;
+                    if (owner == SdtKind.Run) return block is RedlineBlockKind.RunControl;
+                    return false;
+                case "p":
+                    return block is RedlineBlockKind.RunControl;
+                default:
+                    return false;
+            }
         }
 
         private static RedlineContentControlEntry? FindMatchingTargetContentControl(
@@ -501,88 +631,82 @@ namespace OfficeIMO.Word {
                 string.Equals(GetContentControlPlacementKey(target.ContentControl), sourceKey, StringComparison.Ordinal));
         }
 
-        private static string GetContentControlPlacementKey(SdtElement contentControl) {
-            SdtProperties? properties = contentControl.GetFirstChild<SdtProperties>();
-            string alias = properties?.GetFirstChild<SdtAlias>()?.Val?.Value ?? string.Empty;
-            string tag = properties?.GetFirstChild<Tag>()?.Val?.Value ?? string.Empty;
-            DataBinding? dataBinding = properties?.GetFirstChild<DataBinding>();
-            string binding = dataBinding == null
+        private static string GetContentControlPlacementKey(OfficeXmlNode contentControl) {
+            OfficeXmlNode properties = contentControl.Child(W, "sdtPr");
+            string alias = ChildVal(properties, "alias") ?? string.Empty;
+            string tag = ChildVal(properties, "tag") ?? string.Empty;
+            OfficeXmlNode dataBinding = properties.IsNone ? default : properties.Child(W, "dataBinding");
+            string binding = dataBinding.IsNone
                 ? string.Empty
-                : string.Join("|", dataBinding.StoreItemId?.Value ?? string.Empty, dataBinding.XPath?.Value ?? string.Empty, dataBinding.PrefixMappings?.Value ?? string.Empty);
+                : string.Join("|", dataBinding.Attribute(W, "storeItemID") ?? string.Empty, dataBinding.Attribute(W, "xpath") ?? string.Empty, dataBinding.Attribute(W, "prefixMappings") ?? string.Empty);
 
+            string typeName = GetSdtKindName(GetSdtKind(contentControl));
             if (!string.IsNullOrWhiteSpace(alias) ||
                 !string.IsNullOrWhiteSpace(tag) ||
                 !string.IsNullOrWhiteSpace(binding)) {
-                return string.Join("|", contentControl.GetType().Name, alias, tag, binding);
+                return string.Join("|", typeName, alias, tag, binding);
             }
 
-            return contentControl.GetType().Name + "|" + NormalizeFeatureText(contentControl.InnerText ?? string.Empty);
+            return typeName + "|" + NormalizeFeatureText(InnerText(contentControl));
         }
 
-        private static OpenXmlCompositeElement? GetRedlineContentControlContainer(WordprocessingDocument targetDocument, RedlineContentControlEntry entry) {
-            MainDocumentPart? mainPart = targetDocument.MainDocumentPart;
+        private static OfficeXmlNode GetRedlineContentControlContainer(WordPackageView targetDocument, RedlineContentControlEntry entry) {
+            WordPartView? mainPart = targetDocument.Main;
             if (mainPart == null) {
-                return null;
+                return default;
             }
 
-            foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
+            foreach (WordFieldInventory.NodeFieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
                 if (!string.Equals(root.PartUri, entry.PartUri, StringComparison.Ordinal)) {
                     continue;
                 }
 
                 if (entry.LocationKind == WordFieldLocationKind.Footnote) {
-                    return FindNoteContainer<Footnote>(root.Root, entry.NoteId);
+                    return FindNoteContainer(root.Root, "footnote", entry.NoteId);
                 }
 
                 if (entry.LocationKind == WordFieldLocationKind.Endnote) {
-                    return FindNoteContainer<Endnote>(root.Root, entry.NoteId);
+                    return FindNoteContainer(root.Root, "endnote", entry.NoteId);
                 }
 
                 return root.Root;
             }
 
-            return mainPart.Document?.Body;
+            return BodyOf(mainPart);
         }
 
-        private static OpenXmlCompositeElement? FindNoteContainer<TNote>(OpenXmlCompositeElement root, string? noteId)
-            where TNote : OpenXmlCompositeElement {
+        private static OfficeXmlNode FindNoteContainer(OfficeXmlNode root, string noteName, string? noteId) {
             if (string.IsNullOrWhiteSpace(noteId)) {
-                return null;
+                return default;
             }
 
-            return root.Elements<TNote>().FirstOrDefault(note => {
-                OpenXmlAttribute id = note.GetAttribute("id", "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
-                return string.Equals(id.Value, noteId, StringComparison.Ordinal);
-            });
-        }
-
-        private static string? GetNoteId(SdtElement contentControl) {
-            Footnote? footnote = contentControl.Ancestors<Footnote>().FirstOrDefault();
-            if (footnote?.Id?.Value != null) {
-                return footnote.Id.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            }
-
-            Endnote? endnote = contentControl.Ancestors<Endnote>().FirstOrDefault();
-            return endnote?.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        }
-
-        private static void InsertContentControlRedlineElement(OpenXmlCompositeElement container, OpenXmlElement element) {
-            if (container is Body body) {
-                SectionProperties? sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
-                if (sectionProperties != null) {
-                    body.InsertBefore(element, sectionProperties);
-                    return;
+            foreach (OfficeXmlNode note in root.Children(W, noteName)) {
+                if (string.Equals(note.Attribute(W, "id"), noteId, StringComparison.Ordinal)) {
+                    return note;
                 }
             }
 
-            if (container is Footnotes footnotes) {
-                footnotes.Append(element);
-                return;
+            return default;
+        }
+
+        private static string? GetContentControlNoteId(OfficeXmlNode contentControl) {
+            OfficeXmlNode footnote = AncestorW(contentControl, "footnote");
+            long? footnoteId = footnote.IsNone ? null : GetNoteId(footnote);
+            if (footnoteId != null) {
+                return footnoteId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
 
-            if (container is Endnotes endnotes) {
-                endnotes.Append(element);
-                return;
+            OfficeXmlNode endnote = AncestorW(contentControl, "endnote");
+            return endnote.IsNone ? null : GetNoteId(endnote)?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static void InsertContentControlRedlineElement(OfficeXmlNode container, OfficeXmlNode element) {
+            if (container.Is(W, "body")) {
+                OfficeXmlNode sectionProperties = container.Children(W, "sectPr").Last();
+                if (!sectionProperties.IsNone) {
+                    container.InsertBefore(element, sectionProperties);
+                    return;
+                }
             }
 
             container.Append(element);
@@ -601,7 +725,7 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class RedlineContentControlEntry {
-            internal RedlineContentControlEntry(int index, string partUri, WordFieldLocationKind locationKind, string? noteId, SdtElement contentControl) {
+            internal RedlineContentControlEntry(int index, string partUri, WordFieldLocationKind locationKind, string? noteId, OfficeXmlNode contentControl) {
                 Index = index;
                 PartUri = partUri;
                 LocationKind = locationKind;
@@ -617,7 +741,7 @@ namespace OfficeIMO.Word {
 
             internal string? NoteId { get; }
 
-            internal SdtElement ContentControl { get; }
+            internal OfficeXmlNode ContentControl { get; }
         }
     }
 }

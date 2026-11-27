@@ -233,12 +233,6 @@ internal sealed partial class WordPackageView {
         }
     }
 
-    /// <summary>Reads a drawing's layout. Markup outside the SDK is read through a detached SDK drawing.</summary>
-    internal static bool TryReadDrawingLayout(OfficeXmlNode drawing, out WordDrawingLayoutInfo? layout) {
-        if (drawing.SdkElement is DocumentFormat.OpenXml.Wordprocessing.Drawing sdkDrawing) return WordDrawingLayoutReader.TryRead(sdkDrawing, out layout);
-        return WordDrawingLayoutReader.TryRead(new DocumentFormat.OpenXml.Wordprocessing.Drawing(System.Text.Encoding.UTF8.GetString(drawing.OuterXml())), out layout);
-    }
-
     /// <summary>
     /// Copies <paramref name="target"/>'s package into a new document for an in-place redline, as the target stands,
     /// with its table grid normalization state.
