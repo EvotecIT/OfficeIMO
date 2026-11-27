@@ -193,6 +193,23 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             }
         }
 
+        /// <summary>The id of the first internal relationship to <paramref name="target"/>, or null.</summary>
+        internal string? RelationshipIdOf(PowerPointPartRef target) {
+            PowerPointPartRef current = Current, wanted = target.Current;
+            if (current._sdk != null) return wanted._sdk == null ? null : PowerPointSdkParts.IdOfPart(current._sdk, wanted._sdk);
+            if (current._document?.ReadablePackage is not { } package) return null;
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(current._name);
+            if (!package.PartExists(relationshipsPart)) return null;
+            OfficeXmlTree tree = package.GetXml(relationshipsPart);
+            for (int node = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                node = tree.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                if (string.Equals(tree.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
+                string? partName = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, tree.GetAttribute(node, OfficeXmlNamespaces.None, "Target") ?? string.Empty);
+                if (partName != null && Package(current._document, partName).Equals(wanted)) return tree.GetAttribute(node, OfficeXmlNamespaces.None, "Id");
+            }
+            return null;
+        }
+
         /// <summary>Adds an external hyperlink relationship to <paramref name="uri"/> and returns its id.</summary>
         internal string AddExternalHyperlink(Uri uri) {
             PowerPointPartRef current = Current;

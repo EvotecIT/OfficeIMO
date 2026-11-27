@@ -1,7 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -9,29 +8,57 @@ namespace OfficeIMO.PowerPoint {
     ///     placed here are inherited by every slide that uses the master or layout.
     /// </summary>
     public abstract class PowerPointMasterSurface {
+        private const int P = OfficeXmlNamespaces.PresentationML;
+        private const int D = OfficeXmlNamespaces.DrawingML;
         private bool _removed;
 
-        internal PowerPointMasterSurface(PowerPointDocument document, OpenXmlPart part) {
+        internal PowerPointMasterSurface(PowerPointDocument document, PowerPointPartRef part) {
             Document = document;
-            Part = part;
+            _part = part;
         }
+
+        private readonly PowerPointPartRef _part;
 
         internal PowerPointDocument Document { get; }
 
-        internal OpenXmlPart Part { get; }
+        /// <summary>The part's name, which identifies the master or layout.</summary>
+        internal string PartName => _part.Name;
 
-        internal abstract CommonSlideData CommonSlideData { get; }
+        /// <summary>The master's or layout's part as it is held now.</summary>
+        internal PowerPointPartRef PartRef => _part.Current;
+
+        /// <summary>The part's root element (<c>p:sldMaster</c> or <c>p:sldLayout</c>).</summary>
+        internal OfficeXmlNode Root => PartRef.Root;
+
+        /// <summary>The children of the root element, in sequence order.</summary>
+        private protected abstract OfficeXmlChildOrder RootOrder { get; }
+
+        private void MarkEdited() => PartRef.MarkEdited();
+
+        /// <summary>The common slide data, added with a shape tree when missing.</summary>
+        internal OfficeXmlNode CommonSlideData {
+            get {
+                OfficeXmlNode root = Root;
+                OfficeXmlNode data = root.Child(P, "cSld");
+                if (!data.IsNone) return data;
+                data = root.AddOrdered(P, "cSld", RootOrder);
+                data.Append(data.CreateElement(P, "spTree"));
+                MarkEdited();
+                return data;
+            }
+        }
 
         /// <summary>Display name shown in PowerPoint's Slide Master view.</summary>
         public string Name {
             get {
                 ThrowIfRemoved();
-                return CommonSlideData.Name?.Value ?? string.Empty;
+                return CommonSlideData.Attribute("name") ?? string.Empty;
             }
             set {
                 ThrowIfRemoved();
                 ArgumentNullException.ThrowIfNull(value);
-                CommonSlideData.Name = value;
+                CommonSlideData.SetAttribute("name", value);
+                MarkEdited();
             }
         }
 
@@ -39,15 +66,54 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointShape> Shapes {
             get {
                 ThrowIfRemoved();
+                OfficeXmlNode tree = ShapeTree;
                 var shapes = new List<PowerPointShape>();
-                foreach (OpenXmlElement element in ShapeTree.ChildElements) {
-                    PowerPointShape? shape = PowerPointSlide.CreateShapeFromElement(element, Part);
-                    if (shape != null) shapes.Add(shape);
+                if (tree.Tree == null || ContainsChart(tree)) {
+                    // Charts on a master or layout read through the SDK, as every shape of an SDK-held part does.
+                    return Document.CreateSdkSurfaceShapes(this);
+                }
+                foreach (OfficeXmlNode element in tree.Children()) {
+                    if (CreatePackageShape(element) is { } shape) shapes.Add(shape);
                 }
 
                 return shapes;
             }
         }
+
+        // Whether the shape tree holds a chart frame, which only reads through the SDK.
+        private static bool ContainsChart(OfficeXmlNode tree) {
+            foreach (OfficeXmlNode frame in tree.Children(P, "graphicFrame")) {
+                if (!frame.Child(D, "graphic").Child(D, "graphicData").Child(OfficeXmlNamespaces.Chart, "chart").IsNone) return true;
+            }
+            return false;
+        }
+
+        // A shape wrapper for an element of the part's package tree, as the SDK model lists a master's or layout's shapes:
+        // diagrams and embedded objects only belong to slides.
+        private PowerPointShape? CreatePackageShape(OfficeXmlNode element) {
+            if (element.NamespaceId != P) return null;
+            PowerPointPartRef part = _part;
+            OfficeXmlTree tree = element.Tree!;
+            int node = element.Node;
+            switch (element.LocalName) {
+                case "sp":
+                    return element.Child(P, "txBody").IsNone ? new PowerPointAutoShape(part, tree, node) : new PowerPointTextBox(part, tree, node);
+                case "cxnSp":
+                    return new PowerPointConnectionShape(part, tree, node);
+                case "pic":
+                    return new PowerPointImage(part, tree, node);
+                case "grpSp":
+                    return new PowerPointGroupShape(part, tree, node);
+                case "graphicFrame":
+                    return element.Child(D, "graphic").Child(D, "graphicData").Child(D, "tbl").IsNone ? null : new PowerPointTable(part, tree, node);
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>The wrapper for a shape element of this surface.</summary>
+        internal PowerPointShape WrapShape(OfficeXmlNode element) =>
+            element.Tree != null ? CreatePackageShape(element)! : Document.CreateSdkSurfaceShape(this, element);
 
         /// <summary>Placeholders defined on this master or layout.</summary>
         public IReadOnlyList<PowerPointTextBox> Placeholders =>
@@ -71,39 +137,39 @@ namespace OfficeIMO.PowerPoint {
                     + (index == null ? string.Empty : " with index " + index.Value) + " already exists on '" + Name + "'.");
             }
 
+            string typeToken = placeholderType.ToOpenXmlToken();
             uint? resolvedIndex = IsTitle(placeholderType) ? null : index ?? NextPlaceholderIndex();
-            var placeholder = new PlaceholderShape { Type = placeholderType.ToOpenXml() };
-            if (resolvedIndex.HasValue) placeholder.Index = resolvedIndex.Value;
-
-            Shape shape = new(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = NextShapeId(), Name = name ?? UniqueName(placeholderType + " Placeholder") },
-                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties(placeholder)),
-                new ShapeProperties(
-                    new A.Transform2D(
-                        new A.Offset { X = bounds.Left.ToEmus(), Y = bounds.Top.ToEmus() },
-                        new A.Extents { Cx = bounds.Width.ToEmus(), Cy = bounds.Height.ToEmus() }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }),
-                new TextBody(new A.BodyProperties(), new A.ListStyle(), CreatePlaceholderParagraph(placeholderType)));
-            ShapeTree.AppendChild(shape);
-            return new PowerPointTextBox(shape, Part);
+            OfficeXmlNode tree = ShapeTree;
+            OfficeXmlNode shape = CreateShape(tree, name ?? UniqueName(placeholderType + " Placeholder"), out OfficeXmlNode application);
+            shape.Child(P, "nvSpPr").Child(P, "cNvSpPr").Append(shape.CreateElement(D, "spLocks")).SetAttribute("noGrp", "1");
+            OfficeXmlNode placeholder = application.Append(application.CreateElement(P, "ph"));
+            placeholder.SetAttribute("type", typeToken);
+            placeholder.SetUInt32Attribute("idx", resolvedIndex);
+            OfficeXmlNode properties = shape.Append(shape.CreateElement(P, "spPr"));
+            properties.Append(CreateTransform(properties, bounds.Left, bounds.Top, bounds.Width, bounds.Height));
+            properties.Append(CreatePresetGeometry(properties, "rect"));
+            OfficeXmlNode body = shape.Append(shape.CreateElement(P, "txBody"));
+            body.Append(body.CreateElement(D, "bodyPr"));
+            body.Append(body.CreateElement(D, "lstStyle"));
+            body.Append(CreatePlaceholderParagraph(body, placeholderType));
+            shape = tree.Append(shape);
+            MarkEdited();
+            return (PowerPointTextBox)WrapShape(shape);
         }
 
         /// <summary>Adds an auto shape, such as a band or rule, drawn behind slide content on every slide.</summary>
         public PowerPointAutoShape AddShape(OfficePresetShapeType shapeType, OfficeLength left, OfficeLength top,
             OfficeLength width, OfficeLength height, string? name = null) {
             ThrowIfRemoved();
-            Shape shape = new(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = NextShapeId(), Name = name ?? UniqueName(shapeType.ToString()) },
-                    new NonVisualShapeDrawingProperties(),
-                    new ApplicationNonVisualDrawingProperties()),
-                new ShapeProperties(
-                    CreateTransform(left, top, width, height),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = shapeType.ToOpenXml() }));
-            ShapeTree.AppendChild(shape);
-            return new PowerPointAutoShape(shape, Part);
+            string preset = shapeType.ToOpenXmlToken();
+            OfficeXmlNode tree = ShapeTree;
+            OfficeXmlNode shape = CreateShape(tree, name ?? UniqueName(shapeType.ToString()), out _);
+            OfficeXmlNode properties = shape.Append(shape.CreateElement(P, "spPr"));
+            properties.Append(CreateTransform(properties, left, top, width, height));
+            properties.Append(CreatePresetGeometry(properties, preset));
+            shape = tree.Append(shape);
+            MarkEdited();
+            return (PowerPointAutoShape)WrapShape(shape);
         }
 
         /// <summary>Adds fixed text, such as a confidentiality notice, shown on every slide.</summary>
@@ -111,19 +177,21 @@ namespace OfficeIMO.PowerPoint {
             OfficeLength height) {
             ThrowIfRemoved();
             ArgumentNullException.ThrowIfNull(text);
-            Shape shape = new(
-                new NonVisualShapeProperties(
-                    new NonVisualDrawingProperties { Id = NextShapeId(), Name = UniqueName("TextBox") },
-                    new NonVisualShapeDrawingProperties { TextBox = true },
-                    new ApplicationNonVisualDrawingProperties()),
-                new ShapeProperties(
-                    CreateTransform(left, top, width, height),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle },
-                    new A.NoFill()),
-                new TextBody(new A.BodyProperties { Wrap = A.TextWrappingValues.Square }, new A.ListStyle(),
-                    new A.Paragraph(PowerPointTextContent.CreateInlineContent(text))));
-            ShapeTree.AppendChild(shape);
-            return new PowerPointTextBox(shape, Part);
+            OfficeXmlNode tree = ShapeTree;
+            OfficeXmlNode shape = CreateShape(tree, UniqueName("TextBox"), out _);
+            shape.Child(P, "nvSpPr").Child(P, "cNvSpPr").SetAttribute("txBox", "1");
+            OfficeXmlNode properties = shape.Append(shape.CreateElement(P, "spPr"));
+            properties.Append(CreateTransform(properties, left, top, width, height));
+            properties.Append(CreatePresetGeometry(properties, "rect"));
+            properties.Append(properties.CreateElement(D, "noFill"));
+            OfficeXmlNode body = shape.Append(shape.CreateElement(P, "txBody"));
+            body.Append(body.CreateElement(D, "bodyPr")).SetAttribute("wrap", "square");
+            body.Append(body.CreateElement(D, "lstStyle"));
+            OfficeXmlNode paragraph = body.Append(body.CreateElement(D, "p"));
+            PowerPointTextContent.InsertInlineContent(paragraph, text, default, default);
+            shape = tree.Append(shape);
+            MarkEdited();
+            return (PowerPointTextBox)WrapShape(shape);
         }
 
         /// <summary>Adds a picture, such as a logo, shown on every slide. The picture keeps its aspect ratio inside the box.</summary>
@@ -142,17 +210,21 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width.ToEmus(), nameof(width));
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height.ToEmus(), nameof(height));
             string relationshipId = EmbedImage(image, imageType);
-            Picture picture = new(
-                new NonVisualPictureProperties(
-                    new NonVisualDrawingProperties { Id = NextShapeId(), Name = UniqueName("Picture") },
-                    new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
-                    new ApplicationNonVisualDrawingProperties()),
-                new BlipFill(new A.Blip { Embed = relationshipId }, new A.Stretch(new A.FillRectangle())),
-                new ShapeProperties(
-                    CreateTransform(left, top, width, height),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }));
-            ShapeTree.AppendChild(picture);
-            var result = new PowerPointImage(picture, Part);
+            OfficeXmlNode tree = ShapeTree;
+            OfficeXmlNode picture = tree.CreateElement(P, "pic");
+            OfficeXmlNode nonVisual = picture.Append(picture.CreateElement(P, "nvPicPr"));
+            AppendDrawingProperties(nonVisual, NextShapeId(), UniqueName("Picture"));
+            nonVisual.Append(nonVisual.CreateElement(P, "cNvPicPr")).Append(nonVisual.CreateElement(D, "picLocks")).SetAttribute("noChangeAspect", "1");
+            nonVisual.Append(nonVisual.CreateElement(P, "nvPr"));
+            OfficeXmlNode fill = picture.Append(picture.CreateElement(P, "blipFill"));
+            fill.Append(fill.CreateElement(D, "blip")).SetAttribute(OfficeXmlNamespaces.Relationships, "embed", relationshipId);
+            fill.Append(fill.CreateElement(D, "stretch")).Append(fill.CreateElement(D, "fillRect"));
+            OfficeXmlNode properties = picture.Append(picture.CreateElement(P, "spPr"));
+            properties.Append(CreateTransform(properties, left, top, width, height));
+            properties.Append(CreatePresetGeometry(properties, "rect"));
+            picture = tree.Append(picture);
+            MarkEdited();
+            var result = (PowerPointImage)WrapShape(picture);
             result.ContainInFrame();
             return result;
         }
@@ -164,7 +236,7 @@ namespace OfficeIMO.PowerPoint {
         public OfficeColor? BackgroundColor {
             get {
                 ThrowIfRemoved();
-                return PowerPointDrawingColor.Read(CommonSlideData.Background?.BackgroundProperties?.GetFirstChild<A.SolidFill>());
+                return PowerPointDrawingColor.Read(CommonSlideData.Child(P, "bg").Child(P, "bgPr").Child(D, "solidFill"));
             }
             set {
                 ThrowIfRemoved();
@@ -173,7 +245,9 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                SetBackgroundFill(PowerPointDrawingColor.Fill(value.Value, PowerPointDrawingColor.ThemeFor(Part)));
+                OfficeTheme? theme = PowerPointDrawingColor.NeedsTheme(value) ? PowerPointDrawingColor.ThemeFor(PartRef, null) : null;
+                OfficeXmlNode data = CommonSlideData;
+                SetBackgroundFill(PowerPointDrawingColor.CreateFill(data, value.Value, theme), null);
             }
         }
 
@@ -189,32 +263,51 @@ namespace OfficeIMO.PowerPoint {
         public void SetBackgroundImage(Stream image, OfficeImageFormat imageType) {
             ThrowIfRemoved();
             string relationshipId = EmbedImage(image, imageType);
-            SetBackgroundFill(new A.BlipFill(new A.Blip { Embed = relationshipId }, new A.Stretch(new A.FillRectangle())));
+            OfficeXmlNode data = CommonSlideData;
+            OfficeXmlNode fill = data.CreateElement(D, "blipFill");
+            fill.Append(fill.CreateElement(D, "blip")).SetAttribute(OfficeXmlNamespaces.Relationships, "embed", relationshipId);
+            fill.Append(fill.CreateElement(D, "stretch")).Append(fill.CreateElement(D, "fillRect"));
+            SetBackgroundFill(fill, relationshipId);
         }
 
         /// <summary>Removes the local background so the inherited one shows.</summary>
         public void ClearBackground() {
             ThrowIfRemoved();
-            string? imageRelationship = CommonSlideData.Background?.BackgroundProperties?
-                .GetFirstChild<A.BlipFill>()?.Blip?.Embed?.Value;
-            CommonSlideData.Background = null;
+            OfficeXmlNode data = CommonSlideData;
+            string? imageRelationship = BackgroundImageRelationship(data);
+            data.RemoveChildren(P, "bg");
+            MarkEdited();
             DeleteImageIfUnused(imageRelationship);
         }
 
-        internal ShapeTree ShapeTree {
+        /// <summary>The shape tree, with the group properties PowerPoint requires added when missing.</summary>
+        internal OfficeXmlNode ShapeTree {
             get {
-                CommonSlideData common = CommonSlideData;
-                ShapeTree tree = common.ShapeTree ??= new ShapeTree();
-                if (tree.GetFirstChild<NonVisualGroupShapeProperties>() == null) {
-                    tree.PrependChild(new NonVisualGroupShapeProperties(
-                        new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
-                        new NonVisualGroupShapeDrawingProperties(),
-                        new ApplicationNonVisualDrawingProperties()));
+                OfficeXmlNode data = CommonSlideData;
+                OfficeXmlNode tree = data.Child(P, "spTree");
+                if (tree.IsNone) {
+                    tree = data.AddOrdered(P, "spTree", PCommonSlideDataView.Order);
+                    MarkEdited();
+                }
+                if (tree.Child(P, "nvGrpSpPr").IsNone) {
+                    OfficeXmlNode group = tree.CreateElement(P, "nvGrpSpPr");
+                    AppendDrawingProperties(group, 1U, string.Empty);
+                    group.Append(group.CreateElement(P, "cNvGrpSpPr"));
+                    group.Append(group.CreateElement(P, "nvPr"));
+                    tree.InsertBefore(group, tree.FirstChild);
+                    MarkEdited();
                 }
 
-                if (tree.GetFirstChild<GroupShapeProperties>() == null) {
-                    tree.InsertAfter(PowerPointUtils.CreateDefaultGroupShapeProperties(),
-                        tree.GetFirstChild<NonVisualGroupShapeProperties>());
+                if (tree.Child(P, "grpSpPr").IsNone) {
+                    OfficeXmlNode properties = tree.CreateElement(P, "grpSpPr");
+                    OfficeXmlNode transform = properties.Append(properties.CreateElement(D, "xfrm"));
+                    foreach ((string point, string first, string second) in new[] { ("off", "x", "y"), ("ext", "cx", "cy"), ("chOff", "x", "y"), ("chExt", "cx", "cy") }) {
+                        OfficeXmlNode added = transform.Append(transform.CreateElement(D, point));
+                        added.SetAttribute(first, "0");
+                        added.SetAttribute(second, "0");
+                    }
+                    tree.Child(P, "nvGrpSpPr").InsertAfterSelf(properties);
+                    MarkEdited();
                 }
 
                 return tree;
@@ -227,13 +320,21 @@ namespace OfficeIMO.PowerPoint {
             if (_removed) throw new InvalidOperationException("This slide master or layout has been removed from the presentation.");
         }
 
-        private void SetBackgroundFill(OpenXmlElement fill) {
-            string? previousImage = CommonSlideData.Background?.BackgroundProperties?
-                .GetFirstChild<A.BlipFill>()?.Blip?.Embed?.Value;
-            CommonSlideData.Background = new Background(new BackgroundProperties(fill, new A.EffectList()));
-            if (fill is not A.BlipFill blip || blip.Blip?.Embed?.Value != previousImage) {
-                DeleteImageIfUnused(previousImage);
-            }
+        private static string? BackgroundImageRelationship(OfficeXmlNode data) =>
+            data.Child(P, "bg").Child(P, "bgPr").Child(D, "blipFill").Child(D, "blip").Attribute(OfficeXmlNamespaces.Relationships, "embed");
+
+        // Replaces the background with one fill and an empty effect list.
+        private void SetBackgroundFill(OfficeXmlNode fill, string? newImage) {
+            OfficeXmlNode data = CommonSlideData;
+            string? previousImage = BackgroundImageRelationship(data);
+            data.RemoveChildren(P, "bg");
+            OfficeXmlNode background = data.CreateElement(P, "bg");
+            OfficeXmlNode properties = background.Append(background.CreateElement(P, "bgPr"));
+            properties.Append(fill);
+            properties.Append(properties.CreateElement(D, "effectLst"));
+            data.InsertOrdered(background, PCommonSlideDataView.Order);
+            MarkEdited();
+            if (newImage == null || newImage != previousImage) DeleteImageIfUnused(previousImage);
         }
 
         private string EmbedImage(Stream image, OfficeImageFormat imageType) {
@@ -242,28 +343,54 @@ namespace OfficeIMO.PowerPoint {
             using MemoryStream? normalized = PowerPointImageNormalization.NormalizeHeicForEmbedding(image, imageType);
             Stream source = normalized ?? image;
             OfficeImageFormat format = normalized != null ? OfficeImageFormat.Png : imageType;
-            string partUri = PowerPointPartFactory.GetIndexedPartUri(Part.OpenXmlPackage, "ppt/media", "image",
-                PowerPointPartFactory.GetImageExtension(format), allowBaseWithoutIndex: false);
-            ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(Part, format.ToPartTypeInfo().ContentType, partUri);
             if (source.CanSeek) source.Position = 0;
-            imagePart.FeedData(source);
-            return Part.GetIdOfPart(imagePart);
+            using var buffer = new MemoryStream();
+            source.CopyTo(buffer);
+            byte[] data = buffer.ToArray();
+            PowerPointPartRef part = PartRef;
+            if (!part.IsSdk && Document.TryAddPackageImagePart(part.Name, data, PowerPointImageContentTypes.For(format),
+                    PowerPointPartFactory.GetImageExtension(format), out string relationshipId, out _, out _)) {
+                return relationshipId;
+            }
+            return Document.AddSdkSurfaceImage(this, data, format);
         }
 
         private void DeleteImageIfUnused(string? relationshipId) {
             if (string.IsNullOrEmpty(relationshipId)) return;
-            bool used = Part.RootElement?.Descendants<A.Blip>().Any(blip => blip.Embed?.Value == relationshipId) == true;
-            if (!used && Part.TryGetPartById(relationshipId!, out OpenXmlPart? part) && part is ImagePart) {
-                Part.DeletePart(relationshipId!);
-            }
+            PartRef.RemoveRelationshipIfUnused(relationshipId!, default);
         }
 
-        private uint NextShapeId() =>
-            ShapeTree.Descendants<NonVisualDrawingProperties>().Select(p => p.Id?.Value ?? 0U).DefaultIfEmpty(1U).Max() + 1U;
+        // A new p:sp with its non-visual properties (id, name, drawing properties, application properties); the
+        // application properties come back to receive a placeholder.
+        private OfficeXmlNode CreateShape(OfficeXmlNode context, string name, out OfficeXmlNode application) {
+            OfficeXmlNode shape = context.CreateElement(P, "sp");
+            OfficeXmlNode nonVisual = shape.Append(shape.CreateElement(P, "nvSpPr"));
+            AppendDrawingProperties(nonVisual, NextShapeId(), name);
+            nonVisual.Append(nonVisual.CreateElement(P, "cNvSpPr"));
+            application = nonVisual.Append(nonVisual.CreateElement(P, "nvPr"));
+            return shape;
+        }
+
+        private static void AppendDrawingProperties(OfficeXmlNode parent, uint id, string name) {
+            OfficeXmlNode drawing = parent.Append(parent.CreateElement(P, "cNvPr"));
+            drawing.SetUInt32Attribute("id", id);
+            drawing.SetAttribute("name", name);
+        }
+
+        private uint NextShapeId() {
+            uint max = 1U;
+            bool any = false;
+            foreach (OfficeXmlNode drawing in ShapeTree.Descendants(P, "cNvPr")) {
+                uint id = drawing.UInt32Attribute("id") ?? 0U;
+                max = any ? Math.Max(max, id) : id;
+                any = true;
+            }
+            return (any ? max : 1U) + 1U;
+        }
 
         private string UniqueName(string baseName) {
-            var names = new HashSet<string>(ShapeTree.Descendants<NonVisualDrawingProperties>()
-                .Select(p => p.Name?.Value ?? string.Empty), StringComparer.Ordinal);
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (OfficeXmlNode drawing in ShapeTree.Descendants(P, "cNvPr")) names.Add(drawing.Attribute("name") ?? string.Empty);
             int index = 1;
             string name;
             do {
@@ -273,7 +400,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private uint NextPlaceholderIndex() {
-            uint max = ShapeTree.Descendants<PlaceholderShape>().Select(p => p.Index?.Value ?? 0U).DefaultIfEmpty(0U).Max();
+            uint max = 0U;
+            foreach (OfficeXmlNode placeholder in ShapeTree.Descendants(P, "ph")) max = Math.Max(max, placeholder.UInt32Attribute("idx") ?? 0U);
             return max + 1U;
         }
 
@@ -284,24 +412,40 @@ namespace OfficeIMO.PowerPoint {
             IsTitle(type) || type is PowerPointPlaceholderType.SubTitle or PowerPointPlaceholderType.Footer
                 or PowerPointPlaceholderType.SlideNumber or PowerPointPlaceholderType.DateAndTime;
 
-        private static A.Paragraph CreatePlaceholderParagraph(PowerPointPlaceholderType type) {
+        private static OfficeXmlNode CreatePlaceholderParagraph(OfficeXmlNode context, PowerPointPlaceholderType type) {
             string? fieldType = type switch {
                 PowerPointPlaceholderType.SlideNumber => "slidenum",
                 PowerPointPlaceholderType.DateAndTime => "datetime1",
                 _ => null
             };
-            if (fieldType == null) return new A.Paragraph(new A.EndParagraphRunProperties { Language = "en-US" });
-
-            var field = new A.Field(new A.RunProperties { Language = "en-US" },
-                new A.Text(fieldType == "slidenum" ? "‹#›" : string.Empty)) {
-                Id = "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}",
-                Type = fieldType
-            };
-            return new A.Paragraph(field, new A.EndParagraphRunProperties { Language = "en-US" });
+            OfficeXmlNode paragraph = context.CreateElement(D, "p");
+            if (fieldType != null) {
+                OfficeXmlNode field = paragraph.Append(paragraph.CreateElement(D, "fld"));
+                field.SetAttribute("id", "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}");
+                field.SetAttribute("type", fieldType);
+                field.Append(field.CreateElement(D, "rPr")).SetAttribute("lang", "en-US");
+                field.Append(field.CreateElement(D, "t")).SetInnerText(fieldType == "slidenum" ? "‹#›" : string.Empty);
+            }
+            paragraph.Append(paragraph.CreateElement(D, "endParaRPr")).SetAttribute("lang", "en-US");
+            return paragraph;
         }
 
-        private static A.Transform2D CreateTransform(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height) =>
-            new(new A.Offset { X = left.ToEmus(), Y = top.ToEmus() },
-                new A.Extents { Cx = width.ToEmus(), Cy = height.ToEmus() });
+        private static OfficeXmlNode CreateTransform(OfficeXmlNode context, OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height) {
+            OfficeXmlNode transform = context.CreateElement(D, "xfrm");
+            OfficeXmlNode offset = transform.Append(transform.CreateElement(D, "off"));
+            offset.SetInt64Attribute("x", left.ToEmus());
+            offset.SetInt64Attribute("y", top.ToEmus());
+            OfficeXmlNode extents = transform.Append(transform.CreateElement(D, "ext"));
+            extents.SetInt64Attribute("cx", width.ToEmus());
+            extents.SetInt64Attribute("cy", height.ToEmus());
+            return transform;
+        }
+
+        private static OfficeXmlNode CreatePresetGeometry(OfficeXmlNode context, string preset) {
+            OfficeXmlNode geometry = context.CreateElement(D, "prstGeom");
+            geometry.SetAttribute("prst", preset);
+            geometry.Append(geometry.CreateElement(D, "avLst"));
+            return geometry;
+        }
     }
 }

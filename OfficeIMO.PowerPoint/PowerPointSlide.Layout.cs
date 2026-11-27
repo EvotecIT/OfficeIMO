@@ -12,20 +12,13 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int LayoutIndex {
             get {
-                SlideLayoutPart? layoutPart = SlidePart.SlideLayoutPart;
-                if (layoutPart == null) {
+                OpenXml.PowerPointPartRef layout = PartRef.RelatedPart(OpenXml.PowerPointPartRef.SlideLayoutRelationshipType);
+                if (layout.IsNone) {
                     return -1;
                 }
 
-                SlideMasterPart master = layoutPart.GetParentParts().OfType<SlideMasterPart>().First();
-                SlideLayoutPart[] layouts = master.SlideLayoutParts.ToArray();
-                for (int i = 0; i < layouts.Length; i++) {
-                    if (layouts[i] == layoutPart) {
-                        return i;
-                    }
-                }
-
-                return -1;
+                OpenXml.PowerPointPartRef master = layout.RelatedPart(OpenXml.PowerPointPartRef.SlideMasterRelationshipType);
+                return master.RelatedParts(OpenXml.PowerPointPartRef.SlideLayoutRelationshipType).ToList().IndexOf(layout);
             }
         }
 
@@ -59,8 +52,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointSlideLayout? Layout {
             get {
-                SlideLayoutPart? layoutPart = SlidePart.SlideLayoutPart;
-                return layoutPart == null || OwnerDocument == null ? null : OwnerDocument.GetLayout(layoutPart);
+                OpenXml.PowerPointPartRef layout = PartRef.RelatedPart(OpenXml.PowerPointPartRef.SlideLayoutRelationshipType);
+                return layout.IsNone || OwnerDocument == null ? null : OwnerDocument.GetLayout(layout);
             }
         }
 
@@ -75,13 +68,14 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("The layout belongs to a different presentation.", nameof(layout));
             }
 
+            SlideLayoutPart target = OwnerDocument.SdkLayoutPart(layout);
             SlideLayoutPart? current = SlidePart.SlideLayoutPart;
-            if (ReferenceEquals(current, layout.LayoutPart)) return;
+            if (ReferenceEquals(current, target)) return;
             if (current != null) {
                 SlidePart.DeletePart(SlidePart.GetIdOfPart(current));
             }
 
-            SlidePart.AddPart(layout.LayoutPart);
+            SlidePart.AddPart(target);
         }
 
         /// <summary>

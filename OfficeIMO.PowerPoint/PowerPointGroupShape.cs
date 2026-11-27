@@ -14,6 +14,9 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointGroupShape(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
+        internal PowerPointGroupShape(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) : base(part, tree, node) {
+        }
+
         internal GroupShape GroupShape => (GroupShape)Element;
 
         internal OpenXmlPartContainer? OwnerPart { get; }

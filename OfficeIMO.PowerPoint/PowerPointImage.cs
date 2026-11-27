@@ -17,6 +17,9 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointImage(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
+        internal PowerPointImage(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) : base(part, tree, node) {
+        }
+
         internal PowerPointImage(Picture picture, SlidePart slidePart) : this(picture, slidePart, slidePart) {
         }
 

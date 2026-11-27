@@ -11,6 +11,9 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointConnectionShape(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
+        internal PowerPointConnectionShape(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) : base(part, tree, node) {
+        }
+
         internal PowerPointConnectionShape(ConnectionShape shape, OpenXmlPartContainer? ownerPart = null) : base(shape, ownerPart) {
         }
 

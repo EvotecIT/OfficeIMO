@@ -8,6 +8,9 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointAutoShape(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
+        internal PowerPointAutoShape(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) : base(part, tree, node) {
+        }
+
         /// <summary>
         ///     Gets the preset geometry type of the shape.
         /// </summary>

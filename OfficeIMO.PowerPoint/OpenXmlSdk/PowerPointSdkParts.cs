@@ -78,6 +78,8 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
             }
         }
 
+        internal static string? IdOfPart(object part, object target) => P(part).Parts.FirstOrDefault(pair => ReferenceEquals(pair.OpenXmlPart, target)).RelationshipId;
+
         internal static string AddHyperlink(object part, Uri uri, bool external) => P(part).AddHyperlinkRelationship(uri, external).Id;
 
         internal static string GetOrAddRelativeHyperlink(object part, object target) {
