@@ -91,9 +91,15 @@ namespace OfficeIMO.Word {
         /// extension markup are not plotted and are skipped.
         /// </summary>
         private static IEnumerable<OfficeXmlNode> EnumerateSeries(OfficeXmlNode chart) {
+            // Series are children of the chart groups, which are children of the plot area.
             OfficeXmlNode plot = PlotAreaOf(chart);
-            if (plot.IsNone) return Enumerable.Empty<OfficeXmlNode>();
-            return plot.ContentDescendants(NsC, "ser").Where(IsSupportedSeriesElement);
+            if (plot.IsNone) yield break;
+            for (OfficeXmlNode group = plot.FirstChild; !group.IsNone; group = group.NextSibling) {
+                if (group.IsExtensionMarkup()) continue;
+                for (OfficeXmlNode series = group.FirstChild; !series.IsNone; series = series.NextSibling) {
+                    if (series.Is(NsC, "ser") && IsSupportedSeriesElement(series)) yield return series;
+                }
+            }
         }
 
         private static bool IsSupportedSeriesElement(OfficeXmlNode series) {

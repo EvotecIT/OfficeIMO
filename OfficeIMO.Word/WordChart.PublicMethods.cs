@@ -294,12 +294,21 @@ namespace OfficeIMO.Word {
             return this;
         }
 
+        private static readonly string[] ColorableGroups = { "barChart", "bar3DChart", "lineChart", "line3DChart", "areaChart", "area3DChart", "radarChart", "scatterChart", "bubbleChart" };
+
+        private static readonly Dictionary<string, OfficeIMO.OfficeColor> DefaultOutcomeColors = new(System.StringComparer.OrdinalIgnoreCase) {
+            ["Passed"]  = OfficeIMO.OfficeColor.ParseHex("#2fb344"),
+            ["Failed"]  = OfficeIMO.OfficeColor.ParseHex("#f76707"),
+            ["Error"]   = OfficeIMO.OfficeColor.ParseHex("#d63939"),
+            ["Skipped"] = OfficeIMO.OfficeColor.ParseHex("#868e96"),
+        };
+
         /// <summary>The series of every chart group the native series colors apply to, in group-kind order.</summary>
         private List<OfficeXmlNode> ColorableSeries() {
             var series = new List<OfficeXmlNode>();
             OfficeXmlNode plot = PlotAreaOf(_chart);
             if (plot.IsNone) return series;
-            foreach (string group in new[] { "barChart", "bar3DChart", "lineChart", "line3DChart", "areaChart", "area3DChart", "radarChart", "scatterChart", "bubbleChart" }) {
+            foreach (string group in ColorableGroups) {
                 foreach (OfficeXmlNode chartGroup in plot.Children(NsC, group)) {
                     foreach (OfficeXmlNode item in chartGroup.Children(NsC, "ser")) series.Add(item);
                 }
@@ -407,14 +416,11 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>The semantic outcome colors with <paramref name="overrides"/> applied; read only.</summary>
         private static Dictionary<string, OfficeIMO.OfficeColor> OutcomeColors(Dictionary<string, OfficeIMO.OfficeColor>? overrides) {
-            var map = new Dictionary<string, OfficeIMO.OfficeColor>(System.StringComparer.OrdinalIgnoreCase) {
-                ["Passed"]  = OfficeIMO.OfficeColor.ParseHex("#2fb344"),
-                ["Failed"]  = OfficeIMO.OfficeColor.ParseHex("#f76707"),
-                ["Error"]   = OfficeIMO.OfficeColor.ParseHex("#d63939"),
-                ["Skipped"] = OfficeIMO.OfficeColor.ParseHex("#868e96"),
-            };
-            if (overrides != null) foreach (var kv in overrides) map[kv.Key] = kv.Value;
+            if (overrides == null || overrides.Count == 0) return DefaultOutcomeColors;
+            var map = new Dictionary<string, OfficeIMO.OfficeColor>(DefaultOutcomeColors, System.StringComparer.OrdinalIgnoreCase);
+            foreach (var kv in overrides) map[kv.Key] = kv.Value;
             return map;
         }
 
