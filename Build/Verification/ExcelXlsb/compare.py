@@ -35,7 +35,13 @@ def run(command, cwd, **kwargs):
     return subprocess.run(command, cwd=cwd, check=True, text=True, **kwargs)
 
 
-def capture_test_inputs(checkout, destination):
+def run_locked(command, cwd, build_lock, **kwargs):
+    if build_lock is not None:
+        command = ["lockf", "-k", str(build_lock), *command]
+    return run(command, cwd, **kwargs)
+
+
+def capture_test_inputs(checkout, destination, build_lock):
     destination.mkdir(parents=True)
     reader = checkout / READER
     source = reader.read_text()
@@ -45,10 +51,11 @@ def capture_test_inputs(checkout, destination):
     field = "        private static readonly object CaptureCorpusLock = new();\n\n"
     reader.write_text(source.replace(anchor, field + anchor + "\n" + CAPTURE, 1))
     try:
-        run(["dotnet", "test", "OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj",
-             "-c", "Release", "-f", "net10.0", "-m:2", "--filter",
-             "FullyQualifiedName~Xlsb&Category!=Performance"], checkout,
-            env={**os.environ, "OFFICEIMO_XLSB_CORPUS": str(destination)})
+        project = "OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj"
+        run_locked(["dotnet", "build", project, "-c", "Release", "-f", "net10.0", "-m:2"], checkout, build_lock)
+        run_locked(["dotnet", "test", project, "-c", "Release", "-f", "net10.0", "--no-build", "-m:2",
+                    "--filter", "FullyQualifiedName~Xlsb&Category!=Performance"], checkout, build_lock,
+                   env={**os.environ, "OFFICEIMO_XLSB_CORPUS": str(destination)})
     finally:
         reader.write_text(source)
     if not any(destination.iterdir()):
@@ -67,10 +74,14 @@ def copy_fixtures(checkout, corpus):
         shutil.copyfile(checkout / name, path)
 
 
-def project(checkout, corpus, output, driver):
-    shutil.copytree(HERE, driver, ignore=shutil.ignore_patterns("bin", "obj", "__pycache__"))
-    run(["dotnet", "run", "--project", str(driver / "ProjectCorpus.csproj"), "-c", "Release",
-         f"-p:ExcelSourceRoot={checkout}", "--", str(corpus), str(output)], checkout)
+def project(checkout, corpus, output, driver, build_lock):
+    driver.mkdir()
+    for file in ("Program.cs", "ProjectCorpus.csproj"):
+        shutil.copyfile(HERE / file, driver / file)
+    run_locked(["dotnet", "build", str(driver / "ProjectCorpus.csproj"), "-c", "Release",
+                "-f", "net10.0", "-m:2", f"-p:ExcelSourceRoot={checkout}"], checkout, build_lock)
+    executable = driver / "bin/Release/net10.0/ProjectCorpus.dll"
+    run_locked(["dotnet", str(executable), str(corpus), str(output)], checkout, build_lock)
 
 
 def normalize_qualified_values(xml):
@@ -184,6 +195,8 @@ def main():
     parser.add_argument("candidate", help="Candidate Git revision")
     parser.add_argument("output", type=Path, help="New scratch directory for inputs, outputs and the difference report")
     parser.add_argument("--corpus", type=Path, help="Reuse fixtures and test outputs from an earlier run")
+    parser.add_argument("--build-lock", type=lambda path: Path(path).expanduser().resolve(),
+                        help="Serialize builds and tests through the machine's shared lockf path")
     args = parser.parse_args()
     root = HERE.parents[2]
     output = args.output.resolve()
@@ -200,9 +213,9 @@ def main():
                 raise ValueError("The reused corpus must contain both fixtures and test-produced XLSB inputs")
         else:
             copy_fixtures(checkouts[0], corpus)
-            capture_test_inputs(checkouts[0], corpus / "test-outputs")
+            capture_test_inputs(checkouts[0], corpus / "test-outputs", args.build_lock)
         for label, checkout in zip(("baseline", "candidate"), checkouts):
-            project(checkout, corpus, output / label, output / f"driver-{label}")
+            project(checkout, corpus, output / label, output / f"driver-{label}", args.build_lock)
         return compare(output)
     finally:
         for checkout in reversed(checkouts):
