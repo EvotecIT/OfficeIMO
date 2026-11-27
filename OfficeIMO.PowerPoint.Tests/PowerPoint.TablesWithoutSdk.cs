@@ -117,7 +117,7 @@ public class PowerPointTablesWithoutSdkTests {
         Assert.Equal("Total", paragraph.Text);
         Assert.Equal("Total", run.Text);
         Assert.Equal("Total", paragraph.Runs[0].Text);
-        Assert.Equal("A\nB", lines.Text);
+        Assert.Equal("A" + Environment.NewLine + "B", lines.Text);
     }
 
     [Fact]
