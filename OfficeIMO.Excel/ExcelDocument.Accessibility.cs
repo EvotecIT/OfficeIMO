@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel {
                     child is Xdr.Picture or Xdr.GraphicFrame or Xdr.Shape or Xdr.GroupShape);
                 if (graphic == null) continue;
                 Xdr.NonVisualDrawingProperties? properties = graphic.Descendants<Xdr.NonVisualDrawingProperties>().FirstOrDefault();
-                if (properties == null || ExcelDrawingAccessibility.IsDecorative(properties)) continue;
+                if (properties == null || ExcelDrawingAccessibility.IsDecorative(OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(properties))) continue;
                 if (!string.IsNullOrWhiteSpace(properties.Description?.Value) || !string.IsNullOrWhiteSpace(properties.Title?.Value)) continue;
                 if (graphic is Xdr.Shape shape && !string.IsNullOrWhiteSpace(shape.TextBody?.InnerText)) continue;
 

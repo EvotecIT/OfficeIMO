@@ -3,6 +3,9 @@ using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel;
 
+// Source-linked number formats read the cell, row and column styles of the worksheet the chart's data comes from. The
+// cells belong to the SDK worksheet model while the workbook is held by the SDK, so they are read through its typed
+// properties here; reading them through the element handle would copy every cell's attributes on each lookup.
 public sealed partial class ExcelChart {
     private sealed class SourceLinkedSheetStyles {
         internal readonly Dictionary<string, uint?> Cells = new(StringComparer.OrdinalIgnoreCase);

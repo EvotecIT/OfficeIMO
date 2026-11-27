@@ -1,23 +1,44 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     // Represents a chart on a worksheet.
     public sealed partial class ExcelChart {
-        private static void ApplyDataLabels(OpenXmlCompositeElement chartElement, bool showLegendKey, bool showValue,
+        // Elements that follow c:dLbls in a series, in the order the insertion point is looked up.
+        private static readonly string[] SeriesChildrenAfterDataLabels = {
+            "trendline", "errBars", "cat", "val", "xVal", "yVal", "bubbleSize", "smooth", "extLst"
+        };
+
+        // Elements that follow c:dLbls in a chart group, in the order the insertion point is looked up.
+        private static readonly string[] ChartChildrenAfterDataLabels = {
+            "gapWidth", "gapDepth", "overlap", "bubbleScale", "showNegBubbles", "sizeRepresents", "hiLowLines",
+            "upDownBars", "shape", "axId", "extLst"
+        };
+
+        // The order c:dLbls children are written in; c:dLbl overrides come first, all of them.
+        private static readonly string[] DataLabelsChildOrder = {
+            "dLbl", "delete", "numFmt", "spPr", "txPr", "dLblPos", "showLegendKey", "showVal", "showCatName",
+            "showSerName", "showPercent", "showBubbleSize", "separator", "showLeaderLines", "leaderLines", "extLst"
+        };
+
+        // The order c:dLbl children are written in, from c:idx.
+        private static readonly string[] DataLabelChildOrder = {
+            "idx", "delete", "layout", "tx", "numFmt", "spPr", "txPr", "dLblPos", "showLegendKey", "showVal",
+            "showCatName", "showSerName", "showPercent", "showBubbleSize", "separator", "showLeaderLines",
+            "leaderLines", "extLst"
+        };
+
+        private static void ApplyDataLabels(OfficeXmlNode chartElement, bool showLegendKey, bool showValue,
             bool showCategoryName, bool showSeriesName, bool showPercent) {
             ApplyDataLabels(chartElement, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
                 null, null, null);
         }
 
-        private static void ApplyDataLabels(OpenXmlCompositeElement chartElement, bool? showLegendKey, bool? showValue,
+        private static void ApplyDataLabels(OfficeXmlNode chartElement, bool? showLegendKey, bool? showValue,
             bool? showCategoryName, bool? showSeriesName, bool? showPercent,
             OfficeChartDataLabelPosition? position, string? numberFormat, bool? sourceLinked) {
-            C.DataLabels labels = EnsureDataLabels(chartElement);
+            OfficeXmlNode labels = EnsureDataLabels(chartElement);
             ApplyDataLabelOverrides(labels, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
                 showBubbleSize: null, position, numberFormat, sourceLinked);
         }
@@ -29,23 +50,23 @@ namespace OfficeIMO.Excel {
             return value;
         }
 
-        private static void ApplyTextStyle(A.TextCharacterPropertiesType runProps, OfficeLength? fontSize, bool? bold,
+        private static void ApplyTextStyle(OfficeXmlNode runProps, OfficeLength? fontSize, bool? bold,
             bool? italic, OfficeColor? color, string? fontFamily) {
             if (fontSize != null) {
-                runProps.FontSize = ToNativeFontSize(fontSize.Value);
+                runProps.SetAttribute("sz", ToNativeFontSize(fontSize.Value).ToString(CultureInfo.InvariantCulture));
             }
             if (bold != null) {
-                runProps.Bold = bold.Value;
+                runProps.Attr("b", bold.Value);
             }
             if (italic != null) {
-                runProps.Italic = italic.Value;
+                runProps.Attr("i", italic.Value);
             }
             if (color != null) {
                 ApplyTextSolidFill(runProps, color);
             }
             if (fontFamily != null) {
-                runProps.RemoveAllChildren<A.LatinFont>();
-                runProps.Append(new A.LatinFont { Typeface = fontFamily });
+                runProps.RemoveChildren(A, "latin");
+                runProps.Append(runProps.New(A, "latin").Attr("typeface", fontFamily));
             }
         }
 
@@ -114,94 +135,100 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ValidateCrossesAtForAxis(OpenXmlCompositeElement axis, double? crossesAt) {
+        private static void ValidateCrossesAtForAxis(OfficeXmlNode axis, double? crossesAt) {
             if (crossesAt == null) {
                 return;
             }
 
-            C.Scaling? scaling = axis.GetFirstChild<C.Scaling>();
-            if (scaling?.GetFirstChild<C.LogBase>() != null && crossesAt.Value <= 0) {
+            OfficeXmlNode scaling = axis.Child(C, "scaling");
+            if (scaling.Child(C, "logBase").Exists && crossesAt.Value <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(crossesAt), "Crosses-at value must be greater than 0 for log scale.");
             }
         }
 
-        private static void ApplyAxisScale(OpenXmlCompositeElement axis, double? minimum, double? maximum,
+        private static void ApplyAxisScale(OfficeXmlNode axis, double? minimum, double? maximum,
             double? majorUnit, double? minorUnit, bool? reverseOrder, bool? logScale, double? logBase) {
             if (reverseOrder != null || minimum != null || maximum != null || logScale != null || logBase != null) {
-                C.Scaling scaling = EnsureScaling(axis);
+                OfficeXmlNode scaling = EnsureScaling(axis);
                 if (reverseOrder != null) {
-                    ReplaceChild(scaling, new C.Orientation {
-                        Val = reverseOrder.Value ? C.OrientationValues.MaxMin : C.OrientationValues.MinMax
-                    });
+                    ReplaceChild(scaling, scaling.NewVal(C, "orientation", reverseOrder.Value ? "maxMin" : "minMax"));
                 }
                 if (minimum != null) {
-                    ReplaceChild(scaling, new C.MinAxisValue { Val = minimum.Value });
+                    ReplaceChild(scaling, scaling.NewVal(C, "min", minimum.Value));
                 }
                 if (maximum != null) {
-                    ReplaceChild(scaling, new C.MaxAxisValue { Val = maximum.Value });
+                    ReplaceChild(scaling, scaling.NewVal(C, "max", maximum.Value));
                 }
 
                 bool effectiveLog = logScale == true || logBase != null;
                 if (effectiveLog) {
                     double baseValue = logBase ?? 10d;
-                    ReplaceChild(scaling, new C.LogBase { Val = baseValue });
+                    ReplaceChild(scaling, scaling.NewVal(C, "logBase", baseValue));
                 } else if (logScale == false) {
-                    scaling.GetFirstChild<C.LogBase>()?.Remove();
+                    scaling.RemoveChild(C, "logBase");
                 }
 
                 NormalizeScalingOrder(scaling);
             }
 
             if (majorUnit != null) {
-                ReplaceChild(axis, new C.MajorUnit { Val = majorUnit.Value });
+                ReplaceChild(axis, axis.NewVal(C, "majorUnit", majorUnit.Value));
             }
             if (minorUnit != null) {
-                ReplaceChild(axis, new C.MinorUnit { Val = minorUnit.Value });
+                ReplaceChild(axis, axis.NewVal(C, "minorUnit", minorUnit.Value));
             }
         }
 
-        private static C.Scaling EnsureScaling(OpenXmlCompositeElement axis) {
-            C.Scaling scaling = axis.GetFirstChild<C.Scaling>() ?? new C.Scaling();
-            if (scaling.Parent == null) {
-                C.AxisId? axisId = axis.GetFirstChild<C.AxisId>();
-                if (axisId != null) {
-                    axis.InsertAfter(scaling, axisId);
-                } else {
-                    axis.InsertAt(scaling, 0);
+        private static OfficeXmlNode EnsureScaling(OfficeXmlNode axis) {
+            OfficeXmlNode scaling = axis.Child(C, "scaling");
+            if (scaling.Exists) {
+                return scaling;
+            }
+
+            scaling = axis.New(C, "scaling");
+            OfficeXmlNode axisId = axis.Child(C, "axId");
+            return axisId.Exists ? axisId.InsertAfterSelf(scaling) : axis.InsertBefore(scaling, axis.FirstChild);
+        }
+
+        private static readonly string[] ScalingChildOrder = { "logBase", "orientation", "max", "min" };
+
+        private static void NormalizeScalingOrder(OfficeXmlNode scaling) {
+            ReorderChildren(scaling, ScalingChildOrder, multipleIndex: -1);
+        }
+
+        /// <summary>
+        /// Puts the chart children named in <paramref name="order"/> in that order, the first of each name only (all of
+        /// them for the name at <paramref name="multipleIndex"/>), followed by every other child in document order.
+        /// Later duplicates of a single-valued name are dropped, as rebuilding from typed child lookups drops them.
+        /// </summary>
+        private static void ReorderChildren(OfficeXmlNode parent, string[] order, int multipleIndex) {
+            var captured = new OfficeXmlNode[order.Length];
+            List<OfficeXmlNode>? multiple = null;
+            List<OfficeXmlNode>? others = null;
+            foreach (OfficeXmlNode child in parent.Children()) {
+                int index = child.NamespaceId == C ? Array.IndexOf(order, child.LocalName) : -1;
+                if (index < 0) {
+                    (others ??= new List<OfficeXmlNode>()).Add(child);
+                } else if (index == multipleIndex) {
+                    (multiple ??= new List<OfficeXmlNode>()).Add(child);
+                } else if (captured[index].IsNone) {
+                    captured[index] = child;
                 }
             }
-            return scaling;
-        }
 
-        private static void NormalizeScalingOrder(C.Scaling scaling) {
-            C.LogBase? logBase = scaling.GetFirstChild<C.LogBase>();
-            C.Orientation? orientation = scaling.GetFirstChild<C.Orientation>();
-            C.MaxAxisValue? max = scaling.GetFirstChild<C.MaxAxisValue>();
-            C.MinAxisValue? min = scaling.GetFirstChild<C.MinAxisValue>();
+            parent.RemoveAllChildren();
 
-            List<OpenXmlElement> otherChildren = scaling.ChildElements
-                .Where(child => child is not C.LogBase
-                                && child is not C.Orientation
-                                && child is not C.MaxAxisValue
-                                && child is not C.MinAxisValue)
-                .ToList();
-
-            scaling.RemoveAllChildren();
-
-            if (logBase != null) {
-                scaling.Append(logBase);
+            for (int i = 0; i < order.Length; i++) {
+                if (i == multipleIndex) {
+                    if (multiple != null) {
+                        foreach (OfficeXmlNode child in multiple) parent.Append(child);
+                    }
+                } else if (captured[i].Exists) {
+                    parent.Append(captured[i]);
+                }
             }
-            if (orientation != null) {
-                scaling.Append(orientation);
-            }
-            if (max != null) {
-                scaling.Append(max);
-            }
-            if (min != null) {
-                scaling.Append(min);
-            }
-            foreach (OpenXmlElement child in otherChildren) {
-                scaling.Append(child);
+            if (others != null) {
+                foreach (OfficeXmlNode child in others) parent.Append(child);
             }
         }
 
@@ -237,59 +264,36 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static C.DataLabels EnsureDataLabels(OpenXmlCompositeElement chartElement) {
-            C.DataLabels labels = chartElement.GetFirstChild<C.DataLabels>() ?? new C.DataLabels();
-            if (labels.Parent != null) {
+        private static OfficeXmlNode EnsureDataLabels(OfficeXmlNode chartElement) {
+            OfficeXmlNode labels = chartElement.Child(C, "dLbls");
+            if (labels.Exists) {
                 return labels;
             }
 
-            OpenXmlElement? insertBefore;
-            if (IsSeriesElement(chartElement)) {
-                insertBefore = chartElement.GetFirstChild<C.Trendline>();
-                insertBefore ??= chartElement.GetFirstChild<C.ErrorBars>();
-                insertBefore ??= chartElement.GetFirstChild<C.CategoryAxisData>();
-                insertBefore ??= chartElement.GetFirstChild<C.Values>();
-                insertBefore ??= chartElement.GetFirstChild<C.XValues>();
-                insertBefore ??= chartElement.GetFirstChild<C.YValues>();
-                insertBefore ??= chartElement.GetFirstChild<C.BubbleSize>();
-                insertBefore ??= chartElement.GetFirstChild<C.Smooth>();
-                insertBefore ??= chartElement.GetFirstChild<C.ExtensionList>();
-            } else {
-                insertBefore = chartElement.GetFirstChild<C.GapWidth>();
-                insertBefore ??= chartElement.GetFirstChild<C.GapDepth>();
-                insertBefore ??= chartElement.GetFirstChild<C.Overlap>();
-                insertBefore ??= chartElement.GetFirstChild<C.BubbleScale>();
-                insertBefore ??= chartElement.GetFirstChild<C.ShowNegativeBubbles>();
-                insertBefore ??= chartElement.GetFirstChild<C.SizeRepresents>();
-                insertBefore ??= chartElement.GetFirstChild<C.HighLowLines>();
-                insertBefore ??= chartElement.GetFirstChild<C.UpDownBars>();
-                insertBefore ??= chartElement.GetFirstChild<C.Shape>();
-                insertBefore ??= chartElement.GetFirstChild<C.AxisId>();
-                insertBefore ??= chartElement.GetFirstChild<C.ExtensionList>();
-            }
-
-            if (insertBefore != null) {
-                chartElement.InsertBefore(labels, insertBefore);
-            } else {
-                chartElement.Append(labels);
-            }
-            return labels;
+            labels = NewDataLabels(chartElement);
+            OfficeXmlNode insertBefore = IsSeriesElement(chartElement)
+                ? FirstExistingChild(chartElement, SeriesChildrenAfterDataLabels)
+                : FirstExistingChild(chartElement, ChartChildrenAfterDataLabels);
+            return chartElement.InsertBefore(labels, insertBefore);
         }
 
-        private static void ApplyDataLabelTextStyle(OpenXmlCompositeElement labels, OfficeLength? fontSize, bool? bold,
+        private static void NormalizeDataLabelContainerOrder(OfficeXmlNode labels) {
+            if (labels.Is(C, "dLbls")) {
+                NormalizeDataLabelsOrder(labels);
+            } else if (labels.Is(C, "dLbl")) {
+                NormalizeDataLabelOrder(labels);
+            }
+        }
+
+        private static void ApplyDataLabelTextStyle(OfficeXmlNode labels, OfficeLength? fontSize, bool? bold,
             bool? italic, OfficeColor? color, string? fontFamily) {
             ApplyTextStyle(EnsureTextPropertiesRunProperties(labels), fontSize, bold, italic, color, fontFamily);
-
-            if (labels is C.DataLabels dataLabels) {
-                NormalizeDataLabelsOrder(dataLabels);
-            } else if (labels is C.DataLabel dataLabel) {
-                NormalizeDataLabelOrder(dataLabel);
-            }
+            NormalizeDataLabelContainerOrder(labels);
         }
 
-        private static void ApplyDataLabelShapeStyle(OpenXmlCompositeElement labels, OfficeColor? fillColor, OfficeColor? lineColor,
+        private static void ApplyDataLabelShapeStyle(OfficeXmlNode labels, OfficeColor? fillColor, OfficeColor? lineColor,
             OfficeLength? lineWidth, bool noFill, bool noLine) {
-            C.ChartShapeProperties props = EnsureDataLabelShapeProperties(labels);
+            OfficeXmlNode props = EnsureDataLabelShapeProperties(labels);
             if (noFill) {
                 ApplyNoFill(props);
             } else if (fillColor != null) {
@@ -303,14 +307,10 @@ namespace OfficeIMO.Excel {
                 ApplyOptionalLine(props, normalizedLine, lineWidth);
             }
 
-            if (labels is C.DataLabels dataLabels) {
-                NormalizeDataLabelsOrder(dataLabels);
-            } else if (labels is C.DataLabel dataLabel) {
-                NormalizeDataLabelOrder(dataLabel);
-            }
+            NormalizeDataLabelContainerOrder(labels);
         }
 
-        private static void ApplyAreaStyle(OpenXmlCompositeElement props, OfficeColor? fillColor, OfficeColor? lineColor,
+        private static void ApplyAreaStyle(OfficeXmlNode props, OfficeColor? fillColor, OfficeColor? lineColor,
             OfficeLength? lineWidth, bool noFill, bool noLine) {
             if (noFill) {
                 ApplyNoFill(props);
@@ -326,108 +326,103 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyDataLabelLeaderLines(C.DataLabels labels, bool showLeaderLines, OfficeColor? lineColor,
+        private static void ApplyDataLabelLeaderLines(OfficeXmlNode labels, bool showLeaderLines, OfficeColor? lineColor,
             OfficeLength? lineWidth) {
-            ReplaceChild(labels, new C.ShowLeaderLines { Val = showLeaderLines });
+            ReplaceChild(labels, labels.NewVal(C, "showLeaderLines", showLeaderLines));
 
             if (lineColor != null || lineWidth != null) {
-                C.LeaderLines leaderLines = labels.GetFirstChild<C.LeaderLines>() ?? new C.LeaderLines();
-                C.ChartShapeProperties props = leaderLines.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
+                OfficeXmlNode leaderLines = labels.Child(C, "leaderLines");
+                if (leaderLines.IsNone) leaderLines = labels.Append(labels.New(C, "leaderLines"));
+                OfficeXmlNode props = leaderLines.Child(C, "spPr");
+                if (props.IsNone) props = leaderLines.Append(leaderLines.New(C, "spPr"));
                 OfficeColor? normalizedLine = lineColor != null ? lineColor : null;
                 ApplyOptionalLine(props, normalizedLine, lineWidth);
-                if (props.Parent == null) {
-                    leaderLines.Append(props);
-                }
-                if (leaderLines.Parent == null) {
-                    labels.Append(leaderLines);
-                }
             }
 
             NormalizeDataLabelsOrder(labels);
         }
 
-        private static void ApplyDataLabelOverrides(OpenXmlCompositeElement label, bool? showLegendKey, bool? showValue,
+        private static void ApplyDataLabelOverrides(OfficeXmlNode label, bool? showLegendKey, bool? showValue,
             bool? showCategoryName, bool? showSeriesName, bool? showPercent, bool? showBubbleSize,
             OfficeChartDataLabelPosition? position, string? numberFormat, bool? sourceLinked) {
             if (showLegendKey != null) {
-                ReplaceChild(label, new C.ShowLegendKey { Val = showLegendKey.Value });
+                ReplaceChild(label, label.NewVal(C, "showLegendKey", showLegendKey.Value));
             }
             if (showValue != null) {
-                ReplaceChild(label, new C.ShowValue { Val = showValue.Value });
+                ReplaceChild(label, label.NewVal(C, "showVal", showValue.Value));
             }
             if (showCategoryName != null) {
-                ReplaceChild(label, new C.ShowCategoryName { Val = showCategoryName.Value });
+                ReplaceChild(label, label.NewVal(C, "showCatName", showCategoryName.Value));
             }
             if (showSeriesName != null) {
-                ReplaceChild(label, new C.ShowSeriesName { Val = showSeriesName.Value });
+                ReplaceChild(label, label.NewVal(C, "showSerName", showSeriesName.Value));
             }
             if (showPercent != null) {
-                ReplaceChild(label, new C.ShowPercent { Val = showPercent.Value });
+                ReplaceChild(label, label.NewVal(C, "showPercent", showPercent.Value));
             }
             if (showBubbleSize != null) {
-                ReplaceChild(label, new C.ShowBubbleSize { Val = showBubbleSize.Value });
+                ReplaceChild(label, label.NewVal(C, "showBubbleSize", showBubbleSize.Value));
             }
             if (position != null) {
                 ApplyDataLabelPosition(label, label, position.Value);
             }
             if (numberFormat != null || sourceLinked.HasValue) {
-                C.NumberingFormat format = label.GetFirstChild<C.NumberingFormat>()
-                    ?? new C.NumberingFormat { FormatCode = "General", SourceLinked = false };
-                if (numberFormat != null) format.FormatCode = numberFormat;
-                if (sourceLinked.HasValue) format.SourceLinked = sourceLinked.Value;
-                if (format.Parent == null) label.AddChild(format, true);
+                OfficeXmlNode existing = label.Child(C, "numFmt");
+                OfficeXmlNode format = existing.Exists
+                    ? existing
+                    : label.New(C, "numFmt").Attr("formatCode", "General").Attr("sourceLinked", false);
+                if (numberFormat != null) format.SetAttribute("formatCode", numberFormat);
+                if (sourceLinked.HasValue) format.Attr("sourceLinked", sourceLinked.Value);
+                if (existing.IsNone) {
+                    // c:delete and the formatting children are the two branches of one choice; adding a format leaves
+                    // the formatting branch, as the SDK's AddChild did.
+                    label.RemoveChildren(C, "delete");
+                    label.AddOrdered(format, label.Is(C, "dLbls") ? CDLblsView.Order : CDLblView.Order);
+                }
             }
 
-            if (label is C.DataLabels dataLabels) {
-                NormalizeDataLabelsOrder(dataLabels);
-            } else if (label is C.DataLabel dataLabel) {
-                NormalizeDataLabelOrder(dataLabel);
-            }
+            NormalizeDataLabelContainerOrder(label);
         }
 
-        private static void ApplyDataLabelSeparator(OpenXmlCompositeElement label, string? separator) {
-            C.Separator? existing = label.GetFirstChild<C.Separator>();
+        private static void ApplyDataLabelSeparator(OfficeXmlNode label, string? separator) {
+            OfficeXmlNode existing = label.Child(C, "separator");
             if (separator == null) {
-                existing?.Remove();
+                if (existing.Exists) existing.Remove();
                 return;
             }
 
-            existing?.Remove();
-            label.Append(new C.Separator { Text = separator });
+            if (existing.Exists) existing.Remove();
+            label.Append(label.NewText(C, "separator", separator));
 
-            if (label is C.DataLabels dataLabels) {
-                NormalizeDataLabelsOrder(dataLabels);
-            } else if (label is C.DataLabel dataLabel) {
-                NormalizeDataLabelOrder(dataLabel);
-            }
+            NormalizeDataLabelContainerOrder(label);
         }
 
-        private static void ApplyDataLabelPosition(OpenXmlCompositeElement labelContainer, OpenXmlElement context, OfficeChartDataLabelPosition position) {
+        private static void ApplyDataLabelPosition(OfficeXmlNode labelContainer, OfficeXmlNode context, OfficeChartDataLabelPosition position) {
             if (TryNormalizeDataLabelPosition(context, position, out var normalizedPosition)) {
-                ReplaceChild(labelContainer, new C.DataLabelPosition { Val = normalizedPosition.ToOpenXml() });
+                ReplaceChild(labelContainer, labelContainer.NewVal(C, "dLblPos", normalizedPosition.ToOpenXmlToken()));
                 return;
             }
 
-            labelContainer.RemoveAllChildren<C.DataLabelPosition>();
+            labelContainer.RemoveChildren(C, "dLblPos");
         }
 
-        private static bool TryNormalizeDataLabelPosition(OpenXmlElement context, OfficeChartDataLabelPosition position, out OfficeChartDataLabelPosition normalizedPosition) {
+        private static bool TryNormalizeDataLabelPosition(OfficeXmlNode context, OfficeChartDataLabelPosition position, out OfficeChartDataLabelPosition normalizedPosition) {
             normalizedPosition = position;
 
-            for (OpenXmlElement? current = context; current != null; current = current.Parent) {
-                if (current is C.DoughnutChart) {
+            for (OfficeXmlNode current = context; current.Exists; current = current.Parent) {
+                if (current.Is(C, "doughnutChart")) {
                     return position != OfficeChartDataLabelPosition.BestFit;
                 }
 
                 if (position == OfficeChartDataLabelPosition.OutsideEnd
-                    && (current is C.LineChart || current is C.Line3DChart || current is C.LineChartSeries)) {
+                    && (current.Is(C, "lineChart") || current.Is(C, "line3DChart") || IsLineSeries(current))) {
                     normalizedPosition = OfficeChartDataLabelPosition.Top;
                     return true;
                 }
 
-                if (position == OfficeChartDataLabelPosition.OutsideEnd && current is C.BarChart barChart) {
-                    var grouping = barChart.BarGrouping?.Val?.Value;
-                    if (grouping == C.BarGroupingValues.Stacked || grouping == C.BarGroupingValues.PercentStacked) {
+                if (position == OfficeChartDataLabelPosition.OutsideEnd && current.Is(C, "barChart")) {
+                    string? grouping = current.ChildVal(C, "grouping");
+                    if (grouping == "stacked" || grouping == "percentStacked") {
                         normalizedPosition = OfficeChartDataLabelPosition.Center;
                         return true;
                     }
@@ -437,7 +432,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static void ApplyDataLabelTemplate(OpenXmlCompositeElement series, ExcelChartDataLabelTemplate template) {
+        private static void ApplyDataLabelTemplate(OfficeXmlNode series, ExcelChartDataLabelTemplate template) {
             if (template.NumberFormat != null && string.IsNullOrWhiteSpace(template.NumberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(template.NumberFormat));
             }
@@ -467,7 +462,7 @@ namespace OfficeIMO.Excel {
                 ValidateDataLabelLeaderLines(template.LeaderLineColor, template.LeaderLineWidth);
             }
 
-            C.DataLabels labels = EnsureDataLabels(series);
+            OfficeXmlNode labels = EnsureDataLabels(series);
             ApplyDataLabelOverrides(labels, template.ShowLegendKey, template.ShowValue, template.ShowCategoryName,
                 template.ShowSeriesName, template.ShowPercent, template.ShowBubbleSize,
                 template.Position, template.NumberFormat, template.NumberFormat != null ? template.SourceLinked : (bool?)null);
@@ -489,231 +484,51 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static C.DataLabel EnsureDataLabel(OpenXmlCompositeElement series, int pointIndex) {
-            C.DataLabels labels = EnsureDataLabels(series);
+        private static OfficeXmlNode EnsureDataLabel(OfficeXmlNode series, int pointIndex) {
+            OfficeXmlNode labels = EnsureDataLabels(series);
             uint idx = (uint)pointIndex;
-            C.DataLabel? label = labels.Elements<C.DataLabel>()
-                .FirstOrDefault(item => item.GetFirstChild<C.Index>()?.Val?.Value == idx);
-            if (label == null) {
-                label = new C.DataLabel();
-                label.Append(new C.Index { Val = idx });
-
-                OpenXmlElement? insertBefore = labels.ChildElements.FirstOrDefault(child => child is not C.DataLabel);
-                if (insertBefore != null) {
-                    labels.InsertBefore(label, insertBefore);
-                } else {
-                    labels.Append(label);
+            foreach (OfficeXmlNode item in labels.Children(C, "dLbl")) {
+                if (item.Child(C, "idx").UInt32Val() == idx) {
+                    return item;
                 }
             }
-            return label;
+
+            return InsertDataLabel(labels, idx);
         }
 
-        private static void NormalizeDataLabelsOrder(C.DataLabels labels) {
-            List<C.DataLabel> overrides = labels.Elements<C.DataLabel>().ToList();
-            C.Delete? delete = labels.GetFirstChild<C.Delete>();
-            C.NumberingFormat? numFmt = labels.GetFirstChild<C.NumberingFormat>();
-            C.ChartShapeProperties? shapeProps = labels.GetFirstChild<C.ChartShapeProperties>();
-            C.TextProperties? textProps = labels.GetFirstChild<C.TextProperties>();
-            C.DataLabelPosition? position = labels.GetFirstChild<C.DataLabelPosition>();
-            C.ShowLegendKey? showLegendKey = labels.GetFirstChild<C.ShowLegendKey>();
-            C.ShowValue? showValue = labels.GetFirstChild<C.ShowValue>();
-            C.ShowCategoryName? showCategoryName = labels.GetFirstChild<C.ShowCategoryName>();
-            C.ShowSeriesName? showSeriesName = labels.GetFirstChild<C.ShowSeriesName>();
-            C.ShowPercent? showPercent = labels.GetFirstChild<C.ShowPercent>();
-            C.ShowBubbleSize? showBubbleSize = labels.GetFirstChild<C.ShowBubbleSize>();
-            C.Separator? separator = labels.GetFirstChild<C.Separator>();
-            C.ShowLeaderLines? showLeaderLines = labels.GetFirstChild<C.ShowLeaderLines>();
-            C.LeaderLines? leaderLines = labels.GetFirstChild<C.LeaderLines>();
-            C.ExtensionList? extLst = labels.GetFirstChild<C.ExtensionList>();
+        // A new c:dLbl override with its c:idx, after the existing overrides.
+        private static OfficeXmlNode InsertDataLabel(OfficeXmlNode labels, uint idx) {
+            OfficeXmlNode label = labels.New(C, "dLbl");
+            label.Append(label.NewVal(C, "idx", idx));
 
-            List<OpenXmlElement> otherChildren = labels.ChildElements
-                .Where(child => child is not C.DataLabel
-                                && child is not C.Delete
-                                && child is not C.NumberingFormat
-                                && child is not C.ChartShapeProperties
-                                && child is not C.TextProperties
-                                && child is not C.DataLabelPosition
-                                && child is not C.ShowLegendKey
-                                && child is not C.ShowValue
-                                && child is not C.ShowCategoryName
-                                && child is not C.ShowSeriesName
-                                && child is not C.ShowPercent
-                                && child is not C.ShowBubbleSize
-                                && child is not C.Separator
-                                && child is not C.ShowLeaderLines
-                                && child is not C.LeaderLines
-                                && child is not C.ExtensionList)
-                .ToList();
-
-            labels.RemoveAllChildren();
-
-            foreach (C.DataLabel child in overrides) {
-                labels.Append(child);
+            OfficeXmlNode insertBefore = OfficeXmlNode.None;
+            foreach (OfficeXmlNode child in labels.Children()) {
+                if (!child.Is(C, "dLbl")) {
+                    insertBefore = child;
+                    break;
+                }
             }
-            if (delete != null) {
-                labels.Append(delete);
-            }
-            if (numFmt != null) {
-                labels.Append(numFmt);
-            }
-            if (shapeProps != null) {
-                labels.Append(shapeProps);
-            }
-            if (textProps != null) {
-                labels.Append(textProps);
-            }
-            if (position != null) {
-                labels.Append(position);
-            }
-            if (showLegendKey != null) {
-                labels.Append(showLegendKey);
-            }
-            if (showValue != null) {
-                labels.Append(showValue);
-            }
-            if (showCategoryName != null) {
-                labels.Append(showCategoryName);
-            }
-            if (showSeriesName != null) {
-                labels.Append(showSeriesName);
-            }
-            if (showPercent != null) {
-                labels.Append(showPercent);
-            }
-            if (showBubbleSize != null) {
-                labels.Append(showBubbleSize);
-            }
-            if (separator != null) {
-                labels.Append(separator);
-            }
-            if (showLeaderLines != null) {
-                labels.Append(showLeaderLines);
-            }
-            if (leaderLines != null) {
-                labels.Append(leaderLines);
-            }
-            if (extLst != null) {
-                labels.Append(extLst);
-            }
-            foreach (OpenXmlElement child in otherChildren) {
-                labels.Append(child);
-            }
+            return labels.InsertBefore(label, insertBefore);
         }
 
-        private static void NormalizeDataLabelOrder(C.DataLabel label) {
-            C.Index? idx = label.GetFirstChild<C.Index>();
-            if (idx == null) {
+        private static void NormalizeDataLabelsOrder(OfficeXmlNode labels) {
+            ReorderChildren(labels, DataLabelsChildOrder, multipleIndex: 0);
+        }
+
+        private static void NormalizeDataLabelOrder(OfficeXmlNode label) {
+            if (label.Child(C, "idx").IsNone) {
                 return;
             }
 
-            C.Delete? delete = label.GetFirstChild<C.Delete>();
-            C.Layout? layout = label.GetFirstChild<C.Layout>();
-            C.ChartText? chartText = label.GetFirstChild<C.ChartText>();
-            C.NumberingFormat? numFmt = label.GetFirstChild<C.NumberingFormat>();
-            C.ChartShapeProperties? shapeProps = label.GetFirstChild<C.ChartShapeProperties>();
-            C.TextProperties? textProps = label.GetFirstChild<C.TextProperties>();
-            C.DataLabelPosition? position = label.GetFirstChild<C.DataLabelPosition>();
-            C.ShowLegendKey? showLegendKey = label.GetFirstChild<C.ShowLegendKey>();
-            C.ShowValue? showValue = label.GetFirstChild<C.ShowValue>();
-            C.ShowCategoryName? showCategoryName = label.GetFirstChild<C.ShowCategoryName>();
-            C.ShowSeriesName? showSeriesName = label.GetFirstChild<C.ShowSeriesName>();
-            C.ShowPercent? showPercent = label.GetFirstChild<C.ShowPercent>();
-            C.ShowBubbleSize? showBubbleSize = label.GetFirstChild<C.ShowBubbleSize>();
-            C.Separator? separator = label.GetFirstChild<C.Separator>();
-            C.ShowLeaderLines? showLeaderLines = label.GetFirstChild<C.ShowLeaderLines>();
-            C.LeaderLines? leaderLines = label.GetFirstChild<C.LeaderLines>();
-            C.ExtensionList? extLst = label.GetFirstChild<C.ExtensionList>();
-
-            List<OpenXmlElement> otherChildren = label.ChildElements
-                .Where(child => child is not C.Index
-                                && child is not C.Delete
-                                && child is not C.Layout
-                                && child is not C.ChartText
-                                && child is not C.NumberingFormat
-                                && child is not C.ChartShapeProperties
-                                && child is not C.TextProperties
-                                && child is not C.DataLabelPosition
-                                && child is not C.ShowLegendKey
-                                && child is not C.ShowValue
-                                && child is not C.ShowCategoryName
-                                && child is not C.ShowSeriesName
-                                && child is not C.ShowPercent
-                                && child is not C.ShowBubbleSize
-                                && child is not C.Separator
-                                && child is not C.ShowLeaderLines
-                                && child is not C.LeaderLines
-                                && child is not C.ExtensionList)
-                .ToList();
-
-            label.RemoveAllChildren();
-
-            label.Append(idx);
-            if (delete != null) {
-                label.Append(delete);
-            }
-            if (layout != null) {
-                label.Append(layout);
-            }
-            if (chartText != null) {
-                label.Append(chartText);
-            }
-            if (numFmt != null) {
-                label.Append(numFmt);
-            }
-            if (shapeProps != null) {
-                label.Append(shapeProps);
-            }
-            if (textProps != null) {
-                label.Append(textProps);
-            }
-            if (position != null) {
-                label.Append(position);
-            }
-            if (showLegendKey != null) {
-                label.Append(showLegendKey);
-            }
-            if (showValue != null) {
-                label.Append(showValue);
-            }
-            if (showCategoryName != null) {
-                label.Append(showCategoryName);
-            }
-            if (showSeriesName != null) {
-                label.Append(showSeriesName);
-            }
-            if (showPercent != null) {
-                label.Append(showPercent);
-            }
-            if (showBubbleSize != null) {
-                label.Append(showBubbleSize);
-            }
-            if (separator != null) {
-                label.Append(separator);
-            }
-            if (showLeaderLines != null) {
-                label.Append(showLeaderLines);
-            }
-            if (leaderLines != null) {
-                label.Append(leaderLines);
-            }
-            if (extLst != null) {
-                label.Append(extLst);
-            }
-            foreach (OpenXmlElement child in otherChildren) {
-                label.Append(child);
-            }
+            ReorderChildren(label, DataLabelChildOrder, multipleIndex: -1);
         }
 
-        private static void EnsureSeriesChildPosition(OpenXmlCompositeElement series, OpenXmlElement child, OpenXmlElement? insertBefore) {
-            if (child.Parent != null) {
+        private static OfficeXmlNode EnsureSeriesChildPosition(OfficeXmlNode series, OfficeXmlNode child, OfficeXmlNode insertBefore) {
+            if (child.Parent.Exists) {
                 child.Remove();
             }
 
-            if (insertBefore != null) {
-                series.InsertBefore(child, insertBefore);
-            } else {
-                series.Append(child);
-            }
+            return series.InsertBefore(child, insertBefore);
         }
 
     }
