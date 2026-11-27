@@ -207,7 +207,7 @@ public sealed class EntitySegmentLocation {
 
 Excel passes each cell with its column header as `label`; the Reader passes chunks with their source location; invoicing passes a field value with the element name as `label` and the match gets `StructuredSource`.
 
-`Start` and `Length` are offsets within the segment named by `SegmentIndex`, so a match is unambiguous even when `Location` is null. Matches do not cross segment boundaries, except into a segment marked `continuesPrevious`: the finder joins such a chain into one logical text (exactly as given, without inserting characters) and a match inside it may span several segments. `Parts` then lists the covered piece of each segment, which lets PDF map every part back to its own glyphs. For a match inside one segment, `Parts` has one entry equal to `SegmentIndex`, `Start` and `Length`.
+`Start` and `Length` are offsets within the segment named by `SegmentIndex`, so a match is unambiguous even when `Location` is null. Matches do not cross segment boundaries, except into a segment marked `continuesPrevious`: the finder joins such a chain into one logical text (exactly as given, without inserting characters) and a match inside it may span several segments. `Parts` then lists the covered piece of each segment, which lets PDF map every part back to its own glyphs. For a match inside one segment, `Parts` has one entry equal to `SegmentIndex`, `Start` and `Length`. For a match that spans segments, `Start` is its offset in the first segment and `Length` is its length in the joined text, so `Start + Length` can run past the end of that segment; `Parts` is the authoritative list of what to touch, and every consumer that changes text (masking, redaction, cleaning) works from `Parts`.
 
 ## Scoring
 
@@ -321,6 +321,8 @@ string safe = EntityMasker.Mask(text, result.Matches, new EntityMaskOptions {
 //   Pseudonym     "[TaxId:7f3a9c]"           HMAC-SHA256 over the normalized value with a caller key,
 //                                            so the same NIP gets the same token across documents
 ```
+
+Masking works on `Parts`, never on `Start` and `Length` alone, so a match that spans segments is masked in every segment it touches. `EntityMasker.Mask(IReadOnlyList<EntityTextSegment>, matches, options)` returns the masked text of each segment. `Fixed` replaces every matched character in every part. `Partial` applies the scheme's rule to the joined value, so the characters it keeps can fall in any part. `KindLabel` and `Pseudonym` put the replacement token in the first part and empty the remaining parts.
 
 Partial masking follows each scheme's rule (`Scheme.MaskPartial`): card numbers keep the last four digits as payment standards allow, IBANs keep the country code and the last four, emails keep the first character of the local part and the domain. Pseudonyms need a caller-supplied key; there is no default key, and the engine keeps no map. A host that needs to restore values after an AI round trip keeps its own `token → value` map from `EntityMasker.Pseudonymize`, which returns both the masked text and the map.
 
@@ -592,7 +594,7 @@ Acceptance tests that must exist (values below are computed from the published w
 | `jan.kowalski@example.com`, `jan@bücher.example` | Email; comparison key lower-cases and IDNA-maps the domain only |
 | `https://example.com/a?b=c` in prose with trailing `.` | Url without the trailing dot |
 
-Masking tests: `KindLabel`, `Fixed`, `Partial` per scheme, `Pseudonym` stable for the same normalized value and key and different for different keys; `Pseudonymize` returns the map; overlapping and adjacent matches mask once.
+Masking tests: `KindLabel`, `Fixed`, `Partial` per scheme, `Pseudonym` stable for the same normalized value and key and different for different keys; `Pseudonymize` returns the map; overlapping and adjacent matches mask once; for the split `["PESEL: 4405", "1401359"]` match, every style leaves no digit of the PESEL in either segment (`KindLabel` gives `"PESEL: [NationalId]"` and `""`).
 
 ### Consolidation in the same PR
 
