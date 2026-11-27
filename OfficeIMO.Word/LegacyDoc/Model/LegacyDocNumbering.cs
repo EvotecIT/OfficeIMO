@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>List definitions and their one-based native paragraph instances.</summary>
@@ -35,13 +34,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     }
 
     internal sealed class LegacyDocListLevel {
-        internal LegacyDocListLevel(int start, NumberFormatValues format, string text, byte flags, byte follow,
+        internal LegacyDocListLevel(int start, LegacyDocNumberFormat format, string text, byte flags, byte follow,
             byte restartLimit, ushort? styleIndex, LegacyDocParagraphFormat paragraphFormat, LegacyDocCharacterFormat characterFormat) {
             Start = start; Format = format; Text = text; Flags = flags; Follow = follow;
             RestartLimit = restartLimit; StyleIndex = styleIndex; ParagraphFormat = paragraphFormat; CharacterFormat = characterFormat;
         }
         internal int Start { get; }
-        internal NumberFormatValues Format { get; }
+        internal LegacyDocNumberFormat Format { get; }
         internal string Text { get; }
         internal byte Flags { get; }
         internal byte Follow { get; }

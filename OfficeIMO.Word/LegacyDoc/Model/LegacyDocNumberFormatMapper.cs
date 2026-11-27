@@ -1,70 +1,69 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal static class LegacyDocNumberFormatMapper {
         private static readonly NfcMap[] Mappings = {
-            new NfcMap(0, NumberFormatValues.Decimal),
-            new NfcMap(1, NumberFormatValues.UpperRoman),
-            new NfcMap(2, NumberFormatValues.LowerRoman),
-            new NfcMap(3, NumberFormatValues.UpperLetter),
-            new NfcMap(4, NumberFormatValues.LowerLetter),
-            new NfcMap(5, NumberFormatValues.Ordinal),
-            new NfcMap(6, NumberFormatValues.CardinalText),
-            new NfcMap(7, NumberFormatValues.OrdinalText),
-            new NfcMap(8, NumberFormatValues.Hex),
-            new NfcMap(9, NumberFormatValues.Chicago),
-            new NfcMap(10, NumberFormatValues.IdeographDigital),
-            new NfcMap(11, NumberFormatValues.JapaneseCounting),
-            new NfcMap(12, NumberFormatValues.Aiueo),
-            new NfcMap(13, NumberFormatValues.Iroha),
-            new NfcMap(14, NumberFormatValues.DecimalFullWidth),
-            new NfcMap(15, NumberFormatValues.DecimalHalfWidth),
-            new NfcMap(16, NumberFormatValues.JapaneseLegal),
-            new NfcMap(17, NumberFormatValues.JapaneseDigitalTenThousand),
-            new NfcMap(18, NumberFormatValues.DecimalEnclosedCircle),
-            new NfcMap(19, NumberFormatValues.DecimalFullWidth2),
-            new NfcMap(20, NumberFormatValues.AiueoFullWidth),
-            new NfcMap(21, NumberFormatValues.IrohaFullWidth),
-            new NfcMap(22, NumberFormatValues.DecimalZero),
-            new NfcMap(23, NumberFormatValues.Bullet),
-            new NfcMap(24, NumberFormatValues.Ganada),
-            new NfcMap(25, NumberFormatValues.Chosung),
-            new NfcMap(26, NumberFormatValues.DecimalEnclosedFullstop),
-            new NfcMap(27, NumberFormatValues.DecimalEnclosedParen),
-            new NfcMap(28, NumberFormatValues.DecimalEnclosedCircleChinese),
-            new NfcMap(29, NumberFormatValues.IdeographEnclosedCircle),
-            new NfcMap(30, NumberFormatValues.IdeographTraditional),
-            new NfcMap(31, NumberFormatValues.IdeographZodiac),
-            new NfcMap(32, NumberFormatValues.IdeographZodiacTraditional),
-            new NfcMap(33, NumberFormatValues.TaiwaneseCounting),
-            new NfcMap(34, NumberFormatValues.IdeographLegalTraditional),
-            new NfcMap(35, NumberFormatValues.TaiwaneseCountingThousand),
-            new NfcMap(36, NumberFormatValues.TaiwaneseDigital),
-            new NfcMap(37, NumberFormatValues.ChineseCounting),
-            new NfcMap(38, NumberFormatValues.ChineseLegalSimplified),
-            new NfcMap(39, NumberFormatValues.ChineseCountingThousand),
-            new NfcMap(41, NumberFormatValues.KoreanDigital),
-            new NfcMap(42, NumberFormatValues.KoreanCounting),
-            new NfcMap(43, NumberFormatValues.KoreanLegal),
-            new NfcMap(44, NumberFormatValues.KoreanDigital2),
-            new NfcMap(45, NumberFormatValues.Hebrew1),
-            new NfcMap(46, NumberFormatValues.ArabicAlpha),
-            new NfcMap(47, NumberFormatValues.Hebrew2),
-            new NfcMap(48, NumberFormatValues.ArabicAbjad),
-            new NfcMap(49, NumberFormatValues.HindiVowels),
-            new NfcMap(50, NumberFormatValues.HindiConsonants),
-            new NfcMap(51, NumberFormatValues.HindiNumbers),
-            new NfcMap(52, NumberFormatValues.HindiCounting),
-            new NfcMap(53, NumberFormatValues.ThaiLetters),
-            new NfcMap(54, NumberFormatValues.ThaiNumbers),
-            new NfcMap(55, NumberFormatValues.ThaiCounting),
-            new NfcMap(56, NumberFormatValues.VietnameseCounting),
-            new NfcMap(57, NumberFormatValues.NumberInDash),
-            new NfcMap(58, NumberFormatValues.RussianLower),
-            new NfcMap(59, NumberFormatValues.RussianUpper)
+            new NfcMap(0, LegacyDocNumberFormat.Decimal),
+            new NfcMap(1, LegacyDocNumberFormat.UpperRoman),
+            new NfcMap(2, LegacyDocNumberFormat.LowerRoman),
+            new NfcMap(3, LegacyDocNumberFormat.UpperLetter),
+            new NfcMap(4, LegacyDocNumberFormat.LowerLetter),
+            new NfcMap(5, LegacyDocNumberFormat.Ordinal),
+            new NfcMap(6, LegacyDocNumberFormat.CardinalText),
+            new NfcMap(7, LegacyDocNumberFormat.OrdinalText),
+            new NfcMap(8, LegacyDocNumberFormat.Hex),
+            new NfcMap(9, LegacyDocNumberFormat.Chicago),
+            new NfcMap(10, LegacyDocNumberFormat.IdeographDigital),
+            new NfcMap(11, LegacyDocNumberFormat.JapaneseCounting),
+            new NfcMap(12, LegacyDocNumberFormat.Aiueo),
+            new NfcMap(13, LegacyDocNumberFormat.Iroha),
+            new NfcMap(14, LegacyDocNumberFormat.DecimalFullWidth),
+            new NfcMap(15, LegacyDocNumberFormat.DecimalHalfWidth),
+            new NfcMap(16, LegacyDocNumberFormat.JapaneseLegal),
+            new NfcMap(17, LegacyDocNumberFormat.JapaneseDigitalTenThousand),
+            new NfcMap(18, LegacyDocNumberFormat.DecimalEnclosedCircle),
+            new NfcMap(19, LegacyDocNumberFormat.DecimalFullWidth2),
+            new NfcMap(20, LegacyDocNumberFormat.AiueoFullWidth),
+            new NfcMap(21, LegacyDocNumberFormat.IrohaFullWidth),
+            new NfcMap(22, LegacyDocNumberFormat.DecimalZero),
+            new NfcMap(23, LegacyDocNumberFormat.Bullet),
+            new NfcMap(24, LegacyDocNumberFormat.Ganada),
+            new NfcMap(25, LegacyDocNumberFormat.Chosung),
+            new NfcMap(26, LegacyDocNumberFormat.DecimalEnclosedFullstop),
+            new NfcMap(27, LegacyDocNumberFormat.DecimalEnclosedParen),
+            new NfcMap(28, LegacyDocNumberFormat.DecimalEnclosedCircleChinese),
+            new NfcMap(29, LegacyDocNumberFormat.IdeographEnclosedCircle),
+            new NfcMap(30, LegacyDocNumberFormat.IdeographTraditional),
+            new NfcMap(31, LegacyDocNumberFormat.IdeographZodiac),
+            new NfcMap(32, LegacyDocNumberFormat.IdeographZodiacTraditional),
+            new NfcMap(33, LegacyDocNumberFormat.TaiwaneseCounting),
+            new NfcMap(34, LegacyDocNumberFormat.IdeographLegalTraditional),
+            new NfcMap(35, LegacyDocNumberFormat.TaiwaneseCountingThousand),
+            new NfcMap(36, LegacyDocNumberFormat.TaiwaneseDigital),
+            new NfcMap(37, LegacyDocNumberFormat.ChineseCounting),
+            new NfcMap(38, LegacyDocNumberFormat.ChineseLegalSimplified),
+            new NfcMap(39, LegacyDocNumberFormat.ChineseCountingThousand),
+            new NfcMap(41, LegacyDocNumberFormat.KoreanDigital),
+            new NfcMap(42, LegacyDocNumberFormat.KoreanCounting),
+            new NfcMap(43, LegacyDocNumberFormat.KoreanLegal),
+            new NfcMap(44, LegacyDocNumberFormat.KoreanDigital2),
+            new NfcMap(45, LegacyDocNumberFormat.Hebrew1),
+            new NfcMap(46, LegacyDocNumberFormat.ArabicAlpha),
+            new NfcMap(47, LegacyDocNumberFormat.Hebrew2),
+            new NfcMap(48, LegacyDocNumberFormat.ArabicAbjad),
+            new NfcMap(49, LegacyDocNumberFormat.HindiVowels),
+            new NfcMap(50, LegacyDocNumberFormat.HindiConsonants),
+            new NfcMap(51, LegacyDocNumberFormat.HindiNumbers),
+            new NfcMap(52, LegacyDocNumberFormat.HindiCounting),
+            new NfcMap(53, LegacyDocNumberFormat.ThaiLetters),
+            new NfcMap(54, LegacyDocNumberFormat.ThaiNumbers),
+            new NfcMap(55, LegacyDocNumberFormat.ThaiCounting),
+            new NfcMap(56, LegacyDocNumberFormat.VietnameseCounting),
+            new NfcMap(57, LegacyDocNumberFormat.NumberInDash),
+            new NfcMap(58, LegacyDocNumberFormat.RussianLower),
+            new NfcMap(59, LegacyDocNumberFormat.RussianUpper)
         };
 
-        internal static NumberFormatValues? FromNfc(byte nfc) {
+        internal static LegacyDocNumberFormat? FromNfc(byte nfc) {
             foreach (NfcMap mapping in Mappings) {
                 if (mapping.Nfc == nfc) {
                     return mapping.Format;
@@ -74,8 +73,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return null;
         }
 
-        internal static byte? ToNfc(NumberFormatValues format) {
-            if (format == NumberFormatValues.Bullet) {
+        internal static byte? ToNfc(LegacyDocNumberFormat format) {
+            if (format == LegacyDocNumberFormat.Bullet) {
                 return null;
             }
 
@@ -89,14 +88,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private readonly struct NfcMap {
-            internal NfcMap(byte nfc, NumberFormatValues format) {
+            internal NfcMap(byte nfc, LegacyDocNumberFormat format) {
                 Nfc = nfc;
                 Format = format;
             }
 
             internal byte Nfc { get; }
 
-            internal NumberFormatValues Format { get; }
+            internal LegacyDocNumberFormat Format { get; }
         }
     }
 }
