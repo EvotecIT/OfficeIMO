@@ -28,7 +28,10 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columns);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
-            if (!automatic && TryAddPackageTable(rows, columns, nativeLeft, nativeTop, nativeWidth, nativeHeight) is { } added) return added;
+            if (TryAddPackageTable(rows, columns, nativeLeft, nativeTop, nativeWidth, nativeHeight) is { } added) {
+                if (automatic) AttachAuthoringContent(added);
+                return added;
+            }
 
             A.Table table = new();
             A.TableProperties props = new();
@@ -57,7 +60,9 @@ namespace OfficeIMO.PowerPoint {
                 A.TableRow row = new() { Height = 370840L };
                 for (int c = 0; c < columns; c++) {
                     A.TableCell cell = new(
-                        PowerPointTableTextDefaults.CreateTextBody(),
+                        new A.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(
+                            new A.Run(new A.RunProperties { Language = PowerPointTableTextDefaults.Language }, new A.Text(string.Empty)),
+                            new A.EndParagraphRunProperties { Language = PowerPointTableTextDefaults.Language })),
                         new A.TableCellProperties());
 
                     row.Append(cell);

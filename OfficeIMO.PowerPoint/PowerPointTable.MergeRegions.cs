@@ -1,4 +1,5 @@
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -21,29 +22,32 @@ public partial class PowerPointTable {
 
     /// <summary>Moves an anchor into the next covered cell when its own row is about to be removed.</summary>
     private void PreserveAnchorsForRemovedRow(List<(int Row, int Column, int RowSpan, int ColumnSpan)> regions, int index) {
-        A.TableRow[] rows = TableElement.Elements<A.TableRow>().ToArray();
+        List<List<OfficeXmlNode>> cells = CellNodes();
         foreach (var region in regions.Where(_ => _.Row == index && _.RowSpan > 1)) {
-            SwapCells(rows[index].Elements<A.TableCell>().ElementAt(region.Column),
-                rows[index + 1].Elements<A.TableCell>().ElementAt(region.Column));
+            SwapCells(cells[index][region.Column], cells[index + 1][region.Column]);
+            (cells[index][region.Column], cells[index + 1][region.Column]) = (cells[index + 1][region.Column], cells[index][region.Column]);
         }
     }
 
     /// <summary>Moves an anchor into the next covered cell when its own column is about to be removed.</summary>
     private void PreserveAnchorsForRemovedColumn(List<(int Row, int Column, int RowSpan, int ColumnSpan)> regions, int index) {
-        A.TableRow[] rows = TableElement.Elements<A.TableRow>().ToArray();
+        List<List<OfficeXmlNode>> cells = CellNodes();
         foreach (var region in regions.Where(_ => _.Column == index && _.ColumnSpan > 1)) {
-            A.TableCell[] cells = rows[region.Row].Elements<A.TableCell>().ToArray();
-            SwapCells(cells[index], cells[index + 1]);
+            List<OfficeXmlNode> row = cells[region.Row];
+            SwapCells(row[index], row[index + 1]);
+            (row[index], row[index + 1]) = (row[index + 1], row[index]);
         }
     }
 
-    private static void SwapCells(A.TableCell first, A.TableCell second) {
-        var firstParent = first.Parent!;
-        var secondParent = second.Parent!;
-        var placeholder = new A.TableCell();
-        firstParent.ReplaceChild(placeholder, first);
-        secondParent.ReplaceChild(first, second);
-        firstParent.ReplaceChild(second, placeholder);
+    // Exchanges two cells' places, each keeping its own content.
+    private static void SwapCells(OfficeXmlNode first, OfficeXmlNode second) {
+        OfficeXmlNode firstParent = first.Parent, secondParent = second.Parent;
+        OfficeXmlNode placeholder = firstParent.InsertBefore(firstParent.CreateElement(D, "tc"), first);
+        first.Remove();
+        secondParent.InsertBefore(first, second);
+        second.Remove();
+        firstParent.InsertBefore(second, placeholder);
+        placeholder.Remove();
     }
 
     private static void ShiftMergeRegionsForInsertedRow(List<(int Row, int Column, int RowSpan, int ColumnSpan)> regions, int index) {
@@ -90,28 +94,19 @@ public partial class PowerPointTable {
         : (start, span);
 
     private void ApplyMergeRegions(List<(int Row, int Column, int RowSpan, int ColumnSpan)> regions) {
-        A.TableCell[][] cells = TableElement.Elements<A.TableRow>()
-            .Select(_ => _.Elements<A.TableCell>().ToArray())
-            .ToArray();
-        foreach (A.TableCell cell in cells.SelectMany(_ => _)) {
-            cell.RowSpan = null;
-            cell.GridSpan = null;
-            cell.HorizontalMerge = null;
-            cell.VerticalMerge = null;
-        }
+        List<List<OfficeXmlNode>> cells = CellNodes();
+        foreach (OfficeXmlNode cell in cells.SelectMany(_ => _)) SetMerge(cell, null, null, false, false);
 
         foreach (var region in regions) {
             if (region.RowSpan < 1 || region.ColumnSpan < 1 || region.RowSpan == 1 && region.ColumnSpan == 1) continue;
             for (int row = region.Row; row < region.Row + region.RowSpan; row++) {
                 for (int column = region.Column; column < region.Column + region.ColumnSpan; column++) {
-                    A.TableCell cell = cells[row][column];
+                    OfficeXmlNode cell = cells[row][column];
                     if (row == region.Row && column == region.Column) {
-                        cell.RowSpan = region.RowSpan > 1 ? region.RowSpan : null;
-                        cell.GridSpan = region.ColumnSpan > 1 ? region.ColumnSpan : null;
+                        SetMerge(cell, region.RowSpan > 1 ? region.RowSpan : null, region.ColumnSpan > 1 ? region.ColumnSpan : null, false, false);
                         continue;
                     }
-                    cell.HorizontalMerge = column > region.Column ? true : (bool?)null;
-                    cell.VerticalMerge = row > region.Row ? true : (bool?)null;
+                    SetMerge(cell, null, null, column > region.Column, row > region.Row);
                 }
             }
         }

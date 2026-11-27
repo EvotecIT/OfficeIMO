@@ -1,7 +1,7 @@
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTable {
@@ -83,39 +83,23 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private string? ResolveStyleId(string styleName, bool ignoreCase) {
-            PresentationPart? presentationPart = _slidePart?
-                .GetParentPresentationPart();
-
-            if (presentationPart != null && presentationPart.TableStylesPart?.TableStyleList == null) {
-                PowerPointUtils.CreateTableStylesPart(presentationPart);
-            }
-
-            TableStylesPart? stylesPart = presentationPart?.TableStylesPart;
             StringComparison comparison = ignoreCase
                 ? StringComparison.OrdinalIgnoreCase
                 : StringComparison.Ordinal;
 
-            if (stylesPart?.TableStyleList != null) {
-                foreach (A.TableStyle style in stylesPart.TableStyleList.Elements<A.TableStyle>()) {
-                    string? styleId = style.StyleId?.Value;
-                    if (!string.IsNullOrWhiteSpace(styleId) && string.Equals(styleId, styleName, comparison)) {
-                        return styleId;
-                    }
-
-                    string? name = style.StyleName?.Value;
-                    if (!string.IsNullOrWhiteSpace(name) && string.Equals(name, styleName, comparison)) {
-                        return styleId;
-                    }
+            // A table on a slide reads the presentation's table styles, which are added with the built-in styles first
+            // when the presentation has none.
+            PowerPointPartRef slide = SlidePartRef;
+            PowerPointPartRef styles = !slide.IsNone && slide.Document is { } document ? document.EnsureTableStylesPart() : default;
+            foreach (OfficeXmlNode style in styles.Root.Children(D, "tblStyle")) {
+                string? styleId = style.Attribute("styleId");
+                if (!string.IsNullOrWhiteSpace(styleId) && string.Equals(styleId, styleName, comparison)) {
+                    return styleId;
                 }
-            }
 
-            if (stylesPart != null) {
-                using Stream stream = stylesPart.GetStream(FileMode.Open, FileAccess.Read);
-                if (stream.Length > 0) {
-                    string? resolved = ResolveStyleIdFromXml(styleName, comparison, stream);
-                    if (!string.IsNullOrWhiteSpace(resolved)) {
-                        return resolved;
-                    }
+                string? name = style.Attribute("styleName");
+                if (!string.IsNullOrWhiteSpace(name) && string.Equals(name, styleName, comparison)) {
+                    return styleId;
                 }
             }
 

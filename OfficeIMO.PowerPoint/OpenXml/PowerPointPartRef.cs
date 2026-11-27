@@ -50,6 +50,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
     internal readonly struct PowerPointPartRef : IEquatable<PowerPointPartRef> {
         internal const string HyperlinkRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink";
         internal const string SlideRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide";
+        internal const string NotesSlideRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide";
         internal const string SlideLayoutRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout";
         internal const string SlideMasterRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster";
         internal const string ThemeRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme";
@@ -124,12 +125,23 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                 PowerPointPartRef current = Current;
                 if (current._sdk != null) return OfficeXmlNode.FromSdk(PowerPointSdkParts.Root(current._sdk));
                 OfficeXmlTree? tree = current._document?.GetPackageXml(current._name!);
-                return tree == null ? default : new OfficeXmlNode(tree, tree.Root);
+                if (tree != null) return new OfficeXmlNode(tree, tree.Root);
+                // A part over the size the package reads is read through the SDK, which applies the load's own limit.
+                if (current._document is { } document && document.IsPackagePartOverLimit(current._name!)) {
+                    document.OpenSdkForOversizedPart();
+                    return Current.Root;
+                }
+                return default;
             }
         }
 
         /// <summary>Records an edit of the part's content, so the document writes it.</summary>
-        internal void MarkEdited() => Current._document?.MarkPackageEdited();
+        internal void MarkEdited() {
+            PowerPointPartRef current = Current;
+            // An SDK part's edit is recorded too, so a read-only copy writes the parts that changed.
+            if (current._sdk != null) current.Document?.MarkSdkPartEdited(current.Name);
+            else current._document?.MarkPackageEdited();
+        }
 
         // Records a relationship change, so cached edges between parts are read again.
         private void MarkRelationshipsEdited() {
