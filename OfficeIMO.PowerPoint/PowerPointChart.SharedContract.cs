@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint {
             byte[]? workbookBytes = embedded != null ? OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind) : null;
             Action? preserveBindings = embedded != null ? OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
                 chartPart, data.Series.Select(series => series.Values.Count).ToArray()) : null;
-            PowerPointChartAxisIdGenerator.EnsureSeeded(chartPart.OpenXmlPackage);
+            PowerPointChartAxisIdGenerator.EnsureSeeded(OpenXml.PowerPointPartRef.FromSdk(chartPart).Document);
             OfficeOpenXmlChartWriter.UpdateSharedChartData(chartPart, data, chartKind,
                 ColorTheme);
             preserveBindings?.Invoke();
@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint {
                 using var stream = new MemoryStream(workbookBytes!);
                 embedded.FeedData(stream);
             }
-            Save();
+            MarkChartEdited();
             return this;
         }
 
