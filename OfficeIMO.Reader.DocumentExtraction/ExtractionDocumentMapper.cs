@@ -357,16 +357,35 @@ internal sealed class ExtractionDocumentMapper {
             .Where(item => item.Block != null && string.Equals(item.Block.Kind, "image", StringComparison.OrdinalIgnoreCase))
             .Select(item => item.Block!)
             .ToList();
-        // Some readers (HTML, EPUB) emit an image block in document order plus a separately numbered asset. When the
-        // counts agree, the n-th block is the n-th asset, which gives the image its position.
-        bool pairByOrder = imageBlocks.Count > 0 && imageBlocks.Count == images.Count;
-        for (int i = 0; pairByOrder && i < images.Count; i++) _imagesForBlocks[imageBlocks[i]] = images[i];
+        // Some readers (HTML, EPUB) emit an image block in document order plus a separately numbered asset. A block
+        // and an asset that share an anchor belong together; when the remaining counts agree, the n-th remaining
+        // block is the n-th remaining asset, which gives the image its position.
+        var paired = new HashSet<OfficeDocumentAsset>();
+        var unmatchedBlocks = new List<OfficeDocumentBlock>();
+        foreach (OfficeDocumentBlock block in imageBlocks) {
+            string? anchor = block.Location?.BlockAnchor;
+            OfficeDocumentAsset? match = string.IsNullOrEmpty(anchor) ? null : images.FirstOrDefault(image =>
+                !paired.Contains(image) && string.Equals(image.Location.BlockAnchor, anchor, StringComparison.Ordinal));
+            if (match == null) {
+                unmatchedBlocks.Add(block);
+            } else {
+                _imagesForBlocks[block] = match;
+                paired.Add(match);
+            }
+        }
+        List<OfficeDocumentAsset> unmatchedImages = images.Where(image => !paired.Contains(image)).ToList();
+        if (unmatchedBlocks.Count > 0 && unmatchedBlocks.Count == unmatchedImages.Count) {
+            for (int i = 0; i < unmatchedImages.Count; i++) {
+                _imagesForBlocks[unmatchedBlocks[i]] = unmatchedImages[i];
+                paired.Add(unmatchedImages[i]);
+            }
+        }
 
         foreach (OfficeDocumentAsset asset in images) {
             if (!string.IsNullOrEmpty(asset.Id) && _ocrTextByAssetId.TryGetValue(asset.Id, out OfficeDocumentBlock? ocrBlock)) {
                 _consumedOcrBlockIds.Add(ocrBlock.Id);
             }
-            if (pairByOrder) continue;
+            if (paired.Contains(asset)) continue;
             int index = -1;
             ReaderLocation location = asset.Location;
             if (!string.IsNullOrEmpty(location.BlockAnchor) && byAnchor.TryGetValue(location.BlockAnchor!, out int anchored)) {

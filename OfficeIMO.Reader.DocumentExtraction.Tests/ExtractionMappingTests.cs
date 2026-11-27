@@ -188,6 +188,25 @@ public sealed class ExtractionMappingTests {
     }
 
     [Fact]
+    public void ImageBlocksPairWithAssetsByAnchorBeforeOrder() {
+        OfficeDocumentBlock first = Block("image", "First");
+        first.Location.BlockAnchor = "img-a";
+        OfficeDocumentBlock second = Block("image", "Second");
+        second.Location.BlockAnchor = "img-b";
+        OfficeDocumentReadResult result = Result(ReaderInputKind.Html, first, second);
+        result.Assets = new[] {
+            new OfficeDocumentAsset { Id = "b", Kind = "image", MediaType = "image/png", Location = new ReaderLocation { BlockAnchor = "img-b" } },
+            new OfficeDocumentAsset { Id = "a", Kind = "image", MediaType = "image/png", Location = new ReaderLocation { BlockAnchor = "img-a" } }
+        };
+
+        ExtractionDocument document = result.ToExtractionDocument("doc");
+
+        string?[] assetIds = document.EnumerateContent().Cast<ExtractionDocumentImageElement>()
+            .Select(image => image.Content!.AdditionalProperties![OfficeIMOExtractionPropertyNames.AssetId] as string).ToArray();
+        Assert.Equal(new[] { "a", "b" }, assetIds);
+    }
+
+    [Fact]
     public void ImagePayloadsCanBeLeftOut() {
         OfficeDocumentReadResult result = Result(ReaderInputKind.Word);
         result.Assets = new[] { new OfficeDocumentAsset { Id = "a", Kind = "image", MediaType = "image/png", PayloadBytes = new byte[] { 1 } } };
