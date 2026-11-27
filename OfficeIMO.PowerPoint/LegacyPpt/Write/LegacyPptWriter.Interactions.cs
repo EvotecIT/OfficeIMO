@@ -1,10 +1,7 @@
 using System.Collections.ObjectModel;
-using System.Runtime.CompilerServices;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using static OfficeIMO.PowerPoint.LegacyPpt.Write.LegacyPptWriterXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -16,61 +13,84 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordInteractiveInfo = 0x0FF2;
         private const ushort RecordInteractiveInfoAtom = 0x0FF3;
 
-        internal static bool TryReadInteractions(PowerPointDocument presentation,
-            out LegacyPptWriterInteractionCatalog catalog, out string? reason) {
-            ArgumentNullException.ThrowIfNull(presentation);
-            return TryReadInteractions(presentation.Slides,
-                new LegacyPptWriterSoundCatalog(), out catalog, out reason);
-        }
-
+        // Caller without a package view: LegacyPptWriter (single-slide records).
         internal static bool TryReadInteractions(IEnumerable<PowerPointSlide> slides,
             out LegacyPptWriterInteractionCatalog catalog, out string? reason) {
             return TryReadInteractions(slides, new LegacyPptWriterSoundCatalog(),
                 out catalog, out reason);
         }
 
+        // Caller without a package view: LegacyPptPreservingWriter.ChangePlan.
         internal static bool TryReadInteractions(IEnumerable<PowerPointSlide> slides,
             LegacyPptWriterSoundCatalog soundCatalog,
             out LegacyPptWriterInteractionCatalog catalog, out string? reason) {
+            ArgumentNullException.ThrowIfNull(slides);
+            PowerPointSlide[] list = slides.ToArray();
+            if (list.Length == 0) {
+                catalog = new LegacyPptWriterInteractionCatalog(soundCatalog);
+                reason = null;
+                return true;
+            }
+            using LegacyPptPackageView view = CaptureView(list[0]);
+            return TryReadInteractions(view, list, soundCatalog, out catalog,
+                out reason);
+        }
+
+        internal static bool TryReadInteractions(LegacyPptPackageView view,
+            IEnumerable<PowerPointSlide> slides,
+            LegacyPptWriterSoundCatalog soundCatalog,
+            out LegacyPptWriterInteractionCatalog catalog, out string? reason) {
+            ArgumentNullException.ThrowIfNull(view);
             catalog = new LegacyPptWriterInteractionCatalog(soundCatalog);
             reason = null;
             foreach (PowerPointSlide slide in slides) {
+                LegacyPptPartView slidePart = view.Part(slide.PartRef.Name);
                 foreach (PowerPointShape shape in slide.EnumerateShapesDeep(
                              slide.Shapes, includeHidden: true)) {
-                    if (!TryReadShapeInteractions(slide.SlidePart, shape, catalog,
+                    if (!TryReadShapeInteractions(view, slidePart, shape, catalog,
                             out LegacyPptWriterShapeInteractions interactions, out reason)) {
                         catalog = new LegacyPptWriterInteractionCatalog(soundCatalog);
                         return false;
                     }
-                    if (interactions.HasInteractions) catalog.Add(shape.Element, interactions);
+                    if (interactions.HasInteractions) catalog.Add(shape, interactions);
                 }
             }
             return true;
         }
 
-        private static bool TryReadShapeInteractions(SlidePart slidePart,
+        // The shape's element in the view, or its own markup when the view has nothing at its place.
+        private static OfficeXmlNode ResolveShape(LegacyPptPackageView view,
+            PowerPointShape shape) {
+            OfficeXmlNode resolved = view.Resolve(shape.OwnerPartRef.Name,
+                shape.XmlElement);
+            return resolved.IsNone ? ShapeXml(shape) : resolved;
+        }
+
+        private static bool TryReadShapeInteractions(LegacyPptPackageView view,
+            LegacyPptPartView slidePart,
             PowerPointShape shape, LegacyPptWriterInteractionCatalog catalog,
             out LegacyPptWriterShapeInteractions interactions, out string? reason) {
             reason = null;
             var shapeActions = new List<LegacyPptWriterInteraction>();
             var textActions = new List<LegacyPptWriterTextInteraction>();
-            P.NonVisualDrawingProperties? drawing = GetNonVisualDrawingProperties(shape.Element);
-            if (drawing != null) {
-                if (!TryGetSingleHyperlink<A.HyperlinkOnClick>(drawing,
-                        out A.HyperlinkOnClick? clickElement, out reason)
-                    || !TryGetSingleHyperlink<A.HyperlinkOnHover>(drawing,
-                        out A.HyperlinkOnHover? hoverElement, out reason)) {
+            OfficeXmlNode element = ResolveShape(view, shape);
+            OfficeXmlNode drawing = GetNonVisualDrawingProperties(element);
+            if (!drawing.IsNone) {
+                if (!TryGetSingleHyperlink(drawing, "hlinkClick",
+                        out OfficeXmlNode clickElement, out reason)
+                    || !TryGetSingleHyperlink(drawing, "hlinkHover",
+                        out OfficeXmlNode hoverElement, out reason)) {
                     interactions = LegacyPptWriterShapeInteractions.Empty;
                     return false;
                 }
                 if (shape is PowerPointMedia
                     && IsDefaultMediaActivation(clickElement)) {
-                    clickElement = null;
+                    clickElement = default;
                 }
-                if (!TryReadHyperlink(slidePart, clickElement,
+                if (!TryReadHyperlink(view, slidePart, clickElement,
                         LegacyPptInteractionTrigger.MouseClick, catalog,
                         out LegacyPptWriterInteraction? click, out reason)
-                    || !TryReadHyperlink(slidePart, hoverElement,
+                    || !TryReadHyperlink(view, slidePart, hoverElement,
                         LegacyPptInteractionTrigger.MouseOver, catalog,
                         out LegacyPptWriterInteraction? hover, out reason)) {
                     interactions = LegacyPptWriterShapeInteractions.Empty;
@@ -80,26 +100,42 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (hover != null) shapeActions.Add(hover);
             }
 
-            if (shape.Element is P.Shape textShape && textShape.TextBody != null
-                && !TryReadTextInteractions(slidePart, textShape.TextBody, catalog,
+            OfficeXmlNode textBody = element.Is(LegacyPptXml.P, "sp")
+                ? element.Child(LegacyPptXml.P, "txBody")
+                : default;
+            if (!textBody.IsNone
+                && !TryReadTextInteractions(view, slidePart, textBody, catalog,
                     textActions, out reason)) {
                 interactions = LegacyPptWriterShapeInteractions.Empty;
                 return false;
             }
             if (shape is PowerPointTable table) {
+                OfficeXmlNode tableElement = element
+                    .Child(LegacyPptXml.A, "graphic")
+                    .Child(LegacyPptXml.A, "graphicData")
+                    .Child(LegacyPptXml.A, "tbl");
+                List<OfficeXmlNode> rows = tableElement
+                    .Children(LegacyPptXml.A, "tr").ToList();
                 for (int row = 0; row < table.RowCount; row++) {
+                    List<OfficeXmlNode> cells = row < rows.Count
+                        ? rows[row].Children(LegacyPptXml.A, "tc").ToList()
+                        : new List<OfficeXmlNode>();
                     for (int column = 0; column < table.ColumnCount; column++) {
-                        PowerPointTableCell cell = table.GetCell(row, column);
+                        // The table reads its cells by row and column position; this keeps its checks.
+                        _ = table.GetCell(row, column);
+                        OfficeXmlNode cellTextBody = column < cells.Count
+                            ? cells[column].Child(LegacyPptXml.A, "txBody")
+                            : default;
                         var cellActions = new List<LegacyPptWriterTextInteraction>();
-                        if (cell.Cell.TextBody != null
-                            && !TryReadTextInteractions(slidePart,
-                                cell.Cell.TextBody, catalog, cellActions,
+                        if (!cellTextBody.IsNone
+                            && !TryReadTextInteractions(view, slidePart,
+                                cellTextBody, catalog, cellActions,
                                 out reason)) {
                             interactions = LegacyPptWriterShapeInteractions.Empty;
                             return false;
                         }
                         if (cellActions.Count > 0) {
-                            catalog.Add(cell.Cell,
+                            catalog.Add(table, row, column,
                                 new LegacyPptWriterShapeInteractions(
                                     Array.Empty<LegacyPptWriterInteraction>(),
                                     cellActions));
@@ -112,40 +148,43 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool IsDefaultMediaActivation(
-            A.HyperlinkOnClick? hyperlink) => hyperlink != null
-            && string.Equals(hyperlink.Action?.Value, "ppaction://media",
+            OfficeXmlNode hyperlink) => !hyperlink.IsNone
+            && string.Equals(hyperlink.Attribute("action"), "ppaction://media",
                 StringComparison.OrdinalIgnoreCase)
-            && string.IsNullOrEmpty(hyperlink.Id?.Value)
-            && string.IsNullOrEmpty(hyperlink.Tooltip?.Value)
-            && hyperlink.HighlightClick?.Value != true
-            && hyperlink.EndSound?.Value != true
-            && !hyperlink.HasChildren;
+            && string.IsNullOrEmpty(hyperlink.Attribute(LegacyPptXml.R, "id"))
+            && string.IsNullOrEmpty(hyperlink.Attribute("tooltip"))
+            && hyperlink.Bool("highlightClick") != true
+            && hyperlink.Bool("endSnd") != true
+            && !HasChildren(hyperlink);
 
-        private static bool TryReadTextInteractions(SlidePart slidePart,
-            OpenXmlCompositeElement textBody,
+        private static bool TryReadTextInteractions(LegacyPptPackageView view,
+            LegacyPptPartView slidePart,
+            OfficeXmlNode textBody,
             LegacyPptWriterInteractionCatalog catalog,
             ICollection<LegacyPptWriterTextInteraction> result, out string? reason) {
             reason = null;
-            A.Paragraph[] paragraphs = textBody.Elements<A.Paragraph>().ToArray();
+            List<OfficeXmlNode> paragraphs = textBody
+                .Children(LegacyPptXml.A, "p").ToList();
             int position = 0;
-            for (int paragraphIndex = 0; paragraphIndex < paragraphs.Length; paragraphIndex++) {
-                foreach (OpenXmlElement child in paragraphs[paragraphIndex].ChildElements) {
-                    string text = child switch {
-                        A.Run run => run.Text?.Text ?? string.Empty,
-                        A.Field => "*",
-                        A.Break => "\v",
-                        _ => string.Empty
-                    };
-                    if (child is A.Run textRun && text.Length > 0) {
-                        A.RunProperties? properties = textRun.RunProperties;
-                        if (!TryGetSingleHyperlink<A.HyperlinkOnClick>(properties,
-                                out A.HyperlinkOnClick? clickElement, out reason)
-                            || !TryGetSingleHyperlink<A.HyperlinkOnMouseOver>(properties,
-                                out A.HyperlinkOnMouseOver? hoverElement, out reason)
-                            || !TryReadHyperlink(slidePart, clickElement,
+            for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
+                foreach (OfficeXmlNode child in paragraphs[paragraphIndex].Children()) {
+                    bool isRun = child.Is(LegacyPptXml.A, "r");
+                    bool isField = child.Is(LegacyPptXml.A, "fld");
+                    string text = isRun
+                        ? child.Child(LegacyPptXml.A, "t").InnerText
+                        : isField ? "*"
+                        : child.Is(LegacyPptXml.A, "br") ? "\v"
+                        : string.Empty;
+                    if (isRun && text.Length > 0) {
+                        OfficeXmlNode properties = child.Child(LegacyPptXml.A, "rPr");
+                        if (!TryGetSingleHyperlink(properties, "hlinkClick",
+                                out OfficeXmlNode clickElement, out reason)
+                            || !TryGetSingleHyperlink(properties, "hlinkMouseOver",
+                                out OfficeXmlNode hoverElement, out reason)
+                            || !TryReadHyperlink(view, slidePart, clickElement,
                                 LegacyPptInteractionTrigger.MouseClick, catalog,
                                 out LegacyPptWriterInteraction? click, out reason)
-                            || !TryReadHyperlink(slidePart, hoverElement,
+                            || !TryReadHyperlink(view, slidePart, hoverElement,
                                 LegacyPptInteractionTrigger.MouseOver, catalog,
                                 out LegacyPptWriterInteraction? hover, out reason)) {
                             return false;
@@ -158,84 +197,72 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             result.Add(new LegacyPptWriterTextInteraction(position,
                                 checked(position + text.Length), hover));
                         }
-                    } else if (child is A.Field field
-                               && (field.RunProperties?.GetFirstChild<A.HyperlinkOnClick>() != null
-                                   || field.RunProperties?.GetFirstChild<A.HyperlinkOnMouseOver>() != null)) {
-                        reason = "Hyperlinks on DrawingML text fields are not encoded by the native binary writer.";
-                        return false;
+                    } else if (isField) {
+                        OfficeXmlNode fieldProperties = child.Child(LegacyPptXml.A, "rPr");
+                        if (!fieldProperties.Child(LegacyPptXml.A, "hlinkClick").IsNone
+                            || !fieldProperties.Child(LegacyPptXml.A, "hlinkMouseOver").IsNone) {
+                            reason = "Hyperlinks on DrawingML text fields are not encoded by the native binary writer.";
+                            return false;
+                        }
                     }
                     position = checked(position + text.Length);
                 }
-                if (paragraphIndex + 1 < paragraphs.Length) position++;
+                if (paragraphIndex + 1 < paragraphs.Count) position++;
             }
             return true;
         }
 
-        private static bool TryGetSingleHyperlink<T>(OpenXmlElement? parent,
-            out T? hyperlink, out string? reason) where T : OpenXmlElement {
-            hyperlink = null;
+        private static bool TryGetSingleHyperlink(OfficeXmlNode parent,
+            string localName, out OfficeXmlNode hyperlink, out string? reason) {
+            hyperlink = default;
             reason = null;
-            if (parent == null) return true;
-            T[] candidates = parent.Elements<T>().ToArray();
-            if (candidates.Length > 1) {
+            if (parent.IsNone) return true;
+            List<OfficeXmlNode> candidates = parent
+                .Children(LegacyPptXml.A, localName).ToList();
+            if (candidates.Count > 1) {
                 reason = $"The {parent.LocalName} element contains multiple {candidates[0].LocalName} interactions.";
                 return false;
             }
-            hyperlink = candidates.SingleOrDefault();
+            hyperlink = candidates.Count == 1 ? candidates[0] : default;
             return true;
         }
 
-        private static bool TryReadHyperlink(SlidePart slidePart,
-            OpenXmlElement? hyperlink, LegacyPptInteractionTrigger trigger,
+        private static readonly string[] HyperlinkAttributes = {
+            "id", "action", "tooltip", "highlightClick", "endSnd"
+        };
+
+        private static bool TryReadHyperlink(LegacyPptPackageView view,
+            LegacyPptPartView slidePart,
+            OfficeXmlNode hyperlink, LegacyPptInteractionTrigger trigger,
             LegacyPptWriterInteractionCatalog catalog,
             out LegacyPptWriterInteraction? interaction, out string? reason) {
             interaction = null;
             reason = null;
-            if (hyperlink == null) return true;
-            A.HyperlinkSound[] soundElements = hyperlink
-                .Elements<A.HyperlinkSound>().ToArray();
-            if (soundElements.Length > 1
-                || hyperlink.ChildElements.Any(child => child is not A.HyperlinkSound)
-                || hyperlink.GetAttributes().Any(attribute =>
-                    !string.Equals(attribute.LocalName, "id", StringComparison.Ordinal)
-                    && !string.Equals(attribute.LocalName, "action", StringComparison.Ordinal)
-                    && !string.Equals(attribute.LocalName, "tooltip", StringComparison.Ordinal)
-                    && !string.Equals(attribute.LocalName, "highlightClick", StringComparison.Ordinal)
-                    && !string.Equals(attribute.LocalName, "endSnd", StringComparison.Ordinal))) {
+            if (hyperlink.IsNone) return true;
+            if (hyperlink.Children(LegacyPptXml.A, "snd").Count > 1
+                || AnyChildOtherThan(hyperlink, LegacyPptXml.A, "snd")
+                || HasAttributeOtherThan(hyperlink, HyperlinkAttributes)) {
                 reason = "Hyperlink target frames, history, duplicate sound children, and extension data are not encoded.";
                 return false;
             }
-            string? relationshipId;
-            string? action;
-            string? screenTip;
-            if (hyperlink is A.HyperlinkOnClick click) {
-                relationshipId = click.Id?.Value;
-                action = click.Action?.Value;
-                screenTip = click.Tooltip?.Value;
-            } else if (hyperlink is A.HyperlinkOnMouseOver hover) {
-                relationshipId = hover.Id?.Value;
-                action = hover.Action?.Value;
-                screenTip = hover.Tooltip?.Value;
-            } else if (hyperlink is A.HyperlinkOnHover shapeHover) {
-                relationshipId = shapeHover.Id?.Value;
-                action = shapeHover.Action?.Value;
-                screenTip = shapeHover.Tooltip?.Value;
-            } else {
+            if (!IsHyperlinkElement(hyperlink)) {
                 reason = $"Unsupported DrawingML interaction element {hyperlink.LocalName}.";
                 return false;
             }
+            string? relationshipId = hyperlink.Attribute(LegacyPptXml.R, "id");
+            string? action = hyperlink.Attribute("action");
+            string? screenTip = hyperlink.Attribute("tooltip");
             if (screenTip?.Length == 0) screenTip = null;
-            A.HyperlinkType typedHyperlink = (A.HyperlinkType)hyperlink;
             byte flags = 0;
-            if (typedHyperlink.HighlightClick?.Value == true) flags |= 0x01;
-            if (typedHyperlink.EndSound?.Value == true) flags |= 0x02;
+            if (hyperlink.Bool("highlightClick") == true) flags |= 0x01;
+            if (hyperlink.Bool("endSnd") == true) flags |= 0x02;
 
             if (PowerPointCustomShowAction.IsCustomShowAction(action)) {
                 if (!TryValidateCustomShowHyperlink(slidePart,
-                        typedHyperlink, catalog.Sounds,
+                        hyperlink, catalog.Sounds,
                         out uint customShowId, out bool returnsToSlide,
                         out LegacyPptWriterSound? customShowSound, out reason)
-                    || !TryResolveCustomShowName(slidePart, customShowId,
+                    || !TryResolveCustomShowName(view, customShowId,
                         out string? customShowName)) {
                     reason ??= "Custom-show actions require a valid show id.";
                     return false;
@@ -249,7 +276,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return true;
             }
 
-            if (!TryRegisterHyperlinkSound(slidePart, typedHyperlink,
+            if (!TryRegisterHyperlinkSound(slidePart, hyperlink,
                     catalog.Sounds, out LegacyPptWriterSound? sound,
                     out reason)) {
                 return false;
@@ -274,12 +301,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             if (!string.IsNullOrEmpty(relationshipId)) {
-                if (slidePart.TryGetPartById(relationshipId!,
-                        out OpenXmlPart? internalPart)) {
-                    if (internalPart is not SlidePart targetSlidePart
+                if (TryGetRelatedPart(slidePart, relationshipId,
+                        out LegacyPptRelationshipView internalRelationship)) {
+                    if (!internalRelationship.IsType(
+                            LegacyPptPackageView.SlideRelationshipType)
                         || !string.Equals(action, "ppaction://hlinksldjump",
                             StringComparison.OrdinalIgnoreCase)
-                        || !TryResolveInternalSlideTarget(targetSlidePart,
+                        || !TryResolveInternalSlideTarget(view,
+                            internalRelationship.TargetPart,
                             out LegacyPptWriterSlideTarget slideTarget)) {
                         reason = $"Internal hyperlink relationship '{relationshipId}' does not identify a supported slide target.";
                         return false;
@@ -299,11 +328,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         reason = "Run-program actions cannot carry a binary screen tip.";
                         return false;
                     }
-                    HyperlinkRelationship? programRelationship = slidePart
-                        .HyperlinkRelationships.FirstOrDefault(candidate =>
-                            string.Equals(candidate.Id, relationshipId,
-                                StringComparison.Ordinal));
-                    if (programRelationship == null
+                    if (!TryGetHyperlinkRelationship(slidePart, relationshipId!,
+                            out LegacyPptRelationshipView programRelationship)
                         || !programRelationship.IsExternal) {
                         reason = $"Run-program relationship '{relationshipId}' is missing or is not external.";
                         return false;
@@ -312,7 +338,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         LegacyPptInteractionAction.RunProgram,
                         LegacyPptInteractionJump.None,
                         LegacyPptHyperlinkType.Nil, hyperlinkIdReference: 0,
-                        name: programRelationship.Uri.OriginalString,
+                        name: programRelationship.Target,
                         soundIdReference: soundIdReference, flags: flags);
                     return true;
                 }
@@ -320,18 +346,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     reason = "Hyperlinks that combine a relationship target with a DrawingML action are not encoded yet.";
                     return false;
                 }
-                HyperlinkRelationship? relationship = slidePart.HyperlinkRelationships
-                    .FirstOrDefault(candidate => string.Equals(candidate.Id,
-                        relationshipId, StringComparison.Ordinal));
-                if (relationship == null || !relationship.IsExternal) {
+                if (!TryGetHyperlinkRelationship(slidePart, relationshipId!,
+                        out LegacyPptRelationshipView relationship)
+                    || !relationship.IsExternal) {
                     reason = $"Hyperlink relationship '{relationshipId}' is missing or is not external.";
                     return false;
                 }
-                LegacyPptWriterHyperlink target = catalog.GetOrAdd(relationship.Uri,
-                    screenTip);
+                LegacyPptWriterHyperlink target = catalog.GetOrAdd(
+                    relationship.Target, screenTip);
                 interaction = new LegacyPptWriterInteraction(trigger,
                     LegacyPptInteractionAction.Hyperlink, LegacyPptInteractionJump.None,
-                    MapHyperlinkType(relationship.Uri), target.Id,
+                    MapHyperlinkType(relationship.Target), target.Id,
                     soundIdReference: soundIdReference, flags: flags);
                 return true;
             }
@@ -366,38 +391,65 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool TryResolveInternalSlideTarget(SlidePart targetSlidePart,
+        // The DrawingML hyperlink elements: a:hlinkClick, a:hlinkHover and a:hlinkMouseOver.
+        private static bool IsHyperlinkElement(OfficeXmlNode element) =>
+            element.Is(LegacyPptXml.A, "hlinkClick")
+            || element.Is(LegacyPptXml.A, "hlinkHover")
+            || element.Is(LegacyPptXml.A, "hlinkMouseOver");
+
+        /// <summary>
+        /// The relationship of a related package part: an internal relationship that is neither a hyperlink nor an audio,
+        /// video or media reference, whose target part exists.
+        /// </summary>
+        private static bool TryGetRelatedPart(LegacyPptPartView owner,
+            string? relationshipId, out LegacyPptRelationshipView relationship) =>
+            owner.TryGetRelationship(relationshipId, out relationship)
+            && !relationship.IsExternal
+            && !relationship.TargetPart.IsNone
+            && !relationship.IsType(LegacyPptPackageView.HyperlinkRelationshipType)
+            && !relationship.IsType(LegacyPptPackageView.AudioRelationshipType)
+            && !relationship.IsType(LegacyPptPackageView.VideoRelationshipType)
+            && !relationship.IsType(LegacyPptPackageView.MediaRelationshipType);
+
+        private static bool TryGetHyperlinkRelationship(LegacyPptPartView owner,
+            string relationshipId, out LegacyPptRelationshipView relationship) =>
+            owner.TryGetRelationship(relationshipId, out relationship)
+            && relationship.IsType(LegacyPptPackageView.HyperlinkRelationshipType);
+
+        private static bool TryResolveInternalSlideTarget(
+            LegacyPptPackageView view, LegacyPptPartView targetSlidePart,
             out LegacyPptWriterSlideTarget target) {
             target = default;
-            PresentationPart? presentationPart = targetSlidePart.OpenXmlPackage.RootPart
-                as PresentationPart;
-            P.SlideId[] slideIds = presentationPart?.Presentation?.SlideIdList?
-                .Elements<P.SlideId>().ToArray() ?? Array.Empty<P.SlideId>();
-            for (int index = 0; index < slideIds.Length; index++) {
-                string? relationshipId = slideIds[index].RelationshipId?.Value;
+            LegacyPptPartView presentationPart = view.Presentation;
+            List<OfficeXmlNode> slideIds = presentationPart.Root
+                .Child(LegacyPptXml.P, "sldIdLst")
+                .Children(LegacyPptXml.P, "sldId").ToList();
+            for (int index = 0; index < slideIds.Count; index++) {
+                string? relationshipId = slideIds[index].Attribute(LegacyPptXml.R, "id");
                 if (string.IsNullOrEmpty(relationshipId)
-                    || !presentationPart!.TryGetPartById(relationshipId!,
-                        out OpenXmlPart? candidate)
-                    || !ReferenceEquals(candidate, targetSlidePart)) continue;
+                    || !TryGetRelatedPart(presentationPart, relationshipId,
+                        out LegacyPptRelationshipView candidate)
+                    || !candidate.TargetPart.Equals(targetSlidePart)) continue;
                 target = new LegacyPptWriterSlideTarget(
-                    targetSlidePart.Uri.ToString(),
+                    targetSlidePart.Name,
                     checked(unchecked((uint)index) + 256U),
                     checked(index + 1),
-                    targetSlidePart.Slide?.CommonSlideData?.Name?.Value);
+                    targetSlidePart.Root.Child(LegacyPptXml.P, "cSld")
+                        .Attribute("name"));
                 return true;
             }
             return false;
         }
 
         internal static bool TryValidateCustomShowHyperlink(
-            SlidePart ownerPart, A.HyperlinkType hyperlink,
+            LegacyPptPartView ownerPart, OfficeXmlNode hyperlink,
             LegacyPptWriterSoundCatalog soundCatalog,
             out uint customShowId, out bool returnsToSlide,
             out LegacyPptWriterSound? sound, out string? reason) {
-            ArgumentNullException.ThrowIfNull(ownerPart);
+            if (ownerPart.IsNone) throw new ArgumentNullException(nameof(ownerPart));
             ArgumentNullException.ThrowIfNull(soundCatalog);
             sound = null;
-            if (!PowerPointCustomShowAction.TryValidateSupportedHyperlink(
+            if (!TryValidateSupportedCustomShowHyperlink(
                     hyperlink, out customShowId, out returnsToSlide,
                     out reason)) {
                 return false;
@@ -406,19 +458,45 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 soundCatalog, out sound, out reason);
         }
 
+        // The checks PowerPointCustomShowAction.TryValidateSupportedHyperlink makes, on the element's markup.
+        private static bool TryValidateSupportedCustomShowHyperlink(
+            OfficeXmlNode hyperlink, out uint customShowId,
+            out bool returnsToSlide, out string? reason) {
+            if (hyperlink.IsNone) throw new ArgumentNullException(nameof(hyperlink));
+            reason = null;
+            if (!PowerPointCustomShowAction.TryParseSupported(
+                    hyperlink.Attribute("action"),
+                    out customShowId, out returnsToSlide)) {
+                reason = "The custom-show action is malformed.";
+                return false;
+            }
+            if (!string.IsNullOrEmpty(hyperlink.Attribute(LegacyPptXml.R, "id"))
+                || !string.IsNullOrEmpty(hyperlink.Attribute("tooltip"))) {
+                reason = "Custom-show actions cannot combine a relationship or screen tip.";
+                return false;
+            }
+            if (hyperlink.Children(LegacyPptXml.A, "snd").Count > 1
+                || AnyChildOtherThan(hyperlink, LegacyPptXml.A, "snd")
+                || HasAttributeOtherThan(hyperlink, HyperlinkAttributes)) {
+                reason = "Custom-show actions contain unsupported hyperlink attributes or child markup.";
+                return false;
+            }
+            return true;
+        }
+
         internal static bool TryRegisterHyperlinkSound(
-            SlidePart ownerPart, A.HyperlinkType hyperlink,
+            LegacyPptPartView ownerPart, OfficeXmlNode hyperlink,
             LegacyPptWriterSoundCatalog soundCatalog,
             out LegacyPptWriterSound? sound, out string? reason) {
-            ArgumentNullException.ThrowIfNull(ownerPart);
-            ArgumentNullException.ThrowIfNull(hyperlink);
+            if (ownerPart.IsNone) throw new ArgumentNullException(nameof(ownerPart));
+            if (hyperlink.IsNone) throw new ArgumentNullException(nameof(hyperlink));
             ArgumentNullException.ThrowIfNull(soundCatalog);
             sound = null;
             reason = null;
-            A.HyperlinkSound[] sounds = hyperlink.Elements<A.HyperlinkSound>()
-                .ToArray();
-            if (sounds.Length == 0) return true;
-            if (sounds.Length > 1) {
+            List<OfficeXmlNode> sounds = hyperlink
+                .Children(LegacyPptXml.A, "snd").ToList();
+            if (sounds.Count == 0) return true;
+            if (sounds.Count > 1) {
                 reason = "A DrawingML interaction cannot contain multiple action sounds.";
                 return false;
             }
@@ -426,17 +504,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 out sound, out reason);
         }
 
-        private static bool TryResolveCustomShowName(SlidePart slidePart,
+        private static bool TryResolveCustomShowName(LegacyPptPackageView view,
             uint customShowId, out string? name) {
             name = null;
-            PresentationPart? presentationPart = slidePart.OpenXmlPackage.RootPart
-                as PresentationPart;
-            P.CustomShow[] matches = presentationPart?.Presentation?.CustomShowList?
-                .Elements<P.CustomShow>().Where(show => show.Id?.Value == customShowId)
-                .ToArray() ?? Array.Empty<P.CustomShow>();
-            if (matches.Length != 1 || string.IsNullOrEmpty(
-                    matches[0].Name?.Value)) return false;
-            name = matches[0].Name!.Value;
+            List<OfficeXmlNode> matches = view.Presentation.Root
+                .Child(LegacyPptXml.P, "custShowLst")
+                .Children(LegacyPptXml.P, "custShow")
+                .ToList()
+                .Where(show => show.UInt("id") == customShowId)
+                .ToList();
+            if (matches.Count != 1 || string.IsNullOrEmpty(
+                    matches[0].Attribute("name"))) return false;
+            name = matches[0].Attribute("name");
             return true;
         }
 
@@ -459,8 +538,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return jump != LegacyPptInteractionJump.None;
         }
 
-        private static LegacyPptHyperlinkType MapHyperlinkType(Uri uri) {
-            if (uri.IsAbsoluteUri && (uri.Scheme == Uri.UriSchemeHttp
+        private static LegacyPptHyperlinkType MapHyperlinkType(string target) {
+            if (Uri.TryCreate(target, UriKind.RelativeOrAbsolute, out Uri? uri)
+                && uri.IsAbsoluteUri && (uri.Scheme == Uri.UriSchemeHttp
                                      || uri.Scheme == Uri.UriSchemeHttps
                                      || uri.Scheme == Uri.UriSchemeMailto
                                      || uri.Scheme == Uri.UriSchemeFtp)) {
@@ -469,19 +549,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return LegacyPptHyperlinkType.OtherFile;
         }
 
-        private static P.NonVisualDrawingProperties? GetNonVisualDrawingProperties(
-            OpenXmlElement element) => element switch {
-                P.Shape shape => shape.NonVisualShapeProperties?.NonVisualDrawingProperties,
-                P.ConnectionShape connector => connector.NonVisualConnectionShapeProperties?
-                    .NonVisualDrawingProperties,
-                P.Picture picture => picture.NonVisualPictureProperties?
-                    .NonVisualDrawingProperties,
-                P.GroupShape group => group.NonVisualGroupShapeProperties?
-                    .NonVisualDrawingProperties,
-                P.GraphicFrame frame => frame.NonVisualGraphicFrameProperties?
-                    .NonVisualDrawingProperties,
+        private static OfficeXmlNode GetNonVisualDrawingProperties(
+            OfficeXmlNode element) {
+            if (element.NamespaceId != LegacyPptXml.P) return default;
+            string? container = element.LocalName switch {
+                "sp" => "nvSpPr",
+                "cxnSp" => "nvCxnSpPr",
+                "pic" => "nvPicPr",
+                "grpSp" => "nvGrpSpPr",
+                "graphicFrame" => "nvGraphicFramePr",
                 _ => null
             };
+            return container == null
+                ? default
+                : element.Child(LegacyPptXml.P, container)
+                    .Child(LegacyPptXml.P, "cNvPr");
+        }
 
         internal static byte[] BuildExternalObjectListRecord(
             LegacyPptWriterInteractionCatalog catalog,
@@ -578,8 +661,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal sealed class LegacyPptWriterInteractionCatalog {
-            private readonly Dictionary<OpenXmlElement, LegacyPptWriterShapeInteractions> _shapes =
-                new(ReferenceComparer.Instance);
+            // Keyed by the shape's write key, or by its table and cell position for a table cell.
+            private readonly Dictionary<object, LegacyPptWriterShapeInteractions> _shapes =
+                new();
             private readonly Dictionary<string, LegacyPptWriterHyperlink> _hyperlinksByTarget =
                 new(StringComparer.Ordinal);
             private readonly List<LegacyPptWriterHyperlink> _hyperlinks = new();
@@ -600,21 +684,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal bool HasInteractions => _shapes.Count > 0;
 
             internal LegacyPptWriterShapeInteractions Get(PowerPointShape shape) =>
-                Get(shape.Element);
+                Get(ShapeKey(shape));
 
-            internal LegacyPptWriterShapeInteractions Get(PowerPointTableCell cell) =>
-                Get(cell.Cell);
+            /// <summary>The text interactions of a table cell.</summary>
+            internal LegacyPptWriterShapeInteractions Get(PowerPointTable table,
+                int row, int column) =>
+                Get(CellKey(table, row, column));
 
-            internal LegacyPptWriterShapeInteractions Get(OpenXmlElement element) =>
-                _shapes.TryGetValue(element, out LegacyPptWriterShapeInteractions? value)
+            private LegacyPptWriterShapeInteractions Get(object key) =>
+                _shapes.TryGetValue(key, out LegacyPptWriterShapeInteractions? value)
                     ? value
                     : LegacyPptWriterShapeInteractions.Empty;
+
+            private static string CellKey(PowerPointTable table, int row,
+                int column) => ShapeKey(table) + "#cell:"
+                + row.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + "," + column.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
             internal LegacyPptWriterHyperlink? FindHyperlink(uint id) =>
                 _hyperlinks.FirstOrDefault(link => link.Id == id);
 
-            internal LegacyPptWriterHyperlink GetOrAdd(Uri uri, string? screenTip) {
-                string target = uri.OriginalString;
+            internal LegacyPptWriterHyperlink GetOrAdd(string target, string? screenTip) {
                 string key = CreateHyperlinkKey(target, screenTip);
                 if (_hyperlinksByTarget.TryGetValue(key,
                         out LegacyPptWriterHyperlink? existing)) return existing;
@@ -638,9 +728,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return created;
             }
 
-            internal void Add(OpenXmlElement shape,
+            internal void Add(PowerPointShape shape,
                 LegacyPptWriterShapeInteractions interactions) =>
-                _shapes.Add(shape, interactions);
+                _shapes.Add(ShapeKey(shape), interactions);
+
+            internal void Add(PowerPointTable table, int row, int column,
+                LegacyPptWriterShapeInteractions interactions) =>
+                _shapes.Add(CellKey(table, row, column), interactions);
         }
 
         internal sealed class LegacyPptWriterShapeInteractions {
@@ -757,12 +851,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal uint BinarySlideId { get; }
             internal int SlideNumber { get; }
             internal string? Name { get; }
-        }
-
-        private sealed class ReferenceComparer : IEqualityComparer<OpenXmlElement> {
-            internal static ReferenceComparer Instance { get; } = new();
-            public bool Equals(OpenXmlElement? x, OpenXmlElement? y) => ReferenceEquals(x, y);
-            public int GetHashCode(OpenXmlElement obj) => RuntimeHelpers.GetHashCode(obj);
         }
     }
 }

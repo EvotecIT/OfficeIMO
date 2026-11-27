@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
@@ -23,7 +22,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             if (LegacyPptWriter.HasModernComments(presentation)
-                || !LegacyPptWriter.TryReadAllClassicComments(presentation,
+                || !LegacyPptWriter.TryReadAllClassicComments(view, presentation,
                     out IReadOnlyDictionary<string,
                         IReadOnlyList<LegacyPptWriter.LegacyPptWriterComment>> commentsBySlide,
                     out _)) {
@@ -31,15 +30,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             var soundCatalog = new LegacyPptWriter.LegacyPptWriterSoundCatalog(
                 projectionMap.Sounds, projectionMap.SoundIdSeed);
-            if (!LegacyPptWriter.TryReadInteractions(presentation.Slides,
+            if (!LegacyPptWriter.TryReadInteractions(view, presentation.Slides,
                     soundCatalog,
                     out LegacyPptWriter.LegacyPptWriterInteractionCatalog interactionCatalog,
                     out _)
-                || !LegacyPptWriter.TryReadClassicAnimations(presentation.Slides,
+                || !LegacyPptWriter.TryReadClassicAnimations(view, presentation.Slides,
                     soundCatalog,
                     out LegacyPptWriter.LegacyPptWriterAnimationCatalog animationCatalog,
                     out _)
-                || !LegacyPptWriter.TryReadCustomShows(presentation,
+                || !LegacyPptWriter.TryReadCustomShows(view, presentation,
                     out LegacyPptWriter.LegacyPptWriterCustomShowCatalog customShows,
                     out _)
                 || !TryCreateInteractionContext(presentation, package, projectionMap,
@@ -52,7 +51,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (presentation.LegacyPptImportDiagnostics.Any(diagnostic =>
                     diagnostic.Code.StartsWith("ppt-picture-bullet",
                         StringComparison.Ordinal))
-                || !LegacyPptWriter.TryReadPictureBulletCatalog(presentation,
+                || !LegacyPptWriter.TryReadPictureBulletCatalog(view, presentation,
                     out LegacyPptWriter
                         .LegacyPptWriterPictureBulletCatalog pictureBullets,
                     out _)) return false;
@@ -107,10 +106,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (slideProjection.Notes == null) {
                         if (currentNotes.Length > 0) return false;
                     } else {
-                        NotesSlidePart notesPart = slide.SlidePart.NotesSlidePart
-                            ?? throw new InvalidDataException(
+                        LegacyPptPartView notesView = slideView.NotesSlide;
+                        if (notesView.IsNone) {
+                            throw new InvalidDataException(
                                 "The projected binary notes page has no notes-slide part.");
-                        LegacyPptPartView notesView = view.Part(notesPart.Uri.ToString());
+                        }
                         bool notesTextChanged = !string.Equals(currentNotes,
                             NormalizeLogicalText(slideProjection.Notes.Text),
                             StringComparison.Ordinal);
@@ -126,8 +126,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         LegacyPptWriter.LegacyPptWriterBackground?
                             currentNotesBackground = null;
                         if (notesBackgroundChanged
-                            && (!LegacyPptWriter.TryReadBackground(notesPart,
-                                    out currentNotesBackground, out _)
+                            && (!LegacyPptWriter.TryReadBackground(presentation,
+                                    notesView, out currentNotesBackground, out _)
                                 || currentNotesBackground == null)) {
                             return false;
                         }
@@ -178,7 +178,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                         0, new LegacyPptImportOptions());
                                 notesBytes = LegacyPptWriter
                                     .BuildPreservedThemeRecord(themedRecord,
-                                        notesPart, slideProjection.Notes
+                                        notesView, slideProjection.Notes
                                             .GetChangedClassicColorSlots(
                                                 notesView));
                             }
@@ -574,7 +574,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             .ReadSingle(slideBytes, 0,
                                 new LegacyPptImportOptions());
                         slideBytes = LegacyPptWriter.BuildPreservedThemeRecord(
-                            themedRecord, slide.SlidePart,
+                            themedRecord, slideView,
                             slideProjection.GetChangedClassicColorSlots(slideView));
                     }
                     rewritten.Add(slideProjection.PersistId, slideBytes);

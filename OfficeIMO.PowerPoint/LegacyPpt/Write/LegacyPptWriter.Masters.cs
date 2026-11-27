@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordHandoutForWrite = 0x0FC9;
 
         /// <summary>The presentation's slide masters in relationship order, as the SDK listed them.</summary>
-        private static List<LegacyPptPartView> SlideMasterPartsInRelationshipOrder(
+        internal static List<LegacyPptPartView> SlideMasterPartsInRelationshipOrder(
             LegacyPptPackageView view) =>
             view.Presentation.RelatedParts(LegacyPptPackageView.SlideMasterRelationshipType);
 

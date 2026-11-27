@@ -10,13 +10,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         /// </summary>
         private static bool TryValidateMaterializedLayoutPictures(
             LegacyPptPackageView view,
-            ISet<OfficeXmlNode> materializedPictures,
+            ISet<string> materializedPictures,
             out string? reason) {
             foreach (LegacyPptPartView master in SlideMasterPartsInRelationshipOrder(view)) {
                 foreach (LegacyPptPartView part in master.RelatedParts(
                              LegacyPptPackageView.SlideLayoutRelationshipType)) {
                     OfficeXmlNode unmaterialized = ShapeTree(part).Descendants(Pml, "pic")
-                        .FirstOrDefault(picture => !materializedPictures.Contains(picture));
+                        .FirstOrDefault(picture => !materializedPictures.Contains(
+                            LegacyPptWriterXml.ElementPath(part.Name, picture)));
                     if (unmaterialized.IsNone) continue;
                     string name = CommonSlideData(part).Attribute("name")
                         ?? part.Name;

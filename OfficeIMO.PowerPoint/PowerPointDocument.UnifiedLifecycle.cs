@@ -108,16 +108,86 @@ public sealed partial class PowerPointDocument {
             loaded.Position = 0;
             loaded.CopyTo(package);
         } else {
-            // Cloning flushes the package, after which System.IO.Packaging reads the core dates back as local times.
-            // The copy must not change the document, so the dates it held are put back.
-            var properties = SdkDocument.PackageProperties;
-            DateTime? created = properties.Created;
-            DateTime? modified = properties.Modified;
-            DateTime? printed = properties.LastPrinted;
-            using (SdkDocument.Clone(package)) { }
-            if (!SameDate(properties.Created, created)) properties.Created = created;
-            if (!SameDate(properties.Modified, modified)) properties.Modified = modified;
-            if (!SameDate(properties.LastPrinted, printed)) properties.LastPrinted = printed;
+            // Cloning saves the SDK package first, and that save rewrites the core properties part and the core
+            // properties the document holds (dates shift by the local time zone offset, and values set since the load
+            // can be lost). The copy must leave the document as it was, its package fingerprints included, so the part
+            // and the properties are put back. The clone also leaves out the package's own external relationships,
+            // which the copy needs.
+            PresentationDocument document = SdkDocument;
+            CorePropertyValues properties = CorePropertyValues.Read(document);
+            CoreFilePropertiesPart? corePart = document.CoreFilePropertiesPart;
+            byte[]? coreBytes = corePart == null ? null : ReadPartBytes(corePart);
+            using (PresentationDocument copy = (PresentationDocument)document.Clone(package)) {
+                if (copy.FileOpenAccess == FileAccess.ReadWrite) CopyPackageReferenceRelationships(document, copy);
+            }
+            if (corePart != null && coreBytes != null && !coreBytes.SequenceEqual(ReadPartBytes(corePart))) {
+                using var original = new MemoryStream(coreBytes, writable: false);
+                corePart.FeedData(original);
+            }
+            properties.Restore(document);
+        }
+    }
+
+    /// <summary>The core package property values, to put back after an SDK operation rewrites them.</summary>
+    private sealed class CorePropertyValues {
+        private readonly string?[] _text;
+        private readonly DateTime?[] _dates;
+
+        private CorePropertyValues(string?[] text, DateTime?[] dates) {
+            _text = text;
+            _dates = dates;
+        }
+
+        internal static CorePropertyValues Read(PresentationDocument document) {
+            var values = document.PackageProperties;
+            return new CorePropertyValues(
+                new[] {
+                    values.Category, values.ContentStatus, values.ContentType, values.Creator, values.Description,
+                    values.Identifier, values.Keywords, values.Language, values.LastModifiedBy, values.Revision,
+                    values.Subject, values.Title, values.Version
+                },
+                new[] { values.Created, values.Modified, values.LastPrinted });
+        }
+
+        internal void Restore(PresentationDocument document) {
+            CorePropertyValues current = Read(document);
+            var values = document.PackageProperties;
+            if (current._text[0] != _text[0]) values.Category = _text[0];
+            if (current._text[1] != _text[1]) values.ContentStatus = _text[1];
+            if (current._text[2] != _text[2]) values.ContentType = _text[2];
+            if (current._text[3] != _text[3]) values.Creator = _text[3];
+            if (current._text[4] != _text[4]) values.Description = _text[4];
+            if (current._text[5] != _text[5]) values.Identifier = _text[5];
+            if (current._text[6] != _text[6]) values.Keywords = _text[6];
+            if (current._text[7] != _text[7]) values.Language = _text[7];
+            if (current._text[8] != _text[8]) values.LastModifiedBy = _text[8];
+            if (current._text[9] != _text[9]) values.Revision = _text[9];
+            if (current._text[10] != _text[10]) values.Subject = _text[10];
+            if (current._text[11] != _text[11]) values.Title = _text[11];
+            if (current._text[12] != _text[12]) values.Version = _text[12];
+            if (!SameDate(current._dates[0], _dates[0])) values.Created = _dates[0];
+            if (!SameDate(current._dates[1], _dates[1])) values.Modified = _dates[1];
+            if (!SameDate(current._dates[2], _dates[2])) values.LastPrinted = _dates[2];
+        }
+    }
+
+    private static byte[] ReadPartBytes(OpenXmlPart part) {
+        using Stream source = part.GetStream(FileMode.Open, FileAccess.Read);
+        using var copy = new MemoryStream();
+        source.CopyTo(copy);
+        return copy.ToArray();
+    }
+
+    private static void CopyPackageReferenceRelationships(PresentationDocument source, PresentationDocument copy) {
+        foreach (ExternalRelationship relationship in source.ExternalRelationships) {
+            if (copy.ExternalRelationships.All(existing => existing.Id != relationship.Id)) {
+                copy.AddExternalRelationship(relationship.RelationshipType, relationship.Uri, relationship.Id);
+            }
+        }
+        foreach (HyperlinkRelationship relationship in source.HyperlinkRelationships) {
+            if (copy.HyperlinkRelationships.All(existing => existing.Id != relationship.Id)) {
+                copy.AddHyperlinkRelationship(relationship.Uri, relationship.IsExternal, relationship.Id);
+            }
         }
     }
 

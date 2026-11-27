@@ -1,8 +1,6 @@
 using System.Collections.ObjectModel;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using OfficeIMO.Core.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using static OfficeIMO.PowerPoint.LegacyPpt.Write.LegacyPptWriterXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -10,19 +8,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordExternalWavAudioEmbeddedForWrite = 0x100F;
         private const ushort RecordExternalWavAudioEmbeddedAtomForWrite = 0x1013;
 
-        internal static bool TryReadMedia(IEnumerable<PowerPointSlide> slides,
+        internal static bool TryReadMedia(LegacyPptPackageView view,
+            IEnumerable<PowerPointSlide> slides,
             uint firstObjectId, LegacyPptWriterSoundCatalog soundCatalog,
             out LegacyPptWriterMediaCatalog catalog, out string? reason) {
+            ArgumentNullException.ThrowIfNull(view);
             ArgumentNullException.ThrowIfNull(slides);
             ArgumentNullException.ThrowIfNull(soundCatalog);
             catalog = new LegacyPptWriterMediaCatalog(firstObjectId);
             reason = null;
             foreach (PowerPointSlide slide in slides) {
+                LegacyPptPartView slidePart = view.Part(slide.PartRef.Name);
                 PowerPointMedia[] mediaShapes = slide.EnumerateShapesDeep(
                         slide.Shapes, includeHidden: true)
                     .OfType<PowerPointMedia>().ToArray();
                 if (mediaShapes.Length > 0
-                    && !HasOnlyDefaultMediaPlaybackTiming(slide)) {
+                    && !HasOnlyDefaultMediaPlaybackTiming(slidePart, slide)) {
                     reason = "Binary embedded media requires the default media-only playback timing tree.";
                     catalog = new LegacyPptWriterMediaCatalog(firstObjectId);
                     return false;
@@ -33,13 +34,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         catalog = new LegacyPptWriterMediaCatalog(firstObjectId);
                         return false;
                     }
-                    if (!soundCatalog.TryGetOrAddMedia(slide.SlidePart,
+                    if (!soundCatalog.TryGetOrAddMedia(slidePart,
                             media, out LegacyPptWriterSound? sound,
                             out reason) || sound == null) {
                         catalog = new LegacyPptWriterMediaCatalog(firstObjectId);
                         return false;
                     }
-                    catalog.Add(media.Element, new LegacyPptWriterMedia(
+                    catalog.Add(media, new LegacyPptWriterMedia(
                         catalog.NextObjectId, sound));
                 }
             }
@@ -64,9 +65,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool HasOnlyDefaultMediaPlaybackTiming(
-            PowerPointSlide slide) {
-            Timing? timing = slide.SlidePart.Slide?.Timing;
-            if (timing == null) return false;
+            LegacyPptPartView slidePart, PowerPointSlide slide) {
+            OfficeXmlNode timing = slidePart.Root.Child(LegacyPptXml.P,
+                "timing");
+            if (timing.IsNone) return false;
             var mediaShapeIds = new HashSet<string>(slide
                 .EnumerateShapesDeep(slide.Shapes, includeHidden: true)
                 .OfType<PowerPointMedia>()
@@ -80,40 +82,43 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 "audio", "cMediaNode", "cTn", "childTnLst", "cond",
                 "par", "spTgt", "stCondLst", "tgtEl", "tnLst"
             };
-            ShapeTarget[] targets = timing.Descendants<ShapeTarget>()
-                .ToArray();
-            CommonMediaNode[] mediaNodes = timing
-                .Descendants<CommonMediaNode>().ToArray();
-            return targets.Length == mediaShapeIds.Count
-                && mediaNodes.Length == mediaShapeIds.Count
-                && timing.Descendants().All(element =>
+            List<OfficeXmlNode> targets = timing.Descendants(LegacyPptXml.P,
+                "spTgt");
+            List<OfficeXmlNode> mediaNodes = timing.Descendants(LegacyPptXml.P,
+                "cMediaNode");
+            return targets.Count == mediaShapeIds.Count
+                && mediaNodes.Count == mediaShapeIds.Count
+                && timing.AllDescendants().All(element =>
                     allowedNames.Contains(element.LocalName))
                 && targets.All(target =>
-                    !string.IsNullOrWhiteSpace(target.ShapeId?.Value)
-                    && mediaShapeIds.Contains(target.ShapeId!.Value!)
-                    && target.Ancestors<CommonMediaNode>().Any()
-                    && target.Ancestors<Audio>().Any())
+                    target.Attribute("spid") is string shapeId
+                    && !string.IsNullOrWhiteSpace(shapeId)
+                    && mediaShapeIds.Contains(shapeId)
+                    && target.HasAncestor(LegacyPptXml.P, "cMediaNode")
+                    && target.HasAncestor(LegacyPptXml.P, "audio"))
                 && mediaNodes.All(HasDefaultMediaNode);
         }
 
-        private static bool HasDefaultMediaNode(CommonMediaNode mediaNode) {
-            OpenXmlAttribute[] mediaAttributes = mediaNode.GetAttributes()
-                .ToArray();
-            if (mediaAttributes.Length != 1
+        private static bool HasDefaultMediaNode(OfficeXmlNode mediaNode) {
+            List<(int NamespaceId, string LocalName, string Value)>
+                mediaAttributes = Attributes(mediaNode);
+            if (mediaAttributes.Count != 1
                 || !string.Equals(mediaAttributes[0].LocalName, "vol",
                     StringComparison.Ordinal)
                 || !string.Equals(mediaAttributes[0].Value, "80000",
                     StringComparison.Ordinal)) {
                 return false;
             }
-            CommonTimeNode? commonTime = mediaNode
-                .GetFirstChild<CommonTimeNode>();
-            TargetElement? target = mediaNode.GetFirstChild<TargetElement>();
-            if (commonTime == null || target == null
-                || mediaNode.ChildElements.Count != 2) return false;
-            IReadOnlyDictionary<string, string?> timeAttributes = commonTime
-                .GetAttributes().ToDictionary(attribute => attribute.LocalName,
-                    attribute => attribute.Value, StringComparer.Ordinal);
+            OfficeXmlNode commonTime = mediaNode.Child(LegacyPptXml.P, "cTn");
+            OfficeXmlNode target = mediaNode.Child(LegacyPptXml.P, "tgtEl");
+            if (commonTime.IsNone || target.IsNone
+                || ChildCount(mediaNode) != 2) return false;
+            var timeAttributes = new Dictionary<string, string?>(
+                StringComparer.Ordinal);
+            foreach ((_, string localName, string value) in
+                     Attributes(commonTime)) {
+                timeAttributes[localName] = value;
+            }
             if (timeAttributes.Count != 3
                 || !timeAttributes.TryGetValue("id", out string? id)
                 || !uint.TryParse(id,
@@ -127,23 +132,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     StringComparison.OrdinalIgnoreCase)) {
                 return false;
             }
-            StartConditionList? conditions = commonTime
-                .GetFirstChild<StartConditionList>();
-            Condition? condition = conditions?.GetFirstChild<Condition>();
-            return commonTime.ChildElements.Count == 1
-                && conditions?.ChildElements.Count == 1
-                && condition != null
-                && condition.GetAttributes().Count == 1
-                && string.Equals(condition.GetAttributes()[0].LocalName,
+            OfficeXmlNode conditions = commonTime.Child(LegacyPptXml.P,
+                "stCondLst");
+            OfficeXmlNode condition = conditions.Child(LegacyPptXml.P, "cond");
+            List<(int NamespaceId, string LocalName, string Value)>
+                conditionAttributes = Attributes(condition);
+            return ChildCount(commonTime) == 1
+                && !conditions.IsNone && ChildCount(conditions) == 1
+                && !condition.IsNone
+                && conditionAttributes.Count == 1
+                && string.Equals(conditionAttributes[0].LocalName,
                     "delay", StringComparison.Ordinal)
-                && string.Equals(condition.GetAttributes()[0].Value,
+                && string.Equals(conditionAttributes[0].Value,
                     "indefinite", StringComparison.Ordinal);
         }
 
         internal sealed class LegacyPptWriterMediaCatalog {
-            private readonly Dictionary<OpenXmlElement,
-                LegacyPptWriterMedia> _mediaByShape = new(
-                    ReferenceComparer.Instance);
+            // Keyed by the media shape's write key.
+            private readonly Dictionary<object,
+                LegacyPptWriterMedia> _mediaByShape = new();
             private readonly List<LegacyPptWriterMedia> _media = new();
             private uint _nextObjectId;
 
@@ -157,12 +164,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal uint NextObjectId => _nextObjectId;
 
             internal LegacyPptWriterMedia? Get(PowerPointShape shape) =>
-                _mediaByShape.TryGetValue(shape.Element,
+                _mediaByShape.TryGetValue(ShapeKey(shape),
                     out LegacyPptWriterMedia? value) ? value : null;
 
-            internal void Add(OpenXmlElement shape,
+            internal void Add(PowerPointShape shape,
                 LegacyPptWriterMedia media) {
-                _mediaByShape.Add(shape, media);
+                _mediaByShape.Add(ShapeKey(shape), media);
                 _media.Add(media);
                 _nextObjectId = checked(media.Id + 1U);
             }

@@ -468,8 +468,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
                 IReadOnlyList<LegacyPptShapeProjection> shapeProjections =
                     CreateMasterShapeProjections(sourceMasters[index].Shapes,
-                        LegacyPptPreservingWriter.ReadMasterShapesForProjection(
-                            shapes, masterPart.Name), $"slide master {index + 1}",
+                        LegacyPptPreservingWriter.ReadMasterShapesForProjection(shapes, view, masterPart.Name), $"slide master {index + 1}",
                         view);
                 result.Add(new LegacyPptMasterProjection(
                     masterPart.Name, themePart.Name,
@@ -531,8 +530,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     LegacyPptMasterProjection.CreateBackgroundFingerprint(part),
                     source.FollowsMasterObjects,
                     CreateMasterShapeProjections(source.Shapes,
-                        LegacyPptPreservingWriter.ReadMasterShapesForProjection(
-                            shapes, part.Name),
+                        LegacyPptPreservingWriter.ReadMasterShapesForProjection(shapes, view, part.Name),
                         $"title master 0x{source.MasterId:X8}", view)));
             }
             return result;
@@ -576,8 +574,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 LegacyPptMasterProjection.CreateBackgroundFingerprint(part),
                 followsMasterObjects: null,
                 CreateMasterShapeProjections(sourceShapes,
-                    LegacyPptPreservingWriter.ReadMasterShapesForProjection(
-                        shapes, part.Name),
+                    LegacyPptPreservingWriter.ReadMasterShapesForProjection(shapes, view, part.Name),
                     ownerName, view));
         }
 

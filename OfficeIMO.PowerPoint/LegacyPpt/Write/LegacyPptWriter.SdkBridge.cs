@@ -115,203 +115,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return ToLiveNode(presentation, partName, node).SdkElement as T;
         }
 
-        // SDK callee in LegacyPptWriter.TextProperties.cs.
+        // Text style records read from the package view.
         private static bool TryWriteMasterParagraphException(Stream output,
             LegacyPptWriterTextStyleSource source, OfficeXmlNode properties,
             LegacyPptWriterFontCatalog fonts, out string? reason) =>
             TryWriteParagraphException(output, properties,
                 fonts, out reason, allowAutoNumbering: true);
 
-        // SDK callee in LegacyPptWriter.TextProperties.cs.
+        // Text style records read from the package view.
         private static bool TryWriteMasterCharacterException(Stream output,
             LegacyPptWriterTextStyleSource source, OfficeXmlNode properties,
             LegacyPptWriterFontCatalog fonts, out string? reason) =>
             TryWriteCharacterException(output, properties,
                 fonts, out reason);
 
-        // SDK callee in LegacyPptWriter.AutoNumbering.cs; the picture-bullet catalog is keyed by live SDK elements.
+        // Text style records read from the package view.
         private static bool TryWriteMasterAutomaticNumberingException9(Stream output,
             LegacyPptWriterTextStyleSource source, OfficeXmlNode numbering, int numberingStart,
             OfficeXmlNode pictureBullet,
             LegacyPptWriterPictureBulletCatalog pictureBullets, out string? reason) =>
             TryWriteAutomaticNumberingException9(output, numbering, numberingStart, pictureBullet,
                 pictureBullets, out reason);
-
-        // The picture catalog in LegacyPptWriter.Pictures.cs is keyed by live SDK elements.
-        private static LegacyPptWriterPicture GetBackgroundPicture(
-            LegacyPptWriterPictureCatalog catalog, LegacyPptWriterBackground background) =>
-            catalog.Get(background.PictureFill
-                ?? throw new InvalidOperationException("The picture background fill is missing from the live document."));
-
-        internal sealed partial class LegacyPptWriterBackground {
-            // SDK callers in LegacyPptWriter.Pictures.cs and LegacyPptPreservingWriter.Pictures.cs.
-            internal A.BlipFill? PictureFill => PictureFillNode.IsNone
-                ? null
-                : LiveSdkElement<A.BlipFill>(PictureDocument, PicturePartName ?? string.Empty, PictureFillNode);
-        }
-
-        // ---- SDK-typed entry points for callers not yet passing a view ----------------------------------------
-
-        private static LegacyPptPackageView CaptureViewOf(OpenXmlPart part, out PowerPointDocument presentation) {
-            presentation = PowerPointPartRef.FromSdk(part).Document
-                ?? throw new InvalidOperationException("The part is not part of an OfficeIMO presentation.");
-            return LegacyPptPackageView.Capture(presentation);
-        }
-
-        private static bool TryReadBackgroundOfSdkPart(OpenXmlPart part,
-            out LegacyPptWriterBackground? background, out string? reason) {
-            ArgumentNullException.ThrowIfNull(part);
-            using LegacyPptPackageView view = CaptureViewOf(part, out PowerPointDocument presentation);
-            return TryReadBackground(presentation, view.Part(part.Uri.ToString()),
-                out background, out reason);
-        }
-
-        // SDK callers in LegacyPptWritePreflight.cs, LegacyPptPreservingWriter.Masters.cs and LegacyPptWriter.Pictures.cs.
-        internal static bool TryReadBackground(SlideMasterPart masterPart,
-            out LegacyPptWriterBackground? background, out string? reason) =>
-            TryReadBackgroundOfSdkPart(masterPart, out background, out reason);
-
-        // SDK callers in LegacyPptWritePreflight.cs, LegacyPptPreservingWriter.Masters.cs and LegacyPptWriter.Pictures.cs.
-        internal static bool TryReadBackground(NotesMasterPart masterPart,
-            out LegacyPptWriterBackground? background, out string? reason) =>
-            TryReadBackgroundOfSdkPart(masterPart, out background, out reason);
-
-        // SDK callers in LegacyPptWritePreflight.cs, LegacyPptPreservingWriter.Masters.cs and LegacyPptWriter.Pictures.cs.
-        internal static bool TryReadBackground(HandoutMasterPart masterPart,
-            out LegacyPptWriterBackground? background, out string? reason) =>
-            TryReadBackgroundOfSdkPart(masterPart, out background, out reason);
-
-        // SDK caller in LegacyPptPreservingWriter.Masters.cs.
-        internal static bool TryReadBackground(SlideLayoutPart masterPart,
-            out LegacyPptWriterBackground? background, out string? reason) =>
-            TryReadBackgroundOfSdkPart(masterPart, out background, out reason);
-
-        // SDK callers in LegacyPptPreservingWriter.ChangePlan.cs and LegacyPptWriter.Pictures.cs.
-        internal static bool TryReadBackground(NotesSlidePart notesPart,
-            out LegacyPptWriterBackground? background, out string? reason) =>
-            TryReadBackgroundOfSdkPart(notesPart, out background, out reason);
-
-        private static IReadOnlyList<PowerPointShape> ReadMasterShapesOfSdkPart(
-            OpenXmlPart part, out string? unsupportedReason) {
-            ArgumentNullException.ThrowIfNull(part);
-            using LegacyPptPackageView view = CaptureViewOf(part, out PowerPointDocument presentation);
-            return ReadMasterShapesForWrite(presentation, view.Part(part.Uri.ToString()),
-                out unsupportedReason);
-        }
-
-        // SDK callers in LegacyPptWritePreflight.cs, LegacyPptPreservingWriter.Masters.cs, LegacyPptProjectionMap.cs
-        // and LegacyPptWriter.Pictures.cs.
-        internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
-            SlideMasterPart masterPart, out string? unsupportedReason) =>
-            ReadMasterShapesOfSdkPart(masterPart, out unsupportedReason);
-
-        // SDK callers in LegacyPptWritePreflight.cs, LegacyPptPreservingWriter.Masters.cs, LegacyPptProjectionMap.cs
-        // and LegacyPptWriter.Pictures.cs.
-        internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
-            NotesMasterPart masterPart, out string? unsupportedReason) =>
-            ReadMasterShapesOfSdkPart(masterPart, out unsupportedReason);
-
-        // SDK callers in LegacyPptWritePreflight.cs, LegacyPptPreservingWriter.Masters.cs, LegacyPptProjectionMap.cs
-        // and LegacyPptWriter.Pictures.cs.
-        internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
-            HandoutMasterPart masterPart, out string? unsupportedReason) =>
-            ReadMasterShapesOfSdkPart(masterPart, out unsupportedReason);
-
-        // SDK callers in LegacyPptPreservingWriter.Masters.cs and LegacyPptProjectionMap.cs.
-        internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
-            SlideLayoutPart masterPart, out string? unsupportedReason) =>
-            ReadMasterShapesOfSdkPart(masterPart, out unsupportedReason);
-
-        private static byte[] BuildPreservedMasterThemeRecordOfSdkPart(
-            LegacyPptRecord prototype, OpenXmlPart source,
-            IReadOnlyList<int> changedClassicColorSlots) {
-            ArgumentNullException.ThrowIfNull(prototype);
-            ArgumentNullException.ThrowIfNull(source);
-            using LegacyPptPackageView view = CaptureViewOf(source, out _);
-            return BuildPreservedMasterThemeRecord(prototype, view.Part(source.Uri.ToString()),
-                changedClassicColorSlots);
-        }
-
-        // SDK caller in LegacyPptPreservingWriter.Masters.cs.
-        internal static byte[] BuildPreservedMasterThemeRecord(
-            LegacyPptRecord prototype, SlideMasterPart source,
-            IReadOnlyList<int> changedClassicColorSlots) =>
-            BuildPreservedMasterThemeRecordOfSdkPart(prototype, source, changedClassicColorSlots);
-
-        // SDK caller in LegacyPptPreservingWriter.Masters.cs.
-        internal static byte[] BuildPreservedMasterThemeRecord(
-            LegacyPptRecord prototype, NotesMasterPart source,
-            IReadOnlyList<int> changedClassicColorSlots) =>
-            BuildPreservedMasterThemeRecordOfSdkPart(prototype, source, changedClassicColorSlots);
-
-        // SDK caller in LegacyPptPreservingWriter.Masters.cs.
-        internal static byte[] BuildPreservedMasterThemeRecord(
-            LegacyPptRecord prototype, HandoutMasterPart source,
-            IReadOnlyList<int> changedClassicColorSlots) =>
-            BuildPreservedMasterThemeRecordOfSdkPart(prototype, source, changedClassicColorSlots);
-
-        // SDK caller in LegacyPptPreservingWriter.Masters.cs.
-        internal static byte[] BuildPreservedMasterThemeRecord(
-            LegacyPptRecord prototype, SlideLayoutPart source,
-            IReadOnlyList<int> changedClassicColorSlots) =>
-            BuildPreservedMasterThemeRecordOfSdkPart(prototype, source, changedClassicColorSlots);
-
-        private static byte[] BuildPreservedThemeRecordOfSdkPart(
-            LegacyPptRecord prototype, OpenXmlPart source,
-            IReadOnlyList<int> changedClassicColorSlots) {
-            ArgumentNullException.ThrowIfNull(prototype);
-            ArgumentNullException.ThrowIfNull(source);
-            using LegacyPptPackageView view = CaptureViewOf(source, out _);
-            return BuildPreservedThemeRecord(prototype, view.Part(source.Uri.ToString()),
-                changedClassicColorSlots);
-        }
-
-        // SDK caller in LegacyPptPreservingWriter.ChangePlan.cs.
-        internal static byte[] BuildPreservedThemeRecord(
-            LegacyPptRecord prototype, SlidePart source,
-            IReadOnlyList<int> changedClassicColorSlots) =>
-            BuildPreservedThemeRecordOfSdkPart(prototype, source, changedClassicColorSlots);
-
-        // SDK caller in LegacyPptPreservingWriter.ChangePlan.cs.
-        internal static byte[] BuildPreservedThemeRecord(
-            LegacyPptRecord prototype, NotesSlidePart source,
-            IReadOnlyList<int> changedClassicColorSlots) =>
-            BuildPreservedThemeRecordOfSdkPart(prototype, source, changedClassicColorSlots);
-
-        // SDK caller in LegacyPptPreservingWriter.Masters.cs.
-        internal static bool TryRewriteMasterTextStyleRecords(
-            LegacyPptRecord master, P.TextStyles? styles,
-            LegacyPptWriterFontCatalog fonts,
-            LegacyPptWriterPictureBulletCatalog pictureBullets,
-            out byte[] bytes,
-            out string? reason) {
-            OpenXmlPart? part = styles?.Ancestors<OpenXmlPartRootElement>().FirstOrDefault()?.OpenXmlPart;
-            if (styles == null || part == null) {
-                return TryRewriteMasterTextStyleRecords(master, null, string.Empty, default,
-                    fonts, pictureBullets, out bytes, out reason);
-            }
-            using LegacyPptPackageView view = CaptureViewOf(part, out PowerPointDocument presentation);
-            string partName = part.Uri.ToString();
-            return TryRewriteMasterTextStyleRecords(master, presentation, partName,
-                view.Resolve(partName, OfficeXmlNode.FromSdk(styles)),
-                fonts, pictureBullets, out bytes, out reason);
-        }
-
-        // SDK caller in LegacyPptWriter.Pictures.cs, which collects the pictures as live SDK elements.
-        private static bool TryValidateMaterializedLayoutPictures(
-            PowerPointDocument presentation,
-            ISet<OpenXmlElement> materializedPictures,
-            out string? reason) {
-            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
-            var resolved = new HashSet<OfficeXmlNode>();
-            foreach (OpenXmlElement picture in materializedPictures) {
-                OpenXmlPart? part = picture.Ancestors<OpenXmlPartRootElement>().FirstOrDefault()?.OpenXmlPart;
-                if (part == null) continue;
-                OfficeXmlNode node = view.Resolve(part.Uri.ToString(), OfficeXmlNode.FromSdk(picture));
-                if (!node.IsNone) resolved.Add(node);
-            }
-            return TryValidateMaterializedLayoutPictures(view, resolved, out reason);
-        }
 
         // SDK caller in PowerPointFeatureReport.cs.
         internal static bool HasCanonicalClassicAuthorColorIndex(

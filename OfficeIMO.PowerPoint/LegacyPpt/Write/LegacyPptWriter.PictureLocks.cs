@@ -1,6 +1,5 @@
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using static OfficeIMO.PowerPoint.LegacyPpt.Write.LegacyPptWriterXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -18,68 +17,72 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             | (1U << 12) | (1U << 28);
 
         private static bool TryReadPictureProtectionForWrite(
-            PowerPointImage picture, out uint? propertyValue,
+            OfficeXmlNode source, out uint? propertyValue,
             out string? reason) {
-            ArgumentNullException.ThrowIfNull(picture);
             propertyValue = null;
-            if (picture.Element is not P.Picture source) {
+            if (!source.Is(LegacyPptXml.P, "pic")) {
                 reason = "The picture shape has no DrawingML picture element.";
                 return false;
             }
-            P.NonVisualPictureDrawingProperties? nonVisual = source
-                .NonVisualPictureProperties?
-                .NonVisualPictureDrawingProperties;
-            if (nonVisual == null) {
+            OfficeXmlNode nonVisual = source.Child(LegacyPptXml.P, "nvPicPr")
+                .Child(LegacyPptXml.P, "cNvPicPr");
+            if (nonVisual.IsNone) {
                 reason = null;
                 return true;
             }
-            if (nonVisual.ExtendedAttributes.Any()
-                || nonVisual.ChildElements.Any(child =>
-                    child is not A.PictureLocks)) {
+            if (HasExtendedAttributes(nonVisual, "preferRelativeResize")
+                || AnyChildOtherThan(nonVisual, LegacyPptXml.A, "picLocks")) {
                 reason = "Extended non-visual picture properties have no native OfficeArt protection mapping.";
                 return false;
             }
-            A.PictureLocks[] lockElements = nonVisual
-                .Elements<A.PictureLocks>().ToArray();
-            if (lockElements.Length > 1) {
+            int lockCount = nonVisual.Children(LegacyPptXml.A, "picLocks").Count;
+            if (lockCount > 1) {
                 reason = "A picture contains duplicate DrawingML lock elements.";
                 return false;
             }
-            if (lockElements.Length == 0) {
+            if (lockCount == 0) {
                 reason = null;
                 return true;
             }
-            A.PictureLocks locks = lockElements[0];
-            if (locks.HasChildren || locks.ExtendedAttributes.Any()) {
+            OfficeXmlNode locks = nonVisual.Child(LegacyPptXml.A, "picLocks");
+            if (HasChildren(locks) || HasExtendedAttributes(locks,
+                    PictureLockAttributes)) {
                 reason = "Extended DrawingML picture-lock content has no native OfficeArt protection mapping.";
                 return false;
             }
-            if (IsTrue(locks.NoResize)) {
+            if (locks.Bool("noResize") == true) {
                 reason = "DrawingML no-resize picture locking has no exact classic OfficeArt protection flag.";
                 return false;
             }
-            if (IsTrue(locks.NoChangeArrowheads)) {
+            if (locks.Bool("noChangeArrowheads") == true) {
                 reason = "DrawingML arrowhead-change picture locking has no classic OfficeArt picture equivalent.";
                 return false;
             }
             uint value = 0;
-            AddProtectionBoolean(ref value, locks.NoRotation, 7);
-            AddProtectionBoolean(ref value, locks.NoChangeAspect, 8);
-            AddProtectionBoolean(ref value, locks.NoMove, 9);
-            AddProtectionBoolean(ref value, locks.NoSelection, 10);
-            AddProtectionBoolean(ref value, locks.NoCrop, 11);
-            AddProtectionBoolean(ref value, locks.NoEditPoints, 12);
-            AddProtectionBoolean(ref value, locks.NoAdjustHandles, 14);
-            AddProtectionBoolean(ref value, locks.NoGrouping, 15);
+            AddProtectionBoolean(ref value, locks, "noRot", 7);
+            AddProtectionBoolean(ref value, locks, "noChangeAspect", 8);
+            AddProtectionBoolean(ref value, locks, "noMove", 9);
+            AddProtectionBoolean(ref value, locks, "noSelect", 10);
+            AddProtectionBoolean(ref value, locks, "noCrop", 11);
+            AddProtectionBoolean(ref value, locks, "noEditPoints", 12);
+            AddProtectionBoolean(ref value, locks, "noAdjustHandles", 14);
+            AddProtectionBoolean(ref value, locks, "noGrp", 15);
             propertyValue = value == 0 ? null : value;
             reason = null;
             return true;
         }
 
+        // The attributes CT_PictureLocking defines.
+        private static readonly string[] PictureLockAttributes = {
+            "noGrp", "noSelect", "noRot", "noChangeAspect", "noMove",
+            "noResize", "noEditPoints", "noAdjustHandles",
+            "noChangeArrowheads", "noChangeShapeType", "noCrop"
+        };
+
         private static void AddPictureProtectionProperties(
             ICollection<LegacyPptWriterFoptProperty> properties,
-            PowerPointImage picture) {
-            if (!TryReadPictureProtectionForWrite(picture,
+            OfficeXmlNode source) {
+            if (!TryReadPictureProtectionForWrite(source,
                     out uint? propertyValue, out string? reason)) {
                 throw new NotSupportedException(reason);
             }
@@ -87,17 +90,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 properties.Add(new LegacyPptWriterFoptProperty(0x007F,
                     propertyValue.Value));
             }
-            P.Picture source = (P.Picture)picture.Element;
-            P.NonVisualPictureDrawingProperties? nonVisual = source
-                .NonVisualPictureProperties?
-                .NonVisualPictureDrawingProperties;
-            A.PictureLocks? locks = nonVisual?
-                .GetFirstChild<A.PictureLocks>();
+            OfficeXmlNode nonVisual = source.Child(LegacyPptXml.P, "nvPicPr")
+                .Child(LegacyPptXml.P, "cNvPicPr");
+            OfficeXmlNode locks = nonVisual.Child(LegacyPptXml.A, "picLocks");
             uint shapeBooleanValue = 0;
-            AddProtectionBoolean(ref shapeBooleanValue,
-                nonVisual?.PreferRelativeResize, 11);
-            AddProtectionBoolean(ref shapeBooleanValue,
-                locks?.NoChangeShapeType, 12);
+            AddProtectionBoolean(ref shapeBooleanValue, nonVisual,
+                "preferRelativeResize", 11);
+            AddProtectionBoolean(ref shapeBooleanValue, locks,
+                "noChangeShapeType", 12);
             if (shapeBooleanValue != 0) {
                 MergeBooleanProperty(properties, 0x033F,
                     shapeBooleanValue);
@@ -118,14 +118,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 value));
         }
 
-        private static bool IsTrue(BooleanValue? value) =>
-            value?.Value == true;
-
+        // An xsd:boolean attribute that is present sets the use bit; true also sets the value bit.
         private static void AddProtectionBoolean(ref uint propertyValue,
-            BooleanValue? value, int useBit) {
-            if (value == null) return;
+            OfficeXmlNode element, string localName, int useBit) {
+            if (element.IsNone || element.Attribute(localName) == null) return;
             propertyValue |= 1U << useBit;
-            if (value.Value) {
+            if (element.Bool(localName) == true) {
                 propertyValue |= 1U << checked(useBit + 16);
             }
         }

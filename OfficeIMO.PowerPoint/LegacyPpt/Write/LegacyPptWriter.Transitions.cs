@@ -1,23 +1,47 @@
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using static OfficeIMO.PowerPoint.LegacyPpt.Write.LegacyPptWriterXml;
+
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
+        // Caller without a package view: tests.
         internal static bool TryReadTransition(PowerPointSlide slide,
             out LegacyPptWriterTransition? transition, out string? reason) {
             return TryReadTransition(slide, new LegacyPptWriterSoundCatalog(),
                 out transition, out reason);
         }
 
+        // Caller without a package view: LegacyPptWriter.Slides, LegacyPptPreservingWriter.ChangePlan and tests.
         internal static bool TryReadTransition(PowerPointSlide slide,
             LegacyPptWriterSoundCatalog soundCatalog,
             out LegacyPptWriterTransition? transition, out string? reason) {
+            ArgumentNullException.ThrowIfNull(slide);
+            using LegacyPptPackageView view = CaptureView(slide);
+            return TryReadTransition(view, slide, soundCatalog,
+                out transition, out reason);
+        }
+
+        internal static bool TryReadTransition(LegacyPptPackageView view,
+            PowerPointSlide slide,
+            out LegacyPptWriterTransition? transition, out string? reason) =>
+            TryReadTransition(view, slide, new LegacyPptWriterSoundCatalog(),
+                out transition, out reason);
+
+        internal static bool TryReadTransition(LegacyPptPackageView view,
+            PowerPointSlide slide,
+            LegacyPptWriterSoundCatalog soundCatalog,
+            out LegacyPptWriterTransition? transition, out string? reason) {
+            ArgumentNullException.ThrowIfNull(view);
+            ArgumentNullException.ThrowIfNull(slide);
+            ArgumentNullException.ThrowIfNull(soundCatalog);
             transition = null;
             reason = null;
-            IReadOnlyList<DocumentFormat.OpenXml.Presentation.Transition?>
-                transitionBranches = slide.GetTransitionBranches();
+            LegacyPptPartView slidePart = view.Part(slide.PartRef.Name);
+            IReadOnlyList<OfficeXmlNode> transitionBranches =
+                PowerPointSlide.GetTransitionBranches(slidePart.Root);
             LegacyPptWriterTransitionBranch? firstBranch = null;
-            foreach (DocumentFormat.OpenXml.Presentation.Transition?
-                     transitionElement in transitionBranches) {
+            foreach (OfficeXmlNode transitionElement in transitionBranches) {
                 if (!TryReadTransitionBranch(transitionElement,
-                        slide.SlidePart, soundCatalog,
+                        slidePart, soundCatalog,
                         out LegacyPptWriterTransitionBranch? branch,
                         out reason)) {
                     return false;
@@ -34,15 +58,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
+        /// <summary>A package view of the document that holds <paramref name="slide"/>, for callers that have none.</summary>
+        private static LegacyPptPackageView CaptureView(PowerPointSlide slide) =>
+            LegacyPptPackageView.Capture(slide.OwnerDocument
+                ?? throw new InvalidOperationException(
+                    "The slide does not belong to a presentation."));
+
         private static bool TryReadTransitionBranch(
-            DocumentFormat.OpenXml.Presentation.Transition? transition,
-            DocumentFormat.OpenXml.Packaging.SlidePart ownerPart,
+            OfficeXmlNode transition,
+            LegacyPptPartView ownerPart,
             LegacyPptWriterSoundCatalog soundCatalog,
             out LegacyPptWriterTransitionBranch? branch,
             out string? reason) {
             branch = null;
             reason = null;
-            if (transition == null) {
+            if (transition.IsNone) {
                 branch = new LegacyPptWriterTransitionBranch(
                     hasData: false, hasEffect: false, soundKind: "none",
                     soundBuiltIn: false,
@@ -55,10 +85,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             PowerPointSlideTransition effect = PowerPointSlide.GetTransitionValue(
                 transition);
             bool hasEffect = effect != PowerPointSlideTransition.None;
-            bool hasEffectMarkup = transition.ChildElements.Any(child =>
-                child is not DocumentFormat.OpenXml.Presentation.SoundAction
-                && !string.Equals(child.LocalName, "extLst",
-                    StringComparison.Ordinal));
+            bool hasEffectMarkup = false;
+            foreach (OfficeXmlNode child in transition.Children()) {
+                if (!child.Is(LegacyPptXml.P, "sndAc")
+                    && !string.Equals(child.LocalName, "extLst",
+                        StringComparison.Ordinal)) {
+                    hasEffectMarkup = true;
+                    break;
+                }
+            }
             byte effectType = 0;
             byte effectDirection = 0;
             if (hasEffect && !LegacyPptTransitionMapping.TryGetBinary(effect,
@@ -97,17 +132,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 loopSound = soundSignature.Loop;
             }
 
-            DocumentFormat.OpenXml.Presentation.TransitionSpeedValues?
-                speedValue = transition.Speed?.Value;
-            byte speed = speedValue
-                         == DocumentFormat.OpenXml.Presentation
-                             .TransitionSpeedValues.Slow
+            string? speedValue = transition.Attribute("spd");
+            byte speed = speedValue == "slow"
                 ? (byte)0
-                : speedValue == DocumentFormat.OpenXml.Presentation
-                    .TransitionSpeedValues.Fast
+                : speedValue == "fast"
                     ? (byte)2
                     : (byte)1;
-            string? durationText = transition.Duration?.Value;
+            string? durationText = AttributeIn(transition,
+                LegacyPptXml.P14Uri, "dur");
             if (!string.IsNullOrWhiteSpace(durationText)) {
                 if (!uint.TryParse(durationText,
                         System.Globalization.NumberStyles.None,
@@ -126,7 +158,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     reason = "Binary PowerPoint transition duration must be exactly 0.75, 0.5, or 0.25 seconds.";
                     return false;
                 }
-                if (transition.Speed?.Value != null
+                if (speedValue != null
                     && speed != durationSpeed.Value) {
                     reason = "The requested transition speed and duration describe different binary speed values.";
                     return false;
@@ -135,7 +167,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             int slideTime = 0;
-            string? advanceAfterText = transition.AdvanceAfterTime?.Value;
+            string? advanceAfterText = transition.Attribute("advTm");
             bool autoAdvance = !string.IsNullOrWhiteSpace(
                 advanceAfterText);
             if (autoAdvance) {
@@ -152,13 +184,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 slideTime = checked((int)advanceMilliseconds);
             }
-            bool hasSettings = transition.Speed?.Value != null
+            bool? advanceOnClick = transition.Bool("advClick");
+            bool hasSettings = speedValue != null
                 || !string.IsNullOrWhiteSpace(durationText)
-                || transition.AdvanceOnClick?.Value != null
+                || advanceOnClick != null
                 || autoAdvance;
             var projected = new LegacyPptWriterTransition(effectType,
                 effectDirection, speed,
-                transition.AdvanceOnClick?.Value != false, autoAdvance,
+                advanceOnClick != false, autoAdvance,
                 slideTime, soundId, playSound, loopSound, stopSound);
             branch = new LegacyPptWriterTransitionBranch(
                 hasEffect || hasSettings
@@ -170,49 +203,40 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryReadTransitionSoundAction(
-            DocumentFormat.OpenXml.Presentation.Transition transition,
-            DocumentFormat.OpenXml.Packaging.SlidePart ownerPart,
+            OfficeXmlNode transition,
+            LegacyPptPartView ownerPart,
             LegacyPptWriterSoundCatalog soundCatalog,
             out LegacyPptWriterSound? resolvedSound,
             out (string Kind, uint? SoundId, bool BuiltIn, bool Loop)
                 signature,
             out string? reason) {
-            DocumentFormat.OpenXml.Presentation.SoundAction[] actions =
-                transition.Elements<
-                    DocumentFormat.OpenXml.Presentation.SoundAction>()
-                    .ToArray();
+            List<OfficeXmlNode> actions = transition
+                .Children(LegacyPptXml.P, "sndAc").ToList();
             resolvedSound = null;
             signature = ("none", null, false, false);
             reason = null;
-            if (actions.Length == 0) return true;
-            if (actions.Length != 1) {
+            if (actions.Count == 0) return true;
+            if (actions.Count != 1) {
                 reason = "A transition branch must contain at most one sound action.";
                 return false;
             }
-            DocumentFormat.OpenXml.Presentation.SoundAction soundAction =
-                actions[0];
-            DocumentFormat.OpenXml.Presentation.StartSoundAction[] starts =
-                soundAction.Elements<
-                    DocumentFormat.OpenXml.Presentation.StartSoundAction>()
-                    .ToArray();
-            DocumentFormat.OpenXml.Presentation.EndSoundAction[] ends =
-                soundAction.Elements<
-                    DocumentFormat.OpenXml.Presentation.EndSoundAction>()
-                    .ToArray();
-            if (soundAction.ChildElements.Count != 1
-                || starts.Length + ends.Length != 1) {
+            OfficeXmlNode soundAction = actions[0];
+            List<OfficeXmlNode> starts = soundAction
+                .Children(LegacyPptXml.P, "stSnd").ToList();
+            int endCount = soundAction.Children(LegacyPptXml.P, "endSnd").Count;
+            if (ChildCount(soundAction) != 1
+                || starts.Count + endCount != 1) {
                 reason = "A transition sound action must contain exactly one start-sound or end-sound action.";
                 return false;
             }
-            if (ends.Length == 1) {
+            if (endCount == 1) {
                 signature = ("end", null, false, false);
                 return true;
             }
-            DocumentFormat.OpenXml.Presentation.Sound[] sounds = starts[0]
-                .Elements<DocumentFormat.OpenXml.Presentation.Sound>()
-                .ToArray();
-            if (starts[0].ChildElements.Count != 1
-                || sounds.Length != 1) {
+            List<OfficeXmlNode> sounds = starts[0]
+                .Children(LegacyPptXml.P, "snd").ToList();
+            if (ChildCount(starts[0]) != 1
+                || sounds.Count != 1) {
                 reason = "A transition start-sound action must contain exactly one embedded sound.";
                 return false;
             }
@@ -222,8 +246,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             signature = ("start", resolvedSound!.Id,
-                sounds[0].BuiltIn?.Value == true,
-                starts[0].Loop?.Value == true);
+                sounds[0].Bool("builtIn") == true,
+                starts[0].Bool("loop") == true);
             return true;
         }
 
@@ -266,14 +290,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 && Transition.StopSound == other.Transition.StopSound;
         }
 
+        // Caller without a package view: LegacyPptWriter.Slides and LegacyPptPreservingWriter.Slides.
         internal static byte[] PatchSlideShowInfo(byte[] record,
             PowerPointSlide slide,
+            LegacyPptWriterSoundCatalog? soundCatalog = null) {
+            ArgumentNullException.ThrowIfNull(slide);
+            using LegacyPptPackageView view = CaptureView(slide);
+            return PatchSlideShowInfo(view, record, slide, soundCatalog);
+        }
+
+        internal static byte[] PatchSlideShowInfo(LegacyPptPackageView view,
+            byte[] record, PowerPointSlide slide,
             LegacyPptWriterSoundCatalog? soundCatalog = null) {
             if (record.Length < 24) {
                 throw new InvalidDataException(
                     "The slide-show information atom is too short.");
             }
-            if (!TryReadTransition(slide,
+            if (!TryReadTransition(view, slide,
                     soundCatalog ?? new LegacyPptWriterSoundCatalog(),
                     out LegacyPptWriterTransition? transition,
                     out string? reason)) {
@@ -283,9 +316,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return record;
         }
 
+        // Caller without a package view: LegacyPptWriter.Slides.
         internal static byte[] BuildSlideShowInfoRecord(PowerPointSlide slide,
             LegacyPptWriterSoundCatalog? soundCatalog = null) {
-            if (!TryReadTransition(slide,
+            ArgumentNullException.ThrowIfNull(slide);
+            using LegacyPptPackageView view = CaptureView(slide);
+            return BuildSlideShowInfoRecord(view, slide, soundCatalog);
+        }
+
+        internal static byte[] BuildSlideShowInfoRecord(
+            LegacyPptPackageView view, PowerPointSlide slide,
+            LegacyPptWriterSoundCatalog? soundCatalog = null) {
+            if (!TryReadTransition(view, slide,
                     soundCatalog ?? new LegacyPptWriterSoundCatalog(),
                     out LegacyPptWriterTransition? transition,
                     out string? reason)) {
