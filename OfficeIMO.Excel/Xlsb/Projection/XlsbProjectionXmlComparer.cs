@@ -19,17 +19,22 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit };
             using XmlReader left = XmlReader.Create(leftStream, settings);
             using XmlReader right = XmlReader.Create(rightStream, settings);
-            while (left.Read()) {
-                if (!right.Read() || left.NodeType != right.NodeType || left.LocalName != right.LocalName
-                    || left.NamespaceURI != right.NamespaceURI || left.Value != right.Value) return false;
-                if (left.NodeType != XmlNodeType.Element) continue;
-                if (!SameAttributes(left, right)) return false;
-                if (left.IsEmptyElement != right.IsEmptyElement) {
-                    XmlReader expanded = left.IsEmptyElement ? right : left;
-                    if (!expanded.Read() || expanded.NodeType != XmlNodeType.EndElement) return false;
+            try {
+                while (left.Read()) {
+                    if (!right.Read() || left.NodeType != right.NodeType || left.LocalName != right.LocalName
+                        || left.NamespaceURI != right.NamespaceURI || left.Value != right.Value) return false;
+                    if (left.NodeType != XmlNodeType.Element) continue;
+                    if (!SameAttributes(left, right)) return false;
+                    if (left.IsEmptyElement != right.IsEmptyElement) {
+                        XmlReader expanded = left.IsEmptyElement ? right : left;
+                        if (!expanded.Read() || expanded.NodeType != XmlNodeType.EndElement) return false;
+                    }
                 }
+                return !right.Read();
+            } catch (XmlException) {
+                // A shadow text element can serialize invalid markup. The native writer must refuse it.
+                return false;
             }
-            return !right.Read();
         }
 
         private static bool SameAttributes(XmlReader left, XmlReader right) {
