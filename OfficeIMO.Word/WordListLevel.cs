@@ -155,6 +155,7 @@ namespace OfficeIMO.Word {
         internal void SetLevelIndex(int levelIndex) =>
             Node.SetAttribute(W, "ilvl", levelIndex.ToString(CultureInfo.InvariantCulture));
 
+        /// <summary>The level's w:start, added with a value of 1 when missing.</summary>
         private OfficeXmlNode GetStartNumberingValueElement() {
             // w:start is the level's first child; a misplaced one deeper down still counts.
             OfficeXmlNode existing = Node.Child(W, "start");
@@ -162,13 +163,7 @@ namespace OfficeIMO.Word {
                 List<OfficeXmlNode> nested = Node.Descendants(W, "start");
                 if (nested.Count > 0) existing = nested[0];
             }
-            if (existing.IsNone) {
-                OfficeXmlNode element = Node.AddOrdered(W, "start", WLvlView.Order);
-                element.SetAttribute(W, "val", "1");
-                return element;
-            }
-            if (OfficeXmlViewValues.ParseInt32(existing.Attribute(W, "val")) == null) existing.SetAttribute(W, "val", "1");
-            return existing;
+            return existing.IsNone ? AddValueElement("start", "1") : existing;
         }
 
         private OfficeXmlNode GetIndentationElement() {
@@ -187,30 +182,24 @@ namespace OfficeIMO.Word {
         /// <summary>The child element with this name, added with <paramref name="defaultValue"/> when missing.</summary>
         private OfficeXmlNode GetValueElement(string localName, string defaultValue) {
             OfficeXmlNode element = Node.Child(W, localName);
-            if (element.IsNone) {
-                element = Node.AddOrdered(W, localName, WLvlView.Order);
-                element.SetAttribute(W, "val", defaultValue);
-            }
+            return element.IsNone ? AddValueElement(localName, defaultValue) : element;
+        }
+
+        private OfficeXmlNode AddValueElement(string localName, string value) {
+            OfficeXmlNode element = Node.AddOrdered(W, localName, WLvlView.Order);
+            element.SetAttribute(W, "val", value);
             return element;
         }
 
-        private OfficeXmlNode GetLevelTextElement() {
-            OfficeXmlNode levelText = GetValueElement("lvlText", string.Empty);
-            if (levelText.Attribute(W, "val") == null) levelText.SetAttribute(W, "val", string.Empty);
-            return levelText;
-        }
-
-        private OfficeXmlNode GetLevelJustificationElement() {
-            OfficeXmlNode justification = GetValueElement("lvlJc", "left");
-            if (ReadLevelJustification(justification.Attribute(W, "val")) == null) justification.SetAttribute(W, "val", "left");
-            return justification;
-        }
-
-        private OfficeXmlNode GetLevelSuffixElement() {
-            OfficeXmlNode suffix = GetValueElement("suff", "tab");
-            string? token = suffix.Attribute(W, "val");
-            if (token == null || !WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordListLevelSuffix _)) suffix.SetAttribute(W, "val", "tab");
-            return suffix;
+        /// <summary>
+        /// Reads the value of a level setting, adding the element with <paramref name="defaultValue"/> when it is missing
+        /// and writing the default over a value <paramref name="isValid"/> rejects, so the level always holds what it reports.
+        /// </summary>
+        private string ReadValue(OfficeXmlNode element, string defaultValue, Func<string, bool> isValid) {
+            string? value = element.Attribute(W, "val");
+            if (value != null && isValid(value)) return value;
+            element.SetAttribute(W, "val", defaultValue);
+            return defaultValue;
         }
 
         /// <summary>
@@ -250,7 +239,8 @@ namespace OfficeIMO.Word {
         /// Gets or sets the start numbering value.
         /// </summary>
         public int StartNumberingValue {
-            get => OfficeXmlViewValues.ParseInt32(GetStartNumberingValueElement().Attribute(W, "val")) ?? 0;
+            get => int.Parse(ReadValue(GetStartNumberingValueElement(), "1", static value => OfficeXmlViewValues.ParseInt32(value) != null).Trim(),
+                NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
             set => GetStartNumberingValueElement().SetAttribute(W, "val", value.ToString(CultureInfo.InvariantCulture));
         }
 
@@ -324,16 +314,16 @@ namespace OfficeIMO.Word {
         /// Gets or sets the level text.
         /// </summary>
         public string LevelText {
-            get => GetLevelTextElement().Attribute(W, "val") ?? string.Empty;
-            set => GetLevelTextElement().SetAttribute(W, "val", value ?? string.Empty);
+            get => ReadValue(GetValueElement("lvlText", string.Empty), string.Empty, static _ => true);
+            set => GetValueElement("lvlText", string.Empty).SetAttribute(W, "val", value ?? string.Empty);
         }
 
         /// <summary>
         /// Gets or sets the level justification.
         /// </summary>
         public WordListLevelAlignment LevelJustification {
-            get => ReadLevelJustification(GetLevelJustificationElement().Attribute(W, "val")) ?? WordListLevelAlignment.Left;
-            set => GetLevelJustificationElement().SetAttribute(W, "val", value.ToOpenXmlToken());
+            get => ReadLevelJustification(ReadValue(GetValueElement("lvlJc", "left"), "left", static token => ReadLevelJustification(token) != null))!.Value;
+            set => GetValueElement("lvlJc", "left").SetAttribute(W, "val", value.ToOpenXmlToken());
         }
 
         /// <summary>
@@ -341,10 +331,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordListLevelSuffix LevelSuffix {
             get {
-                string? token = GetLevelSuffixElement().Attribute(W, "val");
-                return token != null && WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordListLevelSuffix suffix) ? suffix : WordListLevelSuffix.Tab;
+                string token = ReadValue(GetValueElement("suff", "tab"), "tab",
+                    static value => WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(value, out WordListLevelSuffix _));
+                WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out WordListLevelSuffix suffix);
+                return suffix;
             }
-            set => GetLevelSuffixElement().SetAttribute(W, "val", value.ToOpenXmlToken());
+            set => GetValueElement("suff", "tab").SetAttribute(W, "val", value.ToOpenXmlToken());
         }
 
         /// <summary>
