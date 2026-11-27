@@ -8,9 +8,9 @@ const _core = key => { const value = _modules && _modules.get(key); if (!value) 
 const _c0 = _core("81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00");
 const _c1 = _core("6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f");
 const _c2 = _core("b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4");
-const _c3 = _core("e5310c591178a3de9292f150e2e6f1477b94b895ef0c90840c72adef00f75974");
+const _c3 = _core("6394edd060bcbd1459f1a0ce394f338b4c39dfed76aa608533e2177d8047943a");
 const _c4 = _core("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe");
-const _c5 = _core("62ff1bcbf8ca07e8ab92cd1f6afbd54049346193e18160ab0afec48e03950bba");
+const _c5 = _core("d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc92711c2");
 const _c6 = _core("732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5");
 const _c7 = _core("d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da");
 const _c8 = _core("87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3");
@@ -19,7 +19,7 @@ const _c10 = _core("50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5
 const _c11 = _core("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc");
 const _c12 = _core("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208");
 const _c13 = _core("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38");
-const _c14 = _core("8f13b484030aa6b921e616d803614fd061f718241692003633375fab4c36045e");
+const _c14 = _core("fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96");
 const _c15 = _core("d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596");
 const _m7 = _modules.get("e37eb5f0298d8bc9492db790f163f4a1d6d8b4293981cfdacfcd9d9810ec9b7f") ?? (() => {
 /** @internal Runtime-checked calls across the optional third-party API boundary. */
@@ -391,7 +391,7 @@ _modules.set("8edb7b3b19d6555ea24a92d771d532dc0448ad18101fdf663217b4c518b5a31b",
 return _exports;
 })();
 
-const _m16 = _modules.get("bbf637a660bc4dc3fa6fc932009b7b8fb557ad6403af8b5479a1cc857cc020a4") ?? (() => {
+const _m16 = _modules.get("5d2f1d5f3635e23dc84ab8578038d32cc63186e47436a4edbefeeda4ae18d224") ?? (() => {
 const { captureFields } = _c10;
 
 const { ExportBudget } = _c9;
@@ -432,11 +432,11 @@ function capturePdfOptions(input = {}) {
     return { ...options, ...(options.limits === undefined ? {} : { limits: capturePdfLimits(options.limits) }) };
 }
 const _exports = Object.freeze({ captureCommonLimits: captureCommonLimits, mergeAdapterLimits: mergeAdapterLimits, captureXlsxOptions: captureXlsxOptions, captureCsvOptions: captureCsvOptions, capturePdfOptions: capturePdfOptions });
-_modules.set("bbf637a660bc4dc3fa6fc932009b7b8fb557ad6403af8b5479a1cc857cc020a4", _exports);
+_modules.set("5d2f1d5f3635e23dc84ab8578038d32cc63186e47436a4edbefeeda4ae18d224", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("b37d12c21a5952285ca726c58ce4ecc454fef6f97e4d880e5537fe48cba67ebf") ?? (() => {
+const _m0 = _modules.get("3c073ee597191de30c2f699f2ab0029230faa522957e91f4cc7dafd11b90b844") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _c0;
 
 const { notifyProgress } = _c1;
@@ -619,7 +619,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m11.createDataTablesExport, ExportCell: _c6.ExportCell, PdfFont: _c15.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("b37d12c21a5952285ca726c58ce4ecc454fef6f97e4d880e5537fe48cba67ebf", _exports);
+_modules.set("3c073ee597191de30c2f699f2ab0029230faa522957e91f4cc7dafd11b90b844", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

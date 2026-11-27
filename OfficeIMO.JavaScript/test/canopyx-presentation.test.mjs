@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { exportCanopy } from "../dist/integrations/canopyx/index.js";
+import { ExportCell } from "../dist/core/index.js";
 import { readZip } from "./zip-reader.mjs";
 import { inspectPdf } from "./pdf-reader.mjs";
 
@@ -82,6 +83,17 @@ test("Canopy cells with more than 64 badges still export, with one count diagnos
   }
 });
 
+test("Canopy text cells keep their captured label when every badge is left out", async () => {
+  const text = "z".repeat(32767);
+  const full = () => capture([{ id: "r", cells: { Name: cell("id-7", text, { badges: ["x"] }) } }]);
+  for (const format of ["xlsx", "csv"]) {
+    const diagnostics = [], blob = await exportCanopy(full(), format, { onDiagnostic: item => diagnostics.push(item.code) });
+    const exported = format === "xlsx" ? (await workbook(blob)).style("A2").text : (await blob.text()).split("\r\n")[1];
+    assert.equal(exported, text, format);
+    assert.deepEqual(diagnostics, ["BADGES_TRUNCATED:1"]);
+  }
+});
+
 test("Canopy badge labels never push a cell past the Excel text limit", async () => {
   const text = "x".repeat(32760);
   const long = capture([{ id: "r", cells: { Name: cell(text, text, { badges: ["Kept", "Dropped"] }) } }]);
@@ -98,32 +110,34 @@ async function linkedSheet(input, options = {}) {
   return { sheet: zip.get("xl/worksheets/sheet1.xml").content, diagnostics };
 }
 
-test("Canopy XLSX keeps link labels past the worksheet hyperlink limit and reports the dropped links once", async () => {
-  const { sheet, diagnostics } = await linkedSheet(capture(linkRows(65532)));
-  assert.equal(sheet.match(/<hyperlink\b/g).length, 65530);
-  assert.match(sheet, /<hyperlink ref="A65531"/);
-  assert.doesNotMatch(sheet, /<hyperlink ref="A6553[23]"/);
-  assert.match(sheet, /<c r="A65533"[^>]*>/);
-  assert.deepEqual(diagnostics, ["LINKS_TRUNCATED:2"]);
-});
+// Every source of worksheet hyperlinks, with the links it reserves. Captured data-cell links fill only the room left.
+const long = "y".repeat(40000), help = target => new ExportCell("Help", { link: { target } });
+const linkSources = [
+  { name: "no reserved links", rows: 65532, dropped: 2 },
+  { name: "configured sheet hyperlinks", rows: 65530, dropped: 1, kept: ["A1"], xlsx: { sheet: { hyperlinks: [{ cell: "A1", target: "https://example.com/help" }] } } },
+  { name: "linked header rows", rows: 65530, dropped: 1, kept: ["A1"], xlsx: { sheet: { headerRows: [[{ value: new ExportCell("Name", { link: { target: "https://example.com/header" } }) }]] } } },
+  { name: "linked footer values", rows: 65530, dropped: 1, kept: ["A65532"], xlsx: { sheet: { footer: { values: [help("https://example.com/footer")] } } } },
+  { name: "a preserved cell before the links", rows: 65530, dropped: 1, internal: ["B2"], long: 0, xlsx: { oversizedText: "preserve" } },
+  { name: "a preserved cell after the links", rows: 65530, dropped: 1, internal: ["B65531"], long: 65529, xlsx: { oversizedText: "preserve" } }
+];
 
-test("Canopy XLSX link truncation counts the worksheet's configured hyperlinks", async () => {
-  const { sheet, diagnostics } = await linkedSheet(capture(linkRows(65530)), { xlsx: { sheet: { hyperlinks: [{ cell: "A1", target: "https://example.com/help" }] } } });
-  assert.equal(sheet.match(/<hyperlink\b/g).length, 65530);
-  assert.match(sheet, /<hyperlink ref="A1"/);
-  assert.doesNotMatch(sheet, /<hyperlink ref="A65531"/);
-  assert.deepEqual(diagnostics, ["LINKS_TRUNCATED:1"]);
-});
-
-test("Canopy XLSX link truncation counts the links of preserved oversized text cells", async () => {
-  const long = "y".repeat(40000);
-  const rows = linkRows(65530).map((row, index) => ({ ...row, cells: { ...row.cells, Note: cell(index === 0 ? long : "", index === 0 ? long : "") } }));
-  const { sheet, diagnostics } = await linkedSheet(capture(rows, [column("Name"), column("Note")]), { xlsx: { oversizedText: "preserve" } });
-  assert.equal(sheet.match(/<hyperlink\b/g).length, 65530);
-  assert.match(sheet, /<hyperlink ref="B2"/);
-  assert.doesNotMatch(sheet, /<hyperlink ref="A65531"/);
-  assert.deepEqual(diagnostics, ["LINKS_TRUNCATED:1"]);
-});
+for (const source of linkSources) {
+  test("Canopy XLSX link truncation reserves worksheet links for " + source.name, async () => {
+    const rows = linkRows(source.rows).map((row, index) => source.long === undefined ? row :
+      { ...row, cells: { ...row.cells, Note: index === source.long ? cell(long, long) : cell("", "") } });
+    const columns = source.long === undefined ? [column("Name")] : [column("Name"), column("Note")];
+    const { sheet, diagnostics } = await linkedSheet(capture(rows, columns), source.xlsx ? { xlsx: source.xlsx } : {});
+    const refs = [...sheet.matchAll(/<hyperlink ref="([A-Z]+\d+)"([^>]*)/g)];
+    assert.equal(refs.length, 65530);
+    for (const reference of source.kept ?? []) assert.ok(refs.some(([, ref, rest]) => ref === reference && / r:id=/.test(rest)), reference);
+    for (const reference of source.internal ?? []) assert.ok(refs.some(([, ref, rest]) => ref === reference && / location=/.test(rest)), reference);
+    // Captured links keep row order: the first data rows keep theirs and the last ones keep only the label.
+    assert.match(sheet, /<hyperlink ref="A2"/);
+    assert.doesNotMatch(sheet, new RegExp('<hyperlink ref="A' + (source.rows + 1) + '"'));
+    assert.match(sheet, new RegExp('<c r="A' + (source.rows + 1) + '"'));
+    assert.deepEqual(diagnostics, ["LINKS_TRUNCATED:" + source.dropped]);
+  });
+}
 
 test("Canopy XLSX still rejects an unsafe link that the worksheet limit would leave out", async () => {
   const rows = [...linkRows(65530), { id: "unsafe", cells: { Name: cell("x", "x", { link: { target: "javascript:alert(1)" } }) } }];

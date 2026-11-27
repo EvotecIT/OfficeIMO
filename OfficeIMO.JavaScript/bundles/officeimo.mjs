@@ -3423,6 +3423,9 @@ class Worksheet {
     internalLinks = [];
     links = [];
     linkedCells = new Set();
+    /** Indexes in `links` of data-cell links that `hyperlinkOverflow: "drop"` may give up, in row order. */
+    droppable = [];
+    droppedLinks = 0;
     pictures = [];
     nativeCharts = [];
     conditional;
@@ -3634,6 +3637,7 @@ class Worksheet {
             const cell = col.letter + row;
             if (link || this.linkedCells.has(cell))
                 throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
+            this.makeLinkRoom();
             checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
             this.book.checkLinks(1);
             // Replace a generated cell's original reservation with its preview and overflow records.
@@ -3648,7 +3652,7 @@ class Worksheet {
             value = preserved.preview;
         }
         if (link)
-            this.appendHyperlink({ cell: col.letter + row, ...link });
+            this.appendHyperlink({ cell: col.letter + row, ...link }, !header && !footer && !title && this.book.settings.hyperlinkOverflow === "drop");
         if (type === "date")
             value = excelDate(value, this.book.settings.dateMode);
         if (!header && !footer && visible && (!formula || !isSubtotalFormula(formula)))
@@ -3957,17 +3961,36 @@ class Worksheet {
             throw this.error;
         this.appendHyperlink(link);
     }
-    appendHyperlink(link) {
+    appendHyperlink(link, droppable = false) {
+        // Validate before any overflow decision, so a dropped link can never hide an unsafe target.
         const copied = copyHyperlink(link, this.book.settings.invalidCharacterPolicy);
         const position = cellPosition(copied.cell);
         if (this.layout.regions.covered(position.column, position.row))
             throw new TypeError("Hyperlinks cannot address a covered merged cell.");
         if (this.linkedCells.has(copied.cell))
             throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
+        if (droppable && this.links.length + this.internalLinks.length >= maximumHyperlinks) {
+            this.droppedLinks++;
+            return;
+        }
+        if (!droppable)
+            this.makeLinkRoom();
         checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
         this.book.retainLink();
+        if (droppable)
+            this.droppable.push(this.links.length);
         this.links.push(copied);
         this.linkedCells.add(copied.cell);
+    }
+    /** A full worksheet gives up its latest data-cell link for a link that cannot be dropped. Hyperlinks are serialized after
+     * the rows, so the cell keeps its written value. Links after the removed one are never droppable, so earlier indexes stay valid. */
+    makeLinkRoom() {
+        if (this.links.length + this.internalLinks.length < maximumHyperlinks || !this.droppable.length)
+            return;
+        const [removed] = this.links.splice(this.droppable.pop(), 1);
+        this.linkedCells.delete(removed.cell);
+        this.book.releaseLink();
+        this.droppedLinks++;
     }
     /** @internal */
     get hyperlinks() { return this.links; }
@@ -4051,6 +4074,8 @@ class Worksheet {
                     await this.buffer.write(xml);
                 for (const xml of dataValidationsXml(this.validations, this.headerRows, this.count, detailRanges))
                     await this.buffer.write(xml);
+                if (this.droppedLinks)
+                    this.book.settings.onHyperlinkOverflow?.(Object.freeze({ sheetName: this.name, dropped: this.droppedLinks }));
                 if (this.links.length || this.internalLinks.length)
                     await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
                 await this.buffer.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
@@ -4197,7 +4222,7 @@ const _m43 = (() => {
 const { captureFields } = _m10;
 
 /** @internal The workbook owner captures these settings before validation or adapter merging. */
-const workbookOptionFields = ["signal", "onProgress", "limits", "sink", "dateMode", "compression", "invalidCharacterPolicy", "appProperties", "cellValueWriters", "oversizedText", "creator", "title", "subject", "description", "created", "modified"];
+const workbookOptionFields = ["signal", "onProgress", "limits", "sink", "dateMode", "compression", "invalidCharacterPolicy", "appProperties", "cellValueWriters", "oversizedText", "hyperlinkOverflow", "onHyperlinkOverflow", "creator", "title", "subject", "description", "created", "modified"];
 /** @internal Worksheet settings also used by the portable sheet owner. */
 const sheetOptionFields = ["columns", "includeHeader", "headerRows", "freezeHeader", "autoFilter", "boldHeader", "headerFill", "headerBorder", "headerWrap", "headerStyle", "alternatingRowStyle", "rowStyle", "cellStyle", "rowOutline", "maxOutlineLevel", "outlineSummaryBelow", "outlineSummaryRight", "columnOutlines", "rowHeight", "headerHeight", "defaultColumnWidth", "freezeColumns", "table", "autoSize", "footer", "print", "title", "mergedCells", "hyperlinks", "conditionalFormats", "dataValidation"];
 /** @internal Includes inherited format-specific ceilings before a wrapper combines stream settings. */
@@ -4649,6 +4674,10 @@ class Workbook {
             throw new RangeError("compression must be auto or store.");
         if (options.oversizedText !== undefined && !["reject", "preserve"].includes(options.oversizedText))
             throw new RangeError("oversizedText must be reject or preserve.");
+        if (options.hyperlinkOverflow !== undefined && !["reject", "drop"].includes(options.hyperlinkOverflow))
+            throw new RangeError("hyperlinkOverflow must be reject or drop.");
+        if (options.onHyperlinkOverflow !== undefined && typeof options.onHyperlinkOverflow !== "function")
+            throw new TypeError("onHyperlinkOverflow must be a function.");
         cleanXml("", policy);
         corePropertiesXml(options, policy);
         this.budget = new ExportBudget(options.limits);
@@ -4726,6 +4755,8 @@ class Workbook {
     }
     /** @internal Reserve a preflighted worksheet batch or one row hyperlink. */
     retainLink(count = 1) { this.checkLinks(count); this.links += count; }
+    /** @internal A worksheet dropped a data-cell link it had retained. */
+    releaseLink() { this.links--; }
     /** @internal */
     checkImage(bytes) {
         if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes)
@@ -11551,6 +11582,6 @@ const _m0 = (() => {
 const _exports = Object.freeze({ core: _m1, zip: _m14, xml: _m17, opc: _m18, xlsx: _m21, csv: _m50, pdf: _m54, Workbook: _m21.Workbook, Worksheet: _m21.Worksheet, Cell: _m21.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, writeXlsx: _m21.writeXlsx, writeXlsxTo: _m21.writeXlsxTo, writeCsv: _m50.writeCsv, writeCsvTo: _m50.writeCsvTo, createGroupedReport: _m8.createGroupedReport, writeGroupedXlsx: _m48.writeGroupedXlsx, writeGroupedXlsxTo: _m48.writeGroupedXlsxTo, addGroupedXlsx: _m48.addGroupedXlsx, writeGroupedPdf: _m83.writeGroupedPdf, writeGroupedPdfTo: _m83.writeGroupedPdfTo, pdfGroupedTable: _m83.pdfGroupedTable, writePdf: _m54.writePdf, writePdfTo: _m54.writePdfTo, writePdfDocument: _m54.writePdfDocument, writePdfDocumentTo: _m54.writePdfDocumentTo, pdfTable: _m54.pdfTable, PdfFont: _m54.PdfFont, preflightPdfText: _m54.preflightPdfText, OfficeIMOError: _m1.OfficeIMOError, NotSupportedError: _m1.NotSupportedError, detectFeatures: _m1.detectFeatures, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
 return _exports;
 })();
-const __officeimoModules = Object.freeze({ "81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00": _m1, "6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f": _m23, "b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4": _m50, "e5310c591178a3de9292f150e2e6f1477b94b895ef0c90840c72adef00f75974": _m21, "027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe": _m54, "62ff1bcbf8ca07e8ab92cd1f6afbd54049346193e18160ab0afec48e03950bba": _m47, "732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5": _m5, "d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da": _m30, "87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3": _m4, "42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671": _m9, "50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669": _m10, "0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc": _m11, "f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208": _m53, "4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38": _m56, "8f13b484030aa6b921e616d803614fd061f718241692003633375fab4c36045e": _m43, "d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596": _m63, "d363b84eac65064b2e372063af61a4e9e5c576501693c862628297c812ba7832": _m7, "227236fd7adc9472e188831b8f16fdc69338c4d779f2b69a8abbd8dbfa95b585": _m17, "e88a83ca79cd099fc2de29689554c913c7d04b17018098f81c43044064fcdfb8": _m27, "046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0": _m8, "c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b": _m12, "5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b": _m3, "59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070": _m67 });
+const __officeimoModules = Object.freeze({ "81b3d47c02b7d8443b79e02b3cfb52032d6b73d9a3fb592b777ebe028ad0ef00": _m1, "6cfd3e806439f6301003a2d1699a74fdfa574d935550ab62b97b528728eaee1f": _m23, "b48bcab805d4c75294dd8d8e8dc57f96d9db3f5af31a8f0ddc6562f010f566e4": _m50, "6394edd060bcbd1459f1a0ce394f338b4c39dfed76aa608533e2177d8047943a": _m21, "027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe": _m54, "d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc92711c2": _m47, "732224f6995c2478cf33a6ed01f3e3d3dcccb159a731d6db9280104bd5040fc5": _m5, "d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da": _m30, "87c24efeaa0f1579c19afeeb4918caeb4f8f65a88d24a246e2cfd712b37dbac3": _m4, "42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3671": _m9, "50b3c10b690ceff693c8c5f809195ba6845b20e60f408e791a750d2ecbd5c669": _m10, "0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc": _m11, "f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208": _m53, "4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38": _m56, "fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96": _m43, "d9c1509dff0538488752433e47cd0927ece5f93c559ad0e32dc56602dfd44596": _m63, "e88a83ca79cd099fc2de29689554c913c7d04b17018098f81c43044064fcdfb8": _m27, "046b305cdccf817d847addb75a778131622de23f2840830bbe1c0c26053a68c0": _m8, "c9fde2c438e186da56f740105fcd41c265fdfdd855a4f1b811d556a02387479b": _m12, "227236fd7adc9472e188831b8f16fdc69338c4d779f2b69a8abbd8dbfa95b585": _m17, "5337d1e3bd5ae0c1d10a476fcd31540d20337ccf7aa93c7e9e26c2b1a7dab92b": _m3, "59911f0fe023545e9e97521b268551078bdc4c5f303e446a13b7d52f905e8070": _m67 });
 const { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, createGroupedReport, writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx, writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable, writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell } = _m0;
 export { core, zip, xml, opc, xlsx, csv, pdf, Workbook, Worksheet, Cell, FormulaCell, StyleRegistry, NumberFormats, writeXlsx, writeXlsxTo, writeCsv, writeCsvTo, createGroupedReport, writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx, writeGroupedPdf, writeGroupedPdfTo, pdfGroupedTable, writePdf, writePdfTo, writePdfDocument, writePdfDocumentTo, pdfTable, PdfFont, preflightPdfText, OfficeIMOError, NotSupportedError, detectFeatures, saveBlob, ExportCell, __officeimoModules };
