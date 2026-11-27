@@ -46,7 +46,10 @@ namespace OfficeIMO.Word {
         private static OfficeXmlNode PlotAreaOf(OfficeXmlNode chart) => chart.IsNone ? default : chart.Child(NsC, "plotArea");
 
         /// <summary>The first child of the chart's plot area with this name, or none.</summary>
-        private OfficeXmlNode PlotChild(string localName) => PlotAreaOf(_chart).IsNone ? default : PlotAreaOf(_chart).Child(NsC, localName);
+        private OfficeXmlNode PlotChild(string localName) {
+            OfficeXmlNode plot = PlotAreaOf(_chart);
+            return plot.IsNone ? default : plot.Child(NsC, localName);
+        }
 
         /// <summary>
         /// The relationship id of the chart a drawing shows. The reference sits in the drawing's graphic data; extension
@@ -54,8 +57,30 @@ namespace OfficeIMO.Word {
         /// </summary>
         private static string? ChartReferenceId(OfficeXmlNode drawing) {
             if (drawing.IsNone) return null;
+            // The usual place: w:drawing/wp:inline or wp:anchor/a:graphic/a:graphicData/c:chart.
+            OfficeXmlNode frame = drawing.FirstChild;
+            if (!frame.IsNone && (frame.Is(NsWp, "inline") || frame.Is(NsWp, "anchor"))) {
+                OfficeXmlNode graphic = frame.Child(NsA, "graphic");
+                OfficeXmlNode data = graphic.IsNone ? default : graphic.Child(NsA, "graphicData");
+                OfficeXmlNode reference = data.IsNone ? default : data.Child(NsC, "chart");
+                if (!reference.IsNone && FirstContentChart(drawing, reference)) return reference.Attribute(NsR, "id");
+            }
             List<OfficeXmlNode> references = drawing.ContentDescendants(NsC, "chart");
             return references.Count == 0 ? null : references[0].Attribute(NsR, "id");
+        }
+
+        /// <summary>
+        /// Whether <paramref name="reference"/> is the drawing's first chart reference in document order outside extension
+        /// markup: no content before it, at any level up to the drawing, holds another.
+        /// </summary>
+        private static bool FirstContentChart(OfficeXmlNode drawing, OfficeXmlNode reference) {
+            for (OfficeXmlNode node = reference; !node.IsNone && node != drawing; node = node.Parent) {
+                for (OfficeXmlNode sibling = node.PreviousSibling; !sibling.IsNone; sibling = sibling.PreviousSibling) {
+                    if (sibling.IsExtensionMarkup()) continue;
+                    if (sibling.Is(NsC, "chart") || !sibling.FirstChild.IsNone && sibling.ContentDescendants(NsC, "chart").Count > 0) return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>Whether a chart child is an axis.</summary>
