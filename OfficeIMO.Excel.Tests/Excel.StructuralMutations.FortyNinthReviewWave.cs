@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
             formula.DataType = CellValues.Number;
             formula.CellFormula!.CalculateCell = false;
             document.MarkFormulaSheetRecalculated(
-                sheet.WorksheetPart,
+                sheet.WorksheetPart.Uri,
                 document.CaptureFormulaInputMutationVersion());
             Assert.False(Assert.Single(sheet.GetFormulaCells()).State.HasFlag(ExcelFormulaState.Dirty));
 
