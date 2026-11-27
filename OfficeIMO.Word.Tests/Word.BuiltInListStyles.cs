@@ -93,4 +93,27 @@ public partial class Word {
         Assert.Throws<OverflowException>(() => level.IndentationLeft = tooWide);
         Assert.Null(level.OpenXmlLevel().PreviousParagraphProperties);
     }
+
+    [Fact]
+    public void LevelSettingsInsideExtensionMarkupAreNotTheLevels() {
+        using var document = WordDocument.Create();
+        WordList list = document.AddCustomList();
+        WordListLevel level = list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
+        Level sdkLevel = level.OpenXmlLevel();
+        sdkLevel.GetFirstChild<StartNumberingValue>()!.Remove();
+        const string WordNamespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+        var extension = new OpenXmlUnknownElement("x", "levelExtension", "urn:officeimo:test");
+        extension.InnerXml = $"<w:start xmlns:w=\"{WordNamespace}\" w:val=\"9\"/><w:pPr xmlns:w=\"{WordNamespace}\"><w:ind w:left=\"99\"/></w:pPr>";
+        sdkLevel.AppendChild(extension);
+        string extensionMarkup = extension.OuterXml;
+
+        // The level reads and edits its own w:start and w:pPr/w:ind, which it adds, and leaves the extension alone.
+        Assert.Equal(1, level.StartNumberingValue);
+        Assert.Equal(0, level.IndentationLeft.ToTwips());
+        level.StartNumberingValue = 3;
+        level.IndentationLeft = OfficeIMO.OfficeLength.Points(36);
+        Assert.Equal("3", sdkLevel.GetFirstChild<StartNumberingValue>()!.Val!.InnerText);
+        Assert.Equal("720", sdkLevel.PreviousParagraphProperties!.Indentation!.Left!.Value);
+        Assert.Equal(extensionMarkup, extension.OuterXml);
+    }
 }
