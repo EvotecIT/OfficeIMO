@@ -35,6 +35,7 @@ internal sealed class OlmSalvage {
     private readonly List<EmailStoreSalvageEntry> _results = new List<EmailStoreSalvageEntry>();
     private long _decodedBytes;
     private bool _stoppedAtLimit;
+    private bool _discoveryCompleted = true;
 
     internal OlmSalvage(Stream source, string? sourceName, EmailStoreSalvageOptions options,
         EmailStoreSalvageWriter output, CancellationToken cancellationToken) {
@@ -65,7 +66,7 @@ internal sealed class OlmSalvage {
         EmailStoreSalvageEntry[] ordered = _results.OrderBy(entry => entry.SourceOffset ?? long.MaxValue).ToArray();
         string? manifest = _output.WriteManifest(ordered, _diagnostics);
         return new EmailStoreSalvageReport(EmailStoreFormat.Olm, _output.Root, manifest, _stoppedAtLimit,
-            Array.AsReadOnly(ordered), _diagnostics.ToArray());
+            Array.AsReadOnly(ordered), _diagnostics.ToArray(), _discoveryCompleted);
     }
 
     private List<ZipEntry>? ReadCentralDirectory() {
@@ -141,11 +142,12 @@ internal sealed class OlmSalvage {
             string name = DecodeName(nameBytes);
             if (compressed == uint.MaxValue || expanded == uint.MaxValue) ReadZip64Sizes(extra, ref expanded, ref compressed);
 
+            bool zip64 = HasZip64Extra(extra);
             bool sized = (flags & 0x08) == 0 || compressed != 0 || expanded != 0;
             long next;
             if (sized) {
                 next = dataOffset + compressed;
-            } else if (TryFindDataDescriptor(dataOffset, out uint descriptorCrc, out long descriptorCompressed,
+            } else if (TryFindDataDescriptor(dataOffset, zip64, out uint descriptorCrc, out long descriptorCompressed,
                            out long descriptorExpanded, out long descriptorEnd)) {
                 crc = descriptorCrc;
                 compressed = descriptorCompressed;
@@ -197,6 +199,10 @@ internal sealed class OlmSalvage {
             return;
         }
 
+        if (entry.ExpandedSize > _limits.MaxArchiveDecodedBytes - _decodedBytes) {
+            ChargeDecoded(entry.ExpandedSize, entry);
+            return;
+        }
         string? failure = Verify(entry, dataOffset, out long decoded);
         if (failure == null) {
             if (!ChargeDecoded(decoded, entry)) return;
@@ -208,7 +214,7 @@ internal sealed class OlmSalvage {
         }
 
         bool isXml = normalized.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
-        if (isXml && TryRepairXml(entry, dataOffset, out FileStream? repaired, out int items, out long consumed, out string? stopReason)) {
+        if (isXml && _decodedBytes < _limits.MaxArchiveDecodedBytes && TryRepairXml(entry, dataOffset, out FileStream? repaired, out int items, out long consumed, out string? stopReason)) {
             using (repaired) {
                 if (!ChargeDecoded(repaired!.Length, entry)) return;
                 ZipArchiveEntry target = archive.CreateEntry(entry.Name, CompressionLevel.NoCompression);
@@ -228,7 +234,7 @@ internal sealed class OlmSalvage {
         Damaged(normalized, entry, isXml ? "EMAIL_STORE_OLM_SALVAGE_XML_ENTRY_UNREADABLE" : "EMAIL_STORE_OLM_SALVAGE_ENTRY_DAMAGED",
             failure);
         if (isXml) {
-            _results.Add(new EmailStoreSalvageEntry("olm:entry:" + normalized, EmailStoreSalvageStatus.NotRecovered,
+            TryAddResult(new EmailStoreSalvageEntry("olm:entry:" + normalized, EmailStoreSalvageStatus.NotRecovered,
                 normalized, entry.LocalHeaderOffset, 0, entry.ExpandedSize >= 0 ? entry.ExpandedSize : null, null,
                 entry.LocalHeaderOffset, "EMAIL_STORE_OLM_SALVAGE_XML_ENTRY_UNREADABLE", null, null, null, 0,
                 new[] { new EmailStoreDiagnostic("EMAIL_STORE_OLM_SALVAGE_XML_ENTRY_UNREADABLE", failure,
@@ -268,6 +274,18 @@ internal sealed class OlmSalvage {
         consumed = 0;
         stopReason = null;
         FileStream spill = _output.CreateSpill(".xml", deleteOnClose: true);
+        bool transferred = false;
+        try {
+            transferred = RepairXml(entry, dataOffset, spill, ref items, ref consumed, ref stopReason);
+            if (transferred) repaired = spill;
+            return transferred;
+        } finally {
+            if (!transferred) spill.Dispose();
+        }
+    }
+
+    private bool RepairXml(ZipEntry entry, long dataOffset, FileStream spill, ref int items, ref long consumed,
+        ref string? stopReason) {
         var settings = new XmlReaderSettings {
             DtdProcessing = DtdProcessing.Prohibit,
             XmlResolver = null,
@@ -277,7 +295,7 @@ internal sealed class OlmSalvage {
             CloseInput = false
         };
         var counting = new CountingStream(OpenPayload(entry, dataOffset, tolerateTruncation: true),
-            _limits.MaxArchiveEntryBytes);
+            Math.Min(_limits.MaxArchiveEntryBytes, _limits.MaxArchiveDecodedBytes - _decodedBytes));
         try {
             using (counting)
             using (XmlReader reader = XmlReader.Create(counting, settings))
@@ -285,10 +303,7 @@ internal sealed class OlmSalvage {
                        Encoding = new UTF8Encoding(false), CloseOutput = false })) {
                 bool started = false;
                 try {
-                    if (reader.MoveToContent() != XmlNodeType.Element) {
-                        spill.Dispose();
-                        return false;
-                    }
+                    if (reader.MoveToContent() != XmlNodeType.Element) return false;
                     writer.WriteStartElement(reader.Prefix, reader.LocalName, reader.NamespaceURI);
                     started = true;
                     if (reader.HasAttributes) writer.WriteAttributes(reader, defattr: false);
@@ -314,16 +329,10 @@ internal sealed class OlmSalvage {
             }
             consumed = counting.BytesRead;
         } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException || exception is IOException) {
-            spill.Dispose();
             stopReason = exception.Message;
             return false;
         }
-        if (items == 0) {
-            spill.Dispose();
-            return false;
-        }
-        repaired = spill;
-        return true;
+        return items > 0;
     }
 
     private void ExportItems(Stream rebuilt) {
@@ -333,6 +342,7 @@ internal sealed class OlmSalvage {
         } catch (Exception exception) when (exception is InvalidDataException || exception is IOException ||
                                              exception is EmailStoreLimitExceededException) {
             Add("EMAIL_STORE_OLM_SALVAGE_REBUILD_UNREADABLE", exception.Message, EmailStoreDiagnosticSeverity.Error, null);
+            _discoveryCompleted = false;
             return;
         }
         using (session) {
@@ -340,25 +350,37 @@ internal sealed class OlmSalvage {
             EmailFileFormat format = _options.Format ?? EmailFileFormat.OutlookMsg;
             foreach (EmailStoreItemReference reference in session.EnumerateItems(cancellationToken: _cancellationToken)) {
                 _cancellationToken.ThrowIfCancellationRequested();
-                if (_results.Count >= _options.MaxRecoveredItems) {
-                    _stoppedAtLimit = true;
-                    Add("EMAIL_STORE_SALVAGE_ITEM_LIMIT", "Recovery stopped at the configured item bound.",
-                        EmailStoreDiagnosticSeverity.Warning, null);
-                    break;
-                }
+                if (AtItemLimit()) break;
                 _results.Add(ExportItem(session, reference, paths, format));
             }
             foreach (EmailStoreDiagnostic diagnostic in session.Diagnostics) {
                 if (diagnostic.Code == "EMAIL_STORE_OLM_XML_INVALID" && diagnostic.Location != null &&
                     OlmStoreReader.TryNormalizeArchivePath(diagnostic.Location, out string entryPath)) {
                     long? offset = _entryOffsets.TryGetValue(entryPath, out long value) ? value : null;
-                    _results.Add(new EmailStoreSalvageEntry("olm:entry:" + entryPath, EmailStoreSalvageStatus.NotRecovered,
-                        entryPath, offset, 0, null, null, offset, diagnostic.Code, null, null, null, 0, new[] { diagnostic }));
+                    if (!TryAddResult(new EmailStoreSalvageEntry("olm:entry:" + entryPath, EmailStoreSalvageStatus.NotRecovered,
+                            entryPath, offset, 0, null, null, offset, diagnostic.Code, null, null, null, 0, new[] { diagnostic })))
+                        _diagnostics.Add(diagnostic);
                 } else if (diagnostic.Code != "EMAIL_STORE_OLM_ATTACHMENT_MISSING") {
                     _diagnostics.Add(diagnostic);
                 }
             }
         }
+    }
+
+    /// <summary>Applies the outcome bound; the stop diagnostic is reported once.</summary>
+    private bool AtItemLimit() {
+        if (_results.Count < _options.MaxRecoveredItems) return false;
+        if (!_stoppedAtLimit || !_diagnostics.Any(diagnostic => diagnostic.Code == "EMAIL_STORE_SALVAGE_ITEM_LIMIT"))
+            Add("EMAIL_STORE_SALVAGE_ITEM_LIMIT", "Recovery stopped at the configured item bound.",
+                EmailStoreDiagnosticSeverity.Warning, null);
+        _stoppedAtLimit = true;
+        return true;
+    }
+
+    private bool TryAddResult(EmailStoreSalvageEntry entry) {
+        if (AtItemLimit()) return false;
+        _results.Add(entry);
+        return true;
     }
 
     private EmailStoreSalvageEntry ExportItem(EmailStoreSession session, EmailStoreItemReference reference,
@@ -383,9 +405,11 @@ internal sealed class OlmSalvage {
             EmailStoreItem item = session.ReadItem(reference, _cancellationToken);
             kind = item.Document.OutlookItemKind;
             subject = item.Document.Subject;
-            foreach (EmailAttachment attachment in item.Document.Attachments) {
+            foreach (EmailAttachment attachment in item.Document.Attachments.ToArray()) {
                 if (attachment.Content != null || attachment.ContentSource != null ||
                     string.IsNullOrWhiteSpace(attachment.ContentLocation)) continue;
+                // The artifact omits an attachment whose bytes were lost instead of writing an empty placeholder.
+                item.Document.Attachments.Remove(attachment);
                 string attachmentPath = attachment.ContentLocation!.Replace('\\', '/').Trim();
                 bool damaged = _damagedEntries.TryGetValue(attachmentPath, out long attachmentOffset);
                 damageOffset ??= damaged ? attachmentOffset : null;
@@ -470,32 +494,97 @@ internal sealed class OlmSalvage {
         Add(code, message, EmailStoreDiagnosticSeverity.Error, entry.LocalHeaderOffset, normalized);
     }
 
-    private bool TryFindDataDescriptor(long dataOffset, out uint crc, out long compressed, out long expanded, out long end) {
-        crc = 0;
-        compressed = expanded = end = 0;
+    /// <summary>
+    /// Finds the data descriptor that follows an unsized entry. Descriptors may omit their signature and use
+    /// eight-byte sizes for ZIP64 entries, so candidates ending at the next header are tried in every layout
+    /// (ZIP64 first when the local header carries a ZIP64 field) before falling back to a signed descriptor
+    /// anywhere later. A candidate is accepted only when its compressed size equals its distance from the data;
+    /// the CRC-32 is checked when the entry is verified.
+    /// </summary>
+    private bool TryFindDataDescriptor(long dataOffset, bool zip64, out uint crc, out long compressed,
+        out long expanded, out long end) {
         long search = dataOffset;
+        while (true) {
+            long header = FindHeader(search);
+            if (header < 0) break;
+            if (TryDescriptorEndingAt(dataOffset, header, zip64, out crc, out compressed, out expanded)) {
+                end = header;
+                return true;
+            }
+            search = header + 1;
+        }
+        search = dataOffset;
         var descriptor = new byte[24];
         while (true) {
             long candidate = FindSignature(search, DataDescriptorSignature);
-            if (candidate < 0) return false;
+            if (candidate < 0) break;
             int read = ReadAvailable(candidate, descriptor, descriptor.Length);
             long distance = candidate - dataOffset;
-            if (read >= 16 && UInt32(descriptor, 8) == distance) {
+            foreach (bool wide in zip64 ? new[] { true, false } : new[] { false, true }) {
+                int length = wide ? 24 : 16;
+                if (read < length || ReadSize(descriptor, 8, wide) != distance) continue;
                 crc = UInt32(descriptor, 4);
                 compressed = distance;
-                expanded = UInt32(descriptor, 12);
-                end = candidate + 16;
-                return true;
-            }
-            if (read >= 24 && (long)BinaryPrimitives.ReadUInt64LittleEndian(descriptor.AsSpan(8, 8)) == distance) {
-                crc = UInt32(descriptor, 4);
-                compressed = distance;
-                expanded = (long)BinaryPrimitives.ReadUInt64LittleEndian(descriptor.AsSpan(16, 8));
-                end = candidate + 24;
+                expanded = ReadSize(descriptor, wide ? 16 : 12, wide);
+                end = candidate + length;
                 return true;
             }
             search = candidate + 1;
         }
+        crc = 0;
+        compressed = expanded = end = 0;
+        return false;
+    }
+
+    private bool TryDescriptorEndingAt(long dataOffset, long end, bool zip64, out uint crc, out long compressed,
+        out long expanded) {
+        var bytes = new byte[24];
+        foreach (bool wide in zip64 ? new[] { true, false } : new[] { false, true }) {
+            foreach (bool signed in new[] { true, false }) {
+                int length = (wide ? 20 : 12) + (signed ? 4 : 0);
+                long start = end - length;
+                if (start < dataOffset || ReadAvailable(start, bytes, length) < length) continue;
+                int field = signed ? 4 : 0;
+                if (signed && UInt32(bytes, 0) != DataDescriptorSignature) continue;
+                if (ReadSize(bytes, field + 4, wide) != start - dataOffset) continue;
+                crc = UInt32(bytes, field);
+                compressed = start - dataOffset;
+                expanded = ReadSize(bytes, field + (wide ? 12 : 8), wide);
+                return true;
+            }
+        }
+        crc = 0;
+        compressed = expanded = 0;
+        return false;
+    }
+
+    private static long ReadSize(byte[] bytes, int offset, bool wide) =>
+        wide ? (long)BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(offset, 8)) : UInt32(bytes, offset);
+
+    private long FindHeader(long start) {
+        var buffer = new byte[SearchBufferLength];
+        long position = start;
+        while (position + 4 <= _length) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            int read = ReadAvailable(position, buffer, buffer.Length);
+            for (int index = 0; index + 4 <= read; index++) {
+                uint value = UInt32(buffer, index);
+                if (value == LocalHeaderSignature || value == CentralHeaderSignature ||
+                    value == EndOfCentralDirectorySignature) return position + index;
+            }
+            if (position + read >= _length) break;
+            position += read - 3;
+        }
+        return -1;
+    }
+
+    private static bool HasZip64Extra(byte[] extra) {
+        int offset = 0;
+        while (offset + 4 <= extra.Length) {
+            if (BinaryPrimitives.ReadUInt16LittleEndian(extra.AsSpan(offset, 2)) == 1) return true;
+            offset += 4 + BinaryPrimitives.ReadUInt16LittleEndian(extra.AsSpan(offset + 2, 2));
+        }
+        return false;
     }
 
     private long FindSignature(long start, uint signature) {

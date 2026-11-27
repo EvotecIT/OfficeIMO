@@ -138,11 +138,15 @@ internal sealed class EmailStoreSalvageWriter {
                 stream.Flush();
             }
             foreach (EmailDiagnostic diagnostic in result.Diagnostics) {
+                // Disposition and loss risk travel with the diagnostic so the report can classify conversion loss.
                 diagnostics.Add(new EmailStoreDiagnostic(diagnostic.Code, diagnostic.Message,
                     diagnostic.Severity == EmailDiagnosticSeverity.Error ? EmailStoreDiagnosticSeverity.Error
                     : diagnostic.Severity == EmailDiagnosticSeverity.Warning ? EmailStoreDiagnosticSeverity.Warning
                     : EmailStoreDiagnosticSeverity.Information,
-                    diagnostic.Location == null ? itemId : itemId + "/" + diagnostic.Location));
+                    diagnostic.Location == null ? itemId : itemId + "/" + diagnostic.Location,
+                    diagnostic.Operation, diagnostic.ByteOffset, diagnostic.LimitName, diagnostic.ActualValue,
+                    diagnostic.MaximumValue, diagnostic.Disposition, diagnostic.DataLossRisk, diagnostic.SuggestedAction,
+                    diagnostic.IsRetryable));
             }
             if (result.HasErrors) return -1;
             OfficeFileCommit.CommitTemporaryFile(temporaryPath, path, _options.OverwriteExisting

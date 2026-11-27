@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Security.Cryptography;
 using OfficeIMO.Email.Store;
 
@@ -156,6 +157,43 @@ public sealed partial class DbxStoreReaderTests {
                     Assert.Equal("Other message", message.Document.Subject);
                 });
             Assert.Equal(SecondFragment, Assert.Single(report.NativeDiagnostics).ByteOffset);
+        });
+    }
+
+    [Fact]
+    public void ReadsUnorderedIndexedRecordsAndReportsIndexedRecordsWithoutABody() {
+        byte[] database = CreateDatabase();
+        // Swap the first record's two direct entries and retag the second record's body pointer.
+        uint flags = BinaryPrimitives.ReadUInt32LittleEndian(database.AsSpan(FirstRecord + 12));
+        uint body = BinaryPrimitives.ReadUInt32LittleEndian(database.AsSpan(FirstRecord + 16));
+        UInt32(database, FirstRecord + 12, (int)body);
+        UInt32(database, FirstRecord + 16, (int)flags);
+        database[SecondRecord + 16] = 0x03;
+        WithDestination(destination => {
+            using var input = new MemoryStream(database, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination);
+
+            Assert.Collection(report.Entries,
+                first => Assert.Equal(EmailStoreSalvageStatus.Recovered, first.Status),
+                second => {
+                    Assert.Equal("dbx:item:00003140", second.ItemId);
+                    Assert.Equal(EmailStoreSalvageStatus.NotRecovered, second.Status);
+                    Assert.Equal("EMAIL_STORE_DBX_SALVAGE_NO_PAYLOAD", second.DamageCode);
+                },
+                orphan => {
+                    // The body the second record no longer points at is rebuilt from its fragments.
+                    Assert.Equal("dbx:chain:00003720", orphan.ItemId);
+                    Assert.Equal(EmailStoreSalvageStatus.Recovered, orphan.Status);
+                    Assert.Equal("Other message", orphan.Subject);
+                });
+        });
+
+        WithDestination(destination => {
+            using var input = new MemoryStream(CreateDatabase(), writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxItemCount: 1)));
+            Assert.Equal("dbx:item:00003100", Assert.Single(report.Entries).ItemId);
+            Assert.True(report.StoppedAtLimit);
         });
     }
 

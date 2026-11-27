@@ -62,7 +62,7 @@ internal sealed class DbxSalvage {
         // Records the active index lists win when stale records point at the same payload.
         foreach (uint address in _records.OrderBy(address => active.Contains(address) ? 0 : 1).ThenBy(address => address)) {
             _cancellationToken.ThrowIfCancellationRequested();
-            if (entries.Count >= _options.MaxRecoveredItems) { StopAtItemLimit(); break; }
+            if (AtItemLimit(entries.Count)) { StopAtItemLimit(); break; }
             bool? indexed = active.Contains(address) ? true : indexComplete ? false : null;
             EmailStoreSalvageEntry? entry = RecoverRecord(address, indexed, firstFragments, paths);
             if (entry != null) entries.Add(entry);
@@ -75,16 +75,21 @@ internal sealed class DbxSalvage {
                 _cancellationToken.ThrowIfCancellationRequested();
                 if (referenced.Contains(head.Key) || firstFragments.Contains(head.Key) ||
                     _consumedFragments.Contains(head.Key) || !StartsWithHeader(head.Key, head.Value)) continue;
-                if (entries.Count >= _options.MaxRecoveredItems) { StopAtItemLimit(); break; }
-                entries.Add(RecoverChain(head.Key, paths));
+                if (AtItemLimit(entries.Count)) { StopAtItemLimit(); break; }
+                entries.Add(RecoverChain(head.Key, indexComplete ? false : null, paths));
             }
         }
 
         ReportUnattachedFragments();
-        string? manifest = _output.WriteManifest(entries, _diagnostics);
+        // Active records are processed first so they win duplicate payloads; outcomes are reported in file order.
+        EmailStoreSalvageEntry[] ordered = entries.OrderBy(entry => entry.SourceOffset ?? long.MaxValue).ToArray();
+        string? manifest = _output.WriteManifest(ordered, _diagnostics);
         return new EmailStoreSalvageReport(EmailStoreFormat.Dbx, _output.Root, manifest, _stoppedAtLimit,
-            entries.AsReadOnly(), _diagnostics.ToArray());
+            Array.AsReadOnly(ordered), _diagnostics.ToArray(), discoveryCompleted: true);
     }
+
+    /// <summary>Both the outcome bound and the source item bound stop recovery.</summary>
+    private bool AtItemLimit(int count) => count >= _options.MaxRecoveredItems || count >= _limits.MaxItemCount;
 
     private void ValidateHeader() {
         var signature = new byte[24];
@@ -131,6 +136,8 @@ internal sealed class DbxSalvage {
         _cancellationToken.ThrowIfCancellationRequested();
         if (depth > Math.Min(_limits.MaxBTreeDepth, MaximumTreeDepth))
             throw new TreeDamageException("The tree is deeper than the configured bound.", address);
+        if (nodes.Count >= _limits.MaxNodeCount)
+            throw new TreeDamageException("Index traversal stopped at " + nameof(EmailStoreReaderOptions.MaxNodeCount) + ".", address);
         if (!nodes.Add(address)) throw new TreeDamageException("A tree node repeats.", address);
         var node = new byte[TreeNodeLength];
         if (address < HeaderLength || ReadAvailable(address, node, 0, node.Length) < node.Length)
@@ -162,7 +169,9 @@ internal sealed class DbxSalvage {
         while (position + FragmentHeaderLength <= _length) {
             _cancellationToken.ThrowIfCancellationRequested();
             int count = (int)Math.Min(buffer.Length, _length - position);
+            int expected = count;
             count = ReadAvailable(position, buffer, 0, count);
+            if (count != expected) throw new IOException("The DBX source changed length during recovery.");
             bool last = position + count >= _length;
             int end = last ? count - FragmentHeaderLength : count - FragmentHeaderLength - 4;
             for (int index = 0; index <= end; index += 4) {
@@ -191,14 +200,19 @@ internal sealed class DbxSalvage {
         string id = RecordPrefix + address.ToString("x8", CultureInfo.InvariantCulture);
         string location = "record 0x" + address.ToString("x", CultureInfo.InvariantCulture);
         var diagnostics = new List<EmailStoreDiagnostic>();
-        if (!TryReadRecordTable(address, out byte[] table)) {
+        if (!TryReadRecordTable(address, requireAscending: indexed != true, out byte[] table)) {
             // Candidates that do not hold a valid message property table are not message records.
             if (indexed == true)
                 return NotRecovered(id, location, address, indexed, address, "EMAIL_STORE_DBX_SALVAGE_RECORD_INVALID",
                     "The indexed message record has no readable property table.", diagnostics);
             return null;
         }
-        if (!HasProperty(table, 0x04)) return null;
+        if (!HasProperty(table, 0x04)) {
+            if (indexed == true)
+                return NotRecovered(id, location, address, indexed, address, "EMAIL_STORE_DBX_SALVAGE_NO_PAYLOAD",
+                    "The indexed message record has no message body property.", diagnostics);
+            return null;
+        }
 
         var database = new DbxDatabase(_source, _limits);
         uint? flags = null;
@@ -232,10 +246,10 @@ internal sealed class DbxSalvage {
             isChain: false, paths, diagnostics);
     }
 
-    private EmailStoreSalvageEntry RecoverChain(uint head, EmailStoreExportPathBuilder paths) {
+    private EmailStoreSalvageEntry RecoverChain(uint head, bool? indexed, EmailStoreExportPathBuilder paths) {
         string id = ChainPrefix + head.ToString("x8", CultureInfo.InvariantCulture);
         string location = "fragment chain 0x" + head.ToString("x", CultureInfo.InvariantCulture);
-        return Recover(id, location, head, head, indexed: false, subject: null, declared: null, flags: null,
+        return Recover(id, location, head, head, indexed, subject: null, declared: null, flags: null,
             received: null, isChain: true, paths, new List<EmailStoreDiagnostic>());
     }
 
@@ -243,11 +257,20 @@ internal sealed class DbxSalvage {
         bool? indexed, string? subject, long? declared, uint? flags, DateTimeOffset? received, bool isChain,
         EmailStoreExportPathBuilder paths, List<EmailStoreDiagnostic> diagnostics) {
         var reference = new EmailStoreItemReference(id, FolderId, isAssociated: false, isOrphaned: isChain);
-        FileStream spill = _output.CreateSpill(".eml", deleteOnClose: false);
-        string spillPath = spill.Name;
+        string? spillPath = null;
         try {
             ChainResult chain;
-            using (spill) chain = CopyChain(firstFragment, spill);
+            try {
+                using FileStream spill = _output.CreateSpill(".eml", deleteOnClose: false);
+                spillPath = spill.Name;
+                chain = CopyChain(firstFragment, spill);
+            } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
+                diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_SALVAGE_ITEM_WRITE_FAILED", exception.Message,
+                    EmailStoreDiagnosticSeverity.Error, id));
+                return new EmailStoreSalvageEntry(id, EmailStoreSalvageStatus.NotRecovered, location, sourceOffset, 0,
+                    declared, indexed, null, "EMAIL_STORE_SALVAGE_ITEM_WRITE_FAILED", OutlookItemKind.Message, subject,
+                    null, 0, diagnostics.AsReadOnly());
+            }
             if (chain.DamageCode != null) {
                 diagnostics.Add(new EmailStoreDiagnostic(chain.DamageCode, chain.DamageMessage!,
                     chain.Bytes > 0 ? EmailStoreDiagnosticSeverity.Warning : EmailStoreDiagnosticSeverity.Error,
@@ -262,15 +285,21 @@ internal sealed class DbxSalvage {
             string? destination = null;
             long written = 0;
             try {
-                if (format == EmailFileFormat.Eml) {
-                    subject ??= ReadSubject(spillPath, id, diagnostics);
+                if (format == EmailFileFormat.Eml && chain.Bytes > _options.WriterOptions.MaxOutputBytes) {
+                    diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_SALVAGE_ITEM_LIMIT",
+                        "The recovered message is larger than " + nameof(EmailWriterOptions.MaxOutputBytes) + ".",
+                        EmailStoreDiagnosticSeverity.Error, id, "salvage", null, nameof(EmailWriterOptions.MaxOutputBytes),
+                        chain.Bytes, _options.WriterOptions.MaxOutputBytes, EmailDiagnosticDisposition.Skipped,
+                        EmailDataLossRisk.Confirmed, "Raise MaxOutputBytes to write this message."));
+                } else if (format == EmailFileFormat.Eml) {
+                    subject ??= ReadSubject(spillPath!, id, diagnostics);
                     string path = _output.ResolvePath(paths, reference, subject, format);
-                    if (_output.CommitRaw(spillPath, path, id, diagnostics)) {
+                    if (_output.CommitRaw(spillPath!, path, id, diagnostics)) {
                         destination = path;
                         written = chain.Bytes;
                     }
                 } else {
-                    using var input = new FileStream(spillPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    using var input = new FileStream(spillPath!, FileMode.Open, FileAccess.Read, FileShare.Read);
                     using EmailReadResult result = EmailStoreMessageReader.Read(input, _limits, _cancellationToken,
                         includeAttachmentContent: true);
                     EmailDocument document = result.Document;
@@ -321,6 +350,9 @@ internal sealed class DbxSalvage {
             if (address + (long)FragmentHeaderLength > _length)
                 return ChainResult.Damaged(bytes, address, "EMAIL_STORE_DBX_SALVAGE_FRAGMENT_TRUNCATED",
                     "A message fragment link points past the end of the file.");
+            if (seen.Count >= _limits.MaxNodeCount)
+                return ChainResult.Damaged(bytes, address, "EMAIL_STORE_DBX_SALVAGE_MESSAGE_LIMIT",
+                    "The message fragment chain reached " + nameof(EmailStoreReaderOptions.MaxNodeCount) + ".");
             if (!seen.Add(address))
                 return ChainResult.Damaged(bytes, address, "EMAIL_STORE_DBX_SALVAGE_FRAGMENT_CYCLE",
                     "A message fragment chain links back to an earlier fragment.");
@@ -372,7 +404,11 @@ internal sealed class DbxSalvage {
         }
     }
 
-    private bool TryReadRecordTable(uint address, out byte[] table) {
+    /// <summary>
+    /// Reads a record's property table. Scan-only candidates must list properties in ascending order, which
+    /// rejects coincidental matches; index-listed records only need unique properties, as the record reader does.
+    /// </summary>
+    private bool TryReadRecordTable(uint address, bool requireAscending, out byte[] table) {
         table = Array.Empty<byte>();
         var header = new byte[RecordHeaderLength];
         if (ReadAvailable(address, header, 0, header.Length) < header.Length || UInt32(header, 0) != address) return false;
@@ -383,9 +419,10 @@ internal sealed class DbxSalvage {
         var bytes = new byte[count * 4];
         if (ReadAvailable(address + (long)RecordHeaderLength, bytes, 0, bytes.Length) < bytes.Length) return false;
         int previous = -1;
+        var seen = new HashSet<int>();
         for (int entry = 0; entry < bytes.Length; entry += 4) {
             int property = bytes[entry] & 0x7f;
-            if (property <= previous) return false;
+            if (requireAscending ? property <= previous : !seen.Add(property)) return false;
             previous = property;
             if ((bytes[entry] & 0x80) == 0 && (UInt32(bytes, entry) >> 8) >= bodyLength - bytes.Length) return false;
         }

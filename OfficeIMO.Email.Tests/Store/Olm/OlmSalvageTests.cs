@@ -1,3 +1,6 @@
+using System.Buffers.Binary;
+using System.IO.Compression;
+using OfficeIMO.Drawing;
 using OfficeIMO.Email.Tests;
 
 namespace OfficeIMO.Email.Store.Tests.Olm;
@@ -86,7 +89,7 @@ public sealed class OlmSalvageTests {
                 diagnostic.Message.Contains("CRC-32", StringComparison.Ordinal));
 
             using EmailReadResult exported = new EmailDocumentReader().ReadDocument(mail.DestinationPath!);
-            Assert.Equal(42, Assert.Single(exported.Document.Attachments, attachment => attachment.Content != null).Content!.Length);
+            Assert.Equal(42, Assert.Single(exported.Document.Attachments).Content!.Length);
         });
     }
 
@@ -105,5 +108,60 @@ public sealed class OlmSalvageTests {
             using EmailReadResult exported = new EmailDocumentReader().ReadDocument(contact.DestinationPath!);
             Assert.Equal("officeIMO native Zażółć 日本語 Validation", exported.Document.Contact!.DisplayName);
         });
+    }
+
+    [Fact]
+    public void FindsSignaturelessZip64DescriptorsWhenTheDirectoryIsMissing() {
+        byte[] source = File.ReadAllBytes(Path.Combine(DbxStoreReaderTests.CorpusRoot, "native-apple-20261003", "outlook",
+            "native-outlook.olm"));
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(RewriteWithSignaturelessZip64Descriptors(source), writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "native-outlook.olm", destination);
+
+            Assert.Equal(new[] { OutlookItemKind.Contact, OutlookItemKind.Appointment, OutlookItemKind.Message },
+                report.Entries.Select(entry => entry.Kind!.Value));
+            Assert.All(report.Entries, entry => Assert.Equal(EmailStoreSalvageStatus.Recovered, entry.Status));
+            Assert.DoesNotContain(report.NativeDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_OLM_SALVAGE_ENTRY_REPAIRED" ||
+                diagnostic.Code == "EMAIL_STORE_OLM_SALVAGE_ENTRY_DAMAGED");
+            using EmailReadResult mail = new EmailDocumentReader().ReadDocument(report.Entries[2].DestinationPath!);
+            Assert.Equal(new[] { 42L, 68L }, mail.Document.Attachments
+                .Select(attachment => (long)attachment.Content!.Length).OrderBy(length => length));
+        });
+    }
+
+    /// <summary>
+    /// Writes every entry as a stored ZIP64 entry sized only by a data descriptor without its optional signature,
+    /// and leaves out the central directory, as a streaming producer that never finished the archive would.
+    /// </summary>
+    private static byte[] RewriteWithSignaturelessZip64Descriptors(byte[] archiveBytes) {
+        using var archive = new ZipArchive(new MemoryStream(archiveBytes, writable: false), ZipArchiveMode.Read);
+        using var output = new MemoryStream();
+        foreach (ZipArchiveEntry entry in archive.Entries) {
+            byte[] data;
+            using (Stream stream = entry.Open())
+            using (var buffer = new MemoryStream()) {
+                stream.CopyTo(buffer);
+                data = buffer.ToArray();
+            }
+            byte[] name = Encoding.UTF8.GetBytes(entry.FullName);
+            var header = new byte[30 + name.Length + 20];
+            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(0), 0x04034b50);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(4), 45);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(6), 0x0808);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(26), (ushort)name.Length);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(28), 20);
+            name.CopyTo(header, 30);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(30 + name.Length), 1);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(32 + name.Length), 16);
+            output.Write(header, 0, header.Length);
+            output.Write(data, 0, data.Length);
+            var descriptor = new byte[20];
+            BinaryPrimitives.WriteUInt32LittleEndian(descriptor.AsSpan(0), OfficePngCrc32.Compute(data, 0, data.Length));
+            BinaryPrimitives.WriteUInt64LittleEndian(descriptor.AsSpan(4), (ulong)data.Length);
+            BinaryPrimitives.WriteUInt64LittleEndian(descriptor.AsSpan(12), (ulong)data.Length);
+            output.Write(descriptor, 0, descriptor.Length);
+        }
+        return output.ToArray();
     }
 }

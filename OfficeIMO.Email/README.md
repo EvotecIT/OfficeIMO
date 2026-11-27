@@ -749,7 +749,8 @@ or damaged, and checks each entry against its CRC-32. A damaged XML entry is ski
 truncated or fails its checksum, its complete records are still recovered and marked partial because they cannot
 be verified. A message whose attachment entry is damaged is recovered without that attachment and marked partial.
 OLM items are written as MSG by default. Conversion loss is reported in each item's diagnostics rather than
-rejecting the item; pass `EmailWriterOptions` to change that.
+rejecting the item. To reject lossy items instead, pass
+`new EmailStoreSalvageOptions(writerOptions: new EmailWriterOptions(EmailConversionLossPolicy.Block))`.
 
 ### Apple Mail and Outlook for Mac
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Derives the damaged DBX and OLM recovery fixtures from the committed good fixtures.
 
-Run from any directory: python3 OfficeIMO.Email.Tests/Corpora/damaged-stores/generate.py
+Run from the repository root: python3 OfficeIMO.Email.Tests/Corpora/damaged-stores/generate.py
+(paths inside the script are resolved from its own location, so any working directory works
+when the script path is given in full).
 Only the standard library is used. Every damage is a byte-level edit of a good fixture, so the
 expected outcome of each file follows from the edit described in fixtures.json.
 """

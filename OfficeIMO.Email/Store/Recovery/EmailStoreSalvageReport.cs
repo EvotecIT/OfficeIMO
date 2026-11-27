@@ -6,15 +6,18 @@ public sealed class EmailStoreSalvageReport : OfficeConversionReport {
 
     internal EmailStoreSalvageReport(EmailStoreFormat sourceFormat, string destinationDirectory,
         string? manifestPath, bool stoppedAtLimit, IReadOnlyList<EmailStoreSalvageEntry> entries,
-        IReadOnlyList<EmailStoreDiagnostic> diagnostics) {
+        IReadOnlyList<EmailStoreDiagnostic> diagnostics, bool discoveryCompleted) {
         SourceFormat = sourceFormat;
         DestinationDirectory = destinationDirectory;
         ManifestPath = manifestPath;
         StoppedAtLimit = stoppedAtLimit;
+        DiscoveryCompleted = discoveryCompleted;
         Entries = entries;
         NativeDiagnostics = diagnostics;
         var fidelity = new List<OfficeDiagnostic>(EmailStoreFidelityProjection.Project(diagnostics));
         foreach (EmailStoreSalvageEntry entry in entries) {
+            // Item diagnostics carry conversion omissions that a recovered item can still have.
+            fidelity.AddRange(EmailStoreFidelityProjection.Project(entry.Diagnostics));
             if (entry.Status == EmailStoreSalvageStatus.Recovered) continue;
             fidelity.Add(EmailStoreFidelityProjection.Create(
                 entry.Status == EmailStoreSalvageStatus.Partial
@@ -44,6 +47,11 @@ public sealed class EmailStoreSalvageReport : OfficeConversionReport {
     public string? ManifestPath { get; }
     /// <summary>Whether the item bound stopped recovery before every candidate was examined.</summary>
     public bool StoppedAtLimit { get; }
+    /// <summary>
+    /// Whether item discovery ran to the end of the recovered source. False when the recovered data could not be
+    /// projected at all, so the absence of entries does not mean the source was empty.
+    /// </summary>
+    public bool DiscoveryCompleted { get; }
     /// <summary>Per-item outcomes in source order.</summary>
     public IReadOnlyList<EmailStoreSalvageEntry> Entries { get; }
     /// <summary>Source-level damage, limit, and publication diagnostics.</summary>
@@ -55,7 +63,7 @@ public sealed class EmailStoreSalvageReport : OfficeConversionReport {
     /// <summary>Items found in the source that produced no artifact.</summary>
     public int NotRecoveredCount => Entries.Count(static entry => entry.Status == EmailStoreSalvageStatus.NotRecovered);
     /// <summary>Whether every candidate was examined and recovered completely.</summary>
-    public bool IsComplete => !StoppedAtLimit && Entries.All(static entry => entry.Status == EmailStoreSalvageStatus.Recovered);
+    public bool IsComplete => DiscoveryCompleted && !StoppedAtLimit && Entries.All(static entry => entry.Status == EmailStoreSalvageStatus.Recovered);
     /// <summary>Whether any item failed or an error diagnostic was reported.</summary>
     public bool HasErrors => NotRecoveredCount > 0 || NativeDiagnostics.Any(static diagnostic =>
         diagnostic.Severity == EmailStoreDiagnosticSeverity.Error);
