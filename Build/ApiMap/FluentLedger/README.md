@@ -77,7 +77,8 @@ the receiver or a derived receiver), `returns-other` (a `Set...` that returns so
 or `void`), `with-mutates` (a `With...` that returns the same mutated receiver), `use-prefix` (`Use...`
 configuration, which #3344 has no family for), `bare-set` (`Set(...)` with nothing to name), `static-set`,
 `set-returns-copy`, `generic-set` (a generic `Set...<T>`, whose type parameters a generated mutator call does not carry),
-`getter-wraps` (a read-only option property whose getter builds a new object through a constructor that may copy it), `struct-property` (a setter on a value type, which an extension would apply to a copy),
+`getter-wraps` (a read-only option property whose getter builds a new object through a constructor that may copy
+it, or from state whose type is not known to be a reference), `struct-property` (a setter on a value type, which an extension would apply to a copy),
 `public-field`, and the open #3344 decisions configured in `fluent-ledger.json` (`pdf-run-factories`,
 `markdown-shorthand`, `word-run-type`, `chart-entry-point`, `conversion-request`).
 

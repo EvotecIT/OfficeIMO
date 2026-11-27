@@ -314,7 +314,7 @@ internal sealed class Ledger {
                 clash == null ? rename.Reason : $"{rename.Reason} {name} already names {clash}.", flags);
         }
         var getter = IsOptionObject(property.Type) && property.Type is INamedTypeSymbol optionType
-            ? BodyFacts.Getter(_source.FindSyntax(property), optionType.Name, _source.ConstructorParameters(optionType))
+            ? BodyFacts.Getter(_source.FindSyntax(property), optionType.Name, _source.ConstructorParameters(optionType), _source.IsReferenceType)
             : BodyFacts.GetterResult.Stored;
         if (getter == BodyFacts.GetterResult.Copy) {
             flags.Add("getter-copies");
@@ -324,7 +324,7 @@ internal sealed class Ledger {
         if (getter == BodyFacts.GetterResult.Wraps) {
             flags.Add("getter-wraps");
             return Row(receiver, property, framework, Treatments.Decision, $"{name}({Display(property.Type).TrimEnd('?')} => ...)", "",
-                "The getter builds a new object from receiver state through a constructor that may copy it; generate the in-place callback only once it is confirmed to be a live view.", flags);
+                "The getter builds a new object from receiver state through a constructor that may copy it, or from state not known to be a reference; generate the in-place callback only once it is confirmed to be a live view.", flags);
         }
         if (getter == BodyFacts.GetterResult.View) flags.Add("getter-view");
         if (IsOptionObject(property.Type))

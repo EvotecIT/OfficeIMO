@@ -43,14 +43,12 @@ internal static class BodyFacts {
         Copy
     }
 
-    private static readonly HashSet<string> ValueTypes = new(StringComparer.Ordinal) {
-        "bool", "byte", "sbyte", "short", "ushort", "int", "uint", "long", "ulong", "float", "double", "decimal", "char", "string", "object" };
-
     /// <summary>
     /// Classifies what a property getter returns; the least configurable result of any return wins. <paramref name="type"/>
-    /// is the property type's simple name and <paramref name="constructors"/> the parameter types of its source constructors.
+    /// is the property type's simple name, <paramref name="constructors"/> the parameter types of its source constructors and
+    /// <paramref name="isReference"/> tells whether a simple type name is known to be a reference type.
     /// </summary>
-    internal static GetterResult Getter(IReadOnlyList<SyntaxNode> declarations, string type, IReadOnlyList<string[]> constructors) {
+    internal static GetterResult Getter(IReadOnlyList<SyntaxNode> declarations, string type, IReadOnlyList<string[]> constructors, Func<string, bool> isReference) {
         var result = GetterResult.Stored;
         foreach (var property in declarations.OfType<PropertyDeclarationSyntax>()) {
             var getter = property.AccessorList?.Accessors.FirstOrDefault(accessor => accessor.Keyword.ValueText == "get");
@@ -59,7 +57,7 @@ internal static class BodyFacts {
                 : getter?.Body != null ? OwnedReturns(getter.Body) : [];
             foreach (var expression in expressions) {
                 var value = Unwrap(expression);
-                var kind = value is BaseObjectCreationExpressionSyntax creation ? Created(creation, type, constructors)
+                var kind = value is BaseObjectCreationExpressionSyntax creation ? Created(creation, type, constructors, isReference)
                     : IsFresh(value) ? GetterResult.Copy : GetterResult.Stored;
                 if (kind > result) result = kind;
             }
@@ -67,21 +65,26 @@ internal static class BodyFacts {
         return result;
     }
 
-    private static GetterResult Created(BaseObjectCreationExpressionSyntax creation, string type, IReadOnlyList<string[]> constructors) {
+    private static GetterResult Created(BaseObjectCreationExpressionSyntax creation, string type, IReadOnlyList<string[]> constructors, Func<string, bool> isReference) {
         var arguments = creation.ArgumentList?.Arguments ?? default;
-        if (arguments.Any(argument => Unwrap(argument.Expression) is ThisExpressionSyntax)) return GetterResult.View;
-        bool reads = arguments.Any(argument => HoldsReference(Unwrap(argument.Expression)));
+        // The receiver itself, or a lambda over it (new Borders(() => Element.Properties, ...)), is handed to the new object.
+        bool passesThis = arguments.Any(argument => Unwrap(argument.Expression) is ThisExpressionSyntax or AnonymousFunctionExpressionSyntax);
+        bool reads = passesThis || arguments.Any(argument => HoldsReference(Unwrap(argument.Expression)));
         if (!reads) return GetterResult.Copy;
         bool known = creation is ImplicitObjectCreationExpressionSyntax
             || creation is ObjectCreationExpressionSyntax { Type: var created } && SimpleName(created) == type;
         var candidates = known ? constructors.Where(parameters => parameters.Length >= arguments.Count).ToArray() : [];
-        if (candidates.Length == 0 || candidates.Any(parameters => parameters.Contains(type, StringComparer.Ordinal))) return GetterResult.Wraps;
-        // A reference the receiver holds, passed where every candidate constructor takes a reference: the result wraps it.
+        // A constructor taking its own type may copy what it is given, the receiver included.
+        if (candidates.Any(parameters => parameters.Contains(type, StringComparer.Ordinal))) return GetterResult.Wraps;
+        if (passesThis) return GetterResult.View;
+        if (candidates.Length == 0) return GetterResult.Wraps;
+        // Receiver state passed where every candidate constructor takes a known reference type: the result wraps it. An enum,
+        // struct or unknown parameter type may receive a value, so it proves nothing.
         for (int i = 0; i < arguments.Count; i++) {
             if (arguments[i].NameColon != null || !HoldsReference(Unwrap(arguments[i].Expression))) continue;
-            if (candidates.All(parameters => !ValueTypes.Contains(parameters[i]))) return GetterResult.View;
+            if (candidates.All(parameters => isReference(parameters[i]))) return GetterResult.View;
         }
-        return GetterResult.Copy;
+        return GetterResult.Wraps;
     }
 
     /// <summary>A field, property or local the receiver holds (<c>_options</c>, <c>Element</c>, <c>this.Element</c>), as opposed to a literal, a constant or a value read out of it.</summary>
