@@ -386,7 +386,9 @@ namespace OfficeIMO.Word {
 
             var list = document.AddList(WordListStyle.Custom);
             list.Numbering.RemoveAllLevels();
-            list.ReplaceAbstractNum(WordListStyles.CreatePictureBulletStyle(picId));
+            AbstractNum pictureDefinition = NewDefinition(WordListStyles.PictureBulletMarkup, list._abstractId);
+            pictureDefinition.Descendants<LevelPictureBulletId>().First().Val = picId;
+            list.ReplaceAbstractNum(pictureDefinition);
             return list;
         }
 
@@ -482,14 +484,14 @@ namespace OfficeIMO.Word {
         /// Converts this list to a numbered style while preserving existing list items.
         /// </summary>
         public void ConvertToNumbered() {
-            ReplaceAbstractNum(WordListStyles.GetStyle(WordListStyle.Numbered));
+            ReplaceAbstractNum(NewDefinition(WordListStyles.GetDefinitionMarkup(WordListStyle.Numbered), _abstractId));
         }
 
         /// <summary>
         /// Converts this list to a bulleted style while preserving existing list items.
         /// </summary>
         public void ConvertToBulleted() {
-            ReplaceAbstractNum(WordListStyles.GetStyle(WordListStyle.Bulleted));
+            ReplaceAbstractNum(NewDefinition(WordListStyles.GetDefinitionMarkup(WordListStyle.Bulleted), _abstractId));
         }
     }
 }

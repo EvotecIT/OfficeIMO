@@ -1461,7 +1461,16 @@ namespace OfficeIMO.Word.Pdf {
             AddNativeTextSegments(
                 text,
                 value => {
-                    if (style.HasValue) {
+                    // Word splits links into runs and often gives a space its own run. PDF link
+                    // annotations need visible text, so a whitespace-only piece keeps the link's
+                    // appearance but carries no target.
+                    if (string.IsNullOrWhiteSpace(value)) {
+                        builder.AddRuns(new[] {
+                            style.HasValue
+                                ? CreateNativeHyperLinkTextRun(value, null, null, null, style.Value, retainLinkAppearance: true)
+                                : new PdfCore.PdfTextRun(value, underline: true)
+                        });
+                    } else if (style.HasValue) {
                         builder.AddRuns(new[] { CreateNativeHyperLinkTextRun(value, linkUri, bookmarkName, contents, style.Value, retainLinkAppearance) });
                     } else if (linkUri != null) {
                         builder.AddLink(value, linkUri, contents: contents);

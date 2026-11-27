@@ -40,7 +40,6 @@ namespace OfficeIMO.Word {
 
             InvalidateBuiltInStyleIndex();
             LoadSections();
-            WordListStyles.InitializeAbstractNumberId(_wordprocessingDocument);
         }
     }
 }
