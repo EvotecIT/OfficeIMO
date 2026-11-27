@@ -1,9 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -15,16 +13,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             new(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
         private static readonly UTF8Encoding Utf8WithoutBom = new(false);
 
+        /// <summary>
+        /// The round-trip records of a DrawingML theme (or theme override, with <paramref name="isOverride"/>) and a
+        /// color map (<c>p:clrMap</c>) or color map override (<c>p:clrMapOvr</c>); either may be none.
+        /// </summary>
         private static IReadOnlyList<byte[]> BuildRoundTripThemeRecords(
-            A.Theme? theme, P.ColorMap? colorMap) {
+            OfficeXmlNode theme, OfficeXmlNode colorMap, bool isOverride) {
             var records = new List<byte[]>(2);
-            if (theme != null) {
+            if (!theme.IsNone) {
                 records.Add(BuildRecord(version: 0, instance: 0,
                     RecordRoundTripTheme12AtomForWrite,
-                    BuildRoundTripThemePackage(theme.OuterXml,
-                        isOverride: false)));
+                    BuildRoundTripThemePackage(SerializeLikeSdk(theme),
+                        isOverride)));
             }
-            if (colorMap != null) {
+            if (!colorMap.IsNone) {
                 records.Add(BuildRecord(version: 0, instance: 0,
                     RecordRoundTripColorMapping12AtomForWrite,
                     Utf8WithoutBom.GetBytes(
@@ -33,22 +35,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return records;
         }
 
-        private static IReadOnlyList<byte[]> BuildRoundTripThemeRecords(
-            A.ThemeOverride? theme, P.ColorMapOverride? colorMap) {
-            var records = new List<byte[]>(2);
-            if (theme != null) {
-                records.Add(BuildRecord(version: 0, instance: 0,
-                    RecordRoundTripTheme12AtomForWrite,
-                    BuildRoundTripThemePackage(theme.OuterXml,
-                        isOverride: true)));
-            }
-            if (colorMap != null) {
-                records.Add(BuildRecord(version: 0, instance: 0,
-                    RecordRoundTripColorMapping12AtomForWrite,
-                    Utf8WithoutBom.GetBytes(
-                        BuildRoundTripColorMappingXml(colorMap))));
-            }
-            return records;
+        // The theme markup as the SDK's OuterXml wrote it (an XmlWriter: "<a:x />" for empty elements, whitespace
+        // between elements dropped), so the embedded theme package keeps the same bytes.
+        private static string SerializeLikeSdk(OfficeXmlNode element) =>
+            XElement.Parse(OuterXmlText(element), LoadOptions.None)
+                .ToString(SaveOptions.DisableFormatting);
+
+        private static string OuterXmlText(OfficeXmlNode element) {
+            byte[] bytes = element.OuterXml();
+            return Utf8WithoutBom.GetString(bytes);
         }
 
         private static byte[] BuildRoundTripThemePackage(string themeXml,
@@ -116,34 +111,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static string BuildRoundTripColorMappingXml(
-            P.ColorMap colorMap) {
-            XElement source = XElement.Parse(colorMap.OuterXml,
+            OfficeXmlNode colorMap) {
+            bool isOverride = string.Equals(colorMap.LocalName, "clrMapOvr",
+                StringComparison.Ordinal);
+            XElement source = XElement.Parse(OuterXmlText(colorMap),
                 LoadOptions.None);
             var target = new XElement(
-                XName.Get("clrMap", DrawingThemeNamespaceForWrite),
+                XName.Get(isOverride ? "clrMapOvr" : "clrMap",
+                    DrawingThemeNamespaceForWrite),
                 new XAttribute(XNamespace.Xmlns + "a",
                     DrawingThemeNamespaceForWrite),
                 source.Attributes().Where(attribute =>
                         !attribute.IsNamespaceDeclaration)
                     .Select(attribute => new XAttribute(
                         attribute.Name.LocalName, attribute.Value)));
-            return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n"
-                + target.ToString(SaveOptions.DisableFormatting);
-        }
-
-        private static string BuildRoundTripColorMappingXml(
-            P.ColorMapOverride colorMap) {
-            XElement source = XElement.Parse(colorMap.OuterXml,
-                LoadOptions.None);
-            var target = new XElement(
-                XName.Get("clrMapOvr", DrawingThemeNamespaceForWrite),
-                new XAttribute(XNamespace.Xmlns + "a",
-                    DrawingThemeNamespaceForWrite),
-                source.Attributes().Where(attribute =>
-                        !attribute.IsNamespaceDeclaration)
-                    .Select(attribute => new XAttribute(
-                        attribute.Name.LocalName, attribute.Value)),
-                source.Nodes());
+            if (isOverride) target.Add(source.Nodes());
             return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n"
                 + target.ToString(SaveOptions.DisableFormatting);
         }

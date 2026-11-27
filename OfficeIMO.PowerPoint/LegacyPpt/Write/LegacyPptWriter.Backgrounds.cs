@@ -1,13 +1,9 @@
 using System.Collections.ObjectModel;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.Binary;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -15,102 +11,76 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort OfficeArtTertiaryFopt = 0xF122;
         private const uint OfficeArtBackgroundShapeFlag = 1U << 10;
 
+        // Callers in LegacyPptWritePreflight.cs and LegacyPptWriter.Pictures.cs not yet passing a view.
         internal static bool TryReadBackground(PowerPointSlide slide,
             out LegacyPptWriterBackground? background, out string? reason) {
             ArgumentNullException.ThrowIfNull(slide);
-            P.Background? source = slide.SlidePart.Slide?.CommonSlideData?.Background;
-            OpenXmlPart? ownerPart = source == null ? null : slide.SlidePart;
-            if (source == null) {
-                SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
-                source = layoutPart?.SlideLayout?.CommonSlideData?.Background;
-                ownerPart = source == null ? null : layoutPart;
+            PowerPointDocument presentation = OwnerDocumentForWrite(slide);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            return TryReadBackground(view, presentation, slide, out background, out reason);
+        }
+
+        /// <summary>The background a slide shows: its own, or else its layout's.</summary>
+        internal static bool TryReadBackground(LegacyPptPackageView view,
+            PowerPointDocument presentation, PowerPointSlide slide,
+            out LegacyPptWriterBackground? background, out string? reason) {
+            ArgumentNullException.ThrowIfNull(slide);
+            return TryReadSlideBackground(presentation, SlidePartView(view, slide),
+                out background, out reason);
+        }
+
+        private static bool TryReadSlideBackground(PowerPointDocument presentation,
+            LegacyPptPartView slidePart,
+            out LegacyPptWriterBackground? background, out string? reason) {
+            LegacyPptPartView ownerPart = slidePart;
+            OfficeXmlNode source = CommonSlideData(slidePart).Child(Pml, "bg");
+            if (source.IsNone) {
+                ownerPart = slidePart.SlideLayout;
+                source = CommonSlideData(ownerPart).Child(Pml, "bg");
             }
-            if (source == null || ownerPart == null) {
+            if (source.IsNone || ownerPart.IsNone) {
                 background = null;
                 reason = null;
                 return true;
             }
-            return TryReadBackground(ownerPart, source, "slide or layout",
+            return TryReadBackground(presentation, ownerPart, source, "slide or layout",
                 out background, out reason);
         }
 
-        internal static bool TryReadBackground(SlideMasterPart masterPart,
+        /// <summary>
+        /// The background of a slide master, notes master, handout master, title master layout or notes page part; a
+        /// slide part reads its layout's background when it has none of its own.
+        /// </summary>
+        internal static bool TryReadBackground(PowerPointDocument presentation,
+            LegacyPptPartView part,
             out LegacyPptWriterBackground? background, out string? reason) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            P.Background? source = masterPart.SlideMaster?.CommonSlideData?.Background;
-            if (source == null) {
+            ArgumentNullException.ThrowIfNull(presentation);
+            if (part.IsNone) throw new ArgumentNullException(nameof(part));
+            if (part.IsSlide) return TryReadSlideBackground(presentation, part, out background, out reason);
+            string ownerName = part.IsSlideMaster ? "slide master"
+                : part.IsNotesMaster ? "notes master"
+                : part.IsHandoutMaster ? "handout master"
+                : part.IsSlideLayout ? "title master layout"
+                : "notes page";
+            OfficeXmlNode source = CommonSlideData(part).Child(Pml, "bg");
+            if (source.IsNone) {
                 background = null;
                 reason = null;
                 return true;
             }
-            return TryReadBackground(masterPart, source, "slide master",
+            return TryReadBackground(presentation, part, source, ownerName,
                 out background, out reason);
         }
 
-        internal static bool TryReadBackground(NotesMasterPart masterPart,
+        private static bool TryReadBackground(PowerPointDocument presentation,
+            LegacyPptPartView ownerPart, OfficeXmlNode source, string ownerName,
             out LegacyPptWriterBackground? background, out string? reason) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            P.Background? source = masterPart.NotesMaster?.CommonSlideData?.Background;
-            if (source == null) {
-                background = null;
-                reason = null;
-                return true;
-            }
-            return TryReadBackground(masterPart, source, "notes master",
-                out background, out reason);
-        }
-
-        internal static bool TryReadBackground(HandoutMasterPart masterPart,
-            out LegacyPptWriterBackground? background, out string? reason) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            P.Background? source = masterPart.HandoutMaster?.CommonSlideData?
-                .Background;
-            if (source == null) {
-                background = null;
-                reason = null;
-                return true;
-            }
-            return TryReadBackground(masterPart, source, "handout master",
-                out background, out reason);
-        }
-
-        internal static bool TryReadBackground(SlideLayoutPart masterPart,
-            out LegacyPptWriterBackground? background, out string? reason) {
-            ArgumentNullException.ThrowIfNull(masterPart);
-            P.Background? source = masterPart.SlideLayout?.CommonSlideData?
-                .Background;
-            if (source == null) {
-                background = null;
-                reason = null;
-                return true;
-            }
-            return TryReadBackground(masterPart, source, "title master layout",
-                out background, out reason);
-        }
-
-        internal static bool TryReadBackground(NotesSlidePart notesPart,
-            out LegacyPptWriterBackground? background, out string? reason) {
-            ArgumentNullException.ThrowIfNull(notesPart);
-            P.Background? source = notesPart.NotesSlide?.CommonSlideData?
-                .Background;
-            if (source == null) {
-                background = null;
-                reason = null;
-                return true;
-            }
-            return TryReadBackground(notesPart, source, "notes page",
-                out background, out reason);
-        }
-
-        private static bool TryReadBackground(OpenXmlPart ownerPart,
-            P.Background source, string ownerName,
-            out LegacyPptWriterBackground? background, out string? reason) {
-            A.ColorScheme? colorScheme = GetBackgroundColorScheme(ownerPart);
-            OpenXmlElement? placeholderColor = source.BackgroundStyleReference;
-            OpenXmlElement? fill = GetBackgroundFill(ownerPart, source,
-                out OpenXmlPart fillOwnerPart);
-            if (fill == null) {
-                if (source.BackgroundStyleReference != null) {
+            OfficeXmlNode colorScheme = GetBackgroundColorScheme(ownerPart);
+            OfficeXmlNode placeholderColor = source.Child(Pml, "bgRef");
+            OfficeXmlNode fill = GetBackgroundFill(ownerPart, source,
+                out LegacyPptPartView fillOwnerPart);
+            if (fill.IsNone) {
+                if (!placeholderColor.IsNone) {
                     background = null;
                     reason = $"The {ownerName} background style reference cannot be resolved from its active theme.";
                     return false;
@@ -119,19 +89,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = null;
                 return true;
             }
-            if (fill is A.GroupFill) {
+            if (fill.Is(Dml, "grpFill")) {
                 background = null;
                 reason = null;
                 return true;
             }
-            if (fill is A.NoFill) {
+            if (fill.Is(Dml, "noFill")) {
                 background = LegacyPptWriterBackground.NoFill();
                 reason = null;
                 return true;
             }
-            if (fill is A.SolidFill solid) {
-                OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(
-                    solid, colorScheme, placeholderColor);
+            if (fill.Is(Dml, "solidFill")) {
+                OfficeColor? color = OfficeXmlThemeColors.ResolveColor(
+                    fill, colorScheme, placeholderColor);
                 if (!color.HasValue) {
                     background = null;
                     reason = $"The {ownerName} solid background color cannot be resolved for binary PowerPoint writing.";
@@ -141,73 +111,72 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = null;
                 return true;
             }
-            if (fill is A.GradientFill gradient) {
-                return TryReadGradientBackground(gradient, colorScheme,
+            if (fill.Is(Dml, "gradFill")) {
+                return TryReadGradientBackground(fill, colorScheme,
                     placeholderColor, ownerName, out background, out reason);
             }
-            if (fill is A.BlipFill picture) {
-                return TryReadPictureBackground(fillOwnerPart, picture,
+            if (fill.Is(Dml, "blipFill")) {
+                return TryReadPictureBackground(presentation, fillOwnerPart, fill,
                     ownerName, out background, out reason);
             }
 
             background = null;
-            reason = fill switch {
-                A.PatternFill => $"The {ownerName} pattern background is not yet encoded by the native binary writer.",
-                _ => $"The {ownerName} background fill type '{fill.LocalName}' is not supported by the native binary writer."
-            };
+            reason = fill.Is(Dml, "pattFill")
+                ? $"The {ownerName} pattern background is not yet encoded by the native binary writer."
+                : $"The {ownerName} background fill type '{fill.LocalName}' is not supported by the native binary writer.";
             return false;
         }
 
-        private static bool TryReadPictureBackground(OpenXmlPart ownerPart,
-            A.BlipFill fill, string ownerName,
+        private static bool TryReadPictureBackground(PowerPointDocument presentation,
+            LegacyPptPartView ownerPart, OfficeXmlNode fill, string ownerName,
             out LegacyPptWriterBackground? background, out string? reason) {
             background = null;
-            A.Blip? blip = fill.Blip;
-            string? relationshipId = blip?.Embed?.Value;
-            if (blip == null || string.IsNullOrWhiteSpace(relationshipId)) {
+            OfficeXmlNode blip = fill.Child(Dml, "blip");
+            string? relationshipId = blip.Attribute(LegacyPptXml.R, "embed");
+            if (blip.IsNone || string.IsNullOrWhiteSpace(relationshipId)) {
                 reason = $"The {ownerName} picture background has no embedded image relationship.";
                 return false;
             }
-            if (!string.IsNullOrWhiteSpace(blip.Link?.Value)) {
+            if (!string.IsNullOrWhiteSpace(blip.Attribute(LegacyPptXml.R, "link"))) {
                 reason = $"The {ownerName} picture background is linked; embedding it in binary PowerPoint would lose the link.";
                 return false;
             }
-            if (blip.HasChildren) {
+            if (HasChildElements(blip)) {
                 reason = $"The {ownerName} picture background uses image effects that have no lossless classic background-fill mapping.";
                 return false;
             }
-            if (fill.SourceRectangle != null) {
+            if (!fill.Child(Dml, "srcRect").IsNone) {
                 reason = $"The {ownerName} picture background uses source cropping that is not yet encoded by the native binary writer.";
                 return false;
             }
-            if (fill.GetFirstChild<A.Tile>() != null) {
+            if (!fill.Child(Dml, "tile").IsNone) {
                 reason = $"The {ownerName} picture background uses tiled placement and cannot be converted to one stretched classic picture fill without changing its appearance.";
                 return false;
             }
-            A.Stretch? stretch = fill.GetFirstChild<A.Stretch>();
-            A.FillRectangle? fillRectangle = stretch?
-                .GetFirstChild<A.FillRectangle>();
-            if (stretch == null || fillRectangle == null
-                || fillRectangle.HasAttributes || fillRectangle.HasChildren
-                || fill.ChildElements.Any(child => child is not A.Blip
-                    && child is not A.Stretch)) {
+            OfficeXmlNode stretch = fill.Child(Dml, "stretch");
+            OfficeXmlNode fillRectangle = stretch.Child(Dml, "fillRect");
+            bool otherChildren = false;
+            foreach (OfficeXmlNode child in fill.Children()) {
+                if (!child.Is(Dml, "blip") && !child.Is(Dml, "stretch")) otherChildren = true;
+            }
+            if (stretch.IsNone || fillRectangle.IsNone
+                || HasAttributes(fillRectangle) || HasChildElements(fillRectangle)
+                || otherChildren) {
                 reason = $"The {ownerName} picture background does not use the plain full-frame stretch mapping supported by classic binary PowerPoint.";
                 return false;
             }
 
-            ImagePart? imagePart;
-            try {
-                imagePart = ownerPart.GetPartById(relationshipId!) as ImagePart;
-            } catch (ArgumentOutOfRangeException) {
+            if (!ownerPart.TryGetRelationship(relationshipId, out LegacyPptRelationshipView relationship)
+                || relationship.IsExternal || relationship.TargetPart.IsNone) {
                 reason = $"The {ownerName} picture background relationship cannot be resolved.";
                 return false;
             }
-            if (imagePart == null) {
+            if (!relationship.IsType(LegacyPptPackageView.ImageRelationshipType)) {
                 reason = $"The {ownerName} picture background relationship does not target an image part.";
                 return false;
             }
-            if (imagePart.Parts.Any() || imagePart.ExternalRelationships.Any()
-                || imagePart.HyperlinkRelationships.Any()) {
+            LegacyPptPartView imagePart = relationship.TargetPart;
+            if (imagePart.Relationships.Count > 0) {
                 reason = $"Related parts on the {ownerName} picture background have no binary PowerPoint mapping.";
                 return false;
             }
@@ -219,8 +188,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             byte[] imageBytes;
             try {
-                using Stream stream = imagePart.GetStream(FileMode.Open,
-                    FileAccess.Read);
+                using var stream = new MemoryStream(imagePart.GetBytes(), writable: false);
                 imageBytes = OfficeStreamReader.ReadAllBytes(stream,
                     64 * 1024 * 1024);
                 _ = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(imageBytes,
@@ -235,46 +203,44 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = $"The {ownerName} picture background cannot be written as an OfficeArt BLIP: {exception.Message}";
                 return false;
             }
-            background = LegacyPptWriterBackground.Picture(fill, imageBytes,
-                contentType);
+            background = LegacyPptWriterBackground.Picture(presentation, ownerPart.Name,
+                fill, imageBytes, contentType);
             reason = null;
             return true;
         }
 
-        private static bool TryReadGradientBackground(A.GradientFill gradient,
-            A.ColorScheme? colorScheme, OpenXmlElement? placeholderColor,
+        private static bool TryReadGradientBackground(OfficeXmlNode gradient,
+            OfficeXmlNode colorScheme, OfficeXmlNode placeholderColor,
             string ownerName, out LegacyPptWriterBackground? background,
             out string? reason) {
-            A.LinearGradientFill? linear = gradient.GetFirstChild<A.LinearGradientFill>();
-            A.PathGradientFill? path = gradient.GetFirstChild<A.PathGradientFill>();
-            if ((linear == null) == (path == null)) {
+            OfficeXmlNode linear = gradient.Child(Dml, "lin");
+            OfficeXmlNode path = gradient.Child(Dml, "path");
+            if (linear.IsNone == path.IsNone) {
                 background = null;
                 reason = $"The {ownerName} gradient background must contain exactly one linear or supported path geometry.";
                 return false;
             }
-            A.TileFlipValues? flip = gradient.Flip?.Value;
-            if (flip.HasValue && flip.Value != A.TileFlipValues.None) {
+            string? flip = gradient.Attribute("flip");
+            if (flip != null && !string.Equals(flip, "none", StringComparison.Ordinal)) {
                 background = null;
                 reason = $"The {ownerName} gradient background uses tile flipping that the binary PowerPoint writer cannot reproduce losslessly.";
                 return false;
             }
-            if (gradient.ChildElements.Any(child =>
-                    child is not A.GradientStopList
-                    && !ReferenceEquals(child, linear)
-                    && !ReferenceEquals(child, path))) {
+            foreach (OfficeXmlNode child in gradient.Children()) {
+                if (child.Is(Dml, "gsLst") || child == linear || child == path) continue;
                 background = null;
                 reason = $"The {ownerName} gradient background uses a custom tile rectangle that the binary PowerPoint format cannot reproduce through this writer.";
                 return false;
             }
-            if (path?.HasChildren == true) {
+            if (!path.IsNone && HasChildElements(path)) {
                 background = null;
                 reason = $"The {ownerName} path gradient uses a custom fill rectangle that has no lossless binary PowerPoint mapping.";
                 return false;
             }
-            A.GradientStop[] sourceStops = gradient.GetFirstChild<A.GradientStopList>()?
-                .Elements<A.GradientStop>()
-                .OrderBy(stop => stop.Position?.Value ?? 0)
-                .ToArray() ?? Array.Empty<A.GradientStop>();
+            OfficeXmlNode[] sourceStops = gradient.Child(Dml, "gsLst")
+                .Children(Dml, "gs").ToList()
+                .OrderBy(stop => stop.Int("pos") ?? 0)
+                .ToArray();
             if (sourceStops.Length < 2 || sourceStops.Length > ushort.MaxValue) {
                 background = null;
                 reason = $"The {ownerName} gradient background needs at least two resolvable stops.";
@@ -282,9 +248,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             var stops = new List<LegacyPptWriterGradientStop>(sourceStops.Length);
-            foreach (A.GradientStop sourceStop in sourceStops) {
-                int position = sourceStop.Position?.Value ?? 0;
-                OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(
+            foreach (OfficeXmlNode sourceStop in sourceStops) {
+                int position = sourceStop.Int("pos") ?? 0;
+                OfficeColor? color = OfficeXmlThemeColors.ResolveColor(
                     sourceStop, colorScheme, placeholderColor);
                 if (position < 0 || position > 100000 || !color.HasValue) {
                     background = null;
@@ -304,17 +270,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             double legacyAngle = 0D;
             uint fillType;
-            if (linear != null) {
-                double openXmlAngle = (linear.Angle?.Value ?? 0) / 60000D;
+            string? pathKind = path.Attribute("path");
+            if (!linear.IsNone) {
+                double openXmlAngle = (linear.Int("ang") ?? 0) / 60000D;
                 legacyAngle = NormalizeBackgroundAngle(270D - openXmlAngle);
-                fillType = linear.Scaled?.Value == true ? 7U : 4U;
-            } else if (path!.Path?.Value == A.PathShadeValues.Circle) {
+                fillType = linear.Bool("scaled") == true ? 7U : 4U;
+            } else if (pathKind == "circle") {
                 fillType = 5U;
-            } else if (path.Path?.Value == A.PathShadeValues.Shape) {
+            } else if (pathKind == "shape") {
                 fillType = 6U;
             } else {
                 background = null;
-                reason = $"The {ownerName} path gradient geometry '{path.Path?.Value}' has no lossless binary PowerPoint mapping.";
+                reason = $"The {ownerName} path gradient geometry '{pathKind}' has no lossless binary PowerPoint mapping.";
                 return false;
             }
             background = LegacyPptWriterBackground.Gradient(fillType,
@@ -364,118 +331,84 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static OpenXmlElement? GetBackgroundFill(OpenXmlPart ownerPart,
-            P.Background source, out OpenXmlPart fillOwnerPart) {
+        private static OfficeXmlNode GetBackgroundFill(LegacyPptPartView ownerPart,
+            OfficeXmlNode source, out LegacyPptPartView fillOwnerPart) {
             fillOwnerPart = ownerPart;
-            P.BackgroundProperties? properties = source.BackgroundProperties;
-            if (properties != null && properties.HasChildren) {
-                return properties.ChildElements.FirstOrDefault();
+            OfficeXmlNode properties = source.Child(Pml, "bgPr");
+            if (!properties.IsNone && HasChildElements(properties)) {
+                return properties.FirstChild;
             }
-            P.BackgroundStyleReference? reference = source.BackgroundStyleReference;
-            if (reference?.Index?.Value == null) return null;
-            A.FormatScheme? formatScheme = GetBackgroundFormatScheme(
-                ownerPart, out OpenXmlPart? themePart);
-            if (formatScheme == null || themePart == null) return null;
+            OfficeXmlNode reference = source.Child(Pml, "bgRef");
+            uint? referenceIndex = reference.UInt("idx");
+            if (!referenceIndex.HasValue) return default;
+            OfficeXmlNode formatScheme = GetBackgroundFormatScheme(
+                ownerPart, out LegacyPptPartView themePart);
+            if (formatScheme.IsNone || themePart.IsNone) return default;
             fillOwnerPart = themePart;
-            uint index = reference.Index.Value;
+            uint index = referenceIndex.Value;
             if (index >= 1001U) {
-                OpenXmlElementList fills = formatScheme
-                    .GetFirstChild<A.BackgroundFillStyleList>()?
-                    .ChildElements ?? default;
-                uint zeroBased = index - 1001U;
-                return zeroBased < unchecked((uint)fills.Count)
-                    ? fills[unchecked((int)zeroBased)]
-                    : null;
+                return NthChild(formatScheme.Child(Dml, "bgFillStyleLst"), index - 1001U);
             }
-            if (index < 1U) return null;
-            OpenXmlElementList styles = formatScheme
-                .GetFirstChild<A.FillStyleList>()?.ChildElements ?? default;
-            uint styleIndex = index - 1U;
-            return styleIndex < unchecked((uint)styles.Count)
-                ? styles[unchecked((int)styleIndex)]
-                : null;
+            if (index < 1U) return default;
+            return NthChild(formatScheme.Child(Dml, "fillStyleLst"), index - 1U);
         }
 
-        private static A.ColorScheme? GetBackgroundColorScheme(
-            OpenXmlPart ownerPart) => GetBackgroundThemeSources(ownerPart)
-            .Select(GetColorScheme)
-            .FirstOrDefault(scheme => scheme != null);
+        private static OfficeXmlNode NthChild(OfficeXmlNode parent, uint index) {
+            uint position = 0;
+            foreach (OfficeXmlNode child in parent.Children()) {
+                if (position == index) return child;
+                position++;
+            }
+            return default;
+        }
 
-        private static A.ColorScheme? GetColorScheme(
-            OpenXmlPart themePart) => themePart switch {
-                ThemeOverridePart themeOverridePart => themeOverridePart
-                    .ThemeOverride?.ColorScheme,
-                ThemePart masterThemePart => masterThemePart.Theme?
-                    .ThemeElements?.ColorScheme,
-                _ => null
-            };
+        private static OfficeXmlNode GetBackgroundColorScheme(
+            LegacyPptPartView ownerPart) {
+            foreach (LegacyPptPartView themePart in GetBackgroundThemeSources(ownerPart)) {
+                OfficeXmlNode scheme = GetThemeSchemeElement(themePart, "clrScheme");
+                if (!scheme.IsNone) return scheme;
+            }
+            return default;
+        }
 
-        private static A.FormatScheme? GetBackgroundFormatScheme(
-            OpenXmlPart ownerPart, out OpenXmlPart? themeSourcePart) {
-            foreach (OpenXmlPart candidate in
+        private static OfficeXmlNode GetBackgroundFormatScheme(
+            LegacyPptPartView ownerPart, out LegacyPptPartView themeSourcePart) {
+            foreach (LegacyPptPartView candidate in
                      GetBackgroundThemeSources(ownerPart)) {
-                A.FormatScheme? scheme = GetFormatScheme(candidate);
-                if (scheme == null) continue;
+                OfficeXmlNode scheme = GetThemeSchemeElement(candidate, "fmtScheme");
+                if (scheme.IsNone) continue;
                 themeSourcePart = candidate;
                 return scheme;
             }
-            themeSourcePart = null;
-            return null;
+            themeSourcePart = default;
+            return default;
         }
 
-        private static A.FormatScheme? GetFormatScheme(
-            OpenXmlPart themePart) => themePart switch {
-                ThemeOverridePart themeOverridePart => themeOverridePart
-                    .ThemeOverride?.FormatScheme,
-                ThemePart masterThemePart => masterThemePart.Theme?
-                    .ThemeElements?.FormatScheme,
-                _ => null
-            };
+        // A theme override holds its schemes at its root; a theme inside a:themeElements.
+        private static OfficeXmlNode GetThemeSchemeElement(LegacyPptPartView themePart,
+            string localName) =>
+            themePart.IsThemeOverride ? ThemeOverrideElement(themePart, localName)
+            : themePart.IsTheme ? ThemeElement(themePart, localName)
+            : default;
 
-        private static IEnumerable<OpenXmlPart> GetBackgroundThemeSources(
-            OpenXmlPart ownerPart) {
-            switch (ownerPart) {
-                case SlidePart slidePart:
-                    if (slidePart.ThemeOverridePart != null) {
-                        yield return slidePart.ThemeOverridePart;
-                    }
-                    if (slidePart.SlideLayoutPart?.ThemeOverridePart != null) {
-                        yield return slidePart.SlideLayoutPart.ThemeOverridePart;
-                    }
-                    if (slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart
-                        != null) {
-                        yield return slidePart.SlideLayoutPart
-                            .SlideMasterPart.ThemePart;
-                    }
-                    break;
-                case SlideLayoutPart layoutPart:
-                    if (layoutPart.ThemeOverridePart != null) {
-                        yield return layoutPart.ThemeOverridePart;
-                    }
-                    if (layoutPart.SlideMasterPart?.ThemePart != null) {
-                        yield return layoutPart.SlideMasterPart.ThemePart;
-                    }
-                    break;
-                case SlideMasterPart masterPart
-                    when masterPart.ThemePart != null:
-                    yield return masterPart.ThemePart;
-                    break;
-                case NotesSlidePart notesPart:
-                    if (notesPart.ThemeOverridePart != null) {
-                        yield return notesPart.ThemeOverridePart;
-                    }
-                    if (notesPart.NotesMasterPart?.ThemePart != null) {
-                        yield return notesPart.NotesMasterPart.ThemePart;
-                    }
-                    break;
-                case NotesMasterPart notesMasterPart
-                    when notesMasterPart.ThemePart != null:
-                    yield return notesMasterPart.ThemePart;
-                    break;
-                case HandoutMasterPart handoutMasterPart
-                    when handoutMasterPart.ThemePart != null:
-                    yield return handoutMasterPart.ThemePart;
-                    break;
+        private static IEnumerable<LegacyPptPartView> GetBackgroundThemeSources(
+            LegacyPptPartView ownerPart) {
+            if (ownerPart.IsSlide) {
+                if (!ownerPart.ThemeOverride.IsNone) yield return ownerPart.ThemeOverride;
+                LegacyPptPartView layout = ownerPart.SlideLayout;
+                if (!layout.ThemeOverride.IsNone) yield return layout.ThemeOverride;
+                if (!layout.SlideMaster.Theme.IsNone) yield return layout.SlideMaster.Theme;
+            } else if (ownerPart.IsSlideLayout) {
+                if (!ownerPart.ThemeOverride.IsNone) yield return ownerPart.ThemeOverride;
+                if (!ownerPart.SlideMaster.Theme.IsNone) yield return ownerPart.SlideMaster.Theme;
+            } else if (ownerPart.IsNotesSlide) {
+                if (!ownerPart.ThemeOverride.IsNone) yield return ownerPart.ThemeOverride;
+                LegacyPptPartView notesMaster = ownerPart.RelatedPart(
+                    LegacyPptPackageView.NotesMasterRelationshipType);
+                if (!notesMaster.Theme.IsNone) yield return notesMaster.Theme;
+            } else if (ownerPart.IsSlideMaster || ownerPart.IsNotesMaster
+                       || ownerPart.IsHandoutMaster) {
+                if (!ownerPart.Theme.IsNone) yield return ownerPart.Theme;
             }
         }
 
@@ -568,9 +501,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     .ToList();
             properties.Add(new LegacyPptWriterFoptProperty(0x0180,
                 background.FillType));
-            if (background.PictureFill != null) {
-                LegacyPptWriterPicture picture = pictureCatalog?
-                    .Get(background.PictureFill)
+            if (background.RequiresPictureCatalog) {
+                LegacyPptWriterPicture picture = (pictureCatalog == null
+                        ? null
+                        : GetBackgroundPicture(pictureCatalog, background))
                     ?? throw new NotSupportedException(
                         "A preservation-aware picture-background edit requires an updated binary BLIP store.");
                 properties.Add(new LegacyPptWriterFoptProperty(0x4186,
@@ -689,12 +623,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return normalized < 0D ? normalized + 360D : normalized;
         }
 
-        internal sealed class LegacyPptWriterBackground {
+        internal sealed partial class LegacyPptWriterBackground {
             private LegacyPptWriterBackground(bool filled, uint fillType,
                 double angleDegrees, byte foregroundAlpha, byte backgroundAlpha,
                 IReadOnlyList<LegacyPptWriterGradientStop> stops,
-                A.BlipFill? pictureFill = null, byte[]? pictureBytes = null,
-                string? pictureContentType = null) {
+                OfficeXmlNode pictureFill = default, byte[]? pictureBytes = null,
+                string? pictureContentType = null,
+                PowerPointDocument? pictureDocument = null,
+                string? picturePartName = null) {
                 Filled = filled;
                 FillType = fillType;
                 AngleDegrees = angleDegrees;
@@ -702,7 +638,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 BackgroundAlpha = backgroundAlpha;
                 Stops = new ReadOnlyCollection<LegacyPptWriterGradientStop>(
                     stops.ToArray());
-                PictureFill = pictureFill;
+                PictureFillNode = pictureFill;
+                PictureDocument = pictureDocument;
+                PicturePartName = picturePartName;
                 PictureBytes = pictureBytes == null
                     ? Array.Empty<byte>()
                     : (byte[])pictureBytes.Clone();
@@ -715,10 +653,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal byte ForegroundAlpha { get; }
             internal byte BackgroundAlpha { get; }
             internal IReadOnlyList<LegacyPptWriterGradientStop> Stops { get; }
-            internal A.BlipFill? PictureFill { get; }
+            /// <summary>The picture fill (<c>a:blipFill</c>) in the captured view, or none.</summary>
+            internal OfficeXmlNode PictureFillNode { get; }
+            /// <summary>The live document and part the picture fill was read from.</summary>
+            internal PowerPointDocument? PictureDocument { get; }
+            internal string? PicturePartName { get; }
             internal byte[] PictureBytes { get; }
             internal string? PictureContentType { get; }
-            internal bool RequiresPictureCatalog => PictureFill != null;
+            internal bool RequiresPictureCatalog => !PictureFillNode.IsNone;
 
             internal static LegacyPptWriterBackground NoFill() =>
                 new(false, 0U, 0D, byte.MaxValue, byte.MaxValue,
@@ -734,11 +676,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new(true, fillType, angleDegrees, foregroundAlpha,
                     backgroundAlpha, stops);
 
-            internal static LegacyPptWriterBackground Picture(A.BlipFill fill,
+            internal static LegacyPptWriterBackground Picture(
+                PowerPointDocument presentation, string partName, OfficeXmlNode fill,
                 byte[] imageBytes, string contentType) =>
                 new(true, 3U, 0D, byte.MaxValue, byte.MaxValue,
                     Array.Empty<LegacyPptWriterGradientStop>(), fill,
-                    imageBytes, contentType);
+                    imageBytes, contentType, presentation, partName);
         }
 
         internal readonly struct LegacyPptWriterGradientStop {

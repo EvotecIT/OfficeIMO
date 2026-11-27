@@ -55,15 +55,12 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(bytes, writable: false);
             using PowerPointDocument reopened =
                 PowerPointDocument.Load(input);
-            AssertProjectedMasterPicture(LegacyPptWriter
-                .ReadMasterShapesForWrite(reopened.OpenXmlDocument
+            AssertProjectedMasterPicture(ReadMasterShapesThroughView(reopened.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single(), out _),
                 imageBytes, expectedHidden: true);
-            AssertProjectedMasterPicture(LegacyPptWriter
-                .ReadMasterShapesForWrite(reopened.OpenXmlDocument
+            AssertProjectedMasterPicture(ReadMasterShapesThroughView(reopened.OpenXmlDocument
                     .PresentationPart!.NotesMasterPart!, out _), imageBytes);
-            AssertProjectedMasterPicture(LegacyPptWriter
-                .ReadMasterShapesForWrite(reopened.OpenXmlDocument
+            AssertProjectedMasterPicture(ReadMasterShapesThroughView(reopened.OpenXmlDocument
                     .PresentationPart!.HandoutMasterPart!, out _), imageBytes);
             Assert.Empty(reopened.ValidateDocument());
             Assert.Equal(bytes,
@@ -108,7 +105,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(bytes, writable: false);
             using PowerPointDocument reopened =
                 PowerPointDocument.Load(input);
-            Assert.Contains(LegacyPptWriter.ReadMasterShapesForWrite(
+            Assert.Contains(ReadMasterShapesThroughView(
                 reopened.OpenXmlDocument.PresentationPart!
                     .SlideMasterParts.Single(), out _),
                 shape => shape is PowerPointImage);
@@ -177,7 +174,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
                 PowerPointImage picture = Assert.IsType<PowerPointImage>(
-                    Assert.Single(LegacyPptWriter.ReadMasterShapesForWrite(
+                    Assert.Single(ReadMasterShapesThroughView(
                         imported.OpenXmlDocument.PresentationPart!
                             .SlideMasterParts.Single(), out _), shape =>
                         shape is PowerPointImage));
@@ -207,8 +204,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument reopened = PowerPointDocument
                 .Load(editedInput);
             PowerPointImage reopenedPicture = Assert.IsType<
-                PowerPointImage>(Assert.Single(LegacyPptWriter
-                .ReadMasterShapesForWrite(reopened.OpenXmlDocument
+                PowerPointImage>(Assert.Single(ReadMasterShapesThroughView(reopened.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single(), out _),
                 shape => shape is PowerPointImage));
             Assert.False(reopenedPicture.Hidden);

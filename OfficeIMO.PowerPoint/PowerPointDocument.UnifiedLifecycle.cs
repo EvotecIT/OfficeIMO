@@ -108,9 +108,21 @@ public sealed partial class PowerPointDocument {
             loaded.Position = 0;
             loaded.CopyTo(package);
         } else {
+            // Cloning flushes the package, after which System.IO.Packaging reads the core dates back as local times.
+            // The copy must not change the document, so the dates it held are put back.
+            var properties = SdkDocument.PackageProperties;
+            DateTime? created = properties.Created;
+            DateTime? modified = properties.Modified;
+            DateTime? printed = properties.LastPrinted;
             using (SdkDocument.Clone(package)) { }
+            if (!SameDate(properties.Created, created)) properties.Created = created;
+            if (!SameDate(properties.Modified, modified)) properties.Modified = modified;
+            if (!SameDate(properties.LastPrinted, printed)) properties.LastPrinted = printed;
         }
     }
+
+    private static bool SameDate(DateTime? left, DateTime? right) =>
+        left.HasValue == right.HasValue && (!left.HasValue || left.Value.Ticks == right!.Value.Ticks && left.Value.Kind == right.Value.Kind);
 
     /// <summary>Saves the native presentation to a caller-owned stream.</summary>
     public void Save(Stream destination, PowerPointSaveOptions? options = null) {

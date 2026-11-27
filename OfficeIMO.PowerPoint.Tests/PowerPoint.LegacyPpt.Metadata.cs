@@ -219,8 +219,7 @@ namespace OfficeIMO.Tests {
             DocumentFormat.OpenXml.Packaging.SlideMasterPart masterPart =
                 presentation.OpenXmlDocument.PresentationPart!
                     .SlideMasterParts.ElementAt(masterIndex);
-            PowerPointShape target = LegacyPptWriter
-                .ReadMasterShapesForWrite(masterPart, out string? reason)[0];
+            PowerPointShape target = PowerPointLegacyPptMasterTests.ReadMasterShapesThroughView(masterPart, out string? reason)[0];
             Assert.Null(reason);
 
             target.Name = "Edited master object";
