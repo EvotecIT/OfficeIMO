@@ -73,7 +73,6 @@ namespace OfficeIMO.Word {
                 } else {
                     LoadDocument();
                     WordChart.InitializeAxisIdSeed(wordDocument);
-                    WordListStyles.InitializeAbstractNumberId(wordDocument);
                 }
             } catch {
                 packageStream.Dispose();

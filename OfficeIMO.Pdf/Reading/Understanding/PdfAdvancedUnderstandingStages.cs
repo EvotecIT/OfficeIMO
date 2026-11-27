@@ -219,11 +219,14 @@ internal static partial class PdfAdvancedUnderstandingStages {
             context.ThrowIfCancellationRequested();
             Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText =
                 context.InspectionTextRecovery is { } recovery ? recovery.RecordUnmappableText : null;
+            // Each call decodes fresh spans that nothing else holds, so they take the page font size in place.
             IReadOnlyList<PdfTextSpan> source = context.Page.GetTextSpans(context.CancellationToken, onUnmappableText);
             var runs = new PdfTextSpan[source.Count];
             for (int index = 0; index < runs.Length; index++) {
                 context.ConsumeWork();
-                runs[index] = source[index].WithPageFontSize();
+                PdfTextSpan run = source[index];
+                run.ApplyPageFontSize();
+                runs[index] = run;
             }
             return Array.AsReadOnly(runs);
         }
