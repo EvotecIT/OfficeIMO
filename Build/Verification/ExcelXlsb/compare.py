@@ -169,7 +169,7 @@ def match_part_names(baseline_names, candidate_names, baseline_rels, candidate_r
                 continue
             left_uri = resolved_target(left_owner, edge.get("Target", ""))
             left_path = left_uri.path.lstrip("/")
-            if left_path not in left_files:
+            if left_uri.scheme or left_uri.netloc or left_path not in left_files:
                 continue
             matches = []
             for other in available:
@@ -177,7 +177,7 @@ def match_part_names(baseline_names, candidate_names, baseline_rels, candidate_r
                     continue
                 right_uri = resolved_target(right_owner, other.get("Target", ""))
                 right_path = right_uri.path.lstrip("/")
-                if (right_path not in right_files or left_uri.query != right_uri.query
+                if (right_uri.scheme or right_uri.netloc or right_path not in right_files or left_uri.query != right_uri.query
                         or left_uri.fragment != right_uri.fragment):
                     continue
                 if (right_path in aliases and aliases[right_path] == left_path
@@ -218,7 +218,7 @@ def stable_relationships(parts, aliases):
             if mode == "Internal":
                 uri = resolved_target(owner, target)
                 physical = uri.path.lstrip("/")
-                if physical in aliases:
+                if not uri.scheme and not uri.netloc and physical in aliases:
                     uri = uri._replace(path="/" + aliases[physical])
                 target = urlunsplit(uri)
                 relation.set("Target", target)

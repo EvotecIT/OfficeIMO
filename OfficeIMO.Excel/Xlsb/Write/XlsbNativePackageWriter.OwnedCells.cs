@@ -50,7 +50,7 @@ internal static partial class XlsbNativePackageWriter {
 
     private static bool TryOverlayCells(XlsbSheet sheet,
         IReadOnlyDictionary<(int Row, int Column), ExcelDeferredCellEdit> edits, out IReadOnlyList<XlsbWriteCell> cells) {
-        var remaining = new Dictionary<(int Row, int Column), ExcelDeferredCellEdit>(edits);
+        var remaining = edits.ToDictionary(item => item.Key, item => item.Value);
         var result = new List<XlsbWriteCell>(checked(sheet.Cells.Count + remaining.Count));
         cells = result;
         foreach (XlsbCell source in sheet.Cells) {
