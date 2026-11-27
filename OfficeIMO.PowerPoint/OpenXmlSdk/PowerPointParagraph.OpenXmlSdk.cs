@@ -20,7 +20,7 @@ namespace OfficeIMO.PowerPoint {
                 OfficeXmlNode element = Element;
                 if (element.SdkElement is A.Paragraph paragraph) return paragraph;
                 if (_packageSlide is { RemovedFromPackage: true } || _owningSlide is { RemovedFromPackage: true }) throw new InvalidOperationException("The slide is no longer part of the presentation.");
-                if (element.Tree != null && !_packagePart.IsNone) return (A.Paragraph)PowerPointSlide.BindPackageNode(_packagePart, element.Tree, element.Node);
+                if (!_standalone && element.Tree != null && !_packagePart.IsNone) return (A.Paragraph)PowerPointSlide.BindPackageNode(_packagePart, element.Tree, element.Node);
                 throw new InvalidOperationException("The paragraph is not held in an SDK part.");
             }
         }

@@ -22,6 +22,8 @@ namespace OfficeIMO.PowerPoint {
         private readonly PowerPointSlide? _packageSlide;
         // The slide whose part (its own or its notes) holds the run, when known: once removed, nothing binds.
         private readonly PowerPointSlide? _owningSlide;
+        // Whether the element is a standalone copy of one removed from its part.
+        private bool _standalone;
         private readonly PowerPointPartRef _packagePart;
         private List<OfficeXmlNode>? _lineContinuation;
 
@@ -68,7 +70,7 @@ namespace OfficeIMO.PowerPoint {
         internal OfficeXmlNode Element {
             get {
                 // A removed slide's part name can be reused by a new slide, so its content never binds.
-                if (_element.Tree != null && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }
+                if (!_standalone && _element.Tree != null && _element.IsAttached && !_packagePart.IsNone && _packagePart.Document is { IsSdkLoaded: true } && _packageSlide is not { RemovedFromPackage: true }
                     && _owningSlide is not { RemovedFromPackage: true }) {
                     // The lines the run continues on bind with it, so formatting keeps reaching them.
                     if (_lineContinuation != null) {
@@ -80,6 +82,13 @@ namespace OfficeIMO.PowerPoint {
                     _element = OfficeXmlNode.FromSdk(PowerPointSlide.BindPackageNode(_packagePart, _element.Tree, _element.Node));
                 }
                 return _element;
+            }
+        }
+
+        void IPackageSdkBinding.KeepDetached() {
+            if (!_standalone && _element.Tree != null && !_element.IsAttached) {
+                _element = PowerPointHeldNode.Standalone(_element);
+                _standalone = true;
             }
         }
 

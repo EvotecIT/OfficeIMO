@@ -103,6 +103,21 @@ public class PowerPointTablesWithoutSdkTests {
     }
 
     [Fact]
+    public void TextOfARemovedRowStaysReadableAfterTheSdkOpens() {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
+        PowerPointTable table = presentation.Slides[0].Tables.Single();
+        PowerPointTableCell cell = table.GetCell(2, 2);
+        PowerPointParagraph paragraph = cell.Paragraphs[0];
+        PowerPointTextRun run = cell.Runs[0];
+        table.RemoveRow(2);
+
+        _ = presentation.OpenXmlDocument;
+
+        Assert.Equal("Total", paragraph.Text);
+        Assert.Equal("Total", run.Text);
+    }
+
+    [Fact]
     public void ANegativeInsertionIndexLeavesTheTableUnchanged() {
         using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
         PowerPointTable table = presentation.Slides[0].Tables.Single();
