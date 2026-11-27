@@ -1,7 +1,7 @@
 param(
     # Folder with the ISO/IEC 29500-4 transitional schemas (pml.xsd, dml-main.xsd, shared-*.xsd and the rest).
     [Parameter(Mandatory)] [string] $SchemaDirectory,
-    # Complex types to generate views for, as '<prefix>:<type name>' with prefixes p, a, r, s or w.
+    # Complex types to generate views for, as '<prefix>:<type name>' with prefixes p, a, c, r, s or w.
     [Parameter(Mandatory)] [string[]] $Types,
     [Parameter(Mandatory)] [string] $Namespace,
     [Parameter(Mandatory)] [string] $OutputPath,
@@ -13,7 +13,10 @@ param(
     # OfficeIMO's trees and another XML layer. It has the members the generated code calls on it.
     [string] $NodeType = '',
     # The namespace that holds -NodeType, when the views are in another one.
-    [string] $NodeNamespace = ''
+    [string] $NodeNamespace = '',
+    # View name prefixes to use in place of the defaults, by namespace prefix, such as @{ a = 'Dml' } for views that
+    # sit beside another set of DrawingML views.
+    [hashtable] $ViewPrefixes = @{}
 )
 
 # Writes typed views over OfficeXmlTree (or -NodeType) for schema complex types: attribute properties with schema value types, and
@@ -24,6 +27,7 @@ $ErrorActionPreference = 'Stop'
 $namespaces = [ordered]@{
     'p' = @{ Uri = 'http://schemas.openxmlformats.org/presentationml/2006/main'; Id = 'OfficeXmlNamespaces.PresentationML'; Prefix = 'P' }
     'a' = @{ Uri = 'http://schemas.openxmlformats.org/drawingml/2006/main'; Id = 'OfficeXmlNamespaces.DrawingML'; Prefix = 'A' }
+    'c' = @{ Uri = 'http://schemas.openxmlformats.org/drawingml/2006/chart'; Id = 'OfficeXmlNamespaces.Chart'; Prefix = 'C' }
     'r' = @{ Uri = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'; Id = 'OfficeXmlNamespaces.Relationships'; Prefix = 'R' }
     's' = @{ Uri = 'http://schemas.openxmlformats.org/officeDocument/2006/sharedTypes'; Id = 'OfficeXmlNamespaces.SharedTypes'; Prefix = 'S' }
     'w' = @{ Uri = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'; Id = 'OfficeXmlNamespaces.WordprocessingML'; Prefix = 'W' }
@@ -205,7 +209,8 @@ $requested = foreach ($type in $Types) {
     if (-not $info) { throw "Unknown prefix in '$type'." }
     $key = "{$($info.Uri)}$name"
     if (-not $complexTypes.ContainsKey($key)) { throw "The schemas define no complex type '$type'." }
-    $viewName = $info.Prefix + ($name -replace '^CT_', '') + 'View'
+    $viewPrefix = if ($ViewPrefixes.ContainsKey($prefix)) { $ViewPrefixes[$prefix] } else { $info.Prefix }
+    $viewName = $viewPrefix + ($name -replace '^CT_', '') + 'View'
     $viewNames[$key] = $viewName
     [pscustomobject]@{ Key = $key; Name = $name; ViewName = $viewName; Node = $complexTypes[$key] }
 }
@@ -255,7 +260,8 @@ foreach ($type in $requested) {
     $null = $builder.AppendLine('    /// <summary>Child element names in sequence order.</summary>')
     $null = $builder.AppendLine("    internal static readonly OfficeXmlChildOrder Order = new(new int[] { $orderNamespaces }, new string[] { $orderNames }, new int[] { $orderRanks });")
 
-    $used = @{}
+    # Members the view declares itself, so a child or attribute of the same name takes a suffix.
+    $used = @{ Order = $true; Element = $true; Tree = $true; Node = $true }
     foreach ($attribute in $typeAttributes) {
         $member = ConvertTo-Pascal $attribute.Name
         if ($attribute.Uri -eq $namespaces['r'].Uri) { $member = 'Relationship' + $member }
