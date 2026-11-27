@@ -69,13 +69,6 @@ internal static class WordConverterNodes {
 
     // ---- Parts and relationships ----------------------------------------------------------------------------------
 
-    /// <summary>
-    /// The part that holds <paramref name="element"/>, as an opaque key: equal for elements of the same part, null for
-    /// a detached element.
-    /// </summary>
-    internal static object? PartKey(this OfficeXmlNode element) =>
-        element.SdkElement is { } sdk ? OfficeSdkXml.PartOf(sdk) : element.Tree;
-
     /// <summary>The root element of the part that holds <paramref name="element"/>.</summary>
     internal static OfficeXmlNode PartRoot(this OfficeXmlNode element) =>
         OfficeXmlNode.FromSdk((PartOf(element))?.RootElement);
@@ -87,13 +80,6 @@ internal static class WordConverterNodes {
     /// <summary>The root element of the part <paramref name="relationshipId"/> names from the main document part.</summary>
     internal static OfficeXmlNode RelatedPartRoot(this WordDocument document, string? relationshipId) =>
         OfficeXmlNode.FromSdk(TryGetPart(Main(document), relationshipId)?.RootElement);
-
-    /// <summary>
-    /// The bytes of the part <paramref name="relationshipId"/> names from the part that holds <paramref name="element"/>,
-    /// or null when no part is named or it holds more than <paramref name="maxBytes"/> (read no further than that).
-    /// </summary>
-    internal static byte[]? RelatedPartBytes(this OfficeXmlNode element, string? relationshipId, long maxBytes = long.MaxValue) =>
-        ReadPartBytes(RelatedPart(element, relationshipId), maxBytes);
 
     /// <summary>
     /// Whether <paramref name="relationshipId"/> names an image part from the part that holds <paramref name="element"/>;
@@ -120,33 +106,6 @@ internal static class WordConverterNodes {
             copy.Write(buffer, 0, read);
         }
         return copy.ToArray();
-    }
-
-    /// <summary>The content type of the part <paramref name="relationshipId"/> names, or null.</summary>
-    internal static string? RelatedPartContentType(this OfficeXmlNode element, string? relationshipId) =>
-        RelatedPart(element, relationshipId)?.ContentType;
-
-    /// <summary>The URI of the part <paramref name="relationshipId"/> names, or null.</summary>
-    internal static string? RelatedPartUri(this OfficeXmlNode element, string? relationshipId) =>
-        RelatedPart(element, relationshipId)?.Uri.OriginalString;
-
-    /// <summary>The relationship type of the part <paramref name="relationshipId"/> names, or null.</summary>
-    internal static string? RelatedPartRelationshipType(this OfficeXmlNode element, string? relationshipId) =>
-        RelatedPart(element, relationshipId)?.RelationshipType;
-
-    /// <summary>
-    /// The target of an external relationship (a hyperlink, a linked image) from the part that holds
-    /// <paramref name="element"/>, or null.
-    /// </summary>
-    internal static Uri? ExternalRelationshipTarget(this OfficeXmlNode element, string? relationshipId) {
-        if (string.IsNullOrEmpty(relationshipId) || PartOf(element) is not { } part) return null;
-        foreach (HyperlinkRelationship relationship in part.HyperlinkRelationships) {
-            if (relationship.Id == relationshipId) return relationship.Uri;
-        }
-        foreach (ExternalRelationship relationship in part.ExternalRelationships) {
-            if (relationship.Id == relationshipId) return relationship.Uri;
-        }
-        return null;
     }
 
     private static OpenXmlPart? PartOf(OfficeXmlNode element) =>
@@ -177,12 +136,6 @@ internal static class WordConverterNodes {
 
     /// <summary>The hyperlink this paragraph object stands in, or <see cref="OfficeXmlNode.None"/>.</summary>
     internal static OfficeXmlNode HyperlinkNode(this WordParagraph paragraph) => OfficeXmlNode.FromSdk(paragraph._hyperlink);
-
-    /// <summary>The simple field this paragraph object stands in, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode SimpleFieldNode(this WordParagraph paragraph) => OfficeXmlNode.FromSdk(paragraph._simpleField);
-
-    /// <summary>The bookmark start this paragraph object stands for, or <see cref="OfficeXmlNode.None"/>.</summary>
-    internal static OfficeXmlNode BookmarkStartNode(this WordParagraph paragraph) => OfficeXmlNode.FromSdk(paragraph._bookmarkStart);
 
     /// <summary>The table's <c>w:tbl</c>.</summary>
     internal static OfficeXmlNode Node(this WordTable table) => OfficeXmlNode.FromSdk(table._table);

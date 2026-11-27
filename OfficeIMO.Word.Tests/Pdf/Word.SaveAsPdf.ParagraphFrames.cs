@@ -105,6 +105,25 @@ public partial class Word {
         Assert.Equal(FrameMargin + 144D + 9D, firstLine, 0);
     }
 
+    [Fact]
+    public void SaveAsPdf_NoteReferenceInsideUnknownMarkupDoesNotStopABodyFrame() {
+        using WordDocument document = CreateFrameDocument();
+        WordParagraph framedParagraph = document.AddParagraph("FRAMED");
+        AddFrameParagraph(framedParagraph, "around", "text", "margin", x: 1, width: 2880, horizontalSpace: 180);
+        // A note reference the model doesn't read: the frame keeps its native rendering.
+        var wrapper = new DocumentFormat.OpenXml.OpenXmlUnknownElement("x", "wrapper", "urn:officeimo:tests:frame-wrapper");
+        wrapper.InnerXml = "<x:group xmlns:x=\"urn:officeimo:tests:frame-wrapper\" " +
+            "xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">" +
+            "<w:r><w:footnoteReference w:id=\"1\"/></w:r></x:group>";
+        framedParagraph._paragraph.AppendChild(wrapper);
+        document.AddParagraph(string.Join(" ", Enumerable.Range(1, 90).Select(index => "w" + index.ToString("00"))));
+        using PdfPigDocument pdf = RenderFramePdf(document);
+        double firstLine = pdf.GetPage(1).GetWords().Where(word => word.Text.StartsWith("w", StringComparison.Ordinal))
+            .GroupBy(word => Math.Round(word.Letters[0].StartBaseLine.Y, 1)).OrderByDescending(group => group.Key)
+            .Select(group => group.Min(word => word.BoundingBox.Left)).First();
+        Assert.Equal(FrameMargin + 144D + 9D, firstLine, 0);
+    }
+
     [Theory]
     [InlineData("notBeside")]
     [InlineData("none")]

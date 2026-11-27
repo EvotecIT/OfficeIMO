@@ -134,6 +134,8 @@ public static partial class WordPdfConverterExtensions {
     private static bool HasNativeFrameUnsupportedContent(OfficeXmlNode paragraph, bool inBody) {
         if (inBody && HasNativeFramePageComplexField(paragraph)) return true;
         foreach (OfficeXmlNode element in paragraph.DescendantElements()) {
+            // Content inside markup the model doesn't read doesn't make the frame unsupported.
+            if (!element.IsModelElement()) continue;
             if (element.Is(WordXml.Wp, "anchor") || element.Is(WordXml.Mc, "AlternateContent") ||
                 element.Is(WordXml.M, "oMath") || element.Is(WordXml.M, "oMathPara"))
                 return true;
