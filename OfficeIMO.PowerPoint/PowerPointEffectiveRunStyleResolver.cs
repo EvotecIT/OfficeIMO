@@ -1,9 +1,8 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenXml.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     internal readonly struct PowerPointEffectiveRunStyle {
@@ -53,35 +52,37 @@ namespace OfficeIMO.PowerPoint {
     }
 
     internal static partial class PowerPointEffectiveRunStyleResolver {
+        private const int Drawing = OfficeXmlNamespaces.DrawingML;
+        private const int Presentation = OfficeXmlNamespaces.PresentationML;
+
         /// <summary>The paragraph mark's style from the paragraph's own and inherited properties, without a list or master text style.</summary>
-        internal static PowerPointEffectiveRunStyle ResolveParagraph(PowerPointParagraph paragraph) => ResolveParagraph(paragraph, null, null);
+        internal static PowerPointEffectiveRunStyle ResolveParagraph(PowerPointParagraph paragraph) => ResolveParagraph(paragraph, default, default);
 
         /// <summary>A run's style from its own, paragraph and inherited properties, without a list or master text style.</summary>
-        internal static PowerPointEffectiveRunStyle Resolve(PowerPointTextRun run, PowerPointParagraph paragraph) => Resolve(run, paragraph, null, null);
+        internal static PowerPointEffectiveRunStyle Resolve(PowerPointTextRun run, PowerPointParagraph paragraph) => Resolve(run, paragraph, default, default);
 
         // Blank paragraphs still have a formatted paragraph mark and inherited line metrics.
         internal static PowerPointEffectiveRunStyle ResolveParagraph(
-            PowerPointParagraph paragraph, A.ListStyle? listStyle, OpenXmlCompositeElement? masterTextStyle) {
-            PowerPointTextRun run = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run
-                ?? new PowerPointTextRun(new A.Run(), ownerPart: paragraph.OwnerPart);
+            PowerPointParagraph paragraph, OfficeXmlNode listStyle, OfficeXmlNode masterTextStyle) {
+            PowerPointTextRun? run = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
             return Resolve(run, paragraph, listStyle, masterTextStyle, null, null, includeParagraphMark: true);
         }
 
         internal static PowerPointEffectiveRunStyle Resolve(
             PowerPointTextRun run,
             PowerPointParagraph paragraph,
-            A.ListStyle? listStyle,
-            OpenXmlCompositeElement? masterTextStyle,
-            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
+            OfficeXmlNode listStyle,
+            OfficeXmlNode masterTextStyle,
+            IReadOnlyList<OfficeXmlNode>? tableTextStyles = null) {
             return Resolve(run, paragraph, listStyle, masterTextStyle, tableTextStyles, null);
         }
 
         internal static IReadOnlyList<PowerPointEffectiveTextSegment> ResolveSegments(
             PowerPointTextRun run,
             PowerPointParagraph paragraph,
-            A.ListStyle? listStyle,
-            OpenXmlCompositeElement? masterTextStyle,
-            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
+            OfficeXmlNode listStyle,
+            OfficeXmlNode masterTextStyle,
+            IReadOnlyList<OfficeXmlNode>? tableTextStyles = null) {
             string text = run.Text ?? string.Empty;
             if (text.Length == 0) return Array.Empty<PowerPointEffectiveTextSegment>();
             var raw = new List<(string Text, PowerPointFontScript? Script)>();
@@ -110,47 +111,44 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static PowerPointEffectiveRunStyle Resolve(
-            PowerPointTextRun run,
+            PowerPointTextRun? run,
             PowerPointParagraph paragraph,
-            A.ListStyle? listStyle,
-            OpenXmlCompositeElement? masterTextStyle,
-            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles,
+            OfficeXmlNode listStyle,
+            OfficeXmlNode masterTextStyle,
+            IReadOnlyList<OfficeXmlNode>? tableTextStyles,
             PowerPointFontScript? fontScriptOverride, bool includeParagraphMark = false) {
-            IReadOnlyList<A.TextCharacterPropertiesType> directSources = ResolveDirectSources(run, paragraph, listStyle, includeParagraphMark);
-            IReadOnlyList<A.TextCharacterPropertiesType> masterSources = FindDefaultRunProperties(
-                masterTextStyle,
-                paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0).Cast<A.TextCharacterPropertiesType>().ToArray();
-            IReadOnlyList<A.TableCellTextStyle> tableSources = tableTextStyles ?? Array.Empty<A.TableCellTextStyle>();
-            bool? bold = ResolveBoolean(directSources, static source => source.Bold?.Value)
-                ?? ResolveTableBoolean(tableSources, static source => source.Bold?.Value)
-                ?? ResolveBoolean(masterSources, static source => source.Bold?.Value);
-            bool? italic = ResolveBoolean(directSources, static source => source.Italic?.Value)
-                ?? ResolveTableBoolean(tableSources, static source => source.Italic?.Value)
-                ?? ResolveBoolean(masterSources, static source => source.Italic?.Value);
-            A.TextUnderlineValues? underline = ResolveValue(directSources, static source => source.Underline?.Value)
-                ?? ResolveValue(masterSources, static source => source.Underline?.Value);
-            A.TextStrikeValues? strike = ResolveValue(directSources, static source => source.Strike?.Value)
-                ?? ResolveValue(masterSources, static source => source.Strike?.Value);
-            A.TextCapsValues? capitalization = ResolveValue(directSources, static source => source.Capital?.Value)
-                ?? ResolveValue(masterSources, static source => source.Capital?.Value);
-            int? baseline = ResolveValue(directSources, static source => source.Baseline?.Value)
-                ?? ResolveValue(masterSources, static source => source.Baseline?.Value);
-            int? fontSize = ResolveValue(directSources, static source => source.FontSize?.Value)
-                ?? ResolveValue(masterSources, static source => source.FontSize?.Value);
-            string? language = ResolveString(directSources, static source => source.Language?.Value)
-                ?? ResolveString(masterSources, static source => source.Language?.Value);
-            PowerPointFontScript fontScript = fontScriptOverride ?? ResolveFontScript(run.Text, language);
-            string? fontName = ResolveFontName(run, directSources, fontScript)
-                ?? ResolveTableFontName(run, tableSources, fontScript)
-                ?? ResolveFontName(run, masterSources, fontScript);
-            string? color = ResolveColor(run, directSources)
-                ?? ResolveTableColor(run, tableSources)
-                ?? ResolveColor(run, masterSources);
+            OfficeXmlNode paragraphProperties = paragraph.Element.Child(Drawing, "pPr");
+            List<OfficeXmlNode> directSources = ResolveDirectSources(run, paragraph, listStyle, includeParagraphMark);
+            OfficeXmlNode[] masterSources = FindDefaultRunProperties(masterTextStyle, ParagraphLevel(paragraphProperties)).ToArray();
+            IReadOnlyList<OfficeXmlNode> tableSources = tableTextStyles ?? Array.Empty<OfficeXmlNode>();
+            bool? bold = ResolveValue(directSources, static source => source.BooleanAttribute("b"))
+                ?? ResolveTableBoolean(tableSources, "b")
+                ?? ResolveValue(masterSources, static source => source.BooleanAttribute("b"));
+            bool? italic = ResolveValue(directSources, static source => source.BooleanAttribute("i"))
+                ?? ResolveTableBoolean(tableSources, "i")
+                ?? ResolveValue(masterSources, static source => source.BooleanAttribute("i"));
+            string? underline = ResolveAttribute(directSources, "u") ?? ResolveAttribute(masterSources, "u");
+            string? strike = ResolveAttribute(directSources, "strike") ?? ResolveAttribute(masterSources, "strike");
+            string? capitalization = ResolveAttribute(directSources, "cap") ?? ResolveAttribute(masterSources, "cap");
+            int? baseline = ResolveValue(directSources, static source => source.Int32Attribute("baseline"))
+                ?? ResolveValue(masterSources, static source => source.Int32Attribute("baseline"));
+            int? fontSize = ResolveValue(directSources, static source => source.Int32Attribute("sz"))
+                ?? ResolveValue(masterSources, static source => source.Int32Attribute("sz"));
+            string? language = ResolveAttribute(directSources, "lang") ?? ResolveAttribute(masterSources, "lang");
+            PowerPointFontScript fontScript = fontScriptOverride ?? ResolveFontScript(run?.Text, language);
+            PowerPointPartRef owner = run?.OwnerPartRef ?? paragraph.OwnerPartRef;
+            string? fontName = ResolveFontName(owner, directSources, fontScript)
+                ?? ResolveTableFontName(owner, tableSources, fontScript)
+                ?? ResolveFontName(owner, masterSources, fontScript);
+            string? color = ResolveColor(owner, directSources)
+                ?? ResolveTableColor(owner, tableSources)
+                ?? ResolveColor(owner, masterSources);
 
             return new PowerPointEffectiveRunStyle(
                 bold,
                 italic,
-                underline?.ToOfficeEnum(),
+                underline != null && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(underline, out PowerPointUnderlineStyle underlineStyle)
+                    ? underlineStyle : null,
                 ToStrikeStyle(strike),
                 ToCapitalization(capitalization),
                 baseline.HasValue ? baseline.Value / 1000D : (double?)null,
@@ -180,58 +178,62 @@ namespace OfficeIMO.PowerPoint {
             return null;
         }
 
-        private static T? ResolveValue<T>(
-            IEnumerable<A.TextCharacterPropertiesType> sources,
-            Func<A.TextCharacterPropertiesType, T?> selector) where T : struct =>
-            sources.Select(selector).FirstOrDefault(static value => value.HasValue);
+        private static T? ResolveValue<T>(IReadOnlyList<OfficeXmlNode> sources,
+            Func<OfficeXmlNode, T?> selector) where T : struct {
+            for (int index = 0; index < sources.Count; index++) {
+                if (selector(sources[index]) is { } value) return value;
+            }
 
-        private static bool? ResolveBoolean(
-            IEnumerable<A.TextCharacterPropertiesType> sources,
-            Func<A.TextCharacterPropertiesType, bool?> selector) =>
-            sources.Select(selector).FirstOrDefault(static value => value.HasValue);
-
-        private static bool? ResolveTableBoolean(
-            IEnumerable<A.TableCellTextStyle> sources,
-            Func<A.TableCellTextStyle, A.BooleanStyleValues?> selector) {
-            A.BooleanStyleValues? value = sources.Select(selector).FirstOrDefault(static item => item.HasValue);
-            if (!value.HasValue) return null;
-            if (value.Value == A.BooleanStyleValues.On) return true;
-            if (value.Value == A.BooleanStyleValues.Off) return false;
             return null;
         }
 
-        private static string? ResolveString(
-            IEnumerable<A.TextCharacterPropertiesType> sources,
-            Func<A.TextCharacterPropertiesType, string?> selector) =>
-            sources.Select(selector).FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value));
+        private static bool? ResolveTableBoolean(IReadOnlyList<OfficeXmlNode> sources, string attribute) {
+            for (int index = 0; index < sources.Count; index++) {
+                switch (sources[index].Attribute(attribute)) {
+                    case "on": return true;
+                    case "off": return false;
+                    case "def": return null;
+                }
+            }
+
+            return null;
+        }
+
+        private static string? ResolveAttribute(IReadOnlyList<OfficeXmlNode> sources, string attribute) {
+            for (int index = 0; index < sources.Count; index++) {
+                string? value = sources[index].Attribute(attribute);
+                if (!string.IsNullOrWhiteSpace(value)) return value;
+            }
+
+            return null;
+        }
 
         private static string? ResolveFontName(
-            PowerPointTextRun run,
-            IReadOnlyList<A.TextCharacterPropertiesType> sources,
-            PowerPointFontScript script) {
-            string? typeface = sources.Select(source => ResolveTypeface(source, script))
-                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
-            return ResolveThemeFontReference(typeface, run.OwnerPart);
+            PowerPointPartRef owner, IReadOnlyList<OfficeXmlNode> sources, PowerPointFontScript script) {
+            for (int index = 0; index < sources.Count; index++) {
+                string? typeface = ResolveTypeface(sources[index], script);
+                if (!string.IsNullOrWhiteSpace(typeface)) return ResolveThemeFontReference(typeface, owner);
+            }
+
+            return null;
         }
 
         /// <summary>Resolves a DrawingML theme reference at its relationship owner; literal family names pass through.</summary>
-        internal static string? ResolveThemeFontReference(string? typeface, OpenXmlPartContainer? ownerPart) {
+        internal static string? ResolveThemeFontReference(string? typeface, PowerPointPartRef ownerPart) {
             if (string.IsNullOrWhiteSpace(typeface)) return null;
             string token = typeface!.Trim().ToLowerInvariant();
             if (token is not ("+mj-lt" or "+mn-lt" or "+mj-ea" or "+mn-ea" or "+mj-cs" or "+mn-cs")) {
                 return typeface;
             }
 
-            foreach (A.FontScheme scheme in EnumerateFontSchemes(ownerPart)) {
-                string? resolved = token switch {
-                    "+mj-lt" => scheme.MajorFont?.LatinFont?.Typeface?.Value,
-                    "+mn-lt" => scheme.MinorFont?.LatinFont?.Typeface?.Value,
-                    "+mj-ea" => scheme.MajorFont?.EastAsianFont?.Typeface?.Value,
-                    "+mn-ea" => scheme.MinorFont?.EastAsianFont?.Typeface?.Value,
-                    "+mj-cs" => scheme.MajorFont?.ComplexScriptFont?.Typeface?.Value,
-                    "+mn-cs" => scheme.MinorFont?.ComplexScriptFont?.Typeface?.Value,
-                    _ => null
-                };
+            string collection = token[2] == 'j' ? "majorFont" : "minorFont";
+            string script = token.Substring(4) switch {
+                "ea" => "ea",
+                "cs" => "cs",
+                _ => "latin"
+            };
+            foreach (OfficeXmlNode scheme in EnumerateFontSchemes(ownerPart)) {
+                string? resolved = scheme.Child(Drawing, collection).Child(Drawing, script).Attribute("typeface");
                 if (!string.IsNullOrWhiteSpace(resolved)) return resolved;
             }
 
@@ -239,51 +241,45 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static string? ResolveTableFontName(
-            PowerPointTextRun run,
-            IEnumerable<A.TableCellTextStyle> sources,
-            PowerPointFontScript script) {
-            foreach (A.TableCellTextStyle source in sources) {
-                string? typeface = ResolveTypeface(source.GetFirstChild<A.Fonts>(), script);
+            PowerPointPartRef owner, IReadOnlyList<OfficeXmlNode> sources, PowerPointFontScript script) {
+            for (int index = 0; index < sources.Count; index++) {
+                OfficeXmlNode source = sources[index];
+                string? typeface = ResolveTypeface(source.Child(Drawing, "font"), script);
                 if (!string.IsNullOrWhiteSpace(typeface)) return typeface;
-                A.FontReference? reference = source.GetFirstChild<A.FontReference>();
-                if (reference?.Index?.Value == A.FontCollectionIndexValues.Major) {
-                    return ResolveThemeFontName(run.OwnerPart, major: true, script);
-                }
-                if (reference?.Index?.Value == A.FontCollectionIndexValues.Minor) {
-                    return ResolveThemeFontName(run.OwnerPart, major: false, script);
+                switch (source.Child(Drawing, "fontRef").Attribute("idx")) {
+                    case "major": return ResolveThemeFontName(owner, major: true, script);
+                    case "minor": return ResolveThemeFontName(owner, major: false, script);
                 }
             }
+
             return null;
         }
 
-        /// <summary>Resolves table/preview Latin defaults in the actual relationship owner's theme.</summary>
-        internal static string? ResolveLatinThemeFontName(OpenXmlPartContainer? ownerPart, bool major = false) =>
+        /// <summary>Resolves table and preview Latin defaults in the relationship owner's theme.</summary>
+        internal static string? ResolveLatinThemeFontName(PowerPointPartRef ownerPart, bool major = false) =>
             ResolveThemeFontName(ownerPart, major, PowerPointFontScript.Latin);
 
-        private static string? ResolveThemeFontName(
-            OpenXmlPartContainer? ownerPart,
-            bool major,
-            PowerPointFontScript script) {
-            foreach (A.FontScheme scheme in EnumerateFontSchemes(ownerPart)) {
-                A.FontCollectionType? collection = major ? scheme.MajorFont : scheme.MinorFont;
-                string? typeface = ResolveTypeface(collection, script);
+        private static string? ResolveThemeFontName(PowerPointPartRef ownerPart, bool major, PowerPointFontScript script) {
+            foreach (OfficeXmlNode scheme in EnumerateFontSchemes(ownerPart)) {
+                string? typeface = ResolveTypeface(scheme.Child(Drawing, major ? "majorFont" : "minorFont"), script);
                 if (!string.IsNullOrWhiteSpace(typeface)) return typeface;
             }
+
             return PowerPointTextDefaults.LegacyFallbackFontFamily;
         }
 
-        private static string? ResolveTypeface(OpenXmlCompositeElement? source, PowerPointFontScript script) {
-            if (source == null) return null;
-            string? preferred = script switch {
-                PowerPointFontScript.EastAsian => source.GetFirstChild<A.EastAsianFont>()?.Typeface?.Value,
-                PowerPointFontScript.ComplexScript => source.GetFirstChild<A.ComplexScriptFont>()?.Typeface?.Value,
-                _ => source.GetFirstChild<A.LatinFont>()?.Typeface?.Value
-            };
+        private static string? ResolveTypeface(OfficeXmlNode source, PowerPointFontScript script) {
+            if (source.IsNone) return null;
+            string? preferred = source.Child(Drawing, script switch {
+                PowerPointFontScript.EastAsian => "ea",
+                PowerPointFontScript.ComplexScript => "cs",
+                _ => "latin"
+            }).Attribute("typeface");
             return !string.IsNullOrWhiteSpace(preferred)
                 ? preferred
-                : source.GetFirstChild<A.LatinFont>()?.Typeface?.Value
-                  ?? source.GetFirstChild<A.EastAsianFont>()?.Typeface?.Value
-                  ?? source.GetFirstChild<A.ComplexScriptFont>()?.Typeface?.Value;
+                : source.Child(Drawing, "latin").Attribute("typeface")
+                  ?? source.Child(Drawing, "ea").Attribute("typeface")
+                  ?? source.Child(Drawing, "cs").Attribute("typeface");
         }
 
         private static PowerPointFontScript ResolveFontScript(string? text, string? language) {
@@ -323,192 +319,143 @@ namespace OfficeIMO.PowerPoint {
             ComplexScript
         }
 
-        private static IEnumerable<A.FontScheme> EnumerateFontSchemes(OpenXmlPartContainer? ownerPart) {
-            if (ownerPart is SlidePart slidePart) {
-                if (slidePart.ThemeOverridePart?.ThemeOverride?.FontScheme is A.FontScheme slideScheme) yield return slideScheme;
-                if (slidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.FontScheme is A.FontScheme layoutScheme) yield return layoutScheme;
-                if (slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.FontScheme is A.FontScheme masterScheme) yield return masterScheme;
-                yield break;
+        private static IEnumerable<OfficeXmlNode> EnumerateFontSchemes(PowerPointPartRef part) {
+            PowerPointPartKind kind = part.Kind;
+            if (kind == PowerPointPartKind.Slide) {
+                OfficeXmlNode scheme = part.RelatedPart(PowerPointPartRef.ThemeOverrideRelationshipType).Root.Child(Drawing, "fontScheme");
+                if (scheme.Exists) yield return scheme;
+                part = part.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType);
             }
-            if (ownerPart is SlideLayoutPart layoutPart) {
-                if (layoutPart.ThemeOverridePart?.ThemeOverride?.FontScheme is A.FontScheme layoutScheme) yield return layoutScheme;
-                if (layoutPart.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.FontScheme is A.FontScheme masterScheme) yield return masterScheme;
-                yield break;
+
+            if (kind is PowerPointPartKind.Slide or PowerPointPartKind.SlideLayout) {
+                OfficeXmlNode scheme = part.RelatedPart(PowerPointPartRef.ThemeOverrideRelationshipType).Root.Child(Drawing, "fontScheme");
+                if (scheme.Exists) yield return scheme;
+                part = part.RelatedPart(PowerPointPartRef.SlideMasterRelationshipType);
             }
-            if (ownerPart is SlideMasterPart masterPart
-                && masterPart.ThemePart?.Theme?.ThemeElements?.FontScheme is A.FontScheme scheme) {
-                yield return scheme;
+
+            if (kind is PowerPointPartKind.Slide or PowerPointPartKind.SlideLayout or PowerPointPartKind.SlideMaster) {
+                OfficeXmlNode scheme = part.RelatedPart(PowerPointPartRef.ThemeRelationshipType).Root
+                    .Child(Drawing, "themeElements").Child(Drawing, "fontScheme");
+                if (scheme.Exists) yield return scheme;
             }
         }
 
-        private static string? ResolveColor(
-            PowerPointTextRun run,
-            IReadOnlyList<A.TextCharacterPropertiesType> sources) {
-            A.ColorScheme? colorScheme = ResolveColorScheme(run.OwnerPart);
-            OpenXmlCompositeElement? colorMap = ResolveColorMap(run.OwnerPart);
-            foreach (A.TextCharacterPropertiesType source in sources) {
-                A.SolidFill? fill = source.GetFirstChild<A.SolidFill>();
-                if (fill == null) continue;
-                OpenXmlElement effectiveFill = ApplyColorMap(fill, colorMap);
-                OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(effectiveFill, colorScheme);
-                if (color.HasValue) return color.Value.ToRgbHex();
+        private static string? ResolveColor(PowerPointPartRef owner, IReadOnlyList<OfficeXmlNode> sources) {
+            for (int index = 0; index < sources.Count; index++) {
+                OfficeXmlNode fill = sources[index].Child(Drawing, "solidFill");
+                if (fill.Exists && ResolveRunColor(fill, owner) is { } color) return color.ToRgbHex();
             }
 
             return null;
         }
 
-        private static string? ResolveTableColor(
-            PowerPointTextRun run,
-            IEnumerable<A.TableCellTextStyle> sources) {
-            A.ColorScheme? colorScheme = ResolveColorScheme(run.OwnerPart);
-            OpenXmlCompositeElement? colorMap = ResolveColorMap(run.OwnerPart);
-            foreach (A.TableCellTextStyle source in sources) {
-                OpenXmlElement? color = source.ChildElements.FirstOrDefault(IsColorElement)
-                    ?? source.GetFirstChild<A.FontReference>()?.ChildElements.FirstOrDefault(IsColorElement);
-                if (color == null) continue;
-                OpenXmlElement effectiveColor = ApplyColorMap(color, colorMap);
-                OfficeColor? resolved = OfficeOpenXmlThemeColorResolver.ResolveColor(effectiveColor, colorScheme);
-                if (resolved.HasValue) return resolved.Value.ToRgbHex();
+        private static string? ResolveTableColor(PowerPointPartRef owner, IReadOnlyList<OfficeXmlNode> sources) {
+            for (int index = 0; index < sources.Count; index++) {
+                OfficeXmlNode source = sources[index];
+                OfficeXmlNode color = OfficeOpenXmlThemeColorResolver.FindColorElement(source);
+                if (color.IsNone) color = OfficeOpenXmlThemeColorResolver.FindColorElement(source.Child(Drawing, "fontRef"));
+                if (color.Exists && ResolveRunColor(color, owner) is { } resolved) return resolved.ToRgbHex();
             }
+
             return null;
         }
 
-        private static bool IsColorElement(OpenXmlElement element) => element is
-            A.RgbColorModelHex or A.RgbColorModelPercentage or A.HslColor or A.SystemColor or A.SchemeColor or A.PresetColor;
-
-        private static OpenXmlElement ApplyColorMap(OpenXmlElement colorOwner, OpenXmlCompositeElement? colorMap) {
-            A.SchemeColor? scheme = colorOwner as A.SchemeColor ?? colorOwner.GetFirstChild<A.SchemeColor>();
-            string? schemeName = scheme?.GetAttribute("val", string.Empty).Value;
-            string? mapped = MapSchemeColor(schemeName, colorMap);
-            if (string.IsNullOrWhiteSpace(mapped)
-                || string.Equals(mapped, schemeName, StringComparison.OrdinalIgnoreCase)) return colorOwner;
-            OpenXmlElement clone = colorOwner.CloneNode(true);
-            (clone as A.SchemeColor ?? clone.GetFirstChild<A.SchemeColor>())!
-                .SetAttribute(new OpenXmlAttribute("val", string.Empty, mapped!));
-            return clone;
+        private static OfficeColor? ResolveRunColor(OfficeXmlNode color, PowerPointPartRef owner) {
+            PowerPointThemeScope scope = PowerPointThemeScope.For(owner);
+            OfficeXmlNode choice = OfficeOpenXmlThemeColorResolver.FindColorElement(color);
+            // Explicit dark/light slots bypass the role map for effective text styles.
+            string? token = choice.Is(Drawing, "schemeClr") ? choice.Attribute("val")?.Trim().ToLowerInvariant() : null;
+            OfficeXmlNode map = token is "tx1" or "tx2" or "text1" or "text2" or "bg1" or "bg2" or "background1" or "background2"
+                or "accent1" or "accent2" or "accent3" or "accent4" or "accent5" or "accent6" or "hlink" or "folhlink" or "hyperlink" or "followedhyperlink"
+                ? ResolveRunColorMap(owner, scope) : default;
+            return OfficeOpenXmlThemeColorResolver.ResolveColor(choice, scope.ColorScheme, colorMap: map);
         }
 
-        private static string? MapSchemeColor(string? scheme, OpenXmlCompositeElement? colorMap) {
-            if (string.IsNullOrWhiteSpace(scheme) || colorMap == null) return scheme;
-            string normalized = scheme!.Trim().ToLowerInvariant();
-            string? attribute = normalized switch {
-                "background1" or "bg1" => "bg1",
-                "text1" or "tx1" => "tx1",
-                "background2" or "bg2" => "bg2",
-                "text2" or "tx2" => "tx2",
-                "accent1" => "accent1",
-                "accent2" => "accent2",
-                "accent3" => "accent3",
-                "accent4" => "accent4",
-                "accent5" => "accent5",
-                "accent6" => "accent6",
-                "hyperlink" or "hlink" => "hlink",
-                "followedhyperlink" or "folhlink" => "folHlink",
-                _ => null
-            };
-            if (attribute == null) return scheme;
-            string? mapped = colorMap.GetAttribute(attribute, string.Empty).Value;
-            return string.IsNullOrWhiteSpace(mapped) ? scheme : mapped;
+        // Effective run styles historically use the nearest explicit mapping. Consuming-slide paint also
+        // honors the slide's explicit request to use the master mapping.
+        internal static OfficeXmlNode ResolveRunColorMap(PowerPointPartRef owner, PowerPointThemeScope scope) {
+            OfficeXmlNode slideOverride = owner.Kind == PowerPointPartKind.Slide
+                ? owner.Root.Child(Presentation, "clrMapOvr") : default;
+            if (slideOverride.Child(Drawing, "masterClrMapping").IsNone) return scope.ColorMap;
+            OfficeXmlNode layoutMap = owner.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType).Root
+                .Child(Presentation, "clrMapOvr").Child(Drawing, "overrideClrMapping");
+            return layoutMap.Exists ? layoutMap : scope.ColorMap;
         }
 
-        internal static A.ColorScheme? ResolveColorScheme(OpenXmlPartContainer? ownerPart) => ownerPart switch {
-            SlidePart slidePart => slidePart.ThemeOverridePart?.ThemeOverride?.ColorScheme
-                ?? slidePart.SlideLayoutPart?.ThemeOverridePart?.ThemeOverride?.ColorScheme
-                ?? slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme,
-            SlideLayoutPart layoutPart => layoutPart.ThemeOverridePart?.ThemeOverride?.ColorScheme
-                ?? layoutPart.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme,
-            SlideMasterPart masterPart => masterPart.ThemePart?.Theme?.ThemeElements?.ColorScheme,
-            _ => null
-        };
-
-        internal static OpenXmlCompositeElement? ResolveColorMap(OpenXmlPartContainer? ownerPart) => ownerPart switch {
-            SlidePart slidePart => slidePart.Slide?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
-                ?? slidePart.SlideLayoutPart?.SlideLayout?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
-                ?? (OpenXmlCompositeElement?)slidePart.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.ColorMap,
-            SlideLayoutPart layoutPart => layoutPart.SlideLayout?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
-                ?? (OpenXmlCompositeElement?)layoutPart.SlideMasterPart?.SlideMaster?.ColorMap,
-            SlideMasterPart masterPart => masterPart.SlideMaster?.ColorMap,
-            _ => null
-        };
-
-        private static IReadOnlyList<A.TextCharacterPropertiesType> ResolveDirectSources(
-            PowerPointTextRun run,
-            PowerPointParagraph paragraph,
-            A.ListStyle? listStyle, bool includeParagraphMark) {
-            var sources = new List<A.TextCharacterPropertiesType>();
-            if (includeParagraphMark && paragraph.Paragraph.GetFirstChild<A.EndParagraphRunProperties>() is { } paragraphMark)
+        private static List<OfficeXmlNode> ResolveDirectSources(
+            PowerPointTextRun? run, PowerPointParagraph paragraph, OfficeXmlNode listStyle, bool includeParagraphMark) {
+            OfficeXmlNode element = paragraph.Element;
+            OfficeXmlNode paragraphProperties = element.Child(Drawing, "pPr");
+            var sources = new List<OfficeXmlNode>(4);
+            if (includeParagraphMark && element.Child(Drawing, "endParaRPr") is { Exists: true } paragraphMark)
                 sources.Add(paragraphMark);
-            if (run.RunProperties != null) sources.Add(run.RunProperties);
-            A.DefaultRunProperties? paragraphDefaults = paragraph.Paragraph.ParagraphProperties?
-                .GetFirstChild<A.DefaultRunProperties>();
-            if (paragraphDefaults != null) sources.Add(paragraphDefaults);
-            int level = paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0;
+            if (run?.PropertiesElement is { Exists: true } runProperties) sources.Add(runProperties);
+            if (paragraphProperties.Child(Drawing, "defRPr") is { Exists: true } defaults) sources.Add(defaults);
+            int level = ParagraphLevel(paragraphProperties);
             sources.AddRange(FindDefaultRunProperties(listStyle, level));
-            var shape = paragraph.Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Shape>().FirstOrDefault();
-            if (shape?.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape != null) {
-                var owner = (paragraph.OwnerPart ?? run.OwnerPart) as SlidePart;
-                foreach (var inherited in EnumeratePlaceholderShapes(shape, owner?.SlideLayoutPart).Skip(1))
-                    AddPlaceholderDefaults(sources, inherited, level);
+            // Text paragraphs belong to a shape only at the text body's direct schema path.
+            OfficeXmlNode body = element.Parent;
+            OfficeXmlNode shape = body.Is(Presentation, "txBody") ? body.Parent : default;
+            if (ShapePlaceholder(shape).Exists) {
+                PowerPointPartRef owner = paragraph.OwnerPartRef;
+                if (owner.IsNone) owner = run?.OwnerPartRef ?? default;
+                if (owner.Kind == PowerPointPartKind.Slide) {
+                    foreach (OfficeXmlNode inherited in EnumeratePlaceholderShapes(shape,
+                                 owner.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType)).Skip(1)) {
+                        AddPlaceholderDefaults(sources, inherited, level);
+                    }
+                }
             }
+
             return sources;
         }
 
         /// <summary>Finds the nearest authored highlight using the same character inheritance as fonts and emphasis.</summary>
-        internal static A.Highlight? ResolveHighlightElement(PowerPointTextRun? run, PowerPointParagraph? paragraph,
-            A.ListStyle? listStyle, OpenXmlCompositeElement? masterTextStyle) {
-            if (run == null) return null;
-            if (paragraph == null) return run.RunProperties?.GetFirstChild<A.Highlight>();
-            IEnumerable<A.TextCharacterPropertiesType> sources = ResolveDirectSources(run, paragraph, listStyle, includeParagraphMark: false);
-            int level = paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0;
-            return sources.Concat(FindDefaultRunProperties(masterTextStyle, level))
-                .Select(properties => properties.GetFirstChild<A.Highlight>()).FirstOrDefault(highlight => highlight != null);
+        internal static OfficeXmlNode ResolveHighlightElement(PowerPointTextRun? run, PowerPointParagraph? paragraph,
+            OfficeXmlNode listStyle, OfficeXmlNode masterTextStyle) {
+            if (run == null) return default;
+            if (paragraph == null) return run.PropertiesElement.Child(Drawing, "highlight");
+            int level = ParagraphLevel(paragraph.Element.Child(Drawing, "pPr"));
+            foreach (OfficeXmlNode properties in ResolveDirectSources(run, paragraph, listStyle, includeParagraphMark: false)
+                         .Concat(FindDefaultRunProperties(masterTextStyle, level))) {
+                OfficeXmlNode highlight = properties.Child(Drawing, "highlight");
+                if (highlight.Exists) return highlight;
+            }
+
+            return default;
         }
 
-        private static IEnumerable<A.DefaultRunProperties> FindDefaultRunProperties(
-            OpenXmlCompositeElement? container,
-            int level) {
-            foreach (A.TextParagraphPropertiesType properties in FindParagraphProperties(container, level)) {
-                if (properties.GetFirstChild<A.DefaultRunProperties>() is { } defaults) yield return defaults;
+        private static int ParagraphLevel(OfficeXmlNode properties) => properties.Int32Attribute("lvl") ?? 0;
+
+        private static IEnumerable<OfficeXmlNode> FindDefaultRunProperties(OfficeXmlNode container, int level) {
+            foreach (OfficeXmlNode properties in FindParagraphProperties(container, level)) {
+                if (properties.Child(Drawing, "defRPr") is { Exists: true } defaults) yield return defaults;
             }
         }
 
-        private static IEnumerable<A.TextParagraphPropertiesType> FindParagraphProperties(
-            OpenXmlCompositeElement? container, int level) {
-            A.TextParagraphPropertiesType? levelProperties = container?
-                .ChildElements
-                .OfType<A.TextParagraphPropertiesType>()
-                .FirstOrDefault(properties => GetTextLevel(properties) == level);
-            if (levelProperties != null) yield return levelProperties;
-            if (container?.GetFirstChild<A.DefaultParagraphProperties>() is { } fallback) yield return fallback;
-        }
-
-        private static int GetTextLevel(A.TextParagraphPropertiesType properties) => properties switch {
-            A.Level1ParagraphProperties => 0,
-            A.Level2ParagraphProperties => 1,
-            A.Level3ParagraphProperties => 2,
-            A.Level4ParagraphProperties => 3,
-            A.Level5ParagraphProperties => 4,
-            A.Level6ParagraphProperties => 5,
-            A.Level7ParagraphProperties => 6,
-            A.Level8ParagraphProperties => 7,
-            A.Level9ParagraphProperties => 8,
-            _ => -1
+        private static readonly string[] LevelProperties = {
+            "lvl1pPr", "lvl2pPr", "lvl3pPr", "lvl4pPr", "lvl5pPr", "lvl6pPr", "lvl7pPr", "lvl8pPr", "lvl9pPr"
         };
 
-        private static PowerPointStrikeStyle? ToStrikeStyle(A.TextStrikeValues? value) {
-            if (!value.HasValue) return null;
-            if (value.Value == A.TextStrikeValues.NoStrike) return PowerPointStrikeStyle.None;
-            if (value.Value == A.TextStrikeValues.SingleStrike) return PowerPointStrikeStyle.Single;
-            if (value.Value == A.TextStrikeValues.DoubleStrike) return PowerPointStrikeStyle.Double;
-            return null;
+        private static IEnumerable<OfficeXmlNode> FindParagraphProperties(OfficeXmlNode container, int level) {
+            if (container.IsNone) yield break;
+            if (level >= 0 && level < LevelProperties.Length
+                && container.Child(Drawing, LevelProperties[level]) is { Exists: true } levelProperties) yield return levelProperties;
+            if (container.Child(Drawing, "defPPr") is { Exists: true } fallback) yield return fallback;
         }
 
-        private static PowerPointCapitalization? ToCapitalization(A.TextCapsValues? value) {
-            if (!value.HasValue) return null;
-            if (value.Value == A.TextCapsValues.None) return PowerPointCapitalization.None;
-            if (value.Value == A.TextCapsValues.Small) return PowerPointCapitalization.SmallCaps;
-            if (value.Value == A.TextCapsValues.All) return PowerPointCapitalization.AllCaps;
-            return null;
-        }
+        private static PowerPointStrikeStyle? ToStrikeStyle(string? value) => value switch {
+            "noStrike" => PowerPointStrikeStyle.None,
+            "sngStrike" => PowerPointStrikeStyle.Single,
+            "dblStrike" => PowerPointStrikeStyle.Double,
+            _ => null
+        };
+
+        private static PowerPointCapitalization? ToCapitalization(string? value) => value switch {
+            "none" => PowerPointCapitalization.None,
+            "small" => PowerPointCapitalization.SmallCaps,
+            "all" => PowerPointCapitalization.AllCaps,
+            _ => null
+        };
     }
 }

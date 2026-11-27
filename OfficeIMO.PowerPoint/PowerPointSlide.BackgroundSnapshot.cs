@@ -1,8 +1,7 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -29,204 +28,164 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointSlideBackground GetBackgroundColors() => GetBackgroundCore(maximumImageBytes: null, includeImageData: false);
 
         private PowerPointSlideBackground GetBackgroundCore(int? maximumImageBytes, Func<int>? imageReadLimit = null, bool includeImageData = true) {
-            (BackgroundProperties? properties, OpenXmlPart? ownerPart) = GetResolvedBackgroundProperties();
-            if (properties == null || !properties.HasChildren) {
-                BackgroundStyleReference? styleReference = GetResolvedBackgroundStyleReference().StyleReference;
-                return styleReference != null
-                    ? GetBackgroundStyleReference(styleReference)
-                    : PowerPointSlideBackground.None();
+            PowerPointPartRef slide = PartRef;
+            PowerPointPartRef layout = slide.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType);
+            PowerPointPartRef master = layout.RelatedPart(PowerPointPartRef.SlideMasterRelationshipType);
+            OfficeXmlNode slideBackground = BackgroundOf(slide);
+            OfficeXmlNode layoutBackground = BackgroundOf(layout);
+            OfficeXmlNode masterBackground = BackgroundOf(master);
+            OfficeXmlNode properties;
+            PowerPointPartRef owner;
+            if (DefinesBackground(slideBackground)) {
+                properties = slideBackground.Child(OfficeXmlNamespaces.PresentationML, "bgPr");
+                owner = slide;
+            } else if (DefinesBackground(layoutBackground)) {
+                properties = layoutBackground.Child(OfficeXmlNamespaces.PresentationML, "bgPr");
+                owner = layout;
+            } else {
+                properties = masterBackground.Child(OfficeXmlNamespaces.PresentationML, "bgPr");
+                owner = master;
             }
 
-            if (properties.GetFirstChild<A.NoFill>() != null) return PowerPointSlideBackground.None();
-
-            A.SolidFill? solidFill = properties.GetFirstChild<A.SolidFill>();
-            string? solidColor = null;
-            if (solidFill != null) {
-                A.ColorScheme? colorScheme = ResolvedColorScheme;
-                OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(solidFill, colorScheme, colorMap: ResolvedColorMap);
-                solidColor = color.HasValue ? FormatBackgroundColor(color.Value) : null;
+            if (properties.FirstChild.IsNone) {
+                OfficeXmlNode reference = slideBackground.Child(OfficeXmlNamespaces.PresentationML, "bgRef");
+                if (reference.IsNone) reference = layoutBackground.Child(OfficeXmlNamespaces.PresentationML, "bgRef");
+                if (reference.IsNone) reference = masterBackground.Child(OfficeXmlNamespaces.PresentationML, "bgRef");
+                return reference.IsNone
+                    ? PowerPointSlideBackground.None()
+                    : GetBackgroundStyleReference(reference, PowerPointThemeScope.For(slide));
             }
 
-            if (!string.IsNullOrWhiteSpace(solidColor)) {
-                return PowerPointSlideBackground.SolidColor(solidColor!);
+            const int drawing = OfficeXmlNamespaces.DrawingML;
+            if (properties.Child(drawing, "noFill").Exists) return PowerPointSlideBackground.None();
+
+            OfficeXmlNode solid = properties.Child(drawing, "solidFill");
+            if (solid.Exists) {
+                PowerPointThemeScope scope = PowerPointThemeScope.For(slide);
+                OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(solid, scope.ColorScheme, colorMap: scope.ColorMap);
+                if (color.HasValue) return PowerPointSlideBackground.SolidColor(FormatBackgroundColor(color.Value));
             }
 
-            A.BlipFill? blipFill = properties.GetFirstChild<A.BlipFill>();
-            if (blipFill != null) {
+            OfficeXmlNode picture = properties.Child(drawing, "blipFill");
+            if (picture.Exists) {
                 return includeImageData
-                    ? GetBackgroundImage(blipFill, ownerPart ?? SlidePart, imageReadLimit?.Invoke() ?? maximumImageBytes)
+                    ? GetBackgroundImage(picture, owner, imageReadLimit?.Invoke() ?? maximumImageBytes)
                     : PowerPointSlideBackground.None();
             }
 
-            A.GradientFill? gradientFill = properties.GetFirstChild<A.GradientFill>();
-            if (gradientFill != null) {
-                A.ColorScheme? colorScheme = ResolvedColorScheme;
-                return GetBackgroundGradient(gradientFill, colorScheme, placeholderColor: null, colorMap: ResolvedColorMap);
-            }
-
-            return PowerPointSlideBackground.Unsupported("The slide background fill type is not currently supported by OfficeIMO exporters.");
+            OfficeXmlNode gradient = properties.Child(drawing, "gradFill");
+            return gradient.Exists
+                ? GetBackgroundGradient(gradient, PowerPointThemeScope.For(slide))
+                : PowerPointSlideBackground.Unsupported("The slide background fill type is not currently supported by OfficeIMO exporters.");
         }
 
-        private (BackgroundProperties? Properties, OpenXmlPart? OwnerPart) GetResolvedBackgroundProperties() {
-            Background? slideBackground = SlideRoot.CommonSlideData?.Background;
-            BackgroundProperties? slideProperties = slideBackground?.BackgroundProperties;
-            if (slideBackground?.BackgroundStyleReference != null || slideProperties?.HasChildren == true) {
-                return (slideProperties, SlidePart);
-            }
+        private static OfficeXmlNode BackgroundOf(PowerPointPartRef part) =>
+            part.Root.Child(OfficeXmlNamespaces.PresentationML, "cSld").Child(OfficeXmlNamespaces.PresentationML, "bg");
 
-            SlideLayoutPart? layoutPart = SlidePart.SlideLayoutPart;
-            Background? layoutBackground = layoutPart?.SlideLayout?.CommonSlideData?.Background;
-            BackgroundProperties? layoutProperties = layoutBackground?.BackgroundProperties;
-            if (layoutBackground?.BackgroundStyleReference != null || layoutProperties?.HasChildren == true) {
-                return (layoutProperties, layoutPart);
-            }
+        private static bool DefinesBackground(OfficeXmlNode background) =>
+            background.Child(OfficeXmlNamespaces.PresentationML, "bgRef").Exists
+            || background.Child(OfficeXmlNamespaces.PresentationML, "bgPr").FirstChild.Exists;
 
-            SlideMasterPart? masterPart = layoutPart?.SlideMasterPart;
-            BackgroundProperties? masterProperties = masterPart?.SlideMaster?.CommonSlideData?.Background?.BackgroundProperties;
-            if (masterProperties != null && masterProperties.HasChildren) {
-                return (masterProperties, masterPart);
-            }
-
-            return (null, null);
-        }
-
-        private (BackgroundStyleReference? StyleReference, OpenXmlPart? OwnerPart) GetResolvedBackgroundStyleReference() {
-            BackgroundStyleReference? slideReference = SlideRoot.CommonSlideData?.Background?.BackgroundStyleReference;
-            if (slideReference != null) {
-                return (slideReference, SlidePart);
-            }
-
-            SlideLayoutPart? layoutPart = SlidePart.SlideLayoutPart;
-            BackgroundStyleReference? layoutReference = layoutPart?.SlideLayout?.CommonSlideData?.Background?.BackgroundStyleReference;
-            if (layoutReference != null) {
-                return (layoutReference, layoutPart);
-            }
-
-            SlideMasterPart? masterPart = layoutPart?.SlideMasterPart;
-            BackgroundStyleReference? masterReference = masterPart?.SlideMaster?.CommonSlideData?.Background?.BackgroundStyleReference;
-            if (masterReference != null) {
-                return (masterReference, masterPart);
-            }
-
-            return (null, null);
-        }
-
-        private PowerPointSlideBackground GetBackgroundStyleReference(BackgroundStyleReference styleReference) {
-            A.FormatScheme? formatScheme = ResolvedFormatScheme;
-            if (formatScheme == null) {
+        private static PowerPointSlideBackground GetBackgroundStyleReference(OfficeXmlNode reference, PowerPointThemeScope scope) {
+            if (scope.FormatScheme.IsNone) {
                 return PowerPointSlideBackground.Unsupported("The slide background references a theme background style but no theme format scheme could be resolved.");
             }
 
-            OpenXmlElement? fill = ResolveThemeBackgroundFill(formatScheme, styleReference.Index?.Value);
-            if (fill == null) {
+            OfficeXmlNode fill = ResolveThemeBackgroundFill(scope.FormatScheme, reference.UInt32Attribute("idx"));
+            if (fill.IsNone) {
                 return PowerPointSlideBackground.Unsupported("The slide background references a theme background style that could not be resolved.");
             }
 
-            A.ColorScheme? colorScheme = ResolvedColorScheme;
-            OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(
-                fill as A.SolidFill ?? fill.GetFirstChild<A.SolidFill>(),
-                colorScheme, styleReference, ResolvedColorMap);
-            string? solidColor = color.HasValue ? FormatBackgroundColor(color.Value) : null;
-            if (!string.IsNullOrWhiteSpace(solidColor)) {
-                return PowerPointSlideBackground.SolidColor(solidColor!);
-            }
+            const int drawing = OfficeXmlNamespaces.DrawingML;
+            OfficeXmlNode solid = fill.Is(drawing, "solidFill") ? fill : fill.Child(drawing, "solidFill");
+            OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(solid, scope.ColorScheme, reference, scope.ColorMap);
+            if (color.HasValue) return PowerPointSlideBackground.SolidColor(FormatBackgroundColor(color.Value));
 
-            A.GradientFill? gradientFill = fill as A.GradientFill ?? fill.GetFirstChild<A.GradientFill>();
-            if (gradientFill != null) {
-                return GetBackgroundGradient(gradientFill, colorScheme,
-                    styleReference, ResolvedColorMap);
-            }
-
-            return PowerPointSlideBackground.Unsupported("The slide background references a theme background fill type that is not currently supported by OfficeIMO exporters.");
+            OfficeXmlNode gradient = fill.Is(drawing, "gradFill") ? fill : fill.Child(drawing, "gradFill");
+            return gradient.Exists
+                ? GetBackgroundGradient(gradient, scope, reference)
+                : PowerPointSlideBackground.Unsupported("The slide background references a theme background fill type that is not currently supported by OfficeIMO exporters.");
         }
 
-        private static OpenXmlElement? ResolveThemeBackgroundFill(A.FormatScheme formatScheme, uint? index) {
-            if (!index.HasValue || index.Value == 0U || index.Value == 1000U) return null;
+        private static OfficeXmlNode ResolveThemeBackgroundFill(OfficeXmlNode formatScheme, uint? index) {
+            if (!index.HasValue || index.Value == 0U || index.Value == 1000U) return default;
             bool background = index.Value >= 1001U;
-            OpenXmlElementList fills = (background
-                ? formatScheme.GetFirstChild<A.BackgroundFillStyleList>()?.ChildElements
-                : formatScheme.GetFirstChild<A.FillStyleList>()?.ChildElements) ?? default;
-            uint zeroBased = index.Value - (background ? 1001U : 1U);
-            return zeroBased < unchecked((uint)fills.Count) ? fills[(int)zeroBased] : null;
+            uint remaining = index.Value - (background ? 1001U : 1U);
+            foreach (OfficeXmlNode fill in formatScheme.Child(OfficeXmlNamespaces.DrawingML,
+                background ? "bgFillStyleLst" : "fillStyleLst").Children()) {
+                if (remaining-- == 0U) return fill;
+            }
+
+            return default;
         }
 
         private static PowerPointSlideBackground GetBackgroundImage(
-            A.BlipFill blipFill,
-            OpenXmlPart ownerPart,
-            int? maximumImageBytes) {
-            string? relationshipId = blipFill.Blip?.Embed?.Value;
+            OfficeXmlNode blipFill, PowerPointPartRef owner, int? maximumImageBytes) {
+            const int drawing = OfficeXmlNamespaces.DrawingML;
+            string? relationshipId = blipFill.Child(drawing, "blip").Attribute(OfficeXmlNamespaces.Relationships, "embed");
             if (string.IsNullOrWhiteSpace(relationshipId)) {
                 return PowerPointSlideBackground.Unsupported("The slide background image is missing its relationship id.");
             }
 
-            ImagePart? imagePart;
-            try {
-                imagePart = ownerPart.GetPartById(relationshipId!) as ImagePart;
-            } catch (ArgumentOutOfRangeException) {
+            if (!owner.TryGetRelationship(relationshipId!, out PowerPointRelationship relationship) || relationship.TargetPart.IsNone) {
                 return PowerPointSlideBackground.Unsupported("The slide background image relationship could not be resolved.");
             }
 
-            if (imagePart == null) {
+            PowerPointPartRef image = relationship.TargetPart;
+            string? contentType = image.ContentType;
+            if (OfficeXmlNamespaces.NormalizeRelationshipType(relationship.Type)
+                != "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" || contentType == null) {
                 return PowerPointSlideBackground.Unsupported("The slide background relationship does not point to an image part.");
             }
 
-            using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-            byte[] imageBytes = maximumImageBytes.HasValue
-                ? OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source, maximumImageBytes.Value)
-                : OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(source);
-            PowerPointImageCrop crop = ReadSourceCrop(blipFill.SourceRectangle);
-            if (blipFill.GetFirstChild<A.Tile>() != null) {
+            byte[] imageBytes = image.ReadBytes(maximumImageBytes);
+            OfficeXmlNode crop = blipFill.Child(drawing, "srcRect");
+            if (blipFill.Child(drawing, "tile").Exists) {
                 return PowerPointSlideBackground.Unsupported("The slide background image uses tiled placement, which is not currently supported by OfficeIMO exporters.");
             }
 
-            return PowerPointSlideBackground.Image(imageBytes, imagePart.ContentType, crop);
+            return PowerPointSlideBackground.Image(imageBytes, contentType, new PowerPointImageCrop(
+                ToCropFraction(crop.Int32Attribute("l")), ToCropFraction(crop.Int32Attribute("t")),
+                ToCropFraction(crop.Int32Attribute("r")), ToCropFraction(crop.Int32Attribute("b"))));
         }
 
-        private static PowerPointImageCrop ReadSourceCrop(A.SourceRectangle? rect) {
-            if (rect == null) {
-                return PowerPointImageCrop.None;
-            }
-
-            return new PowerPointImageCrop(
-                ToCropFraction(rect.Left?.Value),
-                ToCropFraction(rect.Top?.Value),
-                ToCropFraction(rect.Right?.Value),
-                ToCropFraction(rect.Bottom?.Value));
-        }
-
-        private static double ToCropFraction(int? value) {
-            if (!value.HasValue) {
-                return 0D;
-            }
-
-            return Math.Min(0.999999D, Math.Max(0D, value.Value / 100000D));
-        }
+        private static double ToCropFraction(int? value) =>
+            Math.Min(0.999999D, Math.Max(0D, (value ?? 0) / 100000D));
 
         private static PowerPointSlideBackground GetBackgroundGradient(
-            A.GradientFill gradientFill, A.ColorScheme? colorScheme,
-            OpenXmlElement? placeholderColor, OpenXmlElement? colorMap) {
-            A.LinearGradientFill? linearGradientFill = gradientFill.GetFirstChild<A.LinearGradientFill>();
-            if (linearGradientFill == null) {
+            OfficeXmlNode gradient, PowerPointThemeScope scope, OfficeXmlNode placeholderColor = default) {
+            const int drawing = OfficeXmlNamespaces.DrawingML;
+            OfficeXmlNode linear = gradient.Child(drawing, "lin");
+            if (linear.IsNone) {
                 return PowerPointSlideBackground.Unsupported("The slide background uses a path or radial gradient, which is not currently supported by OfficeIMO exporters.");
             }
 
-            A.GradientStop[] stops = gradientFill.GetFirstChild<A.GradientStopList>()?
-                .Elements<A.GradientStop>()
-                .OrderBy(stop => stop.Position?.Value ?? 0)
-                .ToArray() ?? Array.Empty<A.GradientStop>();
+            OfficeXmlNode first = default, last = default;
+            int firstPosition = int.MaxValue, lastPosition = int.MinValue;
+            foreach (OfficeXmlNode stop in gradient.Child(drawing, "gsLst").Children(drawing, "gs")) {
+                int position = stop.Int32Attribute("pos") ?? 0;
+                if (first.IsNone || position < firstPosition) {
+                    first = stop;
+                    firstPosition = position;
+                }
+                if (last.IsNone || position >= lastPosition) {
+                    last = stop;
+                    lastPosition = position;
+                }
+            }
 
-            if (stops.Length < 2) {
+            if (first == last) {
                 return PowerPointSlideBackground.Unsupported("The slide background gradient has fewer than two stops.");
             }
 
-            OfficeColor? startColor = OfficeOpenXmlThemeColorResolver.ResolveColor(stops[0], colorScheme, placeholderColor, colorMap);
-            OfficeColor? endColor = OfficeOpenXmlThemeColorResolver.ResolveColor(stops[stops.Length - 1], colorScheme, placeholderColor, colorMap);
+            OfficeColor? startColor = OfficeOpenXmlThemeColorResolver.ResolveColor(first, scope.ColorScheme, placeholderColor, scope.ColorMap);
+            OfficeColor? endColor = OfficeOpenXmlThemeColorResolver.ResolveColor(last, scope.ColorScheme, placeholderColor, scope.ColorMap);
             if (!startColor.HasValue || !endColor.HasValue) {
                 return PowerPointSlideBackground.Unsupported("The slide background gradient uses colors that could not be resolved.");
             }
 
-            double angleDegrees = (linearGradientFill.Angle?.Value ?? 0) / 60000D;
-            return PowerPointSlideBackground.LinearGradient(FormatBackgroundColor(startColor.Value), FormatBackgroundColor(endColor.Value), angleDegrees);
+            double angle = (linear.Int32Attribute("ang") ?? 0) / 60000D;
+            return PowerPointSlideBackground.LinearGradient(FormatBackgroundColor(startColor.Value), FormatBackgroundColor(endColor.Value), angle);
         }
 
         private static string FormatBackgroundColor(OfficeColor color) =>

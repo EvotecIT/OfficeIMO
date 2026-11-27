@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -47,6 +48,8 @@ namespace OfficeIMO.PowerPoint {
             while (pending.Count > 0) {
                 for (int child = slide.FirstChildOf(pending.Pop()); child != OfficeXmlTree.NoNode; child = slide.NextSiblingOf(child)) {
                     if (slide.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
+                    string name = slide.LocalNameOf(child);
+                    if (name == "extLst" || slide.IsElement(child, OfficeXmlNamespaces.MarkupCompatibility, "AlternateContent")) continue;
                     if (slide.IsElement(child, OfficeXmlNamespaces.PresentationML, "cNvPr")) {
                         string? value = slide.GetAttribute(child, OfficeXmlNamespaces.None, "id");
                         uint id = 0U;
@@ -57,34 +60,6 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
             return true;
-        }
-
-        // Adds a text box to the package tree as AddTextBox writes it; null when the slide or document can't be edited
-        // that way, and the caller adds it through the SDK.
-        private PowerPointTextBox? TryAddPackageTextBox(string text, long left, long top, long width, long height) {
-            if (!TryGetEditablePackageShapeTree(out OfficeXmlTree slide, out int tree) || !TryGetPackageMaxShapeId(out _)) return null;
-            string name = GenerateUniqueName("TextBox");
-            uint id = AllocateShapeId();
-            // Reading names or ids can open the SDK for a shape the package does not read; the SDK then adds it.
-            if (!IsPackageBacked) return null;
-
-            int shape = slide.CreateElement(OfficeXmlNamespaces.PresentationML, "sp");
-            int nonVisual = PowerPointDocument.Append(slide, shape, OfficeXmlNamespaces.PresentationML, "nvSpPr");
-            int drawing = PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvPr");
-            slide.SetAttribute(drawing, OfficeXmlNamespaces.None, "id", id.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            slide.SetAttribute(drawing, OfficeXmlNamespaces.None, "name", name);
-            int shapeDrawing = PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvSpPr");
-            slide.SetAttribute(shapeDrawing, OfficeXmlNamespaces.None, "txBox", "1");
-            slide.SetAttribute(PowerPointDocument.Append(slide, shapeDrawing, OfficeXmlNamespaces.DrawingML, "spLocks"), OfficeXmlNamespaces.None, "noGrp", "1");
-            PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "nvPr");
-            AppendRectangle(slide, PowerPointDocument.Append(slide, shape, OfficeXmlNamespaces.PresentationML, "spPr"), left, top, width, height);
-            int body = PowerPointDocument.Append(slide, shape, OfficeXmlNamespaces.PresentationML, "txBody");
-            PowerPointDocument.Append(slide, body, OfficeXmlNamespaces.DrawingML, "bodyPr");
-            PowerPointDocument.Append(slide, body, OfficeXmlNamespaces.DrawingML, "lstStyle");
-            PowerPointTreeText.AppendInlineContent(slide, PowerPointDocument.Append(slide, body, OfficeXmlNamespaces.DrawingML, "p"), text, OfficeXmlTree.NoNode);
-            slide.Append(tree, shape);
-            OwnerDocument!.MarkPackageEdited();
-            return TrackShape(new PowerPointTextBox(this, slide, shape));
         }
 
         // Adds a picture to the package tree as AddImage writes it, its image part shared with an identical image added
@@ -255,31 +230,6 @@ namespace OfficeIMO.PowerPoint {
         }
 
 
-        // The slide's visibility on the package: the slide root's show flag, or else the legacy flag on its slide list entry.
-        private bool TryGetPackageHidden(out bool hidden) {
-            hidden = false;
-            if (PackageTree is not { } slide || OwnerDocument?.GetPackageSlideEntry(PackagePartName!) is not { } entry) return false;
-            if (slide.GetAttribute(slide.Root, OfficeXmlNamespaces.None, "show") is { } show) {
-                switch (show) {
-                    case "1": case "true": hidden = false; return true;
-                    case "0": case "false": hidden = true; return true;
-                    default: return false;
-                }
-            }
-            hidden = IsHiddenShowValue(entry.Tree.GetAttribute(entry.Node, OfficeXmlNamespaces.None, "show"));
-            return true;
-        }
-
-        // Writes the visibility as the setter does: the slide root's show flag, and no legacy flag on the slide list entry.
-        private bool TrySetPackageHidden(bool hidden) {
-            if (OwnerDocument?.CanEditPackage != true || PackageTree is not { } slide || OwnerDocument.GetPackageSlideEntry(PackagePartName!) is not { } entry) return false;
-            entry.Tree.RemoveAttribute(entry.Node, OfficeXmlNamespaces.None, "show");
-            if (hidden) slide.SetAttribute(slide.Root, OfficeXmlNamespaces.None, "show", "0");
-            else slide.RemoveAttribute(slide.Root, OfficeXmlNamespaces.None, "show");
-            OwnerDocument.MarkPackageEdited();
-            return true;
-        }
-
         // Loads the shapes from the package tree; false, having loaded nothing, when the slide holds shapes that are
         // read through the SDK.
         private bool TryLoadPackageShapes() {
@@ -301,6 +251,20 @@ namespace OfficeIMO.PowerPoint {
             _shapes.AddRange(shapes);
             _shapesFromPackage = true;
             return true;
+        }
+
+        // Wraps a drawing child while retaining the part that owns its relationships and the slide that renders it.
+        private PowerPointShape? WrapSlideShape(OfficeXmlNode element, PowerPointPartRef owner) {
+            if (element.Tree is { } tree) {
+                if (owner.Equals(PartRef)) {
+                    TryCreatePackageShape(tree, element.Node, out PowerPointShape? slideShape);
+                    return slideShape;
+                }
+
+                return PowerPointMasterSurface.CreatePackageShape(owner, element)?.AttachToPackageSlide(this);
+            }
+
+            return WrapSdkSlideShape(element, owner);
         }
 
         // A shape for an element of the shape tree, null for an element the slide model does not list; false for a shape
