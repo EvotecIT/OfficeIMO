@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Drawing.Charts;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Defines reusable data label settings for chart series.

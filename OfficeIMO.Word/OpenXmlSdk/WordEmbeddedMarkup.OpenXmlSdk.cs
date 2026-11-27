@@ -56,9 +56,11 @@ internal static partial class WordEmbeddedMarkup {
         int count = tree.AttributeCountOf(node);
         List<OpenXmlAttribute>? written = null;
         for (int index = 0; index < count; index++) {
-            tree.GetAttributeAt(node, index, out string prefix, out string localName, out string namespaceUri, out string value, out bool declaration);
-            if (declaration) continue;
-            (written ??= new List<OpenXmlAttribute>(count)).Add(new OpenXmlAttribute(prefix, localName, namespaceUri, value));
+            OfficeXmlName name = tree.AttributeNameAt(node, index);
+            if (name.NamespaceId == OfficeXmlNamespaces.Xmlns) continue;
+            string namespaceUri = name.NamespaceId == OfficeXmlNamespaces.None ? string.Empty : tree.Namespaces.GetUriById(name.UriId);
+            (written ??= new List<OpenXmlAttribute>(count)).Add(
+                new OpenXmlAttribute(name.Prefix ?? string.Empty, name.LocalName, namespaceUri, tree.AttributeValueAt(node, index)));
         }
         if (!SameAttributes(element.GetAttributes(), written)) {
             element.ClearAllAttributes();

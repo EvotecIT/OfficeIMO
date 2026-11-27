@@ -885,9 +885,9 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_BulletType() {
             using var doc = WordDocument.Create();
             var list = doc.AddList(WordListStyle.Bulleted);
-            list.Numbering.Levels[0]._level.LevelText!.Val = "o";
+            list.Numbering.Levels[0].OpenXmlLevel().LevelText!.Val = "o";
             // These are literal text markers, not character codes in a symbol font.
-            list.Numbering.Levels[0]._level.NumberingSymbolRunProperties = null;
+            list.Numbering.Levels[0].OpenXmlLevel().NumberingSymbolRunProperties = null;
             list.AddItem("One");
             list.AddItem("Two");
 
@@ -900,7 +900,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_LowerLetter() {
             using var doc = WordDocument.Create();
             var list = doc.AddList(WordListStyle.ArticleSections);
-            list.Numbering.Levels[0]._level.NumberingFormat!.Val = NumberFormatValues.LowerLetter;
+            list.Numbering.Levels[0].OpenXmlLevel().NumberingFormat!.Val = NumberFormatValues.LowerLetter;
             list.AddItem("alpha");
             list.AddItem("beta");
 
@@ -914,7 +914,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_DecimalLeadingZero() {
             using var doc = WordDocument.Create();
             var list = doc.AddList(WordListStyle.ArticleSections);
-            list.Numbering.Levels[0]._level.NumberingFormat!.Val = NumberFormatValues.DecimalZero;
+            list.Numbering.Levels[0].OpenXmlLevel().NumberingFormat!.Val = NumberFormatValues.DecimalZero;
             list.Numbering.Levels[0].SetStartNumberingValue(3);
             list.AddItem("three");
             list.AddItem("four");
@@ -930,7 +930,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_InternationalListStyle() {
             using var doc = WordDocument.Create();
             var list = doc.AddList(WordListStyle.Numbered);
-            list.Numbering.Levels[0]._level.NumberingFormat!.Val = NumberFormatValues.RussianLower;
+            list.Numbering.Levels[0].OpenXmlLevel().NumberingFormat!.Val = NumberFormatValues.RussianLower;
             list.AddItem("alpha");
             list.AddItem("beta");
 
@@ -944,8 +944,8 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_DashBulletListStyle() {
             using var doc = WordDocument.Create();
             var list = doc.AddList(WordListStyle.Bulleted);
-            list.Numbering.Levels[0]._level.LevelText!.Val = "-";
-            list.Numbering.Levels[0]._level.NumberingSymbolRunProperties = null;
+            list.Numbering.Levels[0].OpenXmlLevel().LevelText!.Val = "-";
+            list.Numbering.Levels[0].OpenXmlLevel().NumberingSymbolRunProperties = null;
             list.AddItem("One");
             list.AddItem("Two");
 
@@ -960,12 +960,12 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_EditorMarkerBulletListStyles() {
             using var doc = WordDocument.Create();
             var starList = doc.AddList(WordListStyle.Bulleted);
-            starList.Numbering.Levels[0]._level.LevelText!.Val = "*";
-            starList.Numbering.Levels[0]._level.NumberingSymbolRunProperties = null;
+            starList.Numbering.Levels[0].OpenXmlLevel().LevelText!.Val = "*";
+            starList.Numbering.Levels[0].OpenXmlLevel().NumberingSymbolRunProperties = null;
             starList.AddItem("Star");
             var plusList = doc.AddList(WordListStyle.Bulleted);
-            plusList.Numbering.Levels[0]._level.LevelText!.Val = "+";
-            plusList.Numbering.Levels[0]._level.NumberingSymbolRunProperties = null;
+            plusList.Numbering.Levels[0].OpenXmlLevel().LevelText!.Val = "+";
+            plusList.Numbering.Levels[0].OpenXmlLevel().NumberingSymbolRunProperties = null;
             plusList.AddItem("Plus");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
@@ -978,10 +978,10 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_CustomBulletListStyle() {
             using var doc = WordDocument.Create();
             var checkList = doc.AddList(WordListStyle.Bulleted);
-            checkList.Numbering.Levels[0]._level.LevelText!.Val = "✓";
+            checkList.Numbering.Levels[0].OpenXmlLevel().LevelText!.Val = "✓";
             checkList.AddItem("Done");
             var diamondList = doc.AddList(WordListStyle.Bulleted);
-            diamondList.Numbering.Levels[0]._level.LevelText!.Val = "◆";
+            diamondList.Numbering.Levels[0].OpenXmlLevel().LevelText!.Val = "◆";
             diamondList.AddItem("Diamond");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });

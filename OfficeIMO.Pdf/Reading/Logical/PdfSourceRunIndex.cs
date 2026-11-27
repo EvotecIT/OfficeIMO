@@ -5,7 +5,9 @@ namespace OfficeIMO.Pdf;
 /// Owners enumerate in the order they were first added, as a <see cref="HashSet{T}"/> without removals does.
 /// </summary>
 internal sealed class PdfSourceRunIndex<TOwner> where TOwner : class {
-    private readonly Dictionary<PdfTextSpan, object> _owners = new();
+    private readonly Dictionary<PdfTextSpan, object> _owners;
+
+    internal PdfSourceRunIndex(int capacity = 0) => _owners = new Dictionary<PdfTextSpan, object>(capacity);
 
     internal void Add(PdfTextSpan run, TOwner owner) {
         if (!_owners.TryGetValue(run, out object? existing)) {

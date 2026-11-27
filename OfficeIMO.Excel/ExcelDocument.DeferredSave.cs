@@ -370,6 +370,7 @@ namespace OfficeIMO.Excel {
                 entry.FormulaModel = null;
             }
             _xmlFormulaWorkbook = null;
+            ForgetDeferredTables();
             _deferredHasCellMetadata = null;
             MarkPackageClean(bytes);
             bool pending;

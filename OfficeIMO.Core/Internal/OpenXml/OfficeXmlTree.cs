@@ -329,19 +329,27 @@ internal sealed partial class OfficeXmlTree {
     internal string AttributeValueAt(int node, int index) => AttributeValue(ref _attrs[_nodes[node].AttrFirst + index]);
 
     /// <summary>
-    /// The attribute at <paramref name="index"/> (below <see cref="AttributeCountOf"/>) of the element, as written: its
-    /// prefix (empty for none), local name, namespace URI and value. Namespace declarations count as attributes and
-    /// report <paramref name="declaration"/>.
+    /// The namespace, local name and value of the attribute at <paramref name="position"/> among the element's
+    /// <see cref="AttributeCountOf"/> attributes, namespace declarations included.
     /// </summary>
-    internal void GetAttributeAt(int node, int index, out string prefix, out string localName, out string namespaceUri,
-        out string value, out bool declaration) {
+    internal string AttributeAt(int node, int position, out int namespaceId, out string localName) {
+        ref Attr attribute = ref _attrs[_nodes[node].AttrFirst + position];
+        ref readonly OfficeXmlName name = ref Namespaces.GetName(attribute.Name);
+        namespaceId = name.NamespaceId;
+        localName = name.LocalName;
+        return AttributeValue(ref attribute);
+    }
+
+    /// <summary>
+    /// The name and value of an element's attribute by position, from 0 to <see cref="AttributeCountOf"/> less one,
+    /// namespace declarations included.
+    /// </summary>
+    internal void GetAttributeAt(int node, int index, out int namespaceId, out string localName, out string value) {
         if ((uint)index >= (uint)_nodes[node].AttrCount) throw new ArgumentOutOfRangeException(nameof(index));
         ref Attr attribute = ref _attrs[_nodes[node].AttrFirst + index];
-        OfficeXmlName name = Namespaces.GetName(attribute.Name);
-        declaration = name.NamespaceId == OfficeXmlNamespaces.Xmlns;
-        prefix = name.Prefix ?? string.Empty;
+        ref readonly OfficeXmlName name = ref Namespaces.GetName(attribute.Name);
+        namespaceId = name.NamespaceId;
         localName = name.LocalName;
-        namespaceUri = name.NamespaceId == OfficeXmlNamespaces.None ? string.Empty : Namespaces.GetUriById(name.UriId);
         value = AttributeValue(ref attribute);
     }
 

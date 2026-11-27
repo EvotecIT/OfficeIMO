@@ -64,10 +64,10 @@ public sealed class WordPdfListMarkerKerningTests {
             new RunFonts { Ascii = ManagedTextShapingTestAssets.FamilyName, HighAnsi = ManagedTextShapingTestAssets.FamilyName },
             new FontSize { Val = "40" });
         if (markerThreshold.HasValue) markerProperties.Kern = new Kern { Val = markerThreshold.Value };
-        level.OpenXmlElement.NumberingSymbolRunProperties = markerProperties;
+        level.OpenXmlLevel().NumberingSymbolRunProperties = markerProperties;
         if (fullOverride) {
-            var replacement = (Level)level.OpenXmlElement.CloneNode(true);
-            level.OpenXmlElement.NumberingSymbolRunProperties.Kern = new Kern { Val = markerThreshold == 0 ? 2U : 0U };
+            var replacement = (Level)level.OpenXmlLevel().CloneNode(true);
+            level.OpenXmlLevel().NumberingSymbolRunProperties.Kern = new Kern { Val = markerThreshold == 0 ? 2U : 0U };
             document._wordprocessingDocument.MainDocumentPart.NumberingDefinitionsPart!.Numbering!
                 .Elements<NumberingInstance>().Single().Append(new LevelOverride(replacement) { LevelIndex = 0 });
         }

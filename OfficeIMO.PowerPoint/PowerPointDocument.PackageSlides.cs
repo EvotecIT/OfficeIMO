@@ -5,6 +5,13 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>An object that works on the package and binds to its SDK element once the SDK opens.</summary>
     internal interface IPackageSdkBinding {
         void BindSdk();
+
+        /// <summary>
+        /// Marks the object unusable when its content was removed: its slide was removed, or (when <paramref name="sdkOpening"/>)
+        /// its element left its part. The package that held that content goes, so from then on the object throws instead
+        /// of reading it.
+        /// </summary>
+        void InvalidateRemoved(bool sdkOpening);
     }
 
     /// <summary>
@@ -54,6 +61,14 @@ namespace OfficeIMO.PowerPoint {
 
         private int _packageBindingsPruneAt;
 
+        // Makes every object still alive whose content was removed unusable; called before the package that held it goes.
+        private void InvalidateRemovedPackageObjects(bool sdkOpening) {
+            if (_packageBindings == null) return;
+            foreach (WeakReference<IPackageSdkBinding> reference in _packageBindings) {
+                if (reference.TryGetTarget(out IPackageSdkBinding? binding)) binding.InvalidateRemoved(sdkOpening);
+            }
+        }
+
         // Binds every object still alive while the slides the SDK opened are as the package wrote them.
         private void BindPackageObjects() {
             List<WeakReference<IPackageSdkBinding>>? bindings = _packageBindings;
@@ -76,6 +91,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Records an edit made in the package, so the next save or SDK open writes it.</summary>
         internal void MarkPackageEdited() => _pendingEdits = true;
 
+        // Parts edited while the SDK held them, by name; created on first use.
+        private HashSet<string>? _sdkEditedParts;
+
+        /// <summary>Records that a part the SDK holds was edited.</summary>
+        internal void MarkSdkPartEdited(string partName) => (_sdkEditedParts ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase)).Add(partName);
+
         /// <summary>A part's tree in the package read without the SDK, or null when the package can't be read that way.</summary>
         internal OfficeXmlTree? GetPackageXml(string partName) {
             if (GetPackage(edit: false) is not { } package || !package.PartExists(partName) || IsOverPartLimit(package, partName)) return null;
@@ -95,7 +116,7 @@ namespace OfficeIMO.PowerPoint {
             if (GetPackage(edit: false) is not { } package) return null;
             try {
                 string? notes = FirstRelated(package, slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide", out _);
-                PackageSlideList? slides = notes == null ? null : PackageSlideList.Read(package);
+                PackageSlideList? slides = notes == null ? null : PackageSlideList.ReadPresentation(package);
                 if (notes == null || slides == null) return null;
                 string? master = FirstRelated(package, slides.Main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesMaster", out string? masterRelationship);
                 if (master == null || masterRelationship == null
@@ -120,8 +141,9 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>
         /// Adds a notes slide to a slide that has none, as the notes model creates it on first use: an empty body
-        /// placeholder, a relationship back to the slide and one to the presentation's notes master. Null, having changed
-        /// nothing, when the slide has notes or the presentation lacks a notes master the model would only use as it is.
+        /// placeholder, a relationship back to the slide and one to the presentation's notes master, which is added first
+        /// when the presentation has none. Null, having changed nothing, when the slide has notes or the presentation has a
+        /// notes master the model would repair.
         /// </summary>
         internal OfficeXmlTree? TryCreatePackageNotes(string slidePart) {
             if (GetPackage(edit: true) is not { } package) return null;
@@ -131,8 +153,13 @@ namespace OfficeIMO.PowerPoint {
                 // Notes go in a folder beside the slide's folder, which a slide at the package root doesn't have.
                 string slideDirectory = slidePart.Substring(0, slidePart.LastIndexOf('/'));
                 if (slideDirectory.LastIndexOf('/') < 0) return null;
-                if (PackageSlideList.Read(package) is not { } slides) return null;
+                if (PackageSlideList.ReadPresentation(package) is not { } slides) return null;
                 string? master = FirstRelated(package, slides.Main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesMaster", out string? masterRelationship);
+                // A presentation without a notes master gets the default one, as the model adds it on first use.
+                if (master == null && !HasRelationshipOfType(package, slides.Main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesMaster")
+                    && !TryAddPackageNotesMaster(package, slides, out master, out masterRelationship)) {
+                    return null;
+                }
                 if (master == null || masterRelationship == null
                     || FirstRelated(package, master, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "theme", out _) == null
                     || !package.GetXml(master).IsElement(package.GetXml(master).Root, OfficeXmlNamespaces.PresentationML, "notesMaster")) {
@@ -322,6 +349,10 @@ namespace OfficeIMO.PowerPoint {
         /// Whether a stored part is larger than the SDK path would read, under the default or configured part size limit,
         /// so the model reads it and reports it as it always has.
         /// </summary>
+        /// <summary>Whether the package holds the part but declines to read it for its size.</summary>
+        internal bool IsPackagePartOverLimit(string partName) =>
+            GetPackage(edit: false) is { } package && package.PartExists(partName) && IsOverPartLimit(package, partName);
+
         internal bool IsOverPartLimit(OfficeOpcEditablePackage package, string partName) =>
             package.TryGetStoredLength(partName, out long length) && length > _maximumSlideXmlCharacters;
 
@@ -351,6 +382,11 @@ namespace OfficeIMO.PowerPoint {
                 order.Add(slide);
             }
             return _packageSlideOrder = order;
+        }
+
+        // Marks the slide of a part that is leaving the package as removed, so nothing it holds reaches the part again.
+        private void MarkPackageSlideRemoved(string slidePart) {
+            if (_packageSlides != null && _packageSlides.TryGetValue(PartIdentity(slidePart), out PowerPointSlide? removed)) removed.RemovedFromPackage = true;
         }
 
         /// <summary>Forgets the slide order after the slide list changed; <paramref name="removedPart"/> left the package.</summary>

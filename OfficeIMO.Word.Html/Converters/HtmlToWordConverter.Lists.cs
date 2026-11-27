@@ -319,7 +319,7 @@ namespace OfficeIMO.Word.Html {
                     _ => NumberFormatValues.Decimal,
                 };
 
-                level._level!.NumberingFormat = new NumberingFormat { Val = format };
+                level.NumberFormat = format.ToOfficeEnum();
                 if (format == NumberFormatValues.None) {
                     level.LevelText = string.Empty;
                 }
@@ -335,7 +335,7 @@ namespace OfficeIMO.Word.Html {
                     level.LevelText = "■";
                     break;
                 case "none":
-                    level._level.NumberingFormat = new NumberingFormat { Val = NumberFormatValues.None };
+                    level.NumberFormat = WordNumberFormat.None;
                     level.LevelText = string.Empty;
                     break;
                 case "dash":

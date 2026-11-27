@@ -6,7 +6,8 @@ namespace OfficeIMO.PowerPoint.Benchmarks;
 /// <summary>
 /// The realistic flows on the saved 200-slide deck, once with the Open XML SDK package opened, as every load did before,
 /// and once without it: open it, add a slide with a text box, an image and a table, and save; open it, edit text, a table
-/// cell and the slide order, and save; open it, extract its text and close it. Setup checks that the flows without the
+/// cell and the slide order, and save; restyle shapes, build out tables or write speaker notes on every slide, and save;
+/// open it, extract its text and close it. Setup checks that the flows without the
 /// SDK never open it and save the same slides as through it.
 /// </summary>
 [MemoryDiagnoser]
@@ -29,7 +30,9 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         if (!UncheckedFlows.Contains("Add")) Check(Add);
         if (!UncheckedFlows.Contains("Edit")) Check(Edit);
         if (!UncheckedFlows.Contains("TextBoxes")) Check(TextBoxes);
-        if (!UncheckedFlows.Contains("Appearance")) Check(Appearance, compareSlideXml: true);
+        if (!UncheckedFlows.Contains("Appearance")) Check(Appearance, compareParts: "ppt/slides/slide");
+        if (!UncheckedFlows.Contains("Tables")) Check(Tables, compareParts: "ppt/slides/slide");
+        if (!UncheckedFlows.Contains("Notes")) Check(Notes, compareParts: "ppt/notesSlides/");
         if (!UncheckedFlows.Contains("Extract")) CheckExtract();
     }
 
@@ -64,6 +67,22 @@ public class PowerPointWithoutSdkFlowBenchmarks {
     [Benchmark]
     [BenchmarkCategory("Appearance")]
     public byte[] AppearanceWithoutSdk() => Run(sdk: false, Appearance);
+
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("Tables")]
+    public byte[] TablesWithSdk() => Run(sdk: true, Tables);
+
+    [Benchmark]
+    [BenchmarkCategory("Tables")]
+    public byte[] TablesWithoutSdk() => Run(sdk: false, Tables);
+
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("Notes")]
+    public byte[] NotesWithSdk() => Run(sdk: true, Notes);
+
+    [Benchmark]
+    [BenchmarkCategory("Notes")]
+    public byte[] NotesWithoutSdk() => Run(sdk: false, Notes);
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Extract")]
@@ -135,19 +154,51 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         }
     }
 
-    // With compareSlideXml the slides' markup is compared, attribute order aside, for flows whose edits the text doesn't show.
-    private void Check(Action<PowerPointDocument> flow, bool compareSlideXml = false) {
+    // Adds a table to every slide and builds it out: a bold, filled header row with a border, body text, a merged
+    // range, an added row and widths shared out by ratio.
+    private static void Tables(PowerPointDocument presentation) {
+        foreach (PowerPointSlide slide in presentation.Slides) {
+            PowerPointTable table = slide.AddTable(4, 3, OfficeLength.Points(40), OfficeLength.Points(300), OfficeLength.Points(480), OfficeLength.Points(160));
+            for (int column = 0; column < 3; column++) {
+                PowerPointTableCell header = table.GetCell(0, column);
+                header.Text = "Region " + column;
+                header.Bold = true;
+                header.FillColor = OfficeColor.FromRgb(0x1F, 0x4E, 0x79);
+                header.Color = OfficeColor.FromRgb(0xFF, 0xFF, 0xFF);
+                header.SetBorders(PowerPointTableCellBorders.Bottom, OfficeColor.FromRgb(0, 0, 0), OfficeLength.Points(1));
+            }
+            for (int row = 1; row < 4; row++) {
+                for (int column = 0; column < 3; column++) table.GetCell(row, column).Text = (row * 100 + column).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+            table.MergeCells(1, 0, 2, 0);
+            table.AddRow().Cells[0].Text = "Total";
+            table.SetColumnWidthsByRatio(2, 1, 1);
+        }
+    }
+
+    // Writes two lines of speaker notes on every slide and reads them back.
+    private static void Notes(PowerPointDocument presentation) {
+        int index = 0;
+        foreach (PowerPointSlide slide in presentation.Slides) {
+            slide.Notes.Text = "Notes for slide " + index++ + "\nKey point to mention";
+            if (!slide.Notes.TryGetText(out _)) throw new InvalidOperationException("The notes were not written.");
+        }
+    }
+
+    // With compareParts the markup of the parts under that prefix is compared, attribute order aside, for flows whose
+    // edits the text doesn't show.
+    private void Check(Action<PowerPointDocument> flow, string? compareParts = null) {
         string throughSdk, withoutSdk;
         using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false))) {
             _ = presentation.OpenXmlDocument;
             flow(presentation);
             byte[] saved = presentation.ToBytes();
-            throughSdk = compareSlideXml ? SlideXml(saved) : Text(saved);
+            throughSdk = compareParts != null ? PartsXml(saved, compareParts) : Text(saved);
         }
         using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false))) {
             flow(presentation);
             byte[] saved = presentation.ToBytes();
-            withoutSdk = compareSlideXml ? SlideXml(saved) : Text(saved);
+            withoutSdk = compareParts != null ? PartsXml(saved, compareParts) : Text(saved);
             if (presentation.IsSdkLoaded) throw new InvalidOperationException("The flow opened the Open XML SDK: " + string.Join("; ", presentation.Diagnostics.Select(diagnostic => diagnostic.Message)));
         }
         if (throughSdk != withoutSdk) throw new InvalidOperationException("The saved slides differ.");
@@ -181,6 +232,8 @@ public class PowerPointWithoutSdkFlowBenchmarks {
             ("Edit", benchmark.EditWithSdk, benchmark.EditWithoutSdk),
             ("TextBoxes", benchmark.TextBoxesWithSdk, benchmark.TextBoxesWithoutSdk),
             ("Appearance", benchmark.AppearanceWithSdk, benchmark.AppearanceWithoutSdk),
+            ("Tables", benchmark.TablesWithSdk, benchmark.TablesWithoutSdk),
+            ("Notes", benchmark.NotesWithSdk, benchmark.NotesWithoutSdk),
             ("Extract", () => benchmark.ExtractWithSdk(), () => benchmark.ExtractWithoutSdk())
         };
         Console.WriteLine("Flow       | SDK median | without | faster | SDK alloc | without | less allocation");
@@ -233,11 +286,11 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         return OfficeIMO.Drawing.OfficePngWriter.EncodeRgba(width, height, rgba);
     }
 
-    private static string SlideXml(byte[] package) {
+    private static string PartsXml(byte[] package, string prefix) {
         using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(package, writable: false));
         var builder = new System.Text.StringBuilder();
         foreach (System.IO.Compression.ZipArchiveEntry entry in archive.Entries
-                     .Where(entry => entry.FullName.StartsWith("ppt/slides/slide", StringComparison.Ordinal))
+                     .Where(entry => entry.FullName.StartsWith(prefix, StringComparison.Ordinal) && entry.FullName.EndsWith(".xml", StringComparison.Ordinal))
                      .OrderBy(entry => entry.FullName, StringComparer.Ordinal)) {
             using Stream stream = entry.Open();
             System.Xml.Linq.XElement root = System.Xml.Linq.XElement.Load(stream);
