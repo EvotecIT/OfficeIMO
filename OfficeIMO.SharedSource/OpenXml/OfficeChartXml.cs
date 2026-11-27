@@ -158,8 +158,11 @@ namespace OfficeIMO.OpenXml.Internal {
             return default;
         }
 
-        // The next element in document order within root's subtree, not entering extension markup.
-        private static OfficeXmlNode NextContent(OfficeXmlNode node, OfficeXmlNode root) {
+        /// <summary>
+        /// The element after <paramref name="node"/> in document order within <paramref name="root"/>'s subtree, not
+        /// entering extension markup (<see cref="OfficeXmlNode.IsExtensionMarkup"/>), or none.
+        /// </summary>
+        internal static OfficeXmlNode NextContentInSubtree(this OfficeXmlNode node, OfficeXmlNode root) {
             if (!node.IsExtensionMarkup()) {
                 OfficeXmlNode child = node.FirstChild;
                 if (!child.IsNone) return child;
@@ -173,7 +176,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         /// <summary>The first element with this name below this one, in document order, outside extension markup, or none.</summary>
         internal static OfficeXmlNode FirstDescendant(this OfficeXmlNode node, int namespaceId, string localName) {
-            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = NextContent(current, node)) {
+            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = current.NextContentInSubtree(node)) {
                 if (current.Is(namespaceId, localName) && !current.IsExtensionMarkup()) return current;
             }
             return default;
@@ -190,7 +193,7 @@ namespace OfficeIMO.OpenXml.Internal {
             bool includeExtensionMarkup = false, int limit = int.MaxValue) {
             var found = new List<OfficeXmlNode>();
             for (OfficeXmlNode current = node.FirstChild; !current.IsNone && found.Count < limit;
-                 current = includeExtensionMarkup ? current.NextInSubtree(node) : NextContent(current, node)) {
+                 current = includeExtensionMarkup ? current.NextInSubtree(node) : current.NextContentInSubtree(node)) {
                 if (!includeExtensionMarkup && current.IsExtensionMarkup()) continue;
                 if (predicate == null || predicate(current)) found.Add(current);
             }

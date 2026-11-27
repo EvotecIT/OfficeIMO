@@ -239,6 +239,20 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             return package.ReadPartBytes(current._name!);
         }
 
+        /// <summary>
+        /// Opens the part's bytes for reading: the SDK part's own stream, or the package's bytes for the part. A package part
+        /// stored longer than <paramref name="maximumBytes"/> is refused before it is read.
+        /// </summary>
+        /// <exception cref="InvalidDataException">The stored part is longer than <paramref name="maximumBytes"/>.</exception>
+        internal Stream OpenRead(long maximumBytes = long.MaxValue) {
+            PowerPointPartRef current = Current;
+            if (current._sdk != null) return PowerPointSdkParts.GetStream(current._sdk, FileMode.Open, FileAccess.Read);
+            OfficeOpcEditablePackage package = current._document?.ReadablePackage ?? throw new InvalidOperationException("The presentation can't be read.");
+            if (package.TryGetStoredLength(current._name!, out long length) && length > maximumBytes)
+                throw new InvalidDataException("The part '" + current._name + "' is longer than " + maximumBytes + " bytes.");
+            return new MemoryStream(package.ReadPartBytes(current._name!), writable: false);
+        }
+
         /// <summary>Replaces the part's bytes.</summary>
         internal void ReplaceBytes(byte[] data) {
             ArgumentNullException.ThrowIfNull(data);
