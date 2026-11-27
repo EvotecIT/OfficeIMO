@@ -37,7 +37,7 @@ internal sealed partial class WordPackageView {
     internal const string HyperlinkRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "hyperlink";
 
     private readonly OfficeOpcEditablePackage? _owned;
-    private readonly Dictionary<string, WordPartView> _ownedParts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, WordPartView> _ownedParts = new(OfficeAsciiIgnoreCaseComparer.Instance);
     private readonly Dictionary<object, WordPartView> _sdkParts = new(OfficeIMO.Internal.OfficeReferenceEqualityComparer<object>.Instance);
     private WordPartView? _main;
     private bool _mainRead;
@@ -84,10 +84,15 @@ internal sealed partial class WordPackageView {
         }
     }
 
+    /// <summary>
+    /// The view of a part of OfficeIMO's own package. Two spellings of one part name, such as <c>header1.xml</c> and
+    /// <c>%68eader1.xml</c>, share one view, as they share one part; the view keeps the spelling it was first asked for.
+    /// </summary>
     internal WordPartView OwnedPart(string partName) {
-        if (!_ownedParts.TryGetValue(partName, out WordPartView? part)) {
+        string identity = partName.IndexOf('%') < 0 ? partName : OfficeOpcPackage.GetPartIdentity(partName);
+        if (!_ownedParts.TryGetValue(identity, out WordPartView? part)) {
             part = new WordPartView(this, partName, null);
-            _ownedParts.Add(partName, part);
+            _ownedParts.Add(identity, part);
         }
         return part;
     }
@@ -112,6 +117,7 @@ internal sealed class WordPartView {
     private OfficeXmlNode _root;
     private bool _rootRead;
     private List<WordPartRelationship>? _relationships;
+    private Dictionary<string, int>? _relationshipIndexes;
 
     internal WordPartView(WordPackageView package, string partName, object? sdkPart) {
         Package = package;
@@ -184,11 +190,18 @@ internal sealed class WordPartView {
     }
 
     private bool TryFindRelationship(string id, out WordPartRelationship relationship) {
-        foreach (WordPartRelationship candidate in Relationships) {
-            if (string.Equals(candidate.Id, id, StringComparison.Ordinal)) {
-                relationship = candidate;
-                return true;
+        IReadOnlyList<WordPartRelationship> relationships = Relationships;
+        if (_relationshipIndexes == null) {
+            // The first relationship with an id is the one a lookup finds.
+            var indexes = new Dictionary<string, int>(relationships.Count, StringComparer.Ordinal);
+            for (int index = 0; index < relationships.Count; index++) {
+                if (!indexes.ContainsKey(relationships[index].Id)) indexes.Add(relationships[index].Id, index);
             }
+            _relationshipIndexes = indexes;
+        }
+        if (_relationshipIndexes.TryGetValue(id, out int found)) {
+            relationship = relationships[found];
+            return true;
         }
         relationship = default;
         return false;
@@ -270,11 +283,41 @@ internal sealed class WordPartView {
     internal string? RawTarget(string id) => TryFindRelationship(id, out WordPartRelationship relationship) ? relationship.Target : null;
 
     /// <summary>The part's content.</summary>
-    internal byte[] ReadBytes() => SdkPart != null ? WordPackageView.SdkReadBytes(SdkPart) : Package.OwnedPackage.ReadPartBytes(PartName);
+    internal byte[] ReadBytes() {
+        if (SdkPart == null) return Package.OwnedPackage.ReadPartBytes(PartName);
+        using Stream stream = WordPackageView.SdkOpenRead(SdkPart);
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return buffer.ToArray();
+    }
+
+    /// <summary>The part's content as a stream, without copying the content of an SDK part; the caller disposes it.</summary>
+    internal Stream OpenRead() {
+        if (SdkPart != null) return WordPackageView.SdkOpenRead(SdkPart);
+        OfficeOpcEditablePackage package = Package.OwnedPackage;
+        return package.GetParsedXml(PartName) == null
+            ? new PooledContentStream(package.ReadPart(PartName))
+            : new MemoryStream(package.ReadPartBytes(PartName), writable: false);
+    }
+
+    /// <summary>A read-only stream over a part's rented bytes, which it returns when it is disposed.</summary>
+    private sealed class PooledContentStream : MemoryStream {
+        private OfficePooledBytes _content;
+
+        internal PooledContentStream(OfficePooledBytes content) : base(content.Array, 0, content.Length, writable: false) => _content = content;
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) {
+                _content.Dispose();
+                _content = default;
+            }
+            base.Dispose(disposing);
+        }
+    }
 
     // Writes go to the SDK package only: the redline output is always an SDK document.
 
-    internal string AddImagePart(string contentType, byte[] content) => Added(WordPackageView.SdkAddImagePart(RequireSdkPart(), contentType, content));
+    internal string AddImagePart(string contentType, Stream content) => Added(WordPackageView.SdkAddImagePart(RequireSdkPart(), contentType, content));
 
     internal string AddExternalRelationship(string type, string uri) => Added(WordPackageView.SdkAddExternalRelationship(RequireSdkPart(), type, uri));
 
@@ -283,6 +326,7 @@ internal sealed class WordPartView {
     // The relationships read so far no longer list everything the part holds.
     private string Added(string id) {
         _relationships = null;
+        _relationshipIndexes = null;
         return id;
     }
 

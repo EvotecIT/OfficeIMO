@@ -441,12 +441,17 @@ namespace OfficeIMO.Word {
             return true;
         }
 
+        /// <summary>
+        /// A relationship attribute the image copy above already remapped. An image inside an extension list is not one:
+        /// the image copy finds images the way the SDK's typed lookups did, which skip extension content.
+        /// </summary>
         private static bool IsHandledImageRelationshipAttribute(OfficeXmlNode element, WordXmlAttribute attribute) {
-            return element.Is(Dml, "blip") &&
-                   (string.Equals(attribute.LocalName, "embed", StringComparison.Ordinal) ||
-                    string.Equals(attribute.LocalName, "link", StringComparison.Ordinal)) ||
-                   element.Is(Vml, "imagedata") &&
-                   string.Equals(attribute.LocalName, "id", StringComparison.Ordinal);
+            bool handled = element.Is(Dml, "blip") &&
+                           (string.Equals(attribute.LocalName, "embed", StringComparison.Ordinal) ||
+                            string.Equals(attribute.LocalName, "link", StringComparison.Ordinal)) ||
+                           element.Is(Vml, "imagedata") &&
+                           string.Equals(attribute.LocalName, "id", StringComparison.Ordinal);
+            return handled && !IsInsideExtensionList(element);
         }
 
         private static string? CopyRelationship(WordPartView sourcePart, WordPartView targetPart, string relationshipId) {
@@ -469,7 +474,8 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            return targetPart.AddImagePart(sourceImagePart.ContentType ?? string.Empty, sourceImagePart.ReadBytes());
+            using Stream content = sourceImagePart.OpenRead();
+            return targetPart.AddImagePart(sourceImagePart.ContentType ?? string.Empty, content);
         }
 
         private static string? CopyExternalImageRelationship(WordPartView sourcePart, WordPartView targetPart, string relationshipId) {

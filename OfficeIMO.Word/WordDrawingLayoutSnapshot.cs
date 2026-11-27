@@ -205,9 +205,20 @@ namespace OfficeIMO.Word {
 
         private const int Wp = OfficeXmlNamespaces.WordprocessingDrawing;
 
+        /// <summary>
+        /// Whether a graphic data element of the drawing declares a group payload. Graphic data inside an extension list
+        /// doesn't count: the SDK read extension content as unknown elements, which its typed lookup skipped.
+        /// </summary>
         private static bool IsGroupDrawing(OfficeXmlNode drawing) {
             foreach (OfficeXmlNode data in drawing.Descendants(OfficeXmlNamespaces.DrawingML, "graphicData")) {
-                if (data.Attribute("uri")?.IndexOf("wordprocessingGroup", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                if (data.Attribute("uri")?.IndexOf("wordprocessingGroup", StringComparison.OrdinalIgnoreCase) >= 0 && !IsInsideExtensionList(data, drawing)) return true;
+            }
+            return false;
+        }
+
+        private static bool IsInsideExtensionList(OfficeXmlNode element, OfficeXmlNode drawing) {
+            for (OfficeXmlNode ancestor = element.Parent; !ancestor.IsNone && ancestor != drawing; ancestor = ancestor.Parent) {
+                if (string.Equals(ancestor.LocalName, "extLst", StringComparison.Ordinal)) return true;
             }
             return false;
         }

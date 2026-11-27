@@ -47,14 +47,9 @@ internal sealed partial class WordPackageView {
         }
     }
 
-    internal static byte[] SdkReadBytes(object part) {
-        using Stream stream = ((OpenXmlPart)part).GetStream(FileMode.Open, FileAccess.Read);
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return buffer.ToArray();
-    }
+    internal static Stream SdkOpenRead(object part) => ((OpenXmlPart)part).GetStream(FileMode.Open, FileAccess.Read);
 
-    internal static string SdkAddImagePart(object part, string contentType, byte[] content) {
+    internal static string SdkAddImagePart(object part, string contentType, Stream content) {
         var owner = (OpenXmlPart)part;
         ImagePart imagePart = owner switch {
             MainDocumentPart mainDocumentPart => mainDocumentPart.AddImagePart(contentType),
@@ -64,7 +59,7 @@ internal sealed partial class WordPackageView {
             EndnotesPart endnotesPart => endnotesPart.AddImagePart(contentType),
             _ => throw new InvalidOperationException("Images cannot be copied into this document part.")
         };
-        using (var stream = new MemoryStream(content, writable: false)) imagePart.FeedData(stream);
+        imagePart.FeedData(content);
         return owner.GetIdOfPart(imagePart);
     }
 
@@ -216,7 +211,7 @@ internal sealed partial class WordPackageView {
         using var stream = new MemoryStream();
         using WordprocessingDocument package = WordprocessingDocument.Create(stream, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
         NumberingDefinitionsPart numberingPart = package.AddMainDocumentPart().AddNewPart<NumberingDefinitionsPart>();
-        using (var content = new MemoryStream(part.ReadBytes(), writable: false)) numberingPart.FeedData(content);
+        using (Stream content = part.OpenRead()) numberingPart.FeedData(content);
         return new System.Runtime.CompilerServices.StrongBox<Numbering?>((Numbering?)numberingPart.Numbering?.CloneNode(true));
     }
 

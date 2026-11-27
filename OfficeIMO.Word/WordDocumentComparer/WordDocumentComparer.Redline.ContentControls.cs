@@ -275,11 +275,20 @@ namespace OfficeIMO.Word {
             Row
         }
 
+        private const string Word2010NamespaceUri = "http://schemas.microsoft.com/office/word/2010/wordml";
+
+        /// <summary>A <c>w14:conflictIns</c> or <c>w14:conflictDel</c>, which holds run-level content.</summary>
+        private static bool IsConflictRevision(OfficeXmlNode element) =>
+            (string.Equals(element.LocalName, "conflictIns", StringComparison.Ordinal) ||
+             string.Equals(element.LocalName, "conflictDel", StringComparison.Ordinal)) &&
+            string.Equals(element.NamespaceUri, Word2010NamespaceUri, StringComparison.Ordinal);
+
         private static SdtKind GetSdtKind(OfficeXmlNode contentControl) {
             OfficeXmlNode parent = contentControl.Parent;
             for (int depth = 0; !parent.IsNone && depth < 256; depth++) {
                 if (parent.NamespaceId != W) {
-                    return SdtKind.Block;
+                    // The SDK read a control in a Word 2010 conflict revision as a run-level control.
+                    return IsConflictRevision(parent) ? SdtKind.Run : SdtKind.Block;
                 }
 
                 switch (parent.LocalName) {

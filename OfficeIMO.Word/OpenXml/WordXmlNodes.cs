@@ -10,8 +10,8 @@ namespace OfficeIMO.Word.OpenXml;
 /// </summary>
 internal static class WordXmlNodes {
     /// <summary>
-    /// The attributes of an element, without namespace declarations and markup-compatibility attributes, which the SDK
-    /// keeps apart from them.
+    /// The attributes of an element without its namespace declarations, as the SDK's <c>GetAttributes()</c> lists them:
+    /// markup-compatibility attributes such as <c>mc:Ignorable</c> are included.
     /// </summary>
     internal static List<WordXmlAttribute> Attributes(OfficeXmlNode element) {
         var attributes = new List<WordXmlAttribute>();
@@ -26,7 +26,7 @@ internal static class WordXmlNodes {
             int count = tree.AttributeCountOf(node);
             for (int index = 0; index < count; index++) {
                 string value = tree.GetAttributeAt(node, index, out OfficeXmlName name);
-                if (IsDeclarationOrCompatibility(name)) continue;
+                if (IsDeclaration(name)) continue;
                 attributes.Add(new WordXmlAttribute(name.Prefix ?? string.Empty, name.LocalName, NamespaceUriOf(tree, name), value));
             }
             return;
@@ -42,7 +42,7 @@ internal static class WordXmlNodes {
             int count = tree.AttributeCountOf(node);
             for (int index = 0; index < count; index++) {
                 string value = tree.GetAttributeAt(node, index, out OfficeXmlName name);
-                if (IsDeclarationOrCompatibility(name)) continue;
+                if (IsDeclaration(name)) continue;
                 if (match(name.LocalName, NamespaceUriOf(tree, name), value)) return true;
             }
             return false;
@@ -53,10 +53,9 @@ internal static class WordXmlNodes {
         return false;
     }
 
-    private static bool IsDeclarationOrCompatibility(in OfficeXmlName name) =>
+    private static bool IsDeclaration(in OfficeXmlName name) =>
         name.NamespaceId == OfficeXmlNamespaces.Xmlns
-        || name.NamespaceId == OfficeXmlNamespaces.None && string.Equals(name.LocalName, "xmlns", StringComparison.Ordinal)
-        || name.NamespaceId == OfficeXmlNamespaces.MarkupCompatibility;
+        || name.NamespaceId == OfficeXmlNamespaces.None && string.Equals(name.LocalName, "xmlns", StringComparison.Ordinal);
 
     private static string NamespaceUriOf(OfficeXmlTree tree, in OfficeXmlName name) =>
         name.NamespaceId == OfficeXmlNamespaces.None ? string.Empty : tree.Namespaces.GetUriById(name.UriId);

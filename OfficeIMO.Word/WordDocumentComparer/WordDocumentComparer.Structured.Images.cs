@@ -385,9 +385,18 @@ namespace OfficeIMO.Word {
         }
 
         private static ImageFingerprint CreateImageFingerprint(WordPartView imagePart) {
-            byte[] content = imagePart.ReadBytes();
+            using Stream stream = imagePart.OpenRead();
             using System.Security.Cryptography.SHA256 sha256 = System.Security.Cryptography.SHA256.Create();
-            return new ImageFingerprint(content.LongLength, Convert.ToBase64String(sha256.ComputeHash(content)));
+            byte[] buffer = new byte[81920];
+            long length = 0;
+            int bytesRead;
+            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0) {
+                sha256.TransformBlock(buffer, 0, bytesRead, null, 0);
+                length += bytesRead;
+            }
+
+            sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            return new ImageFingerprint(length, Convert.ToBase64String(sha256.Hash ?? Array.Empty<byte>()));
         }
 
         private sealed class ImageSnapshot : IComparisonFingerprint {
