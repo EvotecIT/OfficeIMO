@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.Xlsb.Projection;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>What a worksheet feature writer can use while it encodes one generated worksheet.</summary>
@@ -22,6 +23,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal Worksheet Worksheet => Sheet.WorksheetPart.Worksheet
             ?? throw new InvalidDataException($"Worksheet '{Sheet.Name}' has no worksheet root.");
+
+        internal OfficeXmlNode WorksheetMarkup => XlsbWorksheetMarkup.Root(Sheet);
 
         /// <summary>Encodes formula text against the workbook's sheets and names; null where formulas cannot be encoded.</summary>
         internal IXlsbFormulaEncodingContext? Formulas { get; }
