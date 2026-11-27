@@ -414,8 +414,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 return new OfficeXmlNode(_tree, node);
             }
             if (_sdk == null) throw new InvalidOperationException("There is no element to insert into.");
-            return FromSdk(child._sdk != null
-                ? OfficeSdkXml.InsertBefore(_sdk, child._sdk, reference._sdk)
+            if (child._sdk != null) return FromSdk(OfficeSdkXml.InsertBefore(_sdk, child._sdk, reference._sdk));
+            // An element of a tree becomes the SDK's typed elements directly when it can, and is parsed otherwise.
+            return FromSdk(OfficeSdkXml.CreateFromTree(_sdk, child._tree!, child._node) is { } built
+                ? OfficeSdkXml.InsertBefore(_sdk, built, reference._sdk)
                 : OfficeSdkXml.InsertMarkupBefore(_sdk, child._tree!.WriteElement(child._node), reference._sdk));
         }
 

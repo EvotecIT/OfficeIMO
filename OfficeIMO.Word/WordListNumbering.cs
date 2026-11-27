@@ -1,5 +1,6 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -8,17 +9,17 @@ namespace OfficeIMO.Word {
     /// numbering updated to match the Open XML specification.
     /// </summary>
     public class WordListNumbering {
+        private const int W = OfficeXmlNamespaces.WordprocessingML;
 
         /// <summary>
-        /// Gets all numbering levels defined in the underlying
-        /// <see cref="AbstractNum"/> element.
+        /// Gets all numbering levels defined in the underlying <c>w:abstractNum</c> element.
         /// </summary>
         public List<WordListLevel> Levels {
             get {
                 List<WordListLevel> levels = new List<WordListLevel>();
-                foreach (var level in _abstractNum.Descendants<Level>()) {
-                    var wordListLevel = new WordListLevel(level);
-                    levels.Add(wordListLevel);
+                // Levels are children of the definition; nothing below them holds a w:lvl.
+                foreach (OfficeXmlNode level in _abstractNum.Children(W, "lvl")) {
+                    levels.Add(new WordListLevel(level));
                 }
                 return levels;
             }
@@ -27,18 +28,18 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// The abstract number, which is the parent of the levels.
         /// </summary>
-        private readonly AbstractNum _abstractNum;
+        private readonly OfficeXmlNode _abstractNum;
 
         /// <summary>
         /// Gets the abstract numbering identifier.
         /// </summary>
         public int AbstractNumberId {
             get {
-                var abstractNumberId = _abstractNum.AbstractNumberId?.Value;
-                if (!abstractNumberId.HasValue) {
+                string? value = _abstractNum.Attribute(W, "abstractNumId");
+                if (value == null) {
                     throw new InvalidOperationException("Abstract numbering identifier is missing.");
                 }
-                return abstractNumberId.Value;
+                return int.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture);
             }
         }
 
@@ -50,22 +51,21 @@ namespace OfficeIMO.Word {
         /// </value>
         private int GetNextLevelIndex {
             get {
-                var currentLevels = _abstractNum.Descendants<Level>();
-                if (!currentLevels.Any()) {
+                OfficeXmlNode lastLevel = default;
+                foreach (OfficeXmlNode level in _abstractNum.Children(W, "lvl")) lastLevel = level;
+                if (lastLevel.IsNone) {
                     return 0;
                 }
-                var lastLevel = currentLevels.Last();
-                var lastIndex = lastLevel.LevelIndex?.Value ?? -1;
+                int lastIndex = OfficeXmlViewValues.ParseInt32(lastLevel.Attribute(W, "ilvl")) ?? -1;
                 return lastIndex + 1;
             }
         }
 
         /// <summary>
-        /// Initializes a new instance based on the provided
-        /// <see cref="AbstractNum"/> definition.
+        /// Initializes a new instance based on the provided <c>w:abstractNum</c> definition.
         /// </summary>
         /// <param name="abstractNum">Numbering definition to wrap.</param>
-        internal WordListNumbering(AbstractNum abstractNum) {
+        internal WordListNumbering(OfficeXmlNode abstractNum) {
             _abstractNum = abstractNum;
         }
 
@@ -77,19 +77,16 @@ namespace OfficeIMO.Word {
         public static WordListNumbering CreateNumberingDefinition(WordDocument document) {
             ArgumentNullException.ThrowIfNull(document);
 
-            var mainPart = document._wordprocessingDocument.MainDocumentPart
-                ?? throw new InvalidOperationException("The document does not contain a main document part.");
-            var numberingPart = mainPart.NumberingDefinitionsPart ?? mainPart.AddNewPart<NumberingDefinitionsPart>();
-            var numbering = numberingPart.Numbering ??= new Numbering();
-            var newId = numbering.Elements<AbstractNum>()
-                .Select(a => a.AbstractNumberId?.Value ?? -1)
-                .DefaultIfEmpty(-1)
-                .Max() + 1;
+            OfficeXmlNode numbering = document.GetNumberingNode(create: true);
+            int newId = -1;
+            foreach (OfficeXmlNode existing in numbering.Children(W, "abstractNum")) {
+                newId = Math.Max(newId, OfficeXmlViewValues.ParseInt32(existing.Attribute(W, "abstractNumId")) ?? -1);
+            }
+            newId++;
 
-            var abstractNum = new AbstractNum { AbstractNumberId = new Int32Value(newId) };
-            numbering.Append(abstractNum);
-            numberingPart.Numbering.Save(numberingPart);
-            return new WordListNumbering(abstractNum);
+            OfficeXmlNode abstractNum = numbering.CreateElement(W, "abstractNum");
+            abstractNum.SetAttribute(W, "abstractNumId", newId.ToString(CultureInfo.InvariantCulture));
+            return new WordListNumbering(numbering.Append(abstractNum));
         }
 
         /// <summary>
@@ -101,35 +98,17 @@ namespace OfficeIMO.Word {
         public static WordListNumbering? GetNumberingDefinition(WordDocument document, int abstractNumberId) {
             ArgumentNullException.ThrowIfNull(document);
 
-            var mainPart = document._wordprocessingDocument.MainDocumentPart;
-            var numbering = mainPart?.NumberingDefinitionsPart?.Numbering;
-            if (numbering == null) {
+            OfficeXmlNode numbering = document.GetNumberingNode(create: false);
+            if (numbering.IsNone) {
                 return null;
             }
 
-            var abstractNum = numbering.Elements<AbstractNum>()
-                .FirstOrDefault(a => a.AbstractNumberId?.Value == abstractNumberId);
-            return abstractNum != null ? new WordListNumbering(abstractNum) : null;
-        }
-
-        /// <summary>
-        /// Updates the level text.
-        /// The level text is the text that is displayed for the level in the list.
-        /// The text can contain a placeholder %CurrentLevel which will be replaced with the level index + 1.
-        /// </summary>
-        /// <param name="wordListLevel">The word list level.</param>
-        private void UpdateLevelText(WordListLevel wordListLevel) {
-            // Replace the placeholder in LevelText with the LevelIndex + 1
-            ArgumentNullException.ThrowIfNull(wordListLevel);
-
-            var level = wordListLevel._level ?? throw new InvalidOperationException("The list level is not initialized.");
-            var levelTextElement = level.GetFirstChild<LevelText>()
-                ?? throw new InvalidOperationException("Level text element is missing.");
-            var levelText = levelTextElement.Val?.Value ?? string.Empty;
-            var levelIndex = level.LevelIndex?.Value ?? 0;
-
-            levelText = levelText.Replace("%CurrentLevel", "%" + (levelIndex + 1));
-            levelTextElement.Val = new StringValue(levelText);
+            foreach (OfficeXmlNode abstractNum in numbering.Children(W, "abstractNum")) {
+                if (OfficeXmlViewValues.ParseInt32(abstractNum.Attribute(W, "abstractNumId")) == abstractNumberId) {
+                    return new WordListNumbering(abstractNum);
+                }
+            }
+            return null;
         }
 
         /// <summary>
@@ -137,39 +116,42 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordListLevel">The word list level.</param>
         public WordListLevel AddLevel(WordListLevel wordListLevel) {
-            // before adding new level, we need to find the last level index and increment it by 1
-            // once we have LevelIndex we need to set it to the level
             ArgumentNullException.ThrowIfNull(wordListLevel);
+            if (!wordListLevel.Node.Parent.IsNone) throw new InvalidOperationException("The level already belongs to a list.");
+            OfficeXmlNode levelText = wordListLevel.Node.Child(W, "lvlText");
+            if (levelText.IsNone) throw new InvalidOperationException("Level text element is missing.");
 
-            wordListLevel._level.LevelIndex = GetNextLevelIndex;
-            // Update the LevelText to match the new LevelIndex
-            UpdateLevelText(wordListLevel);
-            // add the level to the abstractNum
-            _abstractNum.Append(wordListLevel._level);
-            WordListNumberingResolver.InvalidateNumbering(_abstractNum.Ancestors<Numbering>().FirstOrDefault());
+            int levelIndex = GetNextLevelIndex;
+            // The placeholder %CurrentLevel in the level text stands for the level's own number.
+            levelText.SetAttribute(W, "val", (levelText.Attribute(W, "val") ?? string.Empty)
+                .Replace("%CurrentLevel", "%" + (levelIndex + 1).ToString(CultureInfo.InvariantCulture)));
+            wordListLevel.Node = Append(wordListLevel.Node, levelIndex);
             return wordListLevel;
         }
 
         /// <summary>
-        /// Adds the level allowing for customization using OpenXML directly.
+        /// Adds a level element as the next level and returns it as the definition now holds it.
         /// </summary>
-        /// <param name="level">The level.</param>
-        internal void AddLevel(Level level) {
-            // before adding new level, we need to find the last level index and increment it by 1
-            ArgumentNullException.ThrowIfNull(level);
+        /// <param name="level">The detached <c>w:lvl</c> element.</param>
+        internal OfficeXmlNode AddLevel(OfficeXmlNode level) {
+            if (level.IsNone) throw new ArgumentNullException(nameof(level));
+            if (!level.Parent.IsNone) throw new InvalidOperationException("The level already belongs to a list.");
+            return Append(level, GetNextLevelIndex);
+        }
 
-            level.LevelIndex = GetNextLevelIndex;
-            // add the level to the abstractNum
-            _abstractNum.Append(level);
-            WordListNumberingResolver.InvalidateNumbering(_abstractNum.Ancestors<Numbering>().FirstOrDefault());
+        private OfficeXmlNode Append(OfficeXmlNode level, int levelIndex) {
+            level.SetAttribute(W, "ilvl", levelIndex.ToString(CultureInfo.InvariantCulture));
+            OfficeXmlNode added = _abstractNum.Append(level);
+            WordListNumberingResolver.InvalidateNumbering(_abstractNum.AncestorOrSelf(W, "numbering").SdkElement);
+            return added;
         }
 
         /// <summary>
         /// Removes all levels to reset the numbering and start from scratch.
         /// </summary>
         public void RemoveAllLevels() {
-            _abstractNum.RemoveAllChildren<Level>();
-            WordListNumberingResolver.InvalidateNumbering(_abstractNum.Ancestors<Numbering>().FirstOrDefault());
+            _abstractNum.RemoveChildren(W, "lvl");
+            WordListNumberingResolver.InvalidateNumbering(_abstractNum.AncestorOrSelf(W, "numbering").SdkElement);
         }
     }
 }

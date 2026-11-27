@@ -1,3 +1,5 @@
+using System.Xml;
+using System.Security.Cryptography;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -346,5 +348,402 @@ namespace OfficeIMO.Excel {
                 return (IReadOnlyList<(int Row, int Column, object Value)>?)normalized ?? source;
             });
         }
+    }
+}
+
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+            WorksheetPart, DynamicSpillOwnership> DynamicSpillOwnerships =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<
+                WorksheetPart, DynamicSpillOwnership>();
+
+        private sealed class DynamicSpillOwnership {
+            internal readonly Dictionary<long, DynamicSpillCacheSnapshot> Cells =
+                new Dictionary<long, DynamicSpillCacheSnapshot>();
+            internal bool WriteIndexInitialized;
+            internal readonly List<(int Top, int Left, int Bottom, int Right)> WriteRanges =
+                new List<(int Top, int Left, int Bottom, int Right)>();
+            internal bool OriginalFingerprintAttempted;
+            internal byte[]? OriginalFingerprint;
+            internal bool OriginalScanAttempted;
+            internal readonly HashSet<long> WrittenOwners = new HashSet<long>();
+        }
+
+        private DynamicSpillOwnership? _spillOwnership;
+
+        private DynamicSpillOwnership SpillOwnership => _spillOwnership ??= DynamicSpillOwnerships.GetOrCreateValue(_worksheetPart);
+
+        private Dictionary<long, DynamicSpillCacheSnapshot> DynamicSpillCacheSnapshots =>
+            SpillOwnership.Cells;
+
+        private sealed class DynamicSpillCacheSnapshot {
+            internal Cell? SourceCell;
+            internal CellValues? Type;
+            internal string? Value;
+            internal uint? ValueMetaIndex;
+        }
+
+        private static DynamicSpillCacheSnapshot SnapshotDynamicSpillCell(Cell cell) => new DynamicSpillCacheSnapshot {
+            SourceCell = cell,
+            Type = cell.DataType?.Value,
+            Value = ExcelWorksheetScan.FindValue(cell)?.Text,
+            ValueMetaIndex = cell.ValueMetaIndex?.Value
+        };
+
+        private static bool MatchesDynamicSpillSnapshot(Cell cell, DynamicSpillCacheSnapshot snapshot) =>
+            cell.DataType?.Value == snapshot.Type
+            && string.Equals(ExcelWorksheetScan.FindValue(cell)?.Text, snapshot.Value, StringComparison.Ordinal)
+            && cell.ValueMetaIndex?.Value == snapshot.ValueMetaIndex;
+
+        private void InvalidateDynamicArrayWriteIndex() => SpillOwnership.WriteIndexInitialized = false;
+
+        private void EnsureDynamicArrayWriteIndex() {
+            DynamicSpillOwnership ownership = SpillOwnership;
+            if (ownership.WriteIndexInitialized) return;
+            ownership.WriteRanges.Clear();
+            if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null) {
+                ExcelCellMetadataIndex? metadata = _excelDocument.FormulaWorkbookModel.CellMetadata;
+                foreach (Cell cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) {
+                    if (ExcelWorksheetScan.FindFormula(cell)?.FormulaType?.Value != CellFormulaValues.Array
+                        || cell.CellMetaIndex == null
+                        || ExcelCellMetadataIndex.ArrayInfo(WrapFormulaCell(cell), metadata)?.IsDynamic != true
+                        || !TryFixedArrayBounds(ExcelWorksheetScan.FindFormula(cell)!.Reference?.Value ?? "",
+                            out int top, out int left, out int bottom, out int right)) continue;
+                    ownership.WriteRanges.Add((top, left, bottom, right));
+                }
+            }
+            ownership.WriteIndexInitialized = true;
+        }
+
+        private void EnsureDynamicArrayCellWritable(int row, int column) {
+            EnsureDynamicArrayWriteIndex();
+            List<(int Top, int Left, int Bottom, int Right)> ranges = SpillOwnership.WriteRanges;
+            for (int i = 0; i < ranges.Count; i++) {
+                var range = ranges[i];
+                if (row >= range.Top && row <= range.Bottom && column >= range.Left && column <= range.Right)
+                    throw new InvalidOperationException($"Cell '{ExcelA1.CellReference(row, column)}' belongs to a dynamic array; clear its array formula first.");
+            }
+        }
+
+        internal Cell GetWritableValueCell(int row, int column) {
+            EnsureCellPayloadWritable(row, column);
+            return GetCell(row, column);
+        }
+
+        private void EnsureDynamicArrayRangeWritable(int top, int left, int bottom, int right) {
+            EnsureDynamicArrayWriteIndex();
+            if (SpillOwnership.WriteRanges.Any(range =>
+                RangesOverlapInclusive((top, left, bottom, right), range)))
+                throw new InvalidOperationException("The range overlaps a dynamic array; clear its array formula first.");
+        }
+
+        private void WriteDynamicArrayFormulaCache(DynamicArrayPlan plan) {
+            Cell anchor = SdkCell(plan.Owner.Cell);
+            SpillOwnership.WrittenOwners.Add(DynamicCellKey(plan.Owner.Top, plan.Owner.Left));
+            string? previousReference = ExcelWorksheetScan.FindFormula(anchor)?.Reference?.Value;
+            if (plan.ErrorSubtype != 0) {
+                ExcelWorksheetScan.FindFormula(anchor)!.Reference = anchor.CellReference!.Value!;
+                TryWriteRichFormulaError(anchor, "#SPILL!", plan);
+            } else {
+                FormulaArrayValue array = plan.Array!;
+                ExcelWorksheetScan.FindFormula(anchor)!.Reference = ExcelA1.CellReference(plan.Top, plan.Left) + ":"
+                    + ExcelA1.CellReference(plan.Bottom, plan.Right);
+                for (int row = plan.Top; row <= plan.Bottom; row++)
+                    for (int column = plan.Left; column <= plan.Right; column++) {
+                        Cell cell = row == plan.Top && column == plan.Left ? anchor : GetCell(row, column);
+                        cell.InlineString = null;
+                        cell.ValueMetaIndex = null;
+                        SetFormulaCachedValue(WrapFormulaCell(cell), array.Values[(row - plan.Top) * array.Columns + column - plan.Left]);
+                        if (cell != anchor)
+                            DynamicSpillCacheSnapshots[DynamicCellKey(row, column)] = SnapshotDynamicSpillCell(cell);
+                    }
+            }
+            FixedArraySheetIndex index = GetFixedArraySheetIndex();
+            for (int row = plan.Owner.Top; row <= plan.Owner.Bottom; row++)
+                for (int column = plan.Owner.Left; column <= plan.Owner.Right; column++) {
+                    if (row == plan.Owner.Top && column == plan.Owner.Left) continue;
+                    if (plan.Array != null && row <= plan.Bottom && column <= plan.Right) continue;
+                    if (!index.Cells.TryGetValue(DynamicCellKey(row, column), out ExcelFormulaCell handle)) continue;
+                    Cell cell = SdkCell(handle);
+                    long key = DynamicCellKey(row, column);
+                    if (!IsOwnedDynamicSpillCachedCell(cell, key)) continue;
+                    cell.CellValue = null;
+                    cell.InlineString = null;
+                    cell.DataType = null;
+                    cell.ValueMetaIndex = null;
+                    DynamicSpillCacheSnapshots.Remove(key);
+                    if (cell.StyleIndex == null && !cell.HasChildren) cell.Remove();
+                }
+            if (!string.Equals(previousReference, ExcelWorksheetScan.FindFormula(anchor)?.Reference?.Value, StringComparison.Ordinal))
+                InvalidateDynamicArrayWriteIndex();
+        }
+
+        private bool IsDynamicSpillObstacle(FixedArrayOwner owner, ExcelFormulaCell handle, int row, int column,
+            FormulaArgumentValue expected) {
+            Cell cell = SdkCell(handle);
+            if (row >= owner.Top && row <= owner.Bottom && column >= owner.Left && column <= owner.Right)
+                return !IsOwnedDynamicSpillCachedCell(cell, DynamicCellKey(row, column), expected);
+            return ExcelWorksheetScan.FindValue(cell) != null || cell.InlineString != null || cell.ValueMetaIndex != null
+                || ExcelWorksheetScan.FindFormula(cell) != null || cell.CellMetaIndex != null;
+        }
+
+        private bool IsOwnedDynamicSpillCachedCell(ExcelFormulaCell handle, long key, FormulaArgumentValue? expected = null) =>
+            IsOwnedDynamicSpillCachedCell(SdkCell(handle), key, expected);
+
+        private bool IsOwnedDynamicSpillCachedCell(Cell cell, long key, FormulaArgumentValue? expected = null) {
+            if (ExcelWorksheetScan.FindFormula(cell) != null || cell.CellMetaIndex != null || cell.InlineString != null) return false;
+            if (DynamicSpillCacheSnapshots.TryGetValue(key, out DynamicSpillCacheSnapshot? snapshot))
+                return MatchesDynamicSpillSnapshot(cell, snapshot);
+            if (ExcelWorksheetScan.FindValue(cell) == null && cell.ValueMetaIndex == null) return true;
+            if (expected == null) return false;
+            FormulaArgumentValue value = expected.Value;
+            if (value.IsError)
+                return cell.DataType?.Value == CellValues.Error
+                    && ResolveRichValueError(cell, ExcelWorksheetScan.FindValue(cell)?.Text) == value.ErrorCode;
+            if (cell.ValueMetaIndex != null) return false;
+            if (value.IsBoolean)
+                return cell.DataType?.Value == CellValues.Boolean
+                    && ExcelWorksheetScan.FindValue(cell)?.Text == (value.Number == 0 ? "0" : "1");
+            if (value.Number.HasValue)
+                return (cell.DataType == null
+                        || cell.DataType.Value == CellValues.Number)
+                    && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(ExcelWorksheetScan.FindValue(cell)?.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double numeric)
+                    && numeric == value.Number.Value;
+            return value.Text != null && string.Equals(GetCellText(cell), value.Text, StringComparison.Ordinal);
+        }
+
+    }
+}
+
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
+        private const long MaxOriginalDynamicSpillXmlBytes = 64L * 1024 * 1024;
+        private const string SpreadsheetMainNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        private const string StrictSpreadsheetMainNamespace = "http://purl.oclc.org/ooxml/spreadsheetml/main";
+
+        private void CaptureOriginalDynamicSpillFingerprintIfSafe() {
+            // Workbook-only edits leave this part untouched. Once the raw package
+            // is exposed or its root loaded, prior external edits are ambiguous.
+            if (!_excelDocument.IsOpenXmlDocumentExposed && !_worksheetPart.IsRootElementLoaded)
+                CaptureOriginalDynamicSpillFingerprint();
+        }
+
+        // A fingerprint costs no retained copy of a loaded worksheet. It also prevents a
+        // later worksheet-part Save from becoming an accidental ownership baseline.
+        private void CaptureOriginalDynamicSpillFingerprint() {
+            DynamicSpillOwnership ownership = SpillOwnership;
+            lock (ownership) {
+                if (ownership.OriginalFingerprintAttempted) return;
+                ownership.OriginalFingerprintAttempted = true;
+                try {
+                    if (!HasDynamicArrayMetadataType()) return;
+
+                    ownership.OriginalFingerprint = ReadBoundedWorksheetFingerprint();
+                } catch (Exception ex) when (ex is IOException || ex is InvalidOperationException
+                    || ex is InvalidDataException || ex is XmlException) {
+                    // The normal formula path still validates metadata; this optional baseline fails closed.
+                }
+            }
+        }
+
+        private bool HasDynamicArrayMetadataType() {
+            var part = _excelDocument.WorkbookPartRoot.CellMetadataPart;
+            if (part == null) return false;
+            if (!part.IsRootElementLoaded) ValidateInCellImageMetadataPart(part, "Cell metadata");
+            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+            using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                IgnoreComments = true,
+                IgnoreProcessingInstructions = true,
+                MaxCharactersInDocument = MaximumRichValueMetadataBytes
+            });
+            while (reader.Read())
+                if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "metadataType"
+                    && IsSpreadsheetMainNamespace(reader.NamespaceURI)
+                    && string.Equals(reader.GetAttribute("name"), "XLDAPR", StringComparison.OrdinalIgnoreCase))
+                    return true;
+            return false;
+        }
+
+        private byte[]? ReadBoundedWorksheetFingerprint() {
+            try {
+                using Stream stream = _worksheetPart.GetStream(FileMode.Open, FileAccess.Read);
+                if (!stream.CanSeek || stream.Length > MaxOriginalDynamicSpillXmlBytes) return null;
+                using SHA256 sha = SHA256.Create();
+                return sha.ComputeHash(stream);
+            } catch (Exception ex) when (ex is IOException || ex is InvalidOperationException
+                || ex is NotSupportedException) {
+                return null;
+            }
+        }
+
+        private sealed class OriginalDynamicOwnerCaches {
+            internal readonly FixedArrayOwner Owner;
+            internal readonly Dictionary<long, DynamicSpillCacheSnapshot> Cells =
+                new Dictionary<long, DynamicSpillCacheSnapshot>();
+            internal readonly HashSet<long> SeenChildren = new HashSet<long>();
+            internal bool AnchorSeen;
+            internal bool Valid = true;
+
+            internal OriginalDynamicOwnerCaches(FixedArrayOwner owner) => Owner = owner;
+        }
+
+        private void TryCaptureOriginalDynamicSpillCaches(FixedArraySheetIndex? sheetIndex = null) {
+            DynamicSpillOwnership ownership = SpillOwnership;
+            if (ownership.OriginalScanAttempted) return;
+            ownership.OriginalScanAttempted = true;
+            if (ownership.OriginalFingerprint == null) return;
+
+            byte[]? currentFingerprint = ReadBoundedWorksheetFingerprint();
+            if (currentFingerprint == null || !currentFingerprint.SequenceEqual(ownership.OriginalFingerprint))
+                return;
+
+            sheetIndex ??= GetFixedArraySheetIndex();
+
+            var anchors = new Dictionary<long, OriginalDynamicOwnerCaches>();
+            var children = new Dictionary<long, OriginalDynamicOwnerCaches>();
+            var states = new List<OriginalDynamicOwnerCaches>();
+            long remainingCells = MaxResolvedFormulaRangeCells;
+            foreach (FixedArrayOwner owner in sheetIndex.DynamicOwners) {
+                long count = (long)(owner.Bottom - owner.Top + 1) * (owner.Right - owner.Left + 1);
+                if (ownership.WrittenOwners.Contains(DynamicCellKey(owner.Top, owner.Left))
+                    || count < 1 || count > remainingCells) continue;
+                remainingCells -= count;
+                var state = new OriginalDynamicOwnerCaches(owner);
+                states.Add(state);
+                long anchorKey = DynamicCellKey(owner.Top, owner.Left);
+                if (anchors.ContainsKey(anchorKey) || children.ContainsKey(anchorKey)) return;
+                anchors.Add(anchorKey, state);
+                for (int row = owner.Top; row <= owner.Bottom; row++)
+                    for (int column = owner.Left; column <= owner.Right; column++) {
+                        long key = DynamicCellKey(row, column);
+                        if (key == anchorKey) continue;
+                        if (children.ContainsKey(key) || anchors.ContainsKey(key)) return;
+                        children.Add(key, state);
+                    }
+            }
+            if (states.Count == 0 || !ReadOriginalDynamicSpillCells(anchors, children)) return;
+            foreach (OriginalDynamicOwnerCaches state in states)
+                if (state.Valid && state.AnchorSeen)
+                    foreach (var entry in state.Cells)
+                        if (!ownership.Cells.ContainsKey(entry.Key)) {
+                            if (sheetIndex.Cells.TryGetValue(entry.Key, out ExcelFormulaCell source))
+                                entry.Value.SourceCell = (source.Record as SdkFormulaCellRecord)?.Cell;
+                            ownership.Cells.Add(entry.Key, entry.Value);
+                        }
+        }
+
+        private bool ReadOriginalDynamicSpillCells(
+            Dictionary<long, OriginalDynamicOwnerCaches> anchors,
+            Dictionary<long, OriginalDynamicOwnerCaches> children) {
+            try {
+                using Stream stream = _worksheetPart.GetStream(FileMode.Open, FileAccess.Read);
+                if (!stream.CanSeek || stream.Length > MaxOriginalDynamicSpillXmlBytes) return false;
+                using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    XmlResolver = null,
+                    IgnoreComments = true,
+                    IgnoreProcessingInstructions = true,
+                    MaxCharactersInDocument = MaxOriginalDynamicSpillXmlBytes
+                });
+                int sheetDataDepth = -1;
+                while (reader.Read()) {
+                    if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == sheetDataDepth
+                        && reader.LocalName == "sheetData") sheetDataDepth = -1;
+                    if (reader.NodeType != XmlNodeType.Element || !IsSpreadsheetMainNamespace(reader.NamespaceURI))
+                        continue;
+                    if (reader.LocalName == "sheetData") {
+                        sheetDataDepth = reader.Depth;
+                        continue;
+                    }
+                    if (sheetDataDepth < 0 || reader.LocalName != "c") continue;
+                    if (!TryParseCellReference(reader.GetAttribute("r") ?? "", out int row, out int column))
+                        continue;
+                    long key = DynamicCellKey(row, column);
+                    if (anchors.TryGetValue(key, out OriginalDynamicOwnerCaches? anchor)) {
+                        if (anchor.AnchorSeen) anchor.Valid = false;
+                        anchor.AnchorSeen = true;
+                        anchor.Valid &= OriginalDynamicAnchorMatches(reader, anchor.Owner);
+                        continue;
+                    }
+                    if (!children.TryGetValue(key, out OriginalDynamicOwnerCaches? child)) continue;
+                    if (!child.SeenChildren.Add(key)) {
+                        child.Valid = false;
+                        continue;
+                    }
+                    if (TryReadOriginalPlainCache(reader, out DynamicSpillCacheSnapshot? snapshot))
+                        child.Cells.Add(key, snapshot!);
+                }
+                return true;
+            } catch (Exception ex) when (ex is IOException || ex is InvalidOperationException
+                || ex is XmlException || ex is NotSupportedException) {
+                return false;
+            }
+        }
+
+        private static bool OriginalDynamicAnchorMatches(XmlReader reader, FixedArrayOwner owner) {
+            string? cellMetadata = reader.GetAttribute("cm");
+            if (!uint.TryParse(cellMetadata, out uint metadata)
+                || metadata != owner.Cell.CellMetaIndex) return false;
+            string expectedRange = ExcelA1.CellReference(owner.Top, owner.Left) + ":"
+                + ExcelA1.CellReference(owner.Bottom, owner.Right);
+            using XmlReader child = reader.ReadSubtree();
+            while (child.Read()) {
+                if (child.NodeType != XmlNodeType.Element || child.LocalName != "f"
+                    || !IsSpreadsheetMainNamespace(child.NamespaceURI)) continue;
+                string? type = child.GetAttribute("t");
+                string? range = child.GetAttribute("ref");
+                string formula = child.ReadElementContentAsString();
+                return type == "array" && string.Equals(range, expectedRange, StringComparison.Ordinal)
+                    && string.Equals(formula, owner.Cell.FormulaText, StringComparison.Ordinal);
+            }
+            return false;
+        }
+
+        private static bool TryReadOriginalPlainCache(XmlReader reader, out DynamicSpillCacheSnapshot? snapshot) {
+            snapshot = null;
+            if (reader.GetAttribute("cm") != null) return false;
+            string? type = reader.GetAttribute("t");
+            CellValues? parsedType = type switch {
+                null => null,
+                "b" => CellValues.Boolean,
+                "d" => CellValues.Date,
+                "e" => CellValues.Error,
+                "n" => CellValues.Number,
+                "s" => CellValues.SharedString,
+                "str" => CellValues.String,
+                _ => null
+            };
+            if (type != null && parsedType == null) return false;
+            uint? valueMetadata = null;
+            if (reader.GetAttribute("vm") is string vm) {
+                if (!uint.TryParse(vm, out uint parsed)) return false;
+                valueMetadata = parsed;
+            }
+
+            string? value = null;
+            bool hasValue = false;
+            using XmlReader child = reader.ReadSubtree();
+            while (child.Read()) {
+                if (child.NodeType != XmlNodeType.Element || child.Depth != 1) continue;
+                if (child.LocalName != "v" || hasValue
+                    || !IsSpreadsheetMainNamespace(child.NamespaceURI)) return false;
+                hasValue = true;
+                value = child.ReadElementContentAsString();
+            }
+            if (!hasValue && valueMetadata == null) return false;
+            snapshot = new DynamicSpillCacheSnapshot {
+                Type = parsedType,
+                Value = value,
+                ValueMetaIndex = valueMetadata
+            };
+            return true;
+        }
+
+        private static bool IsSpreadsheetMainNamespace(string namespaceUri) =>
+            string.Equals(namespaceUri, SpreadsheetMainNamespace, StringComparison.Ordinal)
+            || string.Equals(namespaceUri, StrictSpreadsheetMainNamespace, StringComparison.Ordinal);
     }
 }

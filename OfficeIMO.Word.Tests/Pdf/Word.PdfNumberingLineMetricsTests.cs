@@ -249,9 +249,9 @@ public partial class Word {
             .GetFirstChild<Compatibility>()!.Append(new AdjustLineHeightInTable());
         WordList list = source.AddCustomList();
         var level = new WordListLevel(WordListLevelKind.DecimalDot) { LevelText = "gj", LevelSuffix = suffix };
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
-            new RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new FontSize { Val = ((int)(markerSize * 2)).ToString() });
         list.Numbering.AddLevel(level);
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+            new RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new FontSize { Val = ((int)(markerSize * 2)).ToString() });
         foreach (string text in wrapped ? new[] { "A\nB\nC" } : new[] { "A", "B", "C" }) {
             WordParagraph paragraph = list.AddItem(text);
             paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
@@ -284,13 +284,11 @@ public partial class Word {
             list = source.PageSetup.Header.AddList(WordListStyle.Bulleted);
         } else list = source.AddCustomList();
         var level = new WordListLevel(WordListLevelKind.Bullet) { LevelText = "", LevelSuffix = WordListLevelSuffix.Tab };
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+        // The header list keeps its own first level and takes the marker text and font; the body list adds the level.
+        WordListLevel target = header ? list.Numbering.Levels[0] : list.Numbering.AddLevel(level);
+        if (header) target.LevelText = level.LevelText;
+        target.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Marker Face", HighAnsi = "Marker Face" });
-        if (header) {
-            list.Numbering.Levels[0].OpenXmlElement.LevelText = (LevelText)level.OpenXmlElement.LevelText!.CloneNode(true);
-            list.Numbering.Levels[0].OpenXmlElement.NumberingSymbolRunProperties =
-                (NumberingSymbolRunProperties)level.OpenXmlElement.NumberingSymbolRunProperties.CloneNode(true);
-        } else list.Numbering.AddLevel(level);
         foreach (string text in wrapped ? new[] { "A\nB", "C" } : new[] { "A", "B", "C" }) {
             WordParagraph paragraph = list.AddItem(text);
             paragraph.FontFamily = "Body Face"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);

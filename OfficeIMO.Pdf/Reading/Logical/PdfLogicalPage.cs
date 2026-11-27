@@ -1148,7 +1148,15 @@ public sealed partial class PdfLogicalPage {
             var byGeometry = new Dictionary<(long BaselineBucket, long XBucket, string Text), List<SemanticLineBinding>>();
             var byExactGeometry = new Dictionary<(long BaselineY, long XStart, string Text), PdfUnderstandingSemanticElement>();
             var byText = new Dictionary<string, HashSet<PdfUnderstandingSemanticElement>>(StringComparer.Ordinal);
-            var bySourceRun = new PdfSourceRunIndex<PdfUnderstandingSemanticElement>();
+            int runCount = 0;
+            for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
+                IReadOnlyList<PdfUnderstandingLine> lines = elements[elementIndex].Region.Lines;
+                for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                    IReadOnlyList<PdfUnderstandingWord> words = lines[lineIndex].Words;
+                    for (int wordIndex = 0; wordIndex < words.Count; wordIndex++) runCount += words[wordIndex].SourceRuns.Count;
+                }
+            }
+            var bySourceRun = new PdfSourceRunIndex<PdfUnderstandingSemanticElement>(runCount);
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
                 PdfUnderstandingSemanticElement element = elements[elementIndex];
                 for (int lineIndex = 0; lineIndex < element.Region.Lines.Count; lineIndex++) {
@@ -1249,7 +1257,9 @@ public sealed partial class PdfLogicalPage {
         }
 
         internal static LogicalTextBlockSourceIndex Create(List<PdfLogicalTextBlock> textBlocks) {
-            var bySourceRun = new PdfSourceRunIndex<PdfLogicalTextBlock>();
+            int runCount = 0;
+            for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) runCount += textBlocks[blockIndex].Spans.Count;
+            var bySourceRun = new PdfSourceRunIndex<PdfLogicalTextBlock>(runCount);
             for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
                 PdfLogicalTextBlock block = textBlocks[blockIndex];
                 for (int runIndex = 0; runIndex < block.Spans.Count; runIndex++) {

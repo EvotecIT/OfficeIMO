@@ -113,7 +113,7 @@ namespace OfficeIMO.Excel {
             // Encoded tag fragments for the prefix last written with, so a cell is written with byte copies.
             private string? _fragmentPrefix;
             private byte[] _cellOpen = Array.Empty<byte>(), _valueOpen = Array.Empty<byte>(), _valueClose = Array.Empty<byte>(),
-                _rowOpen = Array.Empty<byte>(), _rowClose = Array.Empty<byte>();
+                _cellClose = Array.Empty<byte>(), _rowOpen = Array.Empty<byte>(), _rowClose = Array.Empty<byte>();
 
             private void UseFragments(string prefix) {
                 if (ReferenceEquals(prefix, _fragmentPrefix) || prefix == _fragmentPrefix) return;
@@ -122,6 +122,7 @@ namespace OfficeIMO.Excel {
                 _cellOpen = Utf8.GetBytes("<" + p + "c r=\"");
                 _valueOpen = Utf8.GetBytes("<" + p + "v>");
                 _valueClose = Utf8.GetBytes("</" + p + "v></" + p + "c>");
+                _cellClose = Utf8.GetBytes("</" + p + "c>");
                 _rowOpen = Utf8.GetBytes("<" + p + "row r=\"");
                 _rowClose = Utf8.GetBytes("</" + p + "row>");
             }
@@ -285,7 +286,8 @@ namespace OfficeIMO.Excel {
                             return Fail("a row number is not valid");
                         }
                     } else {
-                        rowNumber = previousRow + 1;
+                        // The model numbers such a row by its first cell that names a row, which the merge does not follow.
+                        return Fail("a row has no number");
                     }
                     // Rows out of order leave the place of a new row unclear.
                     if (rowNumber <= previousRow) return Fail("rows are out of order");
@@ -402,13 +404,19 @@ namespace OfficeIMO.Excel {
                     }
                     if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "t", out string existingType) && existingType == "s") RemovedSharedReferences++;
                     string cellPrefix = reader.ElementPrefix;
-                    int formulaStart = -1, formulaEnd = -1;
+                    int formulaStart = -1, formulaEnd = -1, calculateStart = -1, calculateLength = 0, formulaNameEnd = -1;
                     if (!reader.IsEmptyElement) {
                         while (reader.Read()) {
                             if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == 4) break;
                             if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 5) continue;
                             if (reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "f") && formulaStart < 0) {
                                 formulaStart = reader.MarkupStart;
+                                string formulaPrefix = reader.ElementPrefix;
+                                formulaNameEnd = formulaStart + 2 + (formulaPrefix.Length == 0 ? 0 : Utf8.GetByteCount(formulaPrefix) + 1);
+                                if (TryFindAttribute(reader, "ca", out int foundStart, out int foundLength)) {
+                                    calculateStart = foundStart;
+                                    calculateLength = foundLength;
+                                }
                                 reader.SkipElement();
                                 formulaEnd = reader.MarkupEnd;
                             } else if (reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "v") || reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "is")) {
@@ -422,7 +430,8 @@ namespace OfficeIMO.Excel {
                     }
                     int cellEnd = reader.MarkupEnd;
                     CopyTo(cellStart);
-                    WriteCell(rowNumber, resolvedColumn, start, end, cellPrefix, existingStyle, 0U, extraAttributes, formulaStart, formulaEnd);
+                    WriteCell(rowNumber, resolvedColumn, start, end, cellPrefix, existingStyle, 0U, extraAttributes, formulaStart, formulaEnd,
+                        formulaNameEnd, calculateStart, calculateLength);
                     _copied = cellEnd;
                 }
                 return false;
@@ -536,12 +545,12 @@ namespace OfficeIMO.Excel {
                 while (HasPending && PendingRow == row && PendingColumn < limit) {
                     int column = PendingColumn;
                     NextGroup(out int start, out int end);
-                    WriteCell(row, column, start, end, prefix, null, ResolveInheritedStyle(rowStyle, column), string.Empty, -1, -1);
+                    WriteCell(row, column, start, end, prefix, null, ResolveInheritedStyle(rowStyle, column), string.Empty, -1, -1, -1, -1, 0);
                 }
             }
 
             private void WriteCell(int row, int column, int start, int end, string prefix, uint? existingStyle, uint inheritedStyle,
-                string extraAttributes, int formulaStart, int formulaEnd) {
+                string extraAttributes, int formulaStart, int formulaEnd, int formulaNameEnd, int calculateStart, int calculateLength) {
                 Include(row, column);
                 UseFragments(prefix);
                 AppendFragment(_cellOpen);
@@ -560,6 +569,10 @@ namespace OfficeIMO.Excel {
                     return;
                 }
                 ref ExcelDeferredCellEdit edit = ref _cells.At(value);
+                if (edit.Kind == ExcelDeferredCellKind.FormulaResult) {
+                    WriteFormulaResult(edit, start, end, extraAttributes, formulaStart, formulaEnd, formulaNameEnd, calculateStart, calculateLength);
+                    return;
+                }
                 int sharedIndex = -1;
                 switch (edit.Kind) {
                     case ExcelDeferredCellKind.Text:
@@ -580,7 +593,7 @@ namespace OfficeIMO.Excel {
                 }
                 if (extraAttributes.Length > 0) AppendAscii(extraAttributes);
                 Append((byte)'>');
-                if (formulaStart >= 0) AppendBytes(_source, formulaStart, formulaEnd - formulaStart);
+                if (formulaStart >= 0) AppendFormula(start, end, formulaStart, formulaEnd, formulaNameEnd, calculateStart, calculateLength);
                 AppendFragment(_valueOpen);
                 switch (edit.Kind) {
                     case ExcelDeferredCellKind.Text:
@@ -595,6 +608,88 @@ namespace OfficeIMO.Excel {
                 }
                 AppendFragment(_valueClose);
             }
+
+            /// <summary>
+            /// Writes a calculated result: its type, the formula with the result's calculate-on-load flag, and the value
+            /// text as stored, or no value element when the result has none.
+            /// </summary>
+            private void WriteFormulaResult(in ExcelDeferredCellEdit edit, int start, int end, string extraAttributes,
+                int formulaStart, int formulaEnd, int formulaNameEnd, int calculateStart, int calculateLength) {
+                ExcelCellValueType? type = edit.FormulaResultType;
+                if (type.HasValue) {
+                    AppendAscii("\" t=\"");
+                    AppendAscii(TypeName(type.Value));
+                }
+                Append((byte)'"');
+                if (extraAttributes.Length > 0) AppendAscii(extraAttributes);
+                Append((byte)'>');
+                if (formulaStart >= 0) AppendFormula(start, end, formulaStart, formulaEnd, formulaNameEnd, calculateStart, calculateLength);
+                string? text = edit.FormulaResultText;
+                if (text != null) {
+                    AppendFragment(_valueOpen);
+                    AppendEscaped(text);
+                    AppendFragment(_valueClose);
+                } else {
+                    AppendFragment(_cellClose);
+                }
+            }
+
+            private static string TypeName(ExcelCellValueType type) => type switch {
+                ExcelCellValueType.Boolean => "b",
+                ExcelCellValueType.Number => "n",
+                ExcelCellValueType.Error => "e",
+                ExcelCellValueType.SharedString => "s",
+                ExcelCellValueType.InlineString => "inlineStr",
+                ExcelCellValueType.Date => "d",
+                _ => "str",
+            };
+
+            /// <summary>
+            /// Copies the cell's formula. When the cell's changes include a calculated result, the formula takes that
+            /// result's calculate-on-load flag; otherwise it stays as written.
+            /// </summary>
+            private void AppendFormula(int start, int end, int formulaStart, int formulaEnd, int formulaNameEnd, int calculateStart, int calculateLength) {
+                int result = -1;
+                for (int position = end - 1; position >= start; position--) {
+                    if (_cells.At(position).Kind == ExcelDeferredCellKind.FormulaResult) {
+                        result = position;
+                        break;
+                    }
+                }
+                if (result < 0) {
+                    AppendBytes(_source, formulaStart, formulaEnd - formulaStart);
+                    return;
+                }
+                bool? calculate = _cells.At(result).FormulaResultCalculate;
+                if (calculateStart >= 0) {
+                    if (calculate.HasValue) {
+                        AppendBytes(_source, formulaStart, calculateStart - formulaStart);
+                        Append(calculate.Value ? (byte)'1' : (byte)'0');
+                        AppendBytes(_source, calculateStart + calculateLength, formulaEnd - calculateStart - calculateLength);
+                        return;
+                    }
+                    // The flag is removed with its name, the equals sign and the whitespace before it.
+                    int attributeStart = calculateStart - 1;
+                    while (attributeStart > formulaStart && _source[attributeStart - 1] != (byte)'=') attributeStart--;
+                    attributeStart--;
+                    while (attributeStart > formulaStart && IsXmlSpace(_source[attributeStart - 1])) attributeStart--;
+                    attributeStart -= 2;
+                    while (attributeStart > formulaStart && IsXmlSpace(_source[attributeStart - 1])) attributeStart--;
+                    AppendBytes(_source, formulaStart, attributeStart - formulaStart);
+                    int after = calculateStart + calculateLength + 1;
+                    AppendBytes(_source, after, formulaEnd - after);
+                    return;
+                }
+                if (!calculate.HasValue) {
+                    AppendBytes(_source, formulaStart, formulaEnd - formulaStart);
+                    return;
+                }
+                AppendBytes(_source, formulaStart, formulaNameEnd - formulaStart);
+                AppendAscii(calculate.Value ? " ca=\"1\"" : " ca=\"0\"");
+                AppendBytes(_source, formulaNameEnd, formulaEnd - formulaNameEnd);
+            }
+
+            private static bool IsXmlSpace(byte value) => value is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n';
 
             private void Include(int row, int column) {
                 if (row < _minRow) _minRow = row;

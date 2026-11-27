@@ -1177,6 +1177,11 @@ internal static partial class PdfDocumentSemanticEnricher {
         private double _maximumLineTolerance;
         private readonly List<int> _nearLines = new();
         private readonly List<PdfTextSpan> _lineRuns = new();
+        // A cell's distinct runs in the order first seen. Cells hold a few runs, compared by reference
+        // until there are enough to be worth a set.
+        private readonly List<PdfTextSpan> _cellRuns = new();
+        private readonly HashSet<PdfTextSpan> _cellRunSet = new();
+        private const int CellRunsWithoutSet = 16;
 
         internal TaggedPageContentIndex(
             PdfReadPage readPage,
@@ -1203,7 +1208,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         internal bool TryBuildCell(
             IReadOnlyList<MarkedContentKey> keys,
             out TaggedTableCell? cell) {
-            var selectedRuns = new HashSet<PdfTextSpan>();
+            _cellRuns.Clear();
+            _cellRunSet.Clear();
             for (int keyIndex = 0; keyIndex < keys.Count; keyIndex++) {
                 _workBudget.Consume();
                 if (!TryResolveRuns(keys[keyIndex], out IReadOnlyList<PdfTextSpan>? runs)) {
@@ -1213,19 +1219,18 @@ internal static partial class PdfDocumentSemanticEnricher {
                 }
                 for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
                     _workBudget.Consume();
-                    selectedRuns.Add(runs[runIndex]);
+                    AddCellRun(runs[runIndex]);
                 }
             }
-            if (selectedRuns.Count == 0) {
+            if (_cellRuns.Count == 0) {
                 cell = null;
                 return true;
             }
 
-            var orderedRuns = new PdfTextSpan[selectedRuns.Count];
-            int orderedRunIndex = 0;
-            foreach (PdfTextSpan run in selectedRuns) {
+            var orderedRuns = new PdfTextSpan[_cellRuns.Count];
+            for (int orderedRunIndex = 0; orderedRunIndex < orderedRuns.Length; orderedRunIndex++) {
                 _workBudget.Consume();
-                orderedRuns[orderedRunIndex++] = run;
+                orderedRuns[orderedRunIndex] = _cellRuns[orderedRunIndex];
             }
             Array.Sort(orderedRuns, (left, right) => {
                 _workBudget.Consume();
@@ -1326,6 +1331,18 @@ internal static partial class PdfDocumentSemanticEnricher {
                 sourceLines.AsReadOnly(),
                 Array.AsReadOnly(orderedRuns));
             return true;
+        }
+
+        private void AddCellRun(PdfTextSpan run) {
+            if (_cellRuns.Count < CellRunsWithoutSet) {
+                for (int index = 0; index < _cellRuns.Count; index++) {
+                    if (ReferenceEquals(_cellRuns[index], run)) return;
+                }
+                _cellRuns.Add(run);
+                if (_cellRuns.Count == CellRunsWithoutSet) _cellRunSet.UnionWith(_cellRuns);
+                return;
+            }
+            if (_cellRunSet.Add(run)) _cellRuns.Add(run);
         }
 
         /// <summary>The lines' texts joined by spaces and trimmed, as one cell value.</summary>

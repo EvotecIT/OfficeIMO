@@ -805,7 +805,7 @@ namespace OfficeIMO.Excel {
             if (withoutFormula && _formulaEvaluationCache != null
                 && TryResolveFixedArrayChild(row, column, out FormulaArgumentValue arrayValue)) return arrayValue.AsReferencedValue();
             if (withoutFormula && TryResolvePlainNumberCell(row, column, out FormulaArgumentValue plainNumber)) return plainNumber;
-            var value = GetCellValueSnapshot(row, column);
+            var value = GetFormulaValueSnapshot(row, column);
             if (unresolvedFormula && value.Value == null && string.IsNullOrEmpty(value.CachedText)) {
                 return FormulaArgumentValue.UnresolvedFormula();
             }

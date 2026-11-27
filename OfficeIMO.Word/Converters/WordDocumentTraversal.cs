@@ -454,7 +454,7 @@ namespace OfficeIMO.Word {
                 result[numberId] = new ListNumberingDefinition(
                     numberId,
                     abstractNum?.AbstractNumberId?.Value,
-                    abstractNum != null ? WordListStyles.MatchStyle(abstractNum) : WordListStyle.Custom,
+                    WordListStyles.MatchStyle(abstractNum?.GetFirstChild<TemplateCode>()?.Val?.Value),
                     startOverrides,
                     levels);
             }
@@ -488,7 +488,7 @@ namespace OfficeIMO.Word {
                 markerFontSize: ResolveListMarkerFontSize(markerProperties),
                 markerCharacterScale: markerProperties?.GetFirstChild<CharacterScale>()?.Val?.Value,
                 markerCharacterSpacingTwips: markerProperties?.GetFirstChild<Spacing>()?.Val?.Value,
-                levelJustification: WordListLevel.ReadLevelJustification(effectiveLevel.LevelJustification),
+                levelJustification: WordListLevel.ReadLevelJustification(effectiveLevel.LevelJustification?.Val?.InnerText).ToOpenXml(),
                 levelSuffix: effectiveLevel.LevelSuffix?.Val?.Value,
                 pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value,
                 restartLevel: restartLevel,

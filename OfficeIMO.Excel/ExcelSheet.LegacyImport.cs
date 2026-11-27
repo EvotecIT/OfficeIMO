@@ -86,7 +86,7 @@ public partial class ExcelSheet {
                 : cachedValue is bool boolean ? FormulaArgumentValue.Boolean(boolean)
                 : cachedValue is double number ? new FormulaArgumentValue(number, null)
                 : new FormulaArgumentValue(null, cachedValue as string ?? string.Empty, sourceCellKind: ExcelCellDataKind.Text);
-            SetFormulaCachedValue(cell, cached);
+            SetFormulaCachedValue(WrapFormulaCell(cell), cached);
             cell.CellFormula!.CalculateCell = false;
         });
     }
