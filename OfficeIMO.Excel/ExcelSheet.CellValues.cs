@@ -92,29 +92,32 @@ namespace OfficeIMO.Excel {
 
             list = PrepareTableHeaderValueWrites(list, ct);
 
+            // A batch may stand in for the whole sheet at save only if no other batch writes cells between the check
+            // that the sheet is empty and the registration, so both run under the document lock other writers take.
             DirectCellValuesSaveCandidate? directSaveCandidate = null;
-            if (TryCreateDirectCellValuesSaveCandidate(list, mode, out DirectCellValuesSaveCandidate? candidate)
-                && candidate != null
-                && CanRegisterDirectTabularSaveCandidate(1, 1, candidate.ColumnNames.Length)) {
-                directSaveCandidate = candidate;
-            }
+            bool registered = Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => {
+                if (TryCreateDirectCellValuesSaveCandidate(list, mode, out DirectCellValuesSaveCandidate? candidate)
+                    && candidate != null
+                    && CanRegisterDirectTabularSaveCandidate(1, 1, candidate.ColumnNames.Length)) {
+                    directSaveCandidate = candidate;
+                }
 
-            if (directSaveCandidate != null
-                && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(directSaveCandidate, preserveMissingValues)) {
-                return;
-            }
+                if (directSaveCandidate != null
+                    && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(directSaveCandidate, preserveMissingValues)) {
+                    return true;
+                }
 
-            if (appendSaveCandidate == null
-                && mode == ExcelExecutionMode.Parallel
-                && TryCreateDirectCellValuesAppendCandidate(list, out DirectCellValuesSaveCandidate? appendCandidate)) {
-                appendSaveCandidate = appendCandidate;
-            }
+                if (appendSaveCandidate == null
+                    && mode == ExcelExecutionMode.Parallel
+                    && TryCreateDirectCellValuesAppendCandidate(list, out DirectCellValuesSaveCandidate? appendCandidate)) {
+                    appendSaveCandidate = appendCandidate;
+                }
 
-            if (appendSaveCandidate != null
-                && _excelDocument.CanDeferDirectCellValuesAppendCandidate
-                && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate, preserveMissingValues)) {
-                return;
-            }
+                return appendSaveCandidate != null
+                    && _excelDocument.CanDeferDirectCellValuesAppendCandidate
+                    && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate, preserveMissingValues);
+            });
+            if (registered) return;
 
             if (list.Count >= PendingDirectCellValueMinimumCellCount
                 && !hasDynamicArrays
