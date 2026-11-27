@@ -127,6 +127,31 @@ public sealed class OlmSalvageTests {
     }
 
     [Fact]
+    public void ChargesTheItemBoundOnlyForRecordsTheReaderProjects() {
+        // A stray <email> under <contacts> is not projected, and the reader ignores a second copy of the same path.
+        const string contacts = "<contacts><email /><contact><OPFContactCopyDisplayName>Ada Lovelace</OPFContactCopyDisplayName></contact></contacts>";
+        const string mail = "<emails><email><OPFMessageCopySubject>Kept</OPFMessageCopySubject></email></emails>";
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/Contacts/Contacts.xml", contacts)
+                .AddText("Local/Contacts/Contacts.xml", contacts)
+                .AddText("Local/com.microsoft.__Messages/Inbox/message_00000.xml", mail)
+                .Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxItemCount: 2)));
+
+            Assert.Equal(new[] { OutlookItemKind.Contact, OutlookItemKind.Message },
+                report.Entries.Select(entry => entry.Kind!.Value));
+            Assert.All(report.Entries, entry => Assert.Equal(EmailStoreSalvageStatus.Recovered, entry.Status));
+            Assert.False(report.StoppedAtLimit);
+            Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_OLM_DUPLICATE_ENTRY");
+        });
+    }
+
+    [Fact]
     public void FindsSignaturelessZip64DescriptorsWhenTheDirectoryIsMissing() {
         byte[] source = File.ReadAllBytes(Path.Combine(DbxStoreReaderTests.CorpusRoot, "native-apple-20261003", "outlook",
             "native-outlook.olm"));

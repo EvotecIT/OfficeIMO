@@ -35,6 +35,7 @@ internal sealed class OlmSalvage {
     private readonly List<EmailStoreSalvageEntry> _results = new List<EmailStoreSalvageEntry>();
     private long _decodedBytes;
     private int _itemsAdmitted;
+    private readonly HashSet<string> _admittedXml = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private bool _stoppedAtLimit;
     private bool _discoveryCompleted = true;
 
@@ -210,6 +211,13 @@ internal sealed class OlmSalvage {
         string? failure = Verify(entry, dataOffset, out long decoded);
         _decodedBytes += decoded;
         bool isXml = normalized.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
+        if (isXml && _admittedXml.Contains(normalized)) {
+            // The reader keeps the first copy of a path; a later copy would not be projected, so it is not admitted.
+            Add("EMAIL_STORE_OLM_DUPLICATE_ENTRY",
+                "A later copy of an XML entry that was already recovered was ignored, as the OLM reader would ignore it.",
+                EmailStoreDiagnosticSeverity.Warning, entry.LocalHeaderOffset, normalized);
+            return;
+        }
         int itemsRemaining = _limits.MaxItemCount - _itemsAdmitted;
 
         if (failure == null) {
@@ -221,11 +229,13 @@ internal sealed class OlmSalvage {
                             out int kept, out _, out _, out _)) {
                         using (subset) WriteSpill(archive, entry.Name, subset!);
                         _itemsAdmitted += kept;
+                        _admittedXml.Add(normalized);
                     }
                     SourceItemLimit(entry);
                     return;
                 }
                 _itemsAdmitted += count;
+                _admittedXml.Add(normalized);
             }
             ZipArchiveEntry target = archive.CreateEntry(entry.Name, CompressionLevel.NoCompression);
             using Stream input = OpenPayload(entry, dataOffset);
@@ -240,6 +250,7 @@ internal sealed class OlmSalvage {
             _decodedBytes += consumed;
             using (repaired) WriteSpill(archive, entry.Name, repaired!);
             _itemsAdmitted += items;
+            _admittedXml.Add(normalized);
             _repairedEntries[normalized] = new Repair(entry.LocalHeaderOffset, failure);
             Add("EMAIL_STORE_OLM_SALVAGE_ENTRY_REPAIRED",
                 failure + " " + items.ToString(CultureInfo.InvariantCulture) +
@@ -268,12 +279,16 @@ internal sealed class OlmSalvage {
         spill.CopyTo(output);
     }
 
-    private static readonly HashSet<string> ItemElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
-        "email", "appointment", "contact", "task", "note"
+    /// <summary>The record element the OLM reader projects under each collection root.</summary>
+    private static readonly Dictionary<string, string> ItemElements = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+        ["emails"] = "email", ["appointments"] = "appointment", ["contacts"] = "contact",
+        ["tasks"] = "task", ["notes"] = "note"
     };
 
-    /// <summary>Whether a top-level element is a record the OLM reader projects and counts as an item.</summary>
-    private static bool IsItemElement(string localName) => ItemElements.Contains(localName);
+    /// <summary>Whether a top-level element is a record the OLM reader projects; other roots project nothing.</summary>
+    private static bool IsItemElement(string? rootName, string localName) =>
+        rootName != null && ItemElements.TryGetValue(rootName, out string? item) &&
+        string.Equals(item, localName, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Counts an XML entry's top-level records; malformed XML counts as none and is reported by the reader.</summary>
     private int CountXmlItems(ZipEntry entry, long dataOffset) {
@@ -281,12 +296,13 @@ internal sealed class OlmSalvage {
             using Stream input = OpenPayload(entry, dataOffset);
             using XmlReader reader = XmlReader.Create(input, CreateXmlSettings());
             if (reader.MoveToContent() != XmlNodeType.Element || reader.IsEmptyElement) return 0;
+            string rootName = reader.LocalName;
             int count = 0;
             reader.Read();
             while (!reader.EOF && reader.NodeType != XmlNodeType.EndElement) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 if (reader.NodeType == XmlNodeType.Element) {
-                    if (IsItemElement(reader.LocalName) && ++count == int.MaxValue) return count;
+                    if (IsItemElement(rootName, reader.LocalName) && ++count == int.MaxValue) return count;
                     reader.Skip();
                 } else {
                     reader.Read();
@@ -364,6 +380,7 @@ internal sealed class OlmSalvage {
                 bool started = false;
                 try {
                     if (reader.MoveToContent() != XmlNodeType.Element) return false;
+                    string rootName = reader.LocalName;
                     writer.WriteStartElement(reader.Prefix, reader.LocalName, reader.NamespaceURI);
                     started = true;
                     if (reader.HasAttributes) writer.WriteAttributes(reader, defattr: false);
@@ -372,7 +389,7 @@ internal sealed class OlmSalvage {
                         while (!reader.EOF && reader.NodeType != XmlNodeType.EndElement) {
                             _cancellationToken.ThrowIfCancellationRequested();
                             if (reader.NodeType == XmlNodeType.Element) {
-                                bool isItem = IsItemElement(reader.LocalName);
+                                bool isItem = IsItemElement(rootName, reader.LocalName);
                                 XNode node = XNode.ReadFrom(reader);
                                 node.WriteTo(writer);
                                 if (isItem && ++items >= maxItems) {
