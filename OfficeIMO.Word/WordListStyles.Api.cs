@@ -36,9 +36,9 @@ internal static class WordListStyles {
 
     /// <summary>
     /// Matches a list definition to one of the built-in styles by its template code, or returns
-    /// <see cref="WordListStyle.Custom"/> when none matches.
+    /// <see cref="WordListStyle.Custom"/> when none matches. Template codes are hexadecimal, so case doesn't matter.
     /// </summary>
-    internal static WordListStyle MatchStyle(string? templateCode) => templateCode switch {
+    internal static WordListStyle MatchStyle(string? templateCode) => templateCode?.ToUpperInvariant() switch {
         "934E79A6" => WordListStyle.Bulleted,
         "04090023" => WordListStyle.ArticleSections,
         "04090025" => WordListStyle.Headings111,

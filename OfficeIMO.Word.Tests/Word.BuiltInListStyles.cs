@@ -19,6 +19,10 @@ public partial class Word {
             Assert.Equal(Enumerable.Range(0, levels.Length), levels.Select(level => level.LevelIndex!.Value));
         }
 
+        // Producers that write lowercase hexadecimal still match the built-in style.
+        Assert.Equal(WordListStyle.Numbered, WordListStyles.MatchStyle("25be4216"));
+        Assert.Equal(WordListStyle.Custom, WordListStyles.MatchStyle(null));
+
         var picture = new AbstractNum(WordListStyles.PictureBulletMarkup);
         Assert.Empty(picture.Descendants<OpenXmlUnknownElement>());
         Assert.Single(picture.Descendants<LevelPictureBulletId>());
