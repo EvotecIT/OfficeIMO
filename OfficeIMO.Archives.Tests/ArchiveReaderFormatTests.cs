@@ -22,6 +22,31 @@ public sealed class ArchiveReaderFormatTests {
     }
 
     [Fact]
+    public void CabinetFoldersAreDecodedOnceForAllTheirDocuments() {
+        byte[] text = Encoding.UTF8.GetBytes(new string('a', 4000));
+        byte[] cabinet = ArchiveFixtures.StoredCab(("one.txt", text), ("two.txt", text), ("three.txt", text));
+        var budget = new ArchiveOperationBudget();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers()
+            .AddArchiveHandler(new ArchiveTraversalOptions { OperationBudget = budget }).Build();
+        ReaderChunk[] chunks = reader.Enumerate(new MemoryStream(cabinet), "three.cab", new ReaderOptions { ComputeHashes = false }).ToArray();
+        Assert.Equal(3, chunks.Select(chunk => chunk.Location.Path).Distinct().Count());
+        // One pass over the 12,000-byte folder, not one per member.
+        Assert.Equal(3L * text.Length, budget.Usage.ExpandedBytes);
+    }
+
+    [Fact]
+    public void CabinetMembersRespectTheTraversalExpansionLimits() {
+        byte[] cabinet = ArchiveFixtures.StoredCab(("big.txt", Encoding.UTF8.GetBytes(new string('b', 2048))));
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers()
+            .AddArchiveHandler(new ArchiveTraversalOptions { MaxEntryUncompressedBytes = 1024 }).Build();
+        Assert.Throws<ReaderResourceLimitException>(() => reader.Enumerate(new MemoryStream(cabinet), "big.cab").ToArray());
+
+        reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers()
+            .AddArchiveHandler(new ArchiveTraversalOptions { MaxTotalUncompressedBytes = 1024 }).Build();
+        Assert.Throws<ReaderResourceLimitException>(() => reader.Enumerate(new MemoryStream(cabinet), "big.cab").ToArray());
+    }
+
+    [Fact]
     public void InstallerPackagesNeedTheOptIn() {
         byte[] msi = ArchiveFixtures.MsiFiles(false, false, 1, null, new MsiFixtureFile("readme.txt", "hello from an installer"));
         // Without the opt-in the handler does not claim .msi, so the package never reaches the archive reader.

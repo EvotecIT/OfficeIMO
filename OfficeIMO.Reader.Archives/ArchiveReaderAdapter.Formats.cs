@@ -36,17 +36,41 @@ internal static partial class ArchiveReaderAdapter {
     }
 
     /// <summary>Reads a Microsoft Cabinet or Windows Installer package through <see cref="ArchiveInspector"/>, which
-    /// verifies every member it returns. Members the inventory cannot read become warnings.</summary>
+    /// verifies every member it returns. Wanted members are read in one grouped batch, so each cabinet folder is decoded
+    /// once however many of its members are documents. Members the inventory cannot read become warnings.</summary>
     private static IEnumerable<ReaderChunk> ReadInspected(Stream source, string archivePath, int nestedDepth, ArchiveOperationBudget budget,
         ReadContext context) {
         source.Position = 0;
         ArchiveInspection inspection;
+        var data = new Dictionary<int, byte[]>();
         try {
-            inspection = ArchiveInspector.Open(source, InspectionOptions(context.Traversal, budget), context.Token);
+            // Unlike ZIP, whose traversal turns oversized entries into warnings, the entry and total expansion limits
+            // apply to the inventory here, as they do to TAR and 7z.
+            ArchiveInspectionOptions options = InspectionOptions(context.Traversal, budget);
+            options.MaxEntryBytes = Math.Max(1, context.Traversal.MaxEntryUncompressedBytes ?? long.MaxValue);
+            options.MaxExpandedBytes = Math.Max(1, context.Traversal.MaxTotalUncompressedBytes ?? long.MaxValue);
+            inspection = ArchiveInspector.Open(source, options, context.Token);
         } catch (OfficeIMO.OfficeInspectionResourceLimitException error) {
             throw new ReaderResourceLimitException(error.LimitName, error.Maximum, error);
         }
         using (inspection) {
+            try {
+                var admitted = inspection.Entries.Where(entry => !entry.IsDirectory && entry.Diagnostic == null
+                        && IsWanted(MemberName(entry), context.Archive) && Admit(MemberName(entry), entry.Length, nestedDepth, context))
+                    .Select(entry => entry.Ordinal).ToArray();
+                if (admitted.Length != 0) {
+                    using ArchiveReadBatch batch = inspection.ReadMembers(admitted, long.MaxValue, context.Token);
+                    foreach (ArchiveReadMember member in batch.Members) {
+                        var bytes = new byte[member.Entry.Length];
+                        using var output = new MemoryStream(bytes);
+                        member.Content.CopyTo(output);
+                        data[member.Entry.Ordinal] = bytes;
+                    }
+                }
+            } catch (OfficeIMO.OfficeInspectionResourceLimitException error) {
+                throw new ReaderResourceLimitException(error.LimitName, error.Maximum, error);
+            }
+
             var names = inspection.Entries.Where(entry => !entry.IsDirectory).Select(entry => MemberName(entry)).ToList();
             var duplicates = new HashSet<string>(names.GroupBy(name => name, StringComparer.Ordinal).Where(group => group.Count() > 1)
                 .Select(group => group.Key), StringComparer.Ordinal);
@@ -63,8 +87,9 @@ internal static partial class ArchiveReaderAdapter {
                     }
                     continue;
                 }
+                int ordinal = entry.Ordinal;
                 foreach (var chunk in EmitMember(name, entryArchivePath, entry.Length, entry.LastWriteTime,
-                             () => ReadAllBytes(inspection, entry, context.Token), nestedDepth, inspection.OperationBudget, context))
+                             () => Admitted(data.TryGetValue(ordinal, out byte[]? bytes) ? bytes : null, name), nestedDepth, inspection.OperationBudget, context))
                     yield return chunk;
             }
         }
