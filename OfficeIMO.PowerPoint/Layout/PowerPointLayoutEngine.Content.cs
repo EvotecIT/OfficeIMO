@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using Ns = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointLayoutEngine {
@@ -585,10 +585,7 @@ namespace OfficeIMO.PowerPoint {
                 OfficeLength.Points(box.X), OfficeLength.Points(box.Y), OfficeLength.Points(width), OfficeLength.Points(total));
             result.AltText = PowerPointLayoutRun.FlattenBreaks(!string.IsNullOrWhiteSpace(table.Caption) ? table.Caption :
                 "Table with " + table.Rows.Count.ToString(CultureInfo.InvariantCulture) + " data rows. Columns: " + string.Join(", ", table.Headers) + ".");
-            A.Table element = result.TableElement;
-            A.GraphicData data = (A.GraphicData)element.Parent!;
-            element.Remove();
-            data.AppendChild(new A.Table(xml.ToString()));
+            PowerPointSlide.ReplaceLayoutTable(result, xml.ToString());
 
             if (range.HasValue) {
                 (int a, int b, int n) = range.Value;
@@ -710,10 +707,10 @@ namespace OfficeIMO.PowerPoint {
             StyleCategoryChart(context, result, chart);
 
             // One series needs no legend; several get theirs at the top, under the title.
-            DocumentFormat.OpenXml.Drawing.Charts.Legend? legend = result.GetChart().GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Legend>();
+            OfficeXmlNode legend = result.ChartNode.Child(Ns.Chart, "legend");
             if (chart.Data.Series.Count <= 1) {
-                legend?.Remove();
-                result.Save();
+                if (legend.Exists) legend.Remove();
+                result.MarkChartEdited();
             } else {
                 result.SetLegend(OfficeChartLegendPosition.Top);
                 result.SetLegendTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: OfficeColor.Parse(context.Theme.TextMuted));
@@ -774,38 +771,47 @@ namespace OfficeIMO.PowerPoint {
         ///     text style and the shared chart renderer can draw it.
         /// </summary>
         private static void UniformAxisText(PowerPointChart result) {
-            var axes = result.GetChart().PlotArea?.ChildElements
-                .Where(axis => axis is DocumentFormat.OpenXml.Drawing.Charts.CategoryAxis or DocumentFormat.OpenXml.Drawing.Charts.ValueAxis)
-                .ToList();
-            if (axes == null || axes.Count <= 2) return;
-            DocumentFormat.OpenXml.OpenXmlElement? reference = axes[0].GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.TextProperties>();
-            if (reference == null) return;
-            foreach (DocumentFormat.OpenXml.OpenXmlElement axis in axes.Skip(1)) {
-                DocumentFormat.OpenXml.Drawing.Charts.TextProperties? text = axis.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.TextProperties>();
-                if (text == null) continue;
-                text.InsertAfterSelf(reference.CloneNode(true));
+            OfficeXmlNode plotArea = result.ChartNode.Child(Ns.Chart, "plotArea");
+            if (plotArea.IsNone) return;
+            var axes = plotArea.Children().ToList().Where(axis => axis.Is(Ns.Chart, "catAx") || axis.Is(Ns.Chart, "valAx")).ToList();
+            if (axes.Count <= 2) return;
+            OfficeXmlNode reference = axes[0].Child(Ns.Chart, "txPr");
+            if (reference.IsNone) return;
+            foreach (OfficeXmlNode axis in axes.Skip(1)) {
+                OfficeXmlNode text = axis.Child(Ns.Chart, "txPr");
+                if (text.IsNone) continue;
+                text.InsertAfterSelf(reference.Clone());
                 text.Remove();
             }
-            result.Save();
+            result.MarkChartEdited();
         }
 
         /// <summary>Writes explicit unsmoothed lines, so no renderer curves a series between its points.</summary>
         private static void StraightLines(PowerPointChart result) {
             bool changed = false;
-            foreach (var series in result.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.LineChartSeries>().ToList()) {
-                DocumentFormat.OpenXml.Drawing.Charts.Smooth? smooth = series.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Smooth>();
-                if (smooth != null) {
-                    if (smooth.Val?.Value == false) continue;
-                    smooth.Val = false;
+            foreach (OfficeXmlNode series in result.ChartNode.ContentDescendants(Ns.Chart, "ser")) {
+                // Line, 3-D line and stock charts hold line series (CT_LineSer), the series that carry c:smooth.
+                if (!series.Parent.Is(Ns.Chart, "lineChart") && !series.Parent.Is(Ns.Chart, "line3DChart") && !series.Parent.Is(Ns.Chart, "stockChart")) continue;
+                OfficeXmlNode smooth = series.Child(Ns.Chart, "smooth");
+                if (smooth.Exists) {
+                    if (smooth.BooleanAttribute("val") == false) continue;
+                    smooth.SetAttribute("val", "0");
                 } else {
-                    smooth = new DocumentFormat.OpenXml.Drawing.Charts.Smooth { Val = false };
-                    DocumentFormat.OpenXml.OpenXmlElement? extensions = series.ChildElements.FirstOrDefault(child => child.LocalName == "extLst");
-                    if (extensions != null) series.InsertBefore(smooth, extensions);
+                    smooth = series.CreateElement(Ns.Chart, "smooth");
+                    smooth.SetAttribute("val", "0");
+                    OfficeXmlNode extensions = default;
+                    foreach (OfficeXmlNode child in series.Children()) {
+                        if (child.LocalName == "extLst") {
+                            extensions = child;
+                            break;
+                        }
+                    }
+                    if (extensions.Exists) series.InsertBefore(smooth, extensions);
                     else series.Append(smooth);
                 }
                 changed = true;
             }
-            if (changed) result.Save();
+            if (changed) result.MarkChartEdited();
         }
 
         /// <summary>

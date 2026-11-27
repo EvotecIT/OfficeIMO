@@ -87,6 +87,21 @@ public class PowerPointMastersWithoutSdkTests {
         return OfficeIMO.Drawing.OfficePngWriter.EncodeRgba(4, 4, rgba);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ChangingASlideLayoutOnAReadOnlyPresentationIsRefusedAndTheCopyKeepsTheOldLayout(bool openSdkFirst) {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()), new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        if (openSdkFirst) _ = presentation.OpenXmlDocument;
+        PowerPointSlide slide = presentation.Slides[0];
+        int before = slide.LayoutIndex;
+
+        Assert.ThrowsAny<Exception>(() => slide.SetLayout(0, before == 0 ? 1 : 0));
+
+        using var snapshot = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
+        Assert.Equal(before, snapshot.Slides[0].LayoutIndex);
+    }
+
     [Fact]
     public void ALayoutPlaceholderWithoutATextBodyIsStillATextBox() {
         byte[] source = RewritePart(CreateDeck(), "ppt/slideLayouts/slideLayout2.xml", root => {

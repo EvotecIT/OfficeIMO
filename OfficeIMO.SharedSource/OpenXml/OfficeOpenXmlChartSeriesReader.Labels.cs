@@ -1,7 +1,7 @@
 using static OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
@@ -57,7 +57,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
     /// override their group's settings element by element; per-point labels that only delete or repeat
     /// the series label are kept as point selections.
     /// </summary>
-    internal static LabelLayout ReadLabels(C.Chart chart, A.ColorScheme? scheme = null) {
+    internal static LabelLayout ReadLabels(OfficeXmlNode chart, OfficeXmlNode scheme = default) {
         LabelLayout? selected = null;
         var labeledSeries = new HashSet<uint>();
         var hiddenPoints = new Dictionary<uint, HashSet<int>>();
@@ -70,18 +70,19 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 OfficeOpenXmlChartFidelityScope.Approximate("Different label layouts across chart layers cannot be projected together.",
                     "Data labels with different settings per series are drawn with the first labelled series' settings.");
         }
-        foreach (var layer in chart.PlotArea?.ChildElements.OfType<OpenXmlCompositeElement>()
-            .Where(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal)) ?? Enumerable.Empty<OpenXmlCompositeElement>()) {
-            bool radial = layer is C.PieChart or C.DoughnutChart;
-            C.DataLabels? groupLabels = layer.GetFirstChild<C.DataLabels>();
+        foreach (OfficeXmlNode layer in chart.Child(NsC, "plotArea").Children()) {
+            if (!layer.LocalName.EndsWith("Chart", StringComparison.Ordinal)) continue;
+            bool radial = layer.Is(NsC, "pieChart") || layer.Is(NsC, "doughnutChart");
+            OfficeXmlNode groupLabels = layer.Child(NsC, "dLbls");
             LabelLayout group = ReadLabelSet(chart, groupLabels, null, radial, scheme);
-            C.DataLabel[] groupPoints = groupLabels?.Elements<C.DataLabel>().ToArray() ?? Array.Empty<C.DataLabel>();
+            List<OfficeXmlNode> groupPoints = groupLabels.Children(NsC, "dLbl").ToList();
             int position = 0;
-            foreach (OpenXmlCompositeElement series in layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(item => item.LocalName == "ser")) {
-                uint key = series.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)position;
+            foreach (OfficeXmlNode series in layer.Children()) {
+                if (series.LocalName != "ser") continue;
+                uint key = series.Child(NsC, "idx").UIntVal() ?? (uint)position;
                 position++;
-                C.DataLabels? seriesLabels = series.GetFirstChild<C.DataLabels>();
-                LabelLayout effective = seriesLabels == null ? group : ReadLabelSet(chart, seriesLabels, group, radial, scheme);
+                OfficeXmlNode seriesLabels = series.Child(NsC, "dLbls");
+                LabelLayout effective = seriesLabels.IsNone ? group : ReadLabelSet(chart, seriesLabels, group, radial, scheme);
                 if (effective.Visible) {
                     Select(effective, radial);
                     labeledSeries.Add(key);
@@ -91,18 +92,18 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     QualifyLeftOutParts(effective);
                 }
                 // Group point entries apply to every series; the series' own entries for a point replace them.
-                var points = new Dictionary<uint, C.DataLabel>();
-                foreach (C.DataLabel point in groupPoints.Concat(seriesLabels?.Elements<C.DataLabel>() ?? Enumerable.Empty<C.DataLabel>()))
-                    if (point.Index?.Val?.Value is uint pointIndex && pointIndex <= int.MaxValue) points[pointIndex] = point;
-                foreach (KeyValuePair<uint, C.DataLabel> entry in points) {
-                    C.DataLabel point = entry.Value;
+                var points = new Dictionary<uint, OfficeXmlNode>();
+                foreach (OfficeXmlNode point in groupPoints.Concat(seriesLabels.Children(NsC, "dLbl").ToList()))
+                    if (point.Child(NsC, "idx").UIntVal() is uint pointIndex && pointIndex <= int.MaxValue) points[pointIndex] = point;
+                foreach (KeyValuePair<uint, OfficeXmlNode> entry in points) {
+                    OfficeXmlNode point = entry.Value;
                     int pointIndex = (int)entry.Key;
-                    if (point.GetFirstChild<C.Delete>() is C.Delete deleted && deleted.Val?.Value != false) {
+                    if (point.Child(NsC, "delete") is { IsNone: false } deleted && deleted.BoolVal() != false) {
                         if (effective.Visible) Add(hiddenPoints, key, pointIndex);
                         continue;
                     }
-                    if (point.GetFirstChild<C.ChartText>() != null ||
-                        point.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null)
+                    if (!point.Child(NsC, "tx").IsNone ||
+                        !point.Child(NsC, "layout").Child(NsC, "manualLayout").IsNone)
                         OfficeOpenXmlChartFidelityScope.Approximate("Custom data label text or placement cannot be projected.",
                             "A data label with its own text or position is drawn as a standard label.");
                     LabelLayout own = ReadLabelSet(chart, point, effective, radial, scheme);
@@ -165,13 +166,13 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
     /// Reads one <c>c:dLbls</c> or <c>c:dLbl</c>; elements it omits come from <paramref name="inherited"/>. A hidden
     /// set keeps its position, format and text, so a point that shows its label inherits them.
     /// </summary>
-    private static LabelLayout ReadLabelSet(C.Chart chart, OpenXmlCompositeElement? labels, LabelLayout? inherited, bool radial,
-        A.ColorScheme? scheme) {
-        if (labels == null) return inherited ?? new LabelLayout();
-        if (labels.GetFirstChild<C.Delete>() is C.Delete deleted && deleted.Val?.Value != false) return new LabelLayout();
-        var separator = labels.GetFirstChild<C.Separator>();
-        string? separatorText = separator == null ? inherited?.Separator : separator.Text;
-        if (separator != null && string.IsNullOrEmpty(separator.Text)) {
+    private static LabelLayout ReadLabelSet(OfficeXmlNode chart, OfficeXmlNode labels, LabelLayout? inherited, bool radial,
+        OfficeXmlNode scheme) {
+        if (labels.IsNone) return inherited ?? new LabelLayout();
+        if (labels.Child(NsC, "delete") is { IsNone: false } deleted && deleted.BoolVal() != false) return new LabelLayout();
+        OfficeXmlNode separator = labels.Child(NsC, "separator");
+        string? separatorText = separator.IsNone ? inherited?.Separator : separator.InnerText;
+        if (!separator.IsNone && string.IsNullOrEmpty(separator.InnerText)) {
             OfficeOpenXmlChartFidelityScope.Approximate("An empty native data label separator cannot be projected.",
                 "An empty data label separator is drawn as the default separator.");
             separatorText = null;
@@ -182,23 +183,23 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             separatorText = null;
         }
         var current = new LabelLayout {
-            Values = Flag<C.ShowValue>(labels, inherited?.Values),
-            Categories = Flag<C.ShowCategoryName>(labels, inherited?.Categories),
-            SeriesNames = Flag<C.ShowSeriesName>(labels, inherited?.SeriesNames),
-            Percentages = radial && Flag<C.ShowPercent>(labels, inherited?.Percentages),
+            Values = Flag(labels, "showVal", inherited?.Values),
+            Categories = Flag(labels, "showCatName", inherited?.Categories),
+            SeriesNames = Flag(labels, "showSerName", inherited?.SeriesNames),
+            Percentages = radial && Flag(labels, "showPercent", inherited?.Percentages),
             // Leader lines connect radial labels to their slices; Office ignores them elsewhere.
-            LeaderLines = radial && Flag<C.ShowLeaderLines>(labels, inherited?.LeaderLines),
-            LegendKeys = Flag<C.ShowLegendKey>(labels, inherited?.LegendKeys),
-            BubbleSizes = Flag<C.ShowBubbleSize>(labels, inherited?.BubbleSizes),
+            LeaderLines = radial && Flag(labels, "showLeaderLines", inherited?.LeaderLines),
+            LegendKeys = Flag(labels, "showLegendKey", inherited?.LegendKeys),
+            BubbleSizes = Flag(labels, "showBubbleSize", inherited?.BubbleSizes),
             RangeText = ReadRangeTextFlag(labels) ?? inherited?.RangeText ?? false,
             Separator = separatorText,
             NumberFormat = inherited?.NumberFormat,
             Position = inherited?.Position ?? OfficeChartDataLabelPosition.BestFit,
             FontSize = inherited?.FontSize, FontFamily = inherited?.FontFamily, FontStyle = inherited?.FontStyle, TextColor = inherited?.TextColor
         };
-        if (labels.GetFirstChild<C.DataLabelPosition>() is C.DataLabelPosition position)
-            current.Position = ReadLabelPosition(position.Val?.InnerText);
-        if (current.Visible || labels.GetFirstChild<C.TextProperties>() != null) {
+        if (labels.Child(NsC, "dLblPos") is { IsNone: false } position)
+            current.Position = ReadLabelPosition(position.Val());
+        if (current.Visible || !labels.Child(NsC, "txPr").IsNone) {
             int checkpoint = OfficeOpenXmlChartFidelityScope.Checkpoint;
             try {
                 ReadLabelText(chart, labels, scheme, current);
@@ -207,22 +208,27 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 OfficeOpenXmlChartFidelityScope.Record("The data label text is drawn with its inherited formatting: " + exception.Message);
             }
         }
-        if (labels.GetFirstChild<C.NumberingFormat>() is C.NumberingFormat numbering)
-            current.NumberFormat = numbering.SourceLinked?.Value == true
+        if (labels.Child(NsC, "numFmt") is { IsNone: false } numbering)
+            current.NumberFormat = numbering.BoolAttr("sourceLinked") == true
                 ? ReadSourceLinkedLabelFormat(labels)
                 : OfficeOpenXmlChartSecondaryAxis.ReadDrawableNumberFormat(labels, "data label");
         if (!current.Visible) return current;
-        foreach (var child in labels.ChildElements) {
-            if (child is C.Index or C.Delete or C.Layout or C.ChartText or C.TextProperties or C.ShowValue or C.ShowCategoryName or
-                C.ShowSeriesName or C.ShowPercent or C.ShowLegendKey or C.ShowBubbleSize or C.ShowLeaderLines or C.Separator or
-                C.NumberingFormat or C.DataLabelPosition or C.DataLabel or C.LeaderLines) continue;
-            if (child is C.ChartShapeProperties shape) {
-                if (!IsUnpaintedLabelShape(shape))
-                    OfficeOpenXmlChartFidelityScope.Approximate("The native data label appearance cannot be projected.",
-                        "Data label fills and borders are left out.");
-                continue;
+        foreach (OfficeXmlNode child in labels.Children()) {
+            if (child.NamespaceId == NsC) {
+                switch (child.LocalName) {
+                    case "idx": case "delete": case "layout": case "tx": case "txPr": case "showVal": case "showCatName":
+                    case "showSerName": case "showPercent": case "showLegendKey": case "showBubbleSize": case "showLeaderLines":
+                    case "separator": case "numFmt": case "dLblPos": case "dLbl": case "leaderLines":
+                        continue;
+                    case "spPr":
+                        if (!IsUnpaintedLabelShape(child))
+                            OfficeOpenXmlChartFidelityScope.Approximate("The native data label appearance cannot be projected.",
+                                "Data label fills and borders are left out.");
+                        continue;
+                    case "extLst":
+                        continue;
+                }
             }
-            if (child is C.DLblsExtensionList or C.DLblExtensionList) continue;
             OfficeOpenXmlChartFidelityScope.Approximate("The native data label appearance cannot be projected.",
                 "Data label formatting the renderer cannot draw is left out.");
         }
@@ -246,12 +252,12 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
 
     // Label text comes from the label's text properties only; a custom rich-text label is drawn as a standard one.
     // A label that names some text properties keeps the rest from its group or series.
-    private static void ReadLabelText(C.Chart chart, OpenXmlCompositeElement labels, A.ColorScheme? scheme, LabelLayout current) {
-        C.TextProperties? properties = labels.GetFirstChild<C.TextProperties>();
+    private static void ReadLabelText(OfficeXmlNode chart, OfficeXmlNode labels, OfficeXmlNode scheme, LabelLayout current) {
+        OfficeXmlNode properties = labels.Child(NsC, "txPr");
         bool inherits = current.FontSize.HasValue || current.FontFamily != null || current.FontStyle.HasValue || current.TextColor.HasValue;
-        if (properties == null && inherits) return;
-        ChartPart? chartPart = (chart.Parent as C.ChartSpace)?.OpenXmlPart as ChartPart;
-        OpenXmlElement? colorMap = chartPart == null ? null : OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart);
+        if (properties.IsNone && inherits) return;
+        IOfficeChartPart? chartPart = ChartPartOf(chart);
+        OfficeXmlNode colorMap = chartPart == null ? default : OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart);
         if (inherits) {
             NativeText parent = new NativeText(current.FontSize, current.FontStyle, current.TextColor, current.FontFamily);
             NativeText own = ReadTextPropertyDefaults(parent, properties, scheme, colorMap);
@@ -261,12 +267,12 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             current.TextColor = own.Color;
             return;
         }
-        NativeText chartText = ReadTextPropertyDefaults(default, chart.Parent?.GetFirstChild<C.TextProperties>(), scheme, colorMap);
+        NativeText chartText = ReadTextPropertyDefaults(default, chart.Parent.Child(NsC, "txPr"), scheme, colorMap);
         NativeText text = ReadTextPropertyDefaults(chartText, properties, scheme, colorMap);
         // A hidden label set only passes its text on to points that show their labels; the chart style's
         // label text applies to labels that are drawn.
         NativeText styled = chartPart == null || !current.Visible ? default : ReadChartStyleLabelText(chartPart, scheme);
-        if (current.Visible && properties != null && chartPart?.GetPartsOfType<ChartStylePart>().Any() == true) {
+        if (current.Visible && !properties.IsNone && chartPart != null && chartPart.ChartStyles(1).Count > 0) {
             NativeText explicitText = ReadTextPropertyDefaults(default, properties, scheme, colorMap);
             NativeText inheritedText = ReadTextPropertyDefaults(styled, properties, scheme, colorMap);
             if (styled.Size.HasValue && !explicitText.Size.HasValue ||
@@ -283,13 +289,23 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         current.TextColor = text.Color ?? styled.Color;
     }
 
-    private static string? ReadSourceLinkedLabelFormat(OpenXmlCompositeElement labels) {
+    private static string? ReadSourceLinkedLabelFormat(OfficeXmlNode labels) {
         // Linked labels show the plotted cells' format, which the series value cache records.
-        OpenXmlElement? series = labels.Ancestors().FirstOrDefault(element => element.LocalName == "ser");
-        IEnumerable<OpenXmlElement> scopes = series != null ? new[] { series } :
-            labels.Parent?.ChildElements.Where(element => element.LocalName == "ser") ?? Enumerable.Empty<OpenXmlElement>();
-        string[] codes = scopes.Select(item => (item.GetFirstChild<C.Values>() ?? (OpenXmlElement?)item.GetFirstChild<C.YValues>())?
-                .Descendants<C.FormatCode>().FirstOrDefault()?.Text)
+        OfficeXmlNode series = default;
+        for (OfficeXmlNode ancestor = labels.Parent; !ancestor.IsNone; ancestor = ancestor.Parent) {
+            if (ancestor.LocalName == "ser") {
+                series = ancestor;
+                break;
+            }
+        }
+        IEnumerable<OfficeXmlNode> scopes = !series.IsNone ? new[] { series } :
+            labels.Parent.Children().ToList().Where(element => element.LocalName == "ser");
+        string[] codes = scopes.Select(item => {
+                OfficeXmlNode values = item.Child(NsC, "val");
+                if (values.IsNone) values = item.Child(NsC, "yVal");
+                OfficeXmlNode code = values.FirstDescendant(NsC, "formatCode");
+                return code.IsNone ? null : code.InnerText;
+            })
             .Select(code => string.IsNullOrWhiteSpace(code) ? "General" : code!).Distinct(StringComparer.Ordinal).ToArray();
         if (codes.Length > 1)
             OfficeOpenXmlChartFidelityScope.Approximate("Source-linked data label formats require qualified workbook formatting.",
@@ -301,21 +317,42 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         return null;
     }
 
-    private static bool IsUnpaintedLabelShape(C.ChartShapeProperties shape) =>
-        !shape.HasAttributes && shape.ChildElements.All(child =>
-            child is A.NoFill ||
-            child is A.EffectList && !child.HasChildren ||
-            child is A.Outline outline && outline.ChildElements.All(line => line is A.NoFill));
+    private static bool IsUnpaintedLabelShape(OfficeXmlNode shape) {
+        if (shape.HasAttributes) return false;
+        foreach (OfficeXmlNode child in shape.Children()) {
+            if (child.Is(NsA, "noFill")) continue;
+            if (child.Is(NsA, "effectLst") && !child.HasChildElements()) continue;
+            if (child.Is(NsA, "ln")) {
+                bool unpainted = true;
+                foreach (OfficeXmlNode line in child.Children()) {
+                    if (!line.Is(NsA, "noFill")) {
+                        unpainted = false;
+                        break;
+                    }
+                }
+                if (unpainted) continue;
+            }
+            return false;
+        }
+        return true;
+    }
 
     // The c15 showDataLabelsRange flag in the label extension list; null when the labels do not set it.
-    private static bool? ReadRangeTextFlag(OpenXmlCompositeElement labels) {
-        OpenXmlElement? flag = labels.ChildElements.Where(child => child is C.DLblsExtensionList or C.DLblExtensionList)
-            .SelectMany(list => list.Descendants()).FirstOrDefault(element => element.LocalName == "showDataLabelsRange");
-        if (flag == null) return null;
-        string? value = flag.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == "val").Value;
+    private static bool? ReadRangeTextFlag(OfficeXmlNode labels) {
+        OfficeXmlNode flag = default;
+        foreach (OfficeXmlNode list in labels.Children(NsC, "extLst")) {
+            flag = list.DescendantsWhere(element => element.LocalName == "showDataLabelsRange", includeExtensionMarkup: true).FirstOrDefault();
+            if (!flag.IsNone) break;
+        }
+        if (flag.IsNone) return null;
+        string? value = flag.Attributes().FirstOrDefault(attribute => attribute.LocalName == "val").Value;
         return value is null or "1" or "true";
     }
 
-    private static bool Flag<T>(OpenXmlCompositeElement labels, bool? inherited) where T : C.BooleanType =>
-        labels.GetFirstChild<T>() is T flag ? flag.Val?.Value != false : inherited ?? false;
+    private static bool Flag(OfficeXmlNode labels, string localName, bool? inherited) =>
+        labels.Child(NsC, localName) is { IsNone: false } flag ? flag.BoolVal() != false : inherited ?? false;
+
+    // SDK callers
+    internal static LabelLayout ReadLabels(C.Chart chart, A.ColorScheme? scheme = null) =>
+        ReadLabels(OfficeXmlNode.FromSdk(chart), OfficeXmlNode.FromSdk(scheme));
 }

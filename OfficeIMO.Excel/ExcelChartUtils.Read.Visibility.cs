@@ -1,7 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Excel.OpenXml;
 using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
@@ -14,19 +13,20 @@ namespace OfficeIMO.Excel {
         /// <paramref name="hiddenSeries"/> for <see cref="RemoveSeries"/>. A chart whose every series is hidden
         /// plots nothing, so all of them are listed.</remarks>
         /// <returns>The visible data, or null when a zero blank rule would draw the padding.</returns>
-        internal static ExcelChartData? SelectVisiblePoints(ChartPart chartPart, ExcelSheet contextSheet, ExcelChartData data,
+        internal static ExcelChartData? SelectVisiblePoints(ExcelPartRef chartPart, ExcelSheet contextSheet, ExcelChartData data,
             out bool[]? hiddenSeries) {
             hiddenSeries = null;
-            Chart? chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
-            PlotArea? plotArea = chart?.GetFirstChild<PlotArea>();
-            if (chart == null || plotArea == null) return data;
-            IReadOnlyList<OpenXmlCompositeElement> seriesList = plotArea.GetFirstChild<BubbleChart>() is BubbleChart bubble
-                ? bubble.Elements<BubbleChartSeries>().OrderBy(item => item.GetFirstChild<Order>()?.Val?.Value ?? uint.MaxValue).ToList()
+            OfficeXmlNode chart = chartPart.Root.Child(C, "chart");
+            OfficeXmlNode plotArea = chart.Child(C, "plotArea");
+            if (chart.IsNone || plotArea.IsNone) return data;
+            OfficeXmlNode bubble = plotArea.Child(C, "bubbleChart");
+            IReadOnlyList<OfficeXmlNode> seriesList = bubble.Exists
+                ? bubble.Children(C, "ser").ToList().OrderBy(item => item.Child(C, "order").UInt32Val() ?? uint.MaxValue).ToList()
                 : GetChartSeries(plotArea);
             if (seriesList.Count != data.Series.Count) return data;
 
             var hiddenCellsBySheet = new Dictionary<ExcelSheet, OfficeOpenXmlChartHiddenCells>();
-            int[]? VisibleOffsets(OpenXmlElement? source, int count) => GetVisibleOffsets(source, count, contextSheet, hiddenCellsBySheet);
+            int[]? VisibleOffsets(OfficeXmlNode source, int count) => GetVisibleOffsets(source, count, contextSheet, hiddenCellsBySheet);
 
             var hidden = new bool[data.Series.Count];
             var series = new IReadOnlyList<double>[data.Series.Count];
@@ -35,13 +35,13 @@ namespace OfficeIMO.Excel {
             bool changed = false;
             for (int index = 0; index < data.Series.Count; index++) {
                 ExcelChartSeries current = data.Series[index];
-                OpenXmlCompositeElement element = seriesList[index];
-                OpenXmlElement? valueSource = element is ScatterChartSeries or BubbleChartSeries
-                    ? element.GetFirstChild<YValues>()
-                    : element.GetFirstChild<Values>();
+                OfficeXmlNode element = seriesList[index];
+                OfficeXmlNode valueSource = IsXySeries(element)
+                    ? element.Child(C, "yVal")
+                    : element.Child(C, "val");
                 int[]? valueOffsets = VisibleOffsets(valueSource, current.Values.Count);
-                int[]? xOffsets = current.XValues == null ? null : VisibleOffsets(element.GetFirstChild<XValues>(), current.XValues.Count);
-                int[]? sizeOffsets = current.BubbleSizes == null ? null : VisibleOffsets(element.GetFirstChild<BubbleSize>(), current.BubbleSizes.Count);
+                int[]? xOffsets = current.XValues == null ? null : VisibleOffsets(element.Child(C, "xVal"), current.XValues.Count);
+                int[]? sizeOffsets = current.BubbleSizes == null ? null : VisibleOffsets(element.Child(C, "bubbleSize"), current.BubbleSizes.Count);
                 changed |= valueOffsets != null || xOffsets != null || sizeOffsets != null;
                 series[index] = Select(current.Values, valueOffsets);
                 xValues[index] = current.XValues == null ? null : Select(current.XValues, xOffsets);
@@ -56,15 +56,15 @@ namespace OfficeIMO.Excel {
                 }
                 if (sizes[index] is IReadOnlyList<double> bubbleSizes && bubbleSizes.Count != series[index].Count) return null;
             }
-            static OpenXmlElement? CategorySource(OpenXmlCompositeElement element) => element is ScatterChartSeries or BubbleChartSeries
-                ? element.GetFirstChild<XValues>()
-                : element.GetFirstChild<CategoryAxisData>();
-            static string? CategoryFormula(OpenXmlElement? source) => source?.GetFirstChild<NumberReference>()?.Formula?.Text ??
-                source?.GetFirstChild<StringReference>()?.Formula?.Text;
+            static OfficeXmlNode CategorySource(OfficeXmlNode element) => IsXySeries(element)
+                ? element.Child(C, "xVal")
+                : element.Child(C, "cat");
+            static string? CategoryFormula(OfficeXmlNode source) => ReferenceFormula(source, "numRef") ??
+                ReferenceFormula(source, "strRef");
             // Office takes the labels from the first series it still plots. The data holds the first series'
             // labels; another series with its own label cells is read from its cached labels.
             int labelSeries = Math.Max(0, Array.IndexOf(hidden, false));
-            OpenXmlElement? categorySource = CategorySource(seriesList[labelSeries]);
+            OfficeXmlNode categorySource = CategorySource(seriesList[labelSeries]);
             IReadOnlyList<string> sourceCategories = data.Categories;
             if (labelSeries > 0 && !string.Equals(CategoryFormula(categorySource), CategoryFormula(CategorySource(seriesList[0])),
                     StringComparison.OrdinalIgnoreCase)) {
@@ -98,8 +98,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Keeps the custom error amounts of the points a visible-cells-only chart plots, as
-        /// <see cref="SelectVisiblePoints"/> keeps their values.</summary>
-        internal static Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>> CreateVisibleAmountSelector(
+        /// <see cref="SelectVisiblePoints(ExcelPartRef, ExcelSheet, ExcelChartData, out bool[])"/> keeps their values.</summary>
+        internal static Func<OfficeXmlNode, IReadOnlyList<double>, IReadOnlyList<double>> CreateVisibleNodeAmountSelector(
             ExcelSheet contextSheet) {
             var hiddenCellsBySheet = new Dictionary<ExcelSheet, OfficeOpenXmlChartHiddenCells>();
             return (source, amounts) => Select(amounts, GetVisibleOffsets(source, amounts.Count, contextSheet, hiddenCellsBySheet));
@@ -107,10 +107,10 @@ namespace OfficeIMO.Excel {
 
         // The visible cells of a source range, as offsets into its cached points; null when the range does not map one
         // cell to each cached point or nothing in it is hidden.
-        private static int[]? GetVisibleOffsets(OpenXmlElement? source, int count, ExcelSheet contextSheet,
+        private static int[]? GetVisibleOffsets(OfficeXmlNode source, int count, ExcelSheet contextSheet,
             Dictionary<ExcelSheet, OfficeOpenXmlChartHiddenCells> hiddenCellsBySheet) {
-            string? formula = source?.GetFirstChild<NumberReference>()?.Formula?.Text ??
-                source?.GetFirstChild<StringReference>()?.Formula?.Text;
+            string? formula = ReferenceFormula(source, "numRef") ??
+                ReferenceFormula(source, "strRef");
             if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
                 !TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) ||
                 (long)(lastRow - firstRow + 1) * (lastColumn - firstColumn + 1) != count) return null;
@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
             if (!hiddenCellsBySheet.TryGetValue(sheet, out OfficeOpenXmlChartHiddenCells? hidden)) {
-                hidden = new OfficeOpenXmlChartHiddenCells(sheet.WorksheetPart.Worksheet!);
+                hidden = ExcelPartRef.CreateHiddenCells(sheet);
                 hiddenCellsBySheet.Add(sheet, hidden);
             }
             return hidden.GetVisibleOffsets((uint)firstRow, (uint)lastRow, (uint)firstColumn, (uint)lastColumn);
@@ -131,20 +131,24 @@ namespace OfficeIMO.Excel {
             offsets == null ? values : offsets.Where(offset => offset < values.Count).Select(offset => values[offset]).ToArray();
 
         // The cached labels of a category or X range, in point order; null when the cache does not cover every point.
-        private static IReadOnlyList<string>? ReadCachedLabels(OpenXmlElement? source) {
-            OpenXmlElement? cache = source?.Descendants().FirstOrDefault(element => element is StringCache or NumberingCache);
-            uint? count = cache?.GetFirstChild<PointCount>()?.Val?.Value;
-            if (cache == null || count == null || count.Value > 1_000_000U) return null;
+        private static IReadOnlyList<string>? ReadCachedLabels(OfficeXmlNode source) {
+            OfficeXmlNode cache = FirstCache(source);
+            uint? count = cache.Child(C, "ptCount").UInt32Val();
+            if (cache.IsNone || count == null || count.Value > 1_000_000U) return null;
             var labels = new string?[count.Value];
-            foreach (OpenXmlElement point in cache.ChildElements.Where(element => element is StringPoint or NumericPoint)) {
-                uint? index = (point as StringPoint)?.Index?.Value ?? (point as NumericPoint)?.Index?.Value;
+            foreach (OfficeXmlNode point in cache.Children(C, "pt")) {
+                uint? index = point.UInt32Attribute("idx");
                 if (index == null || index.Value >= count.Value) return null;
-                labels[index.Value] = point.GetFirstChild<NumericValue>()?.Text ?? string.Empty;
+                labels[index.Value] = point.ChildText(C, "v") ?? string.Empty;
             }
             return labels.Any(label => label == null) ? null : labels.Select(label => label!).ToArray();
         }
 
-        /// <summary>Drops the series <see cref="SelectVisiblePoints"/> found hidden, after formatting has been matched to them.</summary>
+        // The first c:strCache or c:numCache under a source, in document order and outside extension lists, or none.
+        private static OfficeXmlNode FirstCache(OfficeXmlNode element) =>
+            element.FirstDescendantOutsideExtensions(child => child.Is(C, "strCache") || child.Is(C, "numCache"));
+
+        /// <summary>Drops the series <see cref="SelectVisiblePoints(ExcelPartRef, ExcelSheet, ExcelChartData, out bool[])"/> found hidden, after formatting has been matched to them.</summary>
         internal static ExcelChartData RemoveSeries(ExcelChartData data, bool[]? hiddenSeries) =>
             hiddenSeries == null || hiddenSeries.Length != data.Series.Count
                 ? data

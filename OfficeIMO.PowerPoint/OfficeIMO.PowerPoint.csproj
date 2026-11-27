@@ -61,6 +61,9 @@
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" Link="SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlPackagePayload*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeXmlNode.cs" Link="SharedSource\OpenXml\OfficeXmlNode.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeChartOpenXmlViews.Generated.cs" Link="SharedSource\OpenXml\OfficeChartOpenXmlViews.Generated.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\IOfficeChartPart.cs" Link="SharedSource\OpenXml\IOfficeChartPart.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXmlSdk\OfficeSdkChartPart.cs" Link="OpenXmlSdk\OfficeSdkChartPart.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeXmlThemeColors.cs" Link="SharedSource\OpenXml\OfficeXmlThemeColors.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXmlSdk\OfficeSdkXml.cs" Link="OpenXmlSdk\OfficeSdkXml.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlHiddenData.cs" Link="SharedSource\OpenXml\OfficeOpenXmlHiddenData.cs" />
@@ -68,6 +71,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeChartXml.cs" Link="SharedSource\OpenXml\OfficeChartXml.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeDrawingColorTransforms.cs" Link="SharedSource\OpenXml\OfficeDrawingColorTransforms.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" />

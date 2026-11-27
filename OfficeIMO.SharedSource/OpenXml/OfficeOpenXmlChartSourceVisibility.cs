@@ -1,4 +1,6 @@
 using System.Globalization;
+using OfficeIMO.Core.Internal.OpenXml;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 
@@ -9,8 +11,11 @@ namespace OfficeIMO.OpenXml.Internal {
     /// left out. Hidden series-name cells do not hide a series.</remarks>
     internal static class OfficeOpenXmlChartSourceVisibility {
         /// <summary>Office plots visible cells only unless c:plotVisOnly is explicitly off, including when it is absent.</summary>
-        internal static bool PlotsVisibleCellsOnly(C.Chart? chart) =>
-            chart?.GetFirstChild<C.PlotVisibleOnly>()?.Val?.Value != false;
+        internal static bool PlotsVisibleCellsOnly(OfficeXmlNode chart) =>
+            chart.Child(NsC, "plotVisOnly").BoolVal() != false;
+
+        // SDK callers
+        internal static bool PlotsVisibleCellsOnly(C.Chart? chart) => PlotsVisibleCellsOnly(OfficeXmlNode.FromSdk(chart));
 
         /// <summary>Parses a single-area, sheet-qualified A1 reference such as <c>'My Sheet'!$A$2:$A$5</c>.</summary>
         internal static bool TryParseRange(string? formula, out string sheetName,

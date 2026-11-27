@@ -1,5 +1,5 @@
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointParagraphNumberingState numberingState,
             double textWidth,
             PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure, string? defaultFontFamily,
+            OfficeXmlNode colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure, string? defaultFontFamily,
             double fontScale = 1D, double lineSpaceReduction = 0D, bool wrap = true,
             CancellationToken cancellationToken = default) {
             var results = new List<PowerPointParagraphDrawing>(paragraphs.Count);
@@ -69,7 +69,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextBox textBox,
             PowerPointParagraph paragraph,
             string? marker,
-            A.ColorScheme? colorScheme,
+            OfficeXmlNode colorScheme,
             PowerPointShapeBoundsMapping mapping, string? defaultFontFamily, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<PowerPointParagraphInline> inlineNodes = paragraph.InlineNodes;
@@ -97,8 +97,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeFontInfo ResolveParagraphFont(PowerPointTextBox textBox, PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
-            PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.ResolveParagraph(
-                paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle);
+            PowerPointEffectiveRunStyle effective = ResolveParagraphStyle(paragraph, textBox);
             return new OfficeFontInfo(effective.FontName ?? textBox.FontFamily ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                 mapping.MapFontSize(effective.FontSizePoints ?? textBox.FontSize?.ToPoints() ?? 18),
                 ResolveEffectiveFontStyle(effective, textBox.Bold, textBox.Italic));
@@ -113,7 +112,7 @@ namespace OfficeIMO.PowerPoint {
             return style;
         }
 
-        private static OfficeColor ResolveParagraphTextColor(PowerPointTextBox textBox, PowerPointParagraph paragraph, A.ColorScheme? colorScheme) {
+        private static OfficeColor ResolveParagraphTextColor(PowerPointTextBox textBox, PowerPointParagraph paragraph, OfficeXmlNode colorScheme) {
             PowerPointTextRun? firstRun = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run
                 ?? paragraph.InlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
             return ResolveTextRunColor(firstRun, textBox, colorScheme);

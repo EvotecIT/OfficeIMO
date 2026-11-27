@@ -185,9 +185,19 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         /// Strict relationship types match their transitional names.
         /// </summary>
         internal IEnumerable<PowerPointPartRef> RelatedParts(string relationshipType) {
+            foreach (KeyValuePair<string, PowerPointPartRef> related in RelatedPartsById(relationshipType)) yield return related.Value;
+        }
+
+        /// <summary>
+        /// The parts the internal relationships of <paramref name="relationshipType"/> target, with the relationship ids,
+        /// in relationship order.
+        /// </summary>
+        internal IEnumerable<KeyValuePair<string, PowerPointPartRef>> RelatedPartsById(string relationshipType) {
             PowerPointPartRef current = Current;
             if (current._sdk != null) {
-                foreach (object part in PowerPointSdkParts.RelatedParts(current._sdk, relationshipType)) yield return FromSdk(part);
+                foreach (KeyValuePair<string, object> pair in PowerPointSdkParts.RelatedParts(current._sdk, relationshipType)) {
+                    yield return new KeyValuePair<string, PowerPointPartRef>(pair.Key, FromSdk(pair.Value));
+                }
                 yield break;
             }
             if (current._document?.ReadablePackage is not { } package) yield break;
@@ -200,7 +210,9 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                 if (type == null || !string.Equals(OfficeXmlNamespaces.NormalizeRelationshipType(type), relationshipType, StringComparison.Ordinal)) continue;
                 if (string.Equals(tree.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
                 string? partName = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, tree.GetAttribute(node, OfficeXmlNamespaces.None, "Target") ?? string.Empty);
-                if (partName != null && package.PartExists(partName)) yield return Package(current._document, partName);
+                if (partName != null && package.PartExists(partName)) {
+                    yield return new KeyValuePair<string, PowerPointPartRef>(tree.GetAttribute(node, OfficeXmlNamespaces.None, "Id") ?? string.Empty, Package(current._document, partName));
+                }
             }
         }
 
@@ -246,6 +258,67 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                 if (partName != null && Package(current._document, partName).Equals(wanted)) return tree.GetAttribute(node, OfficeXmlNamespaces.None, "Id");
             }
             return null;
+        }
+
+        // ---- Content --------------------------------------------------------------------------------------------
+
+        /// <summary>The part's content type, or null when it is not known.</summary>
+        internal string? ContentType {
+            get {
+                PowerPointPartRef current = Current;
+                return current._sdk != null ? PowerPointSdkParts.ContentType(current._sdk) : current._document?.ReadablePackage?.GetContentType(current._name!);
+            }
+        }
+
+        /// <summary>The part's bytes as they would be saved now.</summary>
+        internal byte[] ReadBytes() {
+            PowerPointPartRef current = Current;
+            if (current._sdk != null) {
+                using Stream stream = PowerPointSdkParts.GetStream(current._sdk, FileMode.Open, FileAccess.Read);
+                using var copy = new MemoryStream();
+                stream.CopyTo(copy);
+                return copy.ToArray();
+            }
+            OfficeOpcEditablePackage package = current._document?.ReadablePackage ?? throw new InvalidOperationException("The presentation can't be read.");
+            return package.ReadPartBytes(current._name!);
+        }
+
+        /// <summary>
+        /// Opens the part's bytes for reading: the SDK part's own stream, or the package's bytes for the part. A package part
+        /// stored longer than <paramref name="maximumBytes"/> is refused before it is read.
+        /// </summary>
+        /// <exception cref="InvalidDataException">The stored part is longer than <paramref name="maximumBytes"/>.</exception>
+        internal Stream OpenRead(long maximumBytes = long.MaxValue) {
+            PowerPointPartRef current = Current;
+            if (current._sdk != null) return PowerPointSdkParts.GetStream(current._sdk, FileMode.Open, FileAccess.Read);
+            OfficeOpcEditablePackage package = current._document?.ReadablePackage ?? throw new InvalidOperationException("The presentation can't be read.");
+            if (package.TryGetStoredLength(current._name!, out long length) && length > maximumBytes)
+                throw new InvalidDataException("The part '" + current._name + "' is longer than " + maximumBytes + " bytes.");
+            return new MemoryStream(package.ReadPartBytes(current._name!), writable: false);
+        }
+
+        /// <summary>Replaces the part's bytes.</summary>
+        internal void ReplaceBytes(byte[] data) {
+            ArgumentNullException.ThrowIfNull(data);
+            PowerPointPartRef current = Current;
+            if (current._sdk != null) {
+                // As the SDK's FeedData does: the part's content is replaced by the bytes.
+                using Stream stream = PowerPointSdkParts.GetStream(current._sdk, FileMode.Create, FileAccess.Write);
+                stream.Write(data, 0, data.Length);
+                return;
+            }
+            current.EditablePackage().ReplacePart(current._name!, data, data.Length);
+            current.MarkEdited();
+        }
+
+        /// <summary>
+        /// Records an edit of the part's root element: the document writes it, and an SDK part gets its root written back
+        /// to the part, as SDK callers reading the part expect.
+        /// </summary>
+        internal void SaveRootEdited() {
+            PowerPointPartRef current = Current;
+            if (current._sdk != null) PowerPointSdkParts.SaveRoot(current._sdk);
+            else current.MarkEdited();
         }
 
         /// <summary>Adds an external hyperlink relationship to <paramref name="uri"/> and returns its id.</summary>

@@ -1,5 +1,4 @@
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using Ns = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointLayoutEngine {
@@ -16,8 +15,8 @@ namespace OfficeIMO.PowerPoint {
             omitNumber |= !context.Deck.ShowSlideNumber;
             // An explicit footer replaces the implicit deck-title footer and default number frame.
             foreach (var box in slide.TextBoxes.Where(box => !PowerPointDocument.TryReadFooterSlot(box, out _, out _) &&
-                         ((Shape)box.Element).NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?
-                             .PlaceholderShape?.Type?.Value is { } type && (type == PlaceholderValues.Footer || type == PlaceholderValues.SlideNumber)).ToArray()) box.Remove();
+                         box.XmlElement.Child(Ns.PresentationML, "nvSpPr").Child(Ns.PresentationML, "nvPr").Child(Ns.PresentationML, "ph")
+                             .Attribute("type") is "ftr" or "sldNum").ToArray()) box.Remove();
             var grid = context.Grid;
             double bandHeight = PowerPointLayoutGrid.FooterHeight * context.Theme.Scale;
             var style = context.Style(PowerPointTextRole.Footer);
@@ -42,9 +41,9 @@ namespace OfficeIMO.PowerPoint {
                     return planned;
                 }).ToArray();
                 CheckFits(body.Paragraphs, bounds.Width);
-                bool numberOnly = body.Paragraphs.Any(paragraph => paragraph.Paragraph.Elements<A.Field>().Any()) &&
-                    body.Paragraphs.All(paragraph => paragraph.Paragraph.ChildElements.All(node => node is A.ParagraphProperties or A.EndParagraphRunProperties ||
-                        node is A.Field nativeField && nativeField.Type?.Value == "slidenum" || node is A.Run total && PowerPointDocument.IsFooterTotal(total)));
+                bool numberOnly = body.Paragraphs.Any(paragraph => paragraph.Element.Child(Ns.DrawingML, "fld").Exists) &&
+                    body.Paragraphs.All(paragraph => paragraph.Element.Children().ToList().All(node => node.Is(Ns.DrawingML, "pPr") || node.Is(Ns.DrawingML, "endParaRPr") ||
+                        PowerPointDocument.IsSlideNumberField(node) || node.Is(Ns.DrawingML, "r") && PowerPointDocument.IsFooterTotal(node)));
                 uint index = numberOnly ? PowerPointLayoutMasterWriter.SlideNumberIndex
                     : PowerPointLayoutMasterWriter.FooterIndex + (uint)column * 100U;
                 string placeholder = "<p:ph type=\"" + (numberOnly ? "sldNum" : "ftr") + "\" idx=\"" + index + "\"/>";

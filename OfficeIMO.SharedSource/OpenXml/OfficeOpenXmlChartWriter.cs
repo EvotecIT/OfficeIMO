@@ -1,8 +1,9 @@
 using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
@@ -25,97 +26,115 @@ namespace OfficeIMO.OpenXml.Internal {
             internal OfficeChartAxisGroup AxisGroup => Series.AxisGroup;
         }
 
-        internal static void PopulateSharedChart(ChartPart chartPart, string embeddedRelId, OfficeChartData data,
+        /// <summary>
+        /// Writes a new chart into the part's chart space root, which the host provides (an SDK host's forwarder makes a
+        /// fresh one). Its child elements are replaced.
+        /// </summary>
+        internal static void PopulateSharedChart(IOfficeChartPart chartPart, string embeddedRelId, OfficeChartData data,
             OfficeChartType defaultKind, OfficeTheme? theme = null) {
             ArgumentNullException.ThrowIfNull(chartPart);
             ValidateSharedChartData(data, defaultKind);
+            PopulateSharedChartCore(chartPart, embeddedRelId, data, defaultKind, theme);
+            chartPart.MarkEdited();
+        }
 
-            C.ChartSpace chartSpace = new();
-            chartSpace.AddNamespaceDeclaration("c", ChartNamespace);
-            chartSpace.AddNamespaceDeclaration("a", DrawingNamespace);
-            chartSpace.AddNamespaceDeclaration("r", RelationshipNamespace);
-            chartSpace.Append(new C.Date1904 { Val = false });
-            chartSpace.Append(new C.EditingLanguage { Val = "en-US" });
-            chartSpace.Append(new C.RoundedCorners { Val = false });
+        private static void PopulateSharedChartCore(IOfficeChartPart chartPart, string embeddedRelId, OfficeChartData data,
+            OfficeChartType defaultKind, OfficeTheme? theme) {
+            OfficeXmlNode chartSpace = chartPart.ChartSpace;
+            if (chartSpace.IsNone) throw new InvalidOperationException("Chart space not found.");
+            chartSpace.RemoveAllChildElements();
+            if (!chartSpace.IsSdk) {
+                DeclareIfMissing(chartSpace, "c", ChartNamespace);
+                DeclareIfMissing(chartSpace, "a", DrawingNamespace);
+                DeclareIfMissing(chartSpace, "r", RelationshipNamespace);
+            }
+            chartSpace.AppendVal(NsC, "date1904", Text(false));
+            chartSpace.AppendVal(NsC, "lang", "en-US");
+            chartSpace.AppendVal(NsC, "roundedCorners", Text(false));
 
             // Written without a title: autoTitleDeleted stops Office drawing an automatic one. Setting a title clears it.
-            C.Chart chart = new(new C.AutoTitleDeleted { Val = true });
-            C.PlotArea plotArea = new(new C.Layout());
+            OfficeXmlNode chart = chartSpace.AppendNew(NsC, "chart");
+            chart.AppendVal(NsC, "autoTitleDeleted", Text(true));
+            OfficeXmlNode plotArea = chart.AppendNew(NsC, "plotArea");
+            plotArea.AppendNew(NsC, "layout");
             AppendSharedChartContent(plotArea, data, defaultKind);
-            chart.Append(plotArea);
-            chart.Append(CreateSharedLegend(data, defaultKind));
-            chart.Append(new C.PlotVisibleOnly { Val = true });
-            chart.Append(new C.DisplayBlanksAs { Val = C.DisplayBlanksAsValues.Gap });
-            chart.Append(new C.ShowDataLabelsOverMaximum { Val = false });
-            chartSpace.Append(chart);
+            chart.Append(CreateSharedLegend(chart, data, defaultKind));
+            chart.AppendVal(NsC, "plotVisOnly", Text(true));
+            chart.AppendVal(NsC, "dispBlanksAs", "gap");
+            chart.AppendVal(NsC, "showDLblsOverMax", Text(false));
             if (!string.IsNullOrWhiteSpace(embeddedRelId)) {
-                chartSpace.Append(new C.ExternalData {
-                    Id = embeddedRelId,
-                    AutoUpdate = new C.AutoUpdate { Val = false }
-                });
+                OfficeXmlNode externalData = chartSpace.AppendNew(NsC, "externalData");
+                externalData.SetAttribute(NsR, "id", embeddedRelId);
+                externalData.AppendVal(NsC, "autoUpdate", Text(false));
             }
-            chartPart.ChartSpace = chartSpace;
             ApplySharedChartSeriesStyle(chartPart, data, defaultKind, theme: theme);
         }
 
-        internal static void UpdateSharedChartData(ChartPart chartPart, OfficeChartData data,
+        private static void DeclareIfMissing(OfficeXmlNode element, string prefix, string namespaceUri) {
+            if (element.Attribute(OfficeXmlNamespaces.Xmlns, prefix) == null) element.DeclareNamespace(prefix, namespaceUri);
+        }
+
+        internal static void UpdateSharedChartData(IOfficeChartPart chartPart, OfficeChartData data,
             OfficeChartType defaultKind, OfficeTheme? theme = null) {
             ArgumentNullException.ThrowIfNull(chartPart);
             ValidateSharedChartData(data, defaultKind);
 
-            C.ChartSpace chartSpace = chartPart.ChartSpace ??
-                throw new InvalidOperationException("Chart space not found.");
-            C.Chart chart = chartSpace.GetFirstChild<C.Chart>() ??
-                throw new InvalidOperationException("Chart not found.");
-            bool cacheOnlySource = chartSpace.GetFirstChild<C.ExternalData>() == null;
-            C.PlotArea plotArea = chart.GetFirstChild<C.PlotArea>() ??
-                throw new InvalidOperationException("Chart plot area not found.");
-            bool previousLegendUsesCategories = GetSharedNativeChartLayers(plotArea).FirstOrDefault() is
-                C.PieChart or C.DoughnutChart;
+            OfficeXmlNode chartSpace = chartPart.ChartSpace;
+            if (chartSpace.IsNone) throw new InvalidOperationException("Chart space not found.");
+            OfficeXmlNode chart = chartSpace.Child(NsC, "chart");
+            if (chart.IsNone) throw new InvalidOperationException("Chart not found.");
+            bool cacheOnlySource = chartSpace.Child(NsC, "externalData").IsNone;
+            OfficeXmlNode plotArea = chart.Child(NsC, "plotArea");
+            if (plotArea.IsNone) throw new InvalidOperationException("Chart plot area not found.");
+            OfficeXmlNode firstLayer = GetSharedNativeChartLayers(plotArea).FirstOrDefault();
+            bool previousLegendUsesCategories = firstLayer.Is(NsC, "pieChart") || firstLayer.Is(NsC, "doughnutChart");
 
             ISet<uint>? preservedSeriesIndexes = null;
             if (defaultKind == OfficeChartType.Scatter && IsOnlySharedScatterPlot(plotArea)) {
                 preservedSeriesIndexes = new HashSet<uint>(EnumerateSharedSeriesElements(plotArea)
-                    .Select(series => series.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue));
+                    .Select(series => series.Child(NsC, "idx").UIntVal() ?? uint.MaxValue));
                 UpdateScatterData(chartPart, NormalizeScatterData(data));
             } else {
                 preservedSeriesIndexes = new HashSet<uint>();
-                var replacement = new C.PlotArea();
-                replacement.Append(plotArea.GetFirstChild<C.Layout>()?.CloneNode(true) ?? new C.Layout());
+                OfficeXmlNode replacement = chart.CreateElement(NsC, "plotArea");
+                OfficeXmlNode layout = plotArea.Child(NsC, "layout");
+                replacement.Append(layout.IsNone ? replacement.CreateElement(NsC, "layout") : layout.Clone());
                 AppendSharedChartContent(replacement, data, defaultKind);
                 PreserveSharedChartFormatting(
                     plotArea, replacement, preservedSeriesIndexes);
-                foreach (OpenXmlElement child in plotArea.ChildElements) {
-                    if (child is C.DataTable || child is C.ChartShapeProperties || child is C.ExtensionList) {
-                        replacement.Append(child.CloneNode(true));
+                // The plot area's own fill (c:spPr) is not carried over: the SDK types it as a class the earlier
+                // filter didn't match, so data updates have always dropped it, and output stays as it was.
+                foreach (OfficeXmlNode child in plotArea.Children()) {
+                    if (child.Is(NsC, "dTable") || child.Is(NsC, "extLst")) {
+                        replacement.Append(child.Clone());
                     }
                 }
-                chart.ReplaceChild(replacement, plotArea);
+                plotArea.ReplaceWith(replacement);
             }
 
             if (cacheOnlySource) {
-                foreach (C.ValueAxis axis in chart.GetFirstChild<C.PlotArea>()!.Elements<C.ValueAxis>()) {
-                    C.NumberingFormat? format = axis.GetFirstChild<C.NumberingFormat>();
-                    if (format?.SourceLinked?.Value == true &&
-                        string.Equals(format.FormatCode?.Value, "General", StringComparison.OrdinalIgnoreCase))
-                        format.SourceLinked = false;
+                foreach (OfficeXmlNode axis in chart.Child(NsC, "plotArea").Children(NsC, "valAx")) {
+                    OfficeXmlNode format = axis.Child(NsC, "numFmt");
+                    if (!format.IsNone && format.BoolAttr("sourceLinked") == true &&
+                        string.Equals(format.Attribute("formatCode"), "General", StringComparison.OrdinalIgnoreCase))
+                        format.SetAttribute("sourceLinked", Text(false));
                 }
             }
 
             UpdateSharedLegend(chart, data, defaultKind, previousLegendUsesCategories);
             ApplySharedChartSeriesStyle(chartPart, data, defaultKind, preservedSeriesIndexes, theme);
-            chartSpace.Save();
+            chartPart.MarkEdited();
         }
 
-        internal static void ApplySharedChartSeriesStyle(ChartPart chartPart, OfficeChartData data,
+        internal static void ApplySharedChartSeriesStyle(IOfficeChartPart chartPart, OfficeChartData data,
             OfficeChartType defaultKind,
             ISet<uint>? preservedSeriesIndexes = null, OfficeTheme? theme = null) {
             theme ??= OfficeTheme.Default;
-            C.PlotArea? plotArea = chartPart.ChartSpace?.GetFirstChild<C.Chart>()?.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) return;
-            foreach (OpenXmlCompositeElement seriesElement in EnumerateSharedSeriesElements(plotArea)) {
+            OfficeXmlNode plotArea = chartPart.ChartSpace.Child(NsC, "chart").Child(NsC, "plotArea");
+            if (plotArea.IsNone) return;
+            foreach (OfficeXmlNode seriesElement in EnumerateSharedSeriesElements(plotArea)) {
                 uint nativeIndex =
-                    seriesElement.GetFirstChild<C.Index>()?.Val?.Value ??
+                    seriesElement.Child(NsC, "idx").UIntVal() ??
                     uint.MaxValue;
                 int index = (int)nativeIndex;
                 if (index < 0 || index >= data.Series.Count) continue;
@@ -129,8 +148,7 @@ namespace OfficeIMO.OpenXml.Internal {
                         : null;
                 ApplySharedSeriesShapeStyle(seriesElement, series, kind,
                     fallbackSeriesColor ?? (!newSeries && !series.Color.HasValue &&
-                        seriesElement.GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.Outline>()?
-                            .GetFirstChild<A.NoFill>() != null
+                        !seriesElement.Child(NsC, "spPr").Child(NsA, "ln").Child(NsA, "noFill").IsNone
                         ? ReadDirectSeriesColor(seriesElement) : null), theme);
                 if (fallbackSeriesColor.HasValue || series.Color.HasValue)
                     SetAutomaticSeriesColor(seriesElement, fallbackSeriesColor.HasValue);
@@ -144,34 +162,34 @@ namespace OfficeIMO.OpenXml.Internal {
             }
         }
 
-        private static void AppendSharedChartContent(C.PlotArea plotArea, OfficeChartData data,
+        private static void AppendSharedChartContent(OfficeXmlNode plotArea, OfficeChartData data,
             OfficeChartType defaultKind) {
             List<SharedSeriesDescriptor> descriptors = DescribeSharedSeries(data, defaultKind);
             if (descriptors.All(item => item.Kind == OfficeChartType.Pie)) {
-                plotArea.Append(CreatePieChart(data));
+                plotArea.Append(CreatePieChart(plotArea, data));
                 return;
             }
             if (descriptors.All(item => item.Kind == OfficeChartType.Doughnut)) {
-                plotArea.Append(CreateDoughnutChart(data));
+                plotArea.Append(CreateDoughnutChart(plotArea, data));
                 return;
             }
             if (descriptors.All(item => item.Kind == OfficeChartType.Scatter)) {
-                C.ScatterChart scatter = CreateScatterChart(NormalizeScatterData(data), out uint xAxisId, out uint yAxisId);
+                OfficeXmlNode scatter = CreateScatterChart(plotArea, NormalizeScatterData(data), out uint xAxisId, out uint yAxisId);
                 plotArea.Append(scatter);
-                plotArea.Append(CreateValueAxis(xAxisId, yAxisId, C.AxisPositionValues.Bottom));
-                plotArea.Append(CreateValueAxis(yAxisId, xAxisId, C.AxisPositionValues.Left));
+                plotArea.Append(CreateValueAxis(plotArea, xAxisId, yAxisId, "b"));
+                plotArea.Append(CreateValueAxis(plotArea, yAxisId, xAxisId, "l"));
                 return;
             }
             if (descriptors.All(item => item.Kind == OfficeChartType.Bubble)) {
                 uint xAxisId = GetNextAxisId();
                 uint yAxisId = GetNextAxisId();
-                plotArea.Append(CreateSharedBubbleChart(data, xAxisId, yAxisId));
-                plotArea.Append(CreateSharedValueAxis(xAxisId, yAxisId,
-                    C.AxisPositionValues.Bottom, secondary: false,
+                plotArea.Append(CreateSharedBubbleChart(plotArea, data, xAxisId, yAxisId));
+                plotArea.Append(CreateSharedValueAxis(plotArea, xAxisId, yAxisId,
+                    "b", secondary: false,
                     showMajorGridlines: false,
                     materializeDefaultGridlineStyle: false));
-                plotArea.Append(CreateSharedValueAxis(yAxisId, xAxisId,
-                    C.AxisPositionValues.Left, secondary: false,
+                plotArea.Append(CreateSharedValueAxis(plotArea, yAxisId, xAxisId,
+                    "l", secondary: false,
                     showMajorGridlines: true,
                     materializeDefaultGridlineStyle: true));
                 return;
@@ -193,178 +211,182 @@ namespace OfficeIMO.OpenXml.Internal {
                     ? primaryValueId : secondaryValueId;
                 List<SharedSeriesDescriptor> items = group.ToList();
                 if (IsBarOrColumnKind(group.Key.Kind)) {
-                    plotArea.Append(CreateSharedBarChart(group.Key.Kind, items, data.Categories, categoryId, valueId));
+                    plotArea.Append(CreateSharedBarChart(plotArea, group.Key.Kind, items, data.Categories, categoryId, valueId));
                 } else if (IsLineKind(group.Key.Kind)) {
-                    plotArea.Append(CreateSharedLineChart(group.Key.Kind, items, data.Categories, categoryId, valueId));
+                    plotArea.Append(CreateSharedLineChart(plotArea, group.Key.Kind, items, data.Categories, categoryId, valueId));
                 } else if (IsAreaKind(group.Key.Kind)) {
-                    plotArea.Append(CreateSharedAreaChart(group.Key.Kind, items, data.Categories, categoryId, valueId));
+                    plotArea.Append(CreateSharedAreaChart(plotArea, group.Key.Kind, items, data.Categories, categoryId, valueId));
                 } else if (group.Key.Kind == OfficeChartType.Radar) {
-                    plotArea.Append(CreateSharedRadarChart(items, data.Categories, categoryId, valueId));
+                    plotArea.Append(CreateSharedRadarChart(plotArea, items, data.Categories, categoryId, valueId));
                 } else {
                     throw new NotSupportedException("Chart kind " + group.Key.Kind + " is not supported in this chart composition.");
                 }
             }
 
             if (hasPrimary) {
-                C.AxisPositionValues categoryPosition = horizontal
-                    ? C.AxisPositionValues.Left : C.AxisPositionValues.Bottom;
-                C.AxisPositionValues valuePosition = horizontal
-                    ? C.AxisPositionValues.Bottom : C.AxisPositionValues.Left;
-                plotArea.Append(CreateSharedCategoryAxis(primaryCategoryId, primaryValueId,
+                string categoryPosition = horizontal ? "l" : "b";
+                string valuePosition = horizontal ? "b" : "l";
+                plotArea.Append(CreateSharedCategoryAxis(plotArea, primaryCategoryId, primaryValueId,
                     categoryPosition, secondary: false));
-                plotArea.Append(CreateSharedValueAxis(primaryValueId, primaryCategoryId,
+                plotArea.Append(CreateSharedValueAxis(plotArea, primaryValueId, primaryCategoryId,
                     valuePosition, secondary: false,
                     showMajorGridlines: true,
                     materializeDefaultGridlineStyle: false));
             }
             if (hasSecondary) {
-                plotArea.Append(CreateSharedCategoryAxis(secondaryCategoryId, secondaryValueId,
-                    C.AxisPositionValues.Top, secondary: true));
-                plotArea.Append(CreateSharedValueAxis(secondaryValueId, secondaryCategoryId,
-                    C.AxisPositionValues.Right, secondary: true,
+                plotArea.Append(CreateSharedCategoryAxis(plotArea, secondaryCategoryId, secondaryValueId,
+                    "t", secondary: true));
+                plotArea.Append(CreateSharedValueAxis(plotArea, secondaryValueId, secondaryCategoryId,
+                    "r", secondary: true,
                     showMajorGridlines: false,
                     materializeDefaultGridlineStyle: false));
             }
         }
 
-        private static C.BarChart CreateSharedBarChart(OfficeChartType kind,
+        private static OfficeXmlNode CreateSharedBarChart(OfficeXmlNode context, OfficeChartType kind,
             IReadOnlyList<SharedSeriesDescriptor> descriptors, IReadOnlyList<string> categories,
             uint categoryAxisId, uint valueAxisId) {
-            C.BarGroupingValues grouping = GetBarGrouping(kind);
-            C.BarChart chart = new(
-                new C.BarDirection { Val = IsHorizontalBarKind(kind) ? C.BarDirectionValues.Bar : C.BarDirectionValues.Column },
-                new C.BarGrouping { Val = grouping },
-                new C.VaryColors { Val = false });
+            string grouping = GetBarGrouping(kind);
+            OfficeXmlNode chart = context.CreateElement(NsC, "barChart");
+            chart.AppendVal(NsC, "barDir", IsHorizontalBarKind(kind) ? "bar" : "col");
+            chart.AppendVal(NsC, "grouping", grouping);
+            chart.AppendVal(NsC, "varyColors", Text(false));
             foreach (SharedSeriesDescriptor descriptor in descriptors) {
-                chart.Append(CreateBarChartSeries(descriptor.Index,
+                chart.Append(CreateBarChartSeries(chart, descriptor.Index,
                     descriptor.Series, categories));
             }
-            chart.Append(CreateDefaultDataLabels());
-            chart.Append(new C.GapWidth { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent });
-            chart.Append(new C.Overlap { Val = (SByteValue)(sbyte)(grouping == C.BarGroupingValues.Clustered ? 0 : 100) });
-            chart.Append(new C.AxisId { Val = categoryAxisId });
-            chart.Append(new C.AxisId { Val = valueAxisId });
+            chart.Append(CreateDefaultDataLabels(chart));
+            chart.AppendVal(NsC, "gapWidth",
+                ((ushort)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent).ToString(CultureInfo.InvariantCulture));
+            chart.AppendVal(NsC, "overlap",
+                ((sbyte)(grouping == "clustered" ? 0 : 100)).ToString(CultureInfo.InvariantCulture));
+            chart.AppendVal(NsC, "axId", Text(categoryAxisId));
+            chart.AppendVal(NsC, "axId", Text(valueAxisId));
             return chart;
         }
 
-        private static C.LineChart CreateSharedLineChart(OfficeChartType kind,
+        private static OfficeXmlNode CreateSharedLineChart(OfficeXmlNode context, OfficeChartType kind,
             IReadOnlyList<SharedSeriesDescriptor> descriptors, IReadOnlyList<string> categories,
             uint categoryAxisId, uint valueAxisId) {
-            C.LineChart chart = new(new C.Grouping { Val = GetLineGrouping(kind) },
-                new C.VaryColors { Val = false });
+            OfficeXmlNode chart = context.CreateElement(NsC, "lineChart");
+            chart.AppendVal(NsC, "grouping", GetLineGrouping(kind));
+            chart.AppendVal(NsC, "varyColors", Text(false));
             foreach (SharedSeriesDescriptor descriptor in descriptors) {
-                chart.Append(CreateLineChartSeries(descriptor.Index,
+                chart.Append(CreateLineChartSeries(chart, descriptor.Index,
                     descriptor.Series, categories));
             }
-            chart.Append(CreateDefaultDataLabels());
-            chart.Append(new C.AxisId { Val = categoryAxisId });
-            chart.Append(new C.AxisId { Val = valueAxisId });
+            chart.Append(CreateDefaultDataLabels(chart));
+            chart.AppendVal(NsC, "axId", Text(categoryAxisId));
+            chart.AppendVal(NsC, "axId", Text(valueAxisId));
             return chart;
         }
 
-        private static C.AreaChart CreateSharedAreaChart(OfficeChartType kind,
+        private static OfficeXmlNode CreateSharedAreaChart(OfficeXmlNode context, OfficeChartType kind,
             IReadOnlyList<SharedSeriesDescriptor> descriptors, IReadOnlyList<string> categories,
             uint categoryAxisId, uint valueAxisId) {
-            C.AreaChart chart = new(new C.Grouping { Val = GetAreaGrouping(kind) },
-                new C.VaryColors { Val = false });
+            OfficeXmlNode chart = context.CreateElement(NsC, "areaChart");
+            chart.AppendVal(NsC, "grouping", GetAreaGrouping(kind));
+            chart.AppendVal(NsC, "varyColors", Text(false));
             foreach (SharedSeriesDescriptor descriptor in descriptors) {
-                chart.Append(CreateSharedAreaSeries(descriptor, categories));
+                chart.Append(CreateSharedAreaSeries(chart, descriptor, categories));
             }
-            chart.Append(CreateDefaultDataLabels());
-            chart.Append(new C.AxisId { Val = categoryAxisId });
-            chart.Append(new C.AxisId { Val = valueAxisId });
+            chart.Append(CreateDefaultDataLabels(chart));
+            chart.AppendVal(NsC, "axId", Text(categoryAxisId));
+            chart.AppendVal(NsC, "axId", Text(valueAxisId));
             return chart;
         }
 
-        private static C.RadarChart CreateSharedRadarChart(IReadOnlyList<SharedSeriesDescriptor> descriptors,
+        private static OfficeXmlNode CreateSharedRadarChart(OfficeXmlNode context, IReadOnlyList<SharedSeriesDescriptor> descriptors,
             IReadOnlyList<string> categories, uint categoryAxisId, uint valueAxisId) {
-            C.RadarChart chart = new(new C.RadarStyle { Val = C.RadarStyleValues.Marker },
-                new C.VaryColors { Val = false });
+            OfficeXmlNode chart = context.CreateElement(NsC, "radarChart");
+            chart.AppendVal(NsC, "radarStyle", "marker");
+            chart.AppendVal(NsC, "varyColors", Text(false));
             foreach (SharedSeriesDescriptor descriptor in descriptors) {
-                chart.Append(CreateSharedRadarSeries(descriptor, categories));
+                chart.Append(CreateSharedRadarSeries(chart, descriptor, categories));
             }
-            chart.Append(CreateDefaultDataLabels());
-            chart.Append(new C.AxisId { Val = categoryAxisId });
-            chart.Append(new C.AxisId { Val = valueAxisId });
+            chart.Append(CreateDefaultDataLabels(chart));
+            chart.AppendVal(NsC, "axId", Text(categoryAxisId));
+            chart.AppendVal(NsC, "axId", Text(valueAxisId));
             return chart;
         }
 
-        private static C.AreaChartSeries CreateSharedAreaSeries(SharedSeriesDescriptor descriptor,
+        private static OfficeXmlNode CreateSharedAreaSeries(OfficeXmlNode context, SharedSeriesDescriptor descriptor,
+            IReadOnlyList<string> categories) => CreateSharedCategorySeries(context, descriptor, categories);
+
+        private static OfficeXmlNode CreateSharedRadarSeries(OfficeXmlNode context, SharedSeriesDescriptor descriptor,
+            IReadOnlyList<string> categories) => CreateSharedCategorySeries(context, descriptor, categories);
+
+        // The area and radar series carry the same children: idx, order, tx, cat and val.
+        private static OfficeXmlNode CreateSharedCategorySeries(OfficeXmlNode context, SharedSeriesDescriptor descriptor,
             IReadOnlyList<string> categories) {
             string column = ColumnLetter(descriptor.Index + 2);
             int lastRow = categories.Count + 1;
-            return new C.AreaChartSeries(
-                new C.Index { Val = (uint)descriptor.Index },
-                new C.Order { Val = (uint)descriptor.Index },
-                new C.SeriesText(CreateStringReference("Sheet1!$" + column + "$1",
-                    new[] { descriptor.Series.Name })),
-                new C.CategoryAxisData(CreateStringReference("Sheet1!$A$2:$A$" + lastRow, categories)),
-                new C.Values(CreateNumberReference("Sheet1!$" + column + "$2:$" + column + "$" + lastRow,
-                    descriptor.Series.Values)));
+            OfficeXmlNode series = context.CreateElement(NsC, "ser");
+            series.AppendVal(NsC, "idx", Text((uint)descriptor.Index));
+            series.AppendVal(NsC, "order", Text((uint)descriptor.Index));
+            OfficeXmlNode text = series.AppendNew(NsC, "tx");
+            text.Append(CreateStringReference(text, "Sheet1!$" + column + "$1",
+                new[] { descriptor.Series.Name }));
+            OfficeXmlNode categoryData = series.AppendNew(NsC, "cat");
+            categoryData.Append(CreateStringReference(categoryData, "Sheet1!$A$2:$A$" + lastRow, categories));
+            OfficeXmlNode values = series.AppendNew(NsC, "val");
+            values.Append(CreateNumberReference(values, "Sheet1!$" + column + "$2:$" + column + "$" + lastRow,
+                descriptor.Series.Values));
+            return series;
         }
 
-        private static C.RadarChartSeries CreateSharedRadarSeries(SharedSeriesDescriptor descriptor,
-            IReadOnlyList<string> categories) {
-            string column = ColumnLetter(descriptor.Index + 2);
-            int lastRow = categories.Count + 1;
-            return new C.RadarChartSeries(
-                new C.Index { Val = (uint)descriptor.Index },
-                new C.Order { Val = (uint)descriptor.Index },
-                new C.SeriesText(CreateStringReference("Sheet1!$" + column + "$1",
-                    new[] { descriptor.Series.Name })),
-                new C.CategoryAxisData(CreateStringReference("Sheet1!$A$2:$A$" + lastRow, categories)),
-                new C.Values(CreateNumberReference("Sheet1!$" + column + "$2:$" + column + "$" + lastRow,
-                    descriptor.Series.Values)));
+        private static OfficeXmlNode CreateSharedCategoryAxis(OfficeXmlNode context, uint axisId, uint crossingAxisId,
+            string position, bool secondary) {
+            OfficeXmlNode axis = context.CreateElement(NsC, "catAx");
+            axis.AppendVal(NsC, "axId", Text(axisId));
+            axis.AppendNew(NsC, "scaling").AppendVal(NsC, "orientation", "minMax");
+            axis.AppendVal(NsC, "delete", Text(secondary));
+            axis.AppendVal(NsC, "axPos", position);
+            AppendGeneralNumberFormat(axis);
+            axis.AppendVal(NsC, "majorTickMark", "none");
+            axis.AppendVal(NsC, "minorTickMark", "none");
+            axis.AppendVal(NsC, "tickLblPos", secondary ? "none" : "nextTo");
+            axis.AppendVal(NsC, "crossAx", Text(crossingAxisId));
+            axis.AppendVal(NsC, "crosses", secondary ? "max" : "autoZero");
+            axis.AppendVal(NsC, "auto", Text(true));
+            axis.AppendVal(NsC, "lblAlgn", "ctr");
+            axis.AppendVal(NsC, "lblOffset", "100");
+            axis.AppendVal(NsC, "noMultiLvlLbl", Text(false));
+            return axis;
         }
 
-        private static C.CategoryAxis CreateSharedCategoryAxis(uint axisId, uint crossingAxisId,
-            C.AxisPositionValues position, bool secondary) => new(
-            new C.AxisId { Val = axisId },
-            new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
-            new C.Delete { Val = secondary },
-            new C.AxisPosition { Val = position },
-            new C.NumberingFormat { FormatCode = "General", SourceLinked = false },
-            new C.MajorTickMark { Val = C.TickMarkValues.None },
-            new C.MinorTickMark { Val = C.TickMarkValues.None },
-            new C.TickLabelPosition { Val = secondary ? C.TickLabelPositionValues.None : C.TickLabelPositionValues.NextTo },
-            new C.CrossingAxis { Val = crossingAxisId },
-            new C.Crosses { Val = secondary ? C.CrossesValues.Maximum : C.CrossesValues.AutoZero },
-            new C.AutoLabeled { Val = true },
-            new C.LabelAlignment { Val = C.LabelAlignmentValues.Center },
-            new C.LabelOffset { Val = (UInt16Value)100U },
-            new C.NoMultiLevelLabels { Val = false });
+        private static void AppendGeneralNumberFormat(OfficeXmlNode axis) {
+            OfficeXmlNode format = axis.AppendNew(NsC, "numFmt");
+            format.SetAttribute("formatCode", "General");
+            format.SetAttribute("sourceLinked", Text(false));
+        }
 
-        private static C.ValueAxis CreateSharedValueAxis(uint axisId, uint crossingAxisId,
-            C.AxisPositionValues position, bool secondary,
+        private static OfficeXmlNode CreateSharedValueAxis(OfficeXmlNode context, uint axisId, uint crossingAxisId,
+            string position, bool secondary,
             bool showMajorGridlines,
             bool materializeDefaultGridlineStyle) {
-            C.ValueAxis axis = new(
-                new C.AxisId { Val = axisId },
-                new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
-                new C.Delete { Val = false },
-                new C.AxisPosition { Val = position });
+            OfficeXmlNode axis = context.CreateElement(NsC, "valAx");
+            axis.AppendVal(NsC, "axId", Text(axisId));
+            axis.AppendNew(NsC, "scaling").AppendVal(NsC, "orientation", "minMax");
+            axis.AppendVal(NsC, "delete", Text(false));
+            axis.AppendVal(NsC, "axPos", position);
             if (showMajorGridlines) {
+                OfficeXmlNode gridlines = axis.AppendNew(NsC, "majorGridlines");
                 if (materializeDefaultGridlineStyle) {
                     OfficeChartStyle style = OfficeChartStyle.Default;
-                    var outline = new A.Outline {
-                        Width = checked((int)FromPoints(
-                            style.GridLineWidth ?? 0.5D))
-                    };
-                    outline.Append(new A.SolidFill(
-                        CreateSharedRgbColor(style.GridLineColor)));
-                    axis.Append(new C.MajorGridlines(
-                        new C.ChartShapeProperties(outline)));
-                } else {
-                    axis.Append(new C.MajorGridlines());
+                    OfficeXmlNode outline = gridlines.AppendNew(NsC, "spPr").AppendNew(NsA, "ln");
+                    outline.SetAttribute("w", Text(checked((int)FromPoints(
+                        style.GridLineWidth ?? 0.5D))));
+                    outline.Append(CreateSharedSolidFill(outline, style.GridLineColor));
                 }
             }
-            axis.Append(new C.NumberingFormat { FormatCode = "General", SourceLinked = false });
-            axis.Append(new C.MajorTickMark { Val = C.TickMarkValues.None });
-            axis.Append(new C.MinorTickMark { Val = C.TickMarkValues.None });
-            axis.Append(new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo });
-            axis.Append(new C.CrossingAxis { Val = crossingAxisId });
-            axis.Append(new C.Crosses { Val = secondary ? C.CrossesValues.Maximum : C.CrossesValues.AutoZero });
-            axis.Append(new C.CrossBetween { Val = C.CrossBetweenValues.Between });
+            AppendGeneralNumberFormat(axis);
+            axis.AppendVal(NsC, "majorTickMark", "none");
+            axis.AppendVal(NsC, "minorTickMark", "none");
+            axis.AppendVal(NsC, "tickLblPos", "nextTo");
+            axis.AppendVal(NsC, "crossAx", Text(crossingAxisId));
+            axis.AppendVal(NsC, "crosses", secondary ? "max" : "autoZero");
+            axis.AppendVal(NsC, "crossBetween", "between");
             return axis;
         }
 
@@ -379,20 +401,24 @@ namespace OfficeIMO.OpenXml.Internal {
             }
         }
 
-        internal static IEnumerable<OpenXmlElement> GetSharedNativeChartLayers(C.PlotArea plotArea) =>
-            plotArea.ChildElements.Where(element => element.LocalName.EndsWith("Chart", StringComparison.OrdinalIgnoreCase));
+        internal static IEnumerable<OfficeXmlNode> GetSharedNativeChartLayers(OfficeXmlNode plotArea) {
+            for (OfficeXmlNode element = plotArea.FirstChild; !element.IsNone; element = element.NextSibling) {
+                if (element.LocalName.EndsWith("Chart", StringComparison.OrdinalIgnoreCase)) yield return element;
+            }
+        }
 
-        private static bool IsOnlySharedScatterPlot(C.PlotArea plotArea) {
-            if (!plotArea.Elements<C.ScatterChart>().Any() ||
-                !GetSharedNativeChartLayers(plotArea).All(element => element is C.ScatterChart)) return false;
-            var axisCounts = plotArea.Elements<C.ValueAxis>().Where(axis => axis.AxisId?.Val != null)
-                .GroupBy(axis => axis.AxisId!.Val!.Value).ToDictionary(group => group.Key, group => group.Count());
+        private static bool IsOnlySharedScatterPlot(OfficeXmlNode plotArea) {
+            if (plotArea.Child(NsC, "scatterChart").IsNone ||
+                !GetSharedNativeChartLayers(plotArea).All(element => element.Is(NsC, "scatterChart"))) return false;
+            var axisCounts = plotArea.Children(NsC, "valAx").ToList()
+                .Where(axis => axis.Child(NsC, "axId").Val() != null)
+                .GroupBy(axis => axis.Child(NsC, "axId").UIntVal()!.Value).ToDictionary(group => group.Key, group => group.Count());
             uint[]? expected = null;
-            foreach (C.ScatterChart layer in plotArea.Elements<C.ScatterChart>()) {
-                var references = layer.Elements<C.AxisId>().Take(3).ToList();
-                if (references.Count != 2 || references.Any(axis => axis.Val == null))
+            foreach (OfficeXmlNode layer in plotArea.Children(NsC, "scatterChart")) {
+                var references = layer.Children(NsC, "axId").ToList().Take(3).ToList();
+                if (references.Count != 2 || references.Any(axis => axis.Val() == null))
                     throw new NotSupportedException("In-place scatter updates require two referenced value axes per layer.");
-                uint[] pair = references.Select(axis => axis.Val!.Value).ToArray();
+                uint[] pair = references.Select(axis => axis.UIntVal()!.Value).ToArray();
                 if (pair[0] == pair[1] || pair.Any(id => !axisCounts.TryGetValue(id, out int count) || count != 1) ||
                     expected != null && !expected.SequenceEqual(pair))
                     throw new NotSupportedException("In-place scatter updates require all layers to share the same ordered value-axis pair.");
@@ -401,59 +427,119 @@ namespace OfficeIMO.OpenXml.Internal {
             return true;
         }
 
-        private static C.Legend CreateSharedLegend(OfficeChartData data, OfficeChartType kind) {
-            C.Legend legend = new(new C.LegendPosition { Val = C.LegendPositionValues.Bottom });
+        private static OfficeXmlNode CreateSharedLegend(OfficeXmlNode context, OfficeChartData data, OfficeChartType kind) {
+            OfficeXmlNode legend = context.CreateElement(NsC, "legend");
+            legend.AppendVal(NsC, "legendPos", "b");
             foreach (uint index in GetHiddenSharedLegendIndexes(data, kind)) {
-                legend.Append(new C.LegendEntry(new C.Index { Val = index }, new C.Delete { Val = true }));
+                OfficeXmlNode entry = legend.AppendNew(NsC, "legendEntry");
+                entry.AppendVal(NsC, "idx", Text(index));
+                entry.AppendVal(NsC, "delete", Text(true));
             }
-            legend.Append(new C.Layout());
-            legend.Append(new C.Overlay { Val = false });
+            legend.AppendNew(NsC, "layout");
+            legend.AppendVal(NsC, "overlay", Text(false));
             return legend;
         }
 
-        private static void UpdateSharedLegend(C.Chart chart, OfficeChartData data, OfficeChartType kind,
+        private static void UpdateSharedLegend(OfficeXmlNode chart, OfficeChartData data, OfficeChartType kind,
             bool previousLegendUsesCategories) {
-            C.Legend? current = chart.GetFirstChild<C.Legend>();
-            if (current == null) {
+            OfficeXmlNode current = chart.Child(NsC, "legend");
+            if (current.IsNone) {
                 return;
             }
 
-            var replacement = (C.Legend)current.CloneNode(true);
+            OfficeXmlNode replacement = current.Clone();
             kind = data.Series.FirstOrDefault()?.RenderKind ?? kind;
             bool legendUsesCategories = kind is OfficeChartType.Pie or OfficeChartType.Doughnut;
             int entryCount = legendUsesCategories ? data.Categories.Count : data.Series.Count;
             var retained = (previousLegendUsesCategories == legendUsesCategories
-                ? replacement.Elements<C.LegendEntry>() : Enumerable.Empty<C.LegendEntry>())
-                .Where(entry => entry.GetFirstChild<C.Index>()?.Val?.Value < entryCount)
-                .Where(entry => entry.ChildElements.Any(child => child is not C.Index && child is not C.Delete))
-                .GroupBy(entry => entry.GetFirstChild<C.Index>()!.Val!.Value)
-                .ToDictionary(group => group.Key, group => (C.LegendEntry)group.First().CloneNode(true));
+                ? replacement.Children(NsC, "legendEntry").ToList() : new List<OfficeXmlNode>())
+                .Where(entry => entry.Child(NsC, "idx").UIntVal() < entryCount)
+                .Where(entry => HasOtherThanIndexAndDelete(entry))
+                .GroupBy(entry => entry.Child(NsC, "idx").UIntVal()!.Value)
+                .ToDictionary(group => group.Key, group => group.First().Clone());
             var hidden = new HashSet<uint>(GetHiddenSharedLegendIndexes(data, kind));
-            replacement.RemoveAllChildren<C.LegendEntry>();
-            OpenXmlElement? insertBefore = replacement.ChildElements.FirstOrDefault(child =>
-                child is not C.LegendPosition && child is not C.LegendEntry);
-            foreach (uint index in retained.Keys.Concat(hidden).Distinct().OrderBy(value => value)) {
-                C.LegendEntry entry = retained.TryGetValue(index, out C.LegendEntry? existing)
-                    ? existing : new C.LegendEntry(new C.Index { Val = index });
-                entry.GetFirstChild<C.Delete>()?.Remove();
-                if (hidden.Contains(index)) entry.AddChild(new C.Delete { Val = true }, true);
-                if (insertBefore == null) replacement.Append(entry);
-                else replacement.InsertBefore(entry, insertBefore);
+            replacement.RemoveChildren(NsC, "legendEntry");
+            OfficeXmlNode insertBefore = default;
+            foreach (OfficeXmlNode child in replacement.Children()) {
+                if (!child.Is(NsC, "legendPos") && !child.Is(NsC, "legendEntry")) {
+                    insertBefore = child;
+                    break;
+                }
             }
-            chart.ReplaceChild(replacement, current);
+            foreach (uint index in retained.Keys.Concat(hidden).Distinct().OrderBy(value => value)) {
+                OfficeXmlNode entry;
+                if (!retained.TryGetValue(index, out entry)) {
+                    entry = replacement.CreateElement(NsC, "legendEntry");
+                    entry.AppendVal(NsC, "idx", Text(index));
+                }
+                OfficeXmlNode delete = entry.Child(NsC, "delete");
+                if (!delete.IsNone) delete.Remove();
+                if (hidden.Contains(index)) SetOrdered(entry, entry.CreateVal(NsC, "delete", Text(true)), CLegendEntryView.Order);
+                replacement.InsertBefore(entry, insertBefore);
+            }
+            current.ReplaceWith(replacement);
         }
 
-        private static IEnumerable<OpenXmlCompositeElement> EnumerateSharedSeriesElements(C.PlotArea plotArea) {
-            foreach (OpenXmlElement chart in plotArea.ChildElements) {
-                if (chart is C.BarChart bar) foreach (C.BarChartSeries series in bar.Elements<C.BarChartSeries>()) yield return series;
-                else if (chart is C.LineChart line) foreach (C.LineChartSeries series in line.Elements<C.LineChartSeries>()) yield return series;
-                else if (chart is C.AreaChart area) foreach (C.AreaChartSeries series in area.Elements<C.AreaChartSeries>()) yield return series;
-                else if (chart is C.RadarChart radar) foreach (C.RadarChartSeries series in radar.Elements<C.RadarChartSeries>()) yield return series;
-                else if (chart is C.ScatterChart scatter) foreach (C.ScatterChartSeries series in scatter.Elements<C.ScatterChartSeries>()) yield return series;
-                else if (chart is C.BubbleChart bubble) foreach (C.BubbleChartSeries series in bubble.Elements<C.BubbleChartSeries>()) yield return series;
-                else if (chart is C.PieChart pie) foreach (C.PieChartSeries series in pie.Elements<C.PieChartSeries>()) yield return series;
-                else if (chart is C.DoughnutChart doughnut) foreach (C.PieChartSeries series in doughnut.Elements<C.PieChartSeries>()) yield return series;
+        private static bool HasOtherThanIndexAndDelete(OfficeXmlNode entry) {
+            foreach (OfficeXmlNode child in entry.Children()) {
+                if (!child.Is(NsC, "idx") && !child.Is(NsC, "delete")) return true;
             }
+            return false;
+        }
+
+        private static IEnumerable<OfficeXmlNode> EnumerateSharedSeriesElements(OfficeXmlNode plotArea) {
+            for (OfficeXmlNode chart = plotArea.FirstChild; !chart.IsNone; chart = chart.NextSibling) {
+                if (chart.NamespaceId != NsC) continue;
+                switch (chart.LocalName) {
+                    case "barChart":
+                    case "lineChart":
+                    case "areaChart":
+                    case "radarChart":
+                    case "scatterChart":
+                    case "bubbleChart":
+                    case "pieChart":
+                    case "doughnutChart":
+                        for (OfficeXmlNode series = chart.Child(NsC, "ser"); !series.IsNone; series = series.NextSiblingNamed(NsC, "ser"))
+                            yield return series;
+                        break;
+                }
+            }
+        }
+
+        /// <summary>The child order of a <c>c:ser</c> under a chart layer with this local name, or null for another layer.</summary>
+        private static OfficeXmlChildOrder? SeriesOrder(string? layer) => layer switch {
+            "barChart" or "bar3DChart" => CBarSerView.Order,
+            "lineChart" or "line3DChart" or "stockChart" => CLineSerView.Order,
+            "scatterChart" => CScatterSerView.Order,
+            "areaChart" or "area3DChart" => CAreaSerView.Order,
+            "radarChart" => CRadarSerView.Order,
+            "pieChart" or "pie3DChart" or "doughnutChart" or "ofPieChart" => CPieSerView.Order,
+            "bubbleChart" => CBubbleSerView.Order,
+            "surfaceChart" or "surface3DChart" => CSurfaceSerView.Order,
+            _ => null
+        };
+
+        /// <summary>The layer a chart kind writes its series under, for a series that isn't attached to one yet.</summary>
+        private static string? LayerOfKind(OfficeChartType? kind) => kind switch {
+            null => null,
+            OfficeChartType value when IsBarOrColumnKind(value) => "barChart",
+            OfficeChartType value when IsLineKind(value) => "lineChart",
+            OfficeChartType value when IsAreaKind(value) => "areaChart",
+            OfficeChartType.Scatter => "scatterChart",
+            OfficeChartType.Radar => "radarChart",
+            OfficeChartType.Pie or OfficeChartType.Doughnut => "pieChart",
+            OfficeChartType.Bubble => "bubbleChart",
+            _ => null
+        };
+
+        /// <summary>
+        /// The layer that holds a series: its parent's local name, or for a detached series the layer of
+        /// <paramref name="kind"/>, which stands in for the SDK series class the caller built.
+        /// </summary>
+        private static string? SeriesLayer(OfficeXmlNode series, OfficeChartType? kind) {
+            OfficeXmlNode parent = series.Parent;
+            if (!parent.IsNone) return parent.NamespaceId == NsC ? parent.LocalName : null;
+            return LayerOfKind(kind);
         }
 
         private static List<SharedSeriesDescriptor> DescribeSharedSeries(OfficeChartData data,
@@ -498,24 +584,24 @@ namespace OfficeIMO.OpenXml.Internal {
         private static bool IsMarkerKind(OfficeChartType kind) => IsLineKind(kind) ||
             kind == OfficeChartType.Scatter || kind == OfficeChartType.Radar;
 
-        private static C.BarGroupingValues GetBarGrouping(OfficeChartType kind) {
+        private static string GetBarGrouping(OfficeChartType kind) {
             if (kind == OfficeChartType.ColumnStacked100 || kind == OfficeChartType.BarStacked100)
-                return C.BarGroupingValues.PercentStacked;
+                return "percentStacked";
             if (kind == OfficeChartType.ColumnStacked || kind == OfficeChartType.BarStacked)
-                return C.BarGroupingValues.Stacked;
-            return C.BarGroupingValues.Clustered;
+                return "stacked";
+            return "clustered";
         }
 
-        private static C.GroupingValues GetLineGrouping(OfficeChartType kind) {
-            if (kind == OfficeChartType.LineStacked100) return C.GroupingValues.PercentStacked;
-            if (kind == OfficeChartType.LineStacked) return C.GroupingValues.Stacked;
-            return C.GroupingValues.Standard;
+        private static string GetLineGrouping(OfficeChartType kind) {
+            if (kind == OfficeChartType.LineStacked100) return "percentStacked";
+            if (kind == OfficeChartType.LineStacked) return "stacked";
+            return "standard";
         }
 
-        private static C.GroupingValues GetAreaGrouping(OfficeChartType kind) {
-            if (kind == OfficeChartType.AreaStacked100) return C.GroupingValues.PercentStacked;
-            if (kind == OfficeChartType.AreaStacked) return C.GroupingValues.Stacked;
-            return C.GroupingValues.Standard;
+        private static string GetAreaGrouping(OfficeChartType kind) {
+            if (kind == OfficeChartType.AreaStacked100) return "percentStacked";
+            if (kind == OfficeChartType.AreaStacked) return "stacked";
+            return "standard";
         }
 
         private static int ChartLayer(OfficeChartType kind) {
@@ -524,29 +610,53 @@ namespace OfficeIMO.OpenXml.Internal {
             return 2;
         }
 
-        private static C.MarkerStyleValues MapMarker(OfficeChartMarkerShape? marker) {
-            if (!marker.HasValue) return C.MarkerStyleValues.Circle;
+        private static string MapMarker(OfficeChartMarkerShape? marker) {
+            if (!marker.HasValue) return "circle";
             switch (marker.Value) {
-                case OfficeChartMarkerShape.Square: return C.MarkerStyleValues.Square;
-                case OfficeChartMarkerShape.Diamond: return C.MarkerStyleValues.Diamond;
-                case OfficeChartMarkerShape.Triangle: return C.MarkerStyleValues.Triangle;
-                case OfficeChartMarkerShape.Dash: return C.MarkerStyleValues.Dash;
-                case OfficeChartMarkerShape.Dot: return C.MarkerStyleValues.Dot;
-                case OfficeChartMarkerShape.Plus: return C.MarkerStyleValues.Plus;
-                case OfficeChartMarkerShape.X: return C.MarkerStyleValues.X;
-                case OfficeChartMarkerShape.Star: return C.MarkerStyleValues.Star;
-                default: return C.MarkerStyleValues.Circle;
+                case OfficeChartMarkerShape.Square: return "square";
+                case OfficeChartMarkerShape.Diamond: return "diamond";
+                case OfficeChartMarkerShape.Triangle: return "triangle";
+                case OfficeChartMarkerShape.Dash: return "dash";
+                case OfficeChartMarkerShape.Dot: return "dot";
+                case OfficeChartMarkerShape.Plus: return "plus";
+                case OfficeChartMarkerShape.X: return "x";
+                case OfficeChartMarkerShape.Star: return "star";
+                default: return "circle";
             }
         }
 
-        private static A.PresetLineDashValues MapDash(OfficeStrokeDashStyle dash) {
+        private static string MapDash(OfficeStrokeDashStyle dash) {
             switch (dash) {
-                case OfficeStrokeDashStyle.Dash: return A.PresetLineDashValues.Dash;
-                case OfficeStrokeDashStyle.Dot: return A.PresetLineDashValues.Dot;
-                case OfficeStrokeDashStyle.DashDot: return A.PresetLineDashValues.DashDot;
-                case OfficeStrokeDashStyle.DashDotDot: return A.PresetLineDashValues.LargeDashDotDot;
-                default: return A.PresetLineDashValues.Solid;
+                case OfficeStrokeDashStyle.Dash: return "dash";
+                case OfficeStrokeDashStyle.Dot: return "dot";
+                case OfficeStrokeDashStyle.DashDot: return "dashDot";
+                case OfficeStrokeDashStyle.DashDotDot: return "lgDashDotDot";
+                default: return "solid";
             }
         }
+
+        // SDK callers
+
+        internal static void PopulateSharedChart(ChartPart chartPart, string embeddedRelId, OfficeChartData data,
+            OfficeChartType defaultKind, OfficeTheme? theme = null) {
+            ArgumentNullException.ThrowIfNull(chartPart);
+            ValidateSharedChartData(data, defaultKind);
+            // A fresh root with the declarations the chart part has always been written with.
+            var chartSpace = new C.ChartSpace();
+            chartSpace.AddNamespaceDeclaration("c", ChartNamespace);
+            chartSpace.AddNamespaceDeclaration("a", DrawingNamespace);
+            chartSpace.AddNamespaceDeclaration("r", RelationshipNamespace);
+            chartPart.ChartSpace = chartSpace;
+            PopulateSharedChartCore(new OfficeSdkChartPart(chartPart), embeddedRelId, data, defaultKind, theme);
+        }
+
+        internal static void UpdateSharedChartData(ChartPart chartPart, OfficeChartData data,
+            OfficeChartType defaultKind, OfficeTheme? theme = null) {
+            ArgumentNullException.ThrowIfNull(chartPart);
+            UpdateSharedChartData(new OfficeSdkChartPart(chartPart), data, defaultKind, theme);
+        }
+
+        internal static IEnumerable<OpenXmlElement> GetSharedNativeChartLayers(C.PlotArea plotArea) =>
+            GetSharedNativeChartLayers(OfficeXmlNode.FromSdk(plotArea)).Select(layer => (OpenXmlElement)layer.SdkElement!);
     }
 }
