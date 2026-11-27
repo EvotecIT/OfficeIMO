@@ -34,7 +34,7 @@ public static partial class WordPdfConverterExtensions {
                 stories.ContinuationNotice }.Where(story => story.Exists));
         }
         foreach (OfficeXmlNode note in ordinaryNotes.Concat(selectedStories).Distinct()) {
-            IReadOnlyList<WordParagraph> paragraphs = note.Descendants(WordXml.W, "p")
+            IReadOnlyList<WordParagraph> paragraphs = note.ModelDescendants("p")
                 .Select(paragraph => document.ParagraphView(paragraph)).ToArray();
             using WordDocumentTraversal.ListMarkerRenderScope markerScope = WordDocumentTraversal
                 .BuildNoteListMarkersForRendering(document, paragraphs);
@@ -128,7 +128,7 @@ public static partial class WordPdfConverterExtensions {
         int composedParagraphs = 0;
         foreach (OfficeXmlNode story in pendingSources.Select(item => item.Source)
             .Concat(new[] { separator, continuation, notice }.Where(story => story.Exists))) {
-            foreach (OfficeXmlNode _ in story.Descendants(WordXml.W, "p")) {
+            foreach (OfficeXmlNode _ in story.ModelDescendants("p")) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 if (++composedParagraphs > maximumComposedNoteParagraphs)
                     throw new InvalidDataException($"Footnote composition exceeds {maximumComposedNoteParagraphs} paragraphs.");
@@ -158,7 +158,7 @@ public static partial class WordPdfConverterExtensions {
         foreach (var item in pendingSources) {
             if (!notes.TryGetValue(item.Key, out int token)) continue;
             string label = notes.GetLabel(token);
-            IReadOnlyList<WordParagraph> paragraphs = item.Source.Descendants(WordXml.W, "p")
+            IReadOnlyList<WordParagraph> paragraphs = item.Source.ModelDescendants("p")
                 .Select(paragraph => section._document.ParagraphView(paragraph)).ToList();
             PdfCore.PdfFootnoteDefinition definition = flow.DefineFootnote(content => {
                 content.Bookmark(GetNativePageNoteDestination(item.Key));
@@ -246,7 +246,7 @@ public static partial class WordPdfConverterExtensions {
                 }
             } else if (element.Is(WordXml.Wp, "anchor") || element.Is(WordXml.M, "oMath")) return false;
         }
-        foreach (OfficeXmlNode source in note.Descendants(WordXml.W, "p")) {
+        foreach (OfficeXmlNode source in note.ModelDescendants("p")) {
             // Match the style actually sent to the PDF owner, including the
             // paragraph's inherited style and explicit false overrides.
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(section._document.ParagraphView(source), defaults, fonts);
@@ -255,7 +255,7 @@ public static partial class WordPdfConverterExtensions {
         // Definitions can be painted after the operation report is captured.
         // Record admitted note decoration now, after all profile checks pass.
         if (recordDiagnostics)
-            foreach (OfficeXmlNode source in note.Descendants(WordXml.W, "p"))
+            foreach (OfficeXmlNode source in note.ModelDescendants("p"))
                 RecordNativeParagraphBarTabDiagnostics(section._document.ParagraphView(source), options, "note paragraph");
         return true;
     }

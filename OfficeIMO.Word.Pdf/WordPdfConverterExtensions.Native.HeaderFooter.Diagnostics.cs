@@ -521,7 +521,7 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>The <c>w:sdt</c> elements of one level below <paramref name="container"/>, in document order.</summary>
         private static IEnumerable<OfficeXmlNode> EnumerateNativeContentControls(OfficeXmlNode container, WordContentControlLevel level) =>
-            container.Descendants(WordXml.W, "sdt").Where(sdt => sdt.ContentControlLevel() == level);
+            container.ModelDescendants("sdt").Where(sdt => sdt.ContentControlLevel() == level);
 
         private static IReadOnlyList<OfficeXmlNode> GetNativeCheckBoxControls(WordParagraph paragraph) {
             OfficeXmlNode source = paragraph.Node();

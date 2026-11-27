@@ -101,6 +101,11 @@ namespace OfficeIMO.Word.Pdf {
             return drawing;
         }
 
+        // Error bars and trendlines belong to a series (c:ser/c:errBars, c:ser/c:trendline); the same names nested in
+        // producer markup elsewhere are not chart content.
+        private static bool HasNativeWordChartSeriesChild(IEnumerable<OfficeXmlNode> chartElements, string localName) =>
+            chartElements.Any(chartElement => chartElement.Elements(C, "ser").Any(series => series.Elements(C, localName).Any()));
+
         internal static bool TryCreateNativeWordChartSnapshot(WordChart chart, out OfficeChartSnapshot? snapshot, out string? warning) {
             snapshot = null;
             warning = null;
@@ -120,7 +125,9 @@ namespace OfficeIMO.Word.Pdf {
             // fill and outline. Keep the PDF chart on that same projection when it is styled. Error bars and
             // trendlines on a flat chart without a data table go to the shared reader too, which draws or reports
             // them; 3-D charts and data tables keep this path, which reports them below.
-            bool seriesExtras = plotArea.DescendantsSkippingExtLst().Any(element => element.Is(C, "errBars") || element.Is(C, "trendline"));
+            bool seriesErrorBars = HasNativeWordChartSeriesChild(allChartElements, "errBars");
+            bool seriesTrendlines = HasNativeWordChartSeriesChild(allChartElements, "trendline");
+            bool seriesExtras = seriesErrorBars || seriesTrendlines;
             bool sharedReadsExtras = plotArea.Child(C, "dTable").IsNone &&
                 !allChartElements.Any(element => element.LocalName.EndsWith("3DChart", StringComparison.Ordinal));
             if (allChartElements.Count > 1 || allChartElements.Any(element => element.Is(C, "bubbleChart")) ||
@@ -135,9 +142,9 @@ namespace OfficeIMO.Word.Pdf {
                     warning = "Error bars and trendlines on 3-D charts or charts with a data table cannot be projected.";
                     return false;
                 }
-                if (plotArea.HasDescendantSkippingExtLst(C, "errBars"))
+                if (seriesErrorBars)
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Record("Error bars are left out.");
-                if (plotArea.HasDescendantSkippingExtLst(C, "trendline"))
+                if (seriesTrendlines)
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Record("Trendlines are left out.");
             }
             List<OfficeXmlNode> chartElements = allChartElements

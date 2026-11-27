@@ -279,7 +279,7 @@ namespace OfficeIMO.Word.Html {
 
                     if ((includeAll || artifactElement.IsW("drawing") || artifactElement.Is(WordXml.V, "imagedata")) &&
                         (artifactElement.IsW("drawing") &&
-                            artifactElement.HasDescendant(WordXml.Pic, "pic")
+                            artifactElement.DescendantElements(WordXml.Pic, "pic").Any(WordConverterNodes.IsModelElement)
                             ? run._document.ImageView(artifactElement)
                             : artifactElement.Is(WordXml.V, "imagedata") &&
                                 artifactElement.Ancestors().FirstOrDefault(ancestor => ancestor.Is(WordXml.V, "shape")) is { Exists: true } vmlShape &&
@@ -554,7 +554,7 @@ namespace OfficeIMO.Word.Html {
                     // The existing segment projector preserves the actual child order and
                     // supplies the specific drawing occurrence to artifact conversion.
                     if (run.SdtRunNode().WChild("sdtContent") is { Exists: true } controlContent &&
-                        (controlContent.HasDescendant(WordXml.C, "chart") || HasExtendedChart(controlContent))) {
+                        (controlContent.DescendantElements(WordXml.C, "chart").Any(WordConverterNodes.IsModelElement) || HasExtendedChart(controlContent))) {
                         foreach (INode expandedNode in CreateExpandedEquationContainerNodes(controlContent, Array.Empty<WordEquationOccurrence>(), run))
                             AppendNode(expandedNode);
                         continue;
@@ -565,7 +565,7 @@ namespace OfficeIMO.Word.Html {
                         ?.Count(child =>
                         child.IsW("footnoteReference") || child.IsW("endnoteReference") || child.IsW("commentReference")) > 1;
                     if ((run.IsChart || HasExtendedChart(selectedRun) ||
-                        selectedRun.HasDescendant(WordXml.C, "chart") || multipleReferences) && selectedRun.Exists) {
+                        selectedRun.DescendantElements(WordXml.C, "chart").Any(WordConverterNodes.IsModelElement) || multipleReferences) && selectedRun.Exists) {
                         foreach (INode expandedNode in CreateExpandedEquationContainerNodes(selectedRun,
                             Array.Empty<WordEquationOccurrence>(), run, visibleRunSourceChildren)) {
                             AppendNode(expandedNode);
@@ -836,7 +836,7 @@ namespace OfficeIMO.Word.Html {
                     if (level < minLevel || level > maxLevel) continue;
                     OfficeXmlNode headingElement = headingParagraph.Node();
                     if (!listedHeadings.Add(headingElement)) continue;
-                    string text = string.Concat(headingElement.DescendantElements(WordXml.W, "t").Select(item => item.InnerText)).Trim();
+                    string text = string.Concat(headingElement.ModelDescendants("t").Select(item => item.InnerText)).Trim();
                     if (text.Length == 0) continue;
 
                     while (stack.Count > 1 && stack[stack.Count - 1].Level > level) stack.RemoveAt(stack.Count - 1);
@@ -903,7 +903,7 @@ namespace OfficeIMO.Word.Html {
             // The whole paragraph, not only its first run; line breaks inside the paragraph stay line breaks.
             static string GetCodeParagraphText(WordParagraph para) {
                 var text = new StringBuilder();
-                foreach (OfficeXmlNode run in para.Node().DescendantElements(WordXml.W, "r")) {
+                foreach (OfficeXmlNode run in para.Node().ModelDescendants("r")) {
                     if (run.Ancestors().Any(ancestor => ancestor.IsW("del") && ancestor.IsTrackedChangeContainer())) continue;
                     foreach (OfficeXmlNode child in run.Elements()) {
                         if (child.IsW("t")) text.Append(child.InnerText);
@@ -1092,7 +1092,7 @@ namespace OfficeIMO.Word.Html {
                 string.Equals(para.BuiltInStyleId, "Caption", StringComparison.Ordinal);
 
             bool HasFigureCaptionMarker(WordParagraph para, bool before) {
-                return para.Node().DescendantElements(WordXml.W, "bookmarkStart")
+                return para.Node().ModelDescendants("bookmarkStart")
                     .Any(bookmark => HtmlWordRoundTripMarkers.IsFigureCaptionBookmark(bookmark.WAttr("name"), before));
             }
 

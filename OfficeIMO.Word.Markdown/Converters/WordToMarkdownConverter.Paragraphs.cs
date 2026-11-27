@@ -62,7 +62,7 @@ namespace OfficeIMO.Word.Markdown {
                 return null;
             }
 
-            return WordFontResolver.Resolve(configuredFontFamily) ?? configuredFontFamily;
+            return WordFontResolver.ToDocumentFont(configuredFontFamily);
         }
 
         private static string? ResolveImplicitCodeFont() {

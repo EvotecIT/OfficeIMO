@@ -490,7 +490,7 @@ namespace OfficeIMO.Word.Pdf {
             // Content controls are transparent: compare with the cell's own first or last
             // paragraph or nested table, wherever it sits.
             IEnumerable<OfficeXmlNode> blocks = cell.DescendantElements()
-                .Where(element => (element.IsW("p") || element.IsW("tbl")) &&
+                .Where(element => (element.IsW("p") || element.IsW("tbl")) && element.IsModelElement() &&
                     element.Ancestor(WordXml.W, "tc") == cell);
             OfficeXmlNode boundary = first ? blocks.FirstOrDefault() : blocks.LastOrDefault();
             return boundary == source;

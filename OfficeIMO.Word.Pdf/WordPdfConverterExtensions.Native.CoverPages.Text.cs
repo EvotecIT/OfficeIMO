@@ -9,13 +9,13 @@ namespace OfficeIMO.Word.Pdf {
         private static IReadOnlyList<PdfCore.PdfTextRun> GetNativeVmlTextRuns(WordDocument document, OfficeXmlNode element) {
             var runs = new List<PdfCore.PdfTextRun>();
             bool hasParagraph = false;
-            foreach (OfficeXmlNode paragraph in element.Descendants(WordXml.W, "p")) {
+            foreach (OfficeXmlNode paragraph in element.ModelDescendants("p")) {
                 if (hasParagraph) {
                     runs.Add(PdfCore.PdfTextRun.LineBreak());
                 }
 
                 hasParagraph = true;
-                foreach (OfficeXmlNode run in paragraph.Descendants(WordXml.W, "r")) {
+                foreach (OfficeXmlNode run in paragraph.ModelDescendants("r")) {
                     OfficeXmlNode properties = run.WChild("rPr");
                     NativeResolvedTextStyle style = ResolveNativeTextRunStyle(
                         WordConverterNodes.RunView(document, paragraph, run));
@@ -254,9 +254,9 @@ namespace OfficeIMO.Word.Pdf {
 
         private static global::OfficeIMO.OfficeAlignment GetNativeVmlTextAlign(WordDocument document, OfficeXmlNode element) {
             // Paragraph justification sits in a w:pPr; a w:jc in table or row properties is a different setting.
-            OfficeXmlNode justification = element.DescendantElements().FirstOrDefault(node => node.IsW("jc") && node.Parent.IsW("pPr"));
+            OfficeXmlNode justification = element.DescendantElements().FirstOrDefault(node => node.IsW("jc") && node.Parent.IsW("pPr") && node.IsModelElement());
             OfficeXmlNode source = justification.Ancestor(WordXml.W, "p");
-            if (source.IsNone) source = element.FirstDescendantElement(WordXml.W, "p");
+            if (source.IsNone) source = element.ModelDescendants("p").FirstOrDefault();
             // The frame takes its paragraph's resolved alignment and direction: direct, style and document defaults.
             string? value = source.IsNone ? justification.WVal()
                 : ResolveNativeUnjustifiedJustification(WordConverterNodes.ParagraphView(document, source));

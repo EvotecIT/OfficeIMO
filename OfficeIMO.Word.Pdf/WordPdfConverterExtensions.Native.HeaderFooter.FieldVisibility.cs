@@ -17,6 +17,8 @@ namespace OfficeIMO.Word.Pdf {
                  element = NextNativeHeaderFooterFieldElement(element, story)) {
                 if (++scannedElements > MaxNativeHeaderFooterFieldScanElements)
                     throw new System.IO.InvalidDataException("Header or footer field results exceed the supported scan limit.");
+                // Field markup the package holds untyped, inside unknown markup, isn't part of the field.
+                if (!element.IsModelElement()) continue;
                 if (element.IsW("fldChar")) {
                     string? type = element.WAttr("fldCharType");
                     if (type == "begin" && ++depth > MaxNativeHeaderFooterFieldDepth)
@@ -57,6 +59,8 @@ namespace OfficeIMO.Word.Pdf {
                  element = NextNativeHeaderFooterFieldElement(element, story)) {
                 if (++scannedElements > MaxNativeHeaderFooterFieldScanElements)
                     throw new System.IO.InvalidDataException("Header or footer field instructions exceed the supported scan limit.");
+                // Field markup the package holds untyped, inside unknown markup, isn't part of the field.
+                if (!element.IsModelElement()) continue;
                 if (element.IsW("fldChar")) {
                     string? type = element.WAttr("fldCharType");
                     if (type == "begin" && ++depth > MaxNativeHeaderFooterFieldDepth)

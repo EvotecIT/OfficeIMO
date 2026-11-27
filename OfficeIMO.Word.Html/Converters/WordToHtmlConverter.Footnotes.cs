@@ -184,7 +184,7 @@ namespace OfficeIMO.Word.Html {
                         IEnumerable<OfficeXmlNode> children = run.VisibleRunSourceChildNodes() ?? run.RunNode().Elements();
                         foreach (OfficeXmlNode child in children) {
                             foreach (OfficeXmlNode reference in child.IsW("footnoteReference")
-                                ? new[] { child } : child.DescendantElements(WordXml.W, "footnoteReference")) {
+                                ? new[] { child } : child.ModelDescendants("footnoteReference")) {
                                 if (!options.ExportFootnotes) continue;
                                 var note = run.FootNoteForReference(reference);
                                 long id = note.ReferenceId ?? 0;
@@ -194,7 +194,7 @@ namespace OfficeIMO.Word.Html {
                                 footnotes.Add((number, note));
                             }
                             foreach (OfficeXmlNode reference in child.IsW("endnoteReference")
-                                ? new[] { child } : child.DescendantElements(WordXml.W, "endnoteReference")) {
+                                ? new[] { child } : child.ModelDescendants("endnoteReference")) {
                                 if (!options.ExportEndnotes) continue;
                                 var note = run.EndNoteForReference(reference);
                                 long id = note.ReferenceId ?? 0;

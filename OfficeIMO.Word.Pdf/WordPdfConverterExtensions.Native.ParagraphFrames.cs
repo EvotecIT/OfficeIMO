@@ -33,12 +33,12 @@ public static partial class WordPdfConverterExtensions {
         // The frame content is a copy: list markers, numbering and story relationships still
         // resolve through the source paragraphs.
         var sources = new Dictionary<OfficeXmlNode, OfficeXmlNode>();
-        List<OfficeXmlNode> directCopies = table.Node().FirstDescendantElement(WordXml.W, "tc").WElements("p").ToList();
+        List<OfficeXmlNode> directCopies = table.Node().ModelDescendants("tc").FirstOrDefault().WElements("p").ToList();
         for (int i = 0; i < paragraphs.Count && i < directCopies.Count; i++) {
             OfficeXmlNode source = paragraphs[i].Node();
             sources[directCopies[i]] = source;
-            List<OfficeXmlNode> nestedCopies = directCopies[i].Descendants(WordXml.W, "p");
-            List<OfficeXmlNode> nestedSources = source.Descendants(WordXml.W, "p");
+            List<OfficeXmlNode> nestedCopies = directCopies[i].ModelDescendants("p").ToList();
+            List<OfficeXmlNode> nestedSources = source.ModelDescendants("p").ToList();
             for (int nested = 0; nested < nestedCopies.Count && nested < nestedSources.Count; nested++)
                 sources[nestedCopies[nested]] = nestedSources[nested];
         }

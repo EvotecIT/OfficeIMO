@@ -29,7 +29,7 @@ public static partial class WordPdfConverterExtensions {
     private static bool CanProjectNativeNoteTable(OfficeXmlNode table, WordSection section, WordPdfExportOptions? options,
         NativeDocumentDefaults defaults, NativeFontMap fonts) {
         if (table.HasDescendant(WordXml.W, "tblpPr")) return false;
-        if (table.HasDescendant(WordXml.W, "tbl") &&
+        if (table.ModelDescendants("tbl").Any() &&
             !CanProjectNativeContainedTable(section._document.ReadOnlyTableView(table),
                 options, defaults, fonts, 0)) return false;
         if (table.DescendantElements(WordXml.W, "textDirection").Any(direction =>
@@ -38,7 +38,7 @@ public static partial class WordPdfConverterExtensions {
         // rules. A note table currently admits the directly represented grid.
         if (table.Elements().Any(child => !child.IsW("tblPr") && !child.IsW("tblGrid") && !child.IsW("tr")) ||
             table.WElements("tr").Any(row => row.Elements().Any(child => !child.IsW("trPr") && !child.IsW("tc"))) ||
-            table.Descendants(WordXml.W, "tc").Any(cell => cell.Elements().Any(child => !child.IsW("tcPr") && !child.IsW("p") && !child.IsW("tbl"))))
+            table.ModelDescendants("tc").Any(cell => cell.Elements().Any(child => !child.IsW("tcPr") && !child.IsW("p") && !child.IsW("tbl"))))
             return false;
         var view = section._document.ReadOnlyTableView(table);
         TableLayout layout = TableLayoutCache.GetLayout(view);

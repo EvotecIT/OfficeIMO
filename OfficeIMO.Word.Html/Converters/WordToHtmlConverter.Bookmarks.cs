@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.Html {
                 string? primary = container.GetAttribute("id");
                 if (primary != null) emitted.Add(primary);
             }
-            foreach (OfficeXmlNode bookmark in paragraph.Node().DescendantElements(WordXml.W, "bookmarkStart")) {
+            foreach (OfficeXmlNode bookmark in paragraph.Node().ModelDescendants("bookmarkStart")) {
                 string? name = bookmark.WAttr("name");
                 if (string.IsNullOrWhiteSpace(name) || !emitted.Add(name!)) continue;
                 string[] parts = name!.Split(new[] { ':' }, 2);
