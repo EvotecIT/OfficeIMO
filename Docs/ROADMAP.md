@@ -631,7 +631,24 @@ Qualify complete script-free HtmlForgeX reports through the shared HTML scene an
 - [ ] Qualify ZIP64 members of 4 GiB and more written by `ZipArchiveWriter` (staged and data-descriptor modes) against Info-ZIP, 7-Zip and the .NET runtime reader, and measure the managed Deflate encoder's throughput and ratio against the runtime's zlib on representative payloads.
 - [ ] Inventory TAR and gzip through `ArchiveInspector` (ordinal entries, planned and grouped reads, verified copies) and let `OfficeIMO.Reader.Zip` report unsafe TAR members as per-entry warnings and traverse archives nested in a TAR, as it does for ZIP.
 
-Encryption, RAR, additional 7z filters and methods, XZ, Zstandard, Brotli, split archives and installer execution remain deferred. Reassess format expansion only for an identified consumer workflow, with compatibility and dependency approval. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.
+The [archive codecs and containers design](officeimo.archives-codecs-design.md) sets the codec set, package placement, specifications and proof for the items below. Each lands with reference-tool fixtures from a committed script, typed malformed-input errors with offsets, default-on limits and, for encoders, determinism pins.
+
+- [ ] Add a typed archive corruption exception that names the format, byte offset and expected structure, and one public checksum set (CRC-32, CRC-32C, CRC-64, Adler-32, xxHash32, xxHash64) that replaces the private CRC-32 copies in Core, Email, OneNote and Png.
+- [ ] Decode Zstandard (RFC 8878) frames, skippable frames and dictionaries with window and memory limits, as single `.zst` streams and `.tar.zst`.
+- [ ] Read xz and lzip over the existing LZMA/LZMA2 decoders, with CRC-32, CRC-64 and SHA-256 checks, the delta filter, multiple streams and padding, as single streams and `.tar.xz` / `.tar.lz`.
+- [ ] Decode and encode LZ4 blocks and frames, including content checksums and linked blocks, as single streams and `.tar.lz4`.
+- [ ] Decode Brotli (RFC 7932) in managed code on every target, so WOFF2 fonts and Brotli CSV files no longer require .NET 8.
+- [ ] Replace runtime inflate with a managed Deflate decoder so decoding is identical on every runtime, including browser WebAssembly.
+- [ ] Add deterministic encoders: Zstandard levels, LZMA, LZMA2 and xz, lzip, Brotli qualities and Deflate levels, pinned by SHA-256 across platforms and target frameworks.
+- [ ] Detect every container and single-stream codec from content in `ArchiveInspector`, and inventory, plan, read, verify and extract through the existing surfaces.
+- [ ] Read and write cpio (odc, newc, crc) and ar (System V/GNU and BSD), and read TAR sparse members (GNU 0.0, 0.1 and 1.0).
+- [ ] Read ISO 9660 images with Joliet and Rock Ridge names, links and permissions, then write deterministic images.
+- [ ] Read and write WinZip AES ZIP members, read ZipCrypto members, add an opt-in recovery mode for damaged ZIPs that reports each skipped range, and read Zstandard, LZMA, xz and bzip2 ZIP methods once their codecs exist.
+- [ ] Add the 7z delta filter and a deterministic 7z writer (LZMA2, solid folders, encoded headers).
+- [ ] Train Zstandard dictionaries, read and write the Zstandard seekable format, and compress with multiple threads while keeping output independent of the thread count.
+- [ ] Extend `OfficeIMO.Archives.Benchmarks` with opt-in codec comparison lanes (OneArchive and the runtime codecs) that validate identical decoded output before timing and compare compressed size and speed together. Keep comparison packages out of `OfficeIMO.slnx` and timing tests under `Category=Performance`.
+
+bzip2, Deflate64, PPMd, BCJ branch filters and 7z AES key derivation have no written specification apart from source code; they wait for a decision recorded in the design. Quantum, RAR compression, split archives and installer execution remain out of scope; RAR stored entries are separate work. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.
 
 ## Email artifacts and archives
 
