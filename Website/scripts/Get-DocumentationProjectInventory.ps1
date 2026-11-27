@@ -28,6 +28,8 @@ $validationProjects = @($allProjects | Where-Object {
         'OfficeIMO.Project.IndependentVerification',
         'OfficeIMO.Project.ReportVerification'
         'PSWriteOffice.TestingGround'
+        # Unshipped prototype for the 4.0 fluent rename (#3344); only its test project uses it.
+        'OfficeIMO.Fluent.Generators'
     ) -or
     $relativeProjectPath -match '^Website/Apps/'
 })
