@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
                 try {
                     return CreateNativeOpenXml(XlsxTabularWorkbook.Open(path, options), options, () => ExcelDocumentReader.Open(path, options));
                 } catch (XlsxTabularFastPathNotSupportedException) {
-                    // Unusual package and worksheet shapes retain the complete SDK path.
+                    // Unusual package and worksheet shapes retain the general workbook reader.
                 }
             }
 
@@ -158,7 +158,7 @@ namespace OfficeIMO.Excel {
                 try {
                     return CreateNativeOpenXml(XlsxTabularWorkbook.Open(bytes, options), options, () => ExcelDocumentReader.Open(bytes, options));
                 } catch (XlsxTabularFastPathNotSupportedException) {
-                    // Unusual package and worksheet shapes retain the complete SDK path.
+                    // Unusual package and worksheet shapes retain the general workbook reader.
                 }
             }
 

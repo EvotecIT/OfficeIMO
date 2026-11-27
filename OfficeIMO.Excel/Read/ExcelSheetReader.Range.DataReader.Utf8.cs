@@ -221,8 +221,8 @@ namespace OfficeIMO.Excel {
                         MaximumBufferSize, ct, out buffer, out length, out validatedIndexedXml, CanBufferUtf8WorksheetPrefix);
                 }
 
-                owner.RequireSdkWorksheetPart();
-                using var stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                owner.RequireGeneralProjection();
+                using var stream = owner.OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 return TryReadWorksheetBuffer(stream, ct, out buffer, out length);
             }

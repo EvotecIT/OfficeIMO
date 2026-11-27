@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
 using System.Data.Common;
 using System.IO.Compression;
 using System.Text;
@@ -18,9 +17,9 @@ public partial class Excel {
     [InlineData("application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml", true)]
     [InlineData("application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml", true)]
     [InlineData("application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml", true)]
-    public void XlsxNativePackage_PreservesSdkBehaviorForUnexpectedContentType(
+    public void XlsxNativePackage_RepairsWorkbookContentTypeAndRejectsWrongPartTypes(
         string expectedContentType,
-        bool sdkRejectsPackage) {
+        bool rejectsPackage) {
         string path = CreateCompactFastPathWorkbook();
         try {
             const string entryName = "[Content_Types].xml";
@@ -31,14 +30,14 @@ public partial class Excel {
             Assert.NotEqual(contentTypes, malformed);
             ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformed));
 
-            if (sdkRejectsPackage) {
+            if (rejectsPackage) {
                 IOException exception = Assert.Throws<IOException>(() => {
                     using var reader = ExcelDocument.OpenReader(path);
                     while (reader.Read()) {
                         _ = reader.GetInt32(0);
                     }
                 });
-                Assert.IsType<OpenXmlPackageException>(exception.InnerException);
+                Assert.IsType<InvalidDataException>(exception.InnerException);
             } else {
                 AssertCompactNumericRows(path);
             }
@@ -118,6 +117,24 @@ public partial class Excel {
     }
 
     [Theory]
+    [InlineData("Default", "Extension", "unused")]
+    [InlineData("Override", "PartName", "/xl/unused.xml")]
+    [InlineData("Override", "ContentType", "application/xml")]
+    public void GeneralPackageReaderRejectsIncompleteContentTypeDeclarations(string entry, string attribute, string value) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "[Content_Types].xml";
+            XDocument contentTypes = LoadZipXml(path, entryName);
+            contentTypes.Root!.Add(new XElement(contentTypes.Root.Name.Namespace + entry, new XAttribute(attribute, value)));
+            ReplaceZipXml(path, entryName, contentTypes);
+
+            Assert.Throws<IOException>(() => ExcelDocumentReader.Open(path).Dispose());
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
     [InlineData("/unused/metadata.xml", "application/x invalid")]
     [InlineData("//unused/metadata.xml", "application/x-officeimo-unused")]
     public void XlsxNativePackage_FallsBackForMalformedUnusedContentTypeDeclaration(
@@ -165,6 +182,7 @@ public partial class Excel {
     [Theory]
     [InlineData("Data", true)]
     [InlineData("Caf\u00e9", false)]
+    [InlineData("\u00c2\u00a3", false)]
     public void XlsxNativePackage_ReadsWorkbookPartDeclaringLatin1Encoding(string sheetName, bool nativePath) {
         string path = CreateCompactFastPathWorkbook();
         try {
@@ -178,7 +196,7 @@ public partial class Excel {
             if (nativePath) {
                 using XlsxTabularWorkbook native = XlsxTabularWorkbook.Open(path, new ExcelReaderOptions());
             } else {
-                // A declared encoding changes what non-ASCII bytes mean, so these parts use the SDK path.
+                // A declared encoding changes what non-ASCII bytes mean, so these parts use the general reader.
                 Assert.Throws<XlsxTabularFastPathNotSupportedException>(() =>
                     XlsxTabularWorkbook.Open(path, new ExcelReaderOptions()));
             }

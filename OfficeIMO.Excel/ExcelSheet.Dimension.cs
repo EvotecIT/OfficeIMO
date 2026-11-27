@@ -3,6 +3,9 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        internal static string ComputeSheetDimensionReference(object? worksheet) =>
+            ComputeSheetDimensionReference((Worksheet?)worksheet ?? throw new InvalidOperationException("Worksheet is null."));
+
         internal static string ComputeSheetDimensionReference(Worksheet worksheet) {
             var sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) {

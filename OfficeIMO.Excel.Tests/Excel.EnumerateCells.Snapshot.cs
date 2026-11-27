@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void TabularReadersKeepTheSdkReadingOfNonCanonicalWorksheets() {
+        public void TabularReadersPreserveNonCanonicalWorksheetValues() {
             byte[] whitespace = CreatePackage("<row r=\"1\"><c r=\"A1\" t=\"str\"><v>   </v></c></row>");
             using (var document = ExcelDocument.Load(new MemoryStream(whitespace))) {
                 Assert.Equal("   ", document.Sheets[0].ToDataTable(headersInFirstRow: false).Rows[0][0]);
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void NonCanonicalWorksheetKeepsTheSdkRouteWithoutAffectingItsNeighbour() {
+        public void NonCanonicalWorksheetAndItsNeighbourReadWithoutLoadingEditableRoots() {
             byte[] package = CreatePackage(
                 ("Good", "<row r=\"1\"><c r=\"A1\"><v>1</v></c></row>"),
                 ("Bad", "<row r=\"1\"><c r=\"A1\" t=\"str\"><v>   </v></c></row>"));
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
             var loaded = parts.Workbook!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Sheet>()
                 .ToDictionary(sheet => sheet.Name!.Value!, sheet => parts.GetPartById(sheet.Id!.Value!).IsRootElementLoaded);
             Assert.False(loaded["Good"]);
-            Assert.True(loaded["Bad"]);
+            Assert.False(loaded["Bad"]);
         }
 
         [Fact]

@@ -71,16 +71,38 @@ namespace OfficeIMO.Excel {
         private WorksheetCommentsPart? WorksheetCommentsPartRoot => _worksheetPart.WorksheetCommentsPart;
     }
 
+    // The table APIs still use the editing model. Open it only when one of those APIs is called.
     internal sealed partial class ExcelDocumentReader {
-        private WorkbookPart WorkbookPartRoot =>
-            _doc.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null.");
+        private IDisposable? _tableDocument;
+        private Stream? _tableStream;
+
+        private WorkbookPart WorkbookPartRoot {
+            get {
+                if (_liveWorkbook?.SdkPart is WorkbookPart live) return live;
+                if (_tableDocument is not SpreadsheetDocument document) {
+                    Stream stream = _package!.OpenSource();
+                    try {
+                        document = OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenSpreadsheet(stream, new OpenSettings());
+                        _tableDocument = document;
+                        _tableStream = stream;
+                    } catch {
+                        stream.Dispose();
+                        throw;
+                    }
+                }
+                return document.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null.");
+            }
+        }
 
         private Workbook WorkbookRoot =>
             WorkbookPartRoot.Workbook ?? throw new InvalidOperationException("Workbook is null.");
-    }
 
-    internal sealed partial class ExcelSheetReader {
-        private Worksheet WorksheetRoot =>
-            SdkWorksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is null.");
+        private void DisposeTableWorkbook() {
+            try {
+                _tableDocument?.Dispose();
+            } finally {
+                _tableStream?.Dispose();
+            }
+        }
     }
 }
