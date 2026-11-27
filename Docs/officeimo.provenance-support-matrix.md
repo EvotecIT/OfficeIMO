@@ -141,14 +141,7 @@ Removal follows the rules of the rest of this matrix: edit the container in plac
 | Email (EML, MSG, PST) | Gap | Gap | Gap (generator headers such as `X-Mailer`) | Gap | Gap (attachments and embedded messages, recursively) |
 | Archives (ZIP, 7z, TAR, CAB) | Partial: native C2PA in ZIP packages only | Gap | Gap | Gap | Gap (members, recursively, through `OfficeIMO.Archives`) |
 
-### Implementation order
-
-1. **AI generator image metadata.** Recognize generator fields, AI tool parameters and the TC260 label in JPEG, PNG, WebP, GIF and TIFF, report each as a declaration with its location, and remove selected ones without touching pixel data or unrelated metadata. Embedded images in Office, ODF, EPUB and HTML gain the same behaviour through the existing asset pass.
-2. **PDF.** Read IPTC source type and generator fields from document and image XMP, inspect image XObjects that carry their own metadata, and recurse into embedded files, all through `PdfProvenance` and the PDF hidden-data rewrite.
-3. **Archives and email.** Walk archive members and email attachments and embedded messages recursively with depth and size limits, cleaning each supported member through its own owner and rewriting the container only when every change is verified.
-4. **Remaining document formats.** RTF, XPS, iWork and legacy binary Office formats, each through its OfficeIMO owner once that owner can write back the changed image or property.
-
-Each step wires the same options through `OfficeDocument.InspectHiddenData`/`RemoveHiddenData`, `RemoveProvenance`, `officeimo provenance` and `officeimo hidden-data`, the matching MCP tools and the PSWriteOffice cmdlets, which stay thin.
+Open work is tracked in the [roadmap](ROADMAP.md#security-and-protected-content).
 
 ### Out of scope
 
