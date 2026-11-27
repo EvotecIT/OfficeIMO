@@ -130,6 +130,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
             byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared, cancellationToken) ? prepared : null;
             bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
@@ -185,10 +186,12 @@ namespace OfficeIMO.Excel {
             }
 
             byte[] bytes = ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options));
+            // Destination callbacks may open the SDK and edit the workbook after these bytes were prepared.
+            bool refresh = ownedEdit == null && (!unchanged || !IsSdkDeferred);
             PrepareDestinationStreamForWrite(destination);
             destination.Write(bytes, 0, bytes.Length);
             try { destination.Flush(); } catch (NotSupportedException) { }
-            if (ownedEdit == null && (!unchanged || !IsSdkDeferred)) RefreshXlsbStateAfterNativeWrite(bytes);
+            if (refresh) RefreshXlsbStateAfterNativeWrite(bytes);
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
                 : "XLSB worksheet cell records rewritten while all other package parts were preserved.");
@@ -204,6 +207,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
             byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared, cancellationToken) ? prepared : null;
             bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
@@ -231,10 +235,13 @@ namespace OfficeIMO.Excel {
             }
 
             byte[] bytes = ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options));
+            // Destination callbacks may open the SDK and edit the workbook after these bytes were prepared.
+            bool refresh = ownedEdit == null && (!unchanged || !IsSdkDeferred);
+            cancellationToken.ThrowIfCancellationRequested();
             PrepareDestinationStreamForWrite(destination);
             await destination.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
             try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
-            if (ownedEdit == null && (!unchanged || !IsSdkDeferred)) RefreshXlsbStateAfterNativeWrite(bytes);
+            if (refresh) RefreshXlsbStateAfterNativeWrite(bytes);
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
                 : "XLSB worksheet cell records rewritten while all other package parts were preserved.");

@@ -96,6 +96,47 @@ public sealed class ExcelXlsbWorksheetFeatureTests {
     }
 
     [Fact]
+    public void Unchanged_native_save_keeps_an_edit_made_by_the_destination() {
+        byte[] source = SaveAsXlsb(CreateXlsx(document => document.AddSheet("Data").Cell(1, 1).SetValue(1)));
+        using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source));
+        var options = new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb };
+        using var destination = new CallbackMemoryStream(() => {
+            _ = loaded.OpenXmlDocument;
+            loaded["Data"].Cell(1, 1).SetValue(2);
+        });
+        loaded.Save(destination, options);
+        Assert.Equal(source, destination.ToArray());
+
+        using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(loaded.ToBytes(options)));
+        Assert.Equal(2, reopened["Data"].Cell(1, 1).GetValue<int>());
+    }
+
+    [Fact]
+    public async Task Cancelled_native_save_leaves_the_destination_and_pending_edit_intact() {
+        byte[] source = SaveAsXlsb(CreateXlsx(document => document.AddSheet("Data").Cell(1, 1).SetValue(1)));
+        using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source));
+        var options = new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb };
+        loaded["Data"].Cell(1, 1).SetValue(2);
+        byte[] marker = { 1, 2, 3 };
+        using var destination = new MemoryStream();
+        destination.Write(marker, 0, marker.Length);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => loaded.SaveAsync(destination, options, cancellation.Token));
+        Assert.Equal(marker, destination.ToArray());
+        using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(loaded.ToBytes(options)));
+        Assert.Equal(2, reopened["Data"].Cell(1, 1).GetValue<int>());
+    }
+
+    private sealed class CallbackMemoryStream(Action callback) : MemoryStream {
+        public override void Write(byte[] buffer, int offset, int count) {
+            callback();
+            base.Write(buffer, offset, count);
+        }
+    }
+
+    [Fact]
     public void Collections_added_to_a_loaded_xlsb_are_written_in_worksheet_grammar_order() {
         byte[] source = SaveAsXlsb(CreateXlsx(document => document.AddSheet("Data").Cell(1, 1).SetValue(1)));
 

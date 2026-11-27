@@ -62,13 +62,16 @@ internal static partial class XlsbNativePackageWriter {
             remaining.Remove((source.Row, source.Column));
             XlsbWriteCell? replacement = ConvertScalarEdit(edit, source.StyleIndex);
             if (replacement == null || source.TextRuns != null) return false;
-            bool unchanged = source.Kind switch {
-                XlsbCellValueKind.Number => replacement.Kind == XlsbWriteCellKind.Number && Equals(source.Value, replacement.Value),
-                XlsbCellValueKind.Text => replacement.Kind == XlsbWriteCellKind.Text && Equals(source.Value, replacement.Value),
-                XlsbCellValueKind.Boolean => replacement.Kind == XlsbWriteCellKind.Boolean && Equals(source.Value, replacement.Value),
+            // The standard rewrite also considers how the old record interprets the projected value.
+            // Keep cell-type changes on that path until it can share the same comparison.
+            bool sameKind = source.Kind switch {
+                XlsbCellValueKind.Number => replacement.Kind == XlsbWriteCellKind.Number,
+                XlsbCellValueKind.Text => replacement.Kind == XlsbWriteCellKind.Text,
+                XlsbCellValueKind.Boolean => replacement.Kind == XlsbWriteCellKind.Boolean,
                 _ => false,
             };
-            result.Add(unchanged ? XlsbWriteCell.PreserveSource(source) : replacement);
+            if (!sameKind) return false;
+            result.Add(Equals(source.Value, replacement.Value) ? XlsbWriteCell.PreserveSource(source) : replacement);
         }
 
         if (remaining.Count != 0) {
