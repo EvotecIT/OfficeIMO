@@ -2,12 +2,21 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
         // Charts saved by OfficeIMO, then edited through the SDK to hold markup other producers write, then loaded again.
-        private static byte[] CreateChartWorkbook(OfficeChartType type, Action<C.ChartSpace> edit) {
+        private static byte[] CreateChartWorkbook(OfficeChartType type, Action<C.ChartSpace> edit) =>
+            CreateDrawingWorkbook(type, drawings => {
+                ChartPart chartPart = drawings.ChartParts.Single();
+                edit(chartPart.ChartSpace);
+                chartPart.ChartSpace.Save();
+            });
+
+        private static byte[] CreateDrawingWorkbook(OfficeChartType type, Action<DrawingsPart> edit) {
             using var created = new MemoryStream();
             using (var document = ExcelDocument.Create(created)) {
                 ExcelSheet sheet = document.AddSheet("Data");
@@ -18,9 +27,7 @@ namespace OfficeIMO.Tests {
             created.Position = 0;
             created.CopyTo(edited);
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(edited, true)) {
-                ChartPart chartPart = GetWorksheetPartWithCharts(spreadsheet).DrawingsPart!.ChartParts.Single();
-                edit(chartPart.ChartSpace);
-                chartPart.ChartSpace.Save();
+                edit(GetWorksheetPartWithCharts(spreadsheet).DrawingsPart!);
             }
             return edited.ToArray();
         }
@@ -92,6 +99,54 @@ namespace OfficeIMO.Tests {
                 Assert.True(pictureOptions >= 0, string.Join(",", children));
                 Assert.True(pictureOptions < Array.IndexOf(children, "cat"), string.Join(",", children));
             }
+        }
+
+        [Fact]
+        public void Test_Chart_SafePreflightKeepsChartWithChartElementInDrawingExtension() {
+            byte[] package = CreateDrawingWorkbook(OfficeChartType.ColumnClustered, drawings => {
+                Xdr.NonVisualDrawingProperties properties = drawings.WorksheetDrawing.Descendants<Xdr.GraphicFrame>().Single()
+                    .Descendants<Xdr.NonVisualDrawingProperties>().Single();
+                properties.Append(new A.NonVisualDrawingPropertiesExtensionList(
+                    "<a:extLst xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">"
+                    + "<a:ext uri=\"{00000000-0000-0000-0000-000000000001}\">"
+                    + "<c:chart xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\"/></a:ext></a:extLst>"));
+                drawings.WorksheetDrawing.Save();
+            });
+
+            using var output = new MemoryStream();
+            using (var document = ExcelDocument.Load(new MemoryStream(package))) {
+                document.Save(output, new ExcelSaveOptions { SafePreflight = true });
+            }
+
+            output.Position = 0;
+            using SpreadsheetDocument saved = SpreadsheetDocument.Open(output, false);
+            Assert.Single(GetWorksheetPartWithCharts(saved).DrawingsPart!.ChartParts);
+        }
+
+        [Fact]
+        public void Test_Chart_NewAxisIdsIgnoreAxisIdsInChartExtensions() {
+            const uint extensionValue = 100_000_000U;
+            byte[] package = CreateChartWorkbook(OfficeChartType.ColumnClustered, space => {
+                space.GetFirstChild<C.Chart>()!.Append(new C.ExtensionList(
+                    "<c:extLst xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\">"
+                    + "<c:ext uri=\"{00000000-0000-0000-0000-000000000001}\"><c:axId val=\"" + extensionValue + "\"/></c:ext></c:extLst>"));
+            });
+
+            byte[] saved;
+            using (var output = new MemoryStream()) {
+                using (var document = ExcelDocument.Load(new MemoryStream(package))) {
+                    document.Sheets.First().AddChart(OfficeChartType.Line, ExcelChartData.CreateDefault(),
+                        new ExcelChartOptions { Row = 20, Column = 2 });
+                    document.Save(output);
+                }
+                saved = output.ToArray();
+            }
+
+            using var stream = new MemoryStream(saved, writable: false);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(stream, false);
+            C.LineChart line = GetWorksheetPartWithCharts(spreadsheet).DrawingsPart!.ChartParts
+                .Select(part => part.ChartSpace.Descendants<C.LineChart>().SingleOrDefault()).Single(chart => chart != null)!;
+            Assert.All(line.Elements<C.AxisId>(), axisId => Assert.True(axisId.Val!.Value < extensionValue));
         }
     }
 }

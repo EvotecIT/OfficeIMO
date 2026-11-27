@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    foreach (OfficeXmlNode axisId in chart.Descendants(C, "axId")) {
+                    foreach (OfficeXmlNode axisId in chart.DescendantsOutsideExtensions(C, "axId")) {
                         if (axisId.UInt32Val() is uint value && value > max) {
                             max = value;
                         }

@@ -66,7 +66,7 @@ namespace OfficeIMO.Excel {
             => anchor.Is(Xdr, "oneCellAnchor") || anchor.Is(Xdr, "twoCellAnchor") || anchor.Is(Xdr, "absoluteAnchor");
 
         private static bool HasValidDrawingTarget(OfficeXmlNode anchor, ExcelPartRef drawingPart) {
-            OfficeXmlNode picture = anchor.FirstDescendant(Xdr, "pic");
+            OfficeXmlNode picture = anchor.FirstDescendantOutsideExtensions(Xdr, "pic");
             if (picture.Exists) {
                 string? embed = picture.Child(Xdr, "blipFill").Child(A, "blip").RelationshipAttribute("embed");
                 if (string.IsNullOrWhiteSpace(embed)) {
@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
                 return drawingPart.GetPartById(embed).Kind == ExcelPartKind.Image;
             }
 
-            OfficeXmlNode chartReference = anchor.FirstDescendant(C, "chart");
+            OfficeXmlNode chartReference = anchor.FirstDescendantOutsideExtensions(C, "chart");
             if (chartReference.Exists) {
                 string? relId = chartReference.RelationshipAttribute("id");
                 if (string.IsNullOrWhiteSpace(relId)) {

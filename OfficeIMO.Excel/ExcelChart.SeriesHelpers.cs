@@ -55,15 +55,9 @@ namespace OfficeIMO.Excel {
             return plotArea.IsNone ? OfficeXmlNode.None : FindSeriesDescendant(plotArea, seriesIndex);
         }
 
-        // The first series below the element, in document order, with this c:idx.
-        private static OfficeXmlNode FindSeriesDescendant(OfficeXmlNode element, int seriesIndex) {
-            for (OfficeXmlNode child = element.FirstChild; child.Exists; child = child.NextSibling) {
-                if (IsSeriesElement(child) && GetSeriesIndex(child) == seriesIndex) return child;
-                OfficeXmlNode found = FindSeriesDescendant(child, seriesIndex);
-                if (found.Exists) return found;
-            }
-            return OfficeXmlNode.None;
-        }
+        // The first series below the element, in document order and outside extension lists, with this c:idx.
+        private static OfficeXmlNode FindSeriesDescendant(OfficeXmlNode element, int seriesIndex) =>
+            element.FirstDescendantOutsideExtensions(child => IsSeriesElement(child) && GetSeriesIndex(child) == seriesIndex);
 
         private bool ApplySeriesMarkerByChartIndex(int seriesIndex, Action<OfficeXmlNode> apply) {
             OfficeXmlNode series = FindSeriesByChartIndex(seriesIndex);

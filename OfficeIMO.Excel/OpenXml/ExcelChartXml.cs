@@ -171,5 +171,47 @@ namespace OfficeIMO.Excel.OpenXml {
         /// <summary>The <c>r:id</c>, <c>r:embed</c> or other relationship attribute of an element.</summary>
         internal static string? RelationshipAttribute(this OfficeXmlNode element, string localName) =>
             element.IsNone ? null : element.Attribute(R, localName);
+
+        /// <summary>
+        /// The element after <paramref name="node"/> in document order within <paramref name="root"/>'s subtree, never entering
+        /// an extension list. The SDK reads unknown extension content as unknown elements, so its typed lookups never matched
+        /// markup there. Walks without recursion, so deeply nested markup can't exhaust the stack.
+        /// </summary>
+        internal static OfficeXmlNode NextOutsideExtensions(this OfficeXmlNode node, OfficeXmlNode root) {
+            if (!IsExtensionList(node)) {
+                OfficeXmlNode child = node.FirstChild;
+                if (!child.IsNone) return child;
+            }
+            for (OfficeXmlNode current = node; !current.IsNone && current != root; current = current.Parent) {
+                OfficeXmlNode sibling = current.NextSibling;
+                if (!sibling.IsNone) return sibling;
+            }
+            return default;
+        }
+
+        /// <summary>The first element below this one, in document order and outside extension lists, that matches, or none.</summary>
+        internal static OfficeXmlNode FirstDescendantOutsideExtensions(this OfficeXmlNode node, Func<OfficeXmlNode, bool> match) {
+            if (node.IsNone) return default;
+            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = current.NextOutsideExtensions(node)) {
+                if (!IsExtensionList(current) && match(current)) return current;
+            }
+            return default;
+        }
+
+        /// <summary>The first element with this name below this one, in document order and outside extension lists, or none.</summary>
+        internal static OfficeXmlNode FirstDescendantOutsideExtensions(this OfficeXmlNode node, int namespaceId, string localName) =>
+            node.FirstDescendantOutsideExtensions(current => current.Is(namespaceId, localName));
+
+        /// <summary>The elements with this name below this one, in document order and outside extension lists.</summary>
+        internal static List<OfficeXmlNode> DescendantsOutsideExtensions(this OfficeXmlNode node, int namespaceId, string localName) {
+            var found = new List<OfficeXmlNode>();
+            if (node.IsNone) return found;
+            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = current.NextOutsideExtensions(node)) {
+                if (current.Is(namespaceId, localName)) found.Add(current);
+            }
+            return found;
+        }
+
+        private static bool IsExtensionList(OfficeXmlNode node) => string.Equals(node.LocalName, "extLst", StringComparison.Ordinal);
     }
 }

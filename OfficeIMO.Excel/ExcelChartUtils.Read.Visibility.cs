@@ -144,16 +144,9 @@ namespace OfficeIMO.Excel {
             return labels.Any(label => label == null) ? null : labels.Select(label => label!).ToArray();
         }
 
-        // The first c:strCache or c:numCache under a source, in document order, or none.
-        private static OfficeXmlNode FirstCache(OfficeXmlNode element) {
-            if (element.IsNone) return OfficeXmlNode.None;
-            for (OfficeXmlNode child = element.FirstChild; !child.IsNone; child = child.NextSibling) {
-                if (child.Is(C, "strCache") || child.Is(C, "numCache")) return child;
-                OfficeXmlNode found = FirstCache(child);
-                if (!found.IsNone) return found;
-            }
-            return OfficeXmlNode.None;
-        }
+        // The first c:strCache or c:numCache under a source, in document order and outside extension lists, or none.
+        private static OfficeXmlNode FirstCache(OfficeXmlNode element) =>
+            element.FirstDescendantOutsideExtensions(child => child.Is(C, "strCache") || child.Is(C, "numCache"));
 
         /// <summary>Drops the series <see cref="SelectVisiblePoints(ExcelPartRef, ExcelSheet, ExcelChartData, out bool[])"/> found hidden, after formatting has been matched to them.</summary>
         internal static ExcelChartData RemoveSeries(ExcelChartData data, bool[]? hiddenSeries) =>
