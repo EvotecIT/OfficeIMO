@@ -18,8 +18,8 @@ internal static partial class OfficeProvenanceTiff {
         OfficeProvenanceContext context,
         string location,
         bool containerIsStructurallyValid) {
-        if (!TryFindGeneratorFields(tiff, options, out List<TiffIfd> ifds, out List<GeneratorField> fields)) return;
-        bool storageValid = HasValidEntryStorage(tiff, ifds);
+        if (!TryFindGeneratorFields(tiff, options, out List<TiffIfd> ifds, out List<GeneratorField> fields, out bool complete)) return;
+        bool storageValid = complete && HasValidEntryStorage(tiff, ifds);
         foreach (GeneratorField field in fields) {
             context.Add(new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.AiGeneratorMetadata,
@@ -41,8 +41,8 @@ internal static partial class OfficeProvenanceTiff {
         out byte[] output) {
         output = tiff;
         if (!options.RemoveAiSourceMetadata ||
-            !TryFindGeneratorFields(tiff, options.Limits, out List<TiffIfd> ifds, out List<GeneratorField> fields)) return false;
-        bool storageValid = HasValidEntryStorage(tiff, ifds);
+            !TryFindGeneratorFields(tiff, options.Limits, out List<TiffIfd> ifds, out List<GeneratorField> fields, out bool complete)) return false;
+        bool storageValid = complete && HasValidEntryStorage(tiff, ifds);
         byte[]? rewritten = null;
         foreach (IGrouping<TiffIfd, GeneratorField> group in fields.GroupBy(static field => field.Ifd)) {
             TiffIfd ifd = group.Key;
@@ -69,17 +69,32 @@ internal static partial class OfficeProvenanceTiff {
         return true;
     }
 
+    /// <summary>Whether the structure holds AI generator fields, so a container knows the carrier is there before validating it.</summary>
+    internal static bool HasGeneratorFields(byte[] tiff, OfficeProvenanceOptions options) =>
+        TryFindGeneratorFields(tiff, options, out _, out _, out _);
+
+    /// <summary>
+    /// Finds the fields. When a later IFD or a SubIFD link is malformed, the primary and Exif IFDs are still read on their own and
+    /// <paramref name="complete"/> is false, so strict removal keeps the fields while they are still reported.
+    /// </summary>
     private static bool TryFindGeneratorFields(
         byte[] tiff,
         OfficeProvenanceOptions options,
         out List<TiffIfd> ifds,
-        out List<GeneratorField> fields) {
+        out List<GeneratorField> fields,
+        out bool complete) {
         fields = new List<GeneratorField>();
+        complete = true;
         try {
             ifds = ReadIfds(tiff, options, followExifIfd: true);
         } catch (InvalidDataException exception) when (!OfficeProvenanceLimitException.Is(exception)) {
-            ifds = new List<TiffIfd>();
-            return false;
+            complete = false;
+            try {
+                ifds = ReadIfds(tiff, options, followExifIfd: true, followLinkedIfds: false);
+            } catch (InvalidDataException inner) when (!OfficeProvenanceLimitException.Is(inner)) {
+                ifds = new List<TiffIfd>();
+                return false;
+            }
         }
         if (ifds.Count == 0) return false;
         TiffIfd primary = ifds[0];

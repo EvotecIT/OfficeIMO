@@ -507,7 +507,7 @@ internal static partial class OfficeProvenanceTiff {
         else OfficeProvenanceBinary.WriteUInt32(output, entry.Offset + 4, checked((uint)count), entry.LittleEndian);
     }
 
-    private static List<TiffIfd> ReadIfds(byte[] data, OfficeProvenanceOptions options, bool followExifIfd = false) {
+    private static List<TiffIfd> ReadIfds(byte[] data, OfficeProvenanceOptions options, bool followExifIfd = false, bool followLinkedIfds = true) {
         if (data.Length < 8) throw new InvalidDataException("TIFF header is truncated.");
         bool littleEndian;
         if (data[0] == (byte)'I' && data[1] == (byte)'I') littleEndian = true;
@@ -581,8 +581,8 @@ internal static partial class OfficeProvenanceTiff {
                 ? OfficeProvenanceBinary.ReadUInt64(data, nextFieldOffset, littleEndian)
                 : OfficeProvenanceBinary.ReadUInt32(data, nextFieldOffset, littleEndian);
             result.Add(new TiffIfd(ifdOffset, entriesOffset, nextFieldOffset, countFieldSize, entrySize, nextFieldSize, littleEndian, bigTiff, tagsAreSorted, entries));
-            EnqueueIfdOffset(linkedOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
-            foreach (TiffEntry subIfds in entries.Where(static entry => entry.Tag == SubIfdsTag)) {
+            if (followLinkedIfds) EnqueueIfdOffset(linkedOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
+            foreach (TiffEntry subIfds in followLinkedIfds ? entries.Where(static entry => entry.Tag == SubIfdsTag) : Enumerable.Empty<TiffEntry>()) {
                 if (!IsValidSubIfdPointerType(subIfds.Type, bigTiff) ||
                     subIfds.Count > (ulong)options.MaxContainerEntries || subIfds.Count > int.MaxValue ||
                     !TryGetValueStorageRange(data, subIfds, out int storageOffset, out _)) {

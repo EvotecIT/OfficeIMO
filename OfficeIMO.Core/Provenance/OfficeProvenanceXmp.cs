@@ -99,8 +99,10 @@ internal static class OfficeProvenanceXmp {
         if (!TryLoad(packet, options, out XDocument? document) || document == null) return null;
         string[] values = FindValues(document).Where(value => value.IsStructurallyValid && value.Value.Length > 0)
             .Select(value => value.Value).Distinct(StringComparer.Ordinal).ToArray();
+        // Only the named product is kept; the rest of the field can hold unrelated or private text such as a path.
         XElement[] generators = FindGeneratorFields(document).Where(field => field.IsStructurallyValid)
-            .Select(field => new XElement(field.Name, field.Value)).ToArray();
+            .Select(field => new XElement(field.Name, OfficeProvenanceAiGenerators.TryMatch(field.Value, out string product) ? product : field.Value))
+            .ToArray();
         if (values.Length == 0 && generators.Length == 0) return null;
         XNamespace meta = "adobe:ns:meta/";
         XNamespace iptc = IptcNamespace;

@@ -260,6 +260,33 @@ public sealed class ProvenanceAiGeneratorMetadataContracts {
     }
 
     [Fact]
+    public void BrokenLinkToALaterIfdStillReportsPrimaryFieldsAsMalformed() {
+        byte[] exif = CreateExif("Midjourney", "ASCII\0\0\0holiday");
+        // IFD0's next-IFD pointer follows its three entries; point it past the end of the block.
+        BitConverter.GetBytes((uint)(exif.Length + 100)).CopyTo(exif, 8 + 2 + 3 * 12);
+        byte[] source = CreatePng(CreateChunk("eXIf", exif));
+
+        OfficeProvenanceEvidence evidence = Assert.Single(OfficeProvenanceInspector.Inspect(source, "generated.png").Evidence);
+        Assert.Equal("Midjourney", evidence.Value);
+        Assert.False(evidence.IsStructurallyValid);
+
+        Assert.False(OfficeProvenanceRemover.Remove(source, "generated.png", new OfficeProvenanceRemovalOptions()).WasChanged);
+        OfficeProvenanceRemovalResult destructive = OfficeProvenanceRemover.Remove(
+            source, "generated.png", new OfficeProvenanceRemovalOptions { RequireStructurallyValidCarrier = false });
+        Assert.Single(destructive.Changes);
+        Assert.DoesNotContain("Midjourney", Encoding.ASCII.GetString(destructive.ToArray()));
+    }
+
+    [Fact]
+    public void OrdinaryExifIsNotACarrier() {
+        byte[] png = CreatePng(CreateChunk("eXIf", CreateExif("Darktable 4.6", "ASCII\0\0\0holiday")));
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(png, "photo.png");
+        Assert.Empty(report.Evidence);
+        Assert.Equal(0, report.ExpandedInspectionBytes);
+    }
+
+    [Fact]
     public void StrictRemovalKeepsSoftwareWhoseTextIsSharedWithAnotherEntry() {
         byte[] exif = CreateExif("Midjourney", "ASCII\0\0\0holiday");
         // Point a second IFD0 entry, ImageDescription, at the same out-of-line text by turning Make into tag 270.

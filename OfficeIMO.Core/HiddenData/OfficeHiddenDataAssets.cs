@@ -205,7 +205,12 @@ internal static class OfficeHiddenDataAssets {
             OfficeExifValue[] declarations = keepDigitalSourceType ? metadata.ExifValues.Where(IsAiExifDeclaration).ToArray() : Array.Empty<OfficeExifValue>();
             OfficeImageMetadata stripped = metadata.Clone();
             stripped.ClearExif();
-            foreach (OfficeExifValue declaration in declarations) stripped.SetExifValue(declaration.Tag, declaration.Value);
+            foreach (OfficeExifValue declaration in declarations) {
+                // A kept Software value carries only the named product, not the rest of the field.
+                object value = declaration.Tag.Equals(OfficeExifTag.Software) && declaration.Value is string software &&
+                    OfficeProvenanceAiGenerators.TryMatch(software, out string product) ? product : declaration.Value;
+                stripped.SetExifValue(declaration.Tag, value);
+            }
             byte[]? xmp = metadata.XmpProfileData;
             stripped.XmpProfile = keepDigitalSourceType && xmp != null
                 ? OfficeProvenanceXmp.CreateDigitalSourceTypePacket(xmp, new OfficeProvenanceOptions())

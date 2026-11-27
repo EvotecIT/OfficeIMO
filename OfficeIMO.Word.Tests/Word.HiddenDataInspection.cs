@@ -183,7 +183,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithFiles, "ai-exif-software.jpg");
             byte[] source = File.ReadAllBytes(Path.Combine(_directoryWithImages, "Kulek.jpg"));
             OfficeImageMetadata tagged = OfficeImageMetadata.Read(source);
-            tagged.SetExifValue(OfficeExifTag.Software, "DALL-E 3");
+            tagged.SetExifValue(OfficeExifTag.Software, "DALL-E 3 for /Users/private/client");
             tagged.SetExifValue(OfficeExifTag.Artist, "Private Person");
             File.WriteAllBytes(imagePath, OfficeImageMetadata.Apply(source, tagged));
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -203,7 +203,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 OfficeImageMetadata kept = OfficeImageMetadata.Read(document.Images.Single().ToBytes());
-                Assert.Equal("DALL-E 3", kept.GetExifValue(OfficeExifTag.Software)?.Value);
+                Assert.Equal("DALL-E", kept.GetExifValue(OfficeExifTag.Software)?.Value);
                 Assert.Null(kept.GetExifValue(OfficeExifTag.Artist));
                 Assert.Empty(document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.ImageMetadata));
 
