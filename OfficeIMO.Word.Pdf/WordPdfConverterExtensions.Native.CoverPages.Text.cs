@@ -256,7 +256,7 @@ namespace OfficeIMO.Word.Pdf {
             // Paragraph justification sits in a w:pPr; a w:jc in table or row properties is a different setting.
             OfficeXmlNode justification = element.DescendantElements().FirstOrDefault(node => node.IsW("jc") && node.Parent.IsW("pPr"));
             OfficeXmlNode source = justification.Ancestor(WordXml.W, "p");
-            if (source.IsNone) source = element.FirstDescendant(WordXml.W, "p");
+            if (source.IsNone) source = element.FirstDescendantElement(WordXml.W, "p");
             // The frame takes its paragraph's resolved alignment and direction: direct, style and document defaults.
             string? value = source.IsNone ? justification.WVal()
                 : ResolveNativeUnjustifiedJustification(WordConverterNodes.ParagraphView(document, source));

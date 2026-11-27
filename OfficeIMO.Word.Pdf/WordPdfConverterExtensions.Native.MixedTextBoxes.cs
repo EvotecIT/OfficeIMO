@@ -202,8 +202,8 @@ public static partial class WordPdfConverterExtensions {
                 // A wrapper-backed equation has no Wordprocessing run. Give
                 // its selected visible text a real run, retaining the wrapper's
                 // applicable formatting and hyperlink context without changing XML.
-                OfficeXmlNode formattingRun = source.SdtRunNode().FirstDescendant(WordXml.W, "r");
-                if (formattingRun.IsNone) formattingRun = source.HyperlinkNode().FirstDescendant(WordXml.W, "r");
+                OfficeXmlNode formattingRun = source.SdtRunNode().FirstDescendantElement(WordXml.W, "r");
+                if (formattingRun.IsNone) formattingRun = source.HyperlinkNode().FirstDescendantElement(WordXml.W, "r");
                 if (formattingRun.IsNone) formattingRun = paragraphNode.CreateElement(WordXml.W, "r");
                 source = WordConverterNodes.RunView(paragraph._document, paragraphNode, formattingRun, source.HyperlinkNode());
             }

@@ -151,7 +151,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 // The first paragraph in document order: a following paragraph, or the first one inside a following table.
                 OfficeXmlNode next = bookmark.ElementsAfter()
-                    .Select(_ => _.IsW("p") ? _ : _.FirstDescendant(WordXml.W, "p"))
+                    .Select(_ => _.IsW("p") ? _ : _.FirstDescendantElement(WordXml.W, "p"))
                     .FirstOrDefault(_ => !_.IsNone);
                 if (next.IsNone) {
                     continue;

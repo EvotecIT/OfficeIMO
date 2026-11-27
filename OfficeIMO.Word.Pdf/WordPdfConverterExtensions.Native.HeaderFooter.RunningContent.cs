@@ -8,7 +8,7 @@ public static partial class WordPdfConverterExtensions {
         (story.Node().Elements().Any(element => element.IsW("tbl") || element.HasDescendant(WordXml.W, "tbl")) ||
         EnumerateNativeRunningFootnoteReferences(story).Any() ||
         NativeRunningStoryUsesSectionPageCount(story) ||
-        story.Node().Elements().Any(element => element.ContentDescendants(WordXml.A, "graphicData")
+        story.Node().Elements().Any(element => element.DescendantsSkippingExtLst(WordXml.A, "graphicData")
             .Any(data => data.Attr("uri") == "http://schemas.openxmlformats.org/drawingml/2006/diagram")));
 
     /// <summary>The story's paragraphs: each top-level paragraph, then the paragraphs inside it or inside other top-level content.</summary>
@@ -186,7 +186,7 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static bool IsNativeShapeGroupDrawing(OfficeXmlNode drawing) =>
-        drawing.ContentDescendants(WordXml.A, "graphicData").Any(data => data.Elements()
+        drawing.DescendantsSkippingExtLst(WordXml.A, "graphicData").Any(data => data.Elements()
             .Any(child => child.NamespaceUri == NativeWordGroupNamespace && child.LocalName == "wgp"));
 
 

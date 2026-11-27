@@ -43,7 +43,7 @@ public static partial class WordPdfConverterExtensions {
     // a view containing the control's current logical value.
     private static WordParagraph CreateNativeInlineControlFallbackRun(WordParagraph paragraph, OfficeXmlNode control,
         OfficeXmlNode hyperlink) {
-        OfficeXmlNode source = control.WChild("sdtContent").FirstDescendant(WordXml.W, "r");
+        OfficeXmlNode source = control.WChild("sdtContent").FirstDescendantElement(WordXml.W, "r");
         return paragraph._document.RunView(paragraph.Node(), source, hyperlink,
             CreateNativeResolvedSdtRun(paragraph.Node(), control, GetNativeContentControlDisplayValue(control)));
     }

@@ -79,7 +79,7 @@ namespace OfficeIMO.Word.Pdf {
                 else {
                     OfficeXmlNode choice = drawing.Ancestor(Mc, "Choice");
                     OfficeXmlNode fallbackBranch = choice.IsNone ? default : choice.Parent.Child(Mc, "Fallback");
-                    OfficeXmlNode fallback = fallbackBranch.IsNone ? default : fallbackBranch.FirstDescendant(V, "group");
+                    OfficeXmlNode fallback = fallbackBranch.IsNone ? default : fallbackBranch.FirstDescendantElement(V, "group");
                     if (fallback.IsNone) {
                         WarnNativeGroup(options, "native-shape-group-unsupported", "The shape group contains unsupported geometry or transforms and has no VML fallback.");
                         continue;
@@ -108,7 +108,7 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>The <c>wpg:wgp</c> a drawing's graphic data holds, or <see cref="OfficeXmlNode.None"/>.</summary>
         private static OfficeXmlNode GetNativeDrawingShapeGroup(OfficeXmlNode drawing) {
-            OfficeXmlNode graphicData = drawing.FirstContentDescendant(A, "graphicData");
+            OfficeXmlNode graphicData = drawing.FirstDescendantSkippingExtLst(A, "graphicData");
             return graphicData.IsNone ? default : graphicData.Elements()
                 .FirstOrDefault(child => child.NamespaceUri == NativeWordGroupNamespace && child.LocalName == "wgp");
         }
@@ -287,7 +287,7 @@ namespace OfficeIMO.Word.Pdf {
                         ParseBoolean(childTransform.Attr("flipH")) == true || ParseBoolean(childTransform.Attr("flipV")) == true)) return false;
                     string? preset = properties.IsNone ? null : properties.Child(A, "prstGeom").Attr("prst");
                     OfficeShape? shape = CreateNativeDrawingPresetShape(preset, w, h);
-                    if (shape == null || child.FirstContentDescendant(Wps, "txbx").Exists) return false;
+                    if (shape == null || child.FirstDescendantSkippingExtLst(Wps, "txbx").Exists) return false;
                     WordShape wordShape = WordConverterNodes.CreateGroupChildShape(run, drawing, child);
                     ApplyNativeShapeStyle(shape, wordShape, theme);
                     scene.AddShape(shape, x, y);

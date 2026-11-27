@@ -73,7 +73,7 @@ namespace OfficeIMO.Word.Pdf {
                         AppendNativeHeaderFooterVisibleFieldToken(builder, resultRun, token!, style, state, ref pageNumberStyle, ref hasConflictingStyles);
                     } else if (resultRuns.Length == 0) {
                         // An uncached field still calculates a value using its effective formatting.
-                        OfficeXmlNode emptyRun = element.FirstDescendant(WordXml.W, "r");
+                        OfficeXmlNode emptyRun = element.FirstDescendantElement(WordXml.W, "r");
                         bool hidden = IsNativeHiddenHeaderFooterRun(emptyRun.Exists ? emptyRun : WordConverterNodes.CreateDetachedRun(), state.Paragraph);
                         if (!hidden) AppendNativeHeaderFooterVisibleFieldToken(builder, emptyRun, token!, style, state, ref pageNumberStyle, ref hasConflictingStyles);
                     }

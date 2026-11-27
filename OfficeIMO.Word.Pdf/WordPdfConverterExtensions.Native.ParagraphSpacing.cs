@@ -58,7 +58,7 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static bool RenderNativeDocumentStartSpacing(INativePdfFlow pdf, WordParagraph paragraph, double spacingBefore) {
-        if (spacingBefore <= 0D || paragraph.Node() != paragraph._document.BodyNode().FirstDescendant(WordXml.W, "p")) return false;
+        if (spacingBefore <= 0D || paragraph.Node() != paragraph._document.BodyNode().FirstDescendantElement(WordXml.W, "p")) return false;
         // Word spacing values can combine with the section line grid into an
         // effectively unbounded number of empty column frames. Reject such
         // geometry before the PDF writer begins advancing through them.
