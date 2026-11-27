@@ -47,11 +47,11 @@ public sealed class ZstandardArchiveTests {
     [Fact]
     public void DeclaredWindowsAboveTheLimitAreRefusedBeforeDecoding() {
         OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-            ZstandardArchive.Decompress(Open("text-window32m.zst"), new MemoryStream()));
+            ZstandardArchive.Decompress(Open("text-window128m.zst"), new MemoryStream()));
         Assert.Equal(nameof(ArchiveReadOptions.MaxWindowBytes), error.LimitName);
 
         var output = new MemoryStream();
-        ZstandardArchive.Decompress(Open("text-window32m.zst"), output, new ArchiveReadOptions { MaxWindowBytes = 32L * 1024 * 1024 });
+        ZstandardArchive.Decompress(Open("text-window128m.zst"), output, new ArchiveReadOptions { MaxWindowBytes = 128L * 1024 * 1024 });
         Assert.Equal(ReadInput("text.txt"), output.ToArray());
     }
 

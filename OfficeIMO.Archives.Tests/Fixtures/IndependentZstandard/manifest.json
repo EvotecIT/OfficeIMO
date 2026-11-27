@@ -1,7 +1,7 @@
 {
   "producer": "*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***",
   "source": "https://github.com/facebook/zstd/releases",
-  "verification": "zstd -t (with -D for dictionary fixtures and --long=25 for the large window) applied to each fixture.",
+  "verification": "zstd -t (with -D for dictionary fixtures and --long=27 for the large window) applied to each fixture.",
   "dictionaries": {
     "trained.dict": "zstd --train over 400 generated JSON messages, --maxdict=1024 --dictID=4242.",
     "raw-content.dict": "Plain bytes without the dictionary magic number."
@@ -68,10 +68,10 @@
       "sha256": "f5b2b489425b5b407ac2a17c0b9e2a53740561341c857cea5b2e74ef943ba23d"
     },
     {
-      "file": "text-window32m.zst",
+      "file": "text-window128m.zst",
       "input": "inputs/text.txt",
-      "command": "zstd -3 --long=25 -c < inputs/text.txt",
-      "sha256": "1df362861e571f098542408db94cd88451fab48b3fef699536ebc7d6ec3bb56d"
+      "command": "zstd -3 --long=27 -c < inputs/text.txt",
+      "sha256": "1a49274d7c9fb961fa2e427534205a27942abacbaac8fe917c3c4f42666beb77"
     },
     {
       "file": "concatenated.zst",

@@ -94,14 +94,14 @@ $records = foreach ($fixture in $fixtures) {
     }
 }
 
-# A frame whose size is unknown keeps its declared 32 MiB window, which is above the default limit.
+# A frame whose size is unknown keeps its declared 128 MiB window, which is above the default limit.
 Push-Location $Destination
 try {
-    Get-Content -AsByteStream -Raw (Join-Path 'inputs' 'text.txt') | & $Zstd -q -3 --long=25 -c > 'text-window32m.zst'
+    Get-Content -AsByteStream -Raw (Join-Path 'inputs' 'text.txt') | & $Zstd -q -3 --long=27 -c > 'text-window128m.zst'
 } finally {
     Pop-Location
 }
-$records += [ordered]@{ file = 'text-window32m.zst'; input = 'inputs/text.txt'; command = 'zstd -3 --long=25 -c < inputs/text.txt' }
+$records += [ordered]@{ file = 'text-window128m.zst'; input = 'inputs/text.txt'; command = 'zstd -3 --long=27 -c < inputs/text.txt' }
 
 # Two frames from separate runs, with a skippable frame between them.
 $skippable = [byte[]](0x50, 0x2A, 0x4D, 0x18, 0x05, 0x00, 0x00, 0x00, 0x68, 0x65, 0x6C, 0x6C, 0x6F)
@@ -120,7 +120,7 @@ foreach ($record in $records) {
     $dictionary = if ($record.file -like '*trained-dict*') { @('-D', (Join-Path $Destination 'trained.dict')) }
         elseif ($record.file -like '*raw-dict*') { @('-D', (Join-Path $Destination 'raw-content.dict')) }
         else { @() }
-    & $Zstd -q -t --long=25 @dictionary $path
+    & $Zstd -q -t --long=27 @dictionary $path
     if ($LASTEXITCODE -ne 0) { throw "zstd -t rejected $($record.file)." }
     $record.sha256 = (Get-FileHash -Algorithm SHA256 $path).Hash.ToLowerInvariant()
 }
@@ -128,7 +128,7 @@ foreach ($record in $records) {
 $manifest = [ordered]@{
     producer = $version
     source = 'https://github.com/facebook/zstd/releases'
-    verification = 'zstd -t (with -D for dictionary fixtures and --long=25 for the large window) applied to each fixture.'
+    verification = 'zstd -t (with -D for dictionary fixtures and --long=27 for the large window) applied to each fixture.'
     dictionaries = [ordered]@{
         'trained.dict' = 'zstd --train over 400 generated JSON messages, --maxdict=1024 --dictID=4242.'
         'raw-content.dict' = 'Plain bytes without the dictionary magic number.'

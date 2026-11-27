@@ -3,7 +3,7 @@ namespace OfficeIMO.Archives;
 /// <summary>Finite limits for verified in-memory archive member reads.</summary>
 public sealed class ArchiveReadOptions {
     internal const int DefaultMaxEntryBytes = 16 * 1024 * 1024;
-    internal const long DefaultMaxWindowBytes = 8L * 1024 * 1024;
+    internal const long DefaultMaxWindowBytes = 64L * 1024 * 1024;
     /// <summary>Optional cumulative budget shared with related and nested archive operations.</summary>
     public ArchiveOperationBudget? OperationBudget { get; set; }
     /// <summary>Explicit code page for unflagged non-ASCII ZIP names. Null retains strict ASCII/UTF-8 admission;
@@ -20,8 +20,8 @@ public sealed class ArchiveReadOptions {
     public long MaxExpandedBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum decompression work for 7z. Defaults to 2 GiB.</summary>
     public long MaxDecompressionWorkBytes { get; set; } = 2L * 1024 * 1024 * 1024;
-    /// <summary>Maximum history window a Zstandard frame may declare. Defaults to 8 MiB. The decoder allocates the window
-    /// only as output is produced. Single-segment frames keep their whole content as the window and are bounded by the
+    /// <summary>Maximum history window or dictionary a compressed stream may declare. Defaults to 64 MiB, which covers the
+    /// largest standard presets. Decoders allocate history only as output is produced. Single-segment frames keep their whole content as the window and are bounded by the
     /// output limit instead.</summary>
     public long MaxWindowBytes { get; set; } = DefaultMaxWindowBytes;
     /// <summary>Maximum member path segments.</summary>
