@@ -105,52 +105,67 @@ function Get-ValueType([System.Xml.XmlElement] $Context, [string] $QName) {
 }
 
 # The child elements of a content model in document order, with the largest maxOccurs seen for each name. Each
-# sequence item takes the next rank; every element under a choice shares the choice's rank, since the alternatives
-# may appear in any order.
+# sequence item takes the next rank; every element under a repeated choice shares the choice's rank, since the
+# alternatives may appear in any order. Under a choice that occurs once, each alternative starts at the choice's rank,
+# so a sequence alternative (such as the data label settings beside c:delete) keeps its members in order.
 function Get-Children([System.Xml.XmlElement] $Node, [System.Collections.Generic.List[object]] $Into, [bool] $Repeated, [int] $Rank = -1) {
     foreach ($child in $Node.ChildNodes) {
         if ($child -isnot [System.Xml.XmlElement] -or $child.NamespaceURI -ne $xsdUri) { continue }
-        $repeats = $Repeated -or ($child.GetAttribute('maxOccurs') -and $child.GetAttribute('maxOccurs') -ne '1')
-        switch ($child.LocalName) {
-            { $_ -in 'sequence', 'all' } { Get-Children $child $Into $repeats $Rank }
-            'choice' {
-                if ($script:orderedChoice -and $Rank -lt 0) {
-                    Get-Children $child $Into $repeats $Rank
-                } else {
-                    $choiceRank = if ($Rank -ge 0) { $Rank } else { ($script:nextRank++) }
-                    Get-Children $child $Into $repeats $choiceRank
+        Add-Child $child $Into $Repeated $Rank
+    }
+}
+
+function Add-Child([System.Xml.XmlElement] $child, [System.Collections.Generic.List[object]] $Into, [bool] $Repeated, [int] $Rank = -1) {
+    $repeats = $Repeated -or ($child.GetAttribute('maxOccurs') -and $child.GetAttribute('maxOccurs') -ne '1')
+    switch ($child.LocalName) {
+        { $_ -in 'sequence', 'all' } { Get-Children $child $Into $repeats $Rank }
+        'choice' {
+            if ($script:orderedChoice -and $Rank -lt 0) {
+                Get-Children $child $Into $repeats $Rank
+            } elseif ($Rank -lt 0 -and -not $repeats) {
+                $choiceRank = $script:nextRank
+                $lastRank = $choiceRank
+                foreach ($alternative in $child.ChildNodes) {
+                    if ($alternative -isnot [System.Xml.XmlElement] -or $alternative.NamespaceURI -ne $xsdUri) { continue }
+                    $script:nextRank = $choiceRank
+                    Add-Child $alternative $Into $repeats -1
+                    $lastRank = [Math]::Max($lastRank, $script:nextRank - 1)
                 }
+                $script:nextRank = $lastRank + 1
+            } else {
+                $choiceRank = if ($Rank -ge 0) { $Rank } else { ($script:nextRank++) }
+                Get-Children $child $Into $repeats $choiceRank
             }
-            'group' {
-                $groupKey = (Resolve-QName $child $child.GetAttribute('ref')).Key
-                $group = $groups[$groupKey]
-                if ($group) {
-                    $outerOrdered = $script:orderedChoice
-                    if ($orderedGroupKeys.Contains($groupKey)) { $script:orderedChoice = $true }
-                    Get-Children $group $Into $repeats $Rank
-                    $script:orderedChoice = $outerOrdered
-                }
+        }
+        'group' {
+            $groupKey = (Resolve-QName $child $child.GetAttribute('ref')).Key
+            $group = $groups[$groupKey]
+            if ($group) {
+                $outerOrdered = $script:orderedChoice
+                if ($orderedGroupKeys.Contains($groupKey)) { $script:orderedChoice = $true }
+                Get-Children $group $Into $repeats $Rank
+                $script:orderedChoice = $outerOrdered
             }
-            'element' {
-                if ($child.GetAttribute('ref')) {
-                    $reference = Resolve-QName $child $child.GetAttribute('ref')
-                    $global = $elements[$reference.Key]
-                    $entry = [pscustomobject]@{ Uri = $reference.Uri; Name = $reference.Name; Type = $null; Context = $global; Many = $repeats }
-                    if ($global -and $global.GetAttribute('type')) { $entry.Type = Resolve-QName $global $global.GetAttribute('type') }
-                } else {
-                    $entry = [pscustomobject]@{ Uri = (Get-TargetNamespace $child); Name = $child.GetAttribute('name'); Type = $null; Context = $child; Many = $repeats }
-                    if ($child.GetAttribute('type')) { $entry.Type = Resolve-QName $child $child.GetAttribute('type') }
-                }
-                $entry | Add-Member -NotePropertyName Rank -NotePropertyValue $(if ($Rank -ge 0) { $Rank } else { ($script:nextRank++) })
-                $existing = $Into | Where-Object { $_.Uri -eq $entry.Uri -and $_.Name -eq $entry.Name } | Select-Object -First 1
-                if ($existing) { $existing.Many = $true } else { $Into.Add($entry) }
+        }
+        'element' {
+            if ($child.GetAttribute('ref')) {
+                $reference = Resolve-QName $child $child.GetAttribute('ref')
+                $global = $elements[$reference.Key]
+                $entry = [pscustomobject]@{ Uri = $reference.Uri; Name = $reference.Name; Type = $null; Context = $global; Many = $repeats }
+                if ($global -and $global.GetAttribute('type')) { $entry.Type = Resolve-QName $global $global.GetAttribute('type') }
+            } else {
+                $entry = [pscustomobject]@{ Uri = (Get-TargetNamespace $child); Name = $child.GetAttribute('name'); Type = $null; Context = $child; Many = $repeats }
+                if ($child.GetAttribute('type')) { $entry.Type = Resolve-QName $child $child.GetAttribute('type') }
             }
-            { $_ -in 'complexContent', 'simpleContent' } { Get-Children $child $Into $Repeated $Rank }
-            'extension' {
-                $base = $complexTypes[(Resolve-QName $child $child.GetAttribute('base')).Key]
-                if ($base) { Get-Children $base $Into $Repeated $Rank }
-                Get-Children $child $Into $Repeated $Rank
-            }
+            $entry | Add-Member -NotePropertyName Rank -NotePropertyValue $(if ($Rank -ge 0) { $Rank } else { ($script:nextRank++) })
+            $existing = $Into | Where-Object { $_.Uri -eq $entry.Uri -and $_.Name -eq $entry.Name } | Select-Object -First 1
+            if ($existing) { $existing.Many = $true } else { $Into.Add($entry) }
+        }
+        { $_ -in 'complexContent', 'simpleContent' } { Get-Children $child $Into $Repeated $Rank }
+        'extension' {
+            $base = $complexTypes[(Resolve-QName $child $child.GetAttribute('base')).Key]
+            if ($base) { Get-Children $base $Into $Repeated $Rank }
+            Get-Children $child $Into $Repeated $Rank
         }
     }
 }
