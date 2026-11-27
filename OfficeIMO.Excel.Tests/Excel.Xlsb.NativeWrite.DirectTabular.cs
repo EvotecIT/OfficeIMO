@@ -9,6 +9,39 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        public void Xlsb_NewTabularWorkbookWritesNativeBytesWithoutOpeningTheSdk(bool sharedStrings) {
+            var options = new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb, XlsbUseSharedStrings = sharedStrings };
+            using ExcelDocument owned = CreateTabularWorkbook();
+            using ExcelDocument standard = CreateTabularWorkbook();
+            standard.OpenDeferredSdk("Test the standard native tabular writer");
+
+            byte[] actual = owned.ToBytes(options);
+            Assert.Empty(owned.OpenXmlSdkFallbacks);
+            Assert.Equal(standard.ToBytes(options), actual);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(actual));
+            ExcelSheet data = Assert.Single(reloaded.Sheets);
+            Assert.Equal(3.5D, data.Cell(1, 1).GetValue<double>());
+            Assert.Equal("row 64", data.Cell(64, 2).GetValue<string>());
+            Assert.True(data.Cell(64, 3).GetValue<bool>());
+
+            static ExcelDocument CreateTabularWorkbook() {
+                ExcelDocument document = ExcelDocument.Create();
+                ExcelSheet data = document.AddSheet("Data");
+                data.Batch(sheet => {
+                    for (int row = 1; row <= 64; row++) {
+                        sheet.Cell(row, 1).SetValue(row + 2.5D);
+                        sheet.Cell(row, 2).SetValue("row " + row);
+                        sheet.Cell(row, 3).SetValue(row % 2 == 0);
+                    }
+                });
+                return document;
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
         public void Xlsb_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi(bool sharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
