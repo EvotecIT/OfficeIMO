@@ -56,7 +56,7 @@ Console.WriteLine(result.ExtractMarkdown());
 ```
 <!-- /powerforge:code -->
 
-Use `PdfLoadOptions.UntrustedDefaults` for files from outside your organization, and `PdfDocument.LoadSeekable` to read a few pages of a large PDF without loading all of it.
+Use `PdfLoadOptions.UntrustedDefaults` for files from outside your organization, and `PdfDocument.LoadSeekable` to read a few pages of a large PDF without loading all of it. `LoadSeekable` keeps the file open against writes where the operating system allows it; elsewhere it reads the whole file into a bounded in-memory snapshot, limited by `PdfLoadOptions.Limits.MaxInputBytes`.
 
 ## What it does
 

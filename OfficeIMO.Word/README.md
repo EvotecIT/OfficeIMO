@@ -55,7 +55,7 @@ The [Word guide](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeim
 
 ## Converting to other formats
 
-Conversions are methods on the document and return an `OfficeConversionReport` that lists anything the target couldn't carry.
+Conversions are methods on the document. `SaveAs*` methods return an `OfficeConversionReport` that lists anything the target couldn't carry; `ToMarkdown()` and `ToWord()` return the converted document, with the report available through their `out OfficeConversionReport` overloads, and the `*Async` forms return the document and report together.
 
 | Target | Package | Entry point |
 | --- | --- | --- |

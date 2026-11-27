@@ -157,6 +157,20 @@ book.AddSheet("Summary").Report()
 book.Save();
 ```
 
+## Save as PDF
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
+
+using var book = ExcelDocument.Load("Orders.xlsx");
+OfficeConversionReport report = book.SaveAsPdf("Orders.pdf");
+Console.WriteLine($"{report.ItemsWritten} pages, loss: {report.HasLoss}");
+```
+
+`SaveAsPdf` comes from [OfficeIMO.Excel.Pdf](../OfficeIMO.Excel.Pdf/README.md). The report counts the pages written and lists anything the PDF couldn't carry.
+
 ## Chart images
 
 
