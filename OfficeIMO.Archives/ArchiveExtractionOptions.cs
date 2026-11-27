@@ -7,6 +7,9 @@ public sealed class ArchiveExtractionOptions {
     /// <summary>Explicit code page for unflagged non-ASCII ZIP names. Null retains strict ASCII/UTF-8 admission;
     /// the UTF-8 flag always takes precedence. No host-locale inference occurs.</summary>
     public int? ZipLegacyCodePage { get; set; }
+    /// <summary>Password for encrypted ZIP members (traditional ZipCrypto and WinZip AES), encoded as UTF-8. Null leaves
+    /// encrypted members unreadable: they raise <see cref="ArchivePasswordException"/> when opened.</summary>
+    public string? ZipPassword { get; set; }
 
     /// <summary>Allowed formats detected from package bytes. Null permits every supported format.
     /// A disallowed format raises NotSupportedException before staging or payload parsing.</summary>

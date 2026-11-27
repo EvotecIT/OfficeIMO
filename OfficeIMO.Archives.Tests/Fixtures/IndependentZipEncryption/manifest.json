@@ -1,0 +1,61 @@
+{
+  "producers": [
+    "This is Zip 3.0 (July 5th 2008), by Info-ZIP, with modifications by Apple Inc.",
+    "7-Zip (z) 26.06 (arm64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-11-06"
+  ],
+  "sources": [
+    "https://infozip.sourceforge.net/",
+    "https://www.7-zip.org/"
+  ],
+  "verification": "7-Zip test mode (7zz t) with the recorded password applied to each fixture.",
+  "fixtures": [
+    {
+      "file": "zipcrypto-infozip.zip",
+      "password": "correct horse",
+      "command": "zip -q -X -P <password> zipcrypto-infozip.zip text.txt mixed.bin tiny.txt empty.bin",
+      "sha256": "3e5e4576e30d0089209ed96747256b7fe83c6eab21a8f8594c4d281aaf232c60"
+    },
+    {
+      "file": "zipcrypto-infozip-stored.zip",
+      "password": "correct horse",
+      "command": "zip -q -X -0 -P <password> zipcrypto-infozip-stored.zip text.txt mixed.bin tiny.txt empty.bin",
+      "sha256": "0a26bfb22fef91bd0540baad63ffd4477c87a207a5fcf7418a83d85288c44885"
+    },
+    {
+      "file": "zipcrypto-7zip.zip",
+      "password": "correct horse",
+      "command": "7zz a -tzip -p<password> -mem=ZipCrypto -mx=5 zipcrypto-7zip.zip text.txt mixed.bin tiny.txt empty.bin",
+      "sha256": "041ec824fcc53b5c30f875f7a131fcb25d2dc3432b2a22477d995f5106440c11"
+    },
+    {
+      "file": "aes128-7zip.zip",
+      "password": "correct horse",
+      "command": "7zz a -tzip -p<password> -mem=AES128 -mx=5 aes128-7zip.zip text.txt mixed.bin tiny.txt empty.bin",
+      "sha256": "48329734f7f6c033d10f8f59ae3f68f5e54d873d0dc2a9ef25cf6ad91a4b2876"
+    },
+    {
+      "file": "aes192-7zip.zip",
+      "password": "correct horse",
+      "command": "7zz a -tzip -p<password> -mem=AES192 -mx=9 aes192-7zip.zip text.txt mixed.bin tiny.txt empty.bin",
+      "sha256": "8dc0c52823d605476071f5ada0e181d8b546ebee35909ac5b5b36cdc0d1a8762"
+    },
+    {
+      "file": "aes256-7zip.zip",
+      "password": "correct horse",
+      "command": "7zz a -tzip -p<password> -mem=AES256 -mx=5 aes256-7zip.zip text.txt mixed.bin tiny.txt empty.bin",
+      "sha256": "9ef1626a80ed9b8c5908f16ae7018f0c5d926332a4c80a35e5e9c40783b042f1"
+    },
+    {
+      "file": "aes256-7zip-stored.zip",
+      "password": "correct horse",
+      "command": "7zz a -tzip -p<password> -mem=AES256 -mx=0 aes256-7zip-stored.zip text.txt mixed.bin tiny.txt empty.bin",
+      "sha256": "fce792bb592ae15a60e9f8e97993327f00fe774496c2f6e3ae40f6ae5d54541f"
+    },
+    {
+      "file": "zipcrypto-infozip-descriptor.zip",
+      "password": "correct horse",
+      "command": "zip -q -P <password> zipcrypto-infozip-descriptor.zip - < inputs/text.txt",
+      "sha256": "07fb8605e793c72154ceaf90fc86f90f21bdecbd94b9eb0e4b9567b3a308dc51"
+    }
+  ]
+}

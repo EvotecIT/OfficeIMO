@@ -4,8 +4,6 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Archives;
 
 internal static class ZipArchiveContent {
-    private const ushort ZipStored = 0;
-    private const ushort ZipDeflate = 8;
     private const string MemberLengthMismatch = "ZIP member length does not match its declaration.";
 
     internal static void Read(Stream source, ArchiveLimits limits, Action<string, Stream, long> consume, CancellationToken token) {
@@ -13,12 +11,9 @@ internal static class ZipArchiveContent {
         // WriteStream proves decoded EOF and the declared length, and CRC binds the emitted bytes to the record.
         var records = ReadDirectory(source, limits, token);
         foreach (OfficeArchiveSafety.ZipCentralDirectoryRecord record in records) {
-            if (record.CompressionMethod != ZipStored && record.CompressionMethod != ZipDeflate)
-                throw new NotSupportedException("ZIP members must be stored or Deflate-compressed.");
-            if (!OfficeArchiveSafety.HasSupportedZipFlags(record.Flags, record.CompressionMethod))
-                throw new NotSupportedException("ZIP member uses encrypted, patched, enhanced or reserved compression flags.");
+            ZipMemberScheme scheme = ZipEncryption.Describe(record);
             token.ThrowIfCancellationRequested();
-            OfficeArchiveSafety.ValidateEntryPayload(source, record);
+            ZipEncryption.Validate(source, record, scheme);
         }
         var paths = new ArchivePaths(limits);
         var selected = new List<(OfficeArchiveSafety.ZipCentralDirectoryRecord Record, string Path)>();
@@ -30,9 +25,9 @@ internal static class ZipArchiveContent {
             if (name.EndsWith("/", StringComparison.Ordinal) || name.EndsWith("\\", StringComparison.Ordinal)) {
                 if (length != 0) throw new InvalidDataException("A ZIP directory member has content: " + name);
                 Charge(record, limits);
-                using (var payload = new Crc32ReadStream(OfficeArchiveSafety.OpenEntryPayload(source, record, token), record.UncompressedSize, token)) {
-                    if (payload.Read(new byte[1], 0, 1) != 0 || payload.Crc32 != record.Crc32)
-                        throw new InvalidDataException("A ZIP directory member has invalid empty content: " + name);
+                using (var payload = OpenMember(source, record, limits.ZipPassword, name, token)) {
+                    if (payload.Read(new byte[1], 0, 1) != 0) throw new InvalidDataException("A ZIP directory member has invalid empty content: " + name);
+                    payload.Finish();
                 }
                 paths.AddDirectory(name.Substring(0, name.Length - 1));
                 continue;
@@ -47,10 +42,9 @@ internal static class ZipArchiveContent {
         foreach (var item in selected) {
             token.ThrowIfCancellationRequested();
             Charge(item.Record, limits);
-            using var payload = new Crc32ReadStream(OfficeArchiveSafety.OpenEntryPayload(source, item.Record, token), item.Record.UncompressedSize, token);
+            using var payload = OpenMember(source, item.Record, limits.ZipPassword, item.Path, token);
             consume(item.Path, payload, item.Record.UncompressedSize);
-            payload.VerifyComplete();
-            if (payload.Crc32 != item.Record.Crc32) throw new InvalidDataException("ZIP member checksum does not match: " + item.Path);
+            payload.Finish();
         }
     }
 
@@ -65,12 +59,21 @@ internal static class ZipArchiveContent {
         return records;
     }
 
-    internal static ArchiveInspectionDiagnostic? Unsupported(OfficeArchiveSafety.ZipCentralDirectoryRecord record) {
-        if (record.CompressionMethod != ZipStored && record.CompressionMethod != ZipDeflate)
-            return new ArchiveInspectionDiagnostic("ZIP_COMPRESSION", "The ZIP member compression method is unsupported.");
-        if (!OfficeArchiveSafety.HasSupportedZipFlags(record.Flags, record.CompressionMethod))
-            return new ArchiveInspectionDiagnostic("ZIP_FLAGS", "The ZIP member uses encryption or unsupported flags.");
-        return null;
+    internal static ArchiveInspectionDiagnostic? Unsupported(OfficeArchiveSafety.ZipCentralDirectoryRecord record, string? password, out ZipMemberScheme scheme) {
+        ArchiveInspectionDiagnostic? problem = ZipEncryption.Inspect(record, out scheme);
+        if (problem == null && scheme.Encrypted && password == null)
+            return new ArchiveInspectionDiagnostic(PasswordRequired, "The ZIP member is encrypted; supply ZipPassword to read it.");
+        return problem;
+    }
+
+    /// <summary>Diagnostic code for encrypted members inspected without a password.</summary>
+    internal const string PasswordRequired = "ZIP_PASSWORD";
+
+    /// <summary>Opens a member's decoded content with length and checksum verification.</summary>
+    internal static ZipMemberStream OpenMember(Stream source, OfficeArchiveSafety.ZipCentralDirectoryRecord record, string? password,
+        string name, CancellationToken token) {
+        ZipMemberScheme scheme = ZipEncryption.Describe(record);
+        return new ZipMemberStream(ZipEncryption.Open(source, record, scheme, password, name, token), record, scheme, name, token);
     }
 
     internal static void Charge(OfficeArchiveSafety.ZipCentralDirectoryRecord record, ArchiveLimits limits) {
@@ -81,9 +84,9 @@ internal static class ZipArchiveContent {
         record.UncompressedSize > (long.MaxValue - record.CompressedSize) / 2
             ? long.MaxValue : record.CompressedSize + 2 * record.UncompressedSize;
 
-    internal static void CopyVerified(Stream source, OfficeArchiveSafety.ZipCentralDirectoryRecord record,
+    internal static void CopyVerified(Stream source, OfficeArchiveSafety.ZipCentralDirectoryRecord record, string? password, string name,
         Stream destination, CancellationToken token) {
-        using var payload = new Crc32ReadStream(OfficeArchiveSafety.OpenEntryPayload(source, record, token), record.UncompressedSize, token);
+        using var payload = OpenMember(source, record, password, name, token);
         var buffer = new byte[65536];
         while (true) {
             token.ThrowIfCancellationRequested();
@@ -91,17 +94,16 @@ internal static class ZipArchiveContent {
             if (read == 0) break;
             destination.Write(buffer, 0, read);
         }
-        payload.VerifyComplete();
-        if (payload.Crc32 != record.Crc32) throw new InvalidDataException("ZIP member checksum does not match.");
+        payload.Finish();
     }
 
-    internal static byte[] ReadVerified(Stream source, OfficeArchiveSafety.ZipCentralDirectoryRecord record, CancellationToken token) {
+    internal static byte[] ReadVerified(Stream source, OfficeArchiveSafety.ZipCentralDirectoryRecord record, string? password, string name,
+        CancellationToken token) {
         if (record.UncompressedSize > int.MaxValue) throw ArchiveLimits.Exceeded("MaxEntryBytes", int.MaxValue);
-        using var payload = new Crc32ReadStream(OfficeArchiveSafety.OpenEntryPayload(source, record, token), record.UncompressedSize, token);
-        byte[] result = ReadDeclaredPayload(payload, (int)record.UncompressedSize, token,
-            "ZIP member is shorter than its declared length.");
-        payload.VerifyComplete();
-        if (payload.Crc32 != record.Crc32) throw new InvalidDataException("ZIP member checksum does not match.");
+        using var payload = OpenMember(source, record, password, name, token);
+        byte[] result = payload.Guard(() => ReadDeclaredPayload(payload, (int)record.UncompressedSize, token,
+            "ZIP member is shorter than its declared length."));
+        payload.Finish();
         return result;
     }
 
@@ -117,18 +119,39 @@ internal static class ZipArchiveContent {
         return result;
     }
 
-    /// <summary>Forwards reads while accumulating the ZIP (IEEE) CRC-32 shared with PNG.</summary>
-    private sealed class Crc32ReadStream : Stream {
+    /// <summary>Forwards a member's decoded bytes while enforcing its declared length and accumulating the ZIP (IEEE)
+    /// CRC-32 shared with PNG. For traditional ZipCrypto, whose password check is a single byte, a decode failure
+    /// after the check passed is reported as a wrong password or damaged member.</summary>
+    internal sealed class ZipMemberStream : Stream {
         private readonly Stream _inner;
-        private uint _crc = OfficePngCrc32.Begin();
-        private readonly long _declared;
+        private readonly OfficeArchiveSafety.ZipCentralDirectoryRecord _record;
+        private readonly ZipMemberScheme _scheme;
+        private readonly string _name;
         private readonly CancellationToken _token;
+        private uint _crc = OfficePngCrc32.Begin();
         private long _read;
-        internal Crc32ReadStream(Stream inner, long declared, CancellationToken token) { _inner = inner; _declared = declared; _token = token; }
-        internal void VerifyComplete() {
-            if (ReadByte() != -1 || _read != _declared) throw new InvalidDataException(MemberLengthMismatch);
+        internal ZipMemberStream(Stream inner, OfficeArchiveSafety.ZipCentralDirectoryRecord record, ZipMemberScheme scheme, string name,
+            CancellationToken token) {
+            _inner = inner; _record = record; _scheme = scheme; _name = name; _token = token;
         }
-        internal uint Crc32 => OfficePngCrc32.Complete(_crc);
+
+        /// <summary>Proves decoded EOF at the declared length and checks the CRC where the scheme stores one.</summary>
+        internal void Finish() => Guard(() => {
+            if (ReadByte() != -1 || _read != _record.UncompressedSize) throw new InvalidDataException(MemberLengthMismatch);
+            if (_scheme.ChecksCrc && OfficePngCrc32.Complete(_crc) != _record.Crc32)
+                throw new InvalidDataException("ZIP member checksum does not match: " + _name);
+            return true;
+        });
+
+        internal T Guard<T>(Func<T> action) {
+            if (_scheme.Cipher != ZipCipher.ZipCrypto) return action();
+            try {
+                return action();
+            } catch (InvalidDataException error) {
+                throw new ArchivePasswordException(_name, true, $"The password does not open ZIP member '{_name}', or the member is damaged.", error);
+            }
+        }
+
         public override bool CanRead => true;
         public override bool CanSeek => false;
         public override bool CanWrite => false;
@@ -137,7 +160,7 @@ internal static class ZipArchiveContent {
         public override int Read(byte[] buffer, int offset, int count) {
             _token.ThrowIfCancellationRequested();
             int read = _inner.Read(buffer, offset, count);
-            if (read > _declared - _read) throw new InvalidDataException("ZIP member exceeds its declared length.");
+            if (read > _record.UncompressedSize - _read) throw new InvalidDataException("ZIP member exceeds its declared length.");
             _read += read;
             if (read > 0) _crc = OfficePngCrc32.Append(_crc, buffer, offset, read);
             return read;

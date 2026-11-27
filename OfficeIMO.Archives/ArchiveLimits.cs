@@ -12,6 +12,7 @@ internal sealed partial class ArchiveLimits {
         }
         if (options.ZipLegacyCodePage <= 0) throw new ArgumentOutOfRangeException(nameof(options.ZipLegacyCodePage));
         ZipLegacyCodePage = options.ZipLegacyCodePage;
+        ZipPassword = options.ZipPassword;
         Operation = options.OperationBudget ?? new ArchiveOperationBudget(new ArchiveOperationLimits {
             MaxInputBytes = long.MaxValue, MaxEntryCount = long.MaxValue, MaxExpandedBytes = long.MaxValue,
             MaxSelectedBytes = long.MaxValue, MaxDecompressionWorkBytes = long.MaxValue, MaxDepth = int.MaxValue
@@ -32,6 +33,7 @@ internal sealed partial class ArchiveLimits {
     }
     internal ArchiveOperationBudget Operation { get; }
     internal int? ZipLegacyCodePage { get; }
+    internal string? ZipPassword { get; }
     internal long Input { get; }
     internal HashSet<ArchiveFormat>? AllowedFormats { get; }
     internal int Entries { get; }

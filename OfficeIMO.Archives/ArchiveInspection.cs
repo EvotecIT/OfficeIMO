@@ -85,7 +85,8 @@ public sealed partial class ArchiveInspection : IDisposable {
             ArgumentOutOfRangeException.ThrowIfNegative(ordinal);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(ordinal, Entries.Count);
             ArchiveInspectionEntry entry = Entries[ordinal];
-            if (entry.Diagnostic != null) throw new NotSupportedException(entry.Diagnostic.Code + ": " + entry.Diagnostic.Message);
+            if (entry.Diagnostic != null && entry.Diagnostic.Code != ZipArchiveContent.PasswordRequired)
+                throw new NotSupportedException(entry.Diagnostic.Code + ": " + entry.Diagnostic.Message);
             if (Format == ArchiveFormat.Zip) return OpenZipMember(ordinal, cancellationToken);
             var cabinet = ReserveCabinetRead(entry, out long remaining);
             try {
