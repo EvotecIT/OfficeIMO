@@ -73,6 +73,18 @@ namespace OfficeIMO.OpenXml.Internal {
             return null;
         }
 
+        internal static void CollectAttributes(object element, List<OfficeXmlAttribute> attributes) {
+            OpenXmlElement value = E(element);
+            if (!value.HasAttributes) return;
+            foreach (OpenXmlAttribute attribute in value.GetAttributes()) {
+                attributes.Add(new OfficeXmlAttribute(attribute.NamespaceUri, attribute.LocalName, attribute.Value ?? string.Empty));
+            }
+        }
+
+        internal static bool HasAttributes(object element) => E(element).HasAttributes;
+
+        internal static void DeclareNamespace(object element, string prefix, string namespaceUri) => E(element).AddNamespaceDeclaration(prefix, namespaceUri);
+
         internal static void SetAttribute(object element, int namespaceId, string localName, string? value) {
             OpenXmlElement target = E(element);
             string uri = Uri(namespaceId);
