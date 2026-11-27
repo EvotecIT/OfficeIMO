@@ -38,7 +38,8 @@ namespace OfficeIMO.Tests {
                 OfficeLength.Points(138), OfficeLength.Points(24), OfficeLength.Points(24));
 
             using var package = new MemoryStream();
-            package.Write(source.ToBytes());
+            byte[] authored = source.ToBytes();
+            package.Write(authored, 0, authored.Length);
             using (var archive = new ZipArchive(package, ZipArchiveMode.Update, leaveOpen: true)) {
                 ZipArchiveEntry entry = archive.GetEntry(layout.PartName.TrimStart('/'))!;
                 using Stream stream = entry.Open();

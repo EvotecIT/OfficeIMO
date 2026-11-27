@@ -49,7 +49,8 @@ namespace OfficeIMO.PowerPoint {
                 for (int child = slide.FirstChildOf(pending.Pop()); child != OfficeXmlTree.NoNode; child = slide.NextSiblingOf(child)) {
                     if (slide.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
                     string name = slide.LocalNameOf(child);
-                    if (name == "extLst" || slide.IsElement(child, OfficeXmlNamespaces.MarkupCompatibility, "AlternateContent")) continue;
+                    // A chosen compatibility branch can expose its drawing IDs after the package is saved.
+                    if (name == "extLst") continue;
                     if (slide.IsElement(child, OfficeXmlNamespaces.PresentationML, "cNvPr")) {
                         string? value = slide.GetAttribute(child, OfficeXmlNamespaces.None, "id");
                         uint id = 0U;
