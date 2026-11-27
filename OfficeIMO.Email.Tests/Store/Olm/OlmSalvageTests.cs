@@ -128,7 +128,8 @@ public sealed class OlmSalvageTests {
 
     [Fact]
     public void ChargesTheItemBoundOnlyForRecordsTheReaderProjects() {
-        // A stray <email> under <contacts> is not projected, and the reader ignores a second copy of the same path.
+        // A stray <email> under <contacts> is not projected, and the reader ignores a second copy of the same path,
+        // so neither may use the item or decoded-byte allowance that the two real records need.
         const string contacts = "<contacts><email /><contact><OPFContactCopyDisplayName>Ada Lovelace</OPFContactCopyDisplayName></contact></contacts>";
         const string mail = "<emails><email><OPFMessageCopySubject>Kept</OPFMessageCopySubject></email></emails>";
         byte[] archive;
@@ -141,7 +142,8 @@ public sealed class OlmSalvageTests {
         DbxStoreReaderTests.WithDestination(destination => {
             using var input = new MemoryStream(archive, writable: false);
             EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
-                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxItemCount: 2)));
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxItemCount: 2,
+                    maxArchiveDecodedBytes: Encoding.UTF8.GetByteCount(contacts) + Encoding.UTF8.GetByteCount(mail))));
 
             Assert.Equal(new[] { OutlookItemKind.Contact, OutlookItemKind.Message },
                 report.Entries.Select(entry => entry.Kind!.Value));

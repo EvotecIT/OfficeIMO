@@ -202,6 +202,14 @@ internal sealed class OlmSalvage {
             return;
         }
 
+        bool isXml = normalized.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
+        if (isXml && _admittedXml.Contains(normalized)) {
+            // The reader keeps the first copy of a path, so a later copy is skipped before it costs any decoding.
+            Add("EMAIL_STORE_OLM_DUPLICATE_ENTRY",
+                "A later copy of an XML entry that was already recovered was ignored, as the OLM reader would ignore it.",
+                EmailStoreDiagnosticSeverity.Warning, entry.LocalHeaderOffset, normalized);
+            return;
+        }
         // Every decoding attempt, including failed verification and repair, counts against the archive budget.
         long remaining = _limits.MaxArchiveDecodedBytes - _decodedBytes;
         if (entry.ExpandedSize > remaining) {
@@ -210,14 +218,6 @@ internal sealed class OlmSalvage {
         }
         string? failure = Verify(entry, dataOffset, out long decoded);
         _decodedBytes += decoded;
-        bool isXml = normalized.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
-        if (isXml && _admittedXml.Contains(normalized)) {
-            // The reader keeps the first copy of a path; a later copy would not be projected, so it is not admitted.
-            Add("EMAIL_STORE_OLM_DUPLICATE_ENTRY",
-                "A later copy of an XML entry that was already recovered was ignored, as the OLM reader would ignore it.",
-                EmailStoreDiagnosticSeverity.Warning, entry.LocalHeaderOffset, normalized);
-            return;
-        }
         int itemsRemaining = _limits.MaxItemCount - _itemsAdmitted;
 
         if (failure == null) {
