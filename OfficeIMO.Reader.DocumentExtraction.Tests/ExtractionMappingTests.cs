@@ -207,6 +207,28 @@ public sealed class ExtractionMappingTests {
     }
 
     [Fact]
+    public void ImageAnchorsOnlyMatchWithinTheSamePage() {
+        OfficeDocumentBlock first = Block("image", "First");
+        first.Location.BlockAnchor = "x";
+        first.Location.Page = 1;
+        OfficeDocumentBlock second = Block("image", "Second");
+        second.Location.BlockAnchor = "x";
+        second.Location.Page = 2;
+        OfficeDocumentReadResult result = Result(ReaderInputKind.Pdf, first, second);
+        result.Assets = new[] {
+            new OfficeDocumentAsset { Id = "page-1", Kind = "image", MediaType = "image/png", Location = new ReaderLocation { Page = 1 } },
+            new OfficeDocumentAsset { Id = "page-2", Kind = "image", MediaType = "image/png", Location = new ReaderLocation { Page = 2, BlockAnchor = "x" } }
+        };
+
+        ExtractionDocument document = result.ToExtractionDocument("doc");
+
+        ExtractionDocumentImageElement[] images = document.EnumerateContent().Cast<ExtractionDocumentImageElement>().ToArray();
+        Assert.Equal(new[] { "page-1", "page-2" },
+            images.Select(image => image.Content!.AdditionalProperties![OfficeIMOExtractionPropertyNames.AssetId] as string));
+        Assert.Equal(new[] { "First", "Second" }, images.Select(image => image.AlternativeText));
+    }
+
+    [Fact]
     public void ImagePayloadsCanBeLeftOut() {
         OfficeDocumentReadResult result = Result(ReaderInputKind.Word);
         result.Assets = new[] { new OfficeDocumentAsset { Id = "a", Kind = "image", MediaType = "image/png", PayloadBytes = new byte[] { 1 } } };

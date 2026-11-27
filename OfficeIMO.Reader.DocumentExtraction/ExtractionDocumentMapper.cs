@@ -363,9 +363,12 @@ internal sealed class ExtractionDocumentMapper {
         var paired = new HashSet<OfficeDocumentAsset>();
         var unmatchedBlocks = new List<OfficeDocumentBlock>();
         foreach (OfficeDocumentBlock block in imageBlocks) {
-            string? anchor = block.Location?.BlockAnchor;
+            ReaderLocation? blockLocation = block.Location;
+            string? anchor = blockLocation?.BlockAnchor;
             OfficeDocumentAsset? match = string.IsNullOrEmpty(anchor) ? null : images.FirstOrDefault(image =>
-                !paired.Contains(image) && string.Equals(image.Location.BlockAnchor, anchor, StringComparison.Ordinal));
+                !paired.Contains(image)
+                && string.Equals(image.Location.BlockAnchor, anchor, StringComparison.Ordinal)
+                && SameContainer(blockLocation!, image.Location));
             if (match == null) {
                 unmatchedBlocks.Add(block);
             } else {
@@ -401,6 +404,15 @@ internal sealed class ExtractionDocumentMapper {
         }
         return placement;
     }
+
+    /// <summary>Anchors are local to a file, page, slide or sheet, so a match needs every value both sides know to agree.</summary>
+    private static bool SameContainer(ReaderLocation left, ReaderLocation right) =>
+        Compatible(left.Path, right.Path) && Compatible(left.Sheet, right.Sheet)
+        && (left.Page == null || right.Page == null || left.Page == right.Page)
+        && (left.Slide == null || right.Slide == null || left.Slide == right.Slide);
+
+    private static bool Compatible(string? left, string? right) =>
+        string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right) || string.Equals(left, right, StringComparison.Ordinal);
 
     private static ReaderLocation? ItemLocation(OfficeDocumentContentItem item) =>
         item.Location ?? item.Table?.Location ?? item.Block?.Location ?? item.Chunk?.Location;
