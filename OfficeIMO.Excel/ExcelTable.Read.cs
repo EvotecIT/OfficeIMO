@@ -40,26 +40,36 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         // Resolve the native schema instead of using the first data row as headers.
         // A table wrapper can identify a table by its name, display name or range.
-        internal (string? Range, bool HasHeaderRow, string[] Columns) GetTableReadLayout(string nameOrRange, CancellationToken cancellationToken = default) =>
-            _excelDocument.ExecuteReadAfterMaterializing(() => {
+        internal (string? Range, bool HasHeaderRow, string[] Columns) GetTableReadLayout(string nameOrRange, CancellationToken cancellationToken = default) {
+            if (DeferredEntry is { } entry && _excelDocument.TryGetDeferredTableParts(entry) is { } tables) {
+                ExcelTablePart table = tables.Find(candidate => string.Equals(candidate.Reference, nameOrRange, StringComparison.OrdinalIgnoreCase)
+                        || candidate.Matches(nameOrRange))
+                    ?? throw new InvalidOperationException($"Table '{nameOrRange}' was not found on worksheet '{Name}'.");
+                return TableReadLayout(nameOrRange, table.Reference, table.Columns.ConvertAll(column => column.Name ?? string.Empty).ToArray(),
+                    table.HeaderRowCount ?? 1U, table.TotalsRowCount ?? 0U);
+            }
+            return _excelDocument.ExecuteReadAfterMaterializing(() => {
                 Table table = FindTableByRangeNameOrDisplayName(nameOrRange)
                     ?? throw new InvalidOperationException($"Table '{nameOrRange}' was not found on worksheet '{Name}'.");
-                string? range = table.Reference?.Value;
-                if (range is null || !ExcelA1.TryParseRange(range, out int firstRow, out int firstColumn,
-                        out int lastRow, out int lastColumn)) {
-                    throw new InvalidOperationException($"Table '{nameOrRange}' has no valid range.");
-                }
                 string[] columns = table.TableColumns?.Elements<TableColumn>()
                     .Select(column => column.Name?.Value ?? string.Empty).ToArray() ?? Array.Empty<string>();
-                if (columns.Length != lastColumn - firstColumn + 1 || columns.Any(string.IsNullOrWhiteSpace)) {
-                    throw new InvalidOperationException($"Table '{nameOrRange}' has no complete column schema.");
-                }
-                bool headers = (table.HeaderRowCount?.Value ?? 1U) > 0;
-                uint totals = table.TotalsRowCount?.Value ?? 0U;
-                long dataEnd = (long)lastRow - totals;
-                string? readRange = dataEnd < firstRow ? null
-                    : $"{ExcelA1.CellReference(firstRow, firstColumn)}:{ExcelA1.CellReference((int)dataEnd, lastColumn)}";
-                return (readRange, headers, columns);
+                return TableReadLayout(nameOrRange, table.Reference?.Value, columns, table.HeaderRowCount?.Value ?? 1U, table.TotalsRowCount?.Value ?? 0U);
             }, cancellationToken);
+        }
+
+        private static (string? Range, bool HasHeaderRow, string[] Columns) TableReadLayout(string nameOrRange, string? range, string[] columns,
+            uint headerRowCount, uint totalsRowCount) {
+            if (range is null || !ExcelA1.TryParseRange(range, out int firstRow, out int firstColumn,
+                    out int lastRow, out int lastColumn)) {
+                throw new InvalidOperationException($"Table '{nameOrRange}' has no valid range.");
+            }
+            if (columns.Length != lastColumn - firstColumn + 1 || columns.Any(string.IsNullOrWhiteSpace)) {
+                throw new InvalidOperationException($"Table '{nameOrRange}' has no complete column schema.");
+            }
+            long dataEnd = (long)lastRow - totalsRowCount;
+            string? readRange = dataEnd < firstRow ? null
+                : $"{ExcelA1.CellReference(firstRow, firstColumn)}:{ExcelA1.CellReference((int)dataEnd, lastColumn)}";
+            return (readRange, headerRowCount > 0, columns);
+        }
     }
 }

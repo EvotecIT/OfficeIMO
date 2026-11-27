@@ -583,7 +583,7 @@ namespace OfficeIMO.Excel {
 
     /// <summary>The workbook-level parts formulas read from the package the workbook loaded.</summary>
     internal sealed class ExcelXmlFormulaWorkbookModel : ExcelFormulaWorkbookModel {
-        private const string TableRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "table";
+        private const string WorksheetRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "worksheet";
         private const string PivotTableRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "pivotTable";
         private const string SharedStringsRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "sharedStrings";
         private readonly ExcelDocument _document;
@@ -732,46 +732,31 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>The tables of a worksheet, read from its table parts.</summary>
-        internal List<ExcelFormulaTable> ReadTables(ExcelDeferredSheet sheet) {
-            var tables = new List<ExcelFormulaTable>();
+        internal List<ExcelFormulaTable> ReadTables(ExcelDeferredSheet sheet) => ReadTableParts(sheet).ConvertAll(table => table.ToFormulaTable());
+
+        private readonly Dictionary<ExcelDeferredSheet, List<ExcelTablePart>> _tableParts = new();
+
+        /// <summary>The table parts of a worksheet in the order of its relationships, read once.</summary>
+        internal List<ExcelTablePart> ReadTableParts(ExcelDeferredSheet sheet) {
+            lock (_gate) {
+                if (_tableParts.TryGetValue(sheet, out List<ExcelTablePart>? cached)) return cached;
+                using var source = new MemoryStream(PackageBytes, writable: false);
+                using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
+                List<ExcelTablePart> tables = ExcelTablePart.ReadSheetTables(package, sheet.PartName);
+                _tableParts.Add(sheet, tables);
+                return tables;
+            }
+        }
+
+        /// <summary>The relationship ids of the workbook's worksheet parts, in the order the workbook part lists them.</summary>
+        internal List<string> WorksheetRelationshipOrder() {
+            var ids = new List<string>();
             using var source = new MemoryStream(PackageBytes, writable: false);
             using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
-            foreach (OfficeOpcRelationship relationship in package.GetRelationships(sheet.PartName)) {
-                if (!string.Equals(relationship.Type, TableRelationshipType, StringComparison.Ordinal)
-                    || relationship.IsExternal || relationship.TargetPartName is not { } target || !package.PartExists(target)) continue;
-                OfficeXmlPullReader reader = package.OpenXml(target, out OfficePooledBytes content, processMarkupCompatibility: false);
-                using (content) {
-                    string? name = null, displayName = null, reference = null;
-                    uint headerRowCount = 1U, totalsRowCount = 1U;
-                    bool totalsRowShown = false, root = false, inColumns = false;
-                    var columns = new List<string?>();
-                    while (reader.Read()) {
-                        if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
-                        if (reader.Depth == 1) {
-                            if (!reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "table")) break;
-                            root = true;
-                            name = reader.TryGetAttribute(OfficeXmlNamespaces.None, "name", out string n) ? n : null;
-                            displayName = reader.TryGetAttribute(OfficeXmlNamespaces.None, "displayName", out string d) ? d : null;
-                            reference = reader.TryGetAttribute(OfficeXmlNamespaces.None, "ref", out string r) ? r : null;
-                            if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "headerRowCount", out string h)
-                                && uint.TryParse(h, NumberStyles.None, CultureInfo.InvariantCulture, out uint header)) headerRowCount = header;
-                            if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "totalsRowCount", out string t)
-                                && uint.TryParse(t, NumberStyles.None, CultureInfo.InvariantCulture, out uint totals)) totalsRowCount = totals;
-                            totalsRowShown = IsTrue(reader, "totalsRowShown");
-                            continue;
-                        }
-                        if (reader.Depth == 2) {
-                            inColumns = reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "tableColumns");
-                            continue;
-                        }
-                        if (reader.Depth == 3 && inColumns && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "tableColumn")) {
-                            columns.Add(reader.TryGetAttribute(OfficeXmlNamespaces.None, "name", out string column) ? column : null);
-                        }
-                    }
-                    if (root) tables.Add(new ExcelFormulaTable(name, displayName, reference, headerRowCount, totalsRowCount, totalsRowShown, columns));
-                }
+            foreach (OfficeOpcRelationship relationship in package.GetRelationships(_workbook.WorkbookPartName)) {
+                if (string.Equals(relationship.Type, WorksheetRelationshipType, StringComparison.Ordinal) && !relationship.IsExternal) ids.Add(relationship.Id);
             }
-            return tables;
+            return ids;
         }
     }
 
