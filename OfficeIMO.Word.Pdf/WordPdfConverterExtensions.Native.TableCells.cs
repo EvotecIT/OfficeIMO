@@ -782,6 +782,14 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             string? contents = retainLinkAppearance || string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
+            if (string.IsNullOrWhiteSpace(text)) {
+                // PDF link annotations need visible text; a space run keeps the link's look without a target.
+                linkUri = null;
+                destinationName = null;
+                contents = null;
+                retainLinkAppearance = true;
+            }
+
             NativeResolvedTextStyle style = resolvedStyle ?? ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             return style.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
