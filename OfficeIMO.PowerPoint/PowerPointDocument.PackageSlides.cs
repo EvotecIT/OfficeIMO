@@ -149,9 +149,11 @@ namespace OfficeIMO.PowerPoint {
             if (GetPackage(edit: true) is not { } package) return null;
             try {
                 // A notes relationship to a part that holds no notes is replaced, as nothing reads it as notes; any other
-                // notes relationship, even one whose part is missing, is the model's to handle.
+                // notes relationship, even one whose part is missing, is the model's to handle. They are removed only once
+                // the notes can be added.
+                List<int>? misdirected = null;
                 if (HasRelationshipOfType(package, slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide")
-                    && !TryRemoveNonNotesRelationships(package, slidePart)) {
+                    && (misdirected = NonNotesRelationships(package, slidePart)) == null) {
                     return null;
                 }
                 // Notes go in a folder beside the slide's folder, which a slide at the package root doesn't have.
@@ -177,6 +179,10 @@ namespace OfficeIMO.PowerPoint {
                     listed = presentation.GetAttribute(entry, OfficeXmlNamespaces.Relationships, "id") == masterRelationship;
                 }
                 if (!listed) return null;
+                if (misdirected != null) {
+                    OfficeXmlTree slideRelationshipTree = package.GetXml(OfficeOpcPartNames.GetRelationshipsPartName(slidePart));
+                    foreach (int node in misdirected) slideRelationshipTree.Remove(node);
+                }
 
                 // The slide's first free rIdN, as the notes model picks it.
                 var used = new HashSet<string>(StringComparer.Ordinal);
@@ -215,9 +221,9 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        // Removes the slide's notes relationships when every one targets an existing part whose root is not p:notes; false,
-        // having changed nothing, when one targets notes or a missing part.
-        private static bool TryRemoveNonNotesRelationships(OfficeOpcEditablePackage package, string slidePart) {
+        // The slide's notes relationships when every one targets an existing part whose root is not p:notes; null when one
+        // targets notes or a missing part.
+        private static List<int>? NonNotesRelationships(OfficeOpcEditablePackage package, string slidePart) {
             string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(slidePart);
             OfficeXmlTree relationships = package.GetXml(relationshipsPart);
             var removed = new List<int>();
@@ -225,15 +231,14 @@ namespace OfficeIMO.PowerPoint {
                  node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
                 if (OfficeXmlNamespaces.NormalizeRelationshipType(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type") ?? string.Empty)
                     != OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide") continue;
-                if (string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) return false;
+                if (string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) return null;
                 string? target = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
-                if (target == null || !package.PartExists(target)) return false;
+                if (target == null || !package.PartExists(target)) return null;
                 OfficeXmlTree content = package.GetXml(target);
-                if (content.IsElement(content.Root, OfficeXmlNamespaces.PresentationML, "notes")) return false;
+                if (content.IsElement(content.Root, OfficeXmlNamespaces.PresentationML, "notes")) return null;
                 removed.Add(node);
             }
-            foreach (int node in removed) relationships.Remove(node);
-            return true;
+            return removed;
         }
 
         // The notes slide the notes model writes: a group named for the notes, and the body placeholder with one empty run.
