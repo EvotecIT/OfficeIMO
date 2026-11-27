@@ -1,27 +1,22 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    ///     A slide master: the shapes, placeholders, background and theme shared by its layouts and their slides.
+    ///     A slide master: the theme, text styles, shapes and background shared by its layouts and their slides.
     /// </summary>
     public sealed class PowerPointSlideMaster : PowerPointMasterSurface {
-        internal PowerPointSlideMaster(PowerPointDocument document, SlideMasterPart part) : base(document, part) {
-            MasterPart = part;
+        internal PowerPointSlideMaster(PowerPointDocument document, PowerPointPartRef part) : base(document, part) {
         }
 
-        internal SlideMasterPart MasterPart { get; }
-
-        internal SlideMaster Root => MasterPart.SlideMaster ??= new SlideMaster();
-
-        internal override CommonSlideData CommonSlideData => Root.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+        private protected override OfficeXmlChildOrder RootOrder => PSlideMasterView.Order;
 
         /// <summary>Zero-based position of the master in the presentation.</summary>
         public int Index {
             get {
                 ThrowIfRemoved();
-                return Document.SlideMasterParts.IndexOf(MasterPart);
+                return Document.MasterPartRefs().IndexOf(PartRef);
             }
         }
 
@@ -47,19 +42,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointSlideLayout AddLayout(string name, PowerPointSlideLayoutType layoutType = PowerPointSlideLayoutType.Custom) {
             ThrowIfRemoved();
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
-            var layout = new SlideLayout(
-                new CommonSlideData(new ShapeTree(
-                    new NonVisualGroupShapeProperties(
-                        new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
-                        new NonVisualGroupShapeDrawingProperties(),
-                        new ApplicationNonVisualDrawingProperties()),
-                    PowerPointUtils.CreateDefaultGroupShapeProperties())) { Name = name },
-                new ColorMapOverride(new A.MasterColorMapping())) {
-                Type = layoutType.ToOpenXml(),
-                Preserve = true,
-                UserDrawn = true
-            };
-            return Document.GetLayout(AttachLayout(layout));
+            return Document.AddLayout(this, name, layoutType);
         }
 
         /// <summary>
@@ -67,7 +50,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointSlideMaster Duplicate(string? name = null) {
             ThrowIfRemoved();
-            PowerPointSlideMaster copy = Document.CloneMaster(MasterPart);
+            PowerPointSlideMaster copy = Document.CloneMaster(this);
             copy.Name = name ?? (string.IsNullOrEmpty(Name) ? "Slide Master" : Name) + " Copy";
             return copy;
         }
@@ -81,24 +64,7 @@ namespace OfficeIMO.PowerPoint {
             Document.RemoveMaster(this);
         }
 
-        internal SlideLayoutPart AttachLayout(SlideLayout layout, SlideLayoutPart? source = null) {
-            string relationshipId = PowerPointDocument.NextRelationshipId(MasterPart);
-            SlideLayoutPart layoutPart;
-            if (source != null) {
-                layoutPart = PowerPointDocument.CloneLayoutPart(source, MasterPart, relationshipId);
-                layoutPart.SlideLayout = layout;
-            } else {
-                layoutPart = MasterPart.AddNewPart<SlideLayoutPart>(relationshipId);
-                layoutPart.SlideLayout = layout;
-                layoutPart.AddPart(MasterPart);
-            }
-
-            SlideLayoutIdList list = Root.SlideLayoutIdList ??= new SlideLayoutIdList();
-            list.Append(new SlideLayoutId { Id = Document.NextMasterOrLayoutId(), RelationshipId = relationshipId });
-            return layoutPart;
-        }
-
         // Layout indexes follow the master's layout relationships, as the index-based layout APIs do.
-        internal IEnumerable<SlideLayoutPart> OrderedLayoutParts() => MasterPart.SlideLayoutParts;
+        internal IEnumerable<PowerPointPartRef> OrderedLayoutParts() => PartRef.RelatedParts(PowerPointPartRef.SlideLayoutRelationshipType);
     }
 }

@@ -8,7 +8,16 @@ namespace OfficeIMO.PowerPoint {
     /// Shape members read and edited on the slide's package tree while the SDK is not open. Each returns false when it
     /// can't answer exactly as the SDK element would, and the member then binds the shape and reads it through the SDK.
     /// </summary>
-    public abstract partial class PowerPointShape {
+    public abstract partial class PowerPointShape : IPackageSdkBinding {
+        /// <summary>The layout or master part whose package tree holds the shape, or none for a slide's shape.</summary>
+        internal PowerPointPartRef PackagePart { get; }
+
+        void IPackageSdkBinding.BindSdk() => BindSdk();
+
+        // A layout or master shape is removed only with its part, which nothing reads afterwards.
+        void IPackageSdkBinding.InvalidateRemoved(bool sdkOpening) {
+        }
+
         /// <summary>
         /// The shape's element as it is held now: a node of its slide's package tree while the shape works there, the SDK
         /// element otherwise (binding it opens the SDK for a package shape the SDK does not hold yet).
@@ -19,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The part that holds the shape: its slide's part, or the layout, master or notes part it was read from.</summary>
         internal PowerPointPartRef OwnerPartRef {
             get {
-                if (TryGetPackageElement(out _, out _)) return OwnerSlide!.PartRef;
+                if (TryGetPackageElement(out _, out _)) return OwnerSlide?.PartRef ?? PackagePart;
                 PowerPointPartRef current = PowerPointPartRef.FromSdk(OfficeSdkXml.PartOf(SdkElementObject));
                 return !current.IsNone ? current : PowerPointPartRef.FromSdk(SdkRelationshipOwnerPart ?? OwnerSlide?.SdkSlidePart);
             }
@@ -38,7 +47,10 @@ namespace OfficeIMO.PowerPoint {
             tree = PackageTree!;
             node = PackageNode;
             // Once the SDK opened the package, the tree is gone and the shape binds to the SDK element instead.
-            return IsPackageBacked && tree != null && OwnerSlide is { RemovedFromPackage: false } && OwnerSlide.OwnerDocument?.IsSdkLoaded == false;
+            if (!IsPackageBacked || tree == null) return false;
+            return OwnerSlide != null
+                ? OwnerSlide is { RemovedFromPackage: false } && OwnerSlide.OwnerDocument?.IsSdkLoaded == false
+                : !PackagePart.IsNone && !PackagePart.IsSdk && PackagePart.Document?.IsSdkLoaded == false;
         }
 
         /// <summary>
@@ -48,7 +60,7 @@ namespace OfficeIMO.PowerPoint {
         internal bool TryEditPackage(out OfficeXmlTree tree, out int node) {
             node = PackageNode;
             tree = PackageTree!;
-            return TryGetPackageElement(out tree, out node) && OwnerSlide!.OwnerDocument!.CanEditPackage;
+            return TryGetPackageElement(out tree, out node) && (OwnerSlide?.OwnerDocument ?? PackagePart.Document)!.CanEditPackage;
         }
 
         // The non-visual properties container of each drawing element, and the drawing-properties child the model adds
@@ -101,6 +113,29 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>
+        /// The shape's bounds in points for export: its own transform, or else its placeholder's on the layout or master.
+        /// </summary>
+        internal bool TryGetExportBoundsPoints(out double left, out double top, out double width, out double height) {
+            bool found = TryGetBoundsPoints(out left, out top, out width, out height);
+            if (found && width > 0D && height > 0D) return true;
+            OfficeXmlNode placeholder = ShapePlaceholderElement;
+            if (OwnerSlide != null && !placeholder.IsNone) {
+                PowerPointLayoutBox? bounds = PowerPointSlide.GetExportPlaceholderBounds(
+                    OwnerSlide.PartRef.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType), placeholder);
+                if (bounds.HasValue) {
+                    left = bounds.Value.Left.ToPoints();
+                    top = bounds.Value.Top.ToPoints();
+                    width = bounds.Value.Width.ToPoints();
+                    height = bounds.Value.Height.ToPoints();
+                    return width > 0D && height > 0D;
+                }
+            }
+            return found;
+        }
+
+        internal bool HasPlaceholderShape => !ShapePlaceholderElement.IsNone;
+
         // A picture that plays audio or video from a file.
         private static bool IsMediaPicture(OfficeXmlNode picture) {
             OfficeXmlNode application = picture.Child(OfficeXmlNamespaces.PresentationML, "nvPicPr").Child(OfficeXmlNamespaces.PresentationML, "nvPr");
@@ -115,6 +150,6 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Records that the shape's package tree changed, so the next save or SDK open writes it.</summary>
-        internal void MarkPackageEdited() => OwnerSlide?.OwnerDocument?.MarkPackageEdited();
+        internal void MarkPackageEdited() => (OwnerSlide?.OwnerDocument ?? PackagePart.Document)?.MarkPackageEdited();
     }
 }

@@ -49,6 +49,8 @@
       "OfficeIMO.Reader.Dbf\\OfficeIMO.Reader.Dbf.csproj",
       "OfficeIMO.Reader.DjVu\\OfficeIMO.Reader.DjVu.csproj",
       "OfficeIMO.Reader.DocBook\\OfficeIMO.Reader.DocBook.csproj",
+      "OfficeIMO.Reader.DocumentExtraction.Tests\\OfficeIMO.Reader.DocumentExtraction.Tests.csproj",
+      "OfficeIMO.Reader.DocumentExtraction\\OfficeIMO.Reader.DocumentExtraction.csproj",
       "OfficeIMO.Reader.Email\\OfficeIMO.Reader.Email.csproj",
       "OfficeIMO.Reader.Epub\\OfficeIMO.Reader.Epub.csproj",
       "OfficeIMO.Reader.Excel\\OfficeIMO.Reader.Excel.csproj",

@@ -12,9 +12,12 @@ namespace OfficeIMO.PowerPoint {
         private readonly SlidePart? _initialSlidePart;
         private SlidePart? _slidePart => Element.Ancestors<Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
         private readonly OpenXmlPartContainer? _initialOwnerPart;
-        private OpenXmlPartContainer _ownerPart => _initialOwnerPart is null or DocumentFormat.OpenXml.Packaging.SlidePart ? _slidePart! : _initialOwnerPart;
+        private OpenXmlPartContainer _ownerPart => _initialOwnerPart is null or DocumentFormat.OpenXml.Packaging.SlidePart ? (_slidePart ?? RelationshipOwnerPart)! : _initialOwnerPart;
 
         internal PowerPointImage(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
+        }
+
+        internal PowerPointImage(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) : base(part, tree, node) {
         }
 
         internal PowerPointImage(Picture picture, SlidePart slidePart) : this(picture, slidePart, slidePart) {

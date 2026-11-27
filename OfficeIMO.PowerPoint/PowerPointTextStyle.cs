@@ -1,4 +1,3 @@
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -225,16 +224,16 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointTextStyle(FontSize, FontFamily, Color, Bold, Italic, null, BackgroundColor, Strikethrough, underlineStyle);
         }
 
-        /// <summary>Applies requested formatting to the paragraph defaults inherited by new placeholder text.</summary>
-        internal void ApplyDefaults(A.DefaultRunProperties properties, OfficeTheme theme) {
-            if (FontSize.HasValue) properties.FontSize = PowerPointTextDefaults.ToDrawingFontSize(FontSize.Value.ToPoints(), nameof(FontSize));
+        /// <summary>Applies requested formatting to the paragraph defaults (<c>a:defRPr</c>) inherited by new placeholder text.</summary>
+        internal void ApplyDefaults(OfficeIMO.OpenXml.Internal.OfficeXmlNode properties, OfficeTheme? theme) {
+            if (FontSize.HasValue) properties.SetInt32Attribute("sz", PowerPointTextDefaults.ToDrawingFontSize(FontSize.Value.ToPoints(), nameof(FontSize)));
             if (FontFamily != null) PowerPointTextPropertyFormatting.SetFontFamily(properties, FontFamily);
             if (Color.HasValue) PowerPointTextPropertyFormatting.SetColor(properties, Color, theme);
-            if (Bold.HasValue) properties.Bold = Bold.Value;
-            if (Italic.HasValue) properties.Italic = Italic.Value;
-            if (UnderlineStyle.HasValue) properties.Underline = UnderlineStyle.Value.ToOpenXml();
-            else if (Underline.HasValue) properties.Underline = Underline.Value ? A.TextUnderlineValues.Single : A.TextUnderlineValues.None;
-            if (Strikethrough.HasValue) properties.Strike = Strikethrough.Value ? A.TextStrikeValues.SingleStrike : A.TextStrikeValues.NoStrike;
+            if (Bold.HasValue) properties.SetAttribute("b", Bold.Value ? "1" : "0");
+            if (Italic.HasValue) properties.SetAttribute("i", Italic.Value ? "1" : "0");
+            if (UnderlineStyle.HasValue) properties.SetAttribute("u", UnderlineStyle.Value.ToOpenXmlToken());
+            else if (Underline.HasValue) properties.SetAttribute("u", Underline.Value ? "sng" : "none");
+            if (Strikethrough.HasValue) properties.SetAttribute("strike", Strikethrough.Value ? "sngStrike" : "noStrike");
             if (BackgroundColor.HasValue) PowerPointTextPropertyFormatting.SetBackgroundColor(properties, BackgroundColor, theme);
         }
     }
