@@ -634,5 +634,60 @@ namespace OfficeIMO.Tests {
                 .Select(properties => properties.Id!.Value)
                 .ToList();
         }
+
+        [Fact]
+        public void CompareStructureIgnoresWordprocessingMarkupInsideExtensionLists() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_extension_list_source.docx");
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_extension_list_target.docx");
+            CreateComparisonDocumentWithBodyMarkup(sourcePath, "<w:p><w:r><w:t>Shared paragraph</w:t></w:r></w:p>");
+            // The decoys sit in an extension list, which Word and the SDK read as opaque extension content.
+            CreateComparisonDocumentWithBodyMarkup(targetPath,
+                "<w:p><w:pPr><w:extLst><w:ext w:uri=\"{00000000-0000-0000-0000-000000000001}\">" +
+                "<w:p><w:r><w:t>Decoy paragraph</w:t></w:r></w:p>" +
+                "<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Decoy cell</w:t></w:r></w:p></w:tc></w:tr></w:tbl>" +
+                "<w:bookmarkStart w:id=\"7\" w:name=\"Decoy\"/><w:sdt><w:sdtContent><w:p/></w:sdtContent></w:sdt>" +
+                "</w:ext></w:extLst></w:pPr><w:r><w:t>Shared paragraph</w:t></w:r></w:p>");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            // The extension list is a paragraph property, so only the paragraph's formatting differs.
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope is WordComparisonScope.Table or WordComparisonScope.Bookmark or WordComparisonScope.ContentControl or WordComparisonScope.Run ||
+                finding.Scope == WordComparisonScope.Paragraph && finding.Message != "Paragraph effective formatting changed.");
+        }
+
+        [Fact]
+        public void CompareStructureReadsTheSelectedAlternateContentBranchOnly() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_alternate_content_source.docx");
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_alternate_content_target.docx");
+            CreateComparisonDocumentWithBodyMarkup(sourcePath, "<w:p><w:r><w:t>Chosen paragraph</w:t></w:r></w:p>");
+            CreateComparisonDocumentWithBodyMarkup(targetPath,
+                "<mc:AlternateContent><mc:Choice Requires=\"w14\"><w:p><w:r><w:t>Chosen paragraph</w:t></w:r></w:p></mc:Choice>" +
+                "<mc:Fallback><w:p><w:r><w:t>Fallback decoy</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl></mc:Fallback></mc:AlternateContent>");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope is WordComparisonScope.Paragraph or WordComparisonScope.Table);
+        }
+
+        private static void CreateComparisonDocumentWithBodyMarkup(string path, string bodyMarkup) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddParagraph("Placeholder");
+                document.Save();
+            }
+
+            using var archive = System.IO.Compression.ZipFile.Open(path, System.IO.Compression.ZipArchiveMode.Update);
+            System.IO.Compression.ZipArchiveEntry entry = archive.GetEntry("word/document.xml")!;
+            string xml;
+            using (var reader = new StreamReader(entry.Open())) xml = reader.ReadToEnd();
+            int bodyStart = xml.IndexOf("<w:body>", StringComparison.Ordinal) + "<w:body>".Length;
+            int sectionStart = xml.IndexOf("<w:sectPr", bodyStart, StringComparison.Ordinal);
+            xml = xml.Substring(0, bodyStart) + bodyMarkup + xml.Substring(sectionStart);
+            entry.Delete();
+            System.IO.Compression.ZipArchiveEntry replacement = archive.CreateEntry("word/document.xml");
+            using var writer = new StreamWriter(replacement.Open());
+            writer.Write(xml);
+        }
     }
 }

@@ -1,17 +1,20 @@
-using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Drawing.Diagrams;
-using DocumentFormat.OpenXml.Drawing.Wordprocessing;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
+using System.Globalization;
 using System.Xml.Linq;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word {
     /// <summary>
     /// Represents a SmartArt diagram in a <see cref="WordDocument"/>.
     /// </summary>
     public partial class WordSmartArt : WordElement {
-        internal WordDrawing _drawing = null!;
+        private const int Wp = OfficeXmlNamespaces.WordprocessingDrawing;
+        private const int A = OfficeXmlNamespaces.DrawingML;
+        private const int Dgm = OfficeXmlNamespaces.Diagram;
+        private const int R = OfficeXmlNamespaces.Relationships;
+        internal const string DiagramGraphicDataUri = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+
+        internal OfficeXmlNode _drawing;
         private readonly WordDocument _document;
         private readonly WordParagraph _paragraph;
         private readonly WordSmartArtType? _type;
@@ -24,7 +27,7 @@ namespace OfficeIMO.Word {
             InsertSmartArt(type);
         }
 
-        internal WordSmartArt(WordDocument document, WordParagraph paragraph, WordDrawing drawing) {
+        internal WordSmartArt(WordDocument document, WordParagraph paragraph, OfficeXmlNode drawing) {
             _document = document;
             _paragraph = paragraph;
             _drawing = drawing;
@@ -32,45 +35,45 @@ namespace OfficeIMO.Word {
         }
 
         private void InsertSmartArt(WordSmartArtType type) {
-            OpenXmlPart owner = WordPartOwnership.Resolve(_document, _paragraph._paragraph);
+            object owner = WordPartOwnership.ResolveOwner(_document, _paragraph.SdkParagraphNode);
 
             // Relationships belong to the story containing the drawing.
             var (relLayout, relColors, relStyle, relData) = SmartArtBuiltIn.AddParts(owner, type);
 
-            var graphic = new Graphic(new GraphicData(
-                new RelationshipIds {
-                    LayoutPart = relLayout,
-                    StylePart = relStyle,
-                    ColorPart = relColors,
-                    DataPart = relData
-                }) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/diagram" });
+            uint drawingId = WordDrawingIdAllocator.Reserve(_document);
+            OfficeXmlNode run = _paragraph.VerifyRunNode();
+            OfficeXmlNode drawing = run.CreateElement(OfficeXmlNamespaces.WordprocessingML, "drawing");
+            OfficeXmlNode inline = drawing.Append(drawing.CreateElement(Wp, "inline"));
+            inline.SetAttribute("distT", "0");
+            inline.SetAttribute("distB", "0");
+            inline.SetAttribute("distL", "0");
+            inline.SetAttribute("distR", "0");
+            OfficeXmlNode extent = inline.Append(inline.CreateElement(Wp, "extent"));
+            extent.SetAttribute("cx", "5486400");
+            extent.SetAttribute("cy", "3200400");
 
             // Match exported templates effect extents for visual parity
-            EffectExtent eff;
-            if (type == WordSmartArtType.CustomSmartArt1) {
-                eff = new EffectExtent { LeftEdge = 38100L, TopEdge = 0L, RightEdge = 57150L, BottomEdge = 0L };
-            } else if (type == WordSmartArtType.CustomSmartArt2) {
-                eff = new EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 19050L };
-            } else {
-                eff = new EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L };
-            }
+            OfficeXmlNode effect = inline.Append(inline.CreateElement(Wp, "effectExtent"));
+            effect.SetAttribute("l", type == WordSmartArtType.CustomSmartArt1 ? "38100" : "0");
+            effect.SetAttribute("t", "0");
+            effect.SetAttribute("r", type == WordSmartArtType.CustomSmartArt1 ? "57150" : "0");
+            effect.SetAttribute("b", type == WordSmartArtType.CustomSmartArt2 ? "19050" : "0");
 
-            var inline = new Inline(
-                new Extent { Cx = 5486400, Cy = 3200400 },
-                eff,
-                new DocProperties { Id = WordDrawingIdAllocator.Reserve(_document), Name = "Diagram 1" },
-                new DocumentFormat.OpenXml.Drawing.Wordprocessing.NonVisualGraphicFrameDrawingProperties(
-                    new GraphicFrameLocks { NoChangeAspect = true }),
-                graphic) {
-                DistanceFromTop = 0U,
-                DistanceFromBottom = 0U,
-                DistanceFromLeft = 0U,
-                DistanceFromRight = 0U
-            };
+            OfficeXmlNode properties = inline.Append(inline.CreateElement(Wp, "docPr"));
+            properties.SetAttribute("id", drawingId.ToString(CultureInfo.InvariantCulture));
+            properties.SetAttribute("name", "Diagram 1");
+            OfficeXmlNode frame = inline.Append(inline.CreateElement(Wp, "cNvGraphicFramePr"));
+            frame.Append(frame.CreateElement(A, "graphicFrameLocks")).SetAttribute("noChangeAspect", "1");
+            OfficeXmlNode graphic = inline.Append(inline.CreateElement(A, "graphic"));
+            OfficeXmlNode data = graphic.Append(graphic.CreateElement(A, "graphicData"));
+            data.SetAttribute("uri", DiagramGraphicDataUri);
+            OfficeXmlNode ids = data.Append(data.CreateElement(Dgm, "relIds"));
+            ids.SetAttribute(R, "dm", relData);
+            ids.SetAttribute(R, "lo", relLayout);
+            ids.SetAttribute(R, "qs", relStyle);
+            ids.SetAttribute(R, "cs", relColors);
 
-            _drawing = new WordDrawing(inline);
-            _paragraph.VerifyRun();
-            _paragraph._run?.Append(_drawing);
+            _drawing = run.Append(drawing);
         }
 
         // All SmartArt parts are created in SmartArtBuiltIn.
@@ -446,7 +449,7 @@ namespace OfficeIMO.Word {
             return (xdoc, (dgm, a), paras);
         }
 
-        private (XDocument xdoc, (XNamespace dgm, XNamespace a) ns, List<XElement> paras, DiagramDataPart dataPart) LoadNodeParagraphsWithPart() {
+        private (XDocument xdoc, (XNamespace dgm, XNamespace a) ns, List<XElement> paras, object dataPart) LoadNodeParagraphsWithPart() {
             var dataPart = GetDiagramDataPart();
             var xdoc = LoadDiagramXDocument(dataPart);
             var dgm = (XNamespace)"http://schemas.openxmlformats.org/drawingml/2006/diagram";
@@ -600,13 +603,12 @@ namespace OfficeIMO.Word {
 
         private WordSmartArtType? TryDetectType() {
             try {
-                var rel = _drawing.Descendants<RelationshipIds>().FirstOrDefault();
-                OpenXmlPart owner = WordPartOwnership.Resolve(_document, _drawing);
-                var layoutIdOpt = rel?.LayoutPart?.Value;
+                OfficeXmlNode rel = RelationshipIdsNode();
+                object owner = WordPartOwnership.ResolveOwner(_document, _drawing);
+                string? layoutIdOpt = rel.IsNone ? null : rel.Attribute(R, "lo");
                 if (layoutIdOpt is not { Length: > 0 } layoutId) return null;
-                var part = owner.GetPartById(layoutId) as DiagramLayoutDefinitionPart;
-                if (part?.LayoutDefinition == null) return null;
-                var uid = part.LayoutDefinition.UniqueId?.Value ?? string.Empty;
+                string? uid = WordPartOwnership.GetDiagramLayoutUniqueId(owner, layoutId);
+                if (uid == null) return null;
                 if (uid.EndsWith("/layout/cycle2")) return WordSmartArtType.Cycle;
                 if (uid.EndsWith("/layout/default")) return WordSmartArtType.BasicProcess;
                 if (uid.EndsWith("/layout/hierarchy1")) return WordSmartArtType.Hierarchy;
@@ -616,35 +618,29 @@ namespace OfficeIMO.Word {
             } catch { return null; }
         }
 
-        private void SaveDiagramData(DiagramDataPart dataPart, XDocument xdoc) {
-            using var ms = new MemoryStream();
-            xdoc.Save(ms);
-            ms.Position = 0;
-            dataPart.FeedData(ms);
+        /// <summary>
+        /// The <c>dgm:relIds</c> of the diagram's graphic data, or none. Only the schema position is read, so matching
+        /// markup in extension lists or alternate content is never taken for the diagram's relationships.
+        /// </summary>
+        private OfficeXmlNode RelationshipIdsNode() {
+            OfficeXmlNode frame = _drawing.Child(Wp, "inline");
+            if (frame.IsNone) frame = _drawing.Child(Wp, "anchor");
+            OfficeXmlNode graphic = frame.IsNone ? default : frame.Child(A, "graphic");
+            OfficeXmlNode data = graphic.IsNone ? default : graphic.Child(A, "graphicData");
+            return data.IsNone ? default : data.Child(Dgm, "relIds");
         }
 
-        private XDocument LoadDiagramXDocument(DiagramDataPart dataPart) {
-            // Prefer the part stream when available; fall back to DOM OuterXml when stream is empty.
-            using (var stream = dataPart.GetStream(FileMode.Open, FileAccess.Read)) {
-                if (stream != null && stream.Length > 0) {
-                    return XDocument.Load(stream);
-                }
-            }
-            if (dataPart.DataModelRoot != null) {
-                var xml = dataPart.DataModelRoot.OuterXml;
-                return XDocument.Parse(xml);
-            }
-            throw new InvalidOperationException("SmartArt data part is empty.");
-        }
+        private static void SaveDiagramData(object dataPart, XDocument xdoc) => WordPartOwnership.WriteDiagramData(dataPart, xdoc);
 
-        private DiagramDataPart GetDiagramDataPart() {
-            var rel = _drawing.Descendants<RelationshipIds>().FirstOrDefault();
-            var dataIdOpt = rel?.DataPart?.Value;
+        private static XDocument LoadDiagramXDocument(object dataPart) => WordPartOwnership.ReadDiagramData(dataPart);
+
+        private object GetDiagramDataPart() {
+            OfficeXmlNode rel = RelationshipIdsNode();
+            string? dataIdOpt = rel.IsNone ? null : rel.Attribute(R, "dm");
             if (dataIdOpt is not { Length: > 0 } dataId) throw new InvalidOperationException("SmartArt data relationship not found.");
-            OpenXmlPart owner = WordPartOwnership.Resolve(_document, _drawing);
-            var part = owner.GetPartById(dataId);
-            if (part is DiagramDataPart ddp) return ddp;
-            throw new InvalidOperationException("DiagramDataPart not found for SmartArt.");
+            object owner = WordPartOwnership.ResolveOwner(_document, _drawing);
+            return WordPartOwnership.GetDiagramDataPart(owner, dataId)
+                ?? throw new InvalidOperationException("DiagramDataPart not found for SmartArt.");
         }
     }
 }

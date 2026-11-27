@@ -1,6 +1,8 @@
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word;
 
@@ -60,4 +62,66 @@ internal static class WordPartOwnership {
             return main.WordprocessingCommentsPart ?? throw new InvalidOperationException("WordprocessingCommentsPart is missing.");
         return main;
     }
+
+    // Part plumbing for SmartArt, whose markup is read and written without SDK types. The part handles are opaque
+    // here until Word parts are held by OfficeIMO's own package layer.
+
+    /// <summary>The story part that owns <paramref name="element"/>, as an opaque part handle.</summary>
+    internal static object ResolveOwner(WordDocument document, OfficeXmlNode element) =>
+        Resolve(document, (OpenXmlElement)(element.SdkElement ?? throw new InvalidOperationException("The element is not held by the SDK package.")));
+
+    /// <summary>Adds a new SmartArt part under <paramref name="owner"/> with <paramref name="content"/> and returns its relationship id.</summary>
+    internal static string AddDiagramPart(object owner, WordDiagramPartKind kind, byte[] content) {
+        var part = (OpenXmlPart)owner;
+        OpenXmlPart added = kind switch {
+            WordDiagramPartKind.Layout => part.AddNewPart<DiagramLayoutDefinitionPart>(),
+            WordDiagramPartKind.Colors => part.AddNewPart<DiagramColorsPart>(),
+            WordDiagramPartKind.Style => part.AddNewPart<DiagramStylePart>(),
+            WordDiagramPartKind.Data => part.AddNewPart<DiagramDataPart>(),
+            _ => part.AddNewPart<DiagramPersistLayoutPart>()
+        };
+        using (var stream = new MemoryStream(content, writable: false)) added.FeedData(stream);
+        return part.GetIdOfPart(added);
+    }
+
+    /// <summary>The SmartArt data part <paramref name="relationshipId"/> names under <paramref name="owner"/>, or null.</summary>
+    internal static object? GetDiagramDataPart(object owner, string relationshipId) =>
+        ((OpenXmlPart)owner).GetPartById(relationshipId) as DiagramDataPart;
+
+    /// <summary>Reads a SmartArt data part: its stream, or the loaded data model when the stream is empty.</summary>
+    internal static XDocument ReadDiagramData(object dataPart) {
+        var part = (DiagramDataPart)dataPart;
+        using (var stream = part.GetStream(FileMode.Open, FileAccess.Read)) {
+            if (stream != null && stream.Length > 0) return XDocument.Load(stream);
+        }
+        if (part.DataModelRoot != null) return XDocument.Parse(part.DataModelRoot.OuterXml);
+        throw new InvalidOperationException("SmartArt data part is empty.");
+    }
+
+    /// <summary>Replaces the content of a SmartArt data part.</summary>
+    internal static void WriteDiagramData(object dataPart, XDocument data) {
+        using var stream = new MemoryStream();
+        data.Save(stream);
+        stream.Position = 0;
+        ((DiagramDataPart)dataPart).FeedData(stream);
+    }
+
+    /// <summary>The unique id of the SmartArt layout definition <paramref name="relationshipId"/> names, or null.</summary>
+    internal static string? GetDiagramLayoutUniqueId(object owner, string relationshipId) {
+        if (((OpenXmlPart)owner).GetPartById(relationshipId) is not DiagramLayoutDefinitionPart part || part.LayoutDefinition == null) return null;
+        return part.LayoutDefinition.UniqueId?.Value ?? string.Empty;
+    }
+
+    /// <summary>The root of the SmartArt persisted layout part <paramref name="relationshipId"/> names, or none.</summary>
+    internal static OfficeXmlNode GetDiagramPersistedLayout(object owner, string relationshipId) =>
+        ((OpenXmlPart)owner).GetPartById(relationshipId) is DiagramPersistLayoutPart part ? OfficeXmlNode.FromSdk(part.Drawing) : default;
+}
+
+/// <summary>The parts a SmartArt diagram keeps next to the story that shows it.</summary>
+internal enum WordDiagramPartKind {
+    Layout,
+    Colors,
+    Style,
+    Data,
+    PersistLayout
 }
