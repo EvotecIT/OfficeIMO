@@ -377,7 +377,10 @@ internal sealed class ExtractionDocumentMapper {
             }
         }
         List<OfficeDocumentAsset> unmatchedImages = images.Where(image => !paired.Contains(image)).ToList();
-        if (unmatchedBlocks.Count > 0 && unmatchedBlocks.Count == unmatchedImages.Count) {
+        // Order is only trusted when no pair lands in a conflicting file, page, slide or sheet.
+        if (unmatchedBlocks.Count > 0 && unmatchedBlocks.Count == unmatchedImages.Count
+            && Enumerable.Range(0, unmatchedBlocks.Count).All(i =>
+                unmatchedBlocks[i].Location == null || SameContainer(unmatchedBlocks[i].Location!, unmatchedImages[i].Location))) {
             for (int i = 0; i < unmatchedImages.Count; i++) {
                 _imagesForBlocks[unmatchedBlocks[i]] = unmatchedImages[i];
                 paired.Add(unmatchedImages[i]);

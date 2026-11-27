@@ -229,6 +229,23 @@ public sealed class ExtractionMappingTests {
     }
 
     [Fact]
+    public void ImagesOnAnotherPageAreNotPairedByOrder() {
+        OfficeDocumentBlock block = Block("image", "Page one figure");
+        block.Location.BlockAnchor = "x";
+        block.Location.Page = 1;
+        OfficeDocumentReadResult result = Result(ReaderInputKind.Pdf, block);
+        result.Assets = new[] {
+            new OfficeDocumentAsset { Id = "page-2", Kind = "image", MediaType = "image/png", Location = new ReaderLocation { Page = 2, BlockAnchor = "x" } }
+        };
+
+        ExtractionDocument document = result.ToExtractionDocument("doc");
+
+        ExtractionDocumentImageElement image = Assert.Single(document.EnumerateContent().OfType<ExtractionDocumentImageElement>());
+        Assert.Equal("page-2", image.Content!.AdditionalProperties![OfficeIMOExtractionPropertyNames.AssetId]);
+        Assert.NotEqual("Page one figure", image.AlternativeText);
+    }
+
+    [Fact]
     public void ImagePayloadsCanBeLeftOut() {
         OfficeDocumentReadResult result = Result(ReaderInputKind.Word);
         result.Assets = new[] { new OfficeDocumentAsset { Id = "a", Kind = "image", MediaType = "image/png", PayloadBytes = new byte[] { 1 } } };
