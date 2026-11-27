@@ -89,6 +89,16 @@ public sealed class EntityOverlapTests {
         var matches = new EntityFinder(catalog).Find(text).Matches;
         Assert.Single(matches);
         Assert.Equal("[Email]!", EntityMasker.Mask(text, matches));
+
+        var segments = new[] {
+            new EntityTextSegment("abcdef"),
+            new EntityTextSegment("ghij!", continuesPrevious: true),
+        };
+        var segmentedMatches = new EntityFinder(catalog).Find(segments).Matches;
+        Assert.Single(segmentedMatches);
+        Assert.Equal(new[] { "[Email]", "!" }, EntityMasker.Mask(segments, segmentedMatches));
+        Assert.Equal(new[] { "******", "****!" }, EntityMasker.Mask(segments, segmentedMatches,
+            new EntityMaskOptions { Style = EntityMaskStyle.Fixed, FixedCharacter = '*' }));
     }
 
     [Fact]
@@ -111,6 +121,13 @@ public sealed class EntityOverlapTests {
         var replacement = Assert.Single(pseudonym.Map);
         Assert.Equal("abcdefghijk", replacement.Value);
         Assert.Equal(replacement.Key + "!", pseudonym.Text);
+
+        var segments = new[] {
+            new EntityTextSegment("ab"),
+            new EntityTextSegment("cdef", continuesPrevious: true),
+            new EntityTextSegment("ghijk!", continuesPrevious: true),
+        };
+        Assert.Equal(new[] { "[Email]", "", "!" }, EntityMasker.Mask(segments, all.Find(segments).Matches));
     }
 
     private sealed class SampleScheme : EntityScheme {

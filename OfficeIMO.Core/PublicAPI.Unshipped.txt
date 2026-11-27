@@ -1164,7 +1164,10 @@ static OfficeIMO.Entities.EntityKind.Url.get -> OfficeIMO.Entities.EntityKind
 static OfficeIMO.Entities.EntityKind.VatId.get -> OfficeIMO.Entities.EntityKind
 static OfficeIMO.Entities.EntityKind.operator !=(OfficeIMO.Entities.EntityKind left, OfficeIMO.Entities.EntityKind right) -> bool
 static OfficeIMO.Entities.EntityKind.operator ==(OfficeIMO.Entities.EntityKind left, OfficeIMO.Entities.EntityKind right) -> bool
-static OfficeIMO.Entities.EntityMasker.Mask(string! text, System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityMatch!>! matches, OfficeIMO.Entities.EntityMaskOptions? options = null) -> string!
+static OfficeIMO.Entities.EntityMasker.Mask(System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityTextSegment>! segments, System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityMatch!>! matches) -> System.Collections.Generic.IReadOnlyList<string!>!
+static OfficeIMO.Entities.EntityMasker.Mask(System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityTextSegment>! segments, System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityMatch!>! matches, OfficeIMO.Entities.EntityMaskOptions? options) -> System.Collections.Generic.IReadOnlyList<string!>!
+static OfficeIMO.Entities.EntityMasker.Mask(string! text, System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityMatch!>! matches) -> string!
+static OfficeIMO.Entities.EntityMasker.Mask(string! text, System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityMatch!>! matches, OfficeIMO.Entities.EntityMaskOptions? options) -> string!
 static OfficeIMO.Entities.EntityMasker.Pseudonymize(string! text, System.Collections.Generic.IEnumerable<OfficeIMO.Entities.EntityMatch!>! matches, OfficeIMO.Entities.EntityMaskOptions! options) -> OfficeIMO.Entities.EntityPseudonymResult!
 static OfficeIMO.Entities.EuVatSchemes.All.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityScheme!>!
 static OfficeIMO.Entities.EuVatSchemes.Get(string! prefix) -> OfficeIMO.Entities.EntityScheme!

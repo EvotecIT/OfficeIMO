@@ -23,6 +23,50 @@ public sealed class EntityMaskerTests {
         Assert.Equal(expected, EntityMasker.Mask(text, matches, new EntityMaskOptions { Style = EntityMaskStyle.Partial }));
     }
 
+    [Theory]
+    [InlineData(EntityMaskStyle.KindLabel, "PESEL: [NationalId]", "")]
+    [InlineData(EntityMaskStyle.Fixed, "PESEL: ****", "*******")]
+    [InlineData(EntityMaskStyle.Partial, "PESEL: ••••", "•••••••")]
+    [InlineData(EntityMaskStyle.Pseudonym, "PESEL: [NationalId:5a19ed4883930bdc44b02fe3f4eb7e6e]", "")]
+    public void EveryStyleMasksAllPartsOfASplitPesel(EntityMaskStyle style, string first, string second) {
+        var segments = new[] {
+            new EntityTextSegment("PESEL: 4405"),
+            new EntityTextSegment("1401359", continuesPrevious: true),
+        };
+        var matches = new EntityFinder().Find(segments).Matches;
+        Assert.Equal(2, Assert.Single(matches).Parts.Count);
+
+        var options = new EntityMaskOptions {
+            Style = style, FixedCharacter = '*', FixedLength = 2, PseudonymKey = new byte[] { 11, 12, 13, 14 },
+        };
+        Assert.Equal(new[] { first, second }, EntityMasker.Mask(segments, matches, options));
+    }
+
+    [Theory]
+    [InlineData("IBAN PL61 1090 1014 0000 0712 1981 28", "74", "IBAN PL61 •••• •••• •••• •••• •••• 28", "74")]
+    [InlineData("Email: jan.kowalski@", "EXAMPLE.COM", "Email: j•••@", "example.com")]
+    public void SplitPartialMaskKeepsPermittedCharactersInTheirSourceSegments(
+        string first, string second, string expectedFirst, string expectedSecond) {
+        var segments = new[] {
+            new EntityTextSegment(first),
+            new EntityTextSegment(second, continuesPrevious: true),
+        };
+        var matches = new EntityFinder().Find(segments).Matches;
+        Assert.Equal(2, Assert.Single(matches).Parts.Count);
+        Assert.Equal(new[] { expectedFirst, expectedSecond },
+            EntityMasker.Mask(segments, matches, new EntityMaskOptions { Style = EntityMaskStyle.Partial }));
+    }
+
+    [Fact]
+    public void IndependentSegmentsKeepSeparateTokensAtTheirEdges() {
+        var segments = new[] {
+            new EntityTextSegment("alice@example.com"),
+            new EntityTextSegment("bob@example.com"),
+        };
+        var matches = new EntityFinder().Find(segments).Matches;
+        Assert.Equal(new[] { "[Email]", "[Email]" }, EntityMasker.Mask(segments, matches));
+    }
+
     [Fact]
     public void DefaultMaskingProtectsAnEmailInsideAPublicMailtoUrl() {
         const string text = "mailto:Alice@example.com";

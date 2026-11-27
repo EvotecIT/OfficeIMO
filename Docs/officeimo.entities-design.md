@@ -326,6 +326,8 @@ string safe = EntityMasker.Mask(text, result.Matches, new EntityMaskOptions {
 //                                            so the same NIP gets the same token across documents
 ```
 
+The segment overload `EntityMasker.Mask(segments, matches, options)` returns a string for each input segment. It uses every match part to mask the original source text. Fixed masking replaces each matched UTF-16 code unit. Partial masking applies the scheme to the full value and distributes its result across the covered parts. Kind labels and pseudonyms replace the first part and clear the matched text from subsequent parts.
+
 Partial masking follows each scheme's rule (`Scheme.MaskPartial`): card numbers keep the last four digits as payment standards allow, IBANs keep the country code and the last four, emails keep the first character of the local part and the domain. Pseudonyms need a caller-supplied key; there is no default key, and the engine keeps no map. A host that needs to restore values after an AI round trip keeps its own `token → value` map from `EntityMasker.Pseudonymize`, which returns both the masked text and the map.
 
 ## Data-backed recognizers (later, `OfficeIMO.Entities.Data`)

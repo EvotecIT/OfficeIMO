@@ -8,7 +8,7 @@ public sealed class EntityMaskOptions {
     public EntityMaskStyle Style { get; set; } = EntityMaskStyle.KindLabel;
     /// <summary>Character repeated for fixed masking.</summary>
     public char FixedCharacter { get; set; } = '█';
-    /// <summary>Fixed replacement length, or null to preserve the written length.</summary>
+    /// <summary>Fixed replacement length for string input, or null to preserve the written length.</summary>
     public int? FixedLength { get; set; }
     /// <summary>Secret HMAC key required for keyed pseudonyms.</summary>
     public byte[]? PseudonymKey { get; set; }
