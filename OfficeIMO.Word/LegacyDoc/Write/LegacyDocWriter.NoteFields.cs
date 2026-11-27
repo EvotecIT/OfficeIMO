@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
@@ -9,18 +7,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            SimpleField field,
+            LegacyDocElement field,
             int storyStart,
             bool allowHyperlinkRunStyle = false) {
-            if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
+            string? fieldInstruction = field.Attr("instr");
+            if (!TryReadSupportedFieldKind(fieldInstruction, out LegacyDocFieldKind fieldKind)) {
                 throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} simple fields in note paragraphs. Other field types are not supported yet.");
             }
             LegacyDocWritableFieldResult result = ReadSimpleFieldResult(field, allowHyperlinkRunStyle);
-            AppendSupportedField(text, runs, bookmarks, field.Instruction?.Value ?? GetSupportedFieldInstruction(fieldKind), result, GetSupportedFieldEmptyResultText(fieldKind), storyStart);
+            AppendSupportedField(text, runs, bookmarks, fieldInstruction ?? GetSupportedFieldInstruction(fieldKind), result, GetSupportedFieldEmptyResultText(fieldKind), storyStart);
         }
 
         private static void AppendSupportedNoteComplexPageNumberField(
-            IReadOnlyList<OpenXmlElement> paragraphChildren,
+            IReadOnlyList<LegacyDocElement> paragraphChildren,
             ref int childIndex,
             StringBuilder text,
             List<LegacyDocWritableRun> runs,

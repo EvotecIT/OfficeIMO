@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
@@ -10,25 +8,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            SdtRun sdtRun,
-            OpenXmlPart relationshipOwner,
+            LegacyDocElement sdtRun,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
             LegacyDocWritableFormatting inheritedFormatting,
             string context) {
-            OpenXmlElement[] children = GetInlineContentControlChildren(sdtRun, context);
+            LegacyDocElement[] children = GetInlineContentControlChildren(sdtRun, context);
             for (int index = 0; index < children.Length; index++) {
-                OpenXmlElement child = children[index];
-                switch (child) {
-                    case Run run:
-                        if (IsComplexFieldBeginRun(run)) {
+                LegacyDocElement child = children[index];
+                if (child.Is(OfficeXmlNamespaces.Math, "oMath") || child.Is(OfficeXmlNamespaces.Math, "oMathPara")) {
+                    AppendMathEquationField(text, runs, child, inheritedFormatting);
+                    continue;
+                }
+
+                switch (child.WName) {
+                    case "r":
+                        if (IsComplexFieldBeginRun(child)) {
                             AppendSupportedComplexPageNumberField(children, ref index, text, runs, bookmarks, inheritedFormatting);
                         } else {
                             AppendSupportedRunText(
                                 text,
                                 runs,
-                                run,
+                                child,
                                 footnotes,
                                 endnotes,
                                 inheritedFormatting,
@@ -38,32 +41,26 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         break;
-                    case InsertedRun insertedRun:
-                        AppendSupportedRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting, pictures, relationshipOwner);
+                    case "ins":
+                        AppendSupportedRevisionText(text, runs, child, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting, pictures, relationshipOwner);
                         break;
-                    case DeletedRun deletedRun:
-                        AppendSupportedRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting, pictures, relationshipOwner);
+                    case "del":
+                        AppendSupportedRevisionText(text, runs, child, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting, pictures, relationshipOwner);
                         break;
-                    case Hyperlink hyperlink:
-                        AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, relationshipOwner, footnotes, endnotes, inheritedFormatting);
+                    case "hyperlink":
+                        AppendSupportedHyperlinkText(text, runs, bookmarks, child, relationshipOwner, footnotes, endnotes, inheritedFormatting);
                         break;
-                    case SimpleField simpleField:
-                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, simpleField, inheritedFormatting);
+                    case "fldSimple":
+                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, child, inheritedFormatting);
                         break;
-                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
-                        AppendMathEquationField(text, runs, officeMath, inheritedFormatting);
+                    case "sdt":
+                        AppendSupportedInlineContentControlText(text, runs, bookmarks, child, relationshipOwner, pictures, footnotes, endnotes, inheritedFormatting, context);
                         break;
-                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
-                        AppendMathEquationField(text, runs, mathParagraph, inheritedFormatting);
+                    case "bookmarkStart":
+                        bookmarks.AddStart(child, text.Length);
                         break;
-                    case SdtRun nestedSdtRun:
-                        AppendSupportedInlineContentControlText(text, runs, bookmarks, nestedSdtRun, relationshipOwner, pictures, footnotes, endnotes, inheritedFormatting, context);
-                        break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, text.Length);
-                        break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, text.Length);
+                    case "bookmarkEnd":
+                        bookmarks.AddEnd(child, text.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {
@@ -80,48 +77,47 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             List<LegacyDocWritableRun> formattedRuns,
             StringBuilder paragraphText,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            SdtRun sdtRun,
-            OpenXmlPart relationshipOwner,
+            LegacyDocElement sdtRun,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             string kind) {
-            OpenXmlElement[] children = GetInlineContentControlChildren(sdtRun, $"{kind} inline content control");
+            LegacyDocElement[] children = GetInlineContentControlChildren(sdtRun, $"{kind} inline content control");
             for (int index = 0; index < children.Length; index++) {
-                OpenXmlElement child = children[index];
-                switch (child) {
-                    case Run run:
-                        if (IsComplexFieldBeginRun(run)) {
+                LegacyDocElement child = children[index];
+                if (child.Is(OfficeXmlNamespaces.Math, "oMath") || child.Is(OfficeXmlNamespaces.Math, "oMathPara")) {
+                    AppendFormattedHeaderFooterMathEquation(storyText, formattedRuns, paragraphText, child);
+                    continue;
+                }
+
+                switch (child.WName) {
+                    case "r":
+                        if (IsComplexFieldBeginRun(child)) {
                             AppendFormattedHeaderFooterComplexPageNumberField(storyText, formattedRuns, paragraphText, bookmarks, children, ref index, kind);
                         } else {
-                            AppendFormattedHeaderFooterRun(storyText, formattedRuns, paragraphText, run, relationshipOwner, pictures, kind);
+                            AppendFormattedHeaderFooterRun(storyText, formattedRuns, paragraphText, child, relationshipOwner, pictures, kind);
                         }
 
                         break;
-                    case InsertedRun insertedRun:
-                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, paragraphText, insertedRun, LegacyDocRevisionKind.Inserted, relationshipOwner, pictures, kind);
+                    case "ins":
+                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, paragraphText, child, LegacyDocRevisionKind.Inserted, relationshipOwner, pictures, kind);
                         break;
-                    case DeletedRun deletedRun:
-                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, paragraphText, deletedRun, LegacyDocRevisionKind.Deleted, relationshipOwner, pictures, kind);
+                    case "del":
+                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, paragraphText, child, LegacyDocRevisionKind.Deleted, relationshipOwner, pictures, kind);
                         break;
-                    case Hyperlink hyperlink:
-                        AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, paragraphText, bookmarks, hyperlink, relationshipOwner, kind);
+                    case "hyperlink":
+                        AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, paragraphText, bookmarks, child, relationshipOwner, kind);
                         break;
-                    case SimpleField simpleField:
-                        AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, paragraphText, bookmarks, simpleField, kind);
+                    case "fldSimple":
+                        AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, paragraphText, bookmarks, child, kind);
                         break;
-                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
-                        AppendFormattedHeaderFooterMathEquation(storyText, formattedRuns, paragraphText, officeMath);
+                    case "sdt":
+                        AppendFormattedHeaderFooterInlineContentControl(storyText, formattedRuns, paragraphText, bookmarks, child, relationshipOwner, pictures, kind);
                         break;
-                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
-                        AppendFormattedHeaderFooterMathEquation(storyText, formattedRuns, paragraphText, mathParagraph);
+                    case "bookmarkStart":
+                        bookmarks.AddStart(child, storyText.Length);
                         break;
-                    case SdtRun nestedSdtRun:
-                        AppendFormattedHeaderFooterInlineContentControl(storyText, formattedRuns, paragraphText, bookmarks, nestedSdtRun, relationshipOwner, pictures, kind);
-                        break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, storyText.Length);
-                        break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, storyText.Length);
+                    case "bookmarkEnd":
+                        bookmarks.AddEnd(child, storyText.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {
@@ -137,49 +133,48 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            SdtRun sdtRun,
-            FootnotesPart relationshipOwner,
+            LegacyDocElement sdtRun,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             long id,
             int storyStart) {
-            OpenXmlElement[] children = GetInlineContentControlChildren(sdtRun, $"footnote id '{id}' inline content control");
+            LegacyDocElement[] children = GetInlineContentControlChildren(sdtRun, $"footnote id '{id}' inline content control");
             for (int index = 0; index < children.Length; index++) {
-                OpenXmlElement child = children[index];
-                switch (child) {
-                    case Run run:
-                        if (IsComplexFieldBeginRun(run)) {
+                LegacyDocElement child = children[index];
+                if (child.Is(OfficeXmlNamespaces.Math, "oMath") || child.Is(OfficeXmlNamespaces.Math, "oMathPara")) {
+                    AppendMathEquationNoteField(builder, runs, bookmarks, child, storyStart);
+                    continue;
+                }
+
+                switch (child.WName) {
+                    case "r":
+                        if (IsComplexFieldBeginRun(child)) {
                             AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, bookmarks, storyStart);
                         } else {
-                            AppendSimpleFootnoteRun(builder, runs, run, id, storyStart, relationshipOwner, pictures);
+                            AppendSimpleFootnoteRun(builder, runs, child, id, storyStart, relationshipOwner, pictures);
                         }
 
                         break;
-                    case InsertedRun insertedRun:
-                        AppendSimpleFootnoteRevision(builder, runs, insertedRun, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
+                    case "ins":
+                        AppendSimpleFootnoteRevision(builder, runs, child, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
                         break;
-                    case DeletedRun deletedRun:
-                        AppendSimpleFootnoteRevision(builder, runs, deletedRun, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
+                    case "del":
+                        AppendSimpleFootnoteRevision(builder, runs, child, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
                         break;
-                    case Hyperlink hyperlink:
-                        AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "footnote", storyStart);
+                    case "hyperlink":
+                        AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, child, relationshipOwner, id, "footnote", storyStart);
                         break;
-                    case SimpleField simpleField:
-                        AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, simpleField, storyStart);
+                    case "fldSimple":
+                        AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, child, storyStart);
                         break;
-                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
-                        AppendMathEquationNoteField(builder, runs, bookmarks, officeMath, storyStart);
+                    case "sdt":
+                        AppendSupportedFootnoteInlineContentControl(builder, runs, bookmarks, child, relationshipOwner, pictures, id, storyStart);
                         break;
-                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
-                        AppendMathEquationNoteField(builder, runs, bookmarks, mathParagraph, storyStart);
+                    case "bookmarkStart":
+                        bookmarks.AddStart(child, storyStart + builder.Length);
                         break;
-                    case SdtRun nestedSdtRun:
-                        AppendSupportedFootnoteInlineContentControl(builder, runs, bookmarks, nestedSdtRun, relationshipOwner, pictures, id, storyStart);
-                        break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);
-                        break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, storyStart + builder.Length);
+                    case "bookmarkEnd":
+                        bookmarks.AddEnd(child, storyStart + builder.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {
@@ -195,49 +190,48 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            SdtRun sdtRun,
-            EndnotesPart relationshipOwner,
+            LegacyDocElement sdtRun,
+            LegacyDocPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             long id,
             int storyStart) {
-            OpenXmlElement[] children = GetInlineContentControlChildren(sdtRun, $"endnote id '{id}' inline content control");
+            LegacyDocElement[] children = GetInlineContentControlChildren(sdtRun, $"endnote id '{id}' inline content control");
             for (int index = 0; index < children.Length; index++) {
-                OpenXmlElement child = children[index];
-                switch (child) {
-                    case Run run:
-                        if (IsComplexFieldBeginRun(run)) {
+                LegacyDocElement child = children[index];
+                if (child.Is(OfficeXmlNamespaces.Math, "oMath") || child.Is(OfficeXmlNamespaces.Math, "oMathPara")) {
+                    AppendMathEquationNoteField(builder, runs, bookmarks, child, storyStart);
+                    continue;
+                }
+
+                switch (child.WName) {
+                    case "r":
+                        if (IsComplexFieldBeginRun(child)) {
                             AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, bookmarks, storyStart);
                         } else {
-                            AppendSimpleEndnoteRun(builder, runs, run, id, storyStart, relationshipOwner, pictures);
+                            AppendSimpleEndnoteRun(builder, runs, child, id, storyStart, relationshipOwner, pictures);
                         }
 
                         break;
-                    case InsertedRun insertedRun:
-                        AppendSimpleEndnoteRevision(builder, runs, insertedRun, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
+                    case "ins":
+                        AppendSimpleEndnoteRevision(builder, runs, child, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
                         break;
-                    case DeletedRun deletedRun:
-                        AppendSimpleEndnoteRevision(builder, runs, deletedRun, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
+                    case "del":
+                        AppendSimpleEndnoteRevision(builder, runs, child, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
                         break;
-                    case Hyperlink hyperlink:
-                        AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "endnote", storyStart);
+                    case "hyperlink":
+                        AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, child, relationshipOwner, id, "endnote", storyStart);
                         break;
-                    case SimpleField simpleField:
-                        AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, simpleField, storyStart);
+                    case "fldSimple":
+                        AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, child, storyStart);
                         break;
-                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
-                        AppendMathEquationNoteField(builder, runs, bookmarks, officeMath, storyStart);
+                    case "sdt":
+                        AppendSupportedEndnoteInlineContentControl(builder, runs, bookmarks, child, relationshipOwner, pictures, id, storyStart);
                         break;
-                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
-                        AppendMathEquationNoteField(builder, runs, bookmarks, mathParagraph, storyStart);
+                    case "bookmarkStart":
+                        bookmarks.AddStart(child, storyStart + builder.Length);
                         break;
-                    case SdtRun nestedSdtRun:
-                        AppendSupportedEndnoteInlineContentControl(builder, runs, bookmarks, nestedSdtRun, relationshipOwner, pictures, id, storyStart);
-                        break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);
-                        break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, storyStart + builder.Length);
+                    case "bookmarkEnd":
+                        bookmarks.AddEnd(child, storyStart + builder.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {
@@ -249,13 +243,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static OpenXmlElement[] GetInlineContentControlChildren(SdtRun sdtRun, string context) {
-            SdtContentRun? contentRun = sdtRun.SdtContentRun;
-            if (contentRun == null) {
+        private static LegacyDocElement[] GetInlineContentControlChildren(LegacyDocElement sdtRun, string context) {
+            LegacyDocElement contentRun = sdtRun.Child("sdtContent");
+            if (contentRun.IsNone) {
                 throw new NotSupportedException($"Native DOC saving supports {context}s only when they contain run-level content.");
             }
 
-            return contentRun.ChildElements.ToArray();
+            return contentRun.Elements().ToArray();
         }
     }
 }

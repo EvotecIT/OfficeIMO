@@ -366,7 +366,10 @@ namespace OfficeIMO.Excel {
             foreach (ExcelDeferredSheet entry in _deferredWorkbook?.Sheets ?? new List<ExcelDeferredSheet>()) {
                 entry.TableHeadersRead = false;
                 entry.IsNewSheet = false;
+                // Formula models read the replaced bytes; the next formula read reads the saved ones.
+                entry.FormulaModel = null;
             }
+            _xmlFormulaWorkbook = null;
             _deferredHasCellMetadata = null;
             MarkPackageClean(bytes);
             bool pending;
@@ -455,6 +458,7 @@ namespace OfficeIMO.Excel {
                     editable.ReplacePart(entry.PartName, merged, mergedLength, pooled: true);
                 }
 
+                if (HasFormulaResults(edits)) RemoveCalculationChain(editable, workbook.WorkbookPartName);
                 if (!sharedStrings.TryWrite(editable, workbook.WorkbookPartName)) return Decline("the shared strings part cannot take new items");
                 styles?.Write();
                 if (_deferredCreated) CreateApplicationPropertiesIfMissing(editable, applicationPropertiesRelated);
@@ -477,6 +481,35 @@ namespace OfficeIMO.Excel {
         }
 
         private const string NewCorePropertiesPartName = "/docProps/core.xml";
+        private const string CalculationChainRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "calcChain";
+
+        private static bool HasFormulaResults((ExcelSheet Sheet, ExcelDeferredCellStore Store)[] edits) {
+            foreach ((_, ExcelDeferredCellStore store) in edits) {
+                for (int index = 0; index < store.Count; index++) {
+                    if (store[index].Kind == ExcelDeferredCellKind.FormulaResult) return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Removes the calculation chain, as the model's save of a calculated workbook leaves it out; the application
+        /// that opens the workbook builds a new one.
+        /// </summary>
+        private static void RemoveCalculationChain(OfficeOpcEditablePackage package, string workbookPartName) {
+            OfficeXmlTree relationships = package.GetRelationships(workbookPartName);
+            for (int relationship = relationships.FirstChildOf(relationships.Root); relationship != OfficeXmlTree.NoNode;) {
+                int next = relationships.NextSiblingOf(relationship);
+                if (relationships.IsElement(relationship, OfficeXmlNamespaces.PackageRelationships, "Relationship")
+                    && relationships.AttributeEquals(relationship, OfficeXmlNamespaces.None, "Type", CalculationChainRelationshipType)
+                    && relationships.GetAttribute(relationship, OfficeXmlNamespaces.None, "Id") is string id) {
+                    string? target = package.GetRelationshipTarget(workbookPartName, id);
+                    relationships.Remove(relationship);
+                    if (target != null) package.DeletePart(target);
+                }
+                relationship = next;
+            }
+        }
 
         /// <summary>
         /// A seekable in-memory stream that grows through the shared array pool and refuses to grow past the in-memory

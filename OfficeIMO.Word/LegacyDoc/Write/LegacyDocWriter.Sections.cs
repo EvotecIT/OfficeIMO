@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
@@ -46,10 +44,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmSDyaBottom = 0x9024;
         private const ushort SprmSDzaGutter = 0xB025;
 
-        private static LegacyDocSectionFormat ReadSupportedSectionProperties(SectionProperties sectionProperties) {
+        private static LegacyDocSectionFormat ReadSupportedSectionProperties(LegacyDocElement sectionProperties) {
             int? pageWidth = null;
             int? pageHeight = null;
-            PageOrientationValues? orientation = null;
+            string? orientation = null;
             int? marginTop = null;
             int? marginRight = null;
             int? marginBottom = null;
@@ -63,80 +61,80 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             IReadOnlyList<WordSectionColumn>? columnDefinitions = null;
             bool hasColumnSeparator = false;
             int? pageNumberStart = null;
-            NumberFormatValues? pageNumberFormat = null;
+            string? pageNumberFormat = null;
             bool rtlGutter = false;
-            VerticalJustificationValues? verticalAlignment = null;
+            string? verticalAlignment = null;
             int? lineNumberCountBy = null;
             int? lineNumberDistance = null;
             int? lineNumberStart = null;
-            LineNumberRestartValues? lineNumberRestart = null;
-            FootnotePositionValues? footnotePosition = null;
-            RestartNumberValues? footnoteRestart = null;
+            string? lineNumberRestart = null;
+            string? footnotePosition = null;
+            string? footnoteRestart = null;
             int? footnoteStart = null;
-            NumberFormatValues? footnoteNumberFormat = null;
-            EndnotePositionValues? endnotePosition = null;
-            RestartNumberValues? endnoteRestart = null;
+            string? footnoteNumberFormat = null;
+            string? endnotePosition = null;
+            string? endnoteRestart = null;
             int? endnoteStart = null;
-            NumberFormatValues? endnoteNumberFormat = null;
+            string? endnoteNumberFormat = null;
             LegacyDocParagraphBorders? pageBorders = null;
-            SectionMarkValues? sectionBreakType = null;
+            string? sectionBreakType = null;
 
-            foreach (OpenXmlElement property in sectionProperties.ChildElements) {
-                switch (property) {
-                    case HeaderReference:
-                    case FooterReference:
+            foreach (LegacyDocElement property in sectionProperties.Elements()) {
+                switch (property.WName) {
+                    case "headerReference":
+                    case "footerReference":
                         break;
-                    case TitlePage titlePage:
-                        differentFirstPage = IsOnOffEnabled(titlePage);
+                    case "titlePg":
+                        differentFirstPage = IsOnOffEnabled(property);
                         break;
-                    case PageSize pageSize:
-                        pageWidth = ReadTwipValue(pageSize.Width, DefaultPageWidthTwips, "section page width");
-                        pageHeight = ReadTwipValue(pageSize.Height, DefaultPageHeightTwips, "section page height");
-                        orientation = pageSize.Orient?.Value;
+                    case "pgSz":
+                        pageWidth = ReadTwipValue(property.Attr("w"), DefaultPageWidthTwips, "section page width");
+                        pageHeight = ReadTwipValue(property.Attr("h"), DefaultPageHeightTwips, "section page height");
+                        orientation = property.Attr("orient");
                         if (orientation == null && pageWidth > pageHeight) {
-                            orientation = PageOrientationValues.Landscape;
+                            orientation = "landscape";
                         }
 
                         break;
-                    case PageMargin pageMargin:
-                        marginTop = ReadTwipValue(pageMargin.Top, DefaultPageMarginTwips, "section top margin");
-                        marginRight = ReadTwipValue(pageMargin.Right, DefaultPageMarginTwips, "section right margin");
-                        marginBottom = ReadTwipValue(pageMargin.Bottom, DefaultPageMarginTwips, "section bottom margin");
-                        marginLeft = ReadTwipValue(pageMargin.Left, DefaultPageMarginTwips, "section left margin");
-                        headerDistance = ReadTwipValue(pageMargin.Header, DefaultHeaderFooterMarginTwips, "section header distance");
-                        footerDistance = ReadTwipValue(pageMargin.Footer, DefaultHeaderFooterMarginTwips, "section footer distance");
-                        gutter = ReadTwipValue(pageMargin.Gutter, 0, "section gutter");
+                    case "pgMar":
+                        marginTop = ReadTwipValue(property.Attr("top"), DefaultPageMarginTwips, "section top margin");
+                        marginRight = ReadTwipValue(property.Attr("right"), DefaultPageMarginTwips, "section right margin");
+                        marginBottom = ReadTwipValue(property.Attr("bottom"), DefaultPageMarginTwips, "section bottom margin");
+                        marginLeft = ReadTwipValue(property.Attr("left"), DefaultPageMarginTwips, "section left margin");
+                        headerDistance = ReadTwipValue(property.Attr("header"), DefaultHeaderFooterMarginTwips, "section header distance");
+                        footerDistance = ReadTwipValue(property.Attr("footer"), DefaultHeaderFooterMarginTwips, "section footer distance");
+                        gutter = ReadTwipValue(property.Attr("gutter"), 0, "section gutter");
                         break;
-                    case SectionType sectionType:
-                        if (sectionType.Val != null) {
-                            sectionBreakType = sectionType.Val.Value;
+                    case "type":
+                        if (property.Val != null) {
+                            sectionBreakType = property.Val;
                         }
 
                         break;
-                    case Columns columns:
-                        columnDefinitions = ReadSupportedColumns(columns, out columnCount, out columnSpacing, out hasColumnSeparator);
+                    case "cols":
+                        columnDefinitions = ReadSupportedColumns(property, out columnCount, out columnSpacing, out hasColumnSeparator);
                         break;
-                    case PageNumberType pageNumberType:
-                        pageNumberStart = ReadPageNumberStart(pageNumberType.Start);
-                        pageNumberFormat = ReadPageNumberFormat(pageNumberType.Format);
+                    case "pgNumType":
+                        pageNumberStart = ReadPageNumberStart(property.Attr("start"));
+                        pageNumberFormat = ReadPageNumberFormat(property.Attr("fmt"));
                         break;
-                    case LineNumberType lineNumberType:
-                        ReadSupportedLineNumbering(lineNumberType, out lineNumberCountBy, out lineNumberDistance, out lineNumberStart, out lineNumberRestart);
+                    case "lnNumType":
+                        ReadSupportedLineNumbering(property, out lineNumberCountBy, out lineNumberDistance, out lineNumberStart, out lineNumberRestart);
                         break;
-                    case FootnoteProperties footnoteProperties:
-                        ReadSupportedFootnoteProperties(footnoteProperties, out footnotePosition, out footnoteRestart, out footnoteStart, out footnoteNumberFormat);
+                    case "footnotePr":
+                        ReadSupportedFootnoteProperties(property, out footnotePosition, out footnoteRestart, out footnoteStart, out footnoteNumberFormat);
                         break;
-                    case EndnoteProperties endnoteProperties:
-                        ReadSupportedEndnoteProperties(endnoteProperties, out endnotePosition, out endnoteRestart, out endnoteStart, out endnoteNumberFormat);
+                    case "endnotePr":
+                        ReadSupportedEndnoteProperties(property, out endnotePosition, out endnoteRestart, out endnoteStart, out endnoteNumberFormat);
                         break;
-                    case GutterOnRight gutterOnRight:
-                        rtlGutter = IsOnOffEnabled(gutterOnRight);
+                    case "rtlGutter":
+                        rtlGutter = IsOnOffEnabled(property);
                         break;
-                    case VerticalTextAlignmentOnPage verticalTextAlignment:
-                        verticalAlignment = ReadVerticalAlignment(verticalTextAlignment.Val);
+                    case "vAlign":
+                        verticalAlignment = ReadVerticalAlignment(property.Val);
                         break;
-                    case PageBorders sectionPageBorders:
-                        pageBorders = ReadSupportedSectionPageBorders(sectionPageBorders);
+                    case "pgBorders":
+                        pageBorders = ReadSupportedSectionPageBorders(property);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports simple section page setup only. Unsupported section property: {property.LocalName}.");
@@ -144,10 +142,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return new LegacyDocSectionFormat(
-                ToModel<LegacyDocSectionMark, SectionMarkValues>(sectionBreakType),
+                ToModel<LegacyDocSectionMark>(sectionBreakType),
                 pageWidth,
                 pageHeight,
-                ToModel<LegacyDocPageOrientation, PageOrientationValues>(orientation),
+                ToModel<LegacyDocPageOrientation>(orientation),
                 marginTop,
                 marginRight,
                 marginBottom,
@@ -160,27 +158,27 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 columnSpacing,
                 hasColumnSeparator,
                 pageNumberStart,
-                ToModel<LegacyDocNumberFormat, NumberFormatValues>(pageNumberFormat),
+                ToModel<LegacyDocNumberFormat>(pageNumberFormat),
                 rtlGutter,
-                ToModel<LegacyDocVerticalJustification, VerticalJustificationValues>(verticalAlignment),
+                ToModel<LegacyDocVerticalJustification>(verticalAlignment),
                 lineNumberCountBy,
                 lineNumberDistance,
                 lineNumberStart,
-                ToModel<LegacyDocLineNumberRestart, LineNumberRestartValues>(lineNumberRestart),
-                ToModel<LegacyDocFootnotePosition, FootnotePositionValues>(footnotePosition),
-                ToModel<LegacyDocRestartNumber, RestartNumberValues>(footnoteRestart),
+                ToModel<LegacyDocLineNumberRestart>(lineNumberRestart),
+                ToModel<LegacyDocFootnotePosition>(footnotePosition),
+                ToModel<LegacyDocRestartNumber>(footnoteRestart),
                 footnoteStart,
-                ToModel<LegacyDocNumberFormat, NumberFormatValues>(footnoteNumberFormat),
-                ToModel<LegacyDocEndnotePosition, EndnotePositionValues>(endnotePosition),
-                ToModel<LegacyDocRestartNumber, RestartNumberValues>(endnoteRestart),
+                ToModel<LegacyDocNumberFormat>(footnoteNumberFormat),
+                ToModel<LegacyDocEndnotePosition>(endnotePosition),
+                ToModel<LegacyDocRestartNumber>(endnoteRestart),
                 endnoteStart,
-                ToModel<LegacyDocNumberFormat, NumberFormatValues>(endnoteNumberFormat),
+                ToModel<LegacyDocNumberFormat>(endnoteNumberFormat),
                 pageBorders,
                 columnDefinitions);
         }
 
-        private static LegacyDocParagraphBorders ReadSupportedSectionPageBorders(PageBorders pageBorders) {
-            foreach (OpenXmlAttribute attribute in pageBorders.GetAttributes()) {
+        private static LegacyDocParagraphBorders ReadSupportedSectionPageBorders(LegacyDocElement pageBorders) {
+            foreach (LegacyDocAttribute attribute in pageBorders.Attributes) {
                 if (!string.Equals(attribute.LocalName, "display", StringComparison.Ordinal)
                     && !string.Equals(attribute.LocalName, "offsetFrom", StringComparison.Ordinal)
                     && !string.Equals(attribute.LocalName, "zOrder", StringComparison.Ordinal)) {
@@ -188,12 +186,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            foreach (OpenXmlElement child in pageBorders.ChildElements) {
-                switch (child) {
-                    case TopBorder:
-                    case LeftBorder:
-                    case BottomBorder:
-                    case RightBorder:
+            foreach (LegacyDocElement child in pageBorders.Elements()) {
+                switch (child.WName) {
+                    case "top":
+                    case "left":
+                    case "bottom":
+                    case "right":
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple section page borders only. Unsupported page border: {child.LocalName}.");
@@ -201,79 +199,79 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return new LegacyDocParagraphBorders(
-                ReadSupportedSectionPageBorder(pageBorders.TopBorder),
-                ReadSupportedSectionPageBorder(pageBorders.LeftBorder),
-                ReadSupportedSectionPageBorder(pageBorders.BottomBorder),
-                ReadSupportedSectionPageBorder(pageBorders.RightBorder),
+                ReadSupportedSectionPageBorder(pageBorders.Child("top")),
+                ReadSupportedSectionPageBorder(pageBorders.Child("left")),
+                ReadSupportedSectionPageBorder(pageBorders.Child("bottom")),
+                ReadSupportedSectionPageBorder(pageBorders.Child("right")),
                 default,
                 ReadSupportedSectionPageBorderOptions(pageBorders));
         }
 
-        private static LegacyDocPageBorderOptions ReadSupportedSectionPageBorderOptions(PageBorders pageBorders) {
+        private static LegacyDocPageBorderOptions ReadSupportedSectionPageBorderOptions(LegacyDocElement pageBorders) {
             return new LegacyDocPageBorderOptions(
-                ReadSupportedSectionPageBorderDisplay(pageBorders.Display),
-                ReadSupportedSectionPageBorderOffsetFrom(pageBorders.OffsetFrom),
-                ReadSupportedSectionPageBorderZOrder(pageBorders.ZOrder));
+                ReadSupportedSectionPageBorderDisplay(pageBorders.Attr("display")),
+                ReadSupportedSectionPageBorderOffsetFrom(pageBorders.Attr("offsetFrom")),
+                ReadSupportedSectionPageBorderZOrder(pageBorders.Attr("zOrder")));
         }
 
-        private static LegacyDocPageBorderDisplay ReadSupportedSectionPageBorderDisplay(EnumValue<PageBorderDisplayValues>? display) {
+        private static LegacyDocPageBorderDisplay ReadSupportedSectionPageBorderDisplay(string? display) {
             if (display == null) {
                 return LegacyDocPageBorderDisplay.AllPages;
             }
 
-            if (display.Value == PageBorderDisplayValues.AllPages) {
+            if (display == "allPages") {
                 return LegacyDocPageBorderDisplay.AllPages;
             }
 
-            if (display.Value == PageBorderDisplayValues.FirstPage) {
+            if (display == "firstPage") {
                 return LegacyDocPageBorderDisplay.FirstPage;
             }
 
-            if (display.Value == PageBorderDisplayValues.NotFirstPage) {
+            if (display == "notFirstPage") {
                 return LegacyDocPageBorderDisplay.NotFirstPage;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support section page border display '{display.Value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support section page border display '{FormatSdkEnumValue(display, "PageBorderDisplayValues")}'.");
         }
 
-        private static LegacyDocPageBorderOffsetFrom ReadSupportedSectionPageBorderOffsetFrom(EnumValue<PageBorderOffsetValues>? offsetFrom) {
+        private static LegacyDocPageBorderOffsetFrom ReadSupportedSectionPageBorderOffsetFrom(string? offsetFrom) {
             if (offsetFrom == null) {
                 return LegacyDocPageBorderOffsetFrom.Text;
             }
 
-            if (offsetFrom.Value == PageBorderOffsetValues.Text) {
+            if (offsetFrom == "text") {
                 return LegacyDocPageBorderOffsetFrom.Text;
             }
 
-            if (offsetFrom.Value == PageBorderOffsetValues.Page) {
+            if (offsetFrom == "page") {
                 return LegacyDocPageBorderOffsetFrom.Page;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support section page border offset '{offsetFrom.Value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support section page border offset '{FormatSdkEnumValue(offsetFrom, "PageBorderOffsetValues")}'.");
         }
 
-        private static LegacyDocPageBorderZOrder ReadSupportedSectionPageBorderZOrder(EnumValue<PageBorderZOrderValues>? zOrder) {
+        private static LegacyDocPageBorderZOrder ReadSupportedSectionPageBorderZOrder(string? zOrder) {
             if (zOrder == null) {
                 return LegacyDocPageBorderZOrder.Front;
             }
 
-            if (zOrder.Value == PageBorderZOrderValues.Front) {
+            if (zOrder == "front") {
                 return LegacyDocPageBorderZOrder.Front;
             }
 
-            if (zOrder.Value == PageBorderZOrderValues.Back) {
+            if (zOrder == "back") {
                 return LegacyDocPageBorderZOrder.Back;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support section page border z-order '{zOrder.Value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support section page border z-order '{FormatSdkEnumValue(zOrder, "PageBorderZOrderValues")}'.");
         }
 
-        private static LegacyDocParagraphBorder ReadSupportedSectionPageBorder(BorderType? border) {
-            if (border == null) {
+        private static LegacyDocParagraphBorder ReadSupportedSectionPageBorder(LegacyDocElement border) {
+            if (border.IsNone) {
                 return default;
             }
 
-            foreach (OpenXmlAttribute attribute in border.GetAttributes()) {
+            foreach (LegacyDocAttribute attribute in border.Attributes) {
                 if (!string.Equals(attribute.LocalName, "val", StringComparison.Ordinal)
                     && !string.Equals(attribute.LocalName, "color", StringComparison.Ordinal)
                     && !string.Equals(attribute.LocalName, "sz", StringComparison.Ordinal)
@@ -282,13 +280,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            BorderValues? value = border.Val?.Value;
-            if (value == null || value == BorderValues.None || value == BorderValues.Nil) {
+            string? value = border.Val;
+            if (value == null || value == "none" || value == "nil") {
                 return default;
             }
 
-            LegacyDocParagraphBorderStyle style = MapSupportedSectionPageBorderStyle(value.Value);
-            string? colorHex = border.Color?.Value;
+            LegacyDocParagraphBorderStyle style = MapSupportedSectionPageBorderStyle(value);
+            string? colorHex = border.Attr("color");
             if (string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
                 colorHex = null;
             }
@@ -297,8 +295,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports section page borders only with Word 97-2003 palette colors.");
             }
 
-            int size = border.Size?.Value == null ? 4 : checked((int)border.Size.Value);
-            int space = border.Space?.Value == null ? 0 : checked((int)border.Space.Value);
+            uint? borderSize = LegacyDocValues.UInt32(border.Attr("sz"));
+            int size = borderSize == null ? 4 : checked((int)borderSize.Value);
+            uint? borderSpace = LegacyDocValues.UInt32(border.Attr("space"));
+            int space = borderSpace == null ? 0 : checked((int)borderSpace.Value);
             if (size <= 0 || size > byte.MaxValue || space < 0 || space > byte.MaxValue) {
                 throw new NotSupportedException("Native DOC saving supports section page border size and spacing only within Word 97-2003 BRC80 byte ranges.");
             }
@@ -306,66 +306,66 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocParagraphBorder(style, colorHex, size, space);
         }
 
-        private static LegacyDocParagraphBorderStyle MapSupportedSectionPageBorderStyle(BorderValues value) {
-            if (value == BorderValues.Single) {
+        private static LegacyDocParagraphBorderStyle MapSupportedSectionPageBorderStyle(string value) {
+            if (value == "single") {
                 return LegacyDocParagraphBorderStyle.Single;
             }
 
-            if (value == BorderValues.Double) {
+            if (value == "double") {
                 return LegacyDocParagraphBorderStyle.Double;
             }
 
-            if (value == BorderValues.Dotted) {
+            if (value == "dotted") {
                 return LegacyDocParagraphBorderStyle.Dotted;
             }
 
-            if (value == BorderValues.Dashed || value == BorderValues.DashSmallGap) {
+            if (value == "dashed" || value == "dashSmallGap") {
                 return LegacyDocParagraphBorderStyle.Dashed;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support section page border style '{value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support section page border style '{FormatSdkEnumValue(value, "BorderValues")}'.");
         }
 
-        private static bool IsOnOffEnabled(OnOffType element) {
-            return element.Val == null || element.Val.Value;
+        private static bool IsOnOffEnabled(LegacyDocElement element) {
+            return element.Val is not { } value || LegacyDocValues.ParseOnOff(value);
         }
 
         private static void ReadSupportedLineNumbering(
-            LineNumberType lineNumberType,
+            LegacyDocElement lineNumberType,
             out int? countBy,
             out int? distance,
             out int? start,
-            out LineNumberRestartValues? restart) {
-            countBy = ReadLineNumberCountBy(lineNumberType.CountBy);
-            distance = ReadLineNumberDistance(lineNumberType.Distance);
-            start = ReadLineNumberStart(lineNumberType.Start);
-            restart = ReadLineNumberRestart(lineNumberType.Restart);
+            out string? restart) {
+            countBy = ReadLineNumberCountBy(lineNumberType.Attr("countBy"));
+            distance = ReadLineNumberDistance(lineNumberType.Attr("distance"));
+            start = ReadLineNumberStart(lineNumberType.Attr("start"));
+            restart = ReadLineNumberRestart(lineNumberType.Attr("restart"));
         }
 
         private static void ReadSupportedFootnoteProperties(
-            FootnoteProperties footnoteProperties,
-            out FootnotePositionValues? position,
-            out RestartNumberValues? restart,
+            LegacyDocElement footnoteProperties,
+            out string? position,
+            out string? restart,
             out int? start,
-            out NumberFormatValues? numberFormat) {
+            out string? numberFormat) {
             position = null;
             restart = null;
             start = null;
             numberFormat = null;
 
-            foreach (OpenXmlElement property in footnoteProperties.ChildElements) {
-                switch (property) {
-                    case FootnotePosition footnotePosition:
-                        position = ReadFootnotePosition(footnotePosition.Val);
+            foreach (LegacyDocElement property in footnoteProperties.Elements()) {
+                switch (property.WName) {
+                    case "pos":
+                        position = ReadFootnotePosition(property.Val);
                         break;
-                    case NumberingRestart numberingRestart:
-                        restart = ReadFootnoteRestart(numberingRestart.Val);
+                    case "numRestart":
+                        restart = ReadFootnoteRestart(property.Val);
                         break;
-                    case NumberingStart numberingStart:
-                        start = ReadNoteNumberStart(numberingStart.Val, "section footnote start");
+                    case "numStart":
+                        start = ReadNoteNumberStart(property.Val, "section footnote start");
                         break;
-                    case NumberingFormat numberingFormat:
-                        numberFormat = ReadPageNumberFormat(numberingFormat.Val);
+                    case "numFmt":
+                        numberFormat = ReadPageNumberFormat(property.Val);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving does not support section footnote property '{property.LocalName}'.");
@@ -374,29 +374,29 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void ReadSupportedEndnoteProperties(
-            EndnoteProperties endnoteProperties,
-            out EndnotePositionValues? position,
-            out RestartNumberValues? restart,
+            LegacyDocElement endnoteProperties,
+            out string? position,
+            out string? restart,
             out int? start,
-            out NumberFormatValues? numberFormat) {
+            out string? numberFormat) {
             position = null;
             restart = null;
             start = null;
             numberFormat = null;
 
-            foreach (OpenXmlElement property in endnoteProperties.ChildElements) {
-                switch (property) {
-                    case EndnotePosition endnotePosition:
-                        position = ReadEndnotePosition(endnotePosition.Val);
+            foreach (LegacyDocElement property in endnoteProperties.Elements()) {
+                switch (property.WName) {
+                    case "pos":
+                        position = ReadEndnotePosition(property.Val);
                         break;
-                    case NumberingRestart numberingRestart:
-                        restart = ReadEndnoteRestart(numberingRestart.Val);
+                    case "numRestart":
+                        restart = ReadEndnoteRestart(property.Val);
                         break;
-                    case NumberingStart numberingStart:
-                        start = ReadNoteNumberStart(numberingStart.Val, "section endnote start");
+                    case "numStart":
+                        start = ReadNoteNumberStart(property.Val, "section endnote start");
                         break;
-                    case NumberingFormat numberingFormat:
-                        numberFormat = ReadPageNumberFormat(numberingFormat.Val);
+                    case "numFmt":
+                        numberFormat = ReadPageNumberFormat(property.Val);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving does not support section endnote property '{property.LocalName}'.");
@@ -404,12 +404,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static int? ReadTwipValue(OpenXmlSimpleType? value, int defaultValue, string description) {
+        private static int? ReadTwipValue(string? value, int defaultValue, string description) {
             if (value == null) {
                 return null;
             }
 
-            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+            if (!int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
                 || actual < 0
                 || actual > ushort.MaxValue) {
                 throw new NotSupportedException($"Native DOC saving supports {description} only within the Word 97-2003 unsigned twip range.");
@@ -418,12 +418,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return actual == defaultValue ? null : actual;
         }
 
-        private static int? ReadPageNumberStart(OpenXmlSimpleType? value) {
+        private static int? ReadPageNumberStart(string? value) {
             if (value == null) {
                 return null;
             }
 
-            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+            if (!int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
                 || actual < 0
                 || actual > ushort.MaxValue) {
                 throw new NotSupportedException("Native DOC saving supports section page number starts only within the Word 97-2003 unsigned range.");
@@ -432,66 +432,66 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return actual;
         }
 
-        private static NumberFormatValues? ReadPageNumberFormat(EnumValue<NumberFormatValues>? value) {
+        private static string? ReadPageNumberFormat(string? value) {
             if (value == null) {
                 return null;
             }
 
-            return GetPageNumberFormatOperand(value.Value) != null
-                ? value.Value
-                : throw new NotSupportedException($"Native DOC saving does not support section page number format '{value.Value}'.");
+            return GetPageNumberFormatOperand(value) != null
+                ? value
+                : throw new NotSupportedException($"Native DOC saving does not support section page number format '{FormatSdkEnumValue(value, "NumberFormatValues")}'.");
         }
 
-        private static FootnotePositionValues? ReadFootnotePosition(EnumValue<FootnotePositionValues>? value) {
+        private static string? ReadFootnotePosition(string? value) {
             if (value == null) {
                 return null;
             }
 
-            return GetFootnotePositionOperand(value.Value) != null
-                ? value.Value
-                : throw new NotSupportedException($"Native DOC saving does not support section footnote placement '{value.Value}'.");
+            return GetFootnotePositionOperand(value) != null
+                ? value
+                : throw new NotSupportedException($"Native DOC saving does not support section footnote placement '{FormatSdkEnumValue(value, "FootnotePositionValues")}'.");
         }
 
-        private static EndnotePositionValues? ReadEndnotePosition(EnumValue<EndnotePositionValues>? value) {
+        private static string? ReadEndnotePosition(string? value) {
             if (value == null) {
                 return null;
             }
 
-            return GetEndnotePositionOperand(value.Value) != null
-                ? value.Value
-                : throw new NotSupportedException($"Native DOC saving does not support section endnote placement '{value.Value}'.");
+            return GetEndnotePositionOperand(value) != null
+                ? value
+                : throw new NotSupportedException($"Native DOC saving does not support section endnote placement '{FormatSdkEnumValue(value, "EndnotePositionValues")}'.");
         }
 
-        private static RestartNumberValues? ReadFootnoteRestart(EnumValue<RestartNumberValues>? value) {
+        private static string? ReadFootnoteRestart(string? value) {
             if (value == null) {
                 return null;
             }
 
-            return GetNoteRestartOperand(value.Value) != null
-                ? value.Value
-                : throw new NotSupportedException($"Native DOC saving does not support section footnote numbering restart '{value.Value}'.");
+            return GetNoteRestartOperand(value) != null
+                ? value
+                : throw new NotSupportedException($"Native DOC saving does not support section footnote numbering restart '{FormatSdkEnumValue(value, "RestartNumberValues")}'.");
         }
 
-        private static RestartNumberValues? ReadEndnoteRestart(EnumValue<RestartNumberValues>? value) {
+        private static string? ReadEndnoteRestart(string? value) {
             if (value == null) {
                 return null;
             }
 
-            if (value.Value == RestartNumberValues.EachPage) {
+            if (value == "eachPage") {
                 throw new NotSupportedException("Native DOC saving does not support section endnote numbering restart for each page.");
             }
 
-            return GetNoteRestartOperand(value.Value) != null
-                ? value.Value
-                : throw new NotSupportedException($"Native DOC saving does not support section endnote numbering restart '{value.Value}'.");
+            return GetNoteRestartOperand(value) != null
+                ? value
+                : throw new NotSupportedException($"Native DOC saving does not support section endnote numbering restart '{FormatSdkEnumValue(value, "RestartNumberValues")}'.");
         }
 
-        private static int? ReadNoteNumberStart(OpenXmlSimpleType? value, string description) {
+        private static int? ReadNoteNumberStart(string? value, string description) {
             if (value == null) {
                 return null;
             }
 
-            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+            if (!int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
                 || actual < 1
                 || actual > 16383) {
                 throw new NotSupportedException($"Native DOC saving supports {description} only from 1 through 16383.");
@@ -500,12 +500,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return actual;
         }
 
-        private static int? ReadLineNumberCountBy(OpenXmlSimpleType? value) {
+        private static int? ReadLineNumberCountBy(string? value) {
             if (value == null) {
                 return 1;
             }
 
-            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+            if (!int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
                 || actual < 0
                 || actual > short.MaxValue) {
                 throw new NotSupportedException("Native DOC saving supports section line number intervals from 0 through the WordprocessingML signed 16-bit range.");
@@ -514,12 +514,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return actual;
         }
 
-        private static int? ReadLineNumberDistance(OpenXmlSimpleType? value) {
+        private static int? ReadLineNumberDistance(string? value) {
             if (value == null) {
                 return null;
             }
 
-            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+            if (!int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
                 || actual < 0
                 || actual > ushort.MaxValue) {
                 throw new NotSupportedException("Native DOC saving supports section line number distance only within the Word 97-2003 unsigned twip range.");
@@ -528,12 +528,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return actual;
         }
 
-        private static int? ReadLineNumberStart(OpenXmlSimpleType? value) {
+        private static int? ReadLineNumberStart(string? value) {
             if (value == null) {
                 return null;
             }
 
-            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+            if (!int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
                 || actual < 1
                 || actual > 32767) {
                 throw new NotSupportedException("Native DOC saving supports section line number starts from 1 through 32767.");
@@ -542,31 +542,31 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return actual;
         }
 
-        private static LineNumberRestartValues? ReadLineNumberRestart(EnumValue<LineNumberRestartValues>? value) {
+        private static string? ReadLineNumberRestart(string? value) {
             if (value == null) {
                 return null;
             }
 
-            return GetLineNumberRestartOperand(value.Value) != null
-                ? value.Value
-                : throw new NotSupportedException($"Native DOC saving does not support section line number restart mode '{value.Value}'.");
+            return GetLineNumberRestartOperand(value) != null
+                ? value
+                : throw new NotSupportedException($"Native DOC saving does not support section line number restart mode '{FormatSdkEnumValue(value, "LineNumberRestartValues")}'.");
         }
 
-        private static VerticalJustificationValues? ReadVerticalAlignment(EnumValue<VerticalJustificationValues>? value) {
-            if (value == null || value.Value == VerticalJustificationValues.Top) {
+        private static string? ReadVerticalAlignment(string? value) {
+            if (value == null || value == "top") {
                 return null;
             }
 
-            return GetVerticalAlignmentOperand(value.Value) != null
-                ? value.Value
-                : throw new NotSupportedException($"Native DOC saving does not support section vertical alignment '{value.Value}'.");
+            return GetVerticalAlignmentOperand(value) != null
+                ? value
+                : throw new NotSupportedException($"Native DOC saving does not support section vertical alignment '{FormatSdkEnumValue(value, "VerticalJustificationValues")}'.");
         }
 
         private static byte[] CreateSepx(LegacyDocSectionFormat sectionFormat) {
             var grpprl = new List<byte>();
 
             if (sectionFormat.SectionBreakType != null && sectionFormat.SectionBreakType.Value != LegacyDocSectionMark.NextPage) {
-                AddSingleByteSprm(grpprl, SprmSBkc, GetSectionBreakTypeOperand(ToSdk(sectionFormat.SectionBreakType.Value)));
+                AddSingleByteSprm(grpprl, SprmSBkc, GetSectionBreakTypeOperand(sectionFormat.SectionBreakType.Value.ToXml()));
             }
 
             if (sectionFormat.ColumnCount != null) {
@@ -584,7 +584,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (sectionFormat.PageNumberFormat != null) {
-                AddSingleByteSprm(grpprl, SprmSNfcPgn, GetPageNumberFormatOperand(ToSdk(sectionFormat.PageNumberFormat.Value))!.Value);
+                AddSingleByteSprm(grpprl, SprmSNfcPgn, GetPageNumberFormatOperand(sectionFormat.PageNumberFormat.Value.ToXml())!.Value);
             }
 
             if (sectionFormat.PageNumberStart != null) {
@@ -593,15 +593,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (sectionFormat.FootnotePosition != null) {
-                AddSingleByteSprm(grpprl, SprmSFpc, GetFootnotePositionOperand(ToSdk(sectionFormat.FootnotePosition.Value))!.Value);
+                AddSingleByteSprm(grpprl, SprmSFpc, GetFootnotePositionOperand(sectionFormat.FootnotePosition.Value.ToXml())!.Value);
             }
 
             if (sectionFormat.FootnoteRestart != null) {
-                AddSingleByteSprm(grpprl, SprmSRncFtn, GetNoteRestartOperand(ToSdk(sectionFormat.FootnoteRestart.Value))!.Value);
+                AddSingleByteSprm(grpprl, SprmSRncFtn, GetNoteRestartOperand(sectionFormat.FootnoteRestart.Value.ToXml())!.Value);
             }
 
             if (sectionFormat.EndnoteRestart != null) {
-                AddSingleByteSprm(grpprl, SprmSRncEdn, GetNoteRestartOperand(ToSdk(sectionFormat.EndnoteRestart.Value))!.Value);
+                AddSingleByteSprm(grpprl, SprmSRncEdn, GetNoteRestartOperand(sectionFormat.EndnoteRestart.Value.ToXml())!.Value);
             }
 
             if (sectionFormat.FootnoteStart != null) {
@@ -609,7 +609,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (sectionFormat.FootnoteNumberFormat != null) {
-                AddUInt16Sprm(grpprl, SprmSNfcFtnRef, GetPageNumberFormatOperand(ToSdk(sectionFormat.FootnoteNumberFormat.Value))!.Value);
+                AddUInt16Sprm(grpprl, SprmSNfcFtnRef, GetPageNumberFormatOperand(sectionFormat.FootnoteNumberFormat.Value.ToXml())!.Value);
             }
 
             if (sectionFormat.EndnoteStart != null) {
@@ -617,11 +617,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (sectionFormat.EndnoteNumberFormat != null) {
-                AddUInt16Sprm(grpprl, SprmSNfcEdnRef, GetPageNumberFormatOperand(ToSdk(sectionFormat.EndnoteNumberFormat.Value))!.Value);
+                AddUInt16Sprm(grpprl, SprmSNfcEdnRef, GetPageNumberFormatOperand(sectionFormat.EndnoteNumberFormat.Value.ToXml())!.Value);
             }
 
             if (sectionFormat.LineNumberRestart != null) {
-                AddSingleByteSprm(grpprl, SprmSLnc, GetLineNumberRestartOperand(ToSdk(sectionFormat.LineNumberRestart.Value))!.Value);
+                AddSingleByteSprm(grpprl, SprmSLnc, GetLineNumberRestartOperand(sectionFormat.LineNumberRestart.Value.ToXml())!.Value);
             }
 
             if (sectionFormat.LineNumberCountBy != null) {
@@ -685,7 +685,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (sectionFormat.VerticalAlignment != null) {
-                AddSingleByteSprm(grpprl, SprmSVjc, GetVerticalAlignmentOperand(ToSdk(sectionFormat.VerticalAlignment.Value))!.Value);
+                AddSingleByteSprm(grpprl, SprmSVjc, GetVerticalAlignmentOperand(sectionFormat.VerticalAlignment.Value.ToXml())!.Value);
             }
 
             if (sectionFormat.PageBorders != null) {
@@ -809,104 +809,104 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static byte GetSectionBreakTypeOperand(SectionMarkValues sectionBreakType) {
-            if (sectionBreakType == SectionMarkValues.Continuous) {
+        private static byte GetSectionBreakTypeOperand(string sectionBreakType) {
+            if (sectionBreakType == "continuous") {
                 return 0;
             }
 
-            if (sectionBreakType == SectionMarkValues.NextColumn) {
+            if (sectionBreakType == "nextColumn") {
                 return 1;
             }
 
-            if (sectionBreakType == SectionMarkValues.NextPage) {
+            if (sectionBreakType == "nextPage") {
                 return 2;
             }
 
-            if (sectionBreakType == SectionMarkValues.EvenPage) {
+            if (sectionBreakType == "evenPage") {
                 return 3;
             }
 
-            if (sectionBreakType == SectionMarkValues.OddPage) {
+            if (sectionBreakType == "oddPage") {
                 return 4;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support section break type '{sectionBreakType}'.");
+            throw new NotSupportedException($"Native DOC saving does not support section break type '{FormatSdkEnumValue(sectionBreakType, "SectionMarkValues")}'.");
         }
 
-        private static byte? GetPageNumberFormatOperand(NumberFormatValues format) {
+        private static byte? GetPageNumberFormatOperand(string format) {
             return ToNfc(format);
         }
 
-        private static byte? GetLineNumberRestartOperand(LineNumberRestartValues restart) {
-            if (restart == LineNumberRestartValues.NewPage) {
+        private static byte? GetLineNumberRestartOperand(string restart) {
+            if (restart == "newPage") {
                 return 0;
             }
 
-            if (restart == LineNumberRestartValues.NewSection) {
+            if (restart == "newSection") {
                 return 1;
             }
 
-            if (restart == LineNumberRestartValues.Continuous) {
+            if (restart == "continuous") {
                 return 2;
             }
 
             return null;
         }
 
-        private static byte? GetFootnotePositionOperand(FootnotePositionValues position) {
-            if (position == FootnotePositionValues.PageBottom) {
+        private static byte? GetFootnotePositionOperand(string position) {
+            if (position == "pageBottom") {
                 return 1;
             }
 
-            if (position == FootnotePositionValues.BeneathText) {
+            if (position == "beneathText") {
                 return 2;
             }
 
             return null;
         }
 
-        private static byte? GetEndnotePositionOperand(EndnotePositionValues position) {
-            if (position == EndnotePositionValues.SectionEnd) {
+        private static byte? GetEndnotePositionOperand(string position) {
+            if (position == "sectEnd") {
                 return 0;
             }
 
-            if (position == EndnotePositionValues.DocumentEnd) {
+            if (position == "docEnd") {
                 return 3;
             }
 
             return null;
         }
 
-        private static byte? GetNoteRestartOperand(RestartNumberValues restart) {
-            if (restart == RestartNumberValues.Continuous) {
+        private static byte? GetNoteRestartOperand(string restart) {
+            if (restart == "continuous") {
                 return 0;
             }
 
-            if (restart == RestartNumberValues.EachSection) {
+            if (restart == "eachSect") {
                 return 1;
             }
 
-            if (restart == RestartNumberValues.EachPage) {
+            if (restart == "eachPage") {
                 return 2;
             }
 
             return null;
         }
 
-        private static byte? GetVerticalAlignmentOperand(VerticalJustificationValues alignment) {
-            if (alignment == VerticalJustificationValues.Top) {
+        private static byte? GetVerticalAlignmentOperand(string alignment) {
+            if (alignment == "top") {
                 return 0;
             }
 
-            if (alignment == VerticalJustificationValues.Center) {
+            if (alignment == "center") {
                 return 1;
             }
 
-            if (alignment == VerticalJustificationValues.Both) {
+            if (alignment == "both") {
                 return 2;
             }
 
-            if (alignment == VerticalJustificationValues.Bottom) {
+            if (alignment == "bottom") {
                 return 3;
             }
 

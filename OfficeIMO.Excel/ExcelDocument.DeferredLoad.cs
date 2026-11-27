@@ -24,6 +24,9 @@ namespace OfficeIMO.Excel {
         /// <summary>True for a sheet a new workbook added and has not saved: its part is still the empty worksheet.</summary>
         internal bool IsNewSheet { get; set; }
 
+        /// <summary>The sheet as formulas read it from the package, while the SDK package is not open.</summary>
+        internal ExcelFormulaSheetModel? FormulaModel { get; set; }
+
         /// <summary>The changes recorded on this sheet while the SDK package is not open, shared by every handle to it.</summary>
         internal ExcelDeferredCellStore? Cells { get; set; }
         internal string RelationshipId { get; set; }
