@@ -15,9 +15,15 @@ public static partial class PdfProvenance {
     private delegate void ObjectGraphEdit(Dictionary<int, PdfIndirectObject> objects, PdfDocumentSecurityInfo security);
 
     /// <summary>Adds declaration evidence and returns the diagnostics of images that were preserved because they could not be inspected.</summary>
-    private static string[] InspectDeclarations(PdfReadDocument document, OfficeProvenanceOptions options, List<OfficeProvenanceEvidence> evidence) {
+    private static string[] InspectDeclarations(
+        PdfReadDocument document,
+        OfficeProvenanceOptions options,
+        List<OfficeProvenanceEvidence> evidence,
+        out long prefixDecodedBytes) {
         var context = new OfficeProvenanceContext(OfficeProvenanceAssetFormat.Pdf, options);
-        WalkDeclarations(document, options, context, removal: null, changes: null, edits: null);
+        var tally = new DecodeTally();
+        WalkDeclarations(document, options, context, removal: null, changes: null, edits: null, tally);
+        prefixDecodedBytes = tally.Bytes;
         if (evidence.Count + context.Evidence.Count > options.MaxCarriers) {
             throw OfficeProvenanceLimitException.Create($"The asset exceeds the configured carrier limit of {options.MaxCarriers}.");
         }
@@ -31,7 +37,7 @@ public static partial class PdfProvenance {
         OfficeProvenanceRemovalOptions removal,
         List<OfficeProvenanceChange> changes) {
         var edits = new List<ObjectGraphEdit>();
-        WalkDeclarations(document, removal.Limits, context: null, removal, changes, edits);
+        WalkDeclarations(document, removal.Limits, context: null, removal, changes, edits, new DecodeTally());
         return edits;
     }
 
@@ -41,7 +47,8 @@ public static partial class PdfProvenance {
         OfficeProvenanceContext? context,
         OfficeProvenanceRemovalOptions? removal,
         List<OfficeProvenanceChange>? changes,
-        List<ObjectGraphEdit>? edits) {
+        List<ObjectGraphEdit>? edits,
+        DecodeTally tally) {
         CancellationToken cancellationToken = options.CancellationToken;
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         PdfDocumentSecurityInfo security = document.Security;
@@ -101,7 +108,7 @@ public static partial class PdfProvenance {
                     });
             }
             if (!isJpeg) continue;
-            WalkJpegImage(objectNumber, pair.Value.Generation, image, objects, options, context, removal, changes, edits);
+            WalkJpegImage(document, objectNumber, pair.Value.Generation, image, options, context, removal, changes, edits, tally);
         }
     }
 
@@ -137,23 +144,33 @@ public static partial class PdfProvenance {
     }
 
     private static void WalkJpegImage(
+        PdfReadDocument document,
         int objectNumber,
         int generation,
         PdfStream image,
-        Dictionary<int, PdfIndirectObject> objects,
         OfficeProvenanceOptions options,
         OfficeProvenanceContext? context,
         OfficeProvenanceRemovalOptions? removal,
         List<OfficeProvenanceChange>? changes,
-        List<ObjectGraphEdit>? edits) {
+        List<ObjectGraphEdit>? edits,
+        DecodeTally tally) {
+        Dictionary<int, PdfIndirectObject> objects = document.Objects;
         string prefix = $"PDF/Object[{objectNumber}]/Image/";
-        int maximumBytes = (int)Math.Min(int.MaxValue, options.MaxAssetBytes);
+        long maximumBytes = options.MaxAssetBytes;
+        bool chained = HasFilterChain(objects, image.Dictionary);
+        if (chained) {
+            // Decoding the filters ahead of DCTDecode expands data, so it draws from the same budget as every other decoded stream.
+            long remaining = options.MaxExpandedContainerBytes - document.DecodedStreamBudget.UsedBytes - tally.Bytes;
+            if (remaining <= 0) throw OfficeProvenanceLimitException.Create("The PDF exceeds the configured expanded-byte limit.");
+            maximumBytes = Math.Min(maximumBytes, remaining);
+        }
         // Filters ahead of DCTDecode (ASCII85, Flate) are decoded so the JPEG engine sees the complete JPEG file.
-        if (!ResourceResolver.TryGetDctPayload(image, objects, maximumBytes, out byte[] jpeg)) {
+        if (!ResourceResolver.TryGetDctPayload(image, objects, (int)Math.Min(int.MaxValue, maximumBytes), out byte[] jpeg)) {
             context?.Diagnostics.Add($"{prefix.TrimEnd('/')}: image was preserved because its filters could not be decoded.");
             return;
         }
         if (jpeg.LongLength > options.MaxAssetBytes) throw new InvalidDataException("A PDF image exceeds the configured asset limit.");
+        if (chained) tally.Bytes += jpeg.LongLength;
         string name = $"object-{objectNumber}.jpg";
         try {
             if (context != null) {
@@ -201,15 +218,27 @@ public static partial class PdfProvenance {
             : source.Items.TryGetValue("DP", out PdfObject? abbreviated) ? abbreviated : null;
         PdfObject? filter = source.Items.TryGetValue("Filter", out PdfObject? fullFilter) ? fullFilter
             : source.Items.TryGetValue("F", out PdfObject? abbreviatedFilter) ? abbreviatedFilter : null;
-        bool chained = PdfObjectLookup.Resolve(objects, filter) is PdfArray { Items.Count: > 1 };
+        // A filter array, even of one entry, pairs with a parameter array; DCTDecode's own parameters are its last entry.
+        bool filterArray = PdfObjectLookup.Resolve(objects, filter) is PdfArray;
         PdfObject? resolvedParameters = PdfObjectLookup.Resolve(objects, parameters);
-        if (!chained && parameters != null) {
+        if (!filterArray && parameters != null) {
             dictionary.Items["DecodeParms"] = parameters;
-        } else if (chained && resolvedParameters is PdfArray { Items.Count: > 0 } list &&
+        } else if (filterArray && resolvedParameters is PdfArray { Items.Count: > 0 } list &&
             PdfObjectLookup.Resolve(objects, list.Items[list.Items.Count - 1]) is PdfDictionary dctParameters) {
             dictionary.Items["DecodeParms"] = dctParameters;
         }
         return dictionary;
+    }
+
+    private static bool HasFilterChain(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {
+        PdfObject? filter = dictionary.Items.TryGetValue("Filter", out PdfObject? full) ? full
+            : dictionary.Items.TryGetValue("F", out PdfObject? abbreviated) ? abbreviated : null;
+        return PdfObjectLookup.Resolve(objects, filter) is PdfArray { Items.Count: > 1 };
+    }
+
+    /// <summary>Bytes decoded from filters ahead of DCTDecode during one inspection or removal.</summary>
+    private sealed class DecodeTally {
+        internal long Bytes { get; set; }
     }
 
     private static bool IsName(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, string expected) =>

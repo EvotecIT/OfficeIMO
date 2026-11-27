@@ -103,7 +103,30 @@ public sealed class PdfProvenanceAiDeclarationTests {
         Assert.Throws<InvalidDataException>(() => PdfProvenance.Inspect(source, new OfficeProvenanceOptions { MaxCarriers = 2 }));
     }
 
-    private static byte[] CreatePdf(out byte[] jpeg, bool ascii85 = false) {
+    [Fact]
+    public void OneEntryFilterArrayKeepsDctDecodeParametersAsADictionary() {
+        byte[] source = CreatePdf(out _, singleFilterArray: true);
+
+        PdfReadDocument document = PdfReadDocument.Open(PdfProvenance.Remove(source).ToArray());
+        PdfStream image = Assert.Single(document.Objects.Values.Select(item => item.Value).OfType<PdfStream>(),
+            stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "Image" });
+        PdfDictionary parameters = Assert.IsType<PdfDictionary>(image.Dictionary.Items["DecodeParms"]);
+        Assert.Equal(0, Assert.IsType<PdfNumber>(parameters.Items["ColorTransform"]).Value);
+    }
+
+    [Fact]
+    public void FiltersDecodedAheadOfDctDecodeCountTowardTheExpandedByteLimit() {
+        byte[] plain = CreatePdf(out byte[] jpeg);
+        byte[] wrapped = CreatePdf(out _, ascii85: true);
+        long plainBytes = PdfProvenance.Inspect(plain).ExpandedInspectionBytes;
+        long wrappedBytes = PdfProvenance.Inspect(wrapped).ExpandedInspectionBytes;
+
+        Assert.True(wrappedBytes - plainBytes >= jpeg.Length);
+        Assert.ThrowsAny<IOException>(() => PdfProvenance.Inspect(wrapped,
+            new OfficeProvenanceOptions { MaxExpandedContainerBytes = wrappedBytes - 1 }));
+    }
+
+    private static byte[] CreatePdf(out byte[] jpeg, bool ascii85 = false, bool singleFilterArray = false) {
         var raster = new OfficeRasterImage(2, 1);
         raster.SetPixel(0, 0, OfficeColor.Red);
         raster.SetPixel(1, 0, OfficeColor.Blue);
@@ -144,6 +167,15 @@ public sealed class PdfProvenanceAiDeclarationTests {
                 filters.Items.Add(new PdfName("DCTDecode"));
                 imageDictionary.Items["Filter"] = filters;
                 imageData = Ascii85(image);
+            } else if (singleFilterArray) {
+                var filters = new PdfArray();
+                filters.Items.Add(new PdfName("DCTDecode"));
+                imageDictionary.Items["Filter"] = filters;
+                var parameters = new PdfDictionary();
+                parameters.Items["ColorTransform"] = new PdfNumber(0);
+                var parameterList = new PdfArray();
+                parameterList.Items.Add(parameters);
+                imageDictionary.Items["DecodeParms"] = parameterList;
             } else {
                 imageDictionary.Items["Filter"] = new PdfName("DCTDecode");
             }
