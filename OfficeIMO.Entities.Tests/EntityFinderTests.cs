@@ -80,6 +80,24 @@ public sealed class EntityFinderTests {
         });
     }
 
+    [Fact]
+    public void StructuredEvidenceRequiresTheEntireMarkedSourceSegment() {
+        var finder = new EntityFinder();
+        EntityMatch complete = Assert.Single(finder.Find(new[] {
+            new EntityTextSegment("Note: "),
+            new EntityTextSegment("44051401359", structuredSource: true, continuesPrevious: true),
+        }).Matches);
+        Assert.Equal(1, complete.Confidence);
+        Assert.True(complete.Evidence.HasFlag(EntityEvidence.StructuredSource));
+        Assert.Equal(1, Assert.Single(complete.Parts).SegmentIndex);
+
+        var crossesBoundary = finder.Find(new[] {
+            new EntityTextSegment("Note: 4405"),
+            new EntityTextSegment("1401359", structuredSource: true, continuesPrevious: true),
+        });
+        Assert.Empty(crossesBoundary.Matches);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

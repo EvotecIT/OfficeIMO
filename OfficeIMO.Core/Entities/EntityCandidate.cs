@@ -4,7 +4,7 @@ namespace OfficeIMO.Entities;
 
 /// <summary>A recognizer's validated reading before confidence and overlap resolution.</summary>
 public sealed class EntityCandidate {
-    /// <summary>Creates a reading for a written span within the current segment.</summary>
+    /// <summary>Creates a reading for a written span within the searched logical text.</summary>
     public EntityCandidate(EntityValidationResult validation, int start, int length, EntityCandidateStrength strength,
         EntityEvidence evidence = EntityEvidence.None) {
         Validation = validation ?? throw new ArgumentNullException(nameof(validation));
@@ -18,7 +18,7 @@ public sealed class EntityCandidate {
 
     /// <summary>Validation and normalization for the written value.</summary>
     public EntityValidationResult Validation { get; }
-    /// <summary>UTF-16 offset in the segment.</summary>
+    /// <summary>UTF-16 offset in the searched logical text.</summary>
     public int Start { get; }
     /// <summary>Written length in UTF-16 code units.</summary>
     public int Length { get; }

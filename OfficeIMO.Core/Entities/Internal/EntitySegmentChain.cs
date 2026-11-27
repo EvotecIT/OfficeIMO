@@ -37,6 +37,14 @@ internal sealed class EntitySegmentChain {
     internal EntityTextSegment SegmentAt(int offset) =>
         offset < Length ? _segments[IndexAt(offset)].Segment : First;
 
+    internal bool CoversStructuredSegment(int start, int end) {
+        int index = IndexAt(start);
+        var entry = _segments[index];
+        int offset = index == 0 ? 0 : _segments[index - 1].End;
+        return entry.Segment.StructuredSource && start == offset && end == entry.End &&
+               end - start == entry.Segment.Text.Length;
+    }
+
     internal EntityMatchPart[] GetParts(int start, int end) {
         int first = IndexAt(start);
         int last = IndexAt(end - 1);

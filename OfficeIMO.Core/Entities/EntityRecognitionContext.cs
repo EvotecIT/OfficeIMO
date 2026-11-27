@@ -57,7 +57,7 @@ public sealed class EntityRecognitionContext {
     /// <summary>Reports whether the active finder options permit this scheme.</summary>
     public bool IsEnabled(EntityScheme scheme) => _enabled.Contains(scheme.Id);
 
-    /// <summary>Submits a valid reading within the searched segment.</summary>
+    /// <summary>Submits a valid reading within the searched logical text.</summary>
     public void Add(EntityCandidate candidate) {
         if (candidate == null) throw new ArgumentNullException(nameof(candidate));
         if (candidate.Start > Text.Length - candidate.Length)
@@ -71,7 +71,7 @@ public sealed class EntityRecognitionContext {
         if (!IsEnabled(scheme) || !_catalog.TryGetScheme(scheme.Id, out EntityScheme? registered) || !ReferenceEquals(scheme, registered)) return;
 
         FindContext(scheme, candidate.Start, out bool labeled, out EntityKeyword? keyword);
-        bool structured = Segment.StructuredSource && candidate.Start == 0 && candidate.Length == Text.Length && !_clipped;
+        bool structured = _chain.CoversStructuredSegment(candidate.Start, end);
         if (candidate.RequiresContext && !labeled && keyword == null && !structured) return;
 
         EntityEvidence evidence = candidate.Evidence & ~(EntityEvidence.Label | EntityEvidence.ContextKeyword |
@@ -101,7 +101,7 @@ public sealed class EntityRecognitionContext {
 
     internal bool HasContext(EntityScheme scheme, int start) {
         FindContext(scheme, start, out bool labeled, out EntityKeyword? keyword);
-        return labeled || keyword != null || Segment.StructuredSource;
+        return labeled || keyword != null || _chain.SegmentAt(start).StructuredSource;
     }
 
     private static string? FoldLabel(string? label) => label == null ? null : EntityContextMatcher.Fold(label);

@@ -1,6 +1,7 @@
 namespace OfficeIMO.Entities;
 
 /// <summary>Evidence inherent in a candidate before considering formatting and context.</summary>
+/// <remarks>Numeric values identify evidence classes. Confidence is assigned by the finder.</remarks>
 public enum EntityCandidateStrength {
     /// <summary>Format alone provides weak evidence.</summary>
     ShapeOnly,
