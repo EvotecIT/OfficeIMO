@@ -136,7 +136,12 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         }
 
         /// <summary>Records an edit of the part's content, so the document writes it.</summary>
-        internal void MarkEdited() => Current._document?.MarkPackageEdited();
+        internal void MarkEdited() {
+            PowerPointPartRef current = Current;
+            // An SDK part's edit is recorded too, so a read-only copy writes the parts that changed.
+            if (current._sdk != null) current.Document?.MarkSdkPartEdited(current.Name);
+            else current._document?.MarkPackageEdited();
+        }
 
         // Records a relationship change, so cached edges between parts are read again.
         private void MarkRelationshipsEdited() {

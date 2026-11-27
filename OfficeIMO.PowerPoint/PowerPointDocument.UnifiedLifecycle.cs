@@ -85,10 +85,10 @@ public sealed partial class PowerPointDocument {
             loaded.Position = 0;
             loaded.CopyTo(package);
         } else {
-            // A read-only SDK package keeps edits only in its loaded parts; they are written into the copy, as edits made
-            // without the SDK are.
+            // A read-only SDK package keeps edits only in its loaded parts; the parts that were edited are written into the
+            // copy, as edits made without the SDK are. Untouched parts keep their stored markup.
             using (var clone = (DocumentFormat.OpenXml.Packaging.OpenXmlPackage)SdkDocument.Clone(package, true)) {
-                CopyLoadedParts(SdkDocument, clone, new HashSet<DocumentFormat.OpenXml.Packaging.OpenXmlPart>());
+                if (_sdkEditedParts != null) CopyEditedParts(SdkDocument, clone, _sdkEditedParts, new HashSet<DocumentFormat.OpenXml.Packaging.OpenXmlPart>());
             }
         }
         package.Position = 0;
@@ -102,16 +102,16 @@ public sealed partial class PowerPointDocument {
         return snapshot.ToBytes(effective);
     }
 
-    // Writes the content of every part whose root the source loaded into the same part of the copy.
-    private static void CopyLoadedParts(DocumentFormat.OpenXml.Packaging.OpenXmlPartContainer source, DocumentFormat.OpenXml.Packaging.OpenXmlPartContainer target,
-        HashSet<DocumentFormat.OpenXml.Packaging.OpenXmlPart> seen) {
+    // Writes the content of each edited part into the same part of the copy.
+    private static void CopyEditedParts(DocumentFormat.OpenXml.Packaging.OpenXmlPartContainer source, DocumentFormat.OpenXml.Packaging.OpenXmlPartContainer target,
+        HashSet<string> edited, HashSet<DocumentFormat.OpenXml.Packaging.OpenXmlPart> seen) {
         foreach (DocumentFormat.OpenXml.Packaging.IdPartPair pair in source.Parts) {
             if (!seen.Add(pair.OpenXmlPart) || !target.TryGetPartById(pair.RelationshipId, out DocumentFormat.OpenXml.Packaging.OpenXmlPart? copy)) continue;
-            if (pair.OpenXmlPart.IsRootElementLoaded && pair.OpenXmlPart.RootElement is { } root) {
+            if (edited.Contains(pair.OpenXmlPart.Uri.OriginalString) && pair.OpenXmlPart.IsRootElementLoaded && pair.OpenXmlPart.RootElement is { } root) {
                 using var content = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(root.OuterXml), writable: false);
                 copy.FeedData(content);
             }
-            CopyLoadedParts(pair.OpenXmlPart, copy, seen);
+            CopyEditedParts(pair.OpenXmlPart, copy, edited, seen);
         }
     }
 

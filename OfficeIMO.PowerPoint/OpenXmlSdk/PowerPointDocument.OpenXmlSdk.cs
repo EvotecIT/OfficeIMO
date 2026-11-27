@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint {
 
         private PresentationDocument OpenDeferredSdk() {
             // The SDK opens the package with any edits made without it.
-            KeepDetachedPackageObjects();
+            InvalidateRemovedPackageObjects(sdkOpening: true);
             CommitPendingEdits();
             ReleaseLoadedPackage();
             Stream packageStream = _packageStream ?? throw new InvalidOperationException("The presentation has no Open XML package to open.");

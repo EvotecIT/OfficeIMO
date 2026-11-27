@@ -74,7 +74,7 @@ public class PowerPointNotesWithoutSdkTests {
     }
 
     [Fact]
-    public void NotesTextKeptFromARemovedSlideStaysItsOwn() {
+    public void NotesTextKeptFromARemovedSlideThrowsAndNeverReachesNewNotes() {
         byte[] source;
         using (var created = PowerPointDocument.Create()) {
             created.AddSlide().Notes.Text = "Old notes";
@@ -89,13 +89,13 @@ public class PowerPointNotesWithoutSdkTests {
             presentation.RemoveSlide(0);
             // The remaining slide's new notes can take the removed notes' part name.
             presentation.Slides[0].Notes.Text = "New notes";
-            run.Text = "Edited";
-            Assert.Throws<InvalidOperationException>(() => run.SetHyperlink("https://example.com"));
-            Assert.False(presentation.IsSdkLoaded);
 
+            Assert.Throws<InvalidOperationException>(() => run.Text = "Edited");
+            Assert.Throws<InvalidOperationException>(() => run.SetHyperlink("https://example.com"));
+            Assert.Throws<InvalidOperationException>(() => paragraph.Text);
+            Assert.False(presentation.IsSdkLoaded);
             _ = presentation.OpenXmlDocument;
-            Assert.Equal("Edited", run.Text);
-            Assert.Equal("Edited", paragraph.Text);
+            Assert.Throws<InvalidOperationException>(() => run.Text);
             saved = presentation.ToBytes();
         }
 
