@@ -90,7 +90,10 @@ namespace OfficeIMO.OpenXml.Internal {
                     return null;
                 }
             }
-            foreach (OpenXmlAttribute attribute in value.GetAttributes()) {
+            // Indexed, so reading an attribute doesn't also box an enumerator over the list the SDK builds.
+            IList<OpenXmlAttribute> attributes = value.GetAttributes();
+            for (int index = 0; index < attributes.Count; index++) {
+                OpenXmlAttribute attribute = attributes[index];
                 if (string.Equals(attribute.LocalName, localName, StringComparison.Ordinal)
                     && string.Equals(attribute.NamespaceUri, uri, StringComparison.Ordinal)) {
                     return attribute.Value;
