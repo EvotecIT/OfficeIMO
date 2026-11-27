@@ -730,9 +730,19 @@ namespace OfficeIMO.Excel {
             return builder.ToString();
         }
 
-        /// <summary>The tables of a worksheet, read from its table parts.</summary>
-        internal List<ExcelFormulaTable> ReadTables(ExcelDeferredSheet sheet) =>
-            (_document.TryGetDeferredTableParts(sheet) ?? new List<ExcelTablePart>()).ConvertAll(table => table.ToFormulaTable());
+        /// <summary>
+        /// The tables of a worksheet, read from its table parts. When the workbook-wide read fails, only this worksheet's
+        /// parts are read, so a damaged part elsewhere hides no tables here and a damaged part here throws.
+        /// </summary>
+        internal List<ExcelFormulaTable> ReadTables(ExcelDeferredSheet sheet) {
+            List<ExcelTablePart>? tables = _document.TryGetDeferredTableParts(sheet);
+            if (tables == null) {
+                using var source = new MemoryStream(PackageBytes, writable: false);
+                using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
+                tables = ExcelTablePart.ReadSheetTables(package, sheet.PartName);
+            }
+            return tables.ConvertAll(table => table.ToFormulaTable());
+        }
     }
 
     /// <summary>Table helpers shared by the formula models.</summary>

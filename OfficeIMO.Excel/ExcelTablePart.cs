@@ -109,9 +109,12 @@ namespace OfficeIMO.Excel {
 
         private static uint? UInt(OfficeXmlPullReader reader, string name) =>
             reader.TryGetAttribute(OfficeXmlNamespaces.None, name, out string value)
-            && uint.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed) ? parsed : null;
+            && uint.TryParse(value.Trim(XmlWhitespace), NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed) ? parsed : null;
 
         private static bool IsTrue(OfficeXmlPullReader reader, string name) =>
-            reader.TryGetAttribute(OfficeXmlNamespaces.None, name, out string value) && value is "1" or "true";
+            reader.TryGetAttribute(OfficeXmlNamespaces.None, name, out string value) && value.Trim(XmlWhitespace) is "1" or "true";
+
+        // XmlConvert, which the SDK parses these attributes with, ignores surrounding XML whitespace.
+        private static readonly char[] XmlWhitespace = { ' ', '\t', '\n', '\r' };
     }
 }

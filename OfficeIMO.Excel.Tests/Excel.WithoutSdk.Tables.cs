@@ -1,3 +1,6 @@
+using System.IO.Compression;
+using System.Text;
+using System.Text.RegularExpressions;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -37,6 +40,71 @@ namespace OfficeIMO.Tests {
             Assert.Empty(document.OpenXmlSdkFallbacks);
         }
 
+        [Fact]
+        public void AWorksheetWithoutASheetEntryListsItsTablesAsTheModelDoes() {
+            // The workbook still relates the Data worksheet, but no sheet entry names it.
+            byte[] source = Rewrite(CreateWorkbook(), "xl/workbook.xml", xml => Regex.Replace(xml, "<(\\w+:)?sheet [^>]*name=\"Data\"[^>]*/>", string.Empty));
+            List<string> listed = AssertListingsMatchTheModel(source);
+            Assert.Contains(listed, line => line.StartsWith("workbook Orders|Orders|B2:D5||-1|", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void RowCountsWithSurroundingWhitespaceReadAsTheModelReadsThem() {
+            byte[] source = RewriteTables(CreateWorkbook(), xml => xml.Replace("totalsRowCount=\"1\"", "totalsRowCount=\" 1 \""));
+            AssertListingsMatchTheModel(source);
+            using var document = ExcelDocument.Load(new MemoryStream(source));
+            Assert.Equal(new[] { "Ann", "Bob" }, document.Sheets[1].Table("Orders").RowsAs<Order>().Select(row => row.Customer));
+        }
+
+        [Fact]
+        public void ADamagedTableOnOneWorksheetDoesNotHideTablesOnAnother() {
+            byte[] source = CreateWorkbook(sumSheet: true);
+            // Damage the table part of the Other sheet; the formula on the Data sheet reads only its own table.
+            source = RewriteTables(source, xml => xml.Contains("name=\"Others\"") ? xml.Substring(0, xml.Length / 2) : xml);
+            using var document = ExcelDocument.Load(new MemoryStream(source));
+            document.Calculate();
+            Assert.True(document.Sheets[1].TryGetCachedFormulaValue(12, 1, out string? total));
+            Assert.Equal("30", total);
+        }
+
+        private static List<string> AssertListingsMatchTheModel(byte[] source) {
+            List<string> expected;
+            using (var document = ExcelDocument.Load(new MemoryStream(source))) {
+                Assert.NotNull(document.OpenXmlDocument);
+                expected = Describe(document);
+            }
+            using (var document = ExcelDocument.Load(new MemoryStream(source))) {
+                Assert.Equal(expected, Describe(document));
+            }
+            return expected;
+        }
+
+        private static byte[] RewriteTables(byte[] package, Func<string, string> rewrite) {
+            foreach (string name in EntryNames(package).Where(name => name.StartsWith("xl/tables/", StringComparison.Ordinal))) {
+                package = Rewrite(package, name, rewrite);
+            }
+            return package;
+        }
+
+        private static List<string> EntryNames(byte[] package) {
+            using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
+            return archive.Entries.Select(entry => entry.FullName).ToList();
+        }
+
+        private static byte[] Rewrite(byte[] package, string entryName, Func<string, string> rewrite) {
+            using var stream = new MemoryStream();
+            stream.Write(package, 0, package.Length);
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true)) {
+                ZipArchiveEntry entry = archive.GetEntry(entryName)!;
+                string text;
+                using (var reader = new StreamReader(entry.Open(), Encoding.UTF8)) text = reader.ReadToEnd();
+                entry.Delete();
+                using var writer = new StreamWriter(archive.CreateEntry(entryName).Open(), new UTF8Encoding(false));
+                writer.Write(rewrite(text));
+            }
+            return stream.ToArray();
+        }
+
         public sealed class Order {
             public string Customer { get; set; } = string.Empty;
             public double Amount { get; set; }
@@ -59,7 +127,7 @@ namespace OfficeIMO.Tests {
                 string.Join(",", table.Columns.Select(column => column.Index + ":" + column.Name + ":" + column.TotalsRowFunction)));
 
         // A sheet without tables, then two tables with different styles, filters and a totals row.
-        private static byte[] CreateWorkbook() {
+        private static byte[] CreateWorkbook(bool sumSheet = false) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 document.AddSheet("Empty").Cell(1, 1).SetValue("nothing here");
@@ -81,6 +149,13 @@ namespace OfficeIMO.Tests {
                 data.Cell(9, 2).SetValue("one");
                 data.AddTable("A8:B9", hasHeader: true, name: "Codes", style: ExcelTableStyle.TableStyleDark2, includeAutoFilter: false)
                     .SetStyle(ExcelTableStyle.TableStyleDark2, showFirstColumn: true, showColumnStripes: true);
+                if (sumSheet) {
+                    data.Cell(12, 1).SetFormula("SUM(Orders[Amount])");
+                    ExcelSheet other = document.AddSheet("Other");
+                    other.Cell(1, 1).SetValue("Key");
+                    other.Cell(2, 1).SetValue("k");
+                    other.AddTable("A1:A2", hasHeader: true, name: "Others", style: ExcelTableStyle.TableStyleLight1);
+                }
                 document.Save();
             }
             return stream.ToArray();

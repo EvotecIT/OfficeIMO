@@ -22,7 +22,8 @@ namespace OfficeIMO.Excel {
             internal byte[] Bytes { get; }
             internal ExcelDeferredWorkbook Workbook { get; }
             internal int SheetCount { get; }
-            internal List<string> WorksheetOrder { get; } = new();
+            /// <summary>The worksheets the workbook part relates, in relationship order.</summary>
+            internal List<(string RelationshipId, string PartName)> WorksheetOrder { get; } = new();
             internal Dictionary<string, List<ExcelTablePart>> ByPart { get; } = new(StringComparer.Ordinal);
         }
 
@@ -43,9 +44,10 @@ namespace OfficeIMO.Excel {
                     using var source = new MemoryStream(bytes, writable: false);
                     using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
                     foreach (OfficeOpcRelationship relationship in package.GetRelationships(workbook.WorkbookPartName)) {
-                        if (string.Equals(relationship.Type, WorksheetPartRelationshipType, StringComparison.Ordinal) && !relationship.IsExternal) {
-                            tables.WorksheetOrder.Add(relationship.Id);
-                        }
+                        if (!string.Equals(relationship.Type, WorksheetPartRelationshipType, StringComparison.Ordinal)
+                            || relationship.IsExternal || relationship.TargetPartName is not { } target || !package.PartExists(target)) continue;
+                        tables.WorksheetOrder.Add((relationship.Id, target));
+                        if (!tables.ByPart.ContainsKey(target)) tables.ByPart.Add(target, ExcelTablePart.ReadSheetTables(package, target));
                     }
                     foreach (ExcelDeferredSheet sheet in workbook.Sheets) {
                         if (sheet.IsWorksheet && !tables.ByPart.ContainsKey(sheet.PartName)) {
@@ -73,12 +75,13 @@ namespace OfficeIMO.Excel {
                     "The worksheet is no longer part of the current workbook package. Obtain a current worksheet from ExcelDocument.Sheets before inspecting or exporting it.");
             }
             var result = new List<ExcelTableInfo>();
-            foreach (string relationshipId in read.WorksheetOrder) {
-                int index = sheets.FindIndex(sheet => string.Equals(sheet.RelationshipId, relationshipId, StringComparison.Ordinal));
-                if (index < 0 || !sheets[index].IsWorksheet) continue;
-                ExcelDeferredSheet sheet = sheets[index];
+            foreach ((string relationshipId, string partName) in read.WorksheetOrder) {
+                int index = sheets.FindIndex(sheet => string.Equals(sheet.RelationshipId, relationshipId, StringComparison.OrdinalIgnoreCase));
+                ExcelDeferredSheet? sheet = index >= 0 ? sheets[index] : null;
                 if (selected != null && !ReferenceEquals(sheet, selected)) continue;
-                foreach (ExcelTablePart table in read.ByPart[sheet.PartName]) result.Add(table.ToInfo(sheet.Name, index));
+                // A worksheet without a sheet entry still lists its tables, with no sheet name and index -1.
+                bool named = sheet != null && !string.IsNullOrWhiteSpace(sheet.Name);
+                foreach (ExcelTablePart table in read.ByPart[partName]) result.Add(table.ToInfo(named ? sheet!.Name : string.Empty, named ? index : -1));
             }
             tables = result;
             return true;
