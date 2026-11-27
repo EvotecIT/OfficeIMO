@@ -6,6 +6,8 @@
     "OfficeIMO.Word/README.md",
     "OfficeIMO.Excel/README.md",
     "OfficeIMO.Pdf/README.md",
-    "Docs/officeimo.pdf-guide.md"
+    "Docs/officeimo.pdf-guide.md",
+    "OfficeIMO.Markdown/README.md",
+    "OfficeIMO.Html/README.md"
   ]
 }
