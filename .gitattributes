@@ -234,3 +234,7 @@ OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/PredefinedCjk/*.pdf -text -dif
 OfficeIMO.Pdf/Resources/AdobeCMaps/** -text -whitespace
 
 OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/StandardEncryption/*.pdf -text -diff
+
+# Zstandard producer fixtures and their inputs are compared byte for byte.
+OfficeIMO.Archives.Tests/Fixtures/IndependentZstandard/** -text -whitespace -diff
+OfficeIMO.Archives.Tests/Fixtures/IndependentZstandard/manifest.json text eol=lf diff
