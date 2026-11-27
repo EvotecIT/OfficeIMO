@@ -1,26 +1,39 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormatting(ParagraphProperties? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes) =>
-            ReadSupportedParagraphFormattingCore(paragraphProperties, styleIndexes, allowParagraphStyleId: true);
+        /// <summary>
+        /// Which <c>w:pPr</c> content model a paragraph property list follows. A paragraph's own properties may carry a
+        /// style reference, mark run properties and section properties; a style's carry none of them; a list level's
+        /// carry only a style reference. Elements outside the model are unsupported properties.
+        /// </summary>
+        private enum LegacyDocParagraphPropertiesKind {
+            Paragraph,
+            Style,
+            ListLevel
+        }
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedBodyParagraphFormatting(ParagraphProperties? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes) =>
-            ReadSupportedParagraphFormattingCore(paragraphProperties, styleIndexes, allowParagraphStyleId: true, allowSectionProperties: true);
+        /// <summary>
+        /// The text an Open XML SDK enumeration value gave when interpolated into a message (its type name with empty
+        /// braces), or empty when the attribute is absent. Messages keep that wording.
+        /// </summary>
+        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormatting(LegacyDocElement paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes) =>
+            ReadSupportedParagraphFormattingCore(paragraphProperties, styleIndexes, allowParagraphStyleId: true, kind: LegacyDocParagraphPropertiesKind.Paragraph);
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedStyleParagraphFormatting(StyleParagraphProperties? paragraphProperties) =>
-            ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false);
+        private static LegacyDocWritableParagraphFormatting ReadSupportedBodyParagraphFormatting(LegacyDocElement paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes) =>
+            ReadSupportedParagraphFormattingCore(paragraphProperties, styleIndexes, allowParagraphStyleId: true, kind: LegacyDocParagraphPropertiesKind.Paragraph, allowSectionProperties: true);
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedCustomParagraphStyleParagraphFormatting(StyleParagraphProperties? paragraphProperties) =>
-            ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false, allowDirectOutlineLevel: true);
+        private static LegacyDocWritableParagraphFormatting ReadSupportedStyleParagraphFormatting(LegacyDocElement paragraphProperties) =>
+            ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false, kind: LegacyDocParagraphPropertiesKind.Style);
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedBuiltInStyleParagraphFormatting(ushort styleIndex, StyleParagraphProperties? paragraphProperties) =>
-            ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false, builtInStyleIndex: styleIndex);
+        private static LegacyDocWritableParagraphFormatting ReadSupportedCustomParagraphStyleParagraphFormatting(LegacyDocElement paragraphProperties) =>
+            ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false, kind: LegacyDocParagraphPropertiesKind.Style, allowDirectOutlineLevel: true);
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormattingCore(OpenXmlCompositeElement? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes, bool allowParagraphStyleId, ushort? builtInStyleIndex = null, bool allowSectionProperties = false, bool allowDirectOutlineLevel = false) {
-            if (paragraphProperties == null || !paragraphProperties.HasChildren) {
+        private static LegacyDocWritableParagraphFormatting ReadSupportedBuiltInStyleParagraphFormatting(ushort styleIndex, LegacyDocElement paragraphProperties) =>
+            ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false, kind: LegacyDocParagraphPropertiesKind.Style, builtInStyleIndex: styleIndex);
+
+        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormattingCore(LegacyDocElement paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes, bool allowParagraphStyleId, LegacyDocParagraphPropertiesKind kind, ushort? builtInStyleIndex = null, bool allowSectionProperties = false, bool allowDirectOutlineLevel = false) {
+            if (!paragraphProperties.HasElements) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
 
@@ -55,92 +68,100 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocParagraphBorders? paragraphBorders = null;
             IReadOnlyList<LegacyDocTabStop>? tabStops = null;
             ushort? styleIndex = null;
-            foreach (OpenXmlElement property in paragraphProperties.ChildElements) {
-                switch (property) {
-                    case ParagraphStyleId paragraphStyleId:
+            foreach (LegacyDocElement property in paragraphProperties.Elements()) {
+                // A style's properties have no style reference, mark run properties or section properties, and a
+                // list level's have no mark run properties or section properties: there they are unsupported elements.
+                string? propertyName = property.WName;
+                if ((propertyName == "pStyle" && kind == LegacyDocParagraphPropertiesKind.Style)
+                    || ((propertyName == "rPr" || propertyName == "sectPr") && kind != LegacyDocParagraphPropertiesKind.Paragraph)) {
+                    propertyName = null;
+                }
+
+                switch (propertyName) {
+                    case "pStyle":
                         if (!allowParagraphStyleId) {
                             throw new NotSupportedException("Native DOC saving does not support nested paragraph style identifiers inside custom paragraph style definitions.");
                         }
 
-                        styleIndex = ReadSupportedParagraphStyleIndex(paragraphStyleId, styleIndexes);
+                        styleIndex = ReadSupportedParagraphStyleIndex(property, styleIndexes);
                         break;
-                    case Justification justification:
-                        alignment = ReadSupportedParagraphAlignment(justification);
+                    case "jc":
+                        alignment = ReadSupportedParagraphAlignment(property);
                         break;
-                    case SpacingBetweenLines spacing:
-                        ReadSupportedParagraphSpacing(spacing, out spacingBeforeTwips, out spacingAfterTwips, out lineSpacingTwips, out lineSpacingIsMultiple);
+                    case "spacing":
+                        ReadSupportedParagraphSpacing(property, out spacingBeforeTwips, out spacingAfterTwips, out lineSpacingTwips, out lineSpacingIsMultiple);
                         break;
-                    case Indentation indentation:
-                        ReadSupportedParagraphIndentation(indentation, out leftIndentTwips, out rightIndentTwips, out firstLineIndentTwips);
+                    case "ind":
+                        ReadSupportedParagraphIndentation(property, out leftIndentTwips, out rightIndentTwips, out firstLineIndentTwips);
                         break;
-                    case KeepLines keepLines:
-                        keepLinesTogether = ReadOnOffValue(keepLines);
+                    case "keepLines":
+                        keepLinesTogether = ReadOnOffValue(property);
                         break;
-                    case KeepNext keepNext:
-                        keepWithNext = ReadOnOffValue(keepNext);
+                    case "keepNext":
+                        keepWithNext = ReadOnOffValue(property);
                         break;
-                    case PageBreakBefore pageBreakBeforeProperty:
-                        pageBreakBefore = ReadOnOffValue(pageBreakBeforeProperty);
+                    case "pageBreakBefore":
+                        pageBreakBefore = ReadOnOffValue(property);
                         break;
-                    case WidowControl widowControl:
-                        avoidWidowAndOrphan = ReadOnOffValue(widowControl);
+                    case "widowControl":
+                        avoidWidowAndOrphan = ReadOnOffValue(property);
                         break;
-                    case SuppressLineNumbers lineNumbers:
-                        suppressLineNumbers = ReadOnOffValue(lineNumbers);
+                    case "suppressLineNumbers":
+                        suppressLineNumbers = ReadOnOffValue(property);
                         break;
-                    case SuppressAutoHyphens autoHyphens:
-                        suppressAutoHyphens = ReadOnOffValue(autoHyphens);
+                    case "suppressAutoHyphens":
+                        suppressAutoHyphens = ReadOnOffValue(property);
                         break;
-                    case ContextualSpacing contextualSpacingProperty:
-                        contextualSpacing = ReadOnOffValue(contextualSpacingProperty);
+                    case "contextualSpacing":
+                        contextualSpacing = ReadOnOffValue(property);
                         break;
-                    case MirrorIndents mirrorIndentsProperty:
-                        mirrorIndents = ReadOnOffValue(mirrorIndentsProperty);
+                    case "mirrorIndents":
+                        mirrorIndents = ReadOnOffValue(property);
                         break;
-                    case Kinsoku kinsokuProperty:
-                        kinsoku = ReadOnOffValue(kinsokuProperty);
+                    case "kinsoku":
+                        kinsoku = ReadOnOffValue(property);
                         break;
-                    case WordWrap wordWrapProperty:
-                        wordWrap = ReadOnOffValue(wordWrapProperty);
+                    case "wordWrap":
+                        wordWrap = ReadOnOffValue(property);
                         break;
-                    case OverflowPunctuation overflowPunctuationProperty:
-                        overflowPunctuation = ReadOnOffValue(overflowPunctuationProperty);
+                    case "overflowPunct":
+                        overflowPunctuation = ReadOnOffValue(property);
                         break;
-                    case TopLinePunctuation topLinePunctuationProperty:
-                        topLinePunctuation = ReadOnOffValue(topLinePunctuationProperty);
+                    case "topLinePunct":
+                        topLinePunctuation = ReadOnOffValue(property);
                         break;
-                    case AutoSpaceDE autoSpaceDEProperty:
-                        autoSpaceDE = ReadOnOffValue(autoSpaceDEProperty);
+                    case "autoSpaceDE":
+                        autoSpaceDE = ReadOnOffValue(property);
                         break;
-                    case AutoSpaceDN autoSpaceDNProperty:
-                        autoSpaceDN = ReadOnOffValue(autoSpaceDNProperty);
+                    case "autoSpaceDN":
+                        autoSpaceDN = ReadOnOffValue(property);
                         break;
-                    case BiDi bidi:
-                        bidirectional = ReadOnOffValue(bidi);
+                    case "bidi":
+                        bidirectional = ReadOnOffValue(property);
                         break;
-                    case NumberingProperties numberingProperties:
-                        ReadSupportedNumberingProperties(numberingProperties, out numberingListIndex, out numberingLevel);
+                    case "numPr":
+                        ReadSupportedNumberingProperties(property, out numberingListIndex, out numberingLevel);
                         break;
-                    case TextAlignment textAlignment:
-                        verticalCharacterAlignment = ReadSupportedVerticalCharacterAlignment(textAlignment);
+                    case "textAlignment":
+                        verticalCharacterAlignment = ReadSupportedVerticalCharacterAlignment(property);
                         break;
-                    case Shading shading:
-                        paragraphShading = ReadSupportedParagraphShading(shading);
+                    case "shd":
+                        paragraphShading = ReadSupportedParagraphShading(property);
                         break;
-                    case ParagraphBorders borders:
-                        paragraphBorders = ReadSupportedParagraphBorders(borders);
+                    case "pBdr":
+                        paragraphBorders = ReadSupportedParagraphBorders(property);
                         break;
-                    case Tabs tabs:
-                        tabStops = ReadSupportedTabStops(tabs);
+                    case "tabs":
+                        tabStops = ReadSupportedTabStops(property);
                         break;
-                    case OutlineLevel outlineLevel:
-                        paragraphOutlineLevel = ReadSupportedOutlineLevel(outlineLevel, builtInStyleIndex, allowDirectOutlineLevel: allowParagraphStyleId || allowDirectOutlineLevel);
+                    case "outlineLvl":
+                        paragraphOutlineLevel = ReadSupportedOutlineLevel(property, builtInStyleIndex, allowDirectOutlineLevel: allowParagraphStyleId || allowDirectOutlineLevel);
                         break;
-                    case ParagraphMarkRunProperties when allowParagraphStyleId:
+                    case "rPr" when allowParagraphStyleId:
                         break;
-                    case ParagraphMarkRunProperties:
+                    case "rPr":
                         throw new NotSupportedException("Native DOC saving supports paragraph mark run formatting only on direct paragraph properties. Unsupported paragraph property: rPr.");
-                    case SectionProperties when allowSectionProperties:
+                    case "sectPr" when allowSectionProperties:
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, simple numbering, alignment, vertical character alignment, East Asian typography flags, bidirectional layout, mirror indents, contextual spacing, suppressing automatic hyphenation, spacing, indentation, pagination flags, tab stops, palette-backed paragraph shading, and palette-backed paragraph borders. Unsupported paragraph property: {property.LocalName}.");
@@ -202,38 +223,38 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 lineSpacingIsMultiple: lineSpacingIsMultiple);
         }
 
-        private static byte ReadSupportedVerticalCharacterAlignment(TextAlignment textAlignment) {
-            VerticalTextAlignmentValues value = textAlignment.Val?.Value ?? VerticalTextAlignmentValues.Auto;
-            if (value == VerticalTextAlignmentValues.Auto) {
+        private static byte ReadSupportedVerticalCharacterAlignment(LegacyDocElement textAlignment) {
+            string value = textAlignment.Val ?? "auto";
+            if (value == "auto") {
                 return 4;
-            } else if (value == VerticalTextAlignmentValues.Baseline) {
+            } else if (value == "baseline") {
                 return 2;
-            } else if (value == VerticalTextAlignmentValues.Top) {
+            } else if (value == "top") {
                 return 0;
-            } else if (value == VerticalTextAlignmentValues.Center) {
+            } else if (value == "center") {
                 return 1;
-            } else if (value == VerticalTextAlignmentValues.Bottom) {
+            } else if (value == "bottom") {
                 return 3;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support paragraph vertical character alignment '{value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support paragraph vertical character alignment '{FormatSdkEnumValue(value, "VerticalTextAlignmentValues")}'.");
         }
 
-        private static void ReadSupportedNumberingProperties(NumberingProperties numberingProperties, out ushort? numberingListIndex, out byte? numberingLevel) {
+        private static void ReadSupportedNumberingProperties(LegacyDocElement numberingProperties, out ushort? numberingListIndex, out byte? numberingLevel) {
             numberingListIndex = null;
             numberingLevel = null;
 
-            foreach (OpenXmlElement child in numberingProperties.ChildElements) {
-                switch (child) {
-                    case NumberingId:
-                    case NumberingLevelReference:
+            foreach (LegacyDocElement child in numberingProperties.Elements()) {
+                switch (child.WName) {
+                    case "numId":
+                    case "ilvl":
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple paragraph numbering only. Unsupported numbering property: {child.LocalName}.");
                 }
             }
 
-            int? numberId = numberingProperties.NumberingId?.Val?.Value;
+            int? numberId = LegacyDocValues.Int32(numberingProperties.Child("numId").Val);
             if (numberId == null || numberId.Value == 0) {
                 return;
             }
@@ -242,7 +263,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports paragraph numbering ids only within the Word 97-2003 list index range.");
             }
 
-            int level = numberingProperties.NumberingLevelReference?.Val?.Value ?? 0;
+            int level = LegacyDocValues.Int32(numberingProperties.Child("ilvl").Val) ?? 0;
             if (level < 0 || level > 8) {
                 throw new NotSupportedException("Native DOC saving supports paragraph numbering levels 0 through 8.");
             }
@@ -251,14 +272,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             numberingLevel = checked((byte)level);
         }
 
-        private static LegacyDocParagraphBorders ReadSupportedParagraphBorders(ParagraphBorders borders) {
-            foreach (OpenXmlElement child in borders.ChildElements) {
-                switch (child) {
-                    case TopBorder:
-                    case LeftBorder:
-                    case BottomBorder:
-                    case RightBorder:
-                    case BetweenBorder:
+        private static LegacyDocParagraphBorders ReadSupportedParagraphBorders(LegacyDocElement borders) {
+            foreach (LegacyDocElement child in borders.Elements()) {
+                switch (child.WName) {
+                    case "top":
+                    case "left":
+                    case "bottom":
+                    case "right":
+                    case "between":
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple paragraph borders only. Unsupported paragraph border: {child.LocalName}.");
@@ -266,25 +287,25 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return new LegacyDocParagraphBorders(
-                ReadSupportedParagraphBorder(borders.TopBorder),
-                ReadSupportedParagraphBorder(borders.LeftBorder),
-                ReadSupportedParagraphBorder(borders.BottomBorder),
-                ReadSupportedParagraphBorder(borders.RightBorder),
-                ReadSupportedParagraphBorder(borders.BetweenBorder));
+                ReadSupportedParagraphBorder(borders.Child("top")),
+                ReadSupportedParagraphBorder(borders.Child("left")),
+                ReadSupportedParagraphBorder(borders.Child("bottom")),
+                ReadSupportedParagraphBorder(borders.Child("right")),
+                ReadSupportedParagraphBorder(borders.Child("between")));
         }
 
-        private static LegacyDocParagraphBorder ReadSupportedParagraphBorder(BorderType? border) {
-            if (border == null) {
+        private static LegacyDocParagraphBorder ReadSupportedParagraphBorder(LegacyDocElement border) {
+            if (border.IsNone) {
                 return default;
             }
 
-            BorderValues? value = border.Val?.Value;
-            if (value == null || value == BorderValues.None || value == BorderValues.Nil) {
+            string? value = border.Val;
+            if (value == null || value == "none" || value == "nil") {
                 return default;
             }
 
-            LegacyDocParagraphBorderStyle style = MapSupportedParagraphBorderStyle(value.Value);
-            string? colorHex = border.Color?.Value;
+            LegacyDocParagraphBorderStyle style = MapSupportedParagraphBorderStyle(value);
+            string? colorHex = border.Attr("color");
             if (string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
                 colorHex = null;
             }
@@ -293,8 +314,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports paragraph borders only with Word 97-2003 palette colors.");
             }
 
-            int size = border.Size?.Value == null ? 4 : checked((int)border.Size.Value);
-            int space = border.Space?.Value == null ? 0 : checked((int)border.Space.Value);
+            uint? borderSize = LegacyDocValues.UInt32(border.Attr("sz"));
+            int size = borderSize == null ? 4 : checked((int)borderSize.Value);
+            uint? borderSpace = LegacyDocValues.UInt32(border.Attr("space"));
+            int space = borderSpace == null ? 0 : checked((int)borderSpace.Value);
             if (size <= 0 || size > byte.MaxValue || space < 0 || space > byte.MaxValue) {
                 throw new NotSupportedException("Native DOC saving supports paragraph border size and spacing only within Word 97-2003 BRC80 byte ranges.");
             }
@@ -302,33 +325,33 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocParagraphBorder(style, colorHex, size, space);
         }
 
-        private static LegacyDocParagraphBorderStyle MapSupportedParagraphBorderStyle(BorderValues value) {
-            if (value == BorderValues.Single) {
+        private static LegacyDocParagraphBorderStyle MapSupportedParagraphBorderStyle(string value) {
+            if (value == "single") {
                 return LegacyDocParagraphBorderStyle.Single;
             }
 
-            if (value == BorderValues.Double) {
+            if (value == "double") {
                 return LegacyDocParagraphBorderStyle.Double;
             }
 
-            if (value == BorderValues.Dotted) {
+            if (value == "dotted") {
                 return LegacyDocParagraphBorderStyle.Dotted;
             }
 
-            if (value == BorderValues.Dashed || value == BorderValues.DashSmallGap) {
+            if (value == "dashed" || value == "dashSmallGap") {
                 return LegacyDocParagraphBorderStyle.Dashed;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support paragraph border style '{value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support paragraph border style '{FormatSdkEnumValue(value, "BorderValues")}'.");
         }
 
-        private static LegacyDocParagraphShading ReadSupportedParagraphShading(Shading shading) {
-            ShadingPatternValues? pattern = shading.Val?.Value;
-            if (pattern != null && pattern != ShadingPatternValues.Clear) {
+        private static LegacyDocParagraphShading ReadSupportedParagraphShading(LegacyDocElement shading) {
+            string? pattern = shading.Val;
+            if (pattern != null && pattern != "clear") {
                 throw new NotSupportedException("Native DOC saving supports paragraph shading only for clear fill patterns.");
             }
 
-            string? fillColorHex = shading.Fill?.Value;
+            string? fillColorHex = shading.Attr("fill");
             if (string.IsNullOrWhiteSpace(fillColorHex)) {
                 return default;
             }
@@ -342,14 +365,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return paragraphShading;
         }
 
-        private static void ReadSupportedBuiltInOutlineLevel(OutlineLevel outlineLevel, ushort? builtInStyleIndex) {
+        private static void ReadSupportedBuiltInOutlineLevel(LegacyDocElement outlineLevel, ushort? builtInStyleIndex) {
             _ = ReadSupportedOutlineLevel(outlineLevel, builtInStyleIndex, allowDirectOutlineLevel: false);
         }
 
-        private static byte? ReadSupportedOutlineLevel(OutlineLevel outlineLevel, ushort? builtInStyleIndex, bool allowDirectOutlineLevel) {
+        private static byte? ReadSupportedOutlineLevel(LegacyDocElement outlineLevel, ushort? builtInStyleIndex, bool allowDirectOutlineLevel) {
             if (builtInStyleIndex == null || builtInStyleIndex.Value == 0 || builtInStyleIndex.Value > 9) {
                 if (allowDirectOutlineLevel) {
-                    int directLevel = outlineLevel.Val?.Value ?? 9;
+                    int directLevel = LegacyDocValues.Int32(outlineLevel.Val) ?? 9;
                     if (directLevel >= 0 && directLevel <= 9) {
                         return checked((byte)directLevel);
                     }
@@ -359,7 +382,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             int expectedLevel = builtInStyleIndex.Value - 1;
-            int level = outlineLevel.Val?.Value ?? expectedLevel;
+            int level = LegacyDocValues.Int32(outlineLevel.Val) ?? expectedLevel;
             if (level != expectedLevel) {
                 throw new NotSupportedException($"Native DOC saving supports built-in Heading style outline levels only when they match the heading level. Expected outline level {expectedLevel}, got {level}.");
             }
@@ -367,47 +390,50 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return null;
         }
 
-        private static IReadOnlyList<LegacyDocTabStop> ReadSupportedTabStops(Tabs tabs) {
+        private static IReadOnlyList<LegacyDocTabStop> ReadSupportedTabStops(LegacyDocElement tabs) {
             var tabStops = new List<LegacyDocTabStop>();
-            foreach (TabStop tabStop in tabs.Elements<TabStop>()) {
-                if (tabStop.Position == null) {
+            foreach (LegacyDocElement tabStop in tabs.Elements("tab")) {
+                string? position = tabStop.Attr("pos");
+                if (position == null) {
                     throw new NotSupportedException("Native DOC saving supports tab stops only when each tab stop has an explicit twip position.");
                 }
 
-                if (!TryReadSupportedTabAlignment(tabStop.Val?.Value ?? TabStopValues.Left, out LegacyDocTabStopAlignment alignment)) {
-                    throw new NotSupportedException($"Native DOC saving does not support tab stop alignment '{tabStop.Val?.Value}'.");
+                string? tabAlignment = tabStop.Val;
+                if (!TryReadSupportedTabAlignment(tabAlignment ?? "left", out LegacyDocTabStopAlignment alignment)) {
+                    throw new NotSupportedException($"Native DOC saving does not support tab stop alignment '{FormatSdkEnumValue(tabAlignment, "TabStopValues")}'.");
                 }
 
-                if (!TryReadSupportedTabLeader(tabStop.Leader?.Value ?? TabStopLeaderCharValues.None, out LegacyDocTabStopLeader leader)) {
-                    throw new NotSupportedException($"Native DOC saving does not support tab stop leader '{tabStop.Leader?.Value}'.");
+                string? tabLeader = tabStop.Attr("leader");
+                if (!TryReadSupportedTabLeader(tabLeader ?? "none", out LegacyDocTabStopLeader leader)) {
+                    throw new NotSupportedException($"Native DOC saving does not support tab stop leader '{FormatSdkEnumValue(tabLeader, "TabStopLeaderCharValues")}'.");
                 }
 
-                tabStops.Add(new LegacyDocTabStop(tabStop.Position.Value, alignment, leader));
+                tabStops.Add(new LegacyDocTabStop(LegacyDocValues.XmlInt32(position), alignment, leader));
             }
 
             return tabStops;
         }
 
-        private static bool TryReadSupportedTabAlignment(TabStopValues value, out LegacyDocTabStopAlignment alignment) {
-            if (value == TabStopValues.Left) {
+        private static bool TryReadSupportedTabAlignment(string value, out LegacyDocTabStopAlignment alignment) {
+            if (value == "left") {
                 alignment = LegacyDocTabStopAlignment.Left;
                 return true;
-            } else if (value == TabStopValues.Center) {
+            } else if (value == "center") {
                 alignment = LegacyDocTabStopAlignment.Center;
                 return true;
-            } else if (value == TabStopValues.Right) {
+            } else if (value == "right") {
                 alignment = LegacyDocTabStopAlignment.Right;
                 return true;
-            } else if (value == TabStopValues.Decimal) {
+            } else if (value == "decimal") {
                 alignment = LegacyDocTabStopAlignment.Decimal;
                 return true;
-            } else if (value == TabStopValues.Bar) {
+            } else if (value == "bar") {
                 alignment = LegacyDocTabStopAlignment.Bar;
                 return true;
-            } else if (value == TabStopValues.Number) {
+            } else if (value == "num") {
                 alignment = LegacyDocTabStopAlignment.Number;
                 return true;
-            } else if (value == TabStopValues.Clear) {
+            } else if (value == "clear") {
                 alignment = LegacyDocTabStopAlignment.Clear;
                 return true;
             }
@@ -416,23 +442,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return false;
         }
 
-        private static bool TryReadSupportedTabLeader(TabStopLeaderCharValues value, out LegacyDocTabStopLeader leader) {
-            if (value == TabStopLeaderCharValues.None) {
+        private static bool TryReadSupportedTabLeader(string value, out LegacyDocTabStopLeader leader) {
+            if (value == "none") {
                 leader = LegacyDocTabStopLeader.None;
                 return true;
-            } else if (value == TabStopLeaderCharValues.Dot) {
+            } else if (value == "dot") {
                 leader = LegacyDocTabStopLeader.Dot;
                 return true;
-            } else if (value == TabStopLeaderCharValues.Hyphen) {
+            } else if (value == "hyphen") {
                 leader = LegacyDocTabStopLeader.Hyphen;
                 return true;
-            } else if (value == TabStopLeaderCharValues.Underscore) {
+            } else if (value == "underscore") {
                 leader = LegacyDocTabStopLeader.Underscore;
                 return true;
-            } else if (value == TabStopLeaderCharValues.Heavy) {
+            } else if (value == "heavy") {
                 leader = LegacyDocTabStopLeader.Heavy;
                 return true;
-            } else if (value == TabStopLeaderCharValues.MiddleDot) {
+            } else if (value == "middleDot") {
                 leader = LegacyDocTabStopLeader.MiddleDot;
                 return true;
             }
@@ -441,8 +467,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return false;
         }
 
-        private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId, IReadOnlyDictionary<string, ushort> styleIndexes) {
-            string? styleId = paragraphStyleId.Val?.Value;
+        private static ushort? ReadSupportedParagraphStyleIndex(LegacyDocElement paragraphStyleId, IReadOnlyDictionary<string, ushort> styleIndexes) {
+            string? styleId = paragraphStyleId.Val;
             if (string.IsNullOrWhiteSpace(styleId)
                 || string.Equals(styleId, "Normal", StringComparison.Ordinal)) {
                 return null;
@@ -494,44 +520,44 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static byte? ReadSupportedParagraphAlignment(Justification justification) {
-            JustificationValues value = justification.Val?.Value ?? JustificationValues.Left;
-            if (value == JustificationValues.Left) {
+        private static byte? ReadSupportedParagraphAlignment(LegacyDocElement justification) {
+            string value = justification.Val ?? "left";
+            if (value == "left") {
                 return 0;
-            } else if (value == JustificationValues.Center) {
+            } else if (value == "center") {
                 return 1;
-            } else if (value == JustificationValues.Right) {
+            } else if (value == "right") {
                 return 2;
-            } else if (value == JustificationValues.Both) {
+            } else if (value == "both") {
                 return 3;
             }
 
-            throw new NotSupportedException($"Native DOC saving does not support paragraph alignment '{value}'.");
+            throw new NotSupportedException($"Native DOC saving does not support paragraph alignment '{FormatSdkEnumValue(value, "JustificationValues")}'.");
         }
 
         private static void ReadSupportedParagraphSpacing(
-            SpacingBetweenLines spacing,
+            LegacyDocElement spacing,
             out int? spacingBeforeTwips,
             out int? spacingAfterTwips,
             out int? lineSpacingTwips,
             out bool lineSpacingIsMultiple) {
-            if ((spacing.BeforeAutoSpacing?.Value ?? false) || (spacing.AfterAutoSpacing?.Value ?? false)) {
+            if ((LegacyDocValues.OnOff(spacing.Attr("beforeAutospacing")) ?? false) || (LegacyDocValues.OnOff(spacing.Attr("afterAutospacing")) ?? false)) {
                 throw new NotSupportedException("Native DOC saving currently supports paragraph spacing only as explicit twip values, not automatic spacing.");
             }
 
-            if (spacing.BeforeLines != null || spacing.AfterLines != null) {
+            if (spacing.Attr("beforeLines") != null || spacing.Attr("afterLines") != null) {
                 throw new NotSupportedException("Native DOC saving currently supports paragraph before/after spacing only as twip values, not line-count spacing.");
             }
 
-            spacingBeforeTwips = ReadOptionalInt32Twips(spacing.Before?.Value, "paragraph spacing before");
-            spacingAfterTwips = ReadOptionalInt32Twips(spacing.After?.Value, "paragraph spacing after");
-            lineSpacingTwips = ReadOptionalInt32Twips(spacing.Line?.Value, "paragraph line spacing");
-            LineSpacingRuleValues lineRule = spacing.LineRule?.Value ?? LineSpacingRuleValues.Auto;
-            lineSpacingIsMultiple = lineSpacingTwips.HasValue && lineRule == LineSpacingRuleValues.Auto;
+            spacingBeforeTwips = ReadOptionalInt32Twips(spacing.Attr("before"), "paragraph spacing before");
+            spacingAfterTwips = ReadOptionalInt32Twips(spacing.Attr("after"), "paragraph spacing after");
+            lineSpacingTwips = ReadOptionalInt32Twips(spacing.Attr("line"), "paragraph line spacing");
+            string lineRule = spacing.Attr("lineRule") ?? "auto";
+            lineSpacingIsMultiple = lineSpacingTwips.HasValue && lineRule == "auto";
             if (lineSpacingTwips.HasValue) {
                 if (lineSpacingTwips < 0 || lineSpacingTwips > 31680)
                     throw new NotSupportedException("Native DOC line spacing must be between 0 and 31680.");
-                if (lineRule == LineSpacingRuleValues.Exact) {
+                if (lineRule == "exact") {
                     // DOC represents exact spacing with a negative LSPD value;
                     // zero would instead mean at-least single spacing.
                     if (lineSpacingTwips.Value == 0)
@@ -542,22 +568,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void ReadSupportedParagraphIndentation(
-            Indentation indentation,
+            LegacyDocElement indentation,
             out int? leftIndentTwips,
             out int? rightIndentTwips,
             out int? firstLineIndentTwips) {
-            if (indentation.LeftChars != null || indentation.RightChars != null || indentation.FirstLineChars != null || indentation.HangingChars != null) {
+            if (indentation.Attr("leftChars") != null || indentation.Attr("rightChars") != null || indentation.Attr("firstLineChars") != null || indentation.Attr("hangingChars") != null) {
                 throw new NotSupportedException("Native DOC saving currently supports paragraph indentation only as twip values, not character-based indentation.");
             }
 
-            if (indentation.FirstLine != null && indentation.Hanging != null) {
+            if (indentation.Attr("firstLine") != null && indentation.Attr("hanging") != null) {
                 throw new NotSupportedException("Native DOC saving cannot write a paragraph with both first-line and hanging indentation.");
             }
 
-            leftIndentTwips = ReadOptionalInt32Twips(indentation.Left?.Value, "paragraph left indentation");
-            rightIndentTwips = ReadOptionalInt32Twips(indentation.Right?.Value, "paragraph right indentation");
-            int? firstLine = ReadOptionalInt32Twips(indentation.FirstLine?.Value, "paragraph first-line indentation");
-            int? hanging = ReadOptionalInt32Twips(indentation.Hanging?.Value, "paragraph hanging indentation");
+            leftIndentTwips = ReadOptionalInt32Twips(indentation.Attr("left"), "paragraph left indentation");
+            rightIndentTwips = ReadOptionalInt32Twips(indentation.Attr("right"), "paragraph right indentation");
+            int? firstLine = ReadOptionalInt32Twips(indentation.Attr("firstLine"), "paragraph first-line indentation");
+            int? hanging = ReadOptionalInt32Twips(indentation.Attr("hanging"), "paragraph hanging indentation");
             firstLineIndentTwips = hanging != null ? -hanging.Value : firstLine;
         }
 
@@ -577,6 +603,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return result;
         }
 
-        private static bool? ReadOnOffValue(OnOffType property) => property.Val?.Value ?? true;
+        private static bool? ReadOnOffValue(LegacyDocElement property) => property.Val is { } value ? LegacyDocValues.ParseOnOff(value) : true;
     }
 }

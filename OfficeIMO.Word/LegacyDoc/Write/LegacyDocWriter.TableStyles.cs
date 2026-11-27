@@ -1,95 +1,90 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc.Model;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static TableProperties? ResolveSupportedEffectiveTableProperties(TableProperties? properties,
+        /// <summary>
+        /// The table style a table resolves to: its own <c>w:tblStyle</c> value, or the document's default table style
+        /// when it names none. Readers see the default as if the table had named it.
+        /// </summary>
+        private static string? ResolveSupportedEffectiveTableStyleId(LegacyDocElement properties,
             LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            if (!string.IsNullOrWhiteSpace(properties?.TableStyle?.Val?.Value)) {
-                return properties;
+            string? styleId = properties.Child("tblStyle").Val;
+            if (!string.IsNullOrWhiteSpace(styleId)) {
+                return styleId;
             }
-            Style? defaultStyle = tableStyleDefinitions.DefaultStyle;
-            if (defaultStyle == null || IsNoOpTableStyle(defaultStyle.StyleId?.Value)) {
-                return properties;
+            LegacyDocElement defaultStyle = tableStyleDefinitions.DefaultStyle;
+            if (defaultStyle.IsNone || IsNoOpTableStyle(LegacyDocStyleCatalog.StyleId(defaultStyle))) {
+                return styleId;
             }
             // Resolve an implicit document default without adding a style to
             // the caller's source XML. Existing style readers validate it.
-            var effective = properties == null ? new TableProperties() : (TableProperties)properties.CloneNode(true);
-            effective.TableStyle = new TableStyle { Val = defaultStyle.StyleId!.Value };
-            return effective;
+            return LegacyDocStyleCatalog.StyleId(defaultStyle)!;
         }
 
-        private static LegacyDocTableStyleDefinitions ReadTableStyleDefinitions(MainDocumentPart mainPart) =>
-            new(WordStyleCatalog.For(mainPart));
+        private static LegacyDocTableStyleDefinitions ReadTableStyleDefinitions(LegacyDocSourcePackage source) =>
+            new(source.Styles);
 
         /// <summary>
         /// The document's table styles by identifier, first definition winning, read from its style catalog. A style
         /// is parsed only when a table looks it up.
         /// </summary>
-        internal sealed class LegacyDocTableStyleDefinitions : IReadOnlyDictionary<string, Style> {
-            private readonly Dictionary<string, WordStyleDefinitionsReader.StyleDefinition> _styles = new(StringComparer.Ordinal);
-            private readonly WordStyleDefinitionsReader.StyleDefinition? _defaultStyle;
+        internal sealed class LegacyDocTableStyleDefinitions : IReadOnlyDictionary<string, LegacyDocElement> {
+            private readonly Dictionary<string, LegacyDocElement> _styles = new(StringComparer.Ordinal);
+            private readonly LegacyDocElement _defaultStyle;
 
-            internal LegacyDocTableStyleDefinitions(WordStyleCatalog catalog) {
-                foreach (WordStyleDefinitionsReader.StyleDefinition style in catalog.Definitions) {
-                    if (!string.Equals(style.Type, "table", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(style.StyleId)) continue;
-                    if (_styles.ContainsKey(style.StyleId!)) continue;
-                    _styles.Add(style.StyleId!, style);
-                    if (_defaultStyle == null && style.IsDefault) _defaultStyle = style;
+            internal LegacyDocTableStyleDefinitions(LegacyDocStyleCatalog catalog) {
+                foreach (LegacyDocElement style in catalog.Definitions) {
+                    string? styleId = LegacyDocStyleCatalog.StyleId(style);
+                    if (!string.Equals(LegacyDocStyleCatalog.Type(style), "table", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(styleId)) continue;
+                    if (_styles.ContainsKey(styleId!)) continue;
+                    _styles.Add(styleId!, style);
+                    if (_defaultStyle.IsNone && IsDefaultTableStyle(style)) _defaultStyle = style;
                 }
             }
 
-            /// <summary>The first table style, in document order, that is marked as the default.</summary>
-            internal Style? DefaultStyle => _defaultStyle?.Element;
+            // The style catalog reads w:default as the SDK's OnOffValue.HasValue did: a value it can't parse is not on.
+            private static bool IsDefaultTableStyle(LegacyDocElement style) =>
+                style.Attr("default") is "true" or "1" or "on";
 
-            public Style this[string key] => _styles[key].Element;
+            /// <summary>The first table style, in document order, that is marked as the default.</summary>
+            internal LegacyDocElement DefaultStyle => _defaultStyle;
+
+            public LegacyDocElement this[string key] => _styles[key];
             public IEnumerable<string> Keys => _styles.Keys;
-            public IEnumerable<Style> Values => _styles.Values.Select(style => style.Element);
+            public IEnumerable<LegacyDocElement> Values => _styles.Values;
             public int Count => _styles.Count;
             public bool ContainsKey(string key) => _styles.ContainsKey(key);
 
-            public bool TryGetValue(string key, out Style value) {
-                if (_styles.TryGetValue(key, out WordStyleDefinitionsReader.StyleDefinition? style)) {
-                    value = style.Element;
-                    return true;
-                }
-                value = null!;
-                return false;
-            }
+            public bool TryGetValue(string key, out LegacyDocElement value) => _styles.TryGetValue(key, out value);
 
-            public IEnumerator<KeyValuePair<string, Style>> GetEnumerator() =>
-                _styles.Select(pair => new KeyValuePair<string, Style>(pair.Key, pair.Value.Element)).GetEnumerator();
+            public IEnumerator<KeyValuePair<string, LegacyDocElement>> GetEnumerator() => _styles.GetEnumerator();
 
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
-        private static LegacyDocTableBorders ReadSupportedTableStyleBorders(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            string? styleId = tableStyle?.Val?.Value;
+        private static LegacyDocTableBorders ReadSupportedTableStyleBorders(string? styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             if (IsNoOpTableStyle(styleId)) {
                 return default;
             }
 
-            if (string.IsNullOrWhiteSpace(styleId) || !TryResolveTableStyleDefinition(styleId!, tableStyleDefinitions, out Style? style)) {
+            if (string.IsNullOrWhiteSpace(styleId) || !TryResolveTableStyleDefinition(styleId!, tableStyleDefinitions, out LegacyDocElement style)) {
                 throw new NotSupportedException($"Native DOC saving supports simple tables only when table style '{styleId}' can be resolved to supported table-level formatting.");
             }
 
             ThrowIfUnsupportedTableStyle(styleId!, style, tableStyleDefinitions);
             LegacyDocTableBorders inheritedBorders = ReadSupportedTableStyleBaseBorders(style, tableStyleDefinitions);
-            TableBorders? customBorders = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
-            LegacyDocTableBorders ownBorders = customBorders == null ? default : ReadSupportedTableBorders(customBorders);
+            LegacyDocElement customBorders = style.Child("tblPr").Child("tblBorders");
+            LegacyDocTableBorders ownBorders = customBorders.IsNone ? default : ReadSupportedTableBorders(customBorders);
             return MergeSupportedTableBorders(ownBorders, inheritedBorders);
         }
 
-        private static LegacyDocTableCellShading ReadSupportedTableStyleShading(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            string? styleId = tableStyle?.Val?.Value;
+        private static LegacyDocTableCellShading ReadSupportedTableStyleShading(string? styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             if (IsNoOpTableStyle(styleId)) {
                 return default;
             }
 
-            if (string.IsNullOrWhiteSpace(styleId) || !TryResolveTableStyleDefinition(styleId!, tableStyleDefinitions, out Style? style)) {
+            if (string.IsNullOrWhiteSpace(styleId) || !TryResolveTableStyleDefinition(styleId!, tableStyleDefinitions, out LegacyDocElement style)) {
                 throw new NotSupportedException($"Native DOC saving supports simple tables only when table style '{styleId}' can be resolved to supported table-level formatting.");
             }
 
@@ -99,9 +94,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return ownShading.IsSpecified ? ownShading : inheritedShading;
         }
 
-        private static LegacyDocTableCellMargins? ReadSupportedTableStyleDefaultCellMargins(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
-            if (style == null) {
+        private static LegacyDocTableCellMargins? ReadSupportedTableStyleDefaultCellMargins(string? styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+            LegacyDocElement style = ResolveSupportedTableStyle(styleId, tableStyleDefinitions);
+            if (style.IsNone) {
                 return null;
             }
 
@@ -116,49 +111,48 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : inheritedMargins.Value.Merge(ownMargins.Value);
         }
 
-        private static int? ReadSupportedTableStyleDefaultCellSpacing(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
-            return style == null
+        private static int? ReadSupportedTableStyleDefaultCellSpacing(string? styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+            LegacyDocElement style = ResolveSupportedTableStyle(styleId, tableStyleDefinitions);
+            return style.IsNone
                 ? null
                 : ReadSupportedTableStyleOwnDefaultCellSpacing(style) ?? ReadSupportedTableStyleBaseDefaultCellSpacing(style, tableStyleDefinitions);
         }
 
-        private static LegacyDocTableAlignment? ReadSupportedTableStyleAlignment(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
-            return style == null
+        private static LegacyDocTableAlignment? ReadSupportedTableStyleAlignment(string? styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+            LegacyDocElement style = ResolveSupportedTableStyle(styleId, tableStyleDefinitions);
+            return style.IsNone
                 ? null
                 : ReadSupportedTableStyleOwnAlignment(style) ?? ReadSupportedTableStyleBaseAlignment(style, tableStyleDefinitions);
         }
 
-        private static int? ReadSupportedTableStyleIndentation(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
-            return style == null
+        private static int? ReadSupportedTableStyleIndentation(string? styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+            LegacyDocElement style = ResolveSupportedTableStyle(styleId, tableStyleDefinitions);
+            return style.IsNone
                 ? null
                 : ReadSupportedTableStyleOwnIndentation(style) ?? ReadSupportedTableStyleBaseIndentation(style, tableStyleDefinitions);
         }
 
-        private static LegacyDocTablePreferredWidth? ReadSupportedTableStylePreferredWidth(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
-            return style == null
+        private static LegacyDocTablePreferredWidth? ReadSupportedTableStylePreferredWidth(string? styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+            LegacyDocElement style = ResolveSupportedTableStyle(styleId, tableStyleDefinitions);
+            return style.IsNone
                 ? null
                 : ReadSupportedTableStyleOwnPreferredWidth(style) ?? ReadSupportedTableStyleBasePreferredWidth(style, tableStyleDefinitions);
         }
 
-        private static bool? ReadSupportedTableStyleAutofit(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
-            return style == null
+        private static bool? ReadSupportedTableStyleAutofit(string? styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+            LegacyDocElement style = ResolveSupportedTableStyle(styleId, tableStyleDefinitions);
+            return style.IsNone
                 ? null
                 : ReadSupportedTableStyleOwnAutofit(style) ?? ReadSupportedTableStyleBaseAutofit(style, tableStyleDefinitions);
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedTableStyleParagraphFormatting(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            string? styleId = tableStyle?.Val?.Value;
+        private static LegacyDocWritableParagraphFormatting ReadSupportedTableStyleParagraphFormatting(string? styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             if (IsNoOpTableStyle(styleId)) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
 
-            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
-            if (style == null) {
+            LegacyDocElement style = ResolveSupportedTableStyle(styleId, tableStyleDefinitions);
+            if (style.IsNone) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
 
@@ -167,14 +161,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return ownFormatting.WithInheritedParagraphFormatting(inheritedFormatting);
         }
 
-        private static LegacyDocWritableFormatting ReadSupportedTableStyleRunFormatting(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            string? styleId = tableStyle?.Val?.Value;
+        private static LegacyDocWritableFormatting ReadSupportedTableStyleRunFormatting(string? styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             if (IsNoOpTableStyle(styleId)) {
                 return LegacyDocWritableFormatting.Plain;
             }
 
-            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
-            if (style == null) {
+            LegacyDocElement style = ResolveSupportedTableStyle(styleId, tableStyleDefinitions);
+            if (style.IsNone) {
                 return LegacyDocWritableFormatting.Plain;
             }
 
@@ -183,13 +176,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return ownFormatting.WithInheritedFormatting(inheritedFormatting);
         }
 
-        private static Style? ResolveSupportedTableStyle(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            string? styleId = tableStyle?.Val?.Value;
+        private static LegacyDocElement ResolveSupportedTableStyle(string? styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             if (IsNoOpTableStyle(styleId)) {
-                return null;
+                return LegacyDocElement.None;
             }
 
-            if (string.IsNullOrWhiteSpace(styleId) || !TryResolveTableStyleDefinition(styleId!, tableStyleDefinitions, out Style? style)) {
+            if (string.IsNullOrWhiteSpace(styleId) || !TryResolveTableStyleDefinition(styleId!, tableStyleDefinitions, out LegacyDocElement style)) {
                 throw new NotSupportedException($"Native DOC saving supports simple tables only when table style '{styleId}' can be resolved to supported table-level formatting.");
             }
 
@@ -197,16 +189,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return style;
         }
 
-        private static bool TryResolveTableStyleDefinition(string styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions, out Style style) {
+        private static bool TryResolveTableStyleDefinition(string styleId, LegacyDocTableStyleDefinitions tableStyleDefinitions, out LegacyDocElement style) {
             // The document owns authored built-in definitions; library defaults fill only a missing definition.
-            if (tableStyleDefinitions.TryGetValue(styleId, out style!)) {
+            if (tableStyleDefinitions.TryGetValue(styleId, out style)) {
                 return true;
             }
             if (IsTableGridStyle(styleId)) {
-                style = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
+                style = LegacyDocWordHelpers.BuiltInTableStyle(WordTableStyle.TableGrid);
                 return true;
             }
-            style = null!;
+            style = LegacyDocElement.None;
             return false;
         }
 
@@ -223,42 +215,39 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static bool IsTableGridStyle(string? styleId) =>
             string.Equals(styleId, "TableGrid", StringComparison.Ordinal);
 
-        private static void ThrowIfUnsupportedTableStyle(string styleId, Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
-            if (style.Type?.Value != StyleValues.Table) {
+        private static void ThrowIfUnsupportedTableStyle(string styleId, LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+            if (LegacyDocStyleCatalog.Type(style) != "table") {
                 throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only when it is a table style.");
             }
 
-            foreach (OpenXmlElement child in style.ChildElements) {
-                switch (child) {
-                    case StyleName:
-                    case UIPriority:
-                    case Rsid:
-                    case SemiHidden:
-                    case UnhideWhenUsed:
-                    case PrimaryStyle:
-                    case Locked:
-                    case StylePaneFormatFilter:
+            foreach (LegacyDocElement child in style.Elements()) {
+                switch (child.WName) {
+                    case "name":
+                    case "uiPriority":
+                    case "rsid":
+                    case "semiHidden":
+                    case "unhideWhenUsed":
+                    case "qFormat":
+                    case "locked":
+                    case "stylePaneFormatFilter":
                         break;
-                    case BasedOn basedOn:
-                        ThrowIfUnsupportedTableStyleBase(styleId, basedOn, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal) { styleId });
+                    case "basedOn":
+                        ThrowIfUnsupportedTableStyleBase(styleId, child, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal) { styleId });
                         break;
-                    case StyleTableProperties styleTableProperties:
-                        ThrowIfUnsupportedStyleTableProperties(styleId, styleTableProperties);
+                    case "tblPr":
+                        ThrowIfUnsupportedStyleTableProperties(styleId, child);
                         break;
-                    case StyleTableCellProperties cellProperties:
-                        ThrowIfUnsupportedStyleTableCellProperties(styleId, cellProperties);
+                    case "tcPr":
+                        ThrowIfUnsupportedStyleTableCellProperties(styleId, child);
                         break;
-                    case TableStyleProperties tableStyleProperties:
-                        ThrowIfUnsupportedTableStyleConditionalProperties(styleId, tableStyleProperties);
+                    case "tblStylePr":
+                        ThrowIfUnsupportedTableStyleConditionalProperties(styleId, child);
                         break;
-                    case StyleParagraphProperties styleParagraphProperties:
-                        ThrowIfUnsupportedTableStyleParagraphProperties(styleId, styleParagraphProperties);
+                    case "pPr":
+                        ThrowIfUnsupportedTableStyleParagraphProperties(styleId, child);
                         break;
-                    case StyleRunProperties styleRunProperties:
-                        ThrowIfUnsupportedTableStyleRunProperties(styleId, styleRunProperties);
-                        break;
-                    case RunPropertiesBaseStyle runProperties:
-                        ThrowIfUnsupportedTableStyleRunProperties(styleId, runProperties);
+                    case "rPr":
+                        ThrowIfUnsupportedTableStyleRunProperties(styleId, child);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving does not support table style '{styleId}' element '{child.LocalName}'.");
@@ -266,7 +255,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleParagraphProperties(string styleId, StyleParagraphProperties paragraphProperties) {
+        private static void ThrowIfUnsupportedTableStyleParagraphProperties(string styleId, LegacyDocElement paragraphProperties) {
             try {
                 _ = ReadSupportedStyleParagraphFormatting(paragraphProperties);
             } catch (NotSupportedException exception) {
@@ -274,7 +263,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleRunProperties(string styleId, OpenXmlCompositeElement runProperties) {
+        private static void ThrowIfUnsupportedTableStyleRunProperties(string styleId, LegacyDocElement runProperties) {
             try {
                 _ = ReadSupportedRunFormatting(runProperties);
             } catch (NotSupportedException exception) {
@@ -282,80 +271,80 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleBase(string styleId, BasedOn basedOn, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
-            string? baseStyleId = basedOn.Val?.Value;
+        private static void ThrowIfUnsupportedTableStyleBase(string styleId, LegacyDocElement basedOn, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+            string? baseStyleId = basedOn.Val;
             if (IsNoOpTableStyle(baseStyleId)) {
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out LegacyDocElement baseStyle)) {
                 throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only when its base style can be resolved to supported table-level formatting.");
             }
 
             ThrowIfUnsupportedInheritedTableStyleBase(styleId, baseStyleId!, baseStyle, tableStyleDefinitions, visitedStyleIds);
         }
 
-        private static LegacyDocTableBorders ReadSupportedTableStyleBaseBorders(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static LegacyDocTableBorders ReadSupportedTableStyleBaseBorders(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBaseBorders(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static LegacyDocTableCellShading ReadSupportedTableStyleBaseShading(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static LegacyDocTableCellShading ReadSupportedTableStyleBaseShading(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBaseShading(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static LegacyDocTableCellMargins? ReadSupportedTableStyleBaseDefaultCellMargins(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static LegacyDocTableCellMargins? ReadSupportedTableStyleBaseDefaultCellMargins(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBaseDefaultCellMargins(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static int? ReadSupportedTableStyleBaseDefaultCellSpacing(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static int? ReadSupportedTableStyleBaseDefaultCellSpacing(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBaseDefaultCellSpacing(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static LegacyDocTableAlignment? ReadSupportedTableStyleBaseAlignment(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static LegacyDocTableAlignment? ReadSupportedTableStyleBaseAlignment(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBaseAlignment(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static int? ReadSupportedTableStyleBaseIndentation(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static int? ReadSupportedTableStyleBaseIndentation(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBaseIndentation(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static LegacyDocTablePreferredWidth? ReadSupportedTableStyleBasePreferredWidth(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static LegacyDocTablePreferredWidth? ReadSupportedTableStyleBasePreferredWidth(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBasePreferredWidth(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static bool? ReadSupportedTableStyleBaseAutofit(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static bool? ReadSupportedTableStyleBaseAutofit(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBaseAutofit(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static int? ReadSupportedTableStyleBaseRowBandSize(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static int? ReadSupportedTableStyleBaseRowBandSize(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBaseRowBandSize(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static int? ReadSupportedTableStyleBaseColumnBandSize(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static int? ReadSupportedTableStyleBaseColumnBandSize(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBaseColumnBandSize(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedTableStyleBaseParagraphFormatting(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static LegacyDocWritableParagraphFormatting ReadSupportedTableStyleBaseParagraphFormatting(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBaseParagraphFormatting(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static LegacyDocWritableFormatting ReadSupportedTableStyleBaseRunFormatting(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
+        private static LegacyDocWritableFormatting ReadSupportedTableStyleBaseRunFormatting(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             return ReadSupportedTableStyleBaseRunFormatting(style, tableStyleDefinitions, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static LegacyDocTableBorders ReadSupportedTableStyleBaseBorders(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
-            string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+        private static LegacyDocTableBorders ReadSupportedTableStyleBaseBorders(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+            string? baseStyleId = style.Child("basedOn").Val;
             if (IsNoOpTableStyle(baseStyleId)) {
                 return default;
             }
 
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out LegacyDocElement baseStyle)) {
                 return default;
             }
 
-            string currentStyleId = style.StyleId?.Value ?? string.Empty;
+            string currentStyleId = LegacyDocStyleCatalog.StyleId(style) ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(currentStyleId) && !visitedStyleIds.Add(currentStyleId)) {
                 throw new NotSupportedException($"Native DOC saving cannot write table style '{currentStyleId}' because its basedOn chain contains a cycle.");
             }
@@ -366,18 +355,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return MergeSupportedTableBorders(baseBorders, inheritedBorders);
         }
 
-        private static LegacyDocTableCellShading ReadSupportedTableStyleBaseShading(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
-            string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+        private static LegacyDocTableCellShading ReadSupportedTableStyleBaseShading(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+            string? baseStyleId = style.Child("basedOn").Val;
             if (IsNoOpTableStyle(baseStyleId)) {
                 return default;
             }
 
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out LegacyDocElement baseStyle)) {
                 return default;
             }
 
-            string currentStyleId = style.StyleId?.Value ?? string.Empty;
+            string currentStyleId = LegacyDocStyleCatalog.StyleId(style) ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(currentStyleId) && !visitedStyleIds.Add(currentStyleId)) {
                 throw new NotSupportedException($"Native DOC saving cannot write table style '{currentStyleId}' because its basedOn chain contains a cycle.");
             }
@@ -388,7 +377,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return baseShading.IsSpecified ? baseShading : inheritedShading;
         }
 
-        private static LegacyDocTableCellMargins? ReadSupportedTableStyleBaseDefaultCellMargins(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+        private static LegacyDocTableCellMargins? ReadSupportedTableStyleBaseDefaultCellMargins(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
             return ReadSupportedTableStyleBaseValue(
                 style,
                 tableStyleDefinitions,
@@ -397,46 +386,46 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 (own, inherited) => inherited == null ? own : inherited.Value.Merge(own.GetValueOrDefault()));
         }
 
-        private static int? ReadSupportedTableStyleBaseDefaultCellSpacing(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+        private static int? ReadSupportedTableStyleBaseDefaultCellSpacing(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
             return ReadSupportedTableStyleBaseValue(style, tableStyleDefinitions, visitedStyleIds, ReadSupportedTableStyleOwnDefaultCellSpacing);
         }
 
-        private static LegacyDocTableAlignment? ReadSupportedTableStyleBaseAlignment(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+        private static LegacyDocTableAlignment? ReadSupportedTableStyleBaseAlignment(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
             return ReadSupportedTableStyleBaseValue(style, tableStyleDefinitions, visitedStyleIds, ReadSupportedTableStyleOwnAlignment);
         }
 
-        private static int? ReadSupportedTableStyleBaseIndentation(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+        private static int? ReadSupportedTableStyleBaseIndentation(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
             return ReadSupportedTableStyleBaseValue(style, tableStyleDefinitions, visitedStyleIds, ReadSupportedTableStyleOwnIndentation);
         }
 
-        private static LegacyDocTablePreferredWidth? ReadSupportedTableStyleBasePreferredWidth(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+        private static LegacyDocTablePreferredWidth? ReadSupportedTableStyleBasePreferredWidth(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
             return ReadSupportedTableStyleBaseValue(style, tableStyleDefinitions, visitedStyleIds, ReadSupportedTableStyleOwnPreferredWidth);
         }
 
-        private static bool? ReadSupportedTableStyleBaseAutofit(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+        private static bool? ReadSupportedTableStyleBaseAutofit(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
             return ReadSupportedTableStyleBaseValue(style, tableStyleDefinitions, visitedStyleIds, ReadSupportedTableStyleOwnAutofit);
         }
 
-        private static int? ReadSupportedTableStyleBaseRowBandSize(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+        private static int? ReadSupportedTableStyleBaseRowBandSize(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
             return ReadSupportedTableStyleBaseValue(style, tableStyleDefinitions, visitedStyleIds, ReadSupportedTableStyleOwnRowBandSize);
         }
 
-        private static int? ReadSupportedTableStyleBaseColumnBandSize(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+        private static int? ReadSupportedTableStyleBaseColumnBandSize(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
             return ReadSupportedTableStyleBaseValue(style, tableStyleDefinitions, visitedStyleIds, ReadSupportedTableStyleOwnColumnBandSize);
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedTableStyleBaseParagraphFormatting(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
-            string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+        private static LegacyDocWritableParagraphFormatting ReadSupportedTableStyleBaseParagraphFormatting(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+            string? baseStyleId = style.Child("basedOn").Val;
             if (IsNoOpTableStyle(baseStyleId)) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
 
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out LegacyDocElement baseStyle)) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
 
-            string currentStyleId = style.StyleId?.Value ?? string.Empty;
+            string currentStyleId = LegacyDocStyleCatalog.StyleId(style) ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(currentStyleId) && !visitedStyleIds.Add(currentStyleId)) {
                 throw new NotSupportedException($"Native DOC saving cannot write table style '{currentStyleId}' because its basedOn chain contains a cycle.");
             }
@@ -447,18 +436,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return ownFormatting.WithInheritedParagraphFormatting(inheritedFormatting);
         }
 
-        private static LegacyDocWritableFormatting ReadSupportedTableStyleBaseRunFormatting(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
-            string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+        private static LegacyDocWritableFormatting ReadSupportedTableStyleBaseRunFormatting(LegacyDocElement style, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+            string? baseStyleId = style.Child("basedOn").Val;
             if (IsNoOpTableStyle(baseStyleId)) {
                 return LegacyDocWritableFormatting.Plain;
             }
 
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out LegacyDocElement baseStyle)) {
                 return LegacyDocWritableFormatting.Plain;
             }
 
-            string currentStyleId = style.StyleId?.Value ?? string.Empty;
+            string currentStyleId = LegacyDocStyleCatalog.StyleId(style) ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(currentStyleId) && !visitedStyleIds.Add(currentStyleId)) {
                 throw new NotSupportedException($"Native DOC saving cannot write table style '{currentStyleId}' because its basedOn chain contains a cycle.");
             }
@@ -470,23 +459,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static T? ReadSupportedTableStyleBaseValue<T>(
-            Style style,
+            LegacyDocElement style,
             LegacyDocTableStyleDefinitions tableStyleDefinitions,
             ISet<string> visitedStyleIds,
-            Func<Style, T?> readOwnValue,
+            Func<LegacyDocElement, T?> readOwnValue,
             Func<T?, T?, T?>? merge = null)
             where T : struct {
-            string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+            string? baseStyleId = style.Child("basedOn").Val;
             if (IsNoOpTableStyle(baseStyleId)) {
                 return null;
             }
 
             if (string.IsNullOrWhiteSpace(baseStyleId)
-                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out Style? baseStyle)) {
+                || !TryResolveTableStyleDefinition(baseStyleId!, tableStyleDefinitions, out LegacyDocElement baseStyle)) {
                 return null;
             }
 
-            string currentStyleId = style.StyleId?.Value ?? string.Empty;
+            string currentStyleId = LegacyDocStyleCatalog.StyleId(style) ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(currentStyleId) && !visitedStyleIds.Add(currentStyleId)) {
                 throw new NotSupportedException($"Native DOC saving cannot write table style '{currentStyleId}' because its basedOn chain contains a cycle.");
             }
@@ -501,8 +490,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return merge == null ? ownValue : merge(ownValue, inheritedValue);
         }
 
-        private static void ThrowIfUnsupportedInheritedTableStyleBase(string styleId, string baseStyleId, Style baseStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
-            if (baseStyle.Type?.Value != StyleValues.Table) {
+        private static void ThrowIfUnsupportedInheritedTableStyleBase(string styleId, string baseStyleId, LegacyDocElement baseStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions, ISet<string> visitedStyleIds) {
+            if (LegacyDocStyleCatalog.Type(baseStyle) != "table") {
                 throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when it is a table style.");
             }
 
@@ -510,37 +499,34 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException($"Native DOC saving cannot write table style '{styleId}' because its basedOn chain contains a cycle.");
             }
 
-            foreach (OpenXmlElement child in baseStyle.ChildElements) {
-                switch (child) {
-                    case StyleName:
-                    case UIPriority:
-                    case Rsid:
-                    case SemiHidden:
-                    case UnhideWhenUsed:
-                    case PrimaryStyle:
-                    case Locked:
-                    case StylePaneFormatFilter:
+            foreach (LegacyDocElement child in baseStyle.Elements()) {
+                switch (child.WName) {
+                    case "name":
+                    case "uiPriority":
+                    case "rsid":
+                    case "semiHidden":
+                    case "unhideWhenUsed":
+                    case "qFormat":
+                    case "locked":
+                    case "stylePaneFormatFilter":
                         break;
-                    case BasedOn basedOn:
-                        ThrowIfUnsupportedTableStyleBase(baseStyleId, basedOn, tableStyleDefinitions, visitedStyleIds);
+                    case "basedOn":
+                        ThrowIfUnsupportedTableStyleBase(baseStyleId, child, tableStyleDefinitions, visitedStyleIds);
                         break;
-                    case StyleTableProperties styleTableProperties:
-                        ThrowIfUnsupportedInheritedStyleTableProperties(styleId, baseStyleId, styleTableProperties);
+                    case "tblPr":
+                        ThrowIfUnsupportedInheritedStyleTableProperties(styleId, baseStyleId, child);
                         break;
-                    case StyleTableCellProperties cellProperties:
-                        ThrowIfUnsupportedStyleTableCellProperties(baseStyleId, cellProperties);
+                    case "tcPr":
+                        ThrowIfUnsupportedStyleTableCellProperties(baseStyleId, child);
                         break;
-                    case StyleParagraphProperties styleParagraphProperties:
-                        ThrowIfUnsupportedTableStyleParagraphProperties(baseStyleId, styleParagraphProperties);
+                    case "pPr":
+                        ThrowIfUnsupportedTableStyleParagraphProperties(baseStyleId, child);
                         break;
-                    case StyleRunProperties styleRunProperties:
-                        ThrowIfUnsupportedTableStyleRunProperties(baseStyleId, styleRunProperties);
+                    case "rPr":
+                        ThrowIfUnsupportedTableStyleRunProperties(baseStyleId, child);
                         break;
-                    case RunPropertiesBaseStyle runProperties:
-                        ThrowIfUnsupportedTableStyleRunProperties(baseStyleId, runProperties);
-                        break;
-                    case TableStyleProperties tableStyleProperties:
-                        ThrowIfUnsupportedTableStyleConditionalProperties(baseStyleId, tableStyleProperties);
+                    case "tblStylePr":
+                        ThrowIfUnsupportedTableStyleConditionalProperties(baseStyleId, child);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when inherited custom formatting is supported table layout, borders, shading, default cell margins, default cell spacing, paragraph formatting, run formatting, and conditional formatting. Unsupported base style element: {child.LocalName}.");
@@ -550,38 +536,38 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             visitedStyleIds.Remove(baseStyleId);
         }
 
-        private static void ThrowIfUnsupportedInheritedStyleTableProperties(string styleId, string baseStyleId, StyleTableProperties styleTableProperties) {
-            foreach (OpenXmlElement child in styleTableProperties.ChildElements) {
-                switch (child) {
-                    case TableBorders tableBorders:
-                        ReadSupportedTableBorders(tableBorders);
+        private static void ThrowIfUnsupportedInheritedStyleTableProperties(string styleId, string baseStyleId, LegacyDocElement styleTableProperties) {
+            foreach (LegacyDocElement child in styleTableProperties.Elements()) {
+                switch (child.WName) {
+                    case "tblBorders":
+                        ReadSupportedTableBorders(child);
                         break;
-                    case Shading shading:
-                        ReadSupportedTableCellShading(shading, "inherited table style shading");
+                    case "shd":
+                        ReadSupportedTableCellShading(child, "inherited table style shading");
                         break;
-                    case TableCellMarginDefault tableCellMarginDefault:
-                        ReadSupportedTableDefaultCellMargins(tableCellMarginDefault);
+                    case "tblCellMar":
+                        ReadSupportedTableDefaultCellMargins(child);
                         break;
-                    case TableCellSpacing tableCellSpacing:
-                        ReadSupportedTableDefaultCellSpacing(tableCellSpacing);
+                    case "tblCellSpacing":
+                        ReadSupportedTableDefaultCellSpacing(child);
                         break;
-                    case TableJustification tableJustification:
-                        ReadSupportedTableAlignment(tableJustification);
+                    case "jc":
+                        ReadSupportedTableAlignment(child);
                         break;
-                    case TableIndentation tableIndentation:
-                        ReadSupportedTableIndentation(tableIndentation);
+                    case "tblInd":
+                        ReadSupportedTableIndentation(child);
                         break;
-                    case TableWidth tableWidth:
-                        ReadSupportedTablePreferredWidth(tableWidth);
+                    case "tblW":
+                        ReadSupportedTablePreferredWidth(child);
                         break;
-                    case TableLayout tableLayout:
-                        ReadSupportedTableAutofit(tableLayout);
+                    case "tblLayout":
+                        ReadSupportedTableAutofit(child);
                         break;
-                    case TableStyleRowBandSize rowBandSize:
-                        ReadSupportedTableStyleBandSize(rowBandSize.Val, "row");
+                    case "tblStyleRowBandSize":
+                        ReadSupportedTableStyleBandSize(child.Val, "row");
                         break;
-                    case TableStyleColumnBandSize columnBandSize:
-                        ReadSupportedTableStyleBandSize(columnBandSize.Val, "column");
+                    case "tblStyleColBandSize":
+                        ReadSupportedTableStyleBandSize(child.Val, "column");
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when inherited custom table-level formatting is supported layout, borders, shading, default cell margins, and default cell spacing. Unsupported inherited table style property: {child.LocalName}.");
@@ -589,68 +575,68 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocTableBorders ReadSupportedTableStyleOwnBorders(Style style) {
-            TableBorders? borders = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
-            return borders == null ? default : ReadSupportedTableBorders(borders);
+        private static LegacyDocTableBorders ReadSupportedTableStyleOwnBorders(LegacyDocElement style) {
+            LegacyDocElement borders = style.Child("tblPr").Child("tblBorders");
+            return borders.IsNone ? default : ReadSupportedTableBorders(borders);
         }
 
-        private static LegacyDocTableCellShading ReadSupportedTableStyleOwnShading(Style style) {
+        private static LegacyDocTableCellShading ReadSupportedTableStyleOwnShading(LegacyDocElement style) {
             // Table-level shading paints cell-spacing gaps; only tcPr shading supplies cell defaults.
-            Shading? shading = style.GetFirstChild<StyleTableCellProperties>()?.GetFirstChild<Shading>();
-            return shading == null ? default : ReadSupportedTableCellShading(shading, "table style shading");
+            LegacyDocElement shading = style.Child("tcPr").Child("shd");
+            return shading.IsNone ? default : ReadSupportedTableCellShading(shading, "table style shading");
         }
 
-        private static LegacyDocTableCellMargins? ReadSupportedTableStyleOwnDefaultCellMargins(Style style) {
-            TableCellMarginDefault? margins = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableCellMarginDefault>();
-            return margins == null ? null : ReadSupportedTableDefaultCellMargins(margins);
+        private static LegacyDocTableCellMargins? ReadSupportedTableStyleOwnDefaultCellMargins(LegacyDocElement style) {
+            LegacyDocElement margins = style.Child("tblPr").Child("tblCellMar");
+            return margins.IsNone ? null : ReadSupportedTableDefaultCellMargins(margins);
         }
 
-        private static int? ReadSupportedTableStyleOwnDefaultCellSpacing(Style style) {
-            TableCellSpacing? spacing = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableCellSpacing>();
-            return spacing == null ? null : ReadSupportedTableDefaultCellSpacing(spacing);
+        private static int? ReadSupportedTableStyleOwnDefaultCellSpacing(LegacyDocElement style) {
+            LegacyDocElement spacing = style.Child("tblPr").Child("tblCellSpacing");
+            return spacing.IsNone ? null : ReadSupportedTableDefaultCellSpacing(spacing);
         }
 
-        private static LegacyDocTableAlignment? ReadSupportedTableStyleOwnAlignment(Style style) {
-            TableJustification? justification = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableJustification>();
-            return justification == null ? null : ReadSupportedTableAlignment(justification);
+        private static LegacyDocTableAlignment? ReadSupportedTableStyleOwnAlignment(LegacyDocElement style) {
+            LegacyDocElement justification = style.Child("tblPr").Child("jc");
+            return justification.IsNone ? null : ReadSupportedTableAlignment(justification);
         }
 
-        private static int? ReadSupportedTableStyleOwnIndentation(Style style) {
-            TableIndentation? indentation = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableIndentation>();
-            return indentation == null ? null : ReadSupportedTableIndentation(indentation);
+        private static int? ReadSupportedTableStyleOwnIndentation(LegacyDocElement style) {
+            LegacyDocElement indentation = style.Child("tblPr").Child("tblInd");
+            return indentation.IsNone ? null : ReadSupportedTableIndentation(indentation);
         }
 
-        private static LegacyDocTablePreferredWidth? ReadSupportedTableStyleOwnPreferredWidth(Style style) {
-            TableWidth? width = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableWidth>();
-            return width == null ? null : ReadSupportedTablePreferredWidth(width);
+        private static LegacyDocTablePreferredWidth? ReadSupportedTableStyleOwnPreferredWidth(LegacyDocElement style) {
+            LegacyDocElement width = style.Child("tblPr").Child("tblW");
+            return width.IsNone ? null : ReadSupportedTablePreferredWidth(width);
         }
 
-        private static bool? ReadSupportedTableStyleOwnAutofit(Style style) {
-            TableLayout? layout = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableLayout>();
-            return layout == null ? null : ReadSupportedTableAutofit(layout);
+        private static bool? ReadSupportedTableStyleOwnAutofit(LegacyDocElement style) {
+            LegacyDocElement layout = style.Child("tblPr").Child("tblLayout");
+            return layout.IsNone ? null : ReadSupportedTableAutofit(layout);
         }
 
-        private static int? ReadSupportedTableStyleOwnRowBandSize(Style style) {
-            TableStyleRowBandSize? bandSize = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableStyleRowBandSize>();
-            return bandSize == null ? null : ReadSupportedTableStyleBandSize(bandSize.Val, "row");
+        private static int? ReadSupportedTableStyleOwnRowBandSize(LegacyDocElement style) {
+            LegacyDocElement bandSize = style.Child("tblPr").Child("tblStyleRowBandSize");
+            return bandSize.IsNone ? null : ReadSupportedTableStyleBandSize(bandSize.Val, "row");
         }
 
-        private static int? ReadSupportedTableStyleOwnColumnBandSize(Style style) {
-            TableStyleColumnBandSize? bandSize = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableStyleColumnBandSize>();
-            return bandSize == null ? null : ReadSupportedTableStyleBandSize(bandSize.Val, "column");
+        private static int? ReadSupportedTableStyleOwnColumnBandSize(LegacyDocElement style) {
+            LegacyDocElement bandSize = style.Child("tblPr").Child("tblStyleColBandSize");
+            return bandSize.IsNone ? null : ReadSupportedTableStyleBandSize(bandSize.Val, "column");
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedTableStyleOwnParagraphFormatting(Style style) {
-            return ReadSupportedStyleParagraphFormatting(style.StyleParagraphProperties);
+        private static LegacyDocWritableParagraphFormatting ReadSupportedTableStyleOwnParagraphFormatting(LegacyDocElement style) {
+            return ReadSupportedStyleParagraphFormatting(style.Child("pPr"));
         }
 
-        private static LegacyDocWritableFormatting ReadSupportedTableStyleOwnRunFormatting(Style style) {
+        private static LegacyDocWritableFormatting ReadSupportedTableStyleOwnRunFormatting(LegacyDocElement style) {
             return ReadSupportedRunFormatting(GetSupportedTableStyleRunProperties(style));
         }
 
-        private static OpenXmlCompositeElement? GetSupportedTableStyleRunProperties(Style style) {
-            OpenXmlCompositeElement? runProperties = style.StyleRunProperties;
-            return runProperties ?? style.GetFirstChild<RunPropertiesBaseStyle>();
+        // A style's w:rPr, or a conditional block's: the SDK read either as the style's run properties.
+        private static LegacyDocElement GetSupportedTableStyleRunProperties(LegacyDocElement styleOrConditionalProperties) {
+            return styleOrConditionalProperties.Child("rPr");
         }
 
         private static LegacyDocTableBorders MergeSupportedTableBorders(LegacyDocTableBorders ownBorders, LegacyDocTableBorders inheritedBorders) {
@@ -667,38 +653,38 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ownBorders.InsideVertical.HasAny ? ownBorders.InsideVertical : inheritedBorders.InsideVertical);
         }
 
-        private static void ThrowIfUnsupportedStyleTableProperties(string styleId, StyleTableProperties styleTableProperties) {
-            foreach (OpenXmlElement child in styleTableProperties.ChildElements) {
-                switch (child) {
-                    case TableBorders tableBorders:
-                        ReadSupportedTableBorders(tableBorders);
+        private static void ThrowIfUnsupportedStyleTableProperties(string styleId, LegacyDocElement styleTableProperties) {
+            foreach (LegacyDocElement child in styleTableProperties.Elements()) {
+                switch (child.WName) {
+                    case "tblBorders":
+                        ReadSupportedTableBorders(child);
                         break;
-                    case Shading shading:
-                        ReadSupportedTableCellShading(shading, "table style shading");
+                    case "shd":
+                        ReadSupportedTableCellShading(child, "table style shading");
                         break;
-                    case TableCellMarginDefault tableCellMarginDefault:
-                        ReadSupportedTableDefaultCellMargins(tableCellMarginDefault);
+                    case "tblCellMar":
+                        ReadSupportedTableDefaultCellMargins(child);
                         break;
-                    case TableCellSpacing tableCellSpacing:
-                        ReadSupportedTableDefaultCellSpacing(tableCellSpacing);
+                    case "tblCellSpacing":
+                        ReadSupportedTableDefaultCellSpacing(child);
                         break;
-                    case TableJustification tableJustification:
-                        ReadSupportedTableAlignment(tableJustification);
+                    case "jc":
+                        ReadSupportedTableAlignment(child);
                         break;
-                    case TableIndentation tableIndentation:
-                        ReadSupportedTableIndentation(tableIndentation);
+                    case "tblInd":
+                        ReadSupportedTableIndentation(child);
                         break;
-                    case TableWidth tableWidth:
-                        ReadSupportedTablePreferredWidth(tableWidth);
+                    case "tblW":
+                        ReadSupportedTablePreferredWidth(child);
                         break;
-                    case TableLayout tableLayout:
-                        ReadSupportedTableAutofit(tableLayout);
+                    case "tblLayout":
+                        ReadSupportedTableAutofit(child);
                         break;
-                    case TableStyleRowBandSize rowBandSize:
-                        ReadSupportedTableStyleBandSize(rowBandSize.Val, "row");
+                    case "tblStyleRowBandSize":
+                        ReadSupportedTableStyleBandSize(child.Val, "row");
                         break;
-                    case TableStyleColumnBandSize columnBandSize:
-                        ReadSupportedTableStyleBandSize(columnBandSize.Val, "column");
+                    case "tblStyleColBandSize":
+                        ReadSupportedTableStyleBandSize(child.Val, "column");
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only with supported table-level layout, borders, shading, default cell margins, and default cell spacing. Unsupported table style property: {child.LocalName}.");
@@ -706,31 +692,52 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleConditionalProperties(string styleId, TableStyleProperties tableStyleProperties) {
-            if (tableStyleProperties.Type?.Value == TableStyleOverrideValues.WholeTable) return;
-            if (tableStyleProperties.Type?.Value == null) {
+        // A conditional region Word knows; the SDK refused any other w:type token when it read the value.
+        private static void ThrowIfUnknownTableStyleConditionalType(string? styleId, string type) {
+            switch (type) {
+                case "wholeTable":
+                case "firstRow":
+                case "lastRow":
+                case "firstCol":
+                case "lastCol":
+                case "band1Vert":
+                case "band2Vert":
+                case "band1Horz":
+                case "band2Horz":
+                case "neCell":
+                case "nwCell":
+                case "seCell":
+                case "swCell":
+                    return;
+                default:
+                    throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only for Word's conditional regions. Unsupported conditional type: {type}.");
+            }
+        }
+
+        private static void ThrowIfUnsupportedTableStyleConditionalProperties(string styleId, LegacyDocElement tableStyleProperties) {
+            string? type = tableStyleProperties.Attr("type");
+            if (type == "wholeTable") return;
+            if (type == null) {
                 throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only when the conditional type is specified.");
             }
+            ThrowIfUnknownTableStyleConditionalType(styleId, type);
 
-            foreach (OpenXmlElement child in tableStyleProperties.ChildElements) {
-                switch (child) {
-                    case TableStyleConditionalFormattingTableCellProperties cellProperties:
-                        ThrowIfUnsupportedTableStyleConditionalCellProperties(styleId, cellProperties);
+            foreach (LegacyDocElement child in tableStyleProperties.Elements()) {
+                switch (child.WName) {
+                    case "tcPr":
+                        ThrowIfUnsupportedTableStyleConditionalCellProperties(styleId, child);
                         break;
-                    case TableStyleConditionalFormattingTableProperties tableProperties:
-                        ThrowIfUnsupportedTableStyleConditionalTableProperties(styleId, tableProperties);
+                    case "tblPr":
+                        ThrowIfUnsupportedTableStyleConditionalTableProperties(styleId, child);
                         break;
-                    case TableStyleConditionalFormattingTableRowProperties rowProperties:
-                        ThrowIfUnsupportedTableStyleConditionalRowProperties(styleId, tableStyleProperties.Type!.Value, rowProperties);
+                    case "trPr":
+                        ThrowIfUnsupportedTableStyleConditionalRowProperties(styleId, type, child);
                         break;
-                    case StyleParagraphProperties styleParagraphProperties:
-                        ThrowIfUnsupportedTableStyleConditionalParagraphProperties(styleId, styleParagraphProperties);
+                    case "pPr":
+                        ThrowIfUnsupportedTableStyleConditionalParagraphProperties(styleId, child);
                         break;
-                    case StyleRunProperties styleRunProperties:
-                        ThrowIfUnsupportedTableStyleConditionalRunProperties(styleId, styleRunProperties);
-                        break;
-                    case RunPropertiesBaseStyle runProperties:
-                        ThrowIfUnsupportedTableStyleConditionalRunProperties(styleId, runProperties);
+                    case "rPr":
+                        ThrowIfUnsupportedTableStyleConditionalRunProperties(styleId, child);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only with supported table, cell, paragraph, and run effects. Unsupported conditional style element: {child.LocalName}.");
@@ -738,7 +745,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleConditionalParagraphProperties(string styleId, StyleParagraphProperties paragraphProperties) {
+        private static void ThrowIfUnsupportedTableStyleConditionalParagraphProperties(string styleId, LegacyDocElement paragraphProperties) {
             try {
                 _ = ReadSupportedStyleParagraphFormatting(paragraphProperties);
             } catch (NotSupportedException exception) {
@@ -746,7 +753,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleConditionalRowProperties(string styleId, TableStyleOverrideValues type, TableStyleConditionalFormattingTableRowProperties rowProperties) {
+        private static void ThrowIfUnsupportedTableStyleConditionalRowProperties(string styleId, string type, LegacyDocElement rowProperties) {
             try {
                 _ = ReadSupportedConditionalTableStyleRowProperties(rowProperties, type);
             } catch (NotSupportedException exception) {
@@ -754,7 +761,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleConditionalRunProperties(string styleId, OpenXmlCompositeElement runProperties) {
+        private static void ThrowIfUnsupportedTableStyleConditionalRunProperties(string styleId, LegacyDocElement runProperties) {
             try {
                 _ = ReadSupportedRunFormatting(runProperties);
             } catch (NotSupportedException exception) {
@@ -762,32 +769,32 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleConditionalCellProperties(string styleId, TableStyleConditionalFormattingTableCellProperties cellProperties) {
-            foreach (OpenXmlElement child in cellProperties.ChildElements) {
-                switch (child) {
-                    case TableCellVerticalAlignment verticalAlignment:
-                        ReadSupportedTableCellVerticalAlignment(verticalAlignment);
+        private static void ThrowIfUnsupportedTableStyleConditionalCellProperties(string styleId, LegacyDocElement cellProperties) {
+            foreach (LegacyDocElement child in cellProperties.Elements()) {
+                switch (child.WName) {
+                    case "vAlign":
+                        ReadSupportedTableCellVerticalAlignment(child);
                         break;
-                    case TextDirection textDirection:
-                        ReadSupportedTableCellTextDirection(textDirection);
+                    case "textDirection":
+                        ReadSupportedTableCellTextDirection(child);
                         break;
-                    case TableCellFitText fitText:
-                        ReadSupportedTableCellFitText(fitText);
+                    case "tcFitText":
+                        ReadSupportedTableCellFitText(child);
                         break;
-                    case NoWrap noWrap:
-                        ReadSupportedTableCellNoWrap(noWrap);
+                    case "noWrap":
+                        ReadSupportedTableCellNoWrap(child);
                         break;
-                    case HideMark hideMark:
-                        ReadSupportedTableCellHideMark(hideMark);
+                    case "hideMark":
+                        ReadSupportedTableCellHideMark(child);
                         break;
-                    case TableCellMargin margins:
-                        ReadSupportedTableCellMargins(margins);
+                    case "tcMar":
+                        ReadSupportedTableCellMargins(child);
                         break;
-                    case Shading shading:
-                        ReadSupportedTableCellShading(shading, "conditional table style shading");
+                    case "shd":
+                        ReadSupportedTableCellShading(child, "conditional table style shading");
                         break;
-                    case TableCellBorders borders:
-                        ThrowIfUnsupportedTableStyleConditionalCellBorders(styleId, borders);
+                    case "tcBorders":
+                        ThrowIfUnsupportedTableStyleConditionalCellBorders(styleId, child);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional cell formatting only with supported layout, borders, and shading. Unsupported conditional cell property: {child.LocalName}.");
@@ -795,33 +802,33 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleConditionalCellBorders(string styleId, TableCellBorders borders) {
-            foreach (OpenXmlElement child in borders.ChildElements) {
-                switch (child) {
-                    case TopBorder:
-                    case LeftBorder:
-                    case BottomBorder:
-                    case RightBorder:
+        private static void ThrowIfUnsupportedTableStyleConditionalCellBorders(string styleId, LegacyDocElement borders) {
+            foreach (LegacyDocElement child in borders.Elements()) {
+                switch (child.WName) {
+                    case "top":
+                    case "left":
+                    case "bottom":
+                    case "right":
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional borders only on top, left, bottom, and right cell edges. Unsupported conditional border: {child.LocalName}.");
                 }
             }
 
-            ReadSupportedTableCellBorder(borders.TopBorder);
-            ReadSupportedTableCellBorder(borders.LeftBorder);
-            ReadSupportedTableCellBorder(borders.BottomBorder);
-            ReadSupportedTableCellBorder(borders.RightBorder);
+            ReadSupportedTableCellBorder(borders.Child("top"));
+            ReadSupportedTableCellBorder(borders.Child("left"));
+            ReadSupportedTableCellBorder(borders.Child("bottom"));
+            ReadSupportedTableCellBorder(borders.Child("right"));
         }
 
-        private static void ThrowIfUnsupportedTableStyleConditionalTableProperties(string styleId, TableStyleConditionalFormattingTableProperties tableProperties) {
-            foreach (OpenXmlElement child in tableProperties.ChildElements) {
-                switch (child) {
-                    case TableBorders tableBorders:
-                        ReadSupportedTableBorders(tableBorders);
+        private static void ThrowIfUnsupportedTableStyleConditionalTableProperties(string styleId, LegacyDocElement tableProperties) {
+            foreach (LegacyDocElement child in tableProperties.Elements()) {
+                switch (child.WName) {
+                    case "tblBorders":
+                        ReadSupportedTableBorders(child);
                         break;
-                    case Shading shading:
-                        ReadSupportedTableCellShading(shading, "conditional table style shading");
+                    case "shd":
+                        ReadSupportedTableCellShading(child, "conditional table style shading");
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional table formatting only with supported borders and shading. Unsupported conditional table property: {child.LocalName}.");
