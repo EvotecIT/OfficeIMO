@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
             }
             var result = new List<ExcelTableInfo>();
             foreach ((string relationshipId, string partName) in read.WorksheetOrder) {
-                int index = sheets.FindIndex(sheet => string.Equals(sheet.RelationshipId, relationshipId, StringComparison.OrdinalIgnoreCase));
+                int index = sheets.FindIndex(sheet => string.Equals(sheet.RelationshipId, relationshipId, StringComparison.Ordinal));
                 ExcelDeferredSheet? sheet = index >= 0 ? sheets[index] : null;
                 if (selected != null && !ReferenceEquals(sheet, selected)) continue;
                 // A worksheet without a sheet entry still lists its tables, with no sheet name and index -1.
