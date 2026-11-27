@@ -90,6 +90,12 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
             return relationship.Id;
         }
 
+        internal static void ReplaceRelatedPart(object part, string relationshipType, object target) {
+            OpenXmlPart owner = P(part);
+            foreach (IdPartPair pair in owner.Parts.Where(pair => pair.OpenXmlPart.RelationshipType == relationshipType).ToList()) owner.DeletePart(pair.RelationshipId);
+            owner.AddPart(P(target));
+        }
+
         internal static string GetOrAddPartRelationship(object part, object target) {
             OpenXmlPart owner = P(part), related = P(target);
             if (!owner.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, related))) owner.AddPart(related);

@@ -193,6 +193,32 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             }
         }
 
+        /// <summary>
+        /// Points the part's relationships of <paramref name="relationshipType"/> at <paramref name="target"/> instead: the old
+        /// ones go and one new relationship, with the SDK's kind of id, is added.
+        /// </summary>
+        internal void ReplaceRelatedPart(string relationshipType, PowerPointPartRef target) {
+            PowerPointPartRef current = Current, related = target.Current;
+            if (current._sdk != null) {
+                PowerPointSdkParts.ReplaceRelatedPart(current._sdk, relationshipType, related._sdk!);
+                return;
+            }
+            OfficeOpcEditablePackage package = current.EditablePackage();
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(current._name);
+            if (package.PartExists(relationshipsPart)) {
+                OfficeXmlTree tree = package.GetXml(relationshipsPart);
+                for (int node = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;) {
+                    int next = tree.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship");
+                    string? type = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
+                    if (type != null && string.Equals(OfficeXmlNamespaces.NormalizeRelationshipType(type), relationshipType, StringComparison.Ordinal)) tree.Remove(node);
+                    node = next;
+                }
+            }
+            package.AddRelationship(current._name, relationshipType, OfficeOpcPartNames.GetRelativeTarget(current._name!, related._name!),
+                id: "R" + Guid.NewGuid().ToString("N").Substring(0, 16));
+            current.MarkRelationshipsEdited();
+        }
+
         /// <summary>The id of the first internal relationship to <paramref name="target"/>, or null.</summary>
         internal string? RelationshipIdOf(PowerPointPartRef target) {
             PowerPointPartRef current = Current, wanted = target.Current;

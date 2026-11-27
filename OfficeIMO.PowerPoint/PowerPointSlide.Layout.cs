@@ -1,9 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -12,13 +9,13 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int LayoutIndex {
             get {
-                OpenXml.PowerPointPartRef layout = PartRef.RelatedPart(OpenXml.PowerPointPartRef.SlideLayoutRelationshipType);
+                PowerPointPartRef layout = PartRef.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType);
                 if (layout.IsNone) {
                     return -1;
                 }
 
-                OpenXml.PowerPointPartRef master = layout.RelatedPart(OpenXml.PowerPointPartRef.SlideMasterRelationshipType);
-                return master.RelatedParts(OpenXml.PowerPointPartRef.SlideLayoutRelationshipType).ToList().IndexOf(layout);
+                PowerPointPartRef master = layout.RelatedPart(PowerPointPartRef.SlideMasterRelationshipType);
+                return master.RelatedParts(PowerPointPartRef.SlideLayoutRelationshipType).ToList().IndexOf(layout);
             }
         }
 
@@ -26,25 +23,9 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the slide layout using master and layout indexes.
         /// </summary>
         public void SetLayout(int masterIndex, int layoutIndex) {
-            PresentationPart presentationPart = SlidePart.GetParentParts().OfType<PresentationPart>().First();
-
-            SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
-            ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(masterIndex, masters.Length);
-
-            SlideMasterPart masterPart = masters[masterIndex];
-            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
-            ArgumentOutOfRangeException.ThrowIfNegative(layoutIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(layoutIndex, layouts.Length);
-
-            SlideLayoutPart layoutPart = layouts[layoutIndex];
-            SlideLayoutPart? current = SlidePart.SlideLayoutPart;
-            if (current != null) {
-                string relId = SlidePart.GetIdOfPart(current);
-                SlidePart.DeletePart(relId);
-            }
-
-            SlidePart.AddPart(layoutPart);
+            PowerPointDocument document = OwnerDocument ?? throw new InvalidOperationException("The slide is not part of a presentation.");
+            PowerPointPartRef layout = document.RequireLayoutPartRef(masterIndex, layoutIndex);
+            PartRef.ReplaceRelatedPart(PowerPointPartRef.SlideLayoutRelationshipType, layout);
         }
 
         /// <summary>
@@ -52,7 +33,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointSlideLayout? Layout {
             get {
-                OpenXml.PowerPointPartRef layout = PartRef.RelatedPart(OpenXml.PowerPointPartRef.SlideLayoutRelationshipType);
+                PowerPointPartRef layout = PartRef.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType);
                 return layout.IsNone || OwnerDocument == null ? null : OwnerDocument.GetLayout(layout);
             }
         }
@@ -68,67 +49,26 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("The layout belongs to a different presentation.", nameof(layout));
             }
 
-            SlideLayoutPart target = OwnerDocument.SdkLayoutPart(layout);
-            SlideLayoutPart? current = SlidePart.SlideLayoutPart;
-            if (ReferenceEquals(current, target)) return;
-            if (current != null) {
-                SlidePart.DeletePart(SlidePart.GetIdOfPart(current));
-            }
-
-            SlidePart.AddPart(target);
+            PowerPointPartRef target = layout.PartRef;
+            if (PartRef.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType).Equals(target)) return;
+            PartRef.ReplaceRelatedPart(PowerPointPartRef.SlideLayoutRelationshipType, target);
         }
 
         /// <summary>
         ///     Sets the slide layout using a layout type.
         /// </summary>
         public void SetLayout(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {
-            int layoutIndex = GetLayoutIndex(layoutType.ToOpenXml(), masterIndex);
-            SetLayout(masterIndex, layoutIndex);
+            PowerPointDocument document = OwnerDocument ?? throw new InvalidOperationException("The slide is not part of a presentation.");
+            SetLayout(masterIndex, document.GetLayoutIndex(layoutType, masterIndex));
         }
 
         /// <summary>
         ///     Sets the slide layout using a layout name.
         /// </summary>
         public void SetLayout(string layoutName, int masterIndex = 0, bool ignoreCase = true) {
-            int layoutIndex = GetLayoutIndex(layoutName, masterIndex, ignoreCase);
-            SetLayout(masterIndex, layoutIndex);
-        }
-
-        private int GetLayoutIndex(SlideLayoutValues layoutType, int masterIndex) {
-            PresentationPart presentationPart = SlidePart.GetParentParts().OfType<PresentationPart>().First();
-            SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
-            ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(masterIndex, masters.Length);
-
-            SlideLayoutPart[] layouts = masters[masterIndex].SlideLayoutParts.ToArray();
-            for (int i = 0; i < layouts.Length; i++) {
-                SlideLayoutValues? type = layouts[i].SlideLayout?.Type?.Value;
-                if (type == layoutType) {
-                    return i;
-                }
-            }
-
-            throw new InvalidOperationException($"Layout type '{layoutType}' not found for master {masterIndex}.");
-        }
-
-        private int GetLayoutIndex(string layoutName, int masterIndex, bool ignoreCase) {
             ArgumentNullException.ThrowIfNull(layoutName);
-
-            PresentationPart presentationPart = SlidePart.GetParentParts().OfType<PresentationPart>().First();
-            SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
-            ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(masterIndex, masters.Length);
-
-            SlideLayoutPart[] layouts = masters[masterIndex].SlideLayoutParts.ToArray();
-            StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            for (int i = 0; i < layouts.Length; i++) {
-                string name = layouts[i].SlideLayout?.CommonSlideData?.Name?.Value ?? string.Empty;
-                if (string.Equals(name, layoutName, comparison)) {
-                    return i;
-                }
-            }
-
-            throw new InvalidOperationException($"Layout '{layoutName}' not found for master {masterIndex}.");
+            PowerPointDocument document = OwnerDocument ?? throw new InvalidOperationException("The slide is not part of a presentation.");
+            SetLayout(masterIndex, document.GetLayoutIndex(layoutName, masterIndex, ignoreCase));
         }
 
         /// <summary>
@@ -155,26 +95,19 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves placeholders defined by the slide layout.
         /// </summary>
         public IReadOnlyList<PowerPointLayoutPlaceholderInfo> GetLayoutPlaceholders() {
-            SlideLayoutPart? layoutPart = SlidePart.SlideLayoutPart;
-            ShapeTree? shapeTree = layoutPart?.SlideLayout?.CommonSlideData?.ShapeTree;
-            if (shapeTree == null) {
-                return Array.Empty<PowerPointLayoutPlaceholderInfo>();
-            }
-
+            OfficeXmlNode tree = PartRef.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType).Root
+                .Child(OfficeXmlNamespaces.PresentationML, "cSld").Child(OfficeXmlNamespaces.PresentationML, "spTree");
             List<PowerPointLayoutPlaceholderInfo> placeholders = new();
-            foreach (OpenXmlElement element in shapeTree.ChildElements) {
-                PlaceholderShape? placeholder = GetLayoutPlaceholderShape(element);
-                if (placeholder == null) {
+            foreach (OfficeXmlNode element in tree.Children()) {
+                OfficeXmlNode placeholder = PlaceholderOf(element);
+                if (placeholder.IsNone) {
                     continue;
                 }
 
-                string name = GetLayoutElementName(element);
-                PowerPointLayoutBox? bounds = GetLayoutElementBounds(element);
-                placeholders.Add(new PowerPointLayoutPlaceholderInfo(
-                    name,
-                    placeholder.Type?.Value.ToOfficeEnum(),
-                    placeholder.Index?.Value,
-                    bounds));
+                string name = element.FirstChild.Child(OfficeXmlNamespaces.PresentationML, "cNvPr").Attribute("name") ?? string.Empty;
+                PowerPointPlaceholderType? type = placeholder.Attribute("type") is { } token
+                    && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointPlaceholderType parsed) ? parsed : null;
+                placeholders.Add(new PowerPointLayoutPlaceholderInfo(name, type, placeholder.UInt32Attribute("idx"), ElementBounds(element)));
             }
 
             return placeholders;
@@ -205,57 +138,6 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointLayoutBox? GetLayoutPlaceholderBounds(PowerPointPlaceholderType placeholderType, uint? index = null) {
             PowerPointLayoutPlaceholderInfo? placeholder = GetLayoutPlaceholder(placeholderType, index);
             return placeholder?.Bounds;
-        }
-
-        private static PlaceholderShape? GetLayoutPlaceholderShape(OpenXmlElement element) {
-            return element switch {
-                Shape s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                DocumentFormat.OpenXml.Presentation.Picture p => p.NonVisualPictureProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                GraphicFrame g => g.NonVisualGraphicFrameProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                _ => null
-            };
-        }
-
-        private static string GetLayoutElementName(OpenXmlElement element) {
-            return element switch {
-                Shape s => s.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty,
-                DocumentFormat.OpenXml.Presentation.Picture p => p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty,
-                GraphicFrame g => g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty,
-                _ => string.Empty
-            };
-        }
-
-        internal static PowerPointLayoutBox? GetLayoutElementBounds(OpenXmlElement element) {
-            return element switch {
-                Shape s => GetLayoutElementBounds(s.ShapeProperties?.Transform2D),
-                DocumentFormat.OpenXml.Presentation.Picture p => GetLayoutElementBounds(p.ShapeProperties?.Transform2D),
-                GraphicFrame g => GetLayoutElementBounds(g.Transform),
-                _ => null
-            };
-        }
-
-        private static PowerPointLayoutBox? GetLayoutElementBounds(A.Transform2D? transform) {
-            long? x = transform?.Offset?.X?.Value;
-            long? y = transform?.Offset?.Y?.Value;
-            long? cx = transform?.Extents?.Cx?.Value;
-            long? cy = transform?.Extents?.Cy?.Value;
-            if (x == null || y == null || cx == null || cy == null) {
-                return null;
-            }
-
-            return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(x.Value),OfficeIMO.OfficeLength.Emus(y.Value),OfficeIMO.OfficeLength.Emus(cx.Value),OfficeIMO.OfficeLength.Emus(cy.Value));
-        }
-
-        private static PowerPointLayoutBox? GetLayoutElementBounds(Transform? transform) {
-            long? x = transform?.Offset?.X?.Value;
-            long? y = transform?.Offset?.Y?.Value;
-            long? cx = transform?.Extents?.Cx?.Value;
-            long? cy = transform?.Extents?.Cy?.Value;
-            if (x == null || y == null || cx == null || cy == null) {
-                return null;
-            }
-
-            return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(x.Value),OfficeIMO.OfficeLength.Emus(y.Value),OfficeIMO.OfficeLength.Emus(cx.Value),OfficeIMO.OfficeLength.Emus(cy.Value));
         }
     }
 }

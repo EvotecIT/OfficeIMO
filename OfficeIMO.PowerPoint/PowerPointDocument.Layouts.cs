@@ -11,7 +11,7 @@ namespace OfficeIMO.PowerPoint {
             RequireMasterPartRef(masterIndex).RelatedParts(PowerPointPartRef.SlideLayoutRelationshipType).ToList();
 
         // The layout at an index of a master, throwing as an out-of-range index does.
-        private PowerPointPartRef RequireLayoutPartRef(int masterIndex, int layoutIndex) {
+        internal PowerPointPartRef RequireLayoutPartRef(int masterIndex, int layoutIndex) {
             List<PowerPointPartRef> layouts = LayoutPartRefs(masterIndex);
             ArgumentOutOfRangeException.ThrowIfNegative(layoutIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(layoutIndex, layouts.Count);
