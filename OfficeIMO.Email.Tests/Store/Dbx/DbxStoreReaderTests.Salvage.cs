@@ -195,6 +195,15 @@ public sealed partial class DbxStoreReaderTests {
             Assert.Equal("dbx:item:00003100", Assert.Single(report.Entries).ItemId);
             Assert.True(report.StoppedAtLimit);
         });
+
+        WithDestination(destination => {
+            using var input = new MemoryStream(CreateDatabase(), writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxNodeCount: 2)));
+            Assert.Equal(2, report.Entries.Count);
+            Assert.False(report.DiscoveryCompleted);
+            Assert.False(report.IsComplete);
+        });
     }
 
     [Fact]

@@ -44,7 +44,10 @@ public static class EmailStoreSalvage {
             options, EmailStoreFormat.Olm, cancellationToken);
     }
 
-    /// <summary>Reads a readable, seekable OLM stream. The stream position is restored afterwards.</summary>
+    /// <summary>
+    /// Reads a readable, seekable OLM stream, which must not change during recovery; a change detected while copying
+    /// verified data stops recovery with an <see cref="IOException"/>. The stream position is restored afterwards.
+    /// </summary>
     public static EmailStoreSalvageReport RecoverOlmToDirectory(Stream source, string? sourceName,
         string destinationDirectory, EmailStoreSalvageOptions? options = null,
         CancellationToken cancellationToken = default) =>
@@ -60,8 +63,9 @@ public static class EmailStoreSalvage {
             throw new ArgumentException("Salvage requires a readable, seekable source stream.", nameof(source));
         EmailStoreSalvageOptions effective = options ?? new EmailStoreSalvageOptions();
         string root = Path.GetFullPath(destinationDirectory);
+        // The destination may hold the source file; each artifact path is checked against the source itself.
         if (sourcePath != null && EmailStorePathIdentity.IsSameOrDescendant(root, sourcePath))
-            throw new InvalidOperationException("Salvage cannot write into its source file.");
+            throw new InvalidOperationException("Salvage cannot use its source file as the destination directory.");
         long length = source.Length;
         if (length > effective.ReaderOptions.MaxInputBytes)
             throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxInputBytes),
@@ -70,7 +74,7 @@ public static class EmailStoreSalvage {
 
         long originalPosition = source.Position;
         try {
-            var output = new EmailStoreSalvageWriter(root, effective);
+            var output = new EmailStoreSalvageWriter(root, effective, sourcePath);
             EmailStoreSalvageReport report = format == EmailStoreFormat.Dbx
                 ? new DbxSalvage(source, sourceName, effective, output, cancellationToken).Run()
                 : new OlmSalvage(source, sourceName, effective, output, cancellationToken).Run();
@@ -86,8 +90,11 @@ internal sealed class EmailStoreSalvageWriter {
     private readonly EmailStoreSalvageOptions _options;
     private readonly EmailDocumentWriter _writer;
 
-    internal EmailStoreSalvageWriter(string root, EmailStoreSalvageOptions options) {
+    private readonly string? _sourcePath;
+
+    internal EmailStoreSalvageWriter(string root, EmailStoreSalvageOptions options, string? sourcePath) {
         Root = root;
+        _sourcePath = sourcePath == null ? null : Path.GetFullPath(sourcePath);
         _options = options;
         _writer = new EmailDocumentWriter(options.WriterOptions);
     }
@@ -107,6 +114,8 @@ internal sealed class EmailStoreSalvageWriter {
         if (!EmailStorePathIdentity.IsSameOrDescendant(path, Root) ||
             string.Equals(path, Root, StringComparison.Ordinal))
             throw new InvalidOperationException("A salvage artifact path resolved outside the destination directory.");
+        if (_sourcePath != null && EmailStorePathIdentity.AreEquivalent(path, _sourcePath))
+            throw new IOException("A salvage artifact path would replace the source file.");
         return path;
     }
 

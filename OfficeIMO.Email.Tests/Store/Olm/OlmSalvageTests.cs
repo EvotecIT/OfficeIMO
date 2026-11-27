@@ -111,6 +111,22 @@ public sealed class OlmSalvageTests {
     }
 
     [Fact]
+    public void KeepsTheRecordsThatFitTheReaderItemBound() {
+        DbxStoreReaderTests.WithDestination(destination => {
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(
+                Path.Combine(DbxStoreReaderTests.CorpusRoot, "native-apple-20261003", "outlook", "native-outlook.olm"),
+                destination, new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxItemCount: 1)));
+
+            EmailStoreSalvageEntry contact = Assert.Single(report.Entries);
+            Assert.Equal(OutlookItemKind.Contact, contact.Kind);
+            Assert.Equal(EmailStoreSalvageStatus.Recovered, contact.Status);
+            Assert.True(report.DiscoveryCompleted);
+            Assert.True(report.StoppedAtLimit);
+            Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_OLM_SALVAGE_SOURCE_ITEM_LIMIT");
+        });
+    }
+
+    [Fact]
     public void FindsSignaturelessZip64DescriptorsWhenTheDirectoryIsMissing() {
         byte[] source = File.ReadAllBytes(Path.Combine(DbxStoreReaderTests.CorpusRoot, "native-apple-20261003", "outlook",
             "native-outlook.olm"));

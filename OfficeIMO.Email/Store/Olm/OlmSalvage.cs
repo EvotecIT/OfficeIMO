@@ -34,6 +34,7 @@ internal sealed class OlmSalvage {
     private readonly Dictionary<string, Repair> _repairedEntries = new Dictionary<string, Repair>(StringComparer.OrdinalIgnoreCase);
     private readonly List<EmailStoreSalvageEntry> _results = new List<EmailStoreSalvageEntry>();
     private long _decodedBytes;
+    private int _itemsAdmitted;
     private bool _stoppedAtLimit;
     private bool _discoveryCompleted = true;
 
@@ -133,6 +134,7 @@ internal sealed class OlmSalvage {
             if (dataOffset > _length) {
                 Add("EMAIL_STORE_OLM_SALVAGE_ENTRY_TRUNCATED", "The file ends inside a local entry header.",
                     EmailStoreDiagnosticSeverity.Error, position);
+                _discoveryCompleted = false;
                 break;
             }
             var nameBytes = new byte[nameLength];
@@ -199,29 +201,45 @@ internal sealed class OlmSalvage {
             return;
         }
 
-        if (entry.ExpandedSize > _limits.MaxArchiveDecodedBytes - _decodedBytes) {
-            ChargeDecoded(entry.ExpandedSize, entry);
+        // Every decoding attempt, including failed verification and repair, counts against the archive budget.
+        long remaining = _limits.MaxArchiveDecodedBytes - _decodedBytes;
+        if (entry.ExpandedSize > remaining) {
+            DecodedLimit(entry);
             return;
         }
         string? failure = Verify(entry, dataOffset, out long decoded);
+        _decodedBytes += decoded;
+        bool isXml = normalized.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
+        int itemsRemaining = _limits.MaxItemCount - _itemsAdmitted;
+
         if (failure == null) {
-            if (!ChargeDecoded(decoded, entry)) return;
+            if (isXml) {
+                int count = CountXmlItems(entry, dataOffset);
+                if (count > itemsRemaining) {
+                    // Keep the records that fit the source item bound; the rest of the entry is not examined.
+                    if (itemsRemaining > 0 && TryRepairXml(entry, dataOffset, itemsRemaining, out FileStream? subset,
+                            out int kept, out _, out _, out _)) {
+                        using (subset) WriteSpill(archive, entry.Name, subset!);
+                        _itemsAdmitted += kept;
+                    }
+                    SourceItemLimit(entry);
+                    return;
+                }
+                _itemsAdmitted += count;
+            }
             ZipArchiveEntry target = archive.CreateEntry(entry.Name, CompressionLevel.NoCompression);
             using Stream input = OpenPayload(entry, dataOffset);
             using Stream output = target.Open();
-            CopyBounded(input, output, decoded);
+            CopyVerified(input, output, decoded, entry.Crc);
             return;
         }
 
-        bool isXml = normalized.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
-        if (isXml && _decodedBytes < _limits.MaxArchiveDecodedBytes && TryRepairXml(entry, dataOffset, out FileStream? repaired, out int items, out long consumed, out string? stopReason)) {
-            using (repaired) {
-                if (!ChargeDecoded(repaired!.Length, entry)) return;
-                ZipArchiveEntry target = archive.CreateEntry(entry.Name, CompressionLevel.NoCompression);
-                repaired.Position = 0;
-                using Stream output = target.Open();
-                repaired.CopyTo(output);
-            }
+        if (isXml && itemsRemaining > 0 && _decodedBytes < _limits.MaxArchiveDecodedBytes &&
+            TryRepairXml(entry, dataOffset, itemsRemaining, out FileStream? repaired, out int items, out long consumed,
+                out string? stopReason, out bool limited)) {
+            _decodedBytes += consumed;
+            using (repaired) WriteSpill(archive, entry.Name, repaired!);
+            _itemsAdmitted += items;
             _repairedEntries[normalized] = new Repair(entry.LocalHeaderOffset, failure);
             Add("EMAIL_STORE_OLM_SALVAGE_ENTRY_REPAIRED",
                 failure + " " + items.ToString(CultureInfo.InvariantCulture) +
@@ -229,6 +247,7 @@ internal sealed class OlmSalvage {
                 (stopReason == null ? string.Empty : " Reading stopped after " +
                     consumed.ToString(CultureInfo.InvariantCulture) + " decoded byte(s): " + stopReason),
                 EmailStoreDiagnosticSeverity.Warning, entry.LocalHeaderOffset, location);
+            if (limited) SourceItemLimit(entry);
             return;
         }
         Damaged(normalized, entry, isXml ? "EMAIL_STORE_OLM_SALVAGE_XML_ENTRY_UNREADABLE" : "EMAIL_STORE_OLM_SALVAGE_ENTRY_DAMAGED",
@@ -242,6 +261,52 @@ internal sealed class OlmSalvage {
         }
     }
 
+    private static void WriteSpill(ZipArchive archive, string name, FileStream spill) {
+        ZipArchiveEntry target = archive.CreateEntry(name, CompressionLevel.NoCompression);
+        spill.Position = 0;
+        using Stream output = target.Open();
+        spill.CopyTo(output);
+    }
+
+    private static readonly HashSet<string> ItemElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "email", "appointment", "contact", "task", "note"
+    };
+
+    /// <summary>Whether a top-level element is a record the OLM reader projects and counts as an item.</summary>
+    private static bool IsItemElement(string localName) => ItemElements.Contains(localName);
+
+    /// <summary>Counts an XML entry's top-level records; malformed XML counts as none and is reported by the reader.</summary>
+    private int CountXmlItems(ZipEntry entry, long dataOffset) {
+        try {
+            using Stream input = OpenPayload(entry, dataOffset);
+            using XmlReader reader = XmlReader.Create(input, CreateXmlSettings());
+            if (reader.MoveToContent() != XmlNodeType.Element || reader.IsEmptyElement) return 0;
+            int count = 0;
+            reader.Read();
+            while (!reader.EOF && reader.NodeType != XmlNodeType.EndElement) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                if (reader.NodeType == XmlNodeType.Element) {
+                    if (IsItemElement(reader.LocalName) && ++count == int.MaxValue) return count;
+                    reader.Skip();
+                } else {
+                    reader.Read();
+                }
+            }
+            return count;
+        } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException) {
+            return 0;
+        }
+    }
+
+    private XmlReaderSettings CreateXmlSettings() => new XmlReaderSettings {
+        DtdProcessing = DtdProcessing.Prohibit,
+        XmlResolver = null,
+        MaxCharactersInDocument = _limits.MaxArchiveEntryBytes,
+        MaxCharactersFromEntities = 0,
+        IgnoreComments = true,
+        CloseInput = false
+    };
+
     private string? Verify(ZipEntry entry, long dataOffset, out long decoded) {
         decoded = 0;
         if (entry.ExpandedSize < 0) return "The entry has no recorded size or data descriptor, so it cannot be verified.";
@@ -252,11 +317,11 @@ internal sealed class OlmSalvage {
             using Stream input = OpenPayload(entry, dataOffset);
             while (true) {
                 _cancellationToken.ThrowIfCancellationRequested();
-                int read = input.Read(buffer, 0, buffer.Length);
+                // Reading at most one byte past the declared size detects overlong data without extra work.
+                int read = input.Read(buffer, 0, (int)Math.Min(buffer.Length, entry.ExpandedSize - decoded + 1));
                 if (read == 0) break;
                 decoded += read;
-                if (decoded > entry.ExpandedSize || decoded > _limits.MaxArchiveEntryBytes)
-                    return "The entry decodes to more bytes than it declares.";
+                if (decoded > entry.ExpandedSize) return "The entry decodes to more bytes than it declares.";
                 crc = OfficePngCrc32.Append(crc, buffer, 0, read);
             }
         } catch (InvalidDataException exception) {
@@ -267,16 +332,17 @@ internal sealed class OlmSalvage {
         return null;
     }
 
-    private bool TryRepairXml(ZipEntry entry, long dataOffset, out FileStream? repaired, out int items,
-        out long consumed, out string? stopReason) {
+    private bool TryRepairXml(ZipEntry entry, long dataOffset, int maxItems, out FileStream? repaired, out int items,
+        out long consumed, out string? stopReason, out bool limited) {
         repaired = null;
         items = 0;
         consumed = 0;
         stopReason = null;
+        limited = false;
         FileStream spill = _output.CreateSpill(".xml", deleteOnClose: true);
         bool transferred = false;
         try {
-            transferred = RepairXml(entry, dataOffset, spill, ref items, ref consumed, ref stopReason);
+            transferred = RepairXml(entry, dataOffset, maxItems, spill, ref items, ref consumed, ref stopReason, ref limited);
             if (transferred) repaired = spill;
             return transferred;
         } finally {
@@ -284,16 +350,10 @@ internal sealed class OlmSalvage {
         }
     }
 
-    private bool RepairXml(ZipEntry entry, long dataOffset, FileStream spill, ref int items, ref long consumed,
-        ref string? stopReason) {
-        var settings = new XmlReaderSettings {
-            DtdProcessing = DtdProcessing.Prohibit,
-            XmlResolver = null,
-            MaxCharactersInDocument = _limits.MaxArchiveEntryBytes,
-            MaxCharactersFromEntities = 0,
-            IgnoreComments = true,
-            CloseInput = false
-        };
+    /// <summary>Copies up to <paramref name="maxItems"/> complete top-level records of an XML entry into a spill.</summary>
+    private bool RepairXml(ZipEntry entry, long dataOffset, int maxItems, FileStream spill, ref int items,
+        ref long consumed, ref string? stopReason, ref bool limited) {
+        XmlReaderSettings settings = CreateXmlSettings();
         var counting = new CountingStream(OpenPayload(entry, dataOffset, tolerateTruncation: true),
             Math.Min(_limits.MaxArchiveEntryBytes, _limits.MaxArchiveDecodedBytes - _decodedBytes));
         try {
@@ -312,10 +372,13 @@ internal sealed class OlmSalvage {
                         while (!reader.EOF && reader.NodeType != XmlNodeType.EndElement) {
                             _cancellationToken.ThrowIfCancellationRequested();
                             if (reader.NodeType == XmlNodeType.Element) {
+                                bool isItem = IsItemElement(reader.LocalName);
                                 XNode node = XNode.ReadFrom(reader);
                                 node.WriteTo(writer);
-                                items++;
-                                if (items > _limits.MaxItemCount) break;
+                                if (isItem && ++items >= maxItems) {
+                                    limited = reader.MoveToContent() == XmlNodeType.Element;
+                                    break;
+                                }
                             } else {
                                 reader.Read();
                             }
@@ -465,28 +528,34 @@ internal sealed class OlmSalvage {
         return entry.Method == 8 ? new DeflateStream(raw, CompressionMode.Decompress) : raw;
     }
 
-    private bool ChargeDecoded(long bytes, ZipEntry entry) {
-        if (bytes > _limits.MaxArchiveDecodedBytes - _decodedBytes) {
-            _stoppedAtLimit = true;
-            Add("EMAIL_STORE_OLM_SALVAGE_DECODED_LIMIT", "The archive reached " +
-                nameof(EmailStoreReaderOptions.MaxArchiveDecodedBytes) + "; later entries were not recovered.",
-                EmailStoreDiagnosticSeverity.Warning, entry.LocalHeaderOffset, entry.Name);
-            return false;
-        }
-        _decodedBytes += bytes;
-        return true;
+    private void DecodedLimit(ZipEntry entry) {
+        _stoppedAtLimit = true;
+        Add("EMAIL_STORE_OLM_SALVAGE_DECODED_LIMIT", "The archive reached " +
+            nameof(EmailStoreReaderOptions.MaxArchiveDecodedBytes) + "; this entry was not recovered.",
+            EmailStoreDiagnosticSeverity.Warning, entry.LocalHeaderOffset, entry.Name);
     }
 
-    private void CopyBounded(Stream input, Stream output, long length) {
+    private void SourceItemLimit(ZipEntry entry) {
+        _stoppedAtLimit = true;
+        Add("EMAIL_STORE_OLM_SALVAGE_SOURCE_ITEM_LIMIT", "The archive reached " +
+            nameof(EmailStoreReaderOptions.MaxItemCount) + "; later records in this entry were not examined.",
+            EmailStoreDiagnosticSeverity.Warning, entry.LocalHeaderOffset, entry.Name);
+    }
+
+    /// <summary>Copies verified entry bytes and checks them again, so a changed source cannot slip in.</summary>
+    private void CopyVerified(Stream input, Stream output, long length, uint expectedCrc) {
         var buffer = new byte[81920];
+        uint crc = OfficePngCrc32.Begin();
         long remaining = length;
         while (remaining > 0) {
             _cancellationToken.ThrowIfCancellationRequested();
             int read = input.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
             if (read == 0) throw new IOException("The OLM source changed during recovery.");
+            crc = OfficePngCrc32.Append(crc, buffer, 0, read);
             output.Write(buffer, 0, read);
             remaining -= read;
         }
+        if (OfficePngCrc32.Complete(crc) != expectedCrc) throw new IOException("The OLM source changed during recovery.");
     }
 
     private void Damaged(string normalized, ZipEntry entry, string code, string message) {
@@ -512,6 +581,10 @@ internal sealed class OlmSalvage {
                 return true;
             }
             search = header + 1;
+        }
+        if (TryDescriptorEndingAt(dataOffset, _length, zip64, out crc, out compressed, out expanded)) {
+            end = _length;
+            return true;
         }
         search = dataOffset;
         var descriptor = new byte[24];
@@ -566,7 +639,7 @@ internal sealed class OlmSalvage {
         long position = start;
         while (position + 4 <= _length) {
             _cancellationToken.ThrowIfCancellationRequested();
-            int read = ReadAvailable(position, buffer, buffer.Length);
+            int read = ReadFull(position, buffer);
             for (int index = 0; index + 4 <= read; index++) {
                 uint value = UInt32(buffer, index);
                 if (value == LocalHeaderSignature || value == CentralHeaderSignature ||
@@ -592,7 +665,7 @@ internal sealed class OlmSalvage {
         long position = start;
         while (position + 4 <= _length) {
             _cancellationToken.ThrowIfCancellationRequested();
-            int read = ReadAvailable(position, buffer, buffer.Length);
+            int read = ReadFull(position, buffer);
             for (int index = 0; index + 4 <= read; index++)
                 if (UInt32(buffer, index) == signature) return position + index;
             if (position + read >= _length) break;
@@ -622,6 +695,14 @@ internal sealed class OlmSalvage {
     }
 
     private static string DecodeName(byte[] bytes) => Encoding.UTF8.GetString(bytes);
+
+    /// <summary>Reads a search window; a short read means the source shrank, which would stall the search.</summary>
+    private int ReadFull(long position, byte[] buffer) {
+        int expected = (int)Math.Min(buffer.Length, _length - position);
+        int read = ReadAvailable(position, buffer, expected);
+        if (read != expected) throw new IOException("The OLM source changed length during recovery.");
+        return read;
+    }
 
     private int ReadAvailable(long offset, byte[] buffer, int count) {
         if (offset >= _length || offset < 0) return 0;
