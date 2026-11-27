@@ -1,4 +1,7 @@
 using System.Globalization;
+using System.Xml;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using WP14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
@@ -115,11 +118,20 @@ namespace OfficeIMO.Word {
     }
 
     internal static class WordDrawingLayoutReader {
-        internal static bool TryRead(WordDrawing? drawing, out WordDrawingLayoutInfo snapshot) {
-            if (drawing?.Inline is DW.Inline inline && inline.Extent?.Cx?.Value is long inlineWidth && inline.Extent.Cy?.Value is long inlineHeight) {
+        internal static bool TryRead(WordDrawing? drawing, out WordDrawingLayoutInfo snapshot) =>
+            TryRead(OfficeXmlNode.FromSdk(drawing), out snapshot);
+
+        /// <summary>
+        /// Reads the persisted frame of a <c>w:drawing</c>. Values are read as the SDK's typed members read them, so a
+        /// malformed number throws <see cref="FormatException"/>.
+        /// </summary>
+        internal static bool TryRead(OfficeXmlNode drawing, out WordDrawingLayoutInfo snapshot) {
+            OfficeXmlNode inline = drawing.IsNone ? default : drawing.Child(Wp, "inline");
+            OfficeXmlNode inlineExtent = inline.IsNone ? default : inline.Child(Wp, "extent");
+            if (ReadInt64(inlineExtent, "cx") is long inlineWidth && ReadInt64(inlineExtent, "cy") is long inlineHeight) {
                 snapshot = new WordDrawingLayoutInfo(
                     WordDrawingPlacementKind.Inline,
-                    inline.DocProperties?.Name?.Value ?? string.Empty,
+                    ReadName(inline),
                     OfficeLength.Emus(inlineWidth),
                     OfficeLength.Emus(inlineHeight),
                     null,
@@ -138,31 +150,36 @@ namespace OfficeIMO.Word {
                 return true;
             }
 
-            if (drawing?.Anchor is DW.Anchor anchor && anchor.Extent?.Cx?.Value is long anchorWidth && anchor.Extent.Cy?.Value is long anchorHeight) {
-                bool usesSimplePosition = anchor.SimplePos?.Value == true;
+            OfficeXmlNode anchor = drawing.IsNone ? default : drawing.Child(Wp, "anchor");
+            OfficeXmlNode anchorExtent = anchor.IsNone ? default : anchor.Child(Wp, "extent");
+            if (ReadInt64(anchorExtent, "cx") is long anchorWidth && ReadInt64(anchorExtent, "cy") is long anchorHeight) {
+                bool usesSimplePosition = ReadBoolean(anchor, "simplePos") == true;
+                OfficeXmlNode horizontal = anchor.Child(Wp, "positionH");
+                OfficeXmlNode vertical = anchor.Child(Wp, "positionV");
+                OfficeXmlNode simplePosition = anchor.Child(Wp, "simplePos");
                 OfficeLength? horizontalOffset = usesSimplePosition
-                    ? ReadCoordinate(anchor.SimplePosition?.X?.Value)
-                    : ReadOffset(anchor.HorizontalPosition?.PositionOffset?.Text);
+                    ? ReadCoordinate(ReadInt64(simplePosition, "x"))
+                    : ReadOffset(ChildText(horizontal, "posOffset"));
                 OfficeLength? verticalOffset = usesSimplePosition
-                    ? ReadCoordinate(anchor.SimplePosition?.Y?.Value)
-                    : ReadOffset(anchor.VerticalPosition?.PositionOffset?.Text);
+                    ? ReadCoordinate(ReadInt64(simplePosition, "y"))
+                    : ReadOffset(ChildText(vertical, "posOffset"));
                 snapshot = new WordDrawingLayoutInfo(
                     WordDrawingPlacementKind.Anchored,
-                    anchor.GetFirstChild<DW.DocProperties>()?.Name?.Value ?? string.Empty,
+                    ReadName(anchor),
                     OfficeLength.Emus(anchorWidth),
                     OfficeLength.Emus(anchorHeight),
-                    usesSimplePosition ? "page" : ReadAttribute(anchor.HorizontalPosition, "relativeFrom"),
-                    usesSimplePosition ? "page" : ReadAttribute(anchor.VerticalPosition, "relativeFrom"),
+                    usesSimplePosition ? "page" : ReadAttribute(horizontal, "relativeFrom"),
+                    usesSimplePosition ? "page" : ReadAttribute(vertical, "relativeFrom"),
                     horizontalOffset,
                     verticalOffset,
-                    usesSimplePosition ? null : anchor.HorizontalPosition?.HorizontalAlignment?.Text,
-                    usesSimplePosition ? null : anchor.VerticalPosition?.VerticalAlignment?.Text,
+                    usesSimplePosition ? null : ChildText(horizontal, "align"),
+                    usesSimplePosition ? null : ChildText(vertical, "align"),
                     usesSimplePosition,
                     ReadWrap(anchor),
-                    anchor.BehindDoc?.Value ?? false,
-                    anchor.LayoutInCell?.Value ?? true,
-                    anchor.AllowOverlap?.Value ?? true,
-                    anchor.RelativeHeight?.Value ?? 0U,
+                    ReadBoolean(anchor, "behindDoc") ?? false,
+                    ReadBoolean(anchor, "layoutInCell") ?? true,
+                    ReadBoolean(anchor, "allowOverlap") ?? true,
+                    ReadUInt32(anchor, "relativeHeight") ?? 0U,
                     IsGroupDrawing(drawing));
                 return true;
             }
@@ -186,9 +203,40 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static bool IsGroupDrawing(WordDrawing drawing) => drawing
-            .Descendants<DocumentFormat.OpenXml.Drawing.GraphicData>()
-            .Any(data => data.Uri?.Value?.IndexOf("wordprocessingGroup", StringComparison.OrdinalIgnoreCase) >= 0);
+        private const int Wp = OfficeXmlNamespaces.WordprocessingDrawing;
+
+        private static bool IsGroupDrawing(OfficeXmlNode drawing) {
+            foreach (OfficeXmlNode data in drawing.Descendants(OfficeXmlNamespaces.DrawingML, "graphicData")) {
+                if (data.Attribute("uri")?.IndexOf("wordprocessingGroup", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            }
+            return false;
+        }
+
+        private static string ReadName(OfficeXmlNode frame) {
+            OfficeXmlNode properties = frame.Child(Wp, "docPr");
+            return (properties.IsNone ? null : properties.Attribute("name")) ?? string.Empty;
+        }
+
+        private static string? ChildText(OfficeXmlNode parent, string localName) {
+            if (parent.IsNone) return null;
+            OfficeXmlNode child = parent.Child(Wp, localName);
+            return child.IsNone ? null : child.InnerText;
+        }
+
+        private static long? ReadInt64(OfficeXmlNode element, string localName) {
+            string? value = element.IsNone ? null : element.Attribute(localName);
+            return value == null ? null : XmlConvert.ToInt64(value);
+        }
+
+        private static uint? ReadUInt32(OfficeXmlNode element, string localName) {
+            string? value = element.Attribute(localName);
+            return value == null ? null : XmlConvert.ToUInt32(value);
+        }
+
+        private static bool? ReadBoolean(OfficeXmlNode element, string localName) {
+            string? value = element.Attribute(localName);
+            return value == null ? null : XmlConvert.ToBoolean(value);
+        }
 
         private static OfficeLength? ReadOffset(string? text) =>
             long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long emu)
@@ -198,18 +246,19 @@ namespace OfficeIMO.Word {
         private static OfficeLength? ReadCoordinate(long? emu) =>
             emu.HasValue ? OfficeLength.Emus(emu.Value) : null;
 
-        private static string? ReadAttribute(DocumentFormat.OpenXml.OpenXmlElement? element, string localName) {
-            if (element == null) return null;
-            string? value = element.GetAttribute(localName, string.Empty).Value;
+        // As the SDK's GetAttribute reads it: a missing attribute on a present element throws KeyNotFoundException.
+        private static string? ReadAttribute(OfficeXmlNode element, string localName) {
+            if (element.IsNone) return null;
+            string value = element.Attribute(localName) ?? throw new KeyNotFoundException();
             return string.IsNullOrWhiteSpace(value) ? null : value;
         }
 
-        private static WordDrawingWrapKind ReadWrap(DW.Anchor anchor) {
-            if (anchor.GetFirstChild<DW.WrapNone>() != null) return WordDrawingWrapKind.None;
-            if (anchor.GetFirstChild<DW.WrapSquare>() != null) return WordDrawingWrapKind.Square;
-            if (anchor.GetFirstChild<DW.WrapTight>() != null) return WordDrawingWrapKind.Tight;
-            if (anchor.GetFirstChild<DW.WrapThrough>() != null) return WordDrawingWrapKind.Through;
-            if (anchor.GetFirstChild<DW.WrapTopBottom>() != null) return WordDrawingWrapKind.TopAndBottom;
+        private static WordDrawingWrapKind ReadWrap(OfficeXmlNode anchor) {
+            if (!anchor.Child(Wp, "wrapNone").IsNone) return WordDrawingWrapKind.None;
+            if (!anchor.Child(Wp, "wrapSquare").IsNone) return WordDrawingWrapKind.Square;
+            if (!anchor.Child(Wp, "wrapTight").IsNone) return WordDrawingWrapKind.Tight;
+            if (!anchor.Child(Wp, "wrapThrough").IsNone) return WordDrawingWrapKind.Through;
+            if (!anchor.Child(Wp, "wrapTopAndBottom").IsNone) return WordDrawingWrapKind.TopAndBottom;
             return WordDrawingWrapKind.Unsupported;
         }
     }

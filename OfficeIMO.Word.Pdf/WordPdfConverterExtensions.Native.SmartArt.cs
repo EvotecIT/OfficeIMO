@@ -21,7 +21,7 @@ public static partial class WordPdfConverterExtensions {
             foreach (OpenXmlElement child in run.EnumerateEffectiveRunContent()) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 WordParagraph view = CreateNativeRunContentView(run, new[] { child });
-                if (view.SmartArt is not WordSmartArt smartArt || !seen.Add(smartArt._drawing)) continue;
+                if (view.SmartArt is not WordSmartArt smartArt || !seen.Add((W.Drawing)smartArt._drawing.SdkElement!)) continue;
                 OfficeDrawing? drawing;
                 string projection;
                 try {
