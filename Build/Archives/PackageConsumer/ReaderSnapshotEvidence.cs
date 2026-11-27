@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using OfficeIMO.Reader;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 
 namespace OfficeIMO.Archives.Qualification {
     /// <summary>Opt-in disk-snapshot evidence. Run in an isolated temporary directory without parallel consumers.</summary>
@@ -25,7 +25,7 @@ namespace OfficeIMO.Archives.Qualification {
                         Id = "qualification.snapshot-observer", Kind = ReaderInputKind.Text,
                         Extensions = new[] { ".txt" }, SupportsIncrementalStream = true,
                         ReadStream = Observe
-                    }).AddZipHandler();
+                    }).AddArchiveHandler();
                     var reader = builder.Build();
                     try {
                         var chunks = streamInput ? reader.Enumerate(source, "input.zip", new() { ComputeHashes = false }, cancellation.Token)

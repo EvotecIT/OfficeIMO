@@ -2,7 +2,7 @@ using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using System.IO.Compression;
 using System.Text;
 using Xunit;
@@ -86,7 +86,7 @@ public sealed class ReaderIntegrityRegressionsTests {
             }
         }
         source.Position = 0;
-        var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
+        var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddArchiveHandler().Build();
         OfficeDocumentReadResult result = reader.ReadDocument(source, "members.zip", new ReaderOptions { ComputeHashes = false });
         Assert.Equal(new[] { "BACKSLASH", "DOT", "FIRST", "SECOND" }, result.Chunks.Select(chunk => chunk.Text).OrderBy(value => value, StringComparer.Ordinal));
         Assert.Equal(4, result.Chunks.Select(chunk => chunk.SourceId).Distinct().Count());

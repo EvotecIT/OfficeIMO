@@ -25,7 +25,7 @@ public sealed class ReaderContractTests {
             typeof(OfficeIMO.Reader.Visio.OfficeDocumentReaderBuilderVisioExtensions),
             typeof(OfficeIMO.Reader.Xml.OfficeDocumentReaderBuilderXmlExtensions),
             typeof(OfficeIMO.Reader.Yaml.OfficeDocumentReaderBuilderYamlExtensions),
-            typeof(OfficeIMO.Reader.Zip.OfficeDocumentReaderBuilderZipExtensions)
+            typeof(OfficeIMO.Reader.Archives.OfficeDocumentReaderBuilderArchiveExtensions)
         };
 
         foreach (var assembly in publicPackageAnchors.Select(type => type.Assembly).Distinct()) {

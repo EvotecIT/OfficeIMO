@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Reader.Excel;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;
@@ -40,7 +40,7 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
         byte[] bytes = Workbook();
         var format = new ReaderExcelOptions { HeadersInFirstRow = false, ReadOptions = Configure(name, maximum) };
         var options = new ReaderOptions { Projection = route == "zip" ? ReaderProjection.Full : ReaderProjection.TextAndMetadata };
-        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddExcelHandler(format).AddZipHandler().Build();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddExcelHandler(format).AddArchiveHandler().Build();
         string directory = Path.Combine(Path.GetTempPath(), "excel-admission-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
         try {
             ReaderResourceLimitException error = await Assert.ThrowsAsync<ReaderResourceLimitException>(async () => {

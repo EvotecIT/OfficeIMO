@@ -9,7 +9,7 @@ using OfficeIMO.Reader.OpenDocument;
 using OfficeIMO.Reader.PowerPoint;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Word;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using OfficeIMO.Word;
 using Xunit;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -128,7 +128,7 @@ public sealed class ReaderNativeInspectionEvidenceTests {
                 using Stream output = archive.CreateEntry(name).Open(); output.Write(source, 0, source.Length);
             }
         }
-        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().AddZipHandler().Build();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().AddArchiveHandler().Build();
         OfficeDocumentReadResult result = reader.ReadDocument(zip.ToArray(), "documents.zip", Options());
         Assert.Equal(2, result.NestedDocuments.Count);
         Assert.All(result.NestedDocuments, child => Assert.Contains(child.Document.Metadata, item => item.Category == OfficeDocumentInspectionCategories.Comment));

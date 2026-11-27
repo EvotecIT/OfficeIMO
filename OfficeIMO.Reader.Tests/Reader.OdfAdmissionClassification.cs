@@ -4,7 +4,7 @@ using System.Xml.Linq;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.OpenDocument.Testing;
 using OfficeIMO.Reader.OpenDocument;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;
@@ -82,7 +82,7 @@ public sealed class ReaderOdfAdmissionClassificationTests {
     [InlineData("encryption", "direct")]
     public async Task NativeAdmissionIsTerminalAcrossCanonicalReaderRoutes(string kind, string route) {
         byte[] bytes = Fixture(kind);
-        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOpenDocumentHandler().AddZipHandler().Build();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOpenDocumentHandler().AddArchiveHandler().Build();
         var options = new ReaderOptions { OpenPassword = "fixture-password", Projection = route.Contains("zip") ? ReaderProjection.Full : ReaderProjection.TextAndMetadata };
         string directory = Path.Combine(Path.GetTempPath(), "odf-admission-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);

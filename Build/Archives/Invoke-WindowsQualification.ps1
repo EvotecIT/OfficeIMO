@@ -52,7 +52,7 @@ foreach ($framework in @('net8.0', 'net10.0', 'net472')) {
 @{ checkoutCommit = $checkoutCommit; sourceHead = $env:OFFICEIMO_QUALIFICATION_HEAD
     runUrl = "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
     packageVersion = $Version; os = [Environment]::OSVersion.VersionString
-    packages = @(@('OfficeIMO.Core', 'OfficeIMO.Archives', 'OfficeIMO.Reader.Core', 'OfficeIMO.Reader.Zip') | ForEach-Object {
+    packages = @(@('OfficeIMO.Core', 'OfficeIMO.Archives', 'OfficeIMO.Reader.Core', 'OfficeIMO.Reader.Archives') | ForEach-Object {
         $package = Join-Path $FeedPath "$_.$Version.nupkg"
         @{ file = [IO.Path]::GetFileName($package); bytes = (Get-Item $package).Length
             sha256 = (Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant() }

@@ -1,9 +1,9 @@
 using System.Runtime.InteropServices;
 using System.Globalization;
 
-namespace OfficeIMO.Reader.Zip {
+namespace OfficeIMO.Reader.Archives {
 
-    internal static partial class ZipReaderAdapter {
+    internal static partial class ArchiveReaderAdapter {
         private static ReaderChunk BuildWarningChunk(
             ArchiveSourceMetadata archiveSource,
             string archivePath,

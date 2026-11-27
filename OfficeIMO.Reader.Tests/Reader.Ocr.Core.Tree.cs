@@ -2,7 +2,7 @@ using OfficeIMO.Ocr;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Image;
 using OfficeIMO.Reader.Email;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using OfficeIMO.Tests.Pdf;
 using System.IO.Compression;
 using Xunit;
@@ -148,7 +148,7 @@ public sealed partial class ReaderOcrCoreTests {
                 + Convert.ToBase64String(sourceBytes, Base64FormattingOptions.InsertLineBreaks) + "\r\n--probe--\r\n";
             sourceBytes = System.Text.Encoding.UTF8.GetBytes(mime); name = "mail.eml";
         }
-        var reader = new OfficeDocumentReaderBuilder().AddImageHandler().AddZipHandler().AddEmailHandler().Build();
+        var reader = new OfficeDocumentReaderBuilder().AddImageHandler().AddArchiveHandler().AddEmailHandler().Build();
         var source = reader.ReadDocument(new MemoryStream(sourceBytes), name);
         string expectedPath = emailContainer ? "mail.eml!/attachment.zip::scan.png" : "attachment.zip::scan.png";
         var engine = new DelegateOcrEngine("tree", (request, _) => {

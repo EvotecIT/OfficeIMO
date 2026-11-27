@@ -58,11 +58,11 @@ using OfficeIMO.Ocr.Tesseract;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Image;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 
 var reader = new OfficeDocumentReaderBuilder()
     .AddEmailHandler()
-    .AddZipHandler()
+    .AddArchiveHandler()
     .AddImageHandler()
     .Build();
 var document = await reader.ReadDocumentAsync("message.eml");

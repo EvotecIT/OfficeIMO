@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using OfficeIMO.Reader;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using OfficeIMO.Reader.Email;
 using Xunit;
 
@@ -138,7 +138,7 @@ public sealed class ReaderResourceLimitTests {
         if (limit == "bytes") limits.MaxNestedInputBytes = inner.Length + 3;
         if (limit == "documents") limits.MaxNestedDocuments = 2;
         if (limit == "depth") limits.MaxNestedDepth = 1;
-        var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
+        var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddArchiveHandler().Build();
         Assert.Throws<ReaderResourceLimitException>(() => reader.Enumerate(outer, "outer.zip", Limited(limits)).ToArray());
         Assert.Equal(2, reader.Enumerate(outer, "outer.zip", Limited(new ReaderResourceLimits {
             MaxNestedInputBytes = 2 * (inner.Length + 3), MaxNestedDocuments = 4, MaxNestedDepth = 2 })).Count());
@@ -146,7 +146,7 @@ public sealed class ReaderResourceLimitTests {
 
     [Fact]
     public void ZipRetainsRichChildAndRoundTripsTransport() {
-        var reader = RichBuilder().AddZipHandler().Build();
+        var reader = RichBuilder().AddArchiveHandler().Build();
         var result = reader.ReadDocument(Zip(("child.rich", new byte[] { 1 })), "bundle.zip", Limited(new ReaderResourceLimits { MaxAssets = 1 }));
         var nested = Assert.Single(result.NestedDocuments);
         Assert.Equal("bundle.zip::child.rich", nested.Path);

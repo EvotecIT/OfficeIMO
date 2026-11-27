@@ -10,7 +10,7 @@ using OfficeIMO.Reader.Visio;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Toml;
 using OfficeIMO.Reader.Yaml;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -52,8 +52,8 @@ public sealed class ReaderInstanceAdapterTests {
             new OfficeDocumentReaderBuilder().AddYamlHandler().Build(),
             OfficeDocumentReaderBuilderYamlExtensions.HandlerId);
         AssertHandler(
-            new OfficeDocumentReaderBuilder().AddZipHandler().Build(),
-            OfficeDocumentReaderBuilderZipExtensions.HandlerId);
+            new OfficeDocumentReaderBuilder().AddArchiveHandler().Build(),
+            OfficeDocumentReaderBuilderArchiveExtensions.HandlerId);
     }
 
     [Fact]

@@ -2,7 +2,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using OfficeIMO.Reader;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 
 namespace OfficeIMO.Archives.Qualification {
 
@@ -12,7 +12,7 @@ namespace OfficeIMO.Archives.Qualification {
             if (args.Length != 2) throw new ArgumentException("Expected: <large ZIP path> <JSON report>");
             string input = args[0];
             if (!File.Exists(input)) CreateInput(input);
-            var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
+            var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddArchiveHandler().Build();
             var results = new List<object>();
             Measure("Inspection", () => {
                 using var inspection = ArchiveInspector.Open(input);

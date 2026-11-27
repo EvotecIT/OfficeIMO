@@ -76,7 +76,7 @@
       "OfficeIMO.Reader.Xml\\OfficeIMO.Reader.Xml.csproj",
       "OfficeIMO.Reader.Xps\\OfficeIMO.Reader.Xps.csproj",
       "OfficeIMO.Reader.Yaml\\OfficeIMO.Reader.Yaml.csproj",
-      "OfficeIMO.Reader.Zip\\OfficeIMO.Reader.Zip.csproj",
+      "OfficeIMO.Reader.Archives\\OfficeIMO.Reader.Archives.csproj",
       "OfficeIMO.Rtf\\OfficeIMO.Rtf.csproj",
       "OfficeIMO.Visio\\OfficeIMO.Visio.csproj",
       "OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj",

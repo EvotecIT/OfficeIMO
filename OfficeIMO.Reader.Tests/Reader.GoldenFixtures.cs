@@ -5,7 +5,7 @@ using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Xml;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using OfficeIMO.Epub;
 using OfficeIMO.Archives;
 using System.Globalization;
@@ -73,9 +73,9 @@ public sealed class ReaderGoldenFixtureTests {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddCsvHandler(new CsvReadOptions { ChunkRows = 2, IncludeMarkdown = true })
             .AddMarkdownHandler()
-            .AddZipHandler(
+            .AddArchiveHandler(
                 new ArchiveTraversalOptions { DeterministicOrder = true },
-                new ReaderZipOptions { ReadNestedZipEntries = false })
+                new ReaderArchiveOptions { ReadNestedArchives = false })
             .Build();
         var chunks = reader.Enumerate(
             zipStream, "golden.zip", new ReaderOptions {

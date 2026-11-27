@@ -1,6 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Markdown;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using System.Text;
 using System.Text.Json;
 using System.IO.Compression;
@@ -309,7 +309,7 @@ public sealed class ReaderProcessorPipelineTests {
         byte[] zip = stream.ToArray();
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddPlainTextHandlers()
-            .AddZipHandler()
+            .AddArchiveHandler()
             .AddProcessor(new DelegateOfficeDocumentProcessor("redact", (document, _) => {
                 foreach (ReaderChunk chunk in document.Chunks) chunk.Text = "[redacted]";
                 return document;

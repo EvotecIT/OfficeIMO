@@ -5278,6 +5278,22 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 </details>
 <!-- officeimo-api-map:end -->
 
+## OfficeIMO.Reader.Zip is now OfficeIMO.Reader.Archives
+
+The archive adapter for OfficeIMO.Reader is renamed and now reads 7z, Cabinet and, on request, Windows Installer packages as well as ZIP and TAR. There is no compatibility package or wrapper. Update references as follows:
+
+| Before | After |
+| --- | --- |
+| Package and namespace `OfficeIMO.Reader.Zip` | `OfficeIMO.Reader.Archives` |
+| `AddZipHandler(...)` | `AddArchiveHandler(...)` |
+| `ReaderZipOptions` | `ReaderArchiveOptions` |
+| `ReaderZipOptions.ReadNestedZipEntries` | `ReaderArchiveOptions.ReadNestedArchives` |
+| `OfficeDocumentReaderBuilderZipExtensions.HandlerId` (`officeimo.reader.zip`) | `OfficeDocumentReaderBuilderArchiveExtensions.HandlerId` (`officeimo.reader.archives`) |
+| `ReaderAllOptions.ZipTraversal` | `ReaderAllOptions.ArchiveTraversal` |
+| `ReaderAllOptions.Zip` | `ReaderAllOptions.Archives` |
+
+Nested archives are no longer limited to `.zip`: 7z, Cabinet, TAR and single compressed files inside an archive are read too, within the same `MaxNestedDepth` and `MaxNestedArchiveBytes`. Set `ReadNestedArchives = false` to keep the top level only. Installer packages are read only with `ReadInstallerPackages = true`, which also registers `.msi`. Warning texts now say "archive entry" and "nested archive" instead of "ZIP entry"; match on the limit names rather than the full text. Chunk kinds and the `officeimo.reader.zip` capability on read results are unchanged.
+
 Handle `PdfRedactionMatchKind.BookmarkTitle` when switching on match kinds; its `Text` is omitted. Matching bookmark titles are cleared in full, and `CleanupScope.None` does not preserve them. Post-save search verification budget exhaustion now throws `PdfMutationBlockedException` with `FullRewrite.ProofFailed.RedactionResidue` instead of `InvalidDataException`.
 
 Search redaction output for accepted object-stream and cross-reference-stream PDFs is always classic. If your code inspects saved structure, expect no object-stream or cross-reference-stream objects, no `/Prev` trailer entry, and null in place of references to free or missing objects.

@@ -9,7 +9,7 @@
   </PropertyGroup>
   <ItemGroup Condition="'$(OfficeIMOQualificationVersion)' != ''">
     <PackageReference Include="OfficeIMO.Archives" Version="$(OfficeIMOQualificationVersion)" />
-    <PackageReference Include="OfficeIMO.Reader.Zip" Version="$(OfficeIMOQualificationVersion)" />
+    <PackageReference Include="OfficeIMO.Reader.Archives" Version="$(OfficeIMOQualificationVersion)" />
   </ItemGroup>
   <Target Name="RequireQualificationVersion" BeforeTargets="CoreCompile">
     <Error Condition="'$(OfficeIMOQualificationVersion)' == ''" Text="Pass OfficeIMOQualificationVersion for the explicit packed candidate." />

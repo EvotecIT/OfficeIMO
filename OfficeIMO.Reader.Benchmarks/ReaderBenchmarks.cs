@@ -15,7 +15,7 @@ using OfficeIMO.Reader.Visio;
 using OfficeIMO.Reader.Word;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 
 namespace OfficeIMO.Reader.Benchmarks;
 
@@ -61,7 +61,7 @@ public class ReaderDocumentBenchmarks {
         .AddWordHandler()
         .AddXmlHandler()
         .AddYamlHandler()
-        .AddZipHandler()
+        .AddArchiveHandler()
         .Build();
 }
 

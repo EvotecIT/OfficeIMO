@@ -1,6 +1,6 @@
 using System.IO.Compression;
 using OfficeIMO.Reader.Word;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using OfficeIMO.Reader.Excel;
 using OfficeIMO.Reader.PowerPoint;
 using OfficeIMO.Reader.OpenDocument;
@@ -19,7 +19,7 @@ namespace OfficeIMO.Reader.Tests;
 public sealed class ReaderInspectionResourceLimitEvidenceTests {
     [Fact]
     public void NativeSafetyFindingLimitCannotBecomeASkippedZipMember() {
-        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().AddZipHandler().Build();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().AddArchiveHandler().Build();
         using var zip = new MemoryStream();
         using (var archive = new ZipArchive(zip, ZipArchiveMode.Create, leaveOpen: true)) {
             using Stream output = archive.CreateEntry("hidden.docx").Open(); byte[] source = HiddenWord(); output.Write(source, 0, source.Length);

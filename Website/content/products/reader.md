@@ -52,7 +52,7 @@ OfficeIMO.Reader provides a single API to extract structured content from common
 | `OfficeIMO.Reader.Xml` | XML documents should keep element-aware source context during extraction. |
 | `OfficeIMO.Reader.Html` | HTML input should be normalized through the Markdown/Reader pipeline. |
 | `OfficeIMO.Reader.Epub` | EPUB books or packaged publications belong in the same ingestion workflow. |
-| `OfficeIMO.Reader.Zip` | ZIP archives need safe traversal and chunking as part of a reader job. |
+| `OfficeIMO.Reader.Archives` | Documents inside ZIP, 7z, CAB, TAR or compressed files, including nested archives, are part of a reader job. |
 
 ## Quick start
 

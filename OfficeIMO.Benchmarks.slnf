@@ -50,7 +50,7 @@
       "OfficeIMO.Reader.Word\\OfficeIMO.Reader.Word.csproj",
       "OfficeIMO.Reader.Xml\\OfficeIMO.Reader.Xml.csproj",
       "OfficeIMO.Reader.Yaml\\OfficeIMO.Reader.Yaml.csproj",
-      "OfficeIMO.Reader.Zip\\OfficeIMO.Reader.Zip.csproj",
+      "OfficeIMO.Reader.Archives\\OfficeIMO.Reader.Archives.csproj",
       "OfficeIMO.Rtf.Benchmarks\\OfficeIMO.Rtf.Benchmarks.csproj",
       "OfficeIMO.Rtf.Markdown\\OfficeIMO.Rtf.Markdown.csproj",
       "OfficeIMO.Rtf.Pdf\\OfficeIMO.Rtf.Pdf.csproj",

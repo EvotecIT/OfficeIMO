@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests;
 public sealed class ReaderPackagingGuardrailTests {
     [Theory]
     [InlineData("OfficeIMO.Epub/OfficeIMO.Epub.csproj")]
-    [InlineData("OfficeIMO.Reader.Zip/OfficeIMO.Reader.Zip.csproj")]
+    [InlineData("OfficeIMO.Reader.Archives/OfficeIMO.Reader.Archives.csproj")]
     [InlineData("OfficeIMO.Reader.Epub/OfficeIMO.Reader.Epub.csproj")]
     [InlineData("OfficeIMO.Reader.Html/OfficeIMO.Reader.Html.csproj")]
     [InlineData("OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj")]
