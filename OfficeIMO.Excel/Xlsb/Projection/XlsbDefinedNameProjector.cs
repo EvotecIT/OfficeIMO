@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 OfficeXmlNode target = names.CreateElement(OfficeXmlNamespaces.SpreadsheetML, ElementName);
                 target.SetAttribute("name", ToOpenXmlName(source));
                 if (source.Hidden) target.SetBooleanAttribute("hidden", true);
-                if (source.Comment != null) target.SetAttribute("comment", source.Comment);
+                target.SetAttribute("comment", source.Comment ?? string.Empty);
                 if (source.LocalSheetIndex != uint.MaxValue) target.SetUInt32Attribute("localSheetId", source.LocalSheetIndex);
                 target.SetInnerText(source.FormulaText!);
                 names.Append(target);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     || !string.Equals(ExcelDocument.ReplaceSheetNameReferences(item.InnerText, reverseRenames), source.FormulaText, StringComparison.Ordinal)
                     || XlsbWorkbookMarkup.ReadUInt32(item, "localSheetId") != (source.LocalSheetIndex == uint.MaxValue ? (uint?)null : source.LocalSheetIndex)
                     || (XlsbWorkbookMarkup.ReadBoolean(item, "hidden") ?? false) != source.Hidden
-                    || !string.Equals(item.Attribute("comment"), source.Comment, StringComparison.Ordinal)) {
+                    || !string.Equals(item.Attribute("comment") ?? string.Empty, source.Comment ?? string.Empty, StringComparison.Ordinal)) {
                     return false;
                 }
             }
