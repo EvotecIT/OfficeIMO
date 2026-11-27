@@ -88,7 +88,9 @@ public partial class Word {
         // An undefined format or an indentation beyond the range Word stores is rejected before the level changes.
         Assert.ThrowsAny<ArgumentException>(() => level.NumberFormat = (WordNumberFormat)(-1));
         Assert.Equal(WordNumberFormat.None, level.NumberFormat);
-        Assert.Throws<OverflowException>(() => level.IndentationLeft = OfficeIMO.OfficeLength.Points(double.MaxValue / 100));
+        // 200 million points is a valid length, but its four billion twips don't fit the attribute.
+        OfficeIMO.OfficeLength tooWide = OfficeIMO.OfficeLength.Points(200_000_000);
+        Assert.Throws<OverflowException>(() => level.IndentationLeft = tooWide);
         Assert.Null(level.OpenXmlLevel().PreviousParagraphProperties);
     }
 }
