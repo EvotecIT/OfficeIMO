@@ -443,7 +443,9 @@ internal sealed class Ledger {
                 if (IsPublicSetter(property) && (treatment == Treatments.Generate || collides)) {
                     if (Shape() is { } gap) return gap;
                     if (collides) return "[Fluent(\"Name\")]";
-                    return IsNullableBoolean(property.Type) ? Gaps.NullableBool : "generated";
+                    if (IsNullableBoolean(property.Type)) return Gaps.NullableBool;
+                    // A configured rename differs from the name the generator derives from the property.
+                    return flags.Contains("property-rename") ? "[Fluent(\"Name\")]" : "generated";
                 }
                 if (treatment == Treatments.GenerateNested || flags.Contains("getter-copies") || flags.Contains("getter-wraps")) {
                     if (Shape() is { } gap) return gap;
@@ -460,7 +462,10 @@ internal sealed class Ledger {
             case IMethodSymbol method when treatment == Treatments.Rename || collides && IsSetMethod(method):
                 if (Shape() is { } shape) return shape;
                 if (proposed == null || proposed.IndexOf('(') is var open && open < 0) return null;
-                var target = FindProperty(receiver, proposed[..open]);
+                // SetEnabled(bool) configures IsEnabled, whose generated method is Enabled(bool value = true).
+                string named = proposed[..open];
+                var target = FindProperty(receiver, named);
+                if (target == null && FindProperty(receiver, "Is" + named) is { Type.SpecialType: SpecialType.System_Boolean } flag) target = flag;
                 if (target != null && IsPublicSetter(target)) {
                     if (collides) return "[Fluent(\"Name\")]";
                     return IsNullableBoolean(target.Type) ? Gaps.NullableBool : "generated";

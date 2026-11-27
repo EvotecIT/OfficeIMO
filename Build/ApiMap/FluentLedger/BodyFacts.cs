@@ -109,11 +109,24 @@ internal static class BodyFacts {
             IEnumerable<ExpressionSyntax> expressions = property.ExpressionBody != null ? [property.ExpressionBody.Expression]
                 : getter?.ExpressionBody != null ? [getter.ExpressionBody.Expression]
                 : getter?.Body != null ? OwnedReturns(getter.Body) : [];
-            if (expressions.Any(expression => Unwrap(expression) is var value && (IsFresh(value) || value is InvocationExpressionSyntax
-                    or CollectionExpressionSyntax or ArrayCreationExpressionSyntax or ImplicitArrayCreationExpressionSyntax or ConditionalExpressionSyntax or SwitchExpressionSyntax)))
-                return false;
+            if (expressions.Any(expression => Computed(expression, getter?.Body, 0))) return false;
         }
         return true;
+    }
+
+    /// <summary>
+    /// True when a returned expression is built on each read. A local declared in the getter is judged by its initializer
+    /// (<c>var result = _items.ToList(); return result;</c>); a local without one cannot be shown to be stored.
+    /// </summary>
+    private static bool Computed(ExpressionSyntax expression, BlockSyntax? body, int depth) {
+        var value = Unwrap(expression);
+        if (value is IdentifierNameSyntax identifier && body != null) {
+            var local = body.DescendantNodes(node => node is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+                .OfType<VariableDeclaratorSyntax>().FirstOrDefault(declarator => declarator.Identifier.ValueText == identifier.Identifier.ValueText);
+            if (local != null) return depth > 4 || local.Initializer == null || Computed(local.Initializer.Value, body, depth + 1);
+        }
+        return IsFresh(value) || value is InvocationExpressionSyntax or CollectionExpressionSyntax or ArrayCreationExpressionSyntax
+            or ImplicitArrayCreationExpressionSyntax or ConditionalExpressionSyntax or SwitchExpressionSyntax;
     }
 
     private static bool IsFresh(ExpressionSyntax value) =>

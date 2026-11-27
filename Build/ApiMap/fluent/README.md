@@ -81,11 +81,12 @@ What PowerForge.Generators produces for each member once its receiver is marked 
 
 | Form | Rows | Receivers | Examples |
 | --- | ---: | ---: | --- |
-| `generated` | 7530 | 900 | `AccessCreateOptions.CreatedAt`, `AccessCreateOptions.DatabaseTitle`, `AccessCreateOptions.Format`, `AccessCreateOptions.Profile`, `AccessLoadOptions.DecodeApplicationObjects`, `AccessLoadOptions.DecodeCatalog` |
-| `generated-collection` | 271 | 89 | `ObjectFlattenerOptions.ExpandProperties`, `OfficeInkStroke.RecognitionAlternatives`, `OfficeRemoteImageLoadOptions.AllowedHosts`, `ContentLineComponent.Components`, `ContentLineComponent.Properties`, `ContentLineParameter.Values` |
+| `generated` | 7528 | 900 | `AccessCreateOptions.CreatedAt`, `AccessCreateOptions.DatabaseTitle`, `AccessCreateOptions.Format`, `AccessCreateOptions.Profile`, `AccessLoadOptions.DecodeApplicationObjects`, `AccessLoadOptions.DecodeCatalog` |
 | `generated-configure` | 210 | 94 | `OfficeDrawing.Fonts`, `OfficeDrawingShape.Shape`, `OfficeSvgDrawingReaderOptions.Fonts`, `EmailDocument.Body`, `EmailDocument.MessageMetadata`, `EmailMailboxEntry.Document` |
-| `[NoFluent]` | 91 | 12 | `ExcelDocument.DocumentValidationErrors`, `HtmlRenderRequest.Options`, `PowerPointDocument.DocumentValidationErrors`, `WordComment.Replies`, `WordDocument.Charts`, `WordDocument.Comments` |
+| `generated-collection` | 202 | 83 | `ObjectFlattenerOptions.ExpandProperties`, `OfficeInkStroke.RecognitionAlternatives`, `OfficeRemoteImageLoadOptions.AllowedHosts`, `ContentLineComponent.Components`, `ContentLineComponent.Properties`, `ContentLineParameter.Values` |
+| `[NoFluent]` | 160 | 14 | `ExcelDocument.DocumentValidationErrors`, `HtmlRenderRequest.Options`, `PowerPointDocument.DocumentValidationErrors`, `WordComment.Replies`, `WordDocument.Bookmarks`, `WordDocument.Breaks` |
 | `[Fluent("Verb")]` | 55 | 37 | `ArchiveExtractionOptions.IncludeFile`, `ArchiveReadOptions.IncludeFile`, `CsvLoadOptions.ProgressCallback`, `CsvReaderOptions.ProgressCallback`, `RowMappingColumnOptions.TypeConverter`, `OfficeChangeSetOptions.NewPageNumber` |
+| `[Fluent("Name")]` | 2 | 2 | `PdfTextRunDefaults.StrikeStyle`, `PowerPointTextRun.StrikeStyle` |
 | `[Child("Name")]` | 1 | 1 | `TocBlock.Entries` |
 | `gap:nullable-bool` | 369 | 84 | `EmailMessageMetadata.IsRead`, `OutlookAppointment.IsAllDay`, `OutlookAppointment.IsRecurring`, `OutlookAppointment.NotAllowPropose`, `OutlookAppointment.ReminderIsSet`, `OutlookContact.HasPicture` |
 | `gap:mutator` | 284 | 62 | `AccessDocument.SetVbaProject`, `OfficeShape.SetStrokeDashArray`, `EmailStoreItemPatch.SetCategories`, `EmailStoreItemPatch.SetImportance`, `EmailStoreItemPatch.SetReadState`, `EmailStoreItemPatch.SetReminder` |

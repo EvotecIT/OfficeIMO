@@ -112,7 +112,7 @@ the singular. `[Fluent("Name")]` renames a method, `[Child("Name")]` renames a c
 | `generated-configure` | `X(o => ...)` on a read-only settings property, including a live wrapper (`getter-view`). |
 | `generated-collection` | One-item and range methods on a stored collection. |
 | `[Fluent("Verb")]` | A delegate property: PFF001 until it names a verb. |
-| `[Fluent("Name")]` | The generated name collides (`name-collision`): PFF002 until it is renamed or left out. |
+| `[Fluent("Name")]` | The generated name collides (`name-collision`): PFF002 until it is renamed or left out. Also a configured property rename (`property-rename`), whose 4.0 name differs from the one the generator derives. |
 | `[Child("Name")]` | A collection whose one-item or range name is taken (`collection-collision`). |
 | `[NoFluent]` | Must be left out: a getter that copies (`getter-copies`), or a collection that is computed (`getter-computed`) or read-only, where generated methods would edit a throwaway object or throw. |
 | `gap:...` | Something OfficeIMO needs that the generator does not support yet (below). |
