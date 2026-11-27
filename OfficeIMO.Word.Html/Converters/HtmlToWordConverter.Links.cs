@@ -115,7 +115,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            OfficeXmlNode firstParagraphElement = doc.BodyNode().FirstDescendantElement(WordXml.W, "p");
+            OfficeXmlNode firstParagraphElement = doc.BodyNode().ModelDescendants("p").FirstOrDefault();
             if (firstParagraphElement.IsNone) {
                 return;
             }

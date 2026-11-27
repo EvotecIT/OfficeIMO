@@ -64,13 +64,13 @@ namespace OfficeIMO.Word.Html {
                         }
                     }
                     if (!hasFields && inspectExportedStory && !inspected.OmitOutputContent &&
-                        (element.IsW("fldSimple") || element.IsW("fldChar") || element.IsW("instrText"))) {
+                        (element.IsW("fldSimple") || element.IsW("fldChar") || element.IsW("instrText")) && element.IsModelElement()) {
                         hasFields = true;
                     }
                     if (!hasRevisions && inspectExportedStory && IsRevisionElement(element.LocalName)) {
                         hasRevisions = true;
                     }
-                    if (!hasComments && element.IsW("comment") && element.Parent.IsW("comments")) {
+                    if (!hasComments && element.IsW("comment") && element.Parent.IsW("comments") && element.IsModelElement()) {
                         hasComments = true;
                     }
                 }
@@ -123,16 +123,16 @@ namespace OfficeIMO.Word.Html {
             return characters;
         }
 
-        // A w:tab in a run is a tab character; in w:tabs it is a tab stop.
+        // A w:tab in a run is a tab character; in w:tabs it is a tab stop. Untyped markup is no run content.
         private static bool IsVisibleRunArtifact(OfficeXmlNode element) =>
-            element.NamespaceId == WordXml.W && element.LocalName switch {
+            element.NamespaceId == WordXml.W && element.IsModelElement() && element.LocalName switch {
                 "tab" => !element.Parent.IsW("tabs"),
                 "cr" or "br" or "noBreakHyphen" or "softHyphen" => true,
                 _ => false
             };
 
         private static bool ShouldCountOutputLeafText(OfficeXmlNode element) =>
-            !element.IsW("instrText") && !element.Is(WordXml.M, "t");
+            !((element.IsW("instrText") || element.Is(WordXml.M, "t")) && element.IsModelElement());
 
         // Header and footer parts are intentionally excluded here. A shared part can be emitted
         // once per section, so AppendHeaderFooterRegion measures and reserves its source content
