@@ -370,6 +370,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     contentType);
             } catch (Exception exception) when (exception is InvalidOperationException
                                                 or IOException
+                                                or InvalidDataException
                                                 or NotSupportedException
                                                 or ArgumentException
                                                 or OverflowException) {
