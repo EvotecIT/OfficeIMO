@@ -1,6 +1,6 @@
 # OfficeIMO.Archives
 
-OfficeIMO.Archives inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer databases, reads complete verified members, and extracts ZIP, 7z, CAB, MSI, TAR, .tar.gz and gzip payloads to disk. It also creates ZIP, TAR and .tar.gz archives and gzip files whose bytes depend only on their input. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared ZIP validation. Extraction does not execute an installer, scripts or custom actions.
+OfficeIMO.Archives inspects ZIP and Microsoft Cabinet archives and ordinary Windows Installer databases, reads complete verified members, and extracts ZIP, 7z, CAB, MSI, TAR, .tar.gz and gzip payloads to disk. It decompresses Zstandard streams in managed code. It also creates ZIP, TAR and .tar.gz archives and gzip files whose bytes depend only on their input. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared ZIP validation. Extraction does not execute an installer, scripts or custom actions.
 
 ## Install
 
@@ -163,6 +163,23 @@ using (var target = File.Create("data.csv.gz"))
 `ArchiveReader.ReadTar`, `ArchiveReader.ListTar` and `ArchiveExtractor.Extract` accept plain TAR and .tar.gz. They read ustar, pax (`x` and `g` headers with `path`, `linkpath`, `size` and `mtime`), GNU (`L` and `K` long names, base-256 numbers) and v7 headers, check every header checksum, and require each member's content to lie inside the input. An empty pax value deletes the field: a deleted `mtime` is reported as unknown and a deleted `path` is rejected. Leading `./` segments are removed. Symbolic links, hard links and device or FIFO records are listed with their authored targets but never created: extraction fails if one is selected, so exclude them with `IncludeFile`. `ReadTar` returns only regular files. Sparse, multi-volume and non-UTF-8 pax members are rejected. The entry count, per-member and aggregate expansion, path depth and path length limits apply as they do to ZIP. A .tar.gz is decompressed into private staging bounded by `MaxExpandedBytes` plus 8 KiB per permitted entry and 1 MiB.
 
 `GZipArchive` writes RFC 1952 members with the same managed Deflate encoder and reads concatenated members, verifying each member's CRC-32 and length, an optional header CRC, and that nothing but zero padding follows the last member. `ArchiveExtractor.Extract` writes a single-file gzip under its stored name, or the package name without `.gz`; the name passes the usual path checks. `ArchiveInspector` inventories ZIP, CAB and MSI only and rejects TAR and gzip input with `NotSupportedException`.
+
+## Decompress Zstandard
+
+```csharp
+using OfficeIMO.Archives;
+
+using (var source = File.OpenRead("events.json.zst"))
+using (var target = File.Create("events.json"))
+    ZstandardArchive.Decompress(source, target);
+
+ZstandardDictionary dictionary = ZstandardDictionary.Load(File.ReadAllBytes("messages.dict"));
+using (var source = File.OpenRead("message.zst"))
+using (var target = new MemoryStream())
+    ZstandardArchive.Decompress(source, target, dictionary);
+```
+
+`ZstandardArchive` decodes RFC 8878 frames in managed code on every target framework. It reads concatenated frames as one stream, passes over skippable frames, and verifies declared content sizes and XXH64 content checksums. Dictionaries written by `zstd --train` and raw-content dictionaries are supported; a frame that names a different dictionary ID is rejected. Declared windows are limited by `MaxWindowBytes` (8 MiB by default) and history memory grows only as output is produced. Output is bounded by the smaller of `MaxEntryBytes` and `MaxExpandedBytes`. Malformed input raises `ArchiveCorruptionException` with the byte offset and the structure expected there. Output is written block by block, so a failure can leave partial output in the destination.
 
 ## Read ZIP content in memory
 
