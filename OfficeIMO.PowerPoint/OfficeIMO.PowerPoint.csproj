@@ -71,6 +71,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeChartXml.cs" Link="SharedSource\OpenXml\OfficeChartXml.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeDrawingColorTransforms.cs" Link="SharedSource\OpenXml\OfficeDrawingColorTransforms.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" />

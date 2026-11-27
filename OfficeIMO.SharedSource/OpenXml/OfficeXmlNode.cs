@@ -1,6 +1,19 @@
 using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.OpenXml.Internal {
+    /// <summary>An attribute of an <see cref="OfficeXmlNode"/>: namespace URI (empty for none), local name and value.</summary>
+    internal readonly struct OfficeXmlAttribute {
+        internal OfficeXmlAttribute(string namespaceUri, string localName, string value) {
+            NamespaceUri = namespaceUri;
+            LocalName = localName;
+            Value = value;
+        }
+
+        internal string NamespaceUri { get; }
+        internal string LocalName { get; }
+        internal string Value { get; }
+    }
+
     /// <summary>
     /// An element of a part, wherever the part is held: in OfficeIMO's own tree while the document works without the
     /// Open XML SDK, or in the SDK package once the engine's <c>OpenXmlDocument</c> opened it, where edits go to the
@@ -200,6 +213,48 @@ namespace OfficeIMO.OpenXml.Internal {
             _tree != null ? _tree.GetAttribute(_node, namespaceId, localName)
             : _sdk != null ? OfficeSdkXml.GetAttribute(_sdk, namespaceId, localName) : null;
 
+        /// <summary>
+        /// The element's attributes in document order, without namespace declarations and markup compatibility
+        /// attributes, as the SDK lists them.
+        /// </summary>
+        internal List<OfficeXmlAttribute> Attributes() {
+            var attributes = new List<OfficeXmlAttribute>();
+            if (_tree != null) {
+                int count = _tree.AttributeCountOf(_node);
+                for (int index = 0; index < count; index++) {
+                    _tree.GetAttributeAt(_node, index, out int namespaceId, out string localName, out string value);
+                    if (namespaceId is OfficeXmlNamespaces.Xmlns or OfficeXmlNamespaces.MarkupCompatibility) continue;
+                    string uri = namespaceId == OfficeXmlNamespaces.None ? string.Empty : _tree.Namespaces.GetUri(namespaceId);
+                    attributes.Add(new OfficeXmlAttribute(uri, localName, value));
+                }
+            } else if (_sdk != null) {
+                OfficeSdkXml.CollectAttributes(_sdk, attributes);
+            }
+            return attributes;
+        }
+
+        /// <summary>Whether the element has any attribute <see cref="Attributes"/> lists.</summary>
+        internal bool HasAttributes {
+            get {
+                if (_tree != null) {
+                    int count = _tree.AttributeCountOf(_node);
+                    for (int index = 0; index < count; index++) {
+                        _tree.GetAttributeAt(_node, index, out int namespaceId, out _, out _);
+                        if (namespaceId is not (OfficeXmlNamespaces.Xmlns or OfficeXmlNamespaces.MarkupCompatibility)) return true;
+                    }
+                    return false;
+                }
+                return _sdk != null && OfficeSdkXml.HasAttributes(_sdk);
+            }
+        }
+
+        /// <summary>Declares <paramref name="prefix"/> for <paramref name="namespaceUri"/> on the element.</summary>
+        internal void DeclareNamespace(string prefix, string namespaceUri) {
+            if (_tree != null) _tree.DeclareNamespace(_node, prefix, namespaceUri);
+            else if (_sdk != null) OfficeSdkXml.DeclareNamespace(_sdk, prefix, namespaceUri);
+            else throw new InvalidOperationException("There is no element to declare the namespace on.");
+        }
+
         internal bool HasAttribute(string localName) => Attribute(OfficeXmlNamespaces.None, localName) != null;
 
         internal bool HasAttribute(int namespaceId, string localName) => Attribute(namespaceId, localName) != null;
@@ -274,9 +329,14 @@ namespace OfficeIMO.OpenXml.Internal {
             return new OfficeXmlNode(scratch, scratch.Root);
         }
 
-        /// <summary>Creates a detached element in a namespace outside the fixed ones, written with <paramref name="prefix"/>.</summary>
+        /// <summary>
+        /// Creates a detached element in a namespace outside the fixed ones, written with <paramref name="prefix"/>. For an
+        /// SDK element it is the SDK's typed class this element expects as its child, or an unknown element where the SDK
+        /// has none, made directly rather than parsed from markup.
+        /// </summary>
         internal OfficeXmlNode CreateElement(string namespaceUri, string localName, string prefix) {
             if (_tree != null) return new OfficeXmlNode(_tree, _tree.CreateElement(namespaceUri, localName, prefix));
+            if (_sdk != null) return FromSdk(OfficeSdkXml.CreateElement(_sdk, namespaceUri, localName, prefix));
             var table = new OfficeXmlNamespaces.Table();
             OfficeXmlTree scratch = OfficeXmlTree.Create(table, OfficeXmlNamespaces.None, "scratch", 8);
             int node = scratch.CreateElement(namespaceUri, localName, prefix);

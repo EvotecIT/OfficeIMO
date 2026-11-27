@@ -73,6 +73,18 @@ namespace OfficeIMO.OpenXml.Internal {
             return null;
         }
 
+        internal static void CollectAttributes(object element, List<OfficeXmlAttribute> attributes) {
+            OpenXmlElement value = E(element);
+            if (!value.HasAttributes) return;
+            foreach (OpenXmlAttribute attribute in value.GetAttributes()) {
+                attributes.Add(new OfficeXmlAttribute(attribute.NamespaceUri, attribute.LocalName, attribute.Value ?? string.Empty));
+            }
+        }
+
+        internal static bool HasAttributes(object element) => E(element).HasAttributes;
+
+        internal static void DeclareNamespace(object element, string prefix, string namespaceUri) => E(element).AddNamespaceDeclaration(prefix, namespaceUri);
+
         internal static void SetAttribute(object element, int namespaceId, string localName, string? value) {
             OpenXmlElement target = E(element);
             string uri = Uri(namespaceId);
@@ -131,6 +143,16 @@ namespace OfficeIMO.OpenXml.Internal {
         internal static object? CreateElement(object context, int namespaceId, string localName) {
             OpenXmlElement prototype = Prototype(E(context), Uri(namespaceId), localName, OfficeXmlPrefixes.Canonical(namespaceId));
             return prototype is OpenXmlUnknownElement ? null : prototype.CloneNode(true);
+        }
+
+        /// <summary>
+        /// A new, detached element in a namespace outside the fixed ones: the typed class <paramref name="context"/> expects
+        /// as its child, or an unknown element. Neither is parsed from markup, which would leave the element's namespace
+        /// declaration repeated on the part root once the subtree is attached.
+        /// </summary>
+        internal static object CreateElement(object context, string namespaceUri, string localName, string prefix) {
+            OpenXmlElement prototype = Prototype(E(context), namespaceUri, localName, prefix);
+            return prototype is OpenXmlUnknownElement ? new OpenXmlUnknownElement(prefix, localName, namespaceUri) : prototype.CloneNode(true);
         }
 
         /// <summary>Inserts an SDK element, moving it out of a detached copy, and returns it.</summary>
