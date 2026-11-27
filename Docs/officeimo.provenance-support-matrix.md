@@ -97,6 +97,56 @@ The browser provenance tool processes files locally in the tab. Its host limits 
 | `OfficeIMO.Epub` | Native EPUB manifest entry and supported package images | Requires valid EPUB identity and OPF ownership; removal detects native signatures and explicit cleanup removes only EPUB-owned signature entries |
 | `OfficeIMO.Pdf` | C2PA manifest attachments with `application/c2pa` and `/AFRelationship /C2PA_Manifest` | Rewrites bounded object graphs only when the attachment has no active structural role; signed, encrypted, ambiguous, or unsupported-filter documents are preserved |
 
+## AI labels and generator metadata
+
+Platforms, generators and new labelling rules attach declarations to files that say content was made or touched by AI. OfficeIMO lets the person who holds a file see the declarations marked as supported below and decide whether they travel with the file; the gap matrix lists the ones it does not find yet. A declaration is a claim written by a producer; finding one does not prove how the content was made, and finding none does not prove the opposite. Where a law requires a disclosure, such as the EU AI Act rules for deepfakes, that duty sits with whoever publishes the content. OfficeIMO reports and removes metadata; it does not decide for the user.
+
+Removal follows the rules of the rest of this matrix: edit the container in place, never re-encode pixels, keep unrelated metadata (ICC profiles, orientation, density, captions) unless the caller selects it, report each removed item with its location, and refuse to invalidate a signature unless the caller chooses a signature policy that allows it.
+
+### Label kinds
+
+| Label kind | Where producers put it | Supported today |
+| --- | --- | --- |
+| C2PA Content Credentials | Embedded manifest stores (JPEG APP11 JUMBF, PNG `caBX`, WebP/GIF/TIFF/SVG carriers, `META-INF/content_credential.c2pa`, PDF associated files) and external references (XMP `dcterms:provenance`, HTML links, text wrappers) | Detected and removed for the formats in [Core file carriers](#core-file-carriers) and the [package adapters](#package-owned-adapters) |
+| IPTC Digital Source Type | XMP `Iptc4xmpExt:DigitalSourceType` with values such as `trainedAlgorithmicMedia`, `compositeWithTrainedAlgorithmicMedia`, `algorithmicMedia` and `compositeSynthetic` | Detected and removed from image XMP. Not read from PDF document XMP or from XMP outside images |
+| Generator fields | EXIF `Software`, `ImageDescription`, `Artist` and `UserComment`; XMP `xmp:CreatorTool`, `dc:description`, `photoshop:Credit` and vendor namespaces; TIFF tags 270 and 305; JPEG `COM` and GIF comment extensions; PDF `Producer`/`Creator`; Office and ODF application and generator properties | Not recognized as AI labels. For embedded images, `ImageMetadata` hidden-data cleanup removes EXIF except orientation, XMP except the digital source type while provenance is kept, and IPTC, so these fields go only together with everything else. JPEG `COM` segments, GIF comments and PNG text chunks stay, and images that keep Content Credentials are skipped |
+| AI tool parameters | PNG `tEXt`/`zTXt`/`iTXt` chunks written by image generators: `parameters` (Stable Diffusion WebUI), `prompt` and `workflow` (ComfyUI JSON graphs), and similar keys holding prompts, seeds and model names; the same text in JPEG/WebP EXIF `UserComment` or XMP | Not recognized. PNG text chunks other than XMP are not inspected by provenance |
+| Regulatory implicit labels | China's TC260 `AIGC` implicit label (a JSON value naming the label, producer and content IDs) in XMP or file text fields | Not recognized |
+| Structural visible disclosures | A generator comment or meta tag that is part of the file structure, such as an HTML `<meta name="generator">`, an SVG comment or a Markdown front-matter key | Not recognized. Body text, captions and visible stamps are content, not metadata, and stay out of scope |
+| Invisible Unicode text marks | Zero-width characters, variation-selector payloads, Unicode tags | Detected with exact offsets by `OfficeTextIntegrityInspector`; removed only when the caller selects each finding |
+
+### Gap matrix by format
+
+`Yes` means detected with a location and removable in place. `Partial` is explained in the cell. `Gap` is planned in the [roadmap](ROADMAP.md#security-and-protected-content). `No` means the format has no such carrier.
+
+| Format | C2PA | IPTC source type | Generator fields | AI tool parameters | Embedded images and attachments |
+| --- | --- | --- | --- | --- | --- |
+| JPEG | Yes | Yes | Gap | Gap (EXIF `UserComment`, XMP) | No |
+| PNG | Yes | Yes | Gap (`Software`, `Comment`, `Description` text chunks; EXIF `eXIf`) | Gap (`parameters`, `prompt`, `workflow`) | No |
+| WebP | Yes | Yes | Gap (`EXIF` chunk, XMP) | Gap | No |
+| GIF | Yes | Yes | Gap (comment extension) | Gap | No |
+| TIFF / BigTIFF | Yes | Yes | Gap (tags 270, 305) | Gap | No |
+| SVG | Yes | Yes | Gap (metadata and generator comments) | No | Gap (embedded `data:` images) |
+| HEIC / AVIF | No: BMFF stays outside provenance until an OfficeIMO owner reads and writes it | | | | |
+| Word, Excel, PowerPoint, Visio | Yes | Yes (embedded images) | Partial: `DocumentProperties` removes authors, not the application name | Gap (embedded images) | Yes for images; Gap for embedded OLE packages and attached files |
+| OpenDocument | Yes | Yes (embedded images) | Partial: generator string removed with `DocumentProperties` | Gap (embedded images) | Yes for package images |
+| EPUB | Yes | Yes (manifest images) | Gap (`dc:contributor`/generator `meta`) | Gap (manifest images) | Yes for manifest images |
+| PDF | Yes (associated files) | Gap (document and image XMP) | Partial: `Creator` and `xmp:CreatorTool` removed with `DocumentProperties`, `Producer` kept | Gap | Gap (image XObjects, embedded files) |
+| HTML | Yes | Yes (embedded images) | Gap (`<meta name="generator">`) | Gap (embedded images) | Yes for embedded images |
+| Markdown and structured text | Yes | No | Gap (front-matter generator keys) | No | No |
+| RTF | Gap | Gap | Gap (`\info` generator) | Gap | Gap (`\pict` images, `\object` data) |
+| XPS | Gap | Gap | Gap (package properties) | Gap | Gap (package images) |
+| iWork (Pages, Numbers, Keynote) | Gap | Gap | Gap | Gap | Gap (package images) |
+| Legacy `.doc`, `.xls`, `.ppt` | Gap | Gap | Gap (summary information) | Gap | Gap (picture and blip streams) |
+| Email (EML, MSG, PST) | Gap | Gap | Gap (generator headers such as `X-Mailer`) | Gap | Gap (attachments and embedded messages, recursively) |
+| Archives (ZIP, 7z, TAR, CAB) | Partial: native C2PA in ZIP packages only | Gap | Gap | Gap | Gap (members, recursively, through `OfficeIMO.Archives`) |
+
+Open work is tracked in the [roadmap](ROADMAP.md#security-and-protected-content).
+
+### Out of scope
+
+Invisible watermarks embedded in pixels or audio, such as SynthID, TrustMark or other frequency-domain marks, and visible logos or stamps drawn into an image. Removing them changes the content itself to defeat a detector; it is not metadata cleanup, and OfficeIMO does not do it. Removing a C2PA soft-binding assertion or watermark action from a manifest does not remove the watermark it describes, and reports say so.
+
 ## Known limits
 
 - OfficeIMO does not alter visible pixels, reconstruct images, suppress durable media watermarks, or rewrite generated text to defeat statistical watermarking.
