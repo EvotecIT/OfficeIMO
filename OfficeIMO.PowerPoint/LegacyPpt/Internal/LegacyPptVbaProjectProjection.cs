@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Core.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
@@ -21,18 +19,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptVbaProject? source) => new(
                 source?.PersistId, source?.GetBytes());
 
-        internal bool TryGetChange(PresentationPart? presentationPart,
+        internal const int MaximumProjectBytes = 64 * 1024 * 1024;
+
+        internal bool TryGetChange(LegacyPptPackageView view,
             out byte[]? currentBytes, out bool changed) {
+            ArgumentNullException.ThrowIfNull(view);
             currentBytes = null;
             changed = false;
-            VbaProjectPart? part = presentationPart?.VbaProjectPart;
-            if (part != null) {
+            LegacyPptPartView part = view.Presentation.RelatedPart(
+                LegacyPptPackageView.VbaProjectRelationshipType);
+            if (!part.IsNone) {
                 try {
-                    using Stream stream = part.GetStream(FileMode.Open,
-                        FileAccess.Read);
-                    currentBytes = OfficeStreamReader.ReadAllBytes(stream,
-                        64 * 1024 * 1024);
-                    if (!LegacyPptVbaProjectCodec.IsValidProject(
+                    if (view.TryGetStoredLength(part.Name, out long length)
+                        && length > MaximumProjectBytes) {
+                        return false;
+                    }
+                    currentBytes = part.GetBytes();
+                    if (currentBytes.Length > MaximumProjectBytes
+                        || !LegacyPptVbaProjectCodec.IsValidProject(
                             currentBytes, out _)) {
                         return false;
                     }

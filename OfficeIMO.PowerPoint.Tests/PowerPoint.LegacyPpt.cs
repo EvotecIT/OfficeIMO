@@ -42,6 +42,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LoadLegacyPpt_LeavesTheImportedPresentationInItsPackage() {
+            using PowerPointDocument presentation = PowerPointDocument.LoadLegacyPpt(FixturePath);
+
+            Assert.False(presentation.IsSdkLoaded);
+        }
+
+        [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
             LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);
 

@@ -1,11 +1,40 @@
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
+        /// <summary>
+        /// The shapes the binary writer reads from a slide master, notes master, handout master or title-master layout,
+        /// named by part, for the projection map.
+        /// </summary>
+        internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForProjection(
+            PowerPointDocument presentation, string partName) {
+            ArgumentNullException.ThrowIfNull(presentation);
+            PresentationPart? presentationPart = presentation.OpenXmlDocument.PresentationPart;
+            if (presentationPart == null) return Array.Empty<PowerPointShape>();
+            if (presentationPart.NotesMasterPart is { } notesMaster && IsPart(notesMaster, partName)) {
+                return LegacyPptWriter.ReadMasterShapesForWrite(notesMaster, out _);
+            }
+            if (presentationPart.HandoutMasterPart is { } handoutMaster && IsPart(handoutMaster, partName)) {
+                return LegacyPptWriter.ReadMasterShapesForWrite(handoutMaster, out _);
+            }
+            foreach (SlideMasterPart masterPart in presentationPart.SlideMasterParts) {
+                if (IsPart(masterPart, partName)) return LegacyPptWriter.ReadMasterShapesForWrite(masterPart, out _);
+                foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
+                    if (IsPart(layoutPart, partName)) return LegacyPptWriter.ReadMasterShapesForWrite(layoutPart, out _);
+                }
+            }
+            return Array.Empty<PowerPointShape>();
+        }
+
+        private static bool IsPart(OpenXmlPart part, string partName) =>
+            string.Equals(part.Uri.ToString(), partName, StringComparison.OrdinalIgnoreCase);
+
         private static bool TryBuildModifiedMasterPersistObjects(
-            PowerPointDocument presentation, LegacyPptPackage package,
+            PowerPointDocument presentation, LegacyPptPackageView view,
+            LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
@@ -18,15 +47,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (masterParts.Length != projectionMap.Masters.Count) return false;
 
             foreach (SlideMasterPart masterPart in masterParts) {
-                if (!projectionMap.TryGetMaster(masterPart,
+                LegacyPptPartView masterView = view.Part(masterPart.Uri.ToString());
+                if (!projectionMap.TryGetMaster(masterView.Name,
                         out LegacyPptMasterProjection? projection)
                     || projection == null) {
                     return false;
                 }
-                bool themeChanged = !projection.ThemeMatches(masterPart);
-                bool backgroundChanged = !projection.BackgroundMatches(masterPart);
+                bool themeChanged = !projection.ThemeMatches(masterView);
+                bool backgroundChanged = !projection.BackgroundMatches(masterView);
                 bool textStylesChanged = !projection.TextStylesMatch(
-                    masterPart);
+                    masterView);
                 if (textStylesChanged && !projection.CanEditTextStyles) {
                     return false;
                 }
@@ -37,7 +67,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         || background == null)) {
                     return false;
                 }
-                if (!TryBuildMasterShapeEdits(masterPart, projection, fonts,
+                if (!TryBuildMasterShapeEdits(view, masterPart, projection, fonts,
                         pictureBullets,
                         out IReadOnlyDictionary<uint, ProjectedShapeEdit>
                             shapeEdits)) {
@@ -94,7 +124,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     masterBytes = LegacyPptWriter
                         .BuildPreservedMasterThemeRecord(themedRecord,
                             masterPart,
-                            projection.GetChangedClassicColorSlots(masterPart));
+                            projection.GetChangedClassicColorSlots(masterView));
                 }
                 if (textStylesChanged) {
                     LegacyPptRecord textStyleRecord = LegacyPptRecordReader
@@ -111,7 +141,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool TryBuildMasterShapeEdits(SlideMasterPart masterPart,
+        private static bool TryBuildMasterShapeEdits(LegacyPptPackageView view,
+            SlideMasterPart masterPart,
             LegacyPptMasterProjection projection,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
             LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
@@ -124,19 +155,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 edits = new Dictionary<uint, ProjectedShapeEdit>();
                 return false;
             }
-            return TryBuildMasterShapeEdits(shapes, projection,
+            return TryBuildMasterShapeEdits(view, shapes, projection,
                 LegacyPptWriter.LegacyPptWriterShapeContext.MainMaster,
-                fonts, pictureBullets, masterPart, out edits);
+                fonts, pictureBullets, out edits);
         }
 
         private static bool TryBuildMasterShapeEdits(
+            LegacyPptPackageView view,
             IReadOnlyList<PowerPointShape> shapes,
             LegacyPptMasterProjection projection,
             LegacyPptWriter.LegacyPptWriterShapeContext shapeContext,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
             LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
                 pictureBullets,
-            OpenXmlPart ownerPart,
             out IReadOnlyDictionary<uint, ProjectedShapeEdit> edits) {
             var result = new Dictionary<uint, ProjectedShapeEdit>();
             edits = result;
@@ -155,6 +186,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     || !MatchesProjectedKind(shape, shapeProjection.Kind)) {
                     return false;
                 }
+                LegacyPptProjectedShape projected = LegacyPptProjectedShape.Resolve(view, shape);
                 LegacyPptBounds bounds = GetBounds(shape);
                 LegacyPptBounds? changedBounds = BoundsEqual(
                     bounds, shapeProjection.Bounds) ? null : bounds;
@@ -168,7 +200,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     .PlaceholderMatches(currentPlaceholder);
                 PowerPointShape? changedShapeTransform = null;
                 if (shapeProjection.CanEditShapeTransform
-                    && !shapeProjection.ShapeTransformMatches(shape)) {
+                    && !shapeProjection.ShapeTransformMatches(projected)) {
                     if (!LegacyPptWriter.TryReadShapeTransform(shape,
                             out _, out _)) {
                         return false;
@@ -177,26 +209,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 PowerPointShape? changedShapeGeometry = null;
                 if (shapeProjection.CanEditShapeGeometry
-                    && !shapeProjection.ShapeGeometryMatches(shape)) {
+                    && !shapeProjection.ShapeGeometryMatches(projected)) {
                     if (LegacyPptShapeProjection
-                            .CreateShapeGeometryFingerprint(shape) == null) {
+                            .CreateShapeGeometryFingerprint(projected) == null) {
                         return false;
                     }
                     changedShapeGeometry = shape;
                 }
                 PowerPointGroupShape? changedGroupCoordinate = null;
                 if (shapeProjection.CanEditGroupCoordinate
-                    && !shapeProjection.GroupCoordinateMatches(shape)) {
+                    && !shapeProjection.GroupCoordinateMatches(projected)) {
                     if (shape is not PowerPointGroupShape group
                         || LegacyPptShapeProjection
-                            .CreateGroupCoordinateFingerprint(group) == null) {
+                            .CreateGroupCoordinateFingerprint(projected) == null) {
                         return false;
                     }
                     changedGroupCoordinate = group;
                 }
                 PowerPointShape? changedShapeVisualStyle = null;
                 if (shapeProjection.CanEditShapeVisualStyle
-                    && !shapeProjection.ShapeVisualStyleMatches(shape)) {
+                    && !shapeProjection.ShapeVisualStyleMatches(projected)) {
                     if (!LegacyPptWriter.TryReadShapeVisualStyle(shape,
                             out _, out _)) {
                         return false;
@@ -225,7 +257,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (shape is PowerPointImage picture
                     && picture is not PowerPointMedia
                     && shapeProjection.CanEditPictureFormatting
-                    && !shapeProjection.PictureFormattingMatches(picture)) {
+                    && !shapeProjection.PictureFormattingMatches(projected)) {
                     if (!LegacyPptWriter.TryValidatePictureForWrite(picture,
                             out _)) {
                         return false;
@@ -236,14 +268,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 PowerPointTextBox? changedTextFormatting = null;
                 PowerPointTextBox? changedTextFrame = null;
                 if (shape is PowerPointTextBox textBox) {
-                    if (!shapeProjection.TextFrameMatches(textBox)) {
+                    if (!shapeProjection.TextFrameMatches(projected)) {
                         if (!shapeProjection.CanEditTextFrame
                             || !LegacyPptWriter.TryReadTextFrameForWrite(
                                 textBox, out _, out _)) return false;
                         changedTextFrame = textBox;
                     }
                     bool formattingMatches = MatchesProjectedTextFormatting(
-                        textBox, shapeProjection, ownerPart);
+                        projected, shapeProjection);
                     if (!formattingMatches) {
                         if (!shapeProjection.CanEditTextFormatting
                             || !LegacyPptWriter.TryReadTextBoxForWrite(
@@ -319,7 +351,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryBuildModifiedSpecialMasterPersistObjects(
-            PowerPointDocument presentation, LegacyPptPackage package,
+            PowerPointDocument presentation, LegacyPptPackageView view,
+            LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
@@ -330,17 +363,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 .PresentationPart;
             int processed = 0;
             if (presentationPart?.NotesMasterPart is NotesMasterPart notesPart) {
-                if (projectionMap.TryGetSpecialMaster(notesPart,
+                LegacyPptPartView notesView = view.Part(notesPart.Uri.ToString());
+                if (projectionMap.TryGetSpecialMaster(notesView.Name,
                         out LegacyPptMasterProjection? projection)
                     && projection != null) {
                     IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
                         .ReadMasterShapesForWrite(notesPart,
                             out string? unsupportedReason);
                     if (unsupportedReason != null
-                        || !TryRewriteSpecialMaster(package, projection, shapes,
+                        || !TryRewriteSpecialMaster(view, package, projection, shapes,
                             LegacyPptWriter.LegacyPptWriterShapeContext.NotesMaster,
-                            !projection.ThemeMatches(notesPart),
-                            !projection.BackgroundMatches(notesPart),
+                            !projection.ThemeMatches(notesView),
+                            !projection.BackgroundMatches(notesView),
                             () => LegacyPptWriter.TryReadBackground(notesPart,
                                 out LegacyPptWriter.LegacyPptWriterBackground?
                                     background, out _)
@@ -348,9 +382,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 : null,
                             record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
                                 record, notesPart,
-                                projection.GetChangedClassicColorSlots(notesPart)),
-                            rewritten, fonts, pictureBullets, pictureStore,
-                            notesPart)) {
+                                projection.GetChangedClassicColorSlots(notesView)),
+                            rewritten, fonts, pictureBullets, pictureStore)) {
                         return false;
                     }
                     processed++;
@@ -358,17 +391,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             if (presentationPart?.HandoutMasterPart
                     is HandoutMasterPart handoutPart) {
-                if (projectionMap.TryGetSpecialMaster(handoutPart,
+                LegacyPptPartView handoutView = view.Part(handoutPart.Uri.ToString());
+                if (projectionMap.TryGetSpecialMaster(handoutView.Name,
                         out LegacyPptMasterProjection? projection)
                     && projection != null) {
                     IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
                         .ReadMasterShapesForWrite(handoutPart,
                             out string? unsupportedReason);
                     if (unsupportedReason != null
-                        || !TryRewriteSpecialMaster(package, projection, shapes,
+                        || !TryRewriteSpecialMaster(view, package, projection, shapes,
                             LegacyPptWriter.LegacyPptWriterShapeContext.HandoutMaster,
-                            !projection.ThemeMatches(handoutPart),
-                            !projection.BackgroundMatches(handoutPart),
+                            !projection.ThemeMatches(handoutView),
+                            !projection.BackgroundMatches(handoutView),
                             () => LegacyPptWriter.TryReadBackground(handoutPart,
                                 out LegacyPptWriter.LegacyPptWriterBackground?
                                     background, out _)
@@ -376,9 +410,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 : null,
                             record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
                                 record, handoutPart,
-                                projection.GetChangedClassicColorSlots(handoutPart)),
-                            rewritten, fonts, pictureBullets, pictureStore,
-                            handoutPart)) {
+                                projection.GetChangedClassicColorSlots(handoutView)),
+                            rewritten, fonts, pictureBullets, pictureStore)) {
                         return false;
                     }
                     processed++;
@@ -388,7 +421,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryBuildModifiedTitleMasterPersistObjects(
-            PowerPointDocument presentation, LegacyPptPackage package,
+            PowerPointDocument presentation, LegacyPptPackageView view,
+            LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
@@ -401,17 +435,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 ?? Array.Empty<SlideLayoutPart>();
             int processed = 0;
             foreach (SlideLayoutPart part in layouts) {
-                if (!projectionMap.TryGetTitleMaster(part,
+                LegacyPptPartView layoutView = view.Part(part.Uri.ToString());
+                if (!projectionMap.TryGetTitleMaster(layoutView.Name,
                         out LegacyPptMasterProjection? projection)
                     || projection == null) continue;
                 IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
                     .ReadMasterShapesForWrite(part,
                         out string? unsupportedReason);
                 if (unsupportedReason != null
-                    || !TryRewriteSpecialMaster(package, projection, shapes,
+                    || !TryRewriteSpecialMaster(view, package, projection, shapes,
                         LegacyPptWriter.LegacyPptWriterShapeContext.Slide,
-                        !projection.ThemeMatches(part),
-                        !projection.BackgroundMatches(part),
+                        !projection.ThemeMatches(layoutView),
+                        !projection.BackgroundMatches(layoutView),
                         () => LegacyPptWriter.TryReadBackground(part,
                             out LegacyPptWriter.LegacyPptWriterBackground?
                                 background, out _)
@@ -419,12 +454,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             : null,
                         record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
                             record, part,
-                            projection.GetChangedClassicColorSlots(part)),
-                        rewritten, fonts, pictureBullets, pictureStore, part,
+                            projection.GetChangedClassicColorSlots(layoutView)),
+                        rewritten, fonts, pictureBullets, pictureStore,
                         masterObjectsChanged:
-                            !projection.MasterObjectsMatch(part),
-                        followsMasterObjects: part.SlideLayout?
-                            .ShowMasterShapes?.Value != false)) {
+                            !projection.MasterObjectsMatch(layoutView),
+                        followsMasterObjects: layoutView.Root
+                            .Bool("showMasterSp") != false)) {
                     return false;
                 }
                 processed++;
@@ -432,7 +467,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return processed == projectionMap.TitleMasters.Count;
         }
 
-        private static bool TryRewriteSpecialMaster(LegacyPptPackage package,
+        private static bool TryRewriteSpecialMaster(LegacyPptPackageView view,
+            LegacyPptPackage package,
             LegacyPptMasterProjection projection,
             IReadOnlyList<PowerPointShape> shapes,
             LegacyPptWriter.LegacyPptWriterShapeContext shapeContext,
@@ -445,11 +481,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
                 pictureBullets,
             PreservingPictureStoreUpdate pictureStore,
-            OpenXmlPart ownerPart,
             bool masterObjectsChanged = false,
             bool followsMasterObjects = true) {
-            if (!TryBuildMasterShapeEdits(shapes, projection, shapeContext,
-                    fonts, pictureBullets, ownerPart,
+            if (!TryBuildMasterShapeEdits(view, shapes, projection, shapeContext,
+                    fonts, pictureBullets,
                     out IReadOnlyDictionary<uint, ProjectedShapeEdit>
                         shapeEdits)) {
                 return false;

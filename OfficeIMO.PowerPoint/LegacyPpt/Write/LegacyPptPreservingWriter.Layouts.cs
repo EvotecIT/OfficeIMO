@@ -1,5 +1,5 @@
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
@@ -127,10 +127,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool HasLayoutInteraction(PowerPointShape shape) =>
-            shape.Element.Descendants<A.HyperlinkOnClick>().Any()
-            || shape.Element.Descendants<A.HyperlinkOnHover>().Any()
-            || shape.Element.Descendants<A.HyperlinkOnMouseOver>().Any();
+        private static bool HasLayoutInteraction(PowerPointShape shape) {
+            OfficeXmlNode element = shape.XmlElement;
+            return element.Descendants(LegacyPptXml.A, "hlinkClick").Count > 0
+                || element.Descendants(LegacyPptXml.A, "hlinkHover").Count > 0
+                || element.Descendants(LegacyPptXml.A, "hlinkMouseOver").Count > 0;
+        }
 
         private static bool TryRewriteDocumentDrawingClusters(
             LegacyPptPackage package, byte[]? currentDocumentBytes,

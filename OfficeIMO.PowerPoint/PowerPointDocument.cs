@@ -52,6 +52,13 @@ namespace OfficeIMO.PowerPoint {
 
         private PresentationDocumentType? OpenXmlDocumentType => _sdkDocument?.DocumentType ?? _loadedDocumentType;
 
+        /// <summary>The format of an Open XML source as its document type gives it, or null when it is not known.</summary>
+        private OfficeFormatDescriptor? OpenXmlFormatDescriptor =>
+            OpenXmlDocumentType is { } documentType ? PowerPointFormatCatalog.GetDescriptor(documentType) : null;
+
+        /// <summary>Whether an Open XML source is a macro-enabled presentation.</summary>
+        private bool IsMacroEnabledOpenXmlSource => OpenXmlDocumentType == PresentationDocumentType.MacroEnabledPresentation;
+
         private PresentationPart SdkPresentationPart {
             get {
                 EnsureSdk();

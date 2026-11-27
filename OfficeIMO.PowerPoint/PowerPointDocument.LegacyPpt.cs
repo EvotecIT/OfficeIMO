@@ -172,7 +172,8 @@ namespace OfficeIMO.PowerPoint {
                     packageBytes, loadOptions);
             }
             PowerPointDocument presentation = LoadPackage(packageBytes,
-                sourcePath, sourceStream, loadOptions, captureSourcePackageSecurity: false);
+                sourcePath, sourceStream, loadOptions, captureSourcePackageSecurity: false,
+                allowDeferredSdk: true);
             try {
                 cancellationToken.ThrowIfCancellationRequested();
             } catch {

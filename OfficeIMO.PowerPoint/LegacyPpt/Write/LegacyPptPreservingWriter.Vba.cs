@@ -3,11 +3,10 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
         private static bool TryRewriteVbaProject(
-            PowerPointDocument presentation, LegacyPptPackage package,
+            LegacyPptPackageView view, LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             IDictionary<uint, byte[]> rewritten) {
-            if (!projectionMap.VbaProject.TryGetChange(
-                    presentation.OpenXmlDocument.PresentationPart,
+            if (!projectionMap.VbaProject.TryGetChange(view,
                     out byte[]? currentProjectBytes, out bool changed)) {
                 return false;
             }
