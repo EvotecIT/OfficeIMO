@@ -43,7 +43,11 @@ internal sealed class SourceLocationIndex {
         }
     }
 
-    internal IReadOnlyList<SurfaceLocation> Find(ISymbol symbol) {
+    internal IReadOnlyList<SurfaceLocation> Find(ISymbol symbol) => FindSyntax(symbol).Select(syntax => new SurfaceLocation(syntax.SyntaxTree.FilePath,
+        syntax.GetLocation().GetLineSpan().StartLinePosition.Line + 1)).Distinct().ToArray();
+
+    /// <summary>Returns the declarations matching a metadata symbol, so callers can inspect their bodies.</summary>
+    internal IReadOnlyList<SyntaxNode> FindSyntax(ISymbol symbol) {
         INamedTypeSymbol type = symbol is INamedTypeSymbol named ? named : symbol.ContainingType;
         if (!_types.TryGetValue(TypeId(type), out var entries)) return [];
         IEnumerable<Entry> matches;
@@ -57,8 +61,7 @@ internal sealed class SourceLocationIndex {
             var candidates = entries.Where(entry => entry.Name == name && entry.Arity == arity && entry.Parameters.Length == types.Length).ToArray();
             matches = candidates.Length == 1 ? candidates : candidates.Where(entry => entry.Parameters.SequenceEqual(types, StringComparer.Ordinal));
         }
-        return matches.Select(entry => new SurfaceLocation(entry.Syntax.SyntaxTree.FilePath,
-            entry.Syntax.GetLocation().GetLineSpan().StartLinePosition.Line + 1)).Distinct().ToArray();
+        return matches.Select(entry => entry.Syntax).ToArray();
     }
 
     private static string TypeId(INamedTypeSymbol type) => type.GetDocumentationCommentId() ?? type.ToDisplayString();
