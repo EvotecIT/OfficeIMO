@@ -1,13 +1,9 @@
 using OfficeIMO.Core.Internal.OpenXml;
 using System.Globalization;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenXml.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -18,18 +14,11 @@ namespace OfficeIMO.PowerPoint {
             "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1";
         private const string AccentOneColorStyleId =
             "urn:microsoft.com/office/officeart/2005/8/colors/accent1_2";
-        private readonly SlidePart? _initialSlidePart;
-        // A diagram read from the package belongs to its slide's part once the SDK opens.
-        private SlidePart _slidePart => _initialSlidePart ?? OwnerSlide!.SlidePart;
+        private static readonly XNamespace DiagramNamespace =
+            "http://schemas.openxmlformats.org/drawingml/2006/diagram";
 
         internal PowerPointSmartArt(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
-
-        internal PowerPointSmartArt(GraphicFrame graphicFrame, SlidePart slidePart) : base(graphicFrame) {
-            _initialSlidePart = slidePart;
-        }
-
-        private GraphicFrame GraphicFrame => (GraphicFrame)Element;
 
         /// <summary>
         ///     Gets the number of editable SmartArt nodes.
@@ -88,14 +77,12 @@ namespace OfficeIMO.PowerPoint {
 
         private bool HasRepresentableLayoutDefinition(OfficeDiagramKind kind,
             int nodeCount) {
-            Dgm.RelationshipIds? relationshipIds = GraphicFrame
-                .Descendants<Dgm.RelationshipIds>().SingleOrDefault();
-            string? relationshipId = relationshipIds?.LayoutPart?.Value;
+            string? relationshipId = SingleRelationshipIds()
+                .Attribute(OfficeXmlNamespaces.Relationships, "lo");
             if (string.IsNullOrWhiteSpace(relationshipId)
-                || !_slidePart.TryGetPartById(relationshipId!,
-                    out OpenXmlPart? relatedPart)
-                || relatedPart is not DiagramLayoutDefinitionPart layoutPart
-                || layoutPart.LayoutDefinition == null
+                || !TryGetDiagramPart(relationshipId, DiagramLayoutRelationshipType,
+                    out PowerPointPartRef layoutPart)
+                || ReadRootMarkup(layoutPart) is not string layoutMarkup
                 || Height.ToPoints() <= 0D) {
                 return false;
             }
@@ -110,30 +97,36 @@ namespace OfficeIMO.PowerPoint {
                 _ => throw new ArgumentOutOfRangeException(nameof(kind))
             };
             double aspectRatio = Width.ToPoints() / Height.ToPoints();
+            // A layout written exactly as the slide writes it is known without parsing it; a list layout's own aspect
+            // ratio has to be read first.
+            string? expected = null;
+            if (type != PowerPointSmartArtType.BasicList) {
+                expected = CanonicalLayoutDefinitionXml(type, nodeCount, aspectRatio);
+                if (string.Equals(layoutMarkup, expected, StringComparison.Ordinal)) return true;
+            }
+            XElement layout = XElement.Parse(layoutMarkup);
+            if (layout.Name != DiagramNamespace + "layoutDef") return false;
             if (type == PowerPointSmartArtType.BasicList) {
-                Dgm.Parameter? storedAspectRatio = layoutPart.LayoutDefinition
-                    .Descendants<Dgm.Parameter>().FirstOrDefault(parameter =>
-                        parameter.Type?.Value
-                            == Dgm.ParameterIdValues.AspectRatio);
-                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(storedAspectRatio?.Val?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double storedRatio)
+                XElement? storedAspectRatio = layout.Descendants(DiagramNamespace + "param")
+                    .FirstOrDefault(parameter => string.Equals(
+                        (string?)parameter.Attribute("type"), "ar",
+                        StringComparison.Ordinal));
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse((string?)storedAspectRatio?.Attribute("val"), NumberStyles.Float, CultureInfo.InvariantCulture, out double storedRatio)
                     && storedRatio > 0D && !double.IsInfinity(storedRatio)) {
                     aspectRatio = storedRatio;
                 }
+                expected = CanonicalLayoutDefinitionXml(type, nodeCount, aspectRatio);
+                if (string.Equals(layoutMarkup, expected, StringComparison.Ordinal)) return true;
             }
-            Dgm.LayoutDefinition expected = PowerPointSlide
-                .CreateSmartArtLayoutDefinition(type, nodeCount,
-                    aspectRatio);
-            if (string.Equals(layoutPart.LayoutDefinition.OuterXml,
-                    expected.OuterXml, StringComparison.Ordinal)) {
+            // The SDK writes the canonical layout exactly as built; a package tree writes the same markup its own way.
+            if (XNode.DeepEquals(layout, XElement.Parse(expected!))) {
                 return true;
             }
             return type == PowerPointSmartArtType.BasicProcess
-                && IsMicrosoftBasicProcessLayout(
-                    layoutPart.LayoutDefinition);
+                && IsMicrosoftBasicProcessLayout(layout);
         }
 
-        private static bool IsMicrosoftBasicProcessLayout(
-            Dgm.LayoutDefinition layout) {
+        private static bool IsMicrosoftBasicProcessLayout(XElement layout) {
             const string diagramNamespace =
                 "http://schemas.openxmlformats.org/drawingml/2006/diagram";
             const string relationshipNamespace =
@@ -144,40 +137,39 @@ namespace OfficeIMO.PowerPoint {
                 "http://www.w3.org/XML/1998/namespace";
             const string basicProcessLayoutId =
                 "urn:microsoft.com/office/officeart/2005/8/layout/process1";
-            if (!string.Equals(layout.UniqueId?.Value,
+            if (!string.Equals((string?)layout.Attribute("uniqueId"),
                     basicProcessLayoutId, StringComparison.Ordinal)) {
                 return false;
             }
-            IEnumerable<OpenXmlElement> elements =
-                new OpenXmlElement[] { layout }.Concat(layout.Descendants());
-            if (elements.Any(element =>
-                    !string.Equals(element.NamespaceUri, diagramNamespace,
+            if (layout.DescendantsAndSelf().Any(element =>
+                    !string.Equals(element.Name.NamespaceName, diagramNamespace,
                         StringComparison.Ordinal)
-                    || element.GetAttributes().Any(attribute =>
-                        !string.IsNullOrEmpty(attribute.NamespaceUri)
-                        && !string.Equals(attribute.NamespaceUri,
+                    || element.Attributes().Any(attribute =>
+                        !attribute.IsNamespaceDeclaration
+                        && !string.IsNullOrEmpty(attribute.Name.NamespaceName)
+                        && !string.Equals(attribute.Name.NamespaceName,
                             relationshipNamespace, StringComparison.Ordinal)
-                        && !string.Equals(attribute.NamespaceUri,
+                        && !string.Equals(attribute.Name.NamespaceName,
                             markupCompatibilityNamespace,
                             StringComparison.Ordinal)
-                        && !string.Equals(attribute.NamespaceUri,
+                        && !string.Equals(attribute.Name.NamespaceName,
                             xmlNamespace, StringComparison.Ordinal)))) {
                 return false;
             }
-            bool processCategory = layout.Descendants<Dgm.Category>()
-                .Any(category => string.Equals(category.Type?.Value,
+            bool processCategory = layout.Descendants(DiagramNamespace + "cat")
+                .Any(category => string.Equals((string?)category.Attribute("type"),
                     "process", StringComparison.OrdinalIgnoreCase));
-            bool linearAlgorithm = layout.Descendants<Dgm.Algorithm>()
-                .Any(algorithm => algorithm.Type?.Value ==
-                    Dgm.AlgorithmValues.Linear);
-            bool nodeIterator = layout.Descendants<Dgm.ForEach>()
+            bool linearAlgorithm = layout.Descendants(DiagramNamespace + "alg")
+                .Any(algorithm => string.Equals((string?)algorithm.Attribute("type"),
+                    "lin", StringComparison.Ordinal));
+            bool nodeIterator = layout.Descendants(DiagramNamespace + "forEach")
                 .Any(iterator =>
-                    (iterator.Axis?.InnerText ?? string.Empty)
+                    ((string?)iterator.Attribute("axis") ?? string.Empty)
                         .Split(' ').Contains("ch")
-                    && (iterator.PointType?.InnerText ?? string.Empty)
+                    && ((string?)iterator.Attribute("ptType") ?? string.Empty)
                         .Split(' ').Contains("node"));
-            string?[] shapeTypes = layout.Descendants<Dgm.Shape>()
-                .Select(shape => shape.Type?.Value).ToArray();
+            string?[] shapeTypes = layout.Descendants(DiagramNamespace + "shape")
+                .Select(shape => (string?)shape.Attribute("type")).ToArray();
             bool nodeShape = shapeTypes.Length == 4
                 && shapeTypes[0] == null
                 && string.Equals(shapeTypes[1], "roundRect",
@@ -201,24 +193,15 @@ namespace OfficeIMO.PowerPoint {
             }
             if (!HasRepresentableStyleDefinitions()) return false;
 
-            A.ColorScheme? colorScheme = _slidePart.ThemeOverridePart?
-                    .ThemeOverride?.ColorScheme
-                ?? _slidePart.SlideLayoutPart?.ThemeOverridePart?
-                    .ThemeOverride?.ColorScheme
-                ?? _slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?
-                    .Theme?.ThemeElements?.ColorScheme;
-            A.FontScheme? fontScheme = _slidePart.ThemeOverridePart?
-                    .ThemeOverride?.FontScheme
-                ?? _slidePart.SlideLayoutPart?.ThemeOverridePart?
-                    .ThemeOverride?.FontScheme
-                ?? _slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?
-                    .Theme?.ThemeElements?.FontScheme;
-            OfficeColor? accent = OfficeOpenXmlThemeColorResolver
-                .ResolveSchemeColor(colorScheme, "accent1");
-            OfficeColor? light = OfficeOpenXmlThemeColorResolver
-                .ResolveSchemeColor(colorScheme, "light1");
-            string? fontFamily = fontScheme?.MinorFont?.LatinFont?
-                .Typeface?.Value;
+            PowerPointThemeScope theme = PowerPointThemeScope.For(HostPartRef);
+            OfficeColor? accent = OfficeXmlThemeColors
+                .ResolveSchemeColor(theme.ColorScheme, "accent1");
+            OfficeColor? light = OfficeXmlThemeColors
+                .ResolveSchemeColor(theme.ColorScheme, "light1");
+            string? fontFamily = theme.FontScheme
+                .Child(OfficeXmlNamespaces.DrawingML, "minorFont")
+                .Child(OfficeXmlNamespaces.DrawingML, "latin")
+                .Attribute("typeface");
             if (!accent.HasValue || !light.HasValue
                 || string.IsNullOrWhiteSpace(fontFamily)) {
                 return false;
@@ -231,34 +214,36 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private bool HasRepresentableStyleDefinitions() {
-            Dgm.RelationshipIds? relationshipIds = GraphicFrame
-                .Descendants<Dgm.RelationshipIds>().SingleOrDefault();
-            string? styleRelationshipId = relationshipIds?.StylePart?.Value;
-            string? colorRelationshipId = relationshipIds?.ColorPart?.Value;
+            OfficeXmlNode relationshipIds = SingleRelationshipIds();
+            string? styleRelationshipId = relationshipIds
+                .Attribute(OfficeXmlNamespaces.Relationships, "qs");
+            string? colorRelationshipId = relationshipIds
+                .Attribute(OfficeXmlNamespaces.Relationships, "cs");
             if (string.IsNullOrWhiteSpace(styleRelationshipId)
                 || string.IsNullOrWhiteSpace(colorRelationshipId)
-                || !_slidePart.TryGetPartById(styleRelationshipId!,
-                    out OpenXmlPart? relatedStyle)
-                || relatedStyle is not DiagramStylePart stylePart
-                || stylePart.StyleDefinition == null
-                || !_slidePart.TryGetPartById(colorRelationshipId!,
-                    out OpenXmlPart? relatedColors)
-                || relatedColors is not DiagramColorsPart colorsPart
-                || colorsPart.ColorsDefinition == null) {
+                || !TryGetDiagramPart(styleRelationshipId,
+                    DiagramQuickStyleRelationshipType, out PowerPointPartRef stylePart)
+                || ReadRootMarkup(stylePart) is not string styleDefinition
+                || !TryGetDiagramPart(colorRelationshipId,
+                    DiagramColorsRelationshipType, out PowerPointPartRef colorsPart)
+                || ReadRootMarkup(colorsPart) is not string colorsDefinition) {
                 return false;
             }
-            return MatchesSmartArtDefinition(
-                    stylePart.StyleDefinition.OuterXml,
-                    PowerPointSlide.SmartArtStyleDefinitionXml)
-                && MatchesSmartArtDefinition(
-                    colorsPart.ColorsDefinition.OuterXml,
-                    PowerPointSlide.SmartArtColorsDefinitionXml);
+            return MatchesSmartArtDefinition(styleDefinition,
+                    PowerPointSlide.SmartArtStyleDefinitionXml, NormalizedStyleDefinition.Value)
+                && MatchesSmartArtDefinition(colorsDefinition,
+                    PowerPointSlide.SmartArtColorsDefinitionXml, NormalizedColorsDefinition.Value);
         }
 
-        private static bool MatchesSmartArtDefinition(string actual,
-            string expected) => XNode.DeepEquals(
-                NormalizeSmartArtDefinition(XElement.Parse(actual)),
-                NormalizeSmartArtDefinition(XElement.Parse(expected)));
+        // The definitions the slide writes, normalized once; they are only compared, never changed.
+        private static readonly Lazy<XElement> NormalizedStyleDefinition =
+            new(() => NormalizeSmartArtDefinition(XElement.Parse(PowerPointSlide.SmartArtStyleDefinitionXml)));
+        private static readonly Lazy<XElement> NormalizedColorsDefinition =
+            new(() => NormalizeSmartArtDefinition(XElement.Parse(PowerPointSlide.SmartArtColorsDefinitionXml)));
+
+        private static bool MatchesSmartArtDefinition(string actual, string expected, XElement normalizedExpected) =>
+            string.Equals(actual, expected, StringComparison.Ordinal)
+            || XNode.DeepEquals(NormalizeSmartArtDefinition(XElement.Parse(actual)), normalizedExpected);
 
         private static XElement NormalizeSmartArtDefinition(
             XElement element) {
@@ -539,7 +524,7 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, textBodies.Count);
 
             bool updateCachedDrawing = TryPrepareCachedNodeTextEdit(xdoc, textBodies[index], normalizedText,
-                out DiagramPersistLayoutPart? persistPart, out XDocument? persistDocument);
+                out PowerPointPartRef persistPart, out XDocument? persistDocument);
             List<XElement> paragraphs = textBodies[index].Elements(ns.a + "p")
                 .ToList();
             XElement paragraph = paragraphs[0];
@@ -551,14 +536,14 @@ namespace OfficeIMO.PowerPoint {
                  paragraphIndex < paragraphs.Count; paragraphIndex++) {
                 paragraphs[paragraphIndex].Remove();
             }
-            if (updateCachedDrawing) SaveDiagramTopologyAtomically(dataPart, xdoc, persistPart!, persistDocument!);
+            if (updateCachedDrawing) SaveDiagramTopologyAtomically(dataPart, xdoc, persistPart, persistDocument!);
             else SaveDiagramData(dataPart, xdoc);
         }
 
         private (XDocument xdoc, (XNamespace dgm, XNamespace a) ns,
-            List<XElement> textBodies, DiagramDataPart dataPart)
+            List<XElement> textBodies, PowerPointPartRef dataPart)
             LoadNodeTextBodiesWithPart() {
-            DiagramDataPart dataPart = GetDiagramDataPart();
+            PowerPointPartRef dataPart = GetDiagramDataPart();
             XDocument xdoc = LoadDiagramXDocument(dataPart);
             XNamespace dgm = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
             XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
@@ -595,26 +580,26 @@ namespace OfficeIMO.PowerPoint {
                         ? "\n"
                         : (string?)element ?? string.Empty))));
 
-        private DiagramDataPart GetDiagramDataPart() {
-            Dgm.RelationshipIds relationshipIds = GraphicFrame.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>()
-                ?? throw new InvalidOperationException("SmartArt relationship ids were not found.");
-            string? dataPartId = relationshipIds.DataPart?.Value;
+        private PowerPointPartRef GetDiagramDataPart() {
+            OfficeXmlNode relationshipIds = GraphicDataRelationshipIds;
+            if (relationshipIds.IsNone) {
+                throw new InvalidOperationException("SmartArt relationship ids were not found.");
+            }
+            string? dataPartId = relationshipIds.Attribute(OfficeXmlNamespaces.Relationships, "dm");
             if (string.IsNullOrWhiteSpace(dataPartId)) {
                 throw new InvalidOperationException("SmartArt data relationship was not found.");
             }
-
-            return _slidePart.GetPartById(dataPartId!) as DiagramDataPart
-                ?? throw new InvalidOperationException("SmartArt diagram data part was not found.");
+            // An id the slide has no relationship for is an argument error, as the SDK reports it.
+            if (!HostPartRef.TryGetRelationship(dataPartId!, out _)) {
+                throw new ArgumentOutOfRangeException(nameof(dataPartId), "The slide has no relationship with the SmartArt data id.");
+            }
+            return TryGetDiagramPart(dataPartId, DiagramDataRelationshipType, out PowerPointPartRef dataPart)
+                ? dataPart
+                : throw new InvalidOperationException("SmartArt diagram data part was not found.");
         }
 
-        private static XDocument LoadDiagramXDocument(DiagramDataPart dataPart) {
-            using Stream stream = dataPart.GetStream(FileMode.Open, FileAccess.Read);
-            return PowerPointXmlReader.LoadPackagePartXml(stream);
-        }
+        private static XDocument LoadDiagramXDocument(PowerPointPartRef dataPart) => LoadPartXml(dataPart);
 
-        private static void SaveDiagramData(DiagramDataPart dataPart, XDocument xdoc) {
-            using Stream stream = dataPart.GetStream(FileMode.Create, FileAccess.Write);
-            xdoc.Save(stream);
-        }
+        private static void SaveDiagramData(PowerPointPartRef dataPart, XDocument xdoc) => WritePartXml(dataPart, xdoc);
     }
 }

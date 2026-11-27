@@ -1,4 +1,5 @@
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using Ns = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Captures authored native footer nodes once, before layout fills in theme defaults.</summary>
@@ -16,16 +17,17 @@ namespace OfficeIMO.PowerPoint {
 
         internal PowerPointLayoutNativeText Definition => _repeat;
 
-        internal bool HasNumber => _repeat.Paragraphs.Any(paragraph => paragraph.Paragraph.Elements<A.Field>()
-            .Any(item => item.Type?.Value == "slidenum"));
+        internal bool HasNumber => _repeat.Paragraphs.Any(paragraph => paragraph.Element.Children(Ns.DrawingML, "fld").ToList()
+            .Any(PowerPointDocument.IsSlideNumberField));
 
         internal PowerPointLayoutNativeText TakeBody(bool omitNumber) {
             var body = !_used ? _original : _repeat.CopyForRepeat();
             _used = true;
             if (omitNumber) {
                 foreach (var paragraph in body.Paragraphs) {
-                    foreach (var field in paragraph.Paragraph.Elements<A.Field>().Where(f => f.Type?.Value == "slidenum").ToArray()) field.Remove();
-                    foreach (var run in paragraph.Paragraph.Elements<A.Run>().Where(PowerPointDocument.IsFooterTotal).ToArray()) run.Remove();
+                    OfficeXmlNode element = paragraph.Element;
+                    foreach (OfficeXmlNode field in element.Children(Ns.DrawingML, "fld").ToList().Where(PowerPointDocument.IsSlideNumberField).ToArray()) field.Remove();
+                    foreach (OfficeXmlNode run in element.Children(Ns.DrawingML, "r").ToList().Where(PowerPointDocument.IsFooterTotal).ToArray()) run.Remove();
                 }
             }
             return body;

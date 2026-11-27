@@ -18,7 +18,6 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The SDK slide part the table is on.</summary>
         internal SlidePart? SlidePart => SlidePartRef.Current.SdkPart as SlidePart ?? OwnerSlide?.SlidePart;
 
-        internal PowerPointTableCell WrapCell(A.TableCell cell) => CellFor(OfficeXmlNode.FromSdk(cell));
     }
 
     public partial class PowerPointTableCell {
