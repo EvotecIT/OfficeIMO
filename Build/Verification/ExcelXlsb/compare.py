@@ -2,13 +2,16 @@
 """Compare XLSX projections, unchanged XLSB saves and edited XLSB saves on both revisions."""
 
 import argparse
+from hashlib import sha256
 import json
 from io import BytesIO
 import os
 from pathlib import Path
+import posixpath
 import shutil
 import subprocess
 import xml.etree.ElementTree as ET
+from urllib.parse import urlsplit, urlunsplit
 import zipfile
 
 
@@ -29,6 +32,10 @@ READER_SIGNATURE = "        internal static XlsbWorkbook Load(byte[] packageByte
 CORE_MODIFIED = "{http://purl.org/dc/terms/}modified"
 MC = "{http://schemas.openxmlformats.org/markup-compatibility/2006}"
 XSI_TYPE = "{http://www.w3.org/2001/XMLSchema-instance}type"
+PACKAGE_REL = "{http://schemas.openxmlformats.org/package/2006/relationships}Relationship"
+OFFICE_REL = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+STRICT_OFFICE_REL = "{http://purl.oclc.org/ooxml/officeDocument/relationships}"
+VML_REL = "{urn:schemas-microsoft-com:office:office}relid"
 
 
 def run(command, cwd, **kwargs):
@@ -120,15 +127,62 @@ def normalize_qualified_values(xml):
     return xml.root
 
 
-def normalized_xml(data, part):
-    # ZIP timestamps and compression are ignored by comparing entries. Excel's
-    # conversion save can refresh the modified timestamp to the current clock.
-    root = normalize_qualified_values(ET.iterparse(BytesIO(data), events=("start-ns", "start", "end")))
+def relationship_owner(name):
+    if name == "_rels/.rels":
+        return ""
+    folder, leaf = posixpath.split(name)
+    parent, rels = posixpath.split(folder)
+    if rels == "_rels" and leaf.endswith(".rels"):
+        return posixpath.join(parent, leaf[:-len(".rels")])
+    return None
+
+
+def stable_relationships(archive):
+    """Map transient IDs to their relationship type, target and target mode for each owner."""
+    ids = {}
+    documents = {}
+    for name in archive.namelist():
+        owner = relationship_owner(name)
+        if owner is None:
+            continue
+        root = ET.fromstring(archive.read(name))
+        owner_ids = ids[owner] = {}
+        for relation in root.findall(PACKAGE_REL):
+            target = relation.get("Target", "")
+            mode = relation.get("TargetMode", "Internal")
+            if mode == "Internal":
+                uri = urlsplit(target)
+                if not uri.scheme and not uri.netloc and uri.path:
+                    path = uri.path if uri.path.startswith("/") else posixpath.join("/", posixpath.dirname(owner), uri.path)
+                    target = urlunsplit(uri._replace(path=posixpath.normpath(path)))
+                relation.set("Target", target)
+                relation.attrib.pop("TargetMode", None)
+            key = sha256(json.dumps([relation.get("Type"), mode, target]).encode("utf-8")).hexdigest()
+            old_id = relation.get("Id")
+            if not old_id or old_id in owner_ids:
+                raise ValueError("Missing or duplicated relationship ID in " + name)
+            owner_ids[old_id] = key
+            relation.set("Id", key)
+        documents[name] = root
+    return ids, documents
+
+
+def normalized_xml(data, part, ids, relationships):
+    root = relationships.get(part)
+    if root is None:
+        root = normalize_qualified_values(ET.iterparse(BytesIO(data), events=("start-ns", "start", "end")))
+        part_ids = ids.get(part)
+        if part_ids:
+            for node in root.iter():
+                for attr, value in node.attrib.items():
+                    if attr.startswith((OFFICE_REL, STRICT_OFFICE_REL)) or attr == VML_REL:
+                        if value in part_ids:
+                            node.set(attr, part_ids[value])
     if part == "docProps/core.xml":
         modified = root.find(CORE_MODIFIED)
         if modified is not None:
             modified.text = ""
-    if part.endswith(".rels") or part == "[Content_Types].xml":
+    if part in relationships or part == "[Content_Types].xml":
         root[:] = sorted(root, key=lambda child: (child.tag, sorted(child.attrib.items())))
     return ET.canonicalize(ET.tostring(root, encoding="unicode"), rewrite_prefixes=True)
 
@@ -137,7 +191,7 @@ def compare_packages(left, right, allow_markup_equivalence):
     if left.read_bytes() == right.read_bytes():
         return "identical", []
     if not allow_markup_equivalence:
-        return "different", ["XLSB bytes differ"]
+        return "different", ["Unchanged XLSB bytes differ"]
     with zipfile.ZipFile(left) as baseline, zipfile.ZipFile(right) as candidate:
         left_names = sorted(baseline.namelist())
         right_names = sorted(candidate.namelist())
@@ -146,18 +200,23 @@ def compare_packages(left, right, allow_markup_equivalence):
                 f"Baseline only: {sorted(set(left_names) - set(right_names))}",
                 f"Candidate only: {sorted(set(right_names) - set(left_names))}",
             ]
+        left_ids, left_relationships = stable_relationships(baseline)
+        right_ids, right_relationships = stable_relationships(candidate)
         changed = []
         for part in left_names:
             before = baseline.read(part)
             after = candidate.read(part)
-            if before == after:
+            has_relationship_ids = part in left_ids or part in right_ids
+            if before == after and not has_relationship_ids:
                 continue
-            if part.endswith((".xml", ".rels")):
+            if part.endswith((".xml", ".rels", ".vml")):
                 try:
-                    if normalized_xml(before, part) == normalized_xml(after, part):
+                    if normalized_xml(before, part, left_ids, left_relationships) == normalized_xml(after, part, right_ids, right_relationships):
                         continue
                 except ET.ParseError:
                     pass
+            elif before == after and left_ids.get(part) == right_ids.get(part):
+                continue
             changed.append(part)
         return ("different", changed) if changed else ("equivalent", [])
 
@@ -180,7 +239,7 @@ def compare(output):
             else:
                 result = compare_packages(baseline_dir / f"{name}.{key.lower()}",
                                           candidate_dir / f"{name}.{key.lower()}",
-                                          allow_markup_equivalence=key == "Xlsx")
+                                          allow_markup_equivalence=key != "Xlsb")
             status, details = result
             counts[status] = counts.get(status, 0) + 1
             results[name][key] = {"status": status, "differences": details, "baselineError": baseline_error}
