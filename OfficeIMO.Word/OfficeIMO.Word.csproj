@@ -59,6 +59,8 @@
 
     <ItemGroup>
         <EmbeddedResource Include="TableStyles\WordTableStyles.xml" LogicalName="OfficeIMO.Word.TableStyles.WordTableStyles.xml" />
+        <EmbeddedResource Include="BuildingBlocks\*.xml" LogicalName="OfficeIMO.Word.BuildingBlocks.%(Filename).xml" />
+        <EmbeddedResource Include="Parts\Defaults\*.xml" LogicalName="OfficeIMO.Word.Parts.Defaults.%(Filename).xml" />
     </ItemGroup>
 
     <ItemGroup>
