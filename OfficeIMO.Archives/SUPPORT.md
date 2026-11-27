@@ -113,11 +113,14 @@ and [XZ format description](https://tukaani.org/xz/xz-file-format.txt) document 
 - Supply volumes explicitly in order. At most 256 volumes share the input,
   entry, metadata, expansion and work limits. Stored split entries verify any
   checksums on earlier pieces and the final checksum on the complete member.
-- Listing reports directories, stored and compressed members, UTF-8 comments,
+- Listing reports directories, stored and compressed members, comment availability,
   redirection targets, owner fields and file times. Subsecond Unix times retain
   all nine digits. A file copy reads the verified bytes of an earlier regular
   member. Filesystem links and ownership remain metadata, and extraction
   never creates junctions or follows redirection targets on disk.
+- Inspection verifies stored UTF-8 comments. If `CommentCompressionMethod`
+  is greater than zero, accessing `Comment` raises the same typed error as
+  reading a selected compressed entry.
 - Reading a selected compressed entry raises
   `Rar5CompressionNotSupportedException` with its name, method and dictionary
   size. An encrypted archive or member raises

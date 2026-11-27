@@ -107,6 +107,18 @@ public static partial class ArchiveExtractor {
             source.Position = originalPosition;
         }
     }
+    /// <summary>Reads the leading magic at the current position and restores that position.</summary>
+    internal static ArchiveFormat? DetectLeadingMagic(Stream source, CancellationToken token) {
+        long position = source.Position;
+        try {
+            var header = new byte[8];
+            int length = Fill(source, header, header.Length, token);
+            return TryDetectMagic(header, length, out ArchiveFormat format) ? format : null;
+        } finally {
+            source.Position = position;
+        }
+    }
+
     private static int Fill(Stream source, byte[] buffer, int count, CancellationToken token, int start = 0) {
         int length = start;
         while (length < count) {

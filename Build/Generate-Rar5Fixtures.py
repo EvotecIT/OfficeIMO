@@ -9,9 +9,11 @@ import platform
 import re
 from pathlib import Path
 import shutil
+import struct
 import subprocess
 import tempfile
 import zipfile
+import zlib
 
 ROOT = Path(__file__).resolve().parent.parent
 ARCHIVES = ROOT / "OfficeIMO.Archives.Tests" / "Fixtures" / "IndependentRar5"
@@ -103,6 +105,79 @@ def generate(rar, legacy_rar):
             }
             (destination / "rar5-provenance.json").write_text(json.dumps(evidence, indent=2, ensure_ascii=False) + "\n",
                                                               encoding="utf-8")
+    generate_compressed_comment(rar)
+
+
+def read_vint(data, position):
+    value = 0
+    for shift in range(0, 70, 7):
+        byte = data[position]
+        position += 1
+        value |= (byte & 127) << shift
+        if byte < 128:
+            return value, position
+    raise ValueError("Invalid RAR5 vint in producer output")
+
+
+def find_rar5_block(data, block_type):
+    if not data.startswith(b"Rar!\x1a\x07\x01\x00"):
+        raise ValueError("Expected RAR5 output")
+    start = 8
+    while start < len(data):
+        size, body = read_vint(data, start + 4)
+        kind, position = read_vint(data, body)
+        flags, position = read_vint(data, position)
+        if flags & 1:
+            _, position = read_vint(data, position)
+        packed = read_vint(data, position)[0] if flags & 2 else 0
+        header_end = body + size
+        end = header_end + packed
+        if kind == block_type:
+            return start, body, header_end, end
+        start = end
+    raise ValueError(f"RAR5 producer output has no block of type {block_type}")
+
+
+def generate_compressed_comment(rar):
+    # Modern rar stores -z comments. Relocate a genuine method-3 file record named CMT
+    # to the comment position, change its type to service, and refresh the header CRC.
+    with tempfile.TemporaryDirectory(prefix="officeimo-rar-comment-") as scratch:
+        work = Path(scratch)
+        comment = b"Compressible RAR comment.\n" * 300
+        (work / "comment.txt").write_bytes(comment)
+        (work / "CMT").write_bytes(comment)
+        (work / "page.txt").write_bytes(b"Member payload.\n" * 100)
+        base_args = ["a", "-cfg-", "-idq", "-ma5", "-m0", "-qo-", "-tsm-", "-zcomment.txt", "base.rar", "page.txt"]
+        donor_args = ["a", "-cfg-", "-idq", "-ma5", "-m3", "-md128k", "-qo-", "-tsm-", "-zcomment.txt", "donor.rar", "CMT"]
+        for command in (base_args, donor_args):
+            subprocess.run([rar, *command], cwd=work, check=True)
+        base = (work / "base.rar").read_bytes()
+        donor = (work / "donor.rar").read_bytes()
+        start, body, header_end, end = find_rar5_block(donor, 2)
+        if end - header_end >= len(comment):
+            raise ValueError("rar did not compress the comment payload")
+        record = bytearray(donor[start + 4:end])
+        record[body - start - 4] = 3
+        crc = struct.pack("<I", zlib.crc32(record[:header_end - start - 4]))
+        base_start, _, _, base_end = find_rar5_block(base, 3)
+        result = base[:base_start] + crc + record + base[base_end:]
+        name = "compressed-comment.rar"
+        (work / name).write_bytes(result)
+        subprocess.run([rar, "t", "-cfg-", "-idq", name], cwd=work, check=True)
+        subprocess.run([rar, "cw", "-cfg-", "-idq", name, "decoded.txt"], cwd=work, check=True,
+                       stdout=subprocess.DEVNULL)
+        if (work / "decoded.txt").read_bytes() != comment:
+            raise ValueError("rar did not recover the original comment")
+        (ARCHIVES / name).write_bytes(result)
+        evidence = {
+            "producer": "RARLAB RAR command-line tool",
+            "producerPlatform": f"{platform.system()} {platform.machine()}",
+            "rarVersion": rar_version([rar]), "file": name, "arguments": [base_args, donor_args],
+            "derivation": "Replaced the stored comment with the producer's compressed CMT file record, changing its type to service and updating the header CRC.",
+            "verification": "rar t passed and rar cw recovered the original comment byte-for-byte.",
+            "sha256": hashlib.sha256(result).hexdigest()
+        }
+        (ARCHIVES / "compressed-comment-provenance.json").write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
 
 
 def generate_windows_links(rar, wine):
@@ -175,6 +250,7 @@ def main():
     parser.add_argument("--rar4", type=Path, help="RARLAB rar 6.x executable for producing RAR4")
     parser.add_argument("--windows-links", action="store_true", help="Produce the NTFS redirection fixture only")
     parser.add_argument("--numeric-owner", action="store_true", help="Produce the Unix numeric owner fixture only")
+    parser.add_argument("--compressed-comment", action="store_true", help="Produce the compressed RAR5 comment fixture only")
     parser.add_argument("--qemu", type=Path, help="Optional QEMU executable for the Linux rar binary")
     parser.add_argument("--wine", type=Path, help="Wine executable for the Windows redirection fixture")
     args = parser.parse_args()
@@ -182,6 +258,8 @@ def main():
         generate_windows_links(args.rar.resolve(), args.wine.resolve() if args.wine else None)
     elif args.numeric_owner:
         generate_numeric_owner(args.rar.resolve(), args.qemu.resolve() if args.qemu else None)
+    elif args.compressed_comment:
+        generate_compressed_comment(args.rar.resolve())
     elif args.rar4:
         generate(args.rar.resolve(), args.rar4.resolve())
     else:

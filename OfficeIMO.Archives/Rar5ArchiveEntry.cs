@@ -122,15 +122,25 @@ public readonly struct Rar5FileTimes {
 
 /// <summary>One RAR5 archive's checked file table and optional archive comment.</summary>
 public sealed class Rar5ArchiveInfo {
-    internal Rar5ArchiveInfo(IReadOnlyList<Rar5ArchiveEntry> entries, int volumeCount, string? comment) {
+    private readonly string? _comment;
+    private readonly (int Method, long Dictionary)? _commentCompression;
+
+    internal Rar5ArchiveInfo(IReadOnlyList<Rar5ArchiveEntry> entries, int volumeCount, string? comment,
+        (int Method, long Dictionary)? commentCompression) {
         Entries = entries;
         VolumeCount = volumeCount;
-        Comment = comment;
+        _comment = comment;
+        _commentCompression = commentCompression;
     }
     /// <summary>Entries in primary header order, with split members joined.</summary>
     public IReadOnlyList<Rar5ArchiveEntry> Entries { get; }
     /// <summary>Number of supplied volumes.</summary>
     public int VolumeCount { get; }
-    /// <summary>The verified CMT service record as UTF-8 text, if present.</summary>
-    public string? Comment { get; }
+    /// <summary>The CMT compression method. Null indicates no comment and zero indicates a stored comment.</summary>
+    public int? CommentCompressionMethod => _commentCompression?.Method;
+    /// <summary>The verified stored CMT service record as UTF-8 text, if present.</summary>
+    /// <exception cref="Rar5CompressionNotSupportedException">The comment is compressed.</exception>
+    public string? Comment => _commentCompression is { Method: > 0 } compression
+        ? throw new Rar5CompressionNotSupportedException("CMT", compression.Method, compression.Dictionary)
+        : _comment;
 }

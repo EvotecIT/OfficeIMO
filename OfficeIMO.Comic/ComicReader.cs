@@ -15,7 +15,7 @@ public static partial class ComicReader {
 
     /// <summary>Projects the current CBZ, CB7 or stored RAR5 CBR stream into a writable fixed-layout EPUB publication with fidelity evidence.</summary>
     /// <param name="source">The readable comic archive stream.</param>
-    /// <param name="sourceName">The original filename, including the .cb7 or .cbr extension for a 7z or RAR5 comic.</param>
+    /// <param name="sourceName">The original filename. A .cbr name accepts ZIP, 7z, or RAR5 content.</param>
     /// <param name="maximumInputBytes">The caller's compressed input limit, capped by <see cref="MaximumInputBytes"/>.</param>
     /// <param name="cancellationToken">Cancels archive reading and publication projection.</param>
     public static OfficeConversionResult<EpubPublication> Import(Stream source, string sourceName = "comic.cbz",
@@ -25,9 +25,6 @@ public static partial class ComicReader {
         if (maximumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumInputBytes));
         var diagnostics = new List<OfficeDiagnostic>();
         var omitted = new List<string>();
-        string format = "CBZ";
-        if (IsSevenZip(sourceName)) format = "CB7";
-        else if (IsRar(sourceName)) format = "CBR";
         var options = new ArchiveReadOptions {
             MaxInputBytes = Math.Min(MaximumInputBytes, maximumInputBytes),
             MaxEntryCount = 2_000,
@@ -42,10 +39,15 @@ public static partial class ComicReader {
                 return false;
             }
         };
-        var entries = format switch {
-            "CB7" => ArchiveReader.ReadSevenZip(source, options, cancellationToken),
-            "CBR" => ArchiveReader.ReadRar5(source, options, cancellationToken),
-            _ => ArchiveReader.ReadZip(source, options, cancellationToken)
+        var (container, entries) = IsCbr(sourceName)
+            ? ArchiveReader.ReadZipSevenZipOrRar5(source, options, cancellationToken)
+            : IsSevenZip(sourceName)
+                ? (ArchiveFormat.SevenZip, ArchiveReader.ReadSevenZip(source, options, cancellationToken))
+                : (ArchiveFormat.Zip, ArchiveReader.ReadZip(source, options, cancellationToken));
+        string format = container switch {
+            ArchiveFormat.SevenZip => "CB7",
+            ArchiveFormat.Rar5 => "CBR",
+            _ => "CBZ"
         };
         foreach (string path in omitted)
             diagnostics.Add(Loss(format + "_MEMBER_OMITTED", "The archive member is not a supported comic page or ComicInfo.", path));
@@ -97,7 +99,11 @@ public static partial class ComicReader {
 
     internal static bool Probe(Stream source, string? name, long maximumInputBytes, CancellationToken token) {
         if (IsSevenZip(name)) return ProbeContainer(source, maximumInputBytes, false, token);
-        if (IsRar(name)) return ProbeContainer(source, maximumInputBytes, true, token);
+        if (IsCbr(name)) {
+            ArchiveFormat? container = source.CanSeek ? ArchiveExtractor.DetectLeadingMagic(source, token) : null;
+            if (container == ArchiveFormat.SevenZip) return ProbeContainer(source, maximumInputBytes, false, token);
+            if (container != ArchiveFormat.Zip) return ProbeContainer(source, maximumInputBytes, true, token);
+        }
         try {
             using var archive = ArchiveInspector.Open(source, new ArchiveInspectionOptions {
                 MaxInputBytes = maximumInputBytes, MaxEntryCount = 2_000, MaxEntryBytes = 16L * 1024 * 1024
@@ -134,7 +140,7 @@ public static partial class ComicReader {
     private static bool IsSevenZip(string? sourceName) =>
         sourceName?.EndsWith(".cb7", StringComparison.OrdinalIgnoreCase) == true;
 
-    private static bool IsRar(string? name) => name?.EndsWith(".cbr", StringComparison.OrdinalIgnoreCase) == true;
+    private static bool IsCbr(string? name) => name?.EndsWith(".cbr", StringComparison.OrdinalIgnoreCase) == true;
 
     private static OfficeDiagnostic Loss(string code, string message, string? path = null) =>
         new(code, OfficeDiagnosticSeverity.Warning, message, path, Component, OfficeConversionLossKind.Omission);

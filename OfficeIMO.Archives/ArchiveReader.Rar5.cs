@@ -3,11 +3,23 @@ using OfficeIMO.Archives.Rar5;
 namespace OfficeIMO.Archives;
 
 public static partial class ArchiveReader {
+    /// <summary>Reads a ZIP or 7z by its leading magic, with RAR5 (including SFX) as the fallback.</summary>
+    internal static (ArchiveFormat Format, IReadOnlyList<ArchiveEntryData> Entries) ReadZipSevenZipOrRar5(
+        Stream source, ArchiveReadOptions options, CancellationToken token) {
+        ArchiveLimits limits = options.Limits();
+        using Stream snapshot = Snapshot(source, limits, token);
+        return ArchiveExtractor.DetectLeadingMagic(snapshot, token) switch {
+            ArchiveFormat.Zip => (ArchiveFormat.Zip, Read(snapshot, limits, token, inputAdmitted: true)),
+            ArchiveFormat.SevenZip => (ArchiveFormat.SevenZip, ReadSevenZip(snapshot, limits, token)),
+            _ => (ArchiveFormat.Rar5, ReadRar5(Rar5Archive.Open(snapshot, limits, token), token))
+        };
+    }
+
     /// <summary>Lists the authoritative file headers of a RAR5 archive in file order. The source remains open.</summary>
     public static IReadOnlyList<Rar5ArchiveEntry> ListRar5(Stream source, ArchiveReadOptions? options = null,
         CancellationToken cancellationToken = default) => InspectRar5(source, options, cancellationToken).Entries;
 
-    /// <summary>Reads the authoritative file table and verifies the archive comment, if any. The source remains open.</summary>
+    /// <summary>Reads the authoritative file table and verifies the archive comment when stored. The source remains open.</summary>
     public static Rar5ArchiveInfo InspectRar5(Stream source, ArchiveReadOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(source);

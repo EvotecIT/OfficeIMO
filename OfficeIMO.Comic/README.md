@@ -2,6 +2,7 @@
 
 Read CBZ, CB7 and stored RAR5 CBR comics as sequences of numbered page images. An optional `ComicInfo.xml`
 provides the title, contributors, cover and page bookmarks.
+A comic named `.cbr` can also contain ZIP or 7z data.
 
 Install the package from NuGet.
 

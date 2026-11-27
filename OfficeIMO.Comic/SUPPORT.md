@@ -8,7 +8,7 @@
 | EPUB | EPUB 3 fixed-layout spine with one image per viewport, page bookmarks and cover metadata. |
 | PDF | The EPUB renderer uses each viewport as a page. Image decoding and output fidelity follow the PDF renderer's supported profile. |
 | HTML and Markdown | Standalone image and bookmark projection. Markdown carries the pictures and publication fields in YAML front matter. |
-| CBR | Single-volume, unencrypted RAR 5 with stored pages and ComicInfo. Compressed members raise a diagnostic with the entry name, method and dictionary size. See [RAR5 reading](../OfficeIMO.Archives/SUPPORT.md#rar5-reading). |
+| CBR | Single-volume, unencrypted RAR 5 with stored pages and ComicInfo. Compressed members raise a diagnostic with the entry name, method and dictionary size. A ZIP or 7z named `.cbr` uses its actual container. See [RAR5 reading](../OfficeIMO.Archives/SUPPORT.md#rar5-reading). |
 
 The reader admits at most 128 MiB of compressed input, 2,000 archive entries,
 16 MiB per entry, 120 MiB of expanded data (including solid-folder siblings for CB7), 1,000 page images and

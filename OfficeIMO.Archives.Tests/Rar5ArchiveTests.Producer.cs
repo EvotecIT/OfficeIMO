@@ -10,6 +10,35 @@ public sealed partial class Rar5ArchiveTests {
     public void Blake2sMatchesPublishedAndEmptyMessageVectors(string message, string digest) =>
         Assert.Equal(digest, BitConverter.ToString(Blake2s.Digest(Encoding.ASCII.GetBytes(message))).Replace("-", ""));
 
+    [Fact]
+    public void Blake2spMatchesPublishedUnkeyedVector() {
+        // https://github.com/BLAKE2/BLAKE2/blob/master/testvectors/blake2-kat.json
+        byte[] input = Enumerable.Range(0, 255).Select(value => (byte)value).ToArray();
+        byte[] digest = Blake2s.TreeDigest(input, 0, input.Length, CancellationToken.None);
+        Assert.Equal("25059F10605E67ADFE681350666E15AE976A5A571C13CF5BC8053F430E120A52",
+            BitConverter.ToString(digest).Replace("-", ""));
+    }
+
+    [Fact]
+    public void CompressedCommentDoesNotPreventListingOrReadingStoredFiles() {
+        byte[] source = Fixture("compressed-comment.rar");
+        using var input = new MemoryStream(source, writable: false);
+        Assert.Equal("page.txt", Assert.Single(ArchiveReader.ListRar5(input)).Name);
+
+        input.Position = 0;
+        var archive = ArchiveReader.InspectRar5(input);
+        Assert.Equal("page.txt", Assert.Single(archive.Entries).Name);
+        Assert.Equal(3, archive.CommentCompressionMethod);
+        var error = Assert.Throws<Rar5CompressionNotSupportedException>(() => archive.Comment);
+        Assert.Equal("CMT", error.EntryName);
+        Assert.Equal(3, error.Method);
+        Assert.Equal(128L * 1024, error.DictionarySize);
+
+        var member = Assert.Single(ArchiveReader.ReadRar5(source));
+        Assert.Equal("page.txt", member.RelativePath);
+        Assert.Equal(string.Concat(Enumerable.Repeat("Member payload.\n", 100)), Encoding.UTF8.GetString(member.Data));
+    }
+
     [Theory]
     [InlineData("prefixed.sfx")]
     [InlineData("zero-prefixed.sfx")]
@@ -91,6 +120,7 @@ public sealed partial class Rar5ArchiveTests {
         byte[] source = Fixture("metadata.rar");
         using var input = new MemoryStream(source, writable: false);
         var archive = ArchiveReader.InspectRar5(input);
+        Assert.Equal(0, archive.CommentCompressionMethod);
         Assert.Equal("RAR comment café\n", archive.Comment);
         Assert.Equal(new[] { "piece.bin", "linked.bin", "copy.bin", "directory-link", "empty-directory" }, archive.Entries.Select(entry => entry.Name));
         var original = archive.Entries[0];

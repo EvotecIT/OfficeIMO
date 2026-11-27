@@ -9,6 +9,7 @@ internal sealed partial class Rar5Archive {
     private readonly List<Member> _members = new();
     private readonly Dictionary<string, Member> _fileSources = new(StringComparer.Ordinal);
     private string? _comment;
+    private (int Method, long Dictionary)? _commentCompression;
     private long _metadataBytes;
     private Member? _split;
 
@@ -141,8 +142,11 @@ internal sealed partial class Rar5Archive {
         var fields = new FileFields(block.Fields, _limits.PathLength);
         var extras = new FileExtras(block.Extras, fields, headerOffset, _limits.PathLength, token);
         if (fields.Name != "CMT") return;
-        if (volume != 0 || _comment != null || _members.Count != 0 || fields.Method != 0 || fields.Size != block.PackedLength || fields.Size > 256 * 1024)
-            throw new InvalidDataException("The RAR5 archive comment has invalid placement, size or compression.");
+        if (volume != 0 || _commentCompression.HasValue || _members.Count != 0 || fields.Size > 256 * 1024 ||
+            (fields.Method == 0 && fields.Size != block.PackedLength))
+            throw new InvalidDataException("The RAR5 archive comment has invalid placement or size.");
+        _commentCompression = (fields.Method, fields.Dictionary);
+        if (fields.Method != 0) return;
         _budget.Charge(0, Math.Max(64, fields.Size) * 2);
         var bytes = new byte[(int)fields.Size];
         Rar5HeaderReader.Fill(source, bytes, bytes.Length, token);
@@ -155,7 +159,7 @@ internal sealed partial class Rar5Archive {
     }
 
     internal Rar5ArchiveInfo Describe(int volumeCount) =>
-        new(Array.AsReadOnly(_members.Select(member => member.Describe()).ToArray()), volumeCount, _comment);
+        new(Array.AsReadOnly(_members.Select(member => member.Describe()).ToArray()), volumeCount, _comment, _commentCompression);
 
     private static InvalidDataException Location(int volume, long offset, string message, Exception? error = null) =>
         new(FormattableString.Invariant($"RAR 5 volume {volume + 1}, byte offset {offset}: {message}"), error);

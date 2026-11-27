@@ -29,6 +29,20 @@ public sealed class ReaderComicTests {
             Assert.Equal(DocumentReaderEngine.ComputeChunkHash(chunk), chunk.ChunkHash);
         });
     }
+
+    [Theory]
+    [InlineData("harbour.cbz")]
+    [InlineData("harbour.cb7")]
+    public void PreferContentRecognizesMislabeledCbrAsAComic(string fixture) {
+        var reader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
+        using var source = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "EbookFixtures", fixture));
+        var result = reader.ReadDocument(source, "harbour.cbr", new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+        Assert.Equal(ReaderInputKind.Comic, result.Kind);
+        Assert.Contains("officeimo.reader.cbr", result.CapabilitiesUsed);
+        Assert.Equal(3, result.Pages.Count);
+    }
+
     [Fact]
     public void EncryptedRarComicRetainsTheReaderEncryptionErrorCode() {
         string path = Path.Combine(AppContext.BaseDirectory, "EbookFixtures", "encrypted-headers.cbr");
