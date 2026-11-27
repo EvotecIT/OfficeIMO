@@ -23,6 +23,9 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointTextBox(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
+        internal PowerPointTextBox(OpenXml.PowerPointPartRef part, OfficeXmlTree tree, int node) : base(part, tree, node) {
+        }
+
         private OfficeXmlNode ShapeElement => XmlElement;
 
         private OfficeXmlNode BodyElement => ShapeElement.Child(OfficeXmlNamespaces.PresentationML, "txBody");

@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>OfficeIMO provider for Microsoft.Extensions.DocumentExtraction: in-process extraction of Word, Excel, PowerPoint, PDF, HTML, EPUB and other formats into ExtractionDocument.</Description>
+    <VersionPrefix>3.6.2</VersionPrefix>
+    <!-- netstandard2.0 and net472 are left out: Microsoft.Extensions.AI.Abstractions 11 needs System.Text.Json 11 on those
+         targets, while OfficeIMO.Reader.Core keeps System.Text.Json below 11 there. -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageTags>reader;document-extraction;ingestion;rag;docx;xlsx;pptx;pdf;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <LangVersion>Latest</LangVersion>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <!-- The Microsoft.Extensions.DocumentExtraction and Documents APIs are marked experimental while in preview. -->
+    <NoWarn>$(NoWarn);EXTEXP0019;MEDE0001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DocumentExtraction.Abstractions" Version="[11.0.1-preview.1.26570.2]" />
+    <PackageReference Include="Microsoft.Extensions.DocumentExtraction" Version="[11.0.1-preview.1.26570.2]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>README.md</PackagePath>
+    </None>
+  </ItemGroup>
+</Project>
