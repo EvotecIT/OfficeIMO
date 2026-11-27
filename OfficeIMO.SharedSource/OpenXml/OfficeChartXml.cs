@@ -144,12 +144,24 @@ namespace OfficeIMO.OpenXml.Internal {
             return inserted;
         }
 
+        /// <summary>
+        /// The element after <paramref name="node"/> in document order within <paramref name="root"/>'s subtree, or none.
+        /// Walks without recursion, so deeply nested markup can't exhaust the stack.
+        /// </summary>
+        internal static OfficeXmlNode NextInSubtree(this OfficeXmlNode node, OfficeXmlNode root) {
+            OfficeXmlNode child = node.FirstChild;
+            if (!child.IsNone) return child;
+            for (OfficeXmlNode current = node; !current.IsNone && current != root; current = current.Parent) {
+                OfficeXmlNode sibling = current.NextSibling;
+                if (!sibling.IsNone) return sibling;
+            }
+            return default;
+        }
+
         /// <summary>The first element with this name below this one, in document order, or none.</summary>
         internal static OfficeXmlNode FirstDescendant(this OfficeXmlNode node, int namespaceId, string localName) {
-            for (OfficeXmlNode child = node.FirstChild; !child.IsNone; child = child.NextSibling) {
-                if (child.Is(namespaceId, localName)) return child;
-                OfficeXmlNode found = child.FirstDescendant(namespaceId, localName);
-                if (!found.IsNone) return found;
+            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = current.NextInSubtree(node)) {
+                if (current.Is(namespaceId, localName)) return current;
             }
             return default;
         }
@@ -169,9 +181,8 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static void CollectDescendants(OfficeXmlNode node, Func<OfficeXmlNode, bool>? predicate, List<OfficeXmlNode> found) {
-            for (OfficeXmlNode child = node.FirstChild; !child.IsNone; child = child.NextSibling) {
-                if (predicate == null || predicate(child)) found.Add(child);
-                CollectDescendants(child, predicate, found);
+            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = current.NextInSubtree(node)) {
+                if (predicate == null || predicate(current)) found.Add(current);
             }
         }
 
