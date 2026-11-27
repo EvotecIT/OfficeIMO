@@ -1,8 +1,7 @@
 using System.Text;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using static OfficeIMO.PowerPoint.LegacyPpt.Write.LegacyPptWriterXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -297,7 +296,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (formatting != null) children.Add(formatting);
                 if (ole.Preview != null) {
                     byte[]? tertiaryPictureProperties =
-                        BuildPictureTertiaryFoptRecord(ole.Preview);
+                        BuildPictureTertiaryFoptRecord(ole.Preview.Element);
                     if (tertiaryPictureProperties != null) {
                         children.Add(tertiaryPictureProperties);
                     }
@@ -322,7 +321,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var payload = new byte[8];
             WriteUInt32(payload, 0, shapeId);
             uint flags = GetShapeFspFlags(shape);
-            if (shape.Element.Parent is P.GroupShape) flags |= 1U << 1;
+            if (IsGroupChild(shape)) flags |= 1U << 1;
             if (isGroup) flags |= 1U;
             WriteUInt32(payload, 4, flags);
             return BuildRecord(version: 2, shapeType, OfficeArtFsp, payload);
@@ -333,7 +332,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             int top = ToMasterUnits(shape.Top.ToEmus());
             int right = checked(left + ToMasterUnits(shape.Width.ToEmus()));
             int bottom = checked(top + ToMasterUnits(shape.Height.ToEmus()));
-            if (shape.Element.Parent is P.GroupShape) {
+            if (IsGroupChild(shape)) {
                 var childPayload = new byte[16];
                 WriteInt32(childPayload, 0, left);
                 WriteInt32(childPayload, 4, top);
@@ -357,6 +356,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             WriteInt32(largePayload, 12, bottom);
             return BuildRecord(version: 0, instance: 0, OfficeArtClientAnchor, largePayload);
         }
+
+        // Whether the shape sits in a group shape's tree.
+        private static bool IsGroupChild(PowerPointShape shape) =>
+            shape.XmlElement.Parent.Is(LegacyPptXml.P, "grpSp");
 
         private static byte[]? BuildClientData(PowerPointShape shape,
             IReadOnlyList<LegacyPptWriterInteraction> interactions,
@@ -408,52 +411,59 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterShapeContext shapeContext,
             out LegacyPptWriterPlaceholder? placeholder, out string? reason) {
             ArgumentNullException.ThrowIfNull(shape);
-            P.PlaceholderShape? source = shape.Element switch {
-                P.Shape value => value.NonVisualShapeProperties?
-                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                P.ConnectionShape value => value.NonVisualConnectionShapeProperties?
-                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                P.Picture value => value.NonVisualPictureProperties?
-                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                P.GraphicFrame value => value.NonVisualGraphicFrameProperties?
-                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
-                _ => null
-            };
-            if (source == null) {
+            OfficeXmlNode element = shape.XmlElement;
+            string? container = element.NamespaceId != LegacyPptXml.P
+                ? null
+                : element.LocalName switch {
+                    "sp" => "nvSpPr",
+                    "cxnSp" => "nvCxnSpPr",
+                    "pic" => "nvPicPr",
+                    "graphicFrame" => "nvGraphicFramePr",
+                    _ => null
+                };
+            OfficeXmlNode source = container == null
+                ? default
+                : element.Child(LegacyPptXml.P, container)
+                    .Child(LegacyPptXml.P, "nvPr")
+                    .Child(LegacyPptXml.P, "ph");
+            if (source.IsNone) {
                 placeholder = null;
                 reason = null;
                 return true;
             }
-            if (source.HasCustomPrompt?.Value == true || source.HasChildren) {
+            if (source.Bool("hasCustomPrompt") == true || HasChildren(source)) {
                 placeholder = null;
                 reason = "The placeholder uses a custom prompt or extension that has no binary PowerPoint mapping.";
                 return false;
             }
-            P.PlaceholderValues type = source.Type?.Value
-                ?? P.PlaceholderValues.Object;
-            bool vertical = source.Orientation?.Value
-                == P.DirectionValues.Vertical;
+            string? typeToken = source.Attribute("type");
+            PowerPointPlaceholderType? type = typeToken == null
+                ? PowerPointPlaceholderType.Object
+                : PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(
+                    typeToken, out PowerPointPlaceholderType parsedType)
+                    ? parsedType
+                    : null;
+            bool vertical = source.Attribute("orient") == "vert";
             bool supportsVertical = shapeContext is not (
                     LegacyPptWriterShapeContext.MainMaster
                     or LegacyPptWriterShapeContext.NotesMaster)
-                && (type == P.PlaceholderValues.Title
-                    || type == P.PlaceholderValues.Body
-                    || type == P.PlaceholderValues.Object);
+                && (type == PowerPointPlaceholderType.Title
+                    || type == PowerPointPlaceholderType.Body
+                    || type == PowerPointPlaceholderType.Object);
             if (vertical && !supportsVertical) {
                 placeholder = null;
                 reason = "The placeholder uses a vertical orientation that has no equivalent binary placeholder kind in this shape context.";
                 return false;
             }
-            byte mappedType = MapPlaceholder(type,
-                source.Orientation?.Value, shapeContext);
-            uint index = source.Index?.Value ?? 0U;
+            byte mappedType = MapPlaceholder(type, vertical, shapeContext);
+            uint index = source.UInt("idx") ?? 0U;
             if (mappedType == 0 || index > int.MaxValue) {
                 placeholder = null;
                 reason = "The placeholder type or index cannot be represented by a binary PlaceholderAtom.";
                 return false;
             }
             placeholder = new LegacyPptWriterPlaceholder(checked((int)index),
-                mappedType, MapPlaceholderSize(source.Size?.Value));
+                mappedType, MapPlaceholderSize(source.Attribute("sz")));
             reason = null;
             return true;
         }
@@ -506,39 +516,40 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children);
         }
 
-        private static byte MapPlaceholder(P.PlaceholderValues? value,
-            P.DirectionValues? orientation = null,
+        private static byte MapPlaceholder(PowerPointPlaceholderType? value,
+            bool vertical = false,
             LegacyPptWriterShapeContext shapeContext =
                 LegacyPptWriterShapeContext.Slide) {
             if (!value.HasValue) return 0;
-            bool vertical = orientation == P.DirectionValues.Vertical;
             if (shapeContext == LegacyPptWriterShapeContext.MainMaster) {
-                if (value.Value == P.PlaceholderValues.Title) return 0x01;
-                if (value.Value == P.PlaceholderValues.Body) return 0x02;
-                if (value.Value == P.PlaceholderValues.CenteredTitle) return 0x03;
-                if (value.Value == P.PlaceholderValues.SubTitle) return 0x04;
+                if (value.Value == PowerPointPlaceholderType.Title) return 0x01;
+                if (value.Value == PowerPointPlaceholderType.Body) return 0x02;
+                if (value.Value == PowerPointPlaceholderType.CenteredTitle) return 0x03;
+                if (value.Value == PowerPointPlaceholderType.SubTitle) return 0x04;
             }
             if (shapeContext == LegacyPptWriterShapeContext.NotesMaster) {
-                if (value.Value == P.PlaceholderValues.SlideImage) return 0x05;
-                if (value.Value == P.PlaceholderValues.Body) return 0x06;
+                if (value.Value == PowerPointPlaceholderType.SlideImage) return 0x05;
+                if (value.Value == PowerPointPlaceholderType.Body) return 0x06;
             }
-            if (value.Value == P.PlaceholderValues.Title) return vertical ? (byte)0x11 : (byte)0x0D;
-            if (value.Value == P.PlaceholderValues.CenteredTitle) return 0x0F;
-            if (value.Value == P.PlaceholderValues.SubTitle) return 0x10;
-            if (value.Value == P.PlaceholderValues.Body) return vertical ? (byte)0x12 : (byte)0x0E;
-            if (value.Value == P.PlaceholderValues.Object) return vertical ? (byte)0x19 : (byte)0x13;
-            if (value.Value == P.PlaceholderValues.Chart) return 0x14;
-            if (value.Value == P.PlaceholderValues.Table) return 0x15;
-            if (value.Value == P.PlaceholderValues.ClipArt) return 0x16;
-            if (value.Value == P.PlaceholderValues.Diagram) return 0x17;
-            if (value.Value == P.PlaceholderValues.Media) return 0x18;
-            if (value.Value == P.PlaceholderValues.Picture) return 0x1A;
-            if (value.Value == P.PlaceholderValues.SlideImage) return 0x0B;
-            if (value.Value == P.PlaceholderValues.DateAndTime) return 0x07;
-            if (value.Value == P.PlaceholderValues.SlideNumber) return 0x08;
-            if (value.Value == P.PlaceholderValues.Footer) return 0x09;
-            if (value.Value == P.PlaceholderValues.Header) return 0x0A;
-            return 0;
+            return value.Value switch {
+                PowerPointPlaceholderType.Title => vertical ? (byte)0x11 : (byte)0x0D,
+                PowerPointPlaceholderType.CenteredTitle => 0x0F,
+                PowerPointPlaceholderType.SubTitle => 0x10,
+                PowerPointPlaceholderType.Body => vertical ? (byte)0x12 : (byte)0x0E,
+                PowerPointPlaceholderType.Object => vertical ? (byte)0x19 : (byte)0x13,
+                PowerPointPlaceholderType.Chart => 0x14,
+                PowerPointPlaceholderType.Table => 0x15,
+                PowerPointPlaceholderType.ClipArt => 0x16,
+                PowerPointPlaceholderType.Diagram => 0x17,
+                PowerPointPlaceholderType.Media => 0x18,
+                PowerPointPlaceholderType.Picture => 0x1A,
+                PowerPointPlaceholderType.SlideImage => 0x0B,
+                PowerPointPlaceholderType.DateAndTime => 0x07,
+                PowerPointPlaceholderType.SlideNumber => 0x08,
+                PowerPointPlaceholderType.Footer => 0x09,
+                PowerPointPlaceholderType.Header => 0x0A,
+                _ => 0
+            };
         }
 
         private static uint MapTextType(PowerPointShape shape,
@@ -546,24 +557,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (shapeContext == LegacyPptWriterShapeContext.NotesMaster) {
                 return (uint)LegacyPptTextType.Notes;
             }
-            P.PlaceholderValues? type = shape.ShapePlaceholderType.ToOpenXml();
-            if (type == P.PlaceholderValues.Title) {
-                return (uint)LegacyPptTextType.Title;
-            }
-            if (type == P.PlaceholderValues.CenteredTitle) {
-                return (uint)LegacyPptTextType.CenterTitle;
-            }
-            if (type == P.PlaceholderValues.Body) {
-                return (uint)LegacyPptTextType.Body;
-            }
-            return (uint)LegacyPptTextType.Other;
+            return shape.ShapePlaceholderType switch {
+                PowerPointPlaceholderType.Title => (uint)LegacyPptTextType.Title,
+                PowerPointPlaceholderType.CenteredTitle => (uint)LegacyPptTextType.CenterTitle,
+                PowerPointPlaceholderType.Body => (uint)LegacyPptTextType.Body,
+                _ => (uint)LegacyPptTextType.Other
+            };
         }
 
-        private static byte MapPlaceholderSize(P.PlaceholderSizeValues? size) {
-            if (size == P.PlaceholderSizeValues.Half) return 0x01;
-            if (size == P.PlaceholderSizeValues.Quarter) return 0x02;
-            return 0x00;
-        }
+        private static byte MapPlaceholderSize(string? size) => size switch {
+            "half" => 0x01,
+            "quarter" => 0x02,
+            _ => 0x00
+        };
 
         internal enum LegacyPptWriterShapeContext {
             Slide,

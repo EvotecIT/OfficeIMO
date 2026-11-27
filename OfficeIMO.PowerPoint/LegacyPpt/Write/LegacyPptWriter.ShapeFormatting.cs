@@ -1,11 +1,10 @@
 using OfficeIMO.OpenXml.Internal;
-using DocumentFormat.OpenXml;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using System.Globalization;
 using System.Text;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using static OfficeIMO.PowerPoint.LegacyPpt.Write.LegacyPptWriterXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
@@ -67,19 +66,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
             out string? reason) {
             ArgumentNullException.ThrowIfNull(shape);
-            if (!string.IsNullOrWhiteSpace(shape.Title)) {
+            return TryReadShapeMetadataForWrite(shape.Title, shape.Decorative,
+                shape.Name, shape.AltText, out properties, out reason);
+        }
+
+        private static bool TryReadShapeMetadataForWrite(string? title,
+            bool decorative, string? name, string? altText,
+            out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
+            out string? reason) {
+            if (!string.IsNullOrWhiteSpace(title)) {
                 properties = Array.Empty<LegacyPptWriterFoptProperty>();
                 reason = "Accessibility titles have no native PowerPoint 97-2003 shape-property representation.";
                 return false;
             }
-            if (shape.Decorative) {
+            if (decorative) {
                 properties = Array.Empty<LegacyPptWriterFoptProperty>();
                 reason = "The modern decorative-shape flag has no native PowerPoint 97-2003 representation.";
                 return false;
             }
             var result = new List<LegacyPptWriterFoptProperty>(2);
-            AddShapeMetadataText(result, 0x0380, shape.Name);
-            AddShapeMetadataText(result, 0x0381, shape.AltText);
+            AddShapeMetadataText(result, 0x0380, name);
+            AddShapeMetadataText(result, 0x0381, altText);
             properties = result;
             reason = null;
             return true;
@@ -128,29 +135,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
             out string? reason) {
             ArgumentNullException.ThrowIfNull(shape);
-            A.PresetGeometry? geometry = shape.Element
-                .Descendants<A.PresetGeometry>().FirstOrDefault();
-            A.AdjustValueList? values = geometry?.AdjustValueList;
-            if (values == null || !values.HasChildren) {
+            OfficeXmlNode geometry = FirstDescendant(ShapeXml(shape),
+                LegacyPptXml.A, "prstGeom");
+            OfficeXmlNode values = geometry.Child(LegacyPptXml.A, "avLst");
+            if (values.IsNone || !HasChildren(values)) {
                 properties = Array.Empty<LegacyPptWriterFoptProperty>();
                 reason = null;
                 return true;
             }
-            if (values.HasAttributes
-                || values.ChildElements.Any(child => child is not A.ShapeGuide)
-                || values.Elements<A.ShapeGuide>().Skip(1).Any()
+            if (HasAttributes(values)
+                || AnyChildOtherThan(values, LegacyPptXml.A, "gd")
+                || values.Children(LegacyPptXml.A, "gd").Count > 1
                 || shapeType is not 2 and not 23) {
                 properties = Array.Empty<LegacyPptWriterFoptProperty>();
                 reason = "Only one exact round-rectangle or donut adjustment can currently be written to binary PowerPoint.";
                 return false;
             }
-            A.ShapeGuide guide = values.Elements<A.ShapeGuide>().Single();
-            if (guide.HasChildren
-                || guide.GetAttributes().Any(attribute =>
-                    attribute.LocalName is not "name" and not "fmla")
-                || !string.Equals(guide.Name?.Value, "adj",
+            OfficeXmlNode guide = values.Child(LegacyPptXml.A, "gd");
+            if (HasChildren(guide)
+                || HasAttributeOtherThan(guide, "name", "fmla")
+                || !string.Equals(guide.Attribute("name"), "adj",
                     StringComparison.Ordinal)
-                || !TryReadConstantGuide(guide.Formula?.Value,
+                || !TryReadConstantGuide(guide.Attribute("fmla"),
                     out long drawingValue)) {
                 properties = Array.Empty<LegacyPptWriterFoptProperty>();
                 reason = "The shape adjustment must be a single 'adj' guide with a constant 'val' formula.";
@@ -198,19 +204,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
             out string? reason) {
             ArgumentNullException.ThrowIfNull(shape);
-            if (shape.Element.GetFirstChild<P.ShapeStyle>() != null) {
+            return TryReadShapeVisualStyle(ShapeXml(shape), out properties,
+                out reason);
+        }
+
+        internal static bool TryReadShapeVisualStyle(OfficeXmlNode element,
+            out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
+            out string? reason) {
+            if (!element.Child(LegacyPptXml.P, "style").IsNone) {
                 properties = Array.Empty<LegacyPptWriterFoptProperty>();
                 reason = "Theme-referenced shape styles must be resolved before binary PowerPoint writing.";
                 return false;
             }
             var result = new List<LegacyPptWriterFoptProperty>();
-            P.ShapeProperties? shapeProperties = shape.Element switch {
-                P.Shape value => value.ShapeProperties,
-                P.ConnectionShape value => value.ShapeProperties,
-                P.Picture value => value.ShapeProperties,
-                _ => null
-            };
-            if (shapeProperties != null
+            OfficeXmlNode shapeProperties = element.Is(LegacyPptXml.P, "sp")
+                || element.Is(LegacyPptXml.P, "cxnSp")
+                || element.Is(LegacyPptXml.P, "pic")
+                ? element.Child(LegacyPptXml.P, "spPr")
+                : default;
+            if (!shapeProperties.IsNone
                 && !TryReadShapeProperties(shapeProperties, result,
                     out reason)) {
                 properties = Array.Empty<LegacyPptWriterFoptProperty>();
@@ -222,34 +234,36 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryReadShapeProperties(
-            P.ShapeProperties source,
+            OfficeXmlNode source,
             ICollection<LegacyPptWriterFoptProperty> properties,
             out string? reason) {
-            foreach (OpenXmlElement child in source.ChildElements) {
-                if (child is A.Transform2D or A.PresetGeometry
-                    or A.NoFill or A.SolidFill or A.Outline
-                    or A.EffectList) {
+            foreach (OfficeXmlNode child in source.Children()) {
+                if (child.Is(LegacyPptXml.A, "xfrm")
+                    || child.Is(LegacyPptXml.A, "prstGeom")
+                    || child.Is(LegacyPptXml.A, "noFill")
+                    || child.Is(LegacyPptXml.A, "solidFill")
+                    || child.Is(LegacyPptXml.A, "ln")
+                    || child.Is(LegacyPptXml.A, "effectLst")) {
                     continue;
                 }
                 reason = $"The shape property '{child.LocalName}' has no lossless classic OfficeArt mapping.";
                 return false;
             }
 
-            OpenXmlElement[] fills = source.ChildElements.Where(child =>
-                child is A.NoFill or A.SolidFill).ToArray();
-            if (fills.Length > 1) {
+            List<OfficeXmlNode> fills = FillChildren(source);
+            if (fills.Count > 1) {
                 reason = "The shape contains multiple explicit fills.";
                 return false;
             }
-            if (fills.Length == 1) {
-                if (fills[0] is A.NoFill noFill) {
-                    if (noFill.HasAttributes || noFill.HasChildren) {
+            if (fills.Count == 1) {
+                if (fills[0].Is(LegacyPptXml.A, "noFill")) {
+                    if (HasAttributes(fills[0]) || HasChildren(fills[0])) {
                         reason = "The no-fill shape property contains an unsupported extension.";
                         return false;
                     }
                     properties.Add(new LegacyPptWriterFoptProperty(0x01BF,
                         0x00100000U));
-                } else if (!TryReadRgbFill((A.SolidFill)fills[0],
+                } else if (!TryReadRgbFill(fills[0],
                                out OfficeColor fillColor,
                                out int? fillAlpha, out reason)) {
                     return false;
@@ -267,13 +281,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
             }
 
-            A.Outline? outline = source.GetFirstChild<A.Outline>();
-            if (outline != null
+            OfficeXmlNode outline = source.Child(LegacyPptXml.A, "ln");
+            if (!outline.IsNone
                 && !TryReadOutline(outline, properties, out reason)) {
                 return false;
             }
-            A.EffectList? effects = source.GetFirstChild<A.EffectList>();
-            if (effects != null
+            OfficeXmlNode effects = source.Child(LegacyPptXml.A, "effectLst");
+            if (!effects.IsNone
                 && !TryReadShapeEffects(effects, properties, out reason)) {
                 return false;
             }
@@ -281,34 +295,43 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool TryReadOutline(A.Outline outline,
+        private static List<OfficeXmlNode> FillChildren(OfficeXmlNode parent) {
+            var fills = new List<OfficeXmlNode>();
+            foreach (OfficeXmlNode child in parent.Children()) {
+                if (child.Is(LegacyPptXml.A, "noFill")
+                    || child.Is(LegacyPptXml.A, "solidFill")) {
+                    fills.Add(child);
+                }
+            }
+            return fills;
+        }
+
+        private static bool TryReadOutline(OfficeXmlNode outline,
             ICollection<LegacyPptWriterFoptProperty> properties,
             out string? reason) {
-            if (outline.GetAttributes().Any(attribute =>
-                    attribute.LocalName is not "w" and not "cap")) {
+            if (HasAttributeOtherThan(outline, "w", "cap")) {
                 reason = "Binary PowerPoint does not support the requested compound or aligned outline.";
                 return false;
             }
-            OpenXmlElement[] fills = outline.ChildElements.Where(child =>
-                child is A.NoFill or A.SolidFill).ToArray();
-            if (fills.Length > 1) {
+            List<OfficeXmlNode> fills = FillChildren(outline);
+            if (fills.Count > 1) {
                 reason = "The shape outline contains multiple explicit fills.";
                 return false;
             }
-            if (fills.Length == 0 && (outline.HasAttributes
-                    || outline.HasChildren)) {
+            if (fills.Count == 0 && (HasAttributes(outline)
+                    || HasChildren(outline))) {
                 reason = "An explicitly formatted outline requires an RGB solid fill or no-fill for binary PowerPoint.";
                 return false;
             }
-            if (fills.Length == 1 && fills[0] is A.NoFill noFill) {
-                if (noFill.HasAttributes || noFill.HasChildren) {
+            if (fills.Count == 1 && fills[0].Is(LegacyPptXml.A, "noFill")) {
+                if (HasAttributes(fills[0]) || HasChildren(fills[0])) {
                     reason = "The no-fill outline contains an unsupported extension.";
                     return false;
                 }
                 properties.Add(new LegacyPptWriterFoptProperty(0x01FF,
                     0x00080000U));
-            } else if (fills.Length == 1) {
-                if (!TryReadRgbFill((A.SolidFill)fills[0],
+            } else if (fills.Count == 1) {
+                if (!TryReadRgbFill(fills[0],
                         out OfficeColor lineColor, out int? lineAlpha,
                         out reason)) {
                     return false;
@@ -322,7 +345,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 properties.Add(new LegacyPptWriterFoptProperty(0x01FF,
                     0x00080008U));
             }
-            if (outline.Width?.Value is int width) {
+            if (outline.Int("w") is int width) {
                 if (width < 0) {
                     reason = "Shape outline width cannot be negative.";
                     return false;
@@ -330,11 +353,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 properties.Add(new LegacyPptWriterFoptProperty(0x01CB,
                     checked((uint)width)));
             }
-            if (outline.CapType?.Value is A.LineCapValues cap) {
-                uint value = cap == A.LineCapValues.Round ? 0U
-                    : cap == A.LineCapValues.Square ? 1U
-                    : cap == A.LineCapValues.Flat ? 2U
-                    : uint.MaxValue;
+            if (outline.Attribute("cap") is string cap) {
+                uint value = cap switch {
+                    "rnd" => 0U,
+                    "sq" => 1U,
+                    "flat" => 2U,
+                    _ => uint.MaxValue
+                };
                 if (value == uint.MaxValue) {
                     reason = "The outline cap has no classic OfficeArt mapping.";
                     return false;
@@ -343,16 +368,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     value));
             }
 
-            foreach (OpenXmlElement child in outline.ChildElements) {
-                switch (child) {
-                    case A.NoFill:
-                    case A.SolidFill:
+            foreach (OfficeXmlNode child in outline.Children()) {
+                string name = child.NamespaceId == LegacyPptXml.A
+                    ? child.LocalName : string.Empty;
+                switch (name) {
+                    case "noFill":
+                    case "solidFill":
                         break;
-                    case A.PresetDash dash:
-                        if (dash.HasChildren
-                            || dash.GetAttributes().Any(attribute =>
-                                attribute.LocalName != "val")
-                            || !TryMapLineDash(dash.Val?.Value,
+                    case "prstDash":
+                        if (HasChildren(child)
+                            || HasAttributeOtherThan(child, "val")
+                            || !TryMapLineDash(child.Attribute("val"),
                                 out uint dashValue)) {
                             reason = "The outline dash pattern has no classic OfficeArt mapping.";
                             return false;
@@ -360,36 +386,36 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         properties.Add(new LegacyPptWriterFoptProperty(0x01CE,
                             dashValue));
                         break;
-                    case A.LineJoinBevel bevel:
-                        if (bevel.HasAttributes || bevel.HasChildren) {
+                    case "bevel":
+                        if (HasAttributes(child) || HasChildren(child)) {
                             reason = "The bevel line join contains an unsupported extension.";
                             return false;
                         }
                         properties.Add(new LegacyPptWriterFoptProperty(0x01D6,
                             0U));
                         break;
-                    case A.Miter miter:
-                        if (miter.HasAttributes || miter.HasChildren) {
+                    case "miter":
+                        if (HasAttributes(child) || HasChildren(child)) {
                             reason = "A custom miter limit has no exact classic OfficeArt mapping.";
                             return false;
                         }
                         properties.Add(new LegacyPptWriterFoptProperty(0x01D6,
                             1U));
                         break;
-                    case A.Round round:
-                        if (round.HasAttributes || round.HasChildren) {
+                    case "round":
+                        if (HasAttributes(child) || HasChildren(child)) {
                             reason = "The round line join contains an unsupported extension.";
                             return false;
                         }
                         properties.Add(new LegacyPptWriterFoptProperty(0x01D6,
                             2U));
                         break;
-                    case A.HeadEnd head:
-                        if (!TryAddLineEnd(head, isHead: true, properties,
+                    case "headEnd":
+                        if (!TryAddLineEnd(child, isHead: true, properties,
                                 out reason)) return false;
                         break;
-                    case A.TailEnd tail:
-                        if (!TryAddLineEnd(tail, isHead: false, properties,
+                    case "tailEnd":
+                        if (!TryAddLineEnd(child, isHead: false, properties,
                                 out reason)) return false;
                         break;
                     default:
@@ -401,37 +427,37 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool TryReadShapeEffects(A.EffectList effects,
+        private static bool TryReadShapeEffects(OfficeXmlNode effects,
             ICollection<LegacyPptWriterFoptProperty> properties,
             out string? reason) {
-            if (effects.HasAttributes || effects.ChildElements.Count > 1
-                || effects.FirstChild is not A.OuterShadow shadow) {
-                if (!effects.HasChildren && !effects.HasAttributes) {
+            OfficeXmlNode shadow = effects.FirstChild;
+            if (HasAttributes(effects) || ChildCount(effects) > 1
+                || !shadow.Is(LegacyPptXml.A, "outerShdw")) {
+                if (!HasChildren(effects) && !HasAttributes(effects)) {
                     reason = null;
                     return true;
                 }
                 reason = "Only one classic outer shadow can be written as a native binary PowerPoint shape effect.";
                 return false;
             }
-            if (shadow.GetAttributes().Any(attribute => attribute.LocalName
-                    is not "blurRad" and not "dist" and not "dir"
-                    and not "rotWithShape")
-                || shadow.RotateWithShape?.Value == true
-                || shadow.ChildElements.Count != 1
-                || shadow.GetFirstChild<A.RgbColorModelHex>() is not
-                    A.RgbColorModelHex rgb
+            OfficeXmlNode rgb = shadow.Child(LegacyPptXml.A, "srgbClr");
+            if (HasAttributeOtherThan(shadow, "blurRad", "dist", "dir",
+                    "rotWithShape")
+                || shadow.Bool("rotWithShape") == true
+                || ChildCount(shadow) != 1
+                || rgb.IsNone
                 || !TryReadRgbColor(rgb, out OfficeColor color,
                     out int? alpha)) {
                 reason = "The outer shadow uses scaling, skew, alignment, rotation, or color transforms that have no exact classic OfficeArt mapping.";
                 return false;
             }
-            long distance = shadow.Distance?.Value ?? 0L;
-            long blur = shadow.BlurRadius?.Value ?? 0L;
+            long distance = shadow.Long("dist") ?? 0L;
+            long blur = shadow.Long("blurRad") ?? 0L;
             if (distance < 0L || blur < 0L) {
                 reason = "Outer-shadow distance and blur radius cannot be negative.";
                 return false;
             }
-            int direction = shadow.Direction?.Value ?? 0;
+            int direction = shadow.Int("dir") ?? 0;
             double radians = direction / 60000D * Math.PI / 180D;
             double roundedOffsetX = Math.Round(Math.Cos(radians)
                 * distance, MidpointRounding.AwayFromZero);
@@ -468,11 +494,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool TryReadRgbFill(A.SolidFill fill,
+        private static bool TryReadRgbFill(OfficeXmlNode fill,
             out OfficeColor color, out int? alpha, out string? reason) {
-            if (fill.HasAttributes || fill.ChildElements.Count != 1
-                || fill.GetFirstChild<A.RgbColorModelHex>() is not
-                    A.RgbColorModelHex rgb
+            OfficeXmlNode rgb = fill.Child(LegacyPptXml.A, "srgbClr");
+            if (HasAttributes(fill) || ChildCount(fill) != 1
+                || rgb.IsNone
                 || !TryReadRgbColor(rgb, out color, out alpha)) {
                 color = default;
                 alpha = null;
@@ -483,73 +509,63 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool TryReadRgbColor(A.RgbColorModelHex rgb,
+        private static bool TryReadRgbColor(OfficeXmlNode rgb,
             out OfficeColor color, out int? alpha) {
             color = default;
             alpha = null;
-            if (rgb.Val?.Value == null
-                || !OfficeColor.TryParse(rgb.Val.Value, out color)
-                || rgb.ExtendedAttributes.Any()
-                || rgb.ChildElements.Any(child => child is not A.Alpha)
-                || rgb.Elements<A.Alpha>().Skip(1).Any()) {
+            string? value = rgb.Attribute("val");
+            if (value == null
+                || !OfficeColor.TryParse(value, out color)
+                || HasExtendedAttributes(rgb, "val")
+                || AnyChildOtherThan(rgb, LegacyPptXml.A, "alpha")
+                || rgb.Children(LegacyPptXml.A, "alpha").Count > 1) {
                 return false;
             }
-            A.Alpha? sourceAlpha = rgb.GetFirstChild<A.Alpha>();
-            if (sourceAlpha == null) return true;
-            if (sourceAlpha.HasChildren || sourceAlpha.ExtendedAttributes.Any()
-                || sourceAlpha.Val?.Value is not int value
-                || value < 0 || value > 100000) {
+            OfficeXmlNode sourceAlpha = rgb.Child(LegacyPptXml.A, "alpha");
+            if (sourceAlpha.IsNone) return true;
+            if (HasChildren(sourceAlpha)
+                || HasExtendedAttributes(sourceAlpha, "val")
+                || sourceAlpha.Int("val") is not int alphaValue
+                || alphaValue < 0 || alphaValue > 100000) {
                 return false;
             }
-            alpha = value;
+            alpha = alphaValue;
             return true;
         }
 
-        private static bool TryAddLineEnd(OpenXmlElement source,
+        private static bool TryAddLineEnd(OfficeXmlNode source,
             bool isHead,
             ICollection<LegacyPptWriterFoptProperty> properties,
             out string? reason) {
-            if (source.HasChildren || source.GetAttributes().Any(attribute =>
-                    attribute.LocalName is not "type" and not "w"
-                        and not "len")) {
+            if (HasChildren(source)
+                || HasAttributeOtherThan(source, "type", "w", "len")) {
                 reason = "The line end contains an unsupported extension.";
                 return false;
             }
-            A.LineEndValues? type;
-            A.LineEndWidthValues? width;
-            A.LineEndLengthValues? length;
-            if (source is A.HeadEnd head) {
-                type = head.Type?.Value;
-                width = head.Width?.Value;
-                length = head.Length?.Value;
-            } else {
-                A.TailEnd tail = (A.TailEnd)source;
-                type = tail.Type?.Value;
-                width = tail.Width?.Value;
-                length = tail.Length?.Value;
-            }
+            string? type = source.Attribute("type");
+            string? width = source.Attribute("w");
+            string? length = source.Attribute("len");
             ushort typeId = isHead ? (ushort)0x01D0 : (ushort)0x01D1;
             ushort widthId = isHead ? (ushort)0x01D2 : (ushort)0x01D4;
             ushort lengthId = isHead ? (ushort)0x01D3 : (ushort)0x01D5;
-            if (type.HasValue) {
-                uint value = type.Value == A.LineEndValues.None ? 0U
-                    : type.Value == A.LineEndValues.Triangle ? 1U
-                    : type.Value == A.LineEndValues.Stealth ? 2U
-                    : type.Value == A.LineEndValues.Diamond ? 3U
-                    : type.Value == A.LineEndValues.Oval ? 4U
-                    : type.Value == A.LineEndValues.Arrow ? 5U
-                    : uint.MaxValue;
+            if (type != null) {
+                uint value = type switch {
+                    "none" => 0U,
+                    "triangle" => 1U,
+                    "stealth" => 2U,
+                    "diamond" => 3U,
+                    "oval" => 4U,
+                    "arrow" => 5U,
+                    _ => uint.MaxValue
+                };
                 if (value == uint.MaxValue) {
                     reason = "The line-end type has no classic OfficeArt mapping.";
                     return false;
                 }
                 properties.Add(new LegacyPptWriterFoptProperty(typeId, value));
             }
-            if (width.HasValue) {
-                uint value = width.Value == A.LineEndWidthValues.Small ? 0U
-                    : width.Value == A.LineEndWidthValues.Medium ? 1U
-                    : width.Value == A.LineEndWidthValues.Large ? 2U
-                    : uint.MaxValue;
+            if (width != null) {
+                uint value = MapLineEndSize(width);
                 if (value == uint.MaxValue) {
                     reason = "The line-end width has no classic OfficeArt mapping.";
                     return false;
@@ -557,11 +573,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 properties.Add(new LegacyPptWriterFoptProperty(widthId,
                     value));
             }
-            if (length.HasValue) {
-                uint value = length.Value == A.LineEndLengthValues.Small ? 0U
-                    : length.Value == A.LineEndLengthValues.Medium ? 1U
-                    : length.Value == A.LineEndLengthValues.Large ? 2U
-                    : uint.MaxValue;
+            if (length != null) {
+                uint value = MapLineEndSize(length);
                 if (value == uint.MaxValue) {
                     reason = "The line-end length has no classic OfficeArt mapping.";
                     return false;
@@ -573,20 +586,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool TryMapLineDash(A.PresetLineDashValues? value,
+        private static uint MapLineEndSize(string value) => value switch {
+            "sm" => 0U,
+            "med" => 1U,
+            "lg" => 2U,
+            _ => uint.MaxValue
+        };
+
+        private static bool TryMapLineDash(string? value,
             out uint mapped) {
-            mapped = value == A.PresetLineDashValues.Solid ? 0U
-                : value == A.PresetLineDashValues.SystemDash ? 1U
-                : value == A.PresetLineDashValues.SystemDot ? 2U
-                : value == A.PresetLineDashValues.SystemDashDot ? 3U
-                : value == A.PresetLineDashValues.SystemDashDotDot ? 4U
-                : value == A.PresetLineDashValues.Dot ? 5U
-                : value == A.PresetLineDashValues.Dash ? 6U
-                : value == A.PresetLineDashValues.LargeDash ? 7U
-                : value == A.PresetLineDashValues.DashDot ? 8U
-                : value == A.PresetLineDashValues.LargeDashDot ? 9U
-                : value == A.PresetLineDashValues.LargeDashDotDot ? 10U
-                : uint.MaxValue;
+            mapped = value switch {
+                "solid" => 0U,
+                "sysDash" => 1U,
+                "sysDot" => 2U,
+                "sysDashDot" => 3U,
+                "sysDashDotDot" => 4U,
+                "dot" => 5U,
+                "dash" => 6U,
+                "lgDash" => 7U,
+                "dashDot" => 8U,
+                "lgDashDot" => 9U,
+                "lgDashDotDot" => 10U,
+                _ => uint.MaxValue
+            };
             return mapped != uint.MaxValue;
         }
 
@@ -757,7 +779,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         && property.PropertyId != 0x0109
                         && property.PropertyId != 0x013F)
                     .ToList();
-                AddPictureFormatProperties(properties, picture);
+                AddPictureFormatProperties(properties, ShapeXml(picture));
                 PreserveBooleanPropertyBits(sourceProperties, properties,
                     0x013F, pictureBooleanMask);
                 PreserveBooleanPropertyBits(sourceProperties, properties,
@@ -787,9 +809,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 properties.AddRange(frame.Where(property =>
                     property.PropertyId != 0x00BF));
                 uint rewriteMask = TextFitShapeMasks;
-                A.BodyProperties body = ((P.Shape)textBox.Element)
-                    .TextBody!.BodyProperties!;
-                if (HasExplicitTextInsets(body)) {
+                OfficeXmlNode body = ShapeXml(textBox)
+                    .Child(LegacyPptXml.P, "txBody")
+                    .Child(LegacyPptXml.A, "bodyPr");
+                if (HasExplicitTextInsetAttributes(body)) {
                     rewriteMask |= TextAutoMarginMasks;
                 }
                 uint preservedFlags = (sourceProperties.LastOrDefault(
@@ -864,10 +887,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             OfficePresetShapeType? preset = shape switch {
                 PowerPointConnectionShape connector => connector.ShapeType,
                 PowerPointAutoShape autoShape => autoShape.ShapeType,
-                _ when shape.Element is P.Shape source => source
-                    .ShapeProperties?.GetFirstChild<A.PresetGeometry>()?
-                    .Preset?.Value.ToOfficeEnum(),
-                _ => null
+                _ => ReadPresetGeometry(ShapeXml(shape))
             };
             if (!preset.HasValue
                 || !LegacyPptShapeGeometryMapper.TryGetShapeType(
@@ -884,14 +904,33 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             if (requireConnector
-                && (shape.Element.Descendants<A.StartConnection>().Any()
-                    || shape.Element.Descendants<A.EndConnection>().Any())) {
+                && (!FirstDescendant(ShapeXml(shape), LegacyPptXml.A,
+                        "stCxn").IsNone
+                    || !FirstDescendant(ShapeXml(shape), LegacyPptXml.A,
+                        "endCxn").IsNone)) {
                 reason = "Fresh connector attachment rules are not yet encoded by the binary PowerPoint writer.";
                 return false;
             }
             reason = null;
             return true;
         }
+
+        private static OfficePresetShapeType? ReadPresetGeometry(
+            OfficeXmlNode element) {
+            if (!element.Is(LegacyPptXml.P, "sp")) return null;
+            string? token = element.Child(LegacyPptXml.P, "spPr")
+                .Child(LegacyPptXml.A, "prstGeom").Attribute("prst");
+            return token != null
+                && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(
+                    token, out OfficePresetShapeType value)
+                ? value
+                : null;
+        }
+
+        // The same test as LegacyPptWriter.TextFrames' HasExplicitTextInsets: an inset attribute with a valid value.
+        private static bool HasExplicitTextInsetAttributes(OfficeXmlNode body) =>
+            body.Int("lIns").HasValue || body.Int("tIns").HasValue
+            || body.Int("rIns").HasValue || body.Int("bIns").HasValue;
 
         internal sealed class LegacyPptWriterShapeFormatting {
             internal static LegacyPptWriterShapeFormatting Empty { get; } =
@@ -910,6 +949,155 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             internal uint FspFlags { get; }
+        }
+    }
+
+    /// <summary>
+    /// Reading helpers the binary writer uses on drawing markup: element and attribute tests that match how the markup
+    /// is written, shape markup that can be enumerated in either document model, and stable shape identities for the
+    /// write catalogs.
+    /// </summary>
+    internal static class LegacyPptWriterXml {
+        /// <summary>
+        /// The shape's markup as an element of an Open XML layer tree: the package element itself, or a detached copy of
+        /// the SDK element while the SDK holds the document. Read it; don't compare it by identity.
+        /// </summary>
+        internal static OfficeXmlNode ShapeXml(PowerPointShape shape) {
+            ArgumentNullException.ThrowIfNull(shape);
+            return Readable(shape.XmlElement);
+        }
+
+        /// <summary>The element itself when it lives in a layer tree, otherwise a detached copy parsed from its markup.</summary>
+        internal static OfficeXmlNode Readable(OfficeXmlNode element) {
+            if (element.IsNone || element.Tree != null) return element;
+            byte[] markup = element.OuterXml();
+            OfficeXmlTree tree = OfficeXmlTree.Parse(markup, markup.Length,
+                new OfficeXmlNamespaces.Table());
+            return new OfficeXmlNode(tree, tree.Root);
+        }
+
+        internal static OfficeXmlNode FirstDescendant(OfficeXmlNode element,
+            int namespaceId, string localName) {
+            foreach (OfficeXmlNode descendant in element.AllDescendants()) {
+                if (descendant.Is(namespaceId, localName)) return descendant;
+            }
+            return default;
+        }
+
+        internal static bool HasDescendant(OfficeXmlNode element,
+            int namespaceId, string localName) =>
+            !FirstDescendant(element, namespaceId, localName).IsNone;
+
+        /// <summary>Whether the element has child elements.</summary>
+        internal static bool HasChildren(OfficeXmlNode element) =>
+            !element.FirstChild.IsNone;
+
+        internal static int ChildCount(OfficeXmlNode element) =>
+            element.Children().Count;
+
+        internal static bool AnyChildOtherThan(OfficeXmlNode element,
+            int namespaceId, string localName) {
+            foreach (OfficeXmlNode child in element.Children()) {
+                if (!child.Is(namespaceId, localName)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// The element's attributes as markup states them, namespace declarations and markup-compatibility attributes
+        /// left out.
+        /// </summary>
+        internal static List<(int NamespaceId, string LocalName, string Value)> Attributes(
+            OfficeXmlNode element) {
+            var attributes = new List<(int, string, string)>();
+            OfficeXmlNode readable = Readable(element);
+            if (readable.Tree is not { } tree) return attributes;
+            int count = tree.AttributeCountOf(readable.Node);
+            for (int index = 0; index < count; index++) {
+                tree.GetAttributeAt(readable.Node, index, out int namespaceId,
+                    out string localName, out string value);
+                if (namespaceId == OfficeXmlNamespaces.Xmlns
+                    || namespaceId == OfficeXmlNamespaces.MarkupCompatibility
+                    || namespaceId == OfficeXmlNamespaces.None
+                        && string.Equals(localName, "xmlns", StringComparison.Ordinal)) {
+                    continue;
+                }
+                attributes.Add((namespaceId, localName, value));
+            }
+            return attributes;
+        }
+
+        /// <summary>The value of the attribute with this namespace URI and local name, or null.</summary>
+        internal static string? AttributeIn(OfficeXmlNode element,
+            string namespaceUri, string localName) {
+            OfficeXmlNode readable = Readable(element);
+            if (readable.Tree is not { } tree) return null;
+            int count = tree.AttributeCountOf(readable.Node);
+            for (int index = 0; index < count; index++) {
+                tree.GetAttributeAt(readable.Node, index, out int namespaceId,
+                    out string name, out string value);
+                if (string.Equals(name, localName, StringComparison.Ordinal)
+                    && string.Equals(tree.Namespaces.GetUri(namespaceId),
+                        namespaceUri, StringComparison.Ordinal)) return value;
+            }
+            return null;
+        }
+
+        internal static bool HasAttributes(OfficeXmlNode element) =>
+            Attributes(element).Count > 0;
+
+        /// <summary>Whether an attribute has a local name outside <paramref name="localNames"/>, in any namespace.</summary>
+        internal static bool HasAttributeOtherThan(OfficeXmlNode element,
+            params string[] localNames) {
+            foreach ((_, string localName, _) in Attributes(element)) {
+                if (Array.IndexOf(localNames, localName) < 0) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Whether the element carries an attribute its schema does not define: anything other than the unqualified
+        /// <paramref name="knownLocalNames"/>.
+        /// </summary>
+        internal static bool HasExtendedAttributes(OfficeXmlNode element,
+            params string[] knownLocalNames) {
+            foreach ((int namespaceId, string localName, _) in Attributes(element)) {
+                if (namespaceId != OfficeXmlNamespaces.None
+                    || Array.IndexOf(knownLocalNames, localName) < 0) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// A key that identifies a shape's element for the length of a write, whichever model holds the document: its
+        /// part and position there, or the element itself when it is not attached to a part.
+        /// </summary>
+        internal static object ShapeKey(PowerPointShape shape) {
+            ArgumentNullException.ThrowIfNull(shape);
+            OfficeXmlNode element = shape.XmlElement;
+            if (element.IsNone) return shape;
+            if (!element.IsAttached) return element;
+            return ElementPath(shape.OwnerPartRef.Name, element);
+        }
+
+        /// <summary>The part name and the element's child positions from the part root.</summary>
+        internal static string ElementPath(string partName, OfficeXmlNode element) {
+            var positions = new Stack<int>();
+            for (OfficeXmlNode current = element; !current.Parent.IsNone;
+                 current = current.Parent) {
+                int index = 0;
+                for (OfficeXmlNode sibling = current.PreviousSibling;
+                     !sibling.IsNone; sibling = sibling.PreviousSibling) {
+                    index++;
+                }
+                positions.Push(index);
+            }
+            var path = new StringBuilder(partName);
+            while (positions.Count > 0) {
+                path.Append('/').Append(positions.Pop().ToString(
+                    CultureInfo.InvariantCulture));
+            }
+            return path.ToString();
         }
     }
 }

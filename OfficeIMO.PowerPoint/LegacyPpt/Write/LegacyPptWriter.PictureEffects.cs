@@ -1,67 +1,74 @@
-using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using static OfficeIMO.PowerPoint.LegacyPpt.Write.LegacyPptWriterXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
-        internal static bool TryReadPictureEffects(A.Blip blip,
+        internal static bool TryReadPictureEffects(OfficeXmlNode blip,
             out LegacyPptWriterPictureEffects effects,
             out string? reason) {
-            ArgumentNullException.ThrowIfNull(blip);
-            A.LuminanceEffect? luminance = null;
+            if (blip.IsNone) throw new ArgumentNullException(nameof(blip));
+            OfficeXmlNode luminance = default;
             bool grayscale = false;
             bool biLevel = false;
             OfficeColor? transparentColor = null;
             OfficeColor? recolorColor = null;
 
-            foreach (OpenXmlElement child in blip.ChildElements) {
-                switch (child) {
-                    case A.LuminanceEffect value:
-                        if (luminance != null || value.HasChildren
-                            || value.ExtendedAttributes.Any()) {
+            foreach (OfficeXmlNode child in blip.Children()) {
+                string name = child.NamespaceId == LegacyPptXml.A
+                    ? child.LocalName : string.Empty;
+                switch (name) {
+                    case "lum":
+                        if (!luminance.IsNone || HasChildren(child)
+                            || HasExtendedAttributes(child, "bright",
+                                "contrast")) {
                             effects = LegacyPptWriterPictureEffects.None;
                             reason = "The picture contains a duplicate or extended luminance effect that has no single OfficeArt equivalent.";
                             return false;
                         }
-                        int brightness = value.Brightness?.Value ?? 0;
-                        int contrast = value.Contrast?.Value ?? 0;
+                        int brightness = child.Int("bright") ?? 0;
+                        int contrast = child.Int("contrast") ?? 0;
                         if (!IsPictureAdjustment(brightness)
                             || !IsPictureAdjustment(contrast)) {
                             effects = LegacyPptWriterPictureEffects.None;
                             reason = "Picture brightness and contrast must be between -100000 and 100000 for binary PowerPoint.";
                             return false;
                         }
-                        luminance = value;
+                        luminance = child;
                         break;
-                    case A.Grayscale value:
-                        if (grayscale || value.HasAttributes
-                            || value.HasChildren) {
+                    case "grayscl":
+                        if (grayscale || HasAttributes(child)
+                            || HasChildren(child)) {
                             effects = LegacyPptWriterPictureEffects.None;
                             reason = "The picture contains a duplicate or extended grayscale effect that has no single OfficeArt equivalent.";
                             return false;
                         }
                         grayscale = true;
                         break;
-                    case A.BiLevel value:
-                        if (biLevel || value.HasChildren
-                            || value.ExtendedAttributes.Any()
-                            || value.Threshold?.Value != 50000) {
+                    case "biLevel":
+                        if (biLevel || HasChildren(child)
+                            || HasExtendedAttributes(child, "thresh")
+                            || child.Int("thresh") != 50000) {
                             effects = LegacyPptWriterPictureEffects.None;
                             reason = "Binary PowerPoint supports the classic 50-percent bi-level picture effect only.";
                             return false;
                         }
                         biLevel = true;
                         break;
-                    case A.ColorChange value:
-                        if (transparentColor.HasValue || value.HasAttributes
-                            || value.ColorFrom?.ChildElements.Count != 1
-                            || value.ColorTo?.ChildElements.Count != 1
-                            || !TryReadEffectRgb(value.ColorFrom?
-                                    .GetFirstChild<A.RgbColorModelHex>(),
+                    case "clrChange":
+                        OfficeXmlNode colorFrom = child.Child(LegacyPptXml.A,
+                            "clrFrom");
+                        OfficeXmlNode colorTo = child.Child(LegacyPptXml.A,
+                            "clrTo");
+                        if (transparentColor.HasValue || HasAttributes(child)
+                            || colorFrom.IsNone || ChildCount(colorFrom) != 1
+                            || colorTo.IsNone || ChildCount(colorTo) != 1
+                            || !TryReadEffectRgb(colorFrom.Child(
+                                    LegacyPptXml.A, "srgbClr"),
                                 requireTransparent: false,
                                 out OfficeColor from)
-                            || !TryReadEffectRgb(value.ColorTo?
-                                    .GetFirstChild<A.RgbColorModelHex>(),
+                            || !TryReadEffectRgb(colorTo.Child(
+                                    LegacyPptXml.A, "srgbClr"),
                                 requireTransparent: true,
                                 out OfficeColor to)
                             || from != to) {
@@ -71,11 +78,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         }
                         transparentColor = from;
                         break;
-                    case A.ColorReplacement value:
-                        if (recolorColor.HasValue || value.HasAttributes
-                            || value.ChildElements.Count != 1
-                            || !TryReadEffectRgb(value
-                                    .GetFirstChild<A.RgbColorModelHex>(),
+                    case "clrRepl":
+                        if (recolorColor.HasValue || HasAttributes(child)
+                            || ChildCount(child) != 1
+                            || !TryReadEffectRgb(child.Child(LegacyPptXml.A,
+                                    "srgbClr"),
                                 requireTransparent: false,
                                 out OfficeColor replacement)) {
                             effects = LegacyPptWriterPictureEffects.None;
@@ -97,8 +104,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             effects = new LegacyPptWriterPictureEffects(
-                luminance?.Brightness?.Value ?? 0,
-                luminance?.Contrast?.Value ?? 0,
+                luminance.IsNone ? 0 : luminance.Int("bright") ?? 0,
+                luminance.IsNone ? 0 : luminance.Int("contrast") ?? 0,
                 grayscale, biLevel, transparentColor, recolorColor);
             reason = null;
             return true;
@@ -107,19 +114,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static bool IsPictureAdjustment(int value) =>
             value >= -100000 && value <= 100000;
 
-        private static bool TryReadEffectRgb(A.RgbColorModelHex? value,
+        private static bool TryReadEffectRgb(OfficeXmlNode value,
             bool requireTransparent, out OfficeColor color) {
             color = default;
-            string? hex = value?.Val?.Value;
-            if (hex == null || value!.ExtendedAttributes.Any()
+            string? hex = value.IsNone ? null : value.Attribute("val");
+            if (hex == null || HasExtendedAttributes(value, "val")
                 || !OfficeColor.TryParse(hex, out color)) {
                 return false;
             }
             if (requireTransparent) {
-                return value.ChildElements.Count == 1
-                    && value.GetFirstChild<A.Alpha>()?.Val?.Value == 0;
+                return ChildCount(value) == 1
+                    && value.Child(LegacyPptXml.A, "alpha").Int("val") == 0;
             }
-            return value.ChildElements.Count == 0;
+            return ChildCount(value) == 0;
         }
 
         private static void AddPictureEffectProperties(

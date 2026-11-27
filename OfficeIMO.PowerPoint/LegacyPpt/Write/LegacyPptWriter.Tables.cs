@@ -255,7 +255,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         textContent.Style9Record) }));
             }
             LegacyPptWriterShapeInteractions interactions =
-                interactionCatalog.Get(cell.Cell);
+                interactionCatalog.Get(table, row, column);
             children.Add(BuildTextBox((uint)LegacyPptTextType.Other,
                 interactions.TextInteractions, textContent));
             return BuildContainer(OfficeArtSpContainer, instance: 0,

@@ -46,7 +46,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] WriteDocument(PowerPointDocument presentation,
             PowerPointSaveOptions? options = null) {
             ArgumentNullException.ThrowIfNull(presentation);
-            LegacyPptWritePreflightReport preflight = LegacyPptWritePreflight.Analyze(presentation);
+            using OfficeIMO.PowerPoint.LegacyPpt.Internal.LegacyPptPackageView view =
+                OfficeIMO.PowerPoint.LegacyPpt.Internal.LegacyPptPackageView.Capture(presentation);
+            LegacyPptWritePreflightReport preflight = LegacyPptWritePreflight.Analyze(view, presentation);
             LegacyPptWritePreflight.ThrowIfBlocked(preflight, options);
             if (!TryReadAllClassicComments(presentation,
                     out IReadOnlyDictionary<string, IReadOnlyList<LegacyPptWriterComment>> commentsBySlide,
@@ -60,19 +62,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 throw new NotSupportedException(customShowReason);
             }
             var soundCatalog = new LegacyPptWriterSoundCatalog();
-            if (!TryReadInteractions(presentation.Slides, soundCatalog,
+            if (!TryReadInteractions(view, presentation.Slides, soundCatalog,
                     out LegacyPptWriterInteractionCatalog interactionCatalog,
                     out string? interactionReason)) {
                 throw new NotSupportedException(interactionReason);
             }
             uint firstExternalObjectId = checked((uint)
                 interactionCatalog.Hyperlinks.Count + 1U);
-            if (!TryReadMedia(presentation.Slides, firstExternalObjectId,
+            if (!TryReadMedia(view, presentation.Slides, firstExternalObjectId,
                     soundCatalog, out LegacyPptWriterMediaCatalog mediaCatalog,
                     out string? mediaReason)) {
                 throw new NotSupportedException(mediaReason);
             }
-            if (!TryReadOleObjects(presentation.Slides,
+            if (!TryReadOleObjects(view, presentation.Slides,
                     mediaCatalog.NextObjectId,
                     out LegacyPptWriterOleObjectCatalog oleCatalog,
                     out string? oleReason)) {
@@ -83,7 +85,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? pictureBulletReason)) {
                 throw new NotSupportedException(pictureBulletReason);
             }
-            if (!TryReadPictureCatalog(presentation,
+            if (!TryReadPictureCatalog(view, presentation,
                     CreateFontCatalogForWrite(), pictureBullets,
                     convertUnsupportedTables: options?.LossPolicy
                         == OfficeConversionLossPolicy.Allow,
@@ -91,7 +93,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out _, out string? pictureReason)) {
                 throw new NotSupportedException(pictureReason);
             }
-            if (!TryReadClassicAnimations(presentation.Slides, soundCatalog,
+            if (!TryReadClassicAnimations(view, presentation.Slides, soundCatalog,
                     out LegacyPptWriterAnimationCatalog animationCatalog,
                     out string? animationReason)) {
                 throw new NotSupportedException(animationReason);
@@ -638,7 +640,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static void AddLayoutPlaceholderType(byte[] result,
             P.PlaceholderValues? type, P.DirectionValues? orientation, uint? requestedIndex,
             bool replaceExisting) {
-            byte mapped = MapPlaceholder(type, orientation);
+            byte mapped = MapPlaceholder(type.ToOfficeEnum(),
+                orientation == P.DirectionValues.Vertical);
             if (mapped == 0) return;
             int index = requestedIndex.HasValue && requestedIndex.Value < result.Length
                 ? checked((int)requestedIndex.Value)

@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         private static bool TryValidateMaterializedLayoutPictures(
             PowerPointDocument presentation,
-            ISet<OpenXmlElement> materializedPictures,
+            ISet<string> materializedPictures,
             out string? reason) {
             IEnumerable<SlideLayoutPart> layoutParts = presentation
                 .OpenXmlDocument.PresentationPart?.SlideMasterParts
@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             foreach (SlideLayoutPart part in layoutParts) {
                 P.Picture? unmaterialized = part.SlideLayout?.CommonSlideData?
                     .ShapeTree?.Descendants<P.Picture>().FirstOrDefault(
-                        picture => !materializedPictures.Contains(picture));
+                        picture => !materializedPictures.Contains(LegacyPptWriterXml.ElementPath(part.Uri.ToString(), OfficeXmlNode.FromSdk(picture))));
                 if (unmaterialized == null) continue;
                 string name = part.SlideLayout?.CommonSlideData?.Name?.Value
                     ?? part.Uri.ToString();

@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     || background.PictureBytes.Length == 0
                     || string.IsNullOrWhiteSpace(
                         background.PictureContentType)) return false;
-                return _catalog!.TryAdd(background.PictureFill,
+                return _catalog!.TryAdd(OfficeXmlNode.FromSdk(background.PictureFill),
                     background.PictureBytes, background.PictureContentType!,
                     out _);
             }

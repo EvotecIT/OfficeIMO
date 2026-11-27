@@ -1,15 +1,36 @@
 using System.Collections.ObjectModel;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         private const ushort RecordAnimationInfoAtomForWrite = 0x0FF1;
         private const ushort RecordAnimationInfoForWrite = 0x1014;
 
+        // Caller without a package view: LegacyPptPreservingWriter.ChangePlan and LegacyPptWriter (single-slide records).
         internal static bool TryReadClassicAnimations(
             IEnumerable<PowerPointSlide> slides,
             LegacyPptWriterSoundCatalog soundCatalog,
             out LegacyPptWriterAnimationCatalog catalog, out string? reason) {
+            ArgumentNullException.ThrowIfNull(slides);
+            PowerPointSlide[] list = slides.ToArray();
+            if (list.Length == 0) {
+                catalog = new LegacyPptWriterAnimationCatalog(
+                    new Dictionary<string, LegacyPptWriterAnimation>(
+                        StringComparer.Ordinal));
+                reason = null;
+                return true;
+            }
+            using LegacyPptPackageView view = CaptureView(list[0]);
+            return TryReadClassicAnimations(view, list, soundCatalog,
+                out catalog, out reason);
+        }
+
+        internal static bool TryReadClassicAnimations(
+            LegacyPptPackageView view,
+            IEnumerable<PowerPointSlide> slides,
+            LegacyPptWriterSoundCatalog soundCatalog,
+            out LegacyPptWriterAnimationCatalog catalog, out string? reason) {
+            ArgumentNullException.ThrowIfNull(view);
             ArgumentNullException.ThrowIfNull(slides);
             ArgumentNullException.ThrowIfNull(soundCatalog);
             var items = new Dictionary<string, LegacyPptWriterAnimation>(
@@ -18,9 +39,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             foreach (PowerPointSlide slide in slides) {
                 IReadOnlyList<PowerPointClassicAnimation> animations =
                     slide.ClassicAnimations;
-                if (slide.SlidePart.Slide?.Timing != null
+                LegacyPptPartView slidePart = view.Part(slide.PartRef.Name);
+                if (!slidePart.Root.Child(LegacyPptXml.P, "timing").IsNone
                     && !slide.HasOnlyClassicAnimationTiming()
-                    && !HasOnlyDefaultMediaPlaybackTiming(slide)) {
+                    && !HasOnlyDefaultMediaPlaybackTiming(slidePart, slide)) {
                     catalog = new LegacyPptWriterAnimationCatalog(items);
                     reason = "The slide contains an advanced timing tree that is neither a constrained classic animation sequence nor default embedded-media playback timing.";
                     return false;
@@ -50,12 +72,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             reason = "A classic animation is marked to play sound but has no embedded audio relationship.";
                             return false;
                         }
-                        var soundElement = new Sound {
-                            Embed = animation.SoundRelationshipId,
-                            Name = animation.SoundName ?? "Animation Sound"
-                        };
-                        if (!soundCatalog.TryGetOrAdd(slide.SlidePart,
-                                soundElement, out sound, out reason)
+                        if (!soundCatalog.TryGetOrAdd(slidePart,
+                                animation.SoundRelationshipId!,
+                                animation.SoundName ?? "Animation Sound",
+                                builtIn: false, out sound, out reason)
                             || sound == null) {
                             catalog = new LegacyPptWriterAnimationCatalog(items);
                             return false;
@@ -103,7 +123,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static string GetAnimationKey(PowerPointSlide slide,
-            uint shapeId) => slide.SlidePart.Uri + "#" + shapeId.ToString(
+            uint shapeId) => slide.PartRef.Name + "#" + shapeId.ToString(
                 System.Globalization.CultureInfo.InvariantCulture);
 
         internal sealed class LegacyPptWriterAnimationCatalog {

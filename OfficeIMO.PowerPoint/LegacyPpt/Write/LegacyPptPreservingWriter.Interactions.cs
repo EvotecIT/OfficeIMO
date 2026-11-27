@@ -429,7 +429,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     LegacyPptWriter.LegacyPptWriterShapeInteractions interactions =
                         source.Get(shape);
                     if (interactions.HasInteractions) {
-                        result.Add(shape.Element, Remap(interactions));
+                        result.Add(shape, Remap(interactions));
                     }
                 }
                 return result;

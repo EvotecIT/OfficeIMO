@@ -570,7 +570,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 background.FillType));
             if (background.PictureFill != null) {
                 LegacyPptWriterPicture picture = pictureCatalog?
-                    .Get(background.PictureFill)
+                    .Get(OfficeXmlNode.FromSdk(background.PictureFill))
                     ?? throw new NotSupportedException(
                         "A preservation-aware picture-background edit requires an updated binary BLIP store.");
                 properties.Add(new LegacyPptWriterFoptProperty(0x4186,

@@ -1,16 +1,22 @@
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using static OfficeIMO.PowerPoint.LegacyPpt.Write.LegacyPptWriterXml;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWritePreflight {
         internal static LegacyPptWritePreflightReport Analyze(PowerPointDocument presentation) {
             ArgumentNullException.ThrowIfNull(presentation);
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(presentation);
+            return Analyze(view, presentation);
+        }
+
+        internal static LegacyPptWritePreflightReport Analyze(LegacyPptPackageView view,
+            PowerPointDocument presentation) {
+            ArgumentNullException.ThrowIfNull(view);
+            ArgumentNullException.ThrowIfNull(presentation);
             var findings = new List<LegacyPptWriteFinding>();
-            AddPackagePartFindings(presentation, findings);
+            AddPackagePartFindings(view, presentation, findings);
             int packageFindingCount = findings.Count;
             bool canPreserve = presentation.CanPreserveOriginalLegacyPackage
                 || LegacyPptPreservingWriter.CanWriteDocument(
@@ -44,10 +50,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     propertyReason
                     ?? "A document property cannot be encoded by the native binary writer."));
             }
-            SlideMasterPart[] masterParts = presentation.OpenXmlDocument
-                .PresentationPart?.SlideMasterParts.ToArray()
-                ?? Array.Empty<SlideMasterPart>();
-            int masterCount = masterParts.Length;
+            IReadOnlyList<LegacyPptPartView> masterParts = view.SlideMasterParts;
+            int masterCount = masterParts.Count;
             LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
                 pictureBullets;
             if (!LegacyPptWriter.TryReadPictureBulletCatalog(presentation,
@@ -78,10 +82,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             LegacyPptWriter.LegacyPptWriterFontCatalog shapeTextFonts =
                 LegacyPptWriter.CreateFontCatalogForWrite();
-            for (int masterIndex = 0; masterIndex < masterParts.Length;
+            for (int masterIndex = 0; masterIndex < masterParts.Count;
                  masterIndex++) {
-                SlideMasterPart masterPart = masterParts[masterIndex];
-                if (!LegacyPptWriter.TryReadBackground(masterPart, out _,
+                LegacyPptPartView masterPart = masterParts[masterIndex];
+                if (!LegacyPptWriter.SdkTryReadBackground(presentation,
+                        masterPart, out _,
                         out string? masterBackgroundReason)) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.Backgrounds, "ppt-write-background",
@@ -89,7 +94,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         ?? "A slide-master background cannot be encoded by the native binary writer."));
                 }
                 IReadOnlyList<PowerPointShape> masterShapes = LegacyPptWriter
-                    .ReadMasterShapesForWrite(masterPart,
+                    .SdkReadMasterShapesForWrite(presentation, masterPart,
                         out string? masterShapeReason);
                 if (masterShapeReason != null) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Masters,
@@ -100,30 +105,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     $"Slide master {masterIndex}",
                     LegacyPptWriter.LegacyPptWriterShapeContext.MainMaster,
                     shapeTextFonts, pictureBullets);
-                if (masterPart.SlideMaster?.Descendants<P.Timing>().Any()
-                        == true
-                    || masterPart.SlideMaster?.Descendants<P.Transition>().Any()
-                        == true) {
+                if (HasDescendant(masterPart.Root, LegacyPptXml.P, "timing")
+                    || HasDescendant(masterPart.Root, LegacyPptXml.P,
+                        "transition")) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.Animations,
                         "ppt-write-master-timing",
                         $"Slide master {masterIndex} contains transition or timing data that is not encoded by the native binary writer."));
                 }
             }
-            NotesMasterPart? notesMasterPart = presentation.OpenXmlDocument
-                .PresentationPart?.NotesMasterPart;
-            if (notesMasterPart != null
-                && !LegacyPptWriter.TryReadBackground(notesMasterPart, out _,
+            LegacyPptPartView notesMasterPart = view.NotesMaster;
+            if (!notesMasterPart.IsNone
+                && !LegacyPptWriter.SdkTryReadBackground(presentation,
+                    notesMasterPart, out _,
                     out string? notesBackgroundReason)) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.Backgrounds, "ppt-write-background",
                     notesBackgroundReason
                     ?? "The notes-master background cannot be encoded by the native binary writer."));
             }
-            if (notesMasterPart != null) {
+            if (!notesMasterPart.IsNone) {
                 IReadOnlyList<PowerPointShape> notesMasterShapes =
-                    LegacyPptWriter.ReadMasterShapesForWrite(notesMasterPart,
-                        out string? notesMasterShapeReason);
+                    LegacyPptWriter.SdkReadMasterShapesForWrite(presentation,
+                        notesMasterPart, out string? notesMasterShapeReason);
                 if (notesMasterShapeReason != null) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.Masters,
@@ -135,19 +139,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     LegacyPptWriter.LegacyPptWriterShapeContext.NotesMaster,
                     shapeTextFonts, pictureBullets);
             }
-            HandoutMasterPart? handoutMasterPart = presentation.OpenXmlDocument
-                .PresentationPart?.HandoutMasterPart;
-            if (handoutMasterPart != null
-                && !LegacyPptWriter.TryReadBackground(handoutMasterPart, out _,
+            LegacyPptPartView handoutMasterPart = view.HandoutMaster;
+            if (!handoutMasterPart.IsNone
+                && !LegacyPptWriter.SdkTryReadBackground(presentation,
+                    handoutMasterPart, out _,
                     out string? handoutBackgroundReason)) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.Backgrounds, "ppt-write-background",
                     handoutBackgroundReason
                     ?? "The handout-master background cannot be encoded by the native binary writer."));
             }
-            if (handoutMasterPart != null) {
+            if (!handoutMasterPart.IsNone) {
                 IReadOnlyList<PowerPointShape> handoutMasterShapes =
-                    LegacyPptWriter.ReadMasterShapesForWrite(
+                    LegacyPptWriter.SdkReadMasterShapesForWrite(presentation,
                         handoutMasterPart, out string? handoutMasterShapeReason);
                 if (handoutMasterShapeReason != null) {
                     findings.Add(new LegacyPptWriteFinding(
@@ -168,7 +172,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 try {
                     topology = new LegacyPptWriter.LegacyPptWriterTopology(
                         masterCount, presentation.Slides.Count, notesCount,
-                        handoutMasterPart != null);
+                        !handoutMasterPart.IsNone);
                 } catch (NotSupportedException exception) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.UnknownRecordsAndStreams,
@@ -196,7 +200,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var externalObjectSounds = new LegacyPptWriter
                 .LegacyPptWriterSoundCatalog();
             uint firstMediaObjectId = 1;
-            if (!LegacyPptWriter.TryReadInteractions(presentation.Slides,
+            if (!LegacyPptWriter.TryReadInteractions(view, presentation.Slides,
                     externalObjectSounds,
                     out LegacyPptWriter.LegacyPptWriterInteractionCatalog
                         interactionCatalog,
@@ -209,7 +213,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     interactionCatalog.Hyperlinks.Count + 1U);
             }
             uint firstOleObjectId = firstMediaObjectId;
-            if (!LegacyPptWriter.TryReadMedia(presentation.Slides,
+            if (!LegacyPptWriter.TryReadMedia(view, presentation.Slides,
                     firstMediaObjectId, externalObjectSounds,
                     out LegacyPptWriter.LegacyPptWriterMediaCatalog
                         mediaCatalog,
@@ -225,7 +229,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             } else {
                 firstOleObjectId = mediaCatalog.NextObjectId;
             }
-            if (!LegacyPptWriter.TryReadOleObjects(presentation.Slides,
+            if (!LegacyPptWriter.TryReadOleObjects(view, presentation.Slides,
                     firstOleObjectId,
                     out LegacyPptWriter.LegacyPptWriterOleObjectCatalog
                         oleCatalog,
@@ -245,7 +249,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         "ppt-write-persist-capacity", exception.Message));
                 }
             }
-            if (!LegacyPptWriter.TryReadPictureCatalog(presentation,
+            if (!LegacyPptWriter.TryReadPictureCatalog(view, presentation,
                     shapeTextFonts, pictureBullets,
                     convertUnsupportedTables: true,
                     out _, out LegacyPptFeature pictureFailureFeature,
@@ -282,22 +286,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         "ppt-write-group-shape", groupShapeReason,
                         slideIndex));
                 }
-                if (HasUnsupportedRichNotes(slide)) {
+                if (HasUnsupportedRichNotes(view, slide)) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.RichNotes,
                         "ppt-write-rich-notes",
                         "Notes-page drawings beyond the speaker-notes body are not encoded by the native binary writer.",
                         slideIndex));
                 }
-                P.Slide? slideRoot = slide.SlidePart.Slide;
-                if (!LegacyPptWriter.TryReadTransition(slide, out _,
+                OfficeXmlNode slideRoot = view.Part(slide.PartRef.Name).Root;
+                if (!LegacyPptWriter.TryReadTransition(view, slide, out _,
                         out string? transitionReason)) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Transitions, "ppt-write-transition",
                         transitionReason ?? "The slide transition cannot be encoded by the native binary writer.",
                         slideIndex));
                 }
-                if (slideRoot?.Timing != null) {
+                if (!slideRoot.Child(LegacyPptXml.P, "timing").IsNone) {
                     var animationSounds = new LegacyPptWriter.LegacyPptWriterSoundCatalog();
-                    if (!LegacyPptWriter.TryReadClassicAnimations(new[] { slide },
+                    if (!LegacyPptWriter.TryReadClassicAnimations(view, new[] { slide },
                             animationSounds, out _, out string? animationReason)) {
                         findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Animations,
                             "ppt-write-timing",
@@ -453,17 +457,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool CanWriteSlideLosslessly(PowerPointSlide slide) {
             ArgumentNullException.ThrowIfNull(slide);
             if (LegacyPptWriter.ShouldWriteNotesPage(slide, out _)) return false;
-            P.Slide? slideRoot = slide.SlidePart.Slide;
-            bool animationsSupported = slideRoot?.Timing == null
-                || LegacyPptWriter.TryReadClassicAnimations(new[] { slide },
+            using LegacyPptPackageView view = LegacyPptPackageView.Capture(
+                slide.OwnerDocument ?? throw new InvalidOperationException(
+                    "The slide does not belong to a presentation."));
+            OfficeXmlNode slideRoot = view.Part(slide.PartRef.Name).Root;
+            bool animationsSupported = slideRoot.Child(LegacyPptXml.P, "timing").IsNone
+                || LegacyPptWriter.TryReadClassicAnimations(view, new[] { slide },
                     new LegacyPptWriter.LegacyPptWriterSoundCatalog(),
                     out _, out _);
-            if (!LegacyPptWriter.TryReadTransition(slide, out _, out _)
+            if (!LegacyPptWriter.TryReadTransition(view, slide, out _, out _)
                 || !animationsSupported
                 || !LegacyPptWriter.TryReadBackground(slide, out _, out _)) {
                 return false;
             }
-            if (!LegacyPptWriter.TryReadInteractions(new[] { slide },
+            if (!LegacyPptWriter.TryReadInteractions(view, new[] { slide },
+                    new LegacyPptWriter.LegacyPptWriterSoundCatalog(),
                     out _, out _)) return false;
             IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
                 .ReadSlideShapesForWrite(slide, out string? layoutShapeReason);
@@ -473,13 +481,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (groupShapeReason != null) return false;
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts =
                 LegacyPptWriter.CreateFontCatalogForWrite();
-            PresentationPart? presentationPart = slide.SlidePart
-                .GetParentParts().OfType<PresentationPart>().FirstOrDefault();
-            if (presentationPart == null
-                || !LegacyPptWriter.TryReadPictureBulletCatalog(
-                    presentationPart, out LegacyPptWriter
-                        .LegacyPptWriterPictureBulletCatalog pictureBullets,
-                    out _)) return false;
+            if (!LegacyPptWriter.SdkTryReadPictureBulletCatalog(slide,
+                    out LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
+                        pictureBullets, out _)) return false;
             foreach (PowerPointShape shape in shapes) {
                 if (!IsSupportedShape(shape) || HasUnsupportedVisualStyle(shape)
                     || !LegacyPptWriter.TryReadShapeMetadataForWrite(shape,
@@ -521,17 +525,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             && LegacyPptWriter.TryReadOfficeArtShapeType(autoShape,
                 requireConnector: false, out _, out _);
 
-        private static bool HasUnsupportedRichNotes(PowerPointSlide slide) {
-            P.ShapeTree? tree = slide.SlidePart.NotesSlidePart?.NotesSlide?
-                .CommonSlideData?.ShapeTree;
-            if (tree == null) return false;
+        private static bool HasUnsupportedRichNotes(LegacyPptPackageView view,
+            PowerPointSlide slide) {
+            OfficeXmlNode tree = view.Part(slide.PartRef.Name).NotesSlide.Root
+                .Child(LegacyPptXml.P, "cSld").Child(LegacyPptXml.P, "spTree");
+            if (tree.IsNone) return false;
             int bodyPlaceholderCount = 0;
-            foreach (OpenXmlElement child in tree.ChildElements) {
-                if (child is P.NonVisualGroupShapeProperties or P.GroupShapeProperties) continue;
-                if (child is not P.Shape shape) return true;
-                P.PlaceholderShape? placeholder = shape.NonVisualShapeProperties?
-                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape;
-                if (placeholder?.Type?.Value != P.PlaceholderValues.Body) return true;
+            foreach (OfficeXmlNode child in tree.Children()) {
+                if (child.Is(LegacyPptXml.P, "nvGrpSpPr")
+                    || child.Is(LegacyPptXml.P, "grpSpPr")) continue;
+                if (!child.Is(LegacyPptXml.P, "sp")) return true;
+                OfficeXmlNode placeholder = child.Child(LegacyPptXml.P, "nvSpPr")
+                    .Child(LegacyPptXml.P, "nvPr").Child(LegacyPptXml.P, "ph");
+                if (placeholder.IsNone || placeholder.Attribute("type") != "body") return true;
                 bodyPlaceholderCount++;
             }
             return bodyPlaceholderCount > 1;
@@ -627,13 +633,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             || shape is PowerPointTextBox textBox
                 && !LegacyPptWriter.TryReadTextFrameForWrite(textBox,
                     out _, out _)
-            || shape.Element.Descendants<A.EffectDag>().Any();
+            || HasDescendant(shape.XmlElement, LegacyPptXml.A, "effectDag");
 
         private static bool HasUnsupportedMasterInteraction(
-            PowerPointShape shape) => shape.Element
-                .Descendants<A.HyperlinkOnClick>().Any()
-            || shape.Element.Descendants<A.HyperlinkOnHover>().Any()
-            || shape.Element.Descendants<A.HyperlinkOnMouseOver>().Any();
+            PowerPointShape shape) =>
+            HasDescendant(shape.XmlElement, LegacyPptXml.A, "hlinkClick")
+            || HasDescendant(shape.XmlElement, LegacyPptXml.A, "hlinkHover")
+            || HasDescendant(shape.XmlElement, LegacyPptXml.A, "hlinkMouseOver");
 
         internal static void ThrowIfBlocked(LegacyPptWritePreflightReport report, PowerPointSaveOptions? options) {
             if (!report.HasConversionLoss || options?.LossPolicy == OfficeConversionLossPolicy.Allow) return;

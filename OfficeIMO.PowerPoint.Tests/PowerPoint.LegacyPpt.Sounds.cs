@@ -247,12 +247,11 @@ namespace OfficeIMO.Tests {
             }
             AudioReferenceRelationship relationship = slide.SlidePart
                 .AddAudioReferenceRelationship(media);
-            var soundElement = new P.Sound {
-                Embed = relationship.Id,
-                Name = "OfficeIMO Chime"
-            };
+            using var view = OfficeIMO.PowerPoint.LegacyPpt.Internal
+                .LegacyPptPackageView.Capture(source);
 
-            Assert.True(catalog.TryGetOrAdd(slide.SlidePart, soundElement,
+            Assert.True(catalog.TryGetOrAdd(view.Part(slide.PartRef.Name),
+                relationship.Id, "OfficeIMO Chime", builtIn: false,
                 out LegacyPptWriter.LegacyPptWriterSound? sound,
                 out string? reason), reason);
             Assert.Same(importedSound.DataBytes, sound!.DataBytes);
