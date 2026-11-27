@@ -236,9 +236,11 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Whether the UTF-8 bytes may contain the text, ignoring case: an ASCII name is searched for in the bytes, any
-        /// other in the decoded text, and markup holding a character reference always may.
+        /// other in the decoded text, and markup in another encoding or holding a character reference always may.
         /// </summary>
         private static bool MayContain(byte[] bytes, int length, string text) {
+            // Markup in another encoding is searched as the reader decodes it.
+            if (!IsUtf8Markup(bytes, length)) return true;
             // A character reference can spell any part of the name, which only the parsed text shows.
             for (int index = 0; index + 1 < length; index++) {
                 if (bytes[index] == (byte)'&' && bytes[index + 1] == (byte)'#') return true;
@@ -255,6 +257,27 @@ namespace OfficeIMO.Excel {
                 if (matched == text.Length) return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// Whether the part is UTF-8 markup: no byte order mark or zero byte of a wider encoding at its start, and no
+        /// other encoding declared.
+        /// </summary>
+        private static bool IsUtf8Markup(byte[] bytes, int length) {
+            if (length >= 2 && (bytes[0] == 0xFF && bytes[1] == 0xFE || bytes[0] == 0xFE && bytes[1] == 0xFF || bytes[0] == 0 || bytes[1] == 0)) return false;
+            int start = length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
+            if (length - start < 5 || Encoding.ASCII.GetString(bytes, start, 5) != "<?xml") return true;
+            int end = start;
+            while (end < length && end < start + 256 && bytes[end] != (byte)'>') end++;
+            string declaration = Encoding.ASCII.GetString(bytes, start, end - start);
+            int encoding = declaration.IndexOf("encoding", StringComparison.Ordinal);
+            if (encoding < 0) return true;
+            int quote = declaration.IndexOfAny(new[] { '"', '\'' }, encoding);
+            if (quote < 0) return false;
+            int close = declaration.IndexOf(declaration[quote], quote + 1);
+            if (close < 0) return false;
+            string name = declaration.Substring(quote + 1, close - quote - 1);
+            return string.Equals(name, "utf-8", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "utf8", StringComparison.OrdinalIgnoreCase);
         }
 
         private static byte AsciiLower(byte value) => value is >= (byte)'A' and <= (byte)'Z' ? (byte)(value | 0x20) : value;

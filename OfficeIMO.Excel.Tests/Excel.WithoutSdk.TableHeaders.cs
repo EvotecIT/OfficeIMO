@@ -80,7 +80,15 @@ namespace OfficeIMO.Tests {
             Assert.Contains("SUM(Orders[Total])", saved);
         }
 
-        private static byte[] RewriteWorksheet(byte[] package, Func<string, string> rewrite) {
+        [Fact]
+        public void AReferenceInAUtf16WorksheetGoesThroughTheModel() {
+            byte[] source = RewriteWorksheet(CreateWorkbook(structuredReference: true),
+                xml => xml.Replace("encoding=\"utf-8\"", "encoding=\"utf-16\""), new System.Text.UnicodeEncoding(bigEndian: false, byteOrderMark: true));
+            AssertSavesAsTheModel(source, sheet => sheet.Cell(2, 3).SetValue("Total"), expectOwned: false, out string saved);
+            Assert.Contains("SUM(Orders[Total])", saved);
+        }
+
+        private static byte[] RewriteWorksheet(byte[] package, Func<string, string> rewrite, System.Text.Encoding? encoding = null) {
             using var stream = new MemoryStream();
             stream.Write(package, 0, package.Length);
             using (var archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Update, leaveOpen: true)) {
@@ -88,9 +96,9 @@ namespace OfficeIMO.Tests {
                 string name = entry.FullName, text;
                 using (var reader = new StreamReader(entry.Open())) text = reader.ReadToEnd();
                 string rewritten = rewrite(text);
-                Assert.NotEqual(text, rewritten);
+                if (encoding == null) Assert.NotEqual(text, rewritten);
                 entry.Delete();
-                using var writer = new StreamWriter(archive.CreateEntry(name).Open(), new System.Text.UTF8Encoding(false));
+                using var writer = new StreamWriter(archive.CreateEntry(name).Open(), encoding ?? new System.Text.UTF8Encoding(false));
                 writer.Write(rewritten);
             }
             return stream.ToArray();
