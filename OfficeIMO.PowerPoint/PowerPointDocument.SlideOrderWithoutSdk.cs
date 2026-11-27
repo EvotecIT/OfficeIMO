@@ -151,6 +151,9 @@ namespace OfficeIMO.PowerPoint {
                 OfficeXmlTree relationships = package.GetXml(presentationRelationships);
                 relationships.Remove(presentationRelationship);
                 RelationshipsOf(package, main).RemoveAll(edge => string.Equals(edge.Id, relationship, StringComparison.Ordinal));
+                // Text a caller still holds from the slide or its notes is copied before their parts go.
+                MarkPackageSlideRemoved(slide);
+                KeepDetachedPackageObjects();
                 foreach (string part in removed) {
                     _pendingRelationships!.Remove(part);
                     string partRelationships = OfficeOpcPartNames.GetRelationshipsPartName(part);

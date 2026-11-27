@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
         /// Copies an element that was removed from its part into a tree of its own, before the SDK opens and the package
         /// goes, so the wrapper keeps reading what it last held.
         /// </summary>
-        void KeepDetached();
+        void KeepDetached(PowerPointDetachedCopies copies);
     }
 
     /// <summary>
@@ -63,8 +63,9 @@ namespace OfficeIMO.PowerPoint {
         // Lets every object still alive keep an element that was removed from its part; called before the package goes.
         private void KeepDetachedPackageObjects() {
             if (_packageBindings == null) return;
-            foreach (WeakReference<IPackageSdkBinding> reference in _packageBindings) {
-                if (reference.TryGetTarget(out IPackageSdkBinding? binding)) binding.KeepDetached();
+            var copies = new PowerPointDetachedCopies();
+            foreach (WeakReference<IPackageSdkBinding> reference in _packageBindings.ToList()) {
+                if (reference.TryGetTarget(out IPackageSdkBinding? binding)) binding.KeepDetached(copies);
             }
         }
 
@@ -342,6 +343,10 @@ namespace OfficeIMO.PowerPoint {
         /// Whether a stored part is larger than the SDK path would read, under the default or configured part size limit,
         /// so the model reads it and reports it as it always has.
         /// </summary>
+        /// <summary>Whether the package holds the part but declines to read it for its size.</summary>
+        internal bool IsPackagePartOverLimit(string partName) =>
+            GetPackage(edit: false) is { } package && package.PartExists(partName) && IsOverPartLimit(package, partName);
+
         internal bool IsOverPartLimit(OfficeOpcEditablePackage package, string partName) =>
             package.TryGetStoredLength(partName, out long length) && length > _maximumSlideXmlCharacters;
 
@@ -371,6 +376,11 @@ namespace OfficeIMO.PowerPoint {
                 order.Add(slide);
             }
             return _packageSlideOrder = order;
+        }
+
+        // Marks the slide of a part that is leaving the package as removed, so nothing it holds reaches the part again.
+        private void MarkPackageSlideRemoved(string slidePart) {
+            if (_packageSlides != null && _packageSlides.TryGetValue(PartIdentity(slidePart), out PowerPointSlide? removed)) removed.RemovedFromPackage = true;
         }
 
         /// <summary>Forgets the slide order after the slide list changed; <paramref name="removedPart"/> left the package.</summary>
