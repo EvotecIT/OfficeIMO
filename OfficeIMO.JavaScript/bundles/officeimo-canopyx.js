@@ -3813,7 +3813,7 @@ _modules.set("13fa96d976e4dec7343dd3a392829567f1fcb574324a98f5a5d3a61c9a0dc27d",
 return _exports;
 })();
 
-const _m38 = _modules.get("dbf19fe9d94359809d081921c111089a0eda9ba77f0cb30db6ade270d21f0f1a") ?? (() => {
+const _m38 = _modules.get("d5957683aa1945575924c89c63b427878e6e6e47ef5c229dc524b1879d146499") ?? (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
@@ -3892,10 +3892,13 @@ class Worksheet {
     pendingCharacters = 0;
     reservedLayout = false;
     internalLinks = [];
+    // Evicted entries become holes and are compacted in one pass when the links are read, keeping eviction O(1).
     links = [];
+    evictedLinks = 0;
     linkedCells = new Set();
     /** Indexes in `links` of data-cell links that `hyperlinkOverflow: "drop"` may give up, in row order. */
     droppable = [];
+    droppableLinks = new WeakSet();
     droppedLinks = 0;
     pictures = [];
     nativeCharts = [];
@@ -4109,7 +4112,7 @@ class Worksheet {
             if (link || this.linkedCells.has(cell))
                 throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
             this.makeLinkRoom();
-            checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
+            checkHyperlinkCount(this.linkCount + 1);
             this.book.checkLinks(1);
             // Replace a generated cell's original reservation with its preview and overflow records.
             if (reservedCharacters !== undefined) {
@@ -4440,31 +4443,53 @@ class Worksheet {
             throw new TypeError("Hyperlinks cannot address a covered merged cell.");
         if (this.linkedCells.has(copied.cell))
             throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
-        if (droppable && this.links.length + this.internalLinks.length >= maximumHyperlinks) {
+        if (droppable && this.linkCount >= maximumHyperlinks) {
             this.droppedLinks++;
             return;
         }
         if (!droppable)
             this.makeLinkRoom();
-        checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
+        checkHyperlinkCount(this.linkCount + 1);
         this.book.retainLink();
-        if (droppable)
+        if (droppable) {
             this.droppable.push(this.links.length);
+            this.droppableLinks.add(copied);
+        }
         this.links.push(copied);
         this.linkedCells.add(copied.cell);
     }
+    /** Links the worksheet holds now, not counting evicted holes. */
+    get linkCount() { return this.links.length - this.evictedLinks + this.internalLinks.length; }
     /** A full worksheet gives up its latest data-cell link for a link that cannot be dropped. Hyperlinks are serialized after
-     * the rows, so the cell keeps its written value. Links after the removed one are never droppable, so earlier indexes stay valid. */
+     * the rows, so the cell keeps its written value. The entry becomes a hole, so other indexes stay valid until compaction. */
     makeLinkRoom() {
-        if (this.links.length + this.internalLinks.length < maximumHyperlinks || !this.droppable.length)
+        if (this.linkCount < maximumHyperlinks || !this.droppable.length)
             return;
-        const [removed] = this.links.splice(this.droppable.pop(), 1);
+        const index = this.droppable.pop(), removed = this.links[index];
+        this.links[index] = undefined;
+        this.evictedLinks++;
         this.linkedCells.delete(removed.cell);
         this.book.releaseLink();
         this.droppedLinks++;
     }
+    /** One ordered pass removes evicted holes and rebuilds the droppable indexes. */
+    compactLinks() {
+        if (this.evictedLinks) {
+            const kept = [], droppable = [];
+            for (const link of this.links)
+                if (link) {
+                    if (this.droppableLinks.has(link))
+                        droppable.push(kept.length);
+                    kept.push(link);
+                }
+            this.links = kept;
+            this.droppable = droppable;
+            this.evictedLinks = 0;
+        }
+        return this.links;
+    }
     /** @internal */
-    get hyperlinks() { return this.links; }
+    get hyperlinks() { return this.compactLinks(); }
     /** @internal */
     get images() { return this.pictures; }
     /** @internal An empty export has no data table; it still emits the declared headers. */
@@ -4515,7 +4540,7 @@ class Worksheet {
                 for (const binding of this.chartSources)
                     binding.finish();
                 this.chartSources.length = 0;
-                for (const link of this.links) {
+                for (const link of this.compactLinks()) {
                     const position = cellPosition(link.cell);
                     if (position.column > this.columns.length || position.row > this.totalRows)
                         throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");
@@ -4547,8 +4572,9 @@ class Worksheet {
                     await this.buffer.write(xml);
                 if (this.droppedLinks)
                     notifySynchronously("onHyperlinkOverflow", this.book.settings.onHyperlinkOverflow, Object.freeze({ sheetName: this.name, dropped: this.droppedLinks }));
-                if (this.links.length || this.internalLinks.length)
-                    await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
+                const links = this.compactLinks();
+                if (links.length || this.internalLinks.length)
+                    await this.buffer.write(hyperlinksXml(links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
                 await this.buffer.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
                 if (this.pictures.length || this.nativeCharts.length)
                     await this.buffer.write('<drawing r:id="drawing"/>');
@@ -4573,7 +4599,7 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.nativeCharts.length = 0; this.chartSources.length = 0; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("dbf19fe9d94359809d081921c111089a0eda9ba77f0cb30db6ade270d21f0f1a", _exports);
+_modules.set("d5957683aa1945575924c89c63b427878e6e6e47ef5c229dc524b1879d146499", _exports);
 return _exports;
 })();
 
@@ -4995,7 +5021,7 @@ _modules.set("24f1417c3c320a8a41137c28f70b72091256c63010be0c88b684dce85f54950c",
 return _exports;
 })();
 
-const _m24 = _modules.get("e7d591e6e9eb9781d75008a0bba819a3796799d10dc78c6afbbc47540b3423fd") ?? (() => {
+const _m24 = _modules.get("a34a46ed9564c388d5f3ca087c70819f8aa897e469ca50f8547233c264a8e8af") ?? (() => {
 const { beginTask, checkAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -5484,7 +5510,7 @@ class Workbook {
     }
 }
 const _exports = Object.freeze({ Workbook: Workbook });
-_modules.set("e7d591e6e9eb9781d75008a0bba819a3796799d10dc78c6afbbc47540b3423fd", _exports);
+_modules.set("a34a46ed9564c388d5f3ca087c70819f8aa897e469ca50f8547233c264a8e8af", _exports);
 return _exports;
 })();
 
@@ -5541,7 +5567,7 @@ _modules.set("d6884428c3e4d15a691ecf2523372a03b32de22a890edfbfc9961f2dc92711c2",
 return _exports;
 })();
 
-const _m52 = _modules.get("c29d5200255f5efcf83d889538e236f33fcdbfa8469359934fed677e8979062c") ?? (() => {
+const _m52 = _modules.get("b9b1793c41e466048fe823422088a6fcc1fd8393c67293df3f0cd83a5d5ec7e1") ?? (() => {
 const { withDestination } = _m3;
 
 const { copyColumns } = _m11;
@@ -5596,7 +5622,7 @@ async function writeXlsxTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
-_modules.set("c29d5200255f5efcf83d889538e236f33fcdbfa8469359934fed677e8979062c", _exports);
+_modules.set("b9b1793c41e466048fe823422088a6fcc1fd8393c67293df3f0cd83a5d5ec7e1", _exports);
 return _exports;
 })();
 
@@ -5693,7 +5719,7 @@ _modules.set("ba0e1f29c8de5d46b966b7b097260529e42b80f662e92a7f9e8add22df747a50",
 return _exports;
 })();
 
-const _m54 = _modules.get("6fc5bddb0c948838ed7f393cfff0fec0d5d8235db75748d86143001ce6944bf8") ?? (() => {
+const _m54 = _modules.get("d7cfa6a7b1be9758925a4ccb860a80a33eb0de2c88c80cc55e438213595f2b71") ?? (() => {
 const { groupedReportOperation } = _m8;
 
 const { checkAbort, withAbort } = _m4;
@@ -5866,14 +5892,14 @@ async function writeGroupedXlsxTo(report, destination, options) {
     return withDestination(destination, async (sink) => (await write(report, prepared, sink)).result);
 }
 const _exports = Object.freeze({ addGroupedXlsx: addGroupedXlsx, writeGroupedXlsx: writeGroupedXlsx, writeGroupedXlsxTo: writeGroupedXlsxTo });
-_modules.set("6fc5bddb0c948838ed7f393cfff0fec0d5d8235db75748d86143001ce6944bf8", _exports);
+_modules.set("d7cfa6a7b1be9758925a4ccb860a80a33eb0de2c88c80cc55e438213595f2b71", _exports);
 return _exports;
 })();
 
-const _m23 = _modules.get("c12757631f688715be1bdefd417a8b7769fff613a69aecf31ff1fb9a81c9e520") ?? (() => {
+const _m23 = _modules.get("edf1bf5cb6d749de0e6823397df6610a6c1cc88768898c1b4d7083ee96ef6759") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m24.Workbook, writeXlsx: _m52.writeXlsx, writeXlsxTo: _m52.writeXlsxTo, writeGroupedXlsx: _m54.writeGroupedXlsx, writeGroupedXlsxTo: _m54.writeGroupedXlsxTo, addGroupedXlsx: _m54.addGroupedXlsx, createGroupedReport: _m8.createGroupedReport, Worksheet: _m38.Worksheet, Cell: _m35.Cell, FormulaCell: _m36.FormulaCell, StyleRegistry: _m32.StyleRegistry, NumberFormats: _m32.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
-_modules.set("c12757631f688715be1bdefd417a8b7769fff613a69aecf31ff1fb9a81c9e520", _exports);
+_modules.set("edf1bf5cb6d749de0e6823397df6610a6c1cc88768898c1b4d7083ee96ef6759", _exports);
 return _exports;
 })();
 
@@ -12727,7 +12753,7 @@ _modules.set("99b23f94e240ecbeee81dbc96909e40786623c7df225f74ae7bd4d719b15d1e8",
 return _exports;
 })();
 
-const _m105 = _modules.get("add4e77a5b59a697bf60b786b348d4d2003dac99dff49600e03c1e895be4ae27") ?? (() => {
+const _m105 = _modules.get("c5008cf665c9e1408fbcd0f1daac214a0d44d3ff5a2a5593c7be4dc2506469d8") ?? (() => {
 const { Workbook, addGroupedXlsx } = _m23;
 
 const { portableWorkbook } = _m53;
@@ -12784,7 +12810,7 @@ async function writeCanopyWorkbook(source, grouped, destination, options, labels
     });
 }
 const _exports = Object.freeze({ writeCanopyWorkbook: writeCanopyWorkbook });
-_modules.set("add4e77a5b59a697bf60b786b348d4d2003dac99dff49600e03c1e895be4ae27", _exports);
+_modules.set("c5008cf665c9e1408fbcd0f1daac214a0d44d3ff5a2a5593c7be4dc2506469d8", _exports);
 return _exports;
 })();
 
@@ -13026,7 +13052,7 @@ _modules.set("345c23be36571bed54982070d2ac5b01a8598428d57a48ab2fd2df8b2bbf712c",
 return _exports;
 })();
 
-const _m0 = _modules.get("b0d3dbcb89fe0237b6ebcafdc559e523f6b7029994b3c8fae2e30d139b88a30a") ?? (() => {
+const _m0 = _modules.get("97878c9f0caf26fe0ac575dc3c182a62f16ba1b394b8b8eff3469afa0bb7e387") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress, notifySynchronously } = _m14;
@@ -13174,7 +13200,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("b0d3dbcb89fe0237b6ebcafdc559e523f6b7029994b3c8fae2e30d139b88a30a", _exports);
+_modules.set("97878c9f0caf26fe0ac575dc3c182a62f16ba1b394b8b8eff3469afa0bb7e387", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

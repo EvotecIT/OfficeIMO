@@ -12,7 +12,7 @@ const _c3 = _core("42faf379960e5674a6fdfa8c8fca0bb68bbd74587231248d2524d7004def3
 const _c4 = _core("f0627ba89e5c8fcb376ebe3ce72dcc8d68c34952981f8703e36b8bb1a9894208");
 const _c5 = _core("4a089607f7cbe50e13d4382d1cc4e5f6ce32c5773bbec2df84178710f54d9a38");
 const _c6 = _core("fd70ccda89f27c6b874c8840ac944b3ec723dbdef3dfe7600f7bdb81f4660c96");
-const _c7 = _core("c12757631f688715be1bdefd417a8b7769fff613a69aecf31ff1fb9a81c9e520");
+const _c7 = _core("edf1bf5cb6d749de0e6823397df6610a6c1cc88768898c1b4d7083ee96ef6759");
 const _c8 = _core("406ac6c93ee68eae70c6f52a1e6f4c56b84f43cae12576040c766dcc5598a580");
 const _c9 = _core("dfde12c2fc2246e89538976ebb538ca7491f98406e0c5cec519a9a3addd518c7");
 const _c10 = _core("0391fe35ea7d02b25804ab4d0e7543136d6bb615f368f268c74aa135f23aa6bc");
@@ -1072,7 +1072,7 @@ _modules.set("99b23f94e240ecbeee81dbc96909e40786623c7df225f74ae7bd4d719b15d1e8",
 return _exports;
 })();
 
-const _m29 = _modules.get("add4e77a5b59a697bf60b786b348d4d2003dac99dff49600e03c1e895be4ae27") ?? (() => {
+const _m29 = _modules.get("c5008cf665c9e1408fbcd0f1daac214a0d44d3ff5a2a5593c7be4dc2506469d8") ?? (() => {
 const { Workbook, addGroupedXlsx } = _c7;
 
 const { portableWorkbook } = _c17;
@@ -1129,7 +1129,7 @@ async function writeCanopyWorkbook(source, grouped, destination, options, labels
     });
 }
 const _exports = Object.freeze({ writeCanopyWorkbook: writeCanopyWorkbook });
-_modules.set("add4e77a5b59a697bf60b786b348d4d2003dac99dff49600e03c1e895be4ae27", _exports);
+_modules.set("c5008cf665c9e1408fbcd0f1daac214a0d44d3ff5a2a5593c7be4dc2506469d8", _exports);
 return _exports;
 })();
 
@@ -1371,7 +1371,7 @@ _modules.set("345c23be36571bed54982070d2ac5b01a8598428d57a48ab2fd2df8b2bbf712c",
 return _exports;
 })();
 
-const _m0 = _modules.get("b0d3dbcb89fe0237b6ebcafdc559e523f6b7029994b3c8fae2e30d139b88a30a") ?? (() => {
+const _m0 = _modules.get("97878c9f0caf26fe0ac575dc3c182a62f16ba1b394b8b8eff3469afa0bb7e387") ?? (() => {
 const { BlobByteSink, ExportCell } = _c0;
 
 const { notifyProgress, notifySynchronously } = _c1;
@@ -1519,7 +1519,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m13.createCanopyExport, ExportCell: _c11.ExportCell, PdfFont: _c19.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("b0d3dbcb89fe0237b6ebcafdc559e523f6b7029994b3c8fae2e30d139b88a30a", _exports);
+_modules.set("97878c9f0caf26fe0ac575dc3c182a62f16ba1b394b8b8eff3469afa0bb7e387", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

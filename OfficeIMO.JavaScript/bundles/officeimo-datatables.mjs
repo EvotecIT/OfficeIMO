@@ -3632,10 +3632,13 @@ class Worksheet {
     pendingCharacters = 0;
     reservedLayout = false;
     internalLinks = [];
+    // Evicted entries become holes and are compacted in one pass when the links are read, keeping eviction O(1).
     links = [];
+    evictedLinks = 0;
     linkedCells = new Set();
     /** Indexes in `links` of data-cell links that `hyperlinkOverflow: "drop"` may give up, in row order. */
     droppable = [];
+    droppableLinks = new WeakSet();
     droppedLinks = 0;
     pictures = [];
     nativeCharts = [];
@@ -3849,7 +3852,7 @@ class Worksheet {
             if (link || this.linkedCells.has(cell))
                 throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
             this.makeLinkRoom();
-            checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
+            checkHyperlinkCount(this.linkCount + 1);
             this.book.checkLinks(1);
             // Replace a generated cell's original reservation with its preview and overflow records.
             if (reservedCharacters !== undefined) {
@@ -4180,31 +4183,53 @@ class Worksheet {
             throw new TypeError("Hyperlinks cannot address a covered merged cell.");
         if (this.linkedCells.has(copied.cell))
             throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
-        if (droppable && this.links.length + this.internalLinks.length >= maximumHyperlinks) {
+        if (droppable && this.linkCount >= maximumHyperlinks) {
             this.droppedLinks++;
             return;
         }
         if (!droppable)
             this.makeLinkRoom();
-        checkHyperlinkCount(this.links.length + this.internalLinks.length + 1);
+        checkHyperlinkCount(this.linkCount + 1);
         this.book.retainLink();
-        if (droppable)
+        if (droppable) {
             this.droppable.push(this.links.length);
+            this.droppableLinks.add(copied);
+        }
         this.links.push(copied);
         this.linkedCells.add(copied.cell);
     }
+    /** Links the worksheet holds now, not counting evicted holes. */
+    get linkCount() { return this.links.length - this.evictedLinks + this.internalLinks.length; }
     /** A full worksheet gives up its latest data-cell link for a link that cannot be dropped. Hyperlinks are serialized after
-     * the rows, so the cell keeps its written value. Links after the removed one are never droppable, so earlier indexes stay valid. */
+     * the rows, so the cell keeps its written value. The entry becomes a hole, so other indexes stay valid until compaction. */
     makeLinkRoom() {
-        if (this.links.length + this.internalLinks.length < maximumHyperlinks || !this.droppable.length)
+        if (this.linkCount < maximumHyperlinks || !this.droppable.length)
             return;
-        const [removed] = this.links.splice(this.droppable.pop(), 1);
+        const index = this.droppable.pop(), removed = this.links[index];
+        this.links[index] = undefined;
+        this.evictedLinks++;
         this.linkedCells.delete(removed.cell);
         this.book.releaseLink();
         this.droppedLinks++;
     }
+    /** One ordered pass removes evicted holes and rebuilds the droppable indexes. */
+    compactLinks() {
+        if (this.evictedLinks) {
+            const kept = [], droppable = [];
+            for (const link of this.links)
+                if (link) {
+                    if (this.droppableLinks.has(link))
+                        droppable.push(kept.length);
+                    kept.push(link);
+                }
+            this.links = kept;
+            this.droppable = droppable;
+            this.evictedLinks = 0;
+        }
+        return this.links;
+    }
     /** @internal */
-    get hyperlinks() { return this.links; }
+    get hyperlinks() { return this.compactLinks(); }
     /** @internal */
     get images() { return this.pictures; }
     /** @internal An empty export has no data table; it still emits the declared headers. */
@@ -4255,7 +4280,7 @@ class Worksheet {
                 for (const binding of this.chartSources)
                     binding.finish();
                 this.chartSources.length = 0;
-                for (const link of this.links) {
+                for (const link of this.compactLinks()) {
                     const position = cellPosition(link.cell);
                     if (position.column > this.columns.length || position.row > this.totalRows)
                         throw new RangeError("Hyperlinks must address cells within the exported rows and columns.");
@@ -4287,8 +4312,9 @@ class Worksheet {
                     await this.buffer.write(xml);
                 if (this.droppedLinks)
                     notifySynchronously("onHyperlinkOverflow", this.book.settings.onHyperlinkOverflow, Object.freeze({ sheetName: this.name, dropped: this.droppedLinks }));
-                if (this.links.length || this.internalLinks.length)
-                    await this.buffer.write(hyperlinksXml(this.links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
+                const links = this.compactLinks();
+                if (links.length || this.internalLinks.length)
+                    await this.buffer.write(hyperlinksXml(links, this.book.settings.invalidCharacterPolicy, this.internalLinks));
                 await this.buffer.write(printXml(this.options.print, this.book.settings.invalidCharacterPolicy));
                 if (this.pictures.length || this.nativeCharts.length)
                     await this.buffer.write('<drawing r:id="drawing"/>');
