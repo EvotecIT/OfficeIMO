@@ -52,8 +52,8 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// The relationship id of the chart a drawing shows. The reference sits in the drawing's graphic data; extension
-        /// markup is not searched, as the SDK read what it holds as unknown elements.
+        /// The relationship id of the chart a drawing shows. A chart reference is a <c>c:chart</c> directly in
+        /// <c>a:graphicData</c>; one anywhere else, such as in vendor markup, and anything in extension markup is not.
         /// </summary>
         private static string? ChartReferenceId(OfficeXmlNode drawing) {
             if (drawing.IsNone) return null;
@@ -65,9 +65,13 @@ namespace OfficeIMO.Word {
                 OfficeXmlNode reference = data.IsNone ? default : data.Child(NsC, "chart");
                 if (!reference.IsNone && FirstContentChart(drawing, reference)) return reference.Attribute(NsR, "id");
             }
-            List<OfficeXmlNode> references = drawing.ContentDescendants(NsC, "chart");
-            return references.Count == 0 ? null : references[0].Attribute(NsR, "id");
+            foreach (OfficeXmlNode candidate in drawing.ContentDescendants(NsC, "chart")) {
+                if (IsChartReference(candidate)) return candidate.Attribute(NsR, "id");
+            }
+            return null;
         }
+
+        private static bool IsChartReference(OfficeXmlNode element) => element.Parent.Is(NsA, "graphicData");
 
         /// <summary>
         /// Whether <paramref name="reference"/> is the drawing's first chart reference in document order outside extension
@@ -77,7 +81,11 @@ namespace OfficeIMO.Word {
             for (OfficeXmlNode node = reference; !node.IsNone && node != drawing; node = node.Parent) {
                 for (OfficeXmlNode sibling = node.PreviousSibling; !sibling.IsNone; sibling = sibling.PreviousSibling) {
                     if (sibling.IsExtensionMarkup()) continue;
-                    if (sibling.Is(NsC, "chart") || !sibling.FirstChild.IsNone && sibling.ContentDescendants(NsC, "chart").Count > 0) return false;
+                    if (sibling.Is(NsC, "chart") && IsChartReference(sibling)) return false;
+                    if (sibling.FirstChild.IsNone) continue;
+                    foreach (OfficeXmlNode candidate in sibling.ContentDescendants(NsC, "chart")) {
+                        if (IsChartReference(candidate)) return false;
+                    }
                 }
             }
             return true;

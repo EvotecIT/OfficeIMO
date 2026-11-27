@@ -247,10 +247,16 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>The first <c>a:r</c> of a text body, in document order, outside extension markup.</summary>
+        /// <summary>
+        /// The first run of a text body's paragraphs. Runs sit directly in <c>a:p</c>; an <c>a:r</c> anywhere else, such
+        /// as in vendor markup, is not a text run.
+        /// </summary>
         private static OfficeXmlNode FirstTextRun(OfficeXmlNode textBody) {
-            List<OfficeXmlNode> runs = textBody.ContentDescendants(NsA, "r");
-            return runs.Count == 0 ? default : runs[0];
+            foreach (OfficeXmlNode paragraph in textBody.Children(NsA, "p")) {
+                OfficeXmlNode run = paragraph.Child(NsA, "r");
+                if (!run.IsNone) return run;
+            }
+            return default;
         }
 
         /// <summary>A detached <c>c:title</c> holding <paramref name="title"/>, made for <paramref name="context"/>.</summary>

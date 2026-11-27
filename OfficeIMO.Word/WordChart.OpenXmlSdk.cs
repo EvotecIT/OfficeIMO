@@ -131,8 +131,8 @@ namespace OfficeIMO.Word {
                 OfficeXmlNode chart = OfficeXmlNode.FromSdk(part.ChartSpace).Child(NsC, "chart");
                 if (chart.IsNone) continue;
                 foreach (OfficeXmlNode axis in chart.ContentDescendants(NsC, "axId")) {
-                    uint? value = axis.UIntVal();
-                    if (value > max) max = value.Value;
+                    // An id that isn't an unsigned number can't collide with one this library allocates.
+                    if (uint.TryParse(axis.Val(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out uint value) && value > max) max = value;
                 }
             }
             RaiseAxisIdSeed(max);

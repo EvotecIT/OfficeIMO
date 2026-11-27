@@ -52,8 +52,12 @@ public partial class WordChart {
         string? embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(part)?.RelationshipId;
         OfficeXmlNode roundedCorners = source.Child(NsC, "roundedCorners");
         bool rounded = (roundedCorners.IsNone ? null : roundedCorners.BoolVal()) ?? false;
+        bool written = false;
         if (source.Child(NsC, "chart").IsNone) {
             embedded ??= AddEmbeddedWorkbook();
+            // The workbook goes in before the chart that references it is saved to its part.
+            WriteEmbeddedPackage(embedded, workbook);
+            written = true;
             ReplaceChartSpaceRoot();
             OfficeOpenXmlChartWriter.PopulateSharedChart(part, embedded, data, chartKind);
             OfficeOpenXmlChartThemeWriter.Apply(part, OfficeTheme.Default);
@@ -69,7 +73,7 @@ public partial class WordChart {
             OfficeChartXml.SetOrdered(external, NewC(external, "autoUpdate", false), CExternalDataView.Order);
         }
         preserveBindings();
-        WriteEmbeddedPackage(embedded, workbook);
+        if (!written) WriteEmbeddedPackage(embedded, workbook);
         _chart = ChartSpaceNode.Child(NsC, "chart");
         UpdateTitle();
         SaveChartSpace();

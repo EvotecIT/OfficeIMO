@@ -82,6 +82,76 @@ public sealed class WordChartExtensionMarkupTests : IDisposable {
         Assert.True(chart.TrySetSeriesValues(0, new[] { 5d, 6d }));
     }
 
+    [Fact]
+    public void AxisIdsThatAreNotNumbersDoNotStopTheDocumentLoading() {
+        string path = CreateBarChart("axis-text.docx");
+        RewriteChartPart(path, xml => xml.Replace("</c:chart>", "<c:axId val=\"not-a-number\" /></c:chart>"));
+
+        using var document = WordDocument.Load(path);
+        Assert.Equal("Sales", Assert.Single(document.AllCharts).Title);
+    }
+
+    [Fact]
+    public void TitleRunsInsideVendorMarkupAreNotTitleText() {
+        string path = CreateBarChart("vendor-title.docx");
+        RewriteChartPart(path, xml => ReplaceFirst(xml, "<a:r>",
+            "<v:meta xmlns:v=\"urn:example:vendor\"><a:r><a:t>Meta</a:t></a:r></v:meta><a:r>"));
+
+        using (var document = WordDocument.Load(path)) {
+            WordChart chart = Assert.Single(document.AllCharts);
+            Assert.Equal("Sales", chart.Title);
+            chart.SetTitle("Renamed");
+            document.Save();
+        }
+
+        using (var document = WordDocument.Load(path)) {
+            Assert.Equal("Renamed", Assert.Single(document.AllCharts).Title);
+        }
+        string xml = Assert.Single(ReadChartParts(path));
+        Assert.Contains("<a:t>Renamed</a:t>", xml, StringComparison.Ordinal);
+        Assert.Contains("<a:t>Meta</a:t>", xml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ChartReferenceInsideVendorDrawingMarkupIsNotTheDrawnChart() {
+        string path = CreateBarChart("vendor-reference.docx");
+        RewritePart(path, "word/document.xml", xml => Regex.Replace(xml, "(<wp:docPr [^>]*?)\\s*/>",
+            "$1><v:payload xmlns:v=\"urn:example:vendor\"><c:chart xmlns:c=\"" + ChartNs + "\" " +
+            "xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" r:id=\"rIdMissing\" /></v:payload></wp:docPr>",
+            RegexOptions.None, TimeSpan.FromSeconds(5)));
+
+        using var document = WordDocument.Load(path);
+        Assert.Equal("Sales", Assert.Single(document.AllCharts).Title);
+    }
+
+    [Fact]
+    public void PieSliceColorGoesBeforeTheSliceOutline() {
+        string path = Path.Combine(_directory, "slice-outline.docx");
+        using (var document = WordDocument.Create(path)) {
+            WordChart chart = document.AddChart("Share");
+            chart.AddPie("A", 1).AddPie("B", 2);
+            chart.SetPieSliceColor(0, OfficeColor.Parse("#FF0000"));
+            document.Save();
+        }
+        RewriteChartPart(path, xml => Regex.Replace(xml, "(<c:dPt>.*?</a:solidFill>)", "$1<a:ln w=\"9525\" />",
+            RegexOptions.Singleline, TimeSpan.FromSeconds(5)));
+
+        using (var document = WordDocument.Load(path)) {
+            Assert.Single(document.AllCharts).SetPieSliceColor(0, OfficeColor.Parse("#0000FF"));
+            document.Save();
+        }
+
+        string point = Regex.Match(Assert.Single(ReadChartParts(path)), "<c:dPt>.*?</c:dPt>", RegexOptions.Singleline, TimeSpan.FromSeconds(5)).Value;
+        Assert.Contains("0000FF", point, StringComparison.Ordinal);
+        Assert.True(point.IndexOf("<a:solidFill>", StringComparison.Ordinal) < point.IndexOf("<a:ln ", StringComparison.Ordinal));
+    }
+
+    private static string ReplaceFirst(string text, string value, string replacement) {
+        int index = text.IndexOf(value, StringComparison.Ordinal);
+        Assert.True(index >= 0);
+        return text.Substring(0, index) + replacement + text.Substring(index + value.Length);
+    }
+
     private string CreateBarChart(string name) {
         string path = Path.Combine(_directory, name);
         using var document = WordDocument.Create(path);

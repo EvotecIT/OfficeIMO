@@ -99,13 +99,27 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            string text = string.Concat(chartText.ContentDescendants(NsA, "t").Select(item => item.InnerText));
+            string text = RichTextOf(chartText);
             if (!string.IsNullOrWhiteSpace(text)) {
                 return text.Trim();
             }
 
             IReadOnlyList<string> cached = ReadCachedStrings(chartText);
             return cached.Count > 0 && !string.IsNullOrWhiteSpace(cached[0]) ? cached[0].Trim() : null;
+        }
+
+        /// <summary>The text of the runs and fields in a chart text's rich-text paragraphs.</summary>
+        private static string RichTextOf(OfficeXmlNode chartText) {
+            OfficeXmlNode rich = chartText.Child(NsC, "rich");
+            if (rich.IsNone) return string.Empty;
+            var text = new System.Text.StringBuilder();
+            foreach (OfficeXmlNode paragraph in rich.Children(NsA, "p")) {
+                for (OfficeXmlNode item = paragraph.FirstChild; !item.IsNone; item = item.NextSibling) {
+                    if (!item.Is(NsA, "r") && !item.Is(NsA, "fld")) continue;
+                    foreach (OfficeXmlNode value in item.Children(NsA, "t")) text.Append(value.InnerText);
+                }
+            }
+            return text.ToString();
         }
 
         private static IReadOnlyList<string> ReadCachedStrings(OfficeXmlNode container) =>

@@ -285,11 +285,7 @@ namespace OfficeIMO.Word {
             if (shapeProperties.IsNone) {
                 dataPoint.Append(AddShapeProperties(dataPoint, color));
             } else {
-                shapeProperties.RemoveChildren(NsA, "solidFill");
-                shapeProperties.RemoveChildren(NsA, "noFill");
-                shapeProperties.RemoveChildren(NsA, "gradFill");
-                shapeProperties.RemoveChildren(NsA, "pattFill");
-                shapeProperties.Append(CreateChartFill(shapeProperties, color));
+                SetChartFill(shapeProperties, color);
             }
             return this;
         }
