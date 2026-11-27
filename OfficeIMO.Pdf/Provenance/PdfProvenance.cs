@@ -161,6 +161,10 @@ public static partial class PdfProvenance {
         List<ObjectGraphEdit> declarationEdits = removeDeclarations
             ? PlanDeclarationRemoval(document, options, changes)
             : new List<ObjectGraphEdit>();
+        if (declarationEdits.Count > 0 && !removeAttachedManifests && historicalCarriers.Count > 0) {
+            throw new InvalidOperationException(
+                "Removing AI declarations rewrites the PDF without its earlier revisions, which would also drop the Content Credentials kept in them. Remove those credentials too, or keep the declarations.");
+        }
         if (removeFileSpecifications.Count == 0 && !rewriteHistory && declarationEdits.Count == 0) {
             return new OfficeProvenanceRemovalResult(
                 OfficeProvenanceBinary.CloneForOutput(pdf, options.EffectiveMaxOutputBytes),

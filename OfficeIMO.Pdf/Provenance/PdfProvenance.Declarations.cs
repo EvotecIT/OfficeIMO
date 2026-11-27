@@ -82,9 +82,15 @@ public static partial class PdfProvenance {
         var visitedMetadata = new HashSet<int>();
         foreach (KeyValuePair<int, PdfIndirectObject> pair in objects.OrderBy(static item => item.Key).ToArray()) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!processImages) break;
             if (pair.Value.Value is not PdfStream image || !IsName(objects, image.Dictionary, "Subtype", "Image")) continue;
             int objectNumber = pair.Key;
-            if (image.Dictionary.Items.TryGetValue("Metadata", out PdfObject? imageMetadata) &&
+            bool hasMetadata = image.Dictionary.Items.TryGetValue("Metadata", out PdfObject? imageMetadata);
+            bool isJpeg = IsJpegStream(objects, image);
+            if (!hasMetadata && !isJpeg) continue;
+            // Each image with a carrier counts once against the embedded-asset limit, before any of it is read.
+            if (++images > maximumImages) throw new InvalidDataException("The PDF exceeds the configured embedded-asset limit.");
+            if (hasMetadata && imageMetadata != null &&
                 (imageMetadata is not PdfReference metadataReference || visitedMetadata.Add(metadataReference.ObjectNumber))) {
                 WalkXmp(document, options, imageMetadata, $"PDF/Object[{objectNumber}]/Metadata", context,
                     removeDeclarations ? removal : null, changes, edits,
@@ -94,8 +100,7 @@ public static partial class PdfProvenance {
                         }
                     });
             }
-            if (!processImages || !IsJpegStream(objects, image)) continue;
-            if (++images > maximumImages) throw new InvalidDataException("The PDF exceeds the configured embedded-asset limit.");
+            if (!isJpeg) continue;
             WalkJpegImage(objectNumber, pair.Value.Generation, image, objects, options, context, removal, changes, edits);
         }
     }

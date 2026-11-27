@@ -48,7 +48,7 @@ public sealed class PdfProvenanceAiDeclarationTests {
             stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "Image" }).Data;
         Assert.Null(OfficeImageMetadata.Read(image).GetExifValue(OfficeExifTag.Software));
         Assert.Equal(OfficeImageMetadata.Read(jpeg).GetExifValue(OfficeExifTag.Make)?.Value, OfficeImageMetadata.Read(image).GetExifValue(OfficeExifTag.Make)?.Value);
-        Assert.Equal(jpeg.Length, image.Length);
+        Assert.Equal(JpegScanData(jpeg), JpegScanData(image));
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public sealed class PdfProvenanceAiDeclarationTests {
         PdfStream image = Assert.Single(document.Objects.Values.Select(item => item.Value).OfType<PdfStream>(),
             stream => stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "Image" });
         Assert.Equal("DCTDecode", Assert.IsType<PdfName>(image.Dictionary.Items["Filter"]).Name);
-        Assert.Equal(jpeg.Length, image.Data.Length);
+        Assert.Equal(JpegScanData(jpeg), JpegScanData(image.Data));
         Assert.Null(OfficeImageMetadata.Read(image.Data).GetExifValue(OfficeExifTag.Software));
     }
 
@@ -164,6 +164,25 @@ public sealed class PdfProvenanceAiDeclarationTests {
             objects[infoNumber] = new PdfIndirectObject(infoNumber, 0, info);
             return infoNumber;
         });
+    }
+
+    [Fact]
+    public void ImagesAreLeftAloneWhenEmbeddedAssetsAreNotProcessed() {
+        byte[] source = CreatePdf(out _);
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(source, new OfficeProvenanceRemovalOptions { ProcessEmbeddedAssets = false });
+
+        Assert.DoesNotContain(result.Changes, change => change.Location.StartsWith("PDF/Object[", StringComparison.Ordinal));
+        Assert.Contains(result.After.Evidence, item => item.Location.Contains("/Image/", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.After.Evidence, item => item.Location.StartsWith("PDF/Info/", StringComparison.Ordinal));
+    }
+
+    /// <summary>The entropy-coded image data: everything from the first start-of-scan marker on.</summary>
+    private static byte[] JpegScanData(byte[] jpeg) {
+        for (int index = 2; index + 1 < jpeg.Length; index++) {
+            if (jpeg[index] == 0xFF && jpeg[index + 1] == 0xDA) return jpeg.Skip(index).ToArray();
+        }
+        throw new InvalidDataException("The JPEG has no start-of-scan marker.");
     }
 
     private static byte[] Ascii85(byte[] data) {
