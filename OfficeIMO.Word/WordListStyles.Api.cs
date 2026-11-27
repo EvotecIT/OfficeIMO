@@ -1,148 +1,110 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
+using System.Text;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Word;
 
 /// <summary>
-/// Provides access to the built-in list styles and helper methods for
-/// working with numbering definitions.
+/// The built-in list definitions, kept as WordprocessingML in <c>ListStyles/WordListStyles.xml</c>.
 /// </summary>
-internal static partial class WordListStyles {
+internal static class WordListStyles {
+    private const string MarkupResource = "OfficeIMO.Word.ListStyles.WordListStyles.xml";
+    private const string CustomTemplateCode = "FFFFFFFE";
+    private const string PictureBulletTemplateCode = "FFFFFFFF";
+    private static readonly Lazy<Dictionary<string, string>> MarkupByTemplateCode = new(LoadMarkup);
+
     /// <summary>
-    /// Retrieves the abstract numbering definition for the specified built-in list style.
+    /// The template code (<c>w:tmpl</c>) that identifies each built-in style, or null for <see cref="WordListStyle.Custom"/>,
+    /// which gets a fresh code every time it is added.
     /// </summary>
-    /// <param name="style">The list style to retrieve.</param>
-    /// <returns>The corresponding <see cref="AbstractNum"/> definition.</returns>
-    internal static AbstractNum GetStyle(WordListStyle style) {
-        switch (style) {
-            case WordListStyle.Bulleted: return Bulleted;
-            case WordListStyle.ArticleSections: return ArticleSections;
-            case WordListStyle.Headings111: return Headings111;
-            case WordListStyle.HeadingIA1: return HeadingIA1;
-            case WordListStyle.Chapters: return Chapters;
-            case WordListStyle.BulletedChars: return BulletedChars;
-            case WordListStyle.Heading1ai: return Heading1ai;
-            case WordListStyle.Headings111Shifted: return Headings111Shifted;
-            case WordListStyle.LowerLetterWithBracket: return LowerLetterWithBracket;
-            case WordListStyle.LowerLetterWithDot: return LowerLetterWithDot;
-            case WordListStyle.UpperLetterWithDot: return UpperLetterWithDot;
-            case WordListStyle.UpperLetterWithBracket: return UpperLetterWithBracket;
-            case WordListStyle.Custom: return Custom;
-            case WordListStyle.Numbered: return Numbered;
+    private static string? GetTemplateCode(WordListStyle style) => style switch {
+        WordListStyle.Bulleted => "934E79A6",
+        WordListStyle.ArticleSections => "04090023",
+        WordListStyle.Headings111 => "04090025",
+        WordListStyle.HeadingIA1 => "04090027",
+        WordListStyle.Chapters => "04090029",
+        WordListStyle.BulletedChars => "04090021",
+        WordListStyle.Heading1ai => "0409001D",
+        WordListStyle.Headings111Shifted => "0409001F",
+        WordListStyle.LowerLetterWithBracket => "BB9E481E",
+        WordListStyle.LowerLetterWithDot => "73ECA528",
+        WordListStyle.UpperLetterWithDot => "76643E8A",
+        WordListStyle.UpperLetterWithBracket => "76643E8C",
+        WordListStyle.Numbered => "25BE4216",
+        WordListStyle.Custom => null,
+        _ => throw new ArgumentOutOfRangeException(nameof(style))
+    };
+
+    /// <summary>
+    /// Matches a list definition to one of the built-in styles by its template code, or returns
+    /// <see cref="WordListStyle.Custom"/> when none matches.
+    /// </summary>
+    internal static WordListStyle MatchStyle(string? templateCode) => templateCode switch {
+        "934E79A6" => WordListStyle.Bulleted,
+        "04090023" => WordListStyle.ArticleSections,
+        "04090025" => WordListStyle.Headings111,
+        "04090027" => WordListStyle.HeadingIA1,
+        "04090029" => WordListStyle.Chapters,
+        "04090021" => WordListStyle.BulletedChars,
+        "0409001D" => WordListStyle.Heading1ai,
+        "0409001F" => WordListStyle.Headings111Shifted,
+        "BB9E481E" => WordListStyle.LowerLetterWithBracket,
+        "73ECA528" => WordListStyle.LowerLetterWithDot,
+        "76643E8A" => WordListStyle.UpperLetterWithDot,
+        "76643E8C" => WordListStyle.UpperLetterWithBracket,
+        "25BE4216" => WordListStyle.Numbered,
+        _ => WordListStyle.Custom
+    };
+
+    /// <summary>
+    /// The <c>w:abstractNum</c> markup for a built-in style, with the given identifier and a fresh <c>w:nsid</c>. The
+    /// element declares the WordprocessingML and Word 2012 namespaces it uses.
+    /// </summary>
+    internal static string GetDefinitionMarkup(WordListStyle style, int abstractNumberId) {
+        string? templateCode = GetTemplateCode(style);
+        string markup = MarkupByTemplateCode.Value[templateCode ?? CustomTemplateCode];
+        if (templateCode == null) markup = Replace(markup, "w:val=\"" + CustomTemplateCode + "\"", "w:val=\"" + GenerateNsidValue() + "\"");
+        return Identify(markup, abstractNumberId);
+    }
+
+    /// <summary>A single-level bulleted definition that uses the picture bullet with the given identifier.</summary>
+    internal static string GetPictureBulletMarkup(int pictureBulletId, int abstractNumberId) {
+        string markup = MarkupByTemplateCode.Value[PictureBulletTemplateCode];
+        markup = Replace(markup, "w:val=\"" + PictureBulletTemplateCode + "\"", "w:val=\"" + GenerateNsidValue() + "\"");
+        markup = Replace(markup, "<w:lvlPicBulletId w:val=\"0\"", "<w:lvlPicBulletId w:val=\"" + pictureBulletId.ToString(CultureInfo.InvariantCulture) + "\"");
+        return Identify(markup, abstractNumberId);
+    }
+
+    private static string Identify(string markup, int abstractNumberId) {
+        markup = Replace(markup, "w:abstractNumId=\"0\"", "w:abstractNumId=\"" + abstractNumberId.ToString(CultureInfo.InvariantCulture) + "\"");
+        return Replace(markup, "<w:nsid w:val=\"00000000\"", "<w:nsid w:val=\"" + GenerateNsidValue() + "\"");
+    }
+
+    private static string Replace(string markup, string placeholder, string value) {
+        int index = markup.IndexOf(placeholder, StringComparison.Ordinal);
+        if (index < 0) throw new InvalidOperationException("A built-in list definition is missing its " + placeholder + " placeholder.");
+        return markup.Substring(0, index) + value + markup.Substring(index + placeholder.Length);
+    }
+
+    /// <summary>A new eight-digit hexadecimal identifier, as Word uses for <c>w:nsid</c> and <c>w:tmpl</c>.</summary>
+    internal static string GenerateNsidValue() => Guid.NewGuid().ToString("N").Substring(0, 8).ToUpperInvariant();
+
+    private static Dictionary<string, string> LoadMarkup() {
+        byte[] bytes;
+        using (Stream stream = typeof(WordListStyles).Assembly.GetManifestResourceStream(MarkupResource)
+            ?? throw new InvalidOperationException("The built-in list definitions are missing from the assembly.")) {
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            bytes = buffer.ToArray();
         }
-        throw new ArgumentOutOfRangeException(nameof(style));
-    }
-
-    /// <summary>
-    /// Attempts to match an <see cref="AbstractNum"/> to one of the built-in list styles.
-    /// </summary>
-    /// <param name="abstractNum">The abstract numbering definition to compare.</param>
-    /// <returns>The matching <see cref="WordListStyle"/> or <see cref="WordListStyle.Custom"/> when no match is found.</returns>
-    internal static WordListStyle MatchStyle(AbstractNum abstractNum) {
-        ArgumentNullException.ThrowIfNull(abstractNum);
-
-        var templateCode = abstractNum.GetFirstChild<TemplateCode>()?.Val?.Value;
-        return templateCode switch {
-            "934E79A6" => WordListStyle.Bulleted,
-            "04090023" => WordListStyle.ArticleSections,
-            "04090025" => WordListStyle.Headings111,
-            "04090027" => WordListStyle.HeadingIA1,
-            "04090029" => WordListStyle.Chapters,
-            "04090021" => WordListStyle.BulletedChars,
-            "0409001D" => WordListStyle.Heading1ai,
-            "0409001F" => WordListStyle.Headings111Shifted,
-            "BB9E481E" => WordListStyle.LowerLetterWithBracket,
-            "73ECA528" => WordListStyle.LowerLetterWithDot,
-            "76643E8A" => WordListStyle.UpperLetterWithDot,
-            "76643E8C" => WordListStyle.UpperLetterWithBracket,
-            "25BE4216" => WordListStyle.Numbered,
-            _ => WordListStyle.Custom
-        };
-    }
-
-    /// <summary>
-    /// Creates numbering definitions for basic bulleted and numbered lists.
-    /// </summary>
-    /// <param name="document">The document to base the numbering definitions on.</param>
-    /// <param name="bulletNumberId">Returns the numbering identifier for bullets.</param>
-    /// <param name="orderedNumberId">Returns the numbering identifier for ordered lists.</param>
-    /// <returns>A <see cref="Numbering"/> instance containing the definitions.</returns>
-    internal static Numbering CreateDefaultNumberingDefinitions(WordprocessingDocument document, out int bulletNumberId, out int orderedNumberId) {
-        ArgumentNullException.ThrowIfNull(document);
-
-        InitializeAbstractNumberId(document);
-
-        AbstractNum bulletAbstract = GetStyle(WordListStyle.Bulleted);
-        AbstractNum orderedAbstract = GetStyle(WordListStyle.Numbered);
-
-        var bulletAbstractNumberId = bulletAbstract.AbstractNumberId?.Value
-            ?? throw new InvalidOperationException("Bulleted style is missing an abstract number identifier.");
-        var orderedAbstractNumberId = orderedAbstract.AbstractNumberId?.Value
-            ?? throw new InvalidOperationException("Numbered style is missing an abstract number identifier.");
-
-        bulletNumberId = 1;
-        orderedNumberId = 2;
-
-        NumberingInstance bulletInstance = new NumberingInstance(new AbstractNumId { Val = bulletAbstractNumberId }) { NumberID = bulletNumberId };
-        NumberingInstance orderedInstance = new NumberingInstance(new AbstractNumId { Val = orderedAbstractNumberId }) { NumberID = orderedNumberId };
-
-        return new Numbering(bulletAbstract, bulletInstance, orderedAbstract, orderedInstance);
-    }
-
-    /// <summary>
-    /// The next abstract number identifier stored to be used when creating new abstract numbers
-    /// </summary>
-    private static int nextAbstractNumberId;
-
-    /// <summary>
-    /// Generates a unique NSID value using a GUID
-    /// </summary>
-    /// <returns></returns>
-    private static string GenerateNsidValue() {
-        return Guid.NewGuid().ToString("N").Substring(0, 8).ToUpperInvariant();
-    }
-
-    /// <summary>
-    /// Initializes the abstract number identifier, starting from the highest value currently in use
-    /// It makes sure that the next abstract number identifier is unique
-    /// </summary>
-    /// <param name="document">The document.</param>
-    internal static void InitializeAbstractNumberId(WordprocessingDocument document) {
-        // Find the highest AbstractNumberId currently in use
-
-        ArgumentNullException.ThrowIfNull(document);
-
-        var mainPart = document.MainDocumentPart;
-        if (mainPart == null) {
-            nextAbstractNumberId = 0;
-            return;
+        OfficeXmlTree tree = OfficeXmlTree.Parse(bytes, bytes.Length, new OfficeXmlNamespaces.Table());
+        const int W = OfficeXmlNamespaces.WordprocessingML;
+        var markup = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (int node = tree.FirstChildOf(tree.Root); node != OfficeXmlTree.NoNode; node = tree.NextSiblingOf(node)) {
+            if (!tree.IsElement(node, W, "abstractNum")) continue;
+            int templateCode = tree.FindChild(node, W, "tmpl");
+            markup[tree.GetAttribute(templateCode, W, "val")!] = Encoding.UTF8.GetString(tree.WriteElement(node));
         }
-
-        var numberingDefinitionPart = mainPart.NumberingDefinitionsPart;
-        if (numberingDefinitionPart?.Numbering == null) {
-            // No numbering definitions part found, so no abstract numbers are in use
-            nextAbstractNumberId = 0;
-            return;
-        }
-
-        nextAbstractNumberId = numberingDefinitionPart
-            .Numbering
-            .Descendants<AbstractNum>()
-            .Select(an => an.AbstractNumberId?.Value ?? -1)
-            .DefaultIfEmpty(-1)
-            .Max();
-
-        // Start assigning AbstractNumberId values from the next number
-        nextAbstractNumberId++;
-    }
-
-    /// <summary>
-    /// Creates the new abstract number.
-    /// </summary>
-    /// <returns></returns>
-    private static AbstractNum CreateNewAbstractNum() {
-        AbstractNum newAbstractNum = new AbstractNum() { AbstractNumberId = nextAbstractNumberId };
-        nextAbstractNumberId++;
-        return newAbstractNum;
+        return markup;
     }
 }

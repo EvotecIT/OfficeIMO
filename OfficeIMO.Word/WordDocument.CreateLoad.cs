@@ -360,8 +360,6 @@ namespace OfficeIMO.Word {
             new WordSection(word, null!);
             new WordBackground(word);
             new WordDocumentStatistics(word);
-
-            WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
         }
 
         /// <summary>
@@ -541,8 +539,6 @@ namespace OfficeIMO.Word {
                 }
                 WordChart.InitializeAxisIdSeed(wordDocument);
 
-                // initialize abstract number id for lists to make sure those are unique
-                WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
                 return WithSourcePackageInspection(word, sourceBytes, resolved);
             }
         }
@@ -686,7 +682,6 @@ namespace OfficeIMO.Word {
                 InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
             }
             WordChart.InitializeAxisIdSeed(wordDocument);
-            WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
             return WithSourcePackageInspection(word, sourceBytes, resolved);
         }
 
@@ -791,7 +786,6 @@ namespace OfficeIMO.Word {
                 document._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
                 document.LoadDocument();
                 WordChart.InitializeAxisIdSeed(wordDocument);
-                WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
                 cancellationToken.ThrowIfCancellationRequested();
                 return WithSourcePackageInspection(document, sourceBytes: null, resolved, report: packageReport);
             } catch {
@@ -877,7 +871,6 @@ namespace OfficeIMO.Word {
                 }
 
                 WordChart.InitializeAxisIdSeed(wordDocument);
-                WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
                 return captureSourcePackageSecurity ? WithSourcePackageInspection(document, sourceBytes, resolved) : document;
             } catch {
                 packageStream.Dispose();
