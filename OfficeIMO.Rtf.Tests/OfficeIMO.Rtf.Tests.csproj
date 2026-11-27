@@ -47,6 +47,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\TestSupport\OpenXml\OpenXmlSdkReferenceCounter.cs" Link="Shared\OpenXmlSdkReferenceCounter.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="Shared\ManagedTextShapingTestAssets.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.HorizontalMetrics.cs" Link="Shared\ManagedTextShapingTestAssets.HorizontalMetrics.cs" />
     <None Update="Documents\**" CopyToOutputDirectory="Always" />
