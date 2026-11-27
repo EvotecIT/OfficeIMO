@@ -164,6 +164,8 @@ namespace OfficeIMO.Word.Pdf {
         private static void AddNativeParagraphFootnoteNumber(WordParagraph paragraph, List<int> numbers, NativeNoteNumbering footnoteNumbersById, HashSet<NativeNoteKey> seenKeys) {
             if (IsNativeHiddenTextRun(paragraph)) return;
             foreach (OfficeXmlNode child in paragraph.EffectiveRunContentNodes().SelectMany(element => element.DescendantElements().Prepend(element))) {
+                // A note reference inside markup the model doesn't read isn't part of the document.
+                if (!child.IsModelElement()) continue;
                 NativeNoteKey? key = child.IsW("footnoteReference") && WordXml.ParseInt64(child.WAttr("id")) is long footId
                     ? GetNativeFootnoteKey(footId)
                     : child.IsW("endnoteReference") && WordXml.ParseInt64(child.WAttr("id")) is long endId

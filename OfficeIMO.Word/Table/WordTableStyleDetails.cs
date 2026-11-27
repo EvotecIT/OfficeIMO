@@ -1,13 +1,23 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word;
 /// <summary>
 /// Manages table style settings and borders.
 /// </summary>
 public partial class WordTableStyleDetails {
+    private const int W = OfficeXmlNamespaces.WordprocessingML;
+
+    // Word writes w:left before w:start and w:right before w:end when both are present, although the schema lists
+    // w:start first; the table keeps Word's order.
+    private static readonly OfficeXmlChildOrder MarginOrder = new(
+        new[] { W, W, W, W, W, W },
+        new[] { "top", "left", "start", "bottom", "right", "end" });
+
     private readonly WordTable _table;
-    private readonly TableProperties _tableProperties;
+    private readonly OfficeXmlNode _properties;
 
     /// <summary>
     /// Constructor for Table Style Details
@@ -16,7 +26,7 @@ public partial class WordTableStyleDetails {
     internal WordTableStyleDetails(WordTable table) {
         _table = table ?? throw new ArgumentNullException(nameof(table));
         _table.CheckTableProperties();
-        _tableProperties = table._tableProperties ?? throw new InvalidOperationException("Table properties could not be initialized.");
+        _properties = OfficeXmlNode.FromSdk(table._tableProperties ?? throw new InvalidOperationException("Table properties could not be initialized."));
     }
 
     /// <summary>
@@ -24,27 +34,8 @@ public partial class WordTableStyleDetails {
     /// Values round to whole twips and must fit 0 through 32767 twips.
     /// </summary>
     public global::OfficeIMO.OfficeLength? MarginDefaultTop {
-        get => ReadNonnegativeTwips(_tableProperties.TableCellMarginDefault?.TopMargin?.Width?.InnerText);
-        set {
-            short? native = ToMarginTwips(value, nameof(value));
-            _table.CheckTableProperties();
-
-            if (_tableProperties.TableCellMarginDefault == null) {
-                _tableProperties.TableCellMarginDefault = new TableCellMarginDefault();
-            }
-
-            if (native.HasValue) {
-                if (_tableProperties.TableCellMarginDefault.TopMargin == null) {
-                    _tableProperties.TableCellMarginDefault.TopMargin = new TopMargin();
-                }
-                _tableProperties.TableCellMarginDefault.TopMargin.Width = native.Value.ToString(CultureInfo.InvariantCulture);
-                _tableProperties.TableCellMarginDefault.TopMargin.Type = TableWidthUnitValues.Dxa;
-            } else {
-                if (_tableProperties.TableCellMarginDefault.TopMargin != null) {
-                    _tableProperties.TableCellMarginDefault.TopMargin.Remove();
-                }
-            }
-        }
+        get => GetMargin("top");
+        set => SetMargin("top", value);
     }
 
     /// <summary>
@@ -52,27 +43,8 @@ public partial class WordTableStyleDetails {
     /// Values round to whole twips and must fit 0 through 32767 twips.
     /// </summary>
     public global::OfficeIMO.OfficeLength? MarginDefaultBottom {
-        get => ReadNonnegativeTwips(_tableProperties.TableCellMarginDefault?.BottomMargin?.Width?.InnerText);
-        set {
-            short? native = ToMarginTwips(value, nameof(value));
-            _table.CheckTableProperties();
-
-            if (_tableProperties.TableCellMarginDefault == null) {
-                _tableProperties.TableCellMarginDefault = new TableCellMarginDefault();
-            }
-
-            if (native.HasValue) {
-                if (_tableProperties.TableCellMarginDefault.BottomMargin == null) {
-                    _tableProperties.TableCellMarginDefault.BottomMargin = new BottomMargin();
-                }
-                _tableProperties.TableCellMarginDefault.BottomMargin.Width = native.Value.ToString(CultureInfo.InvariantCulture);
-                _tableProperties.TableCellMarginDefault.BottomMargin.Type = TableWidthUnitValues.Dxa;
-            } else {
-                if (_tableProperties.TableCellMarginDefault.BottomMargin != null) {
-                    _tableProperties.TableCellMarginDefault.BottomMargin.Remove();
-                }
-            }
-        }
+        get => GetMargin("bottom");
+        set => SetMargin("bottom", value);
     }
 
     /// <summary>
@@ -80,27 +52,8 @@ public partial class WordTableStyleDetails {
     /// Values round to whole twips and must fit 0 through 32767 twips.
     /// </summary>
     public global::OfficeIMO.OfficeLength? MarginDefaultLeft {
-        get => ReadNonnegativeTwips(_tableProperties.TableCellMarginDefault?.TableCellLeftMargin?.Width?.InnerText);
-        set {
-            short? native = ToMarginTwips(value, nameof(value));
-            _table.CheckTableProperties();
-
-            if (_tableProperties.TableCellMarginDefault == null) {
-                _tableProperties.TableCellMarginDefault = new TableCellMarginDefault();
-            }
-
-            if (native != null) {
-                if (_tableProperties.TableCellMarginDefault.TableCellLeftMargin == null) {
-                    _tableProperties.TableCellMarginDefault.TableCellLeftMargin = new TableCellLeftMargin();
-                }
-                _tableProperties.TableCellMarginDefault.TableCellLeftMargin.Width = native;
-                _tableProperties.TableCellMarginDefault.TableCellLeftMargin.Type = TableWidthValues.Dxa;
-            } else {
-                if (_tableProperties.TableCellMarginDefault.TableCellLeftMargin != null) {
-                    _tableProperties.TableCellMarginDefault.TableCellLeftMargin.Remove();
-                }
-            }
-        }
+        get => GetMargin("left");
+        set => SetMargin("left", value);
     }
 
     /// <summary>
@@ -108,27 +61,8 @@ public partial class WordTableStyleDetails {
     /// Values round to whole twips and must fit 0 through 32767 twips.
     /// </summary>
     public global::OfficeIMO.OfficeLength? MarginDefaultRight {
-        get => ReadNonnegativeTwips(_tableProperties.TableCellMarginDefault?.TableCellRightMargin?.Width?.InnerText);
-        set {
-            short? native = ToMarginTwips(value, nameof(value));
-            _table.CheckTableProperties();
-
-            if (_tableProperties.TableCellMarginDefault == null) {
-                _tableProperties.TableCellMarginDefault = new TableCellMarginDefault();
-            }
-
-            if (native != null) {
-                if (_tableProperties.TableCellMarginDefault.TableCellRightMargin == null) {
-                    _tableProperties.TableCellMarginDefault.TableCellRightMargin = new TableCellRightMargin();
-                }
-                _tableProperties.TableCellMarginDefault.TableCellRightMargin.Width = native;
-                _tableProperties.TableCellMarginDefault.TableCellRightMargin.Type = TableWidthValues.Dxa;
-            } else {
-                if (_tableProperties.TableCellMarginDefault.TableCellRightMargin != null) {
-                    _tableProperties.TableCellMarginDefault.TableCellRightMargin.Remove();
-                }
-            }
-        }
+        get => GetMargin("right");
+        set => SetMargin("right", value);
     }
 
     /// <summary>
@@ -136,22 +70,11 @@ public partial class WordTableStyleDetails {
     /// Values round to whole twips and must fit 0 through 32767 twips.
     /// </summary>
     public global::OfficeIMO.OfficeLength? CellSpacing {
-        get => ReadNonnegativeTwips(_tableProperties.TableCellSpacing?.Width?.Value);
+        get => ReadNonnegativeTwips(_properties.Child(W, "tblCellSpacing").Attribute(W, "w"));
         set {
             short? native = ToMarginTwips(value, nameof(value));
             _table.CheckTableProperties();
-
-            if (native.HasValue) {
-                if (_tableProperties.TableCellSpacing == null) {
-                    _tableProperties.TableCellSpacing = new TableCellSpacing();
-                }
-                _tableProperties.TableCellSpacing.Width = native.Value.ToString(CultureInfo.InvariantCulture);
-                _tableProperties.TableCellSpacing.Type = TableWidthUnitValues.Dxa;
-            } else {
-                if (_tableProperties.TableCellSpacing != null) {
-                    _tableProperties.TableCellSpacing.Remove();
-                }
-            }
+            SetWidth("tblCellSpacing", native?.ToString(CultureInfo.InvariantCulture));
         }
     }
 
@@ -160,66 +83,40 @@ public partial class WordTableStyleDetails {
     /// Values round to whole twips within the signed 32-bit native range.
     /// </summary>
     public global::OfficeIMO.OfficeLength? TableIndentation {
-        get => ReadIndentation(_tableProperties.TableIndentation?.Width?.Value);
+        get => ReadIndentation(OfficeXmlViewValues.ParseInt32(_properties.Child(W, "tblInd").Attribute(W, "w")));
         set {
             int? native = ToIndentationTwips(value, nameof(value));
             _table.CheckTableProperties();
-
-            if (native.HasValue) {
-                if (_tableProperties.TableIndentation == null) {
-                    _tableProperties.TableIndentation = new TableIndentation();
-                }
-
-                _tableProperties.TableIndentation.Width = native.Value;
-                _tableProperties.TableIndentation.Type = TableWidthUnitValues.Dxa;
-            } else if (_tableProperties.TableIndentation != null) {
-                _tableProperties.TableIndentation.Remove();
-            }
+            SetWidth("tblInd", native?.ToString(CultureInfo.InvariantCulture));
         }
     }
 
-    /// <summary>
-    /// Get or set the table borders
-    /// </summary>
-    internal TableBorders? TableBorders {
-        get {
-            return _tableProperties?.TableBorders;
-        }
-        set {
-            _table.CheckTableProperties();
-            if (value != null) {
-                if (_tableProperties.TableBorders != null) {
-                    _tableProperties.TableBorders.Remove();
-                }
-                _tableProperties.TableBorders = value;
-            } else {
-                if (_tableProperties.TableBorders != null) {
-                    _tableProperties.TableBorders.Remove();
-                }
-            }
+    // Only the table's own w:tblCellMar counts, not one inside extension markup.
+    private global::OfficeIMO.OfficeLength? GetMargin(string side) =>
+        ReadNonnegativeTwips(_properties.Child(W, "tblCellMar").Child(W, side).Attribute(W, "w"));
+
+    private void SetMargin(string side, global::OfficeIMO.OfficeLength? value) {
+        short? native = ToMarginTwips(value, nameof(value));
+        _table.CheckTableProperties();
+        // The margins element is added even when a margin is cleared, as the table always has.
+        OfficeXmlNode margins = _properties.GetOrAddChild(W, "tblCellMar", WTblPrView.Order);
+        if (native.HasValue) {
+            OfficeXmlNode margin = margins.GetOrAddChild(W, side, MarginOrder);
+            margin.SetAttribute(W, "w", native.Value.ToString(CultureInfo.InvariantCulture));
+            margin.SetAttribute(W, "type", "dxa");
+        } else {
+            margins.Child(W, side).Remove();
         }
     }
 
-    /// <summary>
-    /// Get or set the table cell margin default
-    /// </summary>
-    internal TableCellMarginDefault? TableCellMarginDefault {
-        get {
-            return _tableProperties?.TableCellMarginDefault;
+    private void SetWidth(string localName, string? twips) {
+        if (twips == null) {
+            _properties.Child(W, localName).Remove();
+            return;
         }
-        set {
-            _table.CheckTableProperties();
-            if (value != null) {
-                if (_tableProperties.TableCellMarginDefault == null) {
-                    _tableProperties.TableCellMarginDefault = value;
-                } else {
-                    _tableProperties.TableCellMarginDefault.Remove();
-                    _tableProperties.TableCellMarginDefault = value;
-                }
-            } else if (_tableProperties.TableCellMarginDefault != null) {
-                _tableProperties.TableCellMarginDefault.Remove();
-            }
-        }
+        OfficeXmlNode width = _properties.GetOrAddChild(W, localName, WTblPrView.Order);
+        width.SetAttribute(W, "w", twips);
+        width.SetAttribute(W, "type", "dxa");
     }
 
     private static global::OfficeIMO.OfficeLength? ReadNonnegativeTwips(string? value) {
