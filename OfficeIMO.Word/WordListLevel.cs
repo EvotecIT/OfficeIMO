@@ -157,20 +157,15 @@ namespace OfficeIMO.Word {
 
         /// <summary>The level's w:start, added with a value of 1 when missing.</summary>
         private OfficeXmlNode GetStartNumberingValueElement() {
-            // w:start is the level's first child; a misplaced one deeper down still counts.
+            // Only the level's own w:start counts, not one inside extension markup.
             OfficeXmlNode existing = Node.Child(W, "start");
-            if (existing.IsNone) {
-                List<OfficeXmlNode> nested = Node.Descendants(W, "start");
-                if (nested.Count > 0) existing = nested[0];
-            }
             return existing.IsNone ? AddValueElement("start", "1") : existing;
         }
 
         private OfficeXmlNode GetIndentationElement() {
-            OfficeXmlNode direct = Node.Child(W, "pPr").Child(W, "ind");
-            if (!direct.IsNone) return direct;
-            List<OfficeXmlNode> existing = Node.Descendants(W, "ind");
-            if (existing.Count > 0) return existing[0];
+            // The level's paragraph properties hold its indentation; one inside extension markup isn't the level's.
+            OfficeXmlNode existing = Node.Child(W, "pPr").Child(W, "ind");
+            if (!existing.IsNone) return existing;
 
             OfficeXmlNode paragraphProperties = Node.GetOrAddChild(W, "pPr", WLvlView.Order);
             OfficeXmlNode indentation = paragraphProperties.AddOrdered(W, "ind", WPPrView.Order);
