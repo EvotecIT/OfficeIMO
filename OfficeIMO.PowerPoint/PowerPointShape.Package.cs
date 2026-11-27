@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint {
         void IPackageSdkBinding.BindSdk() => BindSdk();
 
         // A layout or master shape is removed only with its part, which nothing reads afterwards.
-        void IPackageSdkBinding.KeepDetached() {
+        void IPackageSdkBinding.KeepDetached(PowerPointDetachedCopies copies) {
         }
 
         /// <summary>
