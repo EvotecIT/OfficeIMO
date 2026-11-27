@@ -77,6 +77,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 // Word discards wholeTable conditional blocks; whole-table defaults belong on the style itself.
                 if (type == "wholeTable") continue;
+                ThrowIfUnknownTableStyleConditionalType(LegacyDocStyleCatalog.StyleId(style), type);
 
                 LegacyDocElement tableProperties = properties.Child("tblPr");
                 LegacyDocElement rowProperties = properties.Child("trPr");

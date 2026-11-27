@@ -692,12 +692,35 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
+        // A conditional region Word knows; the SDK refused any other w:type token when it read the value.
+        private static void ThrowIfUnknownTableStyleConditionalType(string? styleId, string type) {
+            switch (type) {
+                case "wholeTable":
+                case "firstRow":
+                case "lastRow":
+                case "firstCol":
+                case "lastCol":
+                case "band1Vert":
+                case "band2Vert":
+                case "band1Horz":
+                case "band2Horz":
+                case "neCell":
+                case "nwCell":
+                case "seCell":
+                case "swCell":
+                    return;
+                default:
+                    throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only for Word's conditional regions. Unsupported conditional type: {type}.");
+            }
+        }
+
         private static void ThrowIfUnsupportedTableStyleConditionalProperties(string styleId, LegacyDocElement tableStyleProperties) {
             string? type = tableStyleProperties.Attr("type");
             if (type == "wholeTable") return;
             if (type == null) {
                 throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only when the conditional type is specified.");
             }
+            ThrowIfUnknownTableStyleConditionalType(styleId, type);
 
             foreach (LegacyDocElement child in tableStyleProperties.Elements()) {
                 switch (child.WName) {

@@ -43,8 +43,10 @@ public partial class WordDocument {
             }
             // The copy may keep reading the stream it was loaded from, so it stays open with the copy.
             var ownedSnapshot = new MemoryStream(bytes, writable: false);
+            // The copy keeps the source's XML limits, so a part edited past them fails here as the SDK copy would.
             return LoadFromStream(ownedSnapshot, new WordLoadOptions {
-                MaxInputBytes = Math.Max(WordLoadOptions.DefaultMaxInputBytes, bytes.LongLength)
+                MaxInputBytes = Math.Max(WordLoadOptions.DefaultMaxInputBytes, bytes.LongLength),
+                OpenSettings = _sdkDeferredLoad?.OpenSettings
             }, captureSourcePackageSecurity: false, detectXml: false);
         }
 
