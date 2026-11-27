@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare two committed Excel revisions over repository fixtures and XLSB inputs saved and reloaded by the tests."""
+"""Compare XLSX projections, unchanged XLSB saves and edited XLSB saves on both revisions."""
 
 import argparse
 import json
