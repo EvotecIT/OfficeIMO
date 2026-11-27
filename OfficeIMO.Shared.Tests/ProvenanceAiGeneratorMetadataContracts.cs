@@ -331,6 +331,8 @@ public sealed class ProvenanceAiGeneratorMetadataContracts {
         Assert.True(OfficeProvenanceXmp.HasOnlyDigitalSourceTypes(Packet("<xmp:CreatorTool>Midjourney</xmp:CreatorTool>"), new OfficeProvenanceOptions()));
         Assert.False(OfficeProvenanceXmp.HasOnlyDigitalSourceTypes(
             Packet("<xmp:CreatorTool private:owner=\"Alice\">Midjourney</xmp:CreatorTool>"), new OfficeProvenanceOptions()));
+        Assert.False(OfficeProvenanceXmp.HasOnlyDigitalSourceTypes(
+            Packet("<xmp:CreatorTool>ComfyUI /home/alice/clients/secret</xmp:CreatorTool>"), new OfficeProvenanceOptions()));
     }
 
     private static void WriteBigEndianEntry(byte[] data, int offset, ushort tag, ushort type, ulong count) {

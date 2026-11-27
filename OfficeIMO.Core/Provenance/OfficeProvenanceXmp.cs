@@ -137,13 +137,13 @@ internal static class OfficeProvenanceXmp {
                 if (description.Name != RdfNamespace + "Description") return false;
                 foreach (XAttribute attribute in description.Attributes()) {
                     if (attribute.IsNamespaceDeclaration || attribute.Name == RdfNamespace + "about") continue;
-                    if (!IsDigitalSourceType(attribute.Name) && !IsAiGeneratorField(attribute.Name, attribute.Value)) return false;
+                    if (!IsDigitalSourceType(attribute.Name) && !IsBareAiGeneratorField(attribute.Name, attribute.Value)) return false;
                 }
                 foreach (XElement property in description.Elements()) {
                     if (property.HasElements) return false;
                     if (IsDigitalSourceType(property.Name)) continue;
                     // A generator property counts only as a plain scalar; extra attributes can carry private data of their own.
-                    if (!IsAiGeneratorField(property.Name, property.Value) || IsInsideXmlLiteral(property) ||
+                    if (!IsBareAiGeneratorField(property.Name, property.Value) || IsInsideXmlLiteral(property) ||
                         !IsScalarRdfProperty(property, null)) return false;
                 }
             }
@@ -160,6 +160,10 @@ internal static class OfficeProvenanceXmp {
 
     private static bool IsAiGeneratorField(XName name, string value) =>
         IsGeneratorFieldName(name) && OfficeProvenanceAiGenerators.IsAiGenerator(value);
+
+    /// <summary>A generator field holding exactly the named product; more text than that is private metadata to reduce.</summary>
+    private static bool IsBareAiGeneratorField(XName name, string value) =>
+        IsGeneratorFieldName(name) && OfficeProvenanceAiGenerators.TryMatch(value, out string product) && value.Trim() == product;
 
     private static string GeneratorFieldName(XmpValue field) =>
         field.Name.NamespaceName == TiffNamespace ? "tiff:Software" : "xmp:CreatorTool";

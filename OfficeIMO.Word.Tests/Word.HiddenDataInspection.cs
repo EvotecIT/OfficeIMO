@@ -184,7 +184,6 @@ namespace OfficeIMO.Tests {
             byte[] source = File.ReadAllBytes(Path.Combine(_directoryWithImages, "Kulek.jpg"));
             OfficeImageMetadata tagged = OfficeImageMetadata.Read(source);
             tagged.SetExifValue(OfficeExifTag.Software, "DALL-E 3 for /Users/private/client");
-            tagged.SetExifValue(OfficeExifTag.Artist, "Private Person");
             File.WriteAllBytes(imagePath, OfficeImageMetadata.Apply(source, tagged));
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph().AddImage(imagePath);

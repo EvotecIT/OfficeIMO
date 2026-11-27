@@ -136,8 +136,9 @@ internal static class OfficeHiddenDataAssets {
         evidence.Carrier is OfficeProvenanceCarrierKind.C2paManifest or OfficeProvenanceCarrierKind.C2paExternalManifest;
 
     private static bool TakeMatch(List<OfficeProvenanceEvidence> remaining, OfficeProvenanceEvidence evidence) {
+        // A kept generator field is rewritten to the product it names, so its stored length can shrink while the declaration stays.
         int index = remaining.FindIndex(item => item.Carrier == evidence.Carrier && item.Value == evidence.Value &&
-            item.PayloadLength == evidence.PayloadLength);
+            (item.PayloadLength == evidence.PayloadLength || evidence.Carrier == OfficeProvenanceCarrierKind.AiGeneratorMetadata));
         if (index < 0) return false;
         remaining.RemoveAt(index);
         return true;
@@ -163,6 +164,15 @@ internal static class OfficeHiddenDataAssets {
         value.Tag.Equals(OfficeExifTag.Orientation) || value.Tag.Equals(OfficeExifTag.XResolution) ||
         value.Tag.Equals(OfficeExifTag.YResolution) || value.Tag.Equals(OfficeExifTag.ResolutionUnit);
 
+    /// <summary>
+    /// EXIF values kept as a bare AI declaration: a <c>Software</c> value that is exactly the named product, or a settings record.
+    /// A <c>Software</c> value with more text than the product counts as private metadata, so cleanup rewrites it to the product.
+    /// </summary>
+    private static bool IsBareAiExifDeclaration(OfficeExifValue value) =>
+        value.Tag.Equals(OfficeExifTag.Software) && value.Value is string software &&
+            OfficeProvenanceAiGenerators.TryMatch(software, out string product) && software.Trim().TrimEnd('\0') == product ||
+        !value.Tag.Equals(OfficeExifTag.Software) && IsAiExifDeclaration(value);
+
     /// <summary>EXIF values that the provenance engine reports as AI generator metadata.</summary>
     private static bool IsAiExifDeclaration(OfficeExifValue value) =>
         value.Tag.Equals(OfficeExifTag.Software) && value.Value is string software && OfficeProvenanceAiGenerators.IsAiGenerator(software) ||
@@ -182,7 +192,7 @@ internal static class OfficeHiddenDataAssets {
         bool hasExif = false;
         foreach (OfficeExifValue value in metadata.ExifValues) {
             if (value.Tag.Directory == OfficeExifDirectory.Gps) hasGps = true;
-            else if (!IsKeptExifValue(value) && !IsAiExifDeclaration(value)) hasExif = true;
+            else if (!IsKeptExifValue(value) && !IsBareAiExifDeclaration(value)) hasExif = true;
         }
 
         if (hasExif) profiles.Add("Exif");
