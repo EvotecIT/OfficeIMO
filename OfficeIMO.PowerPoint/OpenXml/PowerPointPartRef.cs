@@ -351,9 +351,11 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             return false;
         }
 
+        // Pictures, sounds and video: parts the SDK deletes once nothing refers to them.
         private static bool IsMedia(OfficeOpcEditablePackage package, string partName) {
             string? contentType = package.GetContentType(partName);
-            return contentType != null && (contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) || contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase));
+            return contentType != null && (contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) || contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase)
+                || contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase));
         }
 
         // Whether any relationship in the package still targets the part.

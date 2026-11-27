@@ -67,6 +67,27 @@ public class PowerPointMastersWithoutSdkTests {
     }
 
     [Fact]
+    public void ReplacingALayoutBackgroundPictureDropsThePreviousPicture() {
+        byte[] saved;
+        using (var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()))) {
+            PowerPointSlideLayout layout = presentation.SlideMasters[0].Layouts[1];
+            layout.SetBackgroundImage(new MemoryStream(CreatePng()), OfficeImageFormat.Png);
+            layout.SetBackgroundImage(new MemoryStream(PngWithDifferentPixels()), OfficeImageFormat.Png);
+            Assert.False(presentation.IsSdkLoaded);
+            saved = presentation.ToBytes();
+        }
+
+        using var archive = new ZipArchive(new MemoryStream(saved));
+        Assert.Single(archive.Entries, entry => entry.FullName.StartsWith("ppt/media/", StringComparison.Ordinal));
+    }
+
+    private static byte[] PngWithDifferentPixels() {
+        byte[] rgba = new byte[4 * 4 * 4];
+        for (int index = 0; index < rgba.Length; index++) rgba[index] = (byte)(255 - index * 3);
+        return OfficeIMO.Drawing.OfficePngWriter.EncodeRgba(4, 4, rgba);
+    }
+
+    [Fact]
     public void ALayoutPlaceholderWithoutATextBodyIsStillATextBox() {
         byte[] source = RewritePart(CreateDeck(), "ppt/slideLayouts/slideLayout2.xml", root => {
             XElement title = root.Descendants().First(element => element.Name.LocalName == "ph" && (string?)element.Attribute("type") == "title")
