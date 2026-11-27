@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Drawing;
 using Omd = OfficeIMO.Markdown;
 
@@ -104,30 +104,31 @@ namespace OfficeIMO.Word.Markdown {
         /// the last row. Give body paragraphs that directly follow a table at least a 10pt gap.
         /// </summary>
         private static void AddSpaceAfterBodyTables(WordDocument document) {
-            var body = document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
-            if (body == null) {
+            OfficeXmlNode body = document.BodyNode();
+            if (body.IsNone) {
                 return;
             }
 
-            foreach (var table in body.Elements<Table>().ToList()) {
-                if (table.NextSibling() is not Paragraph paragraph) {
+            foreach (OfficeXmlNode table in body.WElements("tbl").ToList()) {
+                OfficeXmlNode paragraph = table.NextSibling;
+                if (!paragraph.IsW("p")) {
                     continue;
                 }
 
-                var properties = paragraph.ParagraphProperties;
-                string? styleId = properties?.ParagraphStyleId?.Val?.Value;
+                OfficeXmlNode properties = paragraph.WChild("pPr");
+                string? styleId = properties.ChildVal("pStyle");
                 if (document.GetHeadingLevel(styleId) > 0) {
                     continue;
                 }
-                if (properties?.SpacingBetweenLines?.BeforeLines != null ||
-                    (int.TryParse(properties?.SpacingBetweenLines?.Before?.Value, out int before) &&
+                OfficeXmlNode spacing = properties.WChild("spacing");
+                if (spacing.WAttr("beforeLines") != null ||
+                    (int.TryParse(spacing.WAttr("before"), out int before) &&
                      before >= int.Parse(SpaceAfterTableTwips, System.Globalization.CultureInfo.InvariantCulture))) {
                     continue;
                 }
 
-                properties ??= paragraph.PrependChild(new ParagraphProperties());
-                properties.SpacingBetweenLines ??= new SpacingBetweenLines();
-                properties.SpacingBetweenLines.Before = SpaceAfterTableTwips;
+                if (properties.IsNone) properties = paragraph.InsertBefore(paragraph.CreateElement(WordXml.W, "pPr"), paragraph.FirstChild);
+                properties.GetOrAddChild(WordXml.W, "spacing", WPPrView.Order).SetAttribute(WordXml.W, "before", SpaceAfterTableTwips);
             }
         }
 

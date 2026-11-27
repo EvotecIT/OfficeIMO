@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
     /// Word model and its <c>OfficeXmlNode</c> handles; the count may only go down.
     /// </summary>
     public class WordMarkdownOpenXmlSdkRatchet {
-        private const int Baseline = 16;
+        private const int Baseline = 0;
         private readonly ITestOutputHelper _output;
 
         public WordMarkdownOpenXmlSdkRatchet(ITestOutputHelper output) => _output = output;

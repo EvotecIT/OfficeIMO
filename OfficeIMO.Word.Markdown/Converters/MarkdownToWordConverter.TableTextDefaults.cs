@@ -1,21 +1,23 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown;
 
 internal partial class MarkdownToWordConverter {
     /// <summary>Seeds a fresh cell paragraph from the native role owner before authored inline formatting.</summary>
-    private static StyleRunProperties? PrepareNativeTableTextDefaults(WordParagraph paragraph, Omd.MarkdownVisualTheme? theme) {
-        if (paragraph._paragraph.Ancestors<TableCell>().FirstOrDefault() is not { } cell ||
-            theme?.EffectiveSourceTheme is not { } source) return null;
+    private static OfficeXmlNode PrepareNativeTableTextDefaults(WordParagraph paragraph, Omd.MarkdownVisualTheme? theme) {
+        OfficeXmlNode element = paragraph.Node();
+        OfficeXmlNode cell = element.Ancestor(WordXml.W, "tc");
+        if (cell.IsNone || theme?.EffectiveSourceTheme is not { } source) return default;
         // Explicit block roles retain their own native typography and spacing.
-        string? style = paragraph._paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-        if (!string.IsNullOrEmpty(style) && paragraph.BuiltInStyleId is not ("Normal" or "ListParagraph")) return null;
-        Style appearance = WordThemeDefaults.CreateTableTextStyle(source, WordDocument.IsThemeHeaderCell(cell));
-        ParagraphProperties properties = paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
-        properties.SpacingBetweenLines ??= (SpacingBetweenLines)appearance.StyleParagraphProperties!.SpacingBetweenLines!.CloneNode(true);
-        return appearance.StyleRunProperties;
+        string? style = element.WChild("pPr").ChildVal("pStyle");
+        if (!string.IsNullOrEmpty(style) && paragraph.BuiltInStyleId is not ("Normal" or "ListParagraph")) return default;
+        OfficeXmlNode appearance = WordConverterNodes.CreateTableTextStyleNode(source, WordConverterNodes.IsThemeHeaderCell(cell));
+        OfficeXmlNode properties = element.GetOrAddChild(WordXml.W, "pPr", WPView.Order);
+        if (!properties.WChild("spacing").Exists) {
+            properties.InsertOrdered(appearance.WChild("pPr").WChild("spacing").Clone(), WPPrView.Order);
+        }
+        return appearance.WChild("rPr");
     }
 
     private static InlineFormatState ResolveNativeTextContext(WordParagraph paragraph, MarkdownWordExportOptions options, InlineFormatState? format = null) =>
@@ -30,21 +32,23 @@ internal partial class MarkdownToWordConverter {
 
     private static void ApplyNativeContextRunFormatting(WordParagraph run, WordParagraph paragraph, MarkdownWordExportOptions options, InlineFormatState? format = null) {
         InlineFormatState context = ResolveNativeTextContext(paragraph, options, format);
-        if (context.NativeDefaults != null) ApplyInlineRunFormatting(run, context, ResolveDefaultFontFamily(options), defaultTextColorHex: null);
+        if (context.NativeDefaults.Exists) ApplyInlineRunFormatting(run, context, ResolveDefaultFontFamily(options), defaultTextColorHex: null);
     }
 
     /// <summary>Projects fallback native properties only onto the newly emitted run; authored overrides follow.</summary>
     private static void ApplyNativeTableRunDefaults(WordParagraph run, InlineFormatState format, bool omitFont) {
-        if (format.NativeDefaults == null) return;
-        IEnumerable<Run> nativeRuns = run._run is { } text ? new[] { text }
-            : run._hyperlink?.Elements<Run>() ?? Enumerable.Empty<Run>();
-        foreach (Run native in nativeRuns) {
-            RunProperties properties = native.RunProperties ??= new RunProperties();
-            foreach (OpenXmlElement property in format.NativeDefaults.ChildElements) {
+        if (format.NativeDefaults.IsNone) return;
+        OfficeXmlNode text = run.RunNode();
+        OfficeXmlNode hyperlink = run.HyperlinkNode();
+        IEnumerable<OfficeXmlNode> nativeRuns = text.Exists ? new[] { text }
+            : hyperlink.Exists ? hyperlink.WElements("r") : Enumerable.Empty<OfficeXmlNode>();
+        foreach (OfficeXmlNode native in nativeRuns) {
+            OfficeXmlNode properties = native.GetOrAddChild(WordXml.W, "rPr", WRView.Order);
+            foreach (OfficeXmlNode property in format.NativeDefaults.Elements()) {
                 // Normal supplies no bold default; the native table role can keep owning its toggle.
-                if (property is Bold or BoldComplexScript) continue;
-                if (omitFont && property is RunFonts) continue;
-                WordThemeDefaults.SetVisualChild(properties, property);
+                if (property.IsW("b") || property.IsW("bCs")) continue;
+                if (omitFont && property.IsW("rFonts")) continue;
+                WordConverterNodes.SetVisualChild(properties, property);
             }
         }
     }

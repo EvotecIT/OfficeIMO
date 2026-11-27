@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Drawing;
 using Omd = OfficeIMO.Markdown;
 
@@ -53,31 +53,43 @@ namespace OfficeIMO.Word.Markdown {
 
         private static void EnsureCodeParagraphStyle(WordDocument document, string styleId, string? language, string monoFont) {
             document.EnsureStyleDefinitionsInitialized();
-            var styles = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-            if (styles == null || styles.Elements<Style>().Any(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal))) {
+            OfficeXmlNode styles = document.StylesNode();
+            if (styles.IsNone || styles.WElements("style").Any(style => string.Equals(style.WAttr("styleId"), styleId, StringComparison.Ordinal))) {
                 return;
             }
 
             string name = string.IsNullOrWhiteSpace(language) ? "Code" : "Code (" + language!.Trim() + ")";
-            var style = new Style(
-                new StyleName { Val = name },
-                new BasedOn { Val = "Normal" },
-                new NextParagraphStyle { Val = "Normal" },
-                new UIPriority { Val = 99 },
-                new PrimaryStyle(),
-                new StyleParagraphProperties(
-                    new KeepLines(),
-                    new SpacingBetweenLines { Before = "60", After = "160", Line = "240", LineRule = LineSpacingRuleValues.Auto }),
-                new StyleRunProperties(
-                    new RunFonts { Ascii = monoFont, HighAnsi = monoFont, ComplexScript = monoFont, EastAsia = monoFont },
-                    new FontSize { Val = "19" },
-                    new FontSizeComplexScript { Val = "19" })) {
-                Type = StyleValues.Paragraph,
-                StyleId = styleId,
-                CustomStyle = true
-            };
+            OfficeXmlNode style = styles.CreateElement(WordXml.W, "style");
+            style.SetAttribute(WordXml.W, "type", "paragraph");
+            style.SetAttribute(WordXml.W, "styleId", styleId);
+            style.SetAttribute(WordXml.W, "customStyle", "true");
+            AppendValueChild(style, "name", name);
+            AppendValueChild(style, "basedOn", "Normal");
+            AppendValueChild(style, "next", "Normal");
+            AppendValueChild(style, "uiPriority", "99");
+            style.Append(style.CreateElement(WordXml.W, "qFormat"));
+
+            OfficeXmlNode paragraphProperties = style.Append(style.CreateElement(WordXml.W, "pPr"));
+            paragraphProperties.Append(paragraphProperties.CreateElement(WordXml.W, "keepLines"));
+            OfficeXmlNode spacing = paragraphProperties.Append(paragraphProperties.CreateElement(WordXml.W, "spacing"));
+            spacing.SetAttribute(WordXml.W, "before", "60");
+            spacing.SetAttribute(WordXml.W, "after", "160");
+            spacing.SetAttribute(WordXml.W, "line", "240");
+            spacing.SetAttribute(WordXml.W, "lineRule", "auto");
+
+            OfficeXmlNode runProperties = style.Append(style.CreateElement(WordXml.W, "rPr"));
+            OfficeXmlNode fonts = runProperties.Append(runProperties.CreateElement(WordXml.W, "rFonts"));
+            fonts.SetAttribute(WordXml.W, "ascii", monoFont);
+            fonts.SetAttribute(WordXml.W, "hAnsi", monoFont);
+            fonts.SetAttribute(WordXml.W, "cs", monoFont);
+            fonts.SetAttribute(WordXml.W, "eastAsia", monoFont);
+            AppendValueChild(runProperties, "sz", "19");
+            AppendValueChild(runProperties, "szCs", "19");
             styles.Append(style);
         }
+
+        private static void AppendValueChild(OfficeXmlNode parent, string localName, string value) =>
+            parent.Append(parent.CreateElement(WordXml.W, localName)).SetAttribute(WordXml.W, "val", value);
 
         private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.MarkdownColumnAlignment alignment, MarkdownWordExportOptions options) {
             if (quoteDepth > 0) {
@@ -227,7 +239,7 @@ namespace OfficeIMO.Word.Markdown {
             Omd.MarkdownTableVisualStyle tableStyle = theme.TableSnapshot;
             bool hasVisibleBorder = palette.Border.A > 0 && IsPositiveFinite(tableStyle.BorderWidth.ToPoints());
             string? borderHex = hasVisibleBorder ? palette.Border.ToRgbHex() : null;
-            DocumentFormat.OpenXml.UInt32Value borderSize = hasVisibleBorder ? ToWordBorderSize(tableStyle.BorderWidth.ToPoints()) : 0U;
+            uint? borderSize = hasVisibleBorder ? ToWordBorderSize(tableStyle.BorderWidth.ToPoints()) : 0U;
             WordBorderStyle borderStyle = hasVisibleBorder ? WordBorderStyle.Single : WordBorderStyle.None;
             short horizontalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingX.ToPoints());
             short verticalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingY.ToPoints());
@@ -265,7 +277,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static DocumentFormat.OpenXml.UInt32Value ToWordBorderSize(double borderWidth) {
+        private static uint ToWordBorderSize(double borderWidth) {
             if (!IsPositiveFinite(borderWidth)) {
                 return 0U;
             }

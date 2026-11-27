@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Drawing;
 using Omd = OfficeIMO.Markdown;
 
@@ -266,7 +266,7 @@ namespace OfficeIMO.Word.Markdown {
                     if (entryBookmark != null) {
                         WordParagraph link = paragraph.AddHyperLink(entry.Text, entryBookmark, addStyle: true).Paragraph;
                         InlineFormatState format = ResolveNativeTextContext(paragraph, _options);
-                        if (format.NativeDefaults != null) ApplyHyperlinkFormattingOmd(link, format, ResolveDefaultFontFamily(_options), _options);
+                        if (format.NativeDefaults.Exists) ApplyHyperlinkFormattingOmd(link, format, ResolveDefaultFontFamily(_options), _options);
                     } else {
                         AddContextText(paragraph, entry.Text, _options);
                         ApplyBodyTextTheme(paragraph, _options);
@@ -402,7 +402,7 @@ namespace OfficeIMO.Word.Markdown {
                     var paragraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment, _options);
                     WordParagraph run = AddContextText(paragraph, lines[i], _options);
-                    if (run.ScopedRunProperties is { } properties) properties.RunFonts = null;
+                    WordXmlEdits.RemoveChild(run.ScopedRunPropertiesNode(), "rFonts");
                     run.SetFontFamily(monoFont);
                     ApplyCodeTheme(paragraph, _options);
                 }
@@ -410,16 +410,21 @@ namespace OfficeIMO.Word.Markdown {
 
             /// <summary>Surrounds the paragraph content with a bookmark, as Word does for heading targets.</summary>
             private static void WrapParagraphInBookmark(WordParagraph paragraph, string name) {
-                Paragraph element = paragraph._paragraph;
+                OfficeXmlNode element = paragraph.Node();
                 string id = paragraph._document.GetNextBookmarkId().ToString(System.Globalization.CultureInfo.InvariantCulture);
-                var start = new BookmarkStart { Name = name, Id = id };
-                if (element.ParagraphProperties != null) {
-                    element.ParagraphProperties.InsertAfterSelf(start);
+                OfficeXmlNode start = element.CreateElement(WordXml.W, "bookmarkStart");
+                start.SetAttribute(WordXml.W, "name", name);
+                start.SetAttribute(WordXml.W, "id", id);
+                OfficeXmlNode properties = element.WChild("pPr");
+                if (properties.Exists) {
+                    properties.InsertAfterSelf(start);
                 } else {
-                    element.PrependChild(start);
+                    element.InsertBefore(start, element.FirstChild);
                 }
 
-                element.AppendChild(new BookmarkEnd { Id = id });
+                OfficeXmlNode end = element.CreateElement(WordXml.W, "bookmarkEnd");
+                end.SetAttribute(WordXml.W, "id", id);
+                element.Append(end);
             }
 
             private static int NormalizeTocLevel(int level, int fallback) {
