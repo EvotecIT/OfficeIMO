@@ -79,6 +79,19 @@ public sealed class EntityOverlapTests {
     }
 
     [Fact]
+    public void DefaultMaskingCoversTheUnsharedTailOfALosingPersonalReading() {
+        var scheme = new SampleScheme("personal");
+        var catalog = new EntityCatalogBuilder().Add(scheme)
+            .AddRecognizer(new SampleRecognizer(
+                (scheme, 0, 6, EntityCandidateStrength.StrongCheck),
+                (scheme, 4, 6, EntityCandidateStrength.DistinctiveShape))).Build();
+        const string text = "abcdefghij!";
+        var matches = new EntityFinder(catalog).Find(text).Matches;
+        Assert.Single(matches);
+        Assert.Equal("[Email]!", EntityMasker.Mask(text, matches));
+    }
+
+    [Fact]
     public void MaskerReplacesTheUnionOfOverlappingAndAdjacentSpansOnce() {
         const string text = "abcdefghijk!";
         var scheme = new SampleScheme("test");

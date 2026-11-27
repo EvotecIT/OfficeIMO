@@ -80,6 +80,57 @@ public sealed class EntityFinderTests {
         });
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SplitPeselRequiresOptInContinuation(bool continuesPrevious) {
+        var locations = new[] { new EntitySegmentLocation("first"), new EntitySegmentLocation("second") };
+        var result = new EntityFinder().Find(new[] {
+            new EntityTextSegment("PESEL: 4405", locations[0]),
+            new EntityTextSegment("1401359", locations[1], continuesPrevious: continuesPrevious),
+        });
+        if (!continuesPrevious) {
+            Assert.Empty(result.Matches);
+            return;
+        }
+        EntityMatch match = Assert.Single(result.Matches);
+        Assert.Same(PolandSchemes.Pesel, match.Scheme);
+        Assert.Equal("44051401359", match.Normalized);
+        Assert.Equal("PESEL", match.ContextKeyword);
+        Assert.Equal(0, match.SegmentIndex);
+        Assert.Same(locations[0], match.Location);
+        Assert.Equal((7, 4), (match.Start, match.Length));
+        Assert.Collection(match.Parts,
+            first => Assert.Equal((0, 7, 4), (first.SegmentIndex, first.Start, first.Length)),
+            second => Assert.Equal((1, 0, 7), (second.SegmentIndex, second.Start, second.Length)));
+    }
+
+    [Fact]
+    public void MatchInThirdInputSegmentUsesThatSegmentsCoordinates() {
+        var result = new EntityFinder().Find(new[] {
+            new EntityTextSegment("earlier"),
+            new EntityTextSegment(""),
+            new EntityTextSegment("NIP 5260001246"),
+        });
+        EntityMatch match = Assert.Single(result.Matches);
+        Assert.Same(PolandSchemes.Nip, match.Scheme);
+        Assert.Equal((2, 4, 10), (match.SegmentIndex, match.Start, match.Length));
+        EntityMatchPart part = Assert.Single(match.Parts);
+        Assert.Equal((2, 4, 10), (part.SegmentIndex, part.Start, part.Length));
+    }
+
+    [Theory]
+    [InlineData("NIP 123-456-32-18 99", "1234563218")]
+    [InlineData("NIP 123 456 32 18/99", "1234563218")]
+    [InlineData("NIP 123 456 32 18 99", null)]
+    [InlineData("NIP 123456321899", null)]
+    public void NumericCandidatesUseGroupEdgesAndRequireASeparatorFenceOrPrintFormat(string text, string? expected) {
+        var finder = new EntityFinder(options: new EntityFinderOptions { IncludeSchemes = { "PL.NIP" } });
+        var result = finder.Find(text);
+        if (expected == null) Assert.Empty(result.Matches);
+        else Assert.Equal(expected, Assert.Single(result.Matches).Normalized);
+    }
+
     [Fact]
     public void IssuerFormattingStrengthensTheReading() {
         var finder = new EntityFinder();
@@ -107,7 +158,7 @@ public sealed class EntityFinderTests {
         Assert.Equal(vat.Length - 2, nip.Length);
 
         EntityMatch regon = Assert.Single(finder.Find("REGON 123456785").Matches);
-        Assert.Equal(0.60, regon.Confidence);
+        Assert.Equal(0.80, regon.Confidence);
         Assert.Equal(EntityCheckOutcome.Passed, regon.CheckDigit);
         Assert.Equal(EntityCheckProvenance.CommunityDocumented, regon.CheckProvenance);
         EntityMatch branch = Assert.Single(finder.Find("REGON 12345678500010").Matches);
@@ -156,6 +207,7 @@ public sealed class EntityFinderTests {
         Assert.Collection(new EntityFinder().Find(text).Matches, account => {
             Assert.Same(FinancialSchemes.Iban, account.Scheme);
             Assert.Equal(iban, text.Substring(account.Start, account.Length));
+            Assert.Equal("IBAN", account.ContextKeyword);
             Assert.Equal("PL61109010140000071219812874", account.Normalized);
             Assert.True(account.Evidence.HasFlag(EntityEvidence.IssuerFormatting));
         }, card => {
@@ -166,9 +218,10 @@ public sealed class EntityFinderTests {
     }
 
     [Fact]
-    public void ExactMatchLimitStopsReadingLazyInput() {
+    public void ExactMatchLimitReadsOnlyOneSegmentBeyondTheCompletedChain() {
         static System.Collections.Generic.IEnumerable<EntityTextSegment> Segments() {
             yield return new EntityTextSegment("first@example.com");
+            yield return new EntityTextSegment("second@example.com");
             throw new InvalidOperationException("The finder requested another segment after reaching its limit.");
         }
 
@@ -190,6 +243,19 @@ public sealed class EntityFinderTests {
         EntityMatch regon = Assert.Single(new EntityFinder().Find("REGON 00000000000018").Matches);
         Assert.Same(PolandSchemes.Regon, regon.Scheme);
         Assert.Empty(regon.Contained);
+    }
+
+    [Fact]
+    public void CharacterLimitKeepsACompleteSegmentAndRejectsAnUnsearchedContinuation() {
+        const string pesel = "PESEL: 44051401359";
+        var finder = new EntityFinder(options: new EntityFinderOptions { MaxInputCharacters = pesel.Length });
+        Assert.Single(finder.Find(pesel).Matches);
+        var clipped = finder.Find(new[] {
+            new EntityTextSegment(pesel),
+            new EntityTextSegment("9", continuesPrevious: true),
+        });
+        Assert.True(clipped.Truncated);
+        Assert.Empty(clipped.Matches);
     }
 
     [Fact]

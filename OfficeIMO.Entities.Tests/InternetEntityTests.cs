@@ -53,6 +53,15 @@ public sealed class InternetEntityTests {
         Assert.Equal("MAILTO:[Email]?subject=Hi", EntityMasker.Mask(text, new[] { match }));
     }
 
+    [Fact]
+    public void EncodedMailboxIsFoundEvenWhenMailtoBodyExceedsUrlLimit() {
+        string text = "mailto:user@b%C3%BCcher.example?body=" + new string('a', 8192);
+        EntityMatch match = Assert.Single(new EntityFinder().Find(text).Matches);
+        Assert.Same(InternetSchemes.Email, match.Scheme);
+        Assert.Equal("user@bücher.example", match.Normalized);
+        Assert.StartsWith("mailto:[Email]?body=", EntityMasker.Mask(text, new[] { match }));
+    }
+
     [Theory]
     [InlineData("file:///tmp/document")]
     [InlineData("https://intranet/a")]

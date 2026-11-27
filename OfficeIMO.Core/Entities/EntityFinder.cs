@@ -5,7 +5,7 @@ using OfficeIMO.Entities.Internal;
 
 namespace OfficeIMO.Entities;
 
-/// <summary>Finds and scores validated entities in text without crossing segment boundaries.</summary>
+/// <summary>Finds and scores validated entities in text with opt-in continuation across source segments.</summary>
 public sealed class EntityFinder {
     private readonly EntityCatalog _catalog;
     private readonly EntityFinderOptions _options;
@@ -57,44 +57,70 @@ public sealed class EntityFinder {
         if (_options.MaxMatches == 0 || _options.MaxInputCharacters == 0)
             return new EntityFindResult(matches, truncated: true, droppedOverlaps: 0);
         int remaining = _options.MaxInputCharacters;
-        int segmentIndex = -1;
+        int segmentIndex = 0;
         int dropped = 0;
-        bool truncated = false;
-        foreach (EntityTextSegment segment in segments) {
+        using IEnumerator<EntityTextSegment> source = segments.GetEnumerator();
+        bool hasSegment = source.MoveNext();
+        while (hasSegment) {
             cancellationToken.ThrowIfCancellationRequested();
-            segmentIndex++;
-            string text = segment.Text ?? string.Empty;
-            if (text.Length == 0) continue;
-            bool clipped = text.Length > remaining;
-            if (clipped) text = text.Substring(0, remaining);
-            remaining -= text.Length;
-
-            List<EntityToken> tokens = EntityTokenizer.Tokenize(text, _shapes, cancellationToken);
-            var candidates = new List<ScoredEntity>();
-            var context = new EntityRecognitionContext(_catalog, _options, _enabled, _languages, segment,
-                segmentIndex, text, clipped, tokens, candidates, cancellationToken);
-            foreach (IEntityRecognizer recognizer in _recognizers) {
+            var chain = new EntitySegmentChain(source.Current, segmentIndex);
+            bool clipped = false;
+            do {
                 cancellationToken.ThrowIfCancellationRequested();
-                recognizer.Recognize(context);
+                EntityTextSegment segment = source.Current;
+                int length = segment.Text?.Length ?? 0;
+                int take = Math.Min(remaining, length);
+                chain.Append(segment, segmentIndex, take);
+                remaining -= take;
+                if (remaining == 0) {
+                    clipped = take < length || HasContinuedText(source, cancellationToken);
+                    break;
+                }
+
+                hasSegment = source.MoveNext();
+                segmentIndex++;
+            } while (hasSegment && source.Current.ContinuesPrevious);
+
+            if (chain.Length > 0) {
+                List<EntityMatch> found = FindChain(chain, clipped, cancellationToken, out int segmentDropped);
+                dropped += segmentDropped;
+                int take = Math.Min(found.Count, _options.MaxMatches - matches.Count);
+                for (int index = 0; index < take; index++) matches.Add(found[index]);
             }
 
-            int originalCount = candidates.Count;
-            for (int index = 0; index < originalCount; index++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                ScoredEntity reading = candidates[index];
-                reading.Scheme.RecognizeContained(context, reading);
-            }
-            List<EntityMatch> found = EntityOverlapResolver.Resolve(candidates, _options, segmentIndex, segment.Location,
-                cancellationToken, out int segmentDropped);
-            dropped += segmentDropped;
-            int take = Math.Min(found.Count, _options.MaxMatches - matches.Count);
-            for (int index = 0; index < take; index++) matches.Add(found[index]);
-            if (remaining == 0 || matches.Count == _options.MaxMatches) {
-                truncated = true;
-                break;
-            }
+            if (remaining == 0 || matches.Count == _options.MaxMatches)
+                return new EntityFindResult(matches, truncated: true, dropped);
         }
-        return new EntityFindResult(matches, truncated, dropped);
+
+        return new EntityFindResult(matches, truncated: false, dropped);
+    }
+
+    private static bool HasContinuedText(IEnumerator<EntityTextSegment> source, CancellationToken cancellationToken) {
+        while (source.MoveNext() && source.Current.ContinuesPrevious) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!string.IsNullOrEmpty(source.Current.Text)) return true;
+        }
+        return false;
+    }
+
+    private List<EntityMatch> FindChain(EntitySegmentChain chain, bool clipped, CancellationToken cancellationToken, out int dropped) {
+        string text = chain.GetText();
+        List<EntityToken> tokens = EntityTokenizer.Tokenize(text, _shapes, cancellationToken);
+        var candidates = new List<ScoredEntity>();
+        var context = new EntityRecognitionContext(_catalog, _options, _enabled, _languages, chain,
+            text, clipped, tokens, candidates, cancellationToken);
+        foreach (IEntityRecognizer recognizer in _recognizers) {
+            cancellationToken.ThrowIfCancellationRequested();
+            recognizer.Recognize(context);
+        }
+
+        int originalCount = candidates.Count;
+        for (int index = 0; index < originalCount; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ScoredEntity reading = candidates[index];
+            reading.Scheme.RecognizeContained(context, reading);
+        }
+        return EntityOverlapResolver.Resolve(candidates, _options, chain, cancellationToken, out dropped);
     }
 
     private static EntityFinderOptions Snapshot(EntityFinderOptions options) {

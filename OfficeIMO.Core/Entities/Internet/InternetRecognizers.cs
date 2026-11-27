@@ -53,6 +53,7 @@ internal static class InternetRecognizers {
     private static void FindUrl(EntityRecognitionContext context, int start, bool mailto) {
         string text = context.Text;
         int prefixLength = EntityTokenizer.UrlPrefixLength(text, start);
+        if (mailto && context.IsEnabled(InternetSchemes.Email)) FindEncodedMailbox(context, start + prefixLength);
         int limit = Math.Min(text.Length, start + InternetSchemes.Url.MaxLength);
         int end = start + prefixLength;
         while (end < limit && !UrlScheme.IsTerminator(text[end])) end++;
@@ -60,13 +61,16 @@ internal static class InternetRecognizers {
         end = TrimUrl(text, start, end);
         if (end <= start + prefixLength) return;
         IdentifierReadings.Submit(context, InternetSchemes.Url, start, end, EntityCandidateStrength.DistinctiveShape);
-        if (mailto && context.IsEnabled(InternetSchemes.Email)) FindEncodedMailbox(context, start + prefixLength, end);
     }
 
-    private static void FindEncodedMailbox(EntityRecognitionContext context, int start, int end) {
+    private static void FindEncodedMailbox(EntityRecognitionContext context, int start) {
         string text = context.Text;
-        int query = text.IndexOf('?', start, end - start);
-        int length = (query >= 0 ? query : end) - start;
+        // Each mailbox byte can occupy up to three written characters when escaped.
+        int limit = Math.Min(text.Length, start + InternetSchemes.Email.MaxLength * 3 + 1);
+        int end = start;
+        while (end < limit && text[end] != '?' && !UrlScheme.IsTerminator(text[end])) end++;
+        if (end == limit && end < text.Length && text[end] != '?' && !UrlScheme.IsTerminator(text[end])) return;
+        int length = TrimUrl(text, start, end) - start;
         if (length <= 0 || text.IndexOf('%', start, length) < 0) return;
         EntityValidationResult result = UrlScheme.ValidateMailtoMailbox(text.Substring(start, length), out bool encodedDomain);
         if (encodedDomain && result.IsValid)

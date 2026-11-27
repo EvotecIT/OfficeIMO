@@ -5,19 +5,21 @@ using OfficeIMO.Entities.Internal;
 
 namespace OfficeIMO.Entities;
 
-/// <summary>Access to one segment, its shared tokens and the candidate sink.</summary>
+/// <summary>Access to a logical text chain, its shared tokens and the candidate sink.</summary>
 public sealed class EntityRecognitionContext {
     private readonly EntityCatalog _catalog;
     private readonly EntityFinderOptions _options;
     private readonly HashSet<string>? _languages;
     private readonly HashSet<string> _enabled;
     private readonly List<EntityToken> _tokens;
-    private readonly string? _label;
+    private readonly EntitySegmentChain _chain;
+    private readonly string? _firstLabel;
     private readonly List<ScoredEntity> _candidates;
     private readonly bool _clipped;
+    internal EntityToken? DigitGroupRun { get; set; }
 
     internal EntityRecognitionContext(EntityCatalog catalog, EntityFinderOptions options, HashSet<string> enabled,
-        HashSet<string>? languages, EntityTextSegment segment, int segmentIndex, string text, bool clipped,
+        HashSet<string>? languages, EntitySegmentChain chain, string text, bool clipped,
         List<EntityToken> tokens, List<ScoredEntity> candidates, CancellationToken cancellationToken) {
         _catalog = catalog;
         _options = options;
@@ -26,18 +28,19 @@ public sealed class EntityRecognitionContext {
         _tokens = tokens;
         _candidates = candidates;
         _clipped = clipped;
-        _label = segment.Label == null ? null : EntityContextMatcher.Fold(segment.Label);
-        Segment = segment;
-        SegmentIndex = segmentIndex;
+        _chain = chain;
+        _firstLabel = FoldLabel(chain.First.Label);
+        Segment = chain.First;
+        SegmentIndex = chain.FirstIndex;
         Text = text;
         CancellationToken = cancellationToken;
     }
 
-    /// <summary>The searched portion of the segment.</summary>
+    /// <summary>The searched logical text, with continued segments joined verbatim.</summary>
     public string Text { get; }
-    /// <summary>Segment metadata.</summary>
+    /// <summary>Metadata from the first segment in the logical text.</summary>
     public EntityTextSegment Segment { get; }
-    /// <summary>Zero-based segment index in the current find operation.</summary>
+    /// <summary>Zero-based index of the first segment in the logical text.</summary>
     public int SegmentIndex { get; }
     /// <summary>Cancellation token provided by the caller.</summary>
     public CancellationToken CancellationToken { get; }
@@ -59,7 +62,10 @@ public sealed class EntityRecognitionContext {
         if (candidate == null) throw new ArgumentNullException(nameof(candidate));
         if (candidate.Start > Text.Length - candidate.Length)
             throw new ArgumentException("The candidate extends outside the searched text.", nameof(candidate));
-        if (!candidate.Validation.IsValid || _clipped && candidate.Start + candidate.Length == Text.Length) return;
+        int end = candidate.Start + candidate.Length;
+        if (!candidate.Validation.IsValid || _clipped && end == Text.Length) return;
+        if (DigitGroupRun is EntityToken run && (candidate.Evidence & EntityEvidence.IssuerFormatting) == 0 &&
+            !EntityDigitGroups.IsSeparated(Text, run, candidate.Start, end)) return;
 
         EntityScheme scheme = candidate.Validation.Scheme;
         if (!IsEnabled(scheme) || !_catalog.TryGetScheme(scheme.Id, out EntityScheme? registered) || !ReferenceEquals(scheme, registered)) return;
@@ -91,18 +97,22 @@ public sealed class EntityRecognitionContext {
         }
         return false;
     }
-    internal bool RejectDigitRun(EntityToken token) => EntityDigitGuards.Reject(Text, token, _clipped);
+    internal bool RejectDigitRun(EntityToken token) => EntityDigitGuards.Reject(Text, token, _clipped, CancellationToken);
 
     internal bool HasContext(EntityScheme scheme, int start) {
         FindContext(scheme, start, out bool labeled, out EntityKeyword? keyword);
         return labeled || keyword != null || Segment.StructuredSource;
     }
 
+    private static string? FoldLabel(string? label) => label == null ? null : EntityContextMatcher.Fold(label);
+
     private void FindContext(EntityScheme scheme, int start, out bool labeled, out EntityKeyword? keyword) {
         keyword = null;
         _catalog.Keywords.TryGetValue(scheme.Id, out List<EntityKeyword>? words);
-        labeled = _label != null && (EntityContextMatcher.Find(words, _languages, _label) != null ||
-            _label == EntityContextMatcher.Fold(scheme.Id) || _label == EntityContextMatcher.Fold(scheme.DisplayName));
+        string? sourceLabel = _chain.SegmentAt(start).Label;
+        string? label = string.Equals(sourceLabel, Segment.Label, StringComparison.Ordinal) ? _firstLabel : FoldLabel(sourceLabel);
+        labeled = label != null && (EntityContextMatcher.Find(words, _languages, label) != null ||
+            label == EntityContextMatcher.Fold(scheme.Id) || label == EntityContextMatcher.Fold(scheme.DisplayName));
 
         if (words == null || start == 0 || _options.ContextWindow == 0) return;
         int from = Math.Max(0, start - _options.ContextWindow);

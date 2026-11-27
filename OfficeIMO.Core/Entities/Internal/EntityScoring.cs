@@ -26,13 +26,7 @@ internal sealed class ScoredEntity {
 internal static class EntityScoring {
     internal static double Score(EntityCandidate candidate, EntityEvidence evidence) {
         if ((evidence & EntityEvidence.StructuredSource) != 0) return 1;
-        double confidence = candidate.Strength switch {
-            EntityCandidateStrength.StrongCheck => 0.85,
-            EntityCandidateStrength.DistinctiveShape => 0.80,
-            EntityCandidateStrength.PrefixedShape => 0.60,
-            EntityCandidateStrength.DigitCheck => 0.40,
-            _ => 0.20,
-        };
+        double confidence = BaseConfidence(candidate.Strength);
         if ((evidence & EntityEvidence.Label) != 0) confidence += 0.50;
         if ((evidence & EntityEvidence.ContextKeyword) != 0) confidence += 0.40;
         if ((evidence & EntityEvidence.IssuerFormatting) != 0) confidence += 0.10;
@@ -41,4 +35,13 @@ internal static class EntityScoring {
         if (candidate.RequiresPlausibleDate && (evidence & EntityEvidence.PlausibleDate) == 0) confidence -= 0.30;
         return confidence;
     }
+
+    internal static double BaseConfidence(EntityCandidateStrength strength) => strength switch {
+        EntityCandidateStrength.StrongCheck => 0.85,
+        EntityCandidateStrength.DistinctiveShape => 0.80,
+        EntityCandidateStrength.PrefixedShape => 0.60,
+        EntityCandidateStrength.DigitCheck => 0.40,
+        EntityCandidateStrength.ShortLetterDigitCheck => 0.30,
+        _ => 0.20,
+    };
 }

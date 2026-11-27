@@ -914,6 +914,7 @@ OfficeIMO.Entities.EntityCandidateStrength.DigitCheck = 1 -> OfficeIMO.Entities.
 OfficeIMO.Entities.EntityCandidateStrength.DistinctiveShape = 3 -> OfficeIMO.Entities.EntityCandidateStrength
 OfficeIMO.Entities.EntityCandidateStrength.PrefixedShape = 2 -> OfficeIMO.Entities.EntityCandidateStrength
 OfficeIMO.Entities.EntityCandidateStrength.ShapeOnly = 0 -> OfficeIMO.Entities.EntityCandidateStrength
+OfficeIMO.Entities.EntityCandidateStrength.ShortLetterDigitCheck = 5 -> OfficeIMO.Entities.EntityCandidateStrength
 OfficeIMO.Entities.EntityCandidateStrength.StrongCheck = 4 -> OfficeIMO.Entities.EntityCandidateStrength
 OfficeIMO.Entities.EntityCatalog
 OfficeIMO.Entities.EntityCatalog.GetScheme(string! id) -> OfficeIMO.Entities.EntityScheme!
@@ -1037,10 +1038,16 @@ OfficeIMO.Entities.EntityMatch.Kind.get -> OfficeIMO.Entities.EntityKind
 OfficeIMO.Entities.EntityMatch.Length.get -> int
 OfficeIMO.Entities.EntityMatch.Location.get -> OfficeIMO.Entities.EntitySegmentLocation?
 OfficeIMO.Entities.EntityMatch.Normalized.get -> string!
+OfficeIMO.Entities.EntityMatch.Parts.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Entities.EntityMatchPart>!
 OfficeIMO.Entities.EntityMatch.Scheme.get -> OfficeIMO.Entities.EntityScheme!
 OfficeIMO.Entities.EntityMatch.SegmentIndex.get -> int
 OfficeIMO.Entities.EntityMatch.Start.get -> int
 OfficeIMO.Entities.EntityMatch.Validation.get -> OfficeIMO.Entities.EntityValidationResult!
+OfficeIMO.Entities.EntityMatchPart
+OfficeIMO.Entities.EntityMatchPart.EntityMatchPart() -> void
+OfficeIMO.Entities.EntityMatchPart.Length.get -> int
+OfficeIMO.Entities.EntityMatchPart.SegmentIndex.get -> int
+OfficeIMO.Entities.EntityMatchPart.Start.get -> int
 OfficeIMO.Entities.EntityOverlapPolicy
 OfficeIMO.Entities.EntityOverlapPolicy.All = 1 -> OfficeIMO.Entities.EntityOverlapPolicy
 OfficeIMO.Entities.EntityOverlapPolicy.BestOnly = 0 -> OfficeIMO.Entities.EntityOverlapPolicy
@@ -1074,8 +1081,9 @@ OfficeIMO.Entities.EntitySex
 OfficeIMO.Entities.EntitySex.Female = 0 -> OfficeIMO.Entities.EntitySex
 OfficeIMO.Entities.EntitySex.Male = 1 -> OfficeIMO.Entities.EntitySex
 OfficeIMO.Entities.EntityTextSegment
+OfficeIMO.Entities.EntityTextSegment.ContinuesPrevious.get -> bool
 OfficeIMO.Entities.EntityTextSegment.EntityTextSegment() -> void
-OfficeIMO.Entities.EntityTextSegment.EntityTextSegment(string! text, OfficeIMO.Entities.EntitySegmentLocation? location = null, string? label = null, bool structuredSource = false) -> void
+OfficeIMO.Entities.EntityTextSegment.EntityTextSegment(string! text, OfficeIMO.Entities.EntitySegmentLocation? location = null, string? label = null, bool structuredSource = false, bool continuesPrevious = false) -> void
 OfficeIMO.Entities.EntityTextSegment.Label.get -> string?
 OfficeIMO.Entities.EntityTextSegment.Location.get -> OfficeIMO.Entities.EntitySegmentLocation?
 OfficeIMO.Entities.EntityTextSegment.StructuredSource.get -> bool

@@ -37,7 +37,7 @@ public static class EntityMasker {
         foreach (EntityMatch match in matches) {
             if (match == null || match.Start > text.Length - match.Length)
                 throw new ArgumentException("A match falls outside the supplied text.", nameof(matches));
-            if (segment.HasValue && segment.Value != match.SegmentIndex)
+            if (match.Parts.Count != 1 || segment.HasValue && segment.Value != match.SegmentIndex)
                 throw new ArgumentException("Supply matches from one text segment per masking operation.", nameof(matches));
             segment = match.SegmentIndex;
             AddSelected(match, ordered, options);
@@ -66,25 +66,33 @@ public static class EntityMasker {
         return output.ToString();
     }
 
-    // A skipped winner can still cover a sensitive reading such as the mailbox in a mailto URL.
     private static void AddSelected(EntityMatch match, List<EntityMatch> ordered, EntityMaskOptions options) {
-        if (options.Sensitivities.Contains(match.Scheme.Sensitivity)) {
-            ordered.Add(match);
-            return;
-        }
-        if (match.Contained.Count == 0 && match.MaskingFallbacks.Count == 0) return;
+        bool selected = options.Sensitivities.Contains(match.Scheme.Sensitivity);
+        if (selected) ordered.Add(match);
+        if (match.MaskingFallbacks.Count == 0 && (selected || match.Contained.Count == 0)) return;
+
         var pending = new Stack<EntityMatch>();
-        PushFallbacks(match, pending);
+        PushFallbacks(match, pending, selected);
         while (pending.Count > 0) {
             EntityMatch next = pending.Pop();
-            if (options.Sensitivities.Contains(next.Scheme.Sensitivity)) ordered.Add(next);
-            else PushFallbacks(next, pending);
+            bool include = options.Sensitivities.Contains(next.Scheme.Sensitivity);
+            if (include) {
+                if (next.Parts.Count != 1 || next.SegmentIndex != match.SegmentIndex)
+                    throw new ArgumentException("Supply matches from one text segment per masking operation.");
+                ordered.Add(next);
+            }
+            PushFallbacks(next, pending, include);
         }
     }
 
-    private static void PushFallbacks(EntityMatch match, Stack<EntityMatch> pending) {
-        foreach (EntityMatch item in match.Contained) pending.Push(item);
-        foreach (EntityMatch item in match.MaskingFallbacks) pending.Push(item);
+    private static void PushFallbacks(EntityMatch match, Stack<EntityMatch> pending, bool selected) {
+        if (!selected) {
+            foreach (EntityMatch item in match.Contained) pending.Push(item);
+        }
+        foreach (EntityMatch item in match.MaskingFallbacks) {
+            if (!selected || item.Parts.Count != 1 || item.SegmentIndex != match.SegmentIndex ||
+                item.Start < match.Start || item.Start + item.Length > match.Start + match.Length) pending.Push(item);
+        }
     }
 
     private static string Replacement(string text, List<EntityMatch> ordered, int startIndex, int endIndex, int end,

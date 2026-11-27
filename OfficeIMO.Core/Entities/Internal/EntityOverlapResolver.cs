@@ -5,8 +5,7 @@ using System.Threading;
 namespace OfficeIMO.Entities.Internal;
 
 internal static class EntityOverlapResolver {
-    internal static List<EntityMatch> Resolve(List<ScoredEntity> candidates, EntityFinderOptions options, int segmentIndex,
-        EntitySegmentLocation? location, CancellationToken cancellationToken, out int dropped) {
+    internal static List<EntityMatch> Resolve(List<ScoredEntity> candidates, EntityFinderOptions options, EntitySegmentChain chain, CancellationToken cancellationToken, out int dropped) {
         dropped = 0;
         var matches = new List<EntityMatch>();
         if (candidates.Count == 0) return matches;
@@ -18,7 +17,7 @@ internal static class EntityOverlapResolver {
 
         if (options.OverlapPolicy == EntityOverlapPolicy.All) {
             foreach (ScoredEntity reading in distinct) {
-                if (reading.Confidence >= options.MinimumConfidence) matches.Add(new EntityMatch(reading, segmentIndex, location));
+                if (reading.Confidence >= options.MinimumConfidence) matches.Add(new EntityMatch(reading, chain));
             }
             return matches;
         }
@@ -54,11 +53,10 @@ internal static class EntityOverlapResolver {
             dropped++;
             if (maskingFallbacks.TryGetValue(reading, out List<ScoredEntity>? inheritedFallbacks)) {
                 foreach (ScoredEntity fallback in inheritedFallbacks) {
-                    if (fallback.Scheme.Sensitivity != winner.Scheme.Sensitivity) AddReading(maskingFallbacks, winner, fallback);
+                    if (NeedsMaskingFallback(winner, fallback)) AddReading(maskingFallbacks, winner, fallback);
                 }
             }
-            if (reading.Scheme.Sensitivity != winner.Scheme.Sensitivity)
-                AddReading(maskingFallbacks, winner, reading);
+            if (NeedsMaskingFallback(winner, reading)) AddReading(maskingFallbacks, winner, reading);
             if (children.TryGetValue(reading, out List<ScoredEntity>? nested)) {
                 foreach (ScoredEntity child in nested) {
                     if (child.Confidence >= options.MinimumConfidence) pending.Add(child);
@@ -71,11 +69,14 @@ internal static class EntityOverlapResolver {
             ScoredEntity reading = distinct[index];
             if (!contained.Contains(reading) &&
                 (!winners.TryGetValue(reading.Start, out ScoredEntity? winner) || !ReferenceEquals(reading, winner))) continue;
-            built.Add(reading, ToMatch(reading, segmentIndex, location, alternatives, children, maskingFallbacks, built));
+            built.Add(reading, ToMatch(reading, chain, alternatives, children, maskingFallbacks, built));
         }
         foreach (int start in orderedStarts) matches.Add(built[winners[start]]);
         return matches;
     }
+
+    private static bool NeedsMaskingFallback(ScoredEntity winner, ScoredEntity reading) =>
+        reading.Scheme.Sensitivity != winner.Scheme.Sensitivity || reading.Start < winner.Start || reading.End > winner.End;
 
     private static ScoredEntity? FindOverlappingWinner(ScoredEntity reading, SortedSet<int> starts, Dictionary<int, ScoredEntity> winners) {
         if (starts.Count == 0) return null;
@@ -178,16 +179,16 @@ internal static class EntityOverlapResolver {
         return false;
     }
 
-    private static EntityMatch ToMatch(ScoredEntity reading, int segmentIndex, EntitySegmentLocation? location,
+    private static EntityMatch ToMatch(ScoredEntity reading, EntitySegmentChain chain,
         Dictionary<ScoredEntity, List<ScoredEntity>> alternatives, Dictionary<ScoredEntity, List<ScoredEntity>> children,
         Dictionary<ScoredEntity, List<ScoredEntity>> maskingFallbacks, Dictionary<ScoredEntity, EntityMatch> built) {
         EntityMatch[]? otherMatches = alternatives.TryGetValue(reading, out List<ScoredEntity>? other)
-            ? other.ConvertAll(item => new EntityMatch(item, segmentIndex, location)).ToArray() : null;
+            ? other.ConvertAll(item => new EntityMatch(item, chain)).ToArray() : null;
         EntityMatch[]? childMatches = children.TryGetValue(reading, out List<ScoredEntity>? inner)
             ? inner.ConvertAll(item => built[item]).ToArray() : null;
         EntityMatch[]? fallbackMatches = maskingFallbacks.TryGetValue(reading, out List<ScoredEntity>? fallbacks)
-            ? fallbacks.ConvertAll(item => new EntityMatch(item, segmentIndex, location)).ToArray() : null;
-        return new EntityMatch(reading, segmentIndex, location, otherMatches, childMatches, fallbackMatches);
+            ? fallbacks.ConvertAll(item => new EntityMatch(item, chain)).ToArray() : null;
+        return new EntityMatch(reading, chain, otherMatches, childMatches, fallbackMatches);
     }
 
     private static int CompareByPosition(ScoredEntity left, ScoredEntity right) {
@@ -202,7 +203,7 @@ internal static class EntityOverlapResolver {
         if (result != 0) return result;
         result = right.Candidate.Length.CompareTo(left.Candidate.Length);
         if (result != 0) return result;
-        result = right.Candidate.Strength.CompareTo(left.Candidate.Strength);
+        result = EntityScoring.BaseConfidence(right.Candidate.Strength).CompareTo(EntityScoring.BaseConfidence(left.Candidate.Strength));
         if (result != 0) return result;
         result = left.RegistrationOrder.CompareTo(right.RegistrationOrder);
         return result != 0 ? result : left.Start.CompareTo(right.Start);

@@ -12,4 +12,6 @@ public enum EntityCandidateStrength {
     DistinctiveShape,
     /// <summary>A checksum passed on a distinctive format or prefixed identifier.</summary>
     StrongCheck,
+    /// <summary>A checksum over a short letter and digit shape passed.</summary>
+    ShortLetterDigitCheck,
 }

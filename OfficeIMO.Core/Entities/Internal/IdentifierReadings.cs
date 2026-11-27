@@ -71,12 +71,14 @@ internal static class IdentifierReadings {
 
 internal sealed class TokenEntityRecognizer : IEntityRecognizer {
     private readonly Action<EntityRecognitionContext, EntityToken> _recognize;
+    private readonly int _maximumDigits;
 
     internal TokenEntityRecognizer(string id, EntityTokenShape shapes, Action<EntityRecognitionContext, EntityToken> recognize,
         params EntityScheme[] schemes) {
         Id = id;
         Shapes = shapes;
         Schemes = Array.AsReadOnly(schemes);
+        foreach (EntityScheme scheme in schemes) _maximumDigits = Math.Max(_maximumDigits, scheme.MaxLength);
         _recognize = recognize;
     }
 
@@ -87,6 +89,16 @@ internal sealed class TokenEntityRecognizer : IEntityRecognizer {
     public void Recognize(EntityRecognitionContext context) {
         foreach (EntityToken token in context.GetTokens(Shapes)) {
             _recognize(context, token);
+            if (token.Shape != EntityTokenShape.DigitRun || token.Length == token.CharacterCount || context.RejectDigitRun(token)) continue;
+            context.DigitGroupRun = token;
+            try {
+                foreach (EntityToken candidate in EntityDigitGroups.Candidates(context.Text, token, _maximumDigits, context.CancellationToken)) {
+                    context.CancellationToken.ThrowIfCancellationRequested();
+                    _recognize(context, candidate);
+                }
+            } finally {
+                context.DigitGroupRun = null;
+            }
         }
     }
 }

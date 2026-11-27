@@ -42,7 +42,7 @@ internal sealed class RegonScheme : CompactEntityScheme {
             end++;
         }
         if (count == 9)
-            IdentifierReadings.Submit(context, outer.Scheme, outer.Start, end, EntityCandidateStrength.ShapeOnly);
+            IdentifierReadings.Submit(context, outer.Scheme, outer.Start, end, EntityCandidateStrength.DigitCheck);
     }
 
     private static bool PassesCheck(string value, string weights) =>

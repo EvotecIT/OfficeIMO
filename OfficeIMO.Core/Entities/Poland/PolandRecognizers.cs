@@ -26,7 +26,7 @@ internal static class PolandRecognizers {
             ? PolandSchemes.IdentityCard : PolandSchemes.Passport;
         if (!context.IsEnabled(scheme) || !context.HasContext(scheme, token.Start)) return;
         foreach ((int end, int count) in IdentifierReadings.Endpoints(text, token, 9)) {
-            if (count == 9) IdentifierReadings.Submit(context, scheme, token.Start, end, EntityCandidateStrength.ShapeOnly, needsContext: true);
+            if (count == 9) IdentifierReadings.Submit(context, scheme, token.Start, end, EntityCandidateStrength.ShortLetterDigitCheck, needsContext: true);
         }
     }
 
@@ -36,7 +36,7 @@ internal static class PolandRecognizers {
         switch (token.CharacterCount) {
             case 9:
             case 14:
-                IdentifierReadings.Submit(context, PolandSchemes.Regon, token.Start, end, EntityCandidateStrength.ShapeOnly);
+                IdentifierReadings.Submit(context, PolandSchemes.Regon, token.Start, end, EntityCandidateStrength.DigitCheck);
                 break;
             case 10:
                 EntityEvidence evidence = MatchesNipGrouping(context.Text, token) ? EntityEvidence.IssuerFormatting : EntityEvidence.None;

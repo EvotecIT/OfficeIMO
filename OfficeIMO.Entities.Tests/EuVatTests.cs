@@ -118,6 +118,9 @@ public sealed class EuVatTests {
         Assert.Equal(EntityCheckKind.Mod10, business.Kind);
         Assert.Equal("www.interior.gob.es", personal.Source!.Host);
         Assert.NotEqual(personal.Source, business.Source);
+        Assert.NotEqual(personal.Name, business.Name);
+        Assert.Equal(EntityCheckProvenance.IssuerPublished, personal.Provenance);
+        Assert.Equal(EntityCheckProvenance.CommunityDocumented, company.CheckProvenance);
         Assert.True(company.Evidence.HasFlag(EntityEvidence.CommunityDocumentedCheck));
     }
 

@@ -140,13 +140,13 @@ public interface IEntityRecognizer {
 }
 ```
 
-The finder tokenizes each segment once and shares the resulting runs and anchors across recognizers.
+The finder tokenizes each logical text chain once and shares its runs and anchors across recognizers.
 
 - **Digit runs**: maximal sequences of digits joined by single separators (space, hyphen, dot, slash, non-breaking space, thin space), with the separator pattern recorded (`3-3-2-2`, `4 4 4 4`).
 - **Alphanumeric runs**: contiguous ASCII groups and boundary information for IBAN, VAT, NINO, passport and ISIN shapes.
 - **Anchors**: `@` positions for email and `://`, `mailto:` or `www.` positions for URLs. The email and URL recognizers expand outward under RFC limits.
 
-The tokenizer identifies contiguous alphanumeric groups and maximal digit runs. Recognizers can extend an alphanumeric group across supported separators within the length allowed by the scheme. For example, the IBAN recognizer starts at `PL61` after the label and includes the following account groups. Digit-only rules evaluate the full digit run. Boundaries prevent a candidate inside a longer unbroken word or number. The finder also recognizes the declared NIP inside a Polish VAT number and the parent REGON inside a branch REGON.
+The tokenizer identifies contiguous alphanumeric groups and maximal digit runs. Recognizers can extend an alphanumeric group across supported separators within the length allowed by the scheme. For example, the IBAN recognizer starts at `PL61` after the label and includes the following account groups. Candidates start and end at group boundaries. A digit-only candidate that leaves adjacent groups in the same run needs issuer formatting or a different separator to distinguish it from the adjacent grouping. Boundaries prevent a candidate inside a longer unbroken word or number. The finder also recognizes the declared NIP inside a Polish VAT number and the parent REGON inside a branch REGON.
 
 Unprefixed VAT recognition in prose requires a numeric national part, a passing check and scheme-specific context. Known fields can validate an unprefixed alphanumeric value directly with the country scheme.
 
@@ -157,7 +157,7 @@ Recognizers are separate from schemes because one recognizer can serve many sche
 ```csharp
 public sealed class EntityMatch {
     public int Start { get; }
-    public int Length { get; }                        // covers separators and prefix as written
+    public int Length { get; }                        // length of the first part as written
     public EntityKind Kind { get; }
     public EntityScheme Scheme { get; }
     public string Normalized { get; }                 // sensitive
@@ -167,8 +167,9 @@ public sealed class EntityMatch {
     public EntityEvidence Evidence { get; }           // flags
     public string? ContextKeyword { get; }            // "NIP", "nr rachunku"
     public string? ContextLanguage { get; }           // BCP 47: "pl", "en"
-    public int SegmentIndex { get; }                  // index of the input segment for the match (0 for a string)
-    public EntitySegmentLocation? Location { get; }   // from the segment, see below
+    public int SegmentIndex { get; }                  // input segment where the match starts (0 for a string)
+    public EntitySegmentLocation? Location { get; }   // from the first segment covered
+    public IReadOnlyList<EntityMatchPart> Parts { get; } // source segment index, start and length for each part
     public IReadOnlyList<EntityMatch> Alternatives { get; }  // other readings of the same span
     public IReadOnlyList<EntityMatch> Contained { get; }     // e.g. the NIP inside a PL VAT number
     public override string ToString();                // "TaxId/PL.NIP [12..25] 0.92", never the value
@@ -198,7 +199,7 @@ Hosts rarely have one flat string. The finder accepts either a string or a list 
 ```csharp
 public readonly struct EntityTextSegment {
     public EntityTextSegment(string text, EntitySegmentLocation? location = null, string? label = null,
-        bool structuredSource = false);
+        bool structuredSource = false, bool continuesPrevious = false);
 }
 
 public sealed class EntitySegmentLocation {
@@ -210,7 +211,7 @@ public sealed class EntitySegmentLocation {
 
 Excel passes each cell with its column header as `label`; the Reader passes chunks with their source location; invoicing passes a field value with the element name as `label` and the match gets `StructuredSource`.
 
-`Start` and `Length` are UTF-16 offsets in the segment named by `SegmentIndex`. Each segment has its own location and context. Logical text assembled from multiple source runs can be passed as one segment by the caller.
+Segments are independent by default. A segment with `continuesPrevious: true` joins the previous segment verbatim. Context and matches can cross those joins. The match's `SegmentIndex`, `Start` and `Length` give its first part's coordinates in UTF-16 code units, and `Location` comes from that segment. `Parts` lists the portion in every segment the match covers.
 
 ## Scoring
 
@@ -221,14 +222,15 @@ Confidence is a number from 0 to 1 built from the scheme's base strength and the
 | Strong check over a distinctive shape | IBAN (ISO 7064 MOD 97-10 plus country length), LEI, ISIN, EU VAT with country prefix and check | 0.85 |
 | Distinctive shape, no check | Email, URL, UK NINO pattern with valid prefix and suffix | 0.80 |
 | Country prefix and VIES format, no documented check | an EU VAT variant for which no check is documented at all | 0.60 |
-| Check digit over a plain digit run | PESEL, NIP, card number (Luhn) with a payment-card major industry identifier, EU VAT digits without prefix | 0.40 |
-| Weak evidence for recognition | REGON, KRS, SSN, EIN, BIC, UK company number, PL identity card and passport | 0.20 |
+| Check digit over a plain digit run | PESEL, NIP, REGON, card number (Luhn) with a payment-card major industry identifier, EU VAT digits without prefix | 0.40 |
+| Check digit over a short letter-digit shape | PL identity card and passport | 0.30 |
+| Shape only | KRS, SSN, EIN, BIC, UK company number | 0.20 |
 
-VAT variants with a passing check use the same base across both provenance categories. Polish REGON and document numbers retain the brief’s conservative recognition base. Provenance is available in `CheckProvenance` and the `CommunityDocumentedCheck` evidence flag.
+Checks use the same base across both provenance categories. Provenance is available in `CheckProvenance` and the `CommunityDocumentedCheck` evidence flag.
 
 Adjustments, applied in order and clamped to [0, 1]:
 
-- `Label` matching the scheme (`NIP`, `PESEL`, `IBAN`, `VAT ID`): +0.50. `ContextKeyword` within the window (default 48 characters before the value, same segment, nothing but punctuation, spaces and short connecting words between): +0.40.
+- `Label` matching the scheme (`NIP`, `PESEL`, `IBAN`, `VAT ID`): +0.50. `ContextKeyword` within the window (default 48 characters before the value in the logical text, nothing but punctuation, spaces and short connecting words between): +0.40.
 - `IssuerFormatting`: +0.10. `CountryPrefix` where optional: +0.10. `KnownIssuerRange`: +0.10.
 - `PlausibleDate` missing for PESEL (future date or older than 130 years): -0.30.
 - `AmbiguousReading` without disambiguating context: -0.15 for each competing reading.
@@ -373,7 +375,7 @@ PdfRedactionPlan plan = pdf.Redactions.Search(search);
 // each PdfRedactionMatch carries criterion "entity:PL.PESEL" (never the value) and the confidence
 ```
 
-The planner already extracts page text with glyph geometry. A future redaction criterion can assemble a logical line from consecutive runs, search the line, and map the resulting offsets back to each run. If hosts need the finder to do this assembly, an opt-in segment continuation contract can return a separate span per covered run. The workflow recipe (`officeimo.pdf.redaction.recipe.v1`) gains `PdfRedactionRuleKind.Entity` with a kind or scheme list and an optional minimum confidence. Evidence carries the rule name and scheme IDs.
+The planner already extracts page text with glyph geometry. The Stage 2 redaction criterion can send consecutive runs as continued segments and map each returned `EntityMatchPart` to the glyphs of its source run. The workflow recipe (`officeimo.pdf.redaction.recipe.v1`) gains `PdfRedactionRuleKind.Entity` with a kind or scheme list and an optional minimum confidence. Evidence carries the rule name and scheme IDs.
 
 Word, Excel and PowerPoint have no text redaction yet. When they get it, they follow the same plan shape (find, review, apply, verify): Word over runs with paragraph locations, Excel over cells with the header as label, PowerPoint over shape text. Entities arrive as a criterion from day one rather than a later bolt-on. Until then, these formats offer inspection only (`Find-OfficeEntity` below).
 

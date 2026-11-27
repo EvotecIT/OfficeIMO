@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Entities.Internal;
 
@@ -13,12 +14,13 @@ internal static class EntityDigitGuards {
         " NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG SEK SGD SHP SLE SOS SRD SSP STN SYP SZL" +
         " THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD UYU UZS VES VND VUV WST XAF XCD XCG XOF XPF YER ZAR ZMW ZWG ";
 
-    internal static bool Reject(string text, EntityToken token, bool clipped) {
+    internal static bool Reject(string text, EntityToken token, bool clipped, CancellationToken cancellationToken) {
         if (token.TouchesWord) return true;
         int end = token.Start + token.Length;
         char first = text[token.Start];
         bool allSame = true;
         for (int index = token.Start + 1; index < end; index++) {
+            if ((index & 0x7fff) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (text[index] != first && EntityCharacters.IsDigit(text[index])) {
                 allSame = false;
                 break;
