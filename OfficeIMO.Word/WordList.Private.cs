@@ -143,7 +143,7 @@ public partial class WordList : WordElement {
 
         _document.GetNextNumberingIds(numbering, out _abstractId, out _numberId);
 
-        var abstractNum = NewDefinition(WordListStyles.GetDefinitionMarkup(style, _abstractId));
+        var abstractNum = NewDefinition(WordListStyles.GetDefinitionMarkup(style), _abstractId);
         // Heading numbering links levels to the document's own heading styles, also when they are localized.
         foreach (ParagraphStyleIdInLevel link in abstractNum.Descendants<ParagraphStyleIdInLevel>()) {
             if (link.Val?.Value is { } linkedStyleId) link.Val = _document.ResolveBuiltInStyleId(linkedStyleId);
@@ -156,12 +156,27 @@ public partial class WordList : WordElement {
         _document.NumberingIdsUsed(numbering, _abstractId, _numberId);
     }
 
-    /// <summary>Parses a list definition's markup into the SDK element, leaving its namespaces to the numbering part.</summary>
-    private static AbstractNum NewDefinition(string markup) {
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, AbstractNum> ParsedDefinitions = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// A new list definition from a built-in template, with the given identifier and a fresh <c>w:nsid</c> (and
+    /// <c>w:tmpl</c>, where the template's is a placeholder). Each template is parsed once; lists get copies.
+    /// </summary>
+    private static AbstractNum NewDefinition(string markup, int abstractId) {
+        var definition = (AbstractNum)ParsedDefinitions.GetOrAdd(markup, ParseDefinition).CloneNode(true);
+        definition.AbstractNumberId = abstractId;
+        definition.Nsid!.Val = WordListStyles.GenerateNsidValue();
+        TemplateCode templateCode = definition.GetFirstChild<TemplateCode>()!;
+        if (WordListStyles.IsPlaceholderTemplateCode(templateCode.Val?.Value)) templateCode.Val = WordListStyles.GenerateNsidValue();
+        return definition;
+    }
+
+    private static AbstractNum ParseDefinition(string markup) {
         var definition = new AbstractNum(markup);
         definition.RemoveNamespaceDeclaration("w");
         definition.RemoveNamespaceDeclaration("w15");
-        // The SDK reads w:left as w:start; the definitions are written with w:left, as Word writes them.
+        // The SDK reads w:left as w:start; the definitions are written with w:left, as Word writes them. Visiting every
+        // indentation also loads the whole element, so copies can be taken from it on any thread.
         foreach (Indentation indentation in definition.Descendants<Indentation>()) {
             if (indentation.Start == null) continue;
             indentation.Left = indentation.Start;

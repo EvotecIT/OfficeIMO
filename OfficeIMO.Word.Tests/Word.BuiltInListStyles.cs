@@ -7,39 +7,44 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
-    public void BuiltInListDefinitionsAreTypedDefinitionsWithFreshIdentities() {
+    public void BuiltInListDefinitionsAreTypedDefinitionsUnderTheirOwnTemplateCodes() {
         foreach (WordListStyle style in Enum.GetValues(typeof(WordListStyle))) {
-            var definition = new AbstractNum(WordListStyles.GetDefinitionMarkup(style, 42));
-            var again = new AbstractNum(WordListStyles.GetDefinitionMarkup(style, 42));
+            var definition = new AbstractNum(WordListStyles.GetDefinitionMarkup(style));
 
             // Every element reads back as the SDK's typed class: a misspelled or misplaced element would be unknown.
             Assert.Empty(definition.Descendants<OpenXmlUnknownElement>());
-            Assert.Equal(42, definition.AbstractNumberId!.Value);
             Assert.Equal(style, WordListStyles.MatchStyle(definition.GetFirstChild<TemplateCode>()!.Val!.Value));
-            Assert.Equal(style == WordListStyle.Custom ? 0 : 9, definition.Elements<Level>().Count());
-            Assert.Equal(Enumerable.Range(0, definition.Elements<Level>().Count()), definition.Elements<Level>().Select(level => level.LevelIndex!.Value));
-
-            // Two lists of the same style are separate definitions to Word, so each gets its own nsid.
-            Assert.NotEqual(definition.Nsid!.Val!.Value, again.Nsid!.Val!.Value);
-            if (style == WordListStyle.Custom) {
-                Assert.NotEqual(definition.GetFirstChild<TemplateCode>()!.Val!.Value, again.GetFirstChild<TemplateCode>()!.Val!.Value);
-            }
+            Level[] levels = definition.Elements<Level>().ToArray();
+            Assert.Equal(style == WordListStyle.Custom ? 0 : 9, levels.Length);
+            Assert.Equal(Enumerable.Range(0, levels.Length), levels.Select(level => level.LevelIndex!.Value));
         }
 
-        var picture = new AbstractNum(WordListStyles.GetPictureBulletMarkup(7, 3));
+        var picture = new AbstractNum(WordListStyles.PictureBulletMarkup);
         Assert.Empty(picture.Descendants<OpenXmlUnknownElement>());
-        Assert.Equal(3, picture.AbstractNumberId!.Value);
-        Assert.Equal(7, picture.Descendants<LevelPictureBulletId>().Single().Val!.Value);
+        Assert.Single(picture.Descendants<LevelPictureBulletId>());
         Assert.Equal(WordListStyle.Custom, WordListStyles.MatchStyle(picture.GetFirstChild<TemplateCode>()!.Val!.Value));
     }
 
     [Fact]
-    public void AddedListDefinitionsKeepLeftIndentation() {
+    public void AddedListDefinitionsGetTheirOwnIdentitiesAndKeepLeftIndentation() {
         using var document = WordDocument.Create();
-        document.AddList(WordListStyle.Headings111).AddItem("Heading item");
-        document.AddList(WordListStyle.Bulleted).AddItem("Bullet item");
+        foreach (WordListStyle style in new[] { WordListStyle.Headings111, WordListStyle.Numbered, WordListStyle.Numbered, WordListStyle.Custom, WordListStyle.Custom }) {
+            document.AddList(style).AddItem(style + " item");
+        }
 
         Numbering numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+        AbstractNum[] definitions = numbering.Elements<AbstractNum>().ToArray();
+        Assert.Equal(5, definitions.Length);
+
+        // Two lists of the same style are separate definitions to Word, so each gets its own identifier and nsid, and
+        // custom definitions their own template code.
+        Assert.Equal(definitions.Length, definitions.Select(definition => definition.AbstractNumberId!.Value).Distinct().Count());
+        Assert.Equal(definitions.Length, definitions.Select(definition => definition.Nsid!.Val!.Value).Distinct().Count());
+        Assert.DoesNotContain(definitions, definition => definition.Nsid!.Val!.Value == "00000000");
+        string[] customCodes = definitions.Skip(3).Select(definition => definition.GetFirstChild<TemplateCode>()!.Val!.Value!).ToArray();
+        Assert.NotEqual(customCodes[0], customCodes[1]);
+        Assert.All(customCodes, code => Assert.False(WordListStyles.IsPlaceholderTemplateCode(code)));
+
         Indentation[] indentations = numbering.Descendants<Indentation>().ToArray();
         Assert.NotEmpty(indentations);
         Assert.All(indentations, indentation => {

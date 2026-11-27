@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using OfficeIMO.Core.Internal.OpenXml;
 
@@ -57,34 +56,22 @@ internal static class WordListStyles {
     };
 
     /// <summary>
-    /// The <c>w:abstractNum</c> markup for a built-in style, with the given identifier and a fresh <c>w:nsid</c>. The
-    /// element declares the WordprocessingML and Word 2012 namespaces it uses.
+    /// The <c>w:abstractNum</c> template for a built-in style, declaring the WordprocessingML and Word 2012 namespaces it
+    /// uses. Its <c>w:abstractNumId</c> and <c>w:nsid</c> are placeholders, as is the <c>w:tmpl</c> of
+    /// <see cref="WordListStyle.Custom"/>; the caller sets them for each list it adds. The same string instance is
+    /// returned on every call.
     /// </summary>
-    internal static string GetDefinitionMarkup(WordListStyle style, int abstractNumberId) {
-        string? templateCode = GetTemplateCode(style);
-        string markup = MarkupByTemplateCode.Value[templateCode ?? CustomTemplateCode];
-        if (templateCode == null) markup = Replace(markup, "w:val=\"" + CustomTemplateCode + "\"", "w:val=\"" + GenerateNsidValue() + "\"");
-        return Identify(markup, abstractNumberId);
-    }
+    internal static string GetDefinitionMarkup(WordListStyle style) => MarkupByTemplateCode.Value[GetTemplateCode(style) ?? CustomTemplateCode];
 
-    /// <summary>A single-level bulleted definition that uses the picture bullet with the given identifier.</summary>
-    internal static string GetPictureBulletMarkup(int pictureBulletId, int abstractNumberId) {
-        string markup = MarkupByTemplateCode.Value[PictureBulletTemplateCode];
-        markup = Replace(markup, "w:val=\"" + PictureBulletTemplateCode + "\"", "w:val=\"" + GenerateNsidValue() + "\"");
-        markup = Replace(markup, "<w:lvlPicBulletId w:val=\"0\"", "<w:lvlPicBulletId w:val=\"" + pictureBulletId.ToString(CultureInfo.InvariantCulture) + "\"");
-        return Identify(markup, abstractNumberId);
-    }
+    /// <summary>
+    /// The template of a single-level bulleted definition that uses a picture bullet, with placeholders as in
+    /// <see cref="GetDefinitionMarkup"/> and a <c>w:lvlPicBulletId</c> of 0.
+    /// </summary>
+    internal static string PictureBulletMarkup => MarkupByTemplateCode.Value[PictureBulletTemplateCode];
 
-    private static string Identify(string markup, int abstractNumberId) {
-        markup = Replace(markup, "w:abstractNumId=\"0\"", "w:abstractNumId=\"" + abstractNumberId.ToString(CultureInfo.InvariantCulture) + "\"");
-        return Replace(markup, "<w:nsid w:val=\"00000000\"", "<w:nsid w:val=\"" + GenerateNsidValue() + "\"");
-    }
-
-    private static string Replace(string markup, string placeholder, string value) {
-        int index = markup.IndexOf(placeholder, StringComparison.Ordinal);
-        if (index < 0) throw new InvalidOperationException("A built-in list definition is missing its " + placeholder + " placeholder.");
-        return markup.Substring(0, index) + value + markup.Substring(index + placeholder.Length);
-    }
+    /// <summary>Whether a template code is a placeholder that each added definition replaces with a fresh code.</summary>
+    internal static bool IsPlaceholderTemplateCode(string? templateCode) =>
+        templateCode == CustomTemplateCode || templateCode == PictureBulletTemplateCode;
 
     /// <summary>A new eight-digit hexadecimal identifier, as Word uses for <c>w:nsid</c> and <c>w:tmpl</c>.</summary>
     internal static string GenerateNsidValue() => Guid.NewGuid().ToString("N").Substring(0, 8).ToUpperInvariant();
