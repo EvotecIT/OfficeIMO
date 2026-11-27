@@ -1,34 +1,33 @@
 using System.Globalization;
 using DocumentFormat.OpenXml;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Core.Internal.OpenXml;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 
 namespace OfficeIMO.OpenXml.Internal {
     /// <summary>Bounded indexed-cache decoding shared by native chart adapters.</summary>
     internal static class OfficeOpenXmlChartCacheReader {
-        internal static IReadOnlyList<string> ReadCachedStrings(OpenXmlElement? container, int maximumPoints) {
-            if (container == null) {
+        internal static IReadOnlyList<string> ReadCachedStrings(OfficeXmlNode container, int maximumPoints) {
+            if (container.IsNone) {
                 return Array.Empty<string>();
             }
 
-            List<C.StringPoint> stringPoints = GetBoundedCachedPoints(container.Descendants<C.StringPoint>(), maximumPoints);
-            stringPoints.Sort((left, right) => (left.Index?.Value ?? 0U).CompareTo(right.Index?.Value ?? 0U));
+            List<OfficeXmlNode> stringPoints = SortByIndex(GetBoundedCachedPoints(EnumeratePoints(container, numeric: false), maximumPoints));
             if (stringPoints.Count > 0) {
                 return CreateIndexedCache(
                     container,
                     stringPoints,
-                    point => point.Index?.Value,
-                    point => point.NumericValue?.Text ?? string.Empty,
+                    PointIndex,
+                    PointText,
                     string.Empty, maximumPoints);
             }
 
-            List<C.NumericPoint> numericPoints = GetBoundedCachedPoints(container.Descendants<C.NumericPoint>(), maximumPoints);
-            numericPoints.Sort((left, right) => (left.Index?.Value ?? 0U).CompareTo(right.Index?.Value ?? 0U));
+            List<OfficeXmlNode> numericPoints = SortByIndex(GetBoundedCachedPoints(EnumeratePoints(container, numeric: true), maximumPoints));
             if (numericPoints.Count > 0) {
                 return CreateIndexedCache(
                     container,
                     numericPoints,
-                    point => point.Index?.Value,
-                    point => point.NumericValue?.Text ?? string.Empty,
+                    PointIndex,
+                    PointText,
                     string.Empty, maximumPoints);
             }
 
@@ -36,17 +35,16 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         /// <summary>Reads a numeric cache. A point Office left out (an empty cell) becomes <paramref name="missingValue"/>.</summary>
-        internal static IReadOnlyList<double> ReadCachedNumbers(OpenXmlElement? container, int maximumPoints, double missingValue = 0D) {
-            if (container == null) {
+        internal static IReadOnlyList<double> ReadCachedNumbers(OfficeXmlNode container, int maximumPoints, double missingValue = 0D) {
+            if (container.IsNone) {
                 return Array.Empty<double>();
             }
 
-            List<C.NumericPoint> points = GetBoundedCachedPoints(container.Descendants<C.NumericPoint>(), maximumPoints);
-            points.Sort((left, right) => (left.Index?.Value ?? 0U).CompareTo(right.Index?.Value ?? 0U));
+            List<OfficeXmlNode> points = SortByIndex(GetBoundedCachedPoints(EnumeratePoints(container, numeric: true), maximumPoints));
             if (points.Count == 0) {
                 // A series whose cells are all empty keeps its declared length as missing values,
                 // when the caller asks for missing values rather than zeros.
-                uint? declared = container.Descendants<C.PointCount>().FirstOrDefault()?.Val?.Value;
+                uint? declared = container.FirstDescendant(NsC, "ptCount").UIntVal();
                 if (!double.IsNaN(missingValue) || !declared.HasValue || declared.Value == 0U) return Array.Empty<double>();
                 if (declared.Value > maximumPoints)
                     throw new InvalidDataException($"The chart cache declares more than the supported limit of {maximumPoints} points.");
@@ -56,9 +54,10 @@ namespace OfficeIMO.OpenXml.Internal {
             return CreateIndexedCache(
                 container,
                 points,
-                point => point.Index?.Value,
+                PointIndex,
                 point => {
-                string? text = point.NumericValue?.Text;
+                OfficeXmlNode numericValue = point.Child(NsC, "v");
+                string? text = numericValue.IsNone ? null : numericValue.InnerText;
                 if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
                     !double.IsNaN(value) &&
                     !double.IsInfinity(value)) {
@@ -70,8 +69,50 @@ namespace OfficeIMO.OpenXml.Internal {
                 missingValue, maximumPoints);
         }
 
+        // The c:pt elements of string data (c:strCache, c:strLit, c:lvl) or of numeric data (c:numCache, c:numLit) below
+        // the container, in document order, read lazily so a bounded read stops early.
+        private static IEnumerable<OfficeXmlNode> EnumeratePoints(OfficeXmlNode container, bool numeric) {
+            var pending = new Stack<OfficeXmlNode>();
+            OfficeXmlNode child = container.FirstChild;
+            while (true) {
+                while (!child.IsNone) {
+                    if (child.Is(NsC, "pt") && IsPointOf(child.Parent, numeric)) yield return child;
+                    OfficeXmlNode first = child.FirstChild;
+                    if (!first.IsNone) {
+                        pending.Push(child.NextSibling);
+                        child = first;
+                    } else {
+                        child = child.NextSibling;
+                    }
+                }
+                if (pending.Count == 0) yield break;
+                child = pending.Pop();
+            }
+        }
+
+        // c:pt is a numeric point in c:numCache and c:numLit, and a string point everywhere else it occurs (c:strCache,
+        // c:strLit, c:lvl and extension caches such as c15:dlblRangeCache).
+        private static bool IsPointOf(OfficeXmlNode data, bool numeric) =>
+            numeric == (data.NamespaceId == NsC && data.LocalName is "numCache" or "numLit");
+
+        // Sorts by c:idx (0 when missing) with the same comparisons as sorting the points directly, reading each index once.
+        private static List<OfficeXmlNode> SortByIndex(List<OfficeXmlNode> points) {
+            var keyed = new List<KeyValuePair<uint, OfficeXmlNode>>(points.Count);
+            foreach (OfficeXmlNode point in points) keyed.Add(new KeyValuePair<uint, OfficeXmlNode>(PointIndex(point) ?? 0U, point));
+            keyed.Sort((left, right) => left.Key.CompareTo(right.Key));
+            for (int index = 0; index < keyed.Count; index++) points[index] = keyed[index].Value;
+            return points;
+        }
+
+        private static uint? PointIndex(OfficeXmlNode point) => point.UIntAttr("idx");
+
+        private static string PointText(OfficeXmlNode point) {
+            OfficeXmlNode value = point.Child(NsC, "v");
+            return value.IsNone ? string.Empty : value.InnerText;
+        }
+
         internal static IReadOnlyList<TValue> CreateIndexedCache<TPoint, TValue>(
-            OpenXmlElement container,
+            OfficeXmlNode container,
             IReadOnlyList<TPoint> points,
             Func<TPoint, uint?> getIndex,
             Func<TPoint, TValue> getValue,
@@ -102,12 +143,12 @@ namespace OfficeIMO.OpenXml.Internal {
             return boundedPoints;
         }
 
-        internal static int GetCachedPointLength<TPoint>(OpenXmlElement container, IReadOnlyList<TPoint> points, Func<TPoint, uint?> getIndex, int maximumPoints) {
+        internal static int GetCachedPointLength<TPoint>(OfficeXmlNode container, IReadOnlyList<TPoint> points, Func<TPoint, uint?> getIndex, int maximumPoints) {
             if (points.Count > maximumPoints) {
                 throw new InvalidDataException($"The chart cache exceeds the supported limit of {maximumPoints} points.");
             }
 
-            uint? pointCount = container.Descendants<C.PointCount>().FirstOrDefault()?.Val?.Value;
+            uint? pointCount = container.FirstDescendant(NsC, "ptCount").UIntVal();
             if (pointCount > maximumPoints) {
                 throw new InvalidDataException($"The chart cache declares more than the supported limit of {maximumPoints} points.");
             }
@@ -135,5 +176,12 @@ namespace OfficeIMO.OpenXml.Internal {
             return (int)length;
         }
 
+        // SDK callers
+        internal static IReadOnlyList<string> ReadCachedStrings(OpenXmlElement? container, int maximumPoints) => ReadCachedStrings(OfficeXmlNode.FromSdk(container), maximumPoints);
+        internal static IReadOnlyList<double> ReadCachedNumbers(OpenXmlElement? container, int maximumPoints, double missingValue = 0D) => ReadCachedNumbers(OfficeXmlNode.FromSdk(container), maximumPoints, missingValue);
+        internal static IReadOnlyList<TValue> CreateIndexedCache<TPoint, TValue>(OpenXmlElement container, IReadOnlyList<TPoint> points, Func<TPoint, uint?> getIndex, Func<TPoint, TValue> getValue, TValue defaultValue, int maximumPoints) =>
+            CreateIndexedCache(OfficeXmlNode.FromSdk(container), points, getIndex, getValue, defaultValue, maximumPoints);
+        internal static int GetCachedPointLength<TPoint>(OpenXmlElement container, IReadOnlyList<TPoint> points, Func<TPoint, uint?> getIndex, int maximumPoints) =>
+            GetCachedPointLength(OfficeXmlNode.FromSdk(container), points, getIndex, maximumPoints);
     }
 }
