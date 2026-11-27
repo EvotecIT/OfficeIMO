@@ -1,25 +1,19 @@
 using OfficeIMO.Core.Internal.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents an auto shape without a text body.
     /// </summary>
-    public class PowerPointAutoShape : PowerPointShape {
-        internal PowerPointAutoShape(Shape shape, OpenXmlPartContainer? ownerPart = null) : base(shape, ownerPart) {
-        }
-
+    public partial class PowerPointAutoShape : PowerPointShape {
         internal PowerPointAutoShape(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
-
-        private Shape Shape => (Shape)Element;
 
         /// <summary>
         ///     Gets the preset geometry type of the shape.
         /// </summary>
-        public OfficePresetShapeType? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value.ToOfficeEnum();
+        public OfficePresetShapeType? ShapeType =>
+            ShapePropertiesElement(create: false).Child(OfficeXmlNamespaces.DrawingML, "prstGeom").Attribute("prst") is string token
+            && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out OfficePresetShapeType type) ? type : null;
 
         /// <summary>
         ///     Sets the fill color and returns the shape for chaining.

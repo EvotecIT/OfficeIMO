@@ -19,17 +19,18 @@ public class PowerPointWithoutSdkFlowBenchmarks {
     [Params(200)]
     public int Slides { get; set; }
 
-    /// <summary>Whether setup checks that the text box flow stays off the SDK; off for revisions where it doesn't yet.</summary>
-    public bool CheckTextBoxes { get; set; } = true;
+    /// <summary>Flows whose check setup skips: those that don't stay off the SDK yet in the revision measured.</summary>
+    public ISet<string> UncheckedFlows { get; set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
     [GlobalSetup]
     public void Setup() {
         _deck = PowerPointUnchangedSaveWorkload.ReadDeck(Slides);
         _image = CreateImage(640, 480);
-        Check(Add);
-        Check(Edit);
-        if (CheckTextBoxes) Check(TextBoxes);
-        Check(presentation => presentation.ExtractMarkdownChunks().Count());
+        if (!UncheckedFlows.Contains("Add")) Check(Add);
+        if (!UncheckedFlows.Contains("Edit")) Check(Edit);
+        if (!UncheckedFlows.Contains("TextBoxes")) Check(TextBoxes);
+        if (!UncheckedFlows.Contains("Appearance")) Check(Appearance, compareSlideXml: true);
+        if (!UncheckedFlows.Contains("Extract")) CheckExtract();
     }
 
     [Benchmark(Baseline = true)]
@@ -55,6 +56,14 @@ public class PowerPointWithoutSdkFlowBenchmarks {
     [Benchmark]
     [BenchmarkCategory("TextBoxes")]
     public byte[] TextBoxesWithoutSdk() => Run(sdk: false, TextBoxes);
+
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("Appearance")]
+    public byte[] AppearanceWithSdk() => Run(sdk: true, Appearance);
+
+    [Benchmark]
+    [BenchmarkCategory("Appearance")]
+    public byte[] AppearanceWithoutSdk() => Run(sdk: false, Appearance);
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Extract")]
@@ -111,19 +120,52 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         }
     }
 
-    private void Check(Action<PowerPointDocument> flow) {
+    // Restyles every shape: a fill with transparency, an outline colour and width, a shadow and soft edges.
+    private static void Appearance(PowerPointDocument presentation) {
+        foreach (PowerPointSlide slide in presentation.Slides) {
+            foreach (PowerPointShape shape in slide.Shapes) {
+                if (shape is not (PowerPointAutoShape or PowerPointTextBox)) continue;
+                shape.FillColor = OfficeColor.FromRgb(0xDE, 0xEB, 0xF7);
+                shape.FillTransparency = 20;
+                shape.OutlineColor = OfficeColor.FromRgb(0x1F, 0x4E, 0x79);
+                shape.OutlineWidth = OfficeLength.Points(1.5);
+                shape.SetShadow(OfficeColor.FromRgb(0, 0, 0), transparencyPercent: 60);
+                shape.SetSoftEdges(OfficeLength.Points(1));
+            }
+        }
+    }
+
+    // With compareSlideXml the slides' markup is compared, attribute order aside, for flows whose edits the text doesn't show.
+    private void Check(Action<PowerPointDocument> flow, bool compareSlideXml = false) {
         string throughSdk, withoutSdk;
         using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false))) {
             _ = presentation.OpenXmlDocument;
             flow(presentation);
-            throughSdk = Text(presentation.ToBytes());
+            byte[] saved = presentation.ToBytes();
+            throughSdk = compareSlideXml ? SlideXml(saved) : Text(saved);
         }
         using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false))) {
             flow(presentation);
-            withoutSdk = Text(presentation.ToBytes());
+            byte[] saved = presentation.ToBytes();
+            withoutSdk = compareSlideXml ? SlideXml(saved) : Text(saved);
             if (presentation.IsSdkLoaded) throw new InvalidOperationException("The flow opened the Open XML SDK: " + string.Join("; ", presentation.Diagnostics.Select(diagnostic => diagnostic.Message)));
         }
         if (throughSdk != withoutSdk) throw new InvalidOperationException("The saved slides differ.");
+    }
+
+    // Extraction saves nothing, so its check compares the chunks each path extracts.
+    private void CheckExtract() {
+        string throughSdk, withoutSdk;
+        using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false))) {
+            _ = presentation.OpenXmlDocument;
+            throughSdk = string.Join("\n", presentation.ExtractMarkdownChunks().Select(chunk => chunk.Text));
+        }
+        using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false))) {
+            withoutSdk = string.Join("\n", presentation.ExtractMarkdownChunks().Select(chunk => chunk.Text));
+            if (presentation.IsSdkLoaded) throw new InvalidOperationException("Extraction opened the Open XML SDK: " + string.Join("; ", presentation.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        }
+        if (throughSdk.Length == 0) throw new InvalidOperationException("Extraction found no text.");
+        if (throughSdk != withoutSdk) throw new InvalidOperationException("The extracted chunks differ.");
     }
 
     /// <summary>
@@ -131,16 +173,17 @@ public class PowerPointWithoutSdkFlowBenchmarks {
     /// time and allocation of each with their ratios. <paramref name="rounds"/> pairs follow 20 warm-up pairs; each run
     /// starts after a full collection, so neither pays for the other's garbage.
     /// </summary>
-    public static int RunInterleaved(int rounds, bool checkTextBoxes = true) {
-        var benchmark = new PowerPointWithoutSdkFlowBenchmarks { Slides = 200, CheckTextBoxes = checkTextBoxes };
+    public static int RunInterleaved(int rounds, ISet<string>? uncheckedFlows = null) {
+        var benchmark = new PowerPointWithoutSdkFlowBenchmarks { Slides = 200, UncheckedFlows = uncheckedFlows ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase) };
         benchmark.Setup();
         var flows = new (string Name, Func<object> WithSdk, Func<object> WithoutSdk)[] {
             ("Add", benchmark.AddWithSdk, benchmark.AddWithoutSdk),
             ("Edit", benchmark.EditWithSdk, benchmark.EditWithoutSdk),
             ("TextBoxes", benchmark.TextBoxesWithSdk, benchmark.TextBoxesWithoutSdk),
+            ("Appearance", benchmark.AppearanceWithSdk, benchmark.AppearanceWithoutSdk),
             ("Extract", () => benchmark.ExtractWithSdk(), () => benchmark.ExtractWithoutSdk())
         };
-        Console.WriteLine("Flow      | SDK median | without | faster | SDK alloc | without | less allocation");
+        Console.WriteLine("Flow       | SDK median | without | faster | SDK alloc | without | less allocation");
         foreach ((string name, Func<object> withSdk, Func<object> withoutSdk) in flows) {
             var sdkTimes = new List<double>(); var ownTimes = new List<double>();
             var sdkBytes = new List<long>(); var ownBytes = new List<long>();
@@ -165,7 +208,7 @@ public class PowerPointWithoutSdkFlowBenchmarks {
             }
             double sdkTime = Median(sdkTimes), ownTime = Median(ownTimes);
             double sdkAlloc = Median(sdkBytes.Select(value => (double)value).ToList()), ownAlloc = Median(ownBytes.Select(value => (double)value).ToList());
-            Console.WriteLine(FormattableString.Invariant($"{name,-9} | {sdkTime,7:F2} ms | {ownTime,5:F2} ms | {sdkTime / ownTime,5:F2}x | {sdkAlloc / 1048576D,6:F2} MB | {ownAlloc / 1048576D,5:F2} MB | {sdkAlloc / ownAlloc,5:F2}x"));
+            Console.WriteLine(FormattableString.Invariant($"{name,-10} | {sdkTime,7:F2} ms | {ownTime,5:F2} ms | {sdkTime / ownTime,5:F2}x | {sdkAlloc / 1048576D,6:F2} MB | {ownAlloc / 1048576D,5:F2} MB | {sdkAlloc / ownAlloc,5:F2}x"));
         }
         return 0;
     }
@@ -188,6 +231,25 @@ public class PowerPointWithoutSdkFlowBenchmarks {
             }
         }
         return OfficeIMO.Drawing.OfficePngWriter.EncodeRgba(width, height, rgba);
+    }
+
+    private static string SlideXml(byte[] package) {
+        using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(package, writable: false));
+        var builder = new System.Text.StringBuilder();
+        foreach (System.IO.Compression.ZipArchiveEntry entry in archive.Entries
+                     .Where(entry => entry.FullName.StartsWith("ppt/slides/slide", StringComparison.Ordinal))
+                     .OrderBy(entry => entry.FullName, StringComparer.Ordinal)) {
+            using Stream stream = entry.Open();
+            System.Xml.Linq.XElement root = System.Xml.Linq.XElement.Load(stream);
+            foreach (System.Xml.Linq.XElement element in root.DescendantsAndSelf()) {
+                System.Xml.Linq.XAttribute[] attributes = element.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration)
+                    .OrderBy(attribute => attribute.Name.ToString(), StringComparer.Ordinal).ToArray();
+                element.RemoveAttributes();
+                element.Add(attributes);
+            }
+            builder.Append(entry.FullName).Append('\n').Append(root.ToString(System.Xml.Linq.SaveOptions.DisableFormatting)).Append('\n');
+        }
+        return builder.ToString();
     }
 
     private static string Text(byte[] package) {

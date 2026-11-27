@@ -141,16 +141,6 @@ namespace OfficeIMO.PowerPoint {
             return found;
         }
 
-        private static A.TransformGroup EnsureTransformGroup(GroupShape group) {
-            group.GroupShapeProperties ??= new GroupShapeProperties();
-            A.TransformGroup transform = group.GroupShapeProperties.TransformGroup ??= new A.TransformGroup();
-            transform.Offset ??= new A.Offset();
-            transform.Extents ??= new A.Extents();
-            transform.ChildOffset ??= new A.ChildOffset();
-            transform.ChildExtents ??= new A.ChildExtents();
-            return transform;
-        }
-
         internal bool HasPlaceholderShape => GetPlaceholderShape() != null;
 
         private PlaceholderShape? GetPlaceholderShape() {
@@ -165,57 +155,5 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool IsDrawingElement(OpenXmlElement element) =>
             element is Shape or ConnectionShape or Picture or GraphicFrame or GroupShape;
-
-        private ShapeProperties? GetShapeProperties(bool create = false) {
-            switch (Element) {
-                case Shape s:
-                    if (create) {
-                        s.ShapeProperties ??= new ShapeProperties();
-                    }
-                    return s.ShapeProperties;
-                case ConnectionShape c:
-                    if (create) {
-                        c.ShapeProperties ??= new ShapeProperties();
-                    }
-                    return c.ShapeProperties;
-                case Picture p:
-                    if (create) {
-                        p.ShapeProperties ??= new ShapeProperties();
-                    }
-                    return p.ShapeProperties;
-                default:
-                    return null;
-            }
-        }
-
-        private static void InsertShapePropertyChild(ShapeProperties properties, OpenXmlElement child) {
-            int childOrder = GetShapePropertyChildOrder(child);
-            OpenXmlElement? insertBefore = properties.ChildElements
-                .FirstOrDefault(existing => GetShapePropertyChildOrder(existing) > childOrder);
-
-            if (insertBefore != null) {
-                properties.InsertBefore(child, insertBefore);
-            } else {
-                properties.Append(child);
-            }
-        }
-
-        private static int GetShapePropertyChildOrder(OpenXmlElement child) {
-            return child switch {
-                A.Transform2D => 0,
-                A.CustomGeometry => 1,
-                A.PresetGeometry => 1,
-                A.NoFill => 2,
-                A.SolidFill => 2,
-                A.GradientFill => 2,
-                A.BlipFill => 2,
-                A.PatternFill => 2,
-                A.GroupFill => 2,
-                A.Outline => 3,
-                A.EffectList => 4,
-                A.EffectDag => 4,
-                _ => 100
-            };
-        }
     }
 }

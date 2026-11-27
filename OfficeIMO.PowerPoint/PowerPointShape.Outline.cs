@@ -1,30 +1,30 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
+        // The children of a:ln in sequence order.
+        private static readonly OfficeXmlChildOrder OutlineOrder = new(
+            new[] { D, D, D, D, D, D, D, D, D, D, D, D },
+            new[] { "noFill", "solidFill", "gradFill", "pattFill", "prstDash", "custDash", "round", "bevel", "miter", "headEnd", "tailEnd", "extLst" },
+            new[] { 0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 4, 5 });
+
         /// <summary>
         ///     Gets or sets the local outline color, retaining native theme slots and opacity.
         /// </summary>
         public OfficeColor? OutlineColor {
-            get {
-                A.Outline? outline = GetOutline();
-                return PowerPointDrawingColor.Read(outline?.GetFirstChild<A.SolidFill>());
-            }
+            get => PowerPointDrawingColor.Read(GetOutline().Child(D, "solidFill"));
             set {
-                A.Outline? outline = GetOutline(create: value != null);
-                if (outline == null) {
-                    return;
-                }
-
+                OfficeTheme? theme = PowerPointDrawingColor.NeedsTheme(value) ? PowerPointDrawingColor.ThemeFor(OwnerPartRef, OwnerSlide) : null;
+                OfficeXmlNode outline = GetOutline(create: value != null);
+                if (outline.IsNone) return;
                 if (value == null) {
                     outline.Remove();
-                    return;
+                } else {
+                    RemoveFillChoiceChildren(outline);
+                    outline.InsertOrdered(PowerPointDrawingColor.CreateFill(outline, value.Value, theme), OutlineOrder);
                 }
-
-                RemoveFillChoiceChildren(outline);
-                InsertOutlineChild(outline, PowerPointDrawingColor.Fill(value, OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(RelationshipOwnerPart)));
+                OwnerPartRef.MarkEdited();
             }
         }
 
@@ -33,33 +33,20 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int? OutlineTransparency {
             get {
-                A.Outline? outline = GetOutline();
-                IReadOnlyList<OpenXmlCompositeElement> localColors = outline == null
-                    ? Array.Empty<OpenXmlCompositeElement>()
-                    : GetFillColorChoices(outline);
-                if (outline != null && HasExplicitFillChoice(outline)) {
+                OfficeXmlNode outline = GetOutline();
+                if (!outline.IsNone && HasExplicitFillChoice(outline)) {
+                    List<OfficeXmlNode> localColors = FillColorChoices(outline);
                     if (localColors.Count == 0) return null;
-                    int? localAlpha = localColors[0]
-                        .GetFirstChild<A.Alpha>()?.Val?.Value;
-                    if (localAlpha == null || localColors.Any(color =>
-                            color.GetFirstChild<A.Alpha>()?.Val?.Value
-                                != localAlpha)) {
-                        return null;
-                    }
-                    return (int)Math.Round((100000 - localAlpha.Value)
-                        / 1000D);
+                    int? localAlpha = AlphaOf(localColors[0]);
+                    if (localAlpha == null || localColors.Any(color => AlphaOf(color) != localAlpha)) return null;
+                    return (int)Math.Round((100000 - localAlpha.Value) / 1000D);
                 }
-                OpenXmlCompositeElement? color =
-                    GetShapeStyleLineColorChoice(createPlaceholder: false);
-                int? alpha = color?.GetFirstChild<A.Alpha>()?.Val?.Value;
-                return alpha == null
-                    ? null
-                    : (int)Math.Round((100000 - alpha.Value) / 1000D);
+                int? alpha = AlphaOf(ShapeStyleLineColorChoice(createPlaceholder: false));
+                return alpha == null ? null : (int)Math.Round((100000 - alpha.Value) / 1000D);
             }
             set {
                 if (value is < 0 or > 100) {
-                    throw new ArgumentOutOfRangeException(nameof(value),
-                        "Transparency must be between 0 and 100.");
+                    throw new ArgumentOutOfRangeException(nameof(value), "Transparency must be between 0 and 100.");
                 }
 
                 SetOutlineOpacity(value == null ? null : (100D - value.Value) / 100D);
@@ -71,28 +58,20 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public OfficeLength? OutlineWidth {
             get {
-                A.Outline? outline = GetOutline();
-                int? width = outline?.Width?.Value;
+                int? width = GetOutline().Int32Attribute("w");
                 return width != null ? OfficeLength.Emus(width.Value) : null;
             }
             set {
-                int? drawingWidth = value == null
-                    ? null
-                    : ToDrawingLineWidth(value.Value, nameof(value));
-                A.Outline? outline = GetOutline(create: value != null);
-                if (outline == null) {
-                    return;
-                }
-
+                int? drawingWidth = value == null ? null : ToDrawingLineWidth(value.Value, nameof(value));
+                OfficeXmlNode outline = GetOutline(create: value != null);
+                if (outline.IsNone) return;
                 if (value == null) {
-                    outline.Width = null;
-                    if (!outline.HasChildren) {
-                        outline.Remove();
-                    }
-                    return;
+                    outline.RemoveAttribute("w");
+                    if (outline.FirstChild.IsNone) outline.Remove();
+                } else {
+                    outline.SetInt32Attribute("w", drawingWidth!.Value);
                 }
-
-                outline.Width = drawingWidth!.Value;
+                OwnerPartRef.MarkEdited();
             }
         }
 
@@ -106,12 +85,10 @@ namespace OfficeIMO.PowerPoint {
             return checked((int)emus);
         }
 
-        internal static int ToDrawingLineWidth(double widthPoints,
-            string parameterName) {
+        internal static int ToDrawingLineWidth(double widthPoints, string parameterName) {
             const int maximumDrawingLineWidth = 20116800;
             double emus = Math.Round(widthPoints * EmusPerPoint);
-            if (double.IsNaN(emus) || double.IsInfinity(emus)
-                || emus < 0D || emus > maximumDrawingLineWidth) {
+            if (double.IsNaN(emus) || double.IsInfinity(emus) || emus < 0D || emus > maximumDrawingLineWidth) {
                 throw new ArgumentOutOfRangeException(parameterName,
                     "Outline width must be representable by DrawingML (0 through 1584 points).");
             }
@@ -122,23 +99,19 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the outline dash preset.
         /// </summary>
         public PowerPointLineDashStyle? OutlineDash {
-            get => GetOutline()?.GetFirstChild<A.PresetDash>()?.Val?.Value.ToOfficeEnum();
+            get => GetOutline().Child(D, "prstDash").Attribute("val") is string token
+                   && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(token, out PowerPointLineDashStyle dash) ? dash : null;
             set {
-                A.Outline? outline = GetOutline(create: value != null);
-                if (outline == null) {
-                    return;
-                }
-
+                OfficeXmlNode outline = GetOutline(create: value != null);
+                if (outline.IsNone) return;
+                OfficeXmlNode dash = outline.Child(D, "prstDash");
                 if (value == null) {
-                    outline.GetFirstChild<A.PresetDash>()?.Remove();
-                    return;
+                    if (!dash.IsNone) dash.Remove();
+                } else {
+                    if (dash.IsNone) dash = outline.InsertOrdered(outline.CreateElement(D, "prstDash"), OutlineOrder);
+                    dash.SetAttribute("val", value.Value.ToOpenXmlToken());
                 }
-
-                A.PresetDash dash = outline.GetFirstChild<A.PresetDash>() ?? new A.PresetDash();
-                dash.Val = value.Value.ToOpenXml();
-                if (dash.Parent == null) {
-                    InsertOutlineChild(outline, dash);
-                }
+                OwnerPartRef.MarkEdited();
             }
         }
 
@@ -147,227 +120,139 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetLineEnds(OfficeLineMarkerKind? startType, OfficeLineMarkerKind? endType, PowerPointLineEndWidth? width = null, PowerPointLineEndLength? length = null) {
             bool create = startType != null || endType != null || width != null || length != null;
-            A.Outline? outline = GetOutline(create: create);
-            if (outline == null) {
-                return;
-            }
+            OfficeXmlNode outline = GetOutline(create: create);
+            if (outline.IsNone) return;
 
-            ApplyLineEnd(outline, startType, width, length, isStart: true);
-            ApplyLineEnd(outline, endType, width, length, isStart: false);
+            ApplyLineEnd(outline, "headEnd", startType, width, length);
+            ApplyLineEnd(outline, "tailEnd", endType, width, length);
+            OwnerPartRef.MarkEdited();
         }
 
-        private A.Outline? GetOutline(bool create = false) {
-            ShapeProperties? props = GetShapeProperties(create);
-            if (props == null) {
-                return null;
-            }
-
-            A.Outline? outline = props.GetFirstChild<A.Outline>();
-            if (outline == null && create) {
-                outline = new A.Outline();
-                InsertShapePropertyChild(props, outline);
-            }
-
+        private OfficeXmlNode GetOutline(bool create = false) {
+            OfficeXmlNode properties = ShapePropertiesElement(create);
+            if (properties.IsNone) return default;
+            OfficeXmlNode outline = properties.Child(D, "ln");
+            if (outline.IsNone && create) outline = properties.InsertOrdered(properties.CreateElement(D, "ln"), ShapePropertyOrder);
             return outline;
         }
 
         internal void SetOutlineOpacity(double? opacity) {
-            if (opacity.HasValue &&
-                (double.IsNaN(opacity.Value) || double.IsInfinity(opacity.Value)
-                    || opacity.Value < 0D || opacity.Value > 1D)) {
-                throw new ArgumentOutOfRangeException(nameof(opacity),
-                    "Opacity must be between 0 and 1.");
+            if (opacity.HasValue && (double.IsNaN(opacity.Value) || double.IsInfinity(opacity.Value) || opacity.Value < 0D || opacity.Value > 1D)) {
+                throw new ArgumentOutOfRangeException(nameof(opacity), "Opacity must be between 0 and 1.");
             }
 
-            A.Outline? outline = GetOutline();
-            A.Outline? themeOutline = ResolveThemeOutline();
-            OpenXmlElement? themeFill = themeOutline?.ChildElements
-                .FirstOrDefault(child => child is A.NoFill
-                    or A.SolidFill or A.GradientFill or A.PatternFill);
-            if (opacity != null && themeFill != null
-                && HasTransformedPlaceholderColor(themeFill)) {
+            // The theme line sits in the theme part; find it before taking the shape's elements to edit.
+            OfficeXmlNode themeOutline = ResolveThemeOutline();
+            OfficeXmlNode themeFill = default;
+            for (OfficeXmlNode child = themeOutline.FirstChild; !child.IsNone; child = child.NextSibling) {
+                if (child.NamespaceId == D && child.LocalName is "noFill" or "solidFill" or "gradFill" or "pattFill") {
+                    themeFill = child;
+                    break;
+                }
+            }
+            if (opacity != null && !themeFill.IsNone && HasTransformedPlaceholderColor(themeFill)) {
                 throw new NotSupportedException(
                     "Outline transparency cannot be changed while the inherited theme line applies transparency transforms to phClr. Materialize a local fixed-color outline first.");
             }
-            bool hasFixedThemeFill = opacity != null && themeFill != null
-                && ContainsFixedThemeColor(themeFill);
-            if (outline == null && opacity == null) {
-                OpenXmlCompositeElement? styleColor =
-                    GetShapeStyleLineColorChoice(createPlaceholder: false);
-                if (styleColor != null) {
+            bool hasFixedThemeFill = opacity != null && !themeFill.IsNone && ContainsFixedThemeColor(themeFill);
+            OfficeXmlNode outline = GetOutline();
+            if (outline.IsNone && opacity == null) {
+                OfficeXmlNode styleColor = ShapeStyleLineColorChoice(createPlaceholder: false);
+                if (!styleColor.IsNone) {
                     SetColorAlphaOverride(styleColor, opacity: null);
+                    OwnerPartRef.MarkEdited();
                 }
                 return;
             }
-            if (outline == null && hasFixedThemeFill) {
-                ShapeProperties? properties = GetShapeProperties(create: true);
-                outline = (A.Outline)themeOutline!.CloneNode(true);
-                InsertShapePropertyChild(properties!, outline);
-                foreach (OpenXmlCompositeElement fillColor in
-                         GetFillColorChoices(outline)) {
-                    SetColorAlphaOverride(fillColor, opacity);
-                }
+            if (outline.IsNone && hasFixedThemeFill) {
+                OfficeXmlNode properties = ShapePropertiesElement(create: true);
+                outline = properties.InsertOrdered(themeOutline, ShapePropertyOrder);
+                foreach (OfficeXmlNode fillColor in FillColorChoices(outline)) SetColorAlphaOverride(fillColor, opacity);
+                OwnerPartRef.MarkEdited();
                 return;
             }
-            outline ??= GetOutline(create: opacity != null);
-            if (outline == null) {
-                return;
-            }
+            if (outline.IsNone) outline = GetOutline(create: opacity != null);
+            if (outline.IsNone) return;
 
-            A.SolidFill? solid = outline.GetFirstChild<A.SolidFill>();
-            if (solid == null) {
+            OfficeXmlNode solid = outline.Child(D, "solidFill");
+            if (solid.IsNone) {
                 if (HasExplicitFillChoice(outline)) {
-                    foreach (OpenXmlCompositeElement fillColor in
-                             GetFillColorChoices(outline)) {
-                        SetColorAlphaOverride(fillColor, opacity);
-                    }
+                    foreach (OfficeXmlNode fillColor in FillColorChoices(outline)) SetColorAlphaOverride(fillColor, opacity);
+                    OwnerPartRef.MarkEdited();
                     return;
                 }
                 if (hasFixedThemeFill) {
                     RemoveFillChoiceChildren(outline);
-                    InsertOutlineChild(outline, themeFill!.CloneNode(true));
-                    foreach (OpenXmlCompositeElement fillColor in
-                             GetFillColorChoices(outline)) {
-                        SetColorAlphaOverride(fillColor, opacity);
-                    }
+                    outline.InsertOrdered(themeFill, OutlineOrder);
+                    foreach (OfficeXmlNode fillColor in FillColorChoices(outline)) SetColorAlphaOverride(fillColor, opacity);
+                    OwnerPartRef.MarkEdited();
                     return;
                 }
-                OpenXmlCompositeElement? styleColor =
-                    GetShapeStyleLineColorChoice(createPlaceholder: opacity != null);
-                if (styleColor != null) {
+                OfficeXmlNode styleColor = ShapeStyleLineColorChoice(createPlaceholder: opacity != null);
+                if (!styleColor.IsNone) {
                     SetColorAlphaOverride(styleColor, opacity);
+                    OwnerPartRef.MarkEdited();
                     return;
                 }
                 if (opacity == null) return;
-                solid = new A.SolidFill(new A.RgbColorModelHex { Val = "FFFFFF" });
-                InsertOutlineChild(outline, solid);
+                solid = outline.InsertOrdered(outline.CreateElement(D, "solidFill"), OutlineOrder);
+                solid.Append(solid.CreateElement(D, "srgbClr")).SetAttribute("val", "FFFFFF");
             }
 
-            OpenXmlCompositeElement? color = GetColorChoice(solid);
+            OfficeXmlNode color = ColorChoice(solid);
             if (opacity == null) {
-                color?.GetFirstChild<A.Alpha>()?.Remove();
+                if (!color.IsNone) color.RemoveChildren(D, "alpha");
+                OwnerPartRef.MarkEdited();
                 return;
             }
-
-            if (color == null) {
-                color = new A.RgbColorModelHex { Val = "FFFFFF" };
-                solid.Append(color);
+            if (color.IsNone) {
+                color = solid.Append(solid.CreateElement(D, "srgbClr"));
+                color.SetAttribute("val", "FFFFFF");
             }
-
             SetColorAlphaOverride(color, opacity);
+            OwnerPartRef.MarkEdited();
         }
 
-        private A.Outline? ResolveThemeOutline() {
-            A.LineReference? reference = Element switch {
-                Shape shape => shape.ShapeStyle?.LineReference,
-                ConnectionShape connector => connector.ShapeStyle?.LineReference,
-                Picture picture => picture.ShapeStyle?.LineReference,
-                _ => null
-            };
-            uint? index = reference?.Index?.Value;
-            if (OwnerSlide == null || !index.HasValue || index.Value < 1U) {
-                return null;
+        // The line the shape's style reference picks from the theme's format scheme, or none.
+        private OfficeXmlNode ResolveThemeOutline() {
+            uint? index = LineStyleReference().UInt32Attribute("idx");
+            if (OwnerSlide == null || !index.HasValue || index.Value < 1U) return default;
+            OfficeXmlNode lines = PowerPointThemeScope.For(OwnerSlide.PartRef).FormatScheme.Child(D, "lnStyleLst");
+            uint position = 0, zeroBased = index.Value - 1U;
+            for (OfficeXmlNode line = lines.FirstChild; !line.IsNone; line = line.NextSibling, position++) {
+                if (position == zeroBased) return line.Is(D, "ln") ? line : line.Child(D, "ln");
             }
-            A.FormatScheme? formatScheme = OwnerSlide.SlidePart
-                .ThemeOverridePart?.ThemeOverride?.FormatScheme
-                ?? OwnerSlide.SlidePart.SlideLayoutPart?.ThemeOverridePart?
-                    .ThemeOverride?.FormatScheme
-                ?? OwnerSlide.SlidePart.SlideLayoutPart?.SlideMasterPart?
-                    .ThemePart?.Theme?.ThemeElements?.FormatScheme;
-            OpenXmlElementList lines = formatScheme?
-                .GetFirstChild<A.LineStyleList>()?.ChildElements ?? default;
-            uint zeroBased = index.Value - 1U;
-            if (zeroBased >= unchecked((uint)lines.Count)) return null;
-            OpenXmlElement line = lines[unchecked((int)zeroBased)];
-            return line as A.Outline ?? line.GetFirstChild<A.Outline>();
+            return default;
         }
 
-        private OpenXmlCompositeElement? GetShapeStyleLineColorChoice(
-            bool createPlaceholder) {
-            A.LineReference? reference = Element switch {
-                Shape shape => shape.ShapeStyle?.LineReference,
-                ConnectionShape connector => connector.ShapeStyle?.LineReference,
-                Picture picture => picture.ShapeStyle?.LineReference,
-                _ => null
-            };
-            if (reference == null) return null;
+        // The a:lnRef in the style of a shape, connector or picture, or none.
+        private OfficeXmlNode LineStyleReference() {
+            OfficeXmlNode element = XmlElement;
+            if (element.NamespaceId != OfficeXmlNamespaces.PresentationML || element.LocalName is not ("sp" or "cxnSp" or "pic")) return default;
+            return element.Child(OfficeXmlNamespaces.PresentationML, "style").Child(D, "lnRef");
+        }
 
-            OpenXmlCompositeElement? color = GetColorChoice(reference);
-            if (color == null && createPlaceholder) {
-                color = new A.SchemeColor { Val = A.SchemeColorValues.PhColor };
-                reference.Append(color);
+        private OfficeXmlNode ShapeStyleLineColorChoice(bool createPlaceholder) {
+            OfficeXmlNode reference = LineStyleReference();
+            if (reference.IsNone) return default;
+            OfficeXmlNode color = ColorChoice(reference);
+            if (color.IsNone && createPlaceholder) {
+                color = reference.Append(reference.CreateElement(D, "schemeClr"));
+                color.SetAttribute("val", "phClr");
             }
             return color;
         }
 
-        private static void InsertOutlineChild(A.Outline outline, OpenXmlElement child) {
-            int childOrder = GetOutlineChildOrder(child);
-            OpenXmlElement? insertBefore = outline.ChildElements
-                .FirstOrDefault(existing => GetOutlineChildOrder(existing) > childOrder);
-
-            if (insertBefore != null) {
-                outline.InsertBefore(child, insertBefore);
-            } else {
-                outline.Append(child);
+        private static void ApplyLineEnd(OfficeXmlNode outline, string localName, OfficeLineMarkerKind? type, PowerPointLineEndWidth? width, PowerPointLineEndLength? length) {
+            OfficeXmlNode end = outline.Child(D, localName);
+            if (type == null && width == null && length == null) {
+                if (!end.IsNone) end.Remove();
+                return;
             }
-        }
-
-        private static int GetOutlineChildOrder(OpenXmlElement child) {
-            return child switch {
-                A.NoFill => 0,
-                A.SolidFill => 0,
-                A.GradientFill => 0,
-                A.PatternFill => 0,
-                A.PresetDash => 1,
-                A.CustomDash => 1,
-                A.Round => 2,
-                A.LineJoinBevel => 2,
-                A.Miter => 2,
-                A.HeadEnd => 3,
-                A.TailEnd => 4,
-                _ => 100
-            };
-        }
-
-        private static void ApplyLineEnd(A.Outline outline, OfficeLineMarkerKind? type, PowerPointLineEndWidth? width, PowerPointLineEndLength? length, bool isStart) {
-            bool hasData = type != null || width != null || length != null;
-            if (isStart) {
-                A.HeadEnd? head = outline.GetFirstChild<A.HeadEnd>();
-                if (!hasData) {
-                    head?.Remove();
-                    return;
-                }
-
-                head ??= new A.HeadEnd();
-                head.Type = (type ?? OfficeLineMarkerKind.None).ToOpenXml();
-                if (width != null) {
-                    head.Width = width.Value.ToOpenXml();
-                }
-                if (length != null) {
-                    head.Length = length.Value.ToOpenXml();
-                }
-                if (head.Parent == null) {
-                    InsertOutlineChild(outline, head);
-                }
-            } else {
-                A.TailEnd? tail = outline.GetFirstChild<A.TailEnd>();
-                if (!hasData) {
-                    tail?.Remove();
-                    return;
-                }
-
-                tail ??= new A.TailEnd();
-                tail.Type = (type ?? OfficeLineMarkerKind.None).ToOpenXml();
-                if (width != null) {
-                    tail.Width = width.Value.ToOpenXml();
-                }
-                if (length != null) {
-                    tail.Length = length.Value.ToOpenXml();
-                }
-                if (tail.Parent == null) {
-                    InsertOutlineChild(outline, tail);
-                }
-            }
+            if (end.IsNone) end = outline.InsertOrdered(outline.CreateElement(D, localName), OutlineOrder);
+            end.SetAttribute("type", (type ?? OfficeLineMarkerKind.None).ToOpenXmlToken());
+            if (width != null) end.SetAttribute("w", width.Value.ToOpenXmlToken());
+            if (length != null) end.SetAttribute("len", length.Value.ToOpenXmlToken());
         }
     }
 }

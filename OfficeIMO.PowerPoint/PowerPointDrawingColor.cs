@@ -7,8 +7,23 @@ namespace OfficeIMO.PowerPoint;
 /// <summary>Encodes explicit DrawingML colors without resolving native theme slots to RGB.</summary>
 internal static partial class PowerPointDrawingColor {
     /// <summary>Whether writing <paramref name="color"/> needs the consuming theme: a theme role without a slot.</summary>
-    /// <remarks>Finding the theme can open the SDK, so callers read it before they take any element to edit.</remarks>
     internal static bool NeedsTheme(OfficeColor? color) => color is { IsThemeRole: true, ThemeSlot: null };
+
+    /// <summary>
+    /// The theme content in <paramref name="part"/> consumes: its slide's authoring theme, or its layout's and master's.
+    /// </summary>
+    internal static OfficeTheme ThemeFor(PowerPointPartRef part, PowerPointSlide? slide) {
+        if (slide != null) return slide.AuthoringTheme;
+        if (part.IsNone || part.Document is not { } document) return OfficeTheme.Default;
+        PowerPointPartRef owner = part.Kind == PowerPointPartKind.NotesSlide ? part.RelatedPart(PowerPointPartRef.SlideRelationshipType) : part;
+        if (owner.Kind == PowerPointPartKind.Slide) {
+            foreach (PowerPointSlide candidate in document.Slides) {
+                if (candidate.PartRef.Equals(owner)) return candidate.AuthoringTheme;
+            }
+        }
+        PowerPointThemeScope scope = PowerPointThemeScope.For(owner);
+        return document.ReadLayoutTheme(scope.Master.IsNone ? document.MasterPartRef(0) : scope.Master, scope.ColorScheme, scope.FontScheme).Theme;
+    }
 
     /// <summary>
     /// Appends the color element for <paramref name="color"/>: a theme slot as <c>a:schemeClr</c>, anything else as
@@ -74,8 +89,8 @@ internal static partial class PowerPointDrawingColor {
         if (element.IsNone) return null;
         OfficeColor? color = element.LocalName switch {
             "srgbClr" => OfficeDrawingColorTransforms.ParseRgb(element.Attribute("val")),
-            "scrgbClr" => OfficeDrawingColorTransforms.ParseScRgb(element.Int32Attribute("r"), element.Int32Attribute("g"), element.Int32Attribute("b")),
-            "hslClr" => OfficeDrawingColorTransforms.ParseHsl(element.Int32Attribute("hue"), element.Int32Attribute("sat"), element.Int32Attribute("lum")),
+            "scrgbClr" => OfficeDrawingColorTransforms.ParseScRgb(Percentage(element, "r"), Percentage(element, "g"), Percentage(element, "b")),
+            "hslClr" => OfficeDrawingColorTransforms.ParseHsl(element.Int32Attribute("hue"), Percentage(element, "sat"), Percentage(element, "lum")),
             "sysClr" => OfficeDrawingColorTransforms.ParseRgb(element.Attribute("lastClr")),
             "prstClr" => OfficeDrawingColorTransforms.ParsePreset(element.Attribute("val")),
             _ => null
@@ -88,4 +103,6 @@ internal static partial class PowerPointDrawingColor {
         }
         return transforms.Result;
     }
+
+    private static int? Percentage(OfficeXmlNode element, string localName) => OfficeDrawingColorTransforms.ParsePercentage(element.Attribute(localName));
 }

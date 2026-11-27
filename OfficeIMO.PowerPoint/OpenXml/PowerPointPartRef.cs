@@ -50,6 +50,10 @@ namespace OfficeIMO.PowerPoint.OpenXml {
     internal readonly struct PowerPointPartRef : IEquatable<PowerPointPartRef> {
         internal const string HyperlinkRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink";
         internal const string SlideRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide";
+        internal const string SlideLayoutRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout";
+        internal const string SlideMasterRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster";
+        internal const string ThemeRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme";
+        internal const string ThemeOverrideRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/themeOverride";
         private const string SlideContentType = "application/vnd.openxmlformats-officedocument.presentationml.slide+xml";
         private const string LayoutContentType = "application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml";
         private const string MasterContentType = "application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml";
@@ -156,6 +160,36 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             relationship = new PowerPointRelationship(id, tree.GetAttribute(node, OfficeXmlNamespaces.None, "Type") ?? string.Empty, relationshipTarget, isExternal,
                 partName != null && package.PartExists(partName) ? Package(current._document, partName) : default);
             return true;
+        }
+
+        /// <summary>The part the first internal relationship of <paramref name="relationshipType"/> targets, or none.</summary>
+        internal PowerPointPartRef RelatedPart(string relationshipType) {
+            foreach (PowerPointPartRef part in RelatedParts(relationshipType)) return part;
+            return default;
+        }
+
+        /// <summary>
+        /// The parts the internal relationships of <paramref name="relationshipType"/> target, in relationship order.
+        /// Strict relationship types match their transitional names.
+        /// </summary>
+        internal IEnumerable<PowerPointPartRef> RelatedParts(string relationshipType) {
+            PowerPointPartRef current = Current;
+            if (current._sdk != null) {
+                foreach (object part in PowerPointSdkParts.RelatedParts(current._sdk, relationshipType)) yield return FromSdk(part);
+                yield break;
+            }
+            if (current._document?.ReadablePackage is not { } package) yield break;
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(current._name);
+            if (!package.PartExists(relationshipsPart)) yield break;
+            OfficeXmlTree tree = package.GetXml(relationshipsPart);
+            for (int node = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                node = tree.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                string? type = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
+                if (type == null || !string.Equals(OfficeXmlNamespaces.NormalizeRelationshipType(type), relationshipType, StringComparison.Ordinal)) continue;
+                if (string.Equals(tree.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
+                string? partName = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, tree.GetAttribute(node, OfficeXmlNamespaces.None, "Target") ?? string.Empty);
+                if (partName != null && package.PartExists(partName)) yield return Package(current._document, partName);
+            }
         }
 
         /// <summary>Adds an external hyperlink relationship to <paramref name="uri"/> and returns its id.</summary>

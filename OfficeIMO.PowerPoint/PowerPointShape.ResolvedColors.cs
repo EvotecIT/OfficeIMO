@@ -1,50 +1,55 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Presentation;
-using OfficeIMO.Drawing;
 using OfficeIMO.OpenXml.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
         /// <summary>Resolves a solid fill without changing the literal color editing properties.</summary>
         internal OfficeColor? ResolveFillColorForExport() {
-            ShapeProperties? properties = GetShapeProperties();
-            if (properties != null && HasExplicitFillChoice(properties)) {
+            OfficeXmlNode properties = ShapePropertiesElement(create: false);
+            if (!properties.IsNone && HasExplicitFillChoice(properties)) {
                 // Explicit no-fill and unsupported fill kinds suppress the theme style.
-                return ResolveExportColor(properties.GetFirstChild<A.SolidFill>());
+                return ResolveExportColor(properties.Child(D, "solidFill"));
             }
-            return ResolveExportColor(ResolveThemeFill() as A.SolidFill,
-                GetShapeStyleFillColorChoice(createPlaceholder: false));
+            OfficeXmlNode themeFill = ResolveThemeFill();
+            return ResolveExportColor(themeFill.Is(D, "solidFill") ? themeFill : default, ShapeStyleFillColorChoice(createPlaceholder: false));
         }
 
         /// <summary>Resolves a solid line color, inheriting the matrix fill when a local line supplies only width or dash.</summary>
         internal OfficeColor? ResolveOutlineColorForExport() {
-            A.Outline? outline = GetOutline();
-            if (outline != null && HasExplicitFillChoice(outline)) {
-                return ResolveExportColor(outline.GetFirstChild<A.SolidFill>());
+            OfficeXmlNode outline = GetOutline();
+            if (!outline.IsNone && HasExplicitFillChoice(outline)) {
+                return ResolveExportColor(outline.Child(D, "solidFill"));
             }
-            return ResolveExportColor(ResolveThemeOutline()?.GetFirstChild<A.SolidFill>(),
-                GetShapeStyleLineColorChoice(createPlaceholder: false));
+            return ResolveExportColor(ResolveThemeOutline().Child(D, "solidFill"), ShapeStyleLineColorChoice(createPlaceholder: false));
         }
 
         internal string? UnsupportedFillKindForExport {
             get {
-                ShapeProperties? properties = GetShapeProperties();
-                OpenXmlElement? fill = properties != null && HasExplicitFillChoice(properties)
-                    ? properties.ChildElements.FirstOrDefault(child => child is A.NoFill or A.SolidFill
-                        or A.GradientFill or A.BlipFill or A.PatternFill or A.GroupFill)
-                    : ResolveThemeFill();
-                return fill switch {
-                    A.PatternFill => "pattern",
-                    A.BlipFill => "picture",
-                    A.GroupFill => "group",
+                OfficeXmlNode properties = ShapePropertiesElement(create: false);
+                OfficeXmlNode fill = default;
+                if (!properties.IsNone && HasExplicitFillChoice(properties)) {
+                    for (OfficeXmlNode child = properties.FirstChild; !child.IsNone; child = child.NextSibling) {
+                        if (IsFillChoice(child)) {
+                            fill = child;
+                            break;
+                        }
+                    }
+                } else {
+                    fill = ResolveThemeFill();
+                }
+                if (fill.NamespaceId != D) return null;
+                return fill.LocalName switch {
+                    "pattFill" => "pattern",
+                    "blipFill" => "picture",
+                    "grpFill" => "group",
                     _ => null
                 };
             }
         }
 
-        private OfficeColor? ResolveExportColor(OpenXmlElement? color, OpenXmlElement? placeholder = null) =>
-            OfficeOpenXmlThemeColorResolver.ResolveColor(color, OwnerSlide?.ResolvedColorScheme,
-                placeholder, OwnerSlide?.ResolvedColorMap);
+        private OfficeColor? ResolveExportColor(OfficeXmlNode color, OfficeXmlNode placeholder = default) {
+            if (color.IsNone) return null;
+            PowerPointThemeScope scope = OwnerSlide == null ? default : PowerPointThemeScope.For(OwnerSlide.PartRef);
+            return OfficeXmlThemeColors.ResolveColor(color, scope.ColorScheme, placeholder, scope.ColorMap);
+        }
     }
 }

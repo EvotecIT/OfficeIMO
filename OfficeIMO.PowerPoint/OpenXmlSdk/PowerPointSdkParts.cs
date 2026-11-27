@@ -72,6 +72,12 @@ namespace OfficeIMO.PowerPoint.OpenXmlSdk {
             return owner.OpenXmlPackage.GetAllParts().FirstOrDefault(candidate => string.Equals(candidate.Uri.OriginalString, name, StringComparison.OrdinalIgnoreCase));
         }
 
+        internal static IEnumerable<object> RelatedParts(object part, string relationshipType) {
+            foreach (IdPartPair pair in P(part).Parts) {
+                if (string.Equals(pair.OpenXmlPart.RelationshipType, relationshipType, StringComparison.Ordinal)) yield return pair.OpenXmlPart;
+            }
+        }
+
         internal static string AddHyperlink(object part, Uri uri, bool external) => P(part).AddHyperlinkRelationship(uri, external).Id;
 
         internal static string GetOrAddRelativeHyperlink(object part, object target) {

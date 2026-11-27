@@ -1,6 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
@@ -21,37 +20,27 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(transparencyPercent), "Transparency must be between 0 and 100.");
             }
 
-            A.OuterShadow? shadow = GetOuterShadow(create: true);
-            if (shadow == null) {
+            OfficeTheme? theme = PowerPointDrawingColor.NeedsTheme(color) ? PowerPointDrawingColor.ThemeFor(OwnerPartRef, OwnerSlide) : null;
+            OfficeXmlNode shadow = GetEffect("outerShdw", create: true);
+            if (shadow.IsNone) {
                 return;
             }
 
-            shadow.BlurRadius = resolvedBlur.ToEmus();
-            shadow.Distance = resolvedDistance.ToEmus();
-            shadow.Direction = ToShadowAngle(angleDegrees);
-            shadow.RotateWithShape = rotateWithShape;
+            shadow.SetInt64Attribute("blurRad", resolvedBlur.ToEmus());
+            shadow.SetInt64Attribute("dist", resolvedDistance.ToEmus());
+            shadow.SetInt32Attribute("dir", ToShadowAngle(angleDegrees));
+            shadow.SetBooleanAttribute("rotWithShape", rotateWithShape);
 
-            RemoveShadowColors(shadow);
-            OpenXmlElement rgb = PowerPointDrawingColor.Create(color, OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(RelationshipOwnerPart));
-            int alpha = rgb.GetFirstChild<A.Alpha>()?.Val?.Value ?? 100000;
-            rgb.RemoveAllChildren<A.Alpha>();
-            rgb.Append(new A.Alpha { Val = (int)Math.Round(alpha * (100 - transparencyPercent) / 100D) });
-            shadow.Append(rgb);
+            RemoveEffectColors(shadow);
+            AppendEffectColor(shadow, color, theme, transparencyPercent);
+            OwnerPartRef.MarkEdited();
         }
 
         /// <summary>
         ///     Removes any drop shadow from the shape.
         /// </summary>
         public void ClearShadow() {
-            A.EffectList? effects = GetEffectList();
-            if (effects == null) {
-                return;
-            }
-
-            effects.GetFirstChild<A.OuterShadow>()?.Remove();
-            if (!effects.HasChildren) {
-                effects.Remove();
-            }
+            RemoveEffect("outerShdw");
         }
 
         /// <summary>
@@ -66,34 +55,23 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(transparencyPercent), "Transparency must be between 0 and 100.");
             }
 
-            A.Glow? glow = GetGlow(create: true);
-            if (glow == null) {
+            OfficeTheme? theme = PowerPointDrawingColor.NeedsTheme(color) ? PowerPointDrawingColor.ThemeFor(OwnerPartRef, OwnerSlide) : null;
+            OfficeXmlNode glow = GetEffect("glow", create: true);
+            if (glow.IsNone) {
                 return;
             }
 
-            glow.Radius = resolvedRadius.ToEmus();
-            RemoveGlowColors(glow);
-
-            OpenXmlElement rgb = PowerPointDrawingColor.Create(color, OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(RelationshipOwnerPart));
-            int alpha = rgb.GetFirstChild<A.Alpha>()?.Val?.Value ?? 100000;
-            rgb.RemoveAllChildren<A.Alpha>();
-            rgb.Append(new A.Alpha { Val = (int)Math.Round(alpha * (100 - transparencyPercent) / 100D) });
-            glow.Append(rgb);
+            glow.SetInt64Attribute("rad", resolvedRadius.ToEmus());
+            RemoveEffectColors(glow);
+            AppendEffectColor(glow, color, theme, transparencyPercent);
+            OwnerPartRef.MarkEdited();
         }
 
         /// <summary>
         ///     Removes any glow effect from the shape.
         /// </summary>
         public void ClearGlow() {
-            A.EffectList? effects = GetEffectList();
-            if (effects == null) {
-                return;
-            }
-
-            effects.GetFirstChild<A.Glow>()?.Remove();
-            if (!effects.HasChildren) {
-                effects.Remove();
-            }
+            RemoveEffect("glow");
         }
 
         /// <summary>
@@ -104,27 +82,20 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(radius));
             }
 
-            A.SoftEdge? softEdge = GetSoftEdge(create: true);
-            if (softEdge == null) {
+            OfficeXmlNode softEdge = GetEffect("softEdge", create: true);
+            if (softEdge.IsNone) {
                 return;
             }
 
-            softEdge.Radius = radius.ToEmus();
+            softEdge.SetInt64Attribute("rad", radius.ToEmus());
+            OwnerPartRef.MarkEdited();
         }
 
         /// <summary>
         ///     Removes any soft edges effect from the shape.
         /// </summary>
         public void ClearSoftEdges() {
-            A.EffectList? effects = GetEffectList();
-            if (effects == null) {
-                return;
-            }
-
-            effects.GetFirstChild<A.SoftEdge>()?.Remove();
-            if (!effects.HasChildren) {
-                effects.Remove();
-            }
+            RemoveEffect("softEdge");
         }
 
         /// <summary>
@@ -135,28 +106,21 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(radius));
             }
 
-            A.Blur? blur = GetBlur(create: true);
-            if (blur == null) {
+            OfficeXmlNode blur = GetEffect("blur", create: true);
+            if (blur.IsNone) {
                 return;
             }
 
-            blur.Radius = radius.ToEmus();
-            blur.Grow = grow;
+            blur.SetInt64Attribute("rad", radius.ToEmus());
+            blur.SetBooleanAttribute("grow", grow);
+            OwnerPartRef.MarkEdited();
         }
 
         /// <summary>
         ///     Removes any blur effect from the shape.
         /// </summary>
         public void ClearBlur() {
-            A.EffectList? effects = GetEffectList();
-            if (effects == null) {
-                return;
-            }
-
-            effects.GetFirstChild<A.Blur>()?.Remove();
-            if (!effects.HasChildren) {
-                effects.Remove();
-            }
+            RemoveEffect("blur");
         }
 
         /// <summary>
@@ -194,167 +158,79 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(endPositionPercent), "Position must be between 0 and 100.");
             }
 
-            A.Reflection? reflection = GetReflection(create: true);
-            if (reflection == null) {
+            OfficeXmlNode reflection = GetEffect("reflection", create: true);
+            if (reflection.IsNone) {
                 return;
             }
 
-            reflection.BlurRadius = resolvedBlur.ToEmus();
-            reflection.Distance = resolvedDistance.ToEmus();
-            reflection.Direction = ToShadowAngle(directionDegrees);
-            reflection.FadeDirection = ToShadowAngle(fadeDirectionDegrees);
-            reflection.StartOpacity = ToAlphaValue(startOpacityPercent);
-            reflection.EndAlpha = ToAlphaValue(endOpacityPercent);
-            reflection.StartPosition = ToPercentValue(startPositionPercent);
-            reflection.EndPosition = ToPercentValue(endPositionPercent);
-            reflection.Alignment = (alignment ?? PowerPointRectangleAlignment.Bottom).ToOpenXml();
-            reflection.RotateWithShape = rotateWithShape;
+            // Schema order, as the SDK writes the attributes of a new element.
+            reflection.SetInt64Attribute("blurRad", resolvedBlur.ToEmus());
+            reflection.SetInt32Attribute("stA", ToAlphaValue(startOpacityPercent));
+            reflection.SetInt32Attribute("stPos", ToPercentValue(startPositionPercent));
+            reflection.SetInt32Attribute("endA", ToAlphaValue(endOpacityPercent));
+            reflection.SetInt32Attribute("endPos", ToPercentValue(endPositionPercent));
+            reflection.SetInt64Attribute("dist", resolvedDistance.ToEmus());
+            reflection.SetInt32Attribute("dir", ToShadowAngle(directionDegrees));
+            reflection.SetInt32Attribute("fadeDir", ToShadowAngle(fadeDirectionDegrees));
+            reflection.SetAttribute("algn", (alignment ?? PowerPointRectangleAlignment.Bottom).ToOpenXmlToken());
+            reflection.SetBooleanAttribute("rotWithShape", rotateWithShape);
+            OwnerPartRef.MarkEdited();
         }
 
         /// <summary>
         ///     Removes any reflection effect from the shape.
         /// </summary>
         public void ClearReflection() {
-            A.EffectList? effects = GetEffectList();
-            if (effects == null) {
-                return;
-            }
-
-            effects.GetFirstChild<A.Reflection>()?.Remove();
-            if (!effects.HasChildren) {
-                effects.Remove();
-            }
+            RemoveEffect("reflection");
         }
 
 
-        private A.EffectList? GetEffectList(bool create = false) {
-            ShapeProperties? props = GetShapeProperties(create);
-            if (props == null) {
-                return null;
-            }
+        // The children of a:effectLst in sequence order.
+        private static readonly OfficeXmlChildOrder EffectOrder = new(
+            new[] { D, D, D, D, D, D, D, D },
+            new[] { "blur", "fillOverlay", "glow", "innerShdw", "outerShdw", "prstShdw", "reflection", "softEdge" });
 
-            A.EffectList? effectList = props.GetFirstChild<A.EffectList>();
-            if (effectList == null && create) {
-                effectList = new A.EffectList();
-                InsertShapePropertyChild(props, effectList);
-            }
-
-            return effectList;
+        private OfficeXmlNode GetEffectList(bool create = false) {
+            OfficeXmlNode properties = ShapePropertiesElement(create);
+            if (properties.IsNone) return default;
+            OfficeXmlNode effects = properties.Child(D, "effectLst");
+            if (effects.IsNone && create) effects = properties.InsertOrdered(properties.CreateElement(D, "effectLst"), ShapePropertyOrder);
+            return effects;
         }
 
-        private A.OuterShadow? GetOuterShadow(bool create = false) {
-            A.EffectList? effects = GetEffectList(create);
-            if (effects == null) {
-                return null;
-            }
-
-            A.OuterShadow? shadow = effects.GetFirstChild<A.OuterShadow>();
-            if (shadow == null && create) {
-                shadow = new A.OuterShadow();
-                InsertEffectChild(effects, shadow);
-            }
-
-            return shadow;
+        private OfficeXmlNode GetEffect(string localName, bool create = false) {
+            OfficeXmlNode effects = GetEffectList(create);
+            if (effects.IsNone) return default;
+            OfficeXmlNode effect = effects.Child(D, localName);
+            if (effect.IsNone && create) effect = effects.InsertOrdered(effects.CreateElement(D, localName), EffectOrder);
+            return effect;
         }
 
-        private A.Blur? GetBlur(bool create = false) {
-            A.EffectList? effects = GetEffectList(create);
-            if (effects == null) {
-                return null;
-            }
-
-            A.Blur? blur = effects.GetFirstChild<A.Blur>();
-            if (blur == null && create) {
-                blur = new A.Blur();
-                InsertEffectChild(effects, blur);
-            }
-
-            return blur;
+        // Removes one effect, and the effect list when it is left empty.
+        private void RemoveEffect(string localName) {
+            OfficeXmlNode effects = GetEffectList();
+            if (effects.IsNone) return;
+            OfficeXmlNode effect = effects.Child(D, localName);
+            if (!effect.IsNone) effect.Remove();
+            if (effects.FirstChild.IsNone) effects.Remove();
+            OwnerPartRef.MarkEdited();
         }
 
-        private A.Reflection? GetReflection(bool create = false) {
-            A.EffectList? effects = GetEffectList(create);
-            if (effects == null) {
-                return null;
-            }
-
-            A.Reflection? reflection = effects.GetFirstChild<A.Reflection>();
-            if (reflection == null && create) {
-                reflection = new A.Reflection();
-                InsertEffectChild(effects, reflection);
-            }
-
-            return reflection;
-        }
-
-        private A.Glow? GetGlow(bool create = false) {
-            A.EffectList? effects = GetEffectList(create);
-            if (effects == null) {
-                return null;
-            }
-
-            A.Glow? glow = effects.GetFirstChild<A.Glow>();
-            if (glow == null && create) {
-                glow = new A.Glow();
-                InsertEffectChild(effects, glow);
-            }
-
-            return glow;
-        }
-
-        private A.SoftEdge? GetSoftEdge(bool create = false) {
-            A.EffectList? effects = GetEffectList(create);
-            if (effects == null) {
-                return null;
-            }
-
-            A.SoftEdge? softEdge = effects.GetFirstChild<A.SoftEdge>();
-            if (softEdge == null && create) {
-                softEdge = new A.SoftEdge();
-                InsertEffectChild(effects, softEdge);
-            }
-
-            return softEdge;
-        }
-
-        private static void InsertEffectChild(A.EffectList effects, OpenXmlElement child) {
-            int childOrder = GetEffectChildOrder(child);
-            OpenXmlElement? insertBefore = effects.ChildElements
-                .FirstOrDefault(existing => GetEffectChildOrder(existing) > childOrder);
-
-            if (insertBefore != null) {
-                effects.InsertBefore(child, insertBefore);
-            } else {
-                effects.Append(child);
+        private static void RemoveEffectColors(OfficeXmlNode effect) {
+            OfficeXmlNode child = effect.FirstChild;
+            while (!child.IsNone) {
+                OfficeXmlNode next = child.NextSibling;
+                if (child.NamespaceId == D && child.LocalName is "srgbClr" or "schemeClr" or "sysClr" or "prstClr") child.Remove();
+                child = next;
             }
         }
 
-        private static int GetEffectChildOrder(OpenXmlElement child) {
-            return child switch {
-                A.Blur => 0,
-                A.FillOverlay => 1,
-                A.Glow => 2,
-                A.InnerShadow => 3,
-                A.OuterShadow => 4,
-                A.PresetShadow => 5,
-                A.Reflection => 6,
-                A.SoftEdge => 7,
-                _ => 100
-            };
-        }
-
-        private static void RemoveShadowColors(A.OuterShadow shadow) {
-            shadow.RemoveAllChildren<A.RgbColorModelHex>();
-            shadow.RemoveAllChildren<A.SchemeColor>();
-            shadow.RemoveAllChildren<A.SystemColor>();
-            shadow.RemoveAllChildren<A.PresetColor>();
-        }
-
-        private static void RemoveGlowColors(A.Glow glow) {
-            glow.RemoveAllChildren<A.RgbColorModelHex>();
-            glow.RemoveAllChildren<A.SchemeColor>();
-            glow.RemoveAllChildren<A.SystemColor>();
-            glow.RemoveAllChildren<A.PresetColor>();
+        // Appends the effect's color with the transparency applied on top of the color's own opacity.
+        private static void AppendEffectColor(OfficeXmlNode effect, OfficeColor color, OfficeTheme? theme, int transparencyPercent) {
+            OfficeXmlNode element = PowerPointDrawingColor.Append(effect, color, theme);
+            int alpha = element.Child(D, "alpha").Int32Attribute("val") ?? 100000;
+            element.RemoveChildren(D, "alpha");
+            element.Append(element.CreateElement(D, "alpha")).SetInt32Attribute("val", (int)Math.Round(alpha * (100 - transparencyPercent) / 100D));
         }
 
         private static int ToShadowAngle(double degrees) {
