@@ -96,10 +96,10 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
 
             XlsbDefinedNameProjector.Apply(workbook, native.DefinedNames);
             if (native.CalculationProperties != null) XlsbCalculationPropertiesProjector.Apply(workbook, native.CalculationProperties);
-            if (native.ThemePartName != null) related.ReplaceTheme(ThemePart, native.ThemePartName);
+            if (native.ThemePartName != null) related.ReplaceTheme(WorkbookPart, ThemePart, native.ThemePartName);
             if (native.VbaProjectPartName != null)
                 related.Link(WorkbookPart, native.VbaProjectPartName, "http://schemas.microsoft.com/office/2006/relationships/vbaProject");
-            if (!strings.TryWrite(package, WorkbookPart)) throw new InvalidOperationException("The projected workbook cannot add its shared strings.");
+            if (!strings.TryWrite(package, WorkbookPart, declareNewCounts: false)) throw new InvalidOperationException("The projected workbook cannot add its shared strings.");
 
             XlsbDocumentPropertiesProjector.Apply(package, native);
             using var output = new MemoryStream(16 * 1024);

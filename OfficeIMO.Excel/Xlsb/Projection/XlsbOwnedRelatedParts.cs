@@ -27,11 +27,23 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
         }
 
         /// <summary>Replaces the owned creation shell's default theme with the original native theme graph.</summary>
-        internal void ReplaceTheme(string themePartName, string source) {
+        internal void ReplaceTheme(string owner, string themePartName, string source) {
+            const string relationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "theme";
+            const string contentType = "application/vnd.openxmlformats-officedocument.theme+xml";
+            const string replacement = "/xl/theme/theme2.xml";
             XlsbProjectedPart original = _workbook.RelatedParts[source];
-            _package.ReplacePart(themePartName, original.Bytes, original.Bytes.Length);
+            _package.DeletePart(themePartName);
+            OfficeXmlTree relationships = _package.GetRelationships(owner);
+            var root = new OfficeXmlNode(relationships, relationships.Root);
+            foreach (OfficeXmlNode relationship in root.Children(OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                if (relationship.Attribute("Type") == relationshipType) {
+                    relationship.SetAttribute("Target", OfficeOpcPartNames.GetRelativeTarget(owner, replacement));
+                    break;
+                }
+            }
+            _package.CreateBinaryPart(replacement, contentType, original.Bytes);
             var pending = new Queue<(string Source, string Target)>();
-            Register(source, themePartName, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "theme", pending);
+            Register(source, replacement, relationshipType, pending);
             CopyRelationships(pending);
         }
 
