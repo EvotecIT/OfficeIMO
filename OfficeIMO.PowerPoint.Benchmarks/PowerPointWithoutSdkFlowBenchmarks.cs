@@ -35,6 +35,7 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         if (!UncheckedFlows.Contains("Tables")) Check(Tables, compareParts: "ppt/slides/slide");
         if (!UncheckedFlows.Contains("Notes")) Check(Notes, compareParts: "ppt/notesSlides/");
         if (!UncheckedFlows.Contains("Layouts")) Check(Layouts, compareParts: "ppt/slideMasters/slideMaster");
+        if (!UncheckedFlows.Contains("Themes")) Check(Themes, compareParts: "ppt/theme/theme");
         if (!UncheckedFlows.Contains("Extract")) CheckExtract();
     }
 
@@ -93,6 +94,14 @@ public class PowerPointWithoutSdkFlowBenchmarks {
     [Benchmark]
     [BenchmarkCategory("Layouts")]
     public byte[] LayoutsWithoutSdk() => Run(sdk: false, Layouts);
+
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("Themes")]
+    public byte[] ThemesWithSdk() => Run(sdk: true, Themes);
+
+    [Benchmark]
+    [BenchmarkCategory("Themes")]
+    public byte[] ThemesWithoutSdk() => Run(sdk: false, Themes);
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory("Extract")]
@@ -214,6 +223,24 @@ public class PowerPointWithoutSdkFlowBenchmarks {
             OfficeLength.Points(860), OfficeLength.Points(10), OfficeLength.Points(80), OfficeLength.Points(60));
     }
 
+    // Reads the theme name, colours, fonts and table styles, then rebrands the colours, fonts and name of every master.
+    private void Themes(PowerPointDocument presentation) {
+        int count = presentation.ThemeName.Length + presentation.TableStyles.Count;
+        for (int index = 0; index < presentation.SlideMasters.Count; index++) {
+            count += presentation.GetThemeColors(index).Count;
+            PowerPointThemeFontSet fonts = presentation.GetThemeFonts(index);
+            count += (fonts.MajorLatin?.Length ?? 0) + (fonts.MinorLatin?.Length ?? 0);
+        }
+        if (count == 0) throw new InvalidOperationException("The deck has no theme to read.");
+        presentation.SetThemeColorsForAllMasters(new Dictionary<PowerPointThemeColor, string> {
+            [PowerPointThemeColor.Accent1] = "1F4E79",
+            [PowerPointThemeColor.Accent2] = "C55A11",
+            [PowerPointThemeColor.Hyperlink] = "0563C1"
+        });
+        presentation.SetThemeFontsForAllMasters(new PowerPointThemeFontSet("Segoe UI Semibold", "Segoe UI", null, null, null, null));
+        presentation.SetThemeNameForAllMasters("Brand");
+    }
+
     // With compareParts the markup of the parts under that prefix is compared, attribute order aside, for flows whose
     // edits the text doesn't show.
     private void Check(Action<PowerPointDocument> flow, string? compareParts = null) {
@@ -264,6 +291,7 @@ public class PowerPointWithoutSdkFlowBenchmarks {
             ("Tables", benchmark.TablesWithSdk, benchmark.TablesWithoutSdk),
             ("Notes", benchmark.NotesWithSdk, benchmark.NotesWithoutSdk),
             ("Layouts", benchmark.LayoutsWithSdk, benchmark.LayoutsWithoutSdk),
+            ("Themes", benchmark.ThemesWithSdk, benchmark.ThemesWithoutSdk),
             ("Extract", () => benchmark.ExtractWithSdk(), () => benchmark.ExtractWithoutSdk())
         };
         Console.WriteLine("Flow       | SDK median | without | faster | SDK alloc | without | less allocation");
