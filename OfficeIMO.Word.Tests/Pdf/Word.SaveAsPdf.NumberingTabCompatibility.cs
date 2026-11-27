@@ -27,9 +27,9 @@ public sealed class PdfNumberingTabCompatibilityTests {
         WordListLevel level = list.Numbering.Levels[0];
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(36D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
-        level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new Tabs(
+        level.OpenXmlLevel().PreviousParagraphProperties!.InsertAt(new Tabs(
             new TabStop { Val = TabStopValues.Number, Position = 3000 }), 0);
-        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY\nNEXT");
         paragraph.Text = "BODY\nNEXT";

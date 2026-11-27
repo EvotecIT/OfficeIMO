@@ -10,14 +10,20 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class ExcelImageExportTests {
+        /// <summary>An SDK element as the engine's element handle, for calling the engine's node-based internals.</summary>
+        private static object ChartNode(DocumentFormat.OpenXml.OpenXmlElement element) =>
+            typeof(ExcelDocument).Assembly.GetType("OfficeIMO.OpenXml.Internal.OfficeXmlNode")!
+                .GetMethod("FromSdk", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .Invoke(null, new object?[] { element })!;
+
         [Fact]
         public void ExcelChart_ImageExportClampsUntrustedLineWidths() {
             var properties = new ChartShapeProperties(
                 new A.Outline { Width = int.MaxValue });
             System.Reflection.MethodInfo method = typeof(ExcelChart).GetMethod(
-                "TryGetLineWidth",
+                "TryGetImageExportLineWidth",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-            object?[] arguments = { properties, 0D };
+            object?[] arguments = { ChartNode(properties), 0D };
 
             bool resolved = (bool)method.Invoke(null, arguments)!;
 
@@ -31,10 +37,10 @@ namespace OfficeIMO.Tests {
                 new ChartShapeProperties(
                     new A.Outline { Width = int.MaxValue }));
             System.Reflection.MethodInfo method = typeof(ExcelChart).GetMethod(
-                "GetImageExportMarkerOutlineWidth",
+                "ReadImageExportMarkerOutlineWidth",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
 
-            double? width = (double?)method.Invoke(null, new object?[] { marker });
+            double? width = (double?)method.Invoke(null, new object?[] { ChartNode(marker) });
 
             Assert.Equal(64D, width);
         }
@@ -351,11 +357,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelRange_ImageExportRejectsOversizedChartCachePointCountsBeforeAllocation() {
             Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
-            System.Reflection.MethodInfo method = utilities.GetMethod("TryReadNumberPoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            System.Reflection.MethodInfo method = utilities.GetMethod("TryReadNumberPointNodes", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
             var cache = new DocumentFormat.OpenXml.Drawing.Charts.NumberingCache(
                 new DocumentFormat.OpenXml.Drawing.Charts.PointCount { Val = 1_000_001U });
             object budget = CreateChartDataPointBudget(utilities);
-            object?[] args = { cache, budget, null };
+            object?[] args = { ChartNode(cache), budget, null };
 
             bool read = (bool)method.Invoke(null, args)!;
 
@@ -366,13 +372,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelRange_ImageExportChargesActualCachePointsWhenPointCountIsUnderstated() {
             Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
-            System.Reflection.MethodInfo method = utilities.GetMethod("TryReadNumberPoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            System.Reflection.MethodInfo method = utilities.GetMethod("TryReadNumberPointNodes", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
             var cache = new DocumentFormat.OpenXml.Drawing.Charts.NumberingCache(
                 new DocumentFormat.OpenXml.Drawing.Charts.PointCount { Val = 1U },
                 new NumericPoint(new NumericValue("1")) { Index = 0U },
                 new NumericPoint(new NumericValue("2")) { Index = 1U });
             object budget = CreateChartDataPointBudget(utilities);
-            object?[] args = { cache, budget, null };
+            object?[] args = { ChartNode(cache), budget, null };
 
             Assert.True((bool)method.Invoke(null, args)!);
 
@@ -425,10 +431,10 @@ namespace OfficeIMO.Tests {
                 args: new object[] { 6L },
                 culture: null)!;
             System.Reflection.MethodInfo method = utilities.GetMethod(
-                "TryReadChartDataCore",
+                "TryReadPartChartData",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
 
-            ExcelChartData? data = (ExcelChartData?)method.Invoke(null, new[] { chartPart, sheet, budget });
+            ExcelChartData? data = (ExcelChartData?)method.Invoke(null, new object[] { OfficeIMO.Excel.OpenXml.ExcelPartRef.FromSdk(chartPart), sheet, budget });
 
             Assert.NotNull(data);
             Assert.Equal(new[] { "Jan", "Feb" }, data!.Categories);
@@ -443,7 +449,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Data");
             Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
             System.Reflection.MethodInfo readReference = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-            System.Reflection.MethodInfo readCache = utilities.GetMethod("TryReadNumberPoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            System.Reflection.MethodInfo readCache = utilities.GetMethod("TryReadNumberPointNodes", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
             Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
             object budget = Activator.CreateInstance(
                 budgetType,
@@ -456,7 +462,7 @@ namespace OfficeIMO.Tests {
                 new PointCount { Val = 2U },
                 new NumericPoint(new NumericValue("10")) { Index = 0U },
                 new NumericPoint(new NumericValue("20")) { Index = 1U });
-            object?[] cachedValues = { cache, budget, null };
+            object?[] cachedValues = { ChartNode(cache), budget, null };
 
             Assert.False((bool)readReference.Invoke(null, missingReference)!);
             Assert.True((bool)readCache.Invoke(null, cachedValues)!);
@@ -475,7 +481,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(2, 2).SetValue(60D);
             Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
             System.Reflection.MethodInfo readReference = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-            System.Reflection.MethodInfo readCache = utilities.GetMethod("TryReadNumberPoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            System.Reflection.MethodInfo readCache = utilities.GetMethod("TryReadNumberPointNodes", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
             Type budgetType = utilities.GetNestedType("ChartDataPointBudget", System.Reflection.BindingFlags.NonPublic)!;
             object budget = Activator.CreateInstance(
                 budgetType,
@@ -487,7 +493,7 @@ namespace OfficeIMO.Tests {
             var cache = new NumberingCache(
                 new PointCount { Val = 1U },
                 new NumericPoint(new NumericValue("10")) { Index = 0U });
-            object?[] cachedValues = { cache, budget, null };
+            object?[] cachedValues = { ChartNode(cache), budget, null };
             object?[] validReference = { sheet, "Data!$B$1:$B$2", budget, null };
 
             Assert.False((bool)readReference.Invoke(null, invalidReference)!);
@@ -524,10 +530,10 @@ namespace OfficeIMO.Tests {
                 args: new object[] { 4L },
                 culture: null)!;
             System.Reflection.MethodInfo method = utilities.GetMethod(
-                "TryReadChartDataCore",
+                "TryReadPartChartData",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
 
-            ExcelChartData? data = (ExcelChartData?)method.Invoke(null, new[] { chartPart, sheet, budget });
+            ExcelChartData? data = (ExcelChartData?)method.Invoke(null, new object[] { OfficeIMO.Excel.OpenXml.ExcelPartRef.FromSdk(chartPart), sheet, budget });
 
             Assert.NotNull(data);
             ExcelChartSeries series = Assert.Single(data!.Series);
@@ -569,7 +575,7 @@ namespace OfficeIMO.Tests {
                 categories,
                 Enumerable.Range(1, 4).Select(index => new ExcelChartSeries("Series " + index, values, OfficeChartType.Scatter)));
 
-            ExcelChartData result = ExcelChartUtils.ApplyScatterSeriesXValues(chartPart, input, sheet);
+            ExcelChartData result = ExcelChartUtils.ApplyScatterSeriesXValues(OfficeIMO.Excel.OpenXml.ExcelPartRef.FromSdk(chartPart), input, sheet);
 
             Assert.All(result.Series, series => {
                 Assert.NotNull(series.XValues);
@@ -609,10 +615,10 @@ namespace OfficeIMO.Tests {
                 args: new object[] { 4L },
                 culture: null)!;
             System.Reflection.MethodInfo method = utilities.GetMethod(
-                "TryReadChartDataCore",
+                "TryReadPartChartData",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
 
-            ExcelChartData? data = (ExcelChartData?)method.Invoke(null, new[] { chartPart, sheet, budget });
+            ExcelChartData? data = (ExcelChartData?)method.Invoke(null, new object[] { OfficeIMO.Excel.OpenXml.ExcelPartRef.FromSdk(chartPart), sheet, budget });
 
             Assert.NotNull(data);
             ExcelChartSeries series = Assert.Single(data!.Series);

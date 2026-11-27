@@ -1,6 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word {
     /// <summary>Reports whether the current document can be encoded by OfficeIMO's bounded native DOC writer.</summary>
     public sealed class LegacyDocWriteAssessment {
@@ -36,35 +33,22 @@ namespace OfficeIMO.Word {
         /// This allocates the candidate DOC bytes so the assessment cannot drift from the writer used by <see cref="Save(Stream, WordFileFormat, WordSaveOptions?)"/>.
         /// </summary>
         public LegacyDocWriteAssessment AssessLegacyDocWrite(WordSaveOptions? options = null) {
-            if (_wordprocessingDocument.MainDocumentPart?.Document?.Body == null) {
+            if (_ownedModel == null && !HasMainDocumentBody()) {
                 return new LegacyDocWriteAssessment(
                     false,
                     null,
                     "legacy-doc-write-unsupported",
                     "Document couldn't be saved as legacy DOC because the main document part or document body is missing.");
             }
-            using var cloneStream = new MemoryStream();
-            using (var packageClone = WordPackageSnapshot.Clone(_wordprocessingDocument, cloneStream)) { }
-            cloneStream.Position = 0;
-            using WordDocument writableClone = LoadPackageSnapshot(cloneStream, _wordprocessingDocument);
+            using WordDocument writableClone = CreateWritableSnapshot();
             CopyLegacyDocAssessmentStateTo(writableClone);
             return writableClone.AssessLegacyDocWriteCore(options);
         }
 
         private void CopyLegacyDocAssessmentStateTo(WordDocument clone) {
-            WordTable.CopyGridNormalizationState(_wordprocessingDocument, clone._wordprocessingDocument);
             clone.SourceFormat = SourceFormat;
             clone.IsWord69Source = IsWord69Source;
             clone.AutoUpdateToc = AutoUpdateToc;
-            if (_generatedTableOfContent != null) {
-                var sourceBlocks = _wordprocessingDocument.MainDocumentPart!.Document!.Body!.Descendants<SdtBlock>().ToList();
-                int index = sourceBlocks.IndexOf(_generatedTableOfContent.SdtBlock);
-                if (index >= 0) {
-                    SdtBlock block = clone._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Descendants<SdtBlock>().ElementAt(index);
-                    clone._generatedTableOfContent = new WordTableOfContent(clone, block, queueUpdateOnOpen: false);
-                    _generatedTableOfContent.CopyGeneratedRefreshStateTo(clone._generatedTableOfContent);
-                }
-            }
             clone._legacyDocImportDiagnostics = _legacyDocImportDiagnostics;
             clone._legacyDocUnsupportedFeatures = _legacyDocUnsupportedFeatures;
             clone._legacyDocPreservedFeatures = _legacyDocPreservedFeatures;

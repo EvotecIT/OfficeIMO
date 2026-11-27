@@ -10,6 +10,7 @@ internal sealed record SurfaceLocation(string File, int Line);
 internal sealed class SourceLocationIndex {
     private sealed record Entry(string Type, string Name, int Arity, string[] Parameters, SyntaxNode Syntax);
     private readonly Dictionary<string, List<Entry>> _types = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, bool> _referenceTypes = new(StringComparer.Ordinal);
 
     internal SourceLocationIndex(string root, IEnumerable<string> files, ISet<string> packages) {
         var options = new CSharpParseOptions(LanguageVersion.Preview, preprocessorSymbols:
@@ -20,6 +21,10 @@ internal sealed class SourceLocationIndex {
             var syntax = CSharpSyntaxTree.ParseText(File.ReadAllText(path), options, file).GetRoot();
             foreach (var type in syntax.DescendantNodes().OfType<BaseTypeDeclarationSyntax>()) {
                 string id = TypeId(type);
+                // A simple name declared both as a reference type and as a value type stays ambiguous (false).
+                bool reference = type is ClassDeclarationSyntax or InterfaceDeclarationSyntax || type is RecordDeclarationSyntax record && !record.ClassOrStructKeyword.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.StructKeyword);
+                string simple = type.Identifier.ValueText;
+                _referenceTypes[simple] = reference && (!_referenceTypes.TryGetValue(simple, out bool known) || known);
                 if (!_types.TryGetValue(id, out var entries)) _types[id] = entries = [];
                 entries.Add(new Entry(id, "", 0, [], type));
                 if (type is not TypeDeclarationSyntax declaration) continue;
@@ -43,7 +48,11 @@ internal sealed class SourceLocationIndex {
         }
     }
 
-    internal IReadOnlyList<SurfaceLocation> Find(ISymbol symbol) {
+    internal IReadOnlyList<SurfaceLocation> Find(ISymbol symbol) => FindSyntax(symbol).Select(syntax => new SurfaceLocation(syntax.SyntaxTree.FilePath,
+        syntax.GetLocation().GetLineSpan().StartLinePosition.Line + 1)).Distinct().ToArray();
+
+    /// <summary>Returns the declarations matching a metadata symbol, so callers can inspect their bodies.</summary>
+    internal IReadOnlyList<SyntaxNode> FindSyntax(ISymbol symbol) {
         INamedTypeSymbol type = symbol is INamedTypeSymbol named ? named : symbol.ContainingType;
         if (!_types.TryGetValue(TypeId(type), out var entries)) return [];
         IEnumerable<Entry> matches;
@@ -57,9 +66,15 @@ internal sealed class SourceLocationIndex {
             var candidates = entries.Where(entry => entry.Name == name && entry.Arity == arity && entry.Parameters.Length == types.Length).ToArray();
             matches = candidates.Length == 1 ? candidates : candidates.Where(entry => entry.Parameters.SequenceEqual(types, StringComparer.Ordinal));
         }
-        return matches.Select(entry => new SurfaceLocation(entry.Syntax.SyntaxTree.FilePath,
-            entry.Syntax.GetLocation().GetLineSpan().StartLinePosition.Line + 1)).Distinct().ToArray();
+        return matches.Select(entry => entry.Syntax).ToArray();
     }
+
+    /// <summary>The simple parameter types of every source constructor of a type, whatever its accessibility.</summary>
+    internal IReadOnlyList<string[]> ConstructorParameters(INamedTypeSymbol type) =>
+        _types.TryGetValue(TypeId(type), out var entries) ? entries.Where(entry => entry.Name == ".ctor").Select(entry => entry.Parameters).ToArray() : [];
+
+    /// <summary>True only when every source declaration with this simple type name is a class, interface or record class.</summary>
+    internal bool IsReferenceType(string simpleName) => _referenceTypes.TryGetValue(simpleName, out bool reference) && reference;
 
     private static string TypeId(INamedTypeSymbol type) => type.GetDocumentationCommentId() ?? type.ToDisplayString();
 

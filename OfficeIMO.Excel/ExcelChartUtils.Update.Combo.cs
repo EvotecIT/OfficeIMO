@@ -1,13 +1,10 @@
-using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
-using ChartIndex = DocumentFormat.OpenXml.Drawing.Charts.Index;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
-        private static void UpdateComboChartData(PlotArea plotArea, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
-            ArgumentNullException.ThrowIfNull(plotArea);
+        private static void UpdateComboChartData(OfficeXmlNode plotArea, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
+            if (plotArea.IsNone) throw new ArgumentNullException(nameof(plotArea));
 
             SeriesDescriptorSummary summary = SummarizeSeriesDescriptors(descriptors);
             if (summary.HasStock) {
@@ -37,36 +34,36 @@ namespace OfficeIMO.Excel {
             }
 
             bool isBarOrientation = summary.HasBar;
-            AxisPositionValues primaryCategoryPosition = isBarOrientation ? AxisPositionValues.Left : AxisPositionValues.Bottom;
-            AxisPositionValues primaryValuePosition = isBarOrientation ? AxisPositionValues.Bottom : AxisPositionValues.Left;
-            AxisPositionValues secondaryCategoryPosition = isBarOrientation ? AxisPositionValues.Right : AxisPositionValues.Top;
-            AxisPositionValues secondaryValuePosition = isBarOrientation ? AxisPositionValues.Top : AxisPositionValues.Right;
+            string primaryCategoryPosition = isBarOrientation ? AxisPositionLeft : AxisPositionBottom;
+            string primaryValuePosition = isBarOrientation ? AxisPositionBottom : AxisPositionLeft;
+            string secondaryCategoryPosition = isBarOrientation ? AxisPositionRight : AxisPositionTop;
+            string secondaryValuePosition = isBarOrientation ? AxisPositionTop : AxisPositionRight;
 
             var axisIds = EnsureAxisPairs(plotArea, summary.HasSecondary, primaryCategoryPosition, primaryValuePosition, secondaryCategoryPosition, secondaryValuePosition);
 
-            var usedCharts = new List<OpenXmlCompositeElement>();
+            var usedCharts = new List<OfficeXmlNode>();
             foreach (SeriesDescriptorGroup group in GroupSeriesDescriptors(descriptors)) {
                 uint categoryAxisId = group.AxisGroup == OfficeChartAxisGroup.Secondary ? axisIds.SecondaryCategoryId : axisIds.PrimaryCategoryId;
                 uint valueAxisId = group.AxisGroup == OfficeChartAxisGroup.Secondary ? axisIds.SecondaryValueId : axisIds.PrimaryValueId;
 
                 switch (group.ChartType) {
                     case OfficeChartType.ColumnClustered:
-                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Column, BarGroupingValues.Clustered, categoryAxisId, valueAxisId));
+                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionColumn, BarGroupingClustered, categoryAxisId, valueAxisId));
                         break;
                     case OfficeChartType.ColumnStacked:
-                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Column, BarGroupingValues.Stacked, categoryAxisId, valueAxisId));
+                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionColumn, GroupingStacked, categoryAxisId, valueAxisId));
                         break;
                     case OfficeChartType.ColumnStacked100:
-                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Column, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId));
+                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionColumn, GroupingPercentStacked, categoryAxisId, valueAxisId));
                         break;
                     case OfficeChartType.BarClustered:
-                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Bar, BarGroupingValues.Clustered, categoryAxisId, valueAxisId));
+                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionBar, BarGroupingClustered, categoryAxisId, valueAxisId));
                         break;
                     case OfficeChartType.BarStacked:
-                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Bar, BarGroupingValues.Stacked, categoryAxisId, valueAxisId));
+                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionBar, GroupingStacked, categoryAxisId, valueAxisId));
                         break;
                     case OfficeChartType.BarStacked100:
-                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Bar, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId));
+                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionBar, GroupingPercentStacked, categoryAxisId, valueAxisId));
                         break;
                     case OfficeChartType.Line:
                     case OfficeChartType.LineStacked:
@@ -86,45 +83,39 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            foreach (var chart in plotArea.Elements<BarChart>().Cast<OpenXmlCompositeElement>().ToList()) {
-                if (!usedCharts.Contains(chart)) chart.Remove();
-            }
-            foreach (var chart in plotArea.Elements<LineChart>().Cast<OpenXmlCompositeElement>().ToList()) {
-                if (!usedCharts.Contains(chart)) chart.Remove();
-            }
-            foreach (var chart in plotArea.Elements<AreaChart>().Cast<OpenXmlCompositeElement>().ToList()) {
-                if (!usedCharts.Contains(chart)) chart.Remove();
-            }
-            foreach (var chart in plotArea.Elements<ScatterChart>().Cast<OpenXmlCompositeElement>().ToList()) {
+            RemoveUnusedCharts(plotArea, "barChart", usedCharts);
+            RemoveUnusedCharts(plotArea, "lineChart", usedCharts);
+            RemoveUnusedCharts(plotArea, "areaChart", usedCharts);
+            RemoveUnusedCharts(plotArea, "scatterChart", usedCharts);
+        }
+
+        private static void RemoveUnusedCharts(OfficeXmlNode plotArea, string localName, List<OfficeXmlNode> usedCharts) {
+            foreach (OfficeXmlNode chart in plotArea.Children(C, localName).ToList()) {
                 if (!usedCharts.Contains(chart)) chart.Remove();
             }
         }
 
-        private static AxisIdSet EnsureAxisPairs(PlotArea plotArea, bool includeSecondary, AxisPositionValues primaryCategoryPosition,
-            AxisPositionValues primaryValuePosition, AxisPositionValues secondaryCategoryPosition, AxisPositionValues secondaryValuePosition) {
-            var categoryAxes = plotArea.Elements<CategoryAxis>().ToList();
-            var valueAxes = plotArea.Elements<ValueAxis>().ToList();
+        private static AxisIdSet EnsureAxisPairs(OfficeXmlNode plotArea, bool includeSecondary, string primaryCategoryPosition,
+            string primaryValuePosition, string secondaryCategoryPosition, string secondaryValuePosition) {
+            List<OfficeXmlNode> categoryAxes = plotArea.Children(C, "catAx").ToList();
+            List<OfficeXmlNode> valueAxes = plotArea.Children(C, "valAx").ToList();
 
-            CategoryAxis? primaryCategory = categoryAxes.FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == primaryCategoryPosition)
-                ?? categoryAxes.FirstOrDefault();
-            ValueAxis? primaryValue = valueAxes.FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == primaryValuePosition)
-                ?? valueAxes.FirstOrDefault();
+            OfficeXmlNode primaryCategory = FindAxis(categoryAxes, primaryCategoryPosition, fallBackToFirst: true);
+            OfficeXmlNode primaryValue = FindAxis(valueAxes, primaryValuePosition, fallBackToFirst: true);
 
-            uint primaryCategoryId = primaryCategory?.AxisId?.Val?.Value ?? ExcelChartAxisIdGenerator.GetNextId();
-            uint primaryValueId = primaryValue?.AxisId?.Val?.Value ?? ExcelChartAxisIdGenerator.GetNextId();
+            uint primaryCategoryId = primaryCategory.Child(C, "axId").UInt32Val() ?? ExcelChartAxisIdGenerator.GetNextId();
+            uint primaryValueId = primaryValue.Child(C, "axId").UInt32Val() ?? ExcelChartAxisIdGenerator.GetNextId();
 
-            if (primaryCategory == null) {
-                primaryCategory = CreateCategoryAxis(primaryCategoryId, primaryValueId, primaryCategoryPosition);
-                plotArea.Append(primaryCategory);
+            if (primaryCategory.IsNone) {
+                plotArea.Append(CreateCategoryAxis(plotArea, primaryCategoryId, primaryValueId, primaryCategoryPosition));
             } else {
                 EnsureAxisId(primaryCategory, primaryCategoryId);
                 EnsureAxisPosition(primaryCategory, primaryCategoryPosition);
                 EnsureCrossingAxis(primaryCategory, primaryValueId);
             }
 
-            if (primaryValue == null) {
-                primaryValue = CreateValueAxis(primaryValueId, primaryCategoryId, primaryValuePosition);
-                plotArea.Append(primaryValue);
+            if (primaryValue.IsNone) {
+                plotArea.Append(CreateValueAxis(plotArea, primaryValueId, primaryCategoryId, primaryValuePosition));
             } else {
                 EnsureAxisId(primaryValue, primaryValueId);
                 EnsureAxisPosition(primaryValue, primaryValuePosition);
@@ -134,24 +125,22 @@ namespace OfficeIMO.Excel {
             uint secondaryCategoryId = 0;
             uint secondaryValueId = 0;
             if (includeSecondary) {
-                CategoryAxis? secondaryCategory = categoryAxes.FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == secondaryCategoryPosition);
-                ValueAxis? secondaryValue = valueAxes.FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == secondaryValuePosition);
+                OfficeXmlNode secondaryCategory = FindAxis(categoryAxes, secondaryCategoryPosition, fallBackToFirst: false);
+                OfficeXmlNode secondaryValue = FindAxis(valueAxes, secondaryValuePosition, fallBackToFirst: false);
 
-                secondaryCategoryId = secondaryCategory?.AxisId?.Val?.Value ?? ExcelChartAxisIdGenerator.GetNextId();
-                secondaryValueId = secondaryValue?.AxisId?.Val?.Value ?? ExcelChartAxisIdGenerator.GetNextId();
+                secondaryCategoryId = secondaryCategory.Child(C, "axId").UInt32Val() ?? ExcelChartAxisIdGenerator.GetNextId();
+                secondaryValueId = secondaryValue.Child(C, "axId").UInt32Val() ?? ExcelChartAxisIdGenerator.GetNextId();
 
-                if (secondaryCategory == null) {
-                    secondaryCategory = CreateCategoryAxis(secondaryCategoryId, secondaryValueId, secondaryCategoryPosition);
-                    plotArea.Append(secondaryCategory);
+                if (secondaryCategory.IsNone) {
+                    plotArea.Append(CreateCategoryAxis(plotArea, secondaryCategoryId, secondaryValueId, secondaryCategoryPosition));
                 } else {
                     EnsureAxisId(secondaryCategory, secondaryCategoryId);
                     EnsureAxisPosition(secondaryCategory, secondaryCategoryPosition);
                     EnsureCrossingAxis(secondaryCategory, secondaryValueId);
                 }
 
-                if (secondaryValue == null) {
-                    secondaryValue = CreateValueAxis(secondaryValueId, secondaryCategoryId, secondaryValuePosition);
-                    plotArea.Append(secondaryValue);
+                if (secondaryValue.IsNone) {
+                    plotArea.Append(CreateValueAxis(plotArea, secondaryValueId, secondaryCategoryId, secondaryValuePosition));
                 } else {
                     EnsureAxisId(secondaryValue, secondaryValueId);
                     EnsureAxisPosition(secondaryValue, secondaryValuePosition);
@@ -162,44 +151,59 @@ namespace OfficeIMO.Excel {
             return new AxisIdSet(primaryCategoryId, primaryValueId, secondaryCategoryId, secondaryValueId);
         }
 
-        private static void EnsureAxisId(OpenXmlCompositeElement axis, uint axisId) {
-            AxisId id = axis.GetFirstChild<AxisId>() ?? new AxisId();
-            id.Val = axisId;
-            if (id.Parent == null) {
-                axis.PrependChild(id);
+        // The first axis at this position, or the first axis at all when asked to fall back to it.
+        private static OfficeXmlNode FindAxis(List<OfficeXmlNode> axes, string position, bool fallBackToFirst) {
+            foreach (OfficeXmlNode axis in axes) {
+                if (axis.ChildVal(C, "axPos") == position) return axis;
             }
+            return fallBackToFirst && axes.Count > 0 ? axes[0] : OfficeXmlNode.None;
         }
 
-        private static void EnsureAxisPosition(OpenXmlCompositeElement axis, AxisPositionValues position) {
-            AxisPosition axisPosition = axis.GetFirstChild<AxisPosition>() ?? new AxisPosition();
-            axisPosition.Val = position;
-            if (axisPosition.Parent == null) {
-                axis.Append(axisPosition);
-            }
+        private static void EnsureAxisId(OfficeXmlNode axis, uint axisId) {
+            OfficeXmlNode id = axis.Child(C, "axId");
+            if (id.IsNone) id = axis.InsertBefore(axis.New(C, "axId"), axis.FirstChild);
+            id.SetVal(axisId);
         }
 
-        private static void EnsureCrossingAxis(OpenXmlCompositeElement axis, uint crossAxisId) {
-            CrossingAxis crossingAxis = axis.GetFirstChild<CrossingAxis>() ?? new CrossingAxis();
-            crossingAxis.Val = crossAxisId;
-            if (crossingAxis.Parent == null) {
-                axis.Append(crossingAxis);
-            }
+        private static void EnsureAxisPosition(OfficeXmlNode axis, string position) {
+            OfficeXmlNode axisPosition = axis.Child(C, "axPos");
+            if (axisPosition.IsNone) axisPosition = axis.Append(axis.New(C, "axPos"));
+            axisPosition.SetVal(position);
         }
 
-        private static BarChart UpdateOrCreateBarChart(PlotArea plotArea, IReadOnlyList<SeriesDescriptor> descriptors, ExcelChartData data, ExcelChartDataRange range,
-            BarDirectionValues direction, BarGroupingValues grouping, uint categoryAxisId, uint valueAxisId) {
-            BarChart? chart = plotArea.Elements<BarChart>()
-                .FirstOrDefault(c => (c.GetFirstChild<BarDirection>()?.Val ?? BarDirectionValues.Column) == direction
-                                     && (c.GetFirstChild<BarGrouping>()?.Val ?? BarGroupingValues.Clustered) == grouping
-                                     && ChartHasAxisIds(c, categoryAxisId, valueAxisId));
+        private static void EnsureCrossingAxis(OfficeXmlNode axis, uint crossAxisId) {
+            OfficeXmlNode crossingAxis = axis.Child(C, "crossAx");
+            if (crossingAxis.IsNone) crossingAxis = axis.Append(axis.New(C, "crossAx"));
+            crossingAxis.SetVal(crossAxisId);
+        }
 
-            chart ??= plotArea.Elements<BarChart>()
-                .FirstOrDefault(c => (c.GetFirstChild<BarDirection>()?.Val ?? BarDirectionValues.Column) == direction
-                                     && (c.GetFirstChild<BarGrouping>()?.Val ?? BarGroupingValues.Clustered) == grouping);
+        private static bool IsBarChartOf(OfficeXmlNode chart, string direction, string grouping) =>
+            (chart.ChildVal(C, "barDir") ?? BarDirectionColumn) == direction
+            && (chart.ChildVal(C, "grouping") ?? BarGroupingClustered) == grouping;
 
-            if (chart == null) {
-                chart = CreateBarChart(range, descriptors, direction, grouping, categoryAxisId, valueAxisId);
-                plotArea.Append(chart);
+        private static bool IsGroupedChartOf(OfficeXmlNode chart, string grouping) =>
+            (chart.ChildVal(C, "grouping") ?? GroupingStandard) == grouping;
+
+        private static OfficeXmlNode UpdateOrCreateBarChart(OfficeXmlNode plotArea, IReadOnlyList<SeriesDescriptor> descriptors, ExcelChartData data, ExcelChartDataRange range,
+            string direction, string grouping, uint categoryAxisId, uint valueAxisId) {
+            OfficeXmlNode chart = OfficeXmlNode.None;
+            foreach (OfficeXmlNode candidate in plotArea.Children(C, "barChart")) {
+                if (IsBarChartOf(candidate, direction, grouping) && ChartHasAxisIds(candidate, categoryAxisId, valueAxisId)) {
+                    chart = candidate;
+                    break;
+                }
+            }
+            if (chart.IsNone) {
+                foreach (OfficeXmlNode candidate in plotArea.Children(C, "barChart")) {
+                    if (IsBarChartOf(candidate, direction, grouping)) {
+                        chart = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (chart.IsNone) {
+                chart = plotArea.Append(CreateBarChart(plotArea, range, descriptors, direction, grouping, categoryAxisId, valueAxisId));
             } else {
                 ResetAxisIds(chart, categoryAxisId, valueAxisId);
                 UpdateBarChartSeries(chart, data, range, descriptors);
@@ -208,18 +212,12 @@ namespace OfficeIMO.Excel {
             return chart;
         }
 
-        private static LineChart UpdateOrCreateLineChart(PlotArea plotArea, IReadOnlyList<SeriesDescriptor> descriptors, ExcelChartData data, ExcelChartDataRange range,
-            GroupingValues grouping, uint categoryAxisId, uint valueAxisId) {
-            LineChart? chart = plotArea.Elements<LineChart>()
-                .FirstOrDefault(c => (c.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard) == grouping
-                                     && ChartHasAxisIds(c, categoryAxisId, valueAxisId));
+        private static OfficeXmlNode UpdateOrCreateLineChart(OfficeXmlNode plotArea, IReadOnlyList<SeriesDescriptor> descriptors, ExcelChartData data, ExcelChartDataRange range,
+            string grouping, uint categoryAxisId, uint valueAxisId) {
+            OfficeXmlNode chart = FindGroupedChart(plotArea, "lineChart", grouping, categoryAxisId, valueAxisId);
 
-            chart ??= plotArea.Elements<LineChart>()
-                .FirstOrDefault(c => (c.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard) == grouping);
-
-            if (chart == null) {
-                chart = CreateLineChart(range, descriptors, grouping, categoryAxisId, valueAxisId);
-                plotArea.Append(chart);
+            if (chart.IsNone) {
+                chart = plotArea.Append(CreateLineChart(plotArea, range, descriptors, grouping, categoryAxisId, valueAxisId));
             } else {
                 EnsureGrouping(chart, grouping);
                 ResetAxisIds(chart, categoryAxisId, valueAxisId);
@@ -229,18 +227,12 @@ namespace OfficeIMO.Excel {
             return chart;
         }
 
-        private static AreaChart UpdateOrCreateAreaChart(PlotArea plotArea, IReadOnlyList<SeriesDescriptor> descriptors, ExcelChartData data, ExcelChartDataRange range,
-            GroupingValues grouping, uint categoryAxisId, uint valueAxisId) {
-            AreaChart? chart = plotArea.Elements<AreaChart>()
-                .FirstOrDefault(c => (c.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard) == grouping
-                                     && ChartHasAxisIds(c, categoryAxisId, valueAxisId));
+        private static OfficeXmlNode UpdateOrCreateAreaChart(OfficeXmlNode plotArea, IReadOnlyList<SeriesDescriptor> descriptors, ExcelChartData data, ExcelChartDataRange range,
+            string grouping, uint categoryAxisId, uint valueAxisId) {
+            OfficeXmlNode chart = FindGroupedChart(plotArea, "areaChart", grouping, categoryAxisId, valueAxisId);
 
-            chart ??= plotArea.Elements<AreaChart>()
-                .FirstOrDefault(c => (c.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard) == grouping);
-
-            if (chart == null) {
-                chart = CreateAreaChart(range, descriptors, grouping, categoryAxisId, valueAxisId);
-                plotArea.Append(chart);
+            if (chart.IsNone) {
+                chart = plotArea.Append(CreateAreaChart(plotArea, range, descriptors, grouping, categoryAxisId, valueAxisId));
             } else {
                 EnsureGrouping(chart, grouping);
                 ResetAxisIds(chart, categoryAxisId, valueAxisId);
@@ -250,23 +242,36 @@ namespace OfficeIMO.Excel {
             return chart;
         }
 
-        private static void EnsureGrouping(OpenXmlCompositeElement chart, GroupingValues groupingValue) {
-            Grouping grouping = chart.GetFirstChild<Grouping>() ?? new Grouping();
-            grouping.Val = groupingValue;
-            if (grouping.Parent == null) {
-                chart.PrependChild(grouping);
+        // The first line or area chart with this grouping on these axes, else the first with this grouping, else none.
+        private static OfficeXmlNode FindGroupedChart(OfficeXmlNode plotArea, string localName, string grouping, uint categoryAxisId, uint valueAxisId) {
+            foreach (OfficeXmlNode candidate in plotArea.Children(C, localName)) {
+                if (IsGroupedChartOf(candidate, grouping) && ChartHasAxisIds(candidate, categoryAxisId, valueAxisId)) return candidate;
             }
+            foreach (OfficeXmlNode candidate in plotArea.Children(C, localName)) {
+                if (IsGroupedChartOf(candidate, grouping)) return candidate;
+            }
+            return OfficeXmlNode.None;
         }
 
-        private static ScatterChart UpdateOrCreateScatterChart(PlotArea plotArea, IReadOnlyList<SeriesDescriptor> descriptors, ExcelChartData data, ExcelChartDataRange range,
-            uint xAxisId, uint yAxisId) {
-            ScatterChart? chart = plotArea.Elements<ScatterChart>()
-                .FirstOrDefault(c => ChartHasAxisIds(c, xAxisId, yAxisId))
-                ?? plotArea.Elements<ScatterChart>().FirstOrDefault();
+        private static void EnsureGrouping(OfficeXmlNode chart, string groupingValue) {
+            OfficeXmlNode grouping = chart.Child(C, "grouping");
+            if (grouping.IsNone) grouping = chart.InsertBefore(chart.New(C, "grouping"), chart.FirstChild);
+            grouping.SetVal(groupingValue);
+        }
 
-            if (chart == null) {
-                chart = CreateScatterChart(range, descriptors, xAxisId, yAxisId, data);
-                plotArea.Append(chart);
+        private static OfficeXmlNode UpdateOrCreateScatterChart(OfficeXmlNode plotArea, IReadOnlyList<SeriesDescriptor> descriptors, ExcelChartData data, ExcelChartDataRange range,
+            uint xAxisId, uint yAxisId) {
+            OfficeXmlNode chart = OfficeXmlNode.None;
+            foreach (OfficeXmlNode candidate in plotArea.Children(C, "scatterChart")) {
+                if (ChartHasAxisIds(candidate, xAxisId, yAxisId)) {
+                    chart = candidate;
+                    break;
+                }
+            }
+            if (chart.IsNone) chart = plotArea.Child(C, "scatterChart");
+
+            if (chart.IsNone) {
+                chart = plotArea.Append(CreateScatterChart(plotArea, range, descriptors, xAxisId, yAxisId, data));
             } else {
                 ResetAxisIds(chart, xAxisId, yAxisId);
                 UpdateScatterChartSeries(chart, data, range, descriptors);
@@ -275,11 +280,11 @@ namespace OfficeIMO.Excel {
             return chart;
         }
 
-        private static bool ChartHasAxisIds(OpenXmlCompositeElement chart, uint categoryAxisId, uint valueAxisId) {
+        private static bool ChartHasAxisIds(OfficeXmlNode chart, uint categoryAxisId, uint valueAxisId) {
             bool hasCategoryAxis = false;
             bool hasValueAxis = false;
-            foreach (AxisId id in chart.Elements<AxisId>()) {
-                uint? value = id.Val?.Value;
+            foreach (OfficeXmlNode id in chart.Children(C, "axId")) {
+                uint? value = id.UInt32Val();
                 if (value == categoryAxisId) {
                     hasCategoryAxis = true;
                     if (hasValueAxis) {
@@ -296,11 +301,10 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static void ResetAxisIds(OpenXmlCompositeElement chart, uint categoryAxisId, uint valueAxisId) {
-            chart.RemoveAllChildren<AxisId>();
-            chart.Append(new AxisId { Val = categoryAxisId });
-            chart.Append(new AxisId { Val = valueAxisId });
+        private static void ResetAxisIds(OfficeXmlNode chart, uint categoryAxisId, uint valueAxisId) {
+            chart.RemoveChildren(C, "axId");
+            chart.Append(NewAxisId(chart, categoryAxisId));
+            chart.Append(NewAxisId(chart, valueAxisId));
         }
-
     }
 }

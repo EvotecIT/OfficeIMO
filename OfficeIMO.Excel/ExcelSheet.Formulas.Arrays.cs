@@ -16,9 +16,9 @@ namespace OfficeIMO.Excel {
 
         private bool TryGetCalculatedArray(ExcelFormulaCell cell, out FormulaArrayValue array) {
             array = null!;
-            return cell.FormulaKind == ExcelFormulaKind.Array && _formulaEvaluationCache != null
+            return cell.FormulaKind == ExcelFormulaKind.Array && _formulaEvaluationCache != null && cell.Reference is string reference
                 && ArrayCalculationContexts.GetOrCreateValue(_formulaEvaluationCache).Results.TryGetValue(
-                    GetFormulaEvaluationCacheKey(cell.Reference!), out array!);
+                    GetFormulaEvaluationCacheKey(reference), out array!);
         }
 
         private sealed class FixedArraySheetIndex {

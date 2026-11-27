@@ -153,7 +153,7 @@ public static partial class WordRtfConverterExtensions {
             LeftIndentTwips = ParseInt(indentation.WAttr("left")),
             FirstLineIndentTwips = ParseInt(indentation.WAttr("firstLine"))
                 ?? Negate(ParseInt(indentation.WAttr("hanging"))),
-            Alignment = ToRtfListAlignment(WordConverterNodes.ReadLevelJustification(source.WChild("lvlJc"))),
+            Alignment = ToRtfListAlignment(WordListLevel.ReadLevelJustification(source.WChild("lvlJc").WVal())),
             FollowCharacter = ToRtfFollowCharacter(source.ChildVal("suff")),
             NoRestart = WordXml.ParseInt32(source.ChildVal("lvlRestart")) == 0 ? true : (bool?)null,
             LegalNumbering = ReadToggle(source.WChild("isLgl"))
@@ -372,7 +372,12 @@ public static partial class WordRtfConverterExtensions {
     // Alignments are w:jc tokens.
     private static RtfTextAlignment? ToRtfTextAlignment(string? value) => value == "center" ? RtfTextAlignment.Center : value == "right" ? RtfTextAlignment.Right : value == "both" ? RtfTextAlignment.Justify : value != null ? RtfTextAlignment.Left : null;
     private static string ToWordTextAlignment(RtfTextAlignment value) => value == RtfTextAlignment.Center ? "center" : value == RtfTextAlignment.Right ? "right" : value == RtfTextAlignment.Justify ? "both" : "left";
-    private static RtfListLevelAlignment? ToRtfListAlignment(string? value) => value == "center" ? RtfListLevelAlignment.Center : value == "right" ? RtfListLevelAlignment.Right : value != null ? RtfListLevelAlignment.Left : null;
+    private static RtfListLevelAlignment? ToRtfListAlignment(WordListLevelAlignment? value) => value switch {
+        WordListLevelAlignment.Center => RtfListLevelAlignment.Center,
+        WordListLevelAlignment.Right => RtfListLevelAlignment.Right,
+        WordListLevelAlignment.Left => RtfListLevelAlignment.Left,
+        _ => null
+    };
     private static string ToWordListAlignment(RtfListLevelAlignment value) => value == RtfListLevelAlignment.Center ? "center" : value == RtfListLevelAlignment.Right ? "right" : "left";
     // Follow characters are w:suff tokens.
     private static RtfListLevelFollowCharacter? ToRtfFollowCharacter(string? value) => value == "space" ? RtfListLevelFollowCharacter.Space : value == "nothing" ? RtfListLevelFollowCharacter.Nothing : value != null ? RtfListLevelFollowCharacter.Tab : null;

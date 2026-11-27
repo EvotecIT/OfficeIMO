@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel {
                             out ar1, out ac1, out ar2, out ac2, out _)
                         && !_formulaReferenceError.IsError) return false;
                     if (firstAreaSheet == null) firstAreaSheet = areaSheet;
-                    else if (!ReferenceEquals(firstAreaSheet.FormulaSheetKey, areaSheet.FormulaSheetKey)) differentSheets = true;
+                    else if (!firstAreaSheet.FormulaSheetKey.Equals(areaSheet.FormulaSheetKey)) differentSheets = true;
                     if (index == area - 1) {
                         selectedSheet = areaSheet;
                         baseR1 = ar1; baseC1 = ac1; baseR2 = ar2; baseC2 = ac2;

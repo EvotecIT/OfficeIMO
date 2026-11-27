@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
@@ -19,12 +17,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendSupportedField(text, runs, GetSupportedFieldInstruction(LegacyDocFieldKind.Page), "1", formatting);
         }
 
-        private static void AppendMathEquationField(StringBuilder text, List<LegacyDocWritableRun> runs, OpenXmlElement mathElement, LegacyDocWritableFormatting formatting) {
+        private static void AppendMathEquationField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocElement mathElement, LegacyDocWritableFormatting formatting) {
             AppendSupportedField(
                 text,
                 runs,
-                WordMath.ToEquationFieldInstruction(mathElement),
-                WordMath.GetText(mathElement),
+                LegacyDocMath.ToEquationFieldInstruction(mathElement),
+                LegacyDocMath.GetText(mathElement),
                 formatting);
         }
 
@@ -32,11 +30,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            OpenXmlElement mathElement,
+            LegacyDocElement mathElement,
             int storyStart) {
             var result = new LegacyDocWritableFieldResult();
-            result.AppendText(WordMath.GetText(mathElement), LegacyDocWritableFormatting.Plain);
-            AppendSupportedField(text, runs, bookmarks, WordMath.ToEquationFieldInstruction(mathElement), result, GetSupportedFieldEmptyResultText(LegacyDocFieldKind.Equation), storyStart);
+            result.AppendText(LegacyDocMath.GetText(mathElement), LegacyDocWritableFormatting.Plain);
+            AppendSupportedField(text, runs, bookmarks, LegacyDocMath.ToEquationFieldInstruction(mathElement), result, GetSupportedFieldEmptyResultText(LegacyDocFieldKind.Equation), storyStart);
         }
 
         private static void AppendSupportedField(StringBuilder text, List<LegacyDocWritableRun> runs, string instruction, string resultText, LegacyDocWritableFormatting formatting) {
@@ -51,10 +49,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            SimpleField field,
+            LegacyDocElement field,
             LegacyDocWritableFormatting inheritedFormatting,
             bool allowHyperlinkRunStyle = false) {
-            if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
+            string? fieldInstruction = field.Attr("instr");
+            if (!TryReadSupportedFieldKind(fieldInstruction, out LegacyDocFieldKind fieldKind)) {
                 throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} simple fields. Other field types are not supported yet.");
             }
 
@@ -63,15 +62,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 text,
                 runs,
                 bookmarks,
-                field.Instruction?.Value ?? GetSupportedFieldInstruction(fieldKind),
+                fieldInstruction ?? GetSupportedFieldInstruction(fieldKind),
                 result,
                 GetSupportedFieldEmptyResultText(fieldKind),
                 characterOffset: 0);
         }
 
-        private static bool IsComplexFieldBeginRun(Run run) {
-            FieldChar? fieldChar = run.Elements<FieldChar>().FirstOrDefault();
-            return fieldChar?.FieldCharType?.Value == FieldCharValues.Begin;
+        private static bool IsComplexFieldBeginRun(LegacyDocElement run) {
+            LegacyDocElement fieldChar = run.Child("fldChar");
+            return fieldChar.Attr("fldCharType") == "begin";
         }
 
         private static bool TryReadSupportedFieldKind(string? instruction, out LegacyDocFieldKind fieldKind) {

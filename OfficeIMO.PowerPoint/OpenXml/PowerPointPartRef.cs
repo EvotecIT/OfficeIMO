@@ -125,12 +125,23 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                 PowerPointPartRef current = Current;
                 if (current._sdk != null) return OfficeXmlNode.FromSdk(PowerPointSdkParts.Root(current._sdk));
                 OfficeXmlTree? tree = current._document?.GetPackageXml(current._name!);
-                return tree == null ? default : new OfficeXmlNode(tree, tree.Root);
+                if (tree != null) return new OfficeXmlNode(tree, tree.Root);
+                // A part over the size the package reads is read through the SDK, which applies the load's own limit.
+                if (current._document is { } document && document.IsPackagePartOverLimit(current._name!)) {
+                    document.OpenSdkForOversizedPart();
+                    return Current.Root;
+                }
+                return default;
             }
         }
 
         /// <summary>Records an edit of the part's content, so the document writes it.</summary>
-        internal void MarkEdited() => Current._document?.MarkPackageEdited();
+        internal void MarkEdited() {
+            PowerPointPartRef current = Current;
+            // An SDK part's edit is recorded too, so a read-only copy writes the parts that changed.
+            if (current._sdk != null) current.Document?.MarkSdkPartEdited(current.Name);
+            else current._document?.MarkPackageEdited();
+        }
 
         // Records a relationship change, so cached edges between parts are read again.
         private void MarkRelationshipsEdited() {
@@ -226,6 +237,20 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             }
             OfficeOpcEditablePackage package = current._document?.ReadablePackage ?? throw new InvalidOperationException("The presentation can't be read.");
             return package.ReadPartBytes(current._name!);
+        }
+
+        /// <summary>
+        /// Opens the part's bytes for reading: the SDK part's own stream, or the package's bytes for the part. A package part
+        /// stored longer than <paramref name="maximumBytes"/> is refused before it is read.
+        /// </summary>
+        /// <exception cref="InvalidDataException">The stored part is longer than <paramref name="maximumBytes"/>.</exception>
+        internal Stream OpenRead(long maximumBytes = long.MaxValue) {
+            PowerPointPartRef current = Current;
+            if (current._sdk != null) return PowerPointSdkParts.GetStream(current._sdk, FileMode.Open, FileAccess.Read);
+            OfficeOpcEditablePackage package = current._document?.ReadablePackage ?? throw new InvalidOperationException("The presentation can't be read.");
+            if (package.TryGetStoredLength(current._name!, out long length) && length > maximumBytes)
+                throw new InvalidDataException("The part '" + current._name + "' is longer than " + maximumBytes + " bytes.");
+            return new MemoryStream(package.ReadPartBytes(current._name!), writable: false);
         }
 
         /// <summary>Replaces the part's bytes.</summary>

@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
@@ -11,7 +10,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocWritableBookmarks bookmarks,
                 IReadOnlyList<LegacyDocWritableSection> sections,
                 LegacyDocWritableStyleSheet styleSheet,
-                Numbering? numbering,
+                LegacyDocElement numbering,
                 LegacyDocWritableFootnoteStories footnoteStories,
                 LegacyDocWritableEndnoteStories endnoteStories,
                 LegacyDocWritableHeaderFooterStories headerFooterStories,
@@ -23,7 +22,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 bool gutterAtTop,
                 bool noColumnBalance,
                 ushort defaultTabStop,
-                EndnotePositionValues? endnotePosition,
+                string? endnotePosition,
                 bool trackRevisions,
                 bool lockRevisionTracking) {
                 ChpxPages = Array.Empty<IReadOnlyList<LegacyDocWritableSegment>>();
@@ -198,7 +197,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasPictures { get; }
 
-            internal EndnotePositionValues? EndnotePosition { get; }
+            internal string? EndnotePosition { get; }
 
             internal bool TrackRevisions { get; }
 

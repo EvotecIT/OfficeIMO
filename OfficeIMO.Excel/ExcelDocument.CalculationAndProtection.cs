@@ -157,21 +157,21 @@ namespace OfficeIMO.Excel {
             if (retainedCachedValue) MarkFormulaInputMutation();
         }
 
-        internal bool HasFormulaInputMutationsAfterFormulaBaseline(WorksheetPart worksheetPart, string cellReference) {
+        internal bool HasFormulaInputMutationsAfterFormulaBaseline(Uri worksheetUri, string cellReference) {
             long mutationVersion = Interlocked.Read(ref _formulaInputMutationVersion);
             if (mutationVersion == 0) {
                 return false;
             }
 
             long baseline = 0;
-            if (_formulaRecalculationVersions.TryGetValue(worksheetPart.Uri, out long recalculationVersion)) {
+            if (_formulaRecalculationVersions.TryGetValue(worksheetUri, out long recalculationVersion)) {
                 baseline = recalculationVersion;
             }
-            if (_formulaAuthoredVersions.TryGetValue((worksheetPart.Uri, cellReference), out FormulaAuthoredVersions authored)
+            if (_formulaAuthoredVersions.TryGetValue((worksheetUri, cellReference), out FormulaAuthoredVersions authored)
                 && authored.Input > baseline) {
                 baseline = authored.Input;
             }
-            if (_formulaCellRecalculationVersions.TryGetValue((worksheetPart.Uri, cellReference), out long cellRecalculationVersion)
+            if (_formulaCellRecalculationVersions.TryGetValue((worksheetUri, cellReference), out long cellRecalculationVersion)
                 && cellRecalculationVersion > baseline) {
                 baseline = cellRecalculationVersion;
             }
@@ -179,33 +179,33 @@ namespace OfficeIMO.Excel {
             return mutationVersion > baseline;
         }
 
-        internal void MarkFormulaSheetRecalculated(WorksheetPart worksheetPart, long mutationVersion) {
-            _formulaRecalculationVersions[worksheetPart.Uri] = mutationVersion;
-            _formulaAuthoredRecalculationVersions[worksheetPart.Uri] =
+        internal void MarkFormulaSheetRecalculated(Uri worksheetUri, long mutationVersion) {
+            _formulaRecalculationVersions[worksheetUri] = mutationVersion;
+            _formulaAuthoredRecalculationVersions[worksheetUri] =
                 Interlocked.Read(ref _formulaAuthoredMutationVersion);
         }
 
         internal void MarkFormulaCellRecalculated(
-            WorksheetPart worksheetPart,
+            Uri worksheetUri,
             string cellReference,
             long mutationVersion) {
-            var key = (worksheetPart.Uri, cellReference);
+            var key = (worksheetUri, cellReference);
             _formulaCellRecalculationVersions[key] = mutationVersion;
             _formulaCellDependencyRecalculationVersions[key] =
                 Interlocked.Read(ref _formulaAuthoredMutationVersion);
         }
 
-        internal long GetFormulaDependencyBaseline(WorksheetPart worksheetPart, string cellReference) {
+        internal long GetFormulaDependencyBaseline(Uri worksheetUri, string cellReference) {
             long baseline = 0;
-            if (_formulaAuthoredRecalculationVersions.TryGetValue(worksheetPart.Uri, out long recalculationVersion)) {
+            if (_formulaAuthoredRecalculationVersions.TryGetValue(worksheetUri, out long recalculationVersion)) {
                 baseline = recalculationVersion;
             }
-            if (_formulaAuthoredVersions.TryGetValue((worksheetPart.Uri, cellReference), out FormulaAuthoredVersions authored)
+            if (_formulaAuthoredVersions.TryGetValue((worksheetUri, cellReference), out FormulaAuthoredVersions authored)
                 && authored.Dependency > baseline) {
                 baseline = authored.Dependency;
             }
             if (_formulaCellDependencyRecalculationVersions.TryGetValue(
-                    (worksheetPart.Uri, cellReference),
+                    (worksheetUri, cellReference),
                     out long cellRecalculationVersion)
                 && cellRecalculationVersion > baseline) {
                 baseline = cellRecalculationVersion;
@@ -214,7 +214,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool HasFormulaDependencyMutationAfter(
-            WorksheetPart worksheetPart,
+            Uri worksheetUri,
             int firstRow,
             int firstColumn,
             int lastRow,
@@ -225,7 +225,7 @@ namespace OfficeIMO.Excel {
                 for (int row = firstRow; row <= lastRow; row++) {
                     for (int column = firstColumn; column <= lastColumn; column++) {
                         if (_formulaAuthoredVersions.TryGetValue(
-                                (worksheetPart.Uri, ExcelA1.CellReference(row, column)),
+                                (worksheetUri, ExcelA1.CellReference(row, column)),
                                 out FormulaAuthoredVersions authored)
                             && authored.Dependency > baseline) {
                             return true;
@@ -237,7 +237,7 @@ namespace OfficeIMO.Excel {
 
             return _formulaAuthoredVersions.Any((key, version) =>
                 version.Dependency > baseline
-                && key.WorksheetUri == worksheetPart.Uri
+                && key.WorksheetUri == worksheetUri
                 && ExcelA1.TryParseCellReferenceFast(key.CellReference, out int row, out int column)
                 && row >= firstRow && row <= lastRow && column >= firstColumn && column <= lastColumn);
         }
@@ -368,18 +368,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelFormulaInspection InspectFormulas() {
             var formulas = new List<ExcelFormulaCellInfo>();
-            var workbookPart = WorkbookPartRoot;
-            foreach (Sheet sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
-                if (string.IsNullOrWhiteSpace(sheetElement.Id?.Value)) {
-                    continue;
-                }
-
-                if (workbookPart.GetPartById(sheetElement.Id!.Value!) is not WorksheetPart) {
-                    continue;
-                }
-
-                var sheet = new ExcelSheet(this, _spreadSheetDocument!, sheetElement);
-                formulas.AddRange(sheet.GetFormulaCells());
+            var names = new List<string>();
+            foreach (ExcelFormulaSheetEntry entry in FormulaWorkbookModel.SheetEntries()) {
+                if (entry.IsWorksheet && entry.Name != null) names.Add(entry.Name);
+            }
+            // Each sheet is found through the model the workbook reads at that moment: inspecting one sheet can open
+            // the SDK package (a saved pivot table, say), and the sheets after it are then read through the model.
+            foreach (string name in names) {
+                if (FindSheetForFormulas(name) is { } sheet) formulas.AddRange(sheet.GetFormulaCells());
             }
 
             return new ExcelFormulaInspection(formulas);

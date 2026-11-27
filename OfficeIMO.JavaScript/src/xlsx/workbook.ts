@@ -105,6 +105,8 @@ export class Workbook {
     if (dateMode !== "local" && dateMode !== "utc") throw new RangeError("dateMode must be local or utc.");
     if (compression !== "auto" && compression !== "store") throw new RangeError("compression must be auto or store.");
     if (options.oversizedText !== undefined && !["reject", "preserve"].includes(options.oversizedText)) throw new RangeError("oversizedText must be reject or preserve.");
+    if (options.hyperlinkOverflow !== undefined && !["reject", "drop"].includes(options.hyperlinkOverflow)) throw new RangeError("hyperlinkOverflow must be reject or drop.");
+    if (options.onHyperlinkOverflow !== undefined && typeof options.onHyperlinkOverflow !== "function") throw new TypeError("onHyperlinkOverflow must be a function.");
     cleanXml("", policy); corePropertiesXml(options, policy);
     this.budget = new ExportBudget(options.limits);
     this.styles = new StyleRegistry(policy, options.limits?.maxStyles, options.limits?.maxDifferentialStyles);
@@ -166,6 +168,8 @@ export class Workbook {
   }
   /** @internal Reserve a preflighted worksheet batch or one row hyperlink. */
   retainLink(count = 1): void { this.checkLinks(count); this.links += count; }
+  /** @internal A worksheet dropped a data-cell link it had retained. */
+  releaseLink(): void { this.links--; }
   /** @internal */
   checkImage(bytes: number): void {
     if (this.settings.limits?.maxImageBytes !== undefined && this.imageBytes + bytes > this.settings.limits.maxImageBytes) throw new OfficeIMOError("RESOURCE_LIMIT", "maxImageBytes exceeded.");

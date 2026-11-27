@@ -995,10 +995,6 @@ internal static class WordConverterNodes {
     internal static WordTableWidth? ReadTableWidth(OfficeXmlNode width) =>
         WordTableWidthNative.Read(width.SdkElement as W.TableWidthType);
 
-    /// <summary>The justification token of a numbering level's <c>w:lvlJc</c>, as <see cref="WordListLevel.ReadLevelJustification"/>.</summary>
-    internal static string? ReadLevelJustification(OfficeXmlNode levelJustification) =>
-        EnumToken(WordListLevel.ReadLevelJustification(levelJustification.SdkElement as W.LevelJustification));
-
     /// <summary>
     /// The <c>w:hdr</c> roots of the header parts, then the <c>w:ftr</c> roots of the footer parts, each with the
     /// identifier the main document part gives its part.
