@@ -47,6 +47,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AHeaderHeldAsInlineTextKeepsItWhenItAlreadyMatches() {
+            byte[] source = CreateWorkbook(inlineHeader: true);
+            AssertSavesAsTheModel(source, sheet => sheet.Cell(2, 2).SetValue("Client"), expectOwned: true, out string saved);
+            Assert.Contains("D2 inline Paid", saved);
+        }
+
+        [Fact]
         public void ADuplicateColumnNameFailsAsItDoesThroughTheModel() {
             byte[] source = CreateWorkbook();
             foreach (bool openSdkFirst in new[] { true, false }) {
@@ -110,7 +117,7 @@ namespace OfficeIMO.Tests {
             return string.Join("\n", lines);
         }
 
-        private static byte[] CreateWorkbook(bool addCalculationChain = false, bool numericHeader = false, bool structuredReference = false) {
+        private static byte[] CreateWorkbook(bool addCalculationChain = false, bool numericHeader = false, bool structuredReference = false, bool inlineHeader = false) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet data = document.AddSheet("Data");
@@ -127,12 +134,18 @@ namespace OfficeIMO.Tests {
                 data.Cell(7, 2).SetFormula(structuredReference ? "SUM(Orders[Amount])" : "SUM(C3:C4)");
                 document.Save();
             }
-            if (!addCalculationChain && !numericHeader) return stream.ToArray();
+            if (!addCalculationChain && !numericHeader && !inlineHeader) return stream.ToArray();
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(stream, true)) {
                 WorkbookPart workbook = package.WorkbookPart!;
                 if (addCalculationChain) {
                     CalculationChainPart chain = workbook.AddNewPart<CalculationChainPart>();
                     chain.CalculationChain = new CalculationChain(new CalculationCell { CellReference = "B7", SheetId = 1 });
+                }
+                if (inlineHeader) {
+                    Cell header = workbook.WorksheetParts.First().Worksheet.Descendants<Cell>().First(cell => cell.CellReference == "D2");
+                    header.DataType = CellValues.InlineString;
+                    header.CellValue = null;
+                    header.InlineString = new InlineString(new Text("Paid"));
                 }
                 if (numericHeader) {
                     // The column is named 2024, and its header cell holds that number rather than text.

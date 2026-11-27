@@ -55,15 +55,21 @@ namespace OfficeIMO.Excel {
                 if (oldName.Length > 0 && MayBeReferencedByFormulas(workbook, packageBytes, oldName)) return false;
             }
 
-            // Each header cell becomes its column's name unless it already holds that text.
-            ExcelFormulaSheetModel model = GetFormulaSheetModel(sheet);
-            if (!ReferenceEquals(sheet.DeferredEntry, entry) || model is not ExcelXmlFormulaSheetModel) return false;
+            // Each header cell becomes its column's name unless it already holds that text. Writing a shared string's
+            // own text again leaves the cell as it was, so only text the cell holds inline needs reading.
+            HeaderCellKind[]? kinds = ReadHeaderCellKinds(packageBytes, entry.PartName, edit.Row, left, names.Length);
+            if (kinds == null || Array.IndexOf(kinds, HeaderCellKind.Formula) >= 0) return false;
             var headerEdits = new List<ExcelDeferredCellEdit>(names.Length);
+            ExcelFormulaSheetModel? model = null;
             for (int column = 0; column < names.Length; column++) {
-                ExcelFormulaCellRecord? cell = model.Find(edit.Row, left + column);
-                if (cell != null && cell.HasFormula) return false;
-                if (cell != null && cell.ValueType is ExcelCellValueType.SharedString or ExcelCellValueType.InlineString or ExcelCellValueType.String
-                    && model.ReadValue(edit.Row, left + column).Value is string text && string.Equals(text, names[column], StringComparison.Ordinal)) continue;
+                if (kinds[column] == HeaderCellKind.InlineText) {
+                    model ??= GetFormulaSheetModel(sheet);
+                    if (!ReferenceEquals(sheet.DeferredEntry, entry) || model is not ExcelXmlFormulaSheetModel) return false;
+                    ExcelFormulaCellRecord? cell = model.Find(edit.Row, left + column);
+                    if (cell != null && cell.HasFormula) return false;
+                    if (cell != null && cell.ValueType is ExcelCellValueType.SharedString or ExcelCellValueType.InlineString or ExcelCellValueType.String
+                        && model.ReadValue(edit.Row, left + column).Value is string text && string.Equals(text, names[column], StringComparison.Ordinal)) continue;
+                }
                 headerEdits.Add(new ExcelDeferredCellEdit {
                     Row = edit.Row, Column = checked((ushort)(left + column)), Kind = ExcelDeferredCellKind.Text, Payload = names[column]
                 });
@@ -85,6 +91,44 @@ namespace OfficeIMO.Excel {
                 MarkFormulaInputMutation();
             }
             return true;
+        }
+
+        private enum HeaderCellKind : byte { Other, InlineText, Formula }
+
+        /// <summary>
+        /// What the package holds in the header cells: a formula, text held in the cell rather than as a shared string,
+        /// or anything else. Null when a row or cell of the worksheet has no reference, which the model resolves.
+        /// </summary>
+        private static HeaderCellKind[]? ReadHeaderCellKinds(byte[] packageBytes, string partName, int row, int left, int count) {
+            var kinds = new HeaderCellKind[count];
+            using var source = new MemoryStream(packageBytes, writable: false);
+            using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
+            OfficeXmlPullReader reader = package.OpenXml(partName, out OfficePooledBytes content, processMarkupCompatibility: false);
+            using (content) {
+                bool inRow = false;
+                int cellIndex = -1;
+                while (reader.Read()) {
+                    if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.NamespaceId != OfficeXmlNamespaces.SpreadsheetML) continue;
+                    // worksheet / sheetData / row / c / f
+                    if (reader.Depth == 3 && reader.LocalNameEquals("row")) {
+                        if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "r", out string number)
+                            || !int.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out int index)) return null;
+                        if (index > row) break;
+                        inRow = index == row;
+                        cellIndex = -1;
+                    } else if (inRow && reader.Depth == 4 && reader.LocalNameEquals("c")) {
+                        if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "r", out string reference)
+                            || !ExcelA1.TryParseCellReferenceFast(reference.AsSpan(), out int cellRow, out int column) || cellRow != row) return null;
+                        cellIndex = column >= left && column < left + count ? column - left : -1;
+                        if (cellIndex >= 0 && reader.TryGetAttribute(OfficeXmlNamespaces.None, "t", out string type) && type is "inlineStr" or "str") {
+                            kinds[cellIndex] = HeaderCellKind.InlineText;
+                        }
+                    } else if (inRow && cellIndex >= 0 && reader.Depth == 5 && reader.LocalNameEquals("f")) {
+                        kinds[cellIndex] = HeaderCellKind.Formula;
+                    }
+                }
+            }
+            return kinds;
         }
 
         /// <summary>The first table, in relationship order, whose header row holds the cell, as the model finds it.</summary>
@@ -167,8 +211,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         private static bool FormulaLeavesContain(OfficeOpcPackage package, string partName, string text) {
             using (OfficePooledBytes raw = package.ReadPart(partName)) {
-                // Most parts never mention the name, which a search of the decoded part settles without parsing it.
-                if (Encoding.UTF8.GetString(raw.Array, 0, raw.Length).IndexOf(text, StringComparison.OrdinalIgnoreCase) < 0) return false;
+                // Most parts never mention the name, which a search of the part settles without parsing it.
+                if (!MayContain(raw.Array, raw.Length, text)) return false;
             }
             OfficeXmlPullReader reader = package.OpenXml(partName, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
@@ -189,6 +233,27 @@ namespace OfficeIMO.Excel {
             }
             return false;
         }
+
+        /// <summary>
+        /// Whether the UTF-8 bytes may contain the text, ignoring case: an ASCII name is searched for in the bytes, any
+        /// other in the decoded text.
+        /// </summary>
+        private static bool MayContain(byte[] bytes, int length, string text) {
+            foreach (char character in text) {
+                if (character > 0x7F) return Encoding.UTF8.GetString(bytes, 0, length).IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+            int last = length - text.Length;
+            byte first = AsciiLower((byte)text[0]);
+            for (int start = 0; start <= last; start++) {
+                if (AsciiLower(bytes[start]) != first) continue;
+                int matched = 1;
+                while (matched < text.Length && AsciiLower(bytes[start + matched]) == AsciiLower((byte)text[matched])) matched++;
+                if (matched == text.Length) return true;
+            }
+            return false;
+        }
+
+        private static byte AsciiLower(byte value) => value is >= (byte)'A' and <= (byte)'Z' ? (byte)(value | 0x20) : value;
 
         /// <summary>
         /// Writes the column names into the table part and, as the model does after a rename, drops the calculation
