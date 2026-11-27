@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""Run one paired BenchmarkDotNet XLSB comparison over the same master-generated workbook."""
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+
+from compare import HERE, run
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("baseline", help="Baseline Git revision")
+    parser.add_argument("candidate", help="Candidate Git revision")
+    parser.add_argument("output", type=Path, help="New scratch directory for the measurements")
+    parser.add_argument("--lock", type=Path, required=True, help="Shared benchmark lock path to acquire")
+    parser.add_argument("--repository", type=Path, default=HERE.parents[2], help="Repository containing both revisions")
+    args = parser.parse_args()
+    output = args.output.resolve()
+    output.mkdir(parents=True)
+    root = args.repository.resolve()
+    checkouts = []
+    executables = {}
+    revisions = {}
+
+    try:
+        # Build both revisions before taking the lock. Only benchmark runs and their
+        # setup need the exclusive measurement slot.
+        for label, ref in (("baseline", args.baseline), ("candidate", args.candidate)):
+            checkout = output / f"source-{label}"
+            run(["git", "worktree", "add", "--detach", "--quiet", str(checkout), ref], root)
+            checkouts.append(checkout)
+            revision = run(["git", "rev-parse", "HEAD"], checkout, stdout=subprocess.PIPE).stdout.strip()
+            driver = output / f"driver-{label}"
+            driver.mkdir()
+            for file in ("BenchmarkRevisions.cs", "BenchmarkRevisions.csproj"):
+                shutil.copyfile(HERE / file, driver / file)
+            env = {**os.environ, "ExcelSourceRoot": str(checkout)}
+            run(["dotnet", "build", "BenchmarkRevisions.csproj", "-c", "Release", "-m:2"], driver, env=env)
+            executable = driver / "bin/Release/net10.0/BenchmarkRevisions.dll"
+            executables[label] = executable, env
+            revisions[label] = revision
+
+        fixture = output / "benchmark.xlsb"
+        executable, env = executables["baseline"]
+        run(["dotnet", str(executable), "seed", str(fixture)], executable.parent, env=env)
+        clock = run(["uptime"], root, stdout=subprocess.PIPE).stdout.strip()
+        (output / "inputs.json").write_text(json.dumps({
+            "revisions": revisions,
+            "fixtureSha256": hashlib.sha256(fixture.read_bytes()).hexdigest(),
+            "initialLoad": clock,
+        }, indent=2) + "\n")
+
+        args.lock.mkdir()
+        try:
+            # Alternate the starting revision on the second round. Each report
+            # keeps the raw samples, allocations and runtime environment.
+            for round_number, order in enumerate((("baseline", "candidate"), ("candidate", "baseline")), 1):
+                for label in order:
+                    executable, env = executables[label]
+                    report = output / f"{round_number}-{label}"
+                    run(["dotnet", str(executable), "--inProcess", "--filter", "*XlsbMigrationBenchmarks*",
+                         "--job", "short", "--artifacts", str(report), "--exporters", "json"], executable.parent,
+                        env={**env, "OFFICEIMO_XLSB_BENCH_INPUT": str(fixture)})
+                    reports = list((report / "results").glob("*-report*.json"))
+                    if len(reports) != 1:
+                        raise RuntimeError(f"Expected one benchmark report in {report}")
+                    results = json.loads(reports[0].read_text())["Benchmarks"]
+                    if len(results) != 3 or any(not result.get("Statistics") for result in results):
+                        raise RuntimeError(f"One or more workloads did not finish in {report}")
+        finally:
+            args.lock.rmdir()
+    finally:
+        for checkout in reversed(checkouts):
+            run(["git", "worktree", "remove", str(checkout)], root)
+
+
+if __name__ == "__main__":
+    main()

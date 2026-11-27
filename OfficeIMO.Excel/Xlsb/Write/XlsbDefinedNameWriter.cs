@@ -1,5 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.Excel.Xlsb.Projection;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Model;
 
@@ -12,7 +13,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtSupSelf = 357;
         private const int BrtExternSheet = 362;
 
-        internal static void Validate(ExcelDocument document, DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets) {
+        internal static void Validate(ExcelDocument document, OfficeXmlNode definedNames, IReadOnlyList<ExcelSheet> sheets) {
             CreatePlan(definedNames, sheets, new XlsbNewWorkbookFormulaContext(document, sheets, definedNames));
         }
 
@@ -20,21 +21,21 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         /// The number of BrtName records written before the future-function names that formulas add: one per
         /// definedName element, then one _FilterDatabase name per AutoFilter worksheet that has none.
         /// </summary>
-        internal static int CountPlannedRecords(DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets) {
+        internal static int CountPlannedRecords(OfficeXmlNode definedNames, IReadOnlyList<ExcelSheet> sheets) {
             var filterDatabaseSheets = new HashSet<uint>();
             int count = 0;
-            foreach (DefinedName definedName in definedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>()) {
+            foreach (OfficeXmlNode definedName in XlsbDefinedNameProjector.Names(definedNames)) {
                 count++;
-                if (IsFilterDatabaseName(definedName.Name?.Value) && definedName.LocalSheetId?.Value is uint scope) filterDatabaseSheets.Add(scope);
+                if (IsFilterDatabaseName(definedName.Attribute("name")) && XlsbWorkbookMarkup.ReadUInt32(definedName, "localSheetId") is uint scope) filterDatabaseSheets.Add(scope);
             }
             for (int sheetIndex = 0; sheetIndex < sheets.Count; sheetIndex++) {
                 if (!filterDatabaseSheets.Contains(checked((uint)sheetIndex))
-                    && sheets[sheetIndex].WorksheetPart.Worksheet?.GetFirstChild<AutoFilter>() != null) count++;
+                    && AutoFilter(sheets[sheetIndex]).Exists) count++;
             }
             return count;
         }
 
-        internal static void Write(Stream output, DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets,
+        internal static void Write(Stream output, OfficeXmlNode definedNames, IReadOnlyList<ExcelSheet> sheets,
             XlsbNewWorkbookFormulaContext? formulas = null) {
             ArgumentNullException.ThrowIfNull(output);
             XlsbDefinedNamePlan plan = CreatePlan(definedNames, sheets, formulas);
@@ -51,38 +52,38 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static XlsbDefinedNamePlan CreatePlan(DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets,
+        private static XlsbDefinedNamePlan CreatePlan(OfficeXmlNode definedNames, IReadOnlyList<ExcelSheet> sheets,
             XlsbNewWorkbookFormulaContext? formulas) {
             ArgumentNullException.ThrowIfNull(sheets);
-            if (definedNames != null
-                && definedNames.HasChildren
-                && definedNames.ChildElements.Any(element => element is not DefinedName)) {
-                throw new NotSupportedException("Native XLSB generation supports only definedName children in the definedNames collection.");
+            foreach (OfficeXmlNode child in definedNames.Children()) {
+                if (!child.Is(OfficeXmlNamespaces.SpreadsheetML, XlsbDefinedNameProjector.ElementName)) {
+                    throw new NotSupportedException("Native XLSB generation supports only definedName children in the definedNames collection.");
+                }
             }
-            if (definedNames != null) EnsureOnlyAttributes(definedNames);
+            ThrowIfUnsupportedAttribute(XlsbWorkbookMarkup.UnsupportedAttribute(definedNames, Array.Empty<string>()));
 
             var records = new List<XlsbDefinedNameRecord>();
             var filterDatabaseSheets = new HashSet<uint>();
-            foreach (DefinedName definedName in definedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>()) {
-                EnsureOnlyAttributes(definedName, "name", "localSheetId", "hidden", "comment");
-                if (definedName.HasChildren) {
+            foreach (OfficeXmlNode definedName in XlsbDefinedNameProjector.Names(definedNames)) {
+                ThrowIfUnsupportedAttribute(XlsbDefinedNameProjector.UnsupportedAttribute(definedName));
+                if (definedName.FirstChild.Exists) {
                     throw new NotSupportedException("Native XLSB generation does not support child content in defined names.");
                 }
 
-                string openXmlName = definedName.Name?.Value ?? string.Empty;
+                string openXmlName = definedName.Attribute("name") ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(openXmlName) || openXmlName.Length > 255) {
                     throw new NotSupportedException("Native XLSB generation requires defined names between 1 and 255 characters.");
                 }
-                uint localSheetIndex = definedName.LocalSheetId?.Value ?? uint.MaxValue;
+                uint localSheetIndex = XlsbWorkbookMarkup.ReadUInt32(definedName, "localSheetId") ?? uint.MaxValue;
                 if (localSheetIndex != uint.MaxValue && localSheetIndex >= sheets.Count) {
                     throw new NotSupportedException($"Defined name '{openXmlName}' is scoped outside the workbook.");
                 }
 
-                string? comment = definedName.Comment?.Value;
+                string? comment = definedName.Attribute("comment");
                 if (comment != null && comment.Length >= 256) {
                     throw new NotSupportedException($"Defined name '{openXmlName}' has a comment longer than the XLSB limit of 255 characters.");
                 }
-                string formulaText = definedName.Text ?? string.Empty;
+                string formulaText = definedName.InnerText;
                 if (XlsbFutureFunctions.TryGetName(openXmlName, out string futureFunction)) {
                     if (localSheetIndex != uint.MaxValue || comment != null
                         || !string.Equals(formulaText.Trim().TrimStart('='), XlsbFutureFunctions.NameFormulaText, StringComparison.Ordinal)) {
@@ -106,7 +107,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 if (!builtIn && openXmlName.StartsWith("_xlnm.", StringComparison.OrdinalIgnoreCase)) {
                     throw new NotSupportedException($"Native XLSB generation does not yet support built-in defined name '{openXmlName}'.");
                 }
-                uint flags = (definedName.Hidden?.Value == true ? 0x00000001U : 0U)
+                uint flags = (XlsbWorkbookMarkup.ReadBoolean(definedName, "hidden") == true ? 0x00000001U : 0U)
                     | (builtIn ? 0x00000020U : 0U);
                 records.Add(new XlsbDefinedNameRecord(flags, localSheetIndex, recordName, formulaTokens!, formulaExtra, comment));
                 if (builtIn
@@ -176,9 +177,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             for (int sheetIndex = 0; sheetIndex < sheets.Count; sheetIndex++) {
                 uint localSheetIndex = checked((uint)sheetIndex);
                 if (existingSheets.Contains(localSheetIndex)) continue;
-                AutoFilter? autoFilter = sheets[sheetIndex].WorksheetPart.Worksheet?.GetFirstChild<AutoFilter>();
-                if (autoFilter == null) continue;
-                if (!XlsbWorksheetAutoFilterWriter.TryGetRange(autoFilter, out XlsbCellRange? range) || range == null) {
+                OfficeXmlNode autoFilter = AutoFilter(sheets[sheetIndex]);
+                if (autoFilter.IsNone) continue;
+                if (!XlsbWorksheetAutoFilterWriter.TryGetRange(autoFilter.Attribute("ref"), out XlsbCellRange? range) || range == null) {
                     throw new NotSupportedException($"Native XLSB generation cannot encode the AutoFilter range on worksheet '{sheets[sheetIndex].Name}'.");
                 }
 
@@ -441,11 +442,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return false;
         }
 
-        private static void EnsureOnlyAttributes(OpenXmlElement element, params string[] allowedNames) {
-            OpenXmlAttribute? unsupported =
-                XlsbOpenXmlAttributeValidator.FindUnsupported(element, allowedNames);
-            if (unsupported.HasValue) {
-                throw new NotSupportedException($"Native XLSB generation does not yet support defined-name attribute '{unsupported.Value.LocalName}'.");
+        private static OfficeXmlNode AutoFilter(ExcelSheet sheet) =>
+            ExcelPartRef.Worksheet(sheet).Root.Child(OfficeXmlNamespaces.SpreadsheetML, "autoFilter");
+
+        private static void ThrowIfUnsupportedAttribute(string? name) {
+            if (name != null) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support defined-name attribute '{name}'.");
             }
         }
 

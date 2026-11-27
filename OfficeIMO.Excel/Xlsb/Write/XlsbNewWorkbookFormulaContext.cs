@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.Xlsb.Projection;
 using OfficeIMO.Excel.LegacyXls.Write;
 
 namespace OfficeIMO.Excel.Xlsb.Write;
@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.Xlsb.Write;
 internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContext {
     private readonly ExcelDocument _document;
     private readonly IReadOnlyList<ExcelSheet> _sheets;
-    private readonly DefinedNames? _definedNames;
+    private readonly OfficeXmlNode _definedNames;
     private readonly Dictionary<ushort, ushort> _mapped = new();
     private readonly List<(int First, int Last)> _ranges = new();
     private readonly List<string> _addedFutureFunctions = new();
@@ -19,7 +19,7 @@ internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContex
     private LegacyXlsFormulaNameIndex? _names;
     private XlsbTableReferenceIndex? _tables;
 
-    internal XlsbNewWorkbookFormulaContext(ExcelDocument document, IReadOnlyList<ExcelSheet> sheets, DefinedNames? definedNames) {
+    internal XlsbNewWorkbookFormulaContext(ExcelDocument document, IReadOnlyList<ExcelSheet> sheets, OfficeXmlNode definedNames) {
         _document = document;
         _sheets = sheets;
         _definedNames = definedNames;
@@ -54,9 +54,9 @@ internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContex
 
     private uint? ResolveFutureFunction(string name) {
         uint id = 0;
-        foreach (DefinedName definedName in _definedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>()) {
+        foreach (OfficeXmlNode definedName in XlsbDefinedNameProjector.Names(_definedNames)) {
             id++;
-            if (definedName.LocalSheetId == null && string.Equals(definedName.Name?.Value, name, StringComparison.OrdinalIgnoreCase)) return id;
+            if (!definedName.HasAttribute("localSheetId") && string.Equals(definedName.Attribute("name"), name, StringComparison.OrdinalIgnoreCase)) return id;
         }
         int added = _addedFutureFunctions.IndexOf(name);
         if (added < 0) {
@@ -75,10 +75,10 @@ internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContex
         var global = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
         var local = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
         uint id = 0;
-        foreach (DefinedName name in _definedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>()) {
+        foreach (OfficeXmlNode name in XlsbDefinedNameProjector.Names(_definedNames)) {
             id++;
-            string text = name.Name?.Value ?? string.Empty;
-            if (name.LocalSheetId?.Value is uint scope) {
+            string text = name.Attribute("name") ?? string.Empty;
+            if (XlsbWorkbookMarkup.ReadUInt32(name, "localSheetId") is uint scope) {
                 local[LegacyXlsFormulaNameIndex.CreateLocalKey(checked((int)scope), text)] = id;
             } else {
                 global[text] = id;

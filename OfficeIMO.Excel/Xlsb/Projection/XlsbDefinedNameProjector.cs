@@ -1,76 +1,70 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Excel.Xlsb.Model;
 
 namespace OfficeIMO.Excel.Xlsb.Projection {
-    /// <summary>Projects common XLSB defined names onto the normal workbook model.</summary>
+    /// <summary>Projects common XLSB defined names onto the workbook's SpreadsheetML names collection.</summary>
     internal static class XlsbDefinedNameProjector {
-        internal static void Apply(ExcelDocument document, IReadOnlyList<XlsbDefinedName> sourceNames) {
-            ArgumentNullException.ThrowIfNull(document);
-            ArgumentNullException.ThrowIfNull(sourceNames);
+        internal const string CollectionName = "definedNames";
+        internal const string ElementName = "definedName";
+        private static readonly string[] NameAttributes = { "name", "localSheetId", "hidden", "comment" };
 
-            DefinedNames? targetNames = null;
+        internal static void Apply(OfficeXmlNode workbook, IReadOnlyList<XlsbDefinedName> sourceNames) {
+            OfficeXmlNode names = default;
             foreach (XlsbDefinedName source in sourceNames) {
                 if (string.IsNullOrWhiteSpace(source.FormulaText)) continue;
-                targetNames ??= GetOrCreateDefinedNames(document.WorkbookRoot);
-                var target = new DefinedName {
-                    Name = ToOpenXmlName(source),
-                    Text = source.FormulaText!,
-                    Hidden = source.Hidden ? true : (bool?)null,
-                    Comment = source.Comment
-                };
-                if (source.LocalSheetIndex != uint.MaxValue) {
-                    target.LocalSheetId = source.LocalSheetIndex;
+                if (names.IsNone) {
+                    names = XlsbWorkbookMarkup.Child(workbook, CollectionName);
+                    if (names.IsNone) names = XlsbWorkbookMarkup.Add(workbook, CollectionName);
                 }
-                targetNames.Append(target);
+                OfficeXmlNode target = names.CreateElement(OfficeXmlNamespaces.SpreadsheetML, ElementName);
+                target.SetAttribute("name", ToOpenXmlName(source));
+                if (source.Hidden) target.SetBooleanAttribute("hidden", true);
+                if (source.Comment != null) target.SetAttribute("comment", source.Comment);
+                if (source.LocalSheetIndex != uint.MaxValue) target.SetUInt32Attribute("localSheetId", source.LocalSheetIndex);
+                target.SetInnerText(source.FormulaText!);
+                names.Append(target);
             }
         }
 
-        internal static bool Matches(DefinedNames? actual, IReadOnlyList<XlsbDefinedName> expectedNames) {
-            ArgumentNullException.ThrowIfNull(expectedNames);
-            XlsbDefinedName[] expected = expectedNames
-                .Where(name => !string.IsNullOrWhiteSpace(name.FormulaText))
-                .ToArray();
-            DefinedName[] current = actual?.Elements<DefinedName>().ToArray() ?? Array.Empty<DefinedName>();
-            if (current.Length != expected.Length) return false;
-
-            for (int index = 0; index < current.Length; index++) {
-                DefinedName item = current[index];
-                XlsbDefinedName source = expected[index];
-                if (item.HasChildren
-                    || HasUnsupportedAttributes(item)
-                    || !string.Equals(item.Name?.Value, ToOpenXmlName(source), StringComparison.Ordinal)
-                    || !string.Equals(item.Text ?? string.Empty, source.FormulaText ?? string.Empty, StringComparison.Ordinal)
-                    || item.LocalSheetId?.Value != (source.LocalSheetIndex == uint.MaxValue ? (uint?)null : source.LocalSheetIndex)
-                    || (item.Hidden?.Value ?? false) != source.Hidden
-                    || !string.Equals(item.Comment?.Value, source.Comment, StringComparison.Ordinal)) {
+        internal static bool Matches(OfficeXmlNode actual, IReadOnlyList<XlsbDefinedName> expectedNames,
+            IReadOnlyDictionary<string, string> reverseRenames) {
+            int expectedIndex = 0;
+            foreach (OfficeXmlNode item in Names(actual)) {
+                while (expectedIndex < expectedNames.Count && string.IsNullOrWhiteSpace(expectedNames[expectedIndex].FormulaText)) {
+                    expectedIndex++;
+                }
+                if (expectedIndex == expectedNames.Count) return false;
+                XlsbDefinedName source = expectedNames[expectedIndex++];
+                if (item.FirstChild.Exists
+                    || UnsupportedAttribute(item) != null
+                    || !string.Equals(item.Attribute("name"), ToOpenXmlName(source), StringComparison.Ordinal)
+                    || !string.Equals(ExcelDocument.ReplaceSheetNameReferences(item.InnerText, reverseRenames), source.FormulaText, StringComparison.Ordinal)
+                    || XlsbWorkbookMarkup.ReadUInt32(item, "localSheetId") != (source.LocalSheetIndex == uint.MaxValue ? (uint?)null : source.LocalSheetIndex)
+                    || (XlsbWorkbookMarkup.ReadBoolean(item, "hidden") ?? false) != source.Hidden
+                    || !string.Equals(item.Attribute("comment"), source.Comment, StringComparison.Ordinal)) {
                     return false;
                 }
+            }
+            for (; expectedIndex < expectedNames.Count; expectedIndex++) {
+                if (!string.IsNullOrWhiteSpace(expectedNames[expectedIndex].FormulaText)) return false;
             }
             return true;
         }
 
+        internal static OfficeXmlNode.ChildList Names(OfficeXmlNode collection) =>
+            collection.Children(OfficeXmlNamespaces.SpreadsheetML, ElementName);
+
+        internal static string? UnsupportedAttribute(OfficeXmlNode name) =>
+            XlsbWorkbookMarkup.UnsupportedAttribute(name, NameAttributes);
+
         /// <summary>Reflects native reference normalization after a successful write, including references to deleted sheets.</summary>
-        internal static void SynchronizeExisting(ExcelDocument document, IReadOnlyList<XlsbDefinedName> names) {
-            foreach (var current in document.WorkbookRoot.DefinedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>()) {
-                var source = names.FirstOrDefault(name => ToOpenXmlName(name) == current.Name?.Value
-                    && name.LocalSheetIndex == (current.LocalSheetId?.Value ?? uint.MaxValue));
-                if (source?.FormulaText != null) current.Text = source.FormulaText;
+        internal static void SynchronizeExisting(OfficeXmlNode workbook, IReadOnlyList<XlsbDefinedName> names) {
+            foreach (OfficeXmlNode current in Names(XlsbWorkbookMarkup.Child(workbook, CollectionName))) {
+                string? name = current.Attribute("name");
+                uint scope = XlsbWorkbookMarkup.ReadUInt32(current, "localSheetId") ?? uint.MaxValue;
+                XlsbDefinedName? source = names.FirstOrDefault(item => ToOpenXmlName(item) == name && item.LocalSheetIndex == scope);
+                if (source?.FormulaText != null) current.SetInnerText(source.FormulaText);
             }
-        }
-
-        private static DefinedNames GetOrCreateDefinedNames(Workbook workbook) {
-            DefinedNames? existing = workbook.GetFirstChild<DefinedNames>();
-            if (existing != null) return existing;
-
-            var definedNames = new DefinedNames();
-            OpenXmlElement? before = workbook.GetFirstChild<CalculationProperties>();
-            if (before != null) {
-                workbook.InsertBefore(definedNames, before);
-            } else {
-                workbook.Append(definedNames);
-            }
-            return definedNames;
         }
 
         private static string ToOpenXmlName(XlsbDefinedName source) {
@@ -78,19 +72,6 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if (string.Equals(source.Name, "Print_Area", StringComparison.OrdinalIgnoreCase)) return "_xlnm.Print_Area";
             if (string.Equals(source.Name, "Print_Titles", StringComparison.OrdinalIgnoreCase)) return "_xlnm.Print_Titles";
             return source.Name;
-        }
-
-        private static bool HasUnsupportedAttributes(DefinedName name) {
-            foreach (OpenXmlAttribute attribute in name.GetAttributes()) {
-                if (string.Equals(attribute.NamespaceUri, "http://www.w3.org/2000/xmlns/", StringComparison.Ordinal)) continue;
-                if (attribute.LocalName != "name"
-                    && attribute.LocalName != "localSheetId"
-                    && attribute.LocalName != "hidden"
-                    && attribute.LocalName != "comment") {
-                    return true;
-                }
-            }
-            return false;
         }
     }
 }

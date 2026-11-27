@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     XlsbStylesheetProjector.Install(document, workbook.Stylesheet);
                 }
                 if (workbook.WorkbookProtection != null) {
-                    XlsbWorkbookProtectionProjector.Apply(document, workbook.WorkbookProtection);
+                    XlsbWorkbookProtectionProjector.Apply(XlsbWorkbookMarkup.Root(document), workbook.WorkbookProtection);
                 }
 
                 var relatedParts = new XlsbRelatedPartProjector(document, workbook, cancellationToken);
@@ -29,27 +29,11 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                         continue;
                     }
                     ExcelSheet targetSheet = document.AddSheet(sourceSheet.Name);
-                    targetSheet.Batch(sheet => {
-                        foreach (XlsbCell cell in sourceSheet.Cells) {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            switch (cell.Kind) {
-                                case XlsbCellValueKind.Blank:
-                                    break;
-                                case XlsbCellValueKind.Error:
-                                    sheet.SetLegacyErrorCellValue(cell.Row, cell.Column, cell.Value as string ?? "#VALUE!");
-                                    break;
-                                default:
-                                    sheet.CellValue(cell.Row, cell.Column, cell.Value);
-                                    break;
-                            }
-
-                            if (!string.IsNullOrWhiteSpace(cell.FormulaText)) {
-                                sheet.CellFormula(cell.Row, cell.Column, cell.FormulaText!);
-                            }
-
-                            sheet.SetCellStyleIndex(cell.Row, cell.Column, cell.StyleIndex, save: false);
-                        }
-                    });
+                    if (XlsbWorksheetGridProjector.CanStream(sourceSheet)) {
+                        ProjectCellGrid(document, targetSheet, sourceSheet, cancellationToken);
+                    } else {
+                        ProjectCellsThroughModel(targetSheet, sourceSheet, cancellationToken);
+                    }
 
                     ApplyRichText(targetSheet, sourceSheet, workbook.Stylesheet, cancellationToken);
 
@@ -89,10 +73,10 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 document.EnsureActiveTabVisible();
                 relatedParts.ProjectTheme();
                 relatedParts.ProjectVba();
-                XlsbDefinedNameProjector.Apply(document, workbook.DefinedNames);
+                XlsbDefinedNameProjector.Apply(XlsbWorkbookMarkup.Root(document), workbook.DefinedNames);
 
                 if (workbook.CalculationProperties != null) {
-                    XlsbCalculationPropertiesProjector.Apply(document, workbook.CalculationProperties);
+                    XlsbCalculationPropertiesProjector.Apply(XlsbWorkbookMarkup.Root(document), workbook.CalculationProperties);
                 }
 
                 return document;
@@ -100,6 +84,46 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 document.Dispose();
                 throw;
             }
+        }
+
+        private static void ProjectCellGrid(ExcelDocument document, ExcelSheet sheet, XlsbSheet source,
+            CancellationToken cancellationToken) {
+            var part = sheet.WorksheetPart;
+            using var xml = new MemoryStream(Math.Min(64 * 1024, source.Cells.Count * 24));
+            XlsbWorksheetGridProjector.WriteWorksheet(xml, source,
+                text => document.TryGetOrAddSharedStringIndexBelowLimit(text, ExcelSheet.CellValuePlainStringPromotionSharedStringCount,
+                    validateNewString: false, out int index, out _) ? index : (int?)null,
+                (formulaReference, retainsCache) => {
+                    if (retainsCache) document.MarkFormulaInputMutation();
+                    if (formulaReference != null) document.MarkFormulaAuthored(part, formulaReference, retainsCache);
+                }, cancellationToken);
+            xml.Position = 0;
+            part.FeedData(xml);
+        }
+
+        private static void ProjectCellsThroughModel(ExcelSheet targetSheet, XlsbSheet sourceSheet,
+            CancellationToken cancellationToken) {
+            targetSheet.Batch(sheet => {
+                foreach (XlsbCell cell in sourceSheet.Cells) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    switch (cell.Kind) {
+                        case XlsbCellValueKind.Blank:
+                            break;
+                        case XlsbCellValueKind.Error:
+                            sheet.SetLegacyErrorCellValue(cell.Row, cell.Column, cell.Value as string ?? "#VALUE!");
+                            break;
+                        default:
+                            sheet.CellValue(cell.Row, cell.Column, cell.Value);
+                            break;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(cell.FormulaText)) {
+                        sheet.CellFormula(cell.Row, cell.Column, cell.FormulaText!);
+                    }
+
+                    sheet.SetCellStyleIndex(cell.Row, cell.Column, cell.StyleIndex, save: false);
+                }
+            });
         }
 
         // A StrRun covers its text up to the next run; text before the first run uses the cell's own font.

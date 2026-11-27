@@ -1,3 +1,4 @@
+using OfficeIMO.Excel.Xlsb.Projection;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -32,7 +33,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             var partNames = new XlsbPartNameAllocator(Enumerable.Range(0, sheets.Length).Select(WorksheetPartName)
                 .Concat(new[] { "xl/workbook.bin", "xl/styles.bin", "xl/sharedStrings.bin", "xl/theme/theme1.xml" }));
             XlsbSharedStringTable? sharedStrings = useSharedStrings ? new XlsbSharedStringTable() : null;
-            var formulas = new XlsbNewWorkbookFormulaContext(document, sheets, document.WorkbookRoot.GetFirstChild<DefinedNames>());
+            var formulas = new XlsbNewWorkbookFormulaContext(document, sheets, XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbDefinedNameProjector.CollectionName));
             for (int index = 0; index < sheets.Length; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 IReadOnlyList<XlsbWriteCell> cells = XlsbWorksheetCellExtractor.ExtractNew(document, sheets[index], formulas, richText);
@@ -235,10 +236,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.Create(
                     sheets,
                     document.DateSystem == ExcelDateSystem.NineteenFour,
-                    document.WorkbookRoot.GetFirstChild<BookViews>(),
-                    document.WorkbookRoot.GetFirstChild<WorkbookProtection>(),
-                    document.WorkbookRoot.GetFirstChild<DefinedNames>(),
-                    document.WorkbookRoot.GetFirstChild<CalculationProperties>(),
+                    XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbWorkbookViewWriter.ElementName),
+                    XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbWorkbookProtectionProjector.ElementName),
+                    XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbDefinedNameProjector.CollectionName),
+                    XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbCalculationPropertiesProjector.ElementName),
                     formulas));
                 WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Count, stylesPart != null, sharedStringsPart.HasValue, theme != null));
                 WriteTheme(archive, theme, CompressionLevel.Optimal);
@@ -306,10 +307,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException($"Native XLSB generation does not yet support workbook metadata '{unsupportedWorkbookChild.LocalName}'.");
             }
 
-            XlsbWorkbookViewWriter.Validate(document.WorkbookRoot.GetFirstChild<BookViews>(), sheets.Count);
-            XlsbWorkbookProtectionWriter.Validate(document.WorkbookRoot.GetFirstChild<WorkbookProtection>());
-            XlsbDefinedNameWriter.Validate(document, document.WorkbookRoot.GetFirstChild<DefinedNames>(), sheets);
-            XlsbCalculationPropertiesWriter.Validate(document.WorkbookRoot.GetFirstChild<CalculationProperties>());
+            XlsbWorkbookViewWriter.Validate(XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbWorkbookViewWriter.ElementName), sheets.Count);
+            XlsbWorkbookProtectionWriter.Validate(XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbWorkbookProtectionProjector.ElementName));
+            XlsbDefinedNameWriter.Validate(document, XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbDefinedNameProjector.CollectionName), sheets);
+            XlsbCalculationPropertiesWriter.Validate(XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbCalculationPropertiesProjector.ElementName));
 
             WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();
             if (properties != null) {

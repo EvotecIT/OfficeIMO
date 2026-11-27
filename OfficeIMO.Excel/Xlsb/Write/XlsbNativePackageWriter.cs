@@ -234,23 +234,22 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void ValidateCalculationProperties(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
-            XlsbCalculationPropertiesWriter.Validate(document.WorkbookRoot.CalculationProperties);
+            XlsbCalculationPropertiesWriter.Validate(XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbCalculationPropertiesProjector.ElementName));
         }
 
         private static void ValidateWorkbookProtection(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
-            WorkbookProtection? protection = document.WorkbookRoot.GetFirstChild<WorkbookProtection>();
+            OfficeXmlNode protection = XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbWorkbookProtectionProjector.ElementName);
             if (!XlsbWorkbookProtectionProjector.Matches(protection, sourceWorkbook.WorkbookProtection)) {
                 throw new NotSupportedException("Native XLSB rewriting preserves but cannot modify workbook protection. Save that change as .xlsx.");
             }
         }
 
         private static void ValidateDefinedNames(ExcelDocument document, XlsbWorkbook sourceWorkbook, XlsbSheetStructure structure) {
-            DefinedNames? names = document.WorkbookRoot.GetFirstChild<DefinedNames>();
-            DefinedNames? definedNames = names == null ? null : (DefinedNames)OfficeIMO.Excel.Utilities.ExcelPackageReferenceNormalizer.Copy(names, document.NativeXlsbPreservation.ReverseRenames(document));
+            OfficeXmlNode definedNames = XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbDefinedNameProjector.CollectionName);
             var expected = sourceWorkbook.DefinedNames.Where(name => name.LocalSheetIndex == uint.MaxValue || structure.Map(checked((int)name.LocalSheetIndex)) >= 0)
                 .Select(name => new XlsbDefinedName(name.Flags, name.ShortcutKey, name.LocalSheetIndex == uint.MaxValue ? uint.MaxValue : checked((uint)structure.Map((int)name.LocalSheetIndex)),
                     name.Name, name.FormulaTokens, name.FormulaExtraBytes, name.Comment, name.RecordOffset, name.PayloadLength) { FormulaText = name.FormulaText }).ToArray();
-            if (!XlsbDefinedNameProjector.Matches(definedNames, expected)) {
+            if (!XlsbDefinedNameProjector.Matches(definedNames, expected, document.NativeXlsbPreservation.ReverseRenames(document))) {
                 throw new NotSupportedException("Native XLSB rewriting preserves but cannot modify workbook defined names. Save that change as .xlsx.");
             }
         }

@@ -1,46 +1,42 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Xlsb.Model;
 using System.Globalization;
 
 namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects and compares classic XLSB workbook protection.</summary>
     internal static class XlsbWorkbookProtectionProjector {
-        internal static void Apply(ExcelDocument document, XlsbWorkbookProtection source) {
-            ArgumentNullException.ThrowIfNull(document);
-            ArgumentNullException.ThrowIfNull(source);
+        internal const string ElementName = "workbookProtection";
+
+        internal static void Apply(OfficeXmlNode workbook, XlsbWorkbookProtection source) {
             if (source.IsEmpty) return;
 
-            var protection = new WorkbookProtection {
-                LockStructure = source.LockStructure,
-                LockWindows = source.LockWindows,
-                LockRevision = source.LockRevision
-            };
+            OfficeXmlNode protection = XlsbWorkbookMarkup.Add(workbook, ElementName);
+            protection.SetBooleanAttribute("lockStructure", source.LockStructure);
+            protection.SetBooleanAttribute("lockWindows", source.LockWindows);
+            protection.SetBooleanAttribute("lockRevision", source.LockRevision);
             if (source.WorkbookPassword != 0) {
-                protection.WorkbookPassword = source.WorkbookPassword.ToString("X4", CultureInfo.InvariantCulture);
+                protection.SetAttribute("workbookPassword", source.WorkbookPassword.ToString("X4", CultureInfo.InvariantCulture));
             }
             if (source.RevisionsPassword != 0) {
-                protection.RevisionsPassword = source.RevisionsPassword.ToString("X4", CultureInfo.InvariantCulture);
+                protection.SetAttribute("revisionsPassword", source.RevisionsPassword.ToString("X4", CultureInfo.InvariantCulture));
             }
-            OpenXmlWorkbookElementOrder.InsertInOrder(document.WorkbookRoot, protection);
         }
 
-        internal static bool Matches(WorkbookProtection? actual, XlsbWorkbookProtection? expected) {
-            if (expected?.IsEmpty == true && actual == null) return true;
-            if (actual == null || expected == null || actual.HasChildren) return actual == null && expected == null;
-            if (actual.GetAttributes().Any(attribute =>
-                    !string.IsNullOrEmpty(attribute.NamespaceUri)
-                    || !IsSupportedAttribute(attribute.LocalName))) {
-                return false;
-            }
+        internal static bool Matches(OfficeXmlNode actual, XlsbWorkbookProtection? expected) {
+            if (expected?.IsEmpty == true && actual.IsNone) return true;
+            if (actual.IsNone || expected == null) return actual.IsNone && expected == null;
+            if (actual.FirstChild.Exists || UnsupportedAttribute(actual) != null) return false;
 
-            return TryParsePassword(actual.WorkbookPassword?.Value, out ushort workbookPassword)
-                && TryParsePassword(actual.RevisionsPassword?.Value, out ushort revisionsPassword)
+            return TryParsePassword(actual.Attribute("workbookPassword"), out ushort workbookPassword)
+                && TryParsePassword(actual.Attribute("revisionsPassword"), out ushort revisionsPassword)
                 && workbookPassword == expected.WorkbookPassword
                 && revisionsPassword == expected.RevisionsPassword
-                && (actual.LockStructure?.Value ?? false) == expected.LockStructure
-                && (actual.LockWindows?.Value ?? false) == expected.LockWindows
-                && (actual.LockRevision?.Value ?? false) == expected.LockRevision;
+                && ReadLock(actual, "lockStructure") == expected.LockStructure
+                && ReadLock(actual, "lockWindows") == expected.LockWindows
+                && ReadLock(actual, "lockRevision") == expected.LockRevision;
         }
+
+        internal static bool ReadLock(OfficeXmlNode protection, string name) =>
+            XlsbWorkbookMarkup.ReadBoolean(protection, name) == true;
 
         internal static bool TryParsePassword(string? value, out ushort password) {
             password = 0;
@@ -48,11 +44,14 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 || (value!.Length <= 4 && ushort.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out password));
         }
 
-        private static bool IsSupportedAttribute(string localName) =>
-            localName == "workbookPassword"
-            || localName == "revisionsPassword"
-            || localName == "lockStructure"
-            || localName == "lockWindows"
-            || localName == "lockRevision";
+        internal static string? UnsupportedAttribute(OfficeXmlNode protection) {
+            foreach (OfficeXmlAttribute attribute in protection.Attributes()) {
+                if (attribute.NamespaceUri.Length != 0 || attribute.LocalName is not
+                    ("workbookPassword" or "revisionsPassword" or "lockStructure" or "lockWindows" or "lockRevision")) {
+                    return attribute.LocalName;
+                }
+            }
+            return null;
+        }
     }
 }

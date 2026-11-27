@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.Xlsb.Write;
 
 internal static partial class XlsbNativePackageWriter {
     private static byte[] RewriteCalculationProperties(ExcelDocument document, XlsbWorkbook source, byte[] original, long maximumBytes) {
-        var properties = document.WorkbookRoot.CalculationProperties;
+        var properties = XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbCalculationPropertiesProjector.ElementName);
         if (XlsbCalculationPropertiesProjector.Matches(properties, source.CalculationProperties)) return original;
         using var input = new MemoryStream(original); var records = XlsbRecordReader.ReadAll(input);
         using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes); bool written = false;

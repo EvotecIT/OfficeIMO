@@ -1,83 +1,79 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Xlsb.Model;
 
 namespace OfficeIMO.Excel.Xlsb.Projection {
-    /// <summary>Projects and compares workbook calculation properties.</summary>
+    /// <summary>Projects and compares the SpreadsheetML representation of BrtCalcProp.</summary>
     internal static class XlsbCalculationPropertiesProjector {
-        internal static void Apply(ExcelDocument document, XlsbCalculationProperties source) {
-            ArgumentNullException.ThrowIfNull(document);
-            ArgumentNullException.ThrowIfNull(source);
-            CalculationProperties properties = Create(source);
-            OpenXmlWorkbookElementOrder.InsertInOrder(document.WorkbookRoot, properties);
+        internal const string ElementName = "calcPr";
+        private static readonly string[] AttributeNames = {
+            "calcId", "calcMode", "fullCalcOnLoad", "refMode", "iterate", "iterateCount",
+            "iterateDelta", "fullPrecision", "calcCompleted", "calcOnSave", "concurrentCalc",
+            "concurrentManualCount", "forceFullCalc"
+        };
+
+        internal static void Apply(OfficeXmlNode workbook, XlsbCalculationProperties source) {
+            OfficeXmlNode properties = XlsbWorkbookMarkup.Add(workbook, ElementName);
+            properties.SetUInt32Attribute("calcId", source.CalculationId);
+            properties.SetAttribute("calcMode", source.CalculationMode switch { 0 => "manual", 2 => "autoNoTable", _ => "auto" });
+            properties.SetBooleanAttribute("fullCalcOnLoad", source.FullCalculationOnLoad);
+            properties.SetAttribute("refMode", source.UsesA1References ? "A1" : "R1C1");
+            properties.SetBooleanAttribute("iterate", source.IterationEnabled);
+            properties.SetUInt32Attribute("iterateCount", source.IterationCount);
+            properties.SetDoubleAttribute("iterateDelta", source.IterationDelta);
+            properties.SetBooleanAttribute("fullPrecision", source.FullPrecision);
+            properties.SetBooleanAttribute("calcCompleted", source.CalculationCompleted);
+            properties.SetBooleanAttribute("calcOnSave", source.CalculationOnSave);
+            properties.SetBooleanAttribute("concurrentCalc", source.ConcurrentCalculation);
+            properties.SetBooleanAttribute("forceFullCalc", source.ForceFullCalculation);
+            if (source.HasManualConcurrentCount) properties.SetUInt32Attribute("concurrentManualCount", checked((uint)source.ConcurrentThreadCount));
         }
 
-        internal static bool Matches(CalculationProperties? actual, XlsbCalculationProperties? expected) {
-            if (actual == null || expected == null) return actual == null && expected == null;
-            if (actual.HasChildren || actual.GetAttributes().Any(attribute =>
-                    !string.IsNullOrEmpty(attribute.NamespaceUri)
-                    || !IsSupportedAttribute(attribute.LocalName))) {
-                return false;
-            }
+        internal static bool Matches(OfficeXmlNode actual, XlsbCalculationProperties? expected) {
+            if (actual.IsNone || expected == null) return actual.IsNone && expected == null;
+            if (actual.FirstChild.Exists || UnsupportedAttribute(actual) != null) return false;
 
-            return (actual.CalculationId?.Value ?? 0U) == expected.CalculationId
-                && ToCalculationMode(actual.CalculationMode?.Value ?? CalculateModeValues.Auto) == expected.CalculationMode
-                && (actual.FullCalculationOnLoad?.Value ?? false) == expected.FullCalculationOnLoad
-                && (actual.ReferenceMode?.Value != ReferenceModeValues.R1C1) == expected.UsesA1References
-                && (actual.Iterate?.Value ?? false) == expected.IterationEnabled
-                && (actual.IterateCount?.Value ?? 100U) == expected.IterationCount
-                && (actual.IterateDelta?.Value ?? 0.001D).Equals(expected.IterationDelta)
-                && (actual.FullPrecision?.Value ?? true) == expected.FullPrecision
-                && (actual.CalculationCompleted?.Value ?? true) == expected.CalculationCompleted
-                && (actual.CalculationOnSave?.Value ?? true) == expected.CalculationOnSave
-                && (actual.ConcurrentCalculation?.Value ?? true) == expected.ConcurrentCalculation
-                && MatchesConcurrentCount(actual.ConcurrentManualCount?.Value, expected)
-                && (actual.ForceFullCalculation?.Value ?? false) == expected.ForceFullCalculation;
+            XlsbCalculationProperties current = Read(actual);
+            return current.CalculationId == expected.CalculationId
+                && current.CalculationMode == expected.CalculationMode
+                && current.IterationCount == expected.IterationCount
+                && current.IterationDelta.Equals(expected.IterationDelta)
+                && current.Flags == (expected.Flags & 0x01FF)
+                && (!expected.HasManualConcurrentCount || current.ConcurrentThreadCount == expected.ConcurrentThreadCount);
         }
 
-        private static CalculationProperties Create(XlsbCalculationProperties source) {
-            var properties = new CalculationProperties {
-                CalculationId = source.CalculationId,
-                CalculationMode = source.CalculationMode == 0U
-                    ? CalculateModeValues.Manual
-                    : source.CalculationMode == 2U ? CalculateModeValues.AutoNoTable : CalculateModeValues.Auto,
-                FullCalculationOnLoad = source.FullCalculationOnLoad,
-                ReferenceMode = source.UsesA1References ? ReferenceModeValues.A1 : ReferenceModeValues.R1C1,
-                Iterate = source.IterationEnabled,
-                IterateCount = source.IterationCount,
-                IterateDelta = source.IterationDelta,
-                FullPrecision = source.FullPrecision,
-                CalculationCompleted = source.CalculationCompleted,
-                CalculationOnSave = source.CalculationOnSave,
-                ConcurrentCalculation = source.ConcurrentCalculation,
-                ForceFullCalculation = source.ForceFullCalculation
+        internal static string? UnsupportedAttribute(OfficeXmlNode properties) =>
+            XlsbWorkbookMarkup.UnsupportedAttribute(properties, AttributeNames);
+
+        /// <summary>Reads the BIFF12 fields with the SpreadsheetML defaults for omitted attributes.</summary>
+        internal static XlsbCalculationProperties Read(OfficeXmlNode properties) {
+            uint mode = properties.Attribute("calcMode") switch {
+                null or "auto" => 1U,
+                "manual" => 0U,
+                "autoNoTable" => 2U,
+                string value => throw new NotSupportedException($"Native XLSB generation cannot encode calculation mode '{value}'.")
             };
-            if (source.HasManualConcurrentCount) {
-                properties.ConcurrentManualCount = checked((uint)source.ConcurrentThreadCount);
+            bool a1 = properties.Attribute("refMode") switch {
+                null or "A1" => true,
+                "R1C1" => false,
+                string value => throw new NotSupportedException($"Native XLSB generation cannot encode reference mode '{value}'.")
+            };
+
+            uint? manualCount = XlsbWorkbookMarkup.ReadUInt32(properties, "concurrentManualCount");
+            ushort flags = (ushort)((XlsbWorkbookMarkup.ReadBoolean(properties, "fullCalcOnLoad") == true ? 0x0001 : 0)
+                | (a1 ? 0x0002 : 0)
+                | (XlsbWorkbookMarkup.ReadBoolean(properties, "iterate") == true ? 0x0004 : 0)
+                | (XlsbWorkbookMarkup.ReadBoolean(properties, "fullPrecision") == false ? 0 : 0x0008)
+                | (XlsbWorkbookMarkup.ReadBoolean(properties, "calcCompleted") == false ? 0x0010 : 0)
+                | (XlsbWorkbookMarkup.ReadBoolean(properties, "calcOnSave") == false ? 0 : 0x0020)
+                | (XlsbWorkbookMarkup.ReadBoolean(properties, "concurrentCalc") == false ? 0 : 0x0040)
+                | (manualCount.HasValue ? 0x0080 : 0)
+                | (XlsbWorkbookMarkup.ReadBoolean(properties, "forceFullCalc") == true ? 0x0100 : 0));
+            if (manualCount > int.MaxValue) {
+                throw new NotSupportedException("Native XLSB generation requires concurrentManualCount from 1 through 1024 with concurrent calculation enabled.");
             }
-            return properties;
+
+            double delta = properties.Attribute("iterateDelta") is string valueText ? System.Xml.XmlConvert.ToDouble(valueText) : 0.001D;
+            return new XlsbCalculationProperties(XlsbWorkbookMarkup.ReadUInt32(properties, "calcId") ?? 0U, mode,
+                XlsbWorkbookMarkup.ReadUInt32(properties, "iterateCount") ?? 100U, delta, (int)(manualCount ?? 1U), flags);
         }
-
-        private static bool MatchesConcurrentCount(uint? actual, XlsbCalculationProperties expected) =>
-            expected.HasManualConcurrentCount
-                ? actual.HasValue && actual.Value == checked((uint)expected.ConcurrentThreadCount)
-                : !actual.HasValue;
-
-        private static uint ToCalculationMode(CalculateModeValues mode) =>
-            mode == CalculateModeValues.Manual ? 0U : mode == CalculateModeValues.AutoNoTable ? 2U : 1U;
-
-        private static bool IsSupportedAttribute(string localName) =>
-            localName == "calcId"
-            || localName == "calcMode"
-            || localName == "fullCalcOnLoad"
-            || localName == "refMode"
-            || localName == "iterate"
-            || localName == "iterateCount"
-            || localName == "iterateDelta"
-            || localName == "fullPrecision"
-            || localName == "calcCompleted"
-            || localName == "calcOnSave"
-            || localName == "concurrentCalc"
-            || localName == "concurrentManualCount"
-            || localName == "forceFullCalc";
     }
 }

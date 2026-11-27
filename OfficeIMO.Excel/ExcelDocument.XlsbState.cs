@@ -280,7 +280,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void RestoreNativeXlsbProjectionIdentity(XlsbWorkbook workbook) {
-            XlsbDefinedNameProjector.SynchronizeExisting(this, workbook.DefinedNames);
+            XlsbDefinedNameProjector.SynchronizeExisting(XlsbWorkbookMarkup.Root(this), workbook.DefinedNames);
             if (workbook.VbaProjectPartName != null && WorkbookPartRoot.VbaProjectPart != null) {
                 using var input = new MemoryStream(workbook.RelatedParts[workbook.VbaProjectPartName].Bytes, writable: false);
                 WorkbookPartRoot.VbaProjectPart.FeedData(input);

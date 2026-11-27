@@ -1,8 +1,9 @@
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Model;
+using OfficeIMO.Excel.Xlsb.Projection;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Excel.Xlsb.Write;
@@ -15,7 +16,7 @@ internal sealed class XlsbSheetStructure {
     private readonly XlsbWorkbook _source;
     private readonly uint? _activeTab;
     private readonly uint? _firstSheet;
-    private readonly BookViews? _views;
+    private readonly OfficeXmlNode _views;
     internal IReadOnlyList<ExcelLegacySheetBindings.Binding> Bindings { get; }
     internal Dictionary<string, string> PartNames { get; } = new(StringComparer.Ordinal);
     internal Dictionary<string, string> NewCodeNames { get; } = new(StringComparer.Ordinal);
@@ -26,10 +27,10 @@ internal sealed class XlsbSheetStructure {
         _source = source; Bindings = document.NativeXlsbPreservation.ReadCurrent(document);
         // The workbook view's active and first tab, set by activation or by hiding the active sheet, are written over
         // the source view record; other view settings keep their source values.
-        _views = document.WorkbookRoot.GetFirstChild<BookViews>();
-        WorkbookView? view = _views?.GetFirstChild<WorkbookView>();
-        _activeTab = view?.ActiveTab?.Value;
-        _firstSheet = view?.FirstSheet?.Value;
+        _views = XlsbWorkbookMarkup.Child(XlsbWorkbookMarkup.Root(document), XlsbWorkbookViewWriter.ElementName);
+        OfficeXmlNode view = _views.Child(OfficeXmlNamespaces.SpreadsheetML, "workbookView");
+        _activeTab = XlsbWorkbookMarkup.ReadUInt32(view, "activeTab");
+        _firstSheet = XlsbWorkbookMarkup.ReadUInt32(view, "firstSheet");
         if (Bindings.Count == 0 || Bindings.Count > 32767 || Bindings.Select(binding => binding.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != Bindings.Count)
             throw new NotSupportedException("Native XLSB requires a nonempty collection of uniquely named sheets.");
         Changed = _activeTab.HasValue || _firstSheet.HasValue || Bindings.Count != source.Sheets.Count || Bindings.Any(binding => binding.Original == null || binding.Original.NativeIndex != binding.Index
@@ -108,7 +109,7 @@ internal sealed class XlsbSheetStructure {
         int bookViews = 0;
         foreach (var record in records) {
             // BOOKVIEWS is optional and precedes the sheet bundles; add it when only the document has a view.
-            if (record.Type == 143 && bookViews == 0 && _views != null && (_activeTab.HasValue || _firstSheet.HasValue)) {
+            if (record.Type == 143 && bookViews == 0 && _views.Exists && (_activeTab.HasValue || _firstSheet.HasValue)) {
                 XlsbWorkbookViewWriter.Write(output, _views, bundles.Count);
                 bookViews++;
             }

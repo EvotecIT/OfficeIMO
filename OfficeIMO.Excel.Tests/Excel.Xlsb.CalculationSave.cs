@@ -1,13 +1,50 @@
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Projection;
+using OfficeIMO.Excel.Xlsb.Write;
+using OfficeIMO.OpenXml.Internal;
 using System.IO.Compression;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed class ExcelXlsbCalculationSaveTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Workbook_calculation_writer_ignores_settings_inside_extension_markup(bool hasDirectSettings) {
+        string direct = hasDirectSettings ? """<calcPr calcId="42"/>""" : string.Empty;
+        byte[] markup = Encoding.UTF8.GetBytes($"""
+        <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                  xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main">
+          <mc:AlternateContent>
+            <mc:Choice Requires="x14"><calcPr calcMode="invalid-choice"/></mc:Choice>
+            <mc:Fallback><calcPr calcMode="invalid-fallback"/></mc:Fallback>
+          </mc:AlternateContent>
+          {direct}
+          <extLst><ext uri="urn:example"><calcPr calcMode="invalid-extension"/></ext></extLst>
+        </workbook>
+        """);
+        OfficeXmlTree tree = OfficeXmlTree.Parse(markup, markup.Length, new OfficeXmlNamespaces.Table());
+        var workbook = new OfficeXmlNode(tree, tree.Root);
+        using var output = new MemoryStream();
+        XlsbCalculationPropertiesWriter.Write(output,
+            XlsbWorkbookMarkup.Child(workbook, XlsbCalculationPropertiesProjector.ElementName));
+        output.Position = 0;
+        IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(output);
+        if (hasDirectSettings) {
+            XlsbRecord record = Assert.Single(records);
+            Assert.Equal(157, record.Type);
+            Assert.Equal(42, record.Data[0]);
+        } else {
+            Assert.Empty(records);
+        }
+    }
+
     [Theory]
     [InlineData("evaluate", false)]
     [InlineData("clear", false)]
