@@ -583,7 +583,6 @@ namespace OfficeIMO.Excel {
 
     /// <summary>The workbook-level parts formulas read from the package the workbook loaded.</summary>
     internal sealed class ExcelXmlFormulaWorkbookModel : ExcelFormulaWorkbookModel {
-        private const string WorksheetRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "worksheet";
         private const string PivotTableRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "pivotTable";
         private const string SharedStringsRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "sharedStrings";
         private readonly ExcelDocument _document;
@@ -732,32 +731,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>The tables of a worksheet, read from its table parts.</summary>
-        internal List<ExcelFormulaTable> ReadTables(ExcelDeferredSheet sheet) => ReadTableParts(sheet).ConvertAll(table => table.ToFormulaTable());
-
-        private readonly Dictionary<ExcelDeferredSheet, List<ExcelTablePart>> _tableParts = new();
-
-        /// <summary>The table parts of a worksheet in the order of its relationships, read once.</summary>
-        internal List<ExcelTablePart> ReadTableParts(ExcelDeferredSheet sheet) {
-            lock (_gate) {
-                if (_tableParts.TryGetValue(sheet, out List<ExcelTablePart>? cached)) return cached;
-                using var source = new MemoryStream(PackageBytes, writable: false);
-                using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
-                List<ExcelTablePart> tables = ExcelTablePart.ReadSheetTables(package, sheet.PartName);
-                _tableParts.Add(sheet, tables);
-                return tables;
-            }
-        }
-
-        /// <summary>The relationship ids of the workbook's worksheet parts, in the order the workbook part lists them.</summary>
-        internal List<string> WorksheetRelationshipOrder() {
-            var ids = new List<string>();
-            using var source = new MemoryStream(PackageBytes, writable: false);
-            using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);
-            foreach (OfficeOpcRelationship relationship in package.GetRelationships(_workbook.WorkbookPartName)) {
-                if (string.Equals(relationship.Type, WorksheetRelationshipType, StringComparison.Ordinal) && !relationship.IsExternal) ids.Add(relationship.Id);
-            }
-            return ids;
-        }
+        internal List<ExcelFormulaTable> ReadTables(ExcelDeferredSheet sheet) =>
+            (_document.TryGetDeferredTableParts(sheet) ?? new List<ExcelTablePart>()).ConvertAll(table => table.ToFormulaTable());
     }
 
     /// <summary>Table helpers shared by the formula models.</summary>
