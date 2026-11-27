@@ -122,19 +122,19 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static IEnumerable<OfficeXmlNode> EnumerateRuns(OfficeXmlNode element) {
-            if (element.IsW("r")) yield return element;
-            foreach (OfficeXmlNode descendant in element.DescendantElements(WordXml.W, "r")) yield return descendant;
+            if (element.IsW("r") && element.IsModelElement()) yield return element;
+            foreach (OfficeXmlNode descendant in element.ModelDescendants("r")) yield return descendant;
         }
 
         private static void RestoreDeletedText(OfficeXmlNode element) {
-            foreach (OfficeXmlNode deleted in element.DescendantElements(WordXml.W, "delText").ToArray()) {
+            foreach (OfficeXmlNode deleted in element.ModelDescendants("delText").ToArray()) {
                 OfficeXmlNode text = deleted.Parent.CreateElement(WordXml.W, "t");
                 text.SetInnerText(deleted.InnerText);
                 if (deleted.Attribute(WordXml.Xml, "space") is { } space) text.SetAttribute(WordXml.Xml, "space", space);
                 deleted.InsertAfterSelf(text);
                 deleted.Remove();
             }
-            if (element.IsW("delText")) {
+            if (element.IsW("delText") && element.IsModelElement()) {
                 // DeletedText is normally nested in a run; this guard keeps malformed producer input deterministic.
                 element.SetInnerText(element.InnerText);
             }

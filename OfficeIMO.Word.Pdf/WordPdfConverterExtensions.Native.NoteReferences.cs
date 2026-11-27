@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.Pdf {
             var pageFootnoteTokens = new HashSet<int>();
             var sourceRuns = new Dictionary<int, OfficeXmlNode>();
             int scannedRuns = 0;
-            foreach (OfficeXmlNode run in paragraph.Node().Descendants(WordXml.W, "r")) {
+            foreach (OfficeXmlNode run in paragraph.Node().ModelDescendants("r")) {
                 if (++scannedRuns > 1_000_000) throw new InvalidDataException("The Word paragraph exceeds the native note-reference scan limit.");
                 foreach (OfficeXmlNode reference in run.WElements("footnoteReference")) {
                     if (WordXml.ParseInt64(reference.WAttr("id")) is not long id) continue;

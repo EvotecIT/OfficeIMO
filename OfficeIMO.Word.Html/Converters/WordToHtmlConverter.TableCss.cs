@@ -27,11 +27,12 @@ namespace OfficeIMO.Word.Html {
                         $"The Word table-cell content exceeds the {maxElements}-element HTML conversion limit.");
                 }
                 OfficeXmlNode child = pending.Pop();
-                if (child.IsW("p")) {
+                // A w:p or w:tbl held untyped, inside unknown markup, has no model object; its children are read like a wrapper's.
+                if (child.IsW("p") && child.IsModelElement()) {
                     foreach (WordParagraph converted in document.ConvertParagraphNodeToWordParagraphs(child)) {
                         yield return converted;
                     }
-                } else if (child.IsW("tbl")) {
+                } else if (child.IsW("tbl") && child.IsModelElement()) {
                     yield return WordConverterNodes.CreateTable(document, child);
                 } else if (!child.IsW("tcPr")) {
                     // Leaf elements hold no children, so only wrappers (content controls, custom XML,

@@ -185,7 +185,7 @@ public static partial class WordPdfConverterExtensions {
         OfficeXmlNode content = box.ContentNode();
         // Nested boxes keep the bounded flow; a frame lays out ordinary paragraphs only.
         if (drawing.IsNone || content.IsNone || content.HasDescendant(WordXml.W, "txbxContent") ||
-            content.HasDescendant(WordXml.W, "tbl") ||
+            content.ModelDescendants("tbl").Any() ||
             properties.Child(WordXml.A, "custGeom").Exists ||
             properties.Child(WordXml.A, "prstGeom") is { Exists: true } geometry &&
                 !string.Equals(geometry.Attr("prst"), "rect", StringComparison.Ordinal) ||

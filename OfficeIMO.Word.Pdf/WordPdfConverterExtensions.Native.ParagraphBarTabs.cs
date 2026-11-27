@@ -51,7 +51,7 @@ public static partial class WordPdfConverterExtensions {
                     options, source, identity: root);
                 return;
             }
-            foreach (OfficeXmlNode sourceParagraph in root.DescendantElements(WordXml.W, "p")) {
+            foreach (OfficeXmlNode sourceParagraph in root.ModelDescendants("p")) {
                 WordParagraph paragraph = story.Document.ParagraphView(sourceParagraph);
                 if (!HasNativeParagraphBarTabs(paragraph)) continue;
                 RecordNativeParagraphBarTabDiagnostics(paragraph,
@@ -69,7 +69,7 @@ public static partial class WordPdfConverterExtensions {
         RecordNativeParagraphBarTabDiagnostics(paragraph, options, source);
         // Table text keeps the cell's paragraph metadata, but flattens text-box
         // contents rather than projecting their inner paragraph decorations.
-        foreach (OfficeXmlNode inner in paragraph.Node().DescendantElements(WordXml.W, "p"))
+        foreach (OfficeXmlNode inner in paragraph.Node().ModelDescendants("p"))
             RecordNativeParagraphBarTabDiagnostics(paragraph._document.ParagraphView(inner),
                 options, source + " text box", omitted: true);
     }

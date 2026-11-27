@@ -5,7 +5,7 @@ namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {
     private static bool RequiresNativeRunningStory(WordHeaderFooter? story) => story != null &&
-        (story.Node().Elements().Any(element => element.IsW("tbl") || element.HasDescendant(WordXml.W, "tbl")) ||
+        (story.Node().Elements().Any(element => element.IsW("tbl") || element.ModelDescendants("tbl").Any()) ||
         EnumerateNativeRunningFootnoteReferences(story).Any() ||
         NativeRunningStoryUsesSectionPageCount(story) ||
         story.Node().Elements().Any(element => element.DescendantsSkippingExtLst(WordXml.A, "graphicData")
@@ -15,7 +15,7 @@ public static partial class WordPdfConverterExtensions {
     private static IEnumerable<OfficeXmlNode> EnumerateNativeRunningStoryParagraphs(WordHeaderFooter story) {
         foreach (OfficeXmlNode element in story.Node().Elements()) {
             if (element.IsW("p")) yield return element;
-            foreach (OfficeXmlNode paragraph in element.Descendants(WordXml.W, "p")) yield return paragraph;
+            foreach (OfficeXmlNode paragraph in element.ModelDescendants("p")) yield return paragraph;
         }
     }
 
@@ -173,7 +173,7 @@ public static partial class WordPdfConverterExtensions {
             OfficeXmlNode root = story?.Node() ?? default;
             if (root.IsNone) return;
             int groups = 0;
-            foreach (OfficeXmlNode element in root.Descendants(WordXml.W, "p")) {
+            foreach (OfficeXmlNode element in root.ModelDescendants("p")) {
                 WordParagraph paragraph = story!.Document.ParagraphView(element);
                 // The groups the rich route would paint; the selected branch holds one copy of each.
                 groups += EnumerateNativeVisibleShapeGroups(paragraph, GetNativeRuns(paragraph)).Count();
