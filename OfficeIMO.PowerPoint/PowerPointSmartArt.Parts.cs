@@ -77,8 +77,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static XDocument LoadPartXml(PowerPointPartRef part, LoadOptions options = LoadOptions.None) {
-            using var stream = new MemoryStream(ReadPartBytes(part), writable: false);
+            PowerPointPartRef current = part.Current;
+            if (current.IsSdk) return LoadSdkPartXml(current.SdkPart!, options);
+            using var stream = new MemoryStream(ReadPartBytes(current), writable: false);
             return PowerPointXmlReader.LoadPackagePartXml(stream, options);
+        }
+
+        /// <summary>Writes the document as the part's content: into the package's part, or straight into the SDK's.</summary>
+        private static void WritePartXml(PowerPointPartRef part, XDocument document) {
+            PowerPointPartRef current = part.Current;
+            if (!current.IsSdk && current.Document?.EditablePackage != null) {
+                WritePartBytes(current, SerializeXml(document));
+                return;
+            }
+            SaveSdkPartXml(OpenSdkPart(part) ?? throw new InvalidOperationException("The SmartArt diagram part can't be edited."), document);
         }
 
         private static byte[] SerializeXml(XDocument document) {

@@ -589,7 +589,6 @@ namespace OfficeIMO.PowerPoint {
 
         private static XDocument LoadDiagramXDocument(PowerPointPartRef dataPart) => LoadPartXml(dataPart);
 
-        private static void SaveDiagramData(PowerPointPartRef dataPart, XDocument xdoc) =>
-            WritePartBytes(dataPart, SerializeXml(xdoc));
+        private static void SaveDiagramData(PowerPointPartRef dataPart, XDocument xdoc) => WritePartXml(dataPart, xdoc);
     }
 }

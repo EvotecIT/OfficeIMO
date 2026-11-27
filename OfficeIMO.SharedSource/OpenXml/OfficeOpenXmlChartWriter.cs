@@ -102,8 +102,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 AppendSharedChartContent(replacement, data, defaultKind);
                 PreserveSharedChartFormatting(
                     plotArea, replacement, preservedSeriesIndexes);
+                // The plot area's own fill (c:spPr) is not carried over: the SDK types it as a class the earlier
+                // filter didn't match, so data updates have always dropped it, and output stays as it was.
                 foreach (OfficeXmlNode child in plotArea.Children()) {
-                    if (child.Is(NsC, "dTable") || child.Is(NsC, "spPr") || child.Is(NsC, "extLst")) {
+                    if (child.Is(NsC, "dTable") || child.Is(NsC, "extLst")) {
                         replacement.Append(child.Clone());
                     }
                 }

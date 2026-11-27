@@ -25,6 +25,23 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>Parses an SDK part's XML straight from its stream.</summary>
+        private static System.Xml.Linq.XDocument LoadSdkPartXml(object part, System.Xml.Linq.LoadOptions options) {
+            Stream stream;
+            try {
+                stream = ((OpenXmlPart)part).GetStream(FileMode.Open, FileAccess.Read);
+            } catch (OpenXmlPackageException exception) {
+                throw new InvalidDataException(exception.Message, exception);
+            }
+            using (stream) return PowerPointXmlReader.LoadPackagePartXml(stream, options);
+        }
+
+        /// <summary>Saves the document straight into an SDK part's stream.</summary>
+        private static void SaveSdkPartXml(object part, System.Xml.Linq.XDocument document) {
+            using Stream stream = ((OpenXmlPart)part).GetStream(FileMode.Create, FileAccess.Write);
+            document.Save(stream);
+        }
+
         private static void WriteSdkPartBytes(object part, byte[] bytes) {
             using Stream stream = ((OpenXmlPart)part).GetStream(FileMode.Create, FileAccess.Write);
             stream.Write(bytes, 0, bytes.Length);
