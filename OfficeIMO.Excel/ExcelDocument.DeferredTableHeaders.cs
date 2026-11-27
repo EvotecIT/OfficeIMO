@@ -236,9 +236,13 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Whether the UTF-8 bytes may contain the text, ignoring case: an ASCII name is searched for in the bytes, any
-        /// other in the decoded text.
+        /// other in the decoded text, and markup holding a character reference always may.
         /// </summary>
         private static bool MayContain(byte[] bytes, int length, string text) {
+            // A character reference can spell any part of the name, which only the parsed text shows.
+            for (int index = 0; index + 1 < length; index++) {
+                if (bytes[index] == (byte)'&' && bytes[index + 1] == (byte)'#') return true;
+            }
             foreach (char character in text) {
                 if (character > 0x7F) return Encoding.UTF8.GetString(bytes, 0, length).IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0;
             }

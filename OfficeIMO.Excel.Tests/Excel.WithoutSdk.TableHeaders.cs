@@ -72,6 +72,30 @@ namespace OfficeIMO.Tests {
             Assert.Contains("SUM(Orders[Total])", saved);
         }
 
+        [Fact]
+        public void AReferenceSpelledWithCharacterReferencesGoesThroughTheModel() {
+            // The worksheet spells the column in the formula with a character reference, so its bytes never hold the name.
+            byte[] source = RewriteWorksheet(CreateWorkbook(structuredReference: true), xml => xml.Replace("Orders[Amount]", "Orders[&#65;mount]"));
+            AssertSavesAsTheModel(source, sheet => sheet.Cell(2, 3).SetValue("Total"), expectOwned: false, out string saved);
+            Assert.Contains("SUM(Orders[Total])", saved);
+        }
+
+        private static byte[] RewriteWorksheet(byte[] package, Func<string, string> rewrite) {
+            using var stream = new MemoryStream();
+            stream.Write(package, 0, package.Length);
+            using (var archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Update, leaveOpen: true)) {
+                System.IO.Compression.ZipArchiveEntry entry = archive.Entries.Single(item => item.FullName.StartsWith("xl/worksheets/sheet", StringComparison.Ordinal));
+                string name = entry.FullName, text;
+                using (var reader = new StreamReader(entry.Open())) text = reader.ReadToEnd();
+                string rewritten = rewrite(text);
+                Assert.NotEqual(text, rewritten);
+                entry.Delete();
+                using var writer = new StreamWriter(archive.CreateEntry(name).Open(), new System.Text.UTF8Encoding(false));
+                writer.Write(rewritten);
+            }
+            return stream.ToArray();
+        }
+
         private static void AssertSavesAsTheModel(byte[] source, Action<ExcelSheet> edit, bool expectOwned, out string saved) {
             string expected = Save(source, edit, openSdkFirst: true, out _);
             saved = Save(source, edit, openSdkFirst: false, out bool owned);
@@ -85,8 +109,9 @@ namespace OfficeIMO.Tests {
                 // The model, opened without handing the package out, which would make the save repair it.
                 if (openSdkFirst) document.OpenDeferredSdk("comparison");
                 edit(document.Sheets[0]);
-                owned = !openSdkFirst && document.OpenXmlSdkFallbacks.Count == 0;
                 document.Save(output);
+                // The save may still hand the workbook to the model, so it counts too.
+                owned = !openSdkFirst && document.OpenXmlSdkFallbacks.Count == 0;
             }
             return Describe(output.ToArray());
         }
