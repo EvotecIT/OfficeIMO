@@ -31,7 +31,12 @@ if (args.Length > 0 && string.Equals(args[0], "--flows-ab", StringComparison.Ord
 
 if (args.Length > 0 && string.Equals(args[0], "--content-flows", StringComparison.OrdinalIgnoreCase)) {
     // --content-flows [rounds]: charts, SmartArt, layout and image export flows.
-    return PowerPointContentFlowBenchmarks.RunInterleaved(args.Length > 1 ? int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture) : 50);
+    int contentRounds = 50;
+    if (args.Length > 1 && (!int.TryParse(args[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out contentRounds) || contentRounds <= 0)) {
+        Console.Error.WriteLine("Usage: --content-flows [rounds], where rounds is a positive whole number (default 50).");
+        return 2;
+    }
+    return PowerPointContentFlowBenchmarks.RunInterleaved(contentRounds);
 }
 
 if (args.Length > 0 && string.Equals(args[0], "--probe",

@@ -23,10 +23,10 @@ namespace OfficeIMO.Tests {
             crossSheetDependent.DataType = CellValues.Number;
             crossSheetDependent.CellFormula!.CalculateCell = false;
             document.MarkFormulaSheetRecalculated(
-                sheet.WorksheetPart,
+                sheet.WorksheetPart.Uri,
                 document.CaptureFormulaInputMutationVersion());
             document.MarkFormulaSheetRecalculated(
-                crossSheet.WorksheetPart,
+                crossSheet.WorksheetPart.Uri,
                 document.CaptureFormulaInputMutationVersion());
 
             Assert.All(sheet.GetFormulaCells().Concat(crossSheet.GetFormulaCells()), baseline => {

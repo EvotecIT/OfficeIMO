@@ -317,8 +317,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ValidateEffectiveAxisScale(OfficeXmlNode scaling, double? minimum, double? maximum, bool? logScale, double? logBase) {
-            double? effectiveMinimum = minimum ?? scaling.Child(CNs, "min").DoubleAttribute("val");
-            double? effectiveMaximum = maximum ?? scaling.Child(CNs, "max").DoubleAttribute("val");
+            // A kept bound that can't be read throws, as the SDK's typed value did; a missing one is automatic.
+            double? effectiveMinimum = minimum ?? OfficeChartXml.DoubleVal(scaling.Child(CNs, "min"));
+            double? effectiveMaximum = maximum ?? OfficeChartXml.DoubleVal(scaling.Child(CNs, "max"));
             if (effectiveMinimum != null && effectiveMaximum != null && effectiveMinimum.Value >= effectiveMaximum.Value) {
                 throw new ArgumentException("Minimum must be less than maximum.");
             }

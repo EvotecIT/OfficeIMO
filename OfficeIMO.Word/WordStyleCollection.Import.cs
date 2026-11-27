@@ -66,8 +66,6 @@ public sealed partial class WordStyleCollection {
             plan.Select(styleIds);
             plan.Commit(source._wordprocessingDocument!.MainDocumentPart!, _document._wordprocessingDocument.MainDocumentPart!);
             _document.InvalidateBuiltInStyleIndex();
-            // Lists created after the import must not reuse the imported list definitions' identifiers.
-            WordListStyles.InitializeAbstractNumberId(_document._wordprocessingDocument);
         } else if (styleIds?.Any() == true) {
             throw new KeyNotFoundException("The source document defines no styles.");
         }

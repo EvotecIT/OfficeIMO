@@ -1,10 +1,9 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Excel.OpenXml;
 using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
-using A = DocumentFormat.OpenXml.Drawing;
-using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -12,14 +11,23 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed partial class ExcelImage {
         private readonly ExcelDrawingHandle _drawingHandle;
-        private Xdr.Picture _picture => (Xdr.Picture)_drawingHandle.Element;
-        private OpenXmlElement _anchor => _picture.Ancestors().First(element =>
-            element is Xdr.OneCellAnchor || element is Xdr.TwoCellAnchor || element is Xdr.AbsoluteAnchor);
-        private DrawingsPart _drawingsPart => _drawingHandle.Part;
+        /// <summary>The image's <c>xdr:pic</c> in the worksheet drawing.</summary>
+        private OfficeXmlNode PictureNode => _drawingHandle.Element;
+        /// <summary>The anchor (one-cell, two-cell or absolute) that holds the picture.</summary>
+        private OfficeXmlNode AnchorNode {
+            get {
+                for (var node = PictureNode.Parent; !node.IsNone; node = node.Parent) {
+                    if (node.Is(Xdr, "oneCellAnchor") || node.Is(Xdr, "twoCellAnchor") || node.Is(Xdr, "absoluteAnchor")) return node;
+                }
+                throw new InvalidOperationException("The picture is not in a drawing anchor.");
+            }
+        }
+        /// <summary>The worksheet drawing part that holds the picture.</summary>
+        private ExcelPartRef DrawingsPartRef => _drawingHandle.Part;
         private readonly ExcelDocument _document;
 
-        internal ExcelImage(Xdr.Picture picture, OpenXmlElement anchor, DrawingsPart drawingsPart, ExcelSheet sheet) {
-            ArgumentNullException.ThrowIfNull(anchor);
+        internal ExcelImage(OfficeXmlNode picture, OfficeXmlNode anchor, ExcelPartRef drawingsPart, ExcelSheet sheet) {
+            if (anchor.IsNone) throw new ArgumentNullException(nameof(anchor));
             _drawingHandle = new ExcelDrawingHandle(picture, drawingsPart, sheet);
             _document = sheet.Document;
         }
@@ -28,10 +36,11 @@ namespace OfficeIMO.Excel {
         /// Gets or sets the image drawing name.
         /// </summary>
         public string Name {
-            get => DrawingProperties?.Name?.Value ?? string.Empty;
+            get => DrawingProperties.Attribute("name") ?? string.Empty;
             set {
-                if (DrawingProperties != null) {
-                    DrawingProperties.Name = value ?? string.Empty;
+                OfficeXmlNode properties = DrawingProperties;
+                if (properties.Exists) {
+                    properties.SetAttribute("name", value ?? string.Empty);
                     Save();
                 }
             }
@@ -41,10 +50,11 @@ namespace OfficeIMO.Excel {
         /// Gets or sets the image title metadata.
         /// </summary>
         public string Title {
-            get => DrawingProperties?.Title?.Value ?? string.Empty;
+            get => DrawingProperties.Attribute("title") ?? string.Empty;
             set {
-                if (DrawingProperties != null) {
-                    DrawingProperties.Title = value ?? string.Empty;
+                OfficeXmlNode properties = DrawingProperties;
+                if (properties.Exists) {
+                    properties.SetAttribute("title", value ?? string.Empty);
                     Save();
                 }
             }
@@ -56,8 +66,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public int? TransparencyPercent {
             get {
-                int? amount = _picture.BlipFill?.Blip?
-                    .GetFirstChild<A.AlphaModulationFixed>()?.Amount?.Value;
+                int? amount = Blip.Child(A, "alphaModFix").Int32Attribute("amt");
                 return amount.HasValue
                     ? (int)Math.Round((100000 - amount.Value) / 1000D)
                     : null;
@@ -66,24 +75,21 @@ namespace OfficeIMO.Excel {
                 if (value is < 0 or > 100) {
                     throw new ArgumentOutOfRangeException(nameof(value), "Transparency must be between 0 and 100.");
                 }
-                A.Blip? blip = _picture.BlipFill?.Blip;
-                if (blip == null) return;
-                A.AlphaModulationFixed? alpha = blip.GetFirstChild<A.AlphaModulationFixed>();
+                OfficeXmlNode blip = Blip;
+                if (blip.IsNone) return;
+                OfficeXmlNode alpha = blip.Child(A, "alphaModFix");
                 if (!value.HasValue) {
-                    alpha?.Remove();
+                    if (alpha.Exists) alpha.Remove();
                     Save();
                     return;
                 }
-                foreach (OpenXmlElement transform in blip.ChildElements
-                             .Where(child => child.LocalName.StartsWith("alpha", StringComparison.Ordinal)).ToArray()) {
-                    transform.Remove();
+                foreach (OfficeXmlNode transform in blip.Children().ToList()) {
+                    if (transform.LocalName.StartsWith("alpha", StringComparison.Ordinal)) transform.Remove();
                 }
-                alpha = new A.AlphaModulationFixed {
-                    Amount = checked((int)Math.Round((100D - value.Value) * 1000D,
-                        MidpointRounding.AwayFromZero))
-                };
-                A.BlipExtensionList? extensions = blip.GetFirstChild<A.BlipExtensionList>();
-                if (extensions != null) blip.InsertBefore(alpha, extensions);
+                alpha = blip.New(A, "alphaModFix").Attr("amt", checked((int)Math.Round((100D - value.Value) * 1000D,
+                    MidpointRounding.AwayFromZero)));
+                OfficeXmlNode extensions = blip.Child(A, "extLst");
+                if (extensions.Exists) blip.InsertBefore(alpha, extensions);
                 else blip.Append(alpha);
                 Save();
             }
@@ -93,10 +99,11 @@ namespace OfficeIMO.Excel {
         /// Gets or sets the image alternative text description.
         /// </summary>
         public string Description {
-            get => DrawingProperties?.Description?.Value ?? string.Empty;
+            get => DrawingProperties.Attribute("descr") ?? string.Empty;
             set {
-                if (DrawingProperties != null) {
-                    DrawingProperties.Description = value ?? string.Empty;
+                OfficeXmlNode properties = DrawingProperties;
+                if (properties.Exists) {
+                    properties.SetAttribute("descr", value ?? string.Empty);
                     Save();
                 }
             }
@@ -105,12 +112,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets whether Excel should keep the picture aspect ratio locked.
         /// </summary>
-        public bool IsAspectRatioLocked {
-            get {
-                var locks = _picture.NonVisualPictureProperties?.NonVisualPictureDrawingProperties?.GetFirstChild<A.PictureLocks>();
-                return locks?.NoChangeAspect?.Value ?? false;
-            }
-        }
+        public bool IsAspectRatioLocked =>
+            PictureDrawingProperties.Child(A, "picLocks").BooleanAttribute("noChangeAspect") ?? false;
 
         /// <summary>
         /// Gets the 1-based row index where the image is anchored, when available.
@@ -145,18 +148,20 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets whether the image is positioned with a two-cell drawing anchor.
         /// </summary>
-        public bool HasTwoCellAnchor => _anchor is Xdr.TwoCellAnchor;
+        public bool HasTwoCellAnchor => AnchorNode.Is(Xdr, "twoCellAnchor");
 
         /// <summary>
         /// Gets whether the image is positioned with an absolute drawing anchor.
         /// </summary>
-        public bool HasAbsoluteAnchor => _anchor is Xdr.AbsoluteAnchor;
+        public bool HasAbsoluteAnchor => AnchorNode.Is(Xdr, "absoluteAnchor");
 
         internal ExcelImagePlacement Placement {
             get {
-                if (_anchor is not Xdr.TwoCellAnchor twoCell) return ExcelImagePlacement.FreeFloating;
-                if (twoCell.EditAs?.Value == Xdr.EditAsValues.OneCell) return ExcelImagePlacement.MoveOnly;
-                if (twoCell.EditAs?.Value == Xdr.EditAsValues.Absolute) return ExcelImagePlacement.FreeFloating;
+                OfficeXmlNode anchor = AnchorNode;
+                if (!anchor.Is(Xdr, "twoCellAnchor")) return ExcelImagePlacement.FreeFloating;
+                string? editAs = anchor.Attribute("editAs");
+                if (editAs == "oneCell") return ExcelImagePlacement.MoveOnly;
+                if (editAs == "absolute") return ExcelImagePlacement.FreeFloating;
                 return ExcelImagePlacement.MoveAndSize;
             }
         }
@@ -186,11 +191,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool TryGetAbsoluteAnchorBounds(out OfficeLength x, out OfficeLength y, out OfficeLength width, out OfficeLength height) {
             x = y = width = height = OfficeLength.Zero;
-            if (_anchor is not Xdr.AbsoluteAnchor absoluteAnchor) return false;
-            x = OfficeLength.Emus(absoluteAnchor.Position?.X?.Value ?? 0L);
-            y = OfficeLength.Emus(absoluteAnchor.Position?.Y?.Value ?? 0L);
-            width = OfficeLength.Emus(absoluteAnchor.Extent?.Cx?.Value ?? 0L);
-            height = OfficeLength.Emus(absoluteAnchor.Extent?.Cy?.Value ?? 0L);
+            OfficeXmlNode absoluteAnchor = AnchorNode;
+            if (!absoluteAnchor.Is(Xdr, "absoluteAnchor")) return false;
+            OfficeXmlNode position = absoluteAnchor.Child(Xdr, "pos");
+            OfficeXmlNode extent = absoluteAnchor.Child(Xdr, "ext");
+            x = OfficeLength.Emus(position.Int64Attribute("x") ?? 0L);
+            y = OfficeLength.Emus(position.Int64Attribute("y") ?? 0L);
+            width = OfficeLength.Emus(extent.Int64Attribute("cx") ?? 0L);
+            height = OfficeLength.Emus(extent.Int64Attribute("cy") ?? 0L);
             if (width <= OfficeLength.Zero || height <= OfficeLength.Zero) {
                 width = Width;
                 height = Height;
@@ -217,14 +225,16 @@ namespace OfficeIMO.Excel {
         internal ExcelImage SetNativeTwoCellEndingMarker(int toRow, int toColumn, OfficeLength toOffsetX, OfficeLength toOffsetY) {
             ArgumentOutOfRangeException.ThrowIfLessThan(toRow, 1);
             ArgumentOutOfRangeException.ThrowIfLessThan(toColumn, 1);
-            if (_anchor is not Xdr.TwoCellAnchor anchor || anchor.ToMarker == null) {
+            OfficeXmlNode anchor = AnchorNode;
+            OfficeXmlNode toMarker = anchor.Is(Xdr, "twoCellAnchor") ? anchor.Child(Xdr, "to") : default;
+            if (toMarker.IsNone) {
                 throw new InvalidOperationException("Only two-cell anchored images expose an ending marker.");
             }
 
-            anchor.ToMarker.RowId = new Xdr.RowId((toRow - 1).ToString(CultureInfo.InvariantCulture));
-            anchor.ToMarker.ColumnId = new Xdr.ColumnId((toColumn - 1).ToString(CultureInfo.InvariantCulture));
-            anchor.ToMarker.RowOffset = new Xdr.RowOffset(toOffsetY.ToEmus().ToString(CultureInfo.InvariantCulture));
-            anchor.ToMarker.ColumnOffset = new Xdr.ColumnOffset(toOffsetX.ToEmus().ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(toMarker, "row", (toRow - 1).ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(toMarker, "col", (toColumn - 1).ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(toMarker, "rowOff", toOffsetY.ToEmus().ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(toMarker, "colOff", toOffsetX.ToEmus().ToString(CultureInfo.InvariantCulture));
             Save();
             return this;
         }
@@ -232,77 +242,79 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the left crop ratio authored on the image, where 0 means no crop and 1 means the full width.
         /// </summary>
-        public double CropLeftRatio => GetCropRatio(CropRectangle?.Left?.Value);
+        public double CropLeftRatio => GetCropRatio(CropRectangle.Int32Attribute("l"));
 
         /// <summary>
         /// Gets the top crop ratio authored on the image, where 0 means no crop and 1 means the full height.
         /// </summary>
-        public double CropTopRatio => GetCropRatio(CropRectangle?.Top?.Value);
+        public double CropTopRatio => GetCropRatio(CropRectangle.Int32Attribute("t"));
 
         /// <summary>
         /// Gets the right crop ratio authored on the image, where 0 means no crop and 1 means the full width.
         /// </summary>
-        public double CropRightRatio => GetCropRatio(CropRectangle?.Right?.Value);
+        public double CropRightRatio => GetCropRatio(CropRectangle.Int32Attribute("r"));
 
         /// <summary>
         /// Gets the bottom crop ratio authored on the image, where 0 means no crop and 1 means the full height.
         /// </summary>
-        public double CropBottomRatio => GetCropRatio(CropRectangle?.Bottom?.Value);
+        public double CropBottomRatio => GetCropRatio(CropRectangle.Int32Attribute("b"));
 
         /// <summary>
         /// Gets or sets clockwise image rotation in degrees.
         /// </summary>
         public double RotationDegrees {
-            get => GetRotationDegrees(Transform?.Rotation?.Value);
+            get => GetRotationDegrees(Transform.Int32Attribute("rot"));
             set => SetRotation(value);
         }
 
         /// <summary>
         /// Gets whether the image has an authored horizontal flip transform.
         /// </summary>
-        public bool FlipHorizontal => Transform?.HorizontalFlip?.Value ?? false;
+        public bool FlipHorizontal => Transform.BooleanAttribute("flipH") ?? false;
 
         /// <summary>
         /// Gets whether the image has an authored vertical flip transform.
         /// </summary>
-        public bool FlipVertical => Transform?.VerticalFlip?.Value ?? false;
+        public bool FlipVertical => Transform.BooleanAttribute("flipV") ?? false;
 
         /// <summary>
         /// Gets this image anchor's zero-based order in the worksheet drawing layer.
         /// </summary>
-        public int DrawingOrder => GetDrawingOrder(_anchor, _drawingsPart);
+        public int DrawingOrder => GetDrawingOrder(AnchorNode, DrawingsPartRef);
 
         /// <summary>
         /// Gets the image content type, such as image/png or image/jpeg. An SVG picture reports its SVG, not the PNG fallback.
         /// </summary>
-        public string ContentType => ImagePart?.ContentType ?? string.Empty;
+        public string ContentType {
+            get {
+                ExcelPartRef imagePart = ImagePart;
+                return imagePart.IsNone ? string.Empty : imagePart.ContentType;
+            }
+        }
 
         /// <summary>
         /// Returns a copy of the image bytes from the worksheet drawing relationship. An SVG picture returns its SVG.
         /// </summary>
         public byte[] ToBytes() {
-            ImagePart? imagePart = ImagePart;
-            if (imagePart == null) {
+            ExcelPartRef imagePart = ImagePart;
+            if (imagePart.IsNone) {
                 return Array.Empty<byte>();
             }
 
-            using Stream source = imagePart.GetStream();
-            using var destination = new MemoryStream();
-            source.CopyTo(destination);
-            return destination.ToArray();
+            return imagePart.ReadAllBytes();
         }
 
         internal bool TryReadBytes(out byte[] bytes) =>
             TryReadBytes(ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes, out bytes);
 
         internal bool TryReadBytes(long remainingAggregateBytes, out byte[] bytes) {
-            ImagePart? imagePart = ImagePart;
-            if (imagePart == null) {
+            ExcelPartRef imagePart = ImagePart;
+            if (imagePart.IsNone) {
                 bytes = Array.Empty<byte>();
                 return false;
             }
 
-            using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+            using Stream source = imagePart.OpenRead();
             return ExcelImageExportLimits.TryReadSourceImageBytes(source, remainingAggregateBytes, out bytes);
         }
 
@@ -310,11 +322,12 @@ namespace OfficeIMO.Excel {
         /// Sets image title and description metadata.
         /// </summary>
         public ExcelImage SetAltText(string description, string? title = null) {
-            if (DrawingProperties != null) {
-                DrawingProperties.Description = description ?? string.Empty;
-                ExcelDrawingAccessibility.ClearDecorative(DrawingProperties);
+            OfficeXmlNode properties = DrawingProperties;
+            if (properties.Exists) {
+                properties.SetAttribute("descr", description ?? string.Empty);
+                ExcelDrawingAccessibility.ClearDecorative(properties);
                 if (title != null) {
-                    DrawingProperties.Title = title;
+                    properties.SetAttribute("title", title);
                 }
                 Save();
             }
@@ -330,8 +343,9 @@ namespace OfficeIMO.Excel {
         /// so Excel and accessibility checkers skip it.
         /// </summary>
         public ExcelImage Decorative() {
-            if (DrawingProperties != null) {
-                ExcelDrawingAccessibility.MarkDecorative(DrawingProperties);
+            OfficeXmlNode properties = DrawingProperties;
+            if (properties.Exists) {
+                ExcelDrawingAccessibility.MarkDecorative(properties);
                 Save();
             }
 
@@ -342,18 +356,17 @@ namespace OfficeIMO.Excel {
         /// Controls whether Excel should keep the picture aspect ratio locked.
         /// </summary>
         public ExcelImage LockAspectRatio(bool locked = true) {
-            var drawingProps = _picture.NonVisualPictureProperties?.NonVisualPictureDrawingProperties;
-            if (drawingProps == null) {
+            OfficeXmlNode drawingProps = PictureDrawingProperties;
+            if (drawingProps.IsNone) {
                 return this;
             }
 
-            var locks = drawingProps.GetFirstChild<A.PictureLocks>();
-            if (locks == null) {
-                locks = new A.PictureLocks();
-                drawingProps.Append(locks);
+            OfficeXmlNode locks = drawingProps.Child(A, "picLocks");
+            if (locks.IsNone) {
+                locks = drawingProps.Append(drawingProps.New(A, "picLocks"));
             }
 
-            locks.NoChangeAspect = locked;
+            locks.SetBooleanAttribute("noChangeAspect", locked);
             Save();
             return this;
         }
@@ -367,9 +380,9 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(degrees), "Rotation must be a finite number of degrees.");
             }
 
-            A.Transform2D? transform = EnsureTransform();
-            if (transform == null) return this;
-            transform.Rotation = (int)Math.Round(degrees * 60000.0);
+            OfficeXmlNode transform = EnsureTransform();
+            if (transform.IsNone) return this;
+            transform.SetInt32Attribute("rot", (int)Math.Round(degrees * 60000.0));
             Save();
             return this;
         }
@@ -383,32 +396,29 @@ namespace OfficeIMO.Excel {
             ValidateCropRatio(right, nameof(right));
             ValidateCropRatio(bottom, nameof(bottom));
 
-            Xdr.BlipFill? blipFill = _picture.BlipFill;
-            if (blipFill == null) {
+            OfficeXmlNode blipFill = PictureNode.Child(Xdr, "blipFill");
+            if (blipFill.IsNone) {
                 return this;
             }
 
             if (left == 0D && top == 0D && right == 0D && bottom == 0D) {
-                blipFill.SourceRectangle?.Remove();
+                OfficeXmlNode existing = blipFill.Child(A, "srcRect");
+                if (existing.Exists) existing.Remove();
                 Save();
                 return this;
             }
 
-            A.SourceRectangle? rectangle = blipFill.SourceRectangle;
-            if (rectangle == null) {
-                rectangle = new A.SourceRectangle();
-                A.Blip? blip = blipFill.GetFirstChild<A.Blip>();
-                if (blip != null) {
-                    blipFill.InsertAfter(rectangle, blip);
-                } else {
-                    blipFill.PrependChild(rectangle);
-                }
+            OfficeXmlNode rectangle = blipFill.Child(A, "srcRect");
+            if (rectangle.IsNone) {
+                rectangle = blipFill.New(A, "srcRect");
+                OfficeXmlNode blip = blipFill.Child(A, "blip");
+                rectangle = blip.Exists ? blip.InsertAfterSelf(rectangle) : blipFill.InsertBefore(rectangle, blipFill.FirstChild);
             }
 
-            rectangle.Left = ToCropPercentage(left);
-            rectangle.Top = ToCropPercentage(top);
-            rectangle.Right = ToCropPercentage(right);
-            rectangle.Bottom = ToCropPercentage(bottom);
+            rectangle.SetInt32Attribute("l", ToCropPercentage(left));
+            rectangle.SetInt32Attribute("t", ToCropPercentage(top));
+            rectangle.SetInt32Attribute("r", ToCropPercentage(right));
+            rectangle.SetInt32Attribute("b", ToCropPercentage(bottom));
             Save();
             return this;
         }
@@ -417,10 +427,10 @@ namespace OfficeIMO.Excel {
         /// Sets image flip transforms.
         /// </summary>
         public ExcelImage SetFlip(bool horizontal, bool vertical) {
-            A.Transform2D? transform = EnsureTransform();
-            if (transform == null) return this;
-            transform.HorizontalFlip = horizontal;
-            transform.VerticalFlip = vertical;
+            OfficeXmlNode transform = EnsureTransform();
+            if (transform.IsNone) return this;
+            transform.SetBooleanAttribute("flipH", horizontal);
+            transform.SetBooleanAttribute("flipV", vertical);
             Save();
             return this;
         }
@@ -435,53 +445,52 @@ namespace OfficeIMO.Excel {
             long cx = width.ToEmus();
             long cy = height.ToEmus();
 
-            var extent = _anchor.GetFirstChild<Xdr.Extent>();
-            if (extent != null) {
-                extent.Cx = cx;
-                extent.Cy = cy;
-            } else if (_anchor is Xdr.TwoCellAnchor twoCellAnchor) {
-                ResizeTwoCellAnchor(twoCellAnchor, width, height);
+            OfficeXmlNode anchor = AnchorNode;
+            OfficeXmlNode extent = anchor.Child(Xdr, "ext");
+            if (extent.Exists) {
+                extent.SetInt64Attribute("cx", cx);
+                extent.SetInt64Attribute("cy", cy);
+            } else if (anchor.Is(Xdr, "twoCellAnchor")) {
+                ResizeTwoCellAnchor(anchor, width, height);
             }
 
-            var transform = _picture.ShapeProperties?.GetFirstChild<A.Transform2D>();
-            var transformExtents = transform?.GetFirstChild<A.Extents>();
-            if (transformExtents != null) {
-                transformExtents.Cx = cx;
-                transformExtents.Cy = cy;
+            OfficeXmlNode transformExtents = Transform.Child(A, "ext");
+            if (transformExtents.Exists) {
+                transformExtents.SetInt64Attribute("cx", cx);
+                transformExtents.SetInt64Attribute("cy", cy);
             }
 
             Save();
             return this;
         }
 
-        private void ResizeTwoCellAnchor(Xdr.TwoCellAnchor anchor, OfficeLength width, OfficeLength height) {
-            Xdr.FromMarker? fromMarker = anchor.FromMarker;
-            Xdr.ToMarker? toMarker = anchor.ToMarker;
-            if (fromMarker == null || toMarker == null) {
+        private void ResizeTwoCellAnchor(OfficeXmlNode anchor, OfficeLength width, OfficeLength height) {
+            OfficeXmlNode fromMarker = anchor.Child(Xdr, "from");
+            OfficeXmlNode toMarker = anchor.Child(Xdr, "to");
+            if (fromMarker.IsNone || toMarker.IsNone) {
                 return;
             }
 
-            WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
-            ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(worksheetPart);
-            int startColumn = ParseMarkerIndex(fromMarker.ColumnId?.Text);
-            int startRow = ParseMarkerIndex(fromMarker.RowId?.Text);
+            ExcelWorksheetGeometryIndex geometry = DrawingsPartRef.ParentWorksheet.CreateWorksheetGeometry();
+            int startColumn = ParseMarkerIndex(fromMarker.ChildText(Xdr, "col"));
+            int startRow = ParseMarkerIndex(fromMarker.ChildText(Xdr, "row"));
             var columnMarker = ResolveEndMarker(
                 startColumn,
-                ParseMarkerOffset(fromMarker.ColumnOffset?.Text),
+                ParseMarkerOffset(fromMarker.ChildText(Xdr, "colOff")),
                 width.ToEmus(),
                 ExcelA1.MaxColumns,
                 index => geometry.GetColumnLength(index + 1).ToEmus());
             var rowMarker = ResolveEndMarker(
                 startRow,
-                ParseMarkerOffset(fromMarker.RowOffset?.Text),
+                ParseMarkerOffset(fromMarker.ChildText(Xdr, "rowOff")),
                 height.ToEmus(),
                 ExcelA1.MaxRows,
                 index => geometry.GetRowLength(index + 1).ToEmus());
 
-            toMarker.ColumnId = new Xdr.ColumnId(columnMarker.Index.ToString(CultureInfo.InvariantCulture));
-            toMarker.ColumnOffset = new Xdr.ColumnOffset(columnMarker.OffsetEmu.ToString(CultureInfo.InvariantCulture));
-            toMarker.RowId = new Xdr.RowId(rowMarker.Index.ToString(CultureInfo.InvariantCulture));
-            toMarker.RowOffset = new Xdr.RowOffset(rowMarker.OffsetEmu.ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(toMarker, "col", columnMarker.Index.ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(toMarker, "colOff", columnMarker.OffsetEmu.ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(toMarker, "row", rowMarker.Index.ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(toMarker, "rowOff", rowMarker.OffsetEmu.ToString(CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -511,16 +520,16 @@ namespace OfficeIMO.Excel {
             if (row <= 0 || row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row), "Row must be between 1 and the Excel row limit.");
             if (column <= 0 || column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column), "Column must be between 1 and the Excel column limit.");
 
-            var marker = _anchor.GetFirstChild<Xdr.FromMarker>();
-            if (marker == null) {
+            OfficeXmlNode marker = AnchorNode.Child(Xdr, "from");
+            if (marker.IsNone) {
                 throw new NotSupportedException("Only images anchored to worksheet cells can be moved. Absolute image anchors do not have a cell marker.");
             }
 
             OfficeLength width = Width, height = Height;
-            int previousColumn = ParseMarkerIndex(marker.ColumnId?.Text);
-            int previousRow = ParseMarkerIndex(marker.RowId?.Text);
-            long previousColumnOffset = ParseMarkerOffset(marker.ColumnOffset?.Text);
-            long previousRowOffset = ParseMarkerOffset(marker.RowOffset?.Text);
+            int previousColumn = ParseMarkerIndex(marker.ChildText(Xdr, "col"));
+            int previousRow = ParseMarkerIndex(marker.ChildText(Xdr, "row"));
+            long previousColumnOffset = ParseMarkerOffset(marker.ChildText(Xdr, "colOff"));
+            long previousRowOffset = ParseMarkerOffset(marker.ChildText(Xdr, "rowOff"));
             int targetColumn = column - 1;
             int targetRow = row - 1;
             long targetColumnOffset = offsetX.ToEmus();
@@ -532,26 +541,27 @@ namespace OfficeIMO.Excel {
                 (decimal)targetColumnOffset - previousColumnOffset,
                 (decimal)targetRowOffset - previousRowOffset);
 
-            marker.ColumnId = new Xdr.ColumnId((column - 1).ToString(CultureInfo.InvariantCulture));
-            marker.ColumnOffset = new Xdr.ColumnOffset(targetColumnOffset.ToString(CultureInfo.InvariantCulture));
-            marker.RowId = new Xdr.RowId((row - 1).ToString(CultureInfo.InvariantCulture));
-            marker.RowOffset = new Xdr.RowOffset(targetRowOffset.ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(marker, "col", (column - 1).ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(marker, "colOff", targetColumnOffset.ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(marker, "row", (row - 1).ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(marker, "rowOff", targetRowOffset.ToString(CultureInfo.InvariantCulture));
             // Columns and rows differ in size, so the end marker is placed from the image's size at the new origin.
-            if (_anchor is Xdr.TwoCellAnchor twoCellAnchor && width > OfficeLength.Zero && height > OfficeLength.Zero) {
-                ResizeTwoCellAnchor(twoCellAnchor, width, height);
+            OfficeXmlNode anchor = AnchorNode;
+            if (anchor.Is(Xdr, "twoCellAnchor") && width > OfficeLength.Zero && height > OfficeLength.Zero) {
+                ResizeTwoCellAnchor(anchor, width, height);
             }
             Save();
             return this;
         }
 
         private void MoveTwoCellEndMarkerIfNeeded(int columnDelta, int rowDelta, decimal columnOffsetDelta, decimal rowOffsetDelta) {
-            Xdr.ToMarker? toMarker = _anchor.GetFirstChild<Xdr.ToMarker>();
-            if (toMarker == null) {
+            OfficeXmlNode toMarker = AnchorNode.Child(Xdr, "to");
+            if (toMarker.IsNone) {
                 return;
             }
 
-            int targetColumn = ParseMarkerIndex(toMarker.ColumnId?.Text) + columnDelta;
-            int targetRow = ParseMarkerIndex(toMarker.RowId?.Text) + rowDelta;
+            int targetColumn = ParseMarkerIndex(toMarker.ChildText(Xdr, "col")) + columnDelta;
+            int targetRow = ParseMarkerIndex(toMarker.ChildText(Xdr, "row")) + rowDelta;
             if (targetColumn < 0 || targetColumn >= ExcelA1.MaxColumns) {
                 throw new ArgumentOutOfRangeException("column", "Moving this two-cell image would place its end marker outside the Excel column limit.");
             }
@@ -560,90 +570,109 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException("row", "Moving this two-cell image would place its end marker outside the Excel row limit.");
             }
 
-            long targetOffsetX = checked((long)(ParseMarkerOffset(toMarker.ColumnOffset?.Text) + columnOffsetDelta));
-            long targetOffsetY = checked((long)(ParseMarkerOffset(toMarker.RowOffset?.Text) + rowOffsetDelta));
-            toMarker.ColumnId = new Xdr.ColumnId(targetColumn.ToString(CultureInfo.InvariantCulture));
-            toMarker.ColumnOffset = new Xdr.ColumnOffset(targetOffsetX.ToString(CultureInfo.InvariantCulture));
-            toMarker.RowId = new Xdr.RowId(targetRow.ToString(CultureInfo.InvariantCulture));
-            toMarker.RowOffset = new Xdr.RowOffset(targetOffsetY.ToString(CultureInfo.InvariantCulture));
+            long targetOffsetX = checked((long)(ParseMarkerOffset(toMarker.ChildText(Xdr, "colOff")) + columnOffsetDelta));
+            long targetOffsetY = checked((long)(ParseMarkerOffset(toMarker.ChildText(Xdr, "rowOff")) + rowOffsetDelta));
+            SetMarkerText(toMarker, "col", targetColumn.ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(toMarker, "colOff", targetOffsetX.ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(toMarker, "row", targetRow.ToString(CultureInfo.InvariantCulture));
+            SetMarkerText(toMarker, "rowOff", targetOffsetY.ToString(CultureInfo.InvariantCulture));
         }
 
-        private Xdr.NonVisualDrawingProperties? DrawingProperties
-            => _picture.NonVisualPictureProperties?.NonVisualDrawingProperties;
+        // A typed marker property setter: replaces the child, or adds it in schema order.
+        private static void SetMarkerText(OfficeXmlNode marker, string localName, string text) =>
+            marker.SetOrdered(marker.NewText(Xdr, localName, text), ExcelDrawingXml.MarkerOrder);
 
-        private A.SourceRectangle? CropRectangle
-            => _picture.BlipFill?.SourceRectangle;
+        private OfficeXmlNode DrawingProperties
+            => PictureNode.Child(Xdr, "nvPicPr").Child(Xdr, "cNvPr");
 
-        private A.Transform2D? Transform
-            => _picture.ShapeProperties?.GetFirstChild<A.Transform2D>();
+        private OfficeXmlNode PictureDrawingProperties
+            => PictureNode.Child(Xdr, "nvPicPr").Child(Xdr, "cNvPicPr");
 
-        private A.Transform2D? EnsureTransform() {
-            var shapeProperties = _picture.ShapeProperties;
-            if (shapeProperties == null) {
-                return null;
+        private OfficeXmlNode Blip
+            => PictureNode.Child(Xdr, "blipFill").Child(A, "blip");
+
+        private OfficeXmlNode CropRectangle
+            => PictureNode.Child(Xdr, "blipFill").Child(A, "srcRect");
+
+        private OfficeXmlNode Transform
+            => PictureNode.Child(Xdr, "spPr").Child(A, "xfrm");
+
+        private OfficeXmlNode EnsureTransform() {
+            OfficeXmlNode shapeProperties = PictureNode.Child(Xdr, "spPr");
+            if (shapeProperties.IsNone) {
+                return default;
             }
 
-            var transform = shapeProperties.GetFirstChild<A.Transform2D>();
-            if (transform == null) {
-                transform = new A.Transform2D(
-                    new A.Offset { X = 0, Y = 0 },
-                    new A.Extents { Cx = GetExtentCx(), Cy = GetExtentCy() });
-                shapeProperties.PrependChild(transform);
+            OfficeXmlNode transform = shapeProperties.Child(A, "xfrm");
+            if (transform.IsNone) {
+                transform = shapeProperties.New(A, "xfrm");
+                transform.With(
+                    transform.New(A, "off").Attr("x", 0L).Attr("y", 0L),
+                    transform.New(A, "ext").Attr("cx", GetExtentCx()).Attr("cy", GetExtentCy()));
+                transform = shapeProperties.InsertBefore(transform, shapeProperties.FirstChild);
             }
 
             return transform;
         }
 
         // A picture with an SVG extension is that SVG; its ordinary blip is only the raster fallback.
-        private ImagePart? ImagePart => ResolveImagePart(GetSvgRelationshipId()) ?? FallbackImagePart;
+        private ExcelPartRef ImagePart {
+            get {
+                ExcelPartRef svg = ResolveImagePart(GetSvgRelationshipId());
+                return svg.Exists ? svg : FallbackImagePart;
+            }
+        }
 
-        private ImagePart? FallbackImagePart => ResolveImagePart(_picture.BlipFill?.Blip?.Embed?.Value);
+        private ExcelPartRef FallbackImagePart => ResolveImagePart(Blip.RelationshipAttribute("embed"));
 
-        private string? GetSvgRelationshipId() =>
-            _picture.BlipFill?.Blip?.Descendants<DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip>()
-                .Select(vector => vector.Embed?.Value).FirstOrDefault(id => !string.IsNullOrEmpty(id));
+        private string? GetSvgRelationshipId() {
+            foreach (OfficeXmlNode vector in ExcelDrawingXml.Descendants(Blip, SvgUri, "svgBlip")) {
+                string? id = vector.RelationshipAttribute("embed");
+                if (!string.IsNullOrEmpty(id)) return id;
+            }
+            return null;
+        }
+
+        private const string SvgUri = "http://schemas.microsoft.com/office/drawing/2016/SVG/main";
 
         /// <summary>Returns the raster fallback of an SVG picture, for renderers that cannot draw its SVG.</summary>
         internal bool TryGetRasterFallback(out byte[] bytes, out string contentType) {
             bytes = Array.Empty<byte>();
             contentType = string.Empty;
-            if (GetSvgRelationshipId() == null || FallbackImagePart is not ImagePart fallback) return false;
-            using Stream source = fallback.GetStream(FileMode.Open, FileAccess.Read);
-            using var destination = new MemoryStream();
-            source.CopyTo(destination);
-            bytes = destination.ToArray();
+            if (GetSvgRelationshipId() == null) return false;
+            ExcelPartRef fallback = FallbackImagePart;
+            if (fallback.IsNone) return false;
+            bytes = fallback.ReadAllBytes();
             contentType = fallback.ContentType;
             return bytes.Length > 0;
         }
 
-        private ImagePart? ResolveImagePart(string? relationshipId) {
+        private ExcelPartRef ResolveImagePart(string? relationshipId) {
             if (string.IsNullOrWhiteSpace(relationshipId)) {
-                return null;
+                return default;
             }
 
-            try {
-                return _drawingsPart.GetPartById(relationshipId!) as ImagePart;
-            } catch (ArgumentOutOfRangeException) {
-                return null;
-            }
+            ExcelPartRef part = DrawingsPartRef.GetPartById(relationshipId);
+            return part.Kind == ExcelPartKind.Image ? part : default;
         }
 
         private void Save() {
-            _drawingsPart.WorksheetDrawing?.Save();
+            DrawingsPartRef.SaveRoot();
             _document.MarkPackageDirty();
         }
 
-        private static int GetDrawingOrder(OpenXmlElement anchor, DrawingsPart drawingsPart) {
-            Xdr.WorksheetDrawing? worksheetDrawing = drawingsPart.WorksheetDrawing;
-            if (worksheetDrawing == null) {
+        private static int GetDrawingOrder(OfficeXmlNode anchor, ExcelPartRef drawingsPart) {
+            OfficeXmlNode worksheetDrawing = drawingsPart.Root;
+            if (worksheetDrawing.IsNone) {
                 return 0;
             }
 
-            OpenXmlElementList children = worksheetDrawing.ChildElements;
-            for (int i = 0; i < children.Count; i++) {
-                if (ReferenceEquals(children[i], anchor)) {
-                    return i;
+            int index = 0;
+            foreach (OfficeXmlNode child in worksheetDrawing.Children()) {
+                if (child == anchor) {
+                    return index;
                 }
+                index++;
             }
 
             return 0;
@@ -702,42 +731,42 @@ namespace OfficeIMO.Excel {
         }
 
         private int GetMarkerRow() {
-            string? row = _anchor.GetFirstChild<Xdr.FromMarker>()?.RowId?.Text;
+            string? row = AnchorNode.Child(Xdr, "from").ChildText(Xdr, "row");
             return int.TryParse(row, out int value) && value >= 0 ? value : 0;
         }
 
         private int GetMarkerColumn() {
-            string? column = _anchor.GetFirstChild<Xdr.FromMarker>()?.ColumnId?.Text;
+            string? column = AnchorNode.Child(Xdr, "from").ChildText(Xdr, "col");
             return int.TryParse(column, out int value) && value >= 0 ? value : 0;
         }
 
         private long GetMarkerColumnOffset() {
-            string? offset = _anchor.GetFirstChild<Xdr.FromMarker>()?.ColumnOffset?.Text;
+            string? offset = AnchorNode.Child(Xdr, "from").ChildText(Xdr, "colOff");
             return long.TryParse(offset, out long value) ? value : 0L;
         }
 
         private long GetMarkerRowOffset() {
-            string? offset = _anchor.GetFirstChild<Xdr.FromMarker>()?.RowOffset?.Text;
+            string? offset = AnchorNode.Child(Xdr, "from").ChildText(Xdr, "rowOff");
             return long.TryParse(offset, out long value) ? value : 0L;
         }
 
         private bool TryGetToMarkerRow(out int row) {
-            string? value = _anchor.GetFirstChild<Xdr.ToMarker>()?.RowId?.Text;
+            string? value = AnchorNode.Child(Xdr, "to").ChildText(Xdr, "row");
             return int.TryParse(value, out row) && row >= 0;
         }
 
         private bool TryGetToMarkerColumn(out int column) {
-            string? value = _anchor.GetFirstChild<Xdr.ToMarker>()?.ColumnId?.Text;
+            string? value = AnchorNode.Child(Xdr, "to").ChildText(Xdr, "col");
             return int.TryParse(value, out column) && column >= 0;
         }
 
         private long GetToMarkerColumnOffset() {
-            string? offset = _anchor.GetFirstChild<Xdr.ToMarker>()?.ColumnOffset?.Text;
+            string? offset = AnchorNode.Child(Xdr, "to").ChildText(Xdr, "colOff");
             return long.TryParse(offset, out long value) ? value : 0L;
         }
 
         private long GetToMarkerRowOffset() {
-            string? offset = _anchor.GetFirstChild<Xdr.ToMarker>()?.RowOffset?.Text;
+            string? offset = AnchorNode.Child(Xdr, "to").ChildText(Xdr, "rowOff");
             return long.TryParse(offset, out long value) ? value : 0L;
         }
 
@@ -746,12 +775,12 @@ namespace OfficeIMO.Excel {
                 return twoCellEmu;
             }
 
-            long? anchorExtent = _anchor.GetFirstChild<Xdr.Extent>()?.Cx?.Value;
+            long? anchorExtent = AnchorNode.Child(Xdr, "ext").Int64Attribute("cx");
             if (anchorExtent.HasValue && anchorExtent.Value > 0) {
                 return anchorExtent.Value;
             }
 
-            long? shapeExtent = _picture.ShapeProperties?.GetFirstChild<A.Transform2D>()?.GetFirstChild<A.Extents>()?.Cx?.Value;
+            long? shapeExtent = Transform.Child(A, "ext").Int64Attribute("cx");
             if (shapeExtent.HasValue && shapeExtent.Value > 0) {
                 return shapeExtent.Value;
             }
@@ -764,12 +793,12 @@ namespace OfficeIMO.Excel {
                 return twoCellEmu;
             }
 
-            long? anchorExtent = _anchor.GetFirstChild<Xdr.Extent>()?.Cy?.Value;
+            long? anchorExtent = AnchorNode.Child(Xdr, "ext").Int64Attribute("cy");
             if (anchorExtent.HasValue && anchorExtent.Value > 0) {
                 return anchorExtent.Value;
             }
 
-            long? shapeExtent = _picture.ShapeProperties?.GetFirstChild<A.Transform2D>()?.GetFirstChild<A.Extents>()?.Cy?.Value;
+            long? shapeExtent = Transform.Child(A, "ext").Int64Attribute("cy");
             if (shapeExtent.HasValue && shapeExtent.Value > 0) {
                 return shapeExtent.Value;
             }
@@ -779,41 +808,44 @@ namespace OfficeIMO.Excel {
 
         private bool TryGetTwoCellAnchorSizeEmu(bool horizontal, out long emu) {
             emu = 0;
-            Xdr.TwoCellAnchor? twoCellAnchor = _anchor as Xdr.TwoCellAnchor;
-            if (twoCellAnchor?.FromMarker == null || twoCellAnchor.ToMarker == null) {
+            OfficeXmlNode twoCellAnchor = AnchorNode;
+            if (!twoCellAnchor.Is(Xdr, "twoCellAnchor")) {
+                return false;
+            }
+            OfficeXmlNode fromMarker = twoCellAnchor.Child(Xdr, "from");
+            OfficeXmlNode toMarker = twoCellAnchor.Child(Xdr, "to");
+            if (fromMarker.IsNone || toMarker.IsNone) {
                 return false;
             }
 
-            if (twoCellAnchor.EditAs != null
-                && (twoCellAnchor.EditAs.Value == Xdr.EditAsValues.OneCell
-                    || twoCellAnchor.EditAs.Value == Xdr.EditAsValues.Absolute)) {
+            string? editAs = twoCellAnchor.Attribute("editAs");
+            if (editAs != null && (editAs == "oneCell" || editAs == "absolute")) {
                 return false;
             }
 
             int from = horizontal
-                ? ParseMarkerIndex(twoCellAnchor.FromMarker.ColumnId?.Text)
-                : ParseMarkerIndex(twoCellAnchor.FromMarker.RowId?.Text);
+                ? ParseMarkerIndex(fromMarker.ChildText(Xdr, "col"))
+                : ParseMarkerIndex(fromMarker.ChildText(Xdr, "row"));
             int to = horizontal
-                ? ParseMarkerIndex(twoCellAnchor.ToMarker.ColumnId?.Text)
-                : ParseMarkerIndex(twoCellAnchor.ToMarker.RowId?.Text);
+                ? ParseMarkerIndex(toMarker.ChildText(Xdr, "col"))
+                : ParseMarkerIndex(toMarker.ChildText(Xdr, "row"));
             int maximumMarker = horizontal ? 16384 : 1048576;
             if (!ExcelImageExportLimits.IsValidMarkerSpan(from, to, maximumMarker)) {
                 return false;
             }
 
             long fromOffset = ParseMarkerOffset(horizontal
-                ? twoCellAnchor.FromMarker.ColumnOffset?.Text
-                : twoCellAnchor.FromMarker.RowOffset?.Text);
+                ? fromMarker.ChildText(Xdr, "colOff")
+                : fromMarker.ChildText(Xdr, "rowOff"));
             long toOffset = ParseMarkerOffset(horizontal
-                ? twoCellAnchor.ToMarker.ColumnOffset?.Text
-                : twoCellAnchor.ToMarker.RowOffset?.Text);
+                ? toMarker.ChildText(Xdr, "colOff")
+                : toMarker.ChildText(Xdr, "rowOff"));
 
             if (to < from) {
                 return false;
             }
 
-            WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
-            ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(worksheetPart);
+            ExcelWorksheetGeometryIndex geometry = DrawingsPartRef.ParentWorksheet.CreateWorksheetGeometry();
             decimal sizeEmu = 0M;
             for (int index = from; index < to; index++) {
                 sizeEmu += horizontal

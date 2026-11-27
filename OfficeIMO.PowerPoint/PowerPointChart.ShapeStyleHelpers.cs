@@ -256,8 +256,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException("Trendlines are only supported for line, bar/column, area, and scatter series.");
             }
 
-            series.RemoveChildren(CNs, "trendline");
-            OfficeXmlNode trendline = InsertTrendline(series, series.CreateElement(CNs, "trendline"));
+            // Built detached, so a value that fails partway leaves the series and its current trendline as they were.
+            OfficeXmlNode trendline = series.CreateElement(CNs, "trendline");
 
             if (lineColor != null || lineWidth != null) {
                 ApplyOptionalLine(AppendNew(trendline, CNs, "spPr"), lineColor, lineWidth);
@@ -286,6 +286,9 @@ namespace OfficeIMO.PowerPoint {
             if (displayEquation) {
                 AppendNew(trendline, CNs, "dispEq").SetBooleanAttribute("val", displayEquation);
             }
+
+            series.RemoveChildren(CNs, "trendline");
+            InsertTrendline(series, trendline);
         }
 
         private static OfficeXmlNode InsertChartSpaceShapeProperties(OfficeXmlNode chartSpace, OfficeXmlNode props) =>

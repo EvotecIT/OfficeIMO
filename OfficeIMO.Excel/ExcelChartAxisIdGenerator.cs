@@ -1,64 +1,57 @@
 using System.Runtime.CompilerServices;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using static OfficeIMO.Excel.OpenXml.ExcelChartXml;
 
 namespace OfficeIMO.Excel {
-    internal static class ExcelChartAxisIdGenerator {
+    internal static partial class ExcelChartAxisIdGenerator {
         private const long BaseAxisId = 48650112L;
         private static long _axisIdSeed = BaseAxisId;
-        private static readonly ConditionalWeakTable<OpenXmlPackage, object> ScannedPackages = new();
+        // Keyed by the package's workbook part, which lives as long as the package.
+        private static readonly ConditionalWeakTable<object, object> ScannedPackages = new();
 
         /// <summary>
         /// Raises the seed above the axis ids already in a package before the first chart in it
         /// takes a new id. Scanning on first use spares opening every worksheet's relationships
         /// when a workbook is loaded and no chart is ever built or updated.
         /// </summary>
-        internal static void EnsureInitialized(OpenXmlPackage? package) {
-            if (package is not SpreadsheetDocument document) return;
+        /// <param name="part">Any part of the spreadsheet package.</param>
+        internal static void EnsureInitialized(ExcelPartRef part) {
+            ExcelPartRef workbook = part.PackageWorkbook;
+            if (workbook.IsNone || workbook.SdkPart is not { } key) return;
             lock (ScannedPackages) {
-                if (ScannedPackages.TryGetValue(document, out _)) return;
-                Initialize(document);
-                ScannedPackages.Add(document, ScannedPackages);
+                if (ScannedPackages.TryGetValue(key, out _)) return;
+                Initialize(workbook);
+                ScannedPackages.Add(key, ScannedPackages);
             }
         }
 
-        /// <summary>
-        /// Reads the relationships the load-time axis scan used to read, without parsing any chart, so a malformed
-        /// relationship part still fails the load itself. Loading a chart root reads every part's relationships,
-        /// which is why a workbook with charts reads them all here too.
-        /// </summary>
-        internal static void ReadChartRelationships(SpreadsheetDocument document) {
-            if (document.WorkbookPart == null) return;
-            foreach (WorksheetPart worksheetPart in document.WorkbookPart.WorksheetParts) {
-                if (worksheetPart.DrawingsPart?.ChartParts.Any() == true) {
-                    _ = document.StrictRelationshipFound;
-                    return;
-                }
+        /// <summary>Whether any worksheet of the workbook has a chart in its drawing.</summary>
+        internal static bool HasWorksheetCharts(ExcelPartRef workbook) {
+            foreach (ExcelPartRef worksheetPart in workbook.PartsOfKind(ExcelPartKind.Worksheet)) {
+                if (worksheetPart.Drawings.FirstPartOfKind(ExcelPartKind.Chart).Exists) return true;
             }
+            return false;
         }
 
-        private static void Initialize(SpreadsheetDocument document) {
-            if (document.WorkbookPart == null) {
-                return;
-            }
-
+        private static void Initialize(ExcelPartRef workbook) {
             long currentSeed = Interlocked.Read(ref _axisIdSeed);
             long max = Math.Max(currentSeed, BaseAxisId);
 
-            foreach (var worksheetPart in document.WorkbookPart.WorksheetParts) {
-                var drawings = worksheetPart.DrawingsPart;
-                if (drawings == null) {
+            foreach (ExcelPartRef worksheetPart in workbook.PartsOfKind(ExcelPartKind.Worksheet)) {
+                ExcelPartRef drawings = worksheetPart.Drawings;
+                if (drawings.IsNone) {
                     continue;
                 }
 
-                foreach (ChartPart chartPart in drawings.ChartParts) {
-                    var chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
-                    if (chart == null) {
+                foreach (ExcelPartRef chartPart in drawings.PartsOfKind(ExcelPartKind.Chart)) {
+                    OfficeXmlNode chart = chartPart.Root.Child(C, "chart");
+                    if (chart.IsNone) {
                         continue;
                     }
 
-                    foreach (AxisId axisId in chart.Descendants<AxisId>()) {
-                        if (axisId.Val?.Value is uint value && value > max) {
+                    foreach (OfficeXmlNode axisId in chart.DescendantsOutsideExtensions(C, "axId")) {
+                        if (axisId.UInt32Val() is uint value && value > max) {
                             max = value;
                         }
                     }

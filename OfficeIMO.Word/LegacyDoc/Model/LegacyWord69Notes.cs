@@ -1,5 +1,4 @@
 using System.Threading;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>Admits old in-stream note PLCs while retaining global source character positions.</summary>
@@ -17,23 +16,23 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             ushort footnoteFlags = LegacyWord69Reader.U16(dop, 2);
             ushort endnoteFlags = LegacyWord69Reader.U16(dop, 0x34);
             ushort formats = LegacyWord69Reader.U16(dop, 0x36);
-            FootnotePositionValues? footnotePosition = ((dop[0] >> 5) & 3) switch {
-                1 => FootnotePositionValues.PageBottom,
-                2 => FootnotePositionValues.BeneathText,
+            LegacyDocFootnotePosition? footnotePosition = ((dop[0] >> 5) & 3) switch {
+                1 => LegacyDocFootnotePosition.PageBottom,
+                2 => LegacyDocFootnotePosition.BeneathText,
                 _ => null
             };
-            EndnotePositionValues? endnotePosition = (formats & 3) switch {
-                0 => EndnotePositionValues.SectionEnd,
-                3 => EndnotePositionValues.DocumentEnd,
+            LegacyDocEndnotePosition? endnotePosition = (formats & 3) switch {
+                0 => LegacyDocEndnotePosition.SectEnd,
+                3 => LegacyDocEndnotePosition.DocEnd,
                 _ => null
             };
-            RestartNumberValues? footnoteRestart = ReadRestart(footnoteFlags & 3);
-            RestartNumberValues? endnoteRestart = ReadRestart(endnoteFlags & 3);
-            if (endnoteRestart == RestartNumberValues.EachPage) endnoteRestart = null;
+            LegacyDocRestartNumber? footnoteRestart = ReadRestart(footnoteFlags & 3);
+            LegacyDocRestartNumber? endnoteRestart = ReadRestart(endnoteFlags & 3);
+            if (endnoteRestart == LegacyDocRestartNumber.EachPage) endnoteRestart = null;
             int footnoteStart = footnoteFlags >> 2;
             int endnoteStart = endnoteFlags >> 2;
-            NumberFormatValues? footnoteFormat = LegacyDocNumberFormatMapper.FromNfc((byte)((formats >> 2) & 15));
-            NumberFormatValues? endnoteFormat = LegacyDocNumberFormatMapper.FromNfc((byte)((formats >> 6) & 15));
+            LegacyDocNumberFormat? footnoteFormat = LegacyDocNumberFormatMapper.FromNfc((byte)((formats >> 2) & 15));
+            LegacyDocNumberFormat? endnoteFormat = LegacyDocNumberFormatMapper.FromNfc((byte)((formats >> 6) & 15));
             if (hasFootnotes && (footnotePosition == null || footnoteRestart == null || footnoteStart == 0 || footnoteFormat == null)
                 || hasEndnotes && (endnotePosition == null || endnoteRestart == null || endnoteStart == 0 || endnoteFormat == null)) {
                 report(LegacyDocUnsupportedFeatureKind.Section, "doc-word69-note-settings",
@@ -52,10 +51,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     endnoteNumberFormat: hasEndnotes ? format.EndnoteNumberFormat ?? endnoteFormat : null));
             }).ToArray();
 
-            static RestartNumberValues? ReadRestart(int value) => value switch {
-                0 => RestartNumberValues.Continuous,
-                1 => RestartNumberValues.EachSection,
-                2 => RestartNumberValues.EachPage,
+            static LegacyDocRestartNumber? ReadRestart(int value) => value switch {
+                0 => LegacyDocRestartNumber.Continuous,
+                1 => LegacyDocRestartNumber.EachSect,
+                2 => LegacyDocRestartNumber.EachPage,
                 _ => null
             };
         }

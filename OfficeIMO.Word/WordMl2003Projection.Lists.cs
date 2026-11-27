@@ -118,9 +118,9 @@ internal sealed partial class WordMl2003Projection {
         value = source;
         if (context == "nfc") {
             if (!byte.TryParse(source, NumberStyles.Integer, CultureInfo.InvariantCulture, out byte code)) return false;
-            NumberFormatValues? format = code == 255 ? NumberFormatValues.None : LegacyDocNumberFormatMapper.FromNfc(code);
+            LegacyDocNumberFormat? format = code == 255 ? LegacyDocNumberFormat.None : LegacyDocNumberFormatMapper.FromNfc(code);
             if (!format.HasValue) return false;
-            value = new EnumValue<NumberFormatValues>(format.Value).InnerText!;
+            value = format.Value.ToXml();
             return true;
         }
         value = source.ToLowerInvariant() switch {

@@ -161,11 +161,12 @@ namespace OfficeIMO.OpenXml.Internal {
         /// <summary>
         /// The cached points below <paramref name="node"/> in document order: numeric points (<c>c:pt</c> of
         /// <c>c:numCache</c> and <c>c:numLit</c>) or string points (of <c>c:strCache</c>, <c>c:strLit</c> and <c>c:lvl</c>),
-        /// as the SDK types them.
+        /// as the SDK types them. Points inside extension markup below the node are left out.
         /// </summary>
         private static IEnumerable<OfficeXmlNode> CachePoints(OfficeXmlNode node, bool numeric) {
-            // Walked without recursion, so deeply nested markup under a cache can't exhaust the stack.
-            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = current.NextInSubtree(node)) {
+            // Walked without recursion, so deeply nested markup under a cache can't exhaust the stack, and outside
+            // extension markup, which the SDK read as unknown elements.
+            for (OfficeXmlNode current = node.FirstChild; !current.IsNone; current = current.NextContentInSubtree(node)) {
                 if (current.IsChart("pt") && IsPointParent(current.Parent, numeric)) yield return current;
             }
         }

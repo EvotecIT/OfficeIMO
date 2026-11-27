@@ -148,14 +148,14 @@ namespace OfficeIMO.Excel {
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
                     inspectedSheet.BuildSharedFormulaDefinitions(
                         effectiveCoordinates,
-                        worksheetElements.OfType<Cell>().Select(cell => (ExcelFormulaCell)cell));
+                        worksheetElements.OfType<Cell>().Select(inspectedSheet.WrapFormulaCell));
                 bool isPendingOwner = pendingCellsByOwner.TryGetValue(worksheetPart, out Dictionary<long, object?>? pendingOwnerCells);
                 if (rewriteUnqualified) {
                     rows += CountAffectedRowRecords(worksheetElements, firstRow);
                 }
                 foreach (OpenXmlElement element in worksheetElements) {
                     if (element is Cell cell) {
-                        if (!effectiveCoordinates.TryGetValue(cell, out var effectiveCoordinate)) {
+                        if (!effectiveCoordinates.TryGetValue(inspectedSheet.WrapFormulaCell(cell), out var effectiveCoordinate)) {
                             continue;
                         }
 
@@ -178,7 +178,7 @@ namespace OfficeIMO.Excel {
                                 && effectiveCoordinate.Row <= lastRow;
                             formulaImpactRecorded |= FormulaChangesForPlan(
                                 inspectedSheet.ResolveCellFormulaText(
-                                    cell,
+                                    inspectedSheet.WrapFormulaCell(cell),
                                     sharedFormulaDefinitions,
                                     effectiveCoordinates),
                                 kind,

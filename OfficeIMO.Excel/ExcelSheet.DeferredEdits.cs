@@ -16,6 +16,11 @@ namespace OfficeIMO.Excel {
         Date,
         /// <summary>A style change; the cell keeps its value.</summary>
         Style,
+        /// <summary>
+        /// A calculated formula result: the cell keeps its formula and style and takes the value, the type and the
+        /// calculate-on-load flag as they are written.
+        /// </summary>
+        FormulaResult,
     }
 
     /// <summary>
@@ -33,6 +38,20 @@ namespace OfficeIMO.Excel {
         internal string Text => (string)Payload!;
         internal ExcelStyleOperation Style => (ExcelStyleOperation)Payload!;
         internal DateTime Date => DateTime.FromBinary(BitConverter.DoubleToInt64Bits(Number));
+
+        /// <summary>A formula result: its value text (null for none), its type and its calculate-on-load flag.</summary>
+        internal static ExcelDeferredCellEdit FormulaResult(int row, int column, string? text, ExcelCellValueType? type, bool? calculate) {
+            int code = (type.HasValue ? (int)type.Value + 1 : 0) | (calculate.HasValue ? (calculate.Value ? 1 : 2) << 4 : 0);
+            return new ExcelDeferredCellEdit {
+                Row = row, Column = checked((ushort)column), Kind = ExcelDeferredCellKind.FormulaResult, Number = code, Payload = text
+            };
+        }
+
+        internal string? FormulaResultText => (string?)Payload;
+
+        internal ExcelCellValueType? FormulaResultType => ((int)Number & 0x0F) is int type && type != 0 ? (ExcelCellValueType)(type - 1) : null;
+
+        internal bool? FormulaResultCalculate => (((int)Number >> 4) & 0x03) switch { 1 => true, 2 => false, _ => null };
     }
 
     /// <summary>
@@ -295,9 +314,17 @@ namespace OfficeIMO.Excel {
                     case ExcelDeferredCellKind.Decimal: CellValue(row, column, decimal.Parse(edit.Text, NumberStyles.Number, CultureInfo.InvariantCulture)); break;
                     case ExcelDeferredCellKind.Boolean: CellValue(row, column, edit.Number != 0D); break;
                     case ExcelDeferredCellKind.Date: CellValue(row, column, edit.Date); break;
+                    case ExcelDeferredCellKind.FormulaResult: ReplayFormulaResult(edit); break;
                     default: edit.Style.Replay(this, row, column); break;
                 }
             }
+        }
+
+        private void ReplayFormulaResult(in ExcelDeferredCellEdit edit) {
+            ExcelFormulaCellRecord cell = FormulaModel.GetOrCreate(edit.Row, edit.Column);
+            cell.ClearInlineString();
+            cell.SetValue(edit.FormulaResultText, edit.FormulaResultType);
+            if (cell.HasFormula) cell.SetCalculateCell(edit.FormulaResultCalculate);
         }
     }
 }

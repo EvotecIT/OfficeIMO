@@ -1,5 +1,4 @@
 using OfficeIMO.Core.Internal;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {

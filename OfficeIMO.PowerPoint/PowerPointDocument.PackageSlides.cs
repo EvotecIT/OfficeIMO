@@ -7,10 +7,11 @@ namespace OfficeIMO.PowerPoint {
         void BindSdk();
 
         /// <summary>
-        /// Copies an element that was removed from its part into a tree of its own, before the SDK opens and the package
-        /// goes, so the wrapper keeps reading what it last held.
+        /// Marks the object unusable when its content was removed: its slide was removed, or (when <paramref name="sdkOpening"/>)
+        /// its element left its part. The package that held that content goes, so from then on the object throws instead
+        /// of reading it.
         /// </summary>
-        void KeepDetached();
+        void InvalidateRemoved(bool sdkOpening);
     }
 
     /// <summary>
@@ -60,11 +61,11 @@ namespace OfficeIMO.PowerPoint {
 
         private int _packageBindingsPruneAt;
 
-        // Lets every object still alive keep an element that was removed from its part; called before the package goes.
-        private void KeepDetachedPackageObjects() {
+        // Makes every object still alive whose content was removed unusable; called before the package that held it goes.
+        private void InvalidateRemovedPackageObjects(bool sdkOpening) {
             if (_packageBindings == null) return;
             foreach (WeakReference<IPackageSdkBinding> reference in _packageBindings) {
-                if (reference.TryGetTarget(out IPackageSdkBinding? binding)) binding.KeepDetached();
+                if (reference.TryGetTarget(out IPackageSdkBinding? binding)) binding.InvalidateRemoved(sdkOpening);
             }
         }
 
@@ -89,6 +90,12 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Records an edit made in the package, so the next save or SDK open writes it.</summary>
         internal void MarkPackageEdited() => _pendingEdits = true;
+
+        // Parts edited while the SDK held them, by name; created on first use.
+        private HashSet<string>? _sdkEditedParts;
+
+        /// <summary>Records that a part the SDK holds was edited.</summary>
+        internal void MarkSdkPartEdited(string partName) => (_sdkEditedParts ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase)).Add(partName);
 
         /// <summary>A part's tree in the package read without the SDK, or null when the package can't be read that way.</summary>
         internal OfficeXmlTree? GetPackageXml(string partName) {
@@ -342,6 +349,10 @@ namespace OfficeIMO.PowerPoint {
         /// Whether a stored part is larger than the SDK path would read, under the default or configured part size limit,
         /// so the model reads it and reports it as it always has.
         /// </summary>
+        /// <summary>Whether the package holds the part but declines to read it for its size.</summary>
+        internal bool IsPackagePartOverLimit(string partName) =>
+            GetPackage(edit: false) is { } package && package.PartExists(partName) && IsOverPartLimit(package, partName);
+
         internal bool IsOverPartLimit(OfficeOpcEditablePackage package, string partName) =>
             package.TryGetStoredLength(partName, out long length) && length > _maximumSlideXmlCharacters;
 
@@ -371,6 +382,11 @@ namespace OfficeIMO.PowerPoint {
                 order.Add(slide);
             }
             return _packageSlideOrder = order;
+        }
+
+        // Marks the slide of a part that is leaving the package as removed, so nothing it holds reaches the part again.
+        private void MarkPackageSlideRemoved(string slidePart) {
+            if (_packageSlides != null && _packageSlides.TryGetValue(PartIdentity(slidePart), out PowerPointSlide? removed)) removed.RemovedFromPackage = true;
         }
 
         /// <summary>Forgets the slide order after the slide list changed; <paramref name="removedPart"/> left the package.</summary>

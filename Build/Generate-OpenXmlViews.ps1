@@ -181,7 +181,11 @@ function Get-Attributes([System.Xml.XmlElement] $Node, [System.Collections.Gener
                     $valueType = if ($global) { Get-ValueType $global $global.GetAttribute('type') } else { 'string' }
                     $Into.Add([pscustomobject]@{ Uri = $reference.Uri; Name = $reference.Name; ValueType = $valueType })
                 } else {
-                    $Into.Add([pscustomobject]@{ Uri = ''; Name = $child.GetAttribute('name'); ValueType = (Get-ValueType $child $child.GetAttribute('type')) })
+                    # A local attribute is in the schema's namespace when it, or the schema, says the form is qualified.
+                    $form = $child.GetAttribute('form')
+                    if (-not $form) { $form = $child.OwnerDocument.DocumentElement.GetAttribute('attributeFormDefault') }
+                    $uri = if ($form -eq 'qualified') { Get-TargetNamespace $child } else { '' }
+                    $Into.Add([pscustomobject]@{ Uri = $uri; Name = $child.GetAttribute('name'); ValueType = (Get-ValueType $child $child.GetAttribute('type')) })
                 }
             }
             'attributeGroup' {

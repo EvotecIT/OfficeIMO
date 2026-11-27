@@ -172,26 +172,28 @@ public class PowerPointContentFlowBenchmarks {
     public static int RunInterleaved(int rounds) {
         var benchmark = new PowerPointContentFlowBenchmarks();
         benchmark.Setup();
-        var flows = new (string Name, Func<object> WithSdk, Func<object> Default)[] {
+        // Layout composes a new deck, so it has no SDK-opened variant and reports one result.
+        var flows = new (string Name, Func<object>? WithSdk, Func<object> Default)[] {
             ("Charts", benchmark.ChartsWithSdk, benchmark.Charts),
             ("SmartArt", benchmark.SmartArtWithSdk, benchmark.SmartArt),
-            ("Layout", benchmark.Layout, benchmark.Layout),
+            ("Layout", null, benchmark.Layout),
             ("ImageExport", () => benchmark.ImageExportWithSdk(), () => benchmark.ImageExport())
         };
         Console.WriteLine("Flow        | SDK opened | default  | SDK alloc | default alloc");
-        foreach ((string name, Func<object> withSdk, Func<object> byDefault) in flows) {
+        foreach ((string name, Func<object>? withSdk, Func<object> byDefault) in flows) {
             var times = new[] { new List<double>(), new List<double>() };
             var bytes = new[] { new List<double>(), new List<double>() };
             for (int round = -10; round < rounds; round++) {
                 bool sdkFirst = (round & 1) == 0;
                 for (int pass = 0; pass < 2; pass++) {
                     int side = (pass == 0) == sdkFirst ? 0 : 1;
+                    if (side == 0 && withSdk == null) continue;
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
                     GC.Collect();
                     long allocated = GC.GetAllocatedBytesForCurrentThread();
                     long started = System.Diagnostics.Stopwatch.GetTimestamp();
-                    _ = side == 0 ? withSdk() : byDefault();
+                    _ = side == 0 ? withSdk!() : byDefault();
                     double elapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000D / System.Diagnostics.Stopwatch.Frequency;
                     long used = GC.GetAllocatedBytesForCurrentThread() - allocated;
                     if (round < 0) continue;
@@ -199,8 +201,11 @@ public class PowerPointContentFlowBenchmarks {
                     bytes[side].Add(used);
                 }
             }
-            Console.WriteLine(FormattableString.Invariant(
-                $"{name,-11} | {Median(times[0]),7:F2} ms | {Median(times[1]),6:F2} ms | {Median(bytes[0]) / 1048576D,6:F2} MB | {Median(bytes[1]) / 1048576D,6:F2} MB"));
+            Console.WriteLine(withSdk == null
+                ? FormattableString.Invariant(
+                    $"{name,-11} |          - | {Median(times[1]),6:F2} ms |         - | {Median(bytes[1]) / 1048576D,6:F2} MB")
+                : FormattableString.Invariant(
+                    $"{name,-11} | {Median(times[0]),7:F2} ms | {Median(times[1]),6:F2} ms | {Median(bytes[0]) / 1048576D,6:F2} MB | {Median(bytes[1]) / 1048576D,6:F2} MB"));
         }
         return 0;
     }

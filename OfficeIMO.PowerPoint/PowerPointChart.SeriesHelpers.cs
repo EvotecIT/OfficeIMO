@@ -126,7 +126,8 @@ namespace OfficeIMO.PowerPoint {
         private static bool IsSeriesElement(OfficeXmlNode element) => SeriesKind(element) != ChartSeriesKind.None;
 
         private static int GetSeriesIndex(OfficeXmlNode series) {
-            return (int)(series.Child(CNs, "idx").UInt32Attribute("val") ?? 0U);
+            // A missing index reads as 0; one that can't be read throws rather than standing in for another series.
+            return (int)(OfficeChartXml.UIntVal(series.Child(CNs, "idx")) ?? 0U);
         }
 
         private static string? GetSeriesName(OfficeXmlNode series) {

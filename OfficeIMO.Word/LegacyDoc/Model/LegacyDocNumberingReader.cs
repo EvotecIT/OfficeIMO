@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
@@ -79,7 +78,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             if (cursor < 0 || cursor > end - 28) throw Invalid("Truncated native list level header.");
             int start = LegacyDocFib.ReadInt32(table, cursor);
             byte nfc = table[cursor + 4], flags = table[cursor + 5], follow = table[cursor + 15], restart = table[cursor + 26];
-            NumberFormatValues? format = nfc == 23 ? NumberFormatValues.Bullet : nfc == 255 ? NumberFormatValues.None : LegacyDocNumberFormatMapper.FromNfc(nfc);
+            LegacyDocNumberFormat? format = nfc == 23 ? LegacyDocNumberFormat.Bullet : nfc == 255 ? LegacyDocNumberFormat.None : LegacyDocNumberFormatMapper.FromNfc(nfc);
             if (start < 0 || start > 32767 || format == null || nfc == 8 || nfc == 9 || nfc == 15 || nfc == 19)
                 throw Invalid("Unsupported native list numbering format or start.");
             if ((flags & 3) > 2 || follow > 2 || ((flags & 8) != 0 && restart > level)) throw Invalid("Invalid native list level alignment, suffix or restart.");
