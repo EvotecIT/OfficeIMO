@@ -19,7 +19,14 @@ internal static class OfficeProvenanceAiGenerators {
     };
 
     /// <summary>Whether <paramref name="value"/> names a generative AI product.</summary>
-    internal static bool IsAiGenerator(string? value) {
+    internal static bool IsAiGenerator(string? value) => TryMatch(value, out _);
+
+    /// <summary>
+    /// Finds the generative AI product that <paramref name="value"/> names and returns it as listed here, so reports carry the product
+    /// rather than the rest of the field, which can hold unrelated or private text.
+    /// </summary>
+    internal static bool TryMatch(string? value, out string product) {
+        product = string.Empty;
         if (string.IsNullOrWhiteSpace(value)) return false;
         foreach (string name in Names) {
             int start = 0;
@@ -28,7 +35,10 @@ internal static class OfficeProvenanceAiGenerators {
                 if (index < 0) break;
                 int end = index + name.Length;
                 if ((index == 0 || !char.IsLetterOrDigit(value[index - 1])) &&
-                    (end == value.Length || !char.IsLetterOrDigit(value[end]))) return true;
+                    (end == value.Length || !char.IsLetterOrDigit(value[end]))) {
+                    product = name;
+                    return true;
+                }
                 start = index + 1;
             }
         }
@@ -57,6 +67,12 @@ internal static class OfficeProvenanceAiGenerators {
             return System.Text.Encoding.ASCII.GetString(data, textOffset, textLength).TrimEnd('\0');
         }
         if (OfficeProvenanceBinary.MatchesAscii(data, offset, "UNICODE\0")) {
+            if (textLength >= 2 && (data[textOffset] == 0xFE && data[textOffset + 1] == 0xFF || data[textOffset] == 0xFF && data[textOffset + 1] == 0xFE)) {
+                System.Text.Encoding marked = data[textOffset] == 0xFE ? System.Text.Encoding.BigEndianUnicode : System.Text.Encoding.Unicode;
+                int markedLength = textLength - 2;
+                return marked.GetString(data, textOffset + 2, markedLength - markedLength % 2).TrimEnd('\0');
+            }
+            // Without a byte-order mark, the byte order with more zero high bytes is the one the text was written in.
             int evenZeros = 0, oddZeros = 0;
             for (int index = 0; index + 1 < textLength; index += 2) {
                 if (data[textOffset + index] == 0) evenZeros++;

@@ -50,15 +50,18 @@ internal static partial class OfficeProvenanceTiff {
             if (!valid && options.RequireStructurallyValidCarrier) continue;
             if (HasOverlappingIfdRewriteStorage(tiff, ifds, ifd, options.Limits.MaxContainerEntries)) continue;
             rewritten ??= OfficeProvenanceBinary.CloneForOutput(tiff, options.EffectiveMaxOutputBytes);
-            var removed = new HashSet<TiffEntry>(group.Select(static field => field.Entry));
+            var removed = new HashSet<TiffEntry>();
             foreach (GeneratorField field in group) {
-                // Clear out-of-line text unless another entry or image data shares those bytes; inline values go with the entry.
-                if (field.Length > field.Entry.InlineSize &&
-                    !HasOverlappingValueStorage(tiff, ifds, field.Entry, field.Offset, field.Length, options.Limits.MaxContainerEntries)) {
-                    Array.Clear(rewritten, field.Offset, field.Length);
-                }
+                // Out-of-line text shared with another entry or image data cannot be cleared, so strict removal keeps that entry;
+                // inline values go with the entry.
+                bool shared = field.Length > field.Entry.InlineSize &&
+                    HasOverlappingValueStorage(tiff, ifds, field.Entry, field.Offset, field.Length, options.Limits.MaxContainerEntries);
+                if (shared && options.RequireStructurallyValidCarrier) continue;
+                if (field.Length > field.Entry.InlineSize && !shared) Array.Clear(rewritten, field.Offset, field.Length);
+                removed.Add(field.Entry);
                 changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.AiGeneratorMetadata, $"{location}/{field.Name}", field.Length));
             }
+            if (removed.Count == 0) continue;
             RewriteIfd(rewritten, ifd, ifd.Entries.Where(entry => !removed.Contains(entry)).ToList());
         }
         if (rewritten == null) return false;
@@ -85,7 +88,9 @@ internal static partial class OfficeProvenanceTiff {
         foreach (TiffEntry entry in primary.Entries) {
             if (entry.Tag != SoftwareTag || entry.Type != AsciiType || !TryGetValueStorageRange(tiff, entry, out int offset, out int length)) continue;
             string value = System.Text.Encoding.UTF8.GetString(tiff, offset, length).TrimEnd('\0');
-            if (OfficeProvenanceAiGenerators.IsAiGenerator(value)) fields.Add(new GeneratorField(primary, entry, "IFD0/Software", value, offset, length));
+            if (OfficeProvenanceAiGenerators.TryMatch(value, out string product)) {
+                fields.Add(new GeneratorField(primary, entry, "IFD0/Software", product, offset, length));
+            }
         }
         if (exif != null) {
             foreach (TiffEntry entry in exif.Entries) {

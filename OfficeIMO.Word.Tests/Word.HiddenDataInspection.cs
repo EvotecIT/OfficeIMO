@@ -193,7 +193,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 OfficeHiddenDataFinding declaration = Assert.Single(document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.Provenance));
-                Assert.Equal("DALL-E 3", declaration.Value);
+                Assert.Equal("DALL-E", declaration.Value);
 
                 OfficeHiddenDataReport removed = document.RemoveHiddenData();
                 Assert.Equal(OfficeHiddenDataOutcome.Removed, Assert.Single(removed.GetFindings(OfficeHiddenDataKind.ImageMetadata)).Outcome);

@@ -30,7 +30,7 @@ internal static class OfficeProvenanceXmp {
                 OfficeProvenanceCarrierKind.AiGeneratorMetadata,
                 $"{location}/{GeneratorFieldName(field)}[{index++}]",
                 isStructurallyValid: carrierIsStructurallyValid && field.IsStructurallyValid,
-                value: field.Value,
+                value: OfficeProvenanceAiGenerators.TryMatch(field.Value, out string product) ? product : field.Value,
                 digitalSourceKind: OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia));
         }
     }
