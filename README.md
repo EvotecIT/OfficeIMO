@@ -147,6 +147,7 @@ Shared and cross-format packages:
 | Theme, colors, lengths, charts, drawing and image export used by every format | [OfficeIMO.Core](OfficeIMO.Core/README.md) |
 | File-to-file and batch conversion across every registered route | [OfficeIMO](OfficeIMO/README.md) (`OfficeConverter`) |
 | Read, search and chunk any format for indexing and AI ingestion | [OfficeIMO.Reader.All](OfficeIMO.Reader.All/README.md), or one `OfficeIMO.Reader.{Format}` |
+| Office, PDF and other formats as a provider for `Microsoft.Extensions.DocumentExtraction` (preview) | [OfficeIMO.Reader.DocumentExtraction](OfficeIMO.Reader.DocumentExtraction/README.md) |
 | OCR for scanned pages and images | [OfficeIMO.Ocr](OfficeIMO.Ocr/README.md), [OfficeIMO.Ocr.Tesseract](OfficeIMO.Ocr.Tesseract/README.md), [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md) |
 | Certificate signatures for Word, PDF and email | [OfficeIMO.Security](OfficeIMO.Security/README.md) |
 | Print any convertible document to installed queues or IPP printers on Windows, macOS and Linux, with sheet preview and job tracking | [OfficeIMO.Workflows](OfficeIMO.Workflows/README.md#print-a-document) |

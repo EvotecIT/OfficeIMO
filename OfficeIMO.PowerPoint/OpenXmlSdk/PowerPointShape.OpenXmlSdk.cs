@@ -63,68 +63,6 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        private NonVisualDrawingProperties? GetNonVisualDrawingProperties(bool create) {
-            switch (Element) {
-                case Shape s: {
-                    if (create) {
-                        s.NonVisualShapeProperties ??= new NonVisualShapeProperties(
-                            new NonVisualDrawingProperties(),
-                            new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
-                            new ApplicationNonVisualDrawingProperties());
-                        s.NonVisualShapeProperties.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
-                    }
-
-                    return s.NonVisualShapeProperties?.NonVisualDrawingProperties;
-                }
-                case ConnectionShape c: {
-                    if (create) {
-                        c.NonVisualConnectionShapeProperties ??= new NonVisualConnectionShapeProperties(
-                            new NonVisualDrawingProperties(),
-                            new NonVisualConnectorShapeDrawingProperties(),
-                            new ApplicationNonVisualDrawingProperties());
-                        c.NonVisualConnectionShapeProperties.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
-                    }
-
-                    return c.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties;
-                }
-                case Picture p: {
-                    if (create) {
-                        p.NonVisualPictureProperties ??= new NonVisualPictureProperties(
-                            new NonVisualDrawingProperties(),
-                            new NonVisualPictureDrawingProperties(),
-                            new ApplicationNonVisualDrawingProperties());
-                        p.NonVisualPictureProperties.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
-                    }
-
-                    return p.NonVisualPictureProperties?.NonVisualDrawingProperties;
-                }
-                case GraphicFrame g: {
-                    if (create) {
-                        g.NonVisualGraphicFrameProperties ??= new NonVisualGraphicFrameProperties(
-                            new NonVisualDrawingProperties(),
-                            new NonVisualGraphicFrameDrawingProperties(),
-                            new ApplicationNonVisualDrawingProperties());
-                        g.NonVisualGraphicFrameProperties.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
-                    }
-
-                    return g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties;
-                }
-                case GroupShape g: {
-                    if (create) {
-                        g.NonVisualGroupShapeProperties ??= new NonVisualGroupShapeProperties(
-                            new NonVisualDrawingProperties(),
-                            new NonVisualGroupShapeDrawingProperties(),
-                            new ApplicationNonVisualDrawingProperties());
-                        g.NonVisualGroupShapeProperties.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
-                    }
-
-                    return g.NonVisualGroupShapeProperties?.NonVisualDrawingProperties;
-                }
-                default:
-                    return null;
-            }
-        }
-
         internal bool TryGetExportBoundsPoints(out double left, out double top, out double width, out double height) {
             bool found = TryGetBoundsPoints(out left, out top, out width, out height);
             if (found && width > 0D && height > 0D) return true;

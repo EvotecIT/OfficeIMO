@@ -1,49 +1,42 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         /// <summary>Retains a literal leading space; absent separators keep the established native authoring default.</summary>
-        private static bool HasExplicitNoteReferenceSeparator(OpenXmlElement note) =>
+        private static bool HasExplicitNoteReferenceSeparator(LegacyDocElement note) =>
             TryReadFirstNoteContentCharacter(note, out char character) && character == ' ';
 
-        private static bool TryReadFirstNoteContentCharacter(OpenXmlElement element, out char character) {
+        private static bool TryReadFirstNoteContentCharacter(LegacyDocElement element, out char character) {
             character = '\0';
-            switch (element) {
-                case Text text:
-                    if (text.Text.Length == 0) return false;
-                    character = text.Text[0];
+            switch (element.WName) {
+                case "t":
+                case "delText":
+                    string text = element.Text;
+                    if (text.Length == 0) return false;
+                    character = text[0];
                     return true;
-                case DeletedText text:
-                    if (text.Text.Length == 0) return false;
-                    character = text.Text[0];
-                    return true;
-                case ParagraphProperties:
-                case RunProperties:
-                case FootnoteReferenceMark:
-                case EndnoteReferenceMark:
-                case LastRenderedPageBreak:
-                case BookmarkStart:
-                case BookmarkEnd:
+                case "pPr":
+                case "rPr":
+                case "footnoteRef":
+                case "endnoteRef":
+                case "lastRenderedPageBreak":
+                case "bookmarkStart":
+                case "bookmarkEnd":
                     return false;
-                case SdtRun control:
-                    return control.SdtContentRun == null || TryReadFirstNoteContentCharacter(control.SdtContentRun, out character);
-                case SdtBlock control:
-                    return control.SdtContentBlock == null || TryReadFirstNoteContentCharacter(control.SdtContentBlock, out character);
-                case Paragraph:
-                case Run:
-                case InsertedRun:
-                case DeletedRun:
-                case Hyperlink:
-                case Footnote:
-                case Endnote:
-                case SdtContentRun:
-                case SdtContentBlock:
-                    foreach (OpenXmlElement child in element.ChildElements) {
+                case "sdt":
+                    LegacyDocElement content = element.Child("sdtContent");
+                    return content.IsNone || TryReadFirstNoteContentCharacter(content, out character);
+                case "p":
+                case "r":
+                case "ins":
+                case "del":
+                case "hyperlink":
+                case "footnote":
+                case "endnote":
+                case "sdtContent":
+                    foreach (LegacyDocElement child in element.Elements()) {
                         if (TryReadFirstNoteContentCharacter(child, out character)) return true;
                     }
                     // An empty paragraph still ends before any following paragraph's text.
-                    if (element is Paragraph) {
+                    if (element.Is("p")) {
                         character = '\r';
                         return true;
                     }

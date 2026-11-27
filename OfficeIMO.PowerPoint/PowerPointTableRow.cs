@@ -1,4 +1,5 @@
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -6,22 +7,25 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public sealed class PowerPointTableRow {
         private readonly PowerPointTable _table;
+        private readonly PowerPointHeldNode _row;
 
-        internal PowerPointTableRow(PowerPointTable table, A.TableRow row) {
+        internal PowerPointTableRow(PowerPointTable table, OfficeXmlNode row) {
             _table = table ?? throw new ArgumentNullException(nameof(table));
-            Row = row ?? throw new ArgumentNullException(nameof(row));
+            if (row.IsNone) throw new ArgumentNullException(nameof(row));
+            _row = new PowerPointHeldNode(row, table);
         }
 
-        internal A.TableRow Row { get; }
+        internal OfficeXmlNode Row => _row.Element;
 
         /// <summary>
         ///     Gets the zero-based index of the row within the table.
         /// </summary>
         public int Index {
             get {
+                OfficeXmlNode current = Row;
                 int index = 0;
-                foreach (A.TableRow row in _table.TableElement.Elements<A.TableRow>()) {
-                    if (ReferenceEquals(row, Row)) {
+                foreach (OfficeXmlNode row in _table.TableNode.Children(OfficeXmlNamespaces.DrawingML, "tr")) {
+                    if (row.Equals(current)) {
                         return index;
                     }
                     index++;
@@ -34,16 +38,23 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the row height as a physical length.
         /// </summary>
         public OfficeLength? Height {
-            get => Row.Height?.Value is { } extent ? OfficeLength.Emus(extent) : null;
-            set => Row.Height = value?.ToEmus();
+            get => Row.Int64Attribute("h") is { } extent ? OfficeLength.Emus(extent) : null;
+            set {
+                Row.SetInt64Attribute("h", value?.ToEmus());
+                _table.OwnerPartRef.MarkEdited();
+            }
         }
 
         /// <summary>
         ///     Row cells.
         /// </summary>
-        public IReadOnlyList<PowerPointTableCell> Cells =>
-            Row.Elements<A.TableCell>().Select(cell =>
-                _table.WrapCell(cell)).ToList();
+        public IReadOnlyList<PowerPointTableCell> Cells {
+            get {
+                var cells = new List<PowerPointTableCell>();
+                foreach (OfficeXmlNode cell in Row.Children(OfficeXmlNamespaces.DrawingML, "tc")) cells.Add(_table.CellFor(cell));
+                return cells;
+            }
+        }
 
         /// <summary>
         ///     Retrieves a cell at the specified column index.
@@ -52,8 +63,11 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, _table.ColumnCount);
 
-            A.TableCell cell = Row.Elements<A.TableCell>().ElementAt(columnIndex);
-            return _table.WrapCell(cell);
+            int index = columnIndex;
+            foreach (OfficeXmlNode cell in Row.Children(OfficeXmlNamespaces.DrawingML, "tc")) {
+                if (index-- == 0) return _table.CellFor(cell);
+            }
+            throw new ArgumentOutOfRangeException(nameof(columnIndex));
         }
 
         /// <summary>

@@ -1,67 +1,61 @@
 using DocumentFormat.OpenXml;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartWriter {
-        private static void SetAutomaticSeriesColor(OpenXmlCompositeElement element, bool automatic) {
-            OpenXmlCompositeElement? extensions = element.ChildElements
-                .OfType<OpenXmlCompositeElement>().FirstOrDefault(child => child.LocalName == "extLst");
+        /// <remarks>
+        /// For a series not yet under a chart layer, <c>kind</c> is the chart kind whose layer it is built for; an
+        /// attached series is read from its layer.
+        /// </remarks>
+        private static void SetAutomaticSeriesColor(OfficeXmlNode element, bool automatic, OfficeChartType? kind = null) {
+            OfficeXmlNode extensions = default;
+            foreach (OfficeXmlNode child in element.Children()) {
+                if (child.LocalName == "extLst") {
+                    extensions = child;
+                    break;
+                }
+            }
             OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(element);
             if (!automatic) return;
-            OpenXmlCompositeElement? marker = element switch {
-                C.BarChartSeries => new C.BarSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
-                C.LineChartSeries => new C.LineSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
-                C.ScatterChartSeries => new C.ScatterSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
-                C.AreaChartSeries => new C.AreaSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
-                C.RadarChartSeries => new C.RadarSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
-                C.PieChartSeries => new C.PieSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
-                C.BubbleChartSeries => new C.BubbleSerExtension { Uri = OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri },
-                _ => null
-            };
-            if (marker == null) return;
-            marker.Append(new OpenXmlUnknownElement("oi", "autoColor",
-                OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri));
-            extensions ??= element switch {
-                C.BarChartSeries => new C.BarSerExtensionList(),
-                C.LineChartSeries => new C.LineSerExtensionList(),
-                C.ScatterChartSeries => new C.ScatterSerExtensionList(),
-                C.AreaChartSeries => new C.AreaSerExtensionList(),
-                C.RadarChartSeries => new C.RadarSerExtensionList(),
-                C.PieChartSeries => new C.PieSerExtensionList(),
-                C.BubbleChartSeries => new C.BubbleSerExtensionList(),
-                _ => throw new NotSupportedException("The series cannot carry automatic color provenance.")
-            };
-            if (extensions.Parent == null) element.Append(extensions);
-            extensions.Append(marker);
+            // Series of a surface layer, or elements that aren't chart series, carry no automatic color provenance.
+            if (!element.Is(NsC, "ser") || SeriesLayer(element, kind) is not
+                ("barChart" or "bar3DChart" or "lineChart" or "line3DChart" or "stockChart" or "scatterChart" or
+                 "areaChart" or "area3DChart" or "radarChart" or "pieChart" or "pie3DChart" or "doughnutChart" or
+                 "ofPieChart" or "bubbleChart")) return;
+            if (extensions.IsNone) extensions = element.Append(element.CreateElement(NsC, "extLst"));
+            OfficeXmlNode marker = extensions.Append(extensions.CreateElement(NsC, "ext"));
+            marker.SetAttribute("uri", OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri);
+            marker.Append(marker.CreateElement(OfficeOpenXmlChartAutomaticColors.AutomaticSeriesColorExtensionUri, "autoColor", "oi"));
         }
 
-        private static OfficeColor? ReadDirectSeriesColor(OpenXmlCompositeElement seriesElement) {
-            var properties = seriesElement.GetFirstChild<C.ChartShapeProperties>();
-            var marker = seriesElement.GetFirstChild<C.Marker>()?.ChartShapeProperties;
-            return OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<A.SolidFill>(), null)
-                ?? OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), null)
-                ?? OfficeOpenXmlThemeColorResolver.ResolveColor(marker?.GetFirstChild<A.SolidFill>(), null);
+        private static OfficeColor? ReadDirectSeriesColor(OfficeXmlNode seriesElement) {
+            OfficeXmlNode properties = seriesElement.Child(NsC, "spPr");
+            OfficeXmlNode marker = seriesElement.Child(NsC, "marker").Child(NsC, "spPr");
+            return OfficeOpenXmlThemeColorResolver.ResolveColor(properties.Child(NsA, "solidFill"), OfficeXmlNode.None)
+                ?? OfficeOpenXmlThemeColorResolver.ResolveColor(properties.Child(NsA, "ln").Child(NsA, "solidFill"), OfficeXmlNode.None)
+                ?? OfficeOpenXmlThemeColorResolver.ResolveColor(marker.Child(NsA, "solidFill"), OfficeXmlNode.None);
         }
 
-        internal static void MaterializeDefaultSeriesColor(OpenXmlCompositeElement element,
+        internal static void MaterializeDefaultSeriesColor(OfficeXmlNode element,
             OfficeChartType kind, int seriesIndex) {
             var appearance = new OfficeSeries(string.Empty, Array.Empty<double>(), null,
                 OfficeChartStyle.Default.GetSeriesColor(seriesIndex));
             ApplySharedSeriesShapeStyle(element, appearance, kind, null);
-            SetAutomaticSeriesColor(element, true);
+            SetAutomaticSeriesColor(element, true, kind);
         }
 
-        private static void ApplySharedSeriesShapeStyle(OpenXmlCompositeElement seriesElement,
+        private static void ApplySharedSeriesShapeStyle(OfficeXmlNode seriesElement,
             OfficeSeries series, OfficeChartType kind,
             OfficeColor? fallbackFillColor, OfficeTheme? theme = null) {
             OfficeColor? fillColor = series.Color ?? fallbackFillColor;
-            C.ChartShapeProperties properties =
-                seriesElement.GetFirstChild<C.ChartShapeProperties>() ??
-                new C.ChartShapeProperties();
+            OfficeXmlNode properties = seriesElement.Child(NsC, "spPr");
+            bool newProperties = properties.IsNone;
+            if (newProperties) properties = seriesElement.CreateElement(NsC, "spPr");
+            OfficeXmlNode existingOutline = properties.Child(NsA, "ln");
             OfficeColor? existingOutlineColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
-                properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), null);
+                existingOutline.Child(NsA, "solidFill"), OfficeXmlNode.None);
             OfficeColor? outlineColor = kind == OfficeChartType.Bubble
                 ? series.MarkerOutlineColor ?? existingOutlineColor ?? fillColor
                 : IsFilledSharedKind(kind) ? null : fillColor;
@@ -70,9 +64,9 @@ namespace OfficeIMO.OpenXml.Internal {
                 : series.StrokeWidth;
             bool reenableBubbleOutline = kind == OfficeChartType.Bubble &&
                 series.ShowMarkerOutline &&
-                properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
+                !existingOutline.Child(NsA, "noFill").IsNone;
             bool reenableConnectingLine = (!IsFilledSharedKind(kind) || IsAreaKind(kind)) && series.ConnectLine &&
-                properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
+                !existingOutline.Child(NsA, "noFill").IsNone;
             bool hideAreaOutline = IsAreaKind(kind) && !series.ConnectLine;
             if (!fillColor.HasValue && !outlineColor.HasValue && outlineWidth == null &&
                 (kind != OfficeChartType.Bubble || series.ShowMarkerOutline) &&
@@ -80,98 +74,95 @@ namespace OfficeIMO.OpenXml.Internal {
                 (series.ConnectLine || IsFilledSharedKind(kind)) &&
                 !reenableBubbleOutline && !reenableConnectingLine && !hideAreaOutline) return;
             if (fillColor.HasValue && (IsFilledSharedKind(kind) || kind == OfficeChartType.Line)) {
-                properties.RemoveAllChildren<A.SolidFill>();
-                properties.RemoveAllChildren<A.NoFill>();
-                properties.RemoveAllChildren<A.GradientFill>();
-                properties.RemoveAllChildren<A.PatternFill>();
-                properties.RemoveAllChildren<A.BlipFill>();
-                properties.RemoveAllChildren<A.GroupFill>();
-                properties.AddChild(new A.SolidFill(CreateSharedRgbColor(fillColor.Value, theme)), true);
+                RemoveSharedFillChoices(properties);
+                SetOrdered(properties, CreateSharedSolidFill(properties, fillColor.Value, theme), DmlShapePropertiesView.Order);
             }
-            A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
+            OfficeXmlNode outline = properties.Child(NsA, "ln");
+            bool newOutline = outline.IsNone;
+            if (newOutline) outline = properties.CreateElement(NsA, "ln");
             bool replaceOutlineFill = reenableBubbleOutline || reenableConnectingLine ||
                 (kind == OfficeChartType.Bubble && !series.ShowMarkerOutline) ||
                 (!series.ConnectLine && !IsFilledSharedKind(kind)) ||
                 hideAreaOutline ||
                 outlineColor.HasValue;
             if (replaceOutlineFill) {
-                outline.RemoveAllChildren<A.SolidFill>();
-                outline.RemoveAllChildren<A.NoFill>();
-                outline.RemoveAllChildren<A.GradientFill>();
-                outline.RemoveAllChildren<A.PatternFill>();
-                outline.RemoveAllChildren<A.BlipFill>();
-                outline.RemoveAllChildren<A.GroupFill>();
+                RemoveSharedFillChoices(outline);
                 if (kind == OfficeChartType.Bubble &&
                     !series.ShowMarkerOutline) {
-                    outline.AddChild(new A.NoFill(), true);
+                    SetOrdered(outline, outline.CreateElement(NsA, "noFill"), DmlLinePropertiesView.Order);
                 } else if (hideAreaOutline || (!series.ConnectLine && !IsFilledSharedKind(kind))) {
-                    outline.AddChild(new A.NoFill(), true);
+                    SetOrdered(outline, outline.CreateElement(NsA, "noFill"), DmlLinePropertiesView.Order);
                 } else if (outlineColor.HasValue) {
-                    outline.AddChild(new A.SolidFill(CreateSharedRgbColor(outlineColor.Value, theme)), true);
+                    SetOrdered(outline, CreateSharedSolidFill(outline, outlineColor.Value, theme), DmlLinePropertiesView.Order);
                 }
             }
             if (outlineWidth.HasValue) {
-                outline.Width = checked((int)outlineWidth.Value.ToEmus());
-            } else if (reenableConnectingLine && outline.Width?.Value == 0) {
+                outline.SetAttribute("w", Text(checked((int)outlineWidth.Value.ToEmus())));
+            } else if (reenableConnectingLine && outline.IntAttr("w") == 0) {
                 // A hidden native area outline may have zero width as well as no fill.
-                outline.Width = null;
+                outline.SetAttribute("w", null);
             }
             if (series.StrokeDashStyle.HasValue) {
-                outline.RemoveAllChildren<A.PresetDash>();
-                outline.AddChild(new A.PresetDash { Val = MapDash(series.StrokeDashStyle.Value) }, true);
+                outline.RemoveChildren(NsA, "prstDash");
+                SetOrdered(outline, outline.CreateVal(NsA, "prstDash", MapDash(series.StrokeDashStyle.Value)), DmlLinePropertiesView.Order);
             } else if (reenableConnectingLine || reenableBubbleOutline) {
                 // A hidden imported outline can retain an unsupported dash. Re-enabling it
                 // without an explicit shared dash means a solid native outline.
-                outline.RemoveAllChildren<A.PresetDash>();
+                outline.RemoveChildren(NsA, "prstDash");
             }
             // An empty a:ln reads back as an outline the caller never asked for, so a new
             // outline is only written when it carries a fill, width or dash.
-            if (outline.Parent == null && (outline.HasChildren || outline.HasAttributes)) properties.AddChild(outline, true);
-            if (properties.Parent == null) InsertSharedSeriesProperties(seriesElement, properties);
+            if (newOutline && (outline.HasChildElements() || outline.HasAttributes)) SetOrdered(properties, outline, DmlShapePropertiesView.Order);
+            if (newProperties) InsertSharedSeriesProperties(seriesElement, properties, kind);
         }
 
-        private static void ApplySharedSeriesMarker(OpenXmlCompositeElement seriesElement,
+        private static void ApplySharedSeriesMarker(OfficeXmlNode seriesElement,
             OfficeSeries series, OfficeChartType kind, OfficeColor? fallbackColor, OfficeTheme theme,
             bool preservePresentation) {
             if (!IsMarkerKind(kind)) return;
-            C.Marker marker = seriesElement.GetFirstChild<C.Marker>() ?? new C.Marker();
-            if (!preservePresentation && !series.ResolveMarkerVisibility(kind, theme)) marker.Symbol = new C.Symbol { Val = C.MarkerStyleValues.None };
-            else if (!preservePresentation && (series.ResolveMarkerShape(kind, theme).HasValue || marker.Symbol == null))
-                marker.Symbol = new C.Symbol { Val = MapMarker(series.ResolveMarkerShape(kind, theme)) };
-            if (series.MarkerSize.HasValue) marker.Size = new C.Size { Val = checked((byte)decimal.Round(OfficeChartStyleBounds.ClampNativeMarkerSize(series.MarkerSize.Value).ToEmus() / 12700m, 0, MidpointRounding.AwayFromZero)) };
+            OfficeXmlNode marker = seriesElement.Child(NsC, "marker");
+            bool newMarker = marker.IsNone;
+            if (newMarker) marker = seriesElement.CreateElement(NsC, "marker");
+            if (!preservePresentation && !series.ResolveMarkerVisibility(kind, theme))
+                SetOrdered(marker, marker.CreateVal(NsC, "symbol", "none"), CMarkerView.Order);
+            else if (!preservePresentation && (series.ResolveMarkerShape(kind, theme).HasValue || marker.Child(NsC, "symbol").IsNone))
+                SetOrdered(marker, marker.CreateVal(NsC, "symbol", MapMarker(series.ResolveMarkerShape(kind, theme))), CMarkerView.Order);
+            if (series.MarkerSize.HasValue) {
+                byte size = checked((byte)decimal.Round(OfficeChartStyleBounds.ClampNativeMarkerSize(series.MarkerSize.Value).ToEmus() / 12700m, 0, MidpointRounding.AwayFromZero));
+                SetOrdered(marker, marker.CreateVal(NsC, "size", Text((int)size)), CMarkerView.Order);
+            }
             OfficeColor? markerFill = series.Color ?? fallbackColor;
             if (markerFill.HasValue || series.MarkerOutlineColor.HasValue || series.MarkerOutlineWidth.HasValue) {
-                C.ChartShapeProperties properties = marker.ChartShapeProperties ?? new C.ChartShapeProperties();
+                OfficeXmlNode properties = marker.Child(NsC, "spPr");
+                bool newProperties = properties.IsNone;
+                if (newProperties) properties = marker.CreateElement(NsC, "spPr");
                 if (markerFill.HasValue) {
                     RemoveSharedFillChoices(properties);
-                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(markerFill.Value, theme)), true);
+                    SetOrdered(properties, CreateSharedSolidFill(properties, markerFill.Value, theme), DmlShapePropertiesView.Order);
                 }
-                A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
+                OfficeXmlNode outline = properties.Child(NsA, "ln");
+                bool newOutline = outline.IsNone;
+                if (newOutline) outline = properties.CreateElement(NsA, "ln");
                 OfficeColor? markerColor = series.MarkerOutlineColor ?? markerFill;
                 if (markerColor.HasValue) {
                     RemoveSharedFillChoices(outline);
-                    outline.AddChild(new A.SolidFill(CreateSharedRgbColor(markerColor.Value, theme)), true);
+                    SetOrdered(outline, CreateSharedSolidFill(outline, markerColor.Value, theme), DmlLinePropertiesView.Order);
                 }
                 if (series.MarkerOutlineWidth.HasValue) {
-                    outline.Width = checked((int)series.MarkerOutlineWidth.Value.ToEmus());
+                    outline.SetAttribute("w", Text(checked((int)series.MarkerOutlineWidth.Value.ToEmus())));
                 }
-                if (outline.Parent == null) properties.AddChild(outline, true);
-                if (properties.Parent == null) marker.AddChild(properties, true);
+                if (newOutline) SetOrdered(properties, outline, DmlShapePropertiesView.Order);
+                if (newProperties) SetOrdered(marker, properties, CMarkerView.Order);
             }
-            if (marker.Parent == null) InsertSharedMarker(seriesElement, marker);
+            if (newMarker) InsertSharedMarker(seriesElement, marker, kind);
         }
 
-        private static void ApplySharedPointColors(OpenXmlCompositeElement seriesElement, OfficeSeries series, OfficeTheme theme) {
+        private static void ApplySharedPointColors(OfficeXmlNode seriesElement, OfficeSeries series, OfficeTheme theme) {
             if (series.PointColors == null) return;
-            OpenXmlElement? insertBefore = seriesElement.GetFirstChild<C.DataLabels>() ??
-                (OpenXmlElement?)seriesElement.GetFirstChild<C.Trendline>() ??
-                (OpenXmlElement?)seriesElement.GetFirstChild<C.ErrorBars>() ??
-                (OpenXmlElement?)seriesElement.GetFirstChild<C.CategoryAxisData>() ??
-                (OpenXmlElement?)seriesElement.GetFirstChild<C.Values>() ??
-                (OpenXmlElement?)seriesElement.GetFirstChild<C.XValues>() ?? seriesElement.GetFirstChild<C.YValues>();
-            var pointsByIndex = new Dictionary<uint, C.DataPoint>();
-            foreach (C.DataPoint existingPoint in OfficeOpenXmlChartPointStyles.GetBoundedPoints(seriesElement)) {
-                uint? existingIndex = existingPoint.Index?.Val?.Value;
+            OfficeXmlNode insertBefore = FirstExisting(seriesElement, "dLbls", "trendline", "errBars", "cat", "val", "xVal", "yVal");
+            var pointsByIndex = new Dictionary<uint, OfficeXmlNode>();
+            foreach (OfficeXmlNode existingPoint in OfficeOpenXmlChartPointStyles.GetBoundedPoints(seriesElement)) {
+                uint? existingIndex = existingPoint.Child(NsC, "idx").UIntVal();
                 if (existingIndex.HasValue && !pointsByIndex.ContainsKey(existingIndex.Value)) {
                     pointsByIndex.Add(existingIndex.Value, existingPoint);
                 }
@@ -179,57 +170,82 @@ namespace OfficeIMO.OpenXml.Internal {
             for (int index = 0; index < series.PointColors.Count; index++) {
                 OfficeColor? color = series.PointColors[index];
                 uint pointIndex = (uint)index;
-                if (!pointsByIndex.TryGetValue(pointIndex, out C.DataPoint? point)) {
+                if (!pointsByIndex.TryGetValue(pointIndex, out OfficeXmlNode point)) {
                     if (!color.HasValue) continue;
-                    point = new C.DataPoint(new C.Index { Val = (uint)index });
-                    if (insertBefore != null) {
-                        seriesElement.InsertBefore(point, insertBefore);
-                    } else {
-                        seriesElement.Append(point);
-                    }
+                    point = seriesElement.CreateElement(NsC, "dPt");
+                    point.AppendVal(NsC, "idx", Text((uint)index));
+                    point = seriesElement.InsertBefore(point, insertBefore);
                     pointsByIndex.Add(pointIndex, point);
                 }
-                C.ChartShapeProperties? direct = point.GetFirstChild<C.ChartShapeProperties>();
-                C.ChartShapeProperties? marker = point.GetFirstChild<C.Marker>()?.ChartShapeProperties;
-                if (direct != null) RemoveSharedFillChoices(direct);
-                if (marker != null) RemoveSharedFillChoices(marker);
+                OfficeXmlNode direct = point.Child(NsC, "spPr");
+                OfficeXmlNode marker = point.Child(NsC, "marker").Child(NsC, "spPr");
+                if (!direct.IsNone) RemoveSharedFillChoices(direct);
+                if (!marker.IsNone) RemoveSharedFillChoices(marker);
                 if (color.HasValue) {
-                    C.ChartShapeProperties properties = marker ?? direct ?? new C.ChartShapeProperties();
-                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(color.Value, theme)), true);
-                    if (properties.Parent == null) point.AddChild(properties, true);
+                    OfficeXmlNode properties = !marker.IsNone ? marker : direct;
+                    bool newProperties = properties.IsNone;
+                    if (newProperties) properties = point.CreateElement(NsC, "spPr");
+                    SetOrdered(properties, CreateSharedSolidFill(properties, color.Value, theme), DmlShapePropertiesView.Order);
+                    if (newProperties) SetOrdered(point, properties, CDPtView.Order);
                 }
-                if (direct != null && !direct.HasChildren && !direct.HasAttributes) direct.Remove();
-                if (marker != null && !marker.HasChildren && !marker.HasAttributes) marker.Remove();
+                if (!direct.IsNone && !direct.HasChildElements() && !direct.HasAttributes) direct.Remove();
+                if (!marker.IsNone && !marker.HasChildElements() && !marker.HasAttributes) marker.Remove();
             }
         }
 
-        private static void RemoveSharedFillChoices(OpenXmlCompositeElement element) {
-            element.RemoveAllChildren<A.NoFill>();
-            element.RemoveAllChildren<A.SolidFill>();
-            element.RemoveAllChildren<A.GradientFill>();
-            element.RemoveAllChildren<A.PatternFill>();
-            element.RemoveAllChildren<A.BlipFill>();
-            element.RemoveAllChildren<A.GroupFill>();
+        // The first of these children that exists, by priority rather than document order.
+        private static OfficeXmlNode FirstExisting(OfficeXmlNode parent, params string[] names) {
+            foreach (string name in names) {
+                OfficeXmlNode child = parent.Child(NsC, name);
+                if (!child.IsNone) return child;
+            }
+            return default;
         }
 
-        private static A.RgbColorModelHex CreateSharedRgbColor(OfficeColor color, OfficeTheme? theme = null) {
+        private static void RemoveSharedFillChoices(OfficeXmlNode element) {
+            element.RemoveChildren(NsA, "noFill");
+            element.RemoveChildren(NsA, "solidFill");
+            element.RemoveChildren(NsA, "gradFill");
+            element.RemoveChildren(NsA, "pattFill");
+            element.RemoveChildren(NsA, "blipFill");
+            element.RemoveChildren(NsA, "grpFill");
+        }
+
+        /// <summary>A detached <c>a:solidFill</c> holding <see cref="CreateSharedRgbColor"/>, built for <paramref name="context"/>.</summary>
+        private static OfficeXmlNode CreateSharedSolidFill(OfficeXmlNode context, OfficeColor color, OfficeTheme? theme = null) {
+            OfficeXmlNode fill = context.CreateElement(NsA, "solidFill");
+            fill.Append(CreateSharedRgbColor(fill, color, theme));
+            return fill;
+        }
+
+        private static OfficeXmlNode CreateSharedRgbColor(OfficeXmlNode context, OfficeColor color, OfficeTheme? theme = null) {
             color = color.Resolve(theme ?? OfficeTheme.Default);
-            var rgb = new A.RgbColorModelHex { Val = color.ToRgbHex() };
+            OfficeXmlNode rgb = context.CreateVal(NsA, "srgbClr", color.ToRgbHex());
             if (color.A < byte.MaxValue) {
-                rgb.Append(new A.Alpha {
-                    Val = checked((int)Math.Round(
-                        color.A / 255D * 100000D,
-                        MidpointRounding.AwayFromZero))
-                });
+                rgb.AppendVal(NsA, "alpha", Text(checked((int)Math.Round(
+                    color.A / 255D * 100000D,
+                    MidpointRounding.AwayFromZero))));
             }
             return rgb;
         }
 
-        private static void InsertSharedSeriesProperties(OpenXmlCompositeElement series, C.ChartShapeProperties properties) =>
-            series.AddChild(properties, true);
+        // The series kind stands in for the SDK series class when the series isn't under a layer yet.
+        private static void InsertSharedSeriesProperties(OfficeXmlNode series, OfficeXmlNode properties, OfficeChartType kind) =>
+            SetSeriesChild(series, properties, kind);
 
-        private static void InsertSharedMarker(OpenXmlCompositeElement series, C.Marker marker) =>
-            series.AddChild(marker, true);
+        private static void InsertSharedMarker(OfficeXmlNode series, OfficeXmlNode marker, OfficeChartType kind) =>
+            SetSeriesChild(series, marker, kind);
 
+        private static void SetSeriesChild(OfficeXmlNode series, OfficeXmlNode child, OfficeChartType? kind) {
+            OfficeXmlChildOrder? order = SeriesOrder(SeriesLayer(series, kind));
+            if (order != null) SetOrdered(series, child, order);
+            else series.Append(child);
+        }
+
+        // SDK callers
+
+        internal static void MaterializeDefaultSeriesColor(OpenXmlCompositeElement element,
+            OfficeChartType kind, int seriesIndex) =>
+            MaterializeDefaultSeriesColor(OfficeXmlNode.FromSdk(element), kind, seriesIndex);
     }
 }

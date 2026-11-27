@@ -107,6 +107,12 @@ public sealed partial class PowerPointDocument {
             // Nothing has opened the package since it was loaded, so its bytes are the copy.
             loaded.Position = 0;
             loaded.CopyTo(package);
+        } else if (SdkDocument.FileOpenAccess != FileAccess.ReadWrite) {
+            // A read-only SDK package keeps edits only in its loaded parts; the parts that were edited are written into the
+            // copy, as edits made without the SDK are. Untouched parts keep their stored markup.
+            using (var clone = (OpenXmlPackage)SdkDocument.Clone(package, true)) {
+                if (_sdkEditedParts != null) CopyEditedParts(SdkDocument, clone, _sdkEditedParts, new HashSet<OpenXmlPart>());
+            }
         } else {
             // Cloning saves the SDK package first, and that save rewrites the core properties part and the core
             // properties the document holds (dates shift by the local time zone offset, and values set since the load
@@ -197,6 +203,19 @@ public sealed partial class PowerPointDocument {
 
     private static bool SameDate(DateTime? left, DateTime? right) =>
         left.HasValue == right.HasValue && (!left.HasValue || left.Value.Ticks == right!.Value.Ticks && left.Value.Kind == right.Value.Kind);
+
+    // Writes the content of each edited part into the same part of the copy.
+    private static void CopyEditedParts(DocumentFormat.OpenXml.Packaging.OpenXmlPartContainer source, DocumentFormat.OpenXml.Packaging.OpenXmlPartContainer target,
+        HashSet<string> edited, HashSet<DocumentFormat.OpenXml.Packaging.OpenXmlPart> seen) {
+        foreach (DocumentFormat.OpenXml.Packaging.IdPartPair pair in source.Parts) {
+            if (!seen.Add(pair.OpenXmlPart) || !target.TryGetPartById(pair.RelationshipId, out DocumentFormat.OpenXml.Packaging.OpenXmlPart? copy)) continue;
+            if (edited.Contains(pair.OpenXmlPart.Uri.OriginalString) && pair.OpenXmlPart.IsRootElementLoaded && pair.OpenXmlPart.RootElement is { } root) {
+                using var content = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(root.OuterXml), writable: false);
+                copy.FeedData(content);
+            }
+            CopyEditedParts(pair.OpenXmlPart, copy, edited, seen);
+        }
+    }
 
     /// <summary>Saves the native presentation to a caller-owned stream.</summary>
     public void Save(Stream destination, PowerPointSaveOptions? options = null) {

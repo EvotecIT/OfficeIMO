@@ -11,7 +11,7 @@ namespace OfficeIMO.Word;
 internal static class WordListNumberingResolver {
     private const int MaximumStyleInheritanceDepth = 256;
     private static readonly ConditionalWeakTable<MainDocumentPart, CachedStyleCatalog> StyleCatalogs = new();
-    private static readonly ConditionalWeakTable<Numbering, NumberingRevision> NumberingRevisions = new();
+    private static readonly ConditionalWeakTable<object, NumberingRevision> NumberingRevisions = new();
 
     /// <summary>
     /// Resolves abstract IDs to the first definition with the same authored numbering identity.
@@ -248,7 +248,8 @@ internal static class WordListNumberingResolver {
     private static Styles? LoadedStyles(StylesPart? part) =>
         part != null && part.IsRootElementLoaded ? part.Styles : null;
 
-    internal static void InvalidateNumbering(Numbering? numbering) {
+    /// <summary>Marks the numbering part's root element as changed, so cached resolutions are rebuilt.</summary>
+    internal static void InvalidateNumbering(object? numbering) {
         if (numbering == null) return;
         Interlocked.Increment(ref NumberingRevisions.GetValue(numbering, _ => new NumberingRevision()).Value);
     }

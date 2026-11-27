@@ -64,8 +64,8 @@ public sealed class WordPdfBarTabTests {
         WordListLevel level = list.Numbering.Levels[0];
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(54D);
-        level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new W.Tabs(Tab(W.TabStopValues.Number)), 0);
-        level.OpenXmlElement.NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
+        level.OpenXmlLevel().PreviousParagraphProperties!.InsertAt(new W.Tabs(Tab(W.TabStopValues.Number)), 0);
+        level.OpenXmlLevel().NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
             new W.RunFonts { Ascii = ManagedTextShapingTestAssets.FamilyName, HighAnsi = ManagedTextShapingTestAssets.FamilyName },
             new W.FontSize { Val = "24" });
         WordParagraph paragraph = list.AddItem("FIRST\nSECOND");
@@ -347,7 +347,7 @@ public sealed class WordPdfBarTabTests {
         if (kind == "marker") {
             WordList list = document.AddCustomList();
             list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-            list.Numbering.Levels[0].OpenXmlElement.NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
+            list.Numbering.Levels[0].OpenXmlLevel().NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
                 new W.RunFonts { Ascii = ManagedTextShapingTestAssets.FamilyName, HighAnsi = ManagedTextShapingTestAssets.FamilyName },
                 new W.FontSize { Val = "24" });
             WordParagraph seed = list.AddItem("SEED");

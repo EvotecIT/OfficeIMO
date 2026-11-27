@@ -230,7 +230,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             foreach (OfficeXmlNode sound in root.SchemaDescendants(LegacyPptXml.A, "snd")) {
                 AddIfPresent(referencedAudioIds, sound.Attribute(LegacyPptXml.R, "embed"));
             }
-            foreach (OfficeXmlNode element in root.AllDescendants()) {
+            foreach (OfficeXmlNode element in root.EveryDescendant()) {
                 if (element.LocalName is not "snd" and not "sound") continue;
                 AddIfPresent(referencedAudioIds, FirstAttributeNamed(element, "embed"));
             }
@@ -507,7 +507,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 OfficeXmlNode text = shape.Child(LegacyPptXml.P, "txBody");
                 if (!text.IsNone) {
                     bool retainsSecuritySensitiveTextInteractions =
-                        !normalizeInteractions && text.AllDescendants()
+                        !normalizeInteractions && text.EveryDescendant()
                             .Any(element => element.Is(LegacyPptXml.A, "hlinkClick")
                                 || element.Is(LegacyPptXml.A, "hlinkHover")
                                 || element.Is(LegacyPptXml.A, "hlinkMouseOver"));
@@ -679,7 +679,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private static bool HasOnlyTopLevelAnimationTargets(
             OfficeXmlNode extension,
             LegacyPptSlideProjection slideProjection) {
-            OfficeXmlNode[] animations = extension.AllDescendants()
+            OfficeXmlNode[] animations = extension.EveryDescendant()
                 .Where(element => element.Is(ClassicAnimationNamespace, "animation"))
                 .ToArray();
             return animations.Length > 0 && animations.All(animation =>

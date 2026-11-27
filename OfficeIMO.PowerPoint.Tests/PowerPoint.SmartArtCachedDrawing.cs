@@ -179,4 +179,22 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
         Assert.True(smartArt.TryCreateCachedDrawing(out PowerPointGroupShape group, out string? reason), reason);
         Assert.Contains("Discover", slide.GetGroupChildren(group).OfType<PowerPointTextBox>().Select(text => text.Text.Trim()));
     }
+
+    [Fact]
+    public void CachedSmartArtLeavesOutFormattingWhitespaceBesideACdataSection() {
+        using PowerPointDocument presentation = PowerPointDocument.Load(RoadmapPath);
+        PowerPointSlide slide = presentation.Slides.Single(item => item.Shapes.OfType<PowerPointSmartArt>().Any());
+        PowerPointSmartArt smartArt = slide.Shapes.OfType<PowerPointSmartArt>().Single();
+        DiagramPersistLayoutPart part = slide.SlidePart.Parts.Select(item => item.OpenXmlPart)
+            .OfType<DiagramPersistLayoutPart>().Single();
+        string xml;
+        using (var reader = new StreamReader(part.GetStream(FileMode.Open, FileAccess.Read))) xml = reader.ReadToEnd();
+        using (Stream stream = part.GetStream(FileMode.Create, FileAccess.Write))
+        using (var writer = new StreamWriter(stream)) {
+            writer.Write(xml.Replace(">Discover<", "><![CDATA[Discover]]> <"));
+        }
+
+        Assert.True(smartArt.TryCreateCachedDrawing(out PowerPointGroupShape group, out string? reason), reason);
+        Assert.Contains("Discover", slide.GetGroupChildren(group).OfType<PowerPointTextBox>().Select(text => text.Text));
+    }
 }

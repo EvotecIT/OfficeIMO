@@ -88,7 +88,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 "cMediaNode");
             return targets.Count == mediaShapeIds.Count
                 && mediaNodes.Count == mediaShapeIds.Count
-                && timing.AllDescendants().All(element =>
+                && timing.EveryDescendant().All(element =>
                     allowedNames.Contains(element.LocalName))
                 && targets.All(target =>
                     target.Attribute("spid") is string shapeId

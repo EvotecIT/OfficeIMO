@@ -1,29 +1,28 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         private sealed class BodyBlockBoundaryCache {
-            private readonly Dictionary<OpenXmlElement, OpenXmlElement?> _following = new();
-            private readonly Dictionary<OpenXmlElement, OpenXmlElement?> _preceding = new();
+            private readonly Dictionary<LegacyDocElement, LegacyDocElement> _following = new();
+            private readonly Dictionary<LegacyDocElement, LegacyDocElement> _preceding = new();
 
-            internal OpenXmlElement? FindFollowing(OpenXmlElement marker) => Find(marker, _following, forward: true);
-            internal OpenXmlElement? FindPreceding(OpenXmlElement marker) => Find(marker, _preceding, forward: false);
+            internal LegacyDocElement FindFollowing(LegacyDocElement marker) => Find(marker, _following, forward: true);
+            internal LegacyDocElement FindPreceding(LegacyDocElement marker) => Find(marker, _preceding, forward: false);
 
-            private static OpenXmlElement? Find(OpenXmlElement marker,
-                Dictionary<OpenXmlElement, OpenXmlElement?> cache, bool forward) {
-                if (cache.TryGetValue(marker, out OpenXmlElement? result)) return result;
+            private static LegacyDocElement Find(LegacyDocElement marker,
+                Dictionary<LegacyDocElement, LegacyDocElement> cache, bool forward) {
+                if (cache.TryGetValue(marker, out LegacyDocElement result)) return result;
 
-                var visited = new List<OpenXmlElement> { marker };
-                OpenXmlElement? element = forward ? NextBodyElement(marker) : PreviousBodyElement(marker);
-                while (element != null) {
+                var visited = new List<LegacyDocElement> { marker };
+                LegacyDocElement element = forward ? NextBodyElement(marker) : PreviousBodyElement(marker);
+                while (element.Exists) {
                     if (cache.TryGetValue(element, out result)) break;
-                    if (element is SdtBlock control && control.SdtContentBlock != null) {
+                    LegacyDocElement content = element.Is("sdt") ? element.Child("sdtContent") : LegacyDocElement.None;
+                    if (content.Exists) {
                         visited.Add(element);
-                        element = forward
-                            ? control.SdtContentBlock.FirstChild ?? NextBodyElement(control)
-                            : control.SdtContentBlock.LastChild ?? PreviousBodyElement(control);
-                    } else if (element is BookmarkStart || element is BookmarkEnd) {
+                        LegacyDocElement inner = forward ? content.FirstElement : LastChildElement(content);
+                        element = inner.Exists
+                            ? inner
+                            : forward ? NextBodyElement(element) : PreviousBodyElement(element);
+                    } else if (element.Is("bookmarkStart") || element.Is("bookmarkEnd")) {
                         visited.Add(element);
                         element = forward ? NextBodyElement(element) : PreviousBodyElement(element);
                     } else {
@@ -31,31 +30,39 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     }
                 }
-                foreach (OpenXmlElement visitedElement in visited) cache[visitedElement] = result;
+                foreach (LegacyDocElement visitedElement in visited) cache[visitedElement] = result;
                 return result;
             }
         }
 
-        private static OpenXmlElement? NextBodyElement(OpenXmlElement element) {
+        private static LegacyDocElement LastChildElement(LegacyDocElement parent) {
+            LegacyDocElement last = LegacyDocElement.None;
+            foreach (LegacyDocElement child in parent.Elements()) last = child;
+            return last;
+        }
+
+        private static LegacyDocElement NextBodyElement(LegacyDocElement element) {
             while (true) {
-                OpenXmlElement? sibling = element.NextSibling();
-                if (sibling != null) return sibling;
-                if (element.Parent is SdtContentBlock content && content.Parent is SdtBlock control) {
-                    element = control;
+                LegacyDocElement sibling = element.NextElement;
+                if (sibling.Exists) return sibling;
+                LegacyDocElement content = element.Parent;
+                if (content.Is("sdtContent") && content.Parent.Is("sdt")) {
+                    element = content.Parent;
                 } else {
-                    return null;
+                    return LegacyDocElement.None;
                 }
             }
         }
 
-        private static OpenXmlElement? PreviousBodyElement(OpenXmlElement element) {
+        private static LegacyDocElement PreviousBodyElement(LegacyDocElement element) {
             while (true) {
-                OpenXmlElement? sibling = element.PreviousSibling();
-                if (sibling != null) return sibling;
-                if (element.Parent is SdtContentBlock content && content.Parent is SdtBlock control) {
-                    element = control;
+                LegacyDocElement sibling = element.PreviousElement;
+                if (sibling.Exists) return sibling;
+                LegacyDocElement content = element.Parent;
+                if (content.Is("sdtContent") && content.Parent.Is("sdt")) {
+                    element = content.Parent;
                 } else {
-                    return null;
+                    return LegacyDocElement.None;
                 }
             }
         }

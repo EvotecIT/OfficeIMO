@@ -1,6 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
@@ -9,21 +6,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendSupportedRevisionText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
-            OpenXmlCompositeElement revisionElement,
+            LegacyDocElement revisionElement,
             LegacyDocRevisionKind kind,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
             LegacyDocWritableFormatting inheritedFormatting,
             LegacyDocWritablePictures? pictures = null,
-            OpenXmlPart? ownerPart = null) {
+            LegacyDocPart? ownerPart = null) {
             LegacyDocRevision revision = ReadSupportedRevision(revisionElement, kind);
             LegacyDocWritableFormatting revisionFormatting = inheritedFormatting.WithRevision(revision);
-            foreach (OpenXmlElement child in revisionElement.ChildElements) {
-                if (child is Run run) {
+            foreach (LegacyDocElement child in revisionElement.Elements()) {
+                if (child.Is("r")) {
                     AppendSupportedRunText(
                         text,
                         runs,
-                        run,
+                        child,
                         footnotes,
                         endnotes,
                         revisionFormatting,
@@ -37,24 +34,24 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocRevision ReadSupportedRevision(OpenXmlCompositeElement revisionElement, LegacyDocRevisionKind kind) {
-            string? author;
-            DateTime? date;
-            if (revisionElement is InsertedRun insertedRun) {
-                author = insertedRun.Author?.Value;
-                date = insertedRun.Date?.Value;
-            } else if (revisionElement is DeletedRun deletedRun) {
-                author = deletedRun.Author?.Value;
-                date = deletedRun.Date?.Value;
-            } else {
+        private static LegacyDocRevision ReadSupportedRevision(LegacyDocElement revisionElement, LegacyDocRevisionKind kind) {
+            // Paragraph-level w:ins and w:del wrappers (InsertedRun and DeletedRun).
+            if (!revisionElement.Is("ins") && !revisionElement.Is("del")) {
                 throw new InvalidOperationException("A DOC revision wrapper must be an insertion or deletion.");
             }
+
+            string? author = revisionElement.Attr("author");
+            DateTime? date = ReadRevisionDate(revisionElement.Attr("date"));
 
             return new LegacyDocRevision(
                 kind,
                 string.IsNullOrWhiteSpace(author) ? LegacyDocRevisionAuthorReader.UnknownAuthor : author!,
                 date);
         }
+
+        /// <summary>A <c>w:date</c> value read the way the Open XML SDK's <c>DateTimeValue</c> parsed it: as UTC.</summary>
+        private static DateTime? ReadRevisionDate(string? value) =>
+            value == null ? (DateTime?)null : System.Xml.XmlConvert.ToDateTime(value, System.Xml.XmlDateTimeSerializationMode.Utc);
 
         private static void AddRevisionSprms(
             List<byte> grpprl,

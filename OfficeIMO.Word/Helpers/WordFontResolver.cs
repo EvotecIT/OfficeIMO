@@ -38,6 +38,23 @@ public static class WordFontResolver {
     };
 
     /// <summary>
+    /// The font name to write into a document for <paramref name="fontFamily"/>. A generic family such as
+    /// <c>serif</c> or <c>monospace</c> becomes its portable Office family (Times New Roman, Calibri, Consolas,
+    /// Comic Sans MS, Impact); any other name is written as authored, whether or not this machine has it, so the
+    /// document is the same wherever it is generated. Use <see cref="Resolve"/> to find a font installed here.
+    /// </summary>
+    /// <param name="fontFamily">The authored font family.</param>
+    /// <returns>The document font name, or <c>null</c> when <paramref name="fontFamily"/> is empty.</returns>
+    public static string? ToDocumentFont(string? fontFamily) {
+        if (string.IsNullOrWhiteSpace(fontFamily)) {
+            return null;
+        }
+
+        string name = fontFamily!.Trim();
+        return _genericFonts.TryGetValue(name, out string? generic) ? generic : name;
+    }
+
+    /// <summary>
     /// Resolves the provided font family name to an actual installed font.
     /// Generic families like <c>serif</c> or <c>monospace</c> are mapped to
     /// portable Office families (Times New Roman, Calibri, Consolas, Comic Sans MS, Impact)

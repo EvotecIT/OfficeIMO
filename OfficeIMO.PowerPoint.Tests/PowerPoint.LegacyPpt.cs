@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
 
             OfficeIMO.OpenXml.Internal.OfficeXmlNode blip = Assert.Single(node.SchemaDescendants(LegacyPptXml.A, "blip"));
             Assert.Equal("rId1", blip.Attribute(LegacyPptXml.R, "embed"));
-            Assert.Equal(2, node.AllDescendants().Count(element => element.Is(LegacyPptXml.A, "blip")));
+            Assert.Equal(2, node.EveryDescendant().Count(element => element.Is(LegacyPptXml.A, "blip")));
         }
 
         [Theory]

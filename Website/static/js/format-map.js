@@ -807,9 +807,14 @@
       function takeControlOutsideButton(e) {
         if (e.target !== tour.button && !tour.button.contains(e.target)) takeControl();
       }
-      root.addEventListener('pointerdown', takeControlOutsideButton, true);
-      root.addEventListener('touchstart', takeControlOutsideButton, { capture: true, passive: true });
-      root.addEventListener('wheel', takeControl, { capture: true, passive: true });
+      // A touch or wheel may only be scrolling the page past the map: it stops a running tour, but before the tour starts it
+      // must not cancel the autoplay (phones hide the Play tour button). Picks still count through click, change and focus.
+      function interruptRunningTour(e) {
+        if (tour.on && e.target !== tour.button && !tour.button.contains(e.target)) takeControl();
+      }
+      root.addEventListener('pointerdown', interruptRunningTour, true);
+      root.addEventListener('touchstart', interruptRunningTour, { capture: true, passive: true });
+      root.addEventListener('wheel', interruptRunningTour, { capture: true, passive: true });
       root.addEventListener('click', takeControlOutsideButton, true);
       root.addEventListener('change', function () { tour.touched = true; stopTour(true); }, true);
       root.addEventListener('focusin', function (e) {

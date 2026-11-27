@@ -1,12 +1,12 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
 internal static partial class PowerPointSlideImageRenderer {
-    private static void AddTextBox(OfficeDrawing drawing, PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme, bool suppressFrame = false, Func<string?, double, string?, OfficeFontStyle, double>? measure = null, string? defaultFontFamily = null, CancellationToken cancellationToken = default) {
+    private static void AddTextBox(OfficeDrawing drawing, PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, OfficeXmlNode colorScheme, bool suppressFrame = false, Func<string?, double, string?, OfficeFontStyle, double>? measure = null, string? defaultFontFamily = null, CancellationToken cancellationToken = default) {
         string text = ResolvePowerPointDisplayText(textBox);
         bool hasVisibleFrame = HasVisibleFrame(textBox, colorScheme);
         if (string.IsNullOrEmpty(text) && !hasVisibleFrame) {
@@ -58,7 +58,7 @@ internal static partial class PowerPointSlideImageRenderer {
         return OfficeShape.Rectangle(width, height);
     }
 
-    private static bool HasVisibleFrame(PowerPointShape source, A.ColorScheme? colorScheme) {
+    private static bool HasVisibleFrame(PowerPointShape source, OfficeXmlNode colorScheme) {
         return (source.FillTransparency != 100
                 && (HasShapeFillGradient(source)
                     || TryResolveShapeFillColor(source, colorScheme, out _))) ||
@@ -84,7 +84,7 @@ internal static partial class PowerPointSlideImageRenderer {
             style);
     }
 
-    private static List<OfficeRichTextRun> CreateRichTextRuns(PowerPointTextBox textBox, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
+    private static List<OfficeRichTextRun> CreateRichTextRuns(PowerPointTextBox textBox, OfficeXmlNode colorScheme, PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
         IReadOnlyList<PowerPointParagraph> paragraphs = textBox.Paragraphs;
         var richRuns = new List<OfficeRichTextRun>();
         var numberingState = new PowerPointParagraphNumberingState();

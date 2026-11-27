@@ -1,8 +1,3 @@
-using System.Xml.Linq;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
-
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTable {
 

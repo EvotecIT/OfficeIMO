@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
@@ -9,35 +7,35 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort NoBaseStyleIndex = 0x0FFF;
         private static readonly IReadOnlyDictionary<string, ushort> EmptyStyleIndexes = new Dictionary<string, ushort>(StringComparer.Ordinal);
 
-        private static LegacyDocWritableStyleSheet CreateWritableStyleSheet(MainDocumentPart mainPart, Body body) {
+        private static LegacyDocWritableStyleSheet CreateWritableStyleSheet(LegacyDocSourcePackage source, LegacyDocElement body) {
             // Header/footer, note and comment stories share the document's style sheet.
             // Discover their referenced IDs, including custom IDs produced by native import.
-            SectionProperties[] sections = body.Descendants<SectionProperties>().ToArray();
-            foreach (SectionProperties section in sections) {
-                HeaderReference[] headers = section.Elements<HeaderReference>().ToArray();
-                FooterReference[] footers = section.Elements<FooterReference>().ToArray();
-                foreach (HeaderFooterValues type in new[] { HeaderFooterValues.Default, HeaderFooterValues.First, HeaderFooterValues.Even }) {
+            LegacyDocElement[] sections = body.Descendants("sectPr").Where(IsParagraphOrBodySectionProperties).ToArray();
+            foreach (LegacyDocElement section in sections) {
+                LegacyDocElement[] headers = section.Elements("headerReference").ToArray();
+                LegacyDocElement[] footers = section.Elements("footerReference").ToArray();
+                foreach (string type in new[] { "default", "first", "even" }) {
                     GetSingleReference(headers, type, "header");
                     GetSingleReference(footers, type, "footer");
                 }
             }
-            IEnumerable<ParagraphStyleId> storyStyleIds = sections.SelectMany(section => section.Elements<HeaderReference>())
-                .Select(reference => reference.Id?.Value).Distinct(StringComparer.Ordinal)
-                .Select(id => GetReferencedPart<HeaderPart>(mainPart, id, "header")).Distinct()
-                .SelectMany(part => part.Header?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>())
-                .Concat(sections.SelectMany(section => section.Elements<FooterReference>())
-                    .Select(reference => reference.Id?.Value).Distinct(StringComparer.Ordinal)
-                    .Select(id => GetReferencedPart<FooterPart>(mainPart, id, "footer")).Distinct()
-                    .SelectMany(part => part.Footer?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>()))
-                .Concat(mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
+            IEnumerable<LegacyDocElement> storyStyleIds = sections.SelectMany(section => section.Elements("headerReference"))
+                .Select(reference => reference.Attr(OfficeXmlNamespaces.Relationships, "id")).Distinct(StringComparer.Ordinal)
+                .Select(id => GetReferencedHeaderOrFooterPart(source, id, "header", header: true)).Distinct()
+                .SelectMany(part => ParagraphStyleIds(part.Root))
+                .Concat(sections.SelectMany(section => section.Elements("footerReference"))
+                    .Select(reference => reference.Attr(OfficeXmlNamespaces.Relationships, "id")).Distinct(StringComparer.Ordinal)
+                    .Select(id => GetReferencedHeaderOrFooterPart(source, id, "footer", header: false)).Distinct()
+                    .SelectMany(part => ParagraphStyleIds(part.Root)))
+                .Concat(source.Footnotes.Elements("footnote")
                     .Where(IsUserFootnote)
-                    .SelectMany(note => note.Descendants<ParagraphStyleId>()) ?? Enumerable.Empty<ParagraphStyleId>())
-                .Concat(mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>()
+                    .SelectMany(ParagraphStyleIds))
+                .Concat(source.Endnotes.Elements("endnote")
                     .Where(IsUserEndnote)
-                    .SelectMany(note => note.Descendants<ParagraphStyleId>()) ?? Enumerable.Empty<ParagraphStyleId>())
-                .Concat(mainPart.WordprocessingCommentsPart?.Comments?.Descendants<ParagraphStyleId>() ?? Enumerable.Empty<ParagraphStyleId>());
-            string[] usedStyleIds = body.Descendants<ParagraphStyleId>().Concat(storyStyleIds)
-                .Select(style => style.Val?.Value)
+                    .SelectMany(ParagraphStyleIds))
+                .Concat(ParagraphStyleIds(source.Comments));
+            string[] usedStyleIds = ParagraphStyleIds(body).Concat(storyStyleIds)
+                .Select(style => style.Val)
                 .Where(styleId => !string.IsNullOrWhiteSpace(styleId))
                 .Select(styleId => styleId!)
                 .Where(styleId => !string.Equals(styleId, "Normal", StringComparison.Ordinal))
@@ -53,19 +51,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             builtInStyleIndexes.Add(0);
 
-            WordStyleCatalog styles = WordStyleCatalog.For(mainPart);
-            if (mainPart.StyleDefinitionsPart == null && customStyleIds.Length > 0) {
+            LegacyDocStyleCatalog styles = source.Styles;
+            if (!styles.Exists && customStyleIds.Length > 0) {
                 throw new NotSupportedException("Native DOC saving cannot write custom paragraph styles because the document has no style definitions part.");
             }
 
-            Dictionary<string, Style> paragraphStyles = styles.Definitions
-                .Where(style => style.IsParagraphStyle)
-                .Where(style => !string.IsNullOrWhiteSpace(style.StyleId))
-                .GroupBy(style => style.StyleId!, StringComparer.Ordinal)
-                .ToDictionary(group => group.Key, group => group.First().Element, StringComparer.Ordinal);
-            DocDefaults? documentDefaults = styles.DocumentDefaults;
-            paragraphStyles["Normal"] = CreateDefaultParagraphStyle(mainPart, paragraphStyles, documentDefaults);
-            MaterializeParagraphStyleThemeFonts(paragraphStyles, mainPart);
+            // The materializing steps below replace entries with detached copies carrying the effective definitions.
+            Dictionary<string, LegacyDocElement> paragraphStyles = styles.Definitions
+                .Where(LegacyDocStyleCatalog.IsParagraphStyle)
+                .Where(style => !string.IsNullOrWhiteSpace(LegacyDocStyleCatalog.StyleId(style)))
+                .GroupBy(style => LegacyDocStyleCatalog.StyleId(style)!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            LegacyDocElement documentDefaults = styles.DocumentDefaults;
+            paragraphStyles["Normal"] = CreateDefaultParagraphStyle(source, paragraphStyles, documentDefaults);
+            MaterializeParagraphStyleThemeFonts(paragraphStyles, source);
             MaterializeDocumentDefaultSpacing(paragraphStyles, documentDefaults);
             MaterializeDocumentDefaultCharacterScale(paragraphStyles, documentDefaults);
 
@@ -77,7 +76,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             AddBuiltInBaseStyles(builtInStyleIndexes, paragraphStyles);
-            Dictionary<ushort, Style> builtInStyles = ReadUsedBuiltInStyles(builtInStyleIndexes, paragraphStyles);
+            Dictionary<ushort, LegacyDocElement> builtInStyles = ReadUsedBuiltInStyles(builtInStyleIndexes, paragraphStyles);
             var styleIndexes = new Dictionary<string, ushort>(StringComparer.Ordinal);
             for (int index = 0; index < orderedStyleIds.Count; index++) {
                 styleIndexes[orderedStyleIds[index]] = checked((ushort)(15 + index));
@@ -92,9 +91,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocWritableStyleSheet(bytes, styleIndexes, fontFamilies);
         }
 
+        // The SDK read w:sectPr as section properties only on the body and in a paragraph's own properties; elsewhere
+        // (inside a tracked section change) it was a different element.
+        private static bool IsParagraphOrBodySectionProperties(LegacyDocElement sectionProperties) {
+            LegacyDocElement parent = sectionProperties.Parent;
+            return parent.Is("body") || (parent.Is("pPr") && parent.Parent.Is("p"));
+        }
+
+        /// <summary>The paragraph style references (<c>w:pStyle</c> in paragraph properties) below an element.</summary>
+        private static IEnumerable<LegacyDocElement> ParagraphStyleIds(LegacyDocElement root) =>
+            root.Descendants("pStyle").Where(styleId => styleId.Parent.Is("pPr"));
+
         private static void AddCustomStyleWithBase(
             string styleId,
-            IReadOnlyDictionary<string, Style> paragraphStyles,
+            IReadOnlyDictionary<string, LegacyDocElement> paragraphStyles,
             List<string> orderedStyleIds,
             ISet<ushort> builtInStyleIndexes,
             HashSet<string> visited,
@@ -116,16 +126,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException($"Native DOC saving cannot write custom paragraph style '{styleId}' because its basedOn chain contains a cycle.");
             }
 
-            if (!paragraphStyles.TryGetValue(styleId, out Style? style)) {
+            if (!paragraphStyles.TryGetValue(styleId, out LegacyDocElement style)) {
                 throw new NotSupportedException($"Native DOC saving cannot write custom paragraph style '{styleId}' because the style definition is missing.");
             }
 
-            string? basedOnStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+            string? basedOnStyleId = style.Child("basedOn").Val;
             if (!string.IsNullOrWhiteSpace(basedOnStyleId)) {
                 AddCustomStyleWithBase(basedOnStyleId!, paragraphStyles, orderedStyleIds, builtInStyleIndexes, visited, visiting);
             }
 
-            string? nextStyleId = style.GetFirstChild<NextParagraphStyle>()?.Val?.Value;
+            string? nextStyleId = style.Child("next").Val;
             if (!string.IsNullOrWhiteSpace(nextStyleId) && !string.Equals(nextStyleId, styleId, StringComparison.Ordinal)) {
                 AddCustomStyleWithBase(nextStyleId!, paragraphStyles, orderedStyleIds, builtInStyleIndexes, visited, visiting);
             }
@@ -135,16 +145,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             orderedStyleIds.Add(styleId);
         }
 
-        private static void AddBuiltInBaseStyles(ISet<ushort> builtInStyleIndexes, IReadOnlyDictionary<string, Style> paragraphStyles) {
+        private static void AddBuiltInBaseStyles(ISet<ushort> builtInStyleIndexes, IReadOnlyDictionary<string, LegacyDocElement> paragraphStyles) {
             var pending = new Queue<ushort>(builtInStyleIndexes);
             while (pending.Count > 0) {
                 ushort styleIndex = pending.Dequeue();
                 string styleId = GetBuiltInParagraphStyleId(styleIndex);
-                if (!paragraphStyles.TryGetValue(styleId, out Style? style)) {
+                if (!paragraphStyles.TryGetValue(styleId, out LegacyDocElement style)) {
                     continue;
                 }
 
-                string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+                string? baseStyleId = style.Child("basedOn").Val;
                 if (!string.IsNullOrWhiteSpace(baseStyleId)
                     && !string.Equals(baseStyleId, "Normal", StringComparison.Ordinal)
                     && TryMapBuiltInParagraphStyleIndex(baseStyleId!, out ushort baseStyleIndex)
@@ -152,7 +162,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     pending.Enqueue(baseStyleIndex);
                 }
 
-                string? nextStyleId = style.GetFirstChild<NextParagraphStyle>()?.Val?.Value;
+                string? nextStyleId = style.Child("next").Val;
                 if (!string.IsNullOrWhiteSpace(nextStyleId)
                     && !string.Equals(nextStyleId, "Normal", StringComparison.Ordinal)
                     && TryMapBuiltInParagraphStyleIndex(nextStyleId!, out ushort nextStyleIndex)
@@ -162,22 +172,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static Dictionary<ushort, Style> ReadUsedBuiltInStyles(IEnumerable<ushort> usedBuiltInStyleIndexes, IReadOnlyDictionary<string, Style> paragraphStyles) {
-            var builtInStyles = new Dictionary<ushort, Style>();
+        private static Dictionary<ushort, LegacyDocElement> ReadUsedBuiltInStyles(IEnumerable<ushort> usedBuiltInStyleIndexes, IReadOnlyDictionary<string, LegacyDocElement> paragraphStyles) {
+            var builtInStyles = new Dictionary<ushort, LegacyDocElement>();
             foreach (ushort styleIndex in usedBuiltInStyleIndexes) {
                 string styleId = GetBuiltInParagraphStyleId(styleIndex);
-                if (!paragraphStyles.TryGetValue(styleId, out Style? style)) {
+                if (!paragraphStyles.TryGetValue(styleId, out LegacyDocElement style)) {
                     continue;
                 }
 
-                string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+                string? baseStyleId = style.Child("basedOn").Val;
                 if (!string.IsNullOrWhiteSpace(baseStyleId)
                     && !string.Equals(baseStyleId, "Normal", StringComparison.Ordinal)
                     && !TryMapBuiltInParagraphStyleIndex(baseStyleId!, out _)) {
                     throw new NotSupportedException($"Native DOC saving cannot write built-in paragraph style '{styleId}' because basedOn style '{baseStyleId}' is not supported.");
                 }
 
-                _ = ReadSupportedBuiltInStyleParagraphFormatting(styleIndex, style.StyleParagraphProperties);
+                _ = ReadSupportedBuiltInStyleParagraphFormatting(styleIndex, style.Child("pPr"));
                 _ = ReadSupportedStyleRunFormatting(style);
                 builtInStyles[styleIndex] = style;
             }
@@ -185,15 +195,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return builtInStyles;
         }
 
-        private static LegacyDocWritableFormatting ReadSupportedStyleRunFormatting(Style style) {
-            if (style.StyleRunProperties?.GetFirstChild<Highlight>() != null) {
-                throw new NotSupportedException($"Native DOC saving cannot write paragraph style '{style.StyleId?.Value}' because highlight is not permitted in DOC styles.");
+        private static LegacyDocWritableFormatting ReadSupportedStyleRunFormatting(LegacyDocElement style) {
+            if (style.Child("rPr").Child("highlight").Exists) {
+                throw new NotSupportedException($"Native DOC saving cannot write paragraph style '{style.Attr("styleId")}' because highlight is not permitted in DOC styles.");
             }
 
-            return ReadSupportedRunFormatting(style.StyleRunProperties);
+            return ReadSupportedRunFormatting(style.Child("rPr"));
         }
 
-        private static IReadOnlyList<string> ReadStyleFontFamilies(IEnumerable<Style> builtInStyles, IReadOnlyList<string> styleIds, IReadOnlyDictionary<string, Style> paragraphStyles) {
+        private static IReadOnlyList<string> ReadStyleFontFamilies(IEnumerable<LegacyDocElement> builtInStyles, IReadOnlyList<string> styleIds, IReadOnlyDictionary<string, LegacyDocElement> paragraphStyles) {
             return builtInStyles
                 .Concat(styleIds.Select(styleId => paragraphStyles[styleId]))
                 .Select(ReadSupportedStyleRunFormatting)
@@ -205,9 +215,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static byte[] CreateWritableStyleSheetBytes(
-            IReadOnlyDictionary<ushort, Style> builtInStyles,
+            IReadOnlyDictionary<ushort, LegacyDocElement> builtInStyles,
             IReadOnlyList<string> customStyleIds,
-            IReadOnlyDictionary<string, Style> paragraphStyles,
+            IReadOnlyDictionary<string, LegacyDocElement> paragraphStyles,
             IReadOnlyDictionary<string, ushort> styleIndexes,
             IReadOnlyList<string> fontFamilies,
             IReadOnlyDictionary<string, int> fontFamilyIndexes) {
@@ -221,12 +231,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             for (int index = 10; index < 15; index++) styleRecords.Add(Array.Empty<byte>());
 
             foreach (string styleId in customStyleIds) {
-                Style style = paragraphStyles[styleId];
+                LegacyDocElement style = paragraphStyles[styleId];
                 ushort styleIndex = styleIndexes[styleId];
                 ushort baseStyleIndex = ResolveBaseStyleIndex(style, styleIndexes);
                 ushort nextStyleIndex = ResolveNextStyleIndex(style, styleIndex, styleIndexes);
                 string styleName = ReadStyleName(style, styleId);
-                LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedCustomParagraphStyleParagraphFormatting(style.StyleParagraphProperties);
+                LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedCustomParagraphStyleParagraphFormatting(style.Child("pPr"));
                 LegacyDocWritableFormatting characterFormatting = ReadSupportedStyleRunFormatting(style);
                 byte[] paragraphUpx = LegacyDocParagraphFormattingWriter.CreateStyleParagraphUpx(paragraphFormatting);
                 byte[] characterUpx = CreateStyleCharacterUpx(characterFormatting, fontFamilyIndexes);
@@ -260,8 +270,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return stream.ToArray();
         }
 
-        private static byte[] CreateBuiltInParagraphStyleRecord(ushort styleIndex, IReadOnlyDictionary<ushort, Style> builtInStyles, IReadOnlyDictionary<string, int> fontFamilyIndexes) {
-            if (!builtInStyles.TryGetValue(styleIndex, out Style? style)) {
+        private static byte[] CreateBuiltInParagraphStyleRecord(ushort styleIndex, IReadOnlyDictionary<ushort, LegacyDocElement> builtInStyles, IReadOnlyDictionary<string, int> fontFamilyIndexes) {
+            if (!builtInStyles.TryGetValue(styleIndex, out LegacyDocElement style)) {
                 ushort baseStyleIndex = styleIndex == 0 ? NoBaseStyleIndex : (ushort)0;
                 return CreateParagraphStyleRecord(styleIndex, baseStyleIndex, 0, GetBuiltInParagraphStyleName(styleIndex), Array.Empty<byte>(), Array.Empty<byte>());
             }
@@ -269,17 +279,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ushort basedOnStyleIndex = ResolveBuiltInBaseStyleIndex(style);
             ushort nextStyleIndex = ResolveNextStyleIndex(style, styleIndex, EmptyStyleIndexes);
             string styleName = ReadStyleName(style, GetBuiltInParagraphStyleName(styleIndex));
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedBuiltInStyleParagraphFormatting(styleIndex, style.StyleParagraphProperties);
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedBuiltInStyleParagraphFormatting(styleIndex, style.Child("pPr"));
             LegacyDocWritableFormatting characterFormatting = ReadSupportedStyleRunFormatting(style);
             byte[] paragraphUpx = LegacyDocParagraphFormattingWriter.CreateStyleParagraphUpx(paragraphFormatting);
             byte[] characterUpx = CreateStyleCharacterUpx(characterFormatting, fontFamilyIndexes);
             return CreateParagraphStyleRecord(styleIndex, basedOnStyleIndex, nextStyleIndex, styleName, paragraphUpx, characterUpx);
         }
 
-        private static ushort ResolveBuiltInBaseStyleIndex(Style style) {
-            string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+        private static ushort ResolveBuiltInBaseStyleIndex(LegacyDocElement style) {
+            string? baseStyleId = style.Child("basedOn").Val;
             if (string.IsNullOrWhiteSpace(baseStyleId)) {
-                return string.Equals(style.StyleId?.Value, "Normal", StringComparison.Ordinal) ? NoBaseStyleIndex : (ushort)0;
+                return string.Equals(style.Attr("styleId"), "Normal", StringComparison.Ordinal) ? NoBaseStyleIndex : (ushort)0;
             }
 
             if (string.Equals(baseStyleId, "Normal", StringComparison.Ordinal)) {
@@ -290,11 +300,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return builtInStyleIndex;
             }
 
-            throw new NotSupportedException($"Native DOC saving cannot write built-in paragraph style '{style.StyleId?.Value}' because basedOn style '{baseStyleId}' is not supported.");
+            throw new NotSupportedException($"Native DOC saving cannot write built-in paragraph style '{style.Attr("styleId")}' because basedOn style '{baseStyleId}' is not supported.");
         }
 
-        private static ushort ResolveBaseStyleIndex(Style style, IReadOnlyDictionary<string, ushort> styleIndexes) {
-            string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+        private static ushort ResolveBaseStyleIndex(LegacyDocElement style, IReadOnlyDictionary<string, ushort> styleIndexes) {
+            string? baseStyleId = style.Child("basedOn").Val;
             if (string.IsNullOrWhiteSpace(baseStyleId)) {
                 return 0;
             }
@@ -311,16 +321,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return customStyleIndex;
             }
 
-            throw new NotSupportedException($"Native DOC saving cannot write custom paragraph style '{style.StyleId?.Value}' because basedOn style '{baseStyleId}' is not supported.");
+            throw new NotSupportedException($"Native DOC saving cannot write custom paragraph style '{style.Attr("styleId")}' because basedOn style '{baseStyleId}' is not supported.");
         }
 
-        private static ushort ResolveNextStyleIndex(Style style, ushort currentStyleIndex, IReadOnlyDictionary<string, ushort> styleIndexes) {
-            string? nextStyleId = style.GetFirstChild<NextParagraphStyle>()?.Val?.Value;
+        private static ushort ResolveNextStyleIndex(LegacyDocElement style, ushort currentStyleIndex, IReadOnlyDictionary<string, ushort> styleIndexes) {
+            string? nextStyleId = style.Child("next").Val;
             if (string.IsNullOrWhiteSpace(nextStyleId)) {
                 return 0;
             }
 
-            if (string.Equals(nextStyleId, style.StyleId?.Value, StringComparison.Ordinal)) {
+            if (string.Equals(nextStyleId, style.Attr("styleId"), StringComparison.Ordinal)) {
                 return currentStyleIndex;
             }
 
@@ -336,11 +346,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return customStyleIndex;
             }
 
-            throw new NotSupportedException($"Native DOC saving cannot write paragraph style '{style.StyleId?.Value}' because next paragraph style '{nextStyleId}' is not supported.");
+            throw new NotSupportedException($"Native DOC saving cannot write paragraph style '{style.Attr("styleId")}' because next paragraph style '{nextStyleId}' is not supported.");
         }
 
-        private static string ReadStyleName(Style style, string styleId) {
-            string? name = style.StyleName?.Val?.Value;
+        private static string ReadStyleName(LegacyDocElement style, string styleId) {
+            string? name = style.Child("name").Val;
             return string.IsNullOrWhiteSpace(name) ? styleId : name!;
         }
 

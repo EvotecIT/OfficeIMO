@@ -11,13 +11,5 @@ namespace OfficeIMO.PowerPoint {
 
         internal static Uri CreatePartRelativeUri(OpenXmlPart sourcePart, OpenXmlPart targetPart) =>
             CreatePartRelativeUri(sourcePart.Uri.OriginalString, targetPart.Uri.OriginalString);
-
-        internal static bool TryResolveSlideFragment(SlidePart sourceSlidePart, Uri uri, out SlidePart? targetSlidePart) {
-            targetSlidePart = null;
-            PowerPointDocument? document = PowerPointPartRef.FromSdk(sourceSlidePart).Document;
-            if (document == null || ResolveSlideFragment(document, uri).Current.SdkPart is not SlidePart slide) return false;
-            targetSlidePart = slide;
-            return true;
-        }
     }
 }

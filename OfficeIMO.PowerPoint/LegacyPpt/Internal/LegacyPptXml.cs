@@ -76,7 +76,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         /// Elements below <paramref name="element"/> in document order, at any depth, extension content included, as the
         /// SDK's untyped <c>Descendants()</c> walked them.
         /// </summary>
-        internal static IEnumerable<OfficeXmlNode> AllDescendants(this OfficeXmlNode element) =>
+        internal static IEnumerable<OfficeXmlNode> EveryDescendant(this OfficeXmlNode element) =>
             Walk(element, skipExtensions: false);
 
         /// <summary>
@@ -118,10 +118,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         /// <summary>Whether an ancestor (not the element itself) has this name.</summary>
         internal static bool HasAncestor(this OfficeXmlNode element, int namespaceId, string localName) =>
             !element.IsNone && !element.Parent.AncestorOrSelf(namespaceId, localName).IsNone;
-
-        /// <summary>Creates an element under the same part as <paramref name="parent"/> and appends it.</summary>
-        internal static OfficeXmlNode AppendNew(this OfficeXmlNode parent, int namespaceId, string localName) =>
-            parent.Append(parent.CreateElement(namespaceId, localName));
 
         /// <summary>
         /// A SHA-256 digest of an element's markup that depends only on names, attributes (namespace declarations left

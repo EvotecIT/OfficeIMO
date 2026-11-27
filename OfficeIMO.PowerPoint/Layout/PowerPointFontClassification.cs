@@ -1,4 +1,5 @@
-using A = DocumentFormat.OpenXml.Drawing;
+using System.Globalization;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -41,27 +42,46 @@ namespace OfficeIMO.PowerPoint {
             };
 
         /// <summary>Writes the classification that matches <paramref name="typeface" />, removing a stale one.</summary>
-        internal static void Apply(A.TextFontType font, string typeface) {
+        /// <param name="font">A text font element (<c>a:latin</c>, <c>a:ea</c>, <c>a:cs</c> or <c>a:sym</c>).</param>
+        /// <param name="typeface">Typeface to write.</param>
+        internal static void Apply(OfficeXmlNode font, string typeface) {
+            if (font.IsNone) throw new ArgumentNullException(nameof(font));
+            font.SetAttribute("typeface", typeface);
+            Classify(typeface, out string? panose, out sbyte? pitchFamily, out bool characterSet);
+            font.SetAttribute("panose", panose);
+            font.SetAttribute("pitchFamily", pitchFamily?.ToString(CultureInfo.InvariantCulture));
+            font.SetAttribute("charset", characterSet ? "0" : null);
+        }
+
+        /// <summary>The same as <see cref="Apply(OfficeXmlNode, string)"/> for a font element of an SDK part, passed as <see cref="object"/>.</summary>
+        internal static void Apply(object font, string typeface) {
             ArgumentNullException.ThrowIfNull(font);
-            font.Typeface = typeface;
+            Apply(OfficeXmlNode.FromSdk(font), typeface);
+        }
+
+        /// <summary>
+        ///     The classification <see cref="Apply(OfficeXmlNode, string)"/> writes: the PANOSE (null when it is
+        ///     unknown), the pitch family and whether the character set is written. A theme font reference
+        ///     (<c>+mj-lt</c>) carries none of them.
+        /// </summary>
+        internal static void Classify(string typeface, out string? panose, out sbyte? pitchFamily, out bool characterSet) {
             if (typeface.StartsWith("+", StringComparison.Ordinal)) {
-                font.Panose = null;
-                font.PitchFamily = null;
-                font.CharacterSet = null;
+                panose = null;
+                pitchFamily = null;
+                characterSet = false;
                 return;
             }
 
+            characterSet = true;
             if (Known.TryGetValue(typeface, out (string Panose, byte PitchFamily) value)) {
-                font.Panose = value.Panose;
-                font.PitchFamily = unchecked((sbyte)value.PitchFamily);
-                font.CharacterSet = 0;
+                panose = value.Panose;
+                pitchFamily = unchecked((sbyte)value.PitchFamily);
                 return;
             }
 
             // Unknown family: a guessed classification is worse than none, but keep the generic family hint.
-            font.Panose = null;
-            font.PitchFamily = IsLikelySerif(typeface) ? unchecked((sbyte)Serif) : unchecked((sbyte)SansSerif);
-            font.CharacterSet = 0;
+            panose = null;
+            pitchFamily = IsLikelySerif(typeface) ? unchecked((sbyte)Serif) : unchecked((sbyte)SansSerif);
         }
 
         internal static bool IsLikelySerif(string typeface) {

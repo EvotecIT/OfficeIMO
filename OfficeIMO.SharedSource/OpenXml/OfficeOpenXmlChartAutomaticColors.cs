@@ -1,9 +1,9 @@
-using System.Runtime.CompilerServices;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 using A = DocumentFormat.OpenXml.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal;
 
@@ -24,16 +24,23 @@ namespace OfficeIMO.OpenXml.Internal;
 internal static class OfficeOpenXmlChartAutomaticColors {
     internal const string AutomaticSeriesColorExtensionUri = "urn:officeimo:chart:auto-series-color:1";
 
-    internal static bool HasAutomaticSeriesColor(OpenXmlElement element) =>
-        element.ChildElements.Where(child => child.LocalName == "extLst")
-            .SelectMany(list => list.ChildElements)
-            .Any(extension => extension.GetAttribute("uri", string.Empty).Value == AutomaticSeriesColorExtensionUri);
+    internal static bool HasAutomaticSeriesColor(OfficeXmlNode element) {
+        foreach (OfficeXmlNode list in element.Children()) {
+            if (list.LocalName != "extLst") continue;
+            foreach (OfficeXmlNode extension in list.Children())
+                if (extension.Attribute("uri") == AutomaticSeriesColorExtensionUri) return true;
+        }
+        return false;
+    }
 
-    internal static void ClearAutomaticSeriesColor(OpenXmlElement element) {
-        foreach (var extension in element.ChildElements.Where(child => child.LocalName == "extLst")
-            .SelectMany(list => list.ChildElements).Where(child =>
-                child.GetAttribute("uri", string.Empty).Value == AutomaticSeriesColorExtensionUri).ToArray())
-            extension.Remove();
+    internal static void ClearAutomaticSeriesColor(OfficeXmlNode element) {
+        var extensions = new List<OfficeXmlNode>();
+        foreach (OfficeXmlNode list in element.Children()) {
+            if (list.LocalName != "extLst") continue;
+            foreach (OfficeXmlNode extension in list.Children())
+                if (extension.Attribute("uri") == AutomaticSeriesColorExtensionUri) extensions.Add(extension);
+        }
+        foreach (OfficeXmlNode extension in extensions) extension.Remove();
     }
 
     private const string Chart2010Namespace = "http://schemas.microsoft.com/office/drawing/2007/8/2/chart";
@@ -48,24 +55,37 @@ internal static class OfficeOpenXmlChartAutomaticColors {
     internal const int AutomaticMarkerSize = 7;
 
     /// <summary>Reads the classic chart style number, preferring the Office 2010 <c>c14:style</c> choice.</summary>
-    internal static int ReadStyle(OpenXmlElement? chartSpace) {
-        if (chartSpace == null) return 2;
-        foreach (OpenXmlElement child in chartSpace.ChildElements) {
+    internal static int ReadStyle(OfficeXmlNode chartSpace) {
+        if (chartSpace.IsNone) return 2;
+        foreach (OfficeXmlNode child in chartSpace.Children()) {
             if (child.LocalName == "AlternateContent") {
-                OpenXmlElement? choice = child.ChildElements.FirstOrDefault(element => element.LocalName == "Choice");
-                OpenXmlElement? modern = choice?.ChildElements.FirstOrDefault(element =>
-                    element.LocalName == "style" && element.NamespaceUri == Chart2010Namespace);
+                OfficeXmlNode choice = FirstChildNamed(child, "Choice");
+                OfficeXmlNode modern = OfficeXmlNode.None;
+                if (choice.Exists) {
+                    foreach (OfficeXmlNode element in choice.Children()) {
+                        if (element.LocalName == "style" && element.NamespaceUri == Chart2010Namespace) {
+                            modern = element;
+                            break;
+                        }
+                    }
+                }
                 if (TryReadStyleValue(modern, out int modernStyle) && modernStyle > 100 && modernStyle <= 148)
                     return modernStyle - 100;
-                OpenXmlElement? fallback = child.ChildElements.FirstOrDefault(element => element.LocalName == "Fallback")?
-                    .ChildElements.FirstOrDefault(element => element.LocalName == "style");
+                OfficeXmlNode fallbackGroup = FirstChildNamed(child, "Fallback");
+                OfficeXmlNode fallback = fallbackGroup.Exists ? FirstChildNamed(fallbackGroup, "style") : OfficeXmlNode.None;
                 if (TryReadStyleValue(fallback, out int fallbackStyle) && fallbackStyle >= 1 && fallbackStyle <= 48)
                     return fallbackStyle;
-            } else if (child is C.Style style && style.Val?.Value is byte value && value >= 1 && value <= 48) {
+            } else if (child.Is(NsC, "style") && child.ByteVal() is byte value && value >= 1 && value <= 48) {
                 return value;
             }
         }
         return 2;
+    }
+
+    private static OfficeXmlNode FirstChildNamed(OfficeXmlNode parent, string localName) {
+        foreach (OfficeXmlNode element in parent.Children())
+            if (element.LocalName == localName) return element;
+        return OfficeXmlNode.None;
     }
 
     /// <summary>Resolves the automatic colour of item <paramref name="index"/> of <paramref name="count"/>.</summary>
@@ -75,8 +95,8 @@ internal static class OfficeOpenXmlChartAutomaticColors {
     /// <param name="scheme">The theme colour scheme.</param>
     /// <param name="colorMap">The owner's colour map, when one applies.</param>
     /// <param name="useSpreadsheetDefaultTheme">Whether to fall back to Excel's built-in theme colours.</param>
-    internal static OfficeColor? Resolve(int style, int index, int count, A.ColorScheme? scheme,
-        OpenXmlElement? colorMap, bool useSpreadsheetDefaultTheme = false) {
+    internal static OfficeColor? Resolve(int style, int index, int count, OfficeXmlNode scheme,
+        OfficeXmlNode colorMap, bool useSpreadsheetDefaultTheme = false) {
         if (index < 0) return null;
         count = Math.Max(count, index + 1);
         int column = (Math.Max(1, Math.Min(48, style)) - 1) % 8;
@@ -103,23 +123,32 @@ internal static class OfficeOpenXmlChartAutomaticColors {
     }
 
     /// <summary>Resolves the automatic colour of one series element from its chart's style and theme.</summary>
-    internal static OfficeColor? ResolveSeries(OpenXmlElement series, A.ColorScheme? scheme,
-        bool useSpreadsheetDefaultTheme = false) =>
-        ResolveSeries(series, scheme, new SeriesResolutionContext(), useSpreadsheetDefaultTheme);
+    /// <remarks>The chart part's host colour map applies when the chart has no override of its own. An SDK element
+    /// finds its part itself; a tree element needs <c>chartPart</c> passed.</remarks>
+    internal static OfficeColor? ResolveSeries(OfficeXmlNode series, OfficeXmlNode scheme,
+        bool useSpreadsheetDefaultTheme = false, IOfficeChartPart? chartPart = null) =>
+        ResolveSeries(series, scheme, new SeriesResolutionContext(chartPart), useSpreadsheetDefaultTheme);
 
     /// <summary>Reuses plot metadata for the series in one chart projection.</summary>
     internal sealed class SeriesResolutionContext {
-        private readonly Dictionary<C.PlotArea, int> _counts = new(PlotReferenceComparer.Instance);
+        private readonly Dictionary<OfficeXmlNode, int> _counts = new();
 
-        internal int Count(C.PlotArea? plot, int minimum) {
-            if (plot == null) return minimum;
+        /// <param name="chartPart">The chart part of the series, whose host colour map applies. An SDK element finds
+        /// its part itself; a tree element needs it passed.</param>
+        internal SeriesResolutionContext(IOfficeChartPart? chartPart = null) => ChartPart = chartPart;
+
+        internal IOfficeChartPart? ChartPart { get; }
+
+        internal int Count(OfficeXmlNode plot, int minimum) {
+            if (plot.IsNone) return minimum;
             if (!_counts.TryGetValue(plot, out int count)) {
                 count = 0;
-                foreach (C.Index item in plot.ChildElements.SelectMany(group => group.ChildElements)
-                    .Where(element => element.LocalName == "ser").Select(element => element.GetFirstChild<C.Index>())
-                    .OfType<C.Index>()) {
-                    if (item.Val?.Value is uint value && value < int.MaxValue)
-                        count = Math.Max(count, (int)value + 1);
+                foreach (OfficeXmlNode group in plot.Children()) {
+                    foreach (OfficeXmlNode element in group.Children()) {
+                        if (element.LocalName != "ser") continue;
+                        if (element.Child(NsC, "idx").UIntVal() is uint value && value < int.MaxValue)
+                            count = Math.Max(count, (int)value + 1);
+                    }
                 }
                 _counts.Add(plot, count);
             }
@@ -127,29 +156,24 @@ internal static class OfficeOpenXmlChartAutomaticColors {
         }
     }
 
-    private sealed class PlotReferenceComparer : IEqualityComparer<C.PlotArea> {
-        internal static readonly PlotReferenceComparer Instance = new();
-        public bool Equals(C.PlotArea? left, C.PlotArea? right) => ReferenceEquals(left, right);
-        public int GetHashCode(C.PlotArea value) => RuntimeHelpers.GetHashCode(value);
-    }
-
-    internal static OfficeColor? ResolveSeries(OpenXmlElement series, A.ColorScheme? scheme,
+    internal static OfficeColor? ResolveSeries(OfficeXmlNode series, OfficeXmlNode scheme,
         SeriesResolutionContext context, bool useSpreadsheetDefaultTheme = false) {
-        C.ChartSpace? chartSpace = series.Ancestors<C.ChartSpace>().FirstOrDefault();
-        uint index = series.GetFirstChild<C.Index>()?.Val?.Value ?? 0U;
+        OfficeXmlNode chartSpace = series.Ancestor(NsC, "chartSpace");
+        uint index = series.Child(NsC, "idx").UIntVal() ?? 0U;
         if (index > int.MaxValue - 1) return null;
-        C.PlotArea? plot = series.Ancestors<C.PlotArea>().FirstOrDefault();
+        OfficeXmlNode plot = series.Ancestor(NsC, "plotArea");
         int count = context.Count(plot, (int)index + 1);
-        return Resolve(ReadStyle(chartSpace), (int)index, count, scheme, ResolveColorMap(chartSpace),
+        return Resolve(ReadStyle(chartSpace), (int)index, count, scheme, ResolveColorMap(chartSpace, context.ChartPart),
             useSpreadsheetDefaultTheme);
     }
 
     /// <summary>Resolves the automatic colours of <paramref name="count"/> varied data points.</summary>
-    internal static OfficeColor[]? ResolvePoints(OpenXmlElement? chartSpace, int count, A.ColorScheme? scheme,
-        bool useSpreadsheetDefaultTheme = false) {
+    /// <remarks>The chart part's host colour map applies; see <see cref="ResolveSeries(OfficeXmlNode, OfficeXmlNode, bool, IOfficeChartPart?)"/>.</remarks>
+    internal static OfficeColor[]? ResolvePoints(OfficeXmlNode chartSpace, int count, OfficeXmlNode scheme,
+        bool useSpreadsheetDefaultTheme = false, IOfficeChartPart? chartPart = null) {
         if (count < 1) return null;
         int style = ReadStyle(chartSpace);
-        OpenXmlElement? colorMap = ResolveColorMap(chartSpace as C.ChartSpace);
+        OfficeXmlNode colorMap = ResolveColorMap(chartSpace.Is(NsC, "chartSpace") ? chartSpace : OfficeXmlNode.None, chartPart);
         var colors = new OfficeColor[count];
         for (int index = 0; index < count; index++) {
             OfficeColor? color = Resolve(style, index, count, scheme, colorMap, useSpreadsheetDefaultTheme);
@@ -170,7 +194,7 @@ internal static class OfficeOpenXmlChartAutomaticColors {
     internal static OfficeColor ChartTint(OfficeColor color, double ratio) =>
         MapLinear(color, value => value * ratio + (1D - ratio));
 
-    private static OfficeColor? ResolveTheme(string token, A.ColorScheme? scheme, OpenXmlElement? colorMap,
+    private static OfficeColor? ResolveTheme(string token, OfficeXmlNode scheme, OfficeXmlNode colorMap,
         bool useSpreadsheetDefaultTheme) {
         string mapped = OfficeOpenXmlThemeColorResolver.MapSchemeColor(token, colorMap);
         OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveSchemeColor(scheme, mapped);
@@ -181,11 +205,18 @@ internal static class OfficeOpenXmlChartAutomaticColors {
             "accent4" => 7U, "accent5" => 8U, "accent6" => 9U,
             _ => null
         };
-        return themeIndex.HasValue ? OfficeOpenXmlThemeColorResolver.ResolveSpreadsheetThemeColor(null, themeIndex.Value) : null;
+        return themeIndex.HasValue ? OfficeOpenXmlThemeColorResolver.ResolveSpreadsheetThemeColor(OfficeXmlNode.None, themeIndex.Value) : null;
     }
 
-    private static OpenXmlElement? ResolveColorMap(C.ChartSpace? chartSpace) =>
-        chartSpace?.ChartPart is ChartPart part ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(part) : null;
+    // The colour map applies to a chart space that is the root of a chart part: the part given, or the part the chart
+    // space belongs to (an SDK part, or a tree the host registered with OfficeOpenXmlChartTextReader.AttachChartPart).
+    private static OfficeXmlNode ResolveColorMap(OfficeXmlNode chartSpace, IOfficeChartPart? chartPart) {
+        if (chartSpace.IsNone) return OfficeXmlNode.None;
+        if (chartPart != null && chartPart.ChartSpace == chartSpace)
+            return OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart);
+        IOfficeChartPart? owner = OfficeOpenXmlChartTextReader.ChartPartOfSpace(chartSpace);
+        return owner != null ? OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(owner) : OfficeXmlNode.None;
+    }
 
     private static OfficeColor MapLinear(OfficeColor color, Func<double, double> map) =>
         OfficeColor.FromRgba(MapChannel(color.R, map), MapChannel(color.G, map), MapChannel(color.B, map), color.A);
@@ -198,10 +229,30 @@ internal static class OfficeOpenXmlChartAutomaticColors {
         return (byte)Math.Max(0D, Math.Min(255D, Math.Round(encoded * 255D, MidpointRounding.AwayFromZero)));
     }
 
-    private static bool TryReadStyleValue(OpenXmlElement? element, out int value) {
+    private static bool TryReadStyleValue(OfficeXmlNode element, out int value) {
         value = 0;
-        string? raw = element?.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == "val").Value;
+        if (element.IsNone) return false;
+        string? raw = null;
+        foreach (OfficeXmlAttribute attribute in element.Attributes()) {
+            if (attribute.LocalName == "val") {
+                raw = attribute.Value;
+                break;
+            }
+        }
         return raw != null && int.TryParse(raw, System.Globalization.NumberStyles.Integer,
             System.Globalization.CultureInfo.InvariantCulture, out value);
     }
+
+    // SDK callers
+    internal static bool HasAutomaticSeriesColor(OpenXmlElement element) => HasAutomaticSeriesColor(OfficeXmlNode.FromSdk(element));
+    internal static void ClearAutomaticSeriesColor(OpenXmlElement element) => ClearAutomaticSeriesColor(OfficeXmlNode.FromSdk(element));
+    internal static int ReadStyle(OpenXmlElement? chartSpace) => ReadStyle(OfficeXmlNode.FromSdk(chartSpace));
+    internal static OfficeColor? Resolve(int style, int index, int count, A.ColorScheme? scheme, OpenXmlElement? colorMap, bool useSpreadsheetDefaultTheme = false) =>
+        Resolve(style, index, count, OfficeXmlNode.FromSdk(scheme), OfficeXmlNode.FromSdk(colorMap), useSpreadsheetDefaultTheme);
+    internal static OfficeColor? ResolveSeries(OpenXmlElement series, A.ColorScheme? scheme, bool useSpreadsheetDefaultTheme = false) =>
+        ResolveSeries(OfficeXmlNode.FromSdk(series), OfficeXmlNode.FromSdk(scheme), useSpreadsheetDefaultTheme);
+    internal static OfficeColor? ResolveSeries(OpenXmlElement series, A.ColorScheme? scheme, SeriesResolutionContext context, bool useSpreadsheetDefaultTheme = false) =>
+        ResolveSeries(OfficeXmlNode.FromSdk(series), OfficeXmlNode.FromSdk(scheme), context, useSpreadsheetDefaultTheme);
+    internal static OfficeColor[]? ResolvePoints(OpenXmlElement? chartSpace, int count, A.ColorScheme? scheme, bool useSpreadsheetDefaultTheme = false) =>
+        ResolvePoints(OfficeXmlNode.FromSdk(chartSpace), count, OfficeXmlNode.FromSdk(scheme), useSpreadsheetDefaultTheme);
 }

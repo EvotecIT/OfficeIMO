@@ -1,6 +1,6 @@
 using System.Globalization;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
@@ -18,8 +18,8 @@ namespace OfficeIMO.PowerPoint {
             }
             var candidate = new OfficeDrawing(width, height);
             var diagnostics = new List<OfficeImageExportDiagnostic>();
-            A.ColorScheme? colorScheme = shape.OwnerSlide == null
-                ? null
+            OfficeXmlNode colorScheme = shape.OwnerSlide == null
+                ? default
                 : GetSlideColorScheme(shape.OwnerSlide);
             if (!TryAddCustomGeometryShape(candidate, shape,
                     left: 0D, top: 0D, width, height, diagnostics,
@@ -49,9 +49,9 @@ namespace OfficeIMO.PowerPoint {
             double height,
             List<OfficeImageExportDiagnostic> diagnostics,
             PowerPointShapeBoundsMapping mapping,
-            A.ColorScheme? colorScheme) {
-            A.CustomGeometry? customGeometry = GetOpenXmlShapeProperties(shape)?.GetFirstChild<A.CustomGeometry>();
-            if (customGeometry == null) {
+            OfficeXmlNode colorScheme) {
+            OfficeXmlNode customGeometry = GetShapePropertiesElement(shape).Child(D, "custGeom");
+            if (customGeometry.IsNone) {
                 return false;
             }
 
@@ -99,38 +99,38 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool HasProjectableShapeEffects(PowerPointShape shape,
-            A.ColorScheme? colorScheme,
+            OfficeXmlNode colorScheme,
             PowerPointShapeBoundsMapping mapping) {
-            A.EffectList? effects = GetOpenXmlShapeProperties(shape)?
-                .GetFirstChild<A.EffectList>();
-            if (effects == null) return false;
+            OfficeXmlNode effects = GetShapePropertiesElement(shape).Child(D, "effectLst");
+            if (effects.IsNone) return false;
 
-            A.Glow? glow = effects.GetFirstChild<A.Glow>();
-            if (glow != null && TryCreateGlow(glow, colorScheme, mapping,
+            OfficeXmlNode glow = effects.Child(D, "glow");
+            if (!glow.IsNone && TryCreateGlow(glow, colorScheme, mapping,
                     out _)) {
                 return true;
             }
 
-            A.OuterShadow? shadow = effects.GetFirstChild<A.OuterShadow>();
-            return shadow != null && TryCreateShadow(shadow, colorScheme,
+            OfficeXmlNode shadow = effects.Child(D, "outerShdw");
+            return !shadow.IsNone && TryCreateShadow(shadow, colorScheme,
                 mapping, out _);
         }
 
         private static bool TryCreateCustomGeometryShapes(
-            A.CustomGeometry customGeometry, double width, double height,
+            OfficeXmlNode customGeometry, double width, double height,
             out List<CustomGeometryPathProjection>? projections) {
             projections = null;
-            A.PathList? pathList = customGeometry.PathList;
-            if (pathList == null) {
+            OfficeXmlNode pathList = customGeometry.Child(D, "pathLst");
+            if (pathList.IsNone) {
                 return false;
             }
 
             var resolved = new List<CustomGeometryPathProjection>();
-            foreach (A.Path path in pathList.Elements<A.Path>()) {
-                A.PathFillModeValues? fillMode = path.Fill?.Value;
-                if (fillMode.HasValue
-                    && fillMode.Value != A.PathFillModeValues.None
-                    && fillMode.Value != A.PathFillModeValues.Norm) {
+            foreach (OfficeXmlNode path in pathList.Children(D, "path")) {
+                // DrawingML ST_PathFillMode tokens: only no fill and normal fill project.
+                string? fillMode = path.Attribute("fill");
+                if (fillMode != null
+                    && fillMode != "none"
+                    && fillMode != "norm") {
                     return false;
                 }
 
@@ -145,8 +145,8 @@ namespace OfficeIMO.PowerPoint {
                     projectedShape.FillRule = OfficeFillRule.NonZero;
                     resolved.Add(new CustomGeometryPathProjection(
                         projectedShape,
-                        fillMode != A.PathFillModeValues.None,
-                        path.Stroke?.Value != false));
+                        fillMode != "none",
+                        path.BooleanAttribute("stroke") != false));
                 } catch (ArgumentException) {
                     return false;
                 }
@@ -170,9 +170,9 @@ namespace OfficeIMO.PowerPoint {
             internal bool HasStroke { get; }
         }
 
-        private static bool TryAppendCustomGeometryPath(A.CustomGeometry customGeometry, A.Path path, double width, double height, List<OfficePathCommand> commands) {
-            long coordinateWidth = path.Width?.Value ?? 0L;
-            long coordinateHeight = path.Height?.Value ?? 0L;
+        private static bool TryAppendCustomGeometryPath(OfficeXmlNode customGeometry, OfficeXmlNode path, double width, double height, List<OfficePathCommand> commands) {
+            long coordinateWidth = path.Int64Attribute("w") ?? 0L;
+            long coordinateHeight = path.Int64Attribute("h") ?? 0L;
             if (coordinateWidth <= 0L || coordinateHeight <= 0L) {
                 return false;
             }
@@ -188,9 +188,10 @@ namespace OfficeIMO.PowerPoint {
             OfficePoint currentPoint = default;
             OfficePoint currentSubpathStart = default;
 
-            foreach (DocumentFormat.OpenXml.OpenXmlElement child in path.ChildElements) {
-                if (child is A.MoveTo moveTo) {
-                    if (!TryGetCustomGeometryPoint(moveTo.Point, scaleX, scaleY, guides, out OfficePoint point)) {
+            foreach (OfficeXmlNode child in path.Children()) {
+                string command = child.NamespaceId == D ? child.LocalName : string.Empty;
+                if (command == "moveTo") {
+                    if (!TryGetCustomGeometryPoint(child.Child(D, "pt"), scaleX, scaleY, guides, out OfficePoint point)) {
                         return false;
                     }
 
@@ -198,32 +199,32 @@ namespace OfficeIMO.PowerPoint {
                     currentPoint = point;
                     currentSubpathStart = point;
                     hasMove = true;
-                } else if (child is A.LineTo lineTo) {
-                    if (!hasMove || !TryGetCustomGeometryPoint(lineTo.Point, scaleX, scaleY, guides, out OfficePoint point)) {
+                } else if (command == "lnTo") {
+                    if (!hasMove || !TryGetCustomGeometryPoint(child.Child(D, "pt"), scaleX, scaleY, guides, out OfficePoint point)) {
                         return false;
                     }
 
                     commands.Add(OfficePathCommand.LineTo(point));
                     currentPoint = point;
                     hasDraw = true;
-                } else if (child is A.QuadraticBezierCurveTo quadraticBezier) {
-                    if (!hasMove || !TryGetCustomGeometryPoints(quadraticBezier, 2, scaleX, scaleY, guides, out List<OfficePoint>? points)) {
+                } else if (command == "quadBezTo") {
+                    if (!hasMove || !TryGetCustomGeometryPoints(child, 2, scaleX, scaleY, guides, out List<OfficePoint>? points)) {
                         return false;
                     }
 
                     commands.Add(OfficePathCommand.QuadraticBezierTo(points![0], points[1]));
                     currentPoint = points[1];
                     hasDraw = true;
-                } else if (child is A.CubicBezierCurveTo cubicBezier) {
-                    if (!hasMove || !TryGetCustomGeometryPoints(cubicBezier, 3, scaleX, scaleY, guides, out List<OfficePoint>? points)) {
+                } else if (command == "cubicBezTo") {
+                    if (!hasMove || !TryGetCustomGeometryPoints(child, 3, scaleX, scaleY, guides, out List<OfficePoint>? points)) {
                         return false;
                     }
 
                     commands.Add(OfficePathCommand.CubicBezierTo(points![0], points[1], points[2]));
                     currentPoint = points[2];
                     hasDraw = true;
-                } else if (child is A.ArcTo arcTo) {
-                    if (!hasMove || !TryCreateCustomGeometryArcCommands(arcTo, currentPoint, scaleX, scaleY, guides, out List<OfficePathCommand>? arcCommands)) {
+                } else if (command == "arcTo") {
+                    if (!hasMove || !TryCreateCustomGeometryArcCommands(child, currentPoint, scaleX, scaleY, guides, out List<OfficePathCommand>? arcCommands)) {
                         return false;
                     }
 
@@ -231,7 +232,7 @@ namespace OfficeIMO.PowerPoint {
                     commands.AddRange(resolvedArcCommands);
                     currentPoint = resolvedArcCommands[resolvedArcCommands.Count - 1].Point;
                     hasDraw = true;
-                } else if (child is A.CloseShapePath) {
+                } else if (command == "close") {
                     if (!hasMove || !hasDraw) {
                         return false;
                     }
@@ -246,12 +247,12 @@ namespace OfficeIMO.PowerPoint {
             return hasMove && hasDraw;
         }
 
-        private static bool TryCreateCustomGeometryArcCommands(A.ArcTo arcTo, OfficePoint currentPoint, double scaleX, double scaleY, Dictionary<string, double> guides, out List<OfficePathCommand>? commands) {
+        private static bool TryCreateCustomGeometryArcCommands(OfficeXmlNode arcTo, OfficePoint currentPoint, double scaleX, double scaleY, Dictionary<string, double> guides, out List<OfficePathCommand>? commands) {
             commands = null;
-            if (!TryResolveCustomGeometryCoordinate(arcTo.WidthRadius?.Value, guides, out double widthRadius) ||
-                !TryResolveCustomGeometryCoordinate(arcTo.HeightRadius?.Value, guides, out double heightRadius) ||
-                !TryResolveCustomGeometryCoordinate(arcTo.StartAngle?.Value, guides, out double startAngle) ||
-                !TryResolveCustomGeometryCoordinate(arcTo.SwingAngle?.Value, guides, out double swingAngle)) {
+            if (!TryResolveCustomGeometryCoordinate(arcTo.Attribute("wR"), guides, out double widthRadius) ||
+                !TryResolveCustomGeometryCoordinate(arcTo.Attribute("hR"), guides, out double heightRadius) ||
+                !TryResolveCustomGeometryCoordinate(arcTo.Attribute("stAng"), guides, out double startAngle) ||
+                !TryResolveCustomGeometryCoordinate(arcTo.Attribute("swAng"), guides, out double swingAngle)) {
                 return false;
             }
 
@@ -273,9 +274,9 @@ namespace OfficeIMO.PowerPoint {
             return commands.Count > 0;
         }
 
-        private static bool TryGetCustomGeometryPoints(DocumentFormat.OpenXml.OpenXmlElement element, int expectedCount, double scaleX, double scaleY, Dictionary<string, double> guides, out List<OfficePoint>? points) {
+        private static bool TryGetCustomGeometryPoints(OfficeXmlNode element, int expectedCount, double scaleX, double scaleY, Dictionary<string, double> guides, out List<OfficePoint>? points) {
             points = new List<OfficePoint>(expectedCount);
-            foreach (A.Point point in element.Elements<A.Point>()) {
+            foreach (OfficeXmlNode point in element.Children(D, "pt")) {
                 if (!TryGetCustomGeometryPoint(point, scaleX, scaleY, guides, out OfficePoint officePoint)) {
                     points = null;
                     return false;
@@ -292,11 +293,11 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static bool TryGetCustomGeometryPoint(A.Point? point, double scaleX, double scaleY, Dictionary<string, double> guides, out OfficePoint officePoint) {
+        private static bool TryGetCustomGeometryPoint(OfficeXmlNode point, double scaleX, double scaleY, Dictionary<string, double> guides, out OfficePoint officePoint) {
             officePoint = default;
-            if (point == null ||
-                !TryResolveCustomGeometryCoordinate(point.X?.Value, guides, out double x) ||
-                !TryResolveCustomGeometryCoordinate(point.Y?.Value, guides, out double y)) {
+            if (point.IsNone ||
+                !TryResolveCustomGeometryCoordinate(point.Attribute("x"), guides, out double x) ||
+                !TryResolveCustomGeometryCoordinate(point.Attribute("y"), guides, out double y)) {
                 return false;
             }
 
@@ -304,7 +305,7 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static bool TryCreateCustomGeometryGuideContext(A.CustomGeometry customGeometry, long coordinateWidth, long coordinateHeight, out Dictionary<string, double>? guides) {
+        private static bool TryCreateCustomGeometryGuideContext(OfficeXmlNode customGeometry, long coordinateWidth, long coordinateHeight, out Dictionary<string, double>? guides) {
             guides = new Dictionary<string, double>(StringComparer.Ordinal) {
                 ["l"] = 0D,
                 ["t"] = 0D,
@@ -339,8 +340,8 @@ namespace OfficeIMO.PowerPoint {
             guides["ssd16"] = shortSide / 16D;
             guides["ssd32"] = shortSide / 32D;
 
-            if (!TryEvaluateCustomGeometryGuideList(customGeometry.AdjustValueList, guides) ||
-                !TryEvaluateCustomGeometryGuideList(customGeometry.ShapeGuideList, guides)) {
+            if (!TryEvaluateCustomGeometryGuideList(customGeometry.Child(D, "avLst"), guides) ||
+                !TryEvaluateCustomGeometryGuideList(customGeometry.Child(D, "gdLst"), guides)) {
                 guides = null;
                 return false;
             }
@@ -348,14 +349,14 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static bool TryEvaluateCustomGeometryGuideList(DocumentFormat.OpenXml.OpenXmlElement? guideList, Dictionary<string, double> guides) {
-            if (guideList == null) {
+        private static bool TryEvaluateCustomGeometryGuideList(OfficeXmlNode guideList, Dictionary<string, double> guides) {
+            if (guideList.IsNone) {
                 return true;
             }
 
-            foreach (A.ShapeGuide guide in guideList.Elements<A.ShapeGuide>()) {
-                string? name = guide.Name?.Value;
-                string? formula = guide.Formula?.Value;
+            foreach (OfficeXmlNode guide in guideList.Children(D, "gd")) {
+                string? name = guide.Attribute("name");
+                string? formula = guide.Attribute("fmla");
                 if (string.IsNullOrWhiteSpace(name) ||
                     string.IsNullOrWhiteSpace(formula) ||
                     !TryEvaluateCustomGeometryGuideFormula(formula!, guides, out double value)) {

@@ -339,7 +339,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 get {
                     OfficeXmlNode drawing = Drawing;
                     if (drawing.IsNone) return false;
-                    foreach (OfficeXmlNode element in drawing.AllDescendants()) {
+                    foreach (OfficeXmlNode element in drawing.EveryDescendant()) {
                         if (element.Is(DecorativeNamespace, "decorative")
                             && OfficeXmlViewValues.ParseBoolean(element.Attribute("val")) != false) {
                             return true;
@@ -356,7 +356,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 get {
                     OfficeXmlNode blip = Element.Child(LegacyPptXml.P, "blipFill")
                         .Child(LegacyPptXml.A, "blip");
-                    foreach (OfficeXmlNode vector in blip.AllDescendants()) {
+                    foreach (OfficeXmlNode vector in blip.EveryDescendant()) {
                         if (!vector.Is(SvgNamespace, "svgBlip")) continue;
                         string? svg = vector.Attribute(LegacyPptXml.R, "embed");
                         if (string.IsNullOrEmpty(svg)) continue;

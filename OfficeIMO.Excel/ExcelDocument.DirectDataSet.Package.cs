@@ -10,6 +10,13 @@ using OfficeIMO.Excel.Utilities;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private ExcelSheet? TryGetExistingSheet(string sheetName) {
+            if (_deferredWorkbook is { } deferred) {
+                // The deferred sheet list names the same worksheets, so a read selects one without opening the SDK.
+                foreach (ExcelDeferredSheet entry in deferred.Sheets) {
+                    if (string.Equals(entry.Name, sheetName, StringComparison.Ordinal)) return entry.IsWorksheet ? new ExcelSheet(this, entry) : null;
+                }
+                return null;
+            }
             Sheet? sheetElement = null;
             var sheets = WorkbookRoot.Sheets;
             if (sheets != null) {

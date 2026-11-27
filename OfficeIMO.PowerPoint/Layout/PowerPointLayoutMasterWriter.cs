@@ -1,10 +1,9 @@
 using System.Globalization;
 using System.Security;
 using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
+using Ns = OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -21,103 +20,118 @@ namespace OfficeIMO.PowerPoint {
         internal const uint SlideNumberIndex = 12U;
         internal const uint DateIndex = 10U;
 
+        private const int D = Ns.DrawingML;
+        private const int P = Ns.PresentationML;
+        private const string TableStylesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/tableStyles";
+
         /// <param name="presentationPart">Presentation to restyle.</param>
         /// <param name="theme">Theme tokens to write.</param>
-        /// <param name="selectedMaster">Single master to restyle, or null for every master and the presentation defaults.</param>
+        /// <param name="selectedMaster">Single master to restyle, or none for every master and the presentation defaults.</param>
         /// <param name="keepMasterContent">
         ///     True for a deck OfficeIMO did not author: only the theme part and text styles change, so shape trees,
         ///     backgrounds and placeholder links survive.
         /// </param>
-        internal static void Apply(PresentationPart presentationPart, PowerPointLayoutTheme theme,
-            SlideMasterPart? selectedMaster = null, bool keepMasterContent = false) {
-            if (presentationPart.Presentation == null) return;
-            P.SlideSize? size = presentationPart.Presentation.SlideSize;
-            double width = (size?.Cx?.Value ?? 12192000) / 12700D;
-            double height = (size?.Cy?.Value ?? 6858000) / 12700D;
+        internal static void Apply(PowerPointPartRef presentationPart, PowerPointLayoutTheme theme,
+            PowerPointPartRef selectedMaster = default, bool keepMasterContent = false) {
+            OfficeXmlNode presentation = presentationPart.Root;
+            if (presentation.IsNone) return;
+            OfficeXmlNode size = presentation.Child(P, "sldSz");
+            double width = (size.Int32Attribute("cx") ?? 12192000) / 12700D;
+            double height = (size.Int32Attribute("cy") ?? 6858000) / 12700D;
             var grid = new PowerPointLayoutGrid(width, height, theme.MarginLeft, theme.MarginRight, theme.MarginTop);
 
-            if (selectedMaster == null)
-                presentationPart.Presentation.DefaultTextStyle = new P.DefaultTextStyle(DefaultTextStyleXml(theme));
+            if (selectedMaster.IsNone)
+                PowerPointDocument.ReplaceWithLayoutMarkup(presentation, DefaultTextStyleXml(theme));
 
-            foreach (SlideMasterPart masterPart in presentationPart.SlideMasterParts) {
-                if (selectedMaster != null && masterPart != selectedMaster) continue;
-                if (masterPart.ThemePart != null) WriteTheme(masterPart.ThemePart, theme);
+            foreach (PowerPointPartRef masterPart in presentationPart.RelatedParts(PowerPointPartRef.SlideMasterRelationshipType).ToList()) {
+                if (!selectedMaster.IsNone && !masterPart.Equals(selectedMaster)) continue;
+                PowerPointPartRef themePart = masterPart.RelatedPart(PowerPointPartRef.ThemeRelationshipType);
+                if (!themePart.IsNone) WriteTheme(themePart, theme);
                 if (keepMasterContent) {
                     WriteTextStyles(masterPart, theme);
                     continue;
                 }
 
                 WriteMaster(masterPart, theme, grid);
-                foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
+                foreach (PowerPointPartRef layoutPart in masterPart.RelatedParts(PowerPointPartRef.SlideLayoutRelationshipType).ToList()) {
                     WriteLayout(layoutPart, theme, grid);
                 }
             }
 
-            if (selectedMaster == null) WriteDefaultTableTextColor(presentationPart, theme);
+            if (selectedMaster.IsNone) WriteDefaultTableTextColor(presentationPart, theme);
 
-            presentationPart.Presentation.Save();
+            PowerPointDocument.SaveLayoutPart(presentationPart);
         }
 
         // The built-in table uses light accent tints even on a dark slide. Keep
         // its body text dark without assigning direct cell formatting, so an
         // explicitly selected table style and explicit cell colors still win.
-        private static void WriteDefaultTableTextColor(PresentationPart presentationPart, PowerPointLayoutTheme theme) {
+        private static void WriteDefaultTableTextColor(PowerPointPartRef presentationPart, PowerPointLayoutTheme theme) {
             if (!theme.Theme.IsDark) return;
-            var styles = presentationPart.TableStylesPart?.TableStyleList;
-            var style = styles?.Elements<A.TableStyleEntry>().FirstOrDefault(item =>
-                item.StyleId?.Value == "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}");
-            var textStyle = style?.GetFirstChild<A.WholeTable>()?.GetFirstChild<A.TableCellTextStyle>();
-            var inheritedColor = textStyle?.GetFirstChild<A.SchemeColor>();
-            if (inheritedColor?.Val?.Value != A.SchemeColorValues.Dark1) return;
+            PowerPointPartRef stylesPart = presentationPart.RelatedPart(TableStylesRelationshipType);
+            if (stylesPart.IsNone) return;
+            OfficeXmlNode style = default;
+            foreach (OfficeXmlNode item in stylesPart.Root.Children(D, "tblStyle")) {
+                if (item.Attribute("styleId") == "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}") {
+                    style = item;
+                    break;
+                }
+            }
+            OfficeXmlNode textStyle = style.Child(D, "wholeTbl").Child(D, "tcTxStyle");
+            OfficeXmlNode inheritedColor = textStyle.Child(D, "schemeClr");
+            if (inheritedColor.IsNone || inheritedColor.Attribute("val") != "dk1") return;
             inheritedColor.Remove();
-            textStyle!.AppendChild(new A.RgbColorModelHex { Val = theme.Background });
-            styles!.Save();
+            OfficeXmlNode color = textStyle.CreateElement(D, "srgbClr");
+            color.SetAttribute("val", theme.Background);
+            textStyle.Append(color);
+            PowerPointDocument.SaveLayoutPart(stylesPart);
         }
 
         // ---------------------------------------------------------------- theme part
 
-        internal static void WriteTheme(ThemePart themePart, PowerPointLayoutTheme theme) {
-            A.Theme? root = themePart.Theme;
-            if (root == null) return;
-            A.ThemeElements? elements = root.ThemeElements;
-            A.ColorScheme? colors = elements?.ColorScheme;
-            if (colors != null) {
-                SetSchemeColor(colors.Dark1Color, theme.Text);
-                SetSchemeColor(colors.Light1Color, theme.Background);
-                SetSchemeColor(colors.Dark2Color, theme.TextMuted);
-                SetSchemeColor(colors.Light2Color, theme.Surface);
-                SetSchemeColor(colors.Accent1Color, theme.Accent1);
-                SetSchemeColor(colors.Accent2Color, theme.Accent2);
-                SetSchemeColor(colors.Accent3Color, theme.Accent3);
-                SetSchemeColor(colors.Accent4Color, theme.Accent4);
-                SetSchemeColor(colors.Accent5Color, theme.Accent5);
-                SetSchemeColor(colors.Accent6Color, theme.Accent6);
-                SetSchemeColor(colors.Hyperlink, theme.Accent1);
-                SetSchemeColor(colors.FollowedHyperlinkColor, theme.Accent5);
+        internal static void WriteTheme(PowerPointPartRef themePart, PowerPointLayoutTheme theme) {
+            OfficeXmlNode root = themePart.Root;
+            if (root.IsNone) return;
+            OfficeXmlNode elements = root.Child(D, "themeElements");
+            OfficeXmlNode colors = elements.Child(D, "clrScheme");
+            if (colors.Exists) {
+                SetSchemeColor(colors.Child(D, "dk1"), theme.Text);
+                SetSchemeColor(colors.Child(D, "lt1"), theme.Background);
+                SetSchemeColor(colors.Child(D, "dk2"), theme.TextMuted);
+                SetSchemeColor(colors.Child(D, "lt2"), theme.Surface);
+                SetSchemeColor(colors.Child(D, "accent1"), theme.Accent1);
+                SetSchemeColor(colors.Child(D, "accent2"), theme.Accent2);
+                SetSchemeColor(colors.Child(D, "accent3"), theme.Accent3);
+                SetSchemeColor(colors.Child(D, "accent4"), theme.Accent4);
+                SetSchemeColor(colors.Child(D, "accent5"), theme.Accent5);
+                SetSchemeColor(colors.Child(D, "accent6"), theme.Accent6);
+                SetSchemeColor(colors.Child(D, "hlink"), theme.Accent1);
+                SetSchemeColor(colors.Child(D, "folHlink"), theme.Accent5);
             }
 
-            A.FontScheme? fonts = elements?.FontScheme;
-            if (fonts != null) {
-                SetSchemeFont(fonts.MajorFont, theme.HeadingFont);
-                SetSchemeFont(fonts.MinorFont, theme.BodyFont);
+            OfficeXmlNode fonts = elements.Child(D, "fontScheme");
+            if (fonts.Exists) {
+                SetSchemeFont(fonts.Child(D, "majorFont"), theme.HeadingFont);
+                SetSchemeFont(fonts.Child(D, "minorFont"), theme.BodyFont);
             }
 
-            root.Save();
+            PowerPointDocument.SaveLayoutPart(themePart);
         }
 
-        private static void SetSchemeColor(OpenXmlCompositeElement? slot, string hex) {
-            if (slot == null) return;
+        private static void SetSchemeColor(OfficeXmlNode slot, string hex) {
+            if (slot.IsNone) return;
             // Keep a system colour (windowText, window) when it already resolves to the requested value.
-            if (slot.GetFirstChild<A.SystemColor>() is { } system &&
-                string.Equals(system.LastColor?.Value, hex, StringComparison.OrdinalIgnoreCase)) return;
-            slot.RemoveAllChildren();
-            slot.AppendChild(new A.RgbColorModelHex { Val = hex });
+            OfficeXmlNode system = slot.Child(D, "sysClr");
+            if (system.Exists && string.Equals(system.Attribute("lastClr"), hex, StringComparison.OrdinalIgnoreCase)) return;
+            for (OfficeXmlNode child = slot.FirstChild; child.Exists; child = slot.FirstChild) child.Remove();
+            OfficeXmlNode color = slot.CreateElement(D, "srgbClr");
+            color.SetAttribute("val", hex);
+            slot.Append(color);
         }
 
-        private static void SetSchemeFont(OpenXmlCompositeElement? font, string typeface) {
-            if (font == null) return;
-            A.LatinFont latin = font.GetFirstChild<A.LatinFont>() ?? font.PrependChild(new A.LatinFont());
-            PowerPointFontClassification.Apply(latin, typeface);
+        private static void SetSchemeFont(OfficeXmlNode font, string typeface) {
+            if (font.IsNone) return;
+            PowerPointFontClassification.Apply(font.GetOrPrependChild(D, "latin"), typeface);
         }
 
         // ---------------------------------------------------------------- text styles
@@ -298,9 +312,9 @@ namespace OfficeIMO.PowerPoint {
         private static PowerPointLayoutRect TitleBox(PowerPointLayoutGrid grid) => grid.Box(1, 10, 2, 2);
         private static PowerPointLayoutRect ContentBox(PowerPointLayoutGrid grid) => grid.Box(1, 12, 4, 9);
 
-        private static void WriteMaster(SlideMasterPart masterPart, PowerPointLayoutTheme theme, PowerPointLayoutGrid grid) {
-            P.SlideMaster? master = masterPart.SlideMaster;
-            if (master == null) return;
+        private static void WriteMaster(PowerPointPartRef masterPart, PowerPointLayoutTheme theme, PowerPointLayoutGrid grid) {
+            OfficeXmlNode master = masterPart.Root;
+            if (master.IsNone) return;
             var placeholders = new List<Placeholder> {
                 new("Title Placeholder 1", "title", null, TitleBox(grid), text: "Click to edit Master title style"),
                 new("Text Placeholder 2", "body", 1U, ContentBox(grid), text: "Click to edit Master text styles"),
@@ -308,15 +322,18 @@ namespace OfficeIMO.PowerPoint {
             placeholders.AddRange(FooterPlaceholders(theme, grid, master: true));
             string tree = TreeXml(placeholders, master: true);
             string background = "<p:bg xmlns:p=\"" + NsP + "\" xmlns:a=\"" + NsA + "\"><p:bgPr><a:solidFill><a:schemeClr val=\"bg1\"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>";
-            master.CommonSlideData = new P.CommonSlideData(new P.Background(background), new P.ShapeTree(tree));
+            OfficeXmlNode data = master.CreateElement(P, "cSld");
+            PowerPointDocument.ReplaceWithLayoutMarkup(data, background);
+            PowerPointDocument.ReplaceWithLayoutMarkup(data, tree);
+            PowerPointLayoutNativeText.Replace(master, P, "cSld", data, PSlideMasterView.Order);
             WriteTextStyles(masterPart, theme);
         }
 
-        private static void WriteTextStyles(SlideMasterPart masterPart, PowerPointLayoutTheme theme) {
-            P.SlideMaster? master = masterPart.SlideMaster;
-            if (master == null) return;
-            master.TextStyles = new P.TextStyles(TextStylesXml(theme));
-            master.Save();
+        private static void WriteTextStyles(PowerPointPartRef masterPart, PowerPointLayoutTheme theme) {
+            OfficeXmlNode master = masterPart.Root;
+            if (master.IsNone) return;
+            PowerPointDocument.ReplaceWithLayoutMarkup(master, TextStylesXml(theme));
+            PowerPointDocument.SaveLayoutPart(masterPart);
         }
 
         private static string TreeXml(IReadOnlyList<Placeholder> placeholders, bool master) {
@@ -330,16 +347,19 @@ namespace OfficeIMO.PowerPoint {
             return b.ToString();
         }
 
-        private static void WriteLayout(SlideLayoutPart layoutPart, PowerPointLayoutTheme theme, PowerPointLayoutGrid grid) {
-            P.SlideLayout? layout = layoutPart.SlideLayout;
-            if (layout == null) return;
-            string name = layout.CommonSlideData?.Name?.Value ?? string.Empty;
+        private static void WriteLayout(PowerPointPartRef layoutPart, PowerPointLayoutTheme theme, PowerPointLayoutGrid grid) {
+            OfficeXmlNode layout = layoutPart.Root;
+            if (layout.IsNone) return;
+            string name = layout.Child(P, "cSld").Attribute("name") ?? string.Empty;
             List<Placeholder>? placeholders = LayoutPlaceholders(name, theme, grid);
             if (placeholders == null) return;
             // Footer and slide-number placeholders live on the master only: binary PowerPoint materializes every layout
             // placeholder onto its slides, so layout footers would add empty shapes to every slide saved as .ppt.
-            layout.CommonSlideData = new P.CommonSlideData(new P.ShapeTree(TreeXml(placeholders, master: false))) { Name = name };
-            layout.Save();
+            OfficeXmlNode data = layout.CreateElement(P, "cSld");
+            PowerPointDocument.ReplaceWithLayoutMarkup(data, TreeXml(placeholders, master: false));
+            data.SetAttribute("name", name);
+            PowerPointLayoutNativeText.Replace(layout, P, "cSld", data, PSlideLayoutView.Order);
+            PowerPointDocument.SaveLayoutPart(layoutPart);
         }
 
         private static List<Placeholder>? LayoutPlaceholders(string name, PowerPointLayoutTheme theme, PowerPointLayoutGrid grid) {

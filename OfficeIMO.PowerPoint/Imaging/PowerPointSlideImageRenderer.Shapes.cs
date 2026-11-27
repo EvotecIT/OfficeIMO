@@ -1,12 +1,12 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
 internal static partial class PowerPointSlideImageRenderer {
-    private static void AddAutoShape(OfficeDrawing drawing, PowerPointShape shape, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
+    private static void AddAutoShape(OfficeDrawing drawing, PowerPointShape shape, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, OfficeXmlNode colorScheme) {
         string? presetName = GetAutoShapePresetName(shape);
         if (IsZeroThicknessLinePreset(presetName) && TryAddZeroThicknessLine(drawing, shape, diagnostics, mapping, presetName, colorScheme)) {
             return;
@@ -45,6 +45,6 @@ internal static partial class PowerPointSlideImageRenderer {
     }
 
     private static string? GetAutoShapePresetName(PowerPointShape shape) {
-        return GetOpenXmlShapeProperties(shape)?.GetFirstChild<A.PresetGeometry>()?.Preset?.InnerText;
+        return GetShapePropertiesElement(shape).Child(D, "prstGeom").Attribute("prst");
     }
 }
