@@ -56,6 +56,25 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "Ann", "Bob" }, document.Sheets[1].Table("Orders").RowsAs<Order>().Select(row => row.Customer));
         }
 
+        [Fact]
+        public void TableElementsInsideExtensionsAreIgnoredAsTheModelIgnoresThem() {
+            // Extensions repeat table element names, in the table's own namespace; only the table's children describe it.
+            int extended = 0;
+            byte[] source = RewriteTables(CreateWorkbook(), xml => Regex.Replace(xml, "</(\\w+:)?table>\\s*$", match => {
+                extended++;
+                string p = match.Groups[1].Value;
+                return "<" + p + "extLst><" + p + "ext uri=\"{00000000-0000-0000-0000-000000000001}\">"
+                    + "<" + p + "autoFilter ref=\"A1:B1\"/><" + p + "tableStyleInfo name=\"Ghost\" showFirstColumn=\"1\" showLastColumn=\"1\"/>"
+                    + "<" + p + "tableColumns count=\"1\"><" + p + "tableColumn id=\"9\" name=\"Ghost\"/></" + p + "tableColumns>"
+                    + "</" + p + "ext></" + p + "extLst>" + match.Value;
+            }));
+            Assert.Equal(2, extended);
+            List<string> listed = AssertListingsMatchTheModel(source);
+            Assert.DoesNotContain(listed, line => line.Contains("Ghost"));
+            using var document = ExcelDocument.Load(new MemoryStream(source));
+            Assert.Equal(new[] { "Ann", "Bob" }, document.Sheets[1].Table("Orders").RowsAs<Order>().Select(row => row.Customer));
+        }
+
         [Theory]
         [InlineData("+1")]
         [InlineData("bogus")]
