@@ -1,38 +1,33 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
+using static OfficeIMO.OpenXml.Internal.OfficeChartXml;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
-        internal static bool HasUnsupportedBubblePresentation(ChartPart part, C.Chart chart, C.PlotArea plotArea,
-            C.BubbleChart bubble, int maximumPointOverrides) =>
-            IsVaryColorsEnabled(bubble.GetFirstChild<C.VaryColors>()) ||
-            IsBubble3DEnabled(bubble.GetFirstChild<C.Bubble3D>()) ||
+        internal static bool HasUnsupportedBubblePresentation(IOfficeChartPart part, OfficeXmlNode chart, OfficeXmlNode plotArea,
+            OfficeXmlNode bubble, int maximumPointOverrides) =>
+            IsEnabledFlag(bubble.Child(NsC, "varyColors")) ||
+            IsEnabledFlag(bubble.Child(NsC, "bubble3D")) ||
             HasUnsupportedBubbleAxes(plotArea, bubble) || HasUnsupportedBubbleLegend(chart) ||
             HasUnsupportedBubbleAreaLayout(part, plotArea) || HasEnabledBubbleDataLabels(bubble) ||
-            bubble.Elements<C.BubbleChartSeries>().Any(series => IsBubble3DEnabled(series.GetFirstChild<C.Bubble3D>()) ||
+            bubble.Children(NsC, "ser").ToList().Any(series => IsEnabledFlag(series.Child(NsC, "bubble3D")) ||
                 OfficeOpenXmlChartPointStyles.GetBoundedPoints(series, maximumPointOverrides)
-                    .Any(point => IsBubble3DEnabled(point.GetFirstChild<C.Bubble3D>())));
+                    .Any(point => IsEnabledFlag(point.Child(NsC, "bubble3D"))));
 
-        private static bool IsBubble3DEnabled(C.Bubble3D? bubble3D) =>
-            bubble3D != null && bubble3D.Val?.Value != false;
-
-        private static bool IsVaryColorsEnabled(C.VaryColors? varyColors) =>
-            varyColors != null && varyColors.Val?.Value != false;
+        // c:bubble3D and c:varyColors: present with a val other than false.
+        private static bool IsEnabledFlag(OfficeXmlNode flag) =>
+            !flag.IsNone && flag.BoolVal() != false;
 
         private static bool HasUnsupportedBubbleAxes(
-            C.PlotArea plotArea, C.BubbleChart chart) {
+            OfficeXmlNode plotArea, OfficeXmlNode chart) {
             if (!TryGetReferencedBubbleAxes(
-                    plotArea, chart, out C.ValueAxis horizontalAxis,
-                    out C.ValueAxis verticalAxis)) {
+                    plotArea, chart, out OfficeXmlNode horizontalAxis,
+                    out OfficeXmlNode verticalAxis)) {
                 return true;
             }
-            if (horizontalAxis.AxisPosition?.Val?.Value !=
-                    C.AxisPositionValues.Bottom ||
-                verticalAxis.AxisPosition?.Val?.Value !=
-                    C.AxisPositionValues.Left) {
+            if (horizontalAxis.ChildVal(NsC, "axPos") != "b" ||
+                verticalAxis.ChildVal(NsC, "axPos") != "l") {
                 return true;
             }
             if (!HasSupportedDefaultBubbleGridlines(
@@ -41,146 +36,155 @@ namespace OfficeIMO.OpenXml.Internal {
             }
             return new[] { horizontalAxis, verticalAxis }.Any(axis =>
                 HasUnsupportedBubbleAxisPresentation(axis) ||
-                (axis.GetFirstChild<C.Delete>() is C.Delete delete &&
-                  delete.Val?.Value != false) ||
-                 axis.GetFirstChild<C.MajorUnit>() != null ||
-                 axis.GetFirstChild<C.MinorUnit>() != null ||
-                 axis.GetFirstChild<C.DisplayUnits>() != null ||
-                 axis.GetFirstChild<C.CrossesAt>() != null ||
+                (axis.Child(NsC, "delete") is { IsNone: false } delete &&
+                  delete.BoolVal() != false) ||
+                 !axis.Child(NsC, "majorUnit").IsNone ||
+                 !axis.Child(NsC, "minorUnit").IsNone ||
+                 !axis.Child(NsC, "dispUnits").IsNone ||
+                 !axis.Child(NsC, "crossesAt").IsNone ||
                  OfficeOpenXmlChartSecondaryAxis.IsWorkbookLinked(axis) ||
-                 (axis.GetFirstChild<C.TickLabelPosition>() is
-                      C.TickLabelPosition tickLabelPosition &&
-                  tickLabelPosition.Val?.Value !=
-                      C.TickLabelPositionValues.NextTo) ||
-                 (axis.GetFirstChild<C.Crosses>() is C.Crosses crosses &&
-                  crosses.Val?.Value != C.CrossesValues.AutoZero) ||
-                 (axis.GetFirstChild<C.Scaling>() is C.Scaling scaling &&
-                  (scaling.GetFirstChild<C.LogBase>() != null ||
-                   scaling.GetFirstChild<C.MinAxisValue>() != null ||
-                   scaling.GetFirstChild<C.MaxAxisValue>() != null ||
-                   scaling.GetFirstChild<C.Orientation>()?.Val?.Value ==
-                      C.OrientationValues.MaxMin)));
+                 (axis.Child(NsC, "tickLblPos") is { IsNone: false } tickLabelPosition &&
+                  tickLabelPosition.Val() != "nextTo") ||
+                 (axis.Child(NsC, "crosses") is { IsNone: false } crosses &&
+                  crosses.Val() != "autoZero") ||
+                 (axis.Child(NsC, "scaling") is { IsNone: false } scaling &&
+                  (!scaling.Child(NsC, "logBase").IsNone ||
+                   !scaling.Child(NsC, "min").IsNone ||
+                   !scaling.Child(NsC, "max").IsNone ||
+                   scaling.ChildVal(NsC, "orientation") == "maxMin")));
         }
 
         private static bool HasUnsupportedBubbleAxisPresentation(
-            C.ValueAxis axis) =>
-            HasUnsupportedBubbleTitle(axis.GetFirstChild<C.Title>()) ||
+            OfficeXmlNode axis) =>
+            HasUnsupportedBubbleTitle(axis.Child(NsC, "title")) ||
             HasUnsupportedBubbleTextStyle(axis) ||
             HasUnsupportedBubbleShapeProperties(axis);
 
         private static bool HasSupportedDefaultBubbleGridlines(
-            C.ValueAxis horizontalAxis, C.ValueAxis verticalAxis) {
-            if (horizontalAxis.GetFirstChild<C.MajorGridlines>() != null ||
-                horizontalAxis.GetFirstChild<C.MinorGridlines>() != null ||
-                verticalAxis.GetFirstChild<C.MinorGridlines>() != null) {
+            OfficeXmlNode horizontalAxis, OfficeXmlNode verticalAxis) {
+            if (!horizontalAxis.Child(NsC, "majorGridlines").IsNone ||
+                !horizontalAxis.Child(NsC, "minorGridlines").IsNone ||
+                !verticalAxis.Child(NsC, "minorGridlines").IsNone) {
                 return false;
             }
 
-            C.MajorGridlines? gridlines =
-                verticalAxis.GetFirstChild<C.MajorGridlines>();
-            C.ChartShapeProperties? properties =
-                gridlines?.GetFirstChild<C.ChartShapeProperties>();
-            if (gridlines == null || properties == null) return false;
+            OfficeXmlNode gridlines =
+                verticalAxis.Child(NsC, "majorGridlines");
+            OfficeXmlNode properties =
+                gridlines.Child(NsC, "spPr");
+            if (gridlines.IsNone || properties.IsNone) return false;
             return !HasUnsupportedBubbleShapeProperties(gridlines);
         }
 
         internal static bool TryGetReferencedBubbleAxes(
-            C.PlotArea plotArea, C.BubbleChart chart,
-            out C.ValueAxis horizontalAxis, out C.ValueAxis verticalAxis) {
-            horizontalAxis = null!;
-            verticalAxis = null!;
-            List<C.AxisId> references =
-                chart.Elements<C.AxisId>().ToList();
+            OfficeXmlNode plotArea, OfficeXmlNode chart,
+            out OfficeXmlNode horizontalAxis, out OfficeXmlNode verticalAxis) {
+            horizontalAxis = OfficeXmlNode.None;
+            verticalAxis = OfficeXmlNode.None;
+            List<OfficeXmlNode> references =
+                chart.Children(NsC, "axId").ToList();
             if (references.Count != 2 ||
-                references.Any(axis => axis.Val?.Value == null)) {
+                references.Any(axis => axis.UIntVal() == null)) {
                 return false;
             }
-            uint horizontalId = references[0].Val!.Value;
-            uint verticalId = references[1].Val!.Value;
+            uint horizontalId = references[0].UIntVal()!.Value;
+            uint verticalId = references[1].UIntVal()!.Value;
             if (horizontalId == verticalId) return false;
-            C.ValueAxis? horizontal = plotArea.Elements<C.ValueAxis>()
+            OfficeXmlNode horizontal = plotArea.Children(NsC, "valAx").ToList()
                 .FirstOrDefault(axis =>
-                    axis.AxisId?.Val?.Value == horizontalId);
-            C.ValueAxis? vertical = plotArea.Elements<C.ValueAxis>()
+                    axis.Child(NsC, "axId").UIntVal() == horizontalId);
+            OfficeXmlNode vertical = plotArea.Children(NsC, "valAx").ToList()
                 .FirstOrDefault(axis =>
-                    axis.AxisId?.Val?.Value == verticalId);
-            if (horizontal == null || vertical == null) return false;
+                    axis.Child(NsC, "axId").UIntVal() == verticalId);
+            if (horizontal.IsNone || vertical.IsNone) return false;
             horizontalAxis = horizontal;
             verticalAxis = vertical;
             return true;
         }
 
-        private static bool HasUnsupportedBubbleLegend(C.Chart chart) {
-            C.Legend? legend = chart.GetFirstChild<C.Legend>();
-            return legend != null &&
-                (legend.GetFirstChild<C.LegendPosition>()?.Val?.Value ==
-                     C.LegendPositionValues.TopRight ||
-                 legend.GetFirstChild<C.Layout>()?
-                     .GetFirstChild<C.ManualLayout>() != null ||
+        private static bool HasUnsupportedBubbleLegend(OfficeXmlNode chart) {
+            OfficeXmlNode legend = chart.Child(NsC, "legend");
+            return !legend.IsNone &&
+                (legend.ChildVal(NsC, "legendPos") == "tr" ||
+                 !legend.Child(NsC, "layout")
+                     .Child(NsC, "manualLayout").IsNone ||
                  HasUnsupportedBubbleTextStyle(legend) ||
                  HasUnsupportedBubbleShapeProperties(legend));
         }
 
         private static bool HasUnsupportedBubbleAreaLayout(
-            ChartPart chartPart, C.PlotArea plotArea) =>
+            IOfficeChartPart chartPart, OfficeXmlNode plotArea) =>
             HasUnsupportedBubbleTitle(
-                chartPart.ChartSpace?.GetFirstChild<C.Chart>()?
-                    .GetFirstChild<C.Title>()) ||
-            plotArea.GetFirstChild<C.Layout>()?
-                .GetFirstChild<C.ManualLayout>() != null ||
-            !IsFramelessChartArea(chartPart.ChartSpace?.GetFirstChild<C.ShapeProperties>()) ||
-            plotArea.GetFirstChild<C.ShapeProperties>()?
-                .ChildElements.Count > 0;
+                chartPart.ChartSpace.Child(NsC, "chart")
+                    .Child(NsC, "title")) ||
+            !plotArea.Child(NsC, "layout")
+                .Child(NsC, "manualLayout").IsNone ||
+            !IsFramelessChartArea(chartPart.ChartSpace.Child(NsC, "spPr")) ||
+            plotArea.Child(NsC, "spPr").HasChildElements();
 
         // No chart-area shape, or one with no fill and no outline, draws nothing.
-        private static bool IsFramelessChartArea(C.ShapeProperties? shape) =>
-            shape == null || shape.ChildElements.All(child => child is A.NoFill ||
-                child is A.Outline outline && !outline.HasAttributes && outline.ChildElements.All(item => item is A.NoFill));
+        private static bool IsFramelessChartArea(OfficeXmlNode shape) =>
+            shape.IsNone || shape.Children().ToList().All(child => child.IsDrawing("noFill") ||
+                child.IsDrawing("ln") && !child.HasAttributes && child.Children().ToList().All(item => item.IsDrawing("noFill")));
 
-        private static bool HasUnsupportedBubbleTitle(C.Title? title) =>
-            title != null &&
-            (title.GetFirstChild<C.Layout>()?
-                 .GetFirstChild<C.ManualLayout>() != null ||
+        private static bool HasUnsupportedBubbleTitle(OfficeXmlNode title) =>
+            !title.IsNone &&
+            (!title.Child(NsC, "layout")
+                 .Child(NsC, "manualLayout").IsNone ||
              HasUnsupportedBubbleTextStyle(title) ||
              HasUnsupportedBubbleShapeProperties(title));
 
-        private static bool HasUnsupportedBubbleTextStyle(OpenXmlElement parent) {
-            C.Chart? chart = parent as C.Chart ?? parent.Ancestors<C.Chart>().FirstOrDefault();
-            if (chart == null) return true;
+        private static bool HasUnsupportedBubbleTextStyle(OfficeXmlNode parent) {
+            OfficeXmlNode chart = parent.IsChart("chart") ? parent : parent.Ancestor(NsC, "chart");
+            if (chart.IsNone) return true;
             try {
-                OfficeOpenXmlChartTextReader.ReadNativeText(chart, parent, scheme: null, allowMultiline: true);
+                OfficeOpenXmlChartTextReader.ReadNativeText(chart, parent, scheme: OfficeXmlNode.None, allowMultiline: true);
                 return false;
             } catch (NotSupportedException) {
                 return true;
             }
         }
 
-        private static bool HasUnsupportedBubbleShapeProperties(OpenXmlElement parent) {
+        private static bool HasUnsupportedBubbleShapeProperties(OfficeXmlNode parent) {
             try {
-                ReadSurface(parent.GetFirstChild<C.ChartShapeProperties>(), scheme: null, colorMap: null);
+                ReadSurface(parent.Child(NsC, "spPr"), scheme: OfficeXmlNode.None, colorMap: OfficeXmlNode.None);
                 return false;
             } catch (NotSupportedException) {
                 return true;
             }
         }
 
-        private static bool HasEnabledBubbleDataLabels(C.BubbleChart chart) =>
-            chart.Descendants<C.ShowLegendKey>().Any(item => item.Val?.Value != false) ||
-            chart.Descendants<C.ShowValue>().Any(item => item.Val?.Value != false) ||
-            chart.Descendants<C.ShowCategoryName>().Any(item => item.Val?.Value != false) ||
-            chart.Descendants<C.ShowSeriesName>().Any(item => item.Val?.Value != false) ||
-            chart.Descendants<C.ShowPercent>().Any(item => item.Val?.Value != false) ||
-            chart.Descendants<C.ShowBubbleSize>().Any(item => item.Val?.Value != false) ||
-            chart.Descendants<C.DataLabel>().Any(label => {
-                C.Delete? delete = label.GetFirstChild<C.Delete>();
-                return label.GetFirstChild<C.ChartText>() != null &&
-                    (delete == null || delete.Val?.Value == false);
+        private static bool HasEnabledBubbleDataLabels(OfficeXmlNode chart) =>
+            chart.Descendants(NsC, "showLegendKey").Any(item => item.BoolVal() != false) ||
+            chart.Descendants(NsC, "showVal").Any(item => item.BoolVal() != false) ||
+            chart.Descendants(NsC, "showCatName").Any(item => item.BoolVal() != false) ||
+            chart.Descendants(NsC, "showSerName").Any(item => item.BoolVal() != false) ||
+            chart.Descendants(NsC, "showPercent").Any(item => item.BoolVal() != false) ||
+            chart.Descendants(NsC, "showBubbleSize").Any(item => item.BoolVal() != false) ||
+            chart.Descendants(NsC, "dLbl").Any(label => {
+                OfficeXmlNode delete = label.Child(NsC, "delete");
+                return !label.Child(NsC, "tx").IsNone &&
+                    (delete.IsNone || delete.BoolVal() == false);
             });
 
 
-        internal static bool HasUnsupportedSharedAxisNumberFormat(OpenXmlCompositeElement axis) =>
+        internal static bool HasUnsupportedSharedAxisNumberFormat(OfficeXmlNode axis) =>
             OfficeOpenXmlChartSecondaryAxis.HasUnsupportedSharedAxisNumberFormat(axis);
 
+        // SDK callers
+        internal static bool HasUnsupportedBubblePresentation(ChartPart part, C.Chart chart, C.PlotArea plotArea,
+            C.BubbleChart bubble, int maximumPointOverrides) =>
+            HasUnsupportedBubblePresentation(new OfficeSdkChartPart(part), OfficeXmlNode.FromSdk(chart), OfficeXmlNode.FromSdk(plotArea),
+                OfficeXmlNode.FromSdk(bubble), maximumPointOverrides);
 
+        internal static bool TryGetReferencedBubbleAxes(
+            C.PlotArea plotArea, C.BubbleChart chart,
+            out C.ValueAxis horizontalAxis, out C.ValueAxis verticalAxis) {
+            bool found = TryGetReferencedBubbleAxes(OfficeXmlNode.FromSdk(plotArea), OfficeXmlNode.FromSdk(chart),
+                out OfficeXmlNode horizontal, out OfficeXmlNode vertical);
+            horizontalAxis = (C.ValueAxis)horizontal.SdkElement!;
+            verticalAxis = (C.ValueAxis)vertical.SdkElement!;
+            return found;
+        }
     }
 }

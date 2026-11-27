@@ -108,6 +108,24 @@ namespace OfficeIMO.OpenXml.Internal {
             return child;
         }
 
+        /// <summary>
+        /// Places a child as the SDK's <c>AddChild(child, true)</c> and typed property setters do: every child in the same
+        /// schema slot (each member of a choice, each occurrence of a repeated element) is removed, then the child goes in
+        /// schema order. Returns the child as it is now held.
+        /// </summary>
+        internal static OfficeXmlNode SetOrdered(OfficeXmlNode parent, OfficeXmlNode child, OfficeXmlChildOrder order) {
+            int rank = order.RankOf(child.NamespaceId, child.LocalName);
+            if (rank >= 0) {
+                OfficeXmlNode sibling = parent.FirstChild;
+                while (!sibling.IsNone) {
+                    OfficeXmlNode next = sibling.NextSibling;
+                    if (order.RankOf(sibling.NamespaceId, sibling.LocalName) == rank) sibling.Remove();
+                    sibling = next;
+                }
+            }
+            return parent.InsertOrdered(child, order);
+        }
+
         /// <summary>Removes every child element.</summary>
         internal static void RemoveAllChildElements(this OfficeXmlNode node) {
             OfficeXmlNode child = node.FirstChild;
