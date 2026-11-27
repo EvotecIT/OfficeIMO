@@ -61,9 +61,19 @@ namespace OfficeIMO.Word {
         private string? GetColorValue(Edge edge) {
             OfficeXmlNode border = Border(edge);
             if (border.IsNone) return null;
-            string? color = WordRunFormatting.ResolveThemeColorHex(border.Attribute(W, "themeColor"), border.Attribute(W, "themeTint"), border.Attribute(W, "themeShade"), _document)
-                ?? border.Attribute(W, "color");
-            return color == null ? null : Helpers.NormalizeOpenXmlColor(color);
+            // One pass over the attributes: asking for each one in turn is slower when most of them are absent.
+            string? color = null, themeColor = null, themeTint = null, themeShade = null;
+            foreach (OfficeXmlAttribute attribute in border.Attributes()) {
+                if (!OfficeXmlNamespaces.TryGetKnownId(attribute.NamespaceUri, out int namespaceId) || namespaceId != W) continue;
+                switch (attribute.LocalName) {
+                    case "color": color = attribute.Value; break;
+                    case "themeColor": themeColor = attribute.Value; break;
+                    case "themeTint": themeTint = attribute.Value; break;
+                    case "themeShade": themeShade = attribute.Value; break;
+                }
+            }
+            string? resolved = (themeColor == null ? null : WordRunFormatting.ResolveThemeColorHex(themeColor, themeTint, themeShade, _document)) ?? color;
+            return resolved == null ? null : Helpers.NormalizeOpenXmlColor(resolved);
         }
 
         /// <summary>A literal color replaces theme color references, as Word's direct color selection does.</summary>
