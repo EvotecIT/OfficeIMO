@@ -1938,3 +1938,112 @@ internal readonly partial struct WNumLvlView {
 
     internal WLvlView GetOrAddLvl() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "lvl", Order));
 }
+
+/// <summary>View over an element of schema type <c>CT_TblPr</c>.</summary>
+internal readonly partial struct WTblPrView {
+    internal WTblPrView(OfficeXmlTree tree, int node) {
+        Tree = tree;
+        Node = node;
+    }
+
+    internal OfficeXmlTree Tree { get; }
+    internal int Node { get; }
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "tblStyle", "tblpPr", "tblOverlap", "bidiVisual", "tblStyleRowBandSize", "tblStyleColBandSize", "tblW", "jc", "tblCellSpacing", "tblInd", "tblBorders", "shd", "tblLayout", "tblCellMar", "tblLook", "tblCaption", "tblDescription", "tblPrChange" }, new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 });
+
+    internal WStringView? TblStyle {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "tblStyle");
+            return child == OfficeXmlTree.NoNode ? null : new WStringView(Tree, child);
+        }
+    }
+
+    internal WStringView GetOrAddTblStyle() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "tblStyle", Order));
+
+    internal WOnOffView? BidiVisual {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "bidiVisual");
+            return child == OfficeXmlTree.NoNode ? null : new WOnOffView(Tree, child);
+        }
+    }
+
+    internal WOnOffView GetOrAddBidiVisual() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "bidiVisual", Order));
+
+    internal WShdView? Shd {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "shd");
+            return child == OfficeXmlTree.NoNode ? null : new WShdView(Tree, child);
+        }
+    }
+
+    internal WShdView GetOrAddShd() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "shd", Order));
+
+    internal WStringView? TblCaption {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "tblCaption");
+            return child == OfficeXmlTree.NoNode ? null : new WStringView(Tree, child);
+        }
+    }
+
+    internal WStringView GetOrAddTblCaption() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "tblCaption", Order));
+
+    internal WStringView? TblDescription {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "tblDescription");
+            return child == OfficeXmlTree.NoNode ? null : new WStringView(Tree, child);
+        }
+    }
+
+    internal WStringView GetOrAddTblDescription() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "tblDescription", Order));
+}
+
+/// <summary>View over an element of schema type <c>CT_TcPr</c>.</summary>
+internal readonly partial struct WTcPrView {
+    internal WTcPrView(OfficeXmlTree tree, int node) {
+        Tree = tree;
+        Node = node;
+    }
+
+    internal OfficeXmlTree Tree { get; }
+    internal int Node { get; }
+
+    /// <summary>Child element names in sequence order.</summary>
+    internal static readonly OfficeXmlChildOrder Order = new(new int[] { OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML, OfficeXmlNamespaces.WordprocessingML }, new string[] { "cnfStyle", "tcW", "gridSpan", "hMerge", "vMerge", "tcBorders", "shd", "noWrap", "tcMar", "textDirection", "tcFitText", "vAlign", "hideMark", "headers", "cellIns", "cellDel", "cellMerge", "tcPrChange" }, new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 14, 14, 15 });
+
+    internal WShdView? Shd {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "shd");
+            return child == OfficeXmlTree.NoNode ? null : new WShdView(Tree, child);
+        }
+    }
+
+    internal WShdView GetOrAddShd() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "shd", Order));
+
+    internal WOnOffView? NoWrap {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "noWrap");
+            return child == OfficeXmlTree.NoNode ? null : new WOnOffView(Tree, child);
+        }
+    }
+
+    internal WOnOffView GetOrAddNoWrap() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "noWrap", Order));
+
+    internal WOnOffView? TcFitText {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "tcFitText");
+            return child == OfficeXmlTree.NoNode ? null : new WOnOffView(Tree, child);
+        }
+    }
+
+    internal WOnOffView GetOrAddTcFitText() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "tcFitText", Order));
+
+    internal WOnOffView? HideMark {
+        get {
+            int child = Tree.FindChild(Node, OfficeXmlNamespaces.WordprocessingML, "hideMark");
+            return child == OfficeXmlTree.NoNode ? null : new WOnOffView(Tree, child);
+        }
+    }
+
+    internal WOnOffView GetOrAddHideMark() => new(Tree, Tree.GetOrInsertChild(Node, OfficeXmlNamespaces.WordprocessingML, "hideMark", Order));
+}
