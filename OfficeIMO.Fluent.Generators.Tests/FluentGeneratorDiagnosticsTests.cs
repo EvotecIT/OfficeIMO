@@ -20,6 +20,8 @@ public sealed class FluentGeneratorDiagnosticsTests {
                 public double? Size { get; private set; }
                 /// <summary>Options.</summary>
                 public Options Options { get; } = new Options();
+                /// <summary>A copy of the options.</summary>
+                public Options Snapshot => new Options { Width = Options.Width };
                 /// <summary>Callback.</summary>
                 public System.Func<string, string>? Transform { get; set; }
                 [FluentMutator("Size")]
@@ -44,6 +46,8 @@ public sealed class FluentGeneratorDiagnosticsTests {
         Assert.DoesNotContain("System.Reflection", source);
         Assert.DoesNotContain("typeof(", source);
         Assert.DoesNotContain(" Transform(", source);
+        Assert.Contains(" Options<TSelf>(", source);
+        Assert.DoesNotContain(" Snapshot<TSelf>(", source);
     }
 
     [Theory]

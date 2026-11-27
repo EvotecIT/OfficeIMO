@@ -210,7 +210,11 @@ internal sealed class Ledger {
         var parameters = method.Parameters.Skip(method.IsExtensionMethod ? 1 : 0).ToArray();
         var property = FindProperty(receiver, suffix) ?? FindProperty(receiver, "Is" + suffix);
 
-        if (method.IsStatic && !method.IsExtensionMethod) {
+        if (method.IsGenericMethod) {
+            flags.Add("generic-set");
+            treatment = Treatments.Decision;
+            reason = "Generic Set method: the extension needs its type parameters and constraints, which a generated mutator call does not carry; keep it handwritten or extend the generator.";
+        } else if (method.IsStatic && !method.IsExtensionMethod) {
             flags.Add("static-set");
             treatment = Treatments.Decision;
             reason = "Static Set method: a shared default or factory, not receiver configuration.";
@@ -307,6 +311,11 @@ internal sealed class Ledger {
             if (clash != null) flags.Add("name-collision");
             return Row(receiver, property, framework, clash == null ? Treatments.Rename : Treatments.Decision, name, "",
                 clash == null ? rename.Reason : $"{rename.Reason} {name} already names {clash}.", flags);
+        }
+        if (IsOptionObject(property.Type) && BodyFacts.GetterReturnsCopy(_source.FindSyntax(property))) {
+            flags.Add("getter-copies");
+            return Row(receiver, property, framework, Treatments.KeepSelector, null, "",
+                "The getter returns a copy, so an in-place callback would change nothing; change it through the receiver's own With... or Set... method.", flags);
         }
         if (IsOptionObject(property.Type))
             return Row(receiver, property, framework, Treatments.GenerateNested, $"{name}({Display(property.Type).TrimEnd('?')} => ...)", "",

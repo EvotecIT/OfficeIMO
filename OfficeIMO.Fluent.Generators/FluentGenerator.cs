@@ -73,7 +73,7 @@ namespace OfficeIMO.Fluent.Generators {
                     continue;
                 }
                 if (settable) writer.Setter(name, property, diagnostics);
-                if (IsOptionObject(property.Type) && property.GetMethod?.DeclaredAccessibility == Accessibility.Public && type.TypeKind != TypeKind.Struct)
+                if (IsOptionObject(property.Type) && property.GetMethod?.DeclaredAccessibility == Accessibility.Public && type.TypeKind != TypeKind.Struct && !GetterReturnsCopy(property))
                     writer.Configure(name, property, settable, diagnostics);
             }
             if (delegates) writer.ConfigureSelf(diagnostics);
@@ -86,6 +86,26 @@ namespace OfficeIMO.Fluent.Generators {
             string original = property.Name;
             if (IsBoolean(property.Type) && original.Length > 2 && original.StartsWith("Is", StringComparison.Ordinal) && char.IsUpper(original[2])) return original.Substring(2);
             return original;
+        }
+
+        /// <summary>A getter that returns a new instance or a copy cannot be configured in place: the callback would edit a throwaway object.</summary>
+        private static bool GetterReturnsCopy(IPropertySymbol property) {
+            foreach (var reference in property.DeclaringSyntaxReferences) {
+                if (reference.GetSyntax() is not Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax declaration) continue;
+                var getter = declaration.AccessorList?.Accessors.FirstOrDefault(a => a.Keyword.ValueText == "get");
+                var body = (SyntaxNode?)declaration.ExpressionBody ?? (SyntaxNode?)getter?.ExpressionBody ?? getter?.Body;
+                if (body == null) continue;
+                var returned = body is Microsoft.CodeAnalysis.CSharp.Syntax.ArrowExpressionClauseSyntax arrow
+                    ? new[] { arrow.Expression }
+                    : body.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ReturnStatementSyntax>().Select(r => r.Expression).Where(e => e != null).Select(e => e!).ToArray();
+                foreach (var expression in returned) {
+                    if (expression is Microsoft.CodeAnalysis.CSharp.Syntax.BaseObjectCreationExpressionSyntax) return true;
+                    if (expression is Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax invocation
+                        && invocation.Expression is Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax member
+                        && (member.Name.Identifier.ValueText.Contains("Clone") || member.Name.Identifier.ValueText.Contains("Copy"))) return true;
+                }
+            }
+            return false;
         }
 
         private static bool HasAttribute(ISymbol symbol, string name) => symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == name);

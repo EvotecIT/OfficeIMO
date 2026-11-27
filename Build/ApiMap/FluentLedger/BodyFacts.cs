@@ -25,13 +25,28 @@ internal static class BodyFacts {
             foreach (var expression in Returned(declaration)) {
                 var value = Unwrap(expression);
                 if (value is ThisExpressionSyntax || value is IdentifierNameSyntax identifier && identifier.Identifier.ValueText == receiver) self = true;
-                else if (value is BaseObjectCreationExpressionSyntax or WithExpressionSyntax) fresh = true;
-                else if (value is InvocationExpressionSyntax invocation && InvokedName(invocation) is { } name
-                    && (name.Contains("Clone", StringComparison.Ordinal) || name.Contains("Copy", StringComparison.Ordinal) || name.StartsWith("With", StringComparison.Ordinal))) fresh = true;
+                else if (IsFresh(value)) fresh = true;
             }
         }
         return self && fresh ? Mixed : self ? ReturnsReceiver : fresh ? ReturnsNew : Delegates;
     }
+
+    /// <summary>True when a property getter hands out a new instance or a copy, so configuring the result changes nothing.</summary>
+    internal static bool GetterReturnsCopy(IReadOnlyList<SyntaxNode> declarations) {
+        foreach (var property in declarations.OfType<PropertyDeclarationSyntax>()) {
+            var getter = property.AccessorList?.Accessors.FirstOrDefault(accessor => accessor.Keyword.ValueText == "get");
+            var expressions = property.ExpressionBody != null ? [property.ExpressionBody.Expression]
+                : getter?.ExpressionBody != null ? [getter.ExpressionBody.Expression]
+                : getter?.Body?.DescendantNodes().OfType<ReturnStatementSyntax>().Select(statement => statement.Expression).OfType<ExpressionSyntax>().ToArray() ?? [];
+            if (expressions.Any(expression => IsFresh(Unwrap(expression)))) return true;
+        }
+        return false;
+    }
+
+    private static bool IsFresh(ExpressionSyntax value) =>
+        value is BaseObjectCreationExpressionSyntax or WithExpressionSyntax
+        || value is InvocationExpressionSyntax invocation && InvokedName(invocation) is { } name
+            && (name.Contains("Clone", StringComparison.Ordinal) || name.Contains("Copy", StringComparison.Ordinal) || name.StartsWith("With", StringComparison.Ordinal));
 
     private static IEnumerable<ExpressionSyntax> Returned(MethodDeclarationSyntax declaration) {
         if (declaration.ExpressionBody != null) {
