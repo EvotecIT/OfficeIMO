@@ -960,4 +960,89 @@ internal static class WordConverterNodes {
 
     /// <summary>The <c>wp:positionH</c> of an anchored image; throws for an inline image, as the model does.</summary>
     internal static OfficeXmlNode HorizontalPositionNode(this WordImage image) => OfficeXmlNode.FromSdk(image.horizontalPosition);
+
+    // ---- Word.Rtf ---
+
+    /// <summary>The EQ field instruction for an Office Math element, as <see cref="WordMath.ToEquationFieldInstruction"/>.</summary>
+    internal static string MathEquationFieldInstruction(OfficeXmlNode element) =>
+        WordMath.ToEquationFieldInstruction((OpenXmlElement)element.SdkElement!);
+
+    /// <summary>The footnote the <c>w:footnoteReference</c> <paramref name="footnoteReference"/> in this run names.</summary>
+    internal static WordFootNote FootNoteView(this WordParagraph run, OfficeXmlNode footnoteReference) =>
+        new(run._document, run._paragraph, run._run!, (W.FootnoteReference)footnoteReference.SdkElement!);
+
+    /// <summary>The endnote the <c>w:endnoteReference</c> <paramref name="endnoteReference"/> in this run names.</summary>
+    internal static WordEndNote EndNoteView(this WordParagraph run, OfficeXmlNode endnoteReference) =>
+        new(run._document, run._paragraph, run._run!, (W.EndnoteReference)endnoteReference.SdkElement!);
+
+    /// <summary>A comment holding the detached <c>w:p</c> elements <paramref name="paragraphs"/>, as <c>WordComment.Create</c> adds it.</summary>
+    internal static WordComment CreateComment(WordDocument document, string author, string initials, IReadOnlyList<OfficeXmlNode> paragraphs) =>
+        WordComment.Create(document, author, initials, paragraphs.Select(paragraph => (W.Paragraph)paragraph.SdkElement!).ToList());
+
+    /// <summary>A <c>w:shd</c> pattern color resolved against the document theme, as RGB hex, or null.</summary>
+    internal static string? ResolveShadingForegroundColorHex(OfficeXmlNode shading, WordDocument document) =>
+        WordRunFormatting.ResolveShadingForegroundColorHex(shading.SdkElement as W.Shading, document);
+
+    /// <summary>The native type token of a preferred width, as <see cref="WordTableWidthNative.NativeType"/>.</summary>
+    internal static string? NativeTableWidthType(OfficeXmlNode width) =>
+        EnumToken(WordTableWidthNative.NativeType(width.SdkElement as W.TableWidthType));
+
+    /// <summary>The numeric value of a preferred width, as <see cref="WordTableWidthNative.NumericValue"/>.</summary>
+    internal static int? TableWidthNumericValue(OfficeXmlNode width) =>
+        WordTableWidthNative.NumericValue(width.SdkElement as W.TableWidthType);
+
+    /// <summary>A preferred width read as <see cref="WordTableWidthNative.Read"/> reads it, or null.</summary>
+    internal static WordTableWidth? ReadTableWidth(OfficeXmlNode width) =>
+        WordTableWidthNative.Read(width.SdkElement as W.TableWidthType);
+
+    /// <summary>The justification token of a numbering level's <c>w:lvlJc</c>, as <see cref="WordListLevel.ReadLevelJustification"/>.</summary>
+    internal static string? ReadLevelJustification(OfficeXmlNode levelJustification) =>
+        EnumToken(WordListLevel.ReadLevelJustification(levelJustification.SdkElement as W.LevelJustification));
+
+    /// <summary>
+    /// The <c>w:hdr</c> roots of the header parts, then the <c>w:ftr</c> roots of the footer parts, each with the
+    /// identifier the main document part gives its part.
+    /// </summary>
+    internal static IReadOnlyList<(OfficeXmlNode Root, string RelationshipId)> HeaderFooterRootsWithRelationshipIds(this WordDocument document) {
+        var roots = new List<(OfficeXmlNode, string)>();
+        MainDocumentPart? main = Main(document);
+        if (main == null) return roots;
+        foreach (HeaderPart part in main.HeaderParts) {
+            if (part.Header is { } header) roots.Add((OfficeXmlNode.FromSdk(header), main.GetIdOfPart(part)));
+        }
+        foreach (FooterPart part in main.FooterParts) {
+            if (part.Footer is { } footer) roots.Add((OfficeXmlNode.FromSdk(footer), main.GetIdOfPart(part)));
+        }
+        return roots;
+    }
+
+    /// <summary>Adds the section's header of this type, as <see cref="WordHeadersAndFooters.AddHeaderReference"/>.</summary>
+    internal static void AddHeaderReference(WordDocument document, WordSection section, WordHeaderFooterType type) =>
+        WordHeadersAndFooters.AddHeaderReference(document, section, type.ToOpenXml());
+
+    /// <summary>Adds the section's footer of this type, as <see cref="WordHeadersAndFooters.AddFooterReference"/>.</summary>
+    internal static void AddFooterReference(WordDocument document, WordSection section, WordHeaderFooterType type) =>
+        WordHeadersAndFooters.AddFooterReference(document, section, type.ToOpenXml());
+
+    /// <summary>The <c>w:styles</c> root, adding the styles part or an empty root when missing; None without a main part.</summary>
+    internal static OfficeXmlNode GetOrAddStylesNode(this WordDocument document) {
+        MainDocumentPart? main = Main(document);
+        if (main == null) return default;
+        StyleDefinitionsPart part = main.StyleDefinitionsPart ?? main.AddNewPart<StyleDefinitionsPart>();
+        part.Styles ??= new W.Styles();
+        return OfficeXmlNode.FromSdk(part.Styles);
+    }
+
+    /// <summary>A new, detached, empty <c>w:numbering</c> root.</summary>
+    internal static OfficeXmlNode CreateDetachedNumbering() => OfficeXmlNode.FromSdk(new W.Numbering());
+
+    /// <summary>
+    /// Makes the <c>w:numbering</c> <paramref name="numbering"/> the root of the numbering part, adding the part when
+    /// missing; a root that is already the part's stays as it is.
+    /// </summary>
+    internal static void SetNumberingNode(this WordDocument document, OfficeXmlNode numbering) {
+        MainDocumentPart main = Main(document)!;
+        NumberingDefinitionsPart part = main.NumberingDefinitionsPart ?? main.AddNewPart<NumberingDefinitionsPart>();
+        if (!ReferenceEquals(part.Numbering, numbering.SdkElement)) part.Numbering = (W.Numbering)numbering.SdkElement!;
+    }
 }
