@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>Decodes Word 6/95 section records into the shared editable page layout model.</summary>
@@ -57,7 +56,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyWord69Bytes data, out byte headerMask, out bool unsupported) {
             headerMask = 0;
             unsupported = false;
-            EndnotePositionValues? endnotePosition = null;
+            LegacyDocEndnotePosition? endnotePosition = null;
             // The binary format's standard SEP uses letter paper, 1.25-inch side margins,
             // 1-inch top/bottom margins and half-inch header/footer distances.
             var output = new List<byte>();
@@ -86,7 +85,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
                 if (operation == 151) {
-                    endnotePosition = operand[0] == 0 ? EndnotePositionValues.DocumentEnd : EndnotePositionValues.SectionEnd;
+                    endnotePosition = operand[0] == 0 ? LegacyDocEndnotePosition.DocEnd : LegacyDocEndnotePosition.SectEnd;
                     continue;
                 }
                 if (operation is 168 or 169 && LegacyWord69Reader.U16(operand, 0) > short.MaxValue) {

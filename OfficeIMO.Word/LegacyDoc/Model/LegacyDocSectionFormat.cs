@@ -1,12 +1,11 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal readonly struct LegacyDocSectionFormat {
         internal LegacyDocSectionFormat(
-            SectionMarkValues? sectionBreakType,
+            LegacyDocSectionMark? sectionBreakType,
             int? pageWidthTwips,
             int? pageHeightTwips,
-            PageOrientationValues? orientation,
+            LegacyDocPageOrientation? orientation,
             int? marginTopTwips,
             int? marginRightTwips,
             int? marginBottomTwips,
@@ -19,21 +18,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? columnSpacingTwips = null,
             bool hasColumnSeparator = false,
             int? pageNumberStart = null,
-            NumberFormatValues? pageNumberFormat = null,
+            LegacyDocNumberFormat? pageNumberFormat = null,
             bool rtlGutter = false,
-            VerticalJustificationValues? verticalAlignment = null,
+            LegacyDocVerticalJustification? verticalAlignment = null,
             int? lineNumberCountBy = null,
             int? lineNumberDistanceTwips = null,
             int? lineNumberStart = null,
-            LineNumberRestartValues? lineNumberRestart = null,
-            FootnotePositionValues? footnotePosition = null,
-            RestartNumberValues? footnoteRestart = null,
+            LegacyDocLineNumberRestart? lineNumberRestart = null,
+            LegacyDocFootnotePosition? footnotePosition = null,
+            LegacyDocRestartNumber? footnoteRestart = null,
             int? footnoteStart = null,
-            NumberFormatValues? footnoteNumberFormat = null,
-            EndnotePositionValues? endnotePosition = null,
-            RestartNumberValues? endnoteRestart = null,
+            LegacyDocNumberFormat? footnoteNumberFormat = null,
+            LegacyDocEndnotePosition? endnotePosition = null,
+            LegacyDocRestartNumber? endnoteRestart = null,
             int? endnoteStart = null,
-            NumberFormatValues? endnoteNumberFormat = null,
+            LegacyDocNumberFormat? endnoteNumberFormat = null,
             LegacyDocParagraphBorders? pageBorders = null,
             IReadOnlyList<WordSectionColumn>? columnDefinitions = null) {
             SectionBreakType = sectionBreakType;
@@ -71,13 +70,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             PageBorders = pageBorders.HasValue && pageBorders.Value.HasAny ? pageBorders : null;
         }
 
-        internal SectionMarkValues? SectionBreakType { get; }
+        internal LegacyDocSectionMark? SectionBreakType { get; }
 
         internal int? PageWidthTwips { get; }
 
         internal int? PageHeightTwips { get; }
 
-        internal PageOrientationValues? Orientation { get; }
+        internal LegacyDocPageOrientation? Orientation { get; }
 
         internal int? MarginTopTwips { get; }
 
@@ -105,11 +104,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal int? PageNumberStart { get; }
 
-        internal NumberFormatValues? PageNumberFormat { get; }
+        internal LegacyDocNumberFormat? PageNumberFormat { get; }
 
         internal bool RtlGutter { get; }
 
-        internal VerticalJustificationValues? VerticalAlignment { get; }
+        internal LegacyDocVerticalJustification? VerticalAlignment { get; }
 
         internal int? LineNumberCountBy { get; }
 
@@ -117,23 +116,23 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal int? LineNumberStart { get; }
 
-        internal LineNumberRestartValues? LineNumberRestart { get; }
+        internal LegacyDocLineNumberRestart? LineNumberRestart { get; }
 
-        internal FootnotePositionValues? FootnotePosition { get; }
+        internal LegacyDocFootnotePosition? FootnotePosition { get; }
 
-        internal RestartNumberValues? FootnoteRestart { get; }
+        internal LegacyDocRestartNumber? FootnoteRestart { get; }
 
         internal int? FootnoteStart { get; }
 
-        internal NumberFormatValues? FootnoteNumberFormat { get; }
+        internal LegacyDocNumberFormat? FootnoteNumberFormat { get; }
 
-        internal EndnotePositionValues? EndnotePosition { get; }
+        internal LegacyDocEndnotePosition? EndnotePosition { get; }
 
-        internal RestartNumberValues? EndnoteRestart { get; }
+        internal LegacyDocRestartNumber? EndnoteRestart { get; }
 
         internal int? EndnoteStart { get; }
 
-        internal NumberFormatValues? EndnoteNumberFormat { get; }
+        internal LegacyDocNumberFormat? EndnoteNumberFormat { get; }
 
         internal LegacyDocParagraphBorders? PageBorders { get; }
 
@@ -171,23 +170,23 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || EndnoteNumberFormat != null
             || PageBorders != null;
 
-        private static bool IsNonDefaultSectionBreakType(SectionMarkValues? sectionBreakType) {
-            return sectionBreakType != null && sectionBreakType.Value != SectionMarkValues.NextPage;
+        private static bool IsNonDefaultSectionBreakType(LegacyDocSectionMark? sectionBreakType) {
+            return sectionBreakType != null && sectionBreakType.Value != LegacyDocSectionMark.NextPage;
         }
 
-        internal LegacyDocSectionFormat WithEndnotePosition(EndnotePositionValues? endnotePosition) {
+        internal LegacyDocSectionFormat WithEndnotePosition(LegacyDocEndnotePosition? endnotePosition) {
             return WithNoteSettings(endnotePosition: endnotePosition);
         }
 
         internal LegacyDocSectionFormat WithNoteSettings(
-            FootnotePositionValues? footnotePosition = null,
-            RestartNumberValues? footnoteRestart = null,
+            LegacyDocFootnotePosition? footnotePosition = null,
+            LegacyDocRestartNumber? footnoteRestart = null,
             int? footnoteStart = null,
-            NumberFormatValues? footnoteNumberFormat = null,
-            EndnotePositionValues? endnotePosition = null,
-            RestartNumberValues? endnoteRestart = null,
+            LegacyDocNumberFormat? footnoteNumberFormat = null,
+            LegacyDocEndnotePosition? endnotePosition = null,
+            LegacyDocRestartNumber? endnoteRestart = null,
             int? endnoteStart = null,
-            NumberFormatValues? endnoteNumberFormat = null) {
+            LegacyDocNumberFormat? endnoteNumberFormat = null) {
             return new LegacyDocSectionFormat(
                 SectionBreakType,
                 PageWidthTwips,

@@ -144,10 +144,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return new LegacyDocSectionFormat(
-                sectionBreakType,
+                ToModel<LegacyDocSectionMark, SectionMarkValues>(sectionBreakType),
                 pageWidth,
                 pageHeight,
-                orientation,
+                ToModel<LegacyDocPageOrientation, PageOrientationValues>(orientation),
                 marginTop,
                 marginRight,
                 marginBottom,
@@ -160,21 +160,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 columnSpacing,
                 hasColumnSeparator,
                 pageNumberStart,
-                pageNumberFormat,
+                ToModel<LegacyDocNumberFormat, NumberFormatValues>(pageNumberFormat),
                 rtlGutter,
-                verticalAlignment,
+                ToModel<LegacyDocVerticalJustification, VerticalJustificationValues>(verticalAlignment),
                 lineNumberCountBy,
                 lineNumberDistance,
                 lineNumberStart,
-                lineNumberRestart,
-                footnotePosition,
-                footnoteRestart,
+                ToModel<LegacyDocLineNumberRestart, LineNumberRestartValues>(lineNumberRestart),
+                ToModel<LegacyDocFootnotePosition, FootnotePositionValues>(footnotePosition),
+                ToModel<LegacyDocRestartNumber, RestartNumberValues>(footnoteRestart),
                 footnoteStart,
-                footnoteNumberFormat,
-                endnotePosition,
-                endnoteRestart,
+                ToModel<LegacyDocNumberFormat, NumberFormatValues>(footnoteNumberFormat),
+                ToModel<LegacyDocEndnotePosition, EndnotePositionValues>(endnotePosition),
+                ToModel<LegacyDocRestartNumber, RestartNumberValues>(endnoteRestart),
                 endnoteStart,
-                endnoteNumberFormat,
+                ToModel<LegacyDocNumberFormat, NumberFormatValues>(endnoteNumberFormat),
                 pageBorders,
                 columnDefinitions);
         }
@@ -565,8 +565,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static byte[] CreateSepx(LegacyDocSectionFormat sectionFormat) {
             var grpprl = new List<byte>();
 
-            if (sectionFormat.SectionBreakType != null && sectionFormat.SectionBreakType.Value != SectionMarkValues.NextPage) {
-                AddSingleByteSprm(grpprl, SprmSBkc, GetSectionBreakTypeOperand(sectionFormat.SectionBreakType.Value));
+            if (sectionFormat.SectionBreakType != null && sectionFormat.SectionBreakType.Value != LegacyDocSectionMark.NextPage) {
+                AddSingleByteSprm(grpprl, SprmSBkc, GetSectionBreakTypeOperand(ToSdk(sectionFormat.SectionBreakType.Value)));
             }
 
             if (sectionFormat.ColumnCount != null) {
@@ -584,7 +584,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (sectionFormat.PageNumberFormat != null) {
-                AddSingleByteSprm(grpprl, SprmSNfcPgn, GetPageNumberFormatOperand(sectionFormat.PageNumberFormat.Value)!.Value);
+                AddSingleByteSprm(grpprl, SprmSNfcPgn, GetPageNumberFormatOperand(ToSdk(sectionFormat.PageNumberFormat.Value))!.Value);
             }
 
             if (sectionFormat.PageNumberStart != null) {
@@ -593,15 +593,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (sectionFormat.FootnotePosition != null) {
-                AddSingleByteSprm(grpprl, SprmSFpc, GetFootnotePositionOperand(sectionFormat.FootnotePosition.Value)!.Value);
+                AddSingleByteSprm(grpprl, SprmSFpc, GetFootnotePositionOperand(ToSdk(sectionFormat.FootnotePosition.Value))!.Value);
             }
 
             if (sectionFormat.FootnoteRestart != null) {
-                AddSingleByteSprm(grpprl, SprmSRncFtn, GetNoteRestartOperand(sectionFormat.FootnoteRestart.Value)!.Value);
+                AddSingleByteSprm(grpprl, SprmSRncFtn, GetNoteRestartOperand(ToSdk(sectionFormat.FootnoteRestart.Value))!.Value);
             }
 
             if (sectionFormat.EndnoteRestart != null) {
-                AddSingleByteSprm(grpprl, SprmSRncEdn, GetNoteRestartOperand(sectionFormat.EndnoteRestart.Value)!.Value);
+                AddSingleByteSprm(grpprl, SprmSRncEdn, GetNoteRestartOperand(ToSdk(sectionFormat.EndnoteRestart.Value))!.Value);
             }
 
             if (sectionFormat.FootnoteStart != null) {
@@ -609,7 +609,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (sectionFormat.FootnoteNumberFormat != null) {
-                AddUInt16Sprm(grpprl, SprmSNfcFtnRef, GetPageNumberFormatOperand(sectionFormat.FootnoteNumberFormat.Value)!.Value);
+                AddUInt16Sprm(grpprl, SprmSNfcFtnRef, GetPageNumberFormatOperand(ToSdk(sectionFormat.FootnoteNumberFormat.Value))!.Value);
             }
 
             if (sectionFormat.EndnoteStart != null) {
@@ -617,11 +617,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (sectionFormat.EndnoteNumberFormat != null) {
-                AddUInt16Sprm(grpprl, SprmSNfcEdnRef, GetPageNumberFormatOperand(sectionFormat.EndnoteNumberFormat.Value)!.Value);
+                AddUInt16Sprm(grpprl, SprmSNfcEdnRef, GetPageNumberFormatOperand(ToSdk(sectionFormat.EndnoteNumberFormat.Value))!.Value);
             }
 
             if (sectionFormat.LineNumberRestart != null) {
-                AddSingleByteSprm(grpprl, SprmSLnc, GetLineNumberRestartOperand(sectionFormat.LineNumberRestart.Value)!.Value);
+                AddSingleByteSprm(grpprl, SprmSLnc, GetLineNumberRestartOperand(ToSdk(sectionFormat.LineNumberRestart.Value))!.Value);
             }
 
             if (sectionFormat.LineNumberCountBy != null) {
@@ -648,7 +648,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmSFTitlePage, 1);
             }
 
-            if (sectionFormat.Orientation == PageOrientationValues.Landscape) {
+            if (sectionFormat.Orientation == LegacyDocPageOrientation.Landscape) {
                 AddSingleByteSprm(grpprl, SprmSBOrientation, 2);
             }
 
@@ -685,7 +685,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (sectionFormat.VerticalAlignment != null) {
-                AddSingleByteSprm(grpprl, SprmSVjc, GetVerticalAlignmentOperand(sectionFormat.VerticalAlignment.Value)!.Value);
+                AddSingleByteSprm(grpprl, SprmSVjc, GetVerticalAlignmentOperand(ToSdk(sectionFormat.VerticalAlignment.Value))!.Value);
             }
 
             if (sectionFormat.PageBorders != null) {
@@ -834,7 +834,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static byte? GetPageNumberFormatOperand(NumberFormatValues format) {
-            return LegacyDocNumberFormatMapper.ToNfc(format);
+            return ToNfc(format);
         }
 
         private static byte? GetLineNumberRestartOperand(LineNumberRestartValues restart) {
