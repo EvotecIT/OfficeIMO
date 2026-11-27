@@ -128,7 +128,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 if (source.WrapText) alignment.SetBooleanAttribute("wrapText", true);
                 if (source.JustifyLastLine) alignment.SetBooleanAttribute("justifyLastLine", true);
                 if (source.ShrinkToFit) alignment.SetBooleanAttribute("shrinkToFit", true);
-                if (source.Merged) alignment.SetAttribute("mergeCell", "1");
+                alignment.SetAttribute("mergeCell", source.Merged ? "1" : string.Empty);
                 if (source.ReadingOrder != 0) alignment.SetUInt32Attribute("readingOrder", source.ReadingOrder);
             }
 
