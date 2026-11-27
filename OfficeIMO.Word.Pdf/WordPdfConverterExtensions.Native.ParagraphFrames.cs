@@ -155,6 +155,8 @@ public static partial class WordPdfConverterExtensions {
     private static bool HasNativeFramePageComplexField(OfficeXmlNode paragraph) {
         var instructions = new Stack<System.Text.StringBuilder?>();
         foreach (OfficeXmlNode element in paragraph.DescendantElements()) {
+            // Field markup inside markup the model doesn't read is not a field.
+            if (!element.IsModelElement()) continue;
             if (element.IsW("fldChar")) {
                 string? type = element.WAttr("fldCharType");
                 if (type == "begin") {
@@ -259,7 +261,7 @@ public static partial class WordPdfConverterExtensions {
         static int FieldDepthChange(OfficeXmlNode item, out bool closesOpenField) {
             int balance = 0;
             closesOpenField = false;
-            foreach (OfficeXmlNode fieldChar in item.Descendants(WordXml.W, "fldChar")) {
+            foreach (OfficeXmlNode fieldChar in item.ModelDescendants("fldChar")) {
                 string? type = fieldChar.WAttr("fldCharType");
                 if (type == "begin") balance++;
                 else if (type == "end") {

@@ -302,6 +302,8 @@
   <Project Path="OfficeIMO.Reader.Dbf/OfficeIMO.Reader.Dbf.csproj" />
   <Project Path="OfficeIMO.Reader.DjVu/OfficeIMO.Reader.DjVu.csproj" />
   <Project Path="OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj" />
+  <Project Path="OfficeIMO.Reader.DocumentExtraction.Tests/OfficeIMO.Reader.DocumentExtraction.Tests.csproj" />
+  <Project Path="OfficeIMO.Reader.DocumentExtraction/OfficeIMO.Reader.DocumentExtraction.csproj" />
   <Project Path="OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj" />
   <Project Path="OfficeIMO.Reader.Epub/OfficeIMO.Reader.Epub.csproj" />
   <Project Path="OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj" />
