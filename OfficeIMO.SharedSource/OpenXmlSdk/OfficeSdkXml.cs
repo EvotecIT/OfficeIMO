@@ -68,13 +68,15 @@ namespace OfficeIMO.OpenXml.Internal {
             if (!value.HasAttributes) return null;
             string uri = Uri(namespaceId);
             var key = (value.GetType(), namespaceId, localName);
-            if (!DeclaredAttributes.TryGetValue(key, out bool declared) || declared) {
+            bool known = DeclaredAttributes.TryGetValue(key, out bool declared);
+            if (known && declared) return value.GetAttribute(localName, uri).Value;
+            if (!known) {
                 try {
                     string? direct = value.GetAttribute(localName, uri).Value;
-                    DeclaredAttributes[key] = true;
+                    DeclaredAttributes.TryAdd(key, true);
                     return direct;
                 } catch (KeyNotFoundException) {
-                    DeclaredAttributes[key] = false;
+                    DeclaredAttributes.TryAdd(key, false);
                 }
             }
             foreach (OpenXmlAttribute attribute in value.GetAttributes()) {
