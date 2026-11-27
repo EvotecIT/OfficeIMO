@@ -21,7 +21,7 @@ public static partial class WordPdfConverterExtensions {
             return color;
         }
 
-        foreach (OfficeXmlNode shape in group.DescendantElements(WordXml.Wps, "wsp")) {
+        foreach (OfficeXmlNode shape in group.ContentDescendants(WordXml.Wps, "wsp")) {
             string? fill = shape.Child(WordXml.Wps, "spPr").Child(WordXml.A, "solidFill")
                 .Child(WordXml.A, "srgbClr").Attr("val");
             if (ParseNativeColor(fill) is { } fillColor) {

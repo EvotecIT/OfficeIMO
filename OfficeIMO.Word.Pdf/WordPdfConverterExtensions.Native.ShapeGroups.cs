@@ -108,7 +108,7 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>The <c>wpg:wgp</c> a drawing's graphic data holds, or <see cref="OfficeXmlNode.None"/>.</summary>
         private static OfficeXmlNode GetNativeDrawingShapeGroup(OfficeXmlNode drawing) {
-            OfficeXmlNode graphicData = drawing.FirstDescendant(A, "graphicData");
+            OfficeXmlNode graphicData = drawing.FirstContentDescendant(A, "graphicData");
             return graphicData.IsNone ? default : graphicData.Elements()
                 .FirstOrDefault(child => child.NamespaceUri == NativeWordGroupNamespace && child.LocalName == "wgp");
         }
@@ -287,7 +287,7 @@ namespace OfficeIMO.Word.Pdf {
                         ParseBoolean(childTransform.Attr("flipH")) == true || ParseBoolean(childTransform.Attr("flipV")) == true)) return false;
                     string? preset = properties.IsNone ? null : properties.Child(A, "prstGeom").Attr("prst");
                     OfficeShape? shape = CreateNativeDrawingPresetShape(preset, w, h);
-                    if (shape == null || child.FirstDescendant(Wps, "txbx").Exists) return false;
+                    if (shape == null || child.FirstContentDescendant(Wps, "txbx").Exists) return false;
                     WordShape wordShape = WordConverterNodes.CreateGroupChildShape(run, drawing, child);
                     ApplyNativeShapeStyle(shape, wordShape, theme);
                     scene.AddShape(shape, x, y);

@@ -217,7 +217,7 @@ namespace OfficeIMO.Word.Pdf {
             if (numberedTextBox != null && GetNativeTextBoxParagraphs(numberedTextBox).Any(inner => inner.IsListItem)) {
                 zoneOverride = MapNativeTextBoxHeaderFooterZone(numberedTextBox.HorizontalAlignment);
             } else if (numberedTextBox != null && numberedTextBox.AnchorNode().Exists &&
-                numberedTextBox.DrawingNode().FirstDescendant(WordXml.Wpg, "wgp").Exists) {
+                numberedTextBox.DrawingNode().FirstContentDescendant(WordXml.Wpg, "wgp").Exists) {
                 // A grouped page-number block is positioned by its anchor, not by the paragraph.
                 zoneOverride = MapNativeTextBoxHeaderFooterZone(numberedTextBox.HorizontalAlignment);
             }

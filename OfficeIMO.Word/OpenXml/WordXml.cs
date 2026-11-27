@@ -119,6 +119,66 @@ internal static class WordXml {
     internal static bool HasDescendant(this OfficeXmlNode element, int namespaceId, string localName) =>
         !element.FirstDescendant(namespaceId, localName).IsNone;
 
+    /// <summary>
+    /// Every element below this one, depth first in document order, without entering extension lists
+    /// (<c>extLst</c>). Extension lists carry producer metadata, such as filtered chart series or properties of a
+    /// later Office version, that can repeat the very elements a reader looks for. The SDK reads an extension it
+    /// doesn't know as untyped elements, so its typed lookups never matched inside one; DrawingML and chart reads
+    /// use this walk to stay on the content itself.
+    /// </summary>
+    internal static IEnumerable<OfficeXmlNode> ContentDescendants(this OfficeXmlNode element) {
+        if (element.IsNone) yield break;
+        OfficeXmlNode node = element.FirstChild;
+        while (!node.IsNone) {
+            bool extension = node.LocalName == "extLst";
+            if (!extension) yield return node;
+            OfficeXmlNode next = extension ? default : node.FirstChild;
+            if (next.IsNone) {
+                while (!node.IsNone && !node.Equals(element)) {
+                    next = node.NextSibling;
+                    if (!next.IsNone) break;
+                    node = node.Parent;
+                }
+                if (node.IsNone || node.Equals(element)) yield break;
+            }
+            node = next;
+        }
+    }
+
+    /// <summary>The elements with this name below this one, outside extension lists (see <see cref="ContentDescendants(OfficeXmlNode)"/>).</summary>
+    internal static IEnumerable<OfficeXmlNode> ContentDescendants(this OfficeXmlNode element, int namespaceId, string localName) {
+        foreach (OfficeXmlNode node in element.ContentDescendants()) {
+            if (node.Is(namespaceId, localName)) yield return node;
+        }
+    }
+
+    /// <summary>The elements with this name, in a namespace outside the fixed ones, below this one and outside extension lists.</summary>
+    internal static IEnumerable<OfficeXmlNode> ContentDescendants(this OfficeXmlNode element, string namespaceUri, string localName) {
+        foreach (OfficeXmlNode node in element.ContentDescendants()) {
+            if (node.Is(namespaceUri, localName)) yield return node;
+        }
+    }
+
+    /// <summary>The first element with this name below this one and outside extension lists, or <see cref="OfficeXmlNode.None"/>.</summary>
+    internal static OfficeXmlNode FirstContentDescendant(this OfficeXmlNode element, int namespaceId, string localName) {
+        foreach (OfficeXmlNode node in element.ContentDescendants()) {
+            if (node.Is(namespaceId, localName)) return node;
+        }
+        return default;
+    }
+
+    /// <summary>The first element with this name, in a namespace outside the fixed ones, below this one and outside extension lists.</summary>
+    internal static OfficeXmlNode FirstContentDescendant(this OfficeXmlNode element, string namespaceUri, string localName) {
+        foreach (OfficeXmlNode node in element.ContentDescendants()) {
+            if (node.Is(namespaceUri, localName)) return node;
+        }
+        return default;
+    }
+
+    /// <summary>Whether an element with this name is below this one, outside extension lists.</summary>
+    internal static bool HasContentDescendant(this OfficeXmlNode element, int namespaceId, string localName) =>
+        !element.FirstContentDescendant(namespaceId, localName).IsNone;
+
     /// <summary>The ancestors, nearest first, without the element itself.</summary>
     internal static IEnumerable<OfficeXmlNode> Ancestors(this OfficeXmlNode element) {
         for (OfficeXmlNode node = element.IsNone ? default : element.Parent; !node.IsNone; node = node.Parent) yield return node;

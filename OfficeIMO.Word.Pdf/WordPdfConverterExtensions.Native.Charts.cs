@@ -120,7 +120,7 @@ namespace OfficeIMO.Word.Pdf {
             // fill and outline. Keep the PDF chart on that same projection when it is styled. Error bars and
             // trendlines on a flat chart without a data table go to the shared reader too, which draws or reports
             // them; 3-D charts and data tables keep this path, which reports them below.
-            bool seriesExtras = plotArea.DescendantElements().Any(element => element.Is(C, "errBars") || element.Is(C, "trendline"));
+            bool seriesExtras = plotArea.ContentDescendants().Any(element => element.Is(C, "errBars") || element.Is(C, "trendline"));
             bool sharedReadsExtras = plotArea.Child(C, "dTable").IsNone &&
                 !allChartElements.Any(element => element.LocalName.EndsWith("3DChart", StringComparison.Ordinal));
             if (allChartElements.Count > 1 || allChartElements.Any(element => element.Is(C, "bubbleChart")) ||
@@ -135,9 +135,9 @@ namespace OfficeIMO.Word.Pdf {
                     warning = "Error bars and trendlines on 3-D charts or charts with a data table cannot be projected.";
                     return false;
                 }
-                if (plotArea.HasDescendant(C, "errBars"))
+                if (plotArea.HasContentDescendant(C, "errBars"))
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Record("Error bars are left out.");
-                if (plotArea.HasDescendant(C, "trendline"))
+                if (plotArea.HasContentDescendant(C, "trendline"))
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Record("Trendlines are left out.");
             }
             List<OfficeXmlNode> chartElements = allChartElements
@@ -474,7 +474,7 @@ namespace OfficeIMO.Word.Pdf {
             uint fallbackIndex = 0;
             uint maxIndex = 0;
             bool hasPoint = false;
-            foreach (OfficeXmlNode point in container.DescendantElements(C, "pt").Where(IsNativeWordChartStringPoint)) {
+            foreach (OfficeXmlNode point in container.ContentDescendants(C, "pt").Where(IsNativeWordChartStringPoint)) {
                 if (fallbackIndex >= MaxNativeWordChartPoints) {
                     throw new NativeWordChartLimitException("Word chart cache exceeds the maximum supported point count.");
                 }
@@ -515,7 +515,7 @@ namespace OfficeIMO.Word.Pdf {
             uint fallbackIndex = 0;
             uint maxIndex = 0;
             bool hasPoint = false;
-            foreach (OfficeXmlNode point in container.DescendantElements(C, "pt").Where(IsNativeWordChartNumericPoint)) {
+            foreach (OfficeXmlNode point in container.ContentDescendants(C, "pt").Where(IsNativeWordChartNumericPoint)) {
                 if (fallbackIndex >= MaxNativeWordChartPoints) {
                     throw new NativeWordChartLimitException("Word chart cache exceeds the maximum supported point count.");
                 }
@@ -631,12 +631,12 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            string drawingText = string.Concat(element.DescendantElements(A, "t").Select(text => text.InnerText));
+            string drawingText = string.Concat(element.ContentDescendants(A, "t").Select(text => text.InnerText));
             if (!string.IsNullOrWhiteSpace(drawingText)) {
                 return drawingText;
             }
 
-            string cachedText = string.Concat(element.DescendantElements(C, "v").Select(text => text.InnerText));
+            string cachedText = string.Concat(element.ContentDescendants(C, "v").Select(text => text.InnerText));
             return string.IsNullOrWhiteSpace(cachedText) ? null : cachedText;
         }
 
@@ -821,7 +821,7 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            foreach (OfficeXmlNode textProperties in title.DescendantElements().Where(element => element.LocalName == "defRPr" || element.LocalName == "rPr")) {
+            foreach (OfficeXmlNode textProperties in title.ContentDescendants().Where(element => element.LocalName == "defRPr" || element.LocalName == "rPr")) {
                 if (TryGetNativeDrawingSolidFillColor(textProperties, out OfficeColor color, themeColors)) {
                     return color;
                 }
@@ -1450,7 +1450,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static uint? GetNativeWordChartTickLabelSkip(OfficeXmlNode axis) {
-            foreach (OfficeXmlNode skip in axis.DescendantElements(C, "tickLblSkip")) {
+            foreach (OfficeXmlNode skip in axis.ContentDescendants(C, "tickLblSkip")) {
                 int? value = ParseInt32(skip.Attr("val"));
                 if (value.HasValue && value.Value > 1) {
                     return (uint)value.Value;

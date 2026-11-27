@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private static string? GetNativeImageLink(WordImage image) {
             Uri? uri = image.Hyperlink;
-            if (uri == null && image.DrawingNode().FirstDescendant(WordXml.A, "hlinkClick").Attribute(WordXml.R, "id") is { } relationshipId) {
+            if (uri == null && image.DrawingNode().FirstContentDescendant(WordXml.A, "hlinkClick").Attribute(WordXml.R, "id") is { } relationshipId) {
                 uri = image.Paragraph.ExternalHyperlinkTarget(relationshipId);
             }
 
