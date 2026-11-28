@@ -13,12 +13,12 @@ internal sealed class OlmStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly Dictionary<string, IndexedItem> _byId = new Dictionary<string, IndexedItem>(StringComparer.Ordinal);
 
     internal OlmStoreSessionBackend(Stream source, string? sourceName, EmailStoreReaderOptions options,
-        CancellationToken cancellationToken, bool isSnapshot = false) {
+        CancellationToken cancellationToken, bool isSnapshot = false, bool isolateItemFailures = false) {
         _source = source;
         SourceLength = source.Length;
         _resources = new EmailStoreReadResources(options);
         _sourceGuard = new EmailStoreSourceGuard(source, SourceLength, options.MaxInputBytes, _resources.Dispose, cancellationToken, isSnapshot);
-        _reader = new OlmStoreReader(options);
+        _reader = new OlmStoreReader(options, isolateItemFailures);
         source.Position = 0;
         _archive = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true);
         try {
@@ -48,6 +48,8 @@ internal sealed class OlmStoreSessionBackend : IEmailStoreSessionBackend {
     public long SourceLength { get; }
     public IReadOnlyList<EmailStoreFolderInfo> Folders { get; }
     public IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _reader.Diagnostics;
+
+    internal IReadOnlyList<EmailStoreDiagnostic> IsolatedFailures => _reader.IsolatedFailures;
 
     public IEnumerable<EmailStoreItemReference> EnumerateItems(EmailStoreEnumerationOptions options,
         CancellationToken cancellationToken) {
@@ -94,6 +96,31 @@ internal sealed class OlmStoreSessionBackend : IEmailStoreSessionBackend {
             return result;
         } finally {
             workspace?.Dispose();
+        }
+    }
+
+    /// <summary>Cataloged references in archive order.</summary>
+    internal IEnumerable<EmailStoreItemReference> References => _items.Select(item => item.Reference);
+
+    /// <summary>
+    /// Reads one item with attachment content staged in a workspace the caller disposes, so recovery holds one
+    /// item's attachment files at a time instead of byte arrays or session-lifetime files.
+    /// </summary>
+    internal EmailStoreItem ReadItemWithWorkspace(EmailStoreItemReference reference, string workspaceDirectory,
+        out EmailReadWorkspace workspace, CancellationToken cancellationToken) {
+        IndexedItem item = GetItem(reference, cancellationToken);
+        var created = new EmailReadWorkspace(workspaceDirectory);
+        EmailReadWorkspace? staging = created;
+        try {
+            EmailStoreItem result = _reader.ReadSelected(item.Path, item.Index, item.Kind, reference.Id,
+                reference.FolderId, new EmailStoreItemReadOptions(preferStreamingAttachmentContent: true), created,
+                cancellationToken);
+            _sourceGuard.Validate(_source, cancellationToken);
+            workspace = created;
+            staging = null;
+            return result;
+        } finally {
+            staging?.Dispose();
         }
     }
 

@@ -9,7 +9,11 @@ namespace OfficeIMO.Email.Store;
 /// <summary>Reads Outlook for Mac archives through bounded ZIP and XML primitives.</summary>
 internal sealed partial class OlmStoreReader {
     private readonly EmailStoreReaderOptions _options;
+    private readonly bool _isolateItemFailures;
     private readonly EmailStoreDiagnosticCollection _diagnostics = new EmailStoreDiagnosticCollection();
+    // Isolated entry and item failures, kept apart from the capped diagnostic catalog so each one still has a
+    // recovery row. Their number is bounded by the entry and item limits.
+    private readonly List<EmailStoreDiagnostic> _isolatedFailures = new List<EmailStoreDiagnostic>();
     private readonly Dictionary<string, EmailStoreFolder> _folders =
         new Dictionary<string, EmailStoreFolder>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ZipArchiveEntry> _entries =
@@ -25,8 +29,15 @@ internal sealed partial class OlmStoreReader {
     private string? _selectedEntryPath;
     private XDocument? _selectedXml;
 
-    internal OlmStoreReader(EmailStoreReaderOptions options) {
+    /// <param name="options">Reader limits.</param>
+    /// <param name="isolateItemFailures">
+    /// When true, an item that cannot be projected within the per-item limits, or an XML entry over the XML
+    /// limits, is reported with a diagnostic and skipped instead of failing the whole catalog. Recovery uses this;
+    /// normal reads stay strict.
+    /// </param>
+    internal OlmStoreReader(EmailStoreReaderOptions options, bool isolateItemFailures = false) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _isolateItemFailures = isolateItemFailures;
     }
 
     internal EmailStoreReadResult ReadArchive(ZipArchive archive, string? sourceName, long sourceLength,
@@ -77,6 +88,14 @@ internal sealed partial class OlmStoreReader {
     }
 
     internal IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
+
+    /// <summary>Entries and items skipped in isolation mode, each one reported even after the diagnostic cap.</summary>
+    internal IReadOnlyList<EmailStoreDiagnostic> IsolatedFailures => _isolatedFailures;
+
+    private void AddFailure(EmailStoreDiagnostic diagnostic) {
+        _diagnostics.Add(diagnostic);
+        if (_isolateItemFailures) _isolatedFailures.Add(diagnostic);
+    }
 
     private static string GetItemElementName(OutlookItemKind kind) => kind switch {
         OutlookItemKind.Appointment => "appointment", OutlookItemKind.Contact => "contact",
@@ -162,11 +181,15 @@ internal sealed partial class OlmStoreReader {
                     "This XML entry is outside the supported OLM item collections and was not projected.",
                     EmailStoreDiagnosticSeverity.Warning, location));
             }
+        } catch (EmailStoreLimitExceededException exception) when (_isolateItemFailures &&
+                                                                 exception.LimitName != nameof(EmailStoreReaderOptions.MaxItemCount)) {
+            AddFailure(new EmailStoreDiagnostic("EMAIL_STORE_OLM_XML_INVALID", exception.Message,
+                EmailStoreDiagnosticSeverity.Error, location));
         } catch (EmailStoreLimitExceededException) {
             throw;
         } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException ||
                                              exception is IOException) {
-            _diagnostics.Add(new EmailStoreDiagnostic(
+            AddFailure(new EmailStoreDiagnostic(
                 "EMAIL_STORE_OLM_XML_INVALID",
                 exception.Message,
                 EmailStoreDiagnosticSeverity.Error,
@@ -188,7 +211,21 @@ internal sealed partial class OlmStoreReader {
 
             string id = string.Concat("olm:item:", NormalizeSlashes(entry.FullName), "#", index.ToString(CultureInfo.InvariantCulture));
             string location = string.Concat(entry.FullName, "#", index.ToString(CultureInfo.InvariantCulture));
-            EmailStoreItem projected = CreateItem(item, kind, id, folder.Id, location);
+            EmailStoreItem projected;
+            long attachmentBytes = _totalAttachmentBytes;
+            try {
+                projected = CreateItem(item, kind, id, folder.Id, location);
+            } catch (Exception exception) when (_isolateItemFailures && (exception is EmailStoreLimitExceededException ||
+                                                                         exception is InvalidDataException ||
+                                                                         exception is FormatException ||
+                                                                         exception is XmlException)) {
+                // A rejected record leaves the archive's attachment allowance as it found it.
+                _totalAttachmentBytes = attachmentBytes;
+                AddFailure(new EmailStoreDiagnostic("EMAIL_STORE_OLM_ITEM_UNREADABLE", exception.Message,
+                    EmailStoreDiagnosticSeverity.Error, location));
+                index++;
+                continue;
+            }
             if (_catalogItem != null) _catalogItem(projected, entry.FullName, index, kind);
             else folder.MutableItems.Add(projected);
             index++;
@@ -307,7 +344,7 @@ internal sealed partial class OlmStoreReader {
         }
     }
 
-    private static bool TryNormalizeArchivePath(string path, out string normalized) {
+    internal static bool TryNormalizeArchivePath(string path, out string normalized) {
         normalized = NormalizeSlashes(path).Trim().TrimEnd('/');
         if (normalized.Length == 0 || normalized[0] == '/' || normalized.IndexOf('\0') >= 0) return false;
         if (normalized.Any(char.IsControl)) return false;

@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "generator": "generate.py",
+  "sources": {
+    "dbx": {
+      "path": "../dbx-metadata-unknown-producer/Inbox.dbx",
+      "sha256": "5a7fa0c703030a9a4b2aab5e9249aab40d799ba3fc04b5df5fc9c4d4599272cc",
+      "license": "MIT; see ../dbx-metadata-unknown-producer/LICENSE"
+    },
+    "olm": {
+      "path": "../native-apple-20261003/outlook/native-outlook.olm",
+      "sha256": "a179b91e5b1aa823c4d40560855085d1514d3fb8e9e358df66ccf0d269bde602"
+    }
+  },
+  "files": [
+    {
+      "path": "Inbox-truncated.dbx",
+      "bytes": 63928,
+      "sha256": "6c550b942de01f3a414a29d0417fdf18ddb21c7606ef7c7bc529edb232ad5fa0",
+      "damage": "Truncated 100 bytes into the payload of the eighth fragment; the active index at the end of the file is gone."
+    },
+    {
+      "path": "Inbox-broken-link.dbx",
+      "bytes": 142036,
+      "sha256": "55ed388fa9884d326eb8986613a8a8fbbbdab68f74884b0f90030e9982a52a8f",
+      "damage": "The fifth fragment's next pointer is redirected to 0x12340, which holds no fragment."
+    },
+    {
+      "path": "Inbox-no-index.dbx",
+      "bytes": 142036,
+      "sha256": "250ac420501324a98ae568868eeb904d3e475c472f6094419b89029c9c0b402d",
+      "damage": "The header's active-index root pointer is redirected outside the file; records and fragments are intact."
+    },
+    {
+      "path": "Inbox-lost-record.dbx",
+      "bytes": 142036,
+      "sha256": "74bd75a9d9f6c5949b90c51142e4d04a307e6d3018b89365365c1678fa2db81d",
+      "damage": "The message record's self-address marker is cleared; the index still lists it and its fragments are intact."
+    },
+    {
+      "path": "native-outlook-no-central-directory.olm",
+      "bytes": 25036,
+      "sha256": "07dfa1705d51e3f70d34e86ff7fe3bd70a4932b74a80b71a8df6d9dee0543610",
+      "damage": "The central directory and end record are removed; every local entry is intact."
+    },
+    {
+      "path": "native-outlook-truncated.olm",
+      "bytes": 22507,
+      "sha256": "6a9eccb7c5d7727d739a9088e5daf8050e62f2f5fc01b9b070e2933910fe4468",
+      "damage": "Truncated 2000 bytes into the only mail item's XML entry, which is the last file entry."
+    },
+    {
+      "path": "native-outlook-attachment-crc.olm",
+      "bytes": 28490,
+      "sha256": "826471a1bf16761e04e9fef9a559b77f8033511075d74be35bf55ed9407f52af",
+      "damage": "One byte of the mail item's first attachment is changed, so its CRC-32 no longer matches."
+    },
+    {
+      "path": "native-outlook-contacts-crc.olm",
+      "bytes": 28490,
+      "sha256": "ff6d3049b2445a7519ac2687c5b97b6ef94c2d75855a950e867c3967aa09ff41",
+      "damage": "The case of the first character of the contact's display name is flipped; the XML stays well formed but its CRC-32 no longer matches."
+    },
+    {
+      "path": "native-outlook-deflate-no-central-directory.olm",
+      "bytes": 8695,
+      "sha256": "a100f9562d1873e53213dd09856ca3589c241f0ae767340a0c1f666265573da4",
+      "damage": "Every file entry is recompressed with Deflate and sized only by data descriptors; the central directory and end record are then removed."
+    }
+  ]
+}
