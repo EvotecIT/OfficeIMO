@@ -9,11 +9,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Provides access to the borders applied to this paragraph.
         /// </summary>
-        public WordParagraphBorders Borders {
-            get {
-                return new WordParagraphBorders(_document, this);
-            }
-        }
+        public WordParagraphBorders Borders => new(() => ParagraphPropertiesNode, _ => EditParagraphProperties());
 
         /// <summary>
         /// Gets the identifier of the paragraph style, if any.

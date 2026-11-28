@@ -1,24 +1,10 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Defines predefined paragraph border styles.
-    /// </summary>
-    internal enum WordParagraphBorder {
-        /// <summary>No borders are applied.</summary>
-        None,
-        /// <summary>Custom border configuration.</summary>
-        Custom,
-        /// <summary>Box border surrounding the paragraph.</summary>
-        Box,
-        /// <summary>Shadowed box border.</summary>
-        Shadow
-    }
-
-    /// <summary>
-    /// Specifies which side of the paragraph border is affected.
-    /// </summary>
+    /// <summary>Specifies which side of the paragraph border is affected.</summary>
     public enum WordParagraphBorderType {
         /// <summary>Left border.</summary>
         Left,
@@ -30,587 +16,326 @@ namespace OfficeIMO.Word {
         Bottom
     }
 
-    /// <summary>
-    /// Provides access to paragraph border properties.
-    /// </summary>
+    /// <summary>Provides access to paragraph border properties.</summary>
     public class WordParagraphBorders {
-        private readonly Func<DocumentFormat.OpenXml.OpenXmlCompositeElement?> _readProperties;
-        private readonly Func<DocumentFormat.OpenXml.OpenXmlCompositeElement> _ensureProperties;
+        private const int W = OfficeXmlNamespaces.WordprocessingML;
 
-        internal WordParagraphBorders(WordDocument wordDocument, WordParagraph wordParagraph)
-            : this(() => wordParagraph._paragraphProperties, () => wordParagraph._paragraph.ParagraphProperties ??= new ParagraphProperties()) {
-        }
+        // CT_PBdr also allows between and bar edges after the four exposed sides.
+        private static readonly OfficeXmlChildOrder EdgeOrder = new(
+            [W, W, W, W, W, W], ["top", "left", "bottom", "right", "between", "bar"]);
+        private static readonly string[] Sides = ["top", "left", "bottom", "right"];
 
-        /// <summary>Edits the borders of any paragraph-properties container, such as a paragraph or a style.</summary>
-        internal WordParagraphBorders(Func<DocumentFormat.OpenXml.OpenXmlCompositeElement?> readProperties,
-            Func<DocumentFormat.OpenXml.OpenXmlCompositeElement> ensureProperties) {
+        private readonly Func<OfficeXmlNode> _readProperties;
+        private readonly Func<bool, OfficeXmlNode> _editProperties;
+
+        /// <summary>Edits borders in the paragraph properties supplied by a paragraph or a style.</summary>
+        /// <param name="readProperties">Returns the existing paragraph properties, if any.</param>
+        /// <param name="editProperties">Returns editable paragraph properties. The argument is true when creating or replacing the border container.</param>
+        internal WordParagraphBorders(Func<OfficeXmlNode> readProperties, Func<bool, OfficeXmlNode> editProperties) {
             _readProperties = readProperties;
-            _ensureProperties = ensureProperties;
+            _editProperties = editProperties;
         }
 
-        private ParagraphBorders? GetParagraphBorders() => _readProperties()?.GetFirstChild<ParagraphBorders>();
+        // Direct properties leave extension lists and opaque markup-compatibility wrappers untouched.
+        private OfficeXmlNode ReadBorders() => _readProperties().Child(W, "pBdr");
 
-        private void SetParagraphBorders(ParagraphBorders borders) {
-            var properties = _ensureProperties();
-            properties.RemoveAllChildren<ParagraphBorders>();
-            properties.AddChild(borders, true);
+        private OfficeXmlNode ReadEdge(string side) => ReadBorders().Child(W, side);
+
+        private OfficeXmlNode EditEdge(string side) {
+            OfficeXmlNode borders = _editProperties(ReadBorders().IsNone).GetOrAddChild(W, "pBdr", WPPrView.Order);
+            return borders.GetOrAddChild(W, side, EdgeOrder);
         }
 
-        private ParagraphBorders GetOrCreateParagraphBorders() {
-            var pageBorder = GetParagraphBorders();
-            if (pageBorder == null) {
-                pageBorder = Custom;
-                SetParagraphBorders(pageBorder);
-            }
+        private void SetEdgeAttribute(string side, string attribute, string? value) =>
+            EditEdge(side).SetAttribute(W, attribute, value);
 
-            return pageBorder;
+        private static string? NormalizeColor(string? color) => color?.Replace("#", string.Empty).ToUpperInvariant();
+
+        private static string? FormatOnOff(bool? value) => value switch {
+            true => "true",
+            false => "false",
+            null => null
+        };
+
+        private TEnum? ReadEdgeToken<TEnum>(string side, string attribute, TokenParser<TEnum> parse)
+            where TEnum : struct, Enum {
+            string? token = ReadEdge(side).Attribute(W, attribute);
+            return token == null ? null : WordXmlEdits.Token(parse(token, out TEnum value), value, token);
         }
 
-        /// <summary>
-        /// Gets or sets the left border width as a physical length.
-        /// </summary>
-        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        private delegate bool TokenParser<TEnum>(string token, out TEnum value) where TEnum : struct, Enum;
+
+        /// <summary>Gets or sets the left border width as a physical length.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point. Midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? LeftSize {
-            get => WordBorderLengths.FromSize(GetParagraphBorders()?.LeftBorder?.Size?.Value);
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var pageBorder = GetOrCreateParagraphBorders();
-                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.Size = nativeValue;
-            }
+            get => WordBorderLengths.FromSize(ReadEdge("left").WUInt32("sz"));
+            set => SetEdgeAttribute("left", "sz", OfficeXmlViewValues.Format(WordBorderLengths.ToSize(value)));
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? LeftColorValue {
-            get {
-                var color = GetParagraphBorders()?.LeftBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
-            }
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.Color = value?.Replace("#", "").ToUpperInvariant();
-            }
+            get => NormalizeColor(ReadEdge("left").Attribute(W, "color"));
+            set => SetEdgeAttribute("left", "color", NormalizeColor(value));
         }
 
-        /// <summary>
-        /// Gets or sets the left border color.
-        /// </summary>
-        public OfficeIMO.OfficeColor? LeftColor {
+        /// <summary>Gets or sets the left border color.</summary>
+        public OfficeColor? LeftColor {
             get => Helpers.ParseNativeColor(LeftColorValue);
             set => LeftColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Gets or sets the left border theme color.
-        /// </summary>
+        /// <summary>Gets or sets the left border theme color.</summary>
         public WordThemeColor? LeftThemeColor {
-            get => GetParagraphBorders()?.LeftBorder?.ThemeColor?.Value.ToOfficeEnum();
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.ThemeColor = value.HasValue ? new EnumValue<ThemeColorValues>(value.Value.ToOpenXml()) : null;
-            }
+            get => ReadEdgeToken<WordThemeColor>("left", "themeColor", WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue);
+            set => SetEdgeAttribute("left", "themeColor", value?.ToOpenXmlToken());
         }
 
-        /// <summary>
-        /// Gets or sets the left border style.
-        /// </summary>
+        /// <summary>Gets or sets the left border style.</summary>
         public WordBorderStyle? LeftStyle {
-            get => GetParagraphBorders()?.LeftBorder?.Val?.Value.ToOfficeEnum();
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                if (value.HasValue) {
-                    leftBorder.Val = value.Value.ToOpenXml();
-                } else {
-                    leftBorder.Val = null;
-                }
-            }
+            get => ReadEdgeToken<WordBorderStyle>("left", "val", WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue);
+            set => SetEdgeAttribute("left", "val", value?.ToOpenXmlToken());
         }
 
-        /// <summary>
-        /// Gets or sets the left border spacing.
-        /// </summary>
-        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        /// <summary>Gets or sets the left border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point. Midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? LeftSpace {
-            get => WordBorderLengths.FromSpace(GetParagraphBorders()?.LeftBorder?.Space?.Value);
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var pageBorder = GetOrCreateParagraphBorders();
-                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.Space = nativeValue;
-            }
+            get => WordBorderLengths.FromSpace(ReadEdge("left").WUInt32("space"));
+            set => SetEdgeAttribute("left", "space", OfficeXmlViewValues.Format(WordBorderLengths.ToSpace(value)));
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the left border has a shadow.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the left border has a shadow.</summary>
         public bool? LeftShadow {
-            get => GetParagraphBorders()?.LeftBorder?.Shadow?.Value;
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.Shadow = value;
-            }
+            get => ReadEdge("left").OnOffAttr(W, "shadow");
+            set => SetEdgeAttribute("left", "shadow", FormatOnOff(value));
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the left border is part of a frame.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the left border is part of a frame.</summary>
         public bool? LeftFrame {
-            get => GetParagraphBorders()?.LeftBorder?.Frame?.Value;
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.Frame = value;
-            }
+            get => ReadEdge("left").OnOffAttr(W, "frame");
+            set => SetEdgeAttribute("left", "frame", FormatOnOff(value));
         }
 
-        /// <summary>
-        /// Gets or sets the right border width as a physical length.
-        /// </summary>
-        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        /// <summary>Gets or sets the right border width as a physical length.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point. Midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? RightSize {
-            get => WordBorderLengths.FromSize(GetParagraphBorders()?.RightBorder?.Size?.Value);
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var pageBorder = GetOrCreateParagraphBorders();
-                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Size = nativeValue;
-            }
+            get => WordBorderLengths.FromSize(ReadEdge("right").WUInt32("sz"));
+            set => SetEdgeAttribute("right", "sz", OfficeXmlViewValues.Format(WordBorderLengths.ToSize(value)));
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? RightColorValue {
-            get {
-                var color = GetParagraphBorders()?.RightBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
-            }
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Color = value?.Replace("#", "").ToUpperInvariant();
-            }
+            get => NormalizeColor(ReadEdge("right").Attribute(W, "color"));
+            set => SetEdgeAttribute("right", "color", NormalizeColor(value));
         }
 
-        /// <summary>
-        /// Gets or sets the right border color.
-        /// </summary>
-        public OfficeIMO.OfficeColor? RightColor {
+        /// <summary>Gets or sets the right border color.</summary>
+        public OfficeColor? RightColor {
             get => Helpers.ParseNativeColor(RightColorValue);
             set => RightColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Gets or sets the right border theme color.
-        /// </summary>
+        /// <summary>Gets or sets the right border theme color.</summary>
         public WordThemeColor? RightThemeColor {
-            get => GetParagraphBorders()?.RightBorder?.ThemeColor?.Value.ToOfficeEnum();
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.ThemeColor = value.HasValue ? new EnumValue<ThemeColorValues>(value.Value.ToOpenXml()) : null;
-            }
+            get => ReadEdgeToken<WordThemeColor>("right", "themeColor", WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue);
+            set => SetEdgeAttribute("right", "themeColor", value?.ToOpenXmlToken());
         }
 
-        /// <summary>
-        /// Gets or sets the right border style.
-        /// </summary>
+        /// <summary>Gets or sets the right border style.</summary>
         public WordBorderStyle? RightStyle {
-            get => GetParagraphBorders()?.RightBorder?.Val?.Value.ToOfficeEnum();
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                if (value.HasValue) {
-                    rightBorder.Val = value.Value.ToOpenXml();
-                } else {
-                    rightBorder.Val = null;
-                }
-            }
+            get => ReadEdgeToken<WordBorderStyle>("right", "val", WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue);
+            set => SetEdgeAttribute("right", "val", value?.ToOpenXmlToken());
         }
 
-        /// <summary>
-        /// Gets or sets the right border spacing.
-        /// </summary>
-        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        /// <summary>Gets or sets the right border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point. Midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? RightSpace {
-            get => WordBorderLengths.FromSpace(GetParagraphBorders()?.RightBorder?.Space?.Value);
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var pageBorder = GetOrCreateParagraphBorders();
-                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Space = nativeValue;
-            }
+            get => WordBorderLengths.FromSpace(ReadEdge("right").WUInt32("space"));
+            set => SetEdgeAttribute("right", "space", OfficeXmlViewValues.Format(WordBorderLengths.ToSpace(value)));
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the right border has a shadow.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the right border has a shadow.</summary>
         public bool? RightShadow {
-            get => GetParagraphBorders()?.RightBorder?.Shadow?.Value;
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Shadow = value;
-            }
+            get => ReadEdge("right").OnOffAttr(W, "shadow");
+            set => SetEdgeAttribute("right", "shadow", FormatOnOff(value));
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the right border is part of a frame.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the right border is part of a frame.</summary>
         public bool? RightFrame {
-            get => GetParagraphBorders()?.RightBorder?.Frame?.Value;
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Frame = value;
-            }
+            get => ReadEdge("right").OnOffAttr(W, "frame");
+            set => SetEdgeAttribute("right", "frame", FormatOnOff(value));
         }
 
-        /// <summary>
-        /// Gets or sets the top border width as a physical length.
-        /// </summary>
-        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        /// <summary>Gets or sets the top border width as a physical length.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point. Midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? TopSize {
-            get => WordBorderLengths.FromSize(GetParagraphBorders()?.TopBorder?.Size?.Value);
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var pageBorder = GetOrCreateParagraphBorders();
-                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.Size = nativeValue;
-            }
+            get => WordBorderLengths.FromSize(ReadEdge("top").WUInt32("sz"));
+            set => SetEdgeAttribute("top", "sz", OfficeXmlViewValues.Format(WordBorderLengths.ToSize(value)));
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? TopColorValue {
-            get {
-                var color = GetParagraphBorders()?.TopBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
-            }
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.Color = value?.Replace("#", "").ToUpperInvariant();
-            }
+            get => NormalizeColor(ReadEdge("top").Attribute(W, "color"));
+            set => SetEdgeAttribute("top", "color", NormalizeColor(value));
         }
 
-        /// <summary>
-        /// Gets or sets the top border color.
-        /// </summary>
-        public OfficeIMO.OfficeColor? TopColor {
+        /// <summary>Gets or sets the top border color.</summary>
+        public OfficeColor? TopColor {
             get => Helpers.ParseNativeColor(TopColorValue);
             set => TopColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Gets or sets the top border theme color.
-        /// </summary>
+        /// <summary>Gets or sets the top border theme color.</summary>
         public WordThemeColor? TopThemeColor {
-            get => GetParagraphBorders()?.TopBorder?.ThemeColor?.Value.ToOfficeEnum();
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.ThemeColor = value.HasValue ? new EnumValue<ThemeColorValues>(value.Value.ToOpenXml()) : null;
-            }
+            get => ReadEdgeToken<WordThemeColor>("top", "themeColor", WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue);
+            set => SetEdgeAttribute("top", "themeColor", value?.ToOpenXmlToken());
         }
 
-        /// <summary>
-        /// Gets or sets the top border style.
-        /// </summary>
+        /// <summary>Gets or sets the top border style.</summary>
         public WordBorderStyle? TopStyle {
-            get => GetParagraphBorders()?.TopBorder?.Val?.Value.ToOfficeEnum();
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                if (value.HasValue) {
-                    topBorder.Val = value.Value.ToOpenXml();
-                } else {
-                    topBorder.Val = null;
-                }
-            }
+            get => ReadEdgeToken<WordBorderStyle>("top", "val", WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue);
+            set => SetEdgeAttribute("top", "val", value?.ToOpenXmlToken());
         }
 
-        /// <summary>
-        /// Gets or sets the top border spacing.
-        /// </summary>
-        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        /// <summary>Gets or sets the top border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point. Midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? TopSpace {
-            get => WordBorderLengths.FromSpace(GetParagraphBorders()?.TopBorder?.Space?.Value);
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var pageBorder = GetOrCreateParagraphBorders();
-                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.Space = nativeValue;
-            }
+            get => WordBorderLengths.FromSpace(ReadEdge("top").WUInt32("space"));
+            set => SetEdgeAttribute("top", "space", OfficeXmlViewValues.Format(WordBorderLengths.ToSpace(value)));
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the top border has a shadow.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the top border has a shadow.</summary>
         public bool? TopShadow {
-            get => GetParagraphBorders()?.TopBorder?.Shadow?.Value;
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.Shadow = value;
-            }
+            get => ReadEdge("top").OnOffAttr(W, "shadow");
+            set => SetEdgeAttribute("top", "shadow", FormatOnOff(value));
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the top border is part of a frame.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the top border is part of a frame.</summary>
         public bool? TopFrame {
-            get => GetParagraphBorders()?.TopBorder?.Frame?.Value;
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.Frame = value;
-            }
+            get => ReadEdge("top").OnOffAttr(W, "frame");
+            set => SetEdgeAttribute("top", "frame", FormatOnOff(value));
         }
 
-
-        /// <summary>
-        /// Gets or sets the bottom border width as a physical length.
-        /// </summary>
-        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        /// <summary>Gets or sets the bottom border width as a physical length.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point. Midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? BottomSize {
-            get => WordBorderLengths.FromSize(GetParagraphBorders()?.BottomBorder?.Size?.Value);
-            set {
-                uint? nativeValue = WordBorderLengths.ToSize(value);
-                var pageBorder = GetOrCreateParagraphBorders();
-                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.Size = nativeValue;
-            }
+            get => WordBorderLengths.FromSize(ReadEdge("bottom").WUInt32("sz"));
+            set => SetEdgeAttribute("bottom", "sz", OfficeXmlViewValues.Format(WordBorderLengths.ToSize(value)));
         }
 
         /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
         internal string? BottomColorValue {
-            get {
-                var color = GetParagraphBorders()?.BottomBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
-            }
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.Color = value?.Replace("#", "").ToUpperInvariant();
-            }
+            get => NormalizeColor(ReadEdge("bottom").Attribute(W, "color"));
+            set => SetEdgeAttribute("bottom", "color", NormalizeColor(value));
         }
 
-        /// <summary>
-        /// Gets or sets the bottom border color.
-        /// </summary>
-        public OfficeIMO.OfficeColor? BottomColor {
+        /// <summary>Gets or sets the bottom border color.</summary>
+        public OfficeColor? BottomColor {
             get => Helpers.ParseNativeColor(BottomColorValue);
             set => BottomColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Gets or sets the bottom border theme color.
-        /// </summary>
+        /// <summary>Gets or sets the bottom border theme color.</summary>
         public WordThemeColor? BottomThemeColor {
-            get => GetParagraphBorders()?.BottomBorder?.ThemeColor?.Value.ToOfficeEnum();
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.ThemeColor = value.HasValue ? new EnumValue<ThemeColorValues>(value.Value.ToOpenXml()) : null;
-            }
+            get => ReadEdgeToken<WordThemeColor>("bottom", "themeColor", WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue);
+            set => SetEdgeAttribute("bottom", "themeColor", value?.ToOpenXmlToken());
         }
 
-        /// <summary>
-        /// Gets or sets the bottom border style.
-        /// </summary>
+        /// <summary>Gets or sets the bottom border style.</summary>
         public WordBorderStyle? BottomStyle {
-            get => GetParagraphBorders()?.BottomBorder?.Val?.Value.ToOfficeEnum();
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                if (value.HasValue) {
-                    bottomBorder.Val = value.Value.ToOpenXml();
-                } else {
-                    bottomBorder.Val = null;
-                }
-            }
+            get => ReadEdgeToken<WordBorderStyle>("bottom", "val", WordOpenXmlValueTypeExtensions.TryParseOpenXmlValue);
+            set => SetEdgeAttribute("bottom", "val", value?.ToOpenXmlToken());
         }
 
-        /// <summary>
-        /// Gets or sets the bottom border spacing.
-        /// </summary>
-        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        /// <summary>Gets or sets the bottom border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point. Midpoint ties round away from zero. Null clears the attribute.</remarks>
         public OfficeLength? BottomSpace {
-            get => WordBorderLengths.FromSpace(GetParagraphBorders()?.BottomBorder?.Space?.Value);
-            set {
-                uint? nativeValue = WordBorderLengths.ToSpace(value);
-                var pageBorder = GetOrCreateParagraphBorders();
-                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.Space = nativeValue;
-            }
+            get => WordBorderLengths.FromSpace(ReadEdge("bottom").WUInt32("space"));
+            set => SetEdgeAttribute("bottom", "space", OfficeXmlViewValues.Format(WordBorderLengths.ToSpace(value)));
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the bottom border has a shadow.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the bottom border has a shadow.</summary>
         public bool? BottomShadow {
-            get => GetParagraphBorders()?.BottomBorder?.Shadow?.Value;
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.Shadow = value;
-            }
+            get => ReadEdge("bottom").OnOffAttr(W, "shadow");
+            set => SetEdgeAttribute("bottom", "shadow", FormatOnOff(value));
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the bottom border is part of a frame.
-        /// </summary>
+        /// <summary>Gets or sets a value indicating whether the bottom border is part of a frame.</summary>
         public bool? BottomFrame {
-            get => GetParagraphBorders()?.BottomBorder?.Frame?.Value;
-            set {
-                var pageBorder = GetOrCreateParagraphBorders();
-                var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.Frame = value;
+            get => ReadEdge("bottom").OnOffAttr(W, "frame");
+            set => SetEdgeAttribute("bottom", "frame", FormatOnOff(value));
+        }
+
+        private void SetBorder(WordBorder border) {
+            switch (border) {
+                case WordBorder.None:
+                    if (!ReadBorders().IsNone) _editProperties(false).Child(W, "pBdr").Remove();
+                    return;
+                case WordBorder.Custom:
+                case WordBorder.Box:
+                case WordBorder.Shadow:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(border));
+            }
+
+            OfficeXmlNode properties = _editProperties(true);
+            properties.RemoveChildren(W, "pBdr");
+            OfficeXmlNode borders = properties.AddOrdered(W, "pBdr", WPPrView.Order);
+            if (border == WordBorder.Custom) return;
+
+            foreach (string side in Sides) {
+                OfficeXmlNode edge = borders.Append(borders.CreateElement(W, side));
+                edge.SetAttribute(W, "val", "single");
+                edge.SetAttribute(W, "color", "auto");
+                edge.SetAttribute(W, "sz", "4");
+                edge.SetAttribute(W, "space", "24");
+                if (border == WordBorder.Shadow) edge.SetAttribute(W, "shadow", "true");
             }
         }
 
-
-        internal void SetBorder(WordBorder wordBorder) {
-            var ParagraphBordersettings = GetDefault(wordBorder);
-            if (ParagraphBordersettings == null) {
-                var pageBorder = GetParagraphBorders();
-                pageBorder?.Remove();
-            } else {
-                SetParagraphBorders(ParagraphBordersettings);
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the current border preset type.
-        /// </summary>
+        /// <summary>Gets or sets the current border preset type.</summary>
         public WordBorder Type {
             get {
-                var pageBorder = GetParagraphBorders();
-                if (pageBorder != null) {
-                    foreach (WordBorder wordBorder in global::OfficeIMO.Internal.EnumCompat.GetValues<WordBorder>()) {
-                        if (wordBorder == WordBorder.None) {
-                            continue;
-                        }
+                OfficeXmlNode borders = ReadBorders();
+                if (borders.IsNone) return WordBorder.None;
 
-                        var ParagraphBordersBuiltin = GetDefault(wordBorder)!;
+                // Presets are classified by the four sides' color, size, spacing and shadow.
+                bool? shadow = borders.Child(W, "top").OnOffAttr(W, "shadow");
+                if (shadow == false) return WordBorder.Custom;
 
-                        if ((ParagraphBordersBuiltin.LeftBorder == null && pageBorder.LeftBorder == null) &&
-                            (ParagraphBordersBuiltin.RightBorder == null && pageBorder.RightBorder == null) &&
-                            (ParagraphBordersBuiltin.TopBorder == null && pageBorder.TopBorder == null) &&
-                            (ParagraphBordersBuiltin.BottomBorder == null && pageBorder.BottomBorder == null)) {
-                            return wordBorder;
-                        }
-
-                        if (ParagraphBordersBuiltin.LeftBorder != null && pageBorder.LeftBorder != null &&
-                            ParagraphBordersBuiltin.RightBorder != null && pageBorder.RightBorder != null &&
-                            ParagraphBordersBuiltin.TopBorder != null && pageBorder.TopBorder != null &&
-                            ParagraphBordersBuiltin.BottomBorder != null && pageBorder.BottomBorder != null &&
-                            ParagraphBordersBuiltin.LeftBorder.Shadow == pageBorder.LeftBorder.Shadow &&
-                            ParagraphBordersBuiltin.RightBorder.Shadow == pageBorder.RightBorder.Shadow &&
-                            ParagraphBordersBuiltin.TopBorder.Shadow == pageBorder.TopBorder.Shadow &&
-                            ParagraphBordersBuiltin.BottomBorder.Shadow == pageBorder.BottomBorder.Shadow &&
-                            ParagraphBordersBuiltin.LeftBorder.Color == pageBorder.LeftBorder.Color &&
-                            ParagraphBordersBuiltin.RightBorder.Color == pageBorder.RightBorder.Color &&
-                            ParagraphBordersBuiltin.TopBorder.Color == pageBorder.TopBorder.Color &&
-                            ParagraphBordersBuiltin.BottomBorder.Color == pageBorder.BottomBorder.Color &&
-                            ParagraphBordersBuiltin.LeftBorder.Size == pageBorder.LeftBorder.Size &&
-                            ParagraphBordersBuiltin.RightBorder.Size == pageBorder.RightBorder.Size &&
-                            ParagraphBordersBuiltin.TopBorder.Size == pageBorder.TopBorder.Size &&
-                            ParagraphBordersBuiltin.BottomBorder.Size == pageBorder.BottomBorder.Size &&
-                            ParagraphBordersBuiltin.LeftBorder.Space == pageBorder.LeftBorder.Space &&
-                            ParagraphBordersBuiltin.RightBorder.Space == pageBorder.RightBorder.Space &&
-                            ParagraphBordersBuiltin.TopBorder.Space == pageBorder.TopBorder.Space &&
-                            ParagraphBordersBuiltin.BottomBorder.Space == pageBorder.BottomBorder.Space) {
-                            return wordBorder;
-                        }
-                    }
-
-                    return WordBorder.Custom;
-                } else {
-                    return WordBorder.None;
+                foreach (string side in Sides) {
+                    OfficeXmlNode edge = borders.Child(W, side);
+                    if (edge.Attribute(W, "color") != "auto" || edge.WUInt32("sz") != 4 || edge.WUInt32("space") != 24
+                        || edge.OnOffAttr(W, "shadow") != shadow) return WordBorder.Custom;
                 }
+
+                return shadow == true ? WordBorder.Shadow : WordBorder.Box;
             }
             set => SetBorder(value);
         }
 
-        private static ParagraphBorders? GetDefault(WordBorder border) {
-            switch (border) {
-                case WordBorder.Box: return Box;
-                case WordBorder.Shadow: return Shadow;
-                case WordBorder.None: return null;
-                case WordBorder.Custom: return Custom;
-            }
-
-            throw new ArgumentOutOfRangeException(nameof(border));
-        }
-
-        private static ParagraphBorders Custom => new ParagraphBorders();
-
-        private static ParagraphBorders Box {
-            get {
-                ParagraphBorders ParagraphBorders1 = new ParagraphBorders();
-                TopBorder topBorder1 = new TopBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U };
-                LeftBorder leftBorder1 = new LeftBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U };
-                BottomBorder bottomBorder1 = new BottomBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U };
-                RightBorder rightBorder1 = new RightBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U };
-
-                ParagraphBorders1.Append(topBorder1);
-                ParagraphBorders1.Append(leftBorder1);
-                ParagraphBorders1.Append(bottomBorder1);
-                ParagraphBorders1.Append(rightBorder1);
-                return ParagraphBorders1;
-            }
-        }
-
-        private static ParagraphBorders Shadow {
-            get {
-                ParagraphBorders ParagraphBorders1 = new ParagraphBorders();
-                TopBorder topBorder1 = new TopBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U, Shadow = true };
-                LeftBorder leftBorder1 = new LeftBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U, Shadow = true };
-                BottomBorder bottomBorder1 = new BottomBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U, Shadow = true };
-                RightBorder rightBorder1 = new RightBorder() { Val = BorderValues.Single, Color = "auto", Size = (UInt32Value)4U, Space = (UInt32Value)24U, Shadow = true };
-
-                ParagraphBorders1.Append(topBorder1);
-                ParagraphBorders1.Append(leftBorder1);
-                ParagraphBorders1.Append(bottomBorder1);
-                ParagraphBorders1.Append(rightBorder1);
-                return ParagraphBorders1;
-            }
-        }
-
-        /// <summary>
-        /// Applies border settings to a specific side of the paragraph.
-        /// </summary>
-        /// <param name="type">Side of the paragraph.</param>
+        /// <summary>Sets the style, color, width and shadow of one paragraph border.</summary>
+        /// <param name="type">Border side.</param>
         /// <param name="style">Border style.</param>
         /// <param name="color">Border color.</param>
         /// <param name="size">Border width, rounded to the nearest eighth of a point.</param>
         /// <param name="shadow">Whether the border has a shadow.</param>
         public void SetBorder(WordParagraphBorderType type, WordBorderStyle style, Color color, OfficeLength size, bool shadow) {
-            WordBorderLengths.ToSize(size);
-            if (type == WordParagraphBorderType.Left) {
-                LeftStyle = style;
-                LeftColor = color;
-                LeftSize = size;
-                LeftShadow = shadow;
-            } else if (type == WordParagraphBorderType.Right) {
-                RightStyle = style;
-                RightColor = color;
-                RightSize = size;
-                RightShadow = shadow;
-            } else if (type == WordParagraphBorderType.Top) {
-                TopStyle = style;
-                TopColor = color;
-                TopSize = size;
-                TopShadow = shadow;
-            } else if (type == WordParagraphBorderType.Bottom) {
-                BottomStyle = style;
-                BottomColor = color;
-                BottomSize = size;
-                BottomShadow = shadow;
-            }
+            uint? nativeSize = WordBorderLengths.ToSize(size);
+            string? side = type switch {
+                WordParagraphBorderType.Left => "left",
+                WordParagraphBorderType.Right => "right",
+                WordParagraphBorderType.Top => "top",
+                WordParagraphBorderType.Bottom => "bottom",
+                _ => null
+            };
+            if (side == null) return;
+
+            OfficeXmlNode edge = EditEdge(side);
+            edge.SetAttribute(W, "val", style.ToOpenXmlToken());
+            edge.SetAttribute(W, "color", color.ToRgbHex());
+            edge.SetAttribute(W, "sz", OfficeXmlViewValues.Format(nativeSize));
+            edge.SetAttribute(W, "shadow", FormatOnOff(shadow));
         }
     }
 }

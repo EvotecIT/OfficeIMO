@@ -22,6 +22,55 @@ public sealed class WordWithoutSdkTests {
     private static bool _lastRunStayedOwned;
 
     [Fact]
+    public void ParagraphBordersSkipExtensionAndInactiveMarkupWhenReadingAndEditing() {
+        const string extensions = "urn:officeimo:extension";
+        byte[] source = CreatePackage(BodyXml("""
+            <w:p><w:pPr xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:ex="urn:officeimo:extension" mc:Ignorable="ex">
+              <mc:AlternateContent>
+                <mc:Choice Requires="ex"><w:pBdr><w:top w:val="double"/></w:pBdr></mc:Choice>
+                <mc:Fallback><w:keepNext/></mc:Fallback>
+              </mc:AlternateContent>
+              <ex:extLst><w:pBdr><w:top w:val="dashed"/></w:pBdr></ex:extLst>
+            </w:pPr><w:r><w:t>New border</w:t></w:r></w:p>
+            <w:p><w:pPr xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:ex="urn:officeimo:extension" mc:Ignorable="ex">
+              <w:pBdr><w:left w:val="double"/><ex:extLst><w:top w:val="dashed"/></ex:extLst></w:pBdr>
+            </w:pPr><w:r><w:t>Existing border</w:t></w:r></w:p>
+            """));
+
+        using WordDocument document = WordDocument.Load(new MemoryStream(source));
+        WordParagraphBorders added = document.Paragraphs[0].Borders;
+        WordParagraphBorders existing = document.Paragraphs[1].Borders;
+        Assert.Equal(WordBorder.None, added.Type);
+        Assert.Null(added.TopStyle);
+        Assert.Null(existing.TopStyle);
+        Assert.Equal(WordBorderStyle.Double, existing.LeftStyle);
+
+        added.Type = WordBorder.Shadow;
+        existing.TopStyle = WordBorderStyle.Single;
+        byte[] saved = document.ToBytes();
+        Assert.True(document.IsSdkDeferred);
+        Assert.Empty(document.OpenXmlSdkFallbacks);
+
+        XNamespace extension = extensions;
+        XElement[] original = ReadPart(source, "word/document.xml").Descendants(Wn + "pPr").ToArray();
+        XElement[] edited = ReadPart(saved, "word/document.xml").Descendants(Wn + "pPr").ToArray();
+        Assert.Equal(Wn + "pBdr", edited[0].Elements().First().Name);
+        Assert.Equal(extension + "extLst", edited[0].Elements().Last().Name);
+        Assert.True(XNode.DeepEquals(original[0].Element(extension + "extLst"), edited[0].Element(extension + "extLst")));
+        Assert.True(XNode.DeepEquals(original[0].Element(Mc + "AlternateContent"), edited[0].Element(Mc + "AlternateContent")));
+        XElement border = edited[1].Element(Wn + "pBdr")!;
+        Assert.Equal(new[] { Wn + "top", Wn + "left", extension + "extLst" }, border.Elements().Select(element => element.Name));
+        Assert.True(XNode.DeepEquals(original[1].Element(Wn + "pBdr")!.Element(extension + "extLst"),
+            border.Element(extension + "extLst")));
+
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(saved));
+        Assert.Equal(WordBorder.Shadow, reopened.Paragraphs[0].Borders.Type);
+        Assert.Equal(WordBorderStyle.Single, reopened.Paragraphs[1].Borders.TopStyle);
+    }
+
+    [Fact]
     public void PlainDocumentLoadsReadsEditsAndSavesWithoutTheSdk() {
         byte[] source = CreatePackage(BodyXml(
             "<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space=\"preserve\">Bold </w:t></w:r><w:r><w:t>plain</w:t></w:r></w:p>"
