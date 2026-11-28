@@ -1,7 +1,7 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
 using System.Data;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
                 return _usedRangeA1;
             }
 
-            if (_canStreamWorksheetPart
+            if ((_canStreamWorksheetPart || _readOnlySnapshot)
                 && TryGetWorksheetDimensionReferenceFromXml(out string dimensionReference, ct)
                 && TryGetTableBackedDimensionReference(dimensionReference, out string tableBackedReference, ct)
                 && TryWorksheetCellsFitWithinRangeFromXml(tableBackedReference, ct)) {
@@ -40,7 +40,9 @@ namespace OfficeIMO.Excel {
                 return usedRangeReference;
             }
 
-            string reference = ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot);
+            string reference = _hasLiveWorksheetPart
+                ? ComputeLiveWorksheetDimension()
+                : ComputePackageWorksheetDimension(ct);
             string usedRange = reference.IndexOf(":", StringComparison.Ordinal) >= 0 ? reference : reference + ":" + reference;
             _usedRangeA1 = usedRange;
             return usedRange;
@@ -55,7 +57,7 @@ namespace OfficeIMO.Excel {
                 try {
                     using var stream = _partBufferReader != null
                         ? _partBufferReader.OpenPart(_worksheetPartName, int.MaxValue, ct)
-                        : _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                        : OpenReaderWorksheetStream(default);
                     if (TryPrepareWorksheetStream(stream)) {
                         using var reader = OpenWorksheetXmlReader(stream);
                         var worksheetRows = new WorksheetXmlRowSelector();
@@ -77,7 +79,7 @@ namespace OfficeIMO.Excel {
             }
 
             ct.ThrowIfCancellationRequested();
-            hasCells = EnumerateOwnedSdkWorksheetCells(WorksheetRoot).Any();
+            hasCells = EnumerateWorksheetCells(WorksheetRoot).Any();
             return true;
         }
 
@@ -87,7 +89,7 @@ namespace OfficeIMO.Excel {
             ct.ThrowIfCancellationRequested();
             reference = string.Empty;
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 if (!TryPrepareWorksheetStream(stream)) {
                     return false;
                 }
@@ -123,7 +125,7 @@ namespace OfficeIMO.Excel {
             ct.ThrowIfCancellationRequested();
             reference = string.Empty;
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 if (!TryPrepareWorksheetStream(stream)) {
                     return false;
                 }
@@ -207,7 +209,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 if (!TryPrepareWorksheetStream(stream)) {
                     return false;
                 }
@@ -289,12 +291,6 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool TryGetWorksheetDimensionReference(Worksheet worksheet, out string reference) {
-            reference = string.Empty;
-            string? rawReference = worksheet.SheetDimension?.Reference?.Value;
-            return TryNormalizeWorksheetDimensionReference(rawReference, out reference);
-        }
-
         private bool TryGetTableBackedDimensionReference(
             string dimensionReference,
             out string reference,
@@ -311,11 +307,8 @@ namespace OfficeIMO.Excel {
             int maxColumn = 0;
 
             try {
-                foreach (var tablePart in SdkWorksheetPart.TableDefinitionParts) {
+                foreach (string? tableReference in ReadTableReferences(ct)) {
                     ct.ThrowIfCancellationRequested();
-                    string? tableReference = TryGetTableReferenceXmlFast(tablePart, out string xmlTableReference, ct)
-                        ? xmlTableReference
-                        : tablePart.Table?.Reference?.Value;
                     if (string.IsNullOrWhiteSpace(tableReference)
                         || !ExcelA1.TryParseRange(tableReference!, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                         return false;
@@ -348,29 +341,70 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        private IEnumerable<string?> ReadTableReferences(CancellationToken ct) {
+            if (_package != null) {
+                foreach (string name in _package.GetWorksheetTablePartNames(_worksheetPartName)) {
+                    using Stream stream = _package.Parts.OpenPart(name, int.MaxValue, ct);
+                    yield return TryGetTableReferenceXmlFast(stream, out string reference, ct) ? reference : null;
+                }
+            } else {
+                foreach (ExcelPartRef tablePart in _worksheetPart.PartsOfKind(ExcelPartKind.Table)) {
+                    using Stream stream = tablePart.OpenRead();
+                    yield return TryGetTableReferenceXmlFast(stream, out string reference, ct) ? reference : tablePart.Root.Attribute("ref");
+                }
+            }
+        }
+
+        // Keep the editable worksheet type out of the package-only call site.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private string ComputeLiveWorksheetDimension() => ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot.SdkElement);
+
+        private string ComputePackageWorksheetDimension(CancellationToken ct) {
+            int minRow = int.MaxValue, minColumn = int.MaxValue, maxRow = 0, maxColumn = 0;
+            int previousRow = 0;
+            foreach (var row in WorksheetRoot.Child(SpreadsheetXml, "sheetData").Children(SpreadsheetXml, "row")) {
+                ct.ThrowIfCancellationRequested();
+                uint? declared = ReadDomUnsignedAttribute(row, "r");
+                int rowIndex = declared.HasValue && (declared.Value < 1 || declared.Value > ExcelA1.MaxRows)
+                    ? 0 : ResolveRowIndex(row, ref previousRow);
+                int ordinal = 0, nextColumn = 1;
+                foreach (var cell in row.Children(SpreadsheetXml, "c")) {
+                    ordinal++;
+                    string? writtenReference = cell.Attribute("r");
+                    int resolvedRow = rowIndex, resolvedColumn = 0;
+                    if (ExcelA1.TryParseCellReferenceFast(writtenReference, out int parsedRow, out int parsedColumn)) {
+                        if (parsedRow > 0) resolvedRow = parsedRow;
+                        if (parsedColumn > 0) resolvedColumn = parsedColumn;
+                    }
+                    if (resolvedColumn <= 0) resolvedColumn = string.IsNullOrEmpty(writtenReference) ? nextColumn : ordinal;
+                    nextColumn = resolvedColumn + 1;
+                    if (resolvedRow < 1 || resolvedRow > ExcelA1.MaxRows || resolvedColumn < 1 || resolvedColumn > ExcelA1.MaxColumns) continue;
+                    minRow = Math.Min(minRow, resolvedRow);
+                    minColumn = Math.Min(minColumn, resolvedColumn);
+                    maxRow = Math.Max(maxRow, resolvedRow);
+                    maxColumn = Math.Max(maxColumn, resolvedColumn);
+                }
+            }
+            return maxRow > 0 && maxColumn > 0
+                ? ExcelA1.CellReference(minRow, minColumn) + ":" + ExcelA1.CellReference(maxRow, maxColumn)
+                : "A1:A1";
+        }
+
         private static bool TryGetTableReferenceXmlFast(
-            TableDefinitionPart tablePart,
+            Stream stream,
             out string reference,
             CancellationToken ct = default) {
             ct.ThrowIfCancellationRequested();
             reference = string.Empty;
             try {
-                using var stream = tablePart.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, WorksheetXmlReaderSettings);
-                while (reader.Read()) {
-                    ct.ThrowIfCancellationRequested();
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "table") {
-                        continue;
-                    }
-
-                    string? tableReference = reader.GetAttribute("ref");
-                    if (string.IsNullOrWhiteSpace(tableReference)) {
-                        return false;
-                    }
-
-                    reference = tableReference!;
-                    return true;
-                }
+                reader.MoveToContent();
+                ct.ThrowIfCancellationRequested();
+                if (!SpreadsheetXmlContent.IsSpreadsheetElement(reader, "table")) return false;
+                string? tableReference = reader.GetAttribute("ref");
+                if (string.IsNullOrWhiteSpace(tableReference)) return false;
+                reference = tableReference!;
+                return true;
             } catch (XmlException) {
                 return false;
             } catch (IOException) {
@@ -380,8 +414,6 @@ namespace OfficeIMO.Excel {
             } catch (ObjectDisposedException) {
                 return false;
             }
-
-            return false;
         }
 
         private static bool TryNormalizeWorksheetDimensionReference(string? rawReference, out string reference) {

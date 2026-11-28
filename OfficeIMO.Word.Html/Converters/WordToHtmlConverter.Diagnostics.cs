@@ -162,9 +162,9 @@ namespace OfficeIMO.Word.Html {
                 yield return (element, omitOutputContent);
                 // Retain one sibling continuation per depth rather than allocating a
                 // stack entry for every child before the element budget can stop traversal.
-                if (!element.Equals(root) && element.NextSibling is { Exists: true } sibling)
+                if (!element.Equals(root) && WordConverterNodes.NextSiblingIncludingMarkup(element) is { Exists: true } sibling)
                     pending.Push((sibling, inOmittedRevision));
-                if (element.FirstChild is { Exists: true } child)
+                if (WordConverterNodes.FirstChildIncludingMarkup(element) is { Exists: true } child)
                     pending.Push((child, omitOutputContent));
             }
         }

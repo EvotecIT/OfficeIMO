@@ -357,7 +357,8 @@ namespace OfficeIMO.Word {
             new WordCompatibilitySettings(word);
             new WordApplicationProperties(word);
             new WordBuiltinDocumentProperties(word);
-            new WordSection(word, null!);
+            if (word._ownedSections != null) word.LoadSections();
+            else new WordSection(word, null!);
             new WordBackground(word);
             new WordDocumentStatistics(word);
         }

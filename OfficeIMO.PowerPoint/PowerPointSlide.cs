@@ -198,11 +198,6 @@ namespace OfficeIMO.PowerPoint {
             ShapeList.Insert(index, shape);
         }
 
-        private void InsertRangeTrackedShapes(int index, IEnumerable<PowerPointShape> shapes) {
-            PowerPointShape[] tracked = shapes.Select(shape => shape.AttachTo(this)).ToArray();
-            ShapeList.InsertRange(index, tracked);
-        }
-
         private string GenerateUniqueName(string baseName) {
             List<PowerPointShape> shapes = ShapeList;
             var names = new HashSet<string>(StringComparer.Ordinal);
@@ -225,7 +220,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal void PrepareForPackageSave() {
             if (!SlidePart.IsRootElementLoaded
-                && GetLegacySlideIdShowValue(GetSlideId()) == null) {
+                && GetSlideId().Attribute("show") == null) {
                 return;
             }
 
@@ -233,9 +228,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void Save() {
-            SlideId slideId = GetSlideId();
+            var slideId = GetSlideId();
             if (!SlidePart.IsRootElementLoaded
-                && GetLegacySlideIdShowValue(slideId) == null) {
+                && slideId.Attribute("show") == null) {
                 _notes?.Save();
                 return;
             }

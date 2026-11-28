@@ -1,17 +1,20 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
     internal sealed class StylesCacheProvider {
-        private readonly SpreadsheetDocument? _doc;
+        private readonly ExcelPartRef _workbook;
         private readonly Func<Stream>? _openPartStream;
         private readonly object _gate = new();
         private StylesCache? _value;
 
-        public StylesCacheProvider(SpreadsheetDocument doc) {
-            _doc = doc;
+        internal StylesCacheProvider(object document) : this(ExcelPartRef.FromSdk(document)) { }
+
+        internal StylesCacheProvider(ExcelPartRef workbook) {
+            _workbook = workbook;
             _openPartStream = null;
         }
 
@@ -41,13 +44,10 @@ namespace OfficeIMO.Excel {
                     return _value = StylesCache.Build(stream, cancellationToken);
                 }
 
-                return _value = BuildFromDocument(cancellationToken);
+                return _value = StylesCache.Build(_workbook, cancellationToken);
             }
         }
 
-        // Kept apart so compiling the native route does not load the Open XML SDK.
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private StylesCache BuildFromDocument(CancellationToken cancellationToken) => StylesCache.Build(_doc!, cancellationToken);
     }
 
     internal sealed class StylesCache {
@@ -62,48 +62,48 @@ namespace OfficeIMO.Excel {
 
         public int CellFormatCount => _dateStyleIndexes.Length;
 
-        public static StylesCache Build(SpreadsheetDocument doc, CancellationToken cancellationToken = default) {
+        public static StylesCache Build(object document, CancellationToken cancellationToken = default) =>
+            Build(ExcelPartRef.FromSdk(document), cancellationToken);
+
+        internal static StylesCache Build(ExcelPartRef workbook, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             var cache = new StylesCache();
-            var sp = doc.WorkbookPart!.WorkbookStylesPart;
-            if (sp == null) return cache;
+            ExcelPartRef styles = workbook.WorkbookStyles;
+            if (styles.IsNone) return cache;
 
-            if (doc.FileOpenAccess == FileAccess.Read) {
-                bool classified = TryBuildXmlFast(sp, cache, cancellationToken);
-                if (classified && doc.MarkupCompatibilityProcessSettings.ProcessMode == MarkupCompatibilityProcessMode.NoProcess) {
-                    return cache;
-                }
-                // The XML scan validates the complete part even when SDK processing
-                // selects a version-specific branch for classification.
+            if (workbook.IsReadOnly) {
+                using Stream stream = styles.OpenRead();
+                if (TryBuildXmlFast(stream, cache, cancellationToken) && !workbook.ProcessesMarkupCompatibility) return cache;
                 ClearDateStyles(cache);
             }
 
-            var stylesheet = sp.Stylesheet;
+            OfficeXmlNode stylesheet = styles.Root;
+            const int spreadsheet = OfficeXmlNamespaces.SpreadsheetML;
             cancellationToken.ThrowIfCancellationRequested();
-            if (stylesheet == null) return cache;
+            if (stylesheet.IsNone) return cache;
 
             Dictionary<uint, string>? nf = null;
-            var numbering = stylesheet.NumberingFormats;
-            if (numbering != null) {
-                foreach (var n in numbering.Elements<NumberingFormat>()) {
+            var numbering = stylesheet.Child(spreadsheet, "numFmts");
+            if (numbering.Exists) {
+                foreach (var n in numbering.Children(spreadsheet, "numFmt")) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (n.NumberFormatId?.Value is uint id && n.FormatCode?.Value is string code) {
+                    if (n.UInt32Attribute("numFmtId") is uint id && n.Attribute("formatCode") is string code) {
                         nf ??= new Dictionary<uint, string>();
                         nf[id] = code;
                     }
                 }
             }
 
-            var xfs = stylesheet.CellFormats;
-            if (xfs != null) {
+            var xfs = stylesheet.Child(spreadsheet, "cellXfs");
+            if (xfs.Exists) {
                 int idx = 0;
-                foreach (var cf in xfs.Elements<CellFormat>()) {
+                foreach (var cf in xfs.Children(spreadsheet, "xf")) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (idx >= cache._dateStyleIndexes.Length) {
                         Array.Resize(ref cache._dateStyleIndexes, Math.Max(4, (idx + 1) * 2));
                     }
 
-                    var nId = (uint)(cf.NumberFormatId?.Value ?? 0);
+                    var nId = cf.UInt32Attribute("numFmtId") ?? 0U;
                     bool dateLike = IsDateNumberFormat(nId, nf);
                     if (dateLike) {
                         cache._dateStyleIndexes[idx] = true;
@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel {
             var cache = new StylesCache();
             if (!TryBuildXmlFast(stream, cache, cancellationToken)) {
                 throw new XlsxTabularFastPathNotSupportedException(
-                    "The styles part requires the Open XML SDK fallback path.");
+                    "The styles part requires the general workbook reader.");
             }
 
             return cache;
@@ -152,11 +152,6 @@ namespace OfficeIMO.Excel {
         public bool IsDateLike(uint styleIndex) => styleIndex < (uint)_dateStyleIndexes.Length && _dateStyleIndexes[styleIndex];
 
         public bool IsDateSystemShiftStyle(uint styleIndex) => styleIndex < (uint)_dateSystemShiftStyleIndexes.Length && _dateSystemShiftStyleIndexes[styleIndex];
-
-        private static bool TryBuildXmlFast(WorkbookStylesPart sp, StylesCache cache, CancellationToken cancellationToken) {
-            using var stream = sp.GetStream(FileMode.Open, FileAccess.Read);
-            return TryBuildXmlFast(stream, cache, cancellationToken);
-        }
 
         private static bool TryBuildXmlFast(Stream stream, StylesCache cache, CancellationToken cancellationToken) {
             try {

@@ -2,6 +2,12 @@
 
 `OfficeIMO.OneNote.Html` converts the typed offline OneNote model to HTML without Microsoft Graph, a OneNote installation, or a commercial dependency. Choose semantic HTML when document structure and normal text flow matter, or visual HTML when the positioned OneNote page should remain intact.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.OneNote.Html
+```
+
 ## Semantic HTML
 
 The semantic path emits ordinary reflowable HTML through the first-party `OfficeIMO.Markdown` document shell. OneNote runs retain their font family, point size, foreground and highlight colors, bold, italic, underline, strikethrough, subscript, and superscript styling. Structural and source diagnostics continue to use the shared OneNote projection contracts:

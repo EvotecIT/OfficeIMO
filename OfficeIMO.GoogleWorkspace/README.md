@@ -115,12 +115,12 @@ This shortcut is sufficient for read-only calls. Add the explicit mutation polic
 
 ## Related packages
 
-- [OfficeIMO.GoogleWorkspace.Drive](../OfficeIMO.GoogleWorkspace.Drive/README.md)
-- [OfficeIMO.GoogleWorkspace.Auth.GoogleApis](../OfficeIMO.GoogleWorkspace.Auth.GoogleApis/README.md)
-- [OfficeIMO.GoogleWorkspace.Sync](../OfficeIMO.GoogleWorkspace.Sync/README.md)
-- [OfficeIMO.Word.GoogleDocs](../OfficeIMO.Word.GoogleDocs/README.md)
-- [OfficeIMO.Excel.GoogleSheets](../OfficeIMO.Excel.GoogleSheets/README.md)
-- [OfficeIMO.PowerPoint.GoogleSlides](../OfficeIMO.PowerPoint.GoogleSlides/README.md)
+- [OfficeIMO.GoogleWorkspace.Drive](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.GoogleWorkspace.Drive/README.md)
+- [OfficeIMO.GoogleWorkspace.Auth.GoogleApis](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.GoogleWorkspace.Auth.GoogleApis/README.md)
+- [OfficeIMO.GoogleWorkspace.Sync](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.GoogleWorkspace.Sync/README.md)
+- [OfficeIMO.Word.GoogleDocs](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Word.GoogleDocs/README.md)
+- [OfficeIMO.Excel.GoogleSheets](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.GoogleSheets/README.md)
+- [OfficeIMO.PowerPoint.GoogleSlides](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.PowerPoint.GoogleSlides/README.md)
 
 ## Targets and license
 
@@ -133,4 +133,4 @@ This shortcut is sufficient for read-only calls. Add the explicit mutation polic
 - **External:** `System.Text.Json` plus platform HTTP and cryptography; no Google client SDK.
 - **OfficeIMO:** Credential abstractions, sessions, retry, Drive placement, failures, and translation reports are first-party.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

@@ -133,6 +133,7 @@
       "OfficeIMO.Invoicing.Validation.Tests"
     ],
     "build-matrix": [
+      "OfficeIMO.Entities.Tests",
       "OfficeIMO.Examples",
       "OfficeIMO.Invoicing.Pdf.Tests",
       "OfficeIMO.Invoicing.Tests",

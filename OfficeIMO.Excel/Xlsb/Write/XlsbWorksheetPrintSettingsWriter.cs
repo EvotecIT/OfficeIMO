@@ -1,5 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Excel.Xlsb.Projection;
 using OfficeIMO.Excel.Xlsb.Biff12;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
@@ -11,73 +11,62 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtBeginHeaderFooter = 479;
         private const int BrtEndHeaderFooter = 480;
 
-        internal static void Write(
-            Stream output,
-            PrintOptions? options,
-            PageMargins? margins,
-            PageSetup? pageSetup,
-            HeaderFooter? headerFooter,
-            string sheetName) {
+        private static readonly string[] HeaderNames = {
+            "oddHeader", "oddFooter", "evenHeader", "evenFooter", "firstHeader", "firstFooter"
+        };
+
+        internal static void Write(Stream output, OfficeXmlNode worksheet, string sheetName) {
             ArgumentNullException.ThrowIfNull(output);
-            if (options != null) XlsbRecordWriter.Write(output, BrtPrintOptions, CreatePrintOptionsPayload(options, sheetName));
-            if (margins != null) XlsbRecordWriter.Write(output, BrtMargins, CreateMarginsPayload(margins, sheetName));
-            if (pageSetup != null) XlsbRecordWriter.Write(output, BrtPageSetup, CreatePageSetupPayload(pageSetup, sheetName));
-            if (headerFooter != null) {
+            OfficeXmlNode options = XlsbWorksheetMarkup.Child(worksheet, XlsbWorksheetPrintSettingsProjector.Options);
+            OfficeXmlNode margins = XlsbWorksheetMarkup.Child(worksheet, XlsbWorksheetPrintSettingsProjector.Margins);
+            OfficeXmlNode pageSetup = XlsbWorksheetMarkup.Child(worksheet, XlsbWorksheetPrintSettingsProjector.Setup);
+            OfficeXmlNode headerFooter = XlsbWorksheetMarkup.Child(worksheet, XlsbWorksheetPrintSettingsProjector.Headers);
+            if (options.Exists) XlsbRecordWriter.Write(output, BrtPrintOptions, CreatePrintOptionsPayload(options, sheetName));
+            if (margins.Exists) XlsbRecordWriter.Write(output, BrtMargins, CreateMarginsPayload(margins, sheetName));
+            if (pageSetup.Exists) XlsbRecordWriter.Write(output, BrtPageSetup, CreatePageSetupPayload(pageSetup, sheetName));
+            if (headerFooter.Exists) {
                 XlsbRecordWriter.Write(output, BrtBeginHeaderFooter, CreateHeaderFooterPayload(headerFooter, sheetName));
                 XlsbRecordWriter.Write(output, BrtEndHeaderFooter);
             }
         }
 
-        internal static void Validate(
-            PrintOptions? options,
-            PageMargins? margins,
-            PageSetup? pageSetup,
-            HeaderFooter? headerFooter,
-            string sheetName) {
-            if (options != null) CreatePrintOptionsPayload(options, sheetName);
-            if (margins != null) CreateMarginsPayload(margins, sheetName);
-            if (pageSetup != null) CreatePageSetupPayload(pageSetup, sheetName);
-            if (headerFooter != null) CreateHeaderFooterPayload(headerFooter, sheetName);
-        }
-
-        private static byte[] CreatePrintOptionsPayload(PrintOptions options, string sheetName) {
-            if (options.HasChildren) {
+        private static byte[] CreatePrintOptionsPayload(OfficeXmlNode options, string sheetName) {
+            if (options.FirstChild.Exists) {
                 throw new NotSupportedException($"Native XLSB generation does not support child content in print options on worksheet '{sheetName}'.");
             }
             EnsureOnlyAttributes(options, sheetName, "horizontalCentered", "verticalCentered", "headings", "gridLines", "gridLinesSet");
-            ushort flags = (ushort)((options.HorizontalCentered?.Value == true ? 0x0001 : 0)
-                | (options.VerticalCentered?.Value == true ? 0x0002 : 0)
-                | (options.Headings?.Value == true ? 0x0004 : 0)
-                | (options.GridLines?.Value == true ? 0x0008 : 0));
+            ushort flags = (ushort)((XlsbWorkbookMarkup.ReadBoolean(options, "horizontalCentered") == true ? 0x0001 : 0)
+                | (XlsbWorkbookMarkup.ReadBoolean(options, "verticalCentered") == true ? 0x0002 : 0)
+                | (XlsbWorkbookMarkup.ReadBoolean(options, "headings") == true ? 0x0004 : 0)
+                | (XlsbWorkbookMarkup.ReadBoolean(options, "gridLines") == true ? 0x0008 : 0));
             return new[] { (byte)flags, (byte)(flags >> 8) };
         }
 
-        private static byte[] CreateMarginsPayload(PageMargins margins, string sheetName) {
-            if (margins.HasChildren) {
+        private static byte[] CreateMarginsPayload(OfficeXmlNode margins, string sheetName) {
+            if (margins.FirstChild.Exists) {
                 throw new NotSupportedException($"Native XLSB generation does not support child content in page margins on worksheet '{sheetName}'.");
             }
             EnsureOnlyAttributes(margins, sheetName, "left", "right", "top", "bottom", "header", "footer");
             double[] values = {
-                RequireMargin(margins.Left, "left", sheetName),
-                RequireMargin(margins.Right, "right", sheetName),
-                RequireMargin(margins.Top, "top", sheetName),
-                RequireMargin(margins.Bottom, "bottom", sheetName),
-                RequireMargin(margins.Header, "header", sheetName),
-                RequireMargin(margins.Footer, "footer", sheetName)
+                RequireMargin(margins, "left", sheetName),
+                RequireMargin(margins, "right", sheetName),
+                RequireMargin(margins, "top", sheetName),
+                RequireMargin(margins, "bottom", sheetName),
+                RequireMargin(margins, "header", sheetName),
+                RequireMargin(margins, "footer", sheetName)
             };
             using var output = new MemoryStream(48);
             foreach (double value in values) {
-                byte[] bytes = BitConverter.GetBytes(value);
-                output.Write(bytes, 0, bytes.Length);
+                XlsbPayloadWriter.WriteDouble(output, value);
             }
             return output.ToArray();
         }
 
-        private static byte[] CreatePageSetupPayload(PageSetup pageSetup, string sheetName) {
-            if (pageSetup.HasChildren) {
+        private static byte[] CreatePageSetupPayload(OfficeXmlNode pageSetup, string sheetName) {
+            if (pageSetup.FirstChild.Exists) {
                 throw new NotSupportedException($"Native XLSB generation does not support child content in page setup on worksheet '{sheetName}'.");
             }
-            if (!string.IsNullOrEmpty(pageSetup.Id?.Value)) {
+            if (!string.IsNullOrEmpty(pageSetup.Attribute(OfficeXmlNamespaces.Relationships, "id"))) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support printer-settings relationships on worksheet '{sheetName}'.");
             }
             EnsureOnlyAttributes(
@@ -100,12 +89,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 "verticalDpi",
                 "copies");
 
-            uint scale = pageSetup.Scale?.Value ?? 0U;
-            uint copies = pageSetup.Copies?.Value ?? 0U;
-            uint firstPageNumber = pageSetup.FirstPageNumber?.Value ?? 0U;
-            uint fitToWidth = pageSetup.FitToWidth?.Value ?? 0U;
-            uint fitToHeight = pageSetup.FitToHeight?.Value ?? 0U;
-            uint paperSize = pageSetup.PaperSize?.Value ?? 0U;
+            uint scale = XlsbWorkbookMarkup.ReadUInt32(pageSetup, "scale") ?? 0U;
+            uint copies = XlsbWorkbookMarkup.ReadUInt32(pageSetup, "copies") ?? 0U;
+            uint firstPageNumber = XlsbWorkbookMarkup.ReadUInt32(pageSetup, "firstPageNumber") ?? 0U;
+            uint fitToWidth = XlsbWorkbookMarkup.ReadUInt32(pageSetup, "fitToWidth") ?? 0U;
+            uint fitToHeight = XlsbWorkbookMarkup.ReadUInt32(pageSetup, "fitToHeight") ?? 0U;
+            uint paperSize = XlsbWorkbookMarkup.ReadUInt32(pageSetup, "paperSize") ?? 0U;
             if (paperSize >= int.MaxValue
                 || (paperSize >= 119U && paperSize <= 256U)
                 || (scale != 0U && (scale < 10U || scale > 400U))
@@ -116,111 +105,98 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException($"Native XLSB generation cannot encode one or more out-of-range page-setup values on worksheet '{sheetName}'.");
             }
 
-            PageOrderValues pageOrder = pageSetup.PageOrder?.Value ?? PageOrderValues.DownThenOver;
-            OrientationValues orientation = pageSetup.Orientation?.Value ?? OrientationValues.Default;
-            CellCommentsValues comments = pageSetup.CellComments?.Value ?? CellCommentsValues.None;
-            PrintErrorValues errors = pageSetup.Errors?.Value ?? PrintErrorValues.Displayed;
-            if ((pageOrder != PageOrderValues.DownThenOver && pageOrder != PageOrderValues.OverThenDown)
-                || (orientation != OrientationValues.Default && orientation != OrientationValues.Portrait && orientation != OrientationValues.Landscape)
-                || (comments != CellCommentsValues.None && comments != CellCommentsValues.AsDisplayed && comments != CellCommentsValues.AtEnd)
-                || (errors != PrintErrorValues.Displayed && errors != PrintErrorValues.Blank && errors != PrintErrorValues.Dash && errors != PrintErrorValues.NA)) {
+            string pageOrder = pageSetup.Attribute("pageOrder") ?? "downThenOver";
+            string orientation = pageSetup.Attribute("orientation") ?? "default";
+            string comments = pageSetup.Attribute("cellComments") ?? "none";
+            string errors = pageSetup.Attribute("errors") ?? "displayed";
+            if (pageOrder is not ("downThenOver" or "overThenDown")
+                || orientation is not ("default" or "portrait" or "landscape")
+                || comments is not ("none" or "asDisplayed" or "atEnd")
+                || errors is not ("displayed" or "blank" or "dash" or "NA")) {
                 throw new NotSupportedException($"Native XLSB generation cannot encode one or more unknown page-setup enum values on worksheet '{sheetName}'.");
             }
             ushort flags = 0;
-            if (pageOrder == PageOrderValues.OverThenDown) flags |= 0x0001;
-            if (orientation == OrientationValues.Landscape) flags |= 0x0002;
-            if (pageSetup.BlackAndWhite?.Value == true) flags |= 0x0008;
-            if (pageSetup.Draft?.Value == true) flags |= 0x0010;
-            if (comments != CellCommentsValues.None) flags |= 0x0020;
-            if (orientation == OrientationValues.Default || pageSetup.UsePrinterDefaults?.Value == true) flags |= 0x0040;
-            if (pageSetup.UseFirstPageNumber?.Value == true) flags |= 0x0080;
-            if (comments == CellCommentsValues.AtEnd) flags |= 0x0100;
-            if (errors == PrintErrorValues.Blank) flags |= 0x0200;
-            else if (errors == PrintErrorValues.Dash) flags |= 0x0400;
-            else if (errors == PrintErrorValues.NA) flags |= 0x0600;
+            if (pageOrder == "overThenDown") flags |= 0x0001;
+            if (orientation == "landscape") flags |= 0x0002;
+            if (XlsbWorkbookMarkup.ReadBoolean(pageSetup, "blackAndWhite") == true) flags |= 0x0008;
+            if (XlsbWorkbookMarkup.ReadBoolean(pageSetup, "draft") == true) flags |= 0x0010;
+            if (comments != "none") flags |= 0x0020;
+            if (orientation == "default" || XlsbWorkbookMarkup.ReadBoolean(pageSetup, "usePrinterDefaults") == true) flags |= 0x0040;
+            if (XlsbWorkbookMarkup.ReadBoolean(pageSetup, "useFirstPageNumber") == true) flags |= 0x0080;
+            if (comments == "atEnd") flags |= 0x0100;
+            if (errors == "blank") flags |= 0x0200;
+            else if (errors == "dash") flags |= 0x0400;
+            else if (errors == "NA") flags |= 0x0600;
 
             using var output = new MemoryStream(38);
-            WriteUInt32(output, paperSize);
-            WriteUInt32(output, scale);
-            WriteUInt32(output, pageSetup.HorizontalDpi?.Value ?? 0U);
-            WriteUInt32(output, pageSetup.VerticalDpi?.Value ?? 0U);
-            WriteUInt32(output, copies);
-            WriteUInt32(output, firstPageNumber);
-            WriteUInt32(output, fitToWidth);
-            WriteUInt32(output, fitToHeight);
-            WriteUInt16(output, flags);
-            WriteUInt32(output, uint.MaxValue);
+            XlsbPayloadWriter.WriteUInt32(output, paperSize);
+            XlsbPayloadWriter.WriteUInt32(output, scale);
+            XlsbPayloadWriter.WriteUInt32(output, XlsbWorkbookMarkup.ReadUInt32(pageSetup, "horizontalDpi") ?? 0U);
+            XlsbPayloadWriter.WriteUInt32(output, XlsbWorkbookMarkup.ReadUInt32(pageSetup, "verticalDpi") ?? 0U);
+            XlsbPayloadWriter.WriteUInt32(output, copies);
+            XlsbPayloadWriter.WriteUInt32(output, firstPageNumber);
+            XlsbPayloadWriter.WriteUInt32(output, fitToWidth);
+            XlsbPayloadWriter.WriteUInt32(output, fitToHeight);
+            XlsbPayloadWriter.WriteUInt16(output, flags);
+            XlsbPayloadWriter.WriteUInt32(output, uint.MaxValue);
             return output.ToArray();
         }
 
-        private static byte[] CreateHeaderFooterPayload(HeaderFooter headerFooter, string sheetName) {
+        private static byte[] CreateHeaderFooterPayload(OfficeXmlNode headerFooter, string sheetName) {
             EnsureOnlyAttributes(headerFooter, sheetName, "differentOddEven", "differentFirst", "scaleWithDoc", "alignWithMargins");
-            Type[] allowedTypes = {
-                typeof(OddHeader), typeof(OddFooter), typeof(EvenHeader),
-                typeof(EvenFooter), typeof(FirstHeader), typeof(FirstFooter)
-            };
-            foreach (OpenXmlElement child in headerFooter.ChildElements) {
-                if (!allowedTypes.Contains(child.GetType())) {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (OfficeXmlNode child in headerFooter.Children()) {
+                if (child.NamespaceId != OfficeXmlNamespaces.SpreadsheetML || Array.IndexOf(HeaderNames, child.LocalName) < 0 || child.FirstChild.Exists) {
                     throw new NotSupportedException($"Native XLSB generation does not support header/footer content '{child.LocalName}' on worksheet '{sheetName}'.");
                 }
-                if (headerFooter.ChildElements.Count(candidate => candidate.GetType() == child.GetType()) > 1) {
+                if (!seen.Add(child.LocalName)) {
                     throw new NotSupportedException($"Native XLSB generation requires at most one '{child.LocalName}' element on worksheet '{sheetName}'.");
                 }
                 EnsureOnlyAttributes(child, sheetName);
             }
 
-            ushort flags = (ushort)((headerFooter.DifferentOddEven?.Value == true ? 0x0001 : 0)
-                | (headerFooter.DifferentFirst?.Value == true ? 0x0002 : 0)
-                | (headerFooter.ScaleWithDoc?.Value != false ? 0x0004 : 0)
-                | (headerFooter.AlignWithMargins?.Value != false ? 0x0008 : 0));
+            ushort flags = (ushort)((XlsbWorkbookMarkup.ReadBoolean(headerFooter, "differentOddEven") == true ? 0x0001 : 0)
+                | (XlsbWorkbookMarkup.ReadBoolean(headerFooter, "differentFirst") == true ? 0x0002 : 0)
+                | (XlsbWorkbookMarkup.ReadBoolean(headerFooter, "scaleWithDoc") != false ? 0x0004 : 0)
+                | (XlsbWorkbookMarkup.ReadBoolean(headerFooter, "alignWithMargins") != false ? 0x0008 : 0));
             using var output = new MemoryStream();
-            WriteUInt16(output, flags);
-            WriteNullableWideString(output, headerFooter.GetFirstChild<OddHeader>()?.Text, sheetName);
-            WriteNullableWideString(output, headerFooter.GetFirstChild<OddFooter>()?.Text, sheetName);
-            WriteNullableWideString(output, headerFooter.GetFirstChild<EvenHeader>()?.Text, sheetName);
-            WriteNullableWideString(output, headerFooter.GetFirstChild<EvenFooter>()?.Text, sheetName);
-            WriteNullableWideString(output, headerFooter.GetFirstChild<FirstHeader>()?.Text, sheetName);
-            WriteNullableWideString(output, headerFooter.GetFirstChild<FirstFooter>()?.Text, sheetName);
+            XlsbPayloadWriter.WriteUInt16(output, flags);
+            foreach (string name in HeaderNames) {
+                WriteNullableWideString(output, headerFooter.ChildText(OfficeXmlNamespaces.SpreadsheetML, name), sheetName);
+            }
             return output.ToArray();
         }
 
-        private static double RequireMargin(DoubleValue? margin, string detail, string sheetName) {
-            if (margin?.Value is not double value || double.IsNaN(value) || double.IsInfinity(value) || value < 0D || value >= 49D) {
-                throw new NotSupportedException($"Native XLSB generation requires a {detail} page margin from 0 up to 49 inches on worksheet '{sheetName}'.");
+        private static double RequireMargin(OfficeXmlNode margins, string detail, string sheetName) {
+            string? attribute = margins.Attribute(detail);
+            if (attribute == null) throw MarginRequired(detail, sheetName);
+            double value = System.Xml.XmlConvert.ToDouble(attribute);
+            if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D || value >= 49D) {
+                throw MarginRequired(detail, sheetName);
             }
             return value;
         }
 
+        private static NotSupportedException MarginRequired(string detail, string sheetName) =>
+            new($"Native XLSB generation requires a {detail} page margin from 0 up to 49 inches on worksheet '{sheetName}'.");
+
         private static void WriteNullableWideString(Stream output, string? value, string sheetName) {
             if (value == null) {
-                WriteUInt32(output, uint.MaxValue);
+                XlsbPayloadWriter.WriteUInt32(output, uint.MaxValue);
                 return;
             }
             if (value.Length > 255) {
                 throw new NotSupportedException($"Native XLSB generation limits each header/footer string to 255 characters on worksheet '{sheetName}'.");
             }
-            WriteUInt32(output, checked((uint)value.Length));
+            XlsbPayloadWriter.WriteUInt32(output, checked((uint)value.Length));
             byte[] bytes = Encoding.Unicode.GetBytes(value);
             output.Write(bytes, 0, bytes.Length);
         }
 
-        private static void WriteUInt16(Stream output, ushort value) {
-            output.WriteByte((byte)value);
-            output.WriteByte((byte)(value >> 8));
-        }
-
-        private static void WriteUInt32(Stream output, uint value) {
-            output.WriteByte((byte)value);
-            output.WriteByte((byte)(value >> 8));
-            output.WriteByte((byte)(value >> 16));
-            output.WriteByte((byte)(value >> 24));
-        }
-
-        private static void EnsureOnlyAttributes(OpenXmlElement element, string sheetName, params string[] allowedNames) {
-            OpenXmlAttribute? unsupported =
-                XlsbOpenXmlAttributeValidator.FindUnsupported(element, allowedNames);
-            if (unsupported.HasValue) {
-                throw new NotSupportedException($"Native XLSB generation does not yet support print-setting attribute '{unsupported.Value.LocalName}' on worksheet '{sheetName}'.");
+        private static void EnsureOnlyAttributes(OfficeXmlNode element, string sheetName, params string[] allowedNames) {
+            string? unsupported = XlsbWorkbookMarkup.UnsupportedAttribute(element, allowedNames);
+            if (unsupported != null) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support print-setting attribute '{unsupported}' on worksheet '{sheetName}'.");
             }
         }
     }

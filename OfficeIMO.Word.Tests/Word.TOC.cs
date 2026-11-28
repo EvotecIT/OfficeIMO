@@ -7,6 +7,81 @@ using Color = OfficeIMO.OfficeColor;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void Test_GeneratedTableOfContentKeepsOwnedPackageThroughSave() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("First heading").Style = WordParagraphStyles.Heading1;
+            WordTableOfContent toc = document.AddTableOfContent(title: "Contents", insertAtTop: true);
+            toc.TextNoContent = "No headings";
+            document.AddParagraph("Second heading").Style = WordParagraphStyles.Heading2;
+
+#if NET
+            Assert.True(document.IsSdkDeferred);
+#endif
+            byte[] bytes = document.ToBytes();
+#if NET
+            Assert.True(document.IsSdkDeferred);
+#endif
+
+            using WordDocument loaded = WordDocument.Load(new MemoryStream(bytes));
+            WordTableOfContent stored = Assert.IsType<WordTableOfContent>(loaded.TableOfContent);
+            Assert.Equal("Contents", stored.Text);
+            Assert.Equal("No headings", stored.TextNoContent);
+            Assert.Equal(2, loaded.InspectFields().Count(field => field.FieldType == WordFieldType.PageRef));
+#if NET
+            Assert.True(loaded.IsSdkDeferred);
+#endif
+
+            var glossary = loaded.OpenXmlDocument.MainDocumentPart!.GlossaryDocumentPart!.GlossaryDocument!;
+            Text placeholder = Assert.Single(glossary.Descendants<Text>(), text => text.Text == "No headings");
+            placeholder.Text = "Updated through Open XML";
+            loaded.Dispose();
+            Assert.Equal("Updated through Open XML", stored.TextNoContent);
+
+            _ = document.OpenXmlDocument;
+            document.Dispose();
+            Assert.Equal("No headings", toc.TextNoContent);
+        }
+
+        [Fact]
+        public void Test_RetainedTableOfContentCanOpenSdkControlAfterDisposal() {
+            using WordDocument document = WordDocument.Create();
+            WordTableOfContent created = document.AddTableOfContent();
+            created.TextNoContent = "First message";
+            WordTableOfContent retained = Assert.IsType<WordTableOfContent>(document.TableOfContent);
+            created.TextNoContent = "Final message";
+#if NET
+            Assert.True(document.IsSdkDeferred);
+#endif
+            document.Dispose();
+
+            Assert.IsType<Body>(retained.SdtBlock.Parent);
+            Assert.Equal("Final message", retained.TextNoContent);
+        }
+
+        [Fact]
+        public void Test_ReadingStoredTableOfContentLeavesFieldUpdatesDisabled() {
+            byte[] bytes;
+            using (WordDocument document = WordDocument.Create()) {
+                document.AddParagraph("Stored heading").Style = WordParagraphStyles.Heading1;
+                document.AddTableOfContent();
+                bytes = document.ToBytes();
+            }
+            using (WordDocument document = WordDocument.Load(new MemoryStream(bytes))) {
+                var body = document.OpenXmlDocument.MainDocumentPart!.Document.Body!;
+                foreach (var marker in body.Descendants<DocumentFormat.OpenXml.Wordprocessing.FieldChar>()) marker.Dirty = false;
+                document.Settings.UpdateFieldsOnOpen = false;
+                bytes = document.ToBytes();
+            }
+            using WordDocument loaded = WordDocument.Load(new MemoryStream(bytes));
+            Assert.IsType<WordTableOfContent>(loaded.TableOfContent);
+            Assert.False(loaded.Settings.UpdateFieldsOnOpen);
+            Assert.DoesNotContain(loaded.InspectFields(), field => field.IsDirty);
+#if NET
+            Assert.True(loaded.IsSdkDeferred);
+#endif
+        }
+
+        [Fact]
         public void Test_CreatingWordDocumentWithTOC() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTOC.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

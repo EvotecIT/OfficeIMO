@@ -19,6 +19,12 @@ The returned document can also be used with the focused notebook PDF, HTML,
 Markdown, Word, and spreadsheet adapters. The input stream remains open. The
 example prints findings and explicitly accepts them when saving.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Notebook.Import
+```
+
 ## Input profiles
 
 | Profile | Input | Imported content |
@@ -104,8 +110,8 @@ Use the explicit importer for format choices involving ordinary Markdown,
 script, bitmap, HTML or JSON extensions, paired outputs, and notebook selection
 inside a Deepnote project.
 
-See the [notebook support matrix](../OfficeIMO.Notebook/SUPPORT.md) for
-available exporters and the [benchmark suite](../OfficeIMO.Notebook.Benchmarks/README.md)
+See the [notebook support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Notebook/SUPPORT.md) for
+available exporters and the [benchmark suite](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Notebook.Benchmarks/README.md)
 for reproducible import and readback checks.
 
 <!-- officeimo-operation-catalog:start -->

@@ -1,110 +1,79 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Excel.Xlsb.Model;
 using System.Globalization;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Excel.Xlsb.Model;
 
 namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects and compares classic XLSB worksheet protection.</summary>
     internal static class XlsbWorksheetProtectionProjector {
-        internal static void Apply(ExcelSheet sheet, XlsbWorksheetProtection? source) {
-            ArgumentNullException.ThrowIfNull(sheet);
-            if (source == null) return;
+        internal const string ElementName = "sheetProtection";
 
-            Worksheet worksheet = sheet.WorksheetPart.Worksheet
-                ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
-            worksheet.Append(Create(source));
+        // The order of the permissions is also the order of the fields in BrtSheetProtection.
+        private static readonly (string Name, bool LockedByDefault, Func<XlsbWorksheetProtection, bool> Allow)[] Permissions = {
+            ("objects", false, source => source.AllowEditObjects),
+            ("scenarios", false, source => source.AllowEditScenarios),
+            ("formatCells", true, source => source.AllowFormatCells),
+            ("formatColumns", true, source => source.AllowFormatColumns),
+            ("formatRows", true, source => source.AllowFormatRows),
+            ("insertColumns", true, source => source.AllowInsertColumns),
+            ("insertRows", true, source => source.AllowInsertRows),
+            ("insertHyperlinks", true, source => source.AllowInsertHyperlinks),
+            ("deleteColumns", true, source => source.AllowDeleteColumns),
+            ("deleteRows", true, source => source.AllowDeleteRows),
+            ("selectLockedCells", false, source => source.AllowSelectLockedCells),
+            ("sort", true, source => source.AllowSort),
+            ("autoFilter", true, source => source.AllowAutoFilter),
+            ("pivotTables", true, source => source.AllowPivotTables),
+            ("selectUnlockedCells", false, source => source.AllowSelectUnlockedCells)
+        };
+
+        private static readonly string[] SupportedAttributes = Permissions.Select(permission => permission.Name)
+            .Concat(new[] { "password", "sheet" }).ToArray();
+
+        internal static void Apply(ExcelSheet sheet, XlsbWorksheetProtection? source) {
+            if (source != null) Apply(XlsbWorksheetMarkup.Root(sheet), source);
+        }
+
+        internal static void Apply(OfficeXmlNode worksheet, XlsbWorksheetProtection source) {
+            OfficeXmlNode protection = XlsbWorksheetMarkup.Append(worksheet, ElementName);
+            protection.SetBooleanAttribute("sheet", source.IsProtected);
+            foreach (var permission in Permissions) protection.SetBooleanAttribute(permission.Name, !permission.Allow(source));
+            if (source.Password != 0) protection.SetAttribute("password", source.Password.ToString("X4", CultureInfo.InvariantCulture));
         }
 
         internal static void ValidateUnchanged(ExcelSheet sheet, XlsbWorksheetProtection? expected) {
-            Worksheet worksheet = sheet.WorksheetPart.Worksheet
-                ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
-            SheetProtection[] actual = worksheet.Elements<SheetProtection>().ToArray();
-            if (actual.Length > 1
-                || (expected == null && actual.Length != 0)
-                || (expected != null && (actual.Length != 1 || !Matches(actual[0], expected)))) {
-                throw new NotSupportedException($"Native XLSB rewriting preserves but cannot modify worksheet protection on worksheet '{sheet.Name}'. Save as .xlsx to retain that change.");
+            OfficeXmlNode worksheet = XlsbWorksheetMarkup.Root(sheet);
+            var children = worksheet.Children(OfficeXmlNamespaces.SpreadsheetML, ElementName).GetEnumerator();
+            if (!children.MoveNext()) {
+                if (expected == null) return;
+            } else if (expected != null) {
+                OfficeXmlNode actual = children.Current;
+                if (!children.MoveNext() && Matches(actual, expected)) return;
             }
+            throw new NotSupportedException($"Native XLSB rewriting preserves but cannot modify worksheet protection on worksheet '{sheet.Name}'. Save as .xlsx to retain that change.");
         }
 
-        internal static bool TryParsePassword(string? value, out ushort password) {
-            password = 0;
-            return string.IsNullOrWhiteSpace(value)
-                || (value!.Length <= 4 && ushort.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out password));
-        }
-
-        private static SheetProtection Create(XlsbWorksheetProtection source) {
-            var protection = new SheetProtection {
-                Sheet = source.IsProtected,
-                Objects = !source.AllowEditObjects,
-                Scenarios = !source.AllowEditScenarios,
-                FormatCells = !source.AllowFormatCells,
-                FormatColumns = !source.AllowFormatColumns,
-                FormatRows = !source.AllowFormatRows,
-                InsertColumns = !source.AllowInsertColumns,
-                InsertRows = !source.AllowInsertRows,
-                InsertHyperlinks = !source.AllowInsertHyperlinks,
-                DeleteColumns = !source.AllowDeleteColumns,
-                DeleteRows = !source.AllowDeleteRows,
-                SelectLockedCells = !source.AllowSelectLockedCells,
-                Sort = !source.AllowSort,
-                AutoFilter = !source.AllowAutoFilter,
-                PivotTables = !source.AllowPivotTables,
-                SelectUnlockedCells = !source.AllowSelectUnlockedCells
-            };
-            if (source.Password != 0) {
-                protection.Password = source.Password.ToString("X4", CultureInfo.InvariantCulture);
+        private static bool Matches(OfficeXmlNode actual, XlsbWorksheetProtection expected) {
+            if (actual.FirstChild.Exists || UnsupportedAttribute(actual) != null
+                || !XlsbWorkbookProtectionProjector.TryParsePassword(actual.Attribute("password"), out ushort password)
+                || password != expected.Password || IsProtected(actual) != expected.IsProtected) return false;
+            foreach (var permission in Permissions) {
+                if (IsAllowed(actual, permission.Name, permission.LockedByDefault) != permission.Allow(expected)) return false;
             }
-            return protection;
+            return true;
         }
 
-        private static bool Matches(SheetProtection actual, XlsbWorksheetProtection expected) {
-            if (actual.HasChildren
-                || actual.GetAttributes().Any(attribute =>
-                    !string.IsNullOrEmpty(attribute.NamespaceUri)
-                    || !IsSupportedAttribute(attribute.LocalName))
-                || !TryParsePassword(actual.Password?.Value, out ushort password)) {
-                return false;
-            }
+        internal static string? UnsupportedAttribute(OfficeXmlNode protection) =>
+            XlsbWorkbookMarkup.UnsupportedAttribute(protection, SupportedAttributes);
 
-            return password == expected.Password
-                && (actual.Sheet?.Value ?? true) == expected.IsProtected
-                && IsAllowed(actual.Objects, lockedWhenOmitted: false) == expected.AllowEditObjects
-                && IsAllowed(actual.Scenarios, lockedWhenOmitted: false) == expected.AllowEditScenarios
-                && IsAllowed(actual.FormatCells, lockedWhenOmitted: true) == expected.AllowFormatCells
-                && IsAllowed(actual.FormatColumns, lockedWhenOmitted: true) == expected.AllowFormatColumns
-                && IsAllowed(actual.FormatRows, lockedWhenOmitted: true) == expected.AllowFormatRows
-                && IsAllowed(actual.InsertColumns, lockedWhenOmitted: true) == expected.AllowInsertColumns
-                && IsAllowed(actual.InsertRows, lockedWhenOmitted: true) == expected.AllowInsertRows
-                && IsAllowed(actual.InsertHyperlinks, lockedWhenOmitted: true) == expected.AllowInsertHyperlinks
-                && IsAllowed(actual.DeleteColumns, lockedWhenOmitted: true) == expected.AllowDeleteColumns
-                && IsAllowed(actual.DeleteRows, lockedWhenOmitted: true) == expected.AllowDeleteRows
-                && IsAllowed(actual.SelectLockedCells, lockedWhenOmitted: false) == expected.AllowSelectLockedCells
-                && IsAllowed(actual.Sort, lockedWhenOmitted: true) == expected.AllowSort
-                && IsAllowed(actual.AutoFilter, lockedWhenOmitted: true) == expected.AllowAutoFilter
-                && IsAllowed(actual.PivotTables, lockedWhenOmitted: true) == expected.AllowPivotTables
-                && IsAllowed(actual.SelectUnlockedCells, lockedWhenOmitted: false) == expected.AllowSelectUnlockedCells;
+        internal static bool IsProtected(OfficeXmlNode protection) =>
+            XlsbWorkbookMarkup.ReadBoolean(protection, "sheet") ?? true;
+
+        /// <summary>Yields the permission bits the native worksheet protection record stores.</summary>
+        internal static IEnumerable<bool> AllowedActions(OfficeXmlNode protection) {
+            foreach (var permission in Permissions) yield return IsAllowed(protection, permission.Name, permission.LockedByDefault);
         }
 
-        private static bool IsAllowed(BooleanValue? protectionFlag, bool lockedWhenOmitted) =>
-            !(protectionFlag?.Value ?? lockedWhenOmitted);
-
-        private static bool IsSupportedAttribute(string name) =>
-            name == "password"
-            || name == "sheet"
-            || name == "objects"
-            || name == "scenarios"
-            || name == "formatCells"
-            || name == "formatColumns"
-            || name == "formatRows"
-            || name == "insertColumns"
-            || name == "insertRows"
-            || name == "insertHyperlinks"
-            || name == "deleteColumns"
-            || name == "deleteRows"
-            || name == "selectLockedCells"
-            || name == "sort"
-            || name == "autoFilter"
-            || name == "pivotTables"
-            || name == "selectUnlockedCells";
+        private static bool IsAllowed(OfficeXmlNode protection, string name, bool lockedByDefault) =>
+            !(XlsbWorkbookMarkup.ReadBoolean(protection, name) ?? lockedByDefault);
     }
 }

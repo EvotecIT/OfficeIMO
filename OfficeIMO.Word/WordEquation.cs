@@ -464,7 +464,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (element is SimpleField simpleField) {
-                    var field = new WordField(document, paragraph, simpleField, null);
+                    var field = WordParagraph.WrapSdkField(document, paragraph, simpleField, null);
                     if (field.FieldType == WordFieldType.EQ) {
                         candidates.Add((elementOrder, new WordEquation(document, paragraph, simpleField)));
                     }
@@ -480,7 +480,7 @@ namespace OfficeIMO.Word {
                 } else if (fieldCharacter?.FieldCharType?.Value == FieldCharValues.End && complexFields.Count > 0) {
                     (int fieldOrder, List<Run> fieldRuns) = complexFields[complexFields.Count - 1];
                     complexFields.RemoveAt(complexFields.Count - 1);
-                    var field = new WordField(document, paragraph, null, fieldRuns);
+                    var field = WordParagraph.WrapSdkField(document, paragraph, null, fieldRuns);
                     if (field.FieldType == WordFieldType.EQ) {
                         candidates.Add((fieldOrder, new WordEquation(document, paragraph, fieldRuns)));
                     }

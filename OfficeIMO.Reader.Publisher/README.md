@@ -1,7 +1,7 @@
 # OfficeIMO.Reader.Publisher
 
 `OfficeIMO.Reader.Publisher` reads native `.pub` publications through
-[OfficeIMO.Publisher](../OfficeIMO.Publisher/README.md). It retains complete source
+[OfficeIMO.Publisher](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/README.md). It retains complete source
 stories, native table grids, bullet markers, physical page inventory, embedded-image descriptors
 and recovery diagnostics in the shared Reader result.
 
@@ -35,6 +35,12 @@ The handler is also part of `OfficeIMO.Reader.All`. Its stable registration ID i
 Content detection recognizes the compound-file Contents and Quill stream pair,
 including publications with an unfamiliar filename extension. The native codec
 then validates the actual supported generation.
+
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.Publisher
+```
 
 ## Reading an in-memory publication
 
@@ -80,7 +86,7 @@ paragraphs and images have no inferred page assignment. Mapped tables and their
 story blocks carry native physical-page citations. Page artwork, frame flow and
 typography remain available in the native Publisher model and are omitted from
 this semantic projection with `PUB_READER_LAYOUT_OMITTED`. Use
-[OfficeIMO.Publisher.Pdf](../OfficeIMO.Publisher.Pdf/README.md) for positioned output.
+[OfficeIMO.Publisher.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher.Pdf/README.md) for positioned output.
 Native recovery findings retain their codes, loss kinds and source locations in
 Reader diagnostics.
 
@@ -128,5 +134,5 @@ forward position. Source hashes cover the captured bytes.
 Selected Publisher 2002-and-later Contents/Quill publications are qualified.
 Earlier generations throw `NotSupportedException`; they do not fall back to text
 salvage. Malformed native data and exceeded native limits fail explicitly.
-See the [native support contract and fixture evidence](../OfficeIMO.Publisher/SUPPORT.md).
+See the [native support contract and fixture evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md).
 The adapter references only `OfficeIMO.Reader.Core` and `OfficeIMO.Publisher`.

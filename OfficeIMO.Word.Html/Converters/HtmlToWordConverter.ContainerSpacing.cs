@@ -137,8 +137,8 @@ namespace OfficeIMO.Word.Html {
             OfficeXmlNode properties = paragraph.WChild("pPr");
             OfficeXmlNode spacing = properties.WChild("spacing");
             return string.IsNullOrEmpty(paragraph.InnerText) &&
-                   paragraph.Children().ToList().All(element => element.IsW("pPr")) &&
-                   properties.Exists && properties.Children().Count == 1 &&
+                   WordConverterNodes.ChildNodesIncludingMarkup(paragraph).All(element => element.IsW("pPr")) &&
+                   properties.Exists && WordConverterNodes.ChildNodesIncludingMarkup(properties).Count == 1 &&
                    spacing.WAttr("before") == "0" &&
                    spacing.WAttr("after") == "0" &&
                    spacing.WAttr("line") == "0";

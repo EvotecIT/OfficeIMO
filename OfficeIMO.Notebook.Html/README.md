@@ -2,6 +2,12 @@
 
 Export stored Jupyter notebook content to a standalone HTML document or embeddable fragment. The default export uses embedded styles and images with native MathML for supported equations. Notebook code stays inert.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Notebook.Html
+```
+
 ```csharp
 using OfficeIMO.Notebook;
 using OfficeIMO.Notebook.Html;

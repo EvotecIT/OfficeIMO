@@ -726,9 +726,9 @@ namespace OfficeIMO.Word {
             out string? diagnostic,
             out TableCell? currentCell,
             out TableRow? currentRow) {
-            currentCell = candidate.AnchorElement is TableCell cell
+            currentCell = candidate.SdkAnchorElement is TableCell cell
                 ? cell
-                : candidate.AnchorElement.Ancestors<TableCell>().FirstOrDefault();
+                : candidate.SdkAnchorElement.Ancestors<TableCell>().FirstOrDefault();
             currentRow = currentCell?.Ancestors<TableRow>().FirstOrDefault();
             table = currentRow?.Ancestors<Table>().FirstOrDefault();
             diagnostic = table == null ? "Formula table cell references require the field to be inside a table cell." : null;

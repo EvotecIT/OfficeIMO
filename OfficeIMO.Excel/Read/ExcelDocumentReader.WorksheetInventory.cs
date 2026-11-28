@@ -1,61 +1,52 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelDocumentReader {
         internal IReadOnlyList<string> GetValidatedWorksheetNames() {
             var names = new List<string>();
-            IEnumerable<Sheet> sheets =
-                WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>();
-            foreach (Sheet sheet in sheets) {
+            foreach (OfficeXmlNode sheet in WorkbookSheets) {
                 _opt.CancellationToken.ThrowIfCancellationRequested();
-                string? name = sheet.Name?.Value;
-                string? relationshipId = sheet.Id?.Value;
-                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(relationshipId)) {
-                    throw new InvalidDataException(
-                        "The OpenXML workbook contains a sheet without a name or relationship id.");
-                }
-                string validatedName = name!;
-                string validatedRelationshipId = relationshipId!;
-                if (WorkbookPartRoot.ExternalRelationships.Any(
-                    relationship => relationship.Id == validatedRelationshipId)) {
-                    throw new InvalidDataException(
-                        $"The OpenXML worksheet '{validatedName}' references external relationship '{validatedRelationshipId}'.");
+                string? name = sheet.Attribute("name");
+                string? id = WorksheetRelationshipId(sheet);
+                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(id)) {
+                    throw new InvalidDataException("The OpenXML workbook contains a sheet without a name or relationship id.");
                 }
 
-                OpenXmlPart part;
-                try {
-                    part = WorkbookPartRoot.GetPartById(validatedRelationshipId);
-                } catch (Exception exception) when (
-                    exception is ArgumentOutOfRangeException
-                    || exception is InvalidOperationException
-                    || exception is KeyNotFoundException) {
-                    throw new InvalidDataException(
-                        $"The OpenXML worksheet '{validatedName}' references missing relationship '{validatedRelationshipId}'.",
-                        exception);
+                string? partName;
+                string? relationshipType;
+                bool external;
+                if (_liveWorkbook is ExcelPartRef workbook) {
+                    ExcelPartRef part = workbook.GetPartById(id);
+                    partName = part.Exists ? part.Name : null;
+                    relationshipType = part.RelationshipType;
+                    external = workbook.GetExternalRelationshipUri(id!) != null;
+                } else {
+                    var relationship = _package!.FindWorkbookRelationship(id!);
+                    partName = relationship.Target;
+                    if (partName != null && !_package.PartExists(partName)) partName = null;
+                    relationshipType = relationship.Type;
+                    external = relationship.External;
                 }
 
-                if (part is WorksheetPart) {
-                    names.Add(validatedName);
-                } else if (!IsSupportedNonWorksheetSheetPart(part)) {
-                    throw new InvalidDataException(
-                        $"The OpenXML sheet '{validatedName}' references unsupported internal part '{part.Uri}'.");
+                if (external) {
+                    throw new InvalidDataException($"The OpenXML worksheet '{name}' references external relationship '{id}'.");
+                }
+                if (partName == null) {
+                    if (ExcelReadWorkbookParts.IsNonWorksheetRelationship(relationshipType)) {
+                        throw new InvalidOperationException($"The OpenXML sheet '{name}' references missing relationship '{id}'.");
+                    }
+                    throw new InvalidDataException($"The OpenXML worksheet '{name}' references missing relationship '{id}'.");
+                }
+                if (relationshipType == ExcelReadWorkbookParts.WorksheetRelationship) {
+                    if (_liveWorkbook == null) _package!.ValidateWorksheetContentType(partName);
+                    names.Add(name!);
+                } else if (!ExcelReadWorkbookParts.IsNonWorksheetRelationship(relationshipType)) {
+                    throw new InvalidDataException($"The OpenXML sheet '{name}' references unsupported internal part '{partName}'.");
                 }
             }
-
             return names;
         }
 
-        private static bool IsSupportedNonWorksheetSheetPart(OpenXmlPart part) {
-            if (part is ChartsheetPart || part is DialogsheetPart
-                || part is MacroSheetPart || part is InternationalMacroSheetPart) {
-                return true;
-            }
-
-            string relationshipType = part.RelationshipType;
-            return relationshipType.EndsWith("/macrosheet", StringComparison.OrdinalIgnoreCase)
-                   || relationshipType.EndsWith("/intlMacrosheet", StringComparison.OrdinalIgnoreCase);
-        }
     }
 }

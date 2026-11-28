@@ -7,7 +7,6 @@ using System.Linq.Expressions;
 using System.Runtime.Serialization;
 using System.Collections.Concurrent;
 using System.Xml;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -28,7 +27,7 @@ namespace OfficeIMO.Excel {
             }
 
             TypedPropertyBinding<T>?[]? bindings = null;
-            Dictionary<int, Row>? pendingRows = null;
+            Dictionary<int, ReaderRow>? pendingRows = null;
             int nextDataRow = r1 + 1;
             int convertedCells = 0;
 
@@ -37,7 +36,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = row.Index;
                 if (rowIndex < r1) {
                     continue;
                 }
@@ -61,7 +60,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    pendingRows ??= new Dictionary<int, Row>();
+                    pendingRows ??= new Dictionary<int, ReaderRow>();
                     AddPendingTypedRow(pendingRows, rowIndex, row);
                     continue;
                 }
@@ -75,7 +74,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (rowIndex > nextDataRow) {
-                    pendingRows ??= new Dictionary<int, Row>();
+                    pendingRows ??= new Dictionary<int, ReaderRow>();
                     AddPendingTypedRow(pendingRows, rowIndex, row);
                     continue;
                 }
@@ -143,7 +142,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = row.Index;
                 if (rowIndex < r1) {
                     continue;
                 }
@@ -186,15 +185,15 @@ namespace OfficeIMO.Excel {
         }
 
         private TypedPropertyBinding<T>?[] CreateTypedHeaderBindingsFromRow<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-            DocumentFormat.OpenXml.Spreadsheet.Row row,
+            ReaderRow row,
             string a1Range,
             int c1,
             int c2,
             int cols) where T : new() {
             var headerValues = new object?[cols];
             int nextDomColumnIndex = 1;
-            foreach (var cell in row.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>()) {
-                int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+            foreach (var cell in row.Cells()) {
+                int columnIndex = cell.GetColumnIndex(ref nextDomColumnIndex);
                 if (columnIndex < c1 || columnIndex > c2) {
                     continue;
                 }
@@ -216,7 +215,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void FillTypedObjectFromRow<T>(
-            DocumentFormat.OpenXml.Spreadsheet.Row row,
+            ReaderRow row,
             int c1,
             int c2,
             TypedPropertyBinding<T>?[] bindings,
@@ -225,12 +224,12 @@ namespace OfficeIMO.Excel {
             ref int convertedCells) {
             bool canCancel = ct.CanBeCanceled;
             int nextDomColumnIndex = 1;
-            foreach (var cell in row.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>()) {
+            foreach (var cell in row.Cells()) {
                 if (canCancel && (++convertedCells & 1023) == 0) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                int columnIndex = cell.GetColumnIndex(ref nextDomColumnIndex);
                 if (columnIndex < c1 || columnIndex > c2) {
                     continue;
                 }

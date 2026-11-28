@@ -137,4 +137,4 @@ Manifest assets keep their package identity and payload while inheriting useful 
 - **OfficeIMO:** `OfficeIMO.Reader.Core`, `OfficeIMO.Reader.Html`, and `OfficeIMO.Epub`; EPUB parsing stays in the native package.
 - The EPUB semantics and resource projection layer adds no new package or process dependency.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

@@ -561,6 +561,18 @@ jobs:
             dotnet test OfficeIMO.Provenance.C2pa.Tests/OfficeIMO.Provenance.C2pa.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
           }
 
+      - name: Test entity recognition contracts
+        if: runner.os != 'macOS'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          if ('${{ needs.changes.outputs.full }}' -eq 'true') {
+            dotnet test OfficeIMO.Entities.Tests/OfficeIMO.Entities.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
+          } else {
+            dotnet test OfficeIMO.Entities.Tests/OfficeIMO.Entities.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-build --no-restore --logger "console;verbosity=${{ env.TEST_VERBOSITY }}"
+          }
+
       - name: Test electronic invoice contracts
         if: runner.os != 'macOS'
         shell: pwsh

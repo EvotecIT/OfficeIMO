@@ -2,6 +2,12 @@
 
 Recover a compiled help book as linked Markdown through `OfficeIMO.Chm` and the canonical `OfficeIMO.Markdown.Html` converter.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Chm.Markdown
+```
+
 ```csharp
 using OfficeIMO.Chm;
 
@@ -13,7 +19,7 @@ foreach (var diagnostic in report.Diagnostics)
 
 Use `ToMarkdown(options, out report)` for an editable `MarkdownDocument` from the canonical Markdown engine. `ChmMarkdownExportOptions.ConversionOptions` selects topic paths and bounds aggregate HTML, images and serialized output; `MarkdownOptions` takes `HtmlMarkdownExportOptions` to choose the existing Markdown conversion/write policy. `ToMarkdown()` is a convenience wrapper; use the result API to retain fidelity evidence or call `Report.ThrowIfLoss()` for strict acceptance.
 
-Topic headings and links receive unique book anchors. Archive images are embedded as data URLs by default. Contents order is retained; compiled keyword-index and help-viewer features remain exposed by the source CHM model. Layout, styles and unsupported HTML structures follow the Markdown engine's reported conversion boundaries. See [CHM support](../OfficeIMO.Chm/SUPPORT.md).
+Topic headings and links receive unique book anchors. Archive images are embedded as data URLs by default. Contents order is retained; compiled keyword-index and help-viewer features remain exposed by the source CHM model. Layout, styles and unsupported HTML structures follow the Markdown engine's reported conversion boundaries. See [CHM support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm/SUPPORT.md).
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

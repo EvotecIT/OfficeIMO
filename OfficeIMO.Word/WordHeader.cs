@@ -27,6 +27,12 @@ namespace OfficeIMO.Word {
     public partial class WordHeader : WordHeaderFooter {
         private readonly WordSection _section;
 
+        internal WordHeader(WordDocument document, WordSection section, string? ownedPartName) {
+            _document = document;
+            _section = section;
+            _ownedPartName = ownedPartName;
+        }
+
         internal WordHeader(WordDocument document, HeaderReference headerReference, WordSection section) {
             _document = document;
             _id = headerReference.Id;

@@ -1,5 +1,6 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -10,13 +11,14 @@ public partial class PowerPointSlide {
             // A slide removed before the SDK opened is no longer in the presentation.
             if (RemovedFromPackage) return -1;
             if (IsPackageBacked && OwnerDocument?.GetPackageSlides() is { } packageSlides) return packageSlides.IndexOf(this);
-            var presentation = SlidePart.GetParentPresentationPart();
-            var ids = presentation?.Presentation?.SlideIdList?.Elements<SlideId>();
-            if (ids == null) return -1;
+            if (OwnerDocument is not { } document) return -1;
+            PowerPointPartRef presentation = document.PresentationPartRef, slide = PartRef;
+            OfficeXmlNode list = presentation.Root.Child(OfficeXmlNamespaces.PresentationML, "sldIdLst");
             int index = 0;
-            foreach (var id in ids) {
-                var relationship = id.RelationshipId?.Value;
-                if (relationship != null && ReferenceEquals(presentation!.GetPartById(relationship), SlidePart)) return index;
+            foreach (OfficeXmlNode entry in list.Children(OfficeXmlNamespaces.PresentationML, "sldId")) {
+                string? relationship = entry.Attribute(OfficeXmlNamespaces.Relationships, "id");
+                if (relationship != null && presentation.TryGetRelationship(relationship, out PowerPointRelationship target)
+                    && target.TargetPart.Equals(slide)) return index;
                 index++;
             }
             return -1;
@@ -26,14 +28,14 @@ public partial class PowerPointSlide {
     /// <summary>Inspects the current layout and owning master without modifying the package.</summary>
     /// <returns>The layout description, or null when the slide has no layout.</returns>
     public PowerPointSlideLayoutInfo? GetLayoutInfo() {
-        var layout = SlidePart.SlideLayoutPart;
-        if (layout == null) return null;
-        var master = layout.GetParentParts().OfType<SlideMasterPart>().FirstOrDefault();
-        var presentation = master?.GetParentPresentationPart();
-        int masterIndex = presentation == null ? -1 : Array.IndexOf(presentation.SlideMasterParts.ToArray(), master);
-        var definition = layout.SlideLayout;
+        PowerPointPartRef layout = PartRef.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType);
+        if (layout.IsNone) return null;
+        PowerPointPartRef master = layout.RelatedPart(PowerPointPartRef.SlideMasterRelationshipType);
+        int masterIndex = master.IsNone || OwnerDocument == null ? -1 : OwnerDocument.MasterPartRefs().IndexOf(master);
+        OfficeXmlNode root = layout.Root;
+        PowerPointSlideLayoutType? type = PowerPointSlideLayoutTypeTokens.TryParse(root.Attribute("type"), out PowerPointSlideLayoutType parsed) ? parsed : null;
         return new PowerPointSlideLayoutInfo(masterIndex, LayoutIndex,
-            definition?.CommonSlideData?.Name?.Value ?? string.Empty, definition?.Type?.Value.ToOfficeIMO(),
-            master?.GetIdOfPart(layout));
+            root.Child(OfficeXmlNamespaces.PresentationML, "cSld").Attribute("name") ?? string.Empty, type,
+            master.IsNone ? null : master.RelationshipIdOf(layout, PowerPointPartRef.SlideLayoutRelationshipType));
     }
 }

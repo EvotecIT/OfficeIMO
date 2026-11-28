@@ -1,6 +1,6 @@
 # OfficeIMO.Yaml.Configuration
 
-A YAML configuration provider for `Microsoft.Extensions.Configuration`, built on the [OfficeIMO.Yaml](../OfficeIMO.Yaml/README.md) engine. It targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10, works in trimmed and NativeAOT applications, and depends only on `OfficeIMO.Yaml` and `Microsoft.Extensions.Configuration.FileExtensions`.
+A YAML configuration provider for `Microsoft.Extensions.Configuration`, built on the [OfficeIMO.Yaml](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Yaml/README.md) engine. It targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10, works in trimmed and NativeAOT applications, and depends only on `OfficeIMO.Yaml` and `Microsoft.Extensions.Configuration.FileExtensions`.
 
 ## Install
 

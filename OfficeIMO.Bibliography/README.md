@@ -168,7 +168,7 @@ HTML bibliography entries link rendered `URL`, `DOI`, `PMID`, and `PMCID` values
 
 Title casing uses the versioned CSL English stop-word list, including phrases and hyphenated words. The item language controls Unicode casing and whether English title casing applies; without an item language, title casing follows the style's default language. Output-locale overrides control locale terms separately. Case-protected input retains its original text, and ordinal day formatting uses the month term's grammatical gender.
 
-Inspect `processor.DataConversionReport` when rendering a bibliography imported from another format; set `RequireNoDataLoss` to reject lossy CSL data projection. This report describes data conversion, not full style conformance. The renderer implements a qualified subset of CSL 1.0.2 behavior; the [support matrix](../Docs/officeimo.bibliography-support-matrix.md) records its current limits.
+Inspect `processor.DataConversionReport` when rendering a bibliography imported from another format; set `RequireNoDataLoss` to reject lossy CSL data projection. This report describes data conversion, not full style conformance. The renderer implements a qualified subset of CSL 1.0.2 behavior; the [support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.bibliography-support-matrix.md) records its current limits.
 
 ## Boundaries
 
@@ -176,7 +176,7 @@ The package does not execute TeX, fetch DOI or PubMed metadata, resolve remote r
 
 `OfficeIMO.Word` does not depend on this package.
 
-See the [bibliography support matrix](../Docs/officeimo.bibliography-support-matrix.md) for exact field, preservation, conversion, and security behavior.
+See the [bibliography support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.bibliography-support-matrix.md) for exact field, preservation, conversion, and security behavior.
 
 ## Dependencies
 

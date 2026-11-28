@@ -40,7 +40,7 @@ Browser capture is a separate contract from the OfficeIMO converters: it drives 
 
 ## Provisioning and deployment
 
-The managed [HTML renderer](../OfficeIMO.Html.Pdf/PDF.md) runs without Chromium.
+The managed [HTML renderer](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Html.Pdf/PDF.md) runs without Chromium.
 This optional package uses HtmlTinkerX's Playwright driver and Chromium runtime.
 HtmlTinkerX installs missing components on first use; provisioning needs download
 access and writable cache locations. The page's network policy does not govern

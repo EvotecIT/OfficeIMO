@@ -4,6 +4,12 @@ Extract the saved data from a notebook output that contains
 `application/vnd.dataresource+json`, such as a pandas table-schema display.
 Select an output from the notebook, then export its inline rows to CSV or XLSX.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Notebook.Spreadsheet
+```
+
 ```csharp
 using OfficeIMO.Notebook;
 using OfficeIMO.Notebook.Spreadsheet;
@@ -21,3 +27,4 @@ keeps the original spelling of numeric values and escapes formula-like text
 by default.
 Conversion requires inline scalar records and applies row, column and cell
 limits. Presentation-only HTML tables use the document export routes.
+

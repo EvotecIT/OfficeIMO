@@ -42,12 +42,18 @@ List setup and content without an item remain visible with a source-fallback dia
 
 Reverse conversion retains formatting and identifiers when promoting a heading to the title, preserves loose-list paragraphs, and writes fragment links as explicit `\hyperref[label]{visible text}` navigation links. Strikethrough uses `ulem` with `normalem` so ordinary emphasis remains italic. Custom list numbering, task markers and highlighted text report their simplifications. Ordinary callouts retain their kind, title and body in a quote. Image alternate text, titles, links and layout hints, and link tooltip/HTML metadata that the bounded target cannot represent report omissions. Recognized verbatim closing-delimiter variants inside code are escaped and diagnosed so literal code remains opaque.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Latex.Markdown
+```
+
 ## Dependency footprint
 
 - **External:** None.
 - **OfficeIMO:** `OfficeIMO.Latex` and `OfficeIMO.Markdown`; the bridge owns bounded-profile mapping, canonical generation, and diagnostics.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

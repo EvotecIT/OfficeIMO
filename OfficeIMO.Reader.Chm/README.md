@@ -19,6 +19,12 @@ Console.WriteLine(document.Markdown);
 
 `ReaderChmOptions` holds archive limits, topic-selection/aggregate projection limits, and rich HTML reader options. Registrations snapshot the supplied settings. `.chm` extensions and the `ITSF` signature participate in Reader detection. `OfficeIMO.Reader.All` includes this handler.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.Chm
+```
+
 ## Options
 
 `ReaderChmOptions` has three parts. Each is cloned when the handler is registered.
@@ -60,4 +66,4 @@ Exceeding a limit fails the read instead of returning a silently partial book.
 - **Diagnostics:** topic-level HTML diagnostics plus recoverable archive warnings from the CHM container, each located at `manual.chm!/<entry>`.
 - **Capabilities:** `officeimo.reader.chm.rich-v5`, `officeimo.chm.archive`, `officeimo.chm.contents` and `officeimo.chm.index`, plus those reported by the HTML reader.
 
-Results use `ReaderInputKind.Chm` (`27`) and document transport schema version 11 or later. Per-topic identifiers are prefixed to keep rich content unique across the book. Locations such as `manual.chm!/guide/install.html` identify HTML topics rather than fixed pages. The archive is inert, and resources remain inside the CHM. See [the archive contract](../OfficeIMO.Chm/README.md) and [supported profiles](../OfficeIMO.Chm/SUPPORT.md).
+Results use `ReaderInputKind.Chm` (`27`) and document transport schema version 11 or later. Per-topic identifiers are prefixed to keep rich content unique across the book. Locations such as `manual.chm!/guide/install.html` identify HTML topics rather than fixed pages. The archive is inert, and resources remain inside the CHM. See [the archive contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm/README.md) and [supported profiles](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm/SUPPORT.md).

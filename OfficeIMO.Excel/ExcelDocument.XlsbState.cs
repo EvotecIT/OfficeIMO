@@ -61,6 +61,14 @@ namespace OfficeIMO.Excel {
         }
 
         private bool CanCopyUnchangedXlsb(ExcelSaveOptions? options) {
+            if (IsSdkDeferred && _xlsbDeferredBaseline != null) {
+                if (ReferenceEquals(_deferredPackageBytes, _xlsbDeferredBaseline)
+                    && !_packageDirty && !_packagePropertiesDirty && !_customDocumentPropertiesDirty
+                    && _xlsbOriginalPackageBytes != null && !HasXlsbTransformSaveWork(options) && !HasCalculationSaveWork(options)) {
+                    return true;
+                }
+                OpenDeferredSdk("Save: rewriting an edited XLSB workbook");
+            }
             ValidateNativeXlsbProjection();
             return SourceFormat == ExcelFileFormat.Xlsb
                 && !_packageDirty
@@ -93,16 +101,18 @@ namespace OfficeIMO.Excel {
             }
 
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
-            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared) ? prepared : null;
+            bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
             bool directWrite = false;
             XlsbWorkbook? generatedWorkbook = null;
             byte[] bytes = existingSource
-                ? unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options)
+                ? ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options))
                 : GenerateNativeXlsb(options, CancellationToken.None, out directWrite, out generatedWorkbook);
+            bool adopt = ownedEdit == null && (!unchanged || !IsSdkDeferred);
             CommitPreparedPackageToFile(path, bytes);
             FilePath = path;
             _xlsbSourcePath = path;
-            AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
+            if (adopt) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(!existingSource
@@ -121,17 +131,20 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
-            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared, cancellationToken) ? prepared : null;
+            bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
             bool directWrite = false;
             XlsbWorkbook? generatedWorkbook = null;
             byte[] bytes = existingSource
-                ? unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options)
+                ? ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options))
                 : GenerateNativeXlsb(options, cancellationToken, out directWrite, out generatedWorkbook);
+            bool adopt = ownedEdit == null && (!unchanged || !IsSdkDeferred);
             await CommitPreparedPackageToFileAsync(path, bytes, cancellationToken).ConfigureAwait(false);
             FilePath = path;
             _xlsbSourcePath = path;
-            AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
+            if (adopt) AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
             LastSaveDiagnostics = directWrite
                 ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
                 : ExcelSaveDiagnostics.Standard(!existingSource
@@ -151,7 +164,8 @@ namespace OfficeIMO.Excel {
             }
 
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
-            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared) ? prepared : null;
+            bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
             if (!existingSource) {
                 if (TryGetDirectTabularSaveSource(options, CancellationToken.None, "Xlsb", out ExcelDirectTabularSource source)) {
                     if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, CancellationToken.None, options?.XlsbUseSharedStrings == true)) {
@@ -173,11 +187,13 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            byte[] bytes = unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options);
+            byte[] bytes = ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options));
+            // Destination callbacks may open the SDK and edit the workbook after these bytes were prepared.
+            bool refresh = ownedEdit == null && (!unchanged || !IsSdkDeferred);
             PrepareDestinationStreamForWrite(destination);
             destination.Write(bytes, 0, bytes.Length);
             try { destination.Flush(); } catch (NotSupportedException) { }
-            RefreshXlsbStateAfterNativeWrite(bytes);
+            if (refresh) RefreshXlsbStateAfterNativeWrite(bytes);
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
                 : "XLSB worksheet cell records rewritten while all other package parts were preserved.");
@@ -193,8 +209,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
-            bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            byte[]? ownedEdit = existingSource && TryPrepareOwnedXlsbEdit(options, out byte[] prepared, cancellationToken) ? prepared : null;
+            bool unchanged = existingSource && ownedEdit == null && CanCopyUnchangedXlsb(options);
             if (!existingSource) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (TryGetDirectTabularSaveSource(options, cancellationToken, "Xlsb", out ExcelDirectTabularSource source)) {
@@ -218,11 +236,14 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            byte[] bytes = unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options);
+            byte[] bytes = ownedEdit ?? (unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb(options));
+            // Destination callbacks may open the SDK and edit the workbook after these bytes were prepared.
+            bool refresh = ownedEdit == null && (!unchanged || !IsSdkDeferred);
+            cancellationToken.ThrowIfCancellationRequested();
             PrepareDestinationStreamForWrite(destination);
             await destination.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
             try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
-            RefreshXlsbStateAfterNativeWrite(bytes);
+            if (refresh) RefreshXlsbStateAfterNativeWrite(bytes);
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
                 : "XLSB worksheet cell records rewritten while all other package parts were preserved.");
@@ -280,7 +301,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void RestoreNativeXlsbProjectionIdentity(XlsbWorkbook workbook) {
-            XlsbDefinedNameProjector.SynchronizeExisting(this, workbook.DefinedNames);
+            XlsbDefinedNameProjector.SynchronizeExisting(XlsbWorkbookMarkup.Root(this), workbook.DefinedNames);
             if (workbook.VbaProjectPartName != null && WorkbookPartRoot.VbaProjectPart != null) {
                 using var input = new MemoryStream(workbook.RelatedParts[workbook.VbaProjectPartName].Bytes, writable: false);
                 WorkbookPartRoot.VbaProjectPart.FeedData(input);
@@ -291,24 +312,7 @@ namespace OfficeIMO.Excel {
             foreach (var sheet in Sheets) {
                 var native = workbook.Worksheets.FirstOrDefault(item => item.Name == sheet.Name);
                 if (native == null) continue;
-                var root = sheet.WorksheetPart.Worksheet!;
-                if (native.UsedRange != null)
-                    root.SheetDimension = new DocumentFormat.OpenXml.Spreadsheet.SheetDimension { Reference = native.UsedRange.ToA1Reference() };
-                var nativeFormulas = native.Cells.Where(cell => cell.FormulaText != null).ToDictionary(cell => ExcelA1.CellReference(cell.Row, cell.Column));
-                foreach (var cell in root.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Where(cell => cell.CellFormula != null))
-                    if (nativeFormulas.TryGetValue(cell.CellReference?.Value ?? string.Empty, out var formula)) cell.CellFormula!.Text = formula.FormulaText!;
-                var clearedOpaque = native.Cells.Where(cell => cell.FormulaBytes != null && cell.FormulaText == null && cell.Kind == XlsbCellValueKind.Text && cell.Value is string text && text.Length == 0)
-                    .ToDictionary(cell => ExcelA1.CellReference(cell.Row, cell.Column));
-                if (clearedOpaque.Count != 0) foreach (var cell in root.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>())
-                    if (clearedOpaque.ContainsKey(cell.CellReference?.Value ?? string.Empty) && cell.CellFormula == null) {
-                        cell.InlineString = null; cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
-                        cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(string.Empty);
-                    }
-                string? codeName = native.Properties?.CodeName;
-                if (string.IsNullOrEmpty(codeName)) continue;
-                var properties = root.SheetProperties;
-                if (properties == null) { properties = new DocumentFormat.OpenXml.Spreadsheet.SheetProperties(); root.AddChild(properties, true); }
-                properties.CodeName = codeName;
+                XlsbWorksheetIdentity.Restore(XlsbWorksheetMarkup.Root(sheet), native);
             }
         }
 

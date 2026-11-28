@@ -152,7 +152,10 @@ namespace OfficeIMO.Excel {
                 return PrepareStrictWorksheetName(name, existing);
             }
 
-            // Sanitize
+            return SanitizeWorksheetName(name, existing);
+        }
+
+        private static string SanitizeWorksheetName(string name, ISet<string> existing) {
             string baseName = (name ?? string.Empty).Trim().Trim('\'', ' ');
             var sb = new System.Text.StringBuilder(baseName.Length > 0 ? baseName.Length : 5);
             // Invalid characters and unpaired surrogates become underscores, and runs of underscores collapse to one for nicer names.

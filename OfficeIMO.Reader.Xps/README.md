@@ -4,6 +4,12 @@
 `OfficeIMO.Xps` engine. It reads literal Unicode, native story order, page identity
 and tables without rendering or requiring a desktop XPS viewer.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.Xps
+```
+
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Xps;
@@ -67,5 +73,6 @@ with interleaved root relationships use their `.xps` or `.oxps` extension with t
 default detection mode; their contents are assembled by the native package loader.
 
 The adapter references only `OfficeIMO.Reader.Core` and `OfficeIMO.Xps`.
-See the [native support matrix](../OfficeIMO.Xps/SUPPORT.md) and
-[PDF export API](../OfficeIMO.Xps.Pdf/README.md).
+See the [native support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Xps/SUPPORT.md) and
+[PDF export API](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Xps.Pdf/README.md).
+

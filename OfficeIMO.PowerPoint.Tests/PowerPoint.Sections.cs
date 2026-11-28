@@ -27,11 +27,36 @@ namespace OfficeIMO.Tests {
 
                 PowerPointSectionInfo deepDive = sections.First(s => s.Name == "Deep Dive");
                 Assert.Contains(2, deepDive.SlideIndices);
+                Assert.False(presentation.IsSdkLoaded);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void SectionLookupUsesOnlyThePresentationSectionsExtension() {
+            byte[] bytes;
+            using (PowerPointDocument authored = PowerPointDocument.Create()) {
+                authored.AddSlide();
+                authored.AddSection("Real section", 0);
+                Presentation root = authored.OpenXmlDocument.PresentationPart!.Presentation;
+                var unrelated = new PresentationExtension {
+                    Uri = "{F3EC6F12-A251-47E0-A79D-077002535716}"
+                };
+                unrelated.Append(new SectionList(new Section(new SectionSlideIdList(new SectionSlideIdListEntry { Id = 256U })) {
+                    Id = "{B01E31F0-FF45-49CE-A1C5-44B7843073BA}",
+                    Name = "Unrelated section"
+                }));
+                root.GetFirstChild<PresentationExtensionList>()!.PrependChild(unrelated);
+                bytes = authored.ToBytes();
+            }
+
+            using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(bytes, writable: false));
+            Assert.Equal("Real section", Assert.Single(reopened.GetSections()).Name);
+            Assert.False(reopened.RenameSection("Unrelated section", "Changed"));
+            Assert.False(reopened.IsSdkLoaded);
         }
 
         [Fact]

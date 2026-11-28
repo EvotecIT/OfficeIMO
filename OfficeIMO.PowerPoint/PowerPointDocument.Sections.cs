@@ -1,13 +1,6 @@
-using System.Reflection;
-using System.Runtime.ExceptionServices;
-using System.Xml.Linq;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.Core.Internal;
-using A = DocumentFormat.OpenXml.Drawing;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
@@ -16,36 +9,16 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointSectionInfo> GetSections() {
             ThrowIfDisposed();
-            P14.SectionList? sectionList = GetSectionList(create: false);
-            if (sectionList == null) {
+            OfficeXmlNode root = PresentationPartRef.Root;
+            OfficeXmlNode sectionList = GetSectionList(root, create: false);
+            if (sectionList.IsNone) {
                 return Array.Empty<PowerPointSectionInfo>();
             }
 
-            List<SlideId> slideIds = PresentationRoot?.SlideIdList?
-                .Elements<SlideId>()
-                .ToList() ?? new List<SlideId>();
+            List<OfficeXmlNode> slideIds = SlidesForSections(root);
             Dictionary<uint, int> slideIndexMap = BuildSlideIndexMap(slideIds);
 
-            List<PowerPointSectionInfo> sections = new();
-            foreach (P14.Section section in sectionList.Elements<P14.Section>()) {
-                List<int> indices = new();
-                P14.SectionSlideIdList? list = section.SectionSlideIdList;
-                if (list != null) {
-                    foreach (P14.SectionSlideIdListEntry entry in list.Elements<P14.SectionSlideIdListEntry>()) {
-                        uint? slideId = entry.Id?.Value;
-                        if (slideId != null && slideIndexMap.TryGetValue(slideId.Value, out int index)) {
-                            indices.Add(index);
-                        }
-                    }
-                }
-
-                indices.Sort();
-                string name = section.Name?.Value ?? string.Empty;
-                string id = section.Id?.Value ?? string.Empty;
-                sections.Add(new PowerPointSectionInfo(name, id, indices));
-            }
-
-            return sections;
+            return SectionChildren(sectionList, "section").Select(section => BuildSectionInfo(section, slideIndexMap)).ToList();
         }
 
         /// <summary>
@@ -55,50 +28,52 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-            SlideIdList? slideIdList = PresentationRoot?.SlideIdList;
-            if (slideIdList == null) {
+            PowerPointPartRef presentation = PresentationPartRef.ForMovingXmlNodes();
+            OfficeXmlNode slideIdList = presentation.Root.Child(SectionPresentationNamespace, "sldIdLst");
+            if (slideIdList.IsNone) {
                 throw new InvalidOperationException("Presentation has no slides.");
             }
 
-            List<SlideId> slideIds = slideIdList.Elements<SlideId>().ToList();
+            List<OfficeXmlNode> slideIds = slideIdList.Children(SectionPresentationNamespace, "sldId").ToList();
             if (slideIds.Count == 0) {
                 throw new InvalidOperationException("Presentation has no slides.");
             }
             ArgumentOutOfRangeException.ThrowIfNegative(startSlideIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(startSlideIndex, slideIds.Count);
 
-            P14.SectionList sectionList = EnsureSectionList(slideIds);
-            uint slideIdValue = slideIds[startSlideIndex].Id?.Value ?? throw new InvalidOperationException("Slide ID is missing.");
+            uint slideIdValue = slideIds[startSlideIndex].UInt32Attribute("id") ?? throw new InvalidOperationException("Slide ID is missing.");
+            OfficeXmlNode sectionList = EnsureSectionList(presentation.Root, slideIds);
+            presentation.MarkEdited();
 
-            P14.Section? containing = FindSectionBySlideId(sectionList, slideIdValue);
-            if (containing == null) {
-                P14.Section fallback = sectionList.Elements<P14.Section>().Last();
-                EnsureSectionSlideIdList(fallback)
-                    .Append(new P14.SectionSlideIdListEntry { Id = slideIdValue });
-                return BuildSectionInfo(fallback, slideIds);
+            OfficeXmlNode containing = FindSectionBySlideId(sectionList, slideIdValue);
+            if (containing.IsNone) {
+                OfficeXmlNode fallback = SectionChildren(sectionList, "section").Last();
+                OfficeXmlNode members = EnsureSectionSlideIdList(fallback);
+                members.Append(CreateSectionEntry(members, slideIdValue));
+                return BuildSectionInfo(fallback, BuildSlideIndexMap(slideIds));
             }
 
-            P14.SectionSlideIdList list = EnsureSectionSlideIdList(containing);
-            List<P14.SectionSlideIdListEntry> entries = list.Elements<P14.SectionSlideIdListEntry>().ToList();
-            int entryIndex = entries.FindIndex(entry => entry.Id?.Value == slideIdValue);
+            OfficeXmlNode list = EnsureSectionSlideIdList(containing);
+            List<OfficeXmlNode> entries = SectionChildren(list, "sldId").ToList();
+            int entryIndex = entries.FindIndex(entry => entry.UInt32Attribute("id") == slideIdValue);
             if (entryIndex <= 0) {
-                containing.Name = name;
-                return BuildSectionInfo(containing, slideIds);
+                containing.SetAttribute("name", name);
+                return BuildSectionInfo(containing, BuildSlideIndexMap(slideIds));
             }
 
             List<uint> movedIds = entries
                 .Skip(entryIndex)
-                .Select(entry => entry.Id?.Value)
+                .Select(entry => entry.UInt32Attribute("id"))
                 .Where(id => id != null)
                 .Select(id => id!.Value)
                 .ToList();
-            foreach (P14.SectionSlideIdListEntry entry in entries.Skip(entryIndex)) {
+            foreach (OfficeXmlNode entry in entries.Skip(entryIndex)) {
                 entry.Remove();
             }
 
-            P14.Section newSection = CreateSection(name, movedIds);
-            sectionList.InsertAfter(newSection, containing);
-            return BuildSectionInfo(newSection, slideIds);
+            OfficeXmlNode newSection = CreateSection(sectionList, name, movedIds);
+            newSection = sectionList.InsertBefore(newSection, containing.NextNode());
+            return BuildSectionInfo(newSection, BuildSlideIndexMap(slideIds));
         }
 
         /// <summary>
@@ -109,16 +84,18 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(name);
             ArgumentException.ThrowIfNullOrWhiteSpace(newName);
 
-            P14.SectionList? sectionList = GetSectionList(create: false);
-            if (sectionList == null) {
+            PowerPointPartRef presentation = PresentationPartRef;
+            OfficeXmlNode sectionList = GetSectionList(presentation.Root, create: false);
+            if (sectionList.IsNone) {
                 return false;
             }
 
             StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            foreach (P14.Section section in sectionList.Elements<P14.Section>()) {
-                string currentName = section.Name?.Value ?? string.Empty;
+            foreach (OfficeXmlNode section in SectionChildren(sectionList, "section")) {
+                string currentName = section.Attribute("name") ?? string.Empty;
                 if (string.Equals(currentName, name, comparison)) {
-                    section.Name = newName;
+                    presentation.MarkEdited();
+                    section.SetAttribute("name", newName);
                     return true;
                 }
             }
@@ -126,67 +103,80 @@ namespace OfficeIMO.PowerPoint {
             return false;
         }
 
-        private P14.SectionList? GetSectionList(bool create) {
-            Presentation presentation = PresentationRoot ??= new Presentation();
-            PresentationExtensionList? extList = presentation.GetFirstChild<PresentationExtensionList>();
-            if (extList == null && create) {
-                extList = new PresentationExtensionList();
-                presentation.Append(extList);
+        private const int SectionPresentationNamespace = OfficeXmlNamespaces.PresentationML;
+
+        private static List<OfficeXmlNode> SlidesForSections(OfficeXmlNode presentation) =>
+            presentation.Child(SectionPresentationNamespace, "sldIdLst")
+                .Children(SectionPresentationNamespace, "sldId").ToList();
+
+        private static OfficeXmlNode GetSectionList(OfficeXmlNode root, bool create) {
+            OfficeXmlNode extensions = root.Child(SectionPresentationNamespace, "extLst");
+            if (extensions.IsNone && create) {
+                extensions = root.Append(root.CreateElement(SectionPresentationNamespace, "extLst"));
             }
 
-            if (extList == null) {
-                return null;
+            OfficeXmlNode extension = GetSectionExtension(extensions);
+            if (extension.IsNone && create) {
+                extension = extensions.CreateElement(SectionPresentationNamespace, "ext");
+                extension.SetAttribute("uri", PowerPointTreeSections.SectionListUri);
+                extension = extensions.Append(extension);
             }
 
-            PresentationExtension? sectionExt = extList.Elements<PresentationExtension>()
-                .FirstOrDefault(ext => string.Equals(ext.Uri?.Value, SectionListUri, StringComparison.Ordinal));
-            if (sectionExt == null && create) {
-                sectionExt = new PresentationExtension { Uri = SectionListUri };
-                extList.Append(sectionExt);
+            OfficeXmlNode sections = extension.Child(PowerPointTreeSections.P14Namespace, "sectionLst");
+            if (sections.IsNone && create) {
+                sections = CreateSectionNode(extension, "sectionLst");
+                sections.DeclareNamespace("p14", PowerPointTreeSections.P14Namespace);
+                sections = extension.Append(sections);
             }
-
-            if (sectionExt == null) {
-                return null;
-            }
-
-            P14.SectionList? sectionList = sectionExt.GetFirstChild<P14.SectionList>();
-            if (sectionList == null && create) {
-                sectionList = new P14.SectionList();
-                sectionList.AddNamespaceDeclaration("p14", P14Namespace);
-                sectionExt.Append(sectionList);
-            }
-
-            return sectionList;
+            return sections;
         }
 
-        private P14.SectionList EnsureSectionList(IReadOnlyList<SlideId> slideIds) {
-            P14.SectionList sectionList = GetSectionList(create: true)
-                ?? throw new InvalidOperationException("Unable to create a section list.");
-            if (slideIds.Count > 0 && !sectionList.Elements<P14.Section>().Any()) {
+        private static OfficeXmlNode GetSectionExtension(OfficeXmlNode extensions) {
+            foreach (OfficeXmlNode extension in extensions.Children(SectionPresentationNamespace, "ext")) {
+                if (string.Equals(extension.Attribute("uri"), PowerPointTreeSections.SectionListUri, StringComparison.Ordinal)) {
+                    return extension;
+                }
+            }
+
+            return default;
+        }
+
+        private static IEnumerable<OfficeXmlNode> SectionChildren(OfficeXmlNode parent, string localName) {
+            foreach (OfficeXmlNode child in parent.Children()) {
+                if (child.Is(PowerPointTreeSections.P14Namespace, localName)) yield return child;
+            }
+        }
+
+        private static OfficeXmlNode CreateSectionNode(OfficeXmlNode parent, string localName) =>
+            parent.CreateElement(PowerPointTreeSections.P14Namespace, localName, "p14");
+
+        private static OfficeXmlNode EnsureSectionList(OfficeXmlNode root, IReadOnlyList<OfficeXmlNode> slideIds) {
+            OfficeXmlNode sectionList = GetSectionList(root, create: true);
+            if (slideIds.Count > 0 && !SectionChildren(sectionList, "section").Any()) {
                 List<uint> ids = slideIds
-                    .Select(id => id.Id?.Value)
+                    .Select(id => id.UInt32Attribute("id"))
                     .Where(id => id != null)
                     .Select(id => id!.Value)
                     .ToList();
-                sectionList.Append(CreateSection(DefaultSectionName, ids));
+                sectionList.Append(CreateSection(sectionList, DefaultSectionName, ids));
             }
 
             EnsureSectionCoverage(sectionList, slideIds);
             return sectionList;
         }
 
-        private static void EnsureSectionCoverage(P14.SectionList sectionList, IReadOnlyList<SlideId> slideIds) {
+        private static void EnsureSectionCoverage(OfficeXmlNode sectionList, IReadOnlyList<OfficeXmlNode> slideIds) {
             Dictionary<uint, int> slideIndexMap = BuildSlideIndexMap(slideIds);
             HashSet<uint> assigned = new();
-            List<P14.Section> orderedSections = new();
+            List<OfficeXmlNode> orderedSections = new();
 
-            foreach (P14.Section section in sectionList.Elements<P14.Section>().ToList()) {
-                P14.SectionSlideIdList list = EnsureSectionSlideIdList(section);
+            foreach (OfficeXmlNode section in SectionChildren(sectionList, "section").ToList()) {
+                OfficeXmlNode list = EnsureSectionSlideIdList(section);
                 // An explicitly empty section is a boundary awaiting its first slide. A section
                 // whose former members were removed is different and can be pruned below.
-                bool wasEmpty = !list.Elements<P14.SectionSlideIdListEntry>().Any();
-                List<uint> sectionSlideIds = list.Elements<P14.SectionSlideIdListEntry>()
-                    .Select(entry => entry.Id?.Value)
+                bool wasEmpty = !SectionChildren(list, "sldId").Any();
+                List<uint> sectionSlideIds = SectionChildren(list, "sldId")
+                    .Select(entry => entry.UInt32Attribute("id"))
                     .Where(id => id != null && slideIndexMap.ContainsKey(id.Value))
                     .Select(id => id!.Value)
                     .OrderBy(id => slideIndexMap[id])
@@ -198,10 +188,10 @@ namespace OfficeIMO.PowerPoint {
                         continue;
                     }
 
-                    list.Append(new P14.SectionSlideIdListEntry { Id = slideId });
+                    list.Append(CreateSectionEntry(list, slideId));
                 }
 
-                if (wasEmpty || list.Elements<P14.SectionSlideIdListEntry>().Any()) {
+                if (wasEmpty || SectionChildren(list, "sldId").Any()) {
                     orderedSections.Add(section);
                 } else {
                     section.Remove();
@@ -213,8 +203,8 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                P14.Section defaultSection = CreateSection(DefaultSectionName, slideIds
-                    .Select(id => id.Id?.Value)
+                OfficeXmlNode defaultSection = CreateSection(sectionList, DefaultSectionName, slideIds
+                    .Select(id => id.UInt32Attribute("id"))
                     .Where(id => id != null)
                     .Select(id => id!.Value)
                     .ToList());
@@ -223,22 +213,22 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            List<uint> unassigned = slideIds.Select(id => id.Id?.Value)
+            List<uint> unassigned = slideIds.Select(id => id.UInt32Attribute("id"))
                 .Where(id => id != null).Select(id => id!.Value)
                 .Where(id => !assigned.Contains(id)).ToList();
             if (unassigned.Count > 0) {
-                P14.Section? targetSection = orderedSections.LastOrDefault(section =>
-                    EnsureSectionSlideIdList(section).Elements<P14.SectionSlideIdListEntry>().Any());
-                if (targetSection == null) orderedSections.Insert(0, CreateSection(DefaultSectionName, unassigned));
+                OfficeXmlNode targetSection = orderedSections.LastOrDefault(section =>
+                    SectionChildren(EnsureSectionSlideIdList(section), "sldId").Any());
+                if (targetSection.IsNone) orderedSections.Insert(0, CreateSection(sectionList, DefaultSectionName, unassigned));
                 else {
-                    P14.SectionSlideIdList target = EnsureSectionSlideIdList(targetSection);
-                    foreach (uint slideId in unassigned) target.Append(new P14.SectionSlideIdListEntry { Id = slideId });
+                    OfficeXmlNode target = EnsureSectionSlideIdList(targetSection);
+                    foreach (uint slideId in unassigned) target.Append(CreateSectionEntry(target, slideId));
                 }
             }
 
             // An unused section stays before the following section, rather than becoming the
             // trailing active boundary again when that following section gains its first slide.
-            var sectionOrder = new Dictionary<P14.Section, int>();
+            var sectionOrder = new Dictionary<OfficeXmlNode, int>();
             int followingStart = int.MaxValue;
             for (int index = orderedSections.Count - 1; index >= 0; index--) {
                 int start = GetSectionStartIndex(orderedSections[index], slideIndexMap);
@@ -248,41 +238,37 @@ namespace OfficeIMO.PowerPoint {
             orderedSections = orderedSections.OrderBy(section => sectionOrder[section]).ToList();
 
             sectionList.RemoveAllChildren();
-            foreach (P14.Section section in orderedSections) {
+            foreach (OfficeXmlNode section in orderedSections) {
                 sectionList.Append(section);
             }
         }
 
-        private static P14.Section CreateSection(string name, IReadOnlyList<uint> slideIds) {
-            P14.Section section = new() {
-                Id = CreateSectionId(),
-                Name = name
-            };
-            P14.SectionSlideIdList list = new();
+        private static OfficeXmlNode CreateSection(OfficeXmlNode parent, string name, IReadOnlyList<uint> slideIds) {
+            OfficeXmlNode section = CreateSectionNode(parent, "section");
+            section.SetAttribute("id", Guid.NewGuid().ToString("B").ToUpperInvariant());
+            section.SetAttribute("name", name);
+            OfficeXmlNode members = section.Append(CreateSectionNode(section, "sldIdLst"));
             foreach (uint slideId in slideIds) {
-                list.Append(new P14.SectionSlideIdListEntry { Id = slideId });
+                members.Append(CreateSectionEntry(members, slideId));
             }
-            section.Append(list);
             return section;
         }
 
-        private static string CreateSectionId() {
-            return Guid.NewGuid().ToString("B").ToUpperInvariant();
+        private static OfficeXmlNode CreateSectionEntry(OfficeXmlNode parent, uint id) {
+            OfficeXmlNode entry = CreateSectionNode(parent, "sldId");
+            entry.SetUInt32Attribute("id", id);
+            return entry;
         }
 
-        private static P14.SectionSlideIdList EnsureSectionSlideIdList(P14.Section section) {
-            P14.SectionSlideIdList? list = section.SectionSlideIdList;
-            if (list == null) {
-                list = new P14.SectionSlideIdList();
-                section.Append(list);
-            }
-            return list;
+        private static OfficeXmlNode EnsureSectionSlideIdList(OfficeXmlNode section) {
+            OfficeXmlNode members = section.Child(PowerPointTreeSections.P14Namespace, "sldIdLst");
+            return members.IsNone ? section.Append(CreateSectionNode(section, "sldIdLst")) : members;
         }
 
-        private static Dictionary<uint, int> BuildSlideIndexMap(IReadOnlyList<SlideId> slideIds) {
+        private static Dictionary<uint, int> BuildSlideIndexMap(IReadOnlyList<OfficeXmlNode> slideIds) {
             Dictionary<uint, int> map = new();
             for (int i = 0; i < slideIds.Count; i++) {
-                uint? id = slideIds[i].Id?.Value;
+                uint? id = slideIds[i].UInt32Attribute("id");
                 if (id != null) {
                     map[id.Value] = i;
                 }
@@ -290,29 +276,29 @@ namespace OfficeIMO.PowerPoint {
             return map;
         }
 
-        private static P14.Section? FindSectionBySlideId(P14.SectionList sectionList, uint slideId) {
-            foreach (P14.Section section in sectionList.Elements<P14.Section>()) {
-                P14.SectionSlideIdList? list = section.SectionSlideIdList;
-                if (list == null) {
+        private static OfficeXmlNode FindSectionBySlideId(OfficeXmlNode sectionList, uint slideId) {
+            foreach (OfficeXmlNode section in SectionChildren(sectionList, "section")) {
+                OfficeXmlNode list = section.Child(PowerPointTreeSections.P14Namespace, "sldIdLst");
+                if (list.IsNone) {
                     continue;
                 }
 
-                if (list.Elements<P14.SectionSlideIdListEntry>().Any(entry => entry.Id?.Value == slideId)) {
+                if (SectionChildren(list, "sldId").Any(entry => entry.UInt32Attribute("id") == slideId)) {
                     return section;
                 }
             }
 
-            return null;
+            return default;
         }
 
-        private static int GetSectionStartIndex(P14.Section section, IReadOnlyDictionary<uint, int> slideIndexMap) {
-            P14.SectionSlideIdList? list = section.SectionSlideIdList;
-            if (list == null) {
+        private static int GetSectionStartIndex(OfficeXmlNode section, IReadOnlyDictionary<uint, int> slideIndexMap) {
+            OfficeXmlNode list = section.Child(PowerPointTreeSections.P14Namespace, "sldIdLst");
+            if (list.IsNone) {
                 return int.MaxValue;
             }
 
-            return list.Elements<P14.SectionSlideIdListEntry>()
-                .Select(entry => entry.Id?.Value)
+            return SectionChildren(list, "sldId")
+                .Select(entry => entry.UInt32Attribute("id"))
                 .Where(id => id != null && slideIndexMap.ContainsKey(id.Value))
                 .Select(id => slideIndexMap[id!.Value])
                 .DefaultIfEmpty(int.MaxValue)
@@ -320,71 +306,72 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void AssignSlideToNearestSection(uint slideId, int slideIndex) {
-            P14.SectionList? sectionList = GetSectionList(create: false);
-            if (sectionList == null) {
+            PowerPointPartRef presentation = PresentationPartRef;
+            OfficeXmlNode sectionList = GetSectionList(presentation.Root, create: false);
+            if (sectionList.IsNone) {
                 return;
             }
 
-            List<SlideId> slideIds = PresentationRoot?.SlideIdList?
-                .Elements<SlideId>()
-                .ToList() ?? new List<SlideId>();
+            List<OfficeXmlNode> slideIds = SlidesForSections(presentation.Root);
             if (slideIds.Count == 0) {
                 return;
             }
 
-            if (FindSectionBySlideId(sectionList, slideId) != null) {
+            presentation.MarkEdited();
+            if (FindSectionBySlideId(sectionList, slideId).Exists) {
                 EnsureSectionCoverage(sectionList, slideIds);
                 return;
             }
 
-            P14.Section? targetSection = null;
+            OfficeXmlNode targetSection = default;
             // A boundary declared between slides takes precedence over the preceding slide's section.
-            P14.Section? lastSection = sectionList.Elements<P14.Section>().LastOrDefault();
-            if (slideIndex == slideIds.Count - 1 && lastSection != null &&
-                !EnsureSectionSlideIdList(lastSection).Elements<P14.SectionSlideIdListEntry>().Any()) {
+            OfficeXmlNode lastSection = SectionChildren(sectionList, "section").LastOrDefault();
+            if (slideIndex == slideIds.Count - 1 && lastSection.Exists &&
+                !SectionChildren(EnsureSectionSlideIdList(lastSection), "sldId").Any()) {
                 targetSection = lastSection;
             }
-            if (targetSection == null && slideIndex > 0) {
-                uint? previousSlideId = slideIds[slideIndex - 1].Id?.Value;
+            if (targetSection.IsNone && slideIndex > 0) {
+                uint? previousSlideId = slideIds[slideIndex - 1].UInt32Attribute("id");
                 if (previousSlideId != null) {
                     targetSection = FindSectionBySlideId(sectionList, previousSlideId.Value);
                 }
             }
 
-            if (targetSection == null && slideIndex + 1 < slideIds.Count) {
-                uint? nextSlideId = slideIds[slideIndex + 1].Id?.Value;
+            if (targetSection.IsNone && slideIndex + 1 < slideIds.Count) {
+                uint? nextSlideId = slideIds[slideIndex + 1].UInt32Attribute("id");
                 if (nextSlideId != null) {
                     targetSection = FindSectionBySlideId(sectionList, nextSlideId.Value);
                 }
             }
 
-            targetSection ??= sectionList.Elements<P14.Section>().LastOrDefault();
-            if (targetSection == null) {
-                sectionList.Append(CreateSection(DefaultSectionName, new[] { slideId }));
+            if (targetSection.IsNone) targetSection = SectionChildren(sectionList, "section").LastOrDefault();
+            if (targetSection.IsNone) {
+                sectionList.Append(CreateSection(sectionList, DefaultSectionName, new[] { slideId }));
                 EnsureSectionCoverage(sectionList, slideIds);
                 return;
             }
 
-            EnsureSectionSlideIdList(targetSection).Append(new P14.SectionSlideIdListEntry { Id = slideId });
+            OfficeXmlNode members = EnsureSectionSlideIdList(targetSection);
+            members.Append(CreateSectionEntry(members, slideId));
             EnsureSectionCoverage(sectionList, slideIds);
         }
 
         private void SyncSectionsWithSlides() {
-            P14.SectionList? sectionList = GetSectionList(create: false);
-            if (sectionList == null) {
+            PowerPointPartRef presentation = PresentationPartRef;
+            OfficeXmlNode sectionList = GetSectionList(presentation.Root, create: false);
+            if (sectionList.IsNone) {
                 return;
             }
 
-            List<SlideId> slideIds = PresentationRoot?.SlideIdList?
-                .Elements<SlideId>()
-                .ToList() ?? new List<SlideId>();
+            presentation.MarkEdited();
+            List<OfficeXmlNode> slideIds = SlidesForSections(presentation.Root);
             if (slideIds.Count == 0) {
                 EnsureSectionCoverage(sectionList, slideIds);
-                if (sectionList.Elements<P14.Section>().Any()) return;
-                PresentationExtension? sectionExtension = sectionList.Parent as PresentationExtension;
-                PresentationExtensionList? extensionList = sectionExtension?.Parent as PresentationExtensionList;
-                sectionExtension?.Remove();
-                if (extensionList != null && !extensionList.Elements<PresentationExtension>().Any()) {
+                if (SectionChildren(sectionList, "section").Any()) return;
+                OfficeXmlNode sectionExtension = sectionList.Parent;
+                OfficeXmlNode extensionList = sectionExtension.Parent;
+                sectionExtension.Remove();
+                if (extensionList.Exists && extensionList.Child(SectionPresentationNamespace, "ext").IsNone) {
                     extensionList.Remove();
                 }
                 return;
@@ -393,13 +380,12 @@ namespace OfficeIMO.PowerPoint {
             EnsureSectionCoverage(sectionList, slideIds);
         }
 
-        private PowerPointSectionInfo BuildSectionInfo(P14.Section section, IReadOnlyList<SlideId> slideIds) {
-            Dictionary<uint, int> slideIndexMap = BuildSlideIndexMap(slideIds);
+        private static PowerPointSectionInfo BuildSectionInfo(OfficeXmlNode section, IReadOnlyDictionary<uint, int> slideIndexMap) {
             List<int> indices = new();
-            P14.SectionSlideIdList? list = section.SectionSlideIdList;
-            if (list != null) {
-                foreach (P14.SectionSlideIdListEntry entry in list.Elements<P14.SectionSlideIdListEntry>()) {
-                    uint? id = entry.Id?.Value;
+            OfficeXmlNode list = section.Child(PowerPointTreeSections.P14Namespace, "sldIdLst");
+            if (list.Exists) {
+                foreach (OfficeXmlNode entry in SectionChildren(list, "sldId")) {
+                    uint? id = entry.UInt32Attribute("id");
                     if (id != null && slideIndexMap.TryGetValue(id.Value, out int index)) {
                         indices.Add(index);
                     }
@@ -407,7 +393,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             indices.Sort();
-            return new PowerPointSectionInfo(section.Name?.Value ?? string.Empty, section.Id?.Value ?? string.Empty, indices);
+            return new PowerPointSectionInfo(section.Attribute("name") ?? string.Empty, section.Attribute("id") ?? string.Empty, indices);
         }
 
     }

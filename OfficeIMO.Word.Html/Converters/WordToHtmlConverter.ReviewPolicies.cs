@@ -128,7 +128,10 @@ namespace OfficeIMO.Word.Html {
 
         private static void RestoreDeletedText(OfficeXmlNode element) {
             foreach (OfficeXmlNode deleted in element.ModelDescendants("delText").ToArray()) {
-                OfficeXmlNode text = deleted.Parent.CreateElement(WordXml.W, "t");
+                // Created under the run, where w:t is a model element: a detached mc:Choice or mc:Fallback parent has no type
+                // for it, and the text reader skips an untyped w:t.
+                OfficeXmlNode run = deleted.Ancestors().FirstOrDefault(ancestor => ancestor.IsW("r") && ancestor.IsModelElement());
+                OfficeXmlNode text = (run.Exists ? run : deleted.Parent).CreateElement(WordXml.W, "t");
                 text.SetInnerText(deleted.InnerText);
                 if (deleted.Attribute(WordXml.Xml, "space") is { } space) text.SetAttribute(WordXml.Xml, "space", space);
                 deleted.InsertAfterSelf(text);

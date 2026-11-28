@@ -159,6 +159,10 @@ namespace OfficeIMO.Excel {
             return document;
         }
 
+        private static ExcelDocument CreateDeferredDocument(ExcelDeferredWorkbook deferred, byte[] packageBytes, bool readOnly) =>
+            CreateDeferredDocument(deferred, packageBytes, CreateOpenSettings(null), readOnly,
+                filePath: null, sourceStream: null, leaveSourceStreamOpen: true, DocumentPersistenceMode.Explicit);
+
         private static WorkbookPart GetWorkbookPartOrThrow(SpreadsheetDocument document) {
             ArgumentNullException.ThrowIfNull(document);
 
@@ -420,6 +424,17 @@ namespace OfficeIMO.Excel {
 
             XlsbImportOptions effectiveOptions = importOptions ?? new XlsbImportOptions();
             XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes, effectiveOptions);
+            ExcelDocument? owned = TryProjectXlsbOnOwnedPackage(workbook, readOnly,
+                effectiveOptions.CancellationToken, effectiveOptions.MaxCells);
+            if (owned != null) {
+                try {
+                    owned.MarkLoadedFromOwnedXlsb(filePath, workbook);
+                    return owned;
+                } catch {
+                    owned.Dispose();
+                    throw;
+                }
+            }
             ExcelDocument document = XlsbWorkbookProjector.ToExcelDocument(workbook,
                 effectiveOptions.CancellationToken, effectiveOptions.MaxCells);
             try {

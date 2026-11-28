@@ -139,21 +139,22 @@ public partial class Excel {
     }
 
     [Fact]
-    public void MetadataPartLimitCountsBytesReadInsteadOfTrustingStreamMetadata() {
-        using var stream = new NonSeekableReadStream(new byte[65]);
-        var options = new ExcelReaderOptions { MaxMetadataPartBytes = 64 };
+    public void WorkbookReaderRejectsTruncatedMetadataWithinTheConfiguredLimit() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string partName = "[Content_Types].xml";
+            byte[] contentTypes = ReadZipEntry(path, partName);
+            byte[] package = File.ReadAllBytes(path);
+            OpenXmlPartLengthTests.SetDeclaredLength(package, partName, contentTypes.Length - 4);
+            var options = new ExcelReaderOptions { MaxMetadataPartBytes = contentTypes.Length - 1 };
 
-        OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-            ExcelDocumentReader.DrainMetadataPartStream(
-                stream,
-                "xl/workbook.xml",
-                options));
-
-        Assert.Equal("excel", exception.Owner);
-        Assert.Equal(nameof(ExcelReaderOptions.MaxMetadataPartBytes), exception.LimitName);
-        Assert.Equal(options.MaxMetadataPartBytes, exception.Maximum);
-        Assert.Contains("xl/workbook.xml", exception.InnerException!.Message, StringComparison.Ordinal);
-        Assert.Contains("64 bytes", exception.InnerException!.Message, StringComparison.Ordinal);
+            Exception? error = Record.Exception(() => ExcelDocumentReader.Open(package, options).Dispose());
+            Assert.True(error is IOException { InnerException: System.Xml.XmlException }
+                || (error != null && ExcelPackagePartLengthFailure.Is(error)),
+                error?.ToString() ?? "The workbook opened with a truncated content-types catalog.");
+        } finally {
+            File.Delete(path);
+        }
     }
 
     [Theory]

@@ -1,48 +1,17 @@
 # OfficeIMO
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO)](https://www.nuget.org/packages/OfficeIMO)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO)
 
 `OfficeIMO` is the one-reference package for documents in .NET: Word, Excel, PowerPoint, PDF and Markdown, the conversions between them, `OfficeConverter` for files and folders, and the document reader for search and AI ingestion. It runs without Microsoft Office.
+
+## Install
 
 ```sh
 dotnet add package OfficeIMO
 ```
 
-Targets `netstandard2.0`, `net8.0` and `net10.0`, plus `net472` on Windows, so .NET Framework applications get the same conversion routes. To keep a dependency small, reference the individual [format packages](https://github.com/EvotecIT/OfficeIMO#packages) instead.
-
-## Render page images
-
-Use a loaded document's `ToImage` for one surface or `ToImages` for a batch. Both return `OfficeImageExportResult` with encoded `Bytes`, dimensions and diagnostics. `SaveAsImage` and `SaveAsImages` persist output and return conversion reports. The owning format's options inherit shared density, fonts, selection, limits and cancellation policies. [Image rendering](../Docs/officeimo.image-export.md) lists adapter packages and examples.
-
-The package capability catalog describes available library routes; `OfficeConverter.Routes` lists the routes executable by `OfficeConverter` and registered adapters. Its single-file `Convert` operation does not turn an image route into a page directory or ZIP. Use the owning `SaveAsImages` API for page files.
-
-## Create documents and save them as PDF
-
-```csharp
-using OfficeIMO;
-using OfficeIMO.Excel;
-using OfficeIMO.Excel.Pdf;
-using OfficeIMO.Word;
-using OfficeIMO.Word.Pdf;
-
-Sale[] sales = [new("North", 182_400m), new("South", 141_900m), new("West", 97_300m)];
-
-using (var report = WordDocument.Create("Sales.docx")) {
-    report.AddHeading("Quarterly sales", level: 1);
-    report.AddTable(sales);
-    report.AddChart(OfficeChartType.Column, sales, nameof(Sale.Region), nameof(Sale.Revenue));
-    report.Save();
-    report.SaveAsPdf("Sales.pdf");
-}
-
-using (var book = ExcelDocument.Create("Sales.xlsx", new ExcelCreateOptions { Theme = OfficeTheme.Modern })) {
-    book.AddSheet("Sales").AddTable(sales);
-    book.Save();
-    book.SaveAsPdf("Sales-workbook.pdf");
-}
-
-record Sale(string Region, decimal Revenue);
-```
+To keep a dependency small, reference the individual [format packages](https://github.com/EvotecIT/OfficeIMO#packages) instead.
 
 ## Convert files
 
@@ -89,6 +58,34 @@ foreach (OfficeBatchItemReport item in batch.Items) {
 
 With `ResumeFrom`, a rerun reuses verified outputs from the checkpoint and converts only what is missing; `RetryFailed` retries recorded failures. The checkpoint format and saved options are the same on every framework.
 
+## Create documents and save them as PDF
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+
+Sale[] sales = [new("North", 182_400m), new("South", 141_900m), new("West", 97_300m)];
+
+using (var report = WordDocument.Create("Sales.docx")) {
+    report.AddHeading("Quarterly sales", level: 1);
+    report.AddTable(sales);
+    report.AddChart(OfficeChartType.Column, sales, nameof(Sale.Region), nameof(Sale.Revenue));
+    report.Save();
+    report.SaveAsPdf("Sales.pdf");
+}
+
+using (var book = ExcelDocument.Create("Sales.xlsx", new ExcelCreateOptions { Theme = OfficeTheme.Modern })) {
+    book.AddSheet("Sales").AddTable(sales);
+    book.Save();
+    book.SaveAsPdf("Sales-workbook.pdf");
+}
+
+record Sale(string Region, decimal Revenue);
+```
+
 ## Convert in memory
 
 `To{Format}()` returns the target document model; the async form returns the model and its report together:
@@ -105,6 +102,12 @@ using WordDocument word = converted.Value;
 converted.Report.ThrowIfLoss();
 word.Save("Review.docx");
 ```
+
+## Render page images
+
+Use a loaded document's `ToImage` for one surface, which returns an `OfficeImageExportResult` with encoded `Bytes`, dimensions and diagnostics, or `ToImages` for a batch, which returns a sequence of those results or streams them to a callback. `SaveAsImage` and `SaveAsImages` persist output and return conversion reports. The owning format's options inherit shared density, fonts, selection, limits and cancellation policies. [Image rendering](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.image-export.md) lists adapter packages and examples.
+
+The package capability catalog describes available library routes; `OfficeConverter.Routes` lists the routes executable by `OfficeConverter` and registered adapters. Its single-file `Convert` operation does not turn an image route into a page directory or ZIP. Use the owning `SaveAsImages` API for page files.
 
 ## Inspect any document
 
@@ -130,7 +133,17 @@ OfficeHiddenDataReport cleaned = OfficeDocument.RemoveHiddenData("Review.docx", 
 
 `OfficeIMO.Workflows` and `OfficeIMO.Workflows.IWork` add further routes, such as Apple iWork files, through `RegisterConversions()`.
 
-See the [repository README](https://github.com/EvotecIT/OfficeIMO#readme) for the package map and the [migration guide](https://github.com/EvotecIT/OfficeIMO/blob/master/MIGRATION.md) when upgrading.
+## Learn more
+
+- The [repository README](https://github.com/EvotecIT/OfficeIMO#readme) for the format map and package list, and the [conversion route catalog](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/conversion-routes.md) for each route's package, support level and limits.
+- [Conversion guides](https://officeimo.com/docs/converters/) on officeimo.com and the [migration guide](https://github.com/EvotecIT/OfficeIMO/blob/master/MIGRATION.md).
+- PowerShell: `Convert-OfficeDocument` in [PSWriteOffice](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/README.MD). Command line: `officeimo convert` with [OfficeIMO.Tool](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Tool/README.md).
+
+## Targets and dependencies
+
+- Targets: `netstandard2.0`, `net8.0` and `net10.0`, plus `net472` on Windows, so .NET Framework applications get the same conversion routes.
+- Dependencies: the Word, Excel, PowerPoint, PDF, Markdown and Reader packages and their converters.
+- License: MIT.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

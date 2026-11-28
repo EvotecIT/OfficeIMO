@@ -24,6 +24,12 @@ Raster picture crops use the embedded pixel dimensions and horizontal and vertic
 
 Negative crop offsets, collapsed source regions, malformed crop values, cropped vector images, and unavailable intrinsic dimensions remain explicit conversion losses. For image formats supported by the PowerPoint image model, these crops are omitted while the image bytes and frame bounds are retained. Crops that collapse after rounding to either format's stored precision are also omitted.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.PowerPoint.OpenDocument
+```
+
 ## Page images
 
 The adapter renders ODP through its existing visual owner, retaining source conversion diagnostics. `ToImages`/`ToImagesAsync` return rich encoded results; `SaveAsImages`/`SaveAsImagesAsync` save them with shared limits, cancellation and file-conflict policy.
@@ -41,14 +47,14 @@ IReadOnlyList<OfficeImageExportResult> images = source.ToImages(options);
 OfficeConversionReport saved = await source.SaveAsImagesAsync("pages", options);
 ```
 
-See the [shared image options, selection and diagnostics](../Docs/officeimo.image-export.md).
+See the [shared image options, selection and diagnostics](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.image-export.md).
 
 ## Dependency footprint
 
 - **External:** None.
 - **OfficeIMO:** `OfficeIMO.PowerPoint` and `OfficeIMO.OpenDocument`; the adapter owns feature mapping and fidelity reports.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

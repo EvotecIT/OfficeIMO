@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             Stylesheet expected = XlsbStylesheetProjector.Create(sourceWorkbook.Stylesheet);
-            if (string.Equals(current.OuterXml, expected.OuterXml, StringComparison.Ordinal)) {
+            if (XlsbProjectionXmlComparer.SameContent(OfficeXmlNode.FromSdk(current), OfficeXmlNode.FromSdk(expected))) {
                 return new XlsbStylesheetRewritePlan(
                     sourceWorkbook.StylesheetPartName,
                     replacement: null,
@@ -99,7 +99,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             OpenXmlElement[] expectedChildren = expected.ChildElements.Where(element => !Editable(element)).ToArray();
             if (currentChildren.Length != expectedChildren.Length) ThrowUnsupportedMutation();
             for (int index = 0; index < currentChildren.Length; index++)
-                if (currentChildren[index].OuterXml != expectedChildren[index].OuterXml) ThrowUnsupportedMutation();
+                if (!XlsbProjectionXmlComparer.SameContent(OfficeXmlNode.FromSdk(currentChildren[index]), OfficeXmlNode.FromSdk(expectedChildren[index]))) ThrowUnsupportedMutation();
             foreach (var actual in current.ChildElements.Where(Editable)) {
                 var baseline = expected.ChildElements.FirstOrDefault(element => element.GetType() == actual.GetType());
                 if (baseline != null && !AttributesMatch(actual, baseline, ignoreCount: true)) ThrowUnsupportedMutation();
@@ -119,7 +119,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
             if (actualItems.Length < expectedItems.Length) ThrowUnsupportedMutation();
             for (int index = 0; index < expectedItems.Length; index++) {
-                if (!string.Equals(actualItems[index].OuterXml, expectedItems[index].OuterXml, StringComparison.Ordinal)) {
+                if (!XlsbProjectionXmlComparer.SameContent(OfficeXmlNode.FromSdk(actualItems[index]), OfficeXmlNode.FromSdk(expectedItems[index]))) {
                     throw new NotSupportedException($"Native XLSB rewriting cannot modify or reorder existing {collectionName}. Save style changes as .xlsx.");
                 }
             }

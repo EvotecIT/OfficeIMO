@@ -14,12 +14,20 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Underlying OpenXML header element associated with this header or footer.
         /// </summary>
-        protected internal Header? _header;
+        internal Header? _header {
+            get => _headerElement ??= (ResolveSdkStory() as Header);
+            set => _headerElement = value;
+        }
+        private Header? _headerElement;
 
         /// <summary>
         /// Underlying OpenXML footer element associated with this header or footer.
         /// </summary>
-        protected internal Footer? _footer;
+        internal Footer? _footer {
+            get => _footerElement ??= (ResolveSdkStory() as Footer);
+            set => _footerElement = value;
+        }
+        private Footer? _footerElement;
 
         protected private FooterPart? _footerPart;
         private protected string? _id;
@@ -49,6 +57,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> Paragraphs {
             get {
+                if (ReadOwnedStoryParagraphs() is { } paragraphs) return paragraphs;
                 if (_header != null) {
                     return WordSection.ConvertParagraphsToWordParagraphs(_document, _header.ChildElements.OfType<Paragraph>());
                 } else if (_footer != null) {

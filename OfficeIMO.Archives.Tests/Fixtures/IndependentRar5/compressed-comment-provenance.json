@@ -1,0 +1,36 @@
+{
+  "producer": "RARLAB RAR command-line tool",
+  "producerPlatform": "Darwin arm64",
+  "rarVersion": "7.23",
+  "file": "compressed-comment.rar",
+  "arguments": [
+    [
+      "a",
+      "-cfg-",
+      "-idq",
+      "-ma5",
+      "-m0",
+      "-qo-",
+      "-tsm-",
+      "-zcomment.txt",
+      "base.rar",
+      "page.txt"
+    ],
+    [
+      "a",
+      "-cfg-",
+      "-idq",
+      "-ma5",
+      "-m3",
+      "-md128k",
+      "-qo-",
+      "-tsm-",
+      "-zcomment.txt",
+      "donor.rar",
+      "CMT"
+    ]
+  ],
+  "derivation": "Replaced the stored comment with the producer's compressed CMT file record, changing its type to service and updating the header CRC.",
+  "verification": "rar t passed and rar cw recovered the original comment byte-for-byte.",
+  "sha256": "0e689e5a08c150558969060c92738bf5dc404904f2322e5a721bda1ea493a6f3"
+}

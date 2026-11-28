@@ -54,10 +54,10 @@ timestamps and preserve their instant. Temporal columns use nanoseconds by defau
 `TimeUnit.Microsecond` when the wider microsecond timestamp range is required and accepting
 sub-microsecond precision loss is appropriate.
 
-For XLSX output, applications can orchestrate the [Excel row writers](../OfficeIMO.Excel/README.md)
+For XLSX output, applications can orchestrate the [Excel row writers](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel/README.md)
 while consuming Arrow batches. This package does not expose a dedicated
 `RecordBatch`-to-XLSX adapter; the remaining adapter contract is tracked in the
-[spreadsheet roadmap](../Docs/ROADMAP.md#spreadsheet-and-csv-delivery-order).
+[spreadsheet roadmap](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/ROADMAP.md#spreadsheet-and-csv-delivery-order).
 
 ## Managed and C streams
 

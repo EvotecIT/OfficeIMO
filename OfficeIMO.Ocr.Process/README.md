@@ -59,4 +59,4 @@ Available argument placeholders are `{request}`, `{input}`, `{output}`, `{langua
 - **External:** A caller-configured executable. `System.Text.Json` is used for the versioned protocol on legacy targets.
 - **OfficeIMO:** `OfficeIMO.Ocr` owns the engine-neutral request, result, geometry, capability, and diagnostic contracts.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

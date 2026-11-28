@@ -1,5 +1,8 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 using System.Runtime.CompilerServices;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
@@ -10,6 +13,53 @@ namespace OfficeIMO.Word {
     /// <summary>Allocates document-scoped non-visual DrawingML identifiers.</summary>
     internal static class WordDrawingIdAllocator {
         private static readonly ConditionalWeakTable<WordprocessingDocument, ReservationState> _reservations = new();
+
+        private sealed class OwnedReservation {
+            internal uint Largest { get; set; }
+        }
+
+        private static readonly ConditionalWeakTable<WordPackageModel, OwnedReservation> OwnedReservations = new();
+
+        internal static void ReassignOwned(WordPackageModel model, OfficeXmlNode detachedRoot) {
+            OfficeXmlNode[] drawings = WordFieldInventory.EnumerateFieldContent(detachedRoot)
+                .Where(IsDrawingIdentifier).ToArray();
+            if (drawings.Length == 0) return;
+
+            OwnedReservation reservation = OwnedReservations.GetValue(model, Seed);
+            lock (reservation) {
+                if (reservation.Largest > uint.MaxValue - (uint)drawings.Length)
+                    throw new InvalidOperationException("The document has exhausted the available DrawingML identifier range.");
+                foreach (OfficeXmlNode drawing in drawings) {
+                    drawing.SetAttribute("id", OfficeXmlViewValues.Format(++reservation.Largest));
+                }
+            }
+        }
+
+        private static OwnedReservation Seed(WordPackageModel model) {
+            uint largest = 0U;
+            Accumulate(new OfficeXmlNode(model.Document, model.Document.Root));
+            string[] stories = { "header", "footer", "footnotes", "endnotes", "comments" };
+            foreach (string name in WordOwnedSave.RelatedParts(model, stories.Select(story =>
+                         OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + story).ToArray())) {
+                OfficeXmlTree tree = model.Package.GetXml(name);
+                Accumulate(new OfficeXmlNode(tree, tree.Root));
+            }
+            return new OwnedReservation { Largest = largest };
+
+            void Accumulate(OfficeXmlNode root) {
+                foreach (OfficeXmlNode child in WordFieldInventory.EnumerateFieldContent(root, reserveInactiveCompatibilityIds: true)) {
+                    if (IsDrawingIdentifier(child) && child.UInt32Attribute("id") is uint id && id > largest) largest = id;
+                }
+            }
+        }
+
+        private static bool IsDrawingIdentifier(OfficeXmlNode node) {
+            if (node.Is(OfficeXmlNamespaces.WordprocessingDrawing, "docPr")) return true;
+            if (node.LocalName != "cNvPr") return false;
+            return node.NamespaceId == OfficeXmlNamespaces.Picture ||
+                   node.NamespaceUri is WordAlternateContentResolver.WordprocessingShapeNamespaceUri or
+                       "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup";
+        }
 
         internal static uint Reserve(WordDocument document, uint count = 1U) {
             ArgumentNullException.ThrowIfNull(document);

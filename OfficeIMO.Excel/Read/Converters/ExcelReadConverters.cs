@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {

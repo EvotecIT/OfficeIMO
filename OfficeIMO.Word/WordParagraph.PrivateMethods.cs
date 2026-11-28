@@ -32,6 +32,12 @@ namespace OfficeIMO.Word {
         /// Check if run exists, if not create it and append to paragraph
         /// </summary>
         /// <returns></returns>
+        /// <summary>The paragraph element held by the SDK package, opening it for a paragraph read without it.</summary>
+        internal OfficeIMO.OpenXml.Internal.OfficeXmlNode SdkParagraphNode => OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(_paragraph);
+
+        /// <summary>The run <see cref="VerifyRun()"/> returns, as an element handle.</summary>
+        internal OfficeIMO.OpenXml.Internal.OfficeXmlNode VerifyRunNode() => OfficeIMO.OpenXml.Internal.OfficeXmlNode.FromSdk(VerifyRun());
+
         internal Run VerifyRun() {
             if (this._run == null) {
                 this._run = new Run();

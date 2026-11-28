@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.OpenXml;
 
@@ -9,19 +10,73 @@ namespace OfficeIMO.Word.OpenXml;
 /// </summary>
 internal static class WordOwnedParagraphs {
     private const int W = OfficeXmlNamespaces.WordprocessingML;
+
+    internal static bool IsRunningStory(OfficeXmlTree? tree) => tree != null &&
+        (tree.IsElement(tree.Root, W, "hdr") || tree.IsElement(tree.Root, W, "ftr"));
+
+    internal static bool HasFootnotes(WordPackageModel model) {
+        var body = new OfficeXmlNode(model.Document, model.Body);
+        if (WordFieldInventory.EnumerateFieldContent(body).Any(node => node.Is(W, "footnoteReference"))) return true;
+        const string relationship = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "footnotes";
+        foreach (string name in WordOwnedSave.RelatedParts(model, relationship)) {
+            OfficeXmlTree tree = model.Package.GetXml(name);
+            var notes = new OfficeXmlNode(tree, tree.Root);
+            foreach (OfficeXmlNode note in notes.Children(W, "footnote")) {
+                if (!note.HasAttribute(W, "type")) return true;
+            }
+        }
+        return false;
+    }
     private const int NoNode = OfficeXmlTree.NoNode;
 
     internal static bool TryCollect(WordDocument document, WordPackageModel model, out List<WordParagraph> paragraphs) {
-        OfficeXmlTree tree = model.Document;
+        return TryCollectStory(document, model.Document, model.Body, out paragraphs);
+    }
+
+    internal static bool TryCollectStory(WordDocument document, OfficeXmlTree tree, int root, out List<WordParagraph> paragraphs) {
+        return TryCollectRegion(document, tree, tree.FirstChildOf(root), NoNode, out paragraphs);
+    }
+
+    internal static bool TryCollectRegion(WordDocument document, OfficeXmlTree tree, int first, int stop,
+        out List<WordParagraph> paragraphs) {
         int count = 0;
-        for (int child = tree.FirstChildOf(model.Body); child != NoNode; child = tree.NextSiblingOf(child)) count++;
+        for (int child = first; child != NoNode && child != stop; child = tree.NextSiblingOf(child)) count++;
         paragraphs = new List<WordParagraph>(count);
-        for (int child = tree.FirstChildOf(model.Body); child != NoNode; child = tree.NextSiblingOf(child)) {
+        for (int child = first; child != NoNode && child != stop; child = tree.NextSiblingOf(child)) {
             if (!tree.IsElement(child, W, "p")) continue;
             if (IsPureSectionBreak(tree, child)) continue;
             if (!TryAppendParagraph(document, tree, child, paragraphs)) return false;
         }
         return true;
+    }
+
+    // Page galleries have flat marker runs. Use the same wrappers as the authored
+    // fields, without opening their running story just to return its paragraph.
+    internal static List<WordParagraph> ProjectPageNumberParagraphs(WordDocument document, OfficeXmlNode content) {
+        var paragraphs = new List<WordParagraph>();
+        foreach (OfficeXmlNode paragraph in content.Children(W, "p")) {
+            List<OfficeXmlNode>? fieldRuns = null;
+            foreach (OfficeXmlNode child in paragraph.Children()) {
+                if (child.Is(W, "fldSimple")) {
+                    paragraphs.Add(WordParagraph.CreateOwnedField(document, paragraph, child, runs: null));
+                } else if (child.Is(W, "r")) {
+                    string? marker = child.Child(W, "fldChar").Attribute(W, "fldCharType");
+                    if (fieldRuns != null) {
+                        fieldRuns.Add(child);
+                        if (marker == "end") {
+                            paragraphs.Add(WordParagraph.CreateOwnedField(document, paragraph, default, fieldRuns));
+                            fieldRuns = null;
+                        }
+                    } else if (marker == "begin" &&
+                        (paragraph.FirstChild != child || child.NextSibling.Exists)) {
+                        fieldRuns = new List<OfficeXmlNode> { child };
+                    } else {
+                        paragraphs.Add(WordParagraph.CreateOwned(document, paragraph.Tree!, paragraph.Node, child.Node));
+                    }
+                }
+            }
+        }
+        return paragraphs;
     }
 
     private static bool IsPureSectionBreak(OfficeXmlTree tree, int paragraph) {
@@ -65,37 +120,46 @@ internal static class WordOwnedParagraphs {
     }
 
     private static bool TryProcess(WordDocument document, OfficeXmlTree tree, int paragraph, int element, List<WordParagraph> list) {
-        int namespaceId = tree.NamespaceOf(element);
-        if (namespaceId == OfficeXmlNamespaces.Math) {
-            string mathName = tree.LocalNameOf(element);
-            // Equations become equation paragraphs on the SDK path.
-            return mathName != "oMath" && mathName != "oMathPara";
-        }
-        if (namespaceId != W) return true;
-        switch (tree.LocalNameOf(element)) {
-            case "r":
-                // A field spans runs and becomes one paragraph on the SDK path.
-                if (tree.FindChild(element, W, "fldChar") != NoNode) return false;
-                list.Add(WordParagraph.CreateOwned(document, tree, paragraph, element));
-                return true;
-            case "ins":
-            case "moveTo":
-            case "customXml":
-                for (int child = NextElement(tree, tree.FirstChildOf(element)); child != NoNode; child = NextElement(tree, tree.NextSiblingOf(child))) {
-                    if (!TryProcess(document, tree, paragraph, child, list)) return false;
+        int current = element;
+        while (current != NoNode) {
+            int nested = NoNode;
+            int namespaceId = tree.NamespaceOf(current);
+            string name = tree.LocalNameOf(current);
+            if (namespaceId == OfficeXmlNamespaces.Math && name is "oMath" or "oMathPara") return false;
+            if (namespaceId == W) {
+                switch (name) {
+                    case "r":
+                        // A field spans runs and becomes one paragraph on the SDK path.
+                        if (tree.FindChild(current, W, "fldChar") != NoNode) return false;
+                        list.Add(WordParagraph.CreateOwned(document, tree, paragraph, current));
+                        break;
+                    case "ins":
+                    case "moveTo":
+                    case "customXml":
+                        nested = NextElement(tree, tree.FirstChildOf(current));
+                        break;
+                    case "bookmarkStart":
+                        list.Add(WordParagraph.CreateOwned(document, tree, paragraph, bookmark: current));
+                        break;
+                    case "hyperlink":
+                    case "fldSimple":
+                    case "sdt":
+                        return false;
                 }
-                return true;
-            case "bookmarkStart":
-                list.Add(WordParagraph.CreateOwned(document, tree, paragraph, bookmark: element));
-                return true;
-            case "hyperlink":
-            case "fldSimple":
-            case "sdt":
-                return false;
-            default:
-                // Deleted runs, range markers, proofing marks and paragraph properties add no paragraph.
-                return true;
+            }
+
+            if (nested != NoNode) {
+                current = nested;
+                continue;
+            }
+            nested = NoNode;
+            for (int ancestor = current; ancestor != element; ancestor = tree.ParentOf(ancestor)) {
+                nested = NextElement(tree, tree.NextSiblingOf(ancestor));
+                if (nested != NoNode) break;
+            }
+            current = nested;
         }
+        return true;
     }
 
     private static int NextElement(OfficeXmlTree tree, int node) {
@@ -109,6 +173,11 @@ internal static class WordOwnedParagraphs {
     /// </summary>
     internal static WordParagraph AddParagraph(WordDocument document, WordPackageModel model, bool withRun) {
         WordOwnedEdits.PrepareBodyEdit(model);
+        return AddParagraph(document, model, withRun, FinalSectionProperties(model.Document, model.Body));
+    }
+
+    internal static WordParagraph AddParagraph(WordDocument document, WordPackageModel model, bool withRun, int boundary) {
+        WordOwnedEdits.PrepareBodyEdit(model);
         OfficeXmlTree tree = model.Document;
         int body = model.Body;
         int paragraph = tree.CreateElement(W, "p");
@@ -118,7 +187,6 @@ internal static class WordOwnedParagraphs {
             run = tree.CreateElement(W, "r");
             tree.Append(paragraph, run);
         }
-        int boundary = FinalSectionProperties(tree, body);
         tree.InsertBefore(body, paragraph, boundary);
         model.MarkChanged();
         return WordParagraph.CreateOwned(document, tree, paragraph, run);

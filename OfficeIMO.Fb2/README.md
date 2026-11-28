@@ -26,4 +26,4 @@ and the CLI can also convert the book to PDF, HTML or Markdown.
 officeimo convert book.fb2.zip book.pdf
 ```
 
-[Supported features and limits](SUPPORT.md)
+[Supported features and limits](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Fb2/SUPPORT.md)

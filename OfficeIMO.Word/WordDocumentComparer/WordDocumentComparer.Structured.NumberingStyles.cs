@@ -1,63 +1,61 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using StyleDefinition = OfficeIMO.Word.WordStyleDefinitionsReader.StyleDefinition;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static NumberingProperties? ResolveParagraphNumberingProperties(
-            Paragraph paragraph,
+        private static OfficeXmlNode ResolveParagraphNumberingProperties(
+            OfficeXmlNode paragraph,
             ParagraphNumberingStyleCatalog styleCatalog) {
             _ = TryResolveParagraphNumberingProperties(
                 paragraph,
                 styleCatalog,
                 comparisonWorkBudget: null,
-                out NumberingProperties? numbering);
+                out OfficeXmlNode numbering);
             return numbering;
         }
 
         private static bool TryResolveParagraphNumberingProperties(
-            Paragraph paragraph,
+            OfficeXmlNode paragraph,
             ParagraphNumberingStyleCatalog styleCatalog,
             ComparisonWorkBudget? comparisonWorkBudget,
-            out NumberingProperties? numbering) {
-            NumberingProperties? directNumbering = paragraph.ParagraphProperties?.NumberingProperties;
-            if (directNumbering != null) {
+            out OfficeXmlNode numbering) {
+            OfficeXmlNode directNumbering = paragraph.Child(W, "pPr").Child(W, "numPr");
+            if (!directNumbering.IsNone) {
                 numbering = directNumbering;
                 return true;
             }
-            string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+            string? styleId = ChildVal(paragraph.Child(W, "pPr"), "pStyle");
             return styleCatalog.TryResolveNumbering(styleId, comparisonWorkBudget, out numbering);
         }
 
         /// <summary>Caches the combined style definitions used while resolving paragraph numbering for one analysis.</summary>
         private sealed class ParagraphNumberingStyleCatalog {
             private const string DefaultParagraphStylesCacheKey = "\0default-paragraph-styles";
-            private readonly Dictionary<string, NumberingProperties?> _resolvedNumbering =
+            private readonly Dictionary<string, OfficeXmlNode> _resolvedNumbering =
                 new(StringComparer.Ordinal);
 
             private ParagraphNumberingStyleCatalog(
-                ILookup<string, StyleDefinition> stylesById,
+                ILookup<string, ComparisonStyle> stylesById,
                 IReadOnlyList<string> defaultParagraphStyleIds) {
                 StylesById = stylesById;
                 DefaultParagraphStyleIds = defaultParagraphStyleIds;
             }
 
-            internal ILookup<string, StyleDefinition> StylesById { get; }
+            internal ILookup<string, ComparisonStyle> StylesById { get; }
             internal IReadOnlyList<string> DefaultParagraphStyleIds { get; }
 
-            internal NumberingProperties? ResolveNumbering(string? styleId) {
-                _ = TryResolveNumbering(styleId, comparisonWorkBudget: null, out NumberingProperties? numbering);
+            internal OfficeXmlNode ResolveNumbering(string? styleId) {
+                _ = TryResolveNumbering(styleId, comparisonWorkBudget: null, out OfficeXmlNode numbering);
                 return numbering;
             }
 
             internal bool TryResolveNumbering(
                 string? styleId,
                 ComparisonWorkBudget? comparisonWorkBudget,
-                out NumberingProperties? numbering) {
+                out OfficeXmlNode numbering) {
                 string cacheKey = string.IsNullOrWhiteSpace(styleId)
                     ? DefaultParagraphStylesCacheKey
                     : styleId!;
-                if (_resolvedNumbering.TryGetValue(cacheKey, out NumberingProperties? cached)) {
+                if (_resolvedNumbering.TryGetValue(cacheKey, out OfficeXmlNode cached)) {
                     numbering = cached;
                     return true;
                 }
@@ -69,18 +67,18 @@ namespace OfficeIMO.Word {
                                 defaultStyleId,
                                 comparisonWorkBudget,
                                 visiting,
-                                out NumberingProperties? resolved)) {
-                            numbering = null;
+                                out OfficeXmlNode resolved)) {
+                            numbering = default;
                             return false;
                         }
-                        if (resolved != null) {
+                        if (!resolved.IsNone) {
                             _resolvedNumbering[cacheKey] = resolved;
                             numbering = resolved;
                             return true;
                         }
                     }
-                    _resolvedNumbering[cacheKey] = null;
-                    numbering = null;
+                    _resolvedNumbering[cacheKey] = default;
+                    numbering = default;
                     return true;
                 }
 
@@ -91,8 +89,8 @@ namespace OfficeIMO.Word {
                 string styleId,
                 ComparisonWorkBudget? comparisonWorkBudget,
                 HashSet<string> visiting,
-                out NumberingProperties? numbering) {
-                if (_resolvedNumbering.TryGetValue(styleId, out NumberingProperties? cached)) {
+                out OfficeXmlNode numbering) {
+                if (_resolvedNumbering.TryGetValue(styleId, out OfficeXmlNode cached)) {
                     numbering = cached;
                     return true;
                 }
@@ -102,28 +100,28 @@ namespace OfficeIMO.Word {
                         comparisonWorkBudget,
                         visiting,
                         frames)) {
-                    numbering = null;
+                    numbering = default;
                     return false;
                 }
 
                 while (frames.Count > 0) {
                     StyleNumberingResolutionFrame frame = frames[frames.Count - 1];
                     if (frame.NextStyleIndex >= frame.Styles.Count) {
-                        CompleteStyleResolution(frames, visiting, frame.StyleId, null);
+                        CompleteStyleResolution(frames, visiting, frame.StyleId, default);
                         continue;
                     }
 
-                    StyleDefinition style = frame.Styles[frame.NextStyleIndex++];
-                    NumberingProperties? direct = style.Element.StyleParagraphProperties?.NumberingProperties;
-                    if (direct != null) {
+                    ComparisonStyle style = frame.Styles[frame.NextStyleIndex++];
+                    OfficeXmlNode direct = style.Element.Child(W, "pPr").Child(W, "numPr");
+                    if (!direct.IsNone) {
                         CompleteStyleResolution(frames, visiting, frame.StyleId, direct);
                         continue;
                     }
 
                     string? baseStyleId = style.BasedOn;
                     if (string.IsNullOrWhiteSpace(baseStyleId) || visiting.Contains(baseStyleId!)) continue;
-                    if (_resolvedNumbering.TryGetValue(baseStyleId!, out NumberingProperties? inherited)) {
-                        if (inherited != null) {
+                    if (_resolvedNumbering.TryGetValue(baseStyleId!, out OfficeXmlNode inherited)) {
+                        if (!inherited.IsNone) {
                             CompleteStyleResolution(frames, visiting, frame.StyleId, inherited);
                         }
                         continue;
@@ -134,7 +132,7 @@ namespace OfficeIMO.Word {
                             visiting,
                             frames)) {
                         foreach (StyleNumberingResolutionFrame pending in frames) visiting.Remove(pending.StyleId);
-                        numbering = null;
+                        numbering = default;
                         return false;
                     }
                 }
@@ -161,11 +159,11 @@ namespace OfficeIMO.Word {
                 IList<StyleNumberingResolutionFrame> frames,
                 ISet<string> visiting,
                 string styleId,
-                NumberingProperties? numbering) {
+                OfficeXmlNode numbering) {
                 _resolvedNumbering[styleId] = numbering;
                 visiting.Remove(styleId);
                 frames.RemoveAt(frames.Count - 1);
-                while (numbering != null && frames.Count > 0) {
+                while (!numbering.IsNone && frames.Count > 0) {
                     StyleNumberingResolutionFrame parent = frames[frames.Count - 1];
                     _resolvedNumbering[parent.StyleId] = numbering;
                     visiting.Remove(parent.StyleId);
@@ -174,25 +172,25 @@ namespace OfficeIMO.Word {
             }
 
             private sealed class StyleNumberingResolutionFrame {
-                internal StyleNumberingResolutionFrame(string styleId, IReadOnlyList<StyleDefinition> styles) {
+                internal StyleNumberingResolutionFrame(string styleId, IReadOnlyList<ComparisonStyle> styles) {
                     StyleId = styleId;
                     Styles = styles;
                 }
 
                 internal string StyleId { get; }
-                internal IReadOnlyList<StyleDefinition> Styles { get; }
+                internal IReadOnlyList<ComparisonStyle> Styles { get; }
                 internal int NextStyleIndex { get; set; }
             }
 
             internal static ParagraphNumberingStyleCatalog? Create(
-                MainDocumentPart mainPart,
+                WordPartView mainPart,
                 ComparisonWorkBudget? comparisonWorkBudget) {
-                var styles = new List<StyleDefinition>();
-                foreach (StyleDefinition style in EnumerateComparisonStyleDefinitions(mainPart)) {
+                var styles = new List<ComparisonStyle>();
+                foreach (ComparisonStyle style in EnumerateComparisonStyles(mainPart)) {
                     if (comparisonWorkBudget != null && !comparisonWorkBudget.TryConsume(1)) return null;
                     styles.Add(style);
                 }
-                ILookup<string, StyleDefinition> stylesById = styles
+                ILookup<string, ComparisonStyle> stylesById = styles
                     .Where(style => !string.IsNullOrWhiteSpace(style.StyleId))
                     .ToLookup(style => style.StyleId!, StringComparer.Ordinal);
                 string[] defaultParagraphStyleIds = styles
@@ -208,9 +206,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>Reuses numbering style catalogs across all feature and limitation passes in one comparison.</summary>
         private sealed class ParagraphNumberingStyleCatalogCache {
-            private readonly Dictionary<MainDocumentPart, ParagraphNumberingStyleCatalog> _catalogs = new();
+            private readonly Dictionary<WordPartView, ParagraphNumberingStyleCatalog> _catalogs = new();
 
-            internal ParagraphNumberingStyleCatalog GetOrCreate(MainDocumentPart mainPart) {
+            internal ParagraphNumberingStyleCatalog GetOrCreate(WordPartView mainPart) {
                 if (_catalogs.TryGetValue(mainPart, out ParagraphNumberingStyleCatalog? catalog)) return catalog;
                 catalog = ParagraphNumberingStyleCatalog.Create(mainPart, comparisonWorkBudget: null)!;
                 _catalogs.Add(mainPart, catalog);
@@ -218,7 +216,7 @@ namespace OfficeIMO.Word {
             }
 
             internal bool TryGetOrCreate(
-                MainDocumentPart mainPart,
+                WordPartView mainPart,
                 ComparisonWorkBudget comparisonWorkBudget,
                 out ParagraphNumberingStyleCatalog? catalog) {
                 if (_catalogs.TryGetValue(mainPart, out catalog)) return true;

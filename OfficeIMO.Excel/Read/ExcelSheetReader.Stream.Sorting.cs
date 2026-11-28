@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.OpenXml.Internal;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
 
         private bool RowsAreSortedWithinRangeXmlFast(int firstRow, int lastRow, CancellationToken token) {
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
                 var worksheetRows = new WorksheetXmlRowSelector();
@@ -119,18 +119,18 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool RowsAreSortedWithinRange(SheetData data, int firstRow, int lastRow, CancellationToken token) {
+        private static bool RowsAreSortedWithinRange(OfficeXmlNode data, int firstRow, int lastRow, CancellationToken token) {
             bool canCancel = token.CanBeCanceled;
             bool hasPrevious = false;
             bool sawRowAfterRange = false;
             int previous = 0;
 
-            foreach (var row in EnumerateRowsWithCoordinates(data.Elements<Row>(), token)) {
+            foreach (var row in EnumerateRowsWithCoordinates(data, token)) {
                 if (canCancel) {
                     token.ThrowIfCancellationRequested();
                 }
 
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = row.Index;
                 if (rowIndex < firstRow) continue;
                 if (rowIndex > lastRow) {
                     sawRowAfterRange = true;
@@ -162,7 +162,7 @@ namespace OfficeIMO.Excel {
                     token.ThrowIfCancellationRequested();
                 }
 
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = row.Index;
                 if (rowIndex < firstRow) continue;
                 if (rowIndex > lastRow) {
                     sawRowAfterRange = true;

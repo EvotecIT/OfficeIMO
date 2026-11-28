@@ -1,38 +1,39 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    ///     A slide layout: the placeholders, shapes and background that slides using it inherit, on top of its master.
+    ///     A slide layout: the placeholders, shapes and background that slides using it inherit.
     /// </summary>
     public sealed class PowerPointSlideLayout : PowerPointMasterSurface {
-        internal PowerPointSlideLayout(PowerPointDocument document, SlideLayoutPart part) : base(document, part) {
-            LayoutPart = part;
+        internal PowerPointSlideLayout(PowerPointDocument document, PowerPointPartRef part) : base(document, part) {
         }
 
-        internal SlideLayoutPart LayoutPart { get; }
-
-        internal SlideLayout Root => LayoutPart.SlideLayout ??= new SlideLayout();
-
-        internal override CommonSlideData CommonSlideData => Root.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+        private protected override OfficeXmlChildOrder RootOrder => PSlideLayoutView.Order;
 
         /// <summary>The master that owns this layout.</summary>
         public PowerPointSlideMaster Master {
             get {
                 ThrowIfRemoved();
-                return Document.GetMaster(LayoutPart.SlideMasterPart
-                    ?? throw new InvalidOperationException("The slide layout is not attached to a slide master."));
+                PowerPointPartRef master = PartRef.RelatedPart(PowerPointPartRef.SlideMasterRelationshipType);
+                if (master.IsNone) throw new InvalidOperationException("The slide layout is not attached to a slide master.");
+                return Document.GetMaster(master);
             }
         }
 
         /// <summary>Zero-based position of the layout within its master.</summary>
-        public int Index => Master.OrderedLayoutParts().ToList().IndexOf(LayoutPart);
+        public int Index => Master.OrderedLayoutParts().ToList().IndexOf(PartRef);
 
         /// <summary>Native layout type, or <see langword="null" /> when the layout does not declare one.</summary>
         public PowerPointSlideLayoutType? LayoutType {
             get {
                 ThrowIfRemoved();
-                return Root.Type?.Value.ToOfficeIMO();
+                string? token = Root.Attribute("type");
+                if (token == null) return null;
+                return PowerPointSlideLayoutTypeTokens.TryParse(token, out PowerPointSlideLayoutType type)
+                    ? type
+                    : throw new ArgumentOutOfRangeException(nameof(LayoutType), token, "Unsupported Open XML slide layout type.");
             }
         }
 
@@ -40,11 +41,12 @@ namespace OfficeIMO.PowerPoint {
         public bool ShowMasterShapes {
             get {
                 ThrowIfRemoved();
-                return Root.ShowMasterShapes?.Value != false;
+                return Root.BooleanAttribute("showMasterSp") != false;
             }
             set {
                 ThrowIfRemoved();
-                Root.ShowMasterShapes = value ? null : false;
+                Root.SetAttribute("showMasterSp", value ? null : "0");
+                PartRef.MarkEdited();
             }
         }
 
@@ -52,7 +54,8 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointSlide> Slides {
             get {
                 ThrowIfRemoved();
-                return Document.Slides.Where(slide => ReferenceEquals(slide.SlidePart.SlideLayoutPart, LayoutPart)).ToList();
+                PowerPointPartRef layout = PartRef;
+                return Document.Slides.Where(slide => slide.PartRef.RelatedPart(PowerPointPartRef.SlideLayoutRelationshipType).Equals(layout)).ToList();
             }
         }
 
@@ -61,10 +64,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointSlideLayout Duplicate(string? name = null) {
             ThrowIfRemoved();
-            var copy = (SlideLayout)Root.CloneNode(true);
-            copy.Preserve = true;
-            copy.UserDrawn = true;
-            PowerPointSlideLayout duplicate = Document.GetLayout(Master.AttachLayout(copy, LayoutPart));
+            PowerPointSlideLayout duplicate = Document.DuplicateLayout(this);
             duplicate.Name = name ?? (string.IsNullOrEmpty(Name) ? "Layout" : Name) + " Copy";
             return duplicate;
         }

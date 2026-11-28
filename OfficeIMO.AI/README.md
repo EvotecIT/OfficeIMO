@@ -2,7 +2,13 @@
 
 `OfficeIMO.AI` provides read-only document questions, explanations, summaries, field extraction, and proposed document structure for .NET 10. It accepts an immutable Reader snapshot and a caller-supplied `IOfficeAiExecutor`. The package depends on `OfficeIMO.Reader.Core`; format readers, rendering, OCR, and model clients are selected by the host.
 
-Use [OfficeIMO.AI.IntelligenceX](../OfficeIMO.AI.IntelligenceX/README.md) for ChatGPT, native Copilot, or an OpenAI-compatible endpoint. The [headless example](../Examples/OfficeIMO.AI.Example/README.md) loads PDFs, text, and images and writes JSON, CSV, and Excel review artifacts.
+Use [OfficeIMO.AI.IntelligenceX](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.AI.IntelligenceX/README.md) for ChatGPT, native Copilot, or an OpenAI-compatible endpoint. The [headless example](https://github.com/EvotecIT/OfficeIMO/blob/master/Examples/OfficeIMO.AI.Example/README.md) loads PDFs, text, and images and writes JSON, CSV, and Excel review artifacts.
+
+## Install
+
+```sh
+dotnet add package OfficeIMO.AI
+```
 
 ## Add to a .NET 10 application
 
@@ -14,7 +20,7 @@ dotnet add DocumentAssistant/DocumentAssistant.csproj reference OfficeIMO/Office
 dotnet build DocumentAssistant/DocumentAssistant.csproj
 ```
 
-The engine reference brings in Reader Core. Supply your own `IOfficeAiExecutor`, or add the [IntelligenceX adapter](../OfficeIMO.AI.IntelligenceX/README.md#add-the-adapter-from-source).
+The engine reference brings in Reader Core. Supply your own `IOfficeAiExecutor`, or add the [IntelligenceX adapter](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.AI.IntelligenceX/README.md#add-the-adapter-from-source).
 
 ## Extract named fields
 
@@ -125,4 +131,4 @@ For `Parse`, `CreateProposedReadResult` produces Reader's canonical transport mo
 
 Implement `IOfficeAiExecutor` to use another model client. Supply an immutable profile, report whether the actual route is local and whether it accepts images/enforces schemas, measure transport prompt text in `MeasureRequestCharacters`, and return one bounded response from `ExecuteAsync`. A truncated generation must set `IsComplete = false`. Leave unavailable usage counters null. The provider boundary must not give document content access to tools, files, or arbitrary network actions.
 
-Profile capability declarations require independent qualification. The engine applies the same local response checks to schema-enforced and prompted-JSON output; the latter reports its weaker generation guarantee. See the [architecture and support matrix](../Docs/officeimo.document-assistant-design.md) for current coverage and limits.
+Profile capability declarations require independent qualification. The engine applies the same local response checks to schema-enforced and prompted-JSON output; the latter reports its weaker generation guarantee. See the [architecture and support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.document-assistant-design.md) for current coverage and limits.

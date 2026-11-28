@@ -18,7 +18,9 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            OfficeXmlNode commentReference = occurrence.Exists ? occurrence : runNode.WChild("commentReference");
+            OfficeXmlNode commentReference = occurrence.Exists
+                ? occurrence
+                : runNode.Elements(WordXml.W, "commentReference").FirstOrDefault(WordConverterNodes.IsModelElement);
             var commentId = commentReference.WAttr("id");
             if (string.IsNullOrEmpty(commentId)) {
                 return false;

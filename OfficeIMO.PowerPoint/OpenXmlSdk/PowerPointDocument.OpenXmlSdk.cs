@@ -68,14 +68,11 @@ namespace OfficeIMO.PowerPoint {
             return slide;
         }
 
-        /// <summary>The presentation part for a slide size that has to read or edit it through the SDK.</summary>
-        internal DocumentFormat.OpenXml.Packaging.PresentationPart SdkPresentationPartForSize => SdkPresentationPart;
-
         /// <summary>The presentation part through the SDK, opening it.</summary>
         private OpenXml.PowerPointPartRef SdkPresentationPartRef => OpenXml.PowerPointPartRef.FromSdk(SdkPresentationPart);
 
         /// <summary>Opens the SDK for a part too large for the package to read.</summary>
-        internal void OpenSdkForOversizedPart() => EnsureSdk();
+        internal void OpenSdkForPackageCompatibility() => EnsureSdk();
 
         // The SDK document's table styles part, added with the built-in styles when it has none.
         private OpenXml.PowerPointPartRef SdkEnsureTableStylesPart() {

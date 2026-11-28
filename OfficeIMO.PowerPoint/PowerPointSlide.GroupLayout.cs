@@ -1,5 +1,6 @@
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -7,27 +8,25 @@ namespace OfficeIMO.PowerPoint {
         ///     Returns the child shapes of a group shape.
         /// </summary>
         public IReadOnlyList<PowerPointShape> GetGroupChildren(PowerPointGroupShape groupShape) =>
-            GetGroupChildren(groupShape, int.MaxValue);
+            GetGroupChildren(groupShape, int.MaxValue, bindChildren: true);
 
         internal IReadOnlyList<PowerPointShape> GetGroupChildren(PowerPointGroupShape groupShape,
-            int maximumChildren) {
+            int maximumChildren, bool bindChildren = false) {
             ArgumentNullException.ThrowIfNull(groupShape);
             ArgumentOutOfRangeException.ThrowIfNegative(maximumChildren);
 
-            GroupShape group = groupShape.GroupShape;
+            PowerPointPartRef owner = groupShape.OwnerPartRef;
+            if (owner.IsNone) owner = PartRef;
             var children = new List<PowerPointShape>();
-            foreach (var child in group.ChildElements) {
-                if (child is NonVisualGroupShapeProperties || child is GroupShapeProperties) {
-                    continue;
+            foreach (OfficeXmlNode element in groupShape.XmlElement.Children()) {
+                if (WrapSlideShape(element, owner) is not { } shape) continue;
+                if (children.Count >= maximumChildren) {
+                    throw new InvalidOperationException("The shape count exceeds the configured inspection limit.");
                 }
-
-                PowerPointShape? shape = CreateShapeFromElement(child, groupShape.OwnerPart ?? SlidePart);
-                if (shape != null) {
-                    if (children.Count >= maximumChildren) {
-                        throw new InvalidOperationException("The shape count exceeds the configured inspection limit.");
-                    }
-                    children.Add(shape.AttachTo(this, groupShape.OwnerPart));
+                if (bindChildren && shape.IsPackageBacked && shape.PackagePart.IsNone) {
+                    OwnerDocument?.RegisterPackageBinding(shape);
                 }
+                children.Add(shape);
             }
 
             return children;
@@ -39,11 +38,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IEnumerable<PowerPointShape> EnumerateShapesDeep(IEnumerable<PowerPointShape> shapes,
             bool includeHidden = false) {
-            return EnumerateShapesDeep(shapes, includeHidden, 10000, 128);
+            return EnumerateShapesDeep(shapes, includeHidden, 10000, 128, bindChildren: true);
         }
 
         internal IEnumerable<PowerPointShape> EnumerateShapesDeep(IEnumerable<PowerPointShape> shapes,
-            bool includeHidden, int maximumShapeCount, int maximumGroupDepth) {
+            bool includeHidden, int maximumShapeCount, int maximumGroupDepth, bool bindChildren = false) {
             ArgumentNullException.ThrowIfNull(shapes);
 
             var stack = new Stack<(IEnumerator<PowerPointShape> Enumerator, int Depth, bool CountOnMove)>();
@@ -71,7 +70,7 @@ namespace OfficeIMO.PowerPoint {
                     yield return shape;
                     if (shape is not PowerPointGroupShape groupShape) continue;
                     int remainingShapeCount = maximumShapeCount - scheduledShapeCount;
-                    IReadOnlyList<PowerPointShape> children = GetGroupChildren(groupShape, remainingShapeCount);
+                    IReadOnlyList<PowerPointShape> children = GetGroupChildren(groupShape, remainingShapeCount, bindChildren);
                     scheduledShapeCount += children.Count;
                     stack.Push((children.GetEnumerator(), depth + 1, false));
                 }
@@ -303,11 +302,14 @@ namespace OfficeIMO.PowerPoint {
 
         internal static PowerPointLayoutBox GetGroupChildBounds(PowerPointGroupShape groupShape,
             IReadOnlyList<PowerPointShape> children) {
-            A.TransformGroup? transform = groupShape.GroupShape.GroupShapeProperties?.TransformGroup;
-            long? x = transform?.ChildOffset?.X?.Value;
-            long? y = transform?.ChildOffset?.Y?.Value;
-            long? cx = transform?.ChildExtents?.Cx?.Value;
-            long? cy = transform?.ChildExtents?.Cy?.Value;
+            const int drawing = OfficeXmlNamespaces.DrawingML;
+            OfficeXmlNode transform = groupShape.XmlElement.Child(OfficeXmlNamespaces.PresentationML, "grpSpPr").Child(drawing, "xfrm");
+            OfficeXmlNode offset = transform.Child(drawing, "chOff");
+            OfficeXmlNode extents = transform.Child(drawing, "chExt");
+            long? x = offset.Int64Attribute("x");
+            long? y = offset.Int64Attribute("y");
+            long? cx = extents.Int64Attribute("cx");
+            long? cy = extents.Int64Attribute("cy");
 
             if (x.HasValue && y.HasValue && cx.HasValue && cy.HasValue) {
                 return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(x.Value),OfficeIMO.OfficeLength.Emus(y.Value),OfficeIMO.OfficeLength.Emus(cx.Value),OfficeIMO.OfficeLength.Emus(cy.Value));
