@@ -10,11 +10,13 @@ public partial class Excel {
         using var document = ExcelDocument.Load(stream);
 
         Assert.Equal(ExcelFileFormat.Xls, document.SourceFormat);
+        Assert.Empty(document.OpenXmlSdkFallbacks);
         ExcelSheet sheet = Assert.Single(document.Sheets);
         Assert.True(sheet.TryGetCellText(1, 1, out string? text));
         Assert.Equal("Name", text);
         Assert.True(sheet.TryGetCellText(2, 2, out string? number));
         Assert.Equal("42", number);
+        Assert.Empty(document.OpenXmlSdkFallbacks);
 
         using var reopened = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx })));
         Assert.True(reopened.Sheets[0].TryGetCellText(2, 2, out string? saved));

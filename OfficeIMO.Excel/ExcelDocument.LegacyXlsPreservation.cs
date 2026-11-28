@@ -7,6 +7,8 @@ public partial class ExcelDocument {
     private LegacyXlsPreservationSnapshot? _legacyXlsPreservationSnapshot;
     private LegacyXlsDeferredPreservation? _legacyXlsDeferredPreservation;
 
+    internal bool HasOwnedLegacyXlsProjection => _legacyXlsDeferredPreservation != null;
+
     private sealed record LegacyXlsDeferredPreservation(byte[] Projection, LegacyXlsWorkbook Workbook);
 
     /// <summary>Builds the legacy edit baseline only when a save needs native preservation.</summary>
