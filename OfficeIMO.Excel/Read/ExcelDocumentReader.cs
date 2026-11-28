@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel {
                 SharedReadOnlyFileSnapshot opened = source;
                 try {
                     ExcelDocumentReader reader = OpenPackage(
-                        () => opened.CreateView(), OpenXmlPackagePartBufferReader.TryOpen(opened.CreateView(bufferSize: 1), ignoreWhitespaceNames: true),
+                        OpenXmlPackagePartBufferReader.TryOpen(opened.CreateView(bufferSize: 1), ignoreWhitespaceNames: true),
                         effective, opened);
                     source = null;
                     return reader;
@@ -113,12 +113,10 @@ namespace OfficeIMO.Excel {
                     byte[] normalized = stream.GetBuffer();
                     int length = checked((int)stream.Length);
                     return OpenPackage(
-                        () => new MemoryStream(normalized, 0, length, writable: false),
                         OpenXmlPackagePartBufferReader.TryOpen(new MemoryStream(normalized, 0, length, writable: false), ignoreWhitespaceNames: true), options);
                 }
 
-                return OpenPackage(() => new MemoryStream(bytes, writable: false),
-                    OpenXmlPackagePartBufferReader.TryOpen(bytes, ignoreWhitespaceNames: true), options);
+                return OpenPackage(OpenXmlPackagePartBufferReader.TryOpen(bytes, ignoreWhitespaceNames: true), options);
             } catch (Exception ex) when (CanRetryWithNormalizedContentTypes(ex)) {
                 if (!normalize) return OpenFromBytes(bytes, options, normalize: true, context);
                 throw new IOException($"Failed to open {context} after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'. See inner exception for details.", ex);
@@ -143,12 +141,12 @@ namespace OfficeIMO.Excel {
         private static bool CanRetryWithNormalizedContentTypes(Exception ex) =>
             !ExcelReadLimitFailure.Is(ex) && !ExcelPackagePartLengthFailure.Is(ex) && (ex is InvalidDataException or XmlException);
 
-        private static ExcelDocumentReader OpenPackage(Func<Stream> open, OpenXmlPackagePartBufferReader? parts,
+        private static ExcelDocumentReader OpenPackage(OpenXmlPackagePartBufferReader? parts,
             ExcelReaderOptions options, IDisposable? ownedResource = null) {
             if (parts == null) throw ExcelPackageUtilities.UnreadablePackageContainer();
             ExcelReaderPackage? package = null;
             try {
-                package = ExcelReaderPackage.Open(open, parts, options);
+                package = ExcelReaderPackage.Open(parts, options);
                 return new ExcelDocumentReader(default, package, options, ownedResource: ownedResource);
             } catch {
                 if (package == null) parts.Dispose();
@@ -215,7 +213,6 @@ namespace OfficeIMO.Excel {
         public void Dispose() {
             if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
             try {
-                DisposeTableWorkbook();
                 if (_snapshot != null) {
                     _editedSharedStrings?.Dispose();
                     _snapshot.ReturnSharedStrings(_sst);

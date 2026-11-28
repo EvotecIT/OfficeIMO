@@ -32,9 +32,10 @@ public partial class ExcelDocument {
         internal static string CreateNativeStreamingTheme(OfficeTheme theme) => CreateWorkbookThemeXml(theme);
 
         /// <summary>Writes bounded workbook metadata only after all worksheet streams have completed.</summary>
-        internal static void CompleteStreamingWorkbook(ExcelPackageArchive archive, DirectDataSetWorkbookModel model, OfficeTheme theme) {
+        internal static void CompleteStreamingWorkbook(ExcelPackageArchive archive, DirectDataSetWorkbookModel model, OfficeTheme theme,
+            IReadOnlyDictionary<string, object?>? documentProperties) {
             WritePackagePreamble(archive, model, DirectStylePlan.Create(model), false,
-                themeXml: CreateWorkbookThemeXml(theme), theme: theme);
+                themeXml: CreateWorkbookThemeXml(theme), theme: theme, properties: WriteStreamingDocumentProperties(documentProperties));
         }
 
 
