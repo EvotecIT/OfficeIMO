@@ -5,6 +5,7 @@ using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Word;
 
@@ -234,6 +235,34 @@ internal static class WordStyleDefinitionsReader {
             return valid ? set : null;
         } catch (XmlException) {
             return null;
+        }
+    }
+
+    /// <summary>Reads only the document defaults without constructing an index of the styles.</summary>
+    internal static bool TryReadDocumentDefaults(StylesPart part, out OfficeXmlNode defaults) {
+        defaults = default;
+        XmlReaderSettings? settings = CreateStreamingSettings(part);
+        if (settings == null) return false;
+        settings.IgnoreComments = true;
+        settings.IgnoreProcessingInstructions = true;
+        settings.IgnoreWhitespace = true;
+        try {
+            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+            using XmlReader reader = XmlReader.Create(stream, settings);
+            if (reader.MoveToContent() != XmlNodeType.Element || !IsWord(reader, "styles")) return false;
+            string? markup = null;
+            ReadChildren(reader, () => {
+                if (markup != null || !IsWord(reader, "docDefaults")) return false;
+                markup = reader.ReadOuterXml();
+                return true;
+            });
+            if (markup == null) return true;
+            byte[] bytes = Encoding.UTF8.GetBytes(markup);
+            OfficeXmlTree tree = OfficeXmlTree.Parse(bytes, bytes.Length, new OfficeXmlNamespaces.Table());
+            defaults = new OfficeXmlNode(tree, tree.Root);
+            return true;
+        } catch (Exception exception) when (exception is XmlException or InvalidDataException) {
+            return false;
         }
     }
 

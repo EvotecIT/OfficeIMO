@@ -311,15 +311,6 @@ internal static class WordValueTypeExtensions {
         _ => throw Unsupported(value)
     };
 
-    internal static WordDocumentProtectionType ToOfficeEnum(this DocumentProtectionValues value) => value switch {
-        _ when value == DocumentProtectionValues.None => WordDocumentProtectionType.None,
-        _ when value == DocumentProtectionValues.ReadOnly => WordDocumentProtectionType.ReadOnly,
-        _ when value == DocumentProtectionValues.Comments => WordDocumentProtectionType.Comments,
-        _ when value == DocumentProtectionValues.TrackedChanges => WordDocumentProtectionType.TrackedChanges,
-        _ when value == DocumentProtectionValues.Forms => WordDocumentProtectionType.Forms,
-        _ => throw Unsupported(value)
-    };
-
     internal static TextDirectionValues ToOpenXml(this WordTextDirection value) => value switch {
         WordTextDirection.LeftToRightTopToBottom => TextDirectionValues.LefToRightTopToBottom,
         WordTextDirection.LeftToRightTopToBottom2010 => TextDirectionValues.LeftToRightTopToBottom2010,
@@ -415,7 +406,6 @@ internal static class WordValueTypeExtensions {
     internal static WordParagraphAlignment? ToOfficeEnum(this JustificationValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
     internal static WordUnderlineStyle? ToOfficeEnum(this UnderlineValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
     internal static WordTableVerticalAlignment? ToOfficeEnum(this TableVerticalAlignmentValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
-    internal static WordDocumentProtectionType? ToOfficeEnum(this DocumentProtectionValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
     internal static WordTextDirection? ToOfficeEnum(this TextDirectionValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
     internal static WordHorizontalRelativePosition? ToOfficeEnum(this HorizontalRelativePositionValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;
     internal static WordVerticalRelativePosition? ToOfficeEnum(this VerticalRelativePositionValues? value) => value.HasValue ? value.Value.ToOfficeEnum() : null;

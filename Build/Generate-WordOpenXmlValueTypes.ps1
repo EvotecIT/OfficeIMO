@@ -51,4 +51,5 @@ $sharedTypeNames = [ordered]@{
     -AssemblyDirectory $AssemblyDirectory `
     -OutputPath $OutputPath `
     -GeneratorName 'Build/Generate-WordOpenXmlValueTypes.ps1' `
+    -TokenOnlyTypes @("WordCharacterSpacing", "WordZoomPreset") `
     -EmitTokenParsers

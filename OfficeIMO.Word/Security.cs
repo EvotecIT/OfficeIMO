@@ -1,6 +1,5 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Security.Cryptography;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -36,8 +35,7 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        internal static void ProtectWordDoc(WordprocessingDocument wordDocument, string password, DocumentProtectionValues? documentProtectionValue = null) {
-            documentProtectionValue ??= DocumentProtectionValues.ReadOnly;
+        internal static void ProtectWordDoc(OfficeXmlNode protection, string password) {
             // Generate the Salt
             byte[] arrSalt = new byte[16];
             using var rand = RandomNumberGenerator.Create();
@@ -149,99 +147,18 @@ namespace OfficeIMO.Word {
 
                 generatedKey = ConcatByteArrays(iterator, generatedKey);
                 generatedKey = sha1.ComputeHash(generatedKey);
-            }            // Apply the element
-            DocumentProtection documentProtection = new DocumentProtection();
-            documentProtection.Edit = documentProtectionValue;
-
-            OnOffValue docProtection = new OnOffValue(true);
-            documentProtection.Enforcement = docProtection;
-
-            documentProtection.CryptographicAlgorithmClass = CryptAlgorithmClassValues.Hash;
-            documentProtection.CryptographicProviderType = CryptProviderValues.RsaFull;
-            documentProtection.CryptographicAlgorithmType = CryptAlgorithmValues.TypeAny;
-            documentProtection.CryptographicAlgorithmSid = 4; // SHA1
-            //    The iteration count is unsigned
-            UInt32Value uintVal = new UInt32Value();
-            uintVal.Value = (uint)iterations;
-            documentProtection.CryptographicSpinCount = uintVal;
-            documentProtection.Hash = Convert.ToBase64String(generatedKey);
-            documentProtection.Salt = Convert.ToBase64String(arrSalt);
-            var settingsPart = wordDocument.MainDocumentPart?.DocumentSettingsPart;
-            if (settingsPart?.Settings == null) return;
-            settingsPart.Settings.AddChild(documentProtection, true);
-            settingsPart.Settings.Save();
+            }
+            const int W = OfficeXmlNamespaces.WordprocessingML;
+            protection.SetAttribute(W, "edit", "readOnly");
+            protection.SetAttribute(W, "enforcement", "true");
+            protection.SetAttribute(W, "cryptProviderType", "rsaFull");
+            protection.SetAttribute(W, "cryptAlgorithmClass", "hash");
+            protection.SetAttribute(W, "cryptAlgorithmType", "typeAny");
+            protection.SetAttribute(W, "cryptAlgorithmSid", "4");
+            protection.SetAttribute(W, "cryptSpinCount", iterations.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            protection.SetAttribute(W, "hash", Convert.ToBase64String(generatedKey));
+            protection.SetAttribute(W, "salt", Convert.ToBase64String(arrSalt));
         }
 
-        // Helper to generate legacy write protection hash
-        private static string GenerateLegacyWriteProtectionHash(string password) {
-            if (string.IsNullOrEmpty(password)) return "";
-            int intMaxPasswordLength = 15;
-            password = password.Substring(0, Math.Min(password.Length, intMaxPasswordLength));
-            byte[] arrByteChars = new byte[password.Length];
-            for (int intLoop = 0; intLoop < password.Length; intLoop++) {
-                int intTemp = Convert.ToInt32(password[intLoop]);
-                arrByteChars[intLoop] = Convert.ToByte(intTemp & 0x00FF);
-                if (arrByteChars[intLoop] == 0)
-                    arrByteChars[intLoop] = Convert.ToByte((intTemp & 0xFF00) >> 8);
-            }
-            int intHighOrderWord = InitialCodeArray[arrByteChars.Length - 1];
-            for (int intLoop = 0; intLoop < arrByteChars.Length; intLoop++) {
-                int tmp = intMaxPasswordLength - arrByteChars.Length + intLoop;
-                for (int intBit = 0; intBit < 7; intBit++) {
-                    if ((arrByteChars[intLoop] & (0x0001 << intBit)) != 0) {
-                        intHighOrderWord ^= EncryptionMatrix[tmp, intBit];
-                    }
-                }
-            }
-            int intLowOrderWord = 0;
-            for (int intLoopChar = arrByteChars.Length - 1; intLoopChar >= 0; intLoopChar--) {
-                intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars[intLoopChar];
-            }
-            intLowOrderWord = (((intLowOrderWord >> 14) & 0x0001) | ((intLowOrderWord << 1) & 0x7FFF)) ^ arrByteChars.Length ^ 0xCE4B;
-            int intCombinedkey = (intHighOrderWord << 16) + intLowOrderWord;
-            return intCombinedkey.ToString("X8");
-        }
-
-        internal static void SetWriteProtection(WordprocessingDocument wordDocument, string password) {
-            string hashValue = GenerateLegacyWriteProtectionHash(password);
-            var main = wordDocument.MainDocumentPart;
-            if (main == null) return;
-            var settingsPart = main.DocumentSettingsPart ?? main.AddNewPart<DocumentSettingsPart>();
-            var settings = settingsPart.Settings ?? (settingsPart.Settings = new Settings());
-            if (settings.WriteProtection == null) {
-                settings.WriteProtection = new WriteProtection();
-            }
-            // Set recommended read-only flag
-            OnOffValue docProtection = new OnOffValue(true);
-            settings.WriteProtection.Recommended = docProtection;
-            // For WriteProtection, use the simple legacy hash directly but still set algorithm info
-            if (!string.IsNullOrEmpty(hashValue)) {
-                settings.WriteProtection.CryptographicAlgorithmClass = CryptAlgorithmClassValues.Hash;
-                settings.WriteProtection.CryptographicProviderType = CryptProviderValues.RsaFull;
-                settings.WriteProtection.CryptographicAlgorithmType = CryptAlgorithmValues.TypeAny;
-                settings.WriteProtection.CryptographicAlgorithmSid = 1; // Legacy algorithm ID
-                settings.WriteProtection.Hash = hashValue;
-            }
-            settings.Save();
-        }
-
-        internal static void SetWriteProtectionHashOnly(WordprocessingDocument wordDocument, string password) {
-            string hashValue = GenerateLegacyWriteProtectionHash(password);
-            var main = wordDocument.MainDocumentPart;
-            if (main == null) return;
-            var settingsPart = main.DocumentSettingsPart ?? main.AddNewPart<DocumentSettingsPart>();
-            var settings = settingsPart.Settings ?? (settingsPart.Settings = new Settings());
-            if (settings.WriteProtection == null) {
-                settings.WriteProtection = new WriteProtection();
-            }
-            if (!string.IsNullOrEmpty(hashValue)) {
-                settings.WriteProtection.CryptographicAlgorithmClass = CryptAlgorithmClassValues.Hash;
-                settings.WriteProtection.CryptographicProviderType = CryptProviderValues.RsaFull;
-                settings.WriteProtection.CryptographicAlgorithmType = CryptAlgorithmValues.TypeAny;
-                settings.WriteProtection.CryptographicAlgorithmSid = 1; // Legacy algorithm ID
-                settings.WriteProtection.Hash = hashValue;
-            }
-            settings.Save();
-        }
     }
 }

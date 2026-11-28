@@ -3,6 +3,8 @@ using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Word.OpenXml;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
@@ -134,6 +136,44 @@ namespace OfficeIMO.Word {
             get => _settings ??= new WordSettings(this);
             internal set => _settings = value;
         }
+
+        internal OfficeXmlNode GetSettingsRoot(bool create = false) {
+            if (_ownedModel is { } model) {
+                OfficeXmlNode root = model.SettingsRoot(create: false);
+                if (root.Exists || !create) return root;
+                if (IsOwnedReadOnly) throw new IOException("Cannot modify readonly container");
+                return model.SettingsRoot(create: true);
+            }
+            MainDocumentPart? main = _wordprocessingDocumentValue?.MainDocumentPart;
+            DocumentSettingsPart? part = main?.DocumentSettingsPart;
+            if (create && main != null) {
+                part ??= main.AddNewPart<DocumentSettingsPart>();
+                part.Settings ??= new Settings();
+            }
+            return OfficeXmlNode.FromSdk(part?.Settings);
+        }
+
+        internal OfficeXmlNode GetDefaultRunProperties(bool edit) {
+            OfficeXmlNode defaults;
+            if (_ownedModel is { } model) {
+                OfficeXmlNode styles = model.StylesRoot(create: edit && !IsOwnedReadOnly);
+                defaults = edit && styles.Exists
+                    ? styles.GetOrPrependChild(WordXml.W, "docDefaults")
+                    : styles.WChild("docDefaults");
+            } else if (edit) {
+                EnsureStyleDefinitionsInitialized();
+                OfficeXmlNode styles = OfficeXmlNode.FromSdk(_wordprocessingDocumentValue?.MainDocumentPart?.StyleDefinitionsPart?.Styles);
+                defaults = styles.IsNone ? default : styles.GetOrPrependChild(WordXml.W, "docDefaults");
+            } else {
+                defaults = WordStyleCatalog.ReadDocumentDefaults(_wordprocessingDocumentValue?.MainDocumentPart?.StyleDefinitionsPart);
+            }
+            if (!edit || defaults.IsNone) return defaults.WChild("rPrDefault").WChild("rPr");
+            return defaults.GetOrPrependChild(WordXml.W, "rPrDefault").GetOrPrependChild(WordXml.W, "rPr");
+        }
+
+        internal OfficeXmlNode SettingsDocumentRoot => _ownedModel is { } model
+            ? new OfficeXmlNode(model.Document, model.Document.Root)
+            : OfficeXmlNode.FromSdk(_wordprocessingDocumentValue?.MainDocumentPart?.Document);
 
         /// <summary>
         /// Manages application related properties.

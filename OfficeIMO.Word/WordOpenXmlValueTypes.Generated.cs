@@ -1442,18 +1442,6 @@ internal static class WordOpenXmlValueTypeExtensions {
         "compressPunctuationAndJapaneseKana",
     };
 
-    internal static DocumentFormat.OpenXml.Wordprocessing.CharacterSpacingValues ToOpenXml(this WordCharacterSpacing value) =>
-        new(GetToken(value, WordCharacterSpacingTokens));
-
-    internal static DocumentFormat.OpenXml.Wordprocessing.CharacterSpacingValues? ToOpenXml(this WordCharacterSpacing? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static WordCharacterSpacing ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.CharacterSpacingValues value) =>
-        (WordCharacterSpacing)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, WordCharacterSpacingTokens, nameof(WordCharacterSpacing));
-
-    internal static WordCharacterSpacing? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.CharacterSpacingValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
-
     internal static bool TryParseOpenXmlValue(string token, out WordCharacterSpacing value) {
         int index = Array.IndexOf(WordCharacterSpacingTokens, token);
         value = index < 0 ? default : (WordCharacterSpacing)index;
@@ -1802,18 +1790,6 @@ internal static class WordOpenXmlValueTypeExtensions {
         "bestFit",
         "textFit",
     };
-
-    internal static DocumentFormat.OpenXml.Wordprocessing.PresetZoomValues ToOpenXml(this WordZoomPreset value) =>
-        new(GetToken(value, WordZoomPresetTokens));
-
-    internal static DocumentFormat.OpenXml.Wordprocessing.PresetZoomValues? ToOpenXml(this WordZoomPreset? value) =>
-        value.HasValue ? value.Value.ToOpenXml() : null;
-
-    internal static WordZoomPreset ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.PresetZoomValues value) =>
-        (WordZoomPreset)FindToken(((DocumentFormat.OpenXml.IEnumValue)value).Value, WordZoomPresetTokens, nameof(WordZoomPreset));
-
-    internal static WordZoomPreset? ToOfficeEnum(this DocumentFormat.OpenXml.Wordprocessing.PresetZoomValues? value) =>
-        value.HasValue ? value.Value.ToOfficeEnum() : null;
 
     internal static bool TryParseOpenXmlValue(string token, out WordZoomPreset value) {
         int index = Array.IndexOf(WordZoomPresetTokens, token);

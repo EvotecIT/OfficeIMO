@@ -6,6 +6,35 @@ using Color = OfficeIMO.OfficeColor;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void ReadOnlySettingsReadDefaultTypographyAndObserveLiveStyleChanges() {
+            using WordDocument original = WordDocument.Create();
+            original.Settings.FontSize = OfficeLength.Points(26);
+            original.Settings.Language = "pl-PL";
+            using var source = new MemoryStream(original.ToBytes());
+            using WordDocument document = WordDocument.Load(source, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+
+            var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!;
+            Assert.Equal(26, document.Settings.FontSize?.ToPoints());
+            Assert.Equal("pl-PL", document.Settings.Language);
+            Assert.False(styles.IsRootElementLoaded);
+
+            var liveStyles = document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            liveStyles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.FontSize!.Val = "56";
+            Assert.Equal(28, document.Settings.FontSize?.ToPoints());
+        }
+
+        [Fact]
+        public void DefaultTypographySurvivesAddingATableStyle() {
+            using WordDocument document = WordDocument.Create();
+            document.Settings.FontSize = OfficeLength.Points(26);
+            _ = document.OpenXmlDocument;
+            document.AddTable(1, 1);
+            using var saved = new MemoryStream(document.ToBytes());
+            using WordDocument reopened = WordDocument.Load(saved);
+            Assert.Equal(26, reopened.Settings.FontSize?.ToPoints());
+        }
+
+        [Fact]
         public void Test_CreatingDocumentWithSettings() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -233,11 +262,17 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test ReadOnlyEnforced");
                 document.Settings.ProtectionPassword = "Test123";
-                document.Settings.ProtectionType = WordDocumentProtectionType.ReadOnly;
+                document.Settings.ProtectionType = WordDocumentProtectionType.Comments;
+                document.Settings.ProtectionPassword = "UpdatedProtection";
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Settings.ProtectionType == WordDocumentProtectionType.ReadOnly);
+                document.Settings.RemoveProtection();
+                Assert.Null(document.Settings.ProtectionType);
+            }
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {
+                Assert.Throws<IOException>(() => document.Settings.ProtectionPassword = "ReadOnlyProtection");
             }
         }
     }

@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word;
 
 public partial class WordCompatibilitySettings {
@@ -14,25 +12,7 @@ public partial class WordCompatibilitySettings {
     /// cannot retain an explicitly disabled value; save as DOCX to retain it.
     /// </remarks>
     public bool DoNotUseIndentAsNumberingTabStop {
-        get {
-            DoNotUseIndentAsNumberingTabStop? setting = _wordprocessingDocument.MainDocumentPart?
-                .DocumentSettingsPart?.Settings?.GetFirstChild<Compatibility>()?
-                .GetFirstChild<DoNotUseIndentAsNumberingTabStop>();
-            return setting != null && (setting.Val?.Value ?? true);
-        }
-        set {
-            Compatibility? compatibility = _wordprocessingDocument.MainDocumentPart?
-                .DocumentSettingsPart?.Settings?.GetFirstChild<Compatibility>();
-            if (compatibility == null) {
-                compatibility = new Compatibility();
-                GetSettings().AddChild(compatibility, true);
-            }
-            DoNotUseIndentAsNumberingTabStop? setting = compatibility.GetFirstChild<DoNotUseIndentAsNumberingTabStop>();
-            if (setting == null) {
-                setting = new DoNotUseIndentAsNumberingTabStop();
-                compatibility.AddChild(setting, true);
-            }
-            setting.Val = value;
-        }
+        get => ReadOption("doNotUseIndentAsNumberingTabStop");
+        set => SetOption("doNotUseIndentAsNumberingTabStop", value);
     }
 }

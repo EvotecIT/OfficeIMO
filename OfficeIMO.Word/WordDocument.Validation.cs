@@ -65,14 +65,11 @@ namespace OfficeIMO.Word {
         /// Gets or sets compatibility settings for the document.
         /// </summary>
         public WordCompatibilitySettings CompatibilitySettings {
-            get {
-                if (_ownedModel != null) OpenSdkPackage(null);
-                return _compatibilitySettings;
-            }
+            get => _compatibilitySettings ??= new WordCompatibilitySettings(this);
             set => _compatibilitySettings = value;
         }
 
-        private WordCompatibilitySettings _compatibilitySettings = null!;
+        private WordCompatibilitySettings? _compatibilitySettings;
 
         internal void NotifyTableOfContentUpdateQueued(bool enabledUpdateFieldsOnOpen = false) {
             _tableOfContentUpdateQueued = true;

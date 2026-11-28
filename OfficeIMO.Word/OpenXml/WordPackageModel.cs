@@ -21,6 +21,7 @@ internal sealed class WordPackageModel : IDisposable {
 
     private readonly MemoryStream _source;
     private OfficeXmlTree? _document;
+    private OfficeXmlTree? _settings;
     private int _body = OfficeXmlTree.NoNode;
 
     private WordPackageModel(byte[] sourceBytes, MemoryStream source, OfficeOpcEditablePackage package, string mainPartName) {
@@ -98,6 +99,35 @@ internal sealed class WordPackageModel : IDisposable {
 
     /// <summary>Whether the package has a settings part.</summary>
     internal bool HasSettings => WordOwnedSave.RelatedParts(this, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "settings").Any();
+
+    internal OfficeXmlNode SettingsRoot(bool create) {
+        _settings ??= RelatedShellPart(WordPackageView.SettingsRelationshipType, "settings", create);
+        return RootOf(_settings, "settings");
+    }
+
+    internal OfficeXmlNode StylesRoot(bool create) =>
+        RootOf(RelatedShellPart(WordPackageView.StylesRelationshipType, "styles", create), "styles");
+
+    private static OfficeXmlNode RootOf(OfficeXmlTree? tree, string name) =>
+        tree != null && tree.IsElement(tree.Root, OfficeXmlNamespaces.WordprocessingML, name)
+            ? new OfficeXmlNode(tree, tree.Root)
+            : default;
+
+    private OfficeXmlTree? RelatedShellPart(string relationship, string name, bool create) {
+        string? part = WordOwnedSave.RelatedParts(this, relationship).FirstOrDefault();
+        if (part != null) return Package.GetXml(part);
+        if (!create) return null;
+        string fileName = name + ".xml";
+        for (int index = 2; Package.PartExists("/word/" + fileName); index++) {
+            fileName = name + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".xml";
+        }
+        OfficeXmlTree tree = Package.CreateXmlPart("/word/" + fileName,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml." + name + "+xml",
+            OfficeXmlNamespaces.WordprocessingML, name);
+        Package.AddRelationship(MainPartName, relationship, fileName);
+        MarkChanged();
+        return tree;
+    }
 
     /// <summary>Whether the settings part has a top-level element named <paramref name="localName"/>.</summary>
     internal bool SettingsHave(string localName) {
