@@ -20,7 +20,7 @@ public partial class ExcelDocument {
         if (source.WasEncryptedSource || source.Worksheets.Count != 1 || source.ChartSheets.Count != 0
             || source.SourceCompoundFile?.Streams is not { Count: 1 } streams
             || LegacyWorkbookStreamLocator.FindWorkbookStream(streams) is not { } nativeStream
-            || !HasPlainLegacyXlsRecords(nativeStream, token)) {
+            || !HasPlainLegacyXlsRecords(nativeStream, source.Worksheets[0].StreamOffset, token)) {
             return false;
         }
 
@@ -124,23 +124,36 @@ public partial class ExcelDocument {
 
     // Only records whose complete worksheet projection is implemented above can take the owned path.
     // The parsed BIFF model remains authoritative for values and native data retention.
-    private static bool HasPlainLegacyXlsRecords(byte[] stream, CancellationToken token) {
+    private static bool HasPlainLegacyXlsRecords(byte[] stream, int sheetOffset, CancellationToken token) {
         int offset = 0;
         int completedSubstreams = 0;
         while (offset <= stream.Length - 4) {
             token.ThrowIfCancellationRequested();
-            ushort type = BiffRecordReader.ReadUInt16(stream, offset);
+            var type = (BiffRecordType)BiffRecordReader.ReadUInt16(stream, offset);
             ushort length = BiffRecordReader.ReadUInt16(stream, offset + 2);
-            if (length > stream.Length - offset - 4 || type is not (
-                0x0809 or 0x000a or 0x0085 or 0x00fc or 0x003c or 0x0042 or 0x0022 or 0x0200
-                or 0x0203 or 0x0204 or 0x0205 or 0x00fd or 0x027e or 0x00bd)) {
+            if (length > stream.Length - offset - 4) return false;
+
+            if (offset == 0 || offset == sheetOffset) {
+                ushort substream = offset == 0 ? (ushort)0x0005 : (ushort)0x0010;
+                if (type != BiffRecordType.Bof || length < 4
+                    || BiffRecordReader.ReadUInt16(stream, offset + 4) != LegacyBiffVersionValidator.Biff8Version
+                    || BiffRecordReader.ReadUInt16(stream, offset + 6) != substream) return false;
+            } else if (type is not (BiffRecordType.Eof or BiffRecordType.BoundSheet8 or BiffRecordType.Sst
+                or BiffRecordType.Continue or BiffRecordType.CodePage or BiffRecordType.Date1904 or BiffRecordType.Dimensions
+                or BiffRecordType.Number or BiffRecordType.Label or BiffRecordType.BoolErr or BiffRecordType.LabelSst
+                or BiffRecordType.Rk or BiffRecordType.MulRk)) {
                 return false;
             }
 
             offset += 4 + length;
-            if (type == 0x000a && ++completedSubstreams == 2) {
+            if (type != BiffRecordType.Eof) continue;
+            if (length != 0) return false;
+            if (++completedSubstreams == 1) {
+                if (offset != sheetOffset) return false;
+            } else {
                 // Some compound files include sector padding in the recorded Workbook stream size.
                 for (; offset < stream.Length; offset++) {
+                    if ((offset & 4095) == 0) token.ThrowIfCancellationRequested();
                     if (stream[offset] != 0) return false;
                 }
                 return true;

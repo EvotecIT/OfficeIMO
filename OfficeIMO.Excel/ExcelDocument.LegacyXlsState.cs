@@ -277,10 +277,10 @@ namespace OfficeIMO.Excel {
             if (EarlyBiffImportReport?.HasLoss == true && options?.LossPolicy != OfficeConversionLossPolicy.Allow) {
                 throw new NotSupportedException("Saving the early BIFF projection would omit source features. Review the load report and set ExcelSaveOptions.AllowLoss to true to accept that loss.");
             }
-            if (preserveNativeRecords && CanPreserveNativeLegacyXls(options)) return;
             if (SourceFormat != ExcelFileFormat.Xls
                 || !HasLossyLegacyXlsImportState(includeProjectedChartSheets, preserveLinkedVbaProject)
-                || options?.LossPolicy == OfficeConversionLossPolicy.Allow) {
+                || options?.LossPolicy == OfficeConversionLossPolicy.Allow
+                || preserveNativeRecords && CanPreserveNativeLegacyXls(options)) {
                 return;
             }
 
