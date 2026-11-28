@@ -119,7 +119,9 @@ internal static class OfficeProvenancePng {
                 Buffer.BlockCopy(data, offset + 8, tiff, 0, payloadLength);
                 string location = $"PNG/eXIf@{offset}";
                 bool valid = validStructure && foundHeader && HasValidCrc(data, offset, payloadLength);
-                if (context != null) OfficeProvenanceTiff.InspectGeneratorFields(tiff, options, context, location, valid);
+                if (context != null) {
+                    OfficeProvenanceTiff.InspectGeneratorFields(tiff, options, context, location, valid, decodingAlreadyCharged: true);
+                }
                 if (output != null && removalOptions != null && changes != null &&
                     OfficeProvenanceTiff.TryRemoveGeneratorFields(tiff, removalOptions, location, changes, valid, out byte[] cleaned)) {
                     WriteChunk(output, "eXIf", cleaned);

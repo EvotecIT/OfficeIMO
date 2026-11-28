@@ -36,13 +36,19 @@ internal static class OfficeHiddenDataAssets {
         if (description != null && collector.Removes(OfficeHiddenDataKind.ImageMetadata)) {
             List<OfficeProvenanceEvidence> currentProvenance = ReferenceEquals(current, original) ? provenance : InspectImageProvenance(current, part);
             bool bound = currentProvenance.Any(IsContentBinding);
-            byte[]? stripped = bound ? null : TryStripPrivateImageMetadata(current, keepSourceType);
+            // Declarations the provenance pass kept, because they were not selected or strict mode preserved them, survive the strip.
+            // A malformed one cannot be separated from the rest of the metadata safely, so the metadata stays with it.
+            bool keepsDeclarations = keepSourceType || currentProvenance.Any(item => !IsContentBinding(item));
+            bool keepsMalformed = currentProvenance.Any(item => !IsContentBinding(item) && !item.IsStructurallyValid);
+            byte[]? stripped = bound || keepsMalformed ? null : TryStripPrivateImageMetadata(current, keepsDeclarations);
             if (stripped == null) {
-                metadataReason = bound ? OfficeHiddenDataReason.ProtectsContentCredentials : OfficeHiddenDataReason.UnsupportedImageFormat;
+                metadataReason = bound ? OfficeHiddenDataReason.ProtectsContentCredentials
+                    : keepsMalformed ? OfficeHiddenDataReason.KeptByProvenanceChoices
+                    : OfficeHiddenDataReason.UnsupportedImageFormat;
             } else {
                 current = stripped;
                 metadataRemoved = true;
-                if (keepSourceType && provenance.Any(item => item.Carrier == OfficeProvenanceCarrierKind.IptcDigitalSourceType)) {
+                if (keepsDeclarations && provenance.Any(item => item.Carrier == OfficeProvenanceCarrierKind.IptcDigitalSourceType)) {
                     metadataReason = OfficeHiddenDataReason.SourceTypeKept;
                 }
             }
@@ -136,13 +142,19 @@ internal static class OfficeHiddenDataAssets {
         evidence.Carrier is OfficeProvenanceCarrierKind.C2paManifest or OfficeProvenanceCarrierKind.C2paExternalManifest;
 
     private static bool TakeMatch(List<OfficeProvenanceEvidence> remaining, OfficeProvenanceEvidence evidence) {
-        // A kept generator field is rewritten to the product it names, so its stored length can shrink while the declaration stays.
-        int index = remaining.FindIndex(item => item.Carrier == evidence.Carrier && item.Value == evidence.Value &&
-            (item.PayloadLength == evidence.PayloadLength || evidence.Carrier == OfficeProvenanceCarrierKind.AiGeneratorMetadata));
+        // An unchanged carrier keeps its location; otherwise a kept generator field may have been rewritten to the product it names,
+        // so its stored length can shrink while the declaration stays. Validity must match, so a valid and a malformed declaration
+        // of the same product are never confused.
+        int index = remaining.FindIndex(item => item.Location == evidence.Location && SameDeclaration(item, evidence));
+        if (index < 0) index = remaining.FindIndex(item => SameDeclaration(item, evidence));
         if (index < 0) return false;
         remaining.RemoveAt(index);
         return true;
     }
+
+    private static bool SameDeclaration(OfficeProvenanceEvidence item, OfficeProvenanceEvidence evidence) =>
+        item.Carrier == evidence.Carrier && item.Value == evidence.Value && item.IsStructurallyValid == evidence.IsStructurallyValid &&
+        (item.PayloadLength == evidence.PayloadLength || evidence.Carrier == OfficeProvenanceCarrierKind.AiGeneratorMetadata);
 
     internal static string DescribeProvenance(OfficeProvenanceEvidence evidence) {
         string description = evidence.Carrier switch {

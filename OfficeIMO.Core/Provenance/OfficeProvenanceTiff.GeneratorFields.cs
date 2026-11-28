@@ -11,6 +11,7 @@ internal static partial class OfficeProvenanceTiff {
     private const ushort SoftwareTag = 305;
     private const ushort ExifIfdTag = 34665;
     private const ushort GpsIfdTag = 34853;
+    private const ushort InteroperabilityIfdTag = 40965;
     private const ushort UserCommentTag = 37510;
 
     internal static void InspectGeneratorFields(
@@ -18,8 +19,11 @@ internal static partial class OfficeProvenanceTiff {
         OfficeProvenanceOptions options,
         OfficeProvenanceContext context,
         string location,
-        bool containerIsStructurallyValid) {
-        if (!TryFindGeneratorFields(tiff, options, context, out List<TiffIfd> ifds, out List<GeneratorField> fields, out bool complete)) return;
+        bool containerIsStructurallyValid,
+        bool decodingAlreadyCharged = false) {
+        // A container that already probed this block charged its decoding, so the reread does not charge the inspection again.
+        if (!TryFindGeneratorFields(tiff, options, decodingAlreadyCharged ? null : context, out List<TiffIfd> ifds, out List<GeneratorField> fields,
+            out bool complete)) return;
         bool storageValid = complete && HasValidEntryStorage(tiff, ifds);
         foreach (GeneratorField field in fields) {
             context.Add(new OfficeProvenanceEvidence(

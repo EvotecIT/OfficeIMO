@@ -112,7 +112,11 @@ internal static partial class OfficeProvenanceTiff {
                             retained.Add(entry);
                             continue;
                         }
-                        if (cleaned.Length > xmpLength) throw new InvalidDataException("Rewritten TIFF XMP exceeds its existing allocation.");
+                        if (cleaned.Length > xmpLength) {
+                            // The rewritten packet no longer fits its fixed allocation, so the carrier is kept as it is.
+                            retained.Add(entry);
+                            continue;
+                        }
                         Buffer.BlockCopy(cleaned, 0, output, xmpOffset, cleaned.Length);
                         Array.Clear(output, xmpOffset + cleaned.Length, xmpLength - cleaned.Length);
                         foreach (TiffIfd candidateIfd in ifds) {
@@ -605,11 +609,13 @@ internal static partial class OfficeProvenanceTiff {
                     EnqueueIfdOffset(subIfdOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
                 }
             }
-            if (followExifIfd && result.Count == 1) {
-                // The GPS IFD is read too: its values can share storage with a field that removal clears.
-                foreach (TiffEntry exifIfd in entries.Where(static entry => entry.Tag is ExifIfdTag or GpsIfdTag)) {
-                    if (TryReadExifIfdPointer(data, exifIfd, bigTiff, out ulong exifOffset)) {
-                        EnqueueIfdOffset(exifOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
+            if (followExifIfd) {
+                // The Exif, GPS and Interoperability IFDs are read too: their values can share storage with a field that removal
+                // clears. A pointer to a directory that is already scheduled is not followed twice.
+                foreach (TiffEntry pointer in entries.Where(static entry => entry.Tag is ExifIfdTag or GpsIfdTag or InteroperabilityIfdTag)) {
+                    if (TryReadExifIfdPointer(data, pointer, bigTiff, out ulong pointerOffset) && pointerOffset != 0 &&
+                        !visited.Contains(pointerOffset) && !pendingOffsets.Contains(pointerOffset)) {
+                        EnqueueIfdOffset(pointerOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
                     }
                 }
             }

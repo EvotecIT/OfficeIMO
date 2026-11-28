@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Provenance;
 using Xunit;
@@ -392,14 +393,94 @@ public sealed class ProvenanceAiGeneratorMetadataContracts {
     }
 
     [Fact]
-    public void OrdinaryExifIsNotACarrier() {
+    public void OrdinaryExifIsNotACarrierAndItsTextIsChargedOnce() {
         byte[] png = CreatePng(CreateChunk("eXIf", CreateExif("Darktable 4.6", "ASCII\0\0\0holiday")));
 
-        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(png, "photo.png");
+        // Software and UserComment are 14 + 15 bytes; the image itself is not decoded.
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(png, "photo.png", new OfficeProvenanceOptions { MaxExpandedContainerBytes = 29 });
         Assert.Empty(report.Evidence);
-        // Only the EXIF text is charged: Software and UserComment (14 + 15 bytes), read by the carrier check and again by inspection.
-        // The image itself is not decoded.
-        Assert.Equal(2 * (14 + 15), report.ExpandedInspectionBytes);
+        Assert.Equal(29, report.ExpandedInspectionBytes);
+        Assert.Throws<InvalidDataException>(() =>
+            OfficeProvenanceInspector.Inspect(png, "photo.png", new OfficeProvenanceOptions { MaxExpandedContainerBytes = 28 }));
+    }
+
+    [Fact]
+    public void SoftwareTextSharedWithAnInteroperabilityEntryIsNotCleared() {
+        byte[] exif = CreateExif("Midjourney", "ASCII\0\0\0a holiday by the harbour");
+        int software = BitConverter.ToInt32(exif, 22 + 8);
+        int exifIfd = BitConverter.ToInt32(exif, 34 + 8);
+        // Turn the Exif IFD's UserComment into an Interoperability pointer, then make that directory's only entry
+        // (InteroperabilityIndex, ASCII) read the Software text. The Interoperability IFD reuses the UserComment's storage.
+        int interop = BitConverter.ToInt32(exif, exifIfd + 2 + 8);
+        BitConverter.GetBytes((ushort)0xA005).CopyTo(exif, exifIfd + 2);
+        BitConverter.GetBytes((ushort)4).CopyTo(exif, exifIfd + 4);
+        BitConverter.GetBytes(1u).CopyTo(exif, exifIfd + 6);
+        BitConverter.GetBytes((uint)interop).CopyTo(exif, exifIfd + 10);
+        BitConverter.GetBytes((ushort)1).CopyTo(exif, interop);
+        BitConverter.GetBytes((ushort)0x0001).CopyTo(exif, interop + 2);
+        BitConverter.GetBytes((ushort)2).CopyTo(exif, interop + 4);
+        BitConverter.GetBytes(BitConverter.ToUInt32(exif, 22 + 4)).CopyTo(exif, interop + 6);
+        BitConverter.GetBytes((uint)software).CopyTo(exif, interop + 10);
+        BitConverter.GetBytes(0u).CopyTo(exif, interop + 14);
+        byte[] source = CreatePng(CreateChunk("eXIf", exif));
+
+        Assert.False(OfficeProvenanceRemover.Remove(source, "generated.png", new OfficeProvenanceRemovalOptions()).WasChanged);
+    }
+
+    [Fact]
+    public void TiffXmpThatGrowsWhenRewrittenIsKeptInsteadOfFailing() {
+        string extra = string.Concat(Enumerable.Range(1, 40).Select(index => $"<p:p{index}/>"));
+        byte[] xmp = Encoding.UTF8.GetBytes(
+            "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\" xmlns:p=\"urn:example\">" +
+            "<rdf:Description rdf:about=\"\" xmp:CreatorTool=\"ComfyUI\">" + extra + "</rdf:Description></rdf:RDF>");
+        ushort[] tags = { 256, 257, 258, 259, 262, 273, 277, 278, 279, 700 };
+        const int entries = 10;
+        int imageOffset = 8 + 2 + entries * 12 + 4;
+        int xmpOffset = imageOffset + 1;
+        var tiff = new byte[xmpOffset + xmp.Length];
+        tiff[0] = (byte)'I'; tiff[1] = (byte)'I'; tiff[2] = 42; tiff[4] = 8;
+        BitConverter.GetBytes((ushort)entries).CopyTo(tiff, 8);
+        for (int index = 0; index < entries; index++) {
+            int entry = 10 + index * 12;
+            ushort type = tags[index] == 273 ? (ushort)4 : tags[index] == 700 ? (ushort)1 : (ushort)3;
+            uint count = tags[index] == 700 ? (uint)xmp.Length : 1;
+            uint value = tags[index] switch { 258 => 8, 273 => (uint)imageOffset, 700 => (uint)xmpOffset, _ => 1 };
+            BitConverter.GetBytes(tags[index]).CopyTo(tiff, entry);
+            BitConverter.GetBytes(type).CopyTo(tiff, entry + 2);
+            BitConverter.GetBytes(count).CopyTo(tiff, entry + 4);
+            BitConverter.GetBytes(value).CopyTo(tiff, entry + 8);
+        }
+        xmp.CopyTo(tiff, xmpOffset);
+
+        Assert.Equal("ComfyUI", Assert.Single(OfficeProvenanceInspector.Inspect(tiff, "image.tif").Evidence).Value);
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "image.tif", new OfficeProvenanceRemovalOptions());
+        Assert.Equal(tiff, result.ToArray());
+    }
+
+    [Theory]
+    [InlineData(OfficeHiddenDataKind.Provenance)]
+    [InlineData(OfficeHiddenDataKind.Provenance | OfficeHiddenDataKind.ImageMetadata)]
+    [InlineData(OfficeHiddenDataKind.ImageMetadata)]
+    public void HiddenDataKeepsMalformedDeclarationsAndReportsEachOneTruthfully(OfficeHiddenDataKind kinds) {
+        var metadata = new OfficeImageMetadata {
+            XmpProfile = Encoding.UTF8.GetBytes(
+                "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\" xmlns:p=\"urn:private\">" +
+                "<rdf:Description rdf:about=\"a\" xmp:CreatorTool=\"Midjourney\"/>" +
+                "<rdf:Description rdf:about=\"b\"><xmp:CreatorTool p:owner=\"Alice\">Midjourney</xmp:CreatorTool></rdf:Description></rdf:RDF>")
+        };
+        byte[] png = OfficeImageMetadata.Apply(CreatePng(), metadata);
+        var collector = new OfficeIMO.Core.Internal.OfficeHiddenDataCollector("probe", new OfficeHiddenDataOptions { Kinds = kinds });
+
+        byte[] output = OfficeIMO.Core.Internal.OfficeHiddenDataAssets.ProcessImage(png, "probe.png", collector) ?? png;
+
+        OfficeProvenanceEvidence[] remaining = OfficeProvenanceInspector.Inspect(output, "probe.png").Evidence.ToArray();
+        OfficeHiddenDataFinding[] findings = collector.Build().GetFindings(OfficeHiddenDataKind.Provenance).ToArray();
+        Assert.Contains(remaining, item => !item.IsStructurallyValid);
+        OfficeHiddenDataFinding malformed = Assert.Single(findings, finding => !finding.Provenance!.IsStructurallyValid);
+        Assert.Equal(OfficeHiddenDataOutcome.Retained, malformed.Outcome);
+        OfficeHiddenDataFinding valid = Assert.Single(findings, finding => finding.Provenance!.IsStructurallyValid);
+        bool validRemains = remaining.Any(item => item.IsStructurallyValid);
+        Assert.Equal(validRemains ? OfficeHiddenDataOutcome.Retained : OfficeHiddenDataOutcome.Removed, valid.Outcome);
     }
 
     [Fact]
