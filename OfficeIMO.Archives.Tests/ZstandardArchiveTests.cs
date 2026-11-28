@@ -124,35 +124,61 @@ public sealed class ZstandardArchiveTests {
         Assert.Equal(nameof(ArchiveReadOptions.MaxDecompressionWorkBytes), error.LimitName);
     }
 
-    [Fact]
-    public void EveryTruncationFailsWithATypedErrorInsideTheInput() {
-        byte[] source = ReadFixture("text-level3-check.zst");
-        for (int length = 0; length < source.Length; length += length < 1024 ? 1 : 7) {
-            ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
-                ZstandardArchive.Decompress(new MemoryStream(source, 0, length, writable: false), new MemoryStream()));
-            Assert.Equal("Zstandard", error.Format);
-            Assert.InRange(error.Offset, 0, length);
+    public static TheoryData<string, string, string?, bool> Corpus() => new() {
+        { "text-level1.zst", "text.txt", null, true },
+        { "text-level3-check.zst", "text.txt", null, true },
+        { "text-level19-nocheck.zst", "text.txt", null, false },
+        { "mixed-level22.zst", "mixed.bin", null, true },
+        { "mixed-level-fast.zst", "mixed.bin", null, true },
+        { "mixed-window1k.zst", "mixed.bin", null, true },
+        { "mixed-blocks.zst", "mixed.bin", null, true },
+        { "empty.zst", "empty.bin", null, true },
+        { "concatenated.zst", "concatenated", null, true },
+        { "text-window128m.zst", "text.txt", null, true },
+        { "message-trained-dict.zst", "message.json", "trained.dict", true },
+        { "message-raw-dict.zst", "message.json", "raw-content.dict", true }
+    };
+
+    [Theory]
+    [MemberData(nameof(Corpus))]
+    public void EveryTruncationFailsWithATypedErrorInsideTheInput(string fixture, string input, string? dictionaryName, bool checksummed) {
+        _ = checksummed;
+        byte[] source = ReadFixture(fixture);
+        byte[] expected = Expected(input);
+        ZstandardDictionary? dictionary = dictionaryName == null ? null : ZstandardDictionary.Load(ReadFixture(dictionaryName));
+        for (int length = 0; length < source.Length; length++) {
+            var output = new MemoryStream();
+            Exception? error = Record.Exception(() => Decode(new MemoryStream(source, 0, length, writable: false), output, dictionary));
+            if (error == null) {
+                // Only a cut between complete frames of a concatenated stream is itself a valid stream.
+                Assert.Equal("concatenated.zst", fixture);
+                Assert.Equal(expected.Take((int)output.Length), output.ToArray());
+                continue;
+            }
+            ArchiveCorruptionException corruption = Assert.IsType<ArchiveCorruptionException>(error);
+            Assert.Equal("Zstandard", corruption.Format);
+            Assert.InRange(corruption.Offset, 0, length);
         }
     }
 
     [Theory]
-    [InlineData("text-level3-check.zst", "text.txt", true)]
-    [InlineData("text-level19-nocheck.zst", "text.txt", false)]
-    [InlineData("mixed-window1k.zst", "mixed.bin", true)]
-    public void FlippedBitsFailWithTypedErrorsOnly(string fixture, string input, bool checksummed) {
+    [MemberData(nameof(Corpus))]
+    public void FlippedBitsFailWithTypedErrorsOnly(string fixture, string input, string? dictionaryName, bool checksummed) {
         byte[] original = ReadFixture(fixture);
-        byte[] expected = ReadInput(input);
+        byte[] expected = Expected(input);
+        ZstandardDictionary? dictionary = dictionaryName == null ? null : ZstandardDictionary.Load(ReadFixture(dictionaryName));
         var random = new Random(7);
-        for (int trial = 0; trial < 1000; trial++) {
+        int trials = Math.Min(1000, 8 * original.Length);
+        for (int trial = 0; trial < trials; trial++) {
             byte[] damaged = (byte[])original.Clone();
-            int position = trial < 64 ? trial : random.Next(damaged.Length);
+            int position = trial < Math.Min(64, damaged.Length) ? trial : random.Next(damaged.Length);
             damaged[position] ^= (byte)(1 << random.Next(8));
             var output = new MemoryStream();
-            Exception? error = Record.Exception(() =>
-                ZstandardArchive.Decompress(new MemoryStream(damaged, writable: false), output,
-                    new ArchiveReadOptions { MaxEntryBytes = 1024 * 1024, MaxWindowBytes = 1024 * 1024 }));
-            // Header bits the format leaves unused, or a larger declared window, may decode unchanged; the content
-            // checksum catches every other change, and the failure must be a typed corruption or limit error.
+            Exception? error = Record.Exception(() => Decode(new MemoryStream(damaged, writable: false), output, dictionary,
+                new ArchiveReadOptions { MaxEntryBytes = 1024 * 1024, MaxWindowBytes = 128L * 1024 * 1024 }));
+            // Header bits the format leaves unused, a skippable frame's payload, or a larger declared window may decode
+            // unchanged; the content checksum catches every other change, and the failure must be a typed corruption or
+            // limit error.
             if (error == null) {
                 // Without a content checksum a damaged literal can decode to different bytes of the right length.
                 if (checksummed) Assert.Equal(expected, output.ToArray());
@@ -162,6 +188,25 @@ public sealed class ZstandardArchiveTests {
                 $"Flipping a bit at byte {position} raised {error.GetType().Name}: {error.Message}");
             if (error is ArchiveCorruptionException corruption) Assert.InRange(corruption.Offset, 0, damaged.Length);
         }
+    }
+
+    private static ZstandardReadResult Decode(Stream source, Stream output, ZstandardDictionary? dictionary, ArchiveReadOptions? options = null) {
+        options ??= new ArchiveReadOptions { MaxWindowBytes = 128L * 1024 * 1024 };
+        return dictionary == null
+            ? ZstandardArchive.Decompress(source, output, options)
+            : ZstandardArchive.DecompressWithDictionary(source, output, dictionary, options);
+    }
+
+    private static byte[] Expected(string input) => input == "concatenated"
+        ? ReadInput("text.txt").Concat(ReadInput("mixed.bin")).ToArray()
+        : ReadInput(input);
+
+    [Fact]
+    public void TheSourceCannotAlsoBeTheDestination() {
+        var stream = new MemoryStream();
+        stream.Write(ReadFixture("text-level1.zst"), 0, ReadFixture("text-level1.zst").Length);
+        stream.Position = 0;
+        Assert.Throws<ArgumentException>(() => ZstandardArchive.Decompress(stream, stream));
     }
 
     [Fact]

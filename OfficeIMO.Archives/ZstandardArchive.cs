@@ -4,17 +4,17 @@ namespace OfficeIMO.Archives;
 
 /// <summary>Outcome of decompressing a Zstandard stream.</summary>
 public sealed class ZstandardReadResult {
-    internal ZstandardReadResult(int frameCount, int skippableFrameCount, long length) {
+    internal ZstandardReadResult(long frameCount, long skippableFrameCount, long length) {
         FrameCount = frameCount;
         SkippableFrameCount = skippableFrameCount;
         Length = length;
     }
 
     /// <summary>Zstandard frames decoded. Concatenated frames form one decompressed stream.</summary>
-    public int FrameCount { get; }
+    public long FrameCount { get; }
 
     /// <summary>Skippable frames passed over without interpretation.</summary>
-    public int SkippableFrameCount { get; }
+    public long SkippableFrameCount { get; }
 
     /// <summary>Decompressed bytes written to the destination.</summary>
     public long Length { get; }
@@ -54,7 +54,9 @@ public static class ZstandardArchive {
     /// <see cref="ArchiveReadOptions.MaxDecompressionWorkBytes"/>. Declared windows are bounded by
     /// <see cref="ArchiveReadOptions.MaxWindowBytes"/>, except in single-segment frames, whose window is their declared
     /// content size and which the output limit bounds instead. Nonseekable input is snapshotted first. The source stays open.
-    /// Output is written block by block, so a failure can leave a partial result in the destination.</remarks>
+    /// Only the bytes present when decoding starts are read. Output is written block by block, so a failure can leave a
+    /// partial result in the destination. <paramref name="destination"/> must be a different stream from
+    /// <paramref name="source"/> and must not write over the data being read.</remarks>
     /// <exception cref="ArchiveCorruptionException">The input is not Zstandard, is truncated, or fails a checksum.</exception>
     /// <exception cref="OfficeInspectionResourceLimitException">A configured limit is exceeded.</exception>
     public static ZstandardReadResult Decompress(Stream source, Stream destination, ArchiveReadOptions? options = null,
@@ -75,15 +77,14 @@ public static class ZstandardArchive {
         ArchiveReadOptions? options, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(destination);
+        if (ReferenceEquals(source, destination)) throw new ArgumentException("The source and destination must be different streams.", nameof(destination));
         ArchiveReadOptions effective = options ?? new ArchiveReadOptions();
         if (effective.MaxWindowBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxWindowBytes must be positive.");
         var limits = effective.Limits();
         using Stream? snapshot = source.CanSeek ? null : ArchiveReader.Snapshot(source, limits, cancellationToken);
-        Stream input = snapshot ?? source;
-        if (snapshot == null) {
-            ArchiveLimits.Check(input.Length - input.Position, limits.Input, nameof(ArchiveReadOptions.MaxInputBytes));
-            limits.Operation.AdmitInput(input.Length - input.Position);
-        }
+        // Seekable input is read only within the range admitted here, so bytes appended later are never decoded.
+        using Stream? admitted = snapshot == null ? Admit(source, limits) : null;
+        Stream input = snapshot ?? admitted!;
         bool entryLimit = limits.Entry <= limits.Expanded;
         var settings = new ZstandardDecoderSettings(
             entryLimit ? limits.Entry : limits.Expanded,
@@ -95,5 +96,12 @@ public static class ZstandardArchive {
             cancellationToken);
         ZstandardDecodeResult result = ZstandardDecoder.Decode(input, destination, settings);
         return new ZstandardReadResult(result.Frames, result.SkippableFrames, result.Length);
+    }
+
+    private static Stream Admit(Stream source, ArchiveLimits limits) {
+        long length = source.Length - source.Position;
+        ArchiveLimits.Check(length, limits.Input, nameof(ArchiveReadOptions.MaxInputBytes));
+        limits.Operation.AdmitInput(length);
+        return new OfficeIMO.Core.Internal.SeekableReadWindowStream(source, source.Position, length);
     }
 }

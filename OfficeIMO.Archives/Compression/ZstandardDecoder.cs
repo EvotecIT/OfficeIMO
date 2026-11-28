@@ -98,7 +98,7 @@ internal sealed class ZstandardDecoder {
     }
 
     private ZstandardDecodeResult DecodeAll() {
-        int frames = 0, skippable = 0;
+        long frames = 0, skippable = 0;
         while (true) {
             _settings.CancellationToken.ThrowIfCancellationRequested();
             long frameOffset = _offset;
@@ -237,16 +237,18 @@ internal sealed class ZstandardDecoder {
         _window = window;
         _blockMaximum = (int)Math.Min(window, MaxBlockSize);
         // A frame never needs more history than its window or, when declared, its whole content.
-        long history = contentSize >= 0 ? Math.Min(window, contentSize) : window;
+        // Without a declared size, the remaining output allowance bounds what can ever be referenced.
+        long history = Math.Min(window, contentSize >= 0 ? contentSize : Math.Max(0, _settings.MaximumOutput - _total));
         // Spare room of at least half the window means a slide, which copies one window, happens at most once per half
         // window of output, so history copies stay below twice the output.
         _capacity = content.Length + history + Math.Max(2L * MaxBlockSize, (content.Length + history) / 2);
         if (_capacity > int.MaxValue - 64)
             throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxWindowBytes), _settings.MaximumWindow);
+        // Every frame starts from a fresh copy of the dictionary, so the copy is decode work like any block. It is
+        // charged before the history is allocated, so a refused frame allocates nothing.
+        if (content.Length > 0) _settings.Budget.Charge(0, content.Length);
         int initial = (int)Math.Min(_capacity, content.Length + 2L * MaxBlockSize);
         if (_history.Length < initial) _history = new byte[initial];
-        // Every frame starts from a fresh copy of the dictionary, so the copy is decode work like any block.
-        if (content.Length > 0) _settings.Budget.Charge(0, content.Length);
         Buffer.BlockCopy(content, 0, _history, 0, content.Length);
         _position = content.Length;
         _frameProduced = 0;
@@ -588,14 +590,14 @@ internal sealed class ZstandardDecoderSettings {
 }
 
 internal readonly struct ZstandardDecodeResult {
-    internal ZstandardDecodeResult(int frames, int skippableFrames, long length) {
+    internal ZstandardDecodeResult(long frames, long skippableFrames, long length) {
         Frames = frames;
         SkippableFrames = skippableFrames;
         Length = length;
     }
 
-    internal int Frames { get; }
-    internal int SkippableFrames { get; }
+    internal long Frames { get; }
+    internal long SkippableFrames { get; }
     internal long Length { get; }
 }
 
