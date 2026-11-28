@@ -36,6 +36,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal(CellsOf(SaveThroughSdk(source, ApplyEdits)), CellsOf(SaveWithoutSdk(source, ApplyEdits, out _)));
         }
 
+        [Theory]
+        [InlineData(2, 2, 15d)]
+        [InlineData(2, 1, "Renamed")]
+        public void AValueEditDropsTheCalculationChainAsTheSdkSaveDoes(int row, int column, object value) {
+            byte[] source = CreateWorkbookWithCalculationChain();
+            Action<ExcelDocument> edit = document => document.Sheets[0].Cell(row, column).SetValue(value);
+
+            byte[] saved = SaveWithoutSdk(source, edit, out bool owned);
+
+            Assert.True(owned);
+            Assert.False(HasCalculationChain(SaveThroughSdk(source, edit)));
+            Assert.False(HasCalculationChain(saved));
+        }
+
         [Fact]
         public void PartsTheEditsDoNotTouchAreCopiedAsStored() {
             byte[] source = CreateWorkbook();
@@ -820,6 +834,31 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             return stream.ToArray();
+        }
+
+        // A formula and the chain an application saves beside it.
+        private static byte[] CreateWorkbookWithCalculationChain() {
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                ExcelSheet data = document.AddSheet("Data");
+                data.Cell(1, 1).SetValue("Name");
+                data.Cell(2, 1).SetValue("Item");
+                data.Cell(2, 2).SetValue(10d);
+                data.Cell(3, 2).SetFormula("SUM(B2)");
+                document.Save();
+            }
+            using (var package = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(stream, true)) {
+                var chain = package.WorkbookPart!.AddNewPart<DocumentFormat.OpenXml.Packaging.CalculationChainPart>();
+                chain.CalculationChain = new DocumentFormat.OpenXml.Spreadsheet.CalculationChain(
+                    new DocumentFormat.OpenXml.Spreadsheet.CalculationCell { CellReference = "B3", SheetId = 1 });
+            }
+            Assert.True(HasCalculationChain(stream.ToArray()));
+            return stream.ToArray();
+        }
+
+        private static bool HasCalculationChain(byte[] package) {
+            using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
+            return archive.GetEntry("xl/calcChain.xml") != null;
         }
 
         private static byte[] CreateEmptySheetWorkbook() {
