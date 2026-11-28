@@ -16,8 +16,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private readonly List<FontKey> _entries = new();
         private readonly Dictionary<string, ushort> _customColorIndexes = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<int> _reservedPaletteSlots = new();
-        private readonly LegacyXlsThemeColorResolver _themeColors;
+        private readonly LegacyXlsThemeColorResolver? _themeColors;
         private List<string>? _paletteColors;
+
+        private LegacyXlsFontTable() => AddRequiredDefaultFonts();
 
         private LegacyXlsFontTable(LegacyXlsThemeColorResolver themeColors, bool addDefaults = true) {
             _themeColors = themeColors ?? throw new ArgumentNullException(nameof(themeColors));
@@ -263,7 +265,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             if (color.Theme?.Value is uint themeIndex) {
-                if (!_themeColors.TryResolve(themeIndex, color.Tint?.Value, out string? argb)) {
+                if (_themeColors == null || !_themeColors.TryResolve(themeIndex, color.Tint?.Value, out string? argb)) {
                     reason = $"unknown theme {context} {subject}";
                     return false;
                 }

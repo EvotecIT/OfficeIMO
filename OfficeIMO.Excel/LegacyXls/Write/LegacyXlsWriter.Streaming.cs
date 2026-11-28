@@ -1,4 +1,6 @@
-using DocumentFormat.OpenXml.Spreadsheet;
+using System.Text;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel.LegacyXls.Write;
@@ -19,16 +21,15 @@ internal static partial class LegacyXlsWriter {
 
         /// <summary>Converts the generated stylesheet through the workbook style tables used by every XLS save.</summary>
         internal static StreamingStyles Create(string stylesXml, OfficeTheme theme) {
-            using var document = ExcelDocument.Create(new ExcelCreateOptions { Theme = theme });
-            var styles = new Stylesheet(stylesXml);
-            // The generated font already names the resolved theme family. BIFF8 stores
-            // that literal font, not the OOXML minor/major theme selection.
-            foreach (var font in styles.Fonts!.Elements<Font>()) font.RemoveAllChildren<FontScheme>();
-            document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet = styles;
-            var fonts = LegacyXlsFontTable.Create(document);
-            var table = LegacyXlsStyleTable.Create(document, Array.Empty<ExcelSheet>(), fonts, new uint[] { 0, 1, 2, 3, 4 });
+            byte[] markup = Encoding.UTF8.GetBytes(stylesXml);
+            OfficeXmlTree tree = OfficeXmlTree.Parse(markup, markup.Length, new OfficeXmlNamespaces.Table());
+            var styles = new OfficeXmlNode(tree, tree.Root);
+            const int main = OfficeXmlNamespaces.SpreadsheetML;
+            OfficeXmlNode font = styles.Child(main, "fonts").Child(main, "font");
+            LegacyXlsFontTable fonts = LegacyXlsFontTable.CreateStreaming(font, theme, out ushort fontIndex);
+            LegacyXlsStyleTable table = LegacyXlsStyleTable.CreateStreaming(styles, fontIndex);
             return new StreamingStyles(fonts.FontRecords.ToArray(), table.FormatRecords.ToArray(), table.CellFormatRecords.ToArray(),
-                table.StyleRecords.ToArray(), Enumerable.Range(0, 5).Select(index => table.GetBiffStyleIndex((uint)index)).ToArray());
+                table.StyleRecords.ToArray(), Enumerable.Range(0, LegacyXlsStyleTable.StreamingStyleCount).Select(index => table.GetBiffStyleIndex((uint)index)).ToArray());
         }
     }
 

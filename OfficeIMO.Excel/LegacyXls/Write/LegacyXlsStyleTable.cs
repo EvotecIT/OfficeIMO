@@ -145,6 +145,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             ThrowIfUnsupportedStyleFacet(openXmlStyleIndex, parentCellFormat);
 
             uint numberFormatId = cellFormat?.NumberFormatId?.Value ?? parentCellFormat?.NumberFormatId?.Value ?? 0U;
+            return ResolveNumberFormatId(openXmlStyleIndex, numberFormatId, customNumberFormats, formatRecordsById);
+        }
+
+        private static ushort ResolveNumberFormatId(uint openXmlStyleIndex, uint numberFormatId,
+            IReadOnlyDictionary<uint, string> customNumberFormats, Dictionary<ushort, byte[]> formatRecordsById) {
             if (numberFormatId > ushort.MaxValue) {
                 throw new NotSupportedException($"Native XLS saving supports BIFF8 number format ids up to {ushort.MaxValue}.");
             }
