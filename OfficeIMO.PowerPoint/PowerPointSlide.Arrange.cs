@@ -1,6 +1,8 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
@@ -58,10 +60,13 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointShape next = ShapeList[index + 1];
-            OpenXmlElement parent = shape.Element.Parent ?? throw new InvalidOperationException("Shape is not attached to a slide.");
+            var part = PartRef.ForMovingXmlNodes();
+            OfficeXmlNode element = shape.XmlElement;
+            OfficeXmlNode parent = RequireShapeParent(element);
 
-            shape.Element.Remove();
-            parent.InsertAfter(shape.Element, next.Element);
+            element.Remove();
+            parent.InsertBefore(element, next.XmlElement.NextNode());
+            part.MarkEdited();
 
             ShapeList[index] = next;
             ShapeList[index + 1] = shape;
@@ -79,10 +84,13 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointShape previous = ShapeList[index - 1];
-            OpenXmlElement parent = shape.Element.Parent ?? throw new InvalidOperationException("Shape is not attached to a slide.");
+            var part = PartRef.ForMovingXmlNodes();
+            OfficeXmlNode element = shape.XmlElement;
+            OfficeXmlNode parent = RequireShapeParent(element);
 
-            shape.Element.Remove();
-            parent.InsertBefore(shape.Element, previous.Element);
+            element.Remove();
+            parent.InsertBefore(element, previous.XmlElement);
+            part.MarkEdited();
 
             ShapeList[index] = previous;
             ShapeList[index - 1] = shape;
@@ -99,13 +107,38 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            OpenXmlElement parent = shape.Element.Parent ?? throw new InvalidOperationException("Shape is not attached to a slide.");
+            var part = PartRef.ForMovingXmlNodes();
+            OfficeXmlNode element = shape.XmlElement;
+            OfficeXmlNode parent = RequireShapeParent(element);
 
-            shape.Element.Remove();
-            parent.Append(shape.Element);
+            OfficeXmlNode extension = FindTerminalPresentationExtension(parent);
+            element.Remove();
+            parent.InsertBefore(element, extension);
+            part.MarkEdited();
 
             ShapeList.RemoveAt(index);
             ShapeList.Add(shape);
+        }
+
+        private static OfficeXmlNode FindTerminalPresentationExtension(OfficeXmlNode tree) {
+            OfficeXmlNode last = tree.LastChild;
+            if (last.Is(OfficeXmlNamespaces.PresentationML, "extLst")) return last;
+            if (!last.Is(MarkupCompatibilityNamespace, "AlternateContent")) return OfficeXmlNode.None;
+
+            // Keep a terminal wrapper in place if any compatibility view supplies the extension list.
+            var pending = new Stack<OfficeXmlNode>();
+            pending.Push(last);
+            while (pending.Count > 0) {
+                foreach (OfficeXmlNode branch in pending.Pop().Children()) {
+                    if (!branch.Is(MarkupCompatibilityNamespace, "Choice") &&
+                        !branch.Is(MarkupCompatibilityNamespace, "Fallback")) continue;
+                    if (branch.Child(OfficeXmlNamespaces.PresentationML, "extLst").Exists) return last;
+                    foreach (OfficeXmlNode nested in branch.Children(OfficeXmlNamespaces.MarkupCompatibility, "AlternateContent")) {
+                        pending.Push(nested);
+                    }
+                }
+            }
+            return OfficeXmlNode.None;
         }
 
         /// <summary>
@@ -119,14 +152,22 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            OpenXmlElement parent = shape.Element.Parent ?? throw new InvalidOperationException("Shape is not attached to a slide.");
-            OpenXmlElement insertBefore = ShapeList[0].Element;
+            var part = PartRef.ForMovingXmlNodes();
+            OfficeXmlNode element = shape.XmlElement;
+            OfficeXmlNode parent = RequireShapeParent(element);
+            OfficeXmlNode insertBefore = ShapeList[0].XmlElement;
 
-            shape.Element.Remove();
-            parent.InsertBefore(shape.Element, insertBefore);
+            element.Remove();
+            parent.InsertBefore(element, insertBefore);
+            part.MarkEdited();
 
             ShapeList.RemoveAt(index);
             ShapeList.Insert(0, shape);
+        }
+
+        private static OfficeXmlNode RequireShapeParent(OfficeXmlNode element) {
+            OfficeXmlNode parent = element.Parent;
+            return parent.Exists ? parent : throw new InvalidOperationException("Shape is not attached to a slide.");
         }
 
         private int EnsureShapeOnSlide(PowerPointShape shape) {

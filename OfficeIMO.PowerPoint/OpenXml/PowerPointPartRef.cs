@@ -129,11 +129,21 @@ namespace OfficeIMO.PowerPoint.OpenXml {
                 if (tree != null) return new OfficeXmlNode(tree, tree.Root);
                 // A part over the size the package reads is read through the SDK, which applies the load's own limit.
                 if (current._document is { } document && document.IsPackagePartOverLimit(current._name!)) {
-                    document.OpenSdkForOversizedPart();
+                    document.OpenSdkForPackageCompatibility();
                     return Current.Root;
                 }
                 return default;
             }
+        }
+
+        /// <summary>Gets the part for edits that move nodes and need to keep adjacent XML markup.</summary>
+        internal PowerPointPartRef ForMovingXmlNodes() {
+            PowerPointPartRef part = Current;
+            // The package tree keeps comments and processing instructions between its nodes.
+            if (part._document is { } document && part.Root.Tree is { } tree && tree.HasCommentsOrInstructions()) {
+                document.OpenSdkForPackageCompatibility();
+            }
+            return part.Current;
         }
 
         /// <summary>Records an edit of the part's content, so the document writes it.</summary>

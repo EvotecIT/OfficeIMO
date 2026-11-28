@@ -198,11 +198,6 @@ namespace OfficeIMO.PowerPoint {
             ShapeList.Insert(index, shape);
         }
 
-        private void InsertRangeTrackedShapes(int index, IEnumerable<PowerPointShape> shapes) {
-            PowerPointShape[] tracked = shapes.Select(shape => shape.AttachTo(this)).ToArray();
-            ShapeList.InsertRange(index, tracked);
-        }
-
         private string GenerateUniqueName(string baseName) {
             List<PowerPointShape> shapes = ShapeList;
             var names = new HashSet<string>(StringComparer.Ordinal);

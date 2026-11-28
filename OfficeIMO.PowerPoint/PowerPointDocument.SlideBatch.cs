@@ -15,13 +15,15 @@ public sealed partial class PowerPointDocument {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         cancellationToken.ThrowIfCancellationRequested();
         if (count == 0) return Array.Empty<PowerPointSlide>();
+        List<PowerPointSlide>? added = TryAddPackageSlides(count, masterIndex, layoutIndex, useBatchRelationshipIds: true, cancellationToken);
+        if (added != null && added.Count == count) return added.AsReadOnly();
         SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
-        uint nextSlideId = GetNextSlideId(count);
+        uint nextSlideId = GetNextSlideId(count - (added?.Count ?? 0));
+        added ??= new List<PowerPointSlide>(count);
         HashSet<string> relationships = GetPresentationRelationships();
         long nextRelationship = 1;
-        var added = new List<PowerPointSlide>(count);
         try {
-            for (int index = 0; index < count; index++) {
+            for (int index = added.Count; index < count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string relationship = ReserveSlideRelationshipId(relationships, ref nextRelationship);
                 added.Add(AddSlideCore(layoutPart, relationship, nextSlideId++));
