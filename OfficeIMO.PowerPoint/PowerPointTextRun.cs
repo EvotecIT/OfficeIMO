@@ -63,7 +63,7 @@ namespace OfficeIMO.PowerPoint {
         /// binding, which would fail once the SDK is open.
         /// </summary>
         internal bool BelongsTo(PowerPointParagraph paragraph) {
-            if (_removed || _element.Tree != null && !_element.IsAttached) return false;
+            if (_removed || _element.Tree != null && !_element.IsAttached && !InDetachedShape(_element)) return false;
             return Element.IsInside(paragraph.Element);
         }
 
@@ -87,10 +87,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         void IPackageSdkBinding.InvalidateRemoved(bool sdkOpening) {
-            if (!_removed && _element.Tree != null && (OwnerSlideRemoved || sdkOpening && !_element.IsAttached)) _removed = true;
+            if (!_removed && _element.Tree != null && (OwnerSlideRemoved || sdkOpening && !_element.IsAttached && !InDetachedShape(_element))) _removed = true;
             // Lines removed on their own no longer continue the run.
-            if (sdkOpening && !_removed) _lineContinuation?.RemoveAll(line => line.Tree != null && !line.IsAttached);
+            if (sdkOpening && !_removed) _lineContinuation?.RemoveAll(line => line.Tree != null && !line.IsAttached && !InDetachedShape(line));
         }
+
+        private bool InDetachedShape(OfficeXmlNode node) =>
+            (_packageSlide ?? _owningSlide)?.IsInDetachedPackageShape(node) == true;
 
         private void ThrowIfRemoved() {
             if (_removed) throw new InvalidOperationException("The content was removed from the presentation.");

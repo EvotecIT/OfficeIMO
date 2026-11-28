@@ -155,7 +155,8 @@ namespace OfficeIMO.PowerPoint {
         public void RemoveShape(PowerPointShape shape) {
             ArgumentNullException.ThrowIfNull(shape);
 
-            EnsureShapeOnSlide(shape);
+            int index = EnsureShapeOnSlide(shape);
+            if (TryRemovePackageShape(shape, index)) return;
             var knownRelationshipIds = new HashSet<string>(
                 SlidePart.Parts.Select(pair => pair.RelationshipId)
                     .Concat(SlidePart.DataPartReferenceRelationships

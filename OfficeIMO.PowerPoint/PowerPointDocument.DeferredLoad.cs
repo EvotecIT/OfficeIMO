@@ -1,11 +1,12 @@
 using System.Xml;
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    /// A plain, unsigned Open XML presentation loads without opening the Open XML SDK package. The package is checked
-    /// with the owned package reader instead, and the SDK opens over the same stream on first use, exactly as a load
-    /// would have opened it.
+    /// A plain, unsigned Open XML presentation, template, slideshow or add-in loads without opening the Open XML SDK.
+    /// The owned package reader checks the input. A later SDK operation opens the same stream and binds objects
+    /// that were read from the owned package.
     /// </summary>
     public sealed partial class PowerPointDocument {
         private const string PresentationMainContentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml";
@@ -85,25 +86,28 @@ namespace OfficeIMO.PowerPoint {
         // limit is kept: the SDK gets it when it opens, and the load checks the one part the SDK would read.
         private static bool IsPlainOpenSettings(OfficeOpenXmlLoadSettings? settings) =>
             settings == null
-            || settings.CompatibilityLevel == new OfficeOpenXmlLoadSettings().CompatibilityLevel
+            || settings.MaxCharactersInPart >= 0
+            && settings.CompatibilityLevel == new OfficeOpenXmlLoadSettings().CompatibilityLevel
             && settings.MarkupCompatibilityMode == new OfficeOpenXmlLoadSettings().MarkupCompatibilityMode
             && settings.MarkupCompatibilityTargetVersion == new OfficeOpenXmlLoadSettings().MarkupCompatibilityTargetVersion;
 
         /// <summary>
-        /// Whether the package can load without the SDK: a Transitional presentation with its usual content type, no
-        /// signature, and a slide list whose every entry reaches a slide part. Anything else opens the SDK at load, so
-        /// it fails or succeeds exactly as before.
+        /// Checks for an unsigned Transitional package and resolves every slide entry to a slide part.
+        /// Other packages use the existing SDK load.
         /// </summary>
-        private static bool CanDeferSdk(Stream packageStream, PowerPointLoadOptions options, out int slideCount, out OfficeOpcPackage? loaded) {
+        private static bool CanDeferSdk(Stream packageStream, PowerPointLoadOptions options, out int slideCount,
+            out OfficeOpcPackage? loaded, out string? sourceExtension) {
             slideCount = 0;
             loaded = null;
+            sourceExtension = null;
             if (!IsPlainOpenSettings(options.OpenSettings) || !packageStream.CanSeek) return false;
             long position = packageStream.Position;
             OfficeOpcPackage? package = null;
             try {
                 packageStream.Position = 0;
                 package = OfficeOpcPackage.Open(packageStream, leaveOpen: true);
-                if (!IsPlainUnsignedPresentation(package, options.OpenSettings?.MaxCharactersInPart ?? 0, out slideCount)) {
+                sourceExtension = GetUnsignedPresentationExtension(package, options.OpenSettings?.MaxCharactersInPart ?? 0, out slideCount);
+                if (sourceExtension == null) {
                     package.Dispose();
                     return false;
                 }
@@ -119,44 +123,84 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static bool IsPlainUnsignedPresentation(OfficeOpcPackage package, long maximumCharactersInPart, out int slideCount) {
+        private static string? GetUnsignedPresentationExtension(OfficeOpcPackage package, long maximumCharactersInPart, out int slideCount) {
             slideCount = 0;
             // A signature part, even one nothing refers to, is reported by the signature check; such a package opens
             // the SDK at load, so a deferred package has none.
             if (package.DeclaresContentType("application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml")
                 || package.DeclaresContentType("application/vnd.openxmlformats-package.digital-signature-origin")) {
-                return false;
+                return null;
             }
-            slideCount = 0;
-            foreach (OfficeOpcRelationship relationship in package.GetRelationships(null)) {
-                if (string.Equals(relationship.Type, DigitalSignatureOriginRelationshipType, StringComparison.Ordinal)) return false;
+            IReadOnlyList<OfficeOpcRelationship> relationships = package.GetRelationships(null);
+            foreach (OfficeOpcRelationship relationship in relationships) {
+                if (string.Equals(relationship.Type, DigitalSignatureOriginRelationshipType, StringComparison.Ordinal)) return null;
             }
             string? main = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType);
-            if (main == null || !package.PartExists(main)
-                || !string.Equals(package.GetContentType(main), PresentationMainContentType, StringComparison.OrdinalIgnoreCase)) {
-                return false;
-            }
+            if (main == null || !package.PartExists(main)) return null;
+
+            string? contentType = package.GetContentType(main);
+            string? extension = string.Equals(contentType, PresentationMainContentType, StringComparison.OrdinalIgnoreCase)
+                ? ".pptx"
+                : PresentationExtension(contentType);
+            if (extension == null) return null;
+            bool validateRoot = extension != ".pptx";
+            if (validateRoot && (package.HasInterleavedParts || !CanDeferSubtypeRelationships(package, relationships))) return null;
             // A UTF-8 part has no more characters than bytes, so one within the limit in bytes is within it in characters.
-            if (maximumCharactersInPart > 0 && package.GetPartLength(main) > maximumCharactersInPart) return false;
+            if (maximumCharactersInPart > 0 && package.GetPartLength(main) > maximumCharactersInPart) return null;
             string? application = package.GetRelatedPartName(null, ExtendedPropertiesRelationshipType);
             // The signature check reads the conventional properties part even when nothing relates to it.
+            bool validateApplicationRoot = validateRoot && application != null;
             if (application == null && package.PartExists("/docProps/app.xml")) application = "/docProps/app.xml";
             if (application != null && package.PartExists(application)) {
                 // The signature check at an SDK load reads this part under the part size limit too.
                 long length = package.GetPartLength(application);
-                if (length > MaximumApplicationPropertiesBytes || maximumCharactersInPart > 0 && length > maximumCharactersInPart) return false;
-                if (HasDigitalSignatureFlag(package, application)) return false;
+                if (length > MaximumApplicationPropertiesBytes || maximumCharactersInPart > 0 && length > maximumCharactersInPart) return null;
+                if (HasDigitalSignatureFlag(package, application, validateApplicationRoot)) return null;
             }
-            return SlideListResolves(package, main, out slideCount);
+            return SlideListResolves(package, main, out slideCount) ? extension : null;
+        }
+
+        // These subtypes previously validated their typed root parts during the SDK load.
+        private static bool CanDeferSubtypeRelationships(OfficeOpcPackage package, IReadOnlyList<OfficeOpcRelationship> relationships) {
+            int mainParts = 0;
+            foreach (OfficeOpcRelationship relationship in relationships) {
+                if (relationship.IsExternal) continue;
+                if (relationship.TargetPartName is not { } part || !package.PartExists(part)) return false;
+                string? expectedType;
+                switch (relationship.Type) {
+                    case OfficeOpcPackage.OfficeDocumentRelationshipType:
+                        mainParts++;
+                        continue;
+                    case OfficeOpcPackage.CorePropertiesRelationshipType:
+                        expectedType = PowerPointPackageModel.CorePropertiesContentType;
+                        break;
+                    case ExtendedPropertiesRelationshipType:
+                        expectedType = PowerPointPackageModel.ExtendedPropertiesContentType;
+                        break;
+                    case OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "custom-properties":
+                        expectedType = "application/vnd.openxmlformats-officedocument.custom-properties+xml";
+                        break;
+                    case "http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail":
+                        if (package.GetContentType(part) == null) return false;
+                        continue;
+                    default:
+                        return false;
+                }
+                if (!string.Equals(expectedType, package.GetContentType(part), StringComparison.Ordinal)) return false;
+            }
+            return mainParts == 1;
         }
 
         // These reads leave markup compatibility as written, as the SDK's default NoProcess mode reads it.
-        private static bool HasDigitalSignatureFlag(OfficeOpcPackage package, string application) {
+        private static bool HasDigitalSignatureFlag(OfficeOpcPackage package, string application, bool validateRoot) {
             OfficeXmlPullReader reader = package.OpenXml(application, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
                 while (reader.Read()) {
-                    if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == 2
-                        && reader.IsElement(OfficeXmlNamespaces.ExtendedProperties, "DigSig")) {
+                    if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+                    if (validateRoot && reader.Depth == 1 && !reader.IsElement(OfficeXmlNamespaces.ExtendedProperties, "Properties")) {
+                        throw new InvalidDataException("The application properties part has no Properties root element.");
+                    }
+                    if (reader.Depth == 2 && reader.IsElement(OfficeXmlNamespaces.ExtendedProperties, "DigSig")) {
                         return true;
                     }
                 }

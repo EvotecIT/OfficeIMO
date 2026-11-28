@@ -148,6 +148,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MediaAuthoringAndShapeRemovalKeepTheSlideExtensionListLast() {
+            byte[] authored;
+            using (var presentation = PowerPointDocument.Create()) {
+                PowerPointSlide slide = presentation.AddSlide();
+                slide.AddRectangle(OfficeLength.Points(0), OfficeLength.Points(0),
+                    OfficeLength.Points(10), OfficeLength.Points(10), "Remove this");
+                slide.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(0),
+                    OfficeLength.Points(10), OfficeLength.Points(10), "Keep this");
+                var sdkSlide = presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide;
+                sdkSlide.CommonSlideData!.ShapeTree!.AppendChild(new ExtensionListWithModification());
+                sdkSlide.Timing = new Timing(new ExtensionListWithModification());
+                authored = presentation.ToBytes();
+            }
+
+            using var loaded = PowerPointDocument.Load(new MemoryStream(authored, writable: false));
+            PowerPointSlide reopened = Assert.Single(loaded.Slides);
+            reopened.AddLinkedAudio(new Uri("https://example.org/extension-boundary.mp3"));
+            reopened.RemoveShape(reopened.Shapes[0]);
+            Assert.False(loaded.IsSdkLoaded);
+
+            using var saved = PresentationDocument.Open(new MemoryStream(loaded.ToBytes(), writable: false), false);
+            var savedSlide = saved.PresentationPart!.SlideParts.Single().Slide;
+            ShapeTree tree = savedSlide.CommonSlideData!.ShapeTree!;
+            Assert.Equal("Keep this", Assert.Single(tree.Elements<Shape>()).NonVisualShapeProperties!.NonVisualDrawingProperties!.Name!.Value);
+            Assert.Single(tree.Elements<Picture>());
+            Assert.IsType<ExtensionListWithModification>(tree.LastChild);
+            Assert.IsType<ExtensionListWithModification>(savedSlide.Timing!.LastChild);
+            Assert.NotNull(savedSlide.Timing.GetFirstChild<TimeNodeList>());
+        }
+
+        [Fact]
         public void DuplicateGroupShape_AssignsUniqueNonVisualMetadata() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

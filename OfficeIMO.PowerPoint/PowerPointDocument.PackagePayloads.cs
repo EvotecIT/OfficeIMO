@@ -7,6 +7,9 @@ public sealed partial class PowerPointDocument {
     /// <summary>Gets inert embedded package, OLE and ActiveX descriptors from the loaded presentation.</summary>
     public IReadOnlyList<OfficeEmbeddedPayloadInfo> GetEmbeddedPayloads(bool includeSha256 = false) {
         ThrowIfDisposed();
+        if (GetPackagePayloads(default) is { } payloads) {
+            return payloads.Select(info => ReadPackagePayloadInfo(info, includeSha256)).ToArray();
+        }
         return OfficeOpenXmlPackagePayload.FindEmbeddedPayloads(OpenXmlDocument)
             .Select(handle => OfficeOpenXmlPackagePayload.CreateInfo(handle, includeSha256)).ToArray();
     }
@@ -15,6 +18,9 @@ public sealed partial class PowerPointDocument {
     public OfficeVbaProjectInfo? InspectVbaProject(bool includeSha256 = false, long maxBytes = OfficeVbaProjectInfo.DefaultMaximumProjectBytes) {
         ThrowIfDisposed();
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
+        if (TryReadPackageVbaProject(maxBytes, inspectSignature: true, out var project, out byte[]? bytes)) {
+            return project?.Describe(bytes, includeSha256);
+        }
         VbaProjectPart? part = SdkPresentationPart.VbaProjectPart;
         return part == null ? null : OfficeOpenXmlPackagePayload.CreateVbaProjectInfo(part, includeSha256, maxBytes);
     }

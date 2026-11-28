@@ -1,6 +1,7 @@
 using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.OpenXml;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -29,7 +30,7 @@ namespace OfficeIMO.PowerPoint {
                 options.DelayMilliseconds, options.AfterEffect, options.TextBuild);
 
             List<PowerPointClassicAnimation> animations = ReadClassicAnimations().ToList();
-            if (SlideRoot.Timing != null && animations.Count == 0) {
+            if (PartRef.Root.Child(ClassicPresentationNamespace, "timing").Exists && animations.Count == 0) {
                 throw new NotSupportedException(
                     "Classic animation authoring cannot replace an existing advanced or media timing tree.");
             }
@@ -92,16 +93,14 @@ namespace OfficeIMO.PowerPoint {
                     nameof(name));
             }
             EnsureClassicAnimationTarget(shape);
-            string relationshipId = PowerPointEmbeddedSound.Add(SlidePart,
-                audio, contentType, extension);
+            string relationshipId = AddSlideSound(PartRef, audio, contentType, extension);
             try {
                 UpdateClassicAnimation(shape, animation => CopyClassicAnimation(
                     animation, playsSound: true,
                     stopsSound: stopExistingSounds,
                     soundRelationshipId: relationshipId, soundName: name));
             } catch {
-                PowerPointEmbeddedSound.RemoveIfUnused(SlidePart,
-                    relationshipId);
+                RemoveUnusedSlideSounds(new[] { relationshipId });
                 throw;
             }
         }
@@ -125,245 +124,52 @@ namespace OfficeIMO.PowerPoint {
                 ? ReadClassicAnimations().FirstOrDefault(item =>
                     item.ShapeId == shapeId.Value)
                 : null;
-            return PowerPointEmbeddedSound.Read(SlidePart,
-                animation?.SoundRelationshipId);
+            return ReadSlideSound(animation?.SoundRelationshipId);
         }
 
-        internal void SetClassicAnimations(
-            IReadOnlyList<PowerPointClassicAnimation> animations) {
+        internal void SetClassicAnimations(IReadOnlyList<PowerPointClassicAnimation> animations) {
             ArgumentNullException.ThrowIfNull(animations);
-            IReadOnlyList<PowerPointClassicAnimation> previousAnimations =
-                ReadClassicAnimations();
-            string[] previousSoundRelationships = previousAnimations
-                .Select(animation => animation.SoundRelationshipId)
-                .Where(id => !string.IsNullOrEmpty(id))
-                .Cast<string>()
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
-            PowerPointClassicAnimation[] ordered = animations
-                .OrderBy(animation => animation.Order)
-                .ToArray();
+            IReadOnlyList<PowerPointClassicAnimation> previous = ReadClassicAnimations();
+            string[] previousSounds = previous.Select(animation => animation.SoundRelationshipId)
+                .Where(id => !string.IsNullOrEmpty(id)).Cast<string>().Distinct(StringComparer.Ordinal).ToArray();
+            PowerPointClassicAnimation[] ordered = animations.OrderBy(animation => animation.Order).ToArray();
+
+            PowerPointPartRef part = PartRef.ForMovingXmlNodes();
+            OfficeXmlNode slide = part.Root;
+            OfficeXmlNode timing = slide.Child(ClassicPresentationNamespace, "timing");
+            bool onlyClassic = part.IsSdk ? HasOnlySdkClassicAnimationTiming(previous) : HasOnlyPackageClassicTiming(timing, previous);
+            bool preserveOtherTiming = timing.Exists && previous.Count > 0 && !onlyClassic;
+            if (preserveOtherTiming && !part.IsSdk) {
+                // Keep complex producer sequences on the existing mixed-timing editing path.
+                _ = SlidePart;
+                part = part.Current;
+                slide = part.Root;
+                timing = slide.Child(ClassicPresentationNamespace, "timing");
+                onlyClassic = HasOnlySdkClassicAnimationTiming(previous);
+                preserveOtherTiming = timing.Exists && !onlyClassic;
+            }
+            if (preserveOtherTiming) {
+                var existing = (Timing)timing.SdkElement!;
+                if (ordered.Length > 0) CheckMixedClassicTimingIds(slide, timing, existing, previous, ordered);
+                RemoveClassicTimingNodes(existing, previous);
+            }
+
             if (ordered.Length == 0) {
-                if (HasOnlyClassicAnimationTiming()) {
-                    SlideRoot.Timing = null;
-                } else if (previousAnimations.Count > 0) {
-                    RemoveClassicTimingNodes(previousAnimations);
-                }
-                WriteClassicAnimationMetadata(ordered);
-                RemoveUnusedClassicAnimationSounds(
-                    previousSoundRelationships);
-                return;
-            }
-
-            bool preserveUnrelatedTiming = SlideRoot.Timing != null
-                && previousAnimations.Count > 0
-                && !HasOnlyClassicAnimationTiming();
-            if (preserveUnrelatedTiming) {
-                RemoveClassicTimingNodes(previousAnimations);
-            }
-            var childNodes = new ChildTimeNodeList();
-            uint timingId = preserveUnrelatedTiming
-                ? GetNextTimingId()
-                : 2U;
-            foreach (PowerPointClassicAnimation animation in ordered) {
-                uint effectTimingId = timingId++;
-                var effectTime = new CommonTimeNode {
-                    Id = effectTimingId,
-                    Duration = "500",
-                    Fill = TimeNodeFillValues.Hold,
-                    PresetClass = TimeNodePresetClassValues.Entrance,
-                    PresetId = (int)(byte)animation.Effect,
-                    PresetSubtype = animation.Direction,
-                    AutoReverse = animation.Reverse,
-                    AfterEffect = animation.AfterEffect !=
-                        PowerPointClassicAnimationAfterEffect.None
-                };
-                var behavior = new CommonBehavior(effectTime,
-                    new TargetElement(new ShapeTarget {
-                        ShapeId = animation.ShapeId.ToString(CultureInfo.InvariantCulture)
-                    }));
-                var effect = new AnimateEffect(behavior) {
-                    Transition = AnimateEffectTransitionValues.In,
-                    Filter = GetClassicAnimationFilter(animation.Effect,
-                        animation.Direction)
-                };
-                var actions = new ChildTimeNodeList(effect);
-                AppendClassicAnimationStopSound(actions, animation,
-                    effectTimingId, ref timingId);
-                AppendClassicAnimationSound(actions, animation,
-                    ref timingId);
-                AppendClassicAnimationAfterEffect(actions, animation,
-                    effectTimingId, ref timingId);
-                var startCondition = animation.Automatic
-                    ? new Condition {
-                        Delay = animation.DelayMilliseconds.ToString(
-                            CultureInfo.InvariantCulture)
-                    }
-                    : new Condition(new TargetElement(new SlideTarget())) {
-                        Event = TriggerEventValues.OnClick,
-                        Delay = "0"
-                    };
-                var owner = new CommonTimeNode(
-                    new StartConditionList(startCondition),
-                    actions) {
-                    Id = timingId++,
-                    Duration = "indefinite",
-                    Fill = TimeNodeFillValues.Hold,
-                    NodeType = animation.Automatic
-                        ? TimeNodeValues.AfterEffect
-                        : TimeNodeValues.ClickEffect
-                };
-                childNodes.Append(new ParallelTimeNode(owner));
-            }
-
-            var root = new CommonTimeNode(childNodes) {
-                Id = 1U,
-                Duration = "indefinite",
-                Restart = TimeNodeRestartValues.Never,
-                NodeType = TimeNodeValues.TmingRoot
-            };
-            var timing = new Timing(new TimeNodeList(new ParallelTimeNode(root)));
-            BuildList? buildList = CreateClassicBuildList(ordered);
-            if (buildList != null) timing.Append(buildList);
-            if (preserveUnrelatedTiming) {
-                AppendClassicTiming(SlideRoot.Timing!, childNodes,
-                    buildList);
+                if (onlyClassic) timing.Remove();
             } else {
-                SlideRoot.Timing?.Remove();
-                OpenXmlElement? insertBefore = SlideRoot
-                    .GetFirstChild<SlideExtensionList>();
-                if (insertBefore == null) SlideRoot.Append(timing);
-                else SlideRoot.InsertBefore(timing, insertBefore);
-            }
-            WriteClassicAnimationMetadata(ordered);
-            RemoveUnusedClassicAnimationSounds(previousSoundRelationships);
-        }
-
-        private static void AppendClassicAnimationStopSound(
-            ChildTimeNodeList actions,
-            PowerPointClassicAnimation animation, uint effectTimingId,
-            ref uint timingId) {
-            if (!animation.StopsSound) return;
-            var stopTime = new CommonTimeNode(
-                new StartConditionList(new Condition(
-                    new TimeNode { Val = effectTimingId }) {
-                    Event = TriggerEventValues.Begin,
-                    Delay = "0"
-                })) {
-                Id = timingId++,
-                Duration = "1",
-                Fill = TimeNodeFillValues.Hold,
-                Display = false,
-                MasterRelation = TimeNodeMasterRelationValues.SameClick
-            };
-            var behavior = new CommonBehavior(stopTime,
-                new TargetElement(new SlideTarget()));
-            actions.Append(new Command(behavior) {
-                Type = CommandValues.Event,
-                CommandName = "onstopaudio"
-            });
-        }
-
-        private static void AppendClassicAnimationSound(
-            ChildTimeNodeList actions,
-            PowerPointClassicAnimation animation, ref uint timingId) {
-            if (!animation.PlaysSound
-                || string.IsNullOrEmpty(animation.SoundRelationshipId)) {
-                return;
-            }
-            var mediaTime = new CommonTimeNode(
-                new StartConditionList(new Condition { Delay = "0" })) {
-                Id = timingId++,
-                Duration = "media",
-                Fill = TimeNodeFillValues.Hold
-            };
-            var media = new CommonMediaNode(mediaTime,
-                new TargetElement(new SoundTarget {
-                    Embed = animation.SoundRelationshipId,
-                    Name = animation.SoundName ?? "Animation Sound"
-                })) {
-                Volume = 80000
-            };
-            actions.Append(new Audio(media));
-        }
-
-        private static void AppendClassicAnimationAfterEffect(
-            ChildTimeNodeList actions,
-            PowerPointClassicAnimation animation, uint effectTimingId,
-            ref uint timingId) {
-            if (animation.AfterEffect ==
-                PowerPointClassicAnimationAfterEffect.None) return;
-            CommonTimeNode actionTime = CreateClassicAfterEffectTime(
-                animation.AfterEffect, effectTimingId, ref timingId);
-            string shapeId = animation.ShapeId.ToString(
-                CultureInfo.InvariantCulture);
-            var target = new TargetElement(new ShapeTarget {
-                ShapeId = shapeId
-            });
-            if (animation.AfterEffect ==
-                PowerPointClassicAnimationAfterEffect.Dim) {
-                var behavior = new CommonBehavior(actionTime, target,
-                    new AttributeNameList(new AttributeName("style.color")));
-                actions.Append(new AnimateColor(behavior,
-                    new ToColor(CreateClassicDimColor(
-                        animation.RawDimColor))));
-                return;
-            }
-            var visibilityBehavior = new CommonBehavior(actionTime, target,
-                new AttributeNameList(new AttributeName(
-                    "style.visibility")));
-            actions.Append(new SetBehavior(visibilityBehavior,
-                new ToVariantValue(new StringVariantValue {
-                    Val = "hidden"
-                })));
-        }
-
-        private static CommonTimeNode CreateClassicAfterEffectTime(
-            PowerPointClassicAnimationAfterEffect afterEffect,
-            uint effectTimingId, ref uint timingId) {
-            Condition condition = afterEffect ==
-                    PowerPointClassicAnimationAfterEffect.HideOnNextClick
-                ? new Condition(new TargetElement(new SlideTarget())) {
-                    Event = TriggerEventValues.OnClick,
-                    Delay = "0"
+                uint firstId = preserveOtherTiming ? GetNextTimingId() : 2U;
+                var replacement = CreateClassicTimingMarkup(slide, ordered, firstId);
+                if (preserveOtherTiming) {
+                    AppendClassicTiming((Timing)timing.SdkElement!, (ChildTimeNodeList)replacement.Children.SdkElement!,
+                        replacement.Builds.SdkElement as BuildList);
+                } else {
+                    timing.Remove();
+                    slide.InsertBefore(replacement.Timing, slide.Child(ClassicPresentationNamespace, "extLst"));
                 }
-                : new Condition(new TimeNode { Val = effectTimingId }) {
-                    Event = TriggerEventValues.End,
-                    Delay = "0"
-                };
-            return new CommonTimeNode(
-                new StartConditionList(condition)) {
-                Id = timingId++,
-                Duration = "1",
-                Fill = TimeNodeFillValues.Hold
-            };
-        }
-
-        private static OpenXmlElement CreateClassicDimColor(uint rawColor) {
-            byte index = unchecked((byte)(rawColor >> 24));
-            A.SchemeColorValues? scheme = index switch {
-                0 => A.SchemeColorValues.Light1,
-                1 => A.SchemeColorValues.Dark1,
-                2 => A.SchemeColorValues.Accent4,
-                3 => A.SchemeColorValues.Dark2,
-                4 => A.SchemeColorValues.Light2,
-                5 => A.SchemeColorValues.Accent1,
-                6 => A.SchemeColorValues.Accent2,
-                7 => A.SchemeColorValues.Accent3,
-                _ => null
-            };
-            if (scheme.HasValue) {
-                return new A.SchemeColor { Val = scheme.Value };
             }
-            return new A.RgbColorModelHex {
-                Val = string.Concat(
-                    unchecked((byte)rawColor).ToString("X2",
-                        CultureInfo.InvariantCulture),
-                    unchecked((byte)(rawColor >> 8)).ToString("X2",
-                        CultureInfo.InvariantCulture),
-                    unchecked((byte)(rawColor >> 16)).ToString("X2",
-                        CultureInfo.InvariantCulture))
-            };
+            WriteClassicAnimationMetadata(slide, ordered);
+            part.MarkEdited();
+            RemoveUnusedSlideSounds(previousSounds);
         }
 
         private static void AppendClassicTiming(Timing timing,
@@ -402,10 +208,38 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private void RemoveClassicTimingNodes(
-            IReadOnlyList<PowerPointClassicAnimation> animations) {
-            Timing? timing = SlideRoot.Timing;
-            if (timing == null) return;
+        private static void CheckMixedClassicTimingIds(OfficeXmlNode slide, OfficeXmlNode timing, Timing existing,
+            IReadOnlyList<PowerPointClassicAnimation> previous, IReadOnlyList<PowerPointClassicAnimation> replacement) {
+            ulong count = CountClassicTimingIds(replacement);
+            if (MaximumTimingId(slide) + count <= uint.MaxValue) return;
+
+            // The ids at the top of the range can belong to classic actions that the edit will remove.
+            Timing staged = CopyClassicTimingForPreflight(existing);
+            RemoveClassicTimingNodes(staged, previous);
+            uint remaining = Math.Max(MaximumTimingId(slide, timing), MaximumTimingId(OfficeXmlNode.FromSdk(staged)));
+            if (remaining + count > uint.MaxValue) throw TimingIdsExhausted();
+        }
+
+        private static Timing CopyClassicTimingForPreflight(Timing source) {
+            var copy = (Timing)source.CloneNode(false);
+            var pending = new Stack<(OpenXmlCompositeElement Source, OpenXmlCompositeElement Target)>();
+            pending.Push((source, copy));
+            while (pending.Count > 0) {
+                (OpenXmlCompositeElement original, OpenXmlCompositeElement target) = pending.Pop();
+                foreach (OpenXmlElement child in original.ChildElements) {
+                    if (child is OpenXmlCompositeElement composite) {
+                        var detached = (OpenXmlCompositeElement)composite.CloneNode(false);
+                        target.Append(detached);
+                        pending.Push((composite, detached));
+                    } else {
+                        target.Append(child.CloneNode(true));
+                    }
+                }
+            }
+            return copy;
+        }
+
+        private static void RemoveClassicTimingNodes(Timing timing, IReadOnlyList<PowerPointClassicAnimation> animations) {
             var candidates = timing.Descendants<AnimateEffect>().ToList();
             foreach (PowerPointClassicAnimation animation in animations
                          .OrderBy(item => item.Order)) {
@@ -495,67 +329,17 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static bool IsClassicDimAction(AnimateColor color,
-            PowerPointClassicAnimation animation) =>
-            animation.AfterEffect ==
-                PowerPointClassicAnimationAfterEffect.Dim
-            && IsClassicShapeBehavior(color.CommonBehavior,
-                animation.ShapeId, "style.color");
+        private static bool IsClassicHiddenAction(SetBehavior set, PowerPointClassicAnimation animation) =>
+            IsClassicHiddenAction(OfficeXmlNode.FromSdk(set), animation);
 
-        private static bool IsClassicSoundAction(Audio audio,
-            PowerPointClassicAnimation animation) {
-            SoundTarget? target = audio.CommonMediaNode?
-                .GetFirstChild<TargetElement>()?
-                .GetFirstChild<SoundTarget>();
-            return animation.PlaysSound
-                && !string.IsNullOrEmpty(animation.SoundRelationshipId)
-                && string.Equals(target?.Embed?.Value,
-                    animation.SoundRelationshipId,
-                    StringComparison.Ordinal);
-        }
+        private static bool IsClassicDimAction(AnimateColor color, PowerPointClassicAnimation animation) =>
+            IsClassicDimAction(OfficeXmlNode.FromSdk(color), animation);
 
-        private static bool IsClassicStopSoundAction(Command command,
-            PowerPointClassicAnimation animation) {
-            CommonBehavior? behavior = command.CommonBehavior;
-            CommonTimeNode? owner = command.Ancestors<CommonTimeNode>()
-                .FirstOrDefault(node => node.NodeType?.Value ==
-                        TimeNodeValues.ClickEffect
-                    || node.NodeType?.Value == TimeNodeValues.AfterEffect);
-            return animation.StopsSound
-                && command.Type?.Value == CommandValues.Event
-                && string.Equals(command.CommandName?.Value,
-                    "onstopaudio", StringComparison.OrdinalIgnoreCase)
-                && command.ChildElements.Count == 1
-                && behavior != null
-                && behavior.Descendants<SlideTarget>().Count() == 1
-                && behavior.Descendants<ShapeTarget>().Count() == 0
-                && owner != null
-                && owner.Descendants<AnimateEffect>().Count(effect =>
-                    uint.TryParse(effect.Descendants<ShapeTarget>()
-                            .FirstOrDefault()?.ShapeId?.Value,
-                        NumberStyles.Integer, CultureInfo.InvariantCulture,
-                        out uint effectShapeId)
-                    && effectShapeId == animation.ShapeId) == 1;
-        }
+        private static bool IsClassicSoundAction(Audio audio, PowerPointClassicAnimation animation) =>
+            IsClassicSoundAction(OfficeXmlNode.FromSdk(audio), animation);
 
-        private static bool IsClassicShapeBehavior(CommonBehavior? behavior,
-            uint shapeId, string attributeName) {
-            ShapeTarget? target = behavior?
-                .GetFirstChild<TargetElement>()?
-                .GetFirstChild<ShapeTarget>();
-            AttributeName[] attributes = behavior?
-                .GetFirstChild<AttributeNameList>()?
-                .Elements<AttributeName>().ToArray()
-                ?? Array.Empty<AttributeName>();
-            return string.Equals(target?.ShapeId?.Value,
-                       shapeId.ToString(CultureInfo.InvariantCulture),
-                       StringComparison.Ordinal)
-                   && behavior != null
-                   && behavior.Descendants<ShapeTarget>().Count() == 1
-                   && attributes.Length == 1
-                   && string.Equals(attributes[0].Text, attributeName,
-                       StringComparison.Ordinal);
-        }
+        private static bool IsClassicStopSoundAction(Command command, PowerPointClassicAnimation animation) =>
+            IsClassicStopSoundAction(OfficeXmlNode.FromSdk(command), animation);
 
         private static bool IsClassicTimingEffect(AnimateEffect effect,
             PowerPointClassicAnimation animation) {
@@ -634,18 +418,15 @@ namespace OfficeIMO.PowerPoint {
                     animation.AnimateBackground;
         }
 
-        private void RemoveUnusedClassicAnimationSounds(
-            IEnumerable<string> relationshipIds) {
-            foreach (string relationshipId in relationshipIds) {
-                PowerPointEmbeddedSound.RemoveIfUnused(SlidePart,
-                    relationshipId);
-            }
+        internal bool HasOnlyClassicAnimationTiming() {
+            IReadOnlyList<PowerPointClassicAnimation> animations = ReadClassicAnimations();
+            PowerPointPartRef part = PartRef.ForMovingXmlNodes();
+            return part.IsSdk ? HasOnlySdkClassicAnimationTiming(animations)
+                : HasOnlyPackageClassicTiming(part.Root.Child(ClassicPresentationNamespace, "timing"), animations);
         }
 
-        internal bool HasOnlyClassicAnimationTiming() {
+        private bool HasOnlySdkClassicAnimationTiming(IReadOnlyList<PowerPointClassicAnimation> animations) {
             Timing? timing = SlideRoot.Timing;
-            IReadOnlyList<PowerPointClassicAnimation> animations =
-                ReadClassicAnimations();
             if (timing == null) return animations.Count == 0;
             if (animations.Count == 0
                 || timing.Descendants<AnimateEffect>().Count() != animations.Count) {
@@ -682,7 +463,11 @@ namespace OfficeIMO.PowerPoint {
                 .ToArray();
             return targets.SequenceEqual(animations.Select(animation =>
                        animation.ShapeId))
-                && HasOnlyClassicStandardActions(timing, animations);
+                // The SDK interop surface can contain a typed action in an unexpected position.
+                // Inspect those actions before deciding whether it is safe to replace the entire timing tree.
+                && HasOnlyClassicStandardActions(timing.Descendants()
+                    .Where(element => element is SetBehavior or AnimateColor or Audio or Command)
+                    .Select(OfficeXmlNode.FromSdk).ToArray(), animations);
         }
 
         private void UpdateClassicAnimation(PowerPointShape shape,
@@ -732,126 +517,6 @@ namespace OfficeIMO.PowerPoint {
                 playsSound == false ? null
                     : soundRelationshipId ?? animation.SoundRelationshipId,
                 playsSound == false ? null : soundName ?? animation.SoundName);
-
-        private IReadOnlyList<PowerPointClassicAnimation> ReadClassicAnimations() {
-            SlideExtension? extension = SlideRoot.GetFirstChild<SlideExtensionList>()?
-                .Elements<SlideExtension>().FirstOrDefault(item => string.Equals(
-                    item.Uri?.Value, ClassicAnimationExtensionUri,
-                    StringComparison.Ordinal));
-            OpenXmlElement? root = extension?.ChildElements.FirstOrDefault(element =>
-                element.NamespaceUri == ClassicAnimationNamespace
-                && element.LocalName == "classicAnimations");
-            if (root == null) return InferClassicAnimations();
-            var result = new List<PowerPointClassicAnimation>();
-            foreach (OpenXmlElement element in root.ChildElements.Where(item =>
-                         item.NamespaceUri == ClassicAnimationNamespace
-                         && item.LocalName == "animation")) {
-                if (!TryReadUInt(element, "shapeId", out uint shapeId)
-                    || !TryReadByte(element, "effect", out byte effect)
-                    || !TryReadByte(element, "direction", out byte direction)
-                    || !TryReadByte(element, "build", out byte build)
-                    || !TryReadInt(element, "delay", out int delay)
-                    || !TryReadInt(element, "order", out int order)
-                    || !TryReadByte(element, "after", out byte after)
-                    || !TryReadByte(element, "textBuild", out byte textBuild)
-                    || !TryReadUInt(element, "dimColor", out uint dimColor)
-                    || !IsClassicAnimationValue(effect, direction, build,
-                        delay, after, textBuild)) continue;
-                OpenXmlElement? sound = element.ChildElements.FirstOrDefault(item =>
-                    item.NamespaceUri == "http://schemas.openxmlformats.org/presentationml/2006/main"
-                    && item.LocalName == "snd");
-                result.Add(new PowerPointClassicAnimation(shapeId,
-                    (PowerPointClassicAnimationEffect)effect, direction,
-                    (PowerPointClassicAnimationBuildType)build,
-                    ReadBool(element, "automatic"), delay, order,
-                    ReadBool(element, "reverse"),
-                    ReadBool(element, "animateBackground"),
-                    (PowerPointClassicAnimationAfterEffect)after,
-                    (PowerPointClassicTextBuild)textBuild, dimColor,
-                    ReadBool(element, "playsSound"),
-                    ReadBool(element, "stopsSound"),
-                    sound == null ? null : GetAttribute(sound, "embed"),
-                    sound == null ? null : GetAttribute(sound, "name")));
-            }
-            return result.OrderBy(animation => animation.Order).ToArray();
-        }
-
-        private void WriteClassicAnimationMetadata(
-            IReadOnlyList<PowerPointClassicAnimation> animations) {
-            SlideExtensionList? list = SlideRoot
-                .GetFirstChild<SlideExtensionList>();
-            SlideExtension? existing = list?.Elements<SlideExtension>().FirstOrDefault(item =>
-                string.Equals(item.Uri?.Value, ClassicAnimationExtensionUri,
-                    StringComparison.Ordinal));
-            existing?.Remove();
-            if (animations.Count == 0) {
-                if (list?.ChildElements.Count == 0) list.Remove();
-                return;
-            }
-            list ??= SlideRoot.AppendChild(new SlideExtensionList());
-            var root = new OpenXmlUnknownElement("oimo", "classicAnimations",
-                ClassicAnimationNamespace);
-            foreach (PowerPointClassicAnimation animation in animations) {
-                var element = new OpenXmlUnknownElement("oimo", "animation",
-                    ClassicAnimationNamespace);
-                SetAttribute(element, "shapeId", animation.ShapeId);
-                SetAttribute(element, "effect", (byte)animation.Effect);
-                SetAttribute(element, "direction", animation.Direction);
-                SetAttribute(element, "build", (byte)animation.BuildType);
-                SetAttribute(element, "automatic", animation.Automatic);
-                SetAttribute(element, "delay", animation.DelayMilliseconds);
-                SetAttribute(element, "order", animation.Order);
-                SetAttribute(element, "reverse", animation.Reverse);
-                SetAttribute(element, "animateBackground",
-                    animation.AnimateBackground);
-                SetAttribute(element, "after", (byte)animation.AfterEffect);
-                SetAttribute(element, "textBuild", (byte)animation.TextBuild);
-                SetAttribute(element, "dimColor", animation.RawDimColor);
-                SetAttribute(element, "playsSound", animation.PlaysSound);
-                SetAttribute(element, "stopsSound", animation.StopsSound);
-                if (animation.PlaysSound
-                    && !string.IsNullOrEmpty(animation.SoundRelationshipId)) {
-                    element.Append(new Sound {
-                        Embed = animation.SoundRelationshipId,
-                        Name = animation.SoundName ?? "Animation Sound"
-                    });
-                }
-                root.Append(element);
-            }
-            var extension = new SlideExtension { Uri = ClassicAnimationExtensionUri };
-            extension.Append(root);
-            list.Append(extension);
-        }
-
-        private static BuildList? CreateClassicBuildList(
-            IEnumerable<PowerPointClassicAnimation> animations) {
-            var list = new BuildList();
-            foreach (PowerPointClassicAnimation animation in animations) {
-                if (animation.BuildType is >= PowerPointClassicAnimationBuildType.ByLevel1Paragraph
-                    and <= PowerPointClassicAnimationBuildType.ByLevel5Paragraph) {
-                    list.Append(new BuildParagraph {
-                        ShapeId = animation.ShapeId.ToString(CultureInfo.InvariantCulture),
-                        GroupId = 0U,
-                        Build = ParagraphBuildValues.Paragraph,
-                        BuildLevel = unchecked((uint)((byte)animation.BuildType - 1)),
-                        AnimateBackground = animation.AnimateBackground,
-                        Reverse = animation.Reverse,
-                        AutoAdvance = animation.Automatic
-                            ? animation.DelayMilliseconds.ToString(CultureInfo.InvariantCulture)
-                            : null
-                    });
-                } else if (animation.BuildType ==
-                           PowerPointClassicAnimationBuildType.AsOneObject) {
-                    list.Append(new BuildParagraph {
-                        ShapeId = animation.ShapeId.ToString(CultureInfo.InvariantCulture),
-                        GroupId = 0U,
-                        Build = ParagraphBuildValues.Whole,
-                        AnimateBackground = animation.AnimateBackground
-                    });
-                }
-            }
-            return list.HasChildren ? list : null;
-        }
 
         private static string GetClassicAnimationFilter(
             PowerPointClassicAnimationEffect effect, byte direction) => effect switch {
@@ -931,28 +596,5 @@ namespace OfficeIMO.PowerPoint {
                 _ => false
             });
 
-        private static bool TryReadUInt(OpenXmlElement element, string name,
-            out uint value) => uint.TryParse(GetAttribute(element, name),
-            NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-
-        private static bool TryReadByte(OpenXmlElement element, string name,
-            out byte value) => byte.TryParse(GetAttribute(element, name),
-            NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-
-        private static bool TryReadInt(OpenXmlElement element, string name,
-            out int value) => int.TryParse(GetAttribute(element, name),
-            NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
-
-        private static bool ReadBool(OpenXmlElement element, string name) =>
-            bool.TryParse(GetAttribute(element, name), out bool value) && value;
-
-        private static string? GetAttribute(OpenXmlElement element, string name) =>
-            element.GetAttributes().FirstOrDefault(attribute =>
-                attribute.LocalName == name).Value;
-
-        private static void SetAttribute(OpenXmlElement element, string name,
-            object value) => element.SetAttribute(new OpenXmlAttribute(string.Empty,
-                name, string.Empty, Convert.ToString(value,
-                    CultureInfo.InvariantCulture) ?? string.Empty));
     }
 }

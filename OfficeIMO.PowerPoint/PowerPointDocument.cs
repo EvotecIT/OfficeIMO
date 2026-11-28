@@ -49,6 +49,7 @@ namespace OfficeIMO.PowerPoint {
         private PresentationDocumentType? _loadedDocumentType;
 
         private PresentationDocumentType? OpenXmlDocumentType => _sdkDocument?.DocumentType ?? _loadedDocumentType;
+        private bool IsLoadedStandardPresentation => _loadedDocumentType == PresentationDocumentType.Presentation;
 
         private PresentationPart SdkPresentationPart {
             get {

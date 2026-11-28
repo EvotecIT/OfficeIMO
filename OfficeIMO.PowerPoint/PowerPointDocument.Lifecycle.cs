@@ -568,25 +568,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointDocument OpenPackage(Stream packageStream, string? filePath,
             Stream? associatedStream, PowerPointLoadOptions options, bool allowDeferredSdk = false) {
-            if (allowDeferredSdk && CanDeferSdk(packageStream, options, out int slideCount, out OfficeOpcPackage? loadedPackage)) {
-                return new PowerPointDocument(filePath ?? string.Empty, options.AccessMode) {
-                    _loadedPackage = loadedPackage,
-                    _deferredSlideCount = slideCount,
-                    _packageStream = packageStream,
-                    _sourceStream = associatedStream,
-                    _persistenceMode = options.PersistenceMode,
-                    // The caller may change its settings after the load; the SDK opens with them as they were.
-                    _deferredOpenSettings = options.OpenSettings == null ? null : new OfficeOpenXmlLoadSettings {
-                        CompatibilityLevel = options.OpenSettings.CompatibilityLevel,
-                        MarkupCompatibilityMode = options.OpenSettings.MarkupCompatibilityMode,
-                        MarkupCompatibilityTargetVersion = options.OpenSettings.MarkupCompatibilityTargetVersion,
-                        MaxCharactersInPart = options.OpenSettings.MaxCharactersInPart
-                    },
-                    _maximumSlideXmlCharacters = options.OpenSettings?.MaxCharactersInPart > 0
-                        ? Math.Min(PowerPointXmlReader.MaximumPackageXmlCharacters, options.OpenSettings.MaxCharactersInPart)
-                        : PowerPointXmlReader.MaximumPackageXmlCharacters
-                };
-            }
+            if (allowDeferredSdk && TryOpenDeferredPackage(packageStream, filePath, associatedStream, options) is { } deferred) return deferred;
             PresentationDocument document = options.AccessMode == DocumentAccessMode.ReadWrite
                 ? PresentationDocument.Open(packageStream, true, CreateOpenSettings(options.OpenSettings))
                 : OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenPresentation(packageStream, CreateOpenSettings(options.OpenSettings));
@@ -605,6 +587,31 @@ namespace OfficeIMO.PowerPoint {
             }
             presentation.RecordSdkAtLoad();
             return presentation;
+        }
+
+        private static PowerPointDocument? TryOpenDeferredPackage(Stream packageStream, string? filePath,
+            Stream? associatedStream, PowerPointLoadOptions options) {
+            if (!CanDeferSdk(packageStream, options, out int slideCount, out OfficeOpcPackage? loadedPackage,
+                out string? sourceExtension)) return null;
+            var deferred = new PowerPointDocument(filePath ?? string.Empty, options.AccessMode) {
+                _loadedPackage = loadedPackage,
+                _deferredSlideCount = slideCount,
+                _packageStream = packageStream,
+                _sourceStream = associatedStream,
+                _persistenceMode = options.PersistenceMode,
+                // The caller may change its settings after the load; the SDK opens with them as they were.
+                _deferredOpenSettings = options.OpenSettings == null ? null : new OfficeOpenXmlLoadSettings {
+                    CompatibilityLevel = options.OpenSettings.CompatibilityLevel,
+                    MarkupCompatibilityMode = options.OpenSettings.MarkupCompatibilityMode,
+                    MarkupCompatibilityTargetVersion = options.OpenSettings.MarkupCompatibilityTargetVersion,
+                    MaxCharactersInPart = options.OpenSettings.MaxCharactersInPart
+                },
+                _maximumSlideXmlCharacters = options.OpenSettings?.MaxCharactersInPart > 0
+                    ? Math.Min(PowerPointXmlReader.MaximumPackageXmlCharacters, options.OpenSettings.MaxCharactersInPart)
+                    : PowerPointXmlReader.MaximumPackageXmlCharacters
+            };
+            if (sourceExtension != ".pptx") deferred._loadedDocumentType = GetPresentationDocumentType(sourceExtension!);
+            return deferred;
         }
 
         private static PowerPointDocument LoadDocument(

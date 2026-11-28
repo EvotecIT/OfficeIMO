@@ -15,6 +15,7 @@ internal sealed class OfficeOpcPackage : IDisposable {
     private readonly OfficeZipPackageReader _zip;
     // Keyed by part identity, like the members, so names that differ only in non-ASCII case stay separate.
     private readonly Dictionary<string, RelationshipSet> _relationships = new(OfficeAsciiIgnoreCaseComparer.Instance);
+    private Dictionary<string, RelationshipSet>? _standardRelationships;
     private Dictionary<string, string>? _defaultContentTypes;
     private Dictionary<string, string>? _overrideContentTypes;
 
@@ -38,8 +39,9 @@ internal sealed class OfficeOpcPackage : IDisposable {
     internal OfficeXmlNamespaces.Table Namespaces { get; } = new();
 
     /// <exception cref="InvalidDataException">The ZIP container or the content-types part is missing or malformed.</exception>
-    internal static OfficeOpcPackage Open(Stream source, bool leaveOpen = false) {
-        OfficeZipPackageReader zip = OfficeZipPackageReader.Open(source, leaveOpen);
+    internal static OfficeOpcPackage Open(Stream source, bool leaveOpen = false, long maximumEntryLength = 1L << 30,
+        int? maximumEntries = null) {
+        OfficeZipPackageReader zip = OfficeZipPackageReader.Open(source, leaveOpen, maximumEntryLength, maximumEntries);
         try {
             return new OfficeOpcPackage(zip);
         } catch {
@@ -50,6 +52,19 @@ internal sealed class OfficeOpcPackage : IDisposable {
 
     /// <summary>Returns whether the package has a part with this name, for example <c>/word/document.xml</c>.</summary>
     internal bool PartExists(string partName) => FindMember(partName) != null;
+
+    /// <summary>Whether the archive stores a logical part as a set of OPC physical pieces.</summary>
+    internal bool HasInterleavedParts => _members.Values.Any(name =>
+        name.EndsWith(".piece", StringComparison.OrdinalIgnoreCase) && OfficeOpcPieceAssembler.HasPieceSuffix(name));
+
+    internal bool HasDuplicateContentTypes { get; private set; }
+
+    /// <summary>The package spelling of this part name, or null when the part is absent.</summary>
+    internal string? GetPartName(string partName) => FindMember(partName) is { } member ? "/" + member : null;
+
+    /// <summary>Opens a part for incremental decoded-byte reads.</summary>
+    internal Stream OpenPartContentStream(string partName, CancellationToken cancellationToken) =>
+        _zip.OpenMemberStream(FindMember(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'."), cancellationToken);
 
     /// <summary>Inflates a part into a buffer the caller disposes.</summary>
     /// <exception cref="InvalidDataException">The part is missing or its ZIP member is corrupt.</exception>
@@ -88,6 +103,10 @@ internal sealed class OfficeOpcPackage : IDisposable {
     /// <summary>Relationships whose source is <paramref name="sourcePartName"/>, or the package when it is null.</summary>
     internal IReadOnlyList<OfficeOpcRelationship> GetRelationships(string? sourcePartName) => GetRelationshipSet(sourcePartName).All;
 
+    /// <summary>Reads only relationships with standard OPC markup and rejects unsupported elements and attributes.</summary>
+    internal IReadOnlyList<OfficeOpcRelationship> GetStandardRelationships(string? sourcePartName) =>
+        GetRelationshipSet(sourcePartName, requireStandardMarkup: true).All;
+
     /// <summary>The relationship of <paramref name="sourcePartName"/> (or the package) with this id, or null.</summary>
     internal OfficeOpcRelationship? FindRelationship(string? sourcePartName, string relationshipId) =>
         GetRelationshipSet(sourcePartName).ById.TryGetValue(relationshipId, out OfficeOpcRelationship? relationship) ? relationship : null;
@@ -104,12 +123,14 @@ internal sealed class OfficeOpcPackage : IDisposable {
         throw new InvalidDataException("The part '" + partName + "' has the content type '" + (contentType ?? "(none)") + "', which this reader does not accept.");
     }
 
-    private RelationshipSet GetRelationshipSet(string? sourcePartName) {
+    private RelationshipSet GetRelationshipSet(string? sourcePartName, bool requireStandardMarkup = false) {
         string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(sourcePartName);
         string identity = GetPartIdentity(relationshipsPart);
-        if (_relationships.TryGetValue(identity, out RelationshipSet? cached)) return cached;
-        RelationshipSet relationships = PartExists(relationshipsPart) ? ReadRelationships(relationshipsPart) : RelationshipSet.Empty;
-        _relationships[identity] = relationships;
+        Dictionary<string, RelationshipSet> cache = requireStandardMarkup
+            ? (_standardRelationships ??= new Dictionary<string, RelationshipSet>(OfficeAsciiIgnoreCaseComparer.Instance)) : _relationships;
+        if (cache.TryGetValue(identity, out RelationshipSet? cached)) return cached;
+        RelationshipSet relationships = PartExists(relationshipsPart) ? ReadRelationships(relationshipsPart, requireStandardMarkup) : RelationshipSet.Empty;
+        cache[identity] = relationships;
         return relationships;
     }
 
@@ -201,22 +222,39 @@ internal sealed class OfficeOpcPackage : IDisposable {
         return decoded?.Substring(1);
     }
 
-    private RelationshipSet ReadRelationships(string relationshipsPart) {
+    private RelationshipSet ReadRelationships(string relationshipsPart, bool requireStandardMarkup) {
         var relationships = new List<OfficeOpcRelationship>();
         var ids = new Dictionary<string, OfficeOpcRelationship>(StringComparer.Ordinal);
         string? sourceDirectory = OfficeOpcPartNames.GetRelationshipSourceDirectory(relationshipsPart);
-        OfficeXmlPullReader reader = OpenXml(relationshipsPart, out OfficePooledBytes content);
+        OfficeXmlPullReader reader = OpenXml(relationshipsPart, out OfficePooledBytes content, processMarkupCompatibility: false);
         using (content) {
             while (reader.Read()) {
-                if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2
-                    || !reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationship")) continue;
+                if (reader.NodeKind != OfficeXmlNodeKind.StartElement) {
+                    if (requireStandardMarkup && reader.NodeKind == OfficeXmlNodeKind.Text && !string.IsNullOrWhiteSpace(reader.GetText()))
+                        throw NonstandardRelationshipMarkup(relationshipsPart);
+                    continue;
+                }
+                if (reader.Depth == 1 && !reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationships"))
+                    throw new InvalidDataException("The part '" + relationshipsPart + "' has no Relationships root element.");
+                if (reader.Depth == 1) {
+                    if (requireStandardMarkup && RelationshipAttributeCount(reader) != 0) throw NonstandardRelationshipMarkup(relationshipsPart);
+                    continue;
+                }
+                if (reader.Depth != 2 || !reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                    if (requireStandardMarkup) throw NonstandardRelationshipMarkup(relationshipsPart);
+                    continue;
+                }
                 if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "Id", out string id)
                     || !reader.TryGetAttribute(OfficeXmlNamespaces.None, "Type", out string type)
                     || !reader.TryGetAttribute(OfficeXmlNamespaces.None, "Target", out string target)) {
                     throw new InvalidDataException("A relationship in '" + relationshipsPart + "' lacks its Id, Type or Target.");
                 }
-                bool external = reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode)
-                    && string.Equals(mode, "External", StringComparison.Ordinal);
+                bool hasMode = reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode);
+                if (hasMode && mode != "Internal" && mode != "External")
+                    throw new InvalidDataException("A relationship in '" + relationshipsPart + "' has an invalid TargetMode.");
+                if (requireStandardMarkup && RelationshipAttributeCount(reader) != (hasMode ? 4 : 3))
+                    throw NonstandardRelationshipMarkup(relationshipsPart);
+                bool external = hasMode && mode == "External";
                 if (ids.ContainsKey(id)) throw new InvalidDataException("'" + relationshipsPart + "' repeats the relationship id '" + id + "'.");
                 var relationship = new OfficeOpcRelationship(sourceDirectory, id, OfficeXmlNamespaces.NormalizeRelationshipType(type), target, external);
                 ids.Add(id, relationship);
@@ -225,6 +263,17 @@ internal sealed class OfficeOpcPackage : IDisposable {
         }
         return new RelationshipSet(relationships.ToArray(), ids);
     }
+
+    private static int RelationshipAttributeCount(OfficeXmlPullReader reader) {
+        int count = 0;
+        for (int index = 0; index < reader.AttributeCount; index++) {
+            if (reader.GetAttributeNamespace(index, out _) != OfficeXmlNamespaces.Xmlns) count++;
+        }
+        return count;
+    }
+
+    private static InvalidDataException NonstandardRelationshipMarkup(string part) =>
+        new InvalidDataException("The part '" + part + "' contains unsupported relationship markup.");
 
     private sealed class RelationshipSet {
         internal static readonly RelationshipSet Empty = new(Array.Empty<OfficeOpcRelationship>(), new Dictionary<string, OfficeOpcRelationship>(StringComparer.Ordinal));
@@ -255,9 +304,12 @@ internal sealed class OfficeOpcPackage : IDisposable {
                     || reader.NamespaceId != OfficeXmlNamespaces.ContentTypes) continue;
                 if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "ContentType", out string contentType)) continue;
                 if (reader.LocalNameEquals("Default") && reader.TryGetAttribute(OfficeXmlNamespaces.None, "Extension", out string extension)) {
+                    HasDuplicateContentTypes |= defaults.ContainsKey(extension);
                     defaults[extension] = contentType;
                 } else if (reader.LocalNameEquals("Override") && reader.TryGetAttribute(OfficeXmlNamespaces.None, "PartName", out string partName)) {
-                    overrides[GetPartIdentity(partName)] = contentType;
+                    string identity = GetPartIdentity(partName);
+                    HasDuplicateContentTypes |= overrides.ContainsKey(identity);
+                    overrides[identity] = contentType;
                 }
             }
         }

@@ -19,6 +19,8 @@ namespace OfficeIMO.PowerPoint {
         // Whether the shapes were loaded from the package tree, so new shapes can be added there.
         private bool _shapesFromPackage;
 
+        internal bool HasMaterializedPackageShapes => _shapesFromPackage && _shapes.Count != 0;
+
         /// <summary>
         /// The slide's shape tree when shapes can be added to it without the SDK: the slide works on the package, its
         /// shapes were read from there, and the document can be edited that way.

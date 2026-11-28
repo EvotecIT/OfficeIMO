@@ -52,9 +52,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidDataException("The slide part has no slide root.");
             }
             string[] removedIds = GetTransitionSoundRelationshipIds();
-            string relationshipId = !part.IsSdk && part.Document is { } document
-                && document.TryAddPackageTransitionSound(part.Name, audio, contentType, extension, out string packageId)
-                    ? packageId : PowerPointEmbeddedSound.Add(SlidePart, audio, contentType, extension);
+            string relationshipId = AddSlideSound(part, audio, contentType, extension);
 
             OfficeXmlNode createdTransition = default;
             var added = new List<(OfficeXmlNode Transition, OfficeXmlNode Sound)>();
@@ -75,7 +73,7 @@ namespace OfficeIMO.PowerPoint {
                     OfficeXmlNode sound = start.Append(start.CreateElement(TransitionPresentationNamespace, "snd"));
                     sound.SetAttribute(OfficeXmlNamespaces.Relationships, "embed", relationshipId);
                     sound.SetAttribute("name", name);
-                    added.Add((transition, transition.Append(action)));
+                    added.Add((transition, transition.InsertBefore(action, FindTerminalPresentationExtension(transition))));
                 }
             } catch {
                 foreach (var (_, sound) in added) sound.Remove();
@@ -91,7 +89,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
             part.MarkEdited();
-            RemoveUnusedTransitionSounds(removedIds);
+            RemoveUnusedSlideSounds(removedIds);
         }
 
         /// <summary>Stops any currently playing transition sound on entry to this slide.</summary>
@@ -103,7 +101,7 @@ namespace OfficeIMO.PowerPoint {
                 action.Append(action.CreateElement(TransitionPresentationNamespace, "endSnd"));
             }
             part.MarkEdited();
-            RemoveUnusedTransitionSounds(removedIds);
+            RemoveUnusedSlideSounds(removedIds);
         }
 
         /// <summary>Removes this slide's start- or stop-sound transition action.</summary>
@@ -119,15 +117,24 @@ namespace OfficeIMO.PowerPoint {
                 }
                 part.MarkEdited();
             }
-            RemoveUnusedTransitionSounds(removedIds);
+            RemoveUnusedSlideSounds(removedIds);
         }
 
         /// <summary>Returns the exact embedded transition sound bytes, when present.</summary>
-        public byte[]? GetTransitionSoundBytes() {
-            string? id = GetTransitionSoundRelationshipId(GetTransitionNode());
+        public byte[]? GetTransitionSoundBytes() =>
+            ReadSlideSound(GetTransitionSoundRelationshipId(GetTransitionNode()));
+
+        private byte[]? ReadSlideSound(string? id) {
             PowerPointPartRef part = PartRef;
-            if (!TryGetTransitionAudioRelationship(part, id, out PowerPointRelationship relationship)) return null;
-            if (!relationship.TargetPart.IsNone) return relationship.TargetPart.ReadBytes();
+            if (!TryGetSlideAudioRelationship(part, id, out PowerPointRelationship relationship)) return null;
+            PowerPointPartRef target = relationship.TargetPart;
+            if (!target.IsNone) {
+                if (target.Document?.ReadablePackage is { } package && package.TryGetStoredLength(target.Name, out long length)
+                    && length > PowerPointMedia.MaximumOwnedPayloadBytes) {
+                    return PowerPointEmbeddedSound.Read(SlidePart, id);
+                }
+                return target.ReadBytes();
+            }
             return part.IsSdk ? PowerPointEmbeddedSound.Read(SlidePart, id) : null;
         }
 
@@ -144,14 +151,20 @@ namespace OfficeIMO.PowerPoint {
             GetTransitionNodes(PartRef.Root).Select(GetTransitionSoundRelationshipId)
                 .Where(id => !string.IsNullOrEmpty(id)).Cast<string>().Distinct(StringComparer.Ordinal).ToArray();
 
-        private void RemoveUnusedTransitionSounds(IEnumerable<string> relationshipIds) {
+        private string AddSlideSound(PowerPointPartRef part, Stream audio, string contentType, string extension) =>
+            !part.IsSdk && audio is { CanRead: true, CanSeek: true } && audio.Length <= PowerPointMedia.MaximumOwnedPayloadBytes &&
+            part.Document is { } document
+                && document.TryAddPackageTransitionSound(part.Name, audio, contentType, extension, out string packageId)
+                    ? packageId : PowerPointEmbeddedSound.Add(SlidePart, audio, contentType, extension);
+
+        private void RemoveUnusedSlideSounds(IEnumerable<string> relationshipIds) {
             PowerPointPartRef part = PartRef;
             foreach (string id in relationshipIds) {
-                if (TryGetTransitionAudioRelationship(part, id, out _)) part.RemoveRelationshipIfUnused(id, part);
+                if (TryGetSlideAudioRelationship(part, id, out _)) part.RemoveRelationshipIfUnused(id, part);
             }
         }
 
-        private static bool TryGetTransitionAudioRelationship(PowerPointPartRef part, string? id, out PowerPointRelationship relationship) {
+        private static bool TryGetSlideAudioRelationship(PowerPointPartRef part, string? id, out PowerPointRelationship relationship) {
             relationship = default;
             return id != null && part.TryGetRelationship(id, out relationship) && !relationship.IsExternal &&
                 OfficeXmlNamespaces.NormalizeRelationshipType(relationship.Type) == TransitionAudioRelationship;
@@ -159,7 +172,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static OfficeXmlNode ReplaceSoundAction(OfficeXmlNode transition) {
             transition.RemoveChildren(TransitionPresentationNamespace, "sndAc");
-            return transition.Append(transition.CreateElement(TransitionPresentationNamespace, "sndAc"));
+            return transition.InsertBefore(transition.CreateElement(TransitionPresentationNamespace, "sndAc"),
+                FindTerminalPresentationExtension(transition));
         }
 
         private static IReadOnlyList<OfficeXmlNode> GetOrCreateTransitionNodes(OfficeXmlNode root) {

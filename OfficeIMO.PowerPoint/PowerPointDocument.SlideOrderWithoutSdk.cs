@@ -25,18 +25,8 @@ namespace OfficeIMO.PowerPoint {
 
             /// <summary>The presentation part and its slide list node, without reading the entries.</summary>
             internal static PackageSlideList? ReadPresentation(OfficeOpcEditablePackage package) {
-                string? main = null;
-                OfficeXmlTree packageRelationships = package.GetRelationships(null);
-                for (int node = packageRelationships.FindChild(packageRelationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship");
-                     node != OfficeXmlTree.NoNode;
-                     node = packageRelationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
-                    string? type = packageRelationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
-                    if (type != null && OfficeXmlNamespaces.NormalizeRelationshipType(type) == OfficeOpcPackage.OfficeDocumentRelationshipType) {
-                        main = OfficeOpcPartNames.ResolveRelationshipTarget("/_rels/.rels", packageRelationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
-                        break;
-                    }
-                }
-                if (main == null || !package.PartExists(main)) return null;
+                string? main = FirstRelated(package, null, OfficeOpcPackage.OfficeDocumentRelationshipType, out _);
+                if (main == null) return null;
                 OfficeXmlTree presentation = package.GetXml(main);
                 return new PackageSlideList(main, presentation, presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldIdLst"));
             }
@@ -123,8 +113,6 @@ namespace OfficeIMO.PowerPoint {
                 PackageSlideList? slides = PackageSlideList.Read(package);
                 if (slides == null || index < 0 || index >= slides.Entries.Count) return false;
                 OfficeXmlTree presentation = slides.Presentation;
-                // Custom shows list slides by relationship, and the model takes the removed slide out of them.
-                if (presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "custShowLst") != OfficeXmlTree.NoNode) return false;
                 (int entry, string relationship, string slide) = slides.Entries[index];
                 List<uint>? ids = slides.ReadIds();
                 if (ids == null) return false;
@@ -136,8 +124,13 @@ namespace OfficeIMO.PowerPoint {
                 if (presentationRelationship == OfficeXmlTree.NoNode) return false;
                 string main = PartIdentity(slides.Main), slidePart = PartIdentity(slide);
                 HashSet<string> kept = Reachable(package, string.Empty, main, relationship);
-                // A slide another part links to is unlinked there by the model.
-                if (kept.Contains(slidePart)) return false;
+                List<InboundSlideLinkEdit>? inboundLinks = null;
+                if (kept.Contains(slidePart)) {
+                    if (!TryPlanPackageInboundSlideLinks(package, slides, slidePart, relationship, kept, out inboundLinks,
+                        out Dictionary<string, string> excluded)) return false;
+                    kept = Reachable(package, string.Empty, main, relationship, excludedLinks: excluded);
+                    if (kept.Contains(slidePart)) return false;
+                }
                 var removed = new List<string>();
                 foreach (string part in Reachable(package, slidePart, null, null)) {
                     if (!kept.Contains(part)) removed.Add(part);
@@ -147,7 +140,11 @@ namespace OfficeIMO.PowerPoint {
                 }
                 if (!PowerPointTreeSections.TryPlan(presentation, package.Namespaces.GetId(PowerPointTreeSections.P14Namespace), ids, out PowerPointTreeSections.Plan? sections)) return false;
 
+                if (!TryPlanPackageSlideCustomShows(package, slides, relationship, out SlideCustomShowPruning? customShows)) return false;
+
                 presentation.Remove(entry);
+                if (customShows != null) ApplyPackageSlideCustomShows(customShows);
+                if (inboundLinks != null) ApplyPackageInboundSlideLinks(inboundLinks);
                 OfficeXmlTree relationships = package.GetXml(presentationRelationships);
                 relationships.Remove(presentationRelationship);
                 RelationshipsOf(package, main).RemoveAll(edge => string.Equals(edge.Id, relationship, StringComparison.Ordinal));
@@ -237,8 +234,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // Identities of the parts reachable from a part, or from the package when it is "", the part itself included,
-        // leaving out one relationship of one source.
-        private HashSet<string> Reachable(OfficeOpcEditablePackage package, string start, string? skipSource, string? skipId) {
+        // optionally leaving out planned relationship removals. A stopped part is included, but its edges are not followed.
+        private HashSet<string> Reachable(OfficeOpcEditablePackage package, string start, string? skipSource, string? skipId,
+            string? stopAt = null, Dictionary<string, string>? excludedLinks = null) {
             var reached = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
             var pending = new Stack<string>();
             if (start.Length > 0) reached.Add(start);
@@ -246,9 +244,14 @@ namespace OfficeIMO.PowerPoint {
             while (pending.Count > 0) {
                 string source = pending.Pop();
                 bool skipping = skipSource != null && OfficeAsciiIgnoreCaseComparer.Instance.Equals(source, skipSource);
+                string? excluded = null;
+                if (excludedLinks != null) excludedLinks.TryGetValue(source, out excluded);
                 foreach ((string id, string target) in RelationshipsOf(package, source)) {
-                    if (skipping && string.Equals(id, skipId, StringComparison.Ordinal)) continue;
-                    if (reached.Add(target)) pending.Push(target);
+                    if (skipping && string.Equals(id, skipId, StringComparison.Ordinal) ||
+                        excluded != null && string.Equals(id, excluded, StringComparison.Ordinal)) continue;
+                    if (reached.Add(target) && (stopAt == null || !OfficeAsciiIgnoreCaseComparer.Instance.Equals(target, stopAt))) {
+                        pending.Push(target);
+                    }
                 }
             }
             return reached;

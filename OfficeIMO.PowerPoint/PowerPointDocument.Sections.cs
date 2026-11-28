@@ -9,7 +9,9 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointSectionInfo> GetSections() {
             ThrowIfDisposed();
-            OfficeXmlNode root = PresentationPartRef.Root;
+            OfficeXmlNode root = ReadablePackage is { } package &&
+                FirstRelated(package, null, OfficeOpcPackage.OfficeDocumentRelationshipType, out _) is { } main
+                ? PowerPointPartRef.Package(this, main).Root : PresentationPartRef.Root;
             OfficeXmlNode sectionList = GetSectionList(root, create: false);
             if (sectionList.IsNone) {
                 return Array.Empty<PowerPointSectionInfo>();
@@ -356,8 +358,9 @@ namespace OfficeIMO.PowerPoint {
             EnsureSectionCoverage(sectionList, slideIds);
         }
 
-        private void SyncSectionsWithSlides() {
-            PowerPointPartRef presentation = PresentationPartRef;
+        private void SyncSectionsWithSlides() => SyncSectionsWithSlides(PresentationPartRef);
+
+        private static void SyncSectionsWithSlides(PowerPointPartRef presentation) {
             OfficeXmlNode sectionList = GetSectionList(presentation.Root, create: false);
             if (sectionList.IsNone) {
                 return;
