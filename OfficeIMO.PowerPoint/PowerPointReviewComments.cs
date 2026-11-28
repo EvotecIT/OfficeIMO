@@ -208,6 +208,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Removes this comment from its slide.</summary>
         public void Remove() {
+            if (TryRemoveOwnedComment()) return;
             P.Comment comment = RequireAttached();
             uint? authorId = comment.AuthorId?.Value;
             SlideCommentsPart? part = _slide.SlidePart.SlideCommentsPart;
@@ -529,7 +530,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointClassicComment AddClassicComment(PowerPointSlide slide,
             PowerPointCommentAuthor author, string text, OfficeLength x = default, OfficeLength y = default,
             DateTime? created = null) {
-            OfficeOpcEditablePackage? package = GetPackageForClassicCommentAdd(slide);
+            OfficeOpcEditablePackage? package = GetEditableClassicCommentPackage(slide);
             if (package == null) EnsureCommentSlide(slide);
             ArgumentNullException.ThrowIfNull(author);
             ValidateClassicCommentText(text, nameof(text));

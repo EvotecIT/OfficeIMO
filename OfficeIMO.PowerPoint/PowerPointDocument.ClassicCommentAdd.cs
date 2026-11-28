@@ -8,14 +8,15 @@ namespace OfficeIMO.PowerPoint {
         private const string ClassicCommentContentType = "application/vnd.openxmlformats-officedocument.presentationml.comments+xml";
         private const string ClassicAuthorContentType = "application/vnd.openxmlformats-officedocument.presentationml.commentAuthors+xml";
         private HashSet<OfficeXmlTree>? _validatedClassicCommentParts;
-        private Dictionary<OfficeXmlTree, (int Version, IReadOnlyList<OfficeOpcRelationship> Links)>? _classicCommentMutationLinks;
+        private Dictionary<OfficeXmlTree, (int Version, IReadOnlyList<OfficeOpcRelationship> Links, bool XmlValidated)>? _classicCommentMutationLinks;
 
         private void ResetClassicCommentAddValidation() {
             _validatedClassicCommentParts = null;
             _classicCommentMutationLinks = null;
+            _classicCommentGraph = null;
         }
 
-        private OfficeOpcEditablePackage? GetPackageForClassicCommentAdd(PowerPointSlide slide) {
+        private OfficeOpcEditablePackage? GetEditableClassicCommentPackage(PowerPointSlide slide) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(slide);
             if (EditablePackage is not { } package || !CanReadClassicCommentsInPackage(package)) return null;
@@ -41,9 +42,8 @@ namespace OfficeIMO.PowerPoint {
             (uint Next, uint Last) indexes;
             try {
                 if (_packageSlideEntries is not { } slides ||
-                    ReadClassicCommentMutationLinks(package, slides.Main) is not { } mainLinks ||
-                    !TryFindClassicCommentPart(package, mainLinks, ClassicAuthorsRelationship, "cmAuthorLst", out authorsPart, out authors) ||
-                    !IsValidClassicCommentPartForAdd(package, authorsPart, authors)) return null;
+                    !TryReadClassicCommentMutationPart(package, slides.Main, ClassicAuthorsRelationship, "cmAuthorLst",
+                        out var mainLinks, out authorsPart, out authors)) return null;
                 main = slides.Main;
                 var usedAuthorIds = new HashSet<uint>();
                 foreach (OfficeXmlNode entry in authors.Children(ClassicCommentNamespace, "cmAuthor")) {
@@ -66,9 +66,8 @@ namespace OfficeIMO.PowerPoint {
                 var linkedParts = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
                 IReadOnlyList<OfficeOpcRelationship>? targetLinks = null;
                 foreach ((_, _, string part) in slides.Entries) {
-                    if (ReadClassicCommentMutationLinks(package, part) is not { } links ||
-                        !TryFindClassicCommentPart(package, links, ClassicCommentsRelationship, "cmLst", out string? entryPart, out OfficeXmlNode entries) ||
-                        !IsValidClassicCommentPartForAdd(package, entryPart, entries)) return null;
+                    if (!TryReadClassicCommentMutationPart(package, part, ClassicCommentsRelationship, "cmLst",
+                        out var links, out string? entryPart, out OfficeXmlNode entries)) return null;
                     if (entryPart != null) linkedParts.Add(entryPart);
                     if (PartIdentity(part).Equals(PartIdentity(slideName), StringComparison.OrdinalIgnoreCase)) {
                         foundSlide = true;
@@ -86,7 +85,7 @@ namespace OfficeIMO.PowerPoint {
                 if (!foundSlide || targetLinks == null ||
                     package.CountParts(ClassicAuthorContentType) != (authorsPart == null ? 0 : 1) ||
                     package.CountParts(ClassicCommentContentType) != linkedParts.Count) return null;
-                if (authorsPart == null) newAuthorsRelId = ReservePackageMutationRelationshipId(mainLinks);
+                if (authorsPart == null) newAuthorsRelId = ReservePackageMutationRelationshipId(mainLinks!);
                 if (commentPart == null) {
                     newCommentsRelId = ReservePackageMutationRelationshipId(targetLinks);
                     newCommentTarget = OfficeOpcPartNames.ResolveRelationshipTarget(OfficeOpcPartNames.GetRelationshipsPartName(slideName),
@@ -147,23 +146,39 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointClassicComment(this, slide, binding, 0);
         }
 
+        private bool TryReadClassicCommentMutationPart(OfficeOpcEditablePackage package, string owner, string relationship,
+            string rootName, out IReadOnlyList<OfficeOpcRelationship>? links, out string? partName, out OfficeXmlNode root) {
+            partName = null;
+            root = default;
+            links = ReadClassicCommentMutationLinks(package, owner);
+            return links != null && TryFindClassicCommentPart(package, links, relationship, rootName, out partName, out root) &&
+                IsValidClassicCommentMutationPart(package, partName, root);
+        }
+
         private static uint? ReadClassicUnsigned(OfficeXmlNode node, string attribute) =>
             node.Attribute(attribute) is { } value ? XmlConvert.ToUInt32(value) : null;
 
-        private IReadOnlyList<OfficeOpcRelationship>? ReadClassicCommentMutationLinks(OfficeOpcEditablePackage package, string owner) {
+        private IReadOnlyList<OfficeOpcRelationship>? ReadClassicCommentMutationLinks(OfficeOpcEditablePackage package, string? owner,
+            bool validateXml = false) {
             string part = OfficeOpcPartNames.GetRelationshipsPartName(owner);
             if (!package.PartExists(part)) return Array.Empty<OfficeOpcRelationship>();
             if (package.GetContentType(part) != OfficeOpcEditablePackage.RelationshipContentType || GetPackageXml(part) is not { } tree) return null;
-            if (_classicCommentMutationLinks?.TryGetValue(tree, out var cached) == true && cached.Version == tree.Version) return cached.Links;
-            IReadOnlyList<OfficeOpcRelationship>? links = ReadPackageMutationRelationships(package, owner, requireTransitionalTypes: true);
-            if (links != null) {
-                _classicCommentMutationLinks ??= new Dictionary<OfficeXmlTree, (int, IReadOnlyList<OfficeOpcRelationship>)>();
-                _classicCommentMutationLinks[tree] = (tree.Version, links);
+            var cached = default((int Version, IReadOnlyList<OfficeOpcRelationship> Links, bool XmlValidated));
+            bool validCache = _classicCommentMutationLinks?.TryGetValue(tree, out cached) == true && cached.Version == tree.Version;
+            if (validCache && (!validateXml || cached.XmlValidated)) return cached.Links;
+            IReadOnlyList<OfficeOpcRelationship>? links = validCache ? cached.Links :
+                ReadPackageMutationRelationships(package, owner, requireTransitionalTypes: true);
+            if (links == null) return null;
+            if (validateXml) {
+                using Stream stream = package.OpenPartContentStream(part, default);
+                PowerPointXmlReader.ValidatePackagePartXml(stream);
             }
+            _classicCommentMutationLinks ??= new Dictionary<OfficeXmlTree, (int, IReadOnlyList<OfficeOpcRelationship>, bool)>();
+            _classicCommentMutationLinks[tree] = (tree.Version, links, validateXml);
             return links;
         }
 
-        private bool IsValidClassicCommentPartForAdd(OfficeOpcEditablePackage package, string? partName, OfficeXmlNode root) {
+        private bool IsValidClassicCommentMutationPart(OfficeOpcEditablePackage package, string? partName, OfficeXmlNode root) {
             if (partName == null) return true;
             if (root.Tree is not { } tree) return false;
             if (_validatedClassicCommentParts?.Contains(tree) == true) return true;

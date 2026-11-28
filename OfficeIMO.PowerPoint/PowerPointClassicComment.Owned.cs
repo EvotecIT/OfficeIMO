@@ -12,7 +12,9 @@ namespace OfficeIMO.PowerPoint {
             if (_slide.RemovedFromPackage) {
                 throw new InvalidOperationException("The comment's slide is no longer attached to the presentation.");
             }
-            return _ownedComments.CommentAt(_ownedIndex);
+            OfficeXmlNode comment = _ownedComments.CommentAt(_ownedIndex);
+            if (!comment.IsAttached) throw new InvalidOperationException("The classic comment is no longer attached to the presentation.");
+            return comment;
         }
 
         private bool TryGetEditableComment(out OfficeXmlNode comment) {
@@ -36,6 +38,10 @@ namespace OfficeIMO.PowerPoint {
             }
             return true;
         }
+
+        private bool TryRemoveOwnedComment() =>
+            TryGetEditableComment(out OfficeXmlNode comment) &&
+            _presentation.TryRemovePackageClassicComment(_slide, _ownedComments!.PartName, comment);
 
         private bool TrySetOwnedText(string value) {
             if (value.IndexOf('\r') >= 0 || !TryGetEditableComment(out OfficeXmlNode comment)) return false;
@@ -158,7 +164,7 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                // An owned edit may have appended comments since the caller received this inventory.
+                // An owned edit may have added or removed comments since the caller received this inventory.
                 var originalIndexes = new Dictionary<OfficeXmlNode, int>(original.Count);
                 for (int index = 0; index < original.Count; index++) originalIndexes.Add(original[index], index);
                 var mapped = new OfficeXmlNode[original.Count];
