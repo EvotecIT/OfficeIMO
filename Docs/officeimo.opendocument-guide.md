@@ -1058,3 +1058,11 @@ The package targets `netstandard2.0`, `net8.0`, and `net10.0`, plus `net472` on 
 Interoperability coverage includes ODT, ODS, and ODP files from LibreOffice and Microsoft Office, plus an externally verified Google Docs ODT export. These files exercise styles, formulas, drawings, embedded content, and preservation of unknown package entries. A separate hash-pinned LibreOffice fixture covers password encryption, including OfficeIMO reading LibreOffice output and LibreOffice reading OfficeIMO output. See the [producer manifest](../OfficeIMO.OpenDocument.Tests/Fixtures/producer-manifest.json) and [encryption manifest](../OfficeIMO.OpenDocument.Tests/Fixtures/Encryption/producer-manifest.json) for exact producer versions, hashes, and evidence.
 
 Draw interoperability covers [LibreOffice FODG and ODG fixtures](../OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/README.md), package/flat round trips, and a generated ODG opened and rendered by LibreOffice. This evidence does not qualify arbitrary Draw layout or every producer.
+
+## Dependency footprint
+
+- **External:** None; no OpenDocument SDK and no LibreOffice process.
+- **OfficeIMO:** `OfficeIMO.Core`. ODT/ODS/ODP/ODG parsing, models, preservation, inspection, and writing are first-party.
+- **Security:** ODF password encryption/decryption is first-party and dependency-free. Signature carriers are detected and changed signed packages fail safely without a cryptographic dependency. `OdfDocument.SignPackage(...)` and `ValidateSignatures(...)` use an explicit provider for the bounded OfficeIMO XML package-manifest profile; `OfficeIMO.Security` is not pulled transitively.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -217,3 +217,10 @@ Root nodes can also be inserted, removed, or moved with `InsertRootRtf`, `Remove
 The reader supports Unicode escapes, single-byte Windows code pages 874 and 1250-1258, IBM 437/850, Mac Roman, and East Asian Windows code pages 932/936/949/950. Font charset changes can switch the active decoder within a document. Unsupported code pages emit diagnostic `RTF103` and use the documented Windows-1252 fallback while lossless source remains intact. Normalized writing supports Unicode fallback widths (`\uc`) from 0 through 8; lossless source export preserves larger incoming values without expanding them.
 
 Interoperability coverage includes RTF produced by Microsoft Word, Outlook, LibreOffice, Google Docs, macOS TextEdit/RTFD, an Epic EHI export, CRM and helpdesk workflows, and GemBox.Document. Each external sample is exercised through bounded reading, web-safe HTML, Markdown, and diagnostic-preserving Word conversion. See the [RTF support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.rtf-support-matrix.md) for exact producer classifications and known limits.
+
+## Dependency footprint
+
+- **External:** No third-party RTF engine. `System.Text.Encoding.CodePages` supplies legacy encodings.
+- **OfficeIMO:** `OfficeIMO.Core`. Lexing, parsing, semantic binding, editing, and writing are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

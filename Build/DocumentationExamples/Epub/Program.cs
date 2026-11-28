@@ -1,4 +1,5 @@
 #region QuickStart
+using System;
 using OfficeIMO.Epub;
 
 EpubPublication publication = EpubPublication.Create("Field guide", "en");

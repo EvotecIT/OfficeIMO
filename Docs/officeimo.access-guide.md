@@ -2,6 +2,33 @@
 
 This guide covers the `OfficeIMO.Access` API beyond the [package README](../OfficeIMO.Access/README.md), which shows installation and a quick start.
 
+## Create a native database
+
+```csharp
+using AccessDocument database = AccessDocument.Create(new AccessCreateOptions {
+    Format = AccessFileFormat.Accdb,
+    DatabaseTitle = "Contacts"
+});
+AccessTable contacts = database.Tables.Add("Contacts");
+contacts.Columns.AddAutoNumber("Id", seed: 101);
+contacts.Columns.Add("Name", AccessDataType.ShortText, maxLength: 120);
+contacts.Indexes.AddPrimaryKey("PK_Contacts", "Id");
+
+using (AccessUpdateScope edit = database.BeginUpdate()) {
+    contacts.AppendRow(new AccessRowValues { ["Name"] = "Ada" });
+    edit.Commit();
+}
+AccessOperationReport assessment = database.AssessSave("contacts.accdb");
+assessment.ThrowIfLoss();
+database.Save("contacts.accdb");
+```
+
+Use `Format = AccessFileFormat.Mdb` and an `.mdb` path to create Jet 4 output. Creation writes native headers, catalogs, allocation maps, table definitions, rows, long values and indexes directly; it reads no blank database or template and invokes no external engine.
+
+Models retain supplied values and typed references. Modeled rows distinguish omission from explicit null. Saving allocates omitted sequential AutoNumber values in the output without modifying model rows, checks primary/unique keys and enforced single-field relationships, and persists omitted Yes/No as false. Explicit null Yes/No or AutoNumber values are rejected. Reader leases block mutation; an uncommitted update rolls back on disposal.
+
+`AddDecimal(name, precision, scale)` declares exact Decimal storage without rounding. `AddUnique(name, columns)` and `Add(name, columns)` create unique and ordinary indexes. Creation supports Byte, Int16, Int32/AutoNumber and a bounded General legacy ASCII text subset as index keys. Unicode text values are supported; indexed Unicode outside that subset is rejected. Tables support up to 255 columns, 32 indexes including relationship indexes, and a 4060-byte row. The default `MaxOutputBytes` is 64 MiB. See [the creation limits](../OfficeIMO.Access/SUPPORT.md#native-creation-contract) before choosing schemas.
+
 ## Read a native table
 
 
@@ -180,3 +207,12 @@ Same-profile preservation copies the immutable loaded snapshot byte for byte, in
 `AssessSave` returns an immutable report tied to the document identity and revision and checks native output limits before destination I/O. It names known profile losses for complex fields, rich text, calculated fields, Large Number and Date/Time Extended. General native row/schema editing, profile conversion, authored queries/designers/macros and protection/signature operations remain unsupported. Allowing conversion loss does not enable an unavailable codec. Persistence is explicit; `SaveOnDispose` is unavailable.
 
 See [support and independent evidence](../OfficeIMO.Access/SUPPORT.md), the [generated operation matrix](../OfficeIMO.Access/CAPABILITIES.md), and [remaining VBA host integration](../Docs/ROADMAP.md#vba-host-integration).
+
+## Verification
+
+```sh
+dotnet build OfficeIMO.Access/OfficeIMO.Access.csproj -c Release
+dotnet run --project OfficeIMO.Access.Verification/OfficeIMO.Access.Verification.csproj -- OfficeIMO.Access.Tests/Fixtures
+```
+
+The verification executable compiles the public examples and checks them against synthetic files independently produced and consumed by Microsoft Access/DAO. The library targets `netstandard2.0`, `net8.0`, `net10.0` and Windows `net472`.

@@ -362,7 +362,7 @@ Keynote `IWorkTextBox.Layout` exposes selected inherited margins in points, `Ver
 ## Cancellation
 
 
-Path, stream, and byte-array `Open` overloads accept a `CancellationToken` after the read options. The token governs loading and all later semantic projections and conversions from that source. Use `source.WithCancellation(newToken)` for an independently cancellable projection or conversion without rereading the package. The view shares loaded bytes and parsed messages and replaces the previous token; `CancellationToken.None` permits reuse after the opening token is cancelled. Caller-owned streams remain open when loading succeeds or is cancelled.
+Path, stream, and byte-array `Load` overloads accept a `CancellationToken` after the read options. The token governs loading and all later semantic projections and conversions from that source. Use `source.WithCancellation(newToken)` for an independently cancellable projection or conversion without rereading the package. The view shares loaded bytes and parsed messages and replaces the previous token; `CancellationToken.None` permits reuse after the opening token is cancelled. Caller-owned streams remain open when loading succeeds or is cancelled.
 
 ```csharp
 using var cancellation = new CancellationTokenSource();

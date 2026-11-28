@@ -15,6 +15,7 @@ dotnet add package OfficeIMO.Epub
 
 <!-- powerforge:code source="Build/DocumentationExamples/Epub/Program.cs" region="QuickStart" -->
 ```csharp
+using System;
 using OfficeIMO.Epub;
 
 EpubPublication publication = EpubPublication.Create("Field guide", "en");

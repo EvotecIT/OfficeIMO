@@ -2,6 +2,22 @@
 
 This guide covers the `OfficeIMO.CSV` API beyond the [package README](../OfficeIMO.CSV/README.md), which shows installation and a quick start.
 
+## Feature list
+
+- Keeps headers and rows as a first-class document model instead of ad hoc string arrays.
+- Loads from files, streams, or text and saves through configurable delimiter, culture, encoding, and newline options.
+- Supports single-character delimiters through `Delimiter` and multi-character delimiters through `DelimiterText`.
+- Reads and writes compressed CSV files with extension-based detection for gzip, deflate, Brotli, and zlib.
+- Can escape formula-like values during save when producing CSV files that people will open in spreadsheet applications.
+- Handles real-world import details such as duplicate headers, generated blank headers, null tokens, static metadata columns, custom date formats, comments, W3C `#Fields:` headers, and mismatched row lengths.
+- Provides cancellation, progress callbacks, parse-error collection, field-length limits, quote normalization, and string interning for import pipelines.
+- Supports `AddRow`, `AddColumn`, `RemoveColumn`, `SortBy`, `Filter`, and `Transform`.
+- Provides schema inference and schema validation with required columns, typed columns, defaults, and custom rules.
+- Maps rows to typed objects with explicit no-reflection mapping.
+- Provides forward-only `DbDataReader` access for large files without presenting a streaming document as an editable model.
+- Provides ordered, bounded parallel projection for data readers and a span-backed transient-record path for decoded text on .NET 8 and later.
+- Includes validated cross-library benchmark lanes with operating-system and run-mode provenance.
+
 ## Quick start
 
 
@@ -791,7 +807,7 @@ Console.WriteLine($"Imported {rowsRead} rows");
 ## Export options
 
 
-By default every value reads back unchanged, whatever the culture:
+By default these values read back unchanged, whatever the culture. Null is the exception: it writes as an empty field and a string column reads that back as empty text, so set `NullValue` when null and empty text must stay apart.
 
 | Value | Default text |
 | --- | --- |
@@ -999,3 +1015,10 @@ string normalized = document.ToString(new CsvSaveOptions {
 - Database bulk copy and provider behavior are available through DbaClientX or the consuming data-access layer rather than this package.
 - Use `OfficeIMO.Reader.Csv` for unified Reader integration.
 - Use `OfficeIMO.Excel` for workbook behavior.
+
+## Dependency footprint
+
+- **External:** No third-party CSV engine. On `netstandard2.0` and `net472`, `System.Memory` (the version `DocumentFormat.OpenXml` also uses) lets the UTF-8 stream reader run on those targets; .NET Framework reference assemblies support the `net472` build.
+- **OfficeIMO:** `OfficeIMO.Core`. Parsing, streaming, schemas, transforms, compression, and object mapping are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

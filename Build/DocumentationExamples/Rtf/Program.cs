@@ -1,4 +1,5 @@
 #region QuickStart
+using System.IO;
 using OfficeIMO.Rtf;
 
 RtfDocument document = RtfDocument.Create();

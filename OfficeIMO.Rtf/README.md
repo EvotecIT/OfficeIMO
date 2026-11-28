@@ -15,6 +15,7 @@ dotnet add package OfficeIMO.Rtf
 
 <!-- powerforge:code source="Build/DocumentationExamples/Rtf/Program.cs" region="QuickStart" -->
 ```csharp
+using System.IO;
 using OfficeIMO.Rtf;
 
 RtfDocument document = RtfDocument.Create();

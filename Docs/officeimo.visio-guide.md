@@ -2,6 +2,18 @@
 
 This guide covers the `OfficeIMO.Visio` API beyond the [package README](../OfficeIMO.Visio/README.md), which shows installation and a quick start.
 
+## Load untrusted drawings
+
+For a drawing from an untrusted source, use the bounded load profile:
+
+```csharp
+var incoming = VisioDocument.Load("upload.vsdx", VisioLoadOptions.UntrustedDefaults);
+```
+
+It rejects macros, embedded payloads, ActiveX, and external relationships before parsing. Ordinary load options retain compatibility with drawings containing those parts; set `PackageSecurity` explicitly for another policy.
+`VisioLoadOptions.Limits.MaxPackageXmlCharacters` limits each VSDX document, page, master and theme XML part before it is materialized (30 million characters by default). Lower it for smaller ingestion budgets; the same option's legacy XML limit applies to VDX/VTX input.
+`VisioAssets` and the stencil and master imports check each source package against `OfficePackageSecurityOptions.SecureDefaults` (entry count, part and total sizes, compression ratio, part names) before reading it.
+
 ## Lengths and coordinates
 
 Page dimensions, shape pins and sizes, and print margins use `OfficeLength`. Construct values with `OfficeLength.Inches`, `Centimeters`, `Millimeters` or `Points`; use `ToInches()` only at a numeric native-coordinate boundary. `scaleUnit` controls native drawing-scale metadata and does not reinterpret physical lengths.
@@ -113,7 +125,7 @@ Create new legacy documents with `VisioDocument.Create()` or `Create(VisioPackag
 
 Embedded foreign bytes and their XML metadata survive XML/Open XML round trips, including nested shapes and masters. Resources follow moved and duplicated shapes, including moves between documents; deleted content is excluded from saved packages once its last reference is removed. The shared Visio model keeps their internal image/object relationships and content types. Opaque or unrecognized bytes are treated as embedded objects for the untrusted-input policy even when the source labels them as images. External foreign resources and resources with dependent parts are rejected. Preservation is bounded to 1,024 resources, 64 MiB per resource, and 128 MiB total.
 
-SVG and raster export render supported embedded bitmap images, including master-owned images, crop offsets, group rotation and mirroring. Supported placement formulas evaluate against the current shape dimensions; unsupported formulas use cached values with a diagnostic. Decoding uses the shared Drawing codecs with a 64 MiB encoded limit and a 32-million-pixel decoded limit. Legacy BMP payloads with a zero file-size header receive that value in a decoding copy; saved bytes remain unchanged. `ToImage` returns the decoding and placement diagnostics, and its policy can reject omissions. Opaque objects and unsupported images produce visible placeholders; opaque objects are never sent to caller image codecs. Metafiles require a caller codec when the shared decoder cannot read them. The default PDF projection remains semantic text and topology. Optional [PNG page previews](../OfficeIMO.Visio.Pdf/README.md#page-previews-and-legacy-xml) embed this supported raster profile, fit the PDF content area proportionally, and retain preview diagnostics and omission categories in the neutral model, Reader and PDF report. SVG previews are listed as metadata by PDF projection. These previews do not establish native diagram-layout fidelity.
+SVG and raster export render supported embedded bitmap images, including master-owned images, crop offsets, group rotation and mirroring. Supported placement formulas evaluate against the current shape dimensions; unsupported formulas use cached values with a diagnostic. Decoding uses the shared Drawing codecs with a 64 MiB encoded limit and a 32-million-pixel decoded limit. Legacy BMP payloads with a zero file-size header receive that value in a decoding copy; saved bytes remain unchanged. `ToImage` returns the decoding and placement diagnostics, and its policy can reject omissions. Opaque objects and unsupported images produce visible placeholders; opaque objects are never sent to caller image codecs. Metafiles require a caller codec when the shared decoder cannot read them. The PDF adapter's default `DiagramPages` mode draws the pages; select `SemanticReport` for searchable text and topology. Optional [PNG page previews](../OfficeIMO.Visio.Pdf/README.md#page-previews-and-legacy-xml) embed this supported raster profile, fit the PDF content area proportionally, and retain preview diagnostics and omission categories in the neutral model, Reader and PDF report. SVG previews are listed as metadata by PDF projection. These previews do not establish native diagram-layout fidelity.
 
 Connectors can have zero, one, or two attached shapes. `From` and `To` are nullable; `StartPoint` and `EndPoint` resolve page coordinates in inches. Setting either point detaches that endpoint. Use `ReconnectConnectorStart` or `ReconnectConnectorEnd` to attach it again. Free-connector creation accepts the page's native unit or an explicit unit:
 
@@ -299,7 +311,7 @@ using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 string screenPreview = page.ToSvg();
-byte[] printPreview = page.ToImage(new VisioImageExportOptions {
+OfficeImageExportResult printPreview = page.ToImage(new VisioImageExportOptions {
     LayerMode = VisioLayerRenderMode.Printable
 });
 var imageOptions1 = new VisioImageExportOptions();
@@ -554,6 +566,7 @@ VisioDocument.Create("roadmap.vsdx")
 ### Layers and Shape Data
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
 using Color = OfficeIMO.OfficeColor;
@@ -652,3 +665,19 @@ drawing.Save("Network-shared.vsdx");
 
 
 `VisioDocument.InspectProvenance("input.vsdx")` reports C2PA and AI-specific IPTC metadata in the drawing and its supported embedded images. `VisioDocument.RemoveProvenance("input.vsdx", "clean.vsdx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
+
+## Related packages and limits
+
+- `OfficeIMO.Visio` generates and edits drawing, template, stencil, and macro-enabled Open XML Visio packages without requiring desktop Visio at runtime.
+- `ToOfficeDocumentModel(...)` projects Visio content into the dependency-free model in `OfficeIMO.Core`; direct converters can consume it without taking Reader dependencies.
+- External stencil packages retain their package and licensing requirements; OfficeIMO records caller-supplied provenance but never infers licensing terms.
+- Use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for PowerShell workflows.
+- Open Visio product work is listed in the repository [roadmap](../Docs/ROADMAP.md).
+
+## Dependency footprint
+
+- **External:** `System.IO.Packaging`; Microsoft BCL compatibility packages are used on older targets.
+- **OfficeIMO:** `OfficeIMO.Core`. The VSDX model, builders, editing, topology, validation, and PNG/JPEG/TIFF/SVG/WebP renderers are first-party.
+- **Security:** Open XML signature carriers are inspected and signed-diagram mutations fail safely without a cryptographic dependency. Signature creation and validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
