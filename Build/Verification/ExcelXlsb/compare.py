@@ -412,8 +412,9 @@ def main():
     parser.add_argument("--corpus", type=Path, help="Reuse fixtures and test outputs from an earlier run")
     parser.add_argument("--build-lock", type=lambda path: Path(path).expanduser().resolve(),
                         help="Serialize builds and tests through the machine's shared lockf path")
+    parser.add_argument("--repository", type=Path, default=HERE.parents[2], help="Repository containing both revisions")
     args = parser.parse_args()
-    root = HERE.parents[2]
+    root = args.repository.resolve()
     output = args.output.resolve()
     output.mkdir(parents=True)
     corpus = args.corpus.resolve() if args.corpus else output / "corpus"

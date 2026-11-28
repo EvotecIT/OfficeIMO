@@ -29,6 +29,55 @@ public sealed class ExcelXlsbFormulaGroupEditingTests {
         Assert.Contains("array formulas exceed", exception.Message);
     }
 
+    [Fact]
+    public void Native_array_import_adds_implicit_members_through_the_owned_projection() {
+        using var seed = ExcelDocument.Create();
+        ExcelSheet sheet = seed.AddSheet("Arrays");
+        sheet.Cell(1, 1).SetValue(2D);
+        sheet.Cell(2, 1).SetValue(3D);
+        sheet.SetArrayFormula("B1:B2", "SUM(A1:A2)");
+        sheet.Cell(1, 2).SetValue(5D);
+        sheet.Cell(2, 2).SetValue(5D);
+
+        byte[] saved = seed.ToBytes(ExcelFileFormat.Xlsb);
+        using var input = new ZipArchive(new MemoryStream(saved), ZipArchiveMode.Read);
+        using var edited = new MemoryStream();
+        using (var output = new ZipArchive(edited, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (ZipArchiveEntry part in input.Entries) {
+                using Stream source = part.Open();
+                using Stream destination = output.CreateEntry(part.FullName).Open();
+                if (part.FullName != "xl/worksheets/sheet1.bin") {
+                    source.CopyTo(destination);
+                    continue;
+                }
+                int row = 0;
+                foreach (XlsbRecord record in XlsbRecordReader.ReadAll(source)) {
+                    if (record.Type == 0) row = checked((int)XlsbFormulaGroup.Read(record.Data, 0) + 1);
+                    if (row == 2 && record.Type is >= 1 and <= 11 && XlsbFormulaGroup.Read(record.Data, 0) == 1)
+                        continue;
+                    XlsbRecordWriter.Write(destination, record.Type, record.Data);
+                }
+            }
+        }
+
+        byte[] native = edited.ToArray();
+        using var document = ExcelDocument.Load(new MemoryStream(native));
+        Assert.True(document.IsSdkDeferred);
+        Assert.Equal(native, document.ToBytes(ExcelFileFormat.Xlsb));
+        using var projection = new ZipArchive(new MemoryStream(document.ToBytes()), ZipArchiveMode.Read);
+        using Stream worksheet = projection.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var ns = System.Xml.Linq.XNamespace.Get("http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+        var cells = System.Xml.Linq.XDocument.Load(worksheet).Root!.Element(ns + "sheetData")!.Elements(ns + "row")
+            .SelectMany(row => row.Elements(ns + "c")).ToDictionary(cell => (string)cell.Attribute("r")!);
+        var formula = cells["B1"].Element(ns + "f")!;
+        Assert.Equal("array", (string?)formula.Attribute("t"));
+        Assert.Equal("B1:B2", (string?)formula.Attribute("ref"));
+        Assert.Equal("SUM(A1:A2)", formula.Value);
+        Assert.Equal("5", cells["B1"].Element(ns + "v")?.Value);
+        Assert.Empty(cells["B2"].Elements());
+        Assert.Empty(document.OpenXmlSdkFallbacks);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

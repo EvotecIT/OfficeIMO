@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.Xlsb.Projection;
 
@@ -11,8 +10,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static IReadOnlyList<XlsbRecordBlockEdit> Create(XlsbWorksheetFeatureContext context, XlsbSheet source) {
             ArgumentNullException.ThrowIfNull(context);
             ArgumentNullException.ThrowIfNull(source);
+            OfficeXmlNode worksheet = context.WorksheetMarkup;
             var edits = new List<XlsbRecordBlockEdit>();
-            if (!XlsbWorksheetFeatureProjector.Matches<ConditionalFormatting>(context.Sheet, source)) {
+            if (!XlsbWorksheetFeatureProjector.Matches(worksheet, source, "conditionalFormatting")) {
                 if (source.HasUnprojectedConditionalFormatting) {
                     throw new NotSupportedException(
                         $"Native XLSB rewriting cannot change conditional formatting on worksheet '{context.Sheet.Name}' because it also holds Office 2010 or other conditional formatting that is kept as native records. Save as .xlsx to retain that change.");
@@ -20,18 +20,18 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 edits.Add(new XlsbRecordBlockEdit(XlsbWorksheetConditionalFormattingWriter.BrtBeginConditionalFormatting,
                     XlsbWorksheetConditionalFormattingWriter.BrtEndConditionalFormatting, XlsbWorksheetConditionalFormattingWriter.Create(context)));
             }
-            if (!XlsbWorksheetFeatureProjector.Matches<RowBreaks>(context.Sheet, source)
-                || !XlsbWorksheetFeatureProjector.Matches<ColumnBreaks>(context.Sheet, source)) {
+            if (!XlsbWorksheetFeatureProjector.Matches(worksheet, source, "rowBreaks")
+                || !XlsbWorksheetFeatureProjector.Matches(worksheet, source, "colBreaks")) {
                 edits.Add(new XlsbRecordBlockEdit(XlsbWorksheetPageBreakWriter.BrtBeginRwBrk, XlsbWorksheetPageBreakWriter.BrtEndRwBrk,
                     XlsbWorksheetPageBreakWriter.CreateRowBreaks(context)));
                 edits.Add(new XlsbRecordBlockEdit(XlsbWorksheetPageBreakWriter.BrtBeginColBrk, XlsbWorksheetPageBreakWriter.BrtEndColBrk,
                     XlsbWorksheetPageBreakWriter.CreateColumnBreaks(context)));
             }
-            if (!XlsbWorksheetFeatureProjector.Matches<IgnoredErrors>(context.Sheet, source)) {
+            if (!XlsbWorksheetFeatureProjector.Matches(worksheet, source, "ignoredErrors")) {
                 edits.Add(new XlsbRecordBlockEdit(XlsbWorksheetIgnoredErrorWriter.BrtBeginCellIgnoreECs,
                     XlsbWorksheetIgnoredErrorWriter.BrtEndCellIgnoreECs, XlsbWorksheetIgnoredErrorWriter.Create(context)));
             }
-            if (!XlsbWorksheetFeatureProjector.Matches<DataValidations>(context.Sheet, source)) {
+            if (!XlsbWorksheetFeatureProjector.Matches(worksheet, source, "dataValidations")) {
                 if (source.HasUndecodedDataValidations) {
                     throw new NotSupportedException($"Native XLSB rewrite cannot change the data validations of worksheet '{context.Sheet.Name}' because some of its existing validations could not be decoded.");
                 }

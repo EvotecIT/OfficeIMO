@@ -5,15 +5,13 @@ using OfficeIMO.Excel.Xlsb.Model;
 
 namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Streams the XLSB cell grid to SpreadsheetML in the validated BIFF12 row and column order.</summary>
-    internal static class XlsbWorksheetGridProjector {
+    internal static partial class XlsbWorksheetGridProjector {
         private static readonly string Namespace = OfficeXmlNamespaces.KnownUri(OfficeXmlNamespaces.SpreadsheetML)!;
 
         /// <summary>
-        /// Array groups require a second projection of their members. Line breaks can add a wrap-text style during
-        /// import even when the cell is later assigned its native style index.
+        /// Line breaks can add a wrap-text style during import even when the cell is later assigned its native style index.
         /// </summary>
         internal static bool CanStream(XlsbSheet sheet) {
-            if (sheet.FormulaGroups.Any(group => group.Type == 426)) return false;
             foreach (XlsbCell cell in sheet.Cells) {
                 if (cell.Value is string text && (text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0)) return false;
             }
@@ -45,56 +43,88 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
         private static void WriteGrid(XmlWriter writer, XlsbSheet source, Func<string, int?> sharedStringIndex,
             Action<string?, bool> recordMutation, bool includeLayout, XlsbStylesheet? styles, CancellationToken cancellationToken) {
             writer.WriteStartElement("sheetData", Namespace);
-            int cellIndex = 0, rowIndex = 0;
+            ArrayProjection? arrays = ArrayProjection.Create(source, cancellationToken);
+            IReadOnlyList<ArrayCell> arrayCells = arrays == null ? Array.Empty<ArrayCell>() : arrays.Cells;
+            int cellIndex = 0, rowIndex = 0, arrayIndex = 0;
             IReadOnlyList<XlsbRowInfo> rows = includeLayout ? source.Rows : Array.Empty<XlsbRowInfo>();
-            while (cellIndex < source.Cells.Count || rowIndex < rows.Count) {
+            while (cellIndex < source.Cells.Count || rowIndex < rows.Count || arrayIndex < arrayCells.Count) {
                 cancellationToken.ThrowIfCancellationRequested();
                 XlsbRowInfo? metadata = rowIndex < rows.Count ? rows[rowIndex] : null;
                 int cellRow = cellIndex < source.Cells.Count ? source.Cells[cellIndex].Row : int.MaxValue;
-                int row = Math.Min(cellRow, metadata?.Row ?? int.MaxValue);
+                int arrayRow = arrayIndex < arrayCells.Count ? arrayCells[arrayIndex].Row : int.MaxValue;
+                int row = Math.Min(Math.Min(cellRow, arrayRow), metadata?.Row ?? int.MaxValue);
                 writer.WriteStartElement("row", Namespace);
                 writer.WriteAttributeString("r", InvariantNumberText.Get(row));
                 if (metadata?.Row == row) {
                     XlsbWorksheetGeometryMarkup.WriteRowAttributes(writer, metadata);
                     rowIndex++;
                 }
-                while (cellIndex < source.Cells.Count && source.Cells[cellIndex].Row == row) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    WriteCell(writer, source.Cells[cellIndex++], sharedStringIndex, recordMutation, includeLayout, styles);
+                if (row == arrayRow) {
+                    WriteArrayRow(row);
+                } else {
+                    while (cellIndex < source.Cells.Count && source.Cells[cellIndex].Row == row) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        XlsbCell cell = source.Cells[cellIndex++];
+                        WriteCell(writer, cell, row, cell.Column, sharedStringIndex, recordMutation, includeLayout, styles);
+                    }
                 }
                 writer.WriteEndElement();
             }
             writer.WriteEndElement();
+            arrays?.RecordOwners(recordMutation);
+
+            void WriteArrayRow(int row) {
+                while (true) {
+                    int sourceColumn = cellIndex < source.Cells.Count && source.Cells[cellIndex].Row == row
+                        ? source.Cells[cellIndex].Column : int.MaxValue;
+                    int arrayColumn = arrayIndex < arrayCells.Count && arrayCells[arrayIndex].Row == row
+                        ? arrayCells[arrayIndex].Column : int.MaxValue;
+                    int column = Math.Min(sourceColumn, arrayColumn);
+                    if (column == int.MaxValue) break;
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    XlsbCell? cell = column == sourceColumn ? source.Cells[cellIndex++] : null;
+                    bool arrayMember = column == arrayColumn;
+                    ArrayFormula? owner = arrayMember ? arrayCells[arrayIndex++].Owner : null;
+                    WriteCell(writer, cell, row, column, sharedStringIndex, recordMutation, includeLayout, styles, arrayMember, owner);
+                }
+            }
         }
 
-        private static void WriteCell(XmlWriter writer, XlsbCell cell, Func<string, int?> sharedStringIndex,
-            Action<string?, bool> recordMutation, bool richText, XlsbStylesheet? styles) {
-            string reference = ExcelA1.CellReference(cell.Row, cell.Column);
-            (string? type, string? value) = CellValue(cell, sharedStringIndex);
-            string? formula = string.IsNullOrWhiteSpace(cell.FormulaText) ? null : ExcelSanitizer.SanitizeFormula(cell.FormulaText!);
+        private static void WriteCell(XmlWriter writer, XlsbCell? cell, int row, int column, Func<string, int?> sharedStringIndex,
+            Action<string?, bool> recordMutation, bool richText, XlsbStylesheet? styles,
+            bool arrayMember = false, ArrayFormula? owner = null) {
+            string reference = ExcelA1.CellReference(row, column);
+            (string? type, string? value) = cell == null ? (null, null) : CellValue(cell, sharedStringIndex);
+            string? sourceFormula = string.IsNullOrWhiteSpace(cell?.FormulaText) ? null : ExcelSanitizer.SanitizeFormula(cell!.FormulaText!);
+            string? formula = arrayMember ? owner?.Text : sourceFormula;
             writer.WriteStartElement("c", Namespace);
             writer.WriteAttributeString("r", reference);
-            writer.WriteAttributeString("s", InvariantNumberText.Get(cell.StyleIndex));
+            if (cell != null) writer.WriteAttributeString("s", InvariantNumberText.Get(cell.StyleIndex));
             // BIFF12 text runs project to an inline string. Keep the initial shared-string
             // lookup because it determines indices of later plain strings in the same workbook.
-            if (richText && cell.TextRuns != null && cell.FormulaBytes == null && cell.Value is string text) {
-                writer.WriteAttributeString("t", "inlineStr");
-                WriteRichText(writer, text, cell.TextRuns, styles);
-                writer.WriteEndElement();
-                recordMutation(null, true);
-                return;
+            bool inline = richText && cell is { TextRuns: not null, FormulaBytes: null, Value: string };
+            if (inline) {
+                type = "inlineStr";
+                value = null;
             }
             if (type != null) writer.WriteAttributeString("t", type);
             if (formula != null) {
                 writer.WriteStartElement("f", Namespace);
+                if (owner != null) {
+                    writer.WriteAttributeString("t", "array");
+                    writer.WriteAttributeString("ref", owner.Reference);
+                    owner.RetainsCache = value != null;
+                }
                 if (value != null) writer.WriteAttributeString("ca", "1");
                 writer.WriteString(formula);
                 writer.WriteEndElement();
             }
-            if (value != null) writer.WriteElementString("v", Namespace, value);
+            if (inline) WriteRichText(writer, (string)cell!.Value!, cell.TextRuns!, styles);
+            else if (value != null) writer.WriteElementString("v", Namespace, value);
             writer.WriteEndElement();
 
-            recordMutation(formula == null ? null : reference, value != null);
+            if (cell != null) recordMutation(sourceFormula == null ? null : reference, value != null || inline);
         }
 
         private static void WriteRichText(XmlWriter writer, string text, XlsbTextRun[] runs, XlsbStylesheet? styles) {
