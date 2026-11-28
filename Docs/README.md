@@ -9,7 +9,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 
 - [Repository overview](../README.md) — install, quick start, package map and supported platforms.
 - [Package catalog](officeimo.package-catalog.md) — every package, what it covers, its dependencies and the conversion graph.
-- Format guides — the API beyond each package README: [Word](officeimo.word-guide.md), [Excel](officeimo.excel-guide.md), [PowerPoint](officeimo.powerpoint-guide.md) and [PDF](officeimo.pdf-guide.md).
+- Format guides — the API beyond each package README: [Word](officeimo.word-guide.md), [Excel](officeimo.excel-guide.md), [PowerPoint](officeimo.powerpoint-guide.md), [PDF](officeimo.pdf-guide.md), [HTML](officeimo.html-guide.md), [Markdown](officeimo.markdown-guide.md), [Core](officeimo.core-guide.md) and the [Reader](officeimo.reader.md).
 - [API design](officeimo.api-design.md) — naming, lifecycle, conversion and PowerShell rules shared by every package.
 - [README guide](officeimo.readme-guide.md) — how the root README and package READMEs are structured and what belongs elsewhere.
 - [Migration guide](../MIGRATION.md) — version-to-version package, API, and behavior changes.
@@ -101,7 +101,7 @@ The package README is the primary usage guide for its public API. These reposito
 ## Architecture
 
 - [Access document design](officeimo.access-design.md) — proposed typed API, native codec ownership, database-provider boundary, preservation, security, and qualification. Open milestones live in the [Access roadmap](ROADMAP.md#microsoft-access-document-library).
-- [Owned HTML documents and providers](../OfficeIMO.Html/README.md#inspect-and-edit-owned-html) — current snapshot, edit, parsing and charset contracts; lightweight packages and retained runtime dependencies.
+- [Owned HTML documents and providers](officeimo.html-guide.md#inspect-and-edit-owned-html) — current snapshot, edit, parsing and charset contracts; lightweight packages and retained runtime dependencies.
 - [Independent HTML engine design](officeimo.html-engine-design.md) — proposed shared DOM, CSS, layout, conversion and optional web-runtime boundaries, with staged dependency retirement. Open milestones live in the [roadmap](ROADMAP.md#independent-html-engine).
 - [Archive codecs and containers design](officeimo.archives-codecs-design.md) — managed codec set, package placement, specifications, safety and determinism rules, delivery order and benchmark plan. Open work lives in the [roadmap](ROADMAP.md#archive-containers).
 - [YAML engine design](officeimo.yaml-engine-design.md) — owned lossless YAML 1.2 engine: layers, editing and merge rules, schemas, serializer, limits, performance and qualification. Open work lives in the [roadmap](ROADMAP.md#yaml-engine).
