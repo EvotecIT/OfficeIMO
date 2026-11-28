@@ -34,7 +34,7 @@ public sealed class WordChartExtensionMarkupTests : IDisposable {
         added.AddBar("Values", new[] { 1, 2 }, OfficeColor.Black);
         document.Save();
 
-        string addedChart = ReadChartParts(path).Single(xml => xml.Contains("Added", StringComparison.Ordinal));
+        string addedChart = ReadChartParts(path).Single(xml => xml.IndexOf("Added", StringComparison.Ordinal) >= 0);
         foreach (Match axis in Regex.Matches(addedChart, "<c:axId[^>]*val=\"(\\d+)\"", RegexOptions.None, TimeSpan.FromSeconds(5))) {
             Assert.True(uint.Parse(axis.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) < 4000000000U);
         }

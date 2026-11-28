@@ -50,12 +50,44 @@ namespace OfficeIMO.Word {
                 if (plotArea.IsNone) return 0U;
                 bool any = false;
                 uint max = 0U;
-                foreach (OfficeXmlNode index in plotArea.ContentDescendants(NsC, "idx")) {
+                foreach (OfficeXmlNode index in PlotIndexes(plotArea)) {
                     uint value = index.UIntVal() ?? 0U;
                     if (!any || value > max) max = value;
                     any = true;
                 }
                 return any ? max + 1U : 0U;
+            }
+        }
+
+        /// <summary>
+        /// The <c>c:idx</c> elements of a plot area where the chart schema puts them: in the series of its chart groups,
+        /// their data points and data labels, the groups' own data labels and surface band formats. Markup elsewhere,
+        /// such as in vendor elements, is not an index.
+        /// </summary>
+        private static IEnumerable<OfficeXmlNode> PlotIndexes(OfficeXmlNode plotArea) {
+            for (OfficeXmlNode group = plotArea.FirstChild; !group.IsNone; group = group.NextSibling) {
+                if (group.NamespaceId != NsC || !IsChartGroup(group)) continue;
+                for (OfficeXmlNode child = group.FirstChild; !child.IsNone; child = child.NextSibling) {
+                    if (child.Is(NsC, "ser")) {
+                        for (OfficeXmlNode item = child.FirstChild; !item.IsNone; item = item.NextSibling) {
+                            if (item.Is(NsC, "idx")) yield return item;
+                            else if (item.Is(NsC, "dPt") && !item.Child(NsC, "idx").IsNone) yield return item.Child(NsC, "idx");
+                            else if (item.Is(NsC, "dLbls")) foreach (OfficeXmlNode index in LabelIndexes(item)) yield return index;
+                        }
+                    } else if (child.Is(NsC, "dLbls")) {
+                        foreach (OfficeXmlNode index in LabelIndexes(child)) yield return index;
+                    } else if (child.Is(NsC, "bandFmts")) {
+                        foreach (OfficeXmlNode band in child.Children(NsC, "bandFmt")) {
+                            if (!band.Child(NsC, "idx").IsNone) yield return band.Child(NsC, "idx");
+                        }
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<OfficeXmlNode> LabelIndexes(OfficeXmlNode labels) {
+            foreach (OfficeXmlNode label in labels.Children(NsC, "dLbl")) {
+                if (!label.Child(NsC, "idx").IsNone) yield return label.Child(NsC, "idx");
             }
         }
 

@@ -8,9 +8,11 @@ public partial class WordChart {
     /// <summary>The drawing's <c>wp:docPr</c>, or none.</summary>
     private OfficeXmlNode DrawingProperties {
         get {
-            if (_drawing.IsNone) return default;
-            List<OfficeXmlNode> properties = _drawing.ContentDescendants(NsWp, "docPr");
-            return properties.Count == 0 ? default : properties[0];
+            // The frame's own properties: w:drawing/wp:inline or wp:anchor/wp:docPr.
+            for (OfficeXmlNode frame = _drawing.IsNone ? default : _drawing.FirstChild; !frame.IsNone; frame = frame.NextSibling) {
+                if (frame.Is(NsWp, "inline") || frame.Is(NsWp, "anchor")) return frame.Child(NsWp, "docPr");
+            }
+            return default;
         }
     }
 
@@ -64,8 +66,11 @@ public partial class WordChart {
             ChartSpaceNode.Child(NsC, "roundedCorners").SetAttribute("val", OfficeChartXml.Text(rounded));
             EnsureFramelessChartArea();
         } else {
-            OfficeOpenXmlChartWriter.UpdateSharedChartData(part, data, chartKind);
+            // The workbook goes in before the shared writer saves the updated chart to its part.
             embedded ??= AddEmbeddedWorkbook();
+            WriteEmbeddedPackage(embedded, workbook);
+            written = true;
+            OfficeOpenXmlChartWriter.UpdateSharedChartData(part, data, chartKind);
             OfficeXmlNode space = ChartSpaceNode;
             OfficeXmlNode external = space.Child(NsC, "externalData");
             if (external.IsNone) external = OfficeChartXml.SetOrdered(space, NewC(space, "externalData"), CChartSpaceView.Order);

@@ -130,9 +130,16 @@ namespace OfficeIMO.Word {
             foreach (var part in document.MainDocumentPart?.ChartParts ?? Enumerable.Empty<ChartPart>()) {
                 OfficeXmlNode chart = OfficeXmlNode.FromSdk(part.ChartSpace).Child(NsC, "chart");
                 if (chart.IsNone) continue;
-                foreach (OfficeXmlNode axis in chart.ContentDescendants(NsC, "axId")) {
-                    // An id that isn't an unsigned number can't collide with one this library allocates.
-                    if (uint.TryParse(axis.Val(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out uint value) && value > max) max = value;
+                OfficeXmlNode plot = chart.Child(NsC, "plotArea");
+                if (plot.IsNone) continue;
+                // Axis ids sit in the plot area's chart groups and axes. An id that isn't an unsigned number can't collide
+                // with one this library allocates.
+                for (OfficeXmlNode holder = plot.FirstChild; !holder.IsNone; holder = holder.NextSibling) {
+                    if (holder.NamespaceId != NsC || !IsChartGroup(holder) && !IsAxis(holder)) continue;
+                    foreach (OfficeXmlNode axis in holder.Children(NsC, "axId")) {
+                        if (uint.TryParse(axis.Val(), System.Globalization.NumberStyles.AllowLeadingWhite | System.Globalization.NumberStyles.AllowTrailingWhite,
+                                System.Globalization.CultureInfo.InvariantCulture, out uint value) && value > max) max = value;
+                    }
                 }
             }
             RaiseAxisIdSeed(max);
