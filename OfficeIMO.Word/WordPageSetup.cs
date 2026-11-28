@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.OpenXml.Internal;
 
@@ -58,8 +57,7 @@ namespace OfficeIMO.Word {
 
                 if (titlePage.IsNone) section.Append(section.CreateElement(W, "titlePg"));
                 else titlePage.SetAttribute(W, "val", "true");
-                WordHeadersAndFooters.AddHeaderReference(_section._document, _section, HeaderFooterValues.First);
-                WordHeadersAndFooters.AddFooterReference(_section._document, _section, HeaderFooterValues.First);
+                WordHeadersAndFooters.AddReferences(_section, WordHeaderFooterType.First);
             }
         }
 
@@ -75,28 +73,7 @@ namespace OfficeIMO.Word {
                 return _section.ResolveEvenHeader() != null || _section.ResolveEvenFooter() != null;
             }
             set {
-                if (!value && _section.TryGetOwnedStorySettings(out OfficeXmlNode ownedSettings)) {
-                    OfficeXmlNode ownedSetting = ownedSettings.Child(W, "evenAndOddHeaders");
-                    if (ownedSetting.Exists) {
-                        ownedSetting.Remove();
-                        _section._document._ownedModel!.MarkChanged();
-                    }
-                    return;
-                }
-                var mainPart = _section._document._wordprocessingDocument.MainDocumentPart;
-                if (!value) {
-                    mainPart?.DocumentSettingsPart?.Settings?.GetFirstChild<EvenAndOddHeaders>()?.Remove();
-                    return;
-                }
-
-                _ = _section._document.Settings;
-                WordHeadersAndFooters.AddHeaderReference(_section._document, _section, HeaderFooterValues.Even);
-                WordHeadersAndFooters.AddFooterReference(_section._document, _section, HeaderFooterValues.Even);
-
-                Settings settings = mainPart!.DocumentSettingsPart!.Settings!;
-                EvenAndOddHeaders? setting = settings.GetFirstChild<EvenAndOddHeaders>();
-                if (setting == null) settings.AddChild(new EvenAndOddHeaders(), true);
-                else setting.Val = true;
+                if (!_section.TrySetOwnedOddEvenStories(value)) WordHeadersAndFooters.SetSdkOddEvenStories(_section, value);
             }
         }
 
@@ -201,8 +178,7 @@ namespace OfficeIMO.Word {
         }
 
         private void AddDefaultHeaderAndFooter() {
-            WordHeadersAndFooters.AddHeaderReference(_section._document, _section, HeaderFooterValues.Default);
-            WordHeadersAndFooters.AddFooterReference(_section._document, _section, HeaderFooterValues.Default);
+            WordHeadersAndFooters.AddReferences(_section, WordHeaderFooterType.Default);
         }
     }
 }

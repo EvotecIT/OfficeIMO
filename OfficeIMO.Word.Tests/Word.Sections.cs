@@ -596,6 +596,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AddSectionAfterRemovingTheOnlySection() {
+            using WordDocument document = WordDocument.Create();
+            document.RemoveSection(0);
+            WordSection section = document.AddSection(WordSectionBreakType.Continuous);
+
+            Assert.Same(section, Assert.Single(document.Sections));
+            Assert.Equal(WordSectionBreakType.Continuous, section.BreakType);
+        }
+
+        [Fact]
+        public void Test_RemovePlainSectionKeepsOtherSections() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Before");
+            WordSection middle = document.AddSection(WordSectionBreakType.Continuous);
+            middle.AddParagraph("Remove me");
+            document.AddSection().AddParagraph("After");
+
+            middle.RemoveSection();
+#if NET
+            Assert.True(document.IsSdkDeferred);
+#endif
+            using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
+            Assert.Equal(2, loaded.Sections.Count);
+            Assert.Equal(new[] { "Before", "After" },
+                loaded.Paragraphs.Select(paragraph => paragraph.Text).Where(text => text.Length != 0));
+        }
+
+        [Fact]
         public void Test_CloningSection() {
             string filePath = Path.Combine(_directoryWithFiles, "CloneSection.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -610,6 +638,9 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(3, document.Sections.Count);
                 var clone = document.Sections[1].CloneSection();
+#if NET
+                Assert.True(document.IsSdkDeferred);
+#endif
                 document.Save();
                 Assert.Equal(4, document.Sections.Count);
                 Assert.Equal("Section1", document.Sections[1].Paragraphs[0].Text);

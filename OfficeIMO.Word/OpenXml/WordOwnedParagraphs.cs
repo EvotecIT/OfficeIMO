@@ -50,9 +50,9 @@ internal static class WordOwnedParagraphs {
         return true;
     }
 
-    // Page galleries have flat marker runs. Use the same wrappers as the authored
-    // fields, without opening their running story just to return its paragraph.
-    internal static List<WordParagraph> ProjectPageNumberParagraphs(WordDocument document, OfficeXmlNode content) {
+    // Page galleries and simple running stories use flat marker runs. Project their field
+    // paragraphs without opening the SDK package.
+    internal static List<WordParagraph> ProjectFlatFieldParagraphs(WordDocument document, OfficeXmlNode content) {
         var paragraphs = new List<WordParagraph>();
         foreach (OfficeXmlNode paragraph in content.Children(W, "p")) {
             List<OfficeXmlNode>? fieldRuns = null;

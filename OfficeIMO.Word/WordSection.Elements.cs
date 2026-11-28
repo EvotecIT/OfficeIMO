@@ -208,6 +208,91 @@ public partial class WordSection {
         return paragraph.Parent == body && paragraph.Is(SectionNamespace, "p") ? paragraph : default;
     }
 
+    private WordSection? CloneOwnedSection() {
+        if (_document._ownedModel is not { } model || _ownedSectionNode.IsNone) return null;
+        const int W = SectionNamespace;
+        OfficeXmlNode body = new OfficeXmlNode(model.Document, model.Body);
+        OfficeXmlNode boundary = FindOwnedBodyBoundary(body);
+        // The final section is represented directly under the body and follows a separate legacy path.
+        if (!boundary.Is(W, "p")) return null;
+
+        List<WordSection> sections = _document.Sections;
+        int ordinal = sections.IndexOf(this);
+        if (ordinal < 0) return null;
+        OfficeXmlNode preceding = ordinal == 0 ? default : sections[ordinal - 1].FindOwnedBodyBoundary(body);
+        if (ordinal > 0 && !preceding.Is(W, "p")) return null;
+
+        OfficeXmlNode first = preceding.Exists ? preceding.NextSibling : body.FirstChild;
+        OfficeXmlNode reference = boundary.NextSibling;
+        for (OfficeXmlNode current = first; current.Exists && current != boundary; current = current.NextSibling)
+            body.InsertBefore(current.Clone(), reference);
+        OfficeXmlNode copy = body.InsertBefore(boundary.Clone(), reference);
+
+        var section = new WordSection(_document, copy.Child(W, "pPr").Child(W, "sectPr"));
+        sections.Insert(ordinal + 1, section);
+        model.MarkChanged();
+        return section;
+    }
+
+    private bool TryRemovePlainOwnedSection() {
+        if (_document._ownedModel is not { } model || _ownedSectionNode.IsNone) return false;
+        const int W = SectionNamespace;
+        OfficeXmlNode body = new OfficeXmlNode(model.Document, model.Body);
+        OfficeXmlNode boundary = FindOwnedBodyBoundary(body);
+        if (boundary.IsNone || HasRunningStoryParts(_ownedSectionNode)) return false;
+
+        List<WordSection> sections = _document.Sections;
+        int ordinal = sections.IndexOf(this);
+        if (ordinal < 0 || sections.Count == 1) return false;
+        OfficeXmlNode previous = ordinal == 0 ? default : sections[ordinal - 1].FindOwnedBodyBoundary(body);
+        if (ordinal > 0 && !previous.Is(W, "p")) return false;
+        OfficeXmlNode first = previous.Exists ? previous.NextSibling : body.FirstChild;
+        for (OfficeXmlNode node = first; node.Exists && node != boundary; node = node.NextSibling) {
+            if (!IsPlainOwnedBodyParagraph(node)) return false;
+        }
+        bool keepBoundaryParagraph = false;
+        if (boundary.Is(W, "p")) {
+            if (!IsPlainOwnedBodyParagraph(boundary)) return false;
+            OfficeXmlNode properties = boundary.Child(W, "pPr");
+            keepBoundaryParagraph = boundary.FirstChild == properties && properties.NextSibling.IsNone &&
+                properties.FirstChild == _ownedSectionNode && _ownedSectionNode.NextSibling.IsNone;
+        }
+
+        for (OfficeXmlNode node = first; node.Exists && node != boundary;) {
+            OfficeXmlNode next = node.NextSibling;
+            node.Remove();
+            node = next;
+        }
+        if (keepBoundaryParagraph) _ownedSectionNode.Remove();
+        else boundary.Remove();
+        sections.RemoveAt(ordinal);
+        model.MarkChanged();
+        return true;
+    }
+
+    private static bool HasRunningStoryParts(OfficeXmlNode section) {
+        foreach (OfficeXmlNode node in WordFieldInventory.EnumerateFieldContent(section)) {
+            if (node.Is(SectionNamespace, "headerReference") || node.Is(SectionNamespace, "footerReference")) return true;
+        }
+        return false;
+    }
+
+    private static bool IsPlainOwnedBodyParagraph(OfficeXmlNode paragraph) {
+        const int W = SectionNamespace;
+        if (!paragraph.Is(W, "p")) return false;
+        foreach (OfficeXmlNode child in paragraph.Children()) {
+            if (child.Is(W, "pPr")) {
+                if (child.Child(W, "numPr").Exists) return false;
+                continue;
+            }
+            if (!child.Is(W, "r")) return false;
+            foreach (OfficeXmlNode runChild in child.Children()) {
+                if (!(runChild.Is(W, "rPr") || runChild.Is(W, "t"))) return false;
+            }
+        }
+        return true;
+    }
+
     private void EnsureSdkSection() {
         if (_ownedSectionNode.IsNone) return;
         if (_document.IsDisposed) _document.OpenSdkPackageAfterDispose();
