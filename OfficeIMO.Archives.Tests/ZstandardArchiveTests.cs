@@ -283,13 +283,16 @@ public sealed class ZstandardArchiveTests {
         Assert.Equal(9, error.Offset);
     }
 
-    [Fact]
-    public void CancellationStopsSeekableReadsInsideABlock() {
-        // A 1 KiB window and one raw 1 KiB block, read one byte at a time; cancellation arrives with the first payload byte.
+    [Theory]
+    [InlineData(10)]
+    [InlineData(9 + 1024)]
+    public void CancellationStopsSeekableReadsInsideABlock(long cancelAt) {
+        // A 1 KiB window and one raw 1 KiB block, read one byte at a time. Cancellation arrives with the first payload byte
+        // or with the read that completes the block; either way nothing is written.
         var frame = new List<byte> { 0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x00, 0x01, 0x20, 0x00 };
         frame.AddRange(Enumerable.Repeat((byte)0x41, 1024));
         using var cancellation = new CancellationTokenSource();
-        var source = new TrickleStream(frame.ToArray(), 10, cancellation);
+        var source = new TrickleStream(frame.ToArray(), cancelAt, cancellation);
         var output = new MemoryStream();
 
         Assert.ThrowsAny<OperationCanceledException>(() =>

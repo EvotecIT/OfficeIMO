@@ -306,6 +306,8 @@ internal sealed class ZstandardDecoder {
     }
 
     private void Publish(int start) {
+        // A read can request cancellation while delivering the last bytes of a block, so check before anything is written.
+        _settings.CancellationToken.ThrowIfCancellationRequested();
         int produced = _position - start;
         if (produced > _settings.MaximumOutput - _total - _frameProduced)
             throw ArchiveLimits.Exceeded(_settings.OutputLimitName, _settings.MaximumOutput);
