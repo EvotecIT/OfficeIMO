@@ -148,13 +148,13 @@ Manual row and column breaks also divide merged cells. Each fragment retains the
 - Shapes paint above worksheet pictures and charts. Mixed DrawingML object stacking and rich-text runs within a shape are not fully reproduced.
 - Worksheet column widths and fit scaling use layout estimates. Exact Excel printer geometry and derived fit percentages are not guaranteed; fit-to-width documents can have different scale and page counts. Use producer comparisons for workflows that depend on identical pagination.
 - PDF import is structured-data recovery. It reconstructs detected tables as worksheets; `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not represented by those tables. `HasLoss` and `ThrowIfLoss()` include both that omitted page content and table-row truncation.
-- The current reverse route recovers detected tables and structured values; arbitrary PDF page art is reported rather than presented as an editable workbook. Open recovery work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
+- The current reverse route recovers detected tables and structured values; arbitrary PDF page art is reported rather than presented as an editable workbook. Open recovery work is tracked in the repository [roadmap](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/ROADMAP.md).
 
 ## Related packages
 
-- [OfficeIMO.Excel](../OfficeIMO.Excel/README.md) - Excel workbook model.
-- [OfficeIMO.Pdf](../OfficeIMO.Pdf/README.md) - PDF engine.
-- [OfficeIMO.Html.Pdf](../OfficeIMO.Html.Pdf/README.md) - HTML/PDF bridge.
+- [OfficeIMO.Excel](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel/README.md) - Excel workbook model.
+- [OfficeIMO.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Pdf/README.md) - PDF engine.
+- [OfficeIMO.Html.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Html.Pdf/README.md) - HTML/PDF bridge.
 
 ## Targets and license
 
@@ -167,7 +167,7 @@ Manual row and column breaks also divide merged cells. Each fragment retains the
 - **External:** None beyond the dependencies of its OfficeIMO format packages; no native or commercial PDF renderer.
 - **OfficeIMO:** `OfficeIMO.Excel`, `OfficeIMO.Pdf`, and `OfficeIMO.Core` own layout mapping, rendering, table recovery, and reports.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

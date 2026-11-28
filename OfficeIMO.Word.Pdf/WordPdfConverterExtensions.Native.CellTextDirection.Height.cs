@@ -1,8 +1,8 @@
 using System.Globalization;
 using PdfCore = OfficeIMO.Pdf;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     /// <summary>Word's automatic turned rows use the first paragraph mark's horizontal line box, rather than its turned visible runs.</summary>
@@ -15,16 +15,15 @@ public static partial class WordPdfConverterExtensions {
         WordParagraph? paragraph = cell.Paragraphs.FirstOrDefault();
         if (paragraph == null) return null;
         NativeParagraphStyleDefaults style = GetNativeParagraphStyleDefaults(paragraph);
-        W.ParagraphMarkRunProperties? mark = paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties;
-        W.RunProperties? markRun = mark == null ? null : new W.RunProperties(mark.ChildElements.Select(child => child.CloneNode(true)));
-        NativeCharacterStyleDefaults characterStyle = GetNativeCharacterStyleDefaults(paragraph._document, markRun);
-        string? authoredSize = mark?.GetFirstChild<W.FontSize>()?.Val?.Value;
+        OfficeXmlNode mark = paragraph.Node().WChild("pPr").WChild("rPr");
+        NativeCharacterStyleDefaults characterStyle = GetNativeCharacterStyleDefaults(paragraph._document, mark);
+        string? authoredSize = mark.WChild("sz").WVal();
         double? sourceSize = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(authoredSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
             ? halfPoints / 2D : characterStyle.FontSize ?? style.FontSize ?? tableStyle.RunStyle.FontSize;
         if (tableStyle.UseConfiguredTypography && !sourceSize.HasValue) return null;
         double size = sourceSize ?? defaults.FontSize;
         double natural = ResolveNativeWordSingleLineHeight(fontMap,
-            EnumerateNativeLatinFontFamilies(paragraph._document, markRun?.RunFonts)
+            EnumerateNativeLatinFontFamilies(paragraph._document, mark.WChild("rFonts"))
                 .Concat(EnumerateNativeStyleFontFamilies(characterStyle, style, tableStyle.RunStyle, defaults,
                     fontMap.UsePdfDefaultForDocumentDefaultFont != true)).ToArray());
         double multiplier = ResolveNativeParagraphLineSpacing(paragraph, style, defaults, tableStyle)

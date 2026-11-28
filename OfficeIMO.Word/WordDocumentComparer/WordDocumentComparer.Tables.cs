@@ -1,4 +1,4 @@
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
@@ -22,9 +22,9 @@ namespace OfficeIMO.Word {
 
             for (int i = count; i < target.Tables.Count; i++) {
                 WordTable tgtTable = target.Tables[i];
-                var clonedTable = (Table)tgtTable._table.CloneNode(true);
-                MarkTableAsInserted(clonedTable);
-                result._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Append(clonedTable);
+                OfficeXmlNode clonedTable = WordPackageView.ElementOf(tgtTable).Clone();
+                MarkParagraphsAsInserted(clonedTable);
+                WordPackageView.SdkBody(result).Append(clonedTable);
             }
         }
 
@@ -46,9 +46,9 @@ namespace OfficeIMO.Word {
 
             for (int i = rowCount; i < target.RowCount; i++) {
                 WordTableRow tgtRow = target.Rows[i];
-                var clonedRow = (TableRow)tgtRow._tableRow.CloneNode(true);
-                MarkRowAsInserted(clonedRow);
-                result._table.Append(clonedRow);
+                OfficeXmlNode clonedRow = WordPackageView.ElementOf(tgtRow).Clone();
+                MarkParagraphsAsInserted(clonedRow);
+                WordPackageView.ElementOf(result).Append(clonedRow);
                 result.InvalidateRowElements();
             }
         }
@@ -69,37 +69,26 @@ namespace OfficeIMO.Word {
             }
 
             for (int i = cellCount; i < target.CellsCount; i++) {
-                var clonedCell = (TableCell)target.Cells[i]._tableCell.CloneNode(true);
-                MarkCellAsInserted(clonedCell);
-                result._tableRow.Append(clonedCell);
+                OfficeXmlNode clonedCell = WordPackageView.ElementOf(target.Cells[i]).Clone();
+                MarkParagraphsAsInserted(clonedCell);
+                WordPackageView.ElementOf(result).Append(clonedCell);
             }
         }
 
-        private static void MarkTableAsInserted(Table table) {
-            foreach (var paragraph in table.Descendants<Paragraph>()) {
+        private static void MarkParagraphsAsInserted(OfficeXmlNode element) {
+            foreach (OfficeXmlNode paragraph in TypedDescendants(element).Where(node => node.Is(W, "p"))) {
                 MarkParagraphAsInserted(paragraph);
             }
         }
 
-        private static void MarkRowAsInserted(TableRow row) {
-            foreach (var paragraph in row.Descendants<Paragraph>()) {
-                MarkParagraphAsInserted(paragraph);
-            }
-        }
+        private static void MarkParagraphAsInserted(OfficeXmlNode paragraph) {
+            OfficeXmlNode paragraphProperties = paragraph.Child(W, "pPr");
+            paragraphProperties = paragraphProperties.IsNone ? default : paragraphProperties.Clone();
+            string text = InnerText(paragraph);
 
-        private static void MarkCellAsInserted(TableCell cell) {
-            foreach (var paragraph in cell.Descendants<Paragraph>()) {
-                MarkParagraphAsInserted(paragraph);
-            }
-        }
+            RemoveAllChildren(paragraph);
 
-        private static void MarkParagraphAsInserted(Paragraph paragraph) {
-            var paragraphProperties = (ParagraphProperties?)paragraph.ParagraphProperties?.CloneNode(true);
-            var text = paragraph.InnerText;
-
-            paragraph.RemoveAllChildren();
-
-            if (paragraphProperties != null) {
+            if (!paragraphProperties.IsNone) {
                 paragraph.Append(paragraphProperties);
             }
 
@@ -107,15 +96,14 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            var run = new Run();
-            run.RsidRunAddition = WordHeadersAndFooters.GenerateRsid();
-            run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+            OfficeXmlNode run = paragraph.CreateElement(W, "r");
+            run.SetAttribute(W, "rsidR", WordHeadersAndFooters.GenerateRsid());
+            run.Append(CreateTextElement(run, "t", text));
 
-            var inserted = new InsertedRun {
-                Author = "Comparer",
-                Date = DateTime.Now,
-                Id = WordHeadersAndFooters.GenerateRevisionId()
-            };
+            OfficeXmlNode inserted = paragraph.CreateElement(W, "ins");
+            inserted.SetAttribute(W, "author", "Comparer");
+            inserted.SetAttribute(W, "date", WordPackageView.FormatDateTime(DateTime.Now));
+            inserted.SetAttribute(W, "id", WordHeadersAndFooters.GenerateRevisionId());
             inserted.Append(run);
             paragraph.Append(inserted);
         }

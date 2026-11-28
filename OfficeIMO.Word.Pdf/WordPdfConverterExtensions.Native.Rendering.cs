@@ -1,16 +1,12 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
-        private static void RenderNativeElement(INativePdfFlow pdf, WordElement element, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null, WordElement? nextElement = null) {
+        private static void RenderNativeElement(INativePdfFlow pdf, WordElement element, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<OfficeXmlNode, string> headingDestinations, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null, WordElement? nextElement = null) {
             nativeFontMap ??= new NativeFontMap();
             switch (element) {
                 case WordParagraph paragraph:
@@ -22,7 +18,7 @@ namespace OfficeIMO.Word.Pdf {
                 case WordTableOfContent tableOfContent when tableOfContent.ShowsStoredEntries:
                     // Entries with page references are drawn as stored, as Word draws them. Field pagination lays out
                     // this same content, so its page numbers match the exported pages.
-                    RenderNativeStructuredBlockContent(pdf, tableOfContent.Document, tableOfContent.SdtBlock, activeSection, getMarker,
+                    RenderNativeStructuredBlockContent(pdf, tableOfContent.Document, tableOfContent.SdtBlockNode(), activeSection, getMarker,
                         footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth,
                         skipCanvasOnlyVmlParagraphs: false, nativeDefaults, nativeFontMap!);
                     break;
@@ -89,13 +85,13 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeParagraph(INativePdfFlow pdf, WordParagraph paragraph, (int Level, string Marker)? marker, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, WordParagraph? nextParagraph) {
+        private static void RenderNativeParagraph(INativePdfFlow pdf, WordParagraph paragraph, (int Level, string Marker)? marker, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyDictionary<OfficeXmlNode, string> headingDestinations, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, WordParagraph? nextParagraph) {
             if (paragraph == null) {
                 return;
             }
 
             // A formatted section terminator is editable metadata, not a separate blank body line.
-            if (IsSectionMarkOnly(paragraph._paragraph)) {
+            if (IsSectionMarkOnly(paragraph.Node())) {
                 if (nativeDefaults.RunningContentContext == null) RenderNativeParagraphBookmarks(pdf, paragraph);
                 RecordNativeParagraphBarTabDiagnostics(paragraph, options, "section terminator", omitted: true);
                 return;
@@ -112,15 +108,18 @@ namespace OfficeIMO.Word.Pdf {
                 ? GetNativeRuns(paragraph, includeInlineContentControls: true)
                 : GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
             WordParagraph? currentChartRun = runs.FirstOrDefault(run =>
-                ReferenceEquals(run._run, paragraph._run) && run.Chart != null);
+                run.RunNode() == paragraph.RunNode() && run.Chart != null);
             RecordNativeBodyParagraphDiagnostics(paragraph, options, "body paragraph", mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true, mapsSmartArt: true);
-            IReadOnlyList<W.SdtRun> checkboxControls = nativeDefaults.RunningContentContext == null
-                ? GetNativeCheckBoxControls(paragraph).Where(control => !CanProjectNativeInlineContentControl(control)).ToArray()
-                : Array.Empty<W.SdtRun>();
-            IReadOnlyList<W.SdtRun> formFieldControls = nativeDefaults.RunningContentContext == null
-                ? GetNativeFormFieldControls(paragraph).Where(control => !CanProjectNativeInlineContentControl(control)).ToArray()
-                : Array.Empty<W.SdtRun>();
-            IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
+            IReadOnlyList<OfficeXmlNode> checkboxControls = nativeDefaults.RunningContentContext == null
+                ? GetNativeCheckBoxControls(paragraph)
+                    .Where(control => !CanProjectNativeInlineContentControl(control)).ToArray()
+                : Array.Empty<OfficeXmlNode>();
+            IReadOnlyList<OfficeXmlNode> formFieldControls = nativeDefaults.RunningContentContext == null
+                ? GetNativeFormFieldControls(paragraph)
+                    .Where(control => !CanProjectNativeInlineContentControl(control)).ToArray()
+                : Array.Empty<OfficeXmlNode>();
+            IReadOnlyList<OfficeXmlNode> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph)
+                .ToArray();
 
             if (nativeDefaults.RunningContentContext == null) RenderNativeParagraphBookmarks(pdf, paragraph);
 
@@ -146,7 +145,7 @@ namespace OfficeIMO.Word.Pdf {
                 ApplyNativeInlineListIndent(paragraph, style);
                 ApplyNativeInlineListMarkerAlignment(paragraph, marker!.Value.Marker, style, nativeDefaults, nativeFontMap);
             }
-            bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+            bool hasEquationContent = paragraph._document.EquationOccurrences(paragraph.Node()).Count > 0;
             string content = hasEquationContent
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
                 : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
@@ -163,7 +162,7 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
             }
             if (ShouldSuppressNativeContextualSpacingBefore(paragraph)) style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
-            WordShape? currentShape = runs.Where(run => ReferenceEquals(run._run, paragraph._run))
+            WordShape? currentShape = runs.Where(run => run.RunNode() == paragraph.RunNode())
                 .Select(run => run.Shape).FirstOrDefault(shape => shape != null);
             bool objectOnly = !hasRenderableRuns && string.IsNullOrEmpty(renderContent) &&
                 marker == null && paragraphFootnoteNumbers.Count == 0 && checkboxControls.Count == 0 &&
@@ -190,7 +189,7 @@ namespace OfficeIMO.Word.Pdf {
                 renderedFlowObject |= RenderNativeShape(pdf, currentShape, spacingAfter: objectOnly ? 0D : 6D, paragraphSpacing: objectSpacing);
             }
 
-            IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun> inlineImages =
+            IReadOnlyDictionary<OfficeXmlNode, PdfCore.PdfTextRun> inlineImages =
                 CreateNativeFlowInlineImages(paragraph, runs, !hasEquationContent, options);
             renderedFlowObject |= RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style, groupedImageCount, objectSpacing, inlineImages,
                 nativeDefaults.RunningContentSection, runningStory);
@@ -249,8 +248,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             // Numbered headings retain paragraph flow but still own generated TOC destinations.
-            if (paragraph._paragraph != null && !GetNativeParagraphBookmarkNames(paragraph).Any() &&
-                headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestinationName)) {
+            if (paragraph.Node() is { Exists: true } headingSource && !GetNativeParagraphBookmarkNames(paragraph).Any() &&
+                headingDestinations.TryGetValue(headingSource, out string? generatedDestinationName)) {
                 pdf.Bookmark(generatedDestinationName);
             }
             if (renderHeading) {
@@ -360,9 +359,10 @@ namespace OfficeIMO.Word.Pdf {
             style.SpacingBefore.ToPoints() + MeasureNativeEmptyParagraphLineHeight(paragraph, nativeDefaults, nativeFontMap) +
             ((style.SpacingAfter?.ToPoints()) ?? nativeDefaults.ParagraphSpacingAfter);
 
-        private static void RenderNativeFormFields(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> formFieldControls, global::OfficeIMO.OfficeAlignment align) {
+        private static void RenderNativeFormFields(INativePdfFlow pdf, IReadOnlyList<OfficeXmlNode> formFieldControls, global::OfficeIMO.OfficeAlignment align) {
             for (int index = 0; index < formFieldControls.Count; index++) {
-                W.SdtRun formField = formFieldControls[index];
+                OfficeXmlNode formFieldNode = formFieldControls[index];
+                OfficeXmlNode formField = formFieldNode;
                 double spacingBefore = index == 0 ? 0D : 2D;
                 if (IsNativeDatePickerControl(formField)) {
                     pdf.TextField(
@@ -383,7 +383,7 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                string fallbackPrefix = formField.SdtProperties?.Elements<W.SdtContentComboBox>().Any() == true
+                string fallbackPrefix = formFieldNode.WChild("sdtPr").WChild("comboBox").Exists
                     ? "WordComboBox"
                     : "WordDropDownList";
                 pdf.ChoiceField(
@@ -400,9 +400,9 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeCheckBoxes(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> checkboxControls, global::OfficeIMO.OfficeAlignment align) {
+        private static void RenderNativeCheckBoxes(INativePdfFlow pdf, IReadOnlyList<OfficeXmlNode> checkboxControls, global::OfficeIMO.OfficeAlignment align) {
             for (int index = 0; index < checkboxControls.Count; index++) {
-                W.SdtRun checkbox = checkboxControls[index];
+                OfficeXmlNode checkbox = checkboxControls[index];
                 pdf.CheckBox(
                     GetNativeCheckBoxFieldName(checkbox, index),
                     IsNativeCheckBoxChecked(checkbox),
@@ -418,12 +418,12 @@ namespace OfficeIMO.Word.Pdf {
         /// equation's own justification, centred unless m:oMathParaPr says otherwise.
         /// </summary>
         private static global::OfficeIMO.OfficeAlignment? ResolveNativeDisplayMathAlign(WordParagraph paragraph) {
-            W.Paragraph? source = paragraph._paragraph;
-            DocumentFormat.OpenXml.Math.Paragraph? mathParagraph = source?.Elements<DocumentFormat.OpenXml.Math.Paragraph>().FirstOrDefault();
-            if (source == null || mathParagraph == null) return null;
-            bool hasOtherText = source.Elements<W.Run>().Any(run => run.Elements<W.Text>().Any(text => !string.IsNullOrWhiteSpace(text.Text)));
+            OfficeXmlNode source = paragraph.Node();
+            OfficeXmlNode mathParagraph = source.IsNone ? default : source.Child(WordXml.M, "oMathPara");
+            if (source.IsNone || mathParagraph.IsNone) return null;
+            bool hasOtherText = source.WElements("r").Any(run => run.WElements("t").Any(text => !string.IsNullOrWhiteSpace(text.InnerText)));
             if (hasOtherText) return null;
-            string? justification = mathParagraph.ParagraphProperties?.Justification?.Val?.InnerText;
+            string? justification = mathParagraph.Child(WordXml.M, "oMathParaPr").Child(WordXml.M, "jc").Attribute(WordXml.M, "val");
             return justification switch {
                 "left" => global::OfficeIMO.OfficeAlignment.Left,
                 "right" => global::OfficeIMO.OfficeAlignment.Right,
@@ -431,8 +431,8 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static void RenderNativeRepeatingSections(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> repeatingSectionControls, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color) {
-            foreach (W.SdtRun repeatingSection in repeatingSectionControls) {
+        private static void RenderNativeRepeatingSections(INativePdfFlow pdf, IReadOnlyList<OfficeXmlNode> repeatingSectionControls, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color) {
+            foreach (OfficeXmlNode repeatingSection in repeatingSectionControls) {
                 foreach (string itemText in GetNativeRepeatingSectionItems(repeatingSection)) {
                     if (string.IsNullOrWhiteSpace(itemText)) {
                         continue;
@@ -443,8 +443,8 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static IReadOnlyList<string> GetNativeRepeatingSectionItems(W.SdtRun repeatingSection) {
-            var items = WordRepeatingSection.ReadItemTexts(repeatingSection)
+        private static IReadOnlyList<string> GetNativeRepeatingSectionItems(OfficeXmlNode repeatingSection) {
+            var items = WordConverterNodes.ReadRepeatingSectionItemTexts(repeatingSection)
                 .Where(text => !string.IsNullOrWhiteSpace(text))
                 .ToList();
 
@@ -462,31 +462,31 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<PdfCore.PdfTableCellCheckBox> CheckBoxes,
             IReadOnlyList<PdfCore.PdfTableCellFormField> FormFields,
             IReadOnlyList<PdfCore.PdfTableCellImage> Images,
-            IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun> InlineImages);
+            IReadOnlyDictionary<OfficeXmlNode, PdfCore.PdfTextRun> InlineImages);
 
         private static NativeTableCellEmbeddedContent CreateNativeTableCellEmbeddedContent(WordTableCell cell, WordPdfExportOptions? options, bool interactiveControls = true) {
             List<PdfCore.PdfTableCellCheckBox>? checkBoxes = null;
             List<PdfCore.PdfTableCellFormField>? formFields = null;
             List<PdfCore.PdfTableCellImage>? images = null;
-            var inlineImages = new Dictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>();
+            var inlineImages = new Dictionary<OfficeXmlNode, PdfCore.PdfTextRun>();
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(imageLimit, nameof(WordPdfExportOptions.MaxImagesPerParagraph));
             foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cell)) {
                 int imageCount = 0;
-                W.Paragraph? paragraphElement = paragraph._paragraph;
-                bool supportsInlineImages = paragraphElement != null &&
-                    WordEquation.GetOccurrences(paragraph._document, paragraphElement).Count == 0;
+                OfficeXmlNode paragraphElement = paragraph.Node();
+                bool supportsInlineImages = paragraphElement.Exists &&
+                    paragraph._document.EquationOccurrences(paragraphElement).Count == 0;
                 void AddImage(WordImage image) {
                     options?.CancellationToken.ThrowIfCancellationRequested();
                     if (++imageCount > imageLimit)
                         throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
-                    if (supportsInlineImages && paragraphElement != null && image._Image?.Inline != null &&
-                        !image._Image.Ancestors<W.SdtRun>().Any(IsNativePictureControl) &&
-                        ReferenceEquals(image._Image.Ancestors<W.TextBoxContent>().FirstOrDefault(),
-                            paragraphElement.Ancestors<W.TextBoxContent>().FirstOrDefault())) {
+                    OfficeXmlNode drawing = image.DrawingNode();
+                    if (supportsInlineImages && paragraphElement.Exists && drawing.Child(WordXml.Wp, "inline").Exists &&
+                        !GetNativeAncestorSdtRuns(drawing).Any(control => IsNativePictureControl(control)) &&
+                        drawing.Ancestor(WordXml.W, "txbxContent") == paragraphElement.Ancestor(WordXml.W, "txbxContent")) {
                         if (TryCreateNativeCellInlineImage(image, out PdfCore.PdfTextRun? inline, options,
                                 linkUri: GetNativeImageLink(image)))
-                            inlineImages[image._Image] = inline!;
+                            inlineImages[drawing] = inline!;
                         return;
                     }
                     images ??= new List<PdfCore.PdfTableCellImage>();
@@ -495,23 +495,24 @@ namespace OfficeIMO.Word.Pdf {
                 foreach (WordImage image in EnumerateNativeParagraphImages(paragraph, options?.CancellationToken ?? default))
                     AddImage(image);
 
-                if (paragraph._paragraph == null) {
+                if (paragraphElement.IsNone) {
                     continue;
                 }
 
                 if (!interactiveControls) continue;
-                foreach (W.SdtRun control in paragraph._paragraph.Descendants<W.SdtRun>()) {
+                foreach (OfficeXmlNode control in paragraphElement.ModelDescendants("sdt").Where(WordXml.IsRunContentControl)) {
                     if (CanProjectNativeInlineContentControl(control)) continue;
-                    if (IsNativeCheckBoxControl(control)) {
+                    OfficeXmlNode sdtRun = control;
+                    if (IsNativeCheckBoxControl(sdtRun)) {
                         checkBoxes ??= new List<PdfCore.PdfTableCellCheckBox>();
                         checkBoxes.Add(new PdfCore.PdfTableCellCheckBox(
-                            GetNativeCheckBoxFieldName(control, checkBoxes.Count, "WordTableCheckBox"),
-                            IsNativeCheckBoxChecked(control),
+                            GetNativeCheckBoxFieldName(sdtRun, checkBoxes.Count, "WordTableCheckBox"),
+                            IsNativeCheckBoxChecked(sdtRun),
                             size: global::OfficeIMO.OfficeLength.Points(12D)));
                         continue;
                     }
 
-                    if (IsNativeSupportedFormFieldContentControl(control)) {
+                    if (IsNativeSupportedFormFieldContentControl(sdtRun)) {
                         formFields ??= new List<PdfCore.PdfTableCellFormField>();
                         AddNativeTableCellFormField(formFields, control);
                         continue;
@@ -526,47 +527,51 @@ namespace OfficeIMO.Word.Pdf {
                 images ?? (IReadOnlyList<PdfCore.PdfTableCellImage>)Array.Empty<PdfCore.PdfTableCellImage>(), inlineImages);
         }
 
+        private static bool IsInsideNativeRemovedRevision(OfficeXmlNode element) =>
+            element.Ancestors().Any(ancestor => ancestor.IsW("del") || ancestor.IsW("moveFrom"));
+
         private static IEnumerable<WordImage> EnumerateNativeParagraphImages(WordParagraph paragraph, CancellationToken cancellationToken, int textBoxDepth = 0) {
-            if (paragraph._paragraph == null) {
+            OfficeXmlNode paragraphNode = paragraph.Node();
+            if (paragraphNode.IsNone) {
                 foreach (WordImage image in paragraph.EnumerateImages()) yield return image;
                 yield break;
             }
             foreach (WordParagraph imageRun in GetNativeRuns(paragraph)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                W.Run? run = imageRun._run;
-                if (run == null) continue;
-                if (run.Ancestors<W.DeletedRun>().Any() || run.Ancestors<W.MoveFromRun>().Any()) continue;
+                OfficeXmlNode run = imageRun.RunNode();
+                if (run.IsNone) continue;
+                if (IsInsideNativeRemovedRevision(run)) continue;
                 if (IsNativeHiddenTextRun(imageRun, paragraph)) continue;
-                if (run.Ancestors<W.SdtRun>().Any(IsNativePictureControl)) continue;
-                W.TextBoxContent? currentTextBox = paragraph._paragraph.Ancestors<W.TextBoxContent>().FirstOrDefault();
+                if (GetNativeAncestorSdtRuns(run).Any(control => IsNativePictureControl(control))) continue;
+                OfficeXmlNode currentTextBox = paragraphNode.Ancestor(WordXml.W, "txbxContent");
                 foreach (WordImage image in imageRun.EnumerateImages()) {
-                    DocumentFormat.OpenXml.OpenXmlElement imageElement = image.OccurrenceElement;
-                    if (ReferenceEquals(imageElement.Ancestors<W.TextBoxContent>().FirstOrDefault(), currentTextBox))
+                    OfficeXmlNode imageElement = image.OccurrenceNode();
+                    if (imageElement.Ancestor(WordXml.W, "txbxContent") == currentTextBox)
                         yield return image;
                 }
                 if (textBoxDepth >= 8) continue;
-                IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> visibleChildren = imageRun._visibleRunSourceChildren ??
-                    (IEnumerable<DocumentFormat.OpenXml.OpenXmlElement>)run.ChildElements;
-                foreach (W.TextBoxContent content in visibleChildren.SelectMany(child => child.Descendants<W.TextBoxContent>())
-                    .Where(content => ReferenceEquals(content.Ancestors<W.TextBoxContent>().FirstOrDefault(), currentTextBox))) {
-                    foreach (W.Paragraph inner in content.Descendants<W.Paragraph>()
-                        .Where(inner => ReferenceEquals(inner.Ancestors<W.TextBoxContent>().FirstOrDefault(), content))) {
-                        var innerParagraph = new WordParagraph(paragraph._document, inner);
+                IEnumerable<OfficeXmlNode> visibleChildren = imageRun.VisibleRunSourceChildNodes() ?? run.Elements();
+                foreach (OfficeXmlNode content in visibleChildren.SelectMany(child => child.DescendantElements(WordXml.W, "txbxContent"))
+                    .Where(content => content.Ancestor(WordXml.W, "txbxContent") == currentTextBox)) {
+                    foreach (OfficeXmlNode inner in content.ModelDescendants("p")
+                        .Where(inner => inner.Ancestor(WordXml.W, "txbxContent") == content)) {
+                        WordParagraph innerParagraph = paragraph._document.ParagraphView(inner);
                         foreach (WordImage image in EnumerateNativeParagraphImages(innerParagraph, cancellationToken, textBoxDepth + 1))
                             yield return image;
                     }
                 }
             }
-            foreach (W.SdtRun control in GetNativePictureControls(paragraph)) {
+            foreach (OfficeXmlNode control in GetNativePictureControls(paragraph)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (control.Ancestors<W.DeletedRun>().Any() || control.Ancestors<W.MoveFromRun>().Any()) continue;
-                var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph, control);
+                if (IsInsideNativeRemovedRevision(control)) continue;
+                WordParagraph pictureParagraph = paragraph._document.SdtRunView(paragraphNode, control);
                 WordImage? image = pictureParagraph.PictureControl?.Image;
                 if (image != null && !IsNativeHiddenImageContent(image, paragraph)) yield return image;
             }
         }
 
-        private static void AddNativeTableCellFormField(List<PdfCore.PdfTableCellFormField> formFields, W.SdtRun formField) {
+        private static void AddNativeTableCellFormField(List<PdfCore.PdfTableCellFormField> formFields, OfficeXmlNode formFieldNode) {
+            OfficeXmlNode formField = formFieldNode;
             if (IsNativeDatePickerControl(formField)) {
                 formFields.Add(PdfCore.PdfTableCellFormField.TextField(
                     GetNativeContentControlFieldName(formField, formFields.Count, "WordTableDatePicker"),
@@ -583,7 +588,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            string fallbackPrefix = formField.SdtProperties?.Elements<W.SdtContentComboBox>().Any() == true
+            string fallbackPrefix = formFieldNode.WChild("sdtPr").WChild("comboBox").Exists
                 ? "WordTableComboBox"
                 : "WordTableDropDownList";
             formFields.Add(PdfCore.PdfTableCellFormField.ChoiceField(
@@ -626,8 +631,8 @@ namespace OfficeIMO.Word.Pdf {
         private static void AddNativeTableCellImage(List<PdfCore.PdfTableCellImage> images, WordImage image, WordPdfExportOptions? options) {
             if (!TryPrepareNativeBodyImage(image, options, "table cell image", out byte[] preparedBytes)) return;
 
-            if (image._Image != null && HasNativeImageTextWrap(image._Image))
-                RecordNativeImageWrapApproximation(options, image._Image, "table cell image",
+            if (image.DrawingNode().Exists && HasNativeImageTextWrap(image.DrawingNode()))
+                RecordNativeImageWrapApproximation(options, image.DrawingNode(), "table cell image",
                     "The picture was preserved in table-cell flow; its wrapping and anchor are outside the rectangular source profile.");
             double width = image.Width?.ToPoints() ?? 144D;
             double height = image.Height?.ToPoints() ?? 144D;
@@ -652,7 +657,7 @@ namespace OfficeIMO.Word.Pdf {
             bool needsAnchorLine = false,
             double? inlineMarkerColumnWidth = null,
             bool projectedContentOnly = false,
-            IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null) {
+            IReadOnlyDictionary<OfficeXmlNode, PdfCore.PdfTextRun>? inlineImages = null) {
             if (needsAnchorLine) {
                 // An image-only paragraph still participates in pagination and decoration.
                 builder.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphFontSize(paragraph,
@@ -715,7 +720,7 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph)
                 .Where(tabStop => IsNativeRenderableTextTabStop(tabStop.Alignment)).ToArray();
             int tabIndex = 0;
-            bool hasEquationContent = !projectedContentOnly && WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+            bool hasEquationContent = !projectedContentOnly && paragraph._document.EquationOccurrences(paragraph.Node()).Count > 0;
             var inlineControls = new NativeInlineContentControlProjection(tableCell: false);
             if ((hasRenderableRuns || runs.Any(run => HasNativeNoteContent(run, footnoteNumbersById, nativeDefaults))) && !hasEquationContent) {
                 foreach (WordParagraph run in runs) {
@@ -728,7 +733,7 @@ namespace OfficeIMO.Word.Pdf {
                     if (run.IsImage && run.Image != null) {
                         if (inlineImages != null) {
                             foreach (WordImage image in run.EnumerateImages())
-                                if (inlineImages.TryGetValue(image.OccurrenceElement, out PdfCore.PdfTextRun? inline))
+                                if (inlineImages.TryGetValue(image.OccurrenceNode(), out PdfCore.PdfTextRun? inline))
                                     builder.AddRuns(new[] { inline });
                         }
                         continue;
@@ -790,39 +795,40 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, global::OfficeIMO.OfficeAlignment align, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle anchorStyle, int groupedImageCount, NativeObjectParagraphSpacing? paragraphSpacing, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null, WordSection? anchorSection = null,
+        private static bool RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, global::OfficeIMO.OfficeAlignment align, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle anchorStyle, int groupedImageCount, NativeObjectParagraphSpacing? paragraphSpacing, IReadOnlyDictionary<OfficeXmlNode, PdfCore.PdfTextRun>? inlineImages = null, WordSection? anchorSection = null,
             bool runningStory = false) {
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(imageLimit, nameof(WordPdfExportOptions.MaxImagesPerParagraph));
-            var positions = paragraph._paragraph!.Descendants().Select((element, index) => (element, index))
+            OfficeXmlNode paragraphNode = paragraph.Node();
+            var positions = paragraphNode.DescendantElements().Select((element, index) => (element, index))
                 .ToDictionary(pair => pair.element, pair => pair.index);
             var images = new List<(WordImage Image, int Position)>();
-            void Add(WordImage? image, DocumentFormat.OpenXml.OpenXmlElement? container) {
+            void Add(WordImage? image, OfficeXmlNode container) {
                 if (image == null) return;
                 // Group rendering owns its child images and their local coordinates.
-                if (image._vmlShape?.Ancestors<DocumentFormat.OpenXml.Vml.Group>().Any() == true) return;
+                if (image.VmlShapeNode().Ancestors().Any(ancestor => ancestor.Is(WordXml.V, "group"))) return;
                 if (groupedImageCount + images.Count >= imageLimit)
                     throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
                 // Both image carriers retain their actual source occurrence order.
-                int position = positions.TryGetValue(image.OccurrenceElement, out int drawingPosition) ? drawingPosition
-                    : container != null && positions.TryGetValue(container, out int containerPosition) ? containerPosition : int.MaxValue;
+                int position = positions.TryGetValue(image.OccurrenceNode(), out int drawingPosition) ? drawingPosition
+                    : container.Exists && positions.TryGetValue(container, out int containerPosition) ? containerPosition : int.MaxValue;
                 images.Add((image, position));
             }
-            foreach (W.SdtRun control in GetNativePictureControls(paragraph)) {
-                var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, control);
+            foreach (OfficeXmlNode control in GetNativePictureControls(paragraph)) {
+                WordParagraph pictureParagraph = paragraph._document.SdtRunView(paragraphNode, control);
                 WordImage? image = pictureParagraph.PictureControl?.Image;
                 if (image != null && !IsNativeHiddenImageContent(image, paragraph)) Add(image, control);
             }
             foreach (WordParagraph run in runs) {
                 if (IsNativeHiddenTextRun(run, paragraph)) continue;
-                foreach (WordImage image in run.EnumerateImages()) Add(image, run._run);
+                foreach (WordImage image in run.EnumerateImages()) Add(image, run.RunNode());
             }
             var anchoredCanvas = new PdfCore.PdfPageCanvas();
             bool renderedFlowObject = false;
             if (anchorStyle.AnchoredCanvas != null) anchoredCanvas.AddItems(anchorStyle.AnchoredCanvas.Items);
             foreach (var image in images.OrderBy(item => item.Position)) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
-                if (inlineImages?.ContainsKey(image.Image.OccurrenceElement) == true) continue;
+                if (inlineImages?.ContainsKey(image.Image.OccurrenceNode()) == true) continue;
                 renderedFlowObject |= RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle, anchoredCanvas, paragraphSpacing, paragraph, anchorSection,
                     runningStory);
             }
@@ -903,7 +909,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string? GetNativeTextBoxPlainText(WordParagraph paragraph, WordTextBox? textBox) {
-            if (textBox?.Content == null) {
+            if (textBox == null || textBox.ContentNode().IsNone) {
                 return null;
             }
 
@@ -939,7 +945,7 @@ namespace OfficeIMO.Word.Pdf {
                             options, nativeDefaults, nativeFontMap, depth);
                         continue;
                     }
-                    bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+                    bool hasEquationContent = paragraph._document.EquationOccurrences(paragraph.Node()).Count > 0;
                     string content = hasEquationContent
                         ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
                         : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
@@ -965,17 +971,17 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyList<WordParagraph> GetNativeTextBoxParagraphs(WordTextBox textBox) {
-            W.TextBoxContent? content = textBox.Content;
-            IReadOnlyList<WordParagraph> directParagraphs = content == null
+            OfficeXmlNode content = textBox.ContentNode();
+            IReadOnlyList<WordParagraph> directParagraphs = content.IsNone
                 ? Array.Empty<WordParagraph>()
-                : content.Descendants<W.Paragraph>()
-                    .Where(paragraph => ReferenceEquals(paragraph.Ancestors<W.TextBoxContent>().FirstOrDefault(), content))
+                : content.ModelDescendants("p")
+                    .Where(paragraph => paragraph.Ancestor(WordXml.W, "txbxContent") == content)
                     .Select(paragraph => {
-                        W.Run? firstRun = paragraph.Descendants<W.Run>()
-                            .FirstOrDefault(run => ReferenceEquals(run.Ancestors<W.Paragraph>().FirstOrDefault(), paragraph));
-                        return firstRun == null
-                            ? new WordParagraph(textBox.Document, paragraph)
-                            : new WordParagraph(textBox.Document, paragraph, firstRun);
+                        OfficeXmlNode firstRun = paragraph.ModelDescendants("r")
+                            .FirstOrDefault(run => run.Ancestor(WordXml.W, "p") == paragraph);
+                        return firstRun.IsNone
+                            ? textBox.Document.ParagraphView(paragraph)
+                            : textBox.Document.RunView(paragraph, firstRun);
                     })
                     .ToList();
             if (HasNativeRenderableTextBoxText(directParagraphs) || directParagraphs.Any(paragraph => paragraph.IsListItem)) {
@@ -985,15 +991,15 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<WordParagraph> elementParagraphs = CollapseNativeParagraphElements(textBox.Elements)
                 .OfType<WordParagraph>()
                 .ToList();
-            return elementParagraphs.GroupBy(paragraph => paragraph._paragraph).Select(group => group.First()).ToList();
+            return elementParagraphs.GroupBy(paragraph => paragraph.Node()).Select(group => group.First()).ToList();
         }
 
         private static bool HasNativeRenderableTextBoxText(IEnumerable<WordParagraph> paragraphs) {
             foreach (WordParagraph paragraph in paragraphs) {
                 List<WordParagraph> runs = GetNativeRuns(paragraph);
                 if (runs.Count == 0 && !IsNativeHiddenTextRun(paragraph) &&
-                    WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph).IsVisible &&
-                    !paragraph._paragraph.Descendants<W.FieldChar>().Any() &&
+                    WordConverterNodes.FieldVisibilityForParagraph(paragraph.Node()).IsVisible &&
+                    !paragraph.Node().HasDescendant(WordXml.W, "fldChar") &&
                     !string.IsNullOrWhiteSpace(paragraph.Text)) {
                     return true;
                 }
@@ -1140,9 +1146,9 @@ namespace OfficeIMO.Word.Pdf {
         private static bool ShouldRenderNativeDirectText(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, string content) =>
             runs.Count == 0 &&
             !string.IsNullOrEmpty(content) &&
-            !(paragraph._stdRun is W.SdtRun control && IsNativeRepeatingSectionControl(control)) &&
-            WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph).IsVisible &&
-            !paragraph._paragraph.Descendants<W.FieldChar>().Any() &&
+            !(paragraph.SdtRunNode() is { Exists: true } control && IsNativeRepeatingSectionControl(control)) &&
+            WordConverterNodes.FieldVisibilityForParagraph(paragraph.Node()).IsVisible &&
+            !paragraph.Node().HasDescendant(WordXml.W, "fldChar") &&
             !IsNativeHiddenTextRun(paragraph);
 
         private static string NormalizeNativeDirectText(string? text) {
@@ -1210,9 +1216,9 @@ namespace OfficeIMO.Word.Pdf {
             NativeFontMap nativeFontMap) {
             if (HasNativePositionalTabs(run)) {
                 if (IsNativeHiddenTextRun(run, paragraphStyleFallback)) return;
-                foreach (var child in run.EnumerateEffectiveRunContent()) {
-                    if (child is W.PositionalTab positionalTab) {
-                        builder.AddRuns(new[] { CreateNativePositionalTab(positionalTab, paragraphStyleFallback, nativeDefaults) });
+                foreach (OfficeXmlNode child in run.EffectiveRunContentNodes()) {
+                    if (child.IsW("ptab")) {
+                        builder.AddRuns(new[] { CreateNativePositionalTab(child, paragraphStyleFallback, nativeDefaults) });
                     } else {
                         WordParagraph view = CreateNativeRunContentView(run, new[] { child });
                         AddNativeRun(builder, view.Text, view, paragraphStyleFallback, tabStops, ref tabIndex,
@@ -1256,8 +1262,8 @@ namespace OfficeIMO.Word.Pdf {
             NativeNoteNumbering notes,
             ISet<int> emittedNoteTokens) {
             foreach (WordEquationContentSegment segment in GetNativeVisibleEquationContentSegments(paragraph)) {
-                WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
-                if (segment.ArtifactElement != null && TryCreateNativeNoteMarker(segment.ArtifactElement,
+                WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph);
+                if (segment.ArtifactNode().Exists && TryCreateNativeNoteMarker(segment.ArtifactNode(),
                     sourceRun, paragraph, notes, nativeDefaults, nativeFontMap, NativeTableRunStyleDefaults.Empty, false,
                     out PdfCore.PdfTextRun? marker, out int? token)) {
                     builder.AddRuns(new[] { marker! });
@@ -1274,55 +1280,56 @@ namespace OfficeIMO.Word.Pdf {
             if (segment.Equation != null) return segment.Equation.Text;
             if (segment.Text != null) return segment.Text;
             return segment.IsRunArtifact &&
-                (segment.ArtifactElement is W.Break || segment.ArtifactElement is W.CarriageReturn)
+                (segment.ArtifactNode().IsW("br") || segment.ArtifactNode().IsW("cr"))
                     ? "\n"
                     : string.Empty;
         }
 
-        private static OfficeTextDecorationStyle? MapNativeUnderlineStyle(W.Underline? underline) {
-            if (underline == null) return null;
-            W.UnderlineValues value = underline.Val?.Value ?? W.UnderlineValues.Single;
-            if (value == W.UnderlineValues.None) return OfficeTextDecorationStyle.None;
-            if (value == W.UnderlineValues.Words) return OfficeTextDecorationStyle.Words;
-            if (value == W.UnderlineValues.Double || value == W.UnderlineValues.WavyDouble) return OfficeTextDecorationStyle.Double;
-            if (value == W.UnderlineValues.Dotted || value == W.UnderlineValues.DottedHeavy) return OfficeTextDecorationStyle.Dotted;
-            if (value == W.UnderlineValues.Wave || value == W.UnderlineValues.WavyHeavy) return OfficeTextDecorationStyle.Wavy;
-            if (value == W.UnderlineValues.Dash || value == W.UnderlineValues.DashedHeavy ||
-                value == W.UnderlineValues.DashLong || value == W.UnderlineValues.DashLongHeavy ||
-                value == W.UnderlineValues.DotDash || value == W.UnderlineValues.DashDotHeavy ||
-                value == W.UnderlineValues.DotDotDash || value == W.UnderlineValues.DashDotDotHeavy) {
-                return OfficeTextDecorationStyle.Dashed;
+        private static OfficeTextDecorationStyle? MapNativeUnderlineStyle(OfficeXmlNode underline) {
+            if (underline.IsNone) return null;
+            string value = underline.WVal() ?? "single";
+            switch (value) {
+                case "none": return OfficeTextDecorationStyle.None;
+                case "words": return OfficeTextDecorationStyle.Words;
+                case "double":
+                case "wavyDouble": return OfficeTextDecorationStyle.Double;
+                case "dotted":
+                case "dottedHeavy": return OfficeTextDecorationStyle.Dotted;
+                case "wave":
+                case "wavyHeavy": return OfficeTextDecorationStyle.Wavy;
+                case "dash":
+                case "dashedHeavy":
+                case "dashLong":
+                case "dashLongHeavy":
+                case "dotDash":
+                case "dashDotHeavy":
+                case "dotDotDash":
+                case "dashDotDotHeavy": return OfficeTextDecorationStyle.Dashed;
+                default: return OfficeTextDecorationStyle.Single;
             }
-
-            return OfficeTextDecorationStyle.Single;
         }
 
-        private static OfficeTextDecorationStyle? MapNativeStrikeStyle(DocumentFormat.OpenXml.OpenXmlElement? runProperties) {
-            bool? strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>());
-            bool? doubleStrike = ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>());
+        private static OfficeTextDecorationStyle? MapNativeStrikeStyle(OfficeXmlNode runProperties) {
+            bool? strike = runProperties.WChild("strike").OnOff();
+            bool? doubleStrike = runProperties.WChild("dstrike").OnOff();
             if (!strike.HasValue && !doubleStrike.HasValue) return null;
             if (doubleStrike == true) return OfficeTextDecorationStyle.Double;
             if (strike == true) return OfficeTextDecorationStyle.Single;
             return OfficeTextDecorationStyle.None;
         }
 
-        private static PdfCore.PdfTextBaseline MapNativeTextBaseline(W.VerticalPositionValues? baseline) =>
-            baseline == W.VerticalPositionValues.Superscript
+        private static PdfCore.PdfTextBaseline MapNativeTextBaseline(string? baseline) =>
+            baseline == "superscript"
                 ? PdfCore.PdfTextBaseline.Superscript
-                : baseline == W.VerticalPositionValues.Subscript
+                : baseline == "subscript"
                     ? PdfCore.PdfTextBaseline.Subscript
                     : PdfCore.PdfTextBaseline.Normal;
 
-        private static W.RunProperties? GetNativeRunProperties(WordParagraph paragraph) =>
-            paragraph.IsHyperLink ? paragraph.Hyperlink?._runProperties : paragraph._runProperties;
+        private static OfficeXmlNode GetNativeRunProperties(WordParagraph paragraph) =>
+            paragraph.IsHyperLink ? paragraph.Hyperlink?.RunPropertiesNode() ?? default : paragraph.RunPropertiesNode();
 
         private static global::OfficeIMO.OfficeColor? ResolveNativeParagraphDefaultColor(WordParagraph paragraph) {
-            string? paragraphMarkColor = paragraph._paragraph?
-                .ParagraphProperties?
-                .ParagraphMarkRunProperties?
-                .GetFirstChild<W.Color>()?
-                .Val?
-                .Value;
+            string? paragraphMarkColor = paragraph.Node().WChild("pPr").WChild("rPr").WChild("color").WVal();
             return ParseNativeColor(paragraphMarkColor) ??
                    ParseNativeColor(GetNativeParagraphStyleDefaults(paragraph).ColorHex);
         }
@@ -1532,6 +1539,8 @@ namespace OfficeIMO.Word.Pdf {
 
             pdf.Paragraph(builder => AddNativeHyperLinkRun(builder, link, bookmarks));
         }
+
+
 
     }
 }

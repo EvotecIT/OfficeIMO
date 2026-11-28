@@ -43,7 +43,7 @@
     <Using Include="System.Collections" />
     <Using Include="OfficeIMO.Drawing" />
     <Using Include="OfficeIMO.OpenXml.Internal" />
-    <Using Include="DocumentFormat.OpenXml" />
+    <Using Include="OfficeIMO.Word.OpenXml" />
   </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odt.Pdf" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /><InternalsVisibleTo Include="PSWriteOffice" /></ItemGroup>

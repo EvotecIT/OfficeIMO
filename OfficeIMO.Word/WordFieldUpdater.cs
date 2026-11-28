@@ -1,14 +1,17 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 using System.Globalization;
+using System.Text;
 
 namespace OfficeIMO.Word {
     internal static partial class WordFieldUpdater {
-        internal static WordFieldUpdateReport Update(WordDocument document, WordFieldUpdateOptions options) {
-            MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart
-                ?? throw new InvalidOperationException("MainDocumentPart is missing.");
+        private const int FieldNamespace = OfficeXmlNamespaces.WordprocessingML;
 
+        internal static WordFieldUpdateReport Update(WordDocument document, WordFieldUpdateOptions options) {
             if (options.DateTimeFieldsOnly && options.TablesOfContentsOnly) {
                 throw new InvalidOperationException("DateTimeFieldsOnly and TablesOfContentsOnly each select the only fields to refresh. Set one of them.");
             }
@@ -17,21 +20,33 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Layout pagination requires OfficeIMO.Word.Pdf. Select its engine with WithPdfLayoutPagination() on the field update options.");
             }
 
-            var state = new FieldEvaluationState();
-            state.LockedTocFields.AddRange(EnumerateFields(mainPart).Where(IsLockedToc));
-            if (!options.DateTimeFieldsOnly && (options.UpdateTablesOfContents || options.TablesOfContentsOnly)) {
-                RegenerateTablesOfContents(document, state);
-            }
-
             bool layOut = !options.DateTimeFieldsOnly && options.UseLayoutPagination;
-            int totalPages = options.DateTimeFieldsOnly || layOut ? 0 : EstimateTotalPages(document);
+            bool refreshToc = !options.DateTimeFieldsOnly && (options.UpdateTablesOfContents || options.TablesOfContentsOnly);
+            List<WordTableOfContent>? ownedTables = null;
+            if (layOut) {
+                document.OpenSdkPackage("Layout field evaluation");
+            } else if (refreshToc && !WordTableOfContent.TryGetOwnedTablesForRefresh(document, out ownedTables)) {
+                document.OpenSdkPackage("Imported table of contents field evaluation");
+            }
+            var state = new FieldEvaluationState();
+            List<MutableFieldCandidate> candidates = EnumerateFields(document);
+            if (!options.DateTimeFieldsOnly && document._ownedModel != null && candidates.Any(RequiresSdkEvaluation)) {
+                document.OpenSdkPackage("Field evaluation needs document properties, list numbering or formula geometry");
+                candidates = EnumerateFields(document);
+            }
+            state.LockedTocFields.AddRange(candidates.Where(IsLockedToc));
+            if (refreshToc) {
+                var tables = document._ownedModel != null && ownedTables != null
+                    ? ownedTables : WordTableOfContent.GetTablesOfContents(document);
+                RegenerateTablesOfContents(document, state, tables);
+                if (state.RegeneratedTablesOfContents.Count != 0) candidates = EnumerateFields(document);
+            }
             DateTime updateDateTime = options.CurrentDateTime ?? DateTime.Now;
             WordFieldEvaluationReason dateTimeEvaluationReason = options.CurrentDateTime.HasValue
                 ? WordFieldEvaluationReason.CallerProvidedDateTime
                 : WordFieldEvaluationReason.RuntimeClock;
             var results = new List<WordFieldUpdateResult>();
             var replacedContainingFields = new List<MutableFieldCandidate>();
-            List<MutableFieldCandidate> candidates = EnumerateFields(mainPart).OrderBy(field => field.Sequence).ToList();
 
             for (int index = 0; index < candidates.Count; index++) {
                 candidates[index].Index = index;
@@ -48,8 +63,7 @@ namespace OfficeIMO.Word {
             // update, there is no second pass when a new page number changes line wrapping.
             HashSet<int> pageDependent = GetPageDependentFields(candidates);
             foreach (MutableFieldCandidate candidate in ordered.Where(candidate => !pageDependent.Contains(candidate.Sequence))) Process(candidate);
-            state.Layout = LayOutWithPageFieldBookmarks(document, mainPart, options.LayoutPaginationProvider!, state);
-            totalPages = state.Layout.PageCount;
+            state.Layout = LayOutWithPageFieldBookmarks(document, options.LayoutPaginationProvider!, state);
             foreach (MutableFieldCandidate candidate in ordered.Where(candidate => pageDependent.Contains(candidate.Sequence))) Process(candidate);
             return new WordFieldUpdateReport(results.OrderBy(result => result.Index).ToArray());
 
@@ -98,17 +112,32 @@ namespace OfficeIMO.Word {
                 }
 
                 WordFieldUpdateResult result = UpdateField(
-                    document, candidate, totalPages, state, updateDateTime, dateTimeEvaluationReason);
+                    document, candidate, state, updateDateTime, dateTimeEvaluationReason);
                 results.Add(result);
                 if (result.Status == WordFieldUpdateStatus.Updated &&
                     candidate.Representation == WordFieldRepresentation.Complex &&
-                    candidate.EndRun != null) {
+                    candidate.EndRun.Exists) {
                     replacedContainingFields.Add(candidate);
                 }
             }
         }
 
         /// <summary>Page fields, fields whose instruction contains one, and the sequences they belong to take their result after the layout.</summary>
+        private static bool RequiresSdkEvaluation(MutableFieldCandidate candidate) {
+            // A complex instruction can derive its field name from an inner result. Its
+            // current token does not determine which evaluation it will eventually use.
+            if (candidate.HasDynamicInstruction) return true;
+            var parsed = WordFieldInventory.ParseInstruction(candidate.InstructionText);
+            if (parsed.FieldType == WordFieldType.Ref)
+                return TryGetReferenceSwitches(parsed, out ReferenceListSwitch? listSwitch, out _, out _) && listSwitch.HasValue;
+            return parsed.FieldType is
+                WordFieldType.Author or WordFieldType.Title or WordFieldType.Subject or WordFieldType.Keywords or
+                WordFieldType.Comments or WordFieldType.LastSavedBy or WordFieldType.CreateDate or WordFieldType.PrintDate or
+                WordFieldType.SaveDate or WordFieldType.Info or WordFieldType.DocProperty or WordFieldType.DocVariable or
+                WordFieldType.Formula or WordFieldType.ListNum or
+                WordFieldType.NumChars or WordFieldType.NumWords or WordFieldType.RevNum;
+        }
+
         private static HashSet<int> GetPageDependentFields(IReadOnlyList<MutableFieldCandidate> candidates) {
             var bySequence = candidates.ToDictionary(candidate => candidate.Sequence);
             var dependent = new HashSet<int>();
@@ -145,13 +174,10 @@ namespace OfficeIMO.Word {
         }
 
         internal static void UpdatePageCounters(WordDocument document) {
-            MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart
-                ?? throw new InvalidOperationException("MainDocumentPart is missing.");
-
-            int totalPages = EstimateTotalPages(document);
             var state = new FieldEvaluationState();
-            state.LockedTocFields.AddRange(EnumerateFields(mainPart).Where(IsLockedToc));
-            foreach (MutableFieldCandidate candidate in EnumerateFields(mainPart).OrderBy(field => field.Sequence)) {
+            List<MutableFieldCandidate> candidates = EnumerateFields(document);
+            state.LockedTocFields.AddRange(candidates.Where(IsLockedToc));
+            foreach (MutableFieldCandidate candidate in candidates) {
                 WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(candidate.InstructionText);
                 if (parsed.Diagnostics.Count > 0 ||
                     parsed.FieldType is not (WordFieldType.Page or WordFieldType.NumPages) ||
@@ -159,9 +185,9 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (TryEvaluate(document, candidate, parsed, totalPages, state, DateTime.Now, out string? value, out WordFieldUpdateStatus status, out _, out _) &&
+                if (TryEvaluate(document, candidate, parsed, state, DateTime.Now, out string? value, out WordFieldUpdateStatus status, out _, out _) &&
                     status == WordFieldUpdateStatus.Updated) {
-                    SetResultText(candidate, value!);
+                    SetResultText(document, candidate, value!);
                 }
             }
 
@@ -170,7 +196,6 @@ namespace OfficeIMO.Word {
         private static WordFieldUpdateResult UpdateField(
             WordDocument document,
             MutableFieldCandidate candidate,
-            int totalPages,
             FieldEvaluationState state,
             DateTime updateDateTime,
             WordFieldEvaluationReason dateTimeEvaluationReason) {
@@ -192,11 +217,11 @@ namespace OfficeIMO.Word {
                 return candidate.ToResult(parsed.FieldType, WordFieldUpdateStatus.Skipped, null, "Field is locked and was left unchanged.");
             }
 
-            if (!TryEvaluate(document, candidate, parsed, totalPages, state, updateDateTime, out string? value, out WordFieldUpdateStatus status, out string message, out bool usedLayout)) {
+            if (!TryEvaluate(document, candidate, parsed, state, updateDateTime, out string? value, out WordFieldUpdateStatus status, out string message, out bool usedLayout)) {
                 return candidate.ToResult(parsed.FieldType, status, null, message, GetFailedEvaluationReason(candidate, parsed.FieldType, status, message));
             }
 
-            SetResultText(candidate, value!);
+            SetResultText(document, candidate, value!);
             WordFieldEvaluationReason reason = parsed.FieldType is WordFieldType.Date or WordFieldType.Time
                 ? dateTimeEvaluationReason
                 : usedLayout
@@ -242,7 +267,6 @@ namespace OfficeIMO.Word {
             WordDocument document,
             MutableFieldCandidate candidate,
             WordFieldInventory.ParsedFieldInstruction parsed,
-            int totalPages,
             FieldEvaluationState state,
             DateTime updateDateTime,
             out string? value,
@@ -311,7 +335,7 @@ namespace OfficeIMO.Word {
                     return TryFormatIntegerField(document.Statistics.Words, parsed, "Updated from OfficeIMO document statistics Words.", out value, out status, out message);
                 case WordFieldType.NumPages:
                     usedLayout = state.Layout != null;
-                    return TryFormatIntegerField(totalPages, parsed, state.Layout != null ? "Updated from OfficeIMO page layout." : "Updated from OfficeIMO page-break count.", out value, out status, out message);
+                    return TryFormatIntegerField(state.Layout?.PageCount ?? (state.EstimatedTotalPages ??= EstimateTotalPages(document)), parsed, state.Layout != null ? "Updated from OfficeIMO page layout." : "Updated from OfficeIMO page-break count.", out value, out status, out message);
                 case WordFieldType.RevNum:
                     return TrySetTextValue(document.Properties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
                 case WordFieldType.Section:
@@ -968,93 +992,6 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        private static int EstimateTotalPages(WordDocument document) {
-            Body? body = document._wordprocessingDocument.MainDocumentPart?.Document?.Body;
-            if (body != null) {
-                int estimatedPage = 1;
-                foreach (Paragraph paragraph in body.Descendants<Paragraph>()) {
-                    if (WordParagraph.HasPageBreakBefore(paragraph)) {
-                        estimatedPage++;
-                    }
-
-                    estimatedPage += paragraph.Descendants<Break>().Count(documentBreak => documentBreak.Type?.Value == BreakValues.Page);
-
-                    if (StartsNewPage(paragraph.ParagraphProperties?.SectionProperties)) {
-                        estimatedPage++;
-                    }
-                }
-
-                return estimatedPage;
-            }
-
-            int page = 1;
-            foreach (WordParagraph paragraph in document.Paragraphs) {
-                if (paragraph.IsPageBreak) {
-                    page++;
-                }
-            }
-
-            return page;
-        }
-
-        private static int? EstimatePageForBodyField(WordDocument document, OpenXmlElement anchorElement) {
-            Body? body = document._wordprocessingDocument.MainDocumentPart?.Document?.Body;
-            Paragraph? targetParagraph = anchorElement is Paragraph paragraph
-                ? paragraph
-                : anchorElement.Ancestors<Paragraph>().FirstOrDefault();
-
-            if (body == null || targetParagraph == null) {
-                return null;
-            }
-
-            int page = 1;
-            foreach (Paragraph currentParagraph in body.Descendants<Paragraph>()) {
-                if (WordParagraph.HasPageBreakBefore(currentParagraph)) {
-                    page++;
-                }
-
-                if (ReferenceEquals(currentParagraph, targetParagraph)) {
-                    return page + CountPageBreaksBeforeAnchor(targetParagraph, anchorElement);
-                }
-
-                page += currentParagraph.Descendants<Break>().Count(documentBreak => documentBreak.Type?.Value == BreakValues.Page);
-
-                if (StartsNewPage(currentParagraph.ParagraphProperties?.SectionProperties)) {
-                    page++;
-                }
-            }
-
-            return null;
-        }
-
-        private static int CountPageBreaksBeforeAnchor(Paragraph paragraph, OpenXmlElement anchorElement) {
-            int pageBreaks = 0;
-            foreach (OpenXmlElement element in paragraph.Descendants()) {
-                if (ReferenceEquals(element, anchorElement)) {
-                    return pageBreaks;
-                }
-
-                if (element is Break documentBreak && documentBreak.Type?.Value == BreakValues.Page) {
-                    pageBreaks++;
-                }
-            }
-
-            return pageBreaks;
-        }
-
-        private static bool StartsNewPage(SectionProperties? sectionProperties) {
-            if (sectionProperties == null) {
-                return false;
-            }
-
-            SectionType? sectionType = sectionProperties.GetFirstChild<SectionType>();
-            SectionMarkValues? value = sectionType?.Val?.Value;
-            return value == null ||
-                   value == SectionMarkValues.NextPage ||
-                   value == SectionMarkValues.OddPage ||
-                   value == SectionMarkValues.EvenPage;
-        }
-
         private static string FormatValue(object? value) {
             if (value == null) {
                 return string.Empty;
@@ -1074,15 +1011,18 @@ namespace OfficeIMO.Word {
                 : value;
         }
 
-        private static void SetResultText(MutableFieldCandidate candidate, string value) {
-            if (candidate.SimpleField != null) {
-                List<Text> simpleTexts = candidate.SimpleField.Descendants<Text>().ToList();
-                if (simpleTexts.Count > 0) {
-                    SetText(simpleTexts, value);
-                } else {
-                    candidate.SimpleField.Append(new Run(CreateResultText(value)));
-                }
-
+        private static void SetResultText(WordDocument document, MutableFieldCandidate candidate, string value) {
+            WordPackageModel? model = document._ownedModel;
+            if (model != null) {
+                WordOwnedEdits.PrepareBodyEdit(model);
+                model.MarkChanged();
+            }
+            const int W = FieldNamespace;
+            if (candidate.SimpleField.Exists) {
+                List<OfficeXmlNode> simpleTexts = WordFieldInventory.EnumerateFieldContent(candidate.SimpleField)
+                    .Where(element => element.Is(W, "t")).ToList();
+                if (simpleTexts.Count > 0) SetText(simpleTexts, value);
+                else candidate.SimpleField.Append(CreateResultRun(candidate.SimpleField, value));
                 return;
             }
 
@@ -1092,152 +1032,125 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            var run = new Run(CreateResultText(value));
-            if (candidate.EndRun != null) {
+            OfficeXmlNode reference = candidate.EndRun.Exists ? candidate.EndRun : candidate.AnchorElement;
+            OfficeXmlNode parent = reference.Parent;
+            OfficeXmlNode run = CreateResultRun(parent, value);
+            if (candidate.EndRun.Exists) {
                 if (!candidate.HasSeparator) {
-                    candidate.EndRun.InsertBeforeSelf(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
+                    OfficeXmlNode separatorRun = parent.CreateElement(W, "r");
+                    OfficeXmlNode marker = separatorRun.CreateElement(W, "fldChar");
+                    marker.SetAttribute(W, "fldCharType", "separate");
+                    separatorRun.Append(marker);
+                    parent.InsertBefore(separatorRun, reference);
                 }
-
-                candidate.EndRun.InsertBeforeSelf(run);
+                run = parent.InsertBefore(run, reference);
             } else {
-                candidate.AnchorElement.InsertAfterSelf(run);
+                // A malformed field with no end marker still accepts a cached result.
+                run = reference.InsertAfterSelf(run);
             }
-
             candidate.ResultRuns.Add(run);
         }
 
-        private static IEnumerable<Text> GetResultTexts(MutableFieldCandidate candidate) {
-            foreach (Run run in candidate.ResultRuns) {
-                if (!ReferenceEquals(run, candidate.EndRun)) {
-                    foreach (Text text in run.Elements<Text>()) {
-                        yield return text;
-                    }
-
+        private static IEnumerable<OfficeXmlNode> GetResultTexts(MutableFieldCandidate candidate) {
+            const int W = FieldNamespace;
+            foreach (OfficeXmlNode run in candidate.ResultRuns) {
+                if (run != candidate.EndRun) {
+                    foreach (OfficeXmlNode text in run.Children(W, "t")) yield return text;
                     continue;
                 }
 
-                FieldChar? end = run.Elements<FieldChar>()
-                    .FirstOrDefault(fieldChar => fieldChar.FieldCharType?.Value == FieldCharValues.End);
-                if (end == null) {
-                    foreach (Text text in run.Elements<Text>()) {
-                        yield return text;
-                    }
-
-                    continue;
-                }
-
-                foreach (Text text in run.ChildElements.TakeWhile(child => !ReferenceEquals(child, end)).OfType<Text>()) {
-                    yield return text;
+                foreach (OfficeXmlNode child in run.Children()) {
+                    if (child.Is(W, "fldChar") && child.Attribute(W, "fldCharType") == "end") break;
+                    if (child.Is(W, "t")) yield return child;
                 }
             }
         }
 
-        private static Text CreateResultText(string value) {
-            var text = new Text(value);
-            ApplyTextSpacePreservation(text, value);
-            return text;
+        private static OfficeXmlNode CreateResultRun(OfficeXmlNode parent, string value) {
+            OfficeXmlNode run = parent.CreateElement(FieldNamespace, "r");
+            OfficeXmlNode text = run.CreateElement(FieldNamespace, "t");
+            SetText(text, value);
+            run.Append(text);
+            return run;
         }
 
-        private static void SetText(IReadOnlyList<Text> texts, string value) {
-            if (texts.Count == 0) {
-                return;
-            }
-
-            texts[0].Text = value;
-            ApplyTextSpacePreservation(texts[0], value);
-            for (int i = 1; i < texts.Count; i++) {
-                texts[i].Text = string.Empty;
-                ApplyTextSpacePreservation(texts[i], string.Empty);
-            }
+        private static void SetText(IReadOnlyList<OfficeXmlNode> texts, string value) {
+            for (int index = 0; index < texts.Count; index++) SetText(texts[index], index == 0 ? value : string.Empty);
         }
 
-        private static void ApplyTextSpacePreservation(Text text, string value) {
-            text.Space = RequiresSpacePreservation(value)
-                ? SpaceProcessingModeValues.Preserve
-                : null;
+        private static void SetText(OfficeXmlNode text, string value) {
+            text.SetInnerText(value);
+            text.SetAttribute(OfficeXmlNamespaces.Xml, "space",
+                value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1])) ? "preserve" : null);
         }
 
-        private static bool RequiresSpacePreservation(string value) {
-            return value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1]));
-        }
-
-        private static IEnumerable<MutableFieldCandidate> EnumerateFields(MainDocumentPart mainPart) {
-            int sequence = 0;
-            foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
-                foreach (MutableFieldCandidate candidate in EnumerateRootFields(root, ref sequence)) {
-                    yield return candidate;
-                }
-            }
-        }
-
-        private static IEnumerable<MutableFieldCandidate> EnumerateRootFields(WordFieldInventory.FieldRoot root, ref int sequence) {
-            var stack = new Stack<ComplexFieldBuilder>();
+        private static List<MutableFieldCandidate> EnumerateFields(WordDocument document) {
+            const int W = FieldNamespace;
             var candidates = new List<MutableFieldCandidate>();
-
-            foreach (OpenXmlElement element in root.Root.Descendants()) {
-                if (element is SimpleField simpleField) {
-                    int nestingLevel = stack.Count + simpleField.Ancestors<SimpleField>().Count();
-                    candidates.Add(MutableFieldCandidate.ForSimple(root, sequence++, nestingLevel, simpleField));
-                    continue;
+            foreach (WordFieldInventory.NodeFieldRoot story in WordFieldInventory.EnumerateStories(document)) {
+                var stack = new Stack<ComplexFieldBuilder>();
+                foreach (OfficeXmlNode element in WordFieldInventory.EnumerateFieldContent(story.Root)) {
+                    if (element.Is(W, "fldSimple")) {
+                        int nestingLevel = stack.Count;
+                        for (OfficeXmlNode parent = element.Parent; parent.Exists; parent = parent.Parent) {
+                            if (parent.Is(W, "fldSimple")) nestingLevel++;
+                        }
+                        candidates.Add(MutableFieldCandidate.ForSimple(story, candidates.Count, nestingLevel, element));
+                    } else if (element.Is(W, "r")) {
+                        ProcessRun(story, element, stack, candidates);
+                    }
                 }
 
-                if (element is Run run) {
-                    ProcessRun(root, run, stack, candidates, ref sequence);
+                while (stack.Count > 0) {
+                    ComplexFieldBuilder builder = stack.Pop();
+                    candidates[builder.Sequence] = builder.ToCandidate(story);
                 }
             }
-
-            while (stack.Count > 0) {
-                ComplexFieldBuilder builder = stack.Pop();
-                candidates.Add(builder.ToCandidate(root));
-            }
-
             return candidates;
         }
 
         private static bool IsNestedInsideReplacedField(MutableFieldCandidate candidate, IEnumerable<MutableFieldCandidate> replacedContainingFields) {
             foreach (MutableFieldCandidate containingField in replacedContainingFields) {
-                if (containingField.EndRun == null ||
-                    candidate.Sequence <= containingField.Sequence ||
-                    candidate.NestingLevel <= containingField.NestingLevel) {
-                    continue;
-                }
-
-                if (candidate.AnchorElement.IsAfter(containingField.AnchorElement) &&
-                    candidate.AnchorElement.IsBefore(containingField.EndRun)) {
-                    return true;
-                }
+                if (containingField.EndRun.IsNone || candidate.Sequence <= containingField.Sequence ||
+                    candidate.NestingLevel <= containingField.NestingLevel || candidate.PartUri != containingField.PartUri) continue;
+                if (IsBefore(containingField.AnchorElement, candidate.AnchorElement) &&
+                    IsBefore(candidate.AnchorElement, containingField.EndRun)) return true;
             }
-
             return false;
         }
 
-        private static void ProcessRun(
-            WordFieldInventory.FieldRoot root,
-            Run run,
-            Stack<ComplexFieldBuilder> stack,
-            List<MutableFieldCandidate> candidates,
-            ref int sequence) {
+        private static bool IsBefore(OfficeXmlNode first, OfficeXmlNode second) {
+            if (first.IsNone || second.IsNone || first == second) return false;
+            var ancestors = new HashSet<OfficeXmlNode>();
+            for (OfficeXmlNode node = second; node.Exists; node = node.Parent) ancestors.Add(node);
+            if (ancestors.Contains(first)) return true;
+            for (OfficeXmlNode node = first; node.Exists && !ancestors.Contains(node); node = node.Parent) {
+                for (OfficeXmlNode sibling = node.NextSibling; sibling.Exists; sibling = sibling.NextSibling) {
+                    if (ancestors.Contains(sibling)) return true;
+                }
+            }
+            return false;
+        }
+
+        private static void ProcessRun(WordFieldInventory.NodeFieldRoot story, OfficeXmlNode run,
+            Stack<ComplexFieldBuilder> stack, List<MutableFieldCandidate> candidates) {
+            const int W = FieldNamespace;
             bool resultRunRecorded = false;
-            foreach (OpenXmlElement child in run.ChildElements) {
-                if (child is FieldChar fieldChar) {
-                    FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
-                    if (fieldCharType == FieldCharValues.Begin) {
-                        stack.Push(new ComplexFieldBuilder(sequence++, stack.Count, run) {
-                            IsLocked = fieldChar.FieldLock?.Value ?? false
+            foreach (OfficeXmlNode child in run.Children()) {
+                if (child.Is(W, "fldChar")) {
+                    string? fieldCharType = child.Attribute(W, "fldCharType");
+                    if (fieldCharType == "begin") {
+                        stack.Push(new ComplexFieldBuilder(candidates.Count, stack.Count, run) {
+                            IsLocked = WordFieldInventory.ReadFlag(child, "fldLock")
                         });
+                        candidates.Add(null!);
                         continue;
                     }
 
-                    if (stack.Count == 0) {
-                        continue;
-                    }
-
-                    if (fieldCharType == FieldCharValues.Separate) {
+                    if (stack.Count == 0) continue;
+                    if (fieldCharType == "separate") {
                         stack.Peek().HasSeparator = true;
-                        continue;
-                    }
-
-                    if (fieldCharType == FieldCharValues.End) {
+                    } else if (fieldCharType == "end") {
                         ComplexFieldBuilder completed = stack.Pop();
                         completed.EndRun = run;
                         if (stack.Count > 0 && !stack.Peek().HasSeparator) {
@@ -1245,27 +1158,18 @@ namespace OfficeIMO.Word {
                             completed.InstructionParentSequence = parent.Sequence;
                             parent.InstructionParts.Add(InstructionPart.ForResultRuns(completed.ResultRuns));
                         }
-
-                        candidates.Add(completed.ToCandidate(root));
+                        candidates[completed.Sequence] = completed.ToCandidate(story);
                     }
-
                     continue;
                 }
 
-                if (stack.Count == 0) {
-                    continue;
-                }
-
-                if (child is FieldCode fieldCode) {
-                    stack.Peek().InstructionParts.Add(InstructionPart.ForLiteral(fieldCode.Text ?? string.Empty));
-                    continue;
-                }
-
-                if (!resultRunRecorded && child is Text) {
-                    foreach (ComplexFieldBuilder builder in stack.Where(builder => builder.HasSeparator)) {
-                        builder.ResultRuns.Add(run);
+                if (stack.Count == 0) continue;
+                if (child.Is(W, "instrText")) {
+                    stack.Peek().InstructionParts.Add(InstructionPart.ForLiteral(child.InnerText));
+                } else if (!resultRunRecorded && child.Is(W, "t")) {
+                    foreach (ComplexFieldBuilder builder in stack) {
+                        if (builder.HasSeparator) builder.ResultRuns.Add(run);
                     }
-
                     resultRunRecorded = true;
                 }
             }
@@ -1280,10 +1184,10 @@ namespace OfficeIMO.Word {
                 IReadOnlyList<InstructionPart> instructionParts,
                 int nestingLevel,
                 int? instructionParentSequence,
-                OpenXmlElement anchorElement,
-                SimpleField? simpleField,
-                List<Run> resultRuns,
-                Run? endRun,
+                OfficeXmlNode anchorElement,
+                OfficeXmlNode simpleField,
+                List<OfficeXmlNode> resultRuns,
+                OfficeXmlNode endRun,
                 bool hasSeparator,
                 bool isLocked) {
                 Sequence = sequence;
@@ -1315,37 +1219,41 @@ namespace OfficeIMO.Word {
 
             internal string InstructionText => string.Concat(_instructionParts.Select(part => part.GetText()));
 
+            internal bool HasDynamicInstruction => _instructionParts.Any(part => part.IsDynamic);
+
             internal int NestingLevel { get; }
 
             internal int? InstructionParentSequence { get; }
 
-            internal OpenXmlElement AnchorElement { get; }
+            internal OfficeXmlNode AnchorElement { get; }
 
-            internal SimpleField? SimpleField { get; }
+            internal OpenXmlElement SdkAnchorElement => (OpenXmlElement)AnchorElement.SdkElement!;
 
-            internal List<Run> ResultRuns { get; }
+            internal OfficeXmlNode SimpleField { get; }
 
-            internal Run? EndRun { get; }
+            internal List<OfficeXmlNode> ResultRuns { get; }
+
+            internal OfficeXmlNode EndRun { get; }
 
             internal bool HasSeparator { get; }
 
             internal bool IsLocked { get; }
 
-            internal static MutableFieldCandidate ForSimple(WordFieldInventory.FieldRoot root, int sequence, int nestingLevel, SimpleField simpleField) {
+            internal static MutableFieldCandidate ForSimple(WordFieldInventory.NodeFieldRoot root, int sequence, int nestingLevel, OfficeXmlNode simpleField) {
                 return new MutableFieldCandidate(
                     sequence,
                     WordFieldRepresentation.Simple,
                     root.LocationKind,
                     root.PartUri,
-                    new[] { InstructionPart.ForLiteral(simpleField.Instruction?.Value ?? string.Empty) },
+                    new[] { InstructionPart.ForLiteral(simpleField.Attribute(FieldNamespace, "instr") ?? string.Empty) },
                     nestingLevel,
                     null,
                     simpleField,
                     simpleField,
-                    simpleField.Elements<Run>().ToList(),
-                    null,
+                    simpleField.Children(FieldNamespace, "r").ToList(),
+                    default,
                     true,
-                    simpleField.FieldLock?.Value ?? false);
+                    WordFieldInventory.ReadFlag(simpleField, "fldLock"));
             }
 
             internal WordFieldUpdateResult ToResult(
@@ -1368,7 +1276,7 @@ namespace OfficeIMO.Word {
                     reason);
             }
 
-            internal static MutableFieldCandidate ForComplex(WordFieldInventory.FieldRoot root, ComplexFieldBuilder builder) {
+            internal static MutableFieldCandidate ForComplex(WordFieldInventory.NodeFieldRoot root, ComplexFieldBuilder builder) {
                 return new MutableFieldCandidate(
                     builder.Sequence,
                     WordFieldRepresentation.Complex,
@@ -1378,7 +1286,7 @@ namespace OfficeIMO.Word {
                     builder.NestingLevel,
                     builder.InstructionParentSequence,
                     builder.AnchorElement,
-                    null,
+                    default,
                     builder.ResultRuns,
                     builder.EndRun,
                     builder.HasSeparator,
@@ -1387,7 +1295,7 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class ComplexFieldBuilder {
-            internal ComplexFieldBuilder(int sequence, int nestingLevel, OpenXmlElement anchorElement) {
+            internal ComplexFieldBuilder(int sequence, int nestingLevel, OfficeXmlNode anchorElement) {
                 Sequence = sequence;
                 NestingLevel = nestingLevel;
                 AnchorElement = anchorElement;
@@ -1397,11 +1305,11 @@ namespace OfficeIMO.Word {
 
             internal int NestingLevel { get; }
 
-            internal OpenXmlElement AnchorElement { get; }
+            internal OfficeXmlNode AnchorElement { get; }
 
             internal List<InstructionPart> InstructionParts { get; } = new();
 
-            internal List<Run> ResultRuns { get; } = new();
+            internal List<OfficeXmlNode> ResultRuns { get; } = new();
 
             internal int? InstructionParentSequence { get; set; }
 
@@ -1409,52 +1317,58 @@ namespace OfficeIMO.Word {
 
             internal bool IsLocked { get; set; }
 
-            internal Run? EndRun { get; set; }
+            internal OfficeXmlNode EndRun { get; set; }
 
-            internal MutableFieldCandidate ToCandidate(WordFieldInventory.FieldRoot root) {
+            internal MutableFieldCandidate ToCandidate(WordFieldInventory.NodeFieldRoot root) {
                 return MutableFieldCandidate.ForComplex(root, this);
             }
         }
 
         private sealed class InstructionPart {
             private readonly string? _literal;
-            private readonly IReadOnlyList<Run>? _resultRuns;
+            private readonly IReadOnlyList<OfficeXmlNode>? _resultRuns;
 
             private InstructionPart(string literal) {
                 _literal = literal;
             }
 
-            private InstructionPart(IReadOnlyList<Run> resultRuns) {
+            private InstructionPart(IReadOnlyList<OfficeXmlNode> resultRuns) {
                 _resultRuns = resultRuns;
             }
 
+            internal bool IsDynamic => _resultRuns != null;
+
             internal static InstructionPart ForLiteral(string literal) => new InstructionPart(literal);
 
-            internal static InstructionPart ForResultRuns(IReadOnlyList<Run> resultRuns) => new InstructionPart(resultRuns);
+            internal static InstructionPart ForResultRuns(IReadOnlyList<OfficeXmlNode> resultRuns) => new InstructionPart(resultRuns);
 
             internal string GetText() {
                 if (_literal != null) {
                     return _literal;
                 }
 
-                return _resultRuns == null
-                    ? string.Empty
-                    : string.Concat(_resultRuns.SelectMany(run => run.Elements<Text>()).Select(text => text.Text));
+                if (_resultRuns == null) return string.Empty;
+                var text = new StringBuilder();
+                foreach (OfficeXmlNode run in _resultRuns) {
+                    foreach (OfficeXmlNode result in run.Children(FieldNamespace, "t")) text.Append(result.InnerText);
+                }
+                return text.ToString();
             }
         }
 
         private sealed class FieldEvaluationState {
             internal Dictionary<string, int> Sequences { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-            internal Dictionary<string, string> SequenceHeadingResetKeys { get; } = new(StringComparer.OrdinalIgnoreCase);
+            internal Dictionary<string, OfficeXmlNode> SequenceHeadingResetKeys { get; } = new(StringComparer.OrdinalIgnoreCase);
 
             internal Dictionary<string, ListNumSequenceState> ListNumSequences { get; } = new(StringComparer.OrdinalIgnoreCase);
 
             internal WordLayoutPagination? Layout { get; set; }
+            internal int? EstimatedTotalPages { get; set; }
 
-            internal Dictionary<OpenXmlElement, string> PageFieldBookmarks { get; } = new();
+            internal Dictionary<OfficeXmlNode, string> PageFieldBookmarks { get; } = new();
 
-            internal HashSet<SdtBlock> RegeneratedTablesOfContents { get; } = new();
+            internal HashSet<OfficeXmlNode> RegeneratedTablesOfContents { get; } = new();
             internal List<MutableFieldCandidate> LockedTocFields { get; } = new();
         }
     }

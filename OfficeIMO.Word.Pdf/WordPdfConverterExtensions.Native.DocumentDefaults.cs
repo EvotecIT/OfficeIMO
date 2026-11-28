@@ -1,8 +1,7 @@
 using System.Globalization;
-using DocumentFormat.OpenXml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeDocumentDefaults(string? FontFamily, string? Language, double FontSize, double ParagraphLineHeight, double ParagraphSpacingBefore, bool ParagraphSpacingBeforeDeclared, double ParagraphSpacingAfter, bool ParagraphSpacingAfterDeclared, bool ParagraphWidowControl, double? DefaultTabStopWidth) {
             public NativeNoteNumbering? NoteNumbering { get; init; }
@@ -21,7 +20,7 @@ namespace OfficeIMO.Word.Pdf {
             public WordSection? RunningContentSection { get; init; }
             // Computed once by the read operation with its effective body styles and fonts.
             // Immutable per-part visibility/permission inventory captured by this read operation.
-            public IReadOnlyDictionary<OpenXmlElement, NativeRunningTextBoxStoryPeers>? RunningTextBoxStoryPeers { get; init; }
+            public IReadOnlyDictionary<OfficeXmlNode, NativeRunningTextBoxStoryPeers>? RunningTextBoxStoryPeers { get; init; }
             public bool RunningStoryHasDisallowedTextBoxPeers { get; init; }
             // A missing docDefaults element follows Word's 12pt application fallback.
             public static NativeDocumentDefaults WordDefault { get; } = new(null, null, 12D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null) { OpenTypeFeaturesEnabled = true };
@@ -30,12 +29,12 @@ namespace OfficeIMO.Word.Pdf {
         private static NativeDocumentDefaults GetNativeDocumentDefaults(
             WordDocument? document,
             NativeFontMap? nativeFontMap = null) {
-            W.DocDefaults? defaults = document == null ? null : WordStyleCatalog.For(document).DocumentDefaults;
+            OfficeXmlNode defaults = document == null ? default : WordStyleCatalog.For(document).DocumentDefaultsNode();
             double? defaultTabStopWidth = GetNativeDefaultTabStopWidth(document);
-            if (defaults == null) {
+            if (defaults.IsNone) {
                 return new NativeDocumentDefaults(
                     NativeDocumentDefaults.WordDefault.FontFamily,
-                    GetNativeDocumentLanguage(document, null),
+                    GetNativeDocumentLanguage(document, default),
                     NativeDocumentDefaults.WordDefault.FontSize,
                     NativeDocumentDefaults.WordDefault.ParagraphLineHeight,
                     NativeDocumentDefaults.WordDefault.ParagraphSpacingBefore,
@@ -46,19 +45,13 @@ namespace OfficeIMO.Word.Pdf {
                     defaultTabStopWidth) { OpenTypeFeaturesEnabled = AreNativeOpenTypeFeaturesEnabled(document) };
             }
 
-            NativeLatinFontFamilies fontFamilies = GetNativeRunFontFamilies(document, defaults
-                .GetFirstChild<W.RunPropertiesDefault>()?
-                .GetFirstChild<W.RunPropertiesBaseStyle>()?
-                .GetFirstChild<W.RunFonts>());
+            NativeLatinFontFamilies fontFamilies = GetNativeRunFontFamilies(document, defaults.WChild("rPrDefault").WChild("rPr").WChild("rFonts"));
             string? fontFamily = fontFamilies.Primary;
             string? language = GetNativeDocumentLanguage(document, defaults);
             // Word treats an existing docDefaults with no declared size as 10pt.
             // OfficeIMO-created documents explicitly declare 11pt and retain it.
             double fontSize = GetNativeDefaultFontSize(defaults) ?? 10D;
-            W.SpacingBetweenLines? spacing = defaults
-                .GetFirstChild<W.ParagraphPropertiesDefault>()?
-                .GetFirstChild<W.ParagraphPropertiesBaseStyle>()?
-                .GetFirstChild<W.SpacingBetweenLines>();
+            OfficeXmlNode spacing = defaults.WChild("pPrDefault").WChild("pPr").WChild("spacing");
 
             double lineHeight = GetNativeDefaultParagraphLineHeight(
                 spacing,
@@ -68,53 +61,37 @@ namespace OfficeIMO.Word.Pdf {
             bool spacingAfterDeclared = IsNativeSpacingAfterDeclared(spacing);
             double spacingBefore = GetNativeSpacingBeforePoints(spacing, fontSize, lineHeight) ?? NativeDocumentDefaults.WordDefault.ParagraphSpacingBefore;
             double spacingAfter = GetNativeSpacingAfterPoints(spacing, fontSize, lineHeight) ?? NativeDocumentDefaults.WordDefault.ParagraphSpacingAfter;
-            bool widowControl = ReadNativeOnOff(defaults
-                .GetFirstChild<W.ParagraphPropertiesDefault>()?
-                .GetFirstChild<W.ParagraphPropertiesBaseStyle>()?
-                .GetFirstChild<W.WidowControl>()) ?? NativeDocumentDefaults.WordDefault.ParagraphWidowControl;
-            W.RunPropertiesBaseStyle? defaultRuns = defaults.GetFirstChild<W.RunPropertiesDefault>()?.GetFirstChild<W.RunPropertiesBaseStyle>();
+            bool widowControl = ReadNativeOnOff(defaults.WChild("pPrDefault").WChild("pPr").WChild("widowControl")) ?? NativeDocumentDefaults.WordDefault.ParagraphWidowControl;
+            OfficeXmlNode defaultRuns = defaults.WChild("rPrDefault").WChild("rPr");
             return new NativeDocumentDefaults(fontFamily, language, fontSize, lineHeight, spacingBefore, spacingBeforeDeclared, spacingAfter, spacingAfterDeclared, widowControl, defaultTabStopWidth) {
                 FontFamilies = fontFamilies,
                 ComplexScript = default(NativeComplexScriptDefaults).Merge(defaultRuns),
                 TextSpacing = default(NativeTextSpacing).Merge(defaultRuns),
                 RunStyle = new NativeCharacterStyleDefaults(null, null,
-                    ReadNativeOnOff(defaultRuns?.GetFirstChild<W.Bold>()),
-                    ReadNativeOnOff(defaultRuns?.GetFirstChild<W.Italic>()),
-                    MapNativeUnderlineStyle(defaultRuns?.GetFirstChild<W.Underline>()),
+                    ReadNativeOnOff(defaultRuns.WChild("b")),
+                    ReadNativeOnOff(defaultRuns.WChild("i")),
+                    MapNativeUnderlineStyle(defaultRuns.WChild("u")),
                     MapNativeStrikeStyle(defaultRuns),
                     null,
-                    ReadNativeOnOff(defaultRuns?.GetFirstChild<W.Caps>()),
-                    defaultRuns?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value,
-                    WordRunFormatting.ResolveColorHex(defaultRuns?.GetFirstChild<W.Color>(), document),
+                    ReadNativeOnOff(defaultRuns.WChild("caps")),
+                    defaultRuns.WChild("vertAlign").WVal(),
+                    WordConverterNodes.ResolveColorHex(defaultRuns.WChild("color"), document),
                     null) {
-                    SmallCaps = ReadNativeOnOff(defaultRuns?.GetFirstChild<W.SmallCaps>())
+                    SmallCaps = ReadNativeOnOff(defaultRuns.WChild("smallCaps"))
                 },
                 OpenTypeFeaturesEnabled = AreNativeOpenTypeFeaturesEnabled(document),
-                LineSpacing = ReadNativeLineSpacing(spacing, defaults.GetFirstChild<W.ParagraphPropertiesDefault>()?
-                    .GetFirstChild<W.ParagraphPropertiesBaseStyle>()?.GetFirstChild<W.TextAlignment>()),
-                ParagraphSpacing = default(NativeParagraphSpacing).Merge(defaults.GetFirstChild<W.ParagraphPropertiesDefault>()?
-                    .GetFirstChild<W.ParagraphPropertiesBaseStyle>())
+                LineSpacing = ReadNativeLineSpacing(spacing, defaults.WChild("pPrDefault").WChild("pPr").WChild("textAlignment")),
+                ParagraphSpacing = default(NativeParagraphSpacing).Merge(defaults.WChild("pPrDefault").WChild("pPr"))
             };
         }
 
-        private static string? GetNativeDocumentLanguage(WordDocument? document, W.DocDefaults? defaults) {
-            string? language = defaults?
-                .GetFirstChild<W.RunPropertiesDefault>()?
-                .GetFirstChild<W.RunPropertiesBaseStyle>()?
-                .GetFirstChild<W.Languages>()?
-                .Val?
-                .Value;
+        private static string? GetNativeDocumentLanguage(WordDocument? document, OfficeXmlNode defaults) {
+            string? language = defaults.WChild("rPrDefault").WChild("rPr").WChild("lang").WVal();
             if (!string.IsNullOrWhiteSpace(language)) {
                 return language;
             }
 
-            return document?._wordprocessingDocument?
-                .MainDocumentPart?
-                .DocumentSettingsPart?
-                .Settings?
-                .GetFirstChild<W.ThemeFontLanguages>()?
-                .Val?
-                .Value;
+            return document.SettingsNode().WChild("themeFontLang").WVal();
         }
 
         private static global::OfficeIMO.OfficeColor? ResolveNativeInheritedRunColor(
@@ -138,11 +115,9 @@ namespace OfficeIMO.Word.Pdf {
             return ConvertNativeTwipsToPoints(defaultTabStopTwips);
         }
 
-        private static double? GetNativeDefaultFontSize(W.DocDefaults defaults) {
-            W.RunPropertiesBaseStyle? runProperties = defaults
-                .GetFirstChild<W.RunPropertiesDefault>()?
-                .GetFirstChild<W.RunPropertiesBaseStyle>();
-            return ParseNativeDefaultFontSize(runProperties?.GetFirstChild<W.FontSize>()?.Val?.Value);
+        private static double? GetNativeDefaultFontSize(OfficeXmlNode defaults) {
+            OfficeXmlNode runProperties = defaults.WChild("rPrDefault").WChild("rPr");
+            return ParseNativeDefaultFontSize(runProperties.WChild("sz").WVal());
         }
 
         private static double? ParseNativeDefaultFontSize(string? value) {
@@ -157,40 +132,40 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double? GetNativeDefaultParagraphLineHeight(
-            W.SpacingBetweenLines? spacing,
+            OfficeXmlNode spacing,
             string? fontFamily,
             NativeFontMap? nativeFontMap = null) {
-            if (WordLineSpacing.Read(spacing)?.MultipleValue is not double multiple || multiple <= 0D) return null;
+            if (ReadNativeWordLineSpacing(spacing)?.MultipleValue is not double multiple || multiple <= 0D) return null;
             return Math.Max(0.01D, ResolveNativeWordSingleLineHeight(nativeFontMap, fontFamily) * multiple);
         }
 
-        private static bool IsNativeSpacingBeforeDeclared(W.SpacingBetweenLines? spacing) =>
-            spacing?.Before != null || spacing?.BeforeLines != null || spacing?.BeforeAutoSpacing != null;
+        private static bool IsNativeSpacingBeforeDeclared(OfficeXmlNode spacing) =>
+            spacing.WAttr("before") != null || spacing.WAttr("beforeLines") != null || spacing.WAttr("beforeAutospacing") != null;
 
-        private static bool IsNativeSpacingAfterDeclared(W.SpacingBetweenLines? spacing) =>
-            spacing?.After != null || spacing?.AfterLines != null || spacing?.AfterAutoSpacing != null;
+        private static bool IsNativeSpacingAfterDeclared(OfficeXmlNode spacing) =>
+            spacing.WAttr("after") != null || spacing.WAttr("afterLines") != null || spacing.WAttr("afterAutospacing") != null;
 
-        private static double? GetNativeSpacingBeforePoints(W.SpacingBetweenLines? spacing, double fontSize, double lineHeight) {
-            if (spacing == null || IsNativeOnOffTrue(spacing.BeforeAutoSpacing)) {
+        private static double? GetNativeSpacingBeforePoints(OfficeXmlNode spacing, double fontSize, double lineHeight) {
+            if (spacing.IsNone || IsNativeOnOffTrue(spacing.WAttr("beforeAutospacing"))) {
                 return null;
             }
 
-            return ConvertNativeLineHundredthsToPoints(spacing.BeforeLines, fontSize, lineHeight) ??
-                ConvertNativeTwipsToPoints(spacing.Before?.Value);
+            return ConvertNativeLineHundredthsToPoints(spacing.WAttr("beforeLines"), fontSize, lineHeight) ??
+                ConvertNativeTwipsToPoints(spacing.WAttr("before"));
         }
 
-        private static double? GetNativeSpacingAfterPoints(W.SpacingBetweenLines? spacing, double fontSize, double lineHeight) {
-            if (spacing == null || IsNativeOnOffTrue(spacing.AfterAutoSpacing)) {
+        private static double? GetNativeSpacingAfterPoints(OfficeXmlNode spacing, double fontSize, double lineHeight) {
+            if (spacing.IsNone || IsNativeOnOffTrue(spacing.WAttr("afterAutospacing"))) {
                 return null;
             }
 
-            return ConvertNativeLineHundredthsToPoints(spacing.AfterLines, fontSize, lineHeight) ??
-                ConvertNativeTwipsToPoints(spacing.After?.Value);
+            return ConvertNativeLineHundredthsToPoints(spacing.WAttr("afterLines"), fontSize, lineHeight) ??
+                ConvertNativeTwipsToPoints(spacing.WAttr("after"));
         }
 
-        private static double? ConvertNativeLineHundredthsToPoints(Int32Value? value, double fontSize, double lineHeight) {
+        private static double? ConvertNativeLineHundredthsToPoints(string? value, double fontSize, double lineHeight) {
             if (value == null ||
-                !int.TryParse(value.InnerText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int lineHundredths) ||
+                !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int lineHundredths) ||
                 lineHundredths < 0 ||
                 fontSize <= 0D ||
                 lineHeight <= 0D ||
@@ -204,7 +179,8 @@ namespace OfficeIMO.Word.Pdf {
             return (lineHundredths / 100D) * fontSize * lineHeight;
         }
 
-        private static bool IsNativeOnOffTrue(OnOffValue? value) =>
-            value?.Value == true;
+
+        private static bool IsNativeOnOffTrue(string? value) =>
+            WordXml.ParseOnOff(value) == true;
     }
 }

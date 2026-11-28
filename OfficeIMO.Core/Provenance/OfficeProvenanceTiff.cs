@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;
 
-internal static class OfficeProvenanceTiff {
+internal static partial class OfficeProvenanceTiff {
     private const ushort C2paTag = 0xCD41;
     private const ushort XmpTag = 700;
     private const ushort ByteType = 1;
@@ -65,6 +65,7 @@ internal static class OfficeProvenanceTiff {
                 if (!ifd.TagsAreSorted) context.Diagnostics.Add($"The TIFF tags at IFD {ifdIndex} are not sorted in ascending order.");
             }
         }
+        InspectGeneratorFields(data, options, context, "TIFF", containerIsStructurallyValid: true);
     }
 
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes, out bool reserialized) {
@@ -111,7 +112,11 @@ internal static class OfficeProvenanceTiff {
                             retained.Add(entry);
                             continue;
                         }
-                        if (cleaned.Length > xmpLength) throw new InvalidDataException("Rewritten TIFF XMP exceeds its existing allocation.");
+                        if (cleaned.Length > xmpLength) {
+                            // The rewritten packet no longer fits its fixed allocation, so the carrier is kept as it is.
+                            retained.Add(entry);
+                            continue;
+                        }
                         Buffer.BlockCopy(cleaned, 0, output, xmpOffset, cleaned.Length);
                         Array.Clear(output, xmpOffset + cleaned.Length, xmpLength - cleaned.Length);
                         foreach (TiffIfd candidateIfd in ifds) {
@@ -154,6 +159,10 @@ internal static class OfficeProvenanceTiff {
                 throw new InvalidDataException("TIFF IFD rewrite overlaps retained value or image data.");
             }
             RewriteIfd(output, ifd, retained);
+            reserialized = true;
+        }
+        if (TryRemoveGeneratorFields(output, options, "TIFF", changes, containerIsStructurallyValid: true, out byte[] withoutGenerators)) {
+            output = withoutGenerators;
             reserialized = true;
         }
         return output;
@@ -435,6 +444,14 @@ internal static class OfficeProvenanceTiff {
         return true;
     }
 
+    /// <summary>Reads the Exif IFD pointer at its declared width, so a four-byte pointer inside an eight-byte BigTIFF slot reads correctly.</summary>
+    private static bool TryReadExifIfdPointer(byte[] data, TiffEntry entry, bool bigTiff, out ulong offset) {
+        offset = 0;
+        return IsValidSubIfdPointerType(entry.Type, bigTiff) && entry.Count == 1 &&
+            TryGetValueStorageRange(data, entry, out int storage, out _) &&
+            TryReadUnsignedValue(data, entry, storage, 0, out offset);
+    }
+
     private static bool TryReadUnsignedValue(
         byte[] data,
         TiffEntry entry,
@@ -472,7 +489,7 @@ internal static class OfficeProvenanceTiff {
             offset = entry.Offset + (entry.InlineSize == 8 ? 12 : 8);
             return offset <= data.Length - length;
         }
-        if (entry.ValueOrOffset > int.MaxValue || entry.ValueOrOffset > (ulong)(data.Length - length)) return false;
+        if (length > data.Length || entry.ValueOrOffset > int.MaxValue || entry.ValueOrOffset > (ulong)(data.Length - length)) return false;
         offset = (int)entry.ValueOrOffset;
         return true;
     }
@@ -502,7 +519,7 @@ internal static class OfficeProvenanceTiff {
         else OfficeProvenanceBinary.WriteUInt32(output, entry.Offset + 4, checked((uint)count), entry.LittleEndian);
     }
 
-    private static List<TiffIfd> ReadIfds(byte[] data, OfficeProvenanceOptions options) {
+    private static List<TiffIfd> ReadIfds(byte[] data, OfficeProvenanceOptions options, bool followExifIfd = false, bool followLinkedIfds = true) {
         if (data.Length < 8) throw new InvalidDataException("TIFF header is truncated.");
         bool littleEndian;
         if (data[0] == (byte)'I' && data[1] == (byte)'I') littleEndian = true;
@@ -576,18 +593,30 @@ internal static class OfficeProvenanceTiff {
                 ? OfficeProvenanceBinary.ReadUInt64(data, nextFieldOffset, littleEndian)
                 : OfficeProvenanceBinary.ReadUInt32(data, nextFieldOffset, littleEndian);
             result.Add(new TiffIfd(ifdOffset, entriesOffset, nextFieldOffset, countFieldSize, entrySize, nextFieldSize, littleEndian, bigTiff, tagsAreSorted, entries));
-            EnqueueIfdOffset(linkedOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
-            foreach (TiffEntry subIfds in entries.Where(static entry => entry.Tag == SubIfdsTag)) {
-                if (!IsValidSubIfdPointerType(subIfds.Type, bigTiff) ||
-                    subIfds.Count > (ulong)options.MaxContainerEntries || subIfds.Count > int.MaxValue ||
+            if (followLinkedIfds) EnqueueIfdOffset(linkedOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
+            foreach (TiffEntry subIfds in followLinkedIfds ? entries.Where(static entry => entry.Tag == SubIfdsTag) : Enumerable.Empty<TiffEntry>()) {
+                if (subIfds.Count > (ulong)options.MaxContainerEntries) {
+                    throw OfficeProvenanceLimitException.Create("TIFF SubIFD references exceed the configured container-entry limit.");
+                }
+                if (!IsValidSubIfdPointerType(subIfds.Type, bigTiff) || subIfds.Count > int.MaxValue ||
                     !TryGetValueStorageRange(data, subIfds, out int storageOffset, out _)) {
-                    throw OfficeProvenanceLimitException.Create("TIFF SubIFD references are malformed or exceed the configured container-entry limit.");
+                    throw new InvalidDataException("TIFF SubIFD references are malformed.");
                 }
                 for (int index = 0; index < (int)subIfds.Count; index++) {
                     if (!TryReadUnsignedValue(data, subIfds, storageOffset, index, out ulong subIfdOffset)) {
                         throw new InvalidDataException("TIFF SubIFD references are malformed.");
                     }
                     EnqueueIfdOffset(subIfdOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
+                }
+            }
+            if (followExifIfd) {
+                // The Exif, GPS and Interoperability IFDs are read too: their values can share storage with a field that removal
+                // clears. A pointer to a directory that is already scheduled is not followed twice.
+                foreach (TiffEntry pointer in entries.Where(static entry => entry.Tag is ExifIfdTag or GpsIfdTag or InteroperabilityIfdTag)) {
+                    if (TryReadExifIfdPointer(data, pointer, bigTiff, out ulong pointerOffset) && pointerOffset != 0 &&
+                        !visited.Contains(pointerOffset) && !pendingOffsets.Contains(pointerOffset)) {
+                        EnqueueIfdOffset(pointerOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
+                    }
                 }
             }
         }

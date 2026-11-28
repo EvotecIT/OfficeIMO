@@ -1,0 +1,262 @@
+# OfficeIMO.Markdown guide
+
+This guide covers the `OfficeIMO.Markdown` API beyond the [package README](../OfficeIMO.Markdown/README.md), which shows installation and a quick start. Coverage is in the [compatibility matrix](officeimo.markdown.compatibility-matrix.md).
+
+## Building documents
+
+The chaining methods are shortcuts for the model methods, which return the block they append: `H1`–`H6` call `AddHeading(text, level)`, `P` calls `AddParagraph`, `Ul`, `Ol` and `Dl` call `AddList`, `AddOrderedList` and `AddDefinitionList`, `Image` calls `AddImage`, and `Table` and `TableAuto` call `AddTable`. `Add` returns the same concrete block you append. `AddRange` returns a read-only snapshot of its inputs in source order; input enumeration and null validation finish before the document changes.
+
+```csharp
+using OfficeIMO.Markdown;
+
+using var document = MarkdownDocument.Create();
+HeadingBlock heading = document.AddHeading("Deployment", 2);
+ParagraphBlock paragraph = document.AddParagraph("Deployment ");
+paragraph.Inlines.Text("complete");
+OrderedListBlock steps = document.AddOrderedList(new[] { "Build", "Verify" });
+steps.Start = 3;
+var added = document.AddRange(new IMarkdownBlock[] {
+    new HeadingBlock(2, "Next steps"),
+    new ParagraphBlock(new InlineSequence().Text("Verify the service."))
+});
+Console.WriteLine(document.ToMarkdown());
+```
+
+`DefinitionListBlock.AddEntry` returns the entry bound to the list. Editing its
+`Term` or `DefinitionBlocks` changes the rendered output. `AddGroup` returns the
+stored group, and `MarkdownTable.AddRow` returns the stored, editable cell array.
+
+## Image display sizes
+
+
+Image display dimensions use `OfficeLength`. Unitless Markdown hints such as
+`{width=96 height=48}` and HTML image dimensions mean CSS pixels at 96 DPI.
+The same image occupies 72 by 36 points in Word and PDF. Intrinsic raster
+pixels and relative layout percentages are separate from these display lengths.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Markdown;
+
+using var document = MarkdownDocument.Create();
+document.Image("images/badge.png", "Badge",
+    width: OfficeLength.Inches(1), height: OfficeLength.Pixels(48));
+string markdown = document.ToMarkdown(); // ![Badge](images/badge.png){width=96 height=48}
+string html = document.ToHtml();          // width="96" height="48"
+```
+
+`ImageBlock.Width`, `ImageBlock.Height` and the corresponding native image
+properties expose nullable physical lengths. Rich Markdown emits invariant
+pixel numbers; HTML emits whole-pixel attributes and preserves fractional
+pixel dimensions in CSS. HTML import accepts absolute CSS length units;
+percentages stay outside physical image hints.
+
+## Typed tables
+
+
+`AddTable` returns the added `TableBlock`, which remains editable. The shared `OfficeTableOptions` controls column selection, order, headers, formatting and alignment. `MarkdownTableOptions` also enables numeric and date alignment; explicit column alignments take precedence.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Markdown;
+
+using var document = MarkdownDocument.Create();
+var rows = new[] {
+    new { Product = "Paper", Quantity = 12 },
+    new { Product = "Envelopes", Quantity = 24 }
+};
+var options = new MarkdownTableOptions();
+options.HeaderRenames["Quantity"] = "In stock";
+var table = document.AddTable(rows, options);
+table.Rows.Add(new[] { "Labels", "48" });
+Console.WriteLine(document.ToMarkdown());
+```
+
+Typed rows use declared public properties and fields, or the first dictionary row's string keys. The source is enumerated once. Projection rejects more than 10,000 data rows or 100 selected columns before adding the block. Formatter failures propagate. Explicit selector overloads support trim-safe column selection without reflection. Runtime data can be passed as `object` to retain scalar, property/value and dictionary-union projection.
+
+## Common tasks
+
+
+### Literal text without HTML entities
+
+Use `document.ToMarkdown(new MarkdownSaveOptions { TextEscapingMode = MarkdownTextEscapingMode.LiteralBackslash })` to write literal model text with Markdown backslash escapes. Ordinary parentheses and ampersands remain literal; HTML-like text and entity starts are escaped. Unstructured table strings are treated as literal text, while parsed and structured table nodes retain explicit Markdown formatting. The default writer mode keeps its existing behavior.
+
+### Tables from typed objects
+
+```csharp
+var results = new[] {
+    new { Name = "Alice", Role = "Dev", Score = 98.5 },
+    new { Name = "Bob", Role = "Ops", Score = 91.0 }
+};
+
+var document = MarkdownDocument.Create()
+    .H2("Team")
+    .Table(table => table.FromSequence(results,
+        ("Name", item => item.Name),
+        ("Role", item => item.Role),
+        ("Score", item => item.Score)));
+```
+
+### Load or parse directly, with diagnostics when needed
+
+```csharp
+MarkdownDocument document = MarkdownDocument.Load("README.md");
+using MarkdownDocument inspected = MarkdownDocument.Load("README.md", null, out OfficeConversionReport report);
+
+foreach (var heading in document.GetHeadingInfos()) {
+    Console.WriteLine($"{heading.Level}: {heading.Text} -> {heading.Anchor}");
+}
+```
+
+`MarkdownDocument.Parse(...)` and `Load(...)` return the native document. Use
+the overload with `out OfficeConversionReport report` when syntax-tree and transform diagnostics
+must travel with it. Async loading returns the document and accepts a final cancellation token.
+
+Markdown writing also accepts cancellation: `document.ToMarkdown(writeOptions, cancellationToken)`
+and `document.ToBytes(writeOptions, cancellationToken)` check it during serialization.
+`SaveAsync` passes its token through serialization before writing the destination.
+Custom renderers can use `context.CancellationToken` for their own work.
+
+### Native AST snapshot
+
+```csharp
+MarkdownNativeDocument native = MarkdownNativeDocument.Parse("""
+# Investigation
+
+See **CPU** in [dashboard](https://example.com).
+""");
+
+var snapshot = native.ToSnapshot();
+```
+
+### Front matter, task lists, callouts, details, and TOC
+
+```csharp
+var document = MarkdownDocument.Create()
+    .FrontMatter(new {
+        title = "Deployment checklist",
+        owner = "Platform",
+        tags = new[] { "runbook", "deployment" }
+    })
+    .H1("Deployment checklist")
+    .Toc(options => {
+        options.Title = "Contents";
+        options.MinLevel = 2;
+        options.MaxLevel = 3;
+    })
+    .H2("Pre-flight")
+    .Ul(list => list
+        .ItemTask("Packages published", done: true)
+        .ItemTask("Change approved")
+        .ItemTask("Rollback plan attached"))
+    .Callout("warning", "Freeze window", "Do not deploy outside the approved window.")
+    .Details("Rollback commands", body => body
+        .Code("powershell", "dotnet nuget locals all --clear"));
+
+string markdown = document.ToMarkdown();
+```
+
+### Read and edit front matter as YAML
+
+Front matter is read and written by [`OfficeIMO.Yaml`](../OfficeIMO.Yaml/README.md), so nested mappings, lists, comments and quoting behave as they do in Jekyll, Hugo and other YAML tools.
+
+```csharp
+var document = MarkdownDocument.Load("post.md");
+FrontMatterBlock header = document.DocumentHeader!;
+
+string? title = header.FindEntry("title")?.Value.AsString();
+string? author = header.Select("author.name")?.AsString();
+bool draft = header.TryGetValue("draft", out bool isDraft) && isDraft;
+
+header.Yaml!.Set("title", "Final title");   // only the title text changes
+document.Save();
+```
+
+- `Yaml` is the lossless `YamlDocument`. Unedited front matter is written back byte for byte, including comments, blank lines and quoting. Edits through `Yaml` rewrite only the text they change.
+- `Entries` lists the top-level keys with their Markdown source spans. Each `Value` is a `YamlNode`: read scalars with `AsString()` or `GetValue<T>()`, and nested values with `AsMapping()`, `AsSequence()` or `Select(path)`.
+- Front matter built with `FrontMatter(...)` is written by the YAML writer. Nested dictionaries, objects and collections become mappings and sequences. Strings that a YAML reader could take as another type, such as `yes` or `1.0`, are quoted.
+- Front matter that is not valid YAML stays in the document as text. `Yaml` is `null`, and `Diagnostics` holds a `markdown-front-matter-invalid-yaml` error with its Markdown line and column. The rest of the document is still parsed.
+- Front matter is read with `YamlLoadOptions.UntrustedDefaults` limits. Repeated keys are reported in `Diagnostics`, and the last one wins.
+
+### TOML front matter
+
+Front matter between `+++` lines, as Hugo and Zola write it, is read and written by [`OfficeIMO.Toml`](../OfficeIMO.Toml/README.md) on the same `FrontMatterBlock`:
+
+```csharp
+var document = MarkdownDocument.Load("content/post.md");   // starts with +++
+FrontMatterBlock header = document.DocumentHeader!;
+
+string? title = header.FindEntry("title")?.Value.AsString();
+string? author = header.Select("author.name")?.AsString();
+
+header.Toml!.Set("title", "Final title");   // only the title text changes
+document.Save();
+```
+
+- `Format` is `MarkdownFrontMatterFormat.Toml`, and `Toml` is the lossless `TomlDocument`. Unedited front matter is written back byte for byte; edits through `Toml` rewrite only the text they change.
+- `Entries`, `Mapping`, `Select` and `TryGetValue` read TOML values through the same YAML node types as YAML front matter: tables are mappings, arrays and arrays of tables are sequences, and dates keep their TOML spelling. They follow edits made through `Toml`; make edits there.
+- `FrontMatterBlock.FromToml(tomlDocument)` adds TOML front matter built in code: `document.Add(FrontMatterBlock.FromToml(toml))`.
+- Front matter that is not valid TOML stays in the document as text. `Toml` is `null`, and `Diagnostics` holds a `markdown-front-matter-invalid-toml` error with its Markdown line and column. It is read with `TomlLoadOptions.UntrustedDefaults` limits.
+
+### TeX math
+
+Math is an opt-in reader profile, so dollar signs in ordinary prose keep their meaning by default:
+
+```csharp
+var document = MarkdownDocument.Parse("""
+Energy is $E = mc^2$.
+
+$$
+\frac{a + b}{\sqrt{c^2 + d^2}}
+$$
+""", new MarkdownLoadOptions { Math = true });
+```
+
+`$...$` and `$$...$$` inside a paragraph become `MathInline`, a block delimited by `$$` lines becomes `MathBlock`, and a ```` ```math ```` fence becomes a `SemanticFencedBlock` whose `SemanticKind` is `math`. An opening `$` must precede a non-space character and a closing `$` must follow one and not precede a digit, so `$5 and $10` stay text; write `\$` for a literal dollar sign. Each node keeps the TeX source and its source span, and `ToMarkdown()` writes it back with the same delimiters. HTML output keeps `\(...\)` and `\[...\]` for client-side renderers, while the PDF and Word converters lay the math out themselves.
+
+### HTML fragments, full documents, and parts
+
+```csharp
+var document = MarkdownDocument.Create()
+    .H1("Status")
+    .P(p => p.Text("Generated ").Bold("today").Text(" for the portal."))
+    .TableAuto(table => table
+        .Headers("Service", "Status", "Latency")
+        .Row("API", "Green", "42")
+        .Row("Jobs", "Yellow", "210"));
+
+string fragment = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Fragment });
+string fullPage = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document });
+MarkdownHtmlParts parts = document.ToHtmlParts();
+
+// Without options, SaveAsHtml writes a complete, unstyled page.
+document.SaveAsHtml("status.html");
+```
+
+The default `Plain` style keeps the source markup and table alignment without a
+stylesheet. Select `MarkdownHtmlStyle.Clean`, `Word`, a GitHub style, or an
+explicit `Theme` to add presentation styling. `Clean` declares `--office-*`
+custom properties for colours, fonts, type scale and table tokens.
+
+### Parse, inspect, and rewrite a document
+
+```csharp
+var parsed = MarkdownDocument.Parse(File.ReadAllText("README.md"),
+    MarkdownLoadOptions.CreateOfficeIMOProfile());
+
+if (!parsed.HasHeading("Install")) {
+    parsed.H2("Install")
+          .Code("powershell", "dotnet add package OfficeIMO.Markdown");
+}
+
+foreach (var heading in parsed.GetHeadingInfos()) {
+    Console.WriteLine($"{heading.Level}: {heading.Text} -> #{heading.Anchor}");
+}
+
+File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
+```
+
+## Content provenance
+
+
+`MarkdownProvenance.Inspect(markdown)` reports standards-defined structured C2PA blocks and unstructured C2PA text wrappers. `MarkdownProvenance.Remove(markdown)` removes selected, structurally valid carriers while preserving surrounding Markdown text. File overloads use bounded reads and atomic writes. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.

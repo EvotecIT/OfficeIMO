@@ -5,6 +5,48 @@ using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_ToBytesReturnsArrayIndependentOfRetainedSections(bool reload) {
+            byte[] bytes;
+            using (WordDocument source = WordDocument.Create()) {
+                source.AddParagraph("Retained text");
+                bytes = source.ToBytes();
+            }
+
+            using WordDocument document = reload ? WordDocument.Load(new MemoryStream(bytes)) : WordDocument.Create();
+            if (!reload) document.AddParagraph("Retained text");
+            WordSection section = Assert.Single(document.Sections);
+            byte[] output = document.ToBytes();
+            Array.Clear(output, 0, output.Length);
+
+            document.Dispose();
+
+            Assert.Equal("Retained text", Assert.Single(section.Paragraphs).Text);
+        }
+
+        [Fact]
+        public void Test_SectionStillExposesShapesAfterReadOnlyDocumentIsDisposed() {
+            string path = Path.Combine(_directoryWithFiles, "SectionShapeAfterDispose.docx");
+            using (WordDocument source = WordDocument.Create(path)) {
+                source.AddShapeDrawing(WordShapeType.Rectangle, OfficeLength.Points(20), OfficeLength.Points(10));
+                source.Save();
+            }
+
+            WordSection section;
+            using (WordDocument loaded = WordDocument.Load(path, new WordLoadOptions {
+                AccessMode = DocumentAccessMode.ReadOnly
+            })) {
+                section = Assert.Single(loaded.Sections);
+#if NET
+                Assert.True(loaded.IsSdkDeferred);
+#endif
+            }
+
+            Assert.Single(section.Shapes);
+        }
+
         [Fact]
         public void Test_OpeningWordWithSections() {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryDocuments, "BasicDocumentWithSections.docx"))) {

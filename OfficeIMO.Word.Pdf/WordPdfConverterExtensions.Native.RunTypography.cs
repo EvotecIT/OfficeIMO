@@ -1,8 +1,8 @@
 using OfficeIMO.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeResolvedTextStyle(
             bool Bold,
@@ -82,14 +82,14 @@ namespace OfficeIMO.Word.Pdf {
             WordParagraph styleSource = fallback ?? paragraph;
             NativeDocumentDefaults resolvedNativeDefaults = nativeDefaults ?? GetNativeDocumentDefaults(styleSource._document);
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(styleSource);
-            W.RunProperties? runProperties = GetNativeRunProperties(paragraph);
+            OfficeXmlNode runProperties = GetNativeRunProperties(paragraph);
             NativeCharacterStyleDefaults characterStyleDefaults = GetNativeCharacterStyleDefaults(paragraph._document, runProperties);
-            W.ParagraphMarkRunProperties? markerProperties = styleSource._paragraph?.ParagraphProperties?.ParagraphMarkRunProperties;
+            OfficeXmlNode markerProperties = styleSource.Node().WChild("pPr").WChild("rPr");
             NativeCharacterStyleDefaults markerCharacterStyle = GetNativeCharacterStyleDefaults(styleSource._document, markerProperties);
 
-            bool bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? characterStyleDefaults.Bold ?? styleDefaults.Bold ?? tableRunStyleDefaults.Bold ?? resolvedNativeDefaults.RunStyle.Bold ?? false;
-            bool italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? characterStyleDefaults.Italic ?? styleDefaults.Italic ?? tableRunStyleDefaults.Italic ?? resolvedNativeDefaults.RunStyle.Italic ?? false;
-            OfficeTextDecorationStyle? directUnderlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>());
+            bool bold = ReadNativeOnOff(runProperties.WChild("b")) ?? characterStyleDefaults.Bold ?? styleDefaults.Bold ?? tableRunStyleDefaults.Bold ?? resolvedNativeDefaults.RunStyle.Bold ?? false;
+            bool italic = ReadNativeOnOff(runProperties.WChild("i")) ?? characterStyleDefaults.Italic ?? styleDefaults.Italic ?? tableRunStyleDefaults.Italic ?? resolvedNativeDefaults.RunStyle.Italic ?? false;
+            OfficeTextDecorationStyle? directUnderlineStyle = MapNativeUnderlineStyle(runProperties.WChild("u"));
             OfficeTextDecorationStyle underlineStyle = directUnderlineStyle ??
                 characterStyleDefaults.UnderlineStyle ??
                 styleDefaults.UnderlineStyle ??
@@ -103,24 +103,25 @@ namespace OfficeIMO.Word.Pdf {
                 resolvedNativeDefaults.RunStyle.StrikeStyle ??
                 OfficeTextDecorationStyle.None;
             bool allCaps =
-                ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ??
+                ReadNativeOnOff(runProperties.WChild("caps")) ??
                 characterStyleDefaults.AllCaps ??
                 styleDefaults.AllCaps ??
                 tableRunStyleDefaults.AllCaps ??
                 resolvedNativeDefaults.RunStyle.AllCaps ??
                 false;
             bool smallCaps =
-                ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ??
+                ReadNativeOnOff(runProperties.WChild("smallCaps")) ??
                 characterStyleDefaults.SmallCaps ??
                 styleDefaults.SmallCaps ??
                 tableRunStyleDefaults.SmallCaps ??
                 resolvedNativeDefaults.RunStyle.SmallCaps ??
                 false;
-            PdfCore.PdfTextBaseline baseline = MapNativeTextBaseline(
-                runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ??
+            string? baselineToken =
+                runProperties.WChild("vertAlign").WVal() ??
                 characterStyleDefaults.Baseline ??
                 styleDefaults.Baseline ??
-                tableRunStyleDefaults.Baseline ?? resolvedNativeDefaults.RunStyle.Baseline);
+                tableRunStyleDefaults.Baseline ?? resolvedNativeDefaults.RunStyle.Baseline;
+            PdfCore.PdfTextBaseline baseline = MapNativeTextBaseline(baselineToken);
             double? fontSize = paragraph.NativeFontSizePoints.HasValue && paragraph.NativeFontSizePoints.Value > 0
                 ? paragraph.NativeFontSizePoints.Value
                 : characterStyleDefaults.FontSize ?? styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
@@ -133,7 +134,7 @@ namespace OfficeIMO.Word.Pdf {
                 ? directColor
                 : ResolveNativeInheritedRunColor(characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
             global::OfficeIMO.OfficeColor? background = MapNativeHighlight(
-                WordRunFormatting.ResolveRunHighlight(paragraph, tableRunStyleDefaults.Highlight));
+                WordConverterNodes.ResolveRunHighlightToken(paragraph, tableRunStyleDefaults.Highlight));
             background ??= ParseNativeColor(WordRunFormatting.ResolveRunShadingFillColorHex(paragraph));
             // A painted run highlight or shading is the nearest backdrop for automatic text. A list marker
             // inherits the color but not the run background, so it resolves against the paragraph backdrop.
@@ -160,11 +161,11 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static bool TryGetNativeRunColor(W.RunProperties? properties, WordDocument document, out global::OfficeIMO.OfficeColor? color) {
-            W.Color? declaration = properties?.GetFirstChild<W.Color>();
-            color = ParseNativeColor(WordRunFormatting.ResolveColorHex(declaration, document));
+        private static bool TryGetNativeRunColor(OfficeXmlNode properties, WordDocument document, out global::OfficeIMO.OfficeColor? color) {
+            OfficeXmlNode declaration = properties.WChild("color");
+            color = ParseNativeColor(WordConverterNodes.ResolveColorHex(declaration, document));
             // An authored automatic color also stops inheritance.
-            return declaration != null;
+            return declaration.Exists;
         }
 
         private static void ResetNativeTextStyle(PdfCore.PdfParagraph builder) {

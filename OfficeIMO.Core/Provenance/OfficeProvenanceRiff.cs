@@ -100,6 +100,25 @@ internal static class OfficeProvenanceRiff {
                 } else {
                     output?.Write(data, offset, total);
                 }
+            } else if (chunkType == "EXIF" && payloadLength > 8) {
+                // Some writers keep the JPEG "Exif\0\0" prefix in the chunk; the TIFF structure starts after it.
+                int prefix = OfficeProvenanceBinary.MatchesAscii(data, offset + 8, "Exif\0\0") ? 6 : 0;
+                byte[] tiff = new byte[payloadLength - prefix];
+                Buffer.BlockCopy(data, offset + 8 + prefix, tiff, 0, tiff.Length);
+                string location = $"WebP/EXIF@{offset}";
+                bool carrierValid = extendedHeaderCount == 1 && allChunksHaveValidPadding && hasValidWebpContainer && hasValidExtendedHeader &&
+                    HasUnambiguousImagePayload(lossyImagePayloads, losslessImagePayloads, animationFramePayloads);
+                if (context != null) OfficeProvenanceTiff.InspectGeneratorFields(tiff, options, context, location, carrierValid);
+                if (output != null && removalOptions != null && changes != null &&
+                    OfficeProvenanceTiff.TryRemoveGeneratorFields(tiff, removalOptions, location, changes, carrierValid, out byte[] cleaned)) {
+                    byte[] payload = new byte[payloadLength];
+                    Buffer.BlockCopy(data, offset + 8, payload, 0, prefix);
+                    Buffer.BlockCopy(cleaned, 0, payload, prefix, cleaned.Length);
+                    WriteChunk(output, "EXIF", payload);
+                    reserialized = true;
+                } else {
+                    output?.Write(data, offset, total);
+                }
             } else if (chunkType == "XMP ") {
                 byte[] packet = new byte[payloadLength];
                 Buffer.BlockCopy(data, offset + 8, packet, 0, payloadLength);

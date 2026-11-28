@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
         }
 
         private Dictionary<long, int> ReadImplicitXmlRowIndexes(CancellationToken ct) {
-            using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+            using var stream = OpenReaderWorksheetStream(default);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
             var coordinates = new ImplicitXmlRowIndexBuilder();

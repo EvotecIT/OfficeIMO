@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
     /// that removes files from a list. The engine's own Open XML layer names neither.
     /// </summary>
     public class ExcelOpenXmlSdkBoundary {
-        private const int Baseline = 524;
-        private const int PackagingBaseline = 17;
+        private const int Baseline = 476;
+        private const int PackagingBaseline = 14;
         private readonly ITestOutputHelper _output;
 
         public ExcelOpenXmlSdkBoundary(ITestOutputHelper output) => _output = output;

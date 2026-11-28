@@ -189,7 +189,7 @@ namespace OfficeIMO.Excel {
                     throw new InvalidDataException(
                         $"The OpenXML worksheet '{name}' references missing relationship '{relationshipId}'.");
                 }
-                ValidatePartContentType(partName, WorksheetContentType, "worksheet");
+                ValidatePartContentType(partName, ExcelReadWorkbookParts.WorksheetContentType, "worksheet");
                 sheets.Add(new XlsxTabularSheet(name!, partName));
             }
 
@@ -214,9 +214,9 @@ namespace OfficeIMO.Excel {
             "application/vnd.openxmlformats-package.relationships+xml",
             "application/xml",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
-            WorksheetContentType,
-            StylesContentType,
-            SharedStringsContentType,
+            ExcelReadWorkbookParts.WorksheetContentType,
+            ExcelReadWorkbookParts.StylesContentType,
+            ExcelReadWorkbookParts.SharedStringsContentType,
             "application/vnd.openxmlformats-officedocument.theme+xml",
             "application/vnd.openxmlformats-package.core-properties+xml",
             "application/vnd.openxmlformats-officedocument.extended-properties+xml",

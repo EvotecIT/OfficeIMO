@@ -1,21 +1,17 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using A = DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Wordprocessing;
-using V = DocumentFormat.OpenXml.Vml;
+using OfficeIMO.Word.OpenXml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private const string OfficeRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
-        private static void ApplyImageFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
+        private static void ApplyImageFindings(WordPackageView sourceDocument, WordPackageView targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
             List<RedlineImageContainer> targetContainers = GetRedlineImageContainers(targetDocument);
             List<RedlineImageEntry> sourceImages = GetRedlineImageEntries(sourceDocument);
             List<RedlineImageEntry> targetImages = GetRedlineImageEntries(targetDocument);
             var rewrittenTargetImages = new HashSet<int>();
             var insertedSourceImages = new HashSet<int>();
-            var insertedBeforeImageAnchors = new Dictionary<Run, OpenXmlElement>();
-            var insertedAfterImageAnchors = new Dictionary<Run, OpenXmlElement>();
+            var insertedBeforeImageAnchors = new Dictionary<OfficeXmlNode, OfficeXmlNode>();
+            var insertedAfterImageAnchors = new Dictionary<OfficeXmlNode, OfficeXmlNode>();
 
             List<WordComparisonFinding> imageFindings = result.Findings
                 .Where(finding => ShouldTrackFinding(finding, options) && finding.Scope == WordComparisonScope.Image)
@@ -68,7 +64,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static List<RedlineImageEntry> GetRedlineImageEntries(WordprocessingDocument document) {
+        private static List<RedlineImageEntry> GetRedlineImageEntries(WordPackageView document) {
             var entries = new List<RedlineImageEntry>();
             foreach (RedlineImageContainer container in GetRedlineImageContainers(document)) {
                 AddRedlineImageEntries(entries, container);
@@ -77,11 +73,12 @@ namespace OfficeIMO.Word {
             return entries;
         }
 
-        private static List<RedlineImageContainer> GetRedlineImageContainers(WordprocessingDocument document) {
-            MainDocumentPart? mainPart = document.MainDocumentPart;
+        private static List<RedlineImageContainer> GetRedlineImageContainers(WordPackageView document) {
+            WordPartView? mainPart = document.Main;
             var containers = new List<RedlineImageContainer>();
-            if (mainPart?.Document?.Body != null) {
-                containers.Add(new RedlineImageContainer(containers.Count, BodyPartKey, mainPart, mainPart.Document.Body, BodyPartOrderBase));
+            OfficeXmlNode body = BodyOf(mainPart);
+            if (!body.IsNone) {
+                containers.Add(new RedlineImageContainer(containers.Count, BodyPartKey, mainPart!, body, BodyPartOrderBase));
             }
 
             if (mainPart == null) {
@@ -89,36 +86,40 @@ namespace OfficeIMO.Word {
             }
 
             int headerIndex = 0;
-            foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
-                if (headerPartKey.Key.Header != null) {
-                    containers.Add(new RedlineImageContainer(containers.Count, headerPartKey.Value, headerPartKey.Key, headerPartKey.Key.Header, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride)));
+            foreach (KeyValuePair<WordPartView, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                OfficeXmlNode header = HeaderRoot(headerPartKey.Key);
+                if (!header.IsNone) {
+                    containers.Add(new RedlineImageContainer(containers.Count, headerPartKey.Value, headerPartKey.Key, header, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride)));
                 }
 
                 headerIndex++;
             }
 
             int footerIndex = 0;
-            foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
-                if (footerPartKey.Key.Footer != null) {
-                    containers.Add(new RedlineImageContainer(containers.Count, footerPartKey.Value, footerPartKey.Key, footerPartKey.Key.Footer, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride)));
+            foreach (KeyValuePair<WordPartView, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                OfficeXmlNode footer = FooterRoot(footerPartKey.Key);
+                if (!footer.IsNone) {
+                    containers.Add(new RedlineImageContainer(containers.Count, footerPartKey.Value, footerPartKey.Key, footer, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride)));
                 }
 
                 footerIndex++;
             }
 
-            List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+            List<OfficeXmlNode> footnotes = GetReferencedFootnotes(mainPart);
+            WordPartView? footnotesPart = FootnotesPart(mainPart);
             for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
-                if (mainPart.FootnotesPart != null) {
+                if (footnotesPart != null) {
                     string noteId = GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
-                    containers.Add(new RedlineImageContainer(containers.Count, FootnotePartKeyPrefix + noteId, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride)));
+                    containers.Add(new RedlineImageContainer(containers.Count, FootnotePartKeyPrefix + noteId, footnotesPart, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride)));
                 }
             }
 
-            List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+            List<OfficeXmlNode> endnotes = GetReferencedEndnotes(mainPart);
+            WordPartView? endnotesPart = EndnotesPart(mainPart);
             for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
-                if (mainPart.EndnotesPart != null) {
+                if (endnotesPart != null) {
                     string noteId = GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
-                    containers.Add(new RedlineImageContainer(containers.Count, EndnotePartKeyPrefix + noteId, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride)));
+                    containers.Add(new RedlineImageContainer(containers.Count, EndnotePartKeyPrefix + noteId, endnotesPart, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride)));
                 }
             }
 
@@ -132,64 +133,63 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                Run? run = ordered.Element.Ancestors<Run>().FirstOrDefault();
-                if (run == null) {
+                OfficeXmlNode run = AncestorW(ordered.Element, "r");
+                if (run.IsNone) {
                     continue;
                 }
 
-                OpenXmlElement imageElement = GetImageRedlineElement(ordered.Element);
+                OfficeXmlNode imageElement = GetImageRedlineElement(ordered.Element);
                 entries.Add(new RedlineImageEntry(entries.Count, container.Index, container.PartKey, containerImageIndex, container.Part, container.Container, run, imageElement));
                 containerImageIndex++;
             }
         }
 
-        private static OpenXmlElement GetImageRedlineElement(OpenXmlElement element) {
-            if (element is V.ImageData) {
-                return element.Ancestors<Picture>().FirstOrDefault() ?? element;
+        private static OfficeXmlNode GetImageRedlineElement(OfficeXmlNode element) {
+            if (element.Is(Vml, "imagedata")) {
+                OfficeXmlNode picture = AncestorW(element, "pict");
+                return picture.IsNone ? element : picture;
             }
 
             return element;
         }
 
-        private static bool IsRedlineImageElement(OpenXmlElement element) {
-            return element is V.ImageData ||
-                element is DocumentFormat.OpenXml.Wordprocessing.Drawing drawing &&
-                drawing.Descendants<A.Blip>().Any();
+        private static bool IsRedlineImageElement(OfficeXmlNode element) {
+            return element.Is(Vml, "imagedata") ||
+                element.Is(W, "drawing") && HasDescendant(element, Dml, "blip");
         }
 
+        private static bool IsInTrackedRun(OfficeXmlNode run) => HasAncestorW(run, "ins") || HasAncestorW(run, "del");
+
         private static bool WrapImageRunAsInserted(RedlineImageEntry entry, WordComparisonRedlineOptions options) {
-            Run imageRun = entry.Run;
-            OpenXmlElement? parent = imageRun.Parent;
-            if (parent == null || imageRun.Ancestors<InsertedRun>().Any() || imageRun.Ancestors<DeletedRun>().Any()) {
+            OfficeXmlNode imageRun = entry.Run;
+            OfficeXmlNode parent = imageRun.Parent;
+            if (parent.IsNone || IsInTrackedRun(imageRun)) {
                 return false;
             }
 
-            var inserted = new InsertedRun {
-                Author = options.Author,
-                Date = options.DateTime ?? DateTime.Now,
-                Id = WordHeadersAndFooters.GenerateRevisionId()
-            };
-            Run insertedRun = CloneImageOnlyRun(entry);
+            OfficeXmlNode inserted = parent.CreateElement(W, "ins");
+            SetRevisionAttributes(inserted, options.Author, options.DateTime ?? DateTime.Now);
+            OfficeXmlNode insertedRun = CloneImageOnlyRun(inserted, entry);
             inserted.Append(insertedRun);
             parent.InsertBefore(inserted, imageRun);
             RemoveImageElementFromRun(entry);
             return true;
         }
 
-        private static bool WrapImageRunAsChanged(RedlineImageEntry sourceEntry, RedlineImageEntry targetEntry, WordprocessingDocument targetDocument, WordComparisonRedlineOptions options) {
-            Run targetRun = targetEntry.Run;
-            OpenXmlElement? parent = targetRun.Parent;
-            if (parent == null || targetRun.Ancestors<InsertedRun>().Any() || targetRun.Ancestors<DeletedRun>().Any()) {
+        private static bool WrapImageRunAsChanged(RedlineImageEntry sourceEntry, RedlineImageEntry targetEntry, WordPackageView targetDocument, WordComparisonRedlineOptions options) {
+            OfficeXmlNode targetRun = targetEntry.Run;
+            OfficeXmlNode parent = targetRun.Parent;
+            if (parent.IsNone || IsInTrackedRun(targetRun)) {
                 return false;
             }
 
-            Run? deletedRun = CloneImageRunForPart(sourceEntry, targetEntry.Part, targetDocument);
-            if (deletedRun == null) {
+            OfficeXmlNode deletedRun = CloneImageRunForPart(parent, sourceEntry, targetEntry.Part, targetDocument);
+            if (deletedRun.IsNone) {
                 return false;
             }
 
-            parent.InsertBefore(WrapRunAsDeleted(deletedRun, options), targetRun);
-            parent.InsertBefore(WrapRunAsInserted(CloneImageOnlyRun(targetEntry), options), targetRun);
+            parent.InsertBefore(WrapRunAsDeleted(parent, deletedRun, options), targetRun);
+            parent.InsertBefore(WrapRunAsInserted(parent, CloneImageOnlyRun(parent, targetEntry), options), targetRun);
             RemoveImageElementFromRun(targetEntry);
             return true;
         }
@@ -199,17 +199,19 @@ namespace OfficeIMO.Word {
             RedlineImageEntry sourceEntry,
             IReadOnlyList<RedlineImageContainer> targetContainers,
             IReadOnlyList<RedlineImageEntry> targetImages,
-            WordprocessingDocument targetDocument,
+            WordPackageView targetDocument,
             WordComparisonRedlineOptions options,
-            Dictionary<Run, OpenXmlElement> insertedBeforeImageAnchors,
-            Dictionary<Run, OpenXmlElement> insertedAfterImageAnchors) {
+            Dictionary<OfficeXmlNode, OfficeXmlNode> insertedBeforeImageAnchors,
+            Dictionary<OfficeXmlNode, OfficeXmlNode> insertedAfterImageAnchors) {
             RedlineImageContainer targetContainer = GetTargetImageContainer(sourceEntry, targetContainers);
-            Run? deletedRun = CloneImageRunForPart(sourceEntry, targetContainer.Part, targetDocument);
-            if (deletedRun == null) {
+            // Runs and their revision wrappers are made as a paragraph holds them, whatever the container is.
+            OfficeXmlNode context = targetContainer.Container.CreateElement(W, "p");
+            OfficeXmlNode deletedRun = CloneImageRunForPart(context, sourceEntry, targetContainer.Part, targetDocument);
+            if (deletedRun.IsNone) {
                 return false;
             }
 
-            DeletedRun deleted = WrapRunAsDeleted(deletedRun, options);
+            OfficeXmlNode deleted = WrapRunAsDeleted(context, deletedRun, options);
             List<RedlineImageEntry> sourcePartImages = sourceImages
                 .Where(image => string.Equals(image.PartKey, sourceEntry.PartKey, StringComparison.Ordinal))
                 .ToList();
@@ -226,7 +228,7 @@ namespace OfficeIMO.Word {
                 .Where(image => string.Equals(image.PartKey, targetContainer.PartKey, StringComparison.Ordinal) && image.ContainerImageIndex >= targetImageIndex)
                 .OrderBy(image => image.ContainerImageIndex)
                 .FirstOrDefault();
-            if (nextImage?.Run.Parent != null) {
+            if (nextImage != null && !nextImage.Run.Parent.IsNone) {
                 InsertBeforeImageAnchor(nextImage.Run, deleted, insertedBeforeImageAnchors);
                 return true;
             }
@@ -235,7 +237,7 @@ namespace OfficeIMO.Word {
                 .Where(image => string.Equals(image.PartKey, targetContainer.PartKey, StringComparison.Ordinal) && image.ContainerImageIndex < targetImageIndex)
                 .OrderByDescending(image => image.ContainerImageIndex)
                 .FirstOrDefault();
-            if (previousImage?.Run.Parent != null) {
+            if (previousImage != null && !previousImage.Run.Parent.IsNone) {
                 InsertAfterImageAnchor(previousImage.Run, deleted, insertedAfterImageAnchors);
                 return true;
             }
@@ -244,20 +246,21 @@ namespace OfficeIMO.Word {
                 return true;
             }
 
-            var paragraph = new Paragraph(deleted);
+            OfficeXmlNode paragraph = targetContainer.Container.CreateElement(W, "p");
+            paragraph.Append(deleted);
             AppendImageFallbackParagraph(targetContainer.Container, paragraph);
             return true;
         }
 
-        private static bool TryInsertDeletedImageAtSourceParagraphGap(RedlineImageEntry sourceEntry, RedlineImageContainer targetContainer, DeletedRun deleted) {
-            Paragraph? sourceParagraph = sourceEntry.Run.Ancestors<Paragraph>().FirstOrDefault();
-            if (sourceParagraph == null) {
+        private static bool TryInsertDeletedImageAtSourceParagraphGap(RedlineImageEntry sourceEntry, RedlineImageContainer targetContainer, OfficeXmlNode deleted) {
+            OfficeXmlNode sourceParagraph = AncestorW(sourceEntry.Run, "p");
+            if (sourceParagraph.IsNone) {
                 return false;
             }
 
-            List<Paragraph> sourceParagraphs = sourceEntry.Container.Descendants<Paragraph>().ToList();
-            List<Paragraph> targetParagraphs = targetContainer.Container.Descendants<Paragraph>().ToList();
-            int sourceParagraphIndex = sourceParagraphs.FindIndex(paragraph => ReferenceEquals(paragraph, sourceParagraph));
+            List<OfficeXmlNode> sourceParagraphs = DescendantsW(sourceEntry.Container, "p");
+            List<OfficeXmlNode> targetParagraphs = DescendantsW(targetContainer.Container, "p");
+            int sourceParagraphIndex = sourceParagraphs.FindIndex(paragraph => paragraph == sourceParagraph);
             if (sourceParagraphIndex < 0 || targetParagraphs.Count == 0) {
                 return false;
             }
@@ -273,10 +276,13 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static void AppendImageFallbackParagraph(OpenXmlElement container, Paragraph paragraph) {
-            if (container is Body body && body.Elements<SectionProperties>().LastOrDefault() is SectionProperties sectionProperties) {
-                body.InsertBefore(paragraph, sectionProperties);
-                return;
+        private static void AppendImageFallbackParagraph(OfficeXmlNode container, OfficeXmlNode paragraph) {
+            if (container.Is(W, "body")) {
+                OfficeXmlNode sectionProperties = container.Children(W, "sectPr").Last();
+                if (!sectionProperties.IsNone) {
+                    container.InsertBefore(paragraph, sectionProperties);
+                    return;
+                }
             }
 
             container.Append(paragraph);
@@ -295,288 +301,251 @@ namespace OfficeIMO.Word {
             throw new InvalidOperationException("Target document has no part that can receive a deleted image redline.");
         }
 
-        private static void InsertBeforeImageAnchor(Run anchorRun, OpenXmlElement deleted, Dictionary<Run, OpenXmlElement> insertedBeforeImageAnchors) {
-            if (insertedBeforeImageAnchors.TryGetValue(anchorRun, out OpenXmlElement? previousInserted)) {
-                previousInserted.InsertAfterSelf(deleted);
+        private static void InsertBeforeImageAnchor(OfficeXmlNode anchorRun, OfficeXmlNode deleted, Dictionary<OfficeXmlNode, OfficeXmlNode> insertedBeforeImageAnchors) {
+            if (insertedBeforeImageAnchors.TryGetValue(anchorRun, out OfficeXmlNode previousInserted)) {
+                deleted = previousInserted.InsertAfterSelf(deleted);
             } else {
-                anchorRun.Parent!.InsertBefore(deleted, anchorRun);
+                deleted = anchorRun.Parent.InsertBefore(deleted, anchorRun);
             }
 
             insertedBeforeImageAnchors[anchorRun] = deleted;
         }
 
-        private static void InsertAfterImageAnchor(Run anchorRun, OpenXmlElement deleted, Dictionary<Run, OpenXmlElement> insertedAfterImageAnchors) {
-            if (insertedAfterImageAnchors.TryGetValue(anchorRun, out OpenXmlElement? previousInserted)) {
-                previousInserted.InsertAfterSelf(deleted);
+        private static void InsertAfterImageAnchor(OfficeXmlNode anchorRun, OfficeXmlNode deleted, Dictionary<OfficeXmlNode, OfficeXmlNode> insertedAfterImageAnchors) {
+            if (insertedAfterImageAnchors.TryGetValue(anchorRun, out OfficeXmlNode previousInserted)) {
+                deleted = previousInserted.InsertAfterSelf(deleted);
             } else {
-                anchorRun.Parent!.InsertAfter(deleted, anchorRun);
+                deleted = anchorRun.InsertAfterSelf(deleted);
             }
 
             insertedAfterImageAnchors[anchorRun] = deleted;
         }
 
-        private static Run? CloneImageRunForPart(RedlineImageEntry sourceEntry, OpenXmlPart targetPart, WordprocessingDocument targetDocument) {
-            var clonedRun = CloneImageOnlyRun(sourceEntry);
-            foreach (A.Blip blip in clonedRun.Descendants<A.Blip>()) {
-                if (blip.Embed?.Value is string embeddedRelationshipId) {
+        /// <summary>A copy of the source image run whose relationships target copies in <paramref name="targetPart"/>, or none when one can't be copied.</summary>
+        private static OfficeXmlNode CloneImageRunForPart(OfficeXmlNode context, RedlineImageEntry sourceEntry, WordPartView targetPart, WordPackageView targetDocument) {
+            OfficeXmlNode clonedRun = CloneImageOnlyRun(context, sourceEntry);
+            foreach (OfficeXmlNode blip in DescendantsOf(clonedRun, Dml, "blip")) {
+                if (blip.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "embed") is string embeddedRelationshipId) {
                     string? copiedRelationshipId = CopyEmbeddedImageRelationship(sourceEntry.Part, targetPart, embeddedRelationshipId);
                     if (copiedRelationshipId == null) {
-                        return null;
+                        return default;
                     }
 
-                    blip.Embed = copiedRelationshipId;
+                    blip.SetAttribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "embed", copiedRelationshipId);
                 }
 
-                if (blip.Link?.Value is string externalRelationshipId) {
+                if (blip.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "link") is string externalRelationshipId) {
                     string? copiedRelationshipId = CopyExternalImageRelationship(sourceEntry.Part, targetPart, externalRelationshipId);
                     if (copiedRelationshipId == null) {
-                        return null;
+                        return default;
                     }
 
-                    blip.Link = copiedRelationshipId;
+                    blip.SetAttribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "link", copiedRelationshipId);
                 }
             }
 
-            foreach (V.ImageData imageData in clonedRun.Descendants<V.ImageData>()) {
-                if (imageData.RelationshipId?.Value is not string relationshipId) {
+            foreach (OfficeXmlNode imageData in DescendantsOf(clonedRun, Vml, "imagedata")) {
+                if (imageData.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "id") is not string relationshipId) {
                     continue;
                 }
 
-                string? copiedRelationshipId = sourceEntry.Part.ExternalRelationships.Any(relationship => relationship.Id == relationshipId)
+                string? copiedRelationshipId = sourceEntry.Part.HasExternalRelationship(relationshipId)
                     ? CopyExternalImageRelationship(sourceEntry.Part, targetPart, relationshipId)
                     : CopyEmbeddedImageRelationship(sourceEntry.Part, targetPart, relationshipId);
                 if (copiedRelationshipId == null) {
-                    return null;
+                    return default;
                 }
 
-                imageData.RelationshipId = copiedRelationshipId;
+                imageData.SetAttribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "id", copiedRelationshipId);
             }
 
             if (!CopyAdditionalRunRelationships(sourceEntry.Part, targetPart, clonedRun)) {
-                return null;
+                return default;
             }
 
-            RefreshClonedDrawingIds(targetDocument, clonedRun);
+            WordPackageView.ReassignDrawingIds(targetDocument.SdkDocument!, clonedRun);
             RefreshClonedVmlIds(targetDocument, clonedRun);
             return clonedRun;
         }
 
-        private static Run CloneImageOnlyRun(RedlineImageEntry entry) {
-            var clonedRun = new Run();
-            RunProperties? properties = entry.Run.GetFirstChild<RunProperties>();
-            if (properties != null) {
-                clonedRun.Append((RunProperties)properties.CloneNode(true));
+        private static OfficeXmlNode CloneImageOnlyRun(OfficeXmlNode context, RedlineImageEntry entry) {
+            OfficeXmlNode clonedRun = context.CreateElement(W, "r");
+            OfficeXmlNode properties = entry.Run.Child(W, "rPr");
+            if (!properties.IsNone) {
+                clonedRun.Append(properties.Clone());
             }
 
-            clonedRun.Append(entry.ImageElement.CloneNode(true));
+            clonedRun.Append(entry.ImageElement.Clone());
             return clonedRun;
         }
 
         private static void RemoveImageElementFromRun(RedlineImageEntry entry) {
             entry.ImageElement.Remove();
-            if (!entry.Run.ChildElements.Any(child => child is not RunProperties)) {
+            if (!entry.Run.Children().ToList().Any(child => !child.Is(W, "rPr"))) {
                 entry.Run.Remove();
             }
         }
 
         private static string GetRedlineImageIdentity(RedlineImageEntry entry) {
-            DocumentFormat.OpenXml.Wordprocessing.Drawing? drawing = entry.Run.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().FirstOrDefault();
-            if (drawing != null) {
-                A.Blip? blip = drawing.Descendants<A.Blip>().FirstOrDefault();
-                if (blip?.Embed?.Value is string embeddedRelationshipId) {
+            OfficeXmlNode drawing = FirstDescendant(entry.Run, W, "drawing");
+            if (!drawing.IsNone) {
+                OfficeXmlNode blip = FirstDescendant(drawing, Dml, "blip");
+                if (blip.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "embed") is string embeddedRelationshipId) {
                     return entry.PartKey + "|embedded|" + GetImageFingerprintText(entry.Part, embeddedRelationshipId) + "|" + GetDrawingVisualSignature(entry.Part, drawing);
                 }
 
-                if (blip?.Link?.Value is string externalRelationshipId) {
+                if (blip.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "link") is string externalRelationshipId) {
                     return entry.PartKey + "|external|" + GetRelationshipTarget(entry.Part, externalRelationshipId) + "|" + GetDrawingVisualSignature(entry.Part, drawing);
                 }
             }
 
-            V.ImageData? imageData = entry.Run.Descendants<V.ImageData>().FirstOrDefault();
-            if (imageData?.RelationshipId?.Value is string relationshipId) {
-                string relationshipIdentity = entry.Part.ExternalRelationships.Any(relationship => relationship.Id == relationshipId)
+            OfficeXmlNode imageData = FirstDescendant(entry.Run, Vml, "imagedata");
+            if (imageData.Attribute(OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.Relationships, "id") is string relationshipId) {
+                string relationshipIdentity = entry.Part.HasExternalRelationship(relationshipId)
                     ? "external|" + GetRelationshipTarget(entry.Part, relationshipId)
                     : "embedded|" + GetImageFingerprintText(entry.Part, relationshipId);
                 return entry.PartKey + "|" + relationshipIdentity + "|" + GetVmlVisualSignature(entry.Part, imageData);
             }
 
-            return entry.PartKey + "|run|" + entry.Run.OuterXml;
+            return entry.PartKey + "|run|" + GetElementSignature(entry.Run);
         }
 
-        private static string GetImageFingerprintText(OpenXmlPart part, string relationshipId) {
-            try {
-                if (part.GetPartById(relationshipId) is ImagePart imagePart) {
-                    using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-                    ImageFingerprint fingerprint = CreateImageFingerprint(stream);
-                    return fingerprint.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + fingerprint.Sha256;
-                }
-            } catch (ArgumentOutOfRangeException) {
+        private static string GetImageFingerprintText(WordPartView part, string relationshipId) {
+            WordPartView? imagePart = part.GetPartById(relationshipId);
+            if (imagePart != null && IsImagePartRelationship(part, relationshipId)) {
+                ImageFingerprint fingerprint = CreateImageFingerprint(imagePart);
+                return fingerprint.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + fingerprint.Sha256;
             }
 
             return relationshipId;
         }
 
-        private static bool CopyAdditionalRunRelationships(OpenXmlPart sourcePart, OpenXmlPart targetPart, Run clonedRun) {
-            foreach (OpenXmlElement element in clonedRun.Descendants<OpenXmlElement>()) {
-                foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+        private static bool CopyAdditionalRunRelationships(WordPartView sourcePart, WordPartView targetPart, OfficeXmlNode clonedRun) {
+            foreach (OfficeXmlNode element in Descendants(clonedRun)) {
+                foreach (WordXmlAttribute attribute in WordXmlNodes.Attributes(element)) {
                     if (!string.Equals(attribute.NamespaceUri, OfficeRelationshipNamespace, StringComparison.Ordinal) ||
                         string.IsNullOrWhiteSpace(attribute.Value) ||
                         IsHandledImageRelationshipAttribute(element, attribute)) {
                         continue;
                     }
 
-                    string relationshipId = attribute.Value!;
-                    string? copiedRelationshipId = CopyRelationship(sourcePart, targetPart, relationshipId);
+                    string? copiedRelationshipId = CopyRelationship(sourcePart, targetPart, attribute.Value);
                     if (copiedRelationshipId == null) {
                         return false;
                     }
 
-                    element.SetAttribute(new OpenXmlAttribute(attribute.Prefix, attribute.LocalName, attribute.NamespaceUri, copiedRelationshipId));
+                    WordXmlNodes.SetAttribute(element, attribute.Prefix, attribute.NamespaceUri, attribute.LocalName, copiedRelationshipId);
                 }
             }
 
             return true;
         }
 
-        private static bool IsHandledImageRelationshipAttribute(OpenXmlElement element, OpenXmlAttribute attribute) {
-            return element is A.Blip &&
-                   (string.Equals(attribute.LocalName, "embed", StringComparison.Ordinal) ||
-                    string.Equals(attribute.LocalName, "link", StringComparison.Ordinal)) ||
-                   element is V.ImageData &&
-                   string.Equals(attribute.LocalName, "id", StringComparison.Ordinal);
+        /// <summary>
+        /// A relationship attribute the image copy above already remapped. An image inside an extension list is not one:
+        /// the image copy finds images the way the SDK's typed lookups did, which skip extension content.
+        /// </summary>
+        private static bool IsHandledImageRelationshipAttribute(OfficeXmlNode element, WordXmlAttribute attribute) {
+            bool handled = element.Is(Dml, "blip") &&
+                           (string.Equals(attribute.LocalName, "embed", StringComparison.Ordinal) ||
+                            string.Equals(attribute.LocalName, "link", StringComparison.Ordinal)) ||
+                           element.Is(Vml, "imagedata") &&
+                           string.Equals(attribute.LocalName, "id", StringComparison.Ordinal);
+            return handled && !IsInsideExtensionList(element);
         }
 
-        private static string? CopyRelationship(OpenXmlPart sourcePart, OpenXmlPart targetPart, string relationshipId) {
-            HyperlinkRelationship? hyperlinkRelationship = WordHyperLink.FindHyperlinkRelationship(sourcePart, relationshipId);
-            if (hyperlinkRelationship != null) {
-                HyperlinkRelationship targetRelationship = targetPart.AddHyperlinkRelationship(hyperlinkRelationship.Uri, hyperlinkRelationship.IsExternal);
-                return targetRelationship.Id;
+        private static string? CopyRelationship(WordPartView sourcePart, WordPartView targetPart, string relationshipId) {
+            if (sourcePart.HyperlinkTarget(relationshipId, out bool isExternal) != null) {
+                return targetPart.AddHyperlinkRelationship(sourcePart.RawTarget(relationshipId) ?? string.Empty, isExternal);
             }
 
-            ExternalRelationship? externalRelationship = sourcePart.ExternalRelationships.FirstOrDefault(relationship => relationship.Id == relationshipId);
-            if (externalRelationship != null) {
-                ExternalRelationship targetRelationship = targetPart.AddExternalRelationship(externalRelationship.RelationshipType, externalRelationship.Uri);
-                return targetRelationship.Id;
+            if (sourcePart.TryGetExternalRelationship(relationshipId, out string relationshipType, out _)) {
+                return targetPart.AddExternalRelationship(relationshipType, sourcePart.RawTarget(relationshipId) ?? string.Empty);
             }
 
-            try {
-                return sourcePart.GetPartById(relationshipId) is ImagePart
-                    ? CopyEmbeddedImageRelationship(sourcePart, targetPart, relationshipId)
-                    : null;
-            } catch (ArgumentOutOfRangeException) {
-                return null;
-            }
+            return sourcePart.GetPartById(relationshipId) != null && IsImagePartRelationship(sourcePart, relationshipId)
+                ? CopyEmbeddedImageRelationship(sourcePart, targetPart, relationshipId)
+                : null;
         }
 
-        private static string? CopyEmbeddedImageRelationship(OpenXmlPart sourcePart, OpenXmlPart targetPart, string relationshipId) {
-            OpenXmlPart sourceRelatedPart;
-            try {
-                sourceRelatedPart = sourcePart.GetPartById(relationshipId);
-            } catch (ArgumentOutOfRangeException) {
+        private static string? CopyEmbeddedImageRelationship(WordPartView sourcePart, WordPartView targetPart, string relationshipId) {
+            WordPartView? sourceImagePart = sourcePart.GetPartById(relationshipId);
+            if (sourceImagePart == null || !IsImagePartRelationship(sourcePart, relationshipId)) {
                 return null;
             }
 
-            if (sourceRelatedPart is not ImagePart sourceImagePart) {
+            using Stream content = sourceImagePart.OpenRead();
+            return targetPart.AddImagePart(sourceImagePart.ContentType ?? string.Empty, content);
+        }
+
+        private static string? CopyExternalImageRelationship(WordPartView sourcePart, WordPartView targetPart, string relationshipId) {
+            if (!sourcePart.TryGetExternalRelationship(relationshipId, out string relationshipType, out _)) {
                 return null;
             }
 
-            ImagePart targetImagePart = AddImagePart(targetPart, sourceImagePart.ContentType);
-            using Stream sourceStream = sourceImagePart.GetStream(FileMode.Open, FileAccess.Read);
-            targetImagePart.FeedData(sourceStream);
-            return targetPart.GetIdOfPart(targetImagePart);
+            return targetPart.AddExternalRelationship(relationshipType, sourcePart.RawTarget(relationshipId) ?? string.Empty);
         }
 
-        private static string? CopyExternalImageRelationship(OpenXmlPart sourcePart, OpenXmlPart targetPart, string relationshipId) {
-            ExternalRelationship? sourceRelationship = sourcePart.ExternalRelationships.FirstOrDefault(relationship => relationship.Id == relationshipId);
-            if (sourceRelationship == null) {
-                return null;
-            }
-
-            ExternalRelationship targetRelationship = targetPart.AddExternalRelationship(sourceRelationship.RelationshipType, sourceRelationship.Uri);
-            return targetRelationship.Id;
-        }
-
-        private static void RefreshClonedDrawingIds(WordprocessingDocument targetDocument, Run clonedRun) {
-            WordDrawingIdAllocator.Reassign(targetDocument, clonedRun);
-        }
-
-        private static void RefreshClonedVmlIds(WordprocessingDocument targetDocument, Run clonedRun) {
+        private static void RefreshClonedVmlIds(WordPackageView targetDocument, OfficeXmlNode clonedRun) {
             HashSet<string> usedIds = GetVmlShapeIds(targetDocument);
             int nextId = usedIds.Count + 1;
-            foreach (V.Shape shape in clonedRun.Descendants<V.Shape>()) {
+            foreach (OfficeXmlNode shape in DescendantsOf(clonedRun, Vml, "shape")) {
                 string candidate;
                 do {
                     candidate = "OfficeIMOImageRedline" + nextId.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     nextId++;
                 } while (usedIds.Contains(candidate));
 
-                shape.Id = candidate;
+                shape.SetAttribute("id", candidate);
                 usedIds.Add(candidate);
             }
         }
 
-        private static HashSet<string> GetVmlShapeIds(WordprocessingDocument document) {
+        private static HashSet<string> GetVmlShapeIds(WordPackageView document) {
             var ids = new HashSet<string>(StringComparer.Ordinal);
-            MainDocumentPart? mainPart = document.MainDocumentPart;
-            AddVmlShapeIds(ids, mainPart?.Document);
+            WordPartView? mainPart = document.Main;
+            AddVmlShapeIds(ids, DocumentRoot(mainPart));
 
             if (mainPart != null) {
-                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    AddVmlShapeIds(ids, headerPart.Header);
+                foreach (WordPartView headerPart in HeaderParts(mainPart)) {
+                    AddVmlShapeIds(ids, HeaderRoot(headerPart));
                 }
 
-                foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    AddVmlShapeIds(ids, footerPart.Footer);
+                foreach (WordPartView footerPart in FooterParts(mainPart)) {
+                    AddVmlShapeIds(ids, FooterRoot(footerPart));
                 }
 
-                AddVmlShapeIds(ids, mainPart.FootnotesPart?.Footnotes);
-                AddVmlShapeIds(ids, mainPart.EndnotesPart?.Endnotes);
-                AddVmlShapeIds(ids, mainPart.WordprocessingCommentsPart?.Comments);
+                AddVmlShapeIds(ids, FootnotesRoot(FootnotesPart(mainPart)));
+                AddVmlShapeIds(ids, EndnotesRoot(EndnotesPart(mainPart)));
+                AddVmlShapeIds(ids, mainPart.FirstPart(WordPackageView.CommentsRelationshipType)?.RootNamed(W, "comments") ?? default);
             }
 
             return ids;
         }
 
-        private static void AddVmlShapeIds(HashSet<string> ids, OpenXmlElement? root) {
-            if (root == null) {
+        private static void AddVmlShapeIds(HashSet<string> ids, OfficeXmlNode root) {
+            if (root.IsNone) {
                 return;
             }
 
-            foreach (V.Shape shape in root.Descendants<V.Shape>()) {
-                string? shapeId = shape.Id?.Value;
+            foreach (OfficeXmlNode shape in DescendantsOf(root, Vml, "shape")) {
+                string? shapeId = shape.Attribute("id");
                 if (!string.IsNullOrEmpty(shapeId)) {
                     ids.Add(shapeId!);
                 }
             }
         }
 
-        private static ImagePart AddImagePart(OpenXmlPart part, string contentType) {
-            return part switch {
-                MainDocumentPart mainDocumentPart => mainDocumentPart.AddImagePart(contentType),
-                HeaderPart headerPart => headerPart.AddImagePart(contentType),
-                FooterPart footerPart => footerPart.AddImagePart(contentType),
-                FootnotesPart footnotesPart => footnotesPart.AddImagePart(contentType),
-                EndnotesPart endnotesPart => endnotesPart.AddImagePart(contentType),
-                _ => throw new InvalidOperationException("Images cannot be copied into this document part.")
-            };
-        }
-
-        private static InsertedRun WrapRunAsInserted(Run run, WordComparisonRedlineOptions options) {
-            var inserted = new InsertedRun {
-                Author = options.Author,
-                Date = options.DateTime ?? DateTime.Now,
-                Id = WordHeadersAndFooters.GenerateRevisionId()
-            };
+        private static OfficeXmlNode WrapRunAsInserted(OfficeXmlNode context, OfficeXmlNode run, WordComparisonRedlineOptions options) {
+            OfficeXmlNode inserted = context.CreateElement(W, "ins");
+            SetRevisionAttributes(inserted, options.Author, options.DateTime ?? DateTime.Now);
             inserted.Append(run);
             return inserted;
         }
 
-        private static DeletedRun WrapRunAsDeleted(Run run, WordComparisonRedlineOptions options) {
-            var deleted = new DeletedRun {
-                Author = options.Author,
-                Date = options.DateTime ?? DateTime.Now,
-                Id = WordHeadersAndFooters.GenerateRevisionId()
-            };
+        private static OfficeXmlNode WrapRunAsDeleted(OfficeXmlNode context, OfficeXmlNode run, WordComparisonRedlineOptions options) {
+            OfficeXmlNode deleted = context.CreateElement(W, "del");
+            SetRevisionAttributes(deleted, options.Author, options.DateTime ?? DateTime.Now);
             deleted.Append(run);
             return deleted;
         }
@@ -595,7 +564,7 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class RedlineImageContainer {
-            internal RedlineImageContainer(int index, string partKey, OpenXmlPart part, OpenXmlElement container, int orderBase) {
+            internal RedlineImageContainer(int index, string partKey, WordPartView part, OfficeXmlNode container, int orderBase) {
                 Index = index;
                 PartKey = partKey;
                 Part = part;
@@ -607,15 +576,15 @@ namespace OfficeIMO.Word {
 
             internal string PartKey { get; }
 
-            internal OpenXmlPart Part { get; }
+            internal WordPartView Part { get; }
 
-            internal OpenXmlElement Container { get; }
+            internal OfficeXmlNode Container { get; }
 
             internal int OrderBase { get; }
         }
 
         private sealed class RedlineImageEntry {
-            internal RedlineImageEntry(int index, int containerIndex, string partKey, int containerImageIndex, OpenXmlPart part, OpenXmlElement container, Run run, OpenXmlElement imageElement) {
+            internal RedlineImageEntry(int index, int containerIndex, string partKey, int containerImageIndex, WordPartView part, OfficeXmlNode container, OfficeXmlNode run, OfficeXmlNode imageElement) {
                 Index = index;
                 ContainerIndex = containerIndex;
                 PartKey = partKey;
@@ -634,13 +603,13 @@ namespace OfficeIMO.Word {
 
             internal int ContainerImageIndex { get; }
 
-            internal OpenXmlPart Part { get; }
+            internal WordPartView Part { get; }
 
-            internal OpenXmlElement Container { get; }
+            internal OfficeXmlNode Container { get; }
 
-            internal Run Run { get; }
+            internal OfficeXmlNode Run { get; }
 
-            internal OpenXmlElement ImageElement { get; }
+            internal OfficeXmlNode ImageElement { get; }
         }
     }
 }

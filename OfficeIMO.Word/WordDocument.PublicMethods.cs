@@ -428,13 +428,16 @@ namespace OfficeIMO.Word {
             string? title = null,
             bool insertAtTop = false) {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle, minLevel, maxLevel);
-            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
             if (title != null) wordTableContent.Text = title;
-            if (insertAtTop) {
-                wordTableContent.SdtBlock.Remove();
-                body.PrependChild(wordTableContent.SdtBlock);
+            if (!wordTableContent.TryPositionOwnedTable(insertAtTop ? 0 : (int?)null, out int index)) {
+                var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
+                if (insertAtTop) {
+                    wordTableContent.SdtBlock.Remove();
+                    body.PrependChild(wordTableContent.SdtBlock);
+                }
+                index = body.ChildElements.ToList().IndexOf(wordTableContent.SdtBlock);
             }
-            _tableOfContentIndex = body.ChildElements.ToList().IndexOf(wordTableContent.SdtBlock);
+            _tableOfContentIndex = index;
             _tableOfContentStyle = tableOfContentStyle;
             return wordTableContent;
         }
@@ -445,7 +448,7 @@ namespace OfficeIMO.Word {
         public void RemoveTableOfContent() {
             var toc = TableOfContent;
             if (toc is not null) {
-                toc.SdtBlock.Remove();
+                if (!toc.TryRemoveOwnedTable()) toc.SdtBlock.Remove();
                 _tableOfContentIndex = null;
             }
         }
@@ -568,7 +571,7 @@ namespace OfficeIMO.Word {
         /// <param name="breakType">Section break type.</param>
         /// <returns>The created <see cref="WordSection"/>.</returns>
         public WordSection AddSection(WordSectionBreakType breakType) {
-            return AddSectionCore(breakType.ToOpenXml());
+            return AddSectionCore(breakType);
         }
 
         /// <summary>
@@ -576,23 +579,25 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns>The created <see cref="WordSection"/>.</returns>
         public WordSection AddSection() {
-            return AddSectionCore(null);
+            return AddSectionCore(WordSectionBreakType.NextPage);
         }
 
-        private WordSection AddSectionCore(SectionMarkValues? sectionMark, Paragraph? existingBoundaryParagraph = null) {
-            Paragraph paragraph = existingBoundaryParagraph ?? new Paragraph();
+        private WordSection AddSectionCore(WordSectionBreakType breakType) {
+            string breakToken = breakType.ToOpenXmlToken();
+            if (_ownedModel is { } model) return WordSection.AddOwnedSection(this, model, breakToken);
+            var paragraph = new Paragraph();
             ParagraphProperties paragraphProperties = paragraph.ParagraphProperties ??= new ParagraphProperties();
 
             SectionProperties sectionProperties = WordHeadersAndFooters.CreateSectionProperties();
 
             paragraphProperties.AddChild(sectionProperties, true);
-            if (existingBoundaryParagraph == null) AppendBlockToBody(paragraph);
+            AppendBlockToBody(paragraph);
 
 
             WordSection wordSection = new WordSection(this, paragraph);
             // Section properties describe how their own section starts, not the following one.
             // Let the constructor preserve the preceding section before setting the new start.
-            wordSection.BreakType = sectionMark?.ToOfficeEnum() ?? WordSectionBreakType.NextPage;
+            wordSection.BreakType = breakType;
             PageNumberType? pageNumberType = wordSection._sectionProperties.GetFirstChild<PageNumberType>();
             if (pageNumberType != null) pageNumberType.Start = null;
 
