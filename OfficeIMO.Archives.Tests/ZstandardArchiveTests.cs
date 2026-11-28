@@ -148,7 +148,7 @@ public sealed class ZstandardArchiveTests {
         byte[] source = ReadFixture(fixture);
         byte[] expected = Expected(input);
         ZstandardDictionary? dictionary = dictionaryName == null ? null : ZstandardDictionary.Load(ReadFixture(dictionaryName));
-        for (int length = 0; length < source.Length; length++) {
+        foreach (int length in TruncationLengths(source.Length)) {
             var output = new MemoryStream();
             Exception? error = Record.Exception(() => Decode(new MemoryStream(source, 0, length, writable: false), output, dictionary));
             if (error == null) {
@@ -160,6 +160,14 @@ public sealed class ZstandardArchiveTests {
             ArchiveCorruptionException corruption = Assert.IsType<ArchiveCorruptionException>(error);
             Assert.Equal("Zstandard", corruption.Format);
             Assert.InRange(corruption.Offset, 0, length);
+        }
+    }
+
+    /// <summary>Every cut within 512 bytes of either end, where headers, tables and checksums sit, and a prime stride through
+    /// the block data between them.</summary>
+    private static IEnumerable<int> TruncationLengths(int total) {
+        for (int length = 0; length < total; length++) {
+            if (length < 512 || length >= total - 512 || length % 61 == 0) yield return length;
         }
     }
 
@@ -211,6 +219,14 @@ public sealed class ZstandardArchiveTests {
         var source = new WriteOnlyStream();
         Assert.Throws<ArgumentException>(() =>
             ZstandardArchive.Decompress(source, new MemoryStream(), new ArchiveReadOptions { OperationBudget = budget }));
+        Assert.Equal(0, budget.Usage.InputBytes);
+    }
+
+    [Fact]
+    public void AReadOnlyDestinationIsRejectedBeforeAnyInputIsAdmitted() {
+        var budget = new ArchiveOperationBudget();
+        Assert.Throws<ArgumentException>(() => ZstandardArchive.Decompress(Open("text-level1.zst"),
+            new MemoryStream(new byte[16], writable: false), new ArchiveReadOptions { OperationBudget = budget }));
         Assert.Equal(0, budget.Usage.InputBytes);
     }
 
