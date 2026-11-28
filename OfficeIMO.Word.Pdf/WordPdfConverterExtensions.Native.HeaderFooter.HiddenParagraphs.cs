@@ -1,7 +1,7 @@
 using System.Text;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     // Header/footer zones serialize a paragraph at a time. Combine source text
@@ -48,12 +48,12 @@ public static partial class WordPdfConverterExtensions {
         }
 
         bool CanJoinIndependently(WordParagraph paragraph, bool isContinuation) {
-            W.Paragraph source = paragraph._paragraph;
+            OfficeXmlNode source = paragraph.Node();
             return CanJoinNativeTextParagraph(paragraph, marker, defaults, fontMap) &&
                 (!isContinuation || !HasNativePageBreakBefore(paragraph)) &&
-                (!forcedZone.HasValue || ReferenceEquals(source.Parent, first._paragraph.Parent)) &&
-                !source.Descendants<W.SimpleField>().Any() && !source.Descendants<W.FieldChar>().Any() &&
-                !source.Descendants<W.FootnoteReference>().Any() && !source.Descendants<W.EndnoteReference>().Any();
+                (!forcedZone.HasValue || source.Parent == first.Node().Parent) &&
+                !source.HasDescendant(WordXml.W, "fldSimple") && !source.HasDescendant(WordXml.W, "fldChar") &&
+                !source.HasDescendant(WordXml.W, "footnoteReference") && !source.HasDescendant(WordXml.W, "endnoteReference");
         }
 
         void ReportUnsupportedJoin() {

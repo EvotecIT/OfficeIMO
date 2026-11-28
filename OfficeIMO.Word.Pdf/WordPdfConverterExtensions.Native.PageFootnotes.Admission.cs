@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
@@ -25,22 +23,23 @@ public static partial class WordPdfConverterExtensions {
             options?.CancellationToken.ThrowIfCancellationRequested();
             if (element is WordStructuredDocumentTag structured) {
                 EnsureNativeStructuredDocumentTagDepth(structuredDepth);
-                if (TryGetNativeStructuredBlockPropertyValue(structured.Document, structured.SdtBlock, out _)) continue;
+                if (TryGetNativeStructuredBlockPropertyValue(structured.Document, structured.SdtBlockNode(), out _)) continue;
                 string? gap = GetNativePageFootnoteElementProfileGap(GetNativeStructuredBlockElements(
-                    structured.Document, structured.SdtBlock), options, structuredDepth + 1, tableDepth);
+                    structured.Document, structured.SdtBlockNode()), options, structuredDepth + 1, tableDepth);
                 if (gap != null) return gap;
             } else if (element is WordCoverPage cover) {
                 EnsureNativeStructuredDocumentTagDepth(structuredDepth);
-                if (cover.SdtBlock?.SdtContentBlock is { } content && HasNativeVmlCoverDrawing(content))
+                if (cover.SdtBlockNode().WChild("sdtContent") is { Exists: true } content &&
+                    HasNativeVmlCoverDrawing(content))
                     return "The document body contains a cover-page canvas, outside the current page-note body profile.";
                 string? gap = GetNativePageFootnoteElementProfileGap(GetNativeStructuredBlockElements(
-                    cover.Document, cover.SdtBlock), options, structuredDepth + 1, tableDepth);
+                    cover.Document, cover.SdtBlockNode()), options, structuredDepth + 1, tableDepth);
                 if (gap != null) return gap;
             } else if (element is WordTable table) {
                 EnsureNativeTableDepth(tableDepth);
                 bool configured = options?.PdfOptions?.HasExplicitDefaultTableStyle == true;
                 PdfCore.PdfTableStyle style = ResolveNativeWordTableStyle(table, configured) ?? CreateNativeDefaultTableStyle(options);
-                if (table._tableProperties?.TablePositionProperties != null || style.Position != null || !style.ConsumesVerticalFlow)
+                if (table.PropertiesNode().WChild("tblpPr").Exists || style.Position != null || !style.ConsumesVerticalFlow)
                     return "The document body contains a floating or non-flow table, outside the current page-note body profile.";
                 foreach (WordTableRow row in table.Rows)
                     foreach (WordTableCell cell in row.Cells) {
@@ -48,14 +47,14 @@ public static partial class WordPdfConverterExtensions {
                             options, structuredDepth, tableDepth + 1);
                         if (gap != null) return gap;
                     }
-            } else if (element is WordParagraph paragraph && !paragraph._paragraph.Ancestors<W.TableCell>().Any()) {
+            } else if (element is WordParagraph paragraph && paragraph.Node().Parent.AncestorOrSelf(WordXml.W, "tc").IsNone) {
                 if (CanRenderNativeParagraphFrame(paragraph) &&
-                    ResolveNativeParagraphFrame(paragraph)?.Wrap?.Value != W.TextWrappingValues.NotBeside)
+                    ResolveNativeParagraphFrame(paragraph).WAttr("wrap") != "notBeside")
                     return "The document body contains a floating paragraph frame, outside the current page-note body profile.";
                 List<WordParagraph> runs = GetNativeRuns(paragraph, includeInlineContentControls: true)
                     .Where(run => !IsNativeHiddenTextRun(run, paragraph)).ToList();
                 if (GetNativeVisibleTextBoxes(paragraph, runs).Count > 0 || HasNativeParagraphShapeGroups(runs) ||
-                    runs.SelectMany(run => run.EnumerateEffectiveRunContent()).OfType<W.Drawing>().Any(drawing => drawing.Anchor != null))
+                    runs.SelectMany(run => run.EffectiveRunContentNodes()).Any(drawing => drawing.IsW("drawing") && drawing.Child(WordXml.Wp, "anchor").Exists))
                     return "The document body contains anchored graphics, shape groups or text boxes, outside the current page-note body profile.";
             }
         }

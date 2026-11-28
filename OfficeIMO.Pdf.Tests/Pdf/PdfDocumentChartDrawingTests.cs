@@ -116,7 +116,7 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
                     new StringPoint(new NumericValue("Only")) { Index = 0U })));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartCategories", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var categories = (IReadOnlyList<string>)method.Invoke(null, new object?[] { categoryAxisData, 3 })!;
+        var categories = (IReadOnlyList<string>)method.Invoke(null, new object?[] { Node(categoryAxisData), 3 })!;
 
         Assert.Equal(new[] { "Only", "Category 2", "Category 3" }, categories);
     }
@@ -131,7 +131,7 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
                     new StringPoint(new NumericValue("Visible")) { Index = 2U })));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartCategories", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var categories = (IReadOnlyList<string>)method.Invoke(null, new object?[] { categoryAxisData, 3 })!;
+        var categories = (IReadOnlyList<string>)method.Invoke(null, new object?[] { Node(categoryAxisData), 3 })!;
 
         Assert.Equal(new[] { "Category 1", string.Empty, "Visible" }, categories);
     }
@@ -145,7 +145,7 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
                     new NumericPoint(new NumericValue("1")) { Index = 100_000U })));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartNumberValues", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object?[] { values }));
+        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object?[] { Node(values) }));
 
         Assert.Contains("point index", exception.InnerException?.Message);
     }
@@ -160,7 +160,7 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
         var values = new Values(new NumberReference(cache));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartNumberValues", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object?[] { values }));
+        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object?[] { Node(values) }));
 
         Assert.Contains("maximum supported point count", exception.InnerException?.Message);
     }
@@ -177,7 +177,7 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
         var chart = new Chart(plotArea);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 1 }));
+        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] { Node(chart), Node(chartElement), Node(plotArea), OfficeChartType.ColumnClustered, 1 }));
 
         Assert.Contains("point index", exception.InnerException?.Message);
     }
@@ -191,8 +191,7 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
             CreateBarSeries(1U, new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { 3D, 4D, 5D, 6D }));
         OfficeChartType kind = OfficeChartType.ColumnClustered;
 
-        var series = WordPdfConverterExtensions.ExtractNativeWordChartSeries(new Chart(), chart, kind,
-            new Dictionary<A.SchemeColorValues, OfficeColor>(), null, out IReadOnlyList<string> categories);
+        var series = ExtractNativeWordChartSeries(new Chart(), chart, kind, out IReadOnlyList<string> categories);
 
         Assert.Equal(2, series.Count);
         Assert.Equal(new[] { "Q1", "Q2", "Q3", "Q4" }, categories);
@@ -277,7 +276,7 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
             new Legend(new LegendPosition { Val = LegendPositionValues.Top }));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 2 })!;
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { Node(chart), Node(chartElement), Node(plotArea), OfficeChartType.ColumnClustered, 2 })!;
 
         Assert.NotNull(layout);
         Assert.True(layout!.ShowLegend);
@@ -293,7 +292,7 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
         var chart = new Chart(plotArea);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 1 })!;
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { Node(chart), Node(chartElement), Node(plotArea), OfficeChartType.ColumnClustered, 1 })!;
 
         Assert.NotNull(layout);
         Assert.True(layout!.ShowDataLabels);
@@ -310,7 +309,7 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
         var chart = new Chart(plotArea);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 1 })!;
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { Node(chart), Node(chartElement), Node(plotArea), OfficeChartType.ColumnClustered, 1 })!;
 
         Assert.NotNull(layout);
         Assert.True(layout!.ShowDataLabels);
@@ -333,7 +332,7 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
         var chart = new Chart(plotArea);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 2 })!;
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { Node(chart), Node(chartElement), Node(plotArea), OfficeChartType.ColumnClustered, 2 })!;
 
         Assert.NotNull(layout);
         Assert.True(layout!.ShowDataLabels);
@@ -354,7 +353,7 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
                 new Overlay { Val = true }));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 2 })!;
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { Node(chart), Node(chartElement), Node(plotArea), OfficeChartType.ColumnClustered, 2 })!;
 
         Assert.NotNull(layout);
         Assert.True(layout!.ShowLegend);
@@ -368,12 +367,12 @@ height: global::OfficeIMO.OfficeLength.Points(200D),
         var scatterElement = new ScatterChart(new ScatterStyle { Val = ScatterStyleValues.Marker });
         var scatterPlotArea = new PlotArea(scatterElement);
         var scatterChart = new Chart(scatterPlotArea);
-        var scatterLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { scatterChart, scatterElement, scatterPlotArea, OfficeChartType.Scatter, 2 })!;
+        var scatterLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { Node(scatterChart), Node(scatterElement), Node(scatterPlotArea), OfficeChartType.Scatter, 2 })!;
 
         var radarElement = new RadarChart(new RadarStyle { Val = RadarStyleValues.Standard });
         var radarPlotArea = new PlotArea(radarElement);
         var radarChart = new Chart(radarPlotArea);
-        var radarLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { radarChart, radarElement, radarPlotArea, OfficeChartType.Radar, 3 })!;
+        var radarLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { Node(radarChart), Node(radarElement), Node(radarPlotArea), OfficeChartType.Radar, 3 })!;
 
         Assert.NotNull(scatterLayout);
         Assert.False(scatterLayout!.ConnectScatterPoints);
@@ -1745,22 +1744,42 @@ height: global::OfficeIMO.OfficeLength.Points(150D),
         Assert.Equal(innerColor, series[1].Color);
     }
 
-    private static IReadOnlyList<OfficeSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartType chartKind) {
-        return WordPdfConverterExtensions.ExtractNativeWordChartSeries(chart, chartElement, chartKind,
-            new Dictionary<A.SchemeColorValues, OfficeColor>(), null, out _);
+    private static IReadOnlyList<OfficeSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartType chartKind) =>
+        ExtractNativeWordChartSeries(chart, chartElement, chartKind, out _);
+
+    private static IReadOnlyList<OfficeSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartType chartKind,
+        out IReadOnlyList<string> categories) {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { Node(chart), Node(chartElement), chartKind, new Dictionary<string, OfficeColor>(), NoNode, null };
+        try {
+            var series = (IReadOnlyList<OfficeSeries>)method.Invoke(null, arguments)!;
+            categories = (IReadOnlyList<string>)arguments[5]!;
+            return series;
+        } catch (TargetInvocationException exception) when (exception.InnerException != null) {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception.InnerException).Throw();
+            throw;
+        }
     }
+
+    // The converter reads elements through OfficeIMO.Word's internal node handle; several referenced assemblies compile
+    // a type of that name, so the tests reach it by reflection.
+    private static readonly Type NodeType = typeof(OfficeIMO.Word.WordDocument).Assembly.GetType("OfficeIMO.OpenXml.Internal.OfficeXmlNode", throwOnError: true)!;
+    private static readonly MethodInfo NodeFromSdk = NodeType.GetMethod("FromSdk", BindingFlags.NonPublic | BindingFlags.Static)!;
+    private static readonly object NoNode = Activator.CreateInstance(NodeType)!;
+
+    private static object Node(OpenXmlElement element) => NodeFromSdk.Invoke(null, new object[] { element })!;
 
     private static OfficeChartStyle CreateNativeWordChartStyle(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartType chartKind, int categoryCount, int seriesCount) {
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartStyle", BindingFlags.NonPublic | BindingFlags.Static)!;
         return (OfficeChartStyle)method.Invoke(null, new object[] {
-            chart,
-            chartElement,
-            plotArea,
+            Node(chart),
+            Node(chartElement),
+            Node(plotArea),
             chartKind,
             categoryCount,
             seriesCount,
-            new Dictionary<A.SchemeColorValues, OfficeColor>(),
-            null!
+            new Dictionary<string, OfficeColor>(),
+            NoNode
         })!;
     }
 

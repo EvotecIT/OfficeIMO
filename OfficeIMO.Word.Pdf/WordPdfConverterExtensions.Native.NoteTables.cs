@@ -1,4 +1,3 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
@@ -9,15 +8,15 @@ public static partial class WordPdfConverterExtensions {
     /// ordinary table owner, including its effective cell styles and inline content.
     /// Callers first qualify the note's supported block profile.
     /// </summary>
-    private static IReadOnlyList<WordElement> GetNativeNoteElements(WordDocument document, W.FootnoteEndnoteType source) {
+    private static IReadOnlyList<WordElement> GetNativeNoteElements(WordDocument document, OfficeXmlNode source) {
         var elements = new List<WordElement>();
-        foreach (var child in source.ChildElements) {
-            if (child is W.Paragraph paragraph) {
+        foreach (OfficeXmlNode child in source.Elements()) {
+            if (child.IsW("p")) {
                 // Canonical paragraph views retain bookmark metadata as well as
                 // run content; a bare wrapper loses loaded note destinations.
                 elements.AddRange(CollapseNativeParagraphElements(
-                    WordSection.ConvertParagraphToWordParagraphs(document, paragraph)));
-            } else if (child is W.Table table) elements.Add(new WordTable(document, table, initializeChildren: false, readOnly: true));
+                    document.ConvertParagraphNodeToWordParagraphs(child)));
+            } else if (child.IsW("tbl")) elements.Add(document.ReadOnlyTableView(child));
         }
         return elements;
     }
@@ -27,21 +26,21 @@ public static partial class WordPdfConverterExtensions {
     /// Unsupported placement or merged-object/row constraints retain the reported
     /// fallback without rendering a second copy merely to probe admission.
     /// </summary>
-    private static bool CanProjectNativeNoteTable(W.Table table, WordSection section, WordPdfExportOptions? options,
+    private static bool CanProjectNativeNoteTable(OfficeXmlNode table, WordSection section, WordPdfExportOptions? options,
         NativeDocumentDefaults defaults, NativeFontMap fonts) {
-        if (table.Descendants<W.TablePositionProperties>().Any()) return false;
-        if (table.Descendants<W.Table>().Any() &&
-            !CanProjectNativeContainedTable(new WordTable(section._document, table, initializeChildren: false, readOnly: true),
+        if (table.HasDescendant(WordXml.W, "tblpPr")) return false;
+        if (table.ModelDescendants("tbl").Any() &&
+            !CanProjectNativeContainedTable(section._document.ReadOnlyTableView(table),
                 options, defaults, fonts, 0)) return false;
-        if (table.Descendants<W.TextDirection>().Any(direction =>
-            direction.Val?.InnerText is { } value && value != "lrTb")) return false;
+        if (table.DescendantElements(WordXml.W, "textDirection").Any(direction =>
+            direction.WAttr("val") is { } value && value != "lrTb")) return false;
         // Block controls and custom row/cell carriers have their own projection
         // rules. A note table currently admits the directly represented grid.
-        if (table.ChildElements.Any(child => child is not W.TableProperties and not W.TableGrid and not W.TableRow) ||
-            table.Elements<W.TableRow>().Any(row => row.ChildElements.Any(child => child is not W.TableRowProperties and not W.TableCell)) ||
-            table.Descendants<W.TableCell>().Any(cell => cell.ChildElements.Any(child => child is not W.TableCellProperties and not W.Paragraph and not W.Table)))
+        if (table.Elements().Any(child => !child.IsW("tblPr") && !child.IsW("tblGrid") && !child.IsW("tr")) ||
+            table.WElements("tr").Any(row => row.Elements().Any(child => !child.IsW("trPr") && !child.IsW("tc"))) ||
+            table.ModelDescendants("tc").Any(cell => cell.Elements().Any(child => !child.IsW("tcPr") && !child.IsW("p") && !child.IsW("tbl"))))
             return false;
-        var view = new WordTable(section._document, table, initializeChildren: false, readOnly: true);
+        var view = section._document.ReadOnlyTableView(table);
         TableLayout layout = TableLayoutCache.GetLayout(view);
         NativeTableStyleDefaults tableDefaults = GetNativeTableStyleDefaults(view, defaults,
             ignoreFallbackTableStyle: options?.PdfOptions?.HasExplicitDefaultTableStyle == true);
@@ -79,7 +78,7 @@ public static partial class WordPdfConverterExtensions {
     private static PdfCore.PdfTableStyle CreateNativeNoteTableStyle(WordTable table, PdfCore.PdfTableStyle style,
         NativeDocumentDefaults defaults) {
         if (defaults.NoteContentSection == null ||
-            !table._table.Ancestors().Any(parent => parent is W.Footnote or W.Endnote)) return style;
+            !table.Node().Ancestors().Any(parent => parent.IsW("footnote") || parent.IsW("endnote"))) return style;
         PdfCore.PdfTableStyle noteStyle = style.Clone();
         noteStyle.RepeatHeaderRowCount = 0;
         return noteStyle;

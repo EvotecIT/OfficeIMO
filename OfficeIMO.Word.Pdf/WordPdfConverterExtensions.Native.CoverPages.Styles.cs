@@ -1,18 +1,15 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using V = DocumentFormat.OpenXml.Vml;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
-        private static void ApplyNativeVmlShapeStyle(OfficeShape shape, OpenXmlElement element) {
-            OpenXmlElement? shapeType = GetNativeVmlReferencedShapeTypeElement(element);
+        private static void ApplyNativeVmlShapeStyle(OfficeShape shape, OfficeXmlNode element) {
+            OfficeXmlNode shapeType = GetNativeVmlReferencedShapeTypeElement(element);
             if (shape.Kind != OfficeShapeKind.Line) {
-                OpenXmlElement? fillElement = GetNativeVmlEffectiveStyleChild(element, shapeType, "fill");
+                OfficeXmlNode fillElement = GetNativeVmlEffectiveStyleChild(element, shapeType, "fill");
                 bool fillEnabled = IsNativeVmlSwitchEnabled(GetNativeVmlStyleValue(element, shapeType, "fill", "on", "filled"));
                 if (fillEnabled) {
                     string? fillColor = GetNativeVmlStyleValue(element, shapeType, "fill", "color", "fillcolor");
@@ -26,7 +23,7 @@ namespace OfficeIMO.Word.Pdf {
                         shape.FillGradient = gradient;
                     }
 
-                    double? fillOpacity = fillElement is not null ? ParseNativeVmlOpacity(GetNativeOpenXmlAttribute(fillElement, "opacity")) : null;
+                    double? fillOpacity = fillElement.Exists ? ParseNativeVmlOpacity(GetNativeOpenXmlAttribute(fillElement, "opacity")) : null;
                     if (fillOpacity.HasValue) {
                         shape.FillOpacity = fillOpacity.Value;
                     }
@@ -34,7 +31,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             ApplyNativeVmlShapeShadow(shape, element);
-            OpenXmlElement? strokeElement = GetNativeVmlEffectiveStyleChild(element, shapeType, "stroke");
+            OfficeXmlNode strokeElement = GetNativeVmlEffectiveStyleChild(element, shapeType, "stroke");
             string? rawStrokeColor = GetNativeVmlStyleValue(element, shapeType, "stroke", "color", "strokecolor");
             string? strokeColor = NormalizeNativeVmlColor(rawStrokeColor);
             bool stroked = IsNativeVmlSwitchEnabled(GetNativeVmlStyleValue(element, shapeType, "stroke", "on", "stroked"));
@@ -48,10 +45,10 @@ namespace OfficeIMO.Word.Pdf {
             shape.StrokeColor = (ParseNativeColor(strokeColor) ?? global::OfficeIMO.OfficeColor.Black);
             // VML defaults to a one-pixel stroke, which is 0.75 PDF points.
             shape.StrokeWidth = ParseNativeVmlStrokeWeight(GetNativeVmlStyleValue(element, shapeType, "stroke", "weight", "strokeweight")) ?? 0.75D;
-            shape.StrokeDashStyle = MapNativeVmlStrokeDashStyle(GetNativeOpenXmlAttribute(strokeElement ?? element, "dashstyle"));
-            shape.StrokeLineCap = MapNativeVmlStrokeLineCap(GetNativeOpenXmlAttribute(strokeElement ?? element, "endcap"));
-            shape.StrokeLineJoin = MapNativeVmlStrokeLineJoin(GetNativeOpenXmlAttribute(strokeElement ?? element, "joinstyle"));
-            double? strokeOpacity = strokeElement is not null ? ParseNativeVmlOpacity(GetNativeOpenXmlAttribute(strokeElement, "opacity")) : null;
+            shape.StrokeDashStyle = MapNativeVmlStrokeDashStyle(GetNativeOpenXmlAttribute(strokeElement.IsNone ? element : strokeElement, "dashstyle"));
+            shape.StrokeLineCap = MapNativeVmlStrokeLineCap(GetNativeOpenXmlAttribute(strokeElement.IsNone ? element : strokeElement, "endcap"));
+            shape.StrokeLineJoin = MapNativeVmlStrokeLineJoin(GetNativeOpenXmlAttribute(strokeElement.IsNone ? element : strokeElement, "joinstyle"));
+            double? strokeOpacity = strokeElement.Exists ? ParseNativeVmlOpacity(GetNativeOpenXmlAttribute(strokeElement, "opacity")) : null;
             if (strokeOpacity.HasValue) {
                 shape.StrokeOpacity = strokeOpacity.Value;
             }
@@ -113,9 +110,9 @@ namespace OfficeIMO.Word.Pdf {
                 : null;
         }
 
-        private static void ApplyNativeVmlShapeShadow(OfficeShape shape, OpenXmlElement element) {
-            OpenXmlElement? shadowElement = GetNativeVmlChild(element, "shadow");
-            if (shadowElement == null ||
+        private static void ApplyNativeVmlShapeShadow(OfficeShape shape, OfficeXmlNode element) {
+            OfficeXmlNode shadowElement = GetNativeVmlChild(element, "shadow");
+            if (shadowElement.IsNone ||
                 !IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(shadowElement, "on"))) {
                 return;
             }
@@ -141,7 +138,7 @@ namespace OfficeIMO.Word.Pdf {
             return x.HasValue && y.HasValue ? (x.Value, y.Value) : null;
         }
 
-        private static void ApplyNativeVmlShapeTransform(OfficeShape shape, OpenXmlElement element) {
+        private static void ApplyNativeVmlShapeTransform(OfficeShape shape, OfficeXmlNode element) {
             OfficeTransform? transform = null;
 
             string? flip = GetNativeVmlFlip(element);
@@ -177,7 +174,7 @@ namespace OfficeIMO.Word.Pdf {
                 .Then(OfficeTransform.Translate(centerX, centerY));
         }
 
-        private static double? GetNativeVmlRotationDegrees(OpenXmlElement element) {
+        private static double? GetNativeVmlRotationDegrees(OfficeXmlNode element) {
             Dictionary<string, string> style = ParseNativeVmlStyle(GetNativeOpenXmlAttribute(element, "style"));
             string? value = style.TryGetValue("rotation", out string? styleRotation)
                 ? styleRotation
@@ -200,16 +197,16 @@ namespace OfficeIMO.Word.Pdf {
             return ParseNativeVmlDouble(normalized);
         }
 
-        private static string? GetNativeVmlFlip(OpenXmlElement element) {
+        private static string? GetNativeVmlFlip(OfficeXmlNode element) {
             Dictionary<string, string> style = ParseNativeVmlStyle(GetNativeOpenXmlAttribute(element, "style"));
             return style.TryGetValue("flip", out string? styleFlip)
                 ? styleFlip
                 : GetNativeOpenXmlAttribute(element, "flip");
         }
 
-        private static bool TryGetNativeVmlGradientFill(OpenXmlElement? fillElement, global::OfficeIMO.OfficeColor? startFill, out OfficeLinearGradient? gradient) {
+        private static bool TryGetNativeVmlGradientFill(OfficeXmlNode fillElement, global::OfficeIMO.OfficeColor? startFill, out OfficeLinearGradient? gradient) {
             gradient = null;
-            if (fillElement == null) {
+            if (fillElement.IsNone) {
                 return false;
             }
 
@@ -238,7 +235,7 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static bool TryGetNativeVmlGradientStopColors(OpenXmlElement fillElement, out global::OfficeIMO.OfficeColor? startFill, out global::OfficeIMO.OfficeColor? endFill) {
+        private static bool TryGetNativeVmlGradientStopColors(OfficeXmlNode fillElement, out global::OfficeIMO.OfficeColor? startFill, out global::OfficeIMO.OfficeColor? endFill) {
             startFill = null;
             endFill = null;
             string? colors = GetNativeOpenXmlAttribute(fillElement, "colors");

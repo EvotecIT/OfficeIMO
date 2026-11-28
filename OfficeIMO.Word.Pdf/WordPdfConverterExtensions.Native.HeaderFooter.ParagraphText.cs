@@ -1,15 +1,10 @@
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
-using A = DocumentFormat.OpenXml.Drawing;
-using V = DocumentFormat.OpenXml.Vml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using W15 = DocumentFormat.OpenXml.Office2013.Word;
-using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private const double MaximumNativeHeaderFooterListOffsetPoints = 14_400D;
         private const int MaximumNativeHeaderFooterListSpacingCharacters = 8_192;
@@ -76,10 +71,10 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             // The header zones are not justified; justified text keeps to the paragraph's starting side.
-            W.JustificationValues? alignment = ResolveNativeUnjustifiedJustification(paragraph);
-            if (alignment == W.JustificationValues.Center) {
+            string? alignment = ResolveNativeUnjustifiedJustification(paragraph);
+            if (string.Equals(alignment, "center", StringComparison.Ordinal)) {
                 parts.AppendCenter(resolvedText, pageNumberStyle, markerRun, contentStyleRun, replacements);
-            } else if (alignment == W.JustificationValues.Right) {
+            } else if (string.Equals(alignment, "right", StringComparison.Ordinal)) {
                 parts.AppendRight(resolvedText, pageNumberStyle, markerRun, contentStyleRun, replacements);
             } else {
                 parts.AppendLeft(resolvedText, pageNumberStyle, markerRun, contentStyleRun, replacements);
@@ -221,8 +216,8 @@ namespace OfficeIMO.Word.Pdf {
             WordTextBox? numberedTextBox = GetNativeParagraphTextBox(paragraph, out _);
             if (numberedTextBox != null && GetNativeTextBoxParagraphs(numberedTextBox).Any(inner => inner.IsListItem)) {
                 zoneOverride = MapNativeTextBoxHeaderFooterZone(numberedTextBox.HorizontalAlignment);
-            } else if (numberedTextBox?.Anchor != null &&
-                numberedTextBox.Drawing?.Descendants<DocumentFormat.OpenXml.Office2010.Word.DrawingGroup.WordprocessingGroup>().Any() == true) {
+            } else if (numberedTextBox != null && numberedTextBox.AnchorNode().Exists &&
+                numberedTextBox.DrawingNode().FirstDescendantSkippingExtLst(WordXml.Wpg, "wgp").Exists) {
                 // A grouped page-number block is positioned by its anchor, not by the paragraph.
                 zoneOverride = MapNativeTextBoxHeaderFooterZone(numberedTextBox.HorizontalAlignment);
             }
@@ -245,7 +240,7 @@ namespace OfficeIMO.Word.Pdf {
             pageNumberStyle = null;
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph)) {
                 string linkedText = string.Concat(GetNativeRuns(paragraph)
-                    .Where(run => ReferenceEquals(run._hyperlink, paragraph._hyperlink) && !IsNativeHiddenTextRun(run, paragraph))
+                    .Where(run => run.HyperlinkNode() == paragraph.HyperlinkNode() && !IsNativeHiddenTextRun(run, paragraph))
                     .Select(run => ApplyNativeTextTransform(run.Text, run, paragraph)));
                 return PrependNativeHeaderFooterListMarker(paragraph,
                     AppendNativeHeaderFooterSupplementalText(linkedText, paragraph), listMarkers, textBoxDepth);
@@ -254,8 +249,8 @@ namespace OfficeIMO.Word.Pdf {
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             string? text = runs.Count > 0
                 ? string.Concat(runs.Where(run => !IsNativeHiddenTextRun(run, paragraph)).Select(run => ApplyNativeTextTransform(run.Text, run, paragraph)))
-                : IsNativeHiddenTextRun(paragraph) || paragraph._paragraph.Descendants<W.FieldChar>().Any() ||
-                    !WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph).IsVisible
+                : IsNativeHiddenTextRun(paragraph) || paragraph.Node().HasDescendant(WordXml.W, "fldChar") ||
+                    !WordConverterNodes.FieldVisibilityForParagraph(paragraph.Node()).IsVisible
                     ? string.Empty : ApplyNativeTextTransform(paragraph.Text, paragraph);
             text = AppendNativeHeaderFooterSupplementalText(text, paragraph);
             return PrependNativeHeaderFooterListMarker(paragraph, text, listMarkers, textBoxDepth);
@@ -289,7 +284,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string? AppendNativeHeaderFooterEquationText(string? text, WordParagraph paragraph) {
-            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+            IReadOnlyList<WordEquationOccurrence> occurrences = paragraph._document.EquationOccurrences(paragraph.Node());
             if (occurrences.Count > 0) {
                 string orderedText = AppendNativeTextWithEquation(text ?? string.Empty, paragraph);
                 if (!string.IsNullOrWhiteSpace(orderedText)) {
@@ -309,15 +304,15 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string? AppendNativeHeaderFooterFormControlText(string? text, WordParagraph paragraph) {
-            IReadOnlyList<W.SdtRun> checkBoxes = GetNativeCheckBoxControls(paragraph);
-            IReadOnlyList<W.SdtRun> formFields = GetNativeFormFieldControls(paragraph);
+            IReadOnlyList<OfficeXmlNode> checkBoxes = GetNativeCheckBoxControls(paragraph);
+            IReadOnlyList<OfficeXmlNode> formFields = GetNativeFormFieldControls(paragraph);
             if (checkBoxes.Count == 0 && formFields.Count == 0) {
                 return text;
             }
 
             var builder = new StringBuilder(text ?? string.Empty);
             string currentText = builder.ToString();
-            foreach (W.SdtRun checkBox in checkBoxes) {
+            foreach (OfficeXmlNode checkBox in checkBoxes) {
                 AppendNativeHeaderFooterSupplementalValue(
                     builder,
                     ref currentText,
@@ -325,7 +320,7 @@ namespace OfficeIMO.Word.Pdf {
                     skipIfPresent: false);
             }
 
-            foreach (W.SdtRun formField in formFields) {
+            foreach (OfficeXmlNode formField in formFields) {
                 string? value;
                 if (IsNativeDatePickerControl(formField)) {
                     value = GetNativeContentControlDisplayValue(formField);
@@ -341,10 +336,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string? AppendNativeHeaderFooterTextPathText(string? text, WordParagraph paragraph) {
-            IEnumerable<V.TextPath> textPaths = paragraph._paragraph?.Descendants<V.TextPath>() ?? Enumerable.Empty<V.TextPath>();
+            IEnumerable<OfficeXmlNode> textPaths = paragraph.Node().Descendants(WordXml.V, "textpath");
             var builder = new StringBuilder(text ?? string.Empty);
             string currentText = builder.ToString();
-            foreach (V.TextPath textPath in textPaths) {
+            foreach (OfficeXmlNode textPath in textPaths) {
                 if (!IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(textPath, "on")) ||
                     IsNativeHeaderFooterWatermarkTextPath(textPath)) {
                     continue;
@@ -353,35 +348,35 @@ namespace OfficeIMO.Word.Pdf {
                 AppendNativeHeaderFooterSupplementalValue(
                     builder,
                     ref currentText,
-                    textPath.String?.Value ?? GetNativeOpenXmlAttribute(textPath, "string"),
+                    textPath.Attr("string") ?? GetNativeOpenXmlAttribute(textPath, "string"),
                     skipIfPresent: true);
             }
 
             return builder.Length == 0 ? text : builder.ToString();
         }
 
-        private static bool IsNativeHeaderFooterWatermarkTextPath(V.TextPath textPath) {
-            V.Shape? shape = textPath.Ancestors<V.Shape>().FirstOrDefault();
-            if (shape == null) {
+        private static bool IsNativeHeaderFooterWatermarkTextPath(OfficeXmlNode textPath) {
+            OfficeXmlNode shape = textPath.Ancestor(WordXml.V, "shape");
+            if (shape.IsNone) {
                 return false;
             }
 
             string marker = string.Join(" ",
-                shape.Id?.Value,
+                shape.Attr("id"),
                 GetNativeOpenXmlAttribute(shape, "name"),
                 GetNativeOpenXmlAttribute(shape, "title"));
             return marker.IndexOf("watermark", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static string? AppendNativeHeaderFooterRepeatingSectionText(string? text, WordParagraph paragraph) {
-            IReadOnlyList<W.SdtRun> controls = GetNativeRepeatingSectionControls(paragraph);
+            IReadOnlyList<OfficeXmlNode> controls = GetNativeRepeatingSectionControls(paragraph);
             if (controls.Count == 0) {
                 return text;
             }
 
             var builder = new StringBuilder(text ?? string.Empty);
             string currentText = builder.ToString();
-            foreach (W.SdtRun control in controls) {
+            foreach (OfficeXmlNode control in controls) {
                 foreach (string itemText in GetNativeRepeatingSectionItems(control)) {
                     AppendNativeHeaderFooterSupplementalValue(builder, ref currentText, itemText, skipIfPresent: true);
                 }
@@ -415,21 +410,21 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyList<WordEquationContentSegment> GetNativeVisibleEquationContentSegments(WordParagraph paragraph) {
-            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+            IReadOnlyList<WordEquationOccurrence> occurrences = paragraph._document.EquationOccurrences(paragraph.Node());
             if (occurrences.Count == 0 || GetNativeParagraphStyleDefaults(paragraph).Hidden == true) {
                 return Array.Empty<WordEquationContentSegment>();
             }
 
-            return WordEquation.GetVisibleContentSegments(
-                paragraph._paragraph,
+            return WordConverterNodes.VisibleEquationContentSegments(
+                paragraph.Node(),
                 occurrences,
-                element => element is not W.Run run ||
-                    !IsNativeHiddenTextRun(new WordParagraph(paragraph._document, paragraph._paragraph, run), paragraph));
+                element => !element.IsW("r") ||
+                    !IsNativeHiddenTextRun(paragraph._document.RunView(paragraph.Node(), element), paragraph));
         }
 
         private static string? GetNativeEquationText(WordParagraph paragraph) {
-            string[] equationTexts = WordEquation
-                .GetOccurrences(paragraph._document, paragraph._paragraph)
+            string[] equationTexts = paragraph._document
+                .EquationOccurrences(paragraph.Node())
                 .Select(occurrence => occurrence.Equation.Text)
                 .Where(text => !string.IsNullOrWhiteSpace(text))
                 .ToArray();
@@ -437,7 +432,7 @@ namespace OfficeIMO.Word.Pdf {
                 return string.Join(" ", equationTexts);
             }
 
-            string ommlText = WordMath.GetText(paragraph._paragraph);
+            string ommlText = WordConverterNodes.MathText(paragraph.Node());
             return string.IsNullOrWhiteSpace(ommlText) ? null : ommlText;
         }
 

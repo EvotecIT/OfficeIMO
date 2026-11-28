@@ -1,18 +1,17 @@
-using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeTextSpacing(double? WidthPercentage, double? CharacterSpacing,
             double? KerningMinimumFontSize = null, string? LigatureSetting = null, double? Position = null) {
-            public NativeTextSpacing Merge(OpenXmlElement? properties) => Merge(new NativeTextSpacing(
-                ReadNativeCharacterScale(properties?.GetFirstChild<W.CharacterScale>()),
-                properties?.GetFirstChild<W.Spacing>()?.Val?.Value / 20D,
-                properties?.GetFirstChild<W.Kern>()?.Val?.Value / 2D,
+            public NativeTextSpacing Merge(OfficeXmlNode properties) => Merge(new NativeTextSpacing(
+                ReadNativeCharacterScale(properties.WChild("w")),
+                WordXml.ParseInt32(properties.WChild("spacing").WVal()) / 20D,
+                WordXml.ParseUInt32(properties.WChild("kern").WVal()) / 2D,
                 ReadNativeLigatureSetting(properties),
-                ReadNativeTextPosition(properties?.GetFirstChild<W.Position>())));
+                ReadNativeTextPosition(properties.WChild("position"))));
 
             public NativeTextSpacing Merge(NativeTextSpacing overrides) => new(
                 overrides.WidthPercentage ?? WidthPercentage,
@@ -51,24 +50,20 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static string? ReadNativeLigatureSetting(OpenXmlElement? properties) {
-            const string word2010 = "http://schemas.microsoft.com/office/word/2010/wordml";
-            // The SDK retains this extension as an unknown element in some
-            // run-property containers, including loaded document defaults.
-            OpenXmlElement? ligatures = properties?.ChildElements
-                .LastOrDefault(child => child.LocalName == "ligatures" && child.NamespaceUri == word2010);
-            return ligatures?.GetAttributes()
-                .FirstOrDefault(attribute => attribute.LocalName == "val" && attribute.NamespaceUri == word2010).Value;
+        private static string? ReadNativeLigatureSetting(OfficeXmlNode properties) {
+            // Read by name: some run-property containers, including loaded
+            // document defaults, keep this extension as an unknown element.
+            OfficeXmlNode ligatures = properties.Elements(WordXml.W14, "ligatures").LastOrDefault();
+            return ligatures.Attr(WordXml.W14, "val");
         }
 
         /// <summary>Raised (positive) or lowered text, from signed half-points to points.</summary>
-        private static double? ReadNativeTextPosition(W.Position? position) =>
-            int.TryParse(position?.Val?.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int halfPoints)
+        private static double? ReadNativeTextPosition(OfficeXmlNode position) =>
+            int.TryParse(position.WVal(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int halfPoints)
                 ? halfPoints / 2D : null;
 
-        private static double? ReadNativeCharacterScale(W.CharacterScale? scale) {
-            if (scale?.Val == null) return null;
-            long value = scale.Val.Value;
+        private static double? ReadNativeCharacterScale(OfficeXmlNode scale) {
+            if (WordXml.ParseInt64(scale.WVal()) is not long value) return null;
             if (value < 1 || value > 600)
                 throw new InvalidOperationException("Word character width must be between 1 and 600 percent.");
             return value;

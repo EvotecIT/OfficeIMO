@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
@@ -12,35 +10,32 @@ public static partial class WordPdfConverterExtensions {
         HashSet<string> families, HashSet<PdfCore.PdfStandardFont> slots, bool embedSystemFonts, NativeFontMap fonts) {
         var referenced = new HashSet<NativeNoteKey>();
         foreach (WordSection section in document.Sections) {
-            foreach (OpenXmlElement reference in EnumerateNativeNoteParagraphs(section.Elements)
+            foreach (OfficeXmlNode reference in EnumerateNativeNoteParagraphs(section.Elements)
                 .SelectMany(paragraph => EnumerateNativeVisibleNoteReferences(paragraph)))
                 if (GetNativeNoteReferenceKey(reference) is NativeNoteKey key) referenced.Add(key);
             foreach (WordHeaderFooter story in EnumerateNativeActiveRunningStories(section))
-                foreach (W.FootnoteReference reference in EnumerateNativeRunningFootnoteReferences(story))
-                    if (reference.Id?.Value is long id) referenced.Add(GetNativeFootnoteKey(id));
+                foreach (OfficeXmlNode reference in EnumerateNativeRunningFootnoteReferences(story))
+                    if (WordXml.ParseInt64(reference.WAttr("id")) is long id) referenced.Add(GetNativeFootnoteKey(id));
         }
         if (referenced.Count == 0) return;
-        var main = document._wordprocessingDocument.MainDocumentPart;
-        IEnumerable<W.FootnoteEndnoteType> ordinaryNotes = (main?.FootnotesPart?.Footnotes?
-                .Elements<W.Footnote>() ?? Enumerable.Empty<W.Footnote>())
-            .Where(note => note.Id?.Value is long id && referenced.Contains(GetNativeFootnoteKey(id)) && WordNoteResolver.IsOrdinary(note))
-            .Cast<W.FootnoteEndnoteType>().Concat((main?.EndnotesPart?.Endnotes?
-                .Elements<W.Endnote>() ?? Enumerable.Empty<W.Endnote>())
-                .Where(note => note.Id?.Value is long id && referenced.Contains(GetNativeEndnoteKey(id)) && WordNoteResolver.IsOrdinary(note)));
-        var selectedStories = new List<W.FootnoteEndnoteType>();
+        IEnumerable<OfficeXmlNode> ordinaryNotes = document.FootnotesNode().WElements("footnote")
+            .Where(note => WordXml.ParseInt64(note.WAttr("id")) is long id && referenced.Contains(GetNativeFootnoteKey(id)) && WordConverterNodes.IsOrdinaryNote(note))
+            .Concat(document.EndnotesNode().WElements("endnote")
+                .Where(note => WordXml.ParseInt64(note.WAttr("id")) is long id && referenced.Contains(GetNativeEndnoteKey(id)) && WordConverterNodes.IsOrdinaryNote(note)));
+        var selectedStories = new List<OfficeXmlNode>();
         if (referenced.Any(key => key.Kind == NativeNoteKind.Footnote)) {
             var stories = ResolveNativePageFootnoteStories(document);
             selectedStories.AddRange(new[] { stories.Separator, stories.ContinuationSeparator,
-                stories.ContinuationNotice }.OfType<W.Footnote>());
+                stories.ContinuationNotice }.Where(story => story.Exists));
         }
         if (referenced.Any(key => key.Kind == NativeNoteKind.Endnote)) {
             var stories = ResolveNativeEndnoteStories(document);
             selectedStories.AddRange(new[] { stories.Separator, stories.ContinuationSeparator,
-                stories.ContinuationNotice }.OfType<W.Endnote>());
+                stories.ContinuationNotice }.Where(story => story.Exists));
         }
-        foreach (W.FootnoteEndnoteType note in ordinaryNotes.Concat(selectedStories).Distinct()) {
-            IReadOnlyList<WordParagraph> paragraphs = note.Descendants<W.Paragraph>()
-                .Select(paragraph => new WordParagraph(document, paragraph)).ToArray();
+        foreach (OfficeXmlNode note in ordinaryNotes.Concat(selectedStories).Distinct()) {
+            IReadOnlyList<WordParagraph> paragraphs = note.ModelDescendants("p")
+                .Select(paragraph => document.ParagraphView(paragraph)).ToArray();
             using WordDocumentTraversal.ListMarkerRenderScope markerScope = WordDocumentTraversal
                 .BuildNoteListMarkersForRendering(document, paragraphs);
             foreach (WordElement element in GetNativeNoteElements(document, note))
@@ -48,39 +43,41 @@ public static partial class WordPdfConverterExtensions {
         }
     }
 
-    private static IEnumerable<W.FootnoteReference> EnumerateNativeRunningFootnoteReferences(WordHeaderFooter story) =>
+    private static IEnumerable<OfficeXmlNode> EnumerateNativeRunningFootnoteReferences(WordHeaderFooter story) =>
         EnumerateNativeNoteParagraphs(CollapseNativeParagraphElements(story.Elements))
             .SelectMany(paragraph => EnumerateNativeVisibleNoteReferences(paragraph))
-            .OfType<W.FootnoteReference>().Distinct();
+            .Where(reference => reference.IsW("footnoteReference")).Distinct();
 
-    private static IEnumerable<OpenXmlElement> EnumerateNativeVisibleNoteReferences(WordParagraph paragraph, int textBoxDepth = 0) {
+    private static bool IsNativeNoteReference(OfficeXmlNode element) =>
+        element.IsW("footnoteReference") || element.IsW("endnoteReference");
+
+    private static IEnumerable<OfficeXmlNode> EnumerateNativeVisibleNoteReferences(WordParagraph paragraph, int textBoxDepth = 0) {
         // Note-free paragraphs need no recursive inventory. In particular, do
         // not impose note traversal limits on an otherwise supported cell box.
-        if (paragraph._paragraph == null || !paragraph._paragraph.Descendants()
-            .Any(element => element is W.FootnoteReference or W.EndnoteReference)) yield break;
+        OfficeXmlNode source = paragraph.Node();
+        if (source.IsNone || !source.DescendantElements().Any(IsNativeNoteReference)) yield break;
         if (textBoxDepth > MaximumNativeHeaderFooterTextBoxNestingDepth)
             throw new InvalidDataException($"Text-box nesting exceeds the supported limit of {MaximumNativeHeaderFooterTextBoxNestingDepth} levels.");
         List<WordParagraph> runs = GetNativeRuns(paragraph, includeInlineContentControls: true);
         foreach (WordParagraph run in runs) {
             if (IsNativeHiddenTextRun(run, paragraph)) continue;
-            foreach (OpenXmlElement child in run.EnumerateEffectiveRunContent())
-                if (child is W.FootnoteReference or W.EndnoteReference) yield return child;
+            foreach (OfficeXmlNode child in run.EffectiveRunContentNodes())
+                if (IsNativeNoteReference(child)) yield return child;
         }
         foreach (WordTextBox box in GetNativeVisibleTextBoxes(paragraph, runs))
             foreach (WordParagraph inner in GetNativeTextBoxParagraphs(box))
-                foreach (OpenXmlElement reference in EnumerateNativeVisibleNoteReferences(inner, textBoxDepth + 1))
+                foreach (OfficeXmlNode reference in EnumerateNativeVisibleNoteReferences(inner, textBoxDepth + 1))
                     yield return reference;
     }
 
     private static void CollectNativeRunningFootnoteFallback(WordSection section, List<PdfFootnote> fallback,
         NativeNoteNumbering notes, WordPdfExportOptions? options) {
-        var seen = new HashSet<OpenXmlElement>();
+        var seen = new HashSet<OfficeXmlNode>();
         foreach (WordHeaderFooter story in EnumerateNativeActiveRunningStories(section)) {
-            foreach (W.FootnoteReference reference in EnumerateNativeRunningFootnoteReferences(story)) {
-                if (!seen.Add(reference) || reference.Id?.Value is not long id) continue;
-                W.Footnote? source = WordNoteResolver.FindFootnote(
-                    section._document._wordprocessingDocument.MainDocumentPart, id);
-                if (source == null) continue;
+            foreach (OfficeXmlNode reference in EnumerateNativeRunningFootnoteReferences(story)) {
+                if (!seen.Add(reference) || WordXml.ParseInt64(reference.WAttr("id")) is not long id) continue;
+                OfficeXmlNode source = section._document.FindFootnoteNode(id);
+                if (source.IsNone) continue;
                 AddNativeFootnote(section._document, id, fallback, notes);
                 ReportNativeFootnoteFallbackContent(source, options);
                 notes.ReportPlacementFallback();
@@ -91,23 +88,21 @@ public static partial class WordPdfConverterExtensions {
     private static bool TryPrepareNativePageFootnotes(INativePdfFlow flow, WordSection section,
         IReadOnlyList<WordElement> elements, NativeNoteNumbering notes, WordPdfExportOptions? options,
         NativeDocumentDefaults defaults, NativeFontMap fonts, string? bodyProfileGap, bool stableContinuationWidth) {
-        List<W.FootnoteReference> references = EnumerateNativeNoteParagraphs(elements)
+        List<OfficeXmlNode> references = EnumerateNativeNoteParagraphs(elements)
             .SelectMany(paragraph => EnumerateNativeVisibleNoteReferences(paragraph))
-            .OfType<W.FootnoteReference>().Where(reference => reference.Id?.Value is long)
+            .Where(reference => reference.IsW("footnoteReference") && WordXml.ParseInt64(reference.WAttr("id")) is long)
             .Distinct().ToList();
         if (references.Count == 0) return true;
         bool qualified = bodyProfileGap == null && stableContinuationWidth && (section.ColumnCount ?? 1) == 1;
-        var sources = new List<(NativeNoteKey Key, W.Footnote Source)>();
-        W.Footnotes? part = section._document._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes;
-        foreach (W.FootnoteReference reference in references) {
+        var sources = new List<(NativeNoteKey Key, OfficeXmlNode Source)>();
+        foreach (OfficeXmlNode reference in references) {
             options?.CancellationToken.ThrowIfCancellationRequested();
-            if (reference.Id?.Value is not long id) continue;
-            W.Footnote? source = WordNoteResolver.FindFootnote(
-                section._document._wordprocessingDocument.MainDocumentPart, id);
-            if (source == null) continue;
+            if (WordXml.ParseInt64(reference.WAttr("id")) is not long id) continue;
+            OfficeXmlNode source = section._document.FindFootnoteNode(id);
+            if (source.IsNone) continue;
             if (!CanProjectNativePageNoteReference(reference) ||
-                reference.Ancestors<W.SdtRun>().Any(control => !CanProjectNativePageNoteControl(control)) ||
-                reference.Ancestors<W.Paragraph>().FirstOrDefault()?.Descendants<DocumentFormat.OpenXml.Math.OfficeMath>().Any() == true ||
+                reference.Ancestors().Any(control => control.IsRunContentControl() && !CanProjectNativePageNoteControl(control)) ||
+                reference.Parent.AncestorOrSelf(WordXml.W, "p").HasDescendant(WordXml.M, "oMath") ||
                 !CanProjectNativePageNote(source, section, defaults, fonts, options)) {
                 qualified = false;
             }
@@ -126,14 +121,14 @@ public static partial class WordPdfConverterExtensions {
             notes.TryGetValue(item.Key, out _)).ToList();
         if (pendingSources.Count == 0) return true;
         var stories = ResolveNativePageFootnoteStories(section._document);
-        W.Footnote separator = stories.Separator;
-        W.Footnote continuation = stories.ContinuationSeparator;
-        W.Footnote? notice = stories.ContinuationNotice;
+        OfficeXmlNode separator = stories.Separator;
+        OfficeXmlNode continuation = stories.ContinuationSeparator;
+        OfficeXmlNode notice = stories.ContinuationNotice;
         const int maximumComposedNoteParagraphs = 100000;
         int composedParagraphs = 0;
-        foreach (W.FootnoteEndnoteType story in pendingSources.Select(item => (W.FootnoteEndnoteType)item.Source)
-            .Concat(new W.FootnoteEndnoteType?[] { separator, continuation, notice }.OfType<W.FootnoteEndnoteType>())) {
-            foreach (W.Paragraph _ in story.Descendants<W.Paragraph>()) {
+        foreach (OfficeXmlNode story in pendingSources.Select(item => item.Source)
+            .Concat(new[] { separator, continuation, notice }.Where(story => story.Exists))) {
+            foreach (OfficeXmlNode _ in story.ModelDescendants("p")) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 if (++composedParagraphs > maximumComposedNoteParagraphs)
                     throw new InvalidDataException($"Footnote composition exceeds {maximumComposedNoteParagraphs} paragraphs.");
@@ -141,30 +136,30 @@ public static partial class WordPdfConverterExtensions {
         }
         if (!CanProjectNativePageNote(separator, section, defaults, fonts, options) ||
             !CanProjectNativePageNote(continuation, section, defaults, fonts, options) ||
-            notice != null && !CanProjectNativePageNote(notice, section, defaults, fonts, options)) {
+            notice.Exists && !CanProjectNativePageNote(notice, section, defaults, fonts, options)) {
             notes.ReportPlacementFallback();
             foreach (var source in sources) ReportNativeFootnoteFallbackContent(source.Source, options);
             ReportNativeFootnoteFallbackContent(separator, options);
             ReportNativeFootnoteFallbackContent(continuation, options);
-            if (notice != null) ReportNativeFootnoteFallbackContent(notice, options);
+            if (notice.Exists) ReportNativeFootnoteFallbackContent(notice, options);
             return false;
         }
         var noteOptions = new PdfCore.PdfFootnoteOptions {
             Placement = section.FootnoteSettings.Position == WordFootnotePosition.BeneathText
                 ? PdfCore.PdfFootnotePlacement.BeneathText : PdfCore.PdfFootnotePlacement.BottomOfPage,
-            ReserveContinuationNoticeSpaceOnFinalPage = notice != null && !UsesModernNativeWordLayout(section._document),
+            ReserveContinuationNoticeSpaceOnFinalPage = notice.Exists && !UsesModernNativeWordLayout(section._document),
             Separator = content => RenderNativeNoteStory(content, separator, section,
                 notes, options, defaults, fonts, label: null),
             ContinuationSeparator = content => RenderNativeNoteStory(content, continuation,
                 section, notes, options, defaults, fonts, label: null)
         };
-        if (notice != null) noteOptions.ContinuationNotice = content => RenderNativeNoteStory(content,
+        if (notice.Exists) noteOptions.ContinuationNotice = content => RenderNativeNoteStory(content,
             notice, section, notes, options, defaults, fonts, label: null);
         foreach (var item in pendingSources) {
             if (!notes.TryGetValue(item.Key, out int token)) continue;
             string label = notes.GetLabel(token);
-            IReadOnlyList<WordParagraph> paragraphs = item.Source.Descendants<W.Paragraph>()
-                .Select(paragraph => new WordParagraph(section._document, paragraph)).ToList();
+            IReadOnlyList<WordParagraph> paragraphs = item.Source.ModelDescendants("p")
+                .Select(paragraph => section._document.ParagraphView(paragraph)).ToList();
             PdfCore.PdfFootnoteDefinition definition = flow.DefineFootnote(content => {
                 content.Bookmark(GetNativePageNoteDestination(item.Key));
                 RenderNativeNoteStory(content, item.Source, section, notes, options, defaults, fonts, label);
@@ -187,84 +182,92 @@ public static partial class WordPdfConverterExtensions {
                             yield return nested;
             } else if (element is WordStructuredDocumentTag structured) {
                 EnsureNativeStructuredDocumentTagDepth(structuredDepth);
-                if (TryGetNativeStructuredBlockPropertyValue(structured.Document, structured.SdtBlock, out _)) continue;
+                if (TryGetNativeStructuredBlockPropertyValue(structured.Document, structured.SdtBlockNode(), out _)) continue;
                 foreach (WordParagraph nested in EnumerateNativeNoteParagraphs(
-                    GetNativeStructuredBlockElements(structured.Document, structured.SdtBlock), structuredDepth + 1, tableDepth))
+                    GetNativeStructuredBlockElements(structured.Document, structured.SdtBlockNode()), structuredDepth + 1, tableDepth))
                     yield return nested;
             } else if (element is WordCoverPage cover) {
                 EnsureNativeStructuredDocumentTagDepth(structuredDepth);
                 foreach (WordParagraph nested in EnumerateNativeNoteParagraphs(
-                    GetNativeStructuredBlockElements(cover.Document, cover.SdtBlock), structuredDepth + 1, tableDepth))
+                    GetNativeStructuredBlockElements(cover.Document, cover.SdtBlockNode()), structuredDepth + 1, tableDepth))
                     yield return nested;
             }
         }
     }
 
-    private static bool CanProjectNativePageNoteReference(W.FootnoteReference reference) {
-        if (reference.Ancestors<W.TextBoxContent>().Any()) return false;
-        if (reference.Ancestors<W.TableRow>().Any(row =>
-            row.TableRowProperties?.GetFirstChild<W.TableHeader>() is { } header && WordTableRow.ReadOnOff(header))) return false;
-        if (reference.Ancestors<W.Table>().Any(table =>
-            table.GetFirstChild<W.TableProperties>()?.GetFirstChild<W.TablePositionProperties>() != null)) return false;
-        if (reference.Ancestors<W.TableCell>().Any(cell => {
-            string? direction = cell.GetFirstChild<W.TableCellProperties>()?.GetFirstChild<W.TextDirection>()?.Val?.InnerText;
+    private static bool CanProjectNativePageNoteReference(OfficeXmlNode reference) {
+        if (reference.Parent.AncestorOrSelf(WordXml.W, "txbxContent").Exists) return false;
+        if (reference.Ancestors().Any(row => row.IsW("tr") &&
+            row.WChild("trPr").WChild("tblHeader") is { Exists: true } header && WordConverterNodes.ReadTableHeaderOnOff(header))) return false;
+        if (reference.Ancestors().Any(table => table.IsW("tbl") &&
+            table.WChild("tblPr").WChild("tblpPr").Exists)) return false;
+        if (reference.Ancestors().Any(cell => {
+            if (!cell.IsW("tc")) return false;
+            string? direction = cell.WChild("tcPr").WChild("textDirection").WAttr("val");
             return direction != null && direction != "lrTb";
         })) return false;
-        W.ParagraphProperties? properties = reference.Ancestors<W.Paragraph>().FirstOrDefault()?.ParagraphProperties;
-        return properties?.GetFirstChild<W.FrameProperties>() == null &&
-            properties?.GetFirstChild<W.ParagraphBorders>() == null && properties?.GetFirstChild<W.Shading>() == null;
+        OfficeXmlNode properties = reference.Parent.AncestorOrSelf(WordXml.W, "p").WChild("pPr");
+        return properties.WChild("framePr").IsNone &&
+            properties.WChild("pBdr").IsNone && properties.WChild("shd").IsNone;
     }
 
-    private static bool CanProjectNativePageNoteControl(W.SdtRun control) =>
-        IsNativeSimpleTextContentControl(control) &&
-        (control.SdtProperties == null || !IsNativePropertyBoundStructuredBlock(control.SdtProperties));
 
-    private static bool CanProjectNativePageNote(W.FootnoteEndnoteType note, WordSection section,
+    private static bool CanProjectNativePageNoteControl(OfficeXmlNode control) =>
+        IsNativeSimpleTextContentControl(control) &&
+        (control.WChild("sdtPr").IsNone || !IsNativePropertyBoundStructuredBlock(control.WChild("sdtPr")));
+
+    private static bool CanProjectNativePageNote(OfficeXmlNode note, WordSection section,
         NativeDocumentDefaults defaults, NativeFontMap fonts, WordPdfExportOptions? options = null, bool recordDiagnostics = true) {
         // Ordinary paragraph and qualified inline-table flow share their existing
         // owners. Floating objects, recursive notes and active fields retain the
         // explicitly reported section-flow fallback.
         defaults = CreateNativeNoteStoryDefaults(defaults, section, label: null);
-        if (note.ChildElements.Any(child => child is not W.Paragraph and not W.Table) ||
-            !WordNoteResolver.IsOrdinary(note) && note.Elements<W.Table>().Any() ||
-            note.Elements<W.Table>().Any(table => !CanProjectNativeNoteTable(table, section, options, defaults, fonts))) return false;
-        foreach (OpenXmlElement element in note.Descendants()) {
-            if (element is W.FootnoteReference or W.EndnoteReference or W.TextBoxContent or W.Picture or
-                W.EmbeddedObject or W.SimpleField or W.FieldChar or W.AltChunk or
-                W.FrameProperties ||
-                element is W.PageBreakBefore pageBreak && (pageBreak.Val == null || pageBreak.Val.Value) ||
-                element is W.Break lineBreak && lineBreak.Type?.Value is { } type && type != W.BreakValues.TextWrapping ||
-                element is DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor ||
-                element is DocumentFormat.OpenXml.Math.OfficeMath ||
-                element is W.SdtRun control && !CanProjectNativePageNoteControl(control)) return false;
-            if (element is W.Drawing drawing) {
-                var data = drawing.Inline?.Graphic?.GraphicData;
-                if (drawing.Anchor != null || data?.Uri?.Value != "http://schemas.openxmlformats.org/drawingml/2006/picture" ||
-                    data.Elements<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Count() != 1) return false;
-            }
+        if (note.Elements().Any(child => !child.IsW("p") && !child.IsW("tbl")) ||
+            !WordConverterNodes.IsOrdinaryNote(note) && note.WElements("tbl").Any() ||
+            note.WElements("tbl").Any(table => !CanProjectNativeNoteTable(table, section, options, defaults, fonts))) return false;
+        foreach (OfficeXmlNode element in note.DescendantElements()) {
+            if (element.NamespaceId == WordXml.W) {
+                switch (element.LocalName) {
+                    case "footnoteReference": case "endnoteReference": case "txbxContent": case "pict":
+                    case "object": case "fldSimple": case "fldChar": case "altChunk": case "framePr":
+                        return false;
+                    case "pageBreakBefore" when element.OnOff() == true:
+                        return false;
+                    case "br" when element.WAttr("type") is { } type && type != "textWrapping":
+                        return false;
+                    case "sdt" when element.IsRunContentControl() && !CanProjectNativePageNoteControl(element):
+                        return false;
+                    case "drawing":
+                        OfficeXmlNode data = element.Child(WordXml.Wp, "inline").Child(WordXml.A, "graphic").Child(WordXml.A, "graphicData");
+                        if (element.Child(WordXml.Wp, "anchor").Exists ||
+                            data.Attr("uri") != "http://schemas.openxmlformats.org/drawingml/2006/picture" ||
+                            data.Elements(WordXml.Pic, "pic").Count() != 1) return false;
+                        break;
+                }
+            } else if (element.Is(WordXml.Wp, "anchor") || element.Is(WordXml.M, "oMath")) return false;
         }
-        foreach (W.Paragraph source in note.Descendants<W.Paragraph>()) {
+        foreach (OfficeXmlNode source in note.ModelDescendants("p")) {
             // Match the style actually sent to the PDF owner, including the
             // paragraph's inherited style and explicit false overrides.
-            PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(new WordParagraph(section._document, source), defaults, fonts);
+            PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(section._document.ParagraphView(source), defaults, fonts);
             if (style.AnchoredCanvas != null) return false;
         }
         // Definitions can be painted after the operation report is captured.
         // Record admitted note decoration now, after all profile checks pass.
         if (recordDiagnostics)
-            foreach (W.Paragraph source in note.Descendants<W.Paragraph>())
-                RecordNativeParagraphBarTabDiagnostics(new WordParagraph(section._document, source), options, "note paragraph");
+            foreach (OfficeXmlNode source in note.ModelDescendants("p"))
+                RecordNativeParagraphBarTabDiagnostics(section._document.ParagraphView(source), options, "note paragraph");
         return true;
     }
 
-    private static void ReportNativeFootnoteFallbackContent(W.FootnoteEndnoteType source, WordPdfExportOptions? options) {
-        if (options != null && source.Descendants().Any(element => element is W.Drawing or W.Picture or
-            W.EmbeddedObject or W.AltChunk or W.FootnoteReference or W.EndnoteReference or DocumentFormat.OpenXml.Math.OfficeMath))
+    private static void ReportNativeFootnoteFallbackContent(OfficeXmlNode source, WordPdfExportOptions? options) {
+        if (options != null && source.DescendantElements().Any(element => element.IsW("drawing") || element.IsW("pict") ||
+            element.IsW("object") || element.IsW("altChunk") || IsNativeNoteReference(element) || element.Is(WordXml.M, "oMath")))
             AddNativeExportWarning(options, "native-footnote-content-omitted", "footnote",
                 "Non-text footnote content is omitted by the unsupported-profile plain-text fallback.");
     }
 
-    private static void RenderNativeNoteStory(PdfCore.PdfContentBuilder content, W.FootnoteEndnoteType source,
+    private static void RenderNativeNoteStory(PdfCore.PdfContentBuilder content, OfficeXmlNode source,
         WordSection section, NativeNoteNumbering notes, WordPdfExportOptions? options,
         NativeDocumentDefaults defaults, NativeFontMap fonts, string? label) {
         INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,
