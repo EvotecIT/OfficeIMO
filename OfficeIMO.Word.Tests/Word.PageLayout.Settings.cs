@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -7,6 +8,101 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+#if NET
+    [Fact]
+    public void Test_ReplacingRemovedRunningStoryDoesNotRebindOldHandles() {
+        byte[] bytes;
+        using (WordDocument source = WordDocument.Create()) {
+            source.PageSetup.Header.AddField(WordFieldType.Page).Text = "old result";
+            bytes = source.ToBytes();
+        }
+
+        using WordDocument document = WordDocument.Load(new MemoryStream(bytes));
+        WordHeader oldHeader = document.PageSetup.Header;
+        WordField oldField = Assert.Single(oldHeader.Fields);
+        WordHeader.RemoveHeaders(document, WordHeaderFooterType.Default);
+        WordHeader replacement = document.PageSetup.Header;
+        replacement.AddParagraph("Replacement header");
+        Assert.True(document.IsSdkDeferred);
+
+        _ = document.OpenXmlDocument;
+
+        Assert.Empty(oldHeader.Paragraphs);
+        Assert.Throws<InvalidOperationException>(() => { _ = oldField.Text; });
+        Assert.Equal("Replacement header", Assert.Single(replacement.Paragraphs).Text);
+    }
+#endif
+
+    [Fact]
+    public void Test_RemovingMainHeaderKeepsThePartLinkedFromGlossary() {
+        byte[] bytes;
+        using (WordDocument source = WordDocument.Create()) {
+            source.PageSetup.Header.AddParagraph("Shared header");
+            var main = source.OpenXmlDocument.MainDocumentPart!;
+            HeaderPart header = Assert.Single(main.HeaderParts);
+            var glossary = main.AddNewPart<GlossaryDocumentPart>();
+            glossary.GlossaryDocument = new GlossaryDocument();
+            glossary.AddPart(header);
+            bytes = source.ToBytes();
+        }
+
+        using WordDocument document = WordDocument.Load(new MemoryStream(bytes));
+        WordHeader.RemoveHeaders(document, WordHeaderFooterType.Default);
+
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes()));
+        var mainPart = reopened.OpenXmlDocument.MainDocumentPart!;
+        Assert.Empty(mainPart.HeaderParts);
+        HeaderPart shared = Assert.Single(mainPart.GlossaryDocumentPart!.Parts.Select(pair => pair.OpenXmlPart).OfType<HeaderPart>());
+        Assert.Equal("Shared header", shared.Header!.InnerText);
+    }
+
+    [Fact]
+    public void Test_RunningStoriesReadSimpleAndComplexFieldsInOrder() {
+        byte[] bytes;
+        using (WordDocument source = WordDocument.Create()) {
+            WordHeader header = source.PageSetup.Header;
+            header.AddField(WordFieldType.Page).Text = "3";
+            header.AddField(WordFieldType.NumPages, advanced: true).Text = "7";
+            source.PageSetup.Footer.AddField(WordFieldType.Page, advanced: true).Text = "3";
+            bytes = source.ToBytes();
+        }
+
+        using WordDocument document = WordDocument.Load(new MemoryStream(bytes));
+        var headerFields = document.PageSetup.Header.Fields;
+        Assert.Equal(new WordFieldType?[] { WordFieldType.Page, WordFieldType.NumPages }, headerFields.Select(field => field.FieldType));
+        Assert.Equal(new[] { "3", "7" }, headerFields.Select(field => field.Text));
+        Assert.Equal("3", Assert.Single(document.PageSetup.Footer.Fields).Text);
+#if NET
+        Assert.True(document.IsSdkDeferred);
+#endif
+    }
+
+    [Fact]
+    public void Test_EvenStoryEditsKeepDefaultStories() {
+        using WordDocument document = WordDocument.Create();
+        document.PageSetup.Header.AddParagraph("Default header");
+        document.PageSetup.Footer.AddParagraph("Default footer");
+        document.PageSetup.EvenPageHeader.AddParagraph("Even header");
+        document.PageSetup.EvenPageFooter.AddParagraph("Even footer");
+        Assert.True(document.PageSetup.DifferentOddAndEvenPages);
+#if NET
+        Assert.True(document.IsSdkDeferred);
+#endif
+
+        WordHeader.RemoveHeaders(document, WordHeaderFooterType.Even);
+        WordFooter.RemoveFooters(document, WordHeaderFooterType.Even);
+#if NET
+        Assert.True(document.IsSdkDeferred);
+#endif
+
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
+        Assert.Equal("Default header", Assert.Single(loaded.PageSetup.Header.Paragraphs).Text);
+        Assert.Equal("Default footer", Assert.Single(loaded.PageSetup.Footer.Paragraphs).Text);
+        Assert.Null(loaded.PageSetup.GetHeader(WordHeaderFooterType.Even));
+        Assert.Null(loaded.PageSetup.GetFooter(WordHeaderFooterType.Even));
+        Assert.False(loaded.PageSetup.DifferentOddAndEvenPages);
+    }
+
     [Fact]
     public void Test_SectionsAndRunningStoriesKeepTheirHandlesAfterSdkInterop() {
         using WordDocument document = WordDocument.Create();

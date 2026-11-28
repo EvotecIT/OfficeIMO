@@ -7,6 +7,35 @@ using OfficeIMO.OpenXml.Internal;
 namespace OfficeIMO.Word {
     // Creates header/footer parts and section properties.
     internal static partial class WordHeadersAndFooters {
+        internal static void AddReferences(WordSection section, WordHeaderFooterType type) {
+            string token = WordSection.RunningStoryTypeToken(type);
+            if (section.TryAddOwnedStory(header: true, token)) {
+                section.TryAddOwnedStory(header: false, token);
+                return;
+            }
+
+            HeaderFooterValues sdkType = type.ToOpenXml();
+            AddHeaderReference(section._document, section, sdkType);
+            AddFooterReference(section._document, section, sdkType);
+        }
+
+        internal static void SetSdkOddEvenStories(WordSection section, bool value) {
+            WordDocument document = section._document;
+            var main = document._wordprocessingDocument.MainDocumentPart;
+            if (!value) {
+                main?.DocumentSettingsPart?.Settings?.GetFirstChild<EvenAndOddHeaders>()?.Remove();
+                return;
+            }
+
+            _ = document.Settings;
+            AddReferences(section, WordHeaderFooterType.Even);
+
+            Settings settings = main!.DocumentSettingsPart!.Settings!;
+            EvenAndOddHeaders? setting = settings.GetFirstChild<EvenAndOddHeaders>();
+            if (setting == null) settings.AddChild(new EvenAndOddHeaders(), true);
+            else setting.Val = true;
+        }
+
         /// <summary>
         /// Checks for existing header reference. Allow checking if different odd and even pages are set
         /// </summary>

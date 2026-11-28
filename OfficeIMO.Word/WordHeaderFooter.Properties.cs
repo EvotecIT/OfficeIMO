@@ -279,6 +279,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordField> Fields {
             get {
+                if (ReadOwnedStoryFields() is { } owned) return owned;
                 List<WordField> list = new List<WordField>();
                 var paragraphs = Paragraphs.Where(p => p.IsField).ToList();
                 foreach (var paragraph in paragraphs) {

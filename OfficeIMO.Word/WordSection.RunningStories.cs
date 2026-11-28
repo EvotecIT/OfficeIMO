@@ -88,6 +88,48 @@ public partial class WordSection {
     private static string RunningStoryContentType(string name) =>
         "application/vnd.openxmlformats-officedocument.wordprocessingml." + name + "+xml";
 
+    internal bool TrySetOwnedOddEvenStories(bool value) {
+        const string name = "evenAndOddHeaders";
+        if (!TryGetOwnedStorySettings(out OfficeXmlNode settings) || value && settings.IsNone) return false;
+
+        OfficeXmlNode setting = settings.Child(WStory, name);
+        if (value) {
+            TryAddOwnedStory(header: true, "even");
+            TryAddOwnedStory(header: false, "even");
+            if (setting.Exists) {
+                setting.SetAttribute(WStory, "val", "true");
+            } else {
+                OfficeXmlNode next = settings.FirstChild;
+                while (next.Exists && !FollowsOddEvenSetting(next)) next = next.NextSibling;
+                settings.InsertBefore(settings.CreateElement(WStory, name), next);
+            }
+        } else if (setting.Exists) {
+            setting.Remove();
+        } else {
+            return true;
+        }
+
+        _document._ownedModel!.MarkChanged();
+        return true;
+    }
+
+    private static bool FollowsOddEvenSetting(OfficeXmlNode node) =>
+        node.NamespaceId == WStory && node.LocalName is
+            "bookFoldRevPrinting" or "bookFoldPrinting" or "bookFoldPrintingSheets" or
+            "drawingGridHorizontalSpacing" or "drawingGridVerticalSpacing" or "displayHorizontalDrawingGridEvery" or
+            "displayVerticalDrawingGridEvery" or "doNotUseMarginsForDrawingGridOrigin" or "drawingGridHorizontalOrigin" or
+            "drawingGridVerticalOrigin" or "doNotShadeFormData" or "noPunctuationKerning" or "characterSpacingControl" or
+            "printTwoOnOne" or "strictFirstAndLastChars" or "noLineBreaksAfter" or "noLineBreaksBefore" or "savePreviewPicture" or
+            "doNotValidateAgainstSchema" or "saveInvalidXml" or "ignoreMixedContent" or "alwaysShowPlaceholderText" or
+            "doNotDemarcateInvalidXml" or "saveXmlDataOnly" or "useXSLTWhenSaving" or "saveThroughXslt" or "showXMLTags" or
+            "alwaysMergeEmptyNamespace" or "updateFields" or "hdrShapeDefaults" or "footnotePr" or "endnotePr" or "compat" or
+            "docVars" or "rsids" or "attachedSchema" or "themeFontLang" or "clrSchemeMapping" or "doNotIncludeSubdocsInStats" or
+            "doNotAutoCompressPictures" or "forceUpgrade" or "captions" or "readModeInkLockDown" or "smartTagType" or
+            "schemaLibrary" or "shapeDefaults" or "doNotEmbedSmartTags" or "decimalSymbol" or "listSeparator" ||
+        node.Is(OfficeXmlNamespaces.Math, "mathPr") ||
+        node.Is("http://schemas.openxmlformats.org/schemaLibrary/2006/main", "schemaLibrary") ||
+        node.NamespaceUri is "http://schemas.microsoft.com/office/word/2010/wordml" or "http://schemas.microsoft.com/office/word/2012/wordml";
+
     internal bool TryGetOwnedStorySettings(out OfficeXmlNode settings) {
         settings = default;
         if (_document._ownedModel is not { } model) return false;

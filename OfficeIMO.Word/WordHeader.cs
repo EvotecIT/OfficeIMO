@@ -30,7 +30,7 @@ namespace OfficeIMO.Word {
         internal WordHeader(WordDocument document, WordSection section, string? ownedPartName) {
             _document = document;
             _section = section;
-            _ownedPartName = ownedPartName;
+            RememberOwnedStory(ownedPartName);
         }
 
         internal WordHeader(WordDocument document, HeaderReference headerReference, WordSection section) {
@@ -128,7 +128,8 @@ namespace OfficeIMO.Word {
         /// <param name="document">Document to operate on.</param>
         /// <param name="types">Header types to remove.</param>
         public static void RemoveHeaders(WordDocument document, params WordHeaderFooterType[] types) {
-            RemoveHeaders(document._wordprocessingDocument, types);
+            if (!document.TryRemoveOwnedRunningStories(header: true, types))
+                RemoveHeaders(document._wordprocessingDocument, types);
         }
 
         /// <summary>

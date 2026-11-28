@@ -41,7 +41,7 @@ namespace OfficeIMO.Word {
         internal WordFooter(WordDocument document, WordSection section, string? ownedPartName) {
             _document = document;
             _section = section;
-            _ownedPartName = ownedPartName;
+            RememberOwnedStory(ownedPartName);
         }
 
         internal WordFooter(WordDocument document, FooterReference footerReference, WordSection section) {
@@ -140,7 +140,8 @@ namespace OfficeIMO.Word {
         /// <param name="document">Document to operate on.</param>
         /// <param name="types">Footer types to remove.</param>
         public static void RemoveFooters(WordDocument document, params WordHeaderFooterType[] types) {
-            RemoveFooters(document._wordprocessingDocument, types);
+            if (!document.TryRemoveOwnedRunningStories(header: false, types))
+                RemoveFooters(document._wordprocessingDocument, types);
         }
     }
 }

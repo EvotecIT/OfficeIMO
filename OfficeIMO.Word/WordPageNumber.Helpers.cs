@@ -43,7 +43,7 @@ public partial class WordPageNumber {
                 root.Append(block);
                 story.TrackOwnedParagraphs(root.Tree!);
                 model.MarkChanged();
-                _listParagraphs = WordOwnedParagraphs.ProjectPageNumberParagraphs(document, block.Child(W, "sdtContent"));
+                _listParagraphs = WordOwnedParagraphs.ProjectFlatFieldParagraphs(document, block.Child(W, "sdtContent"));
                 _wordParagraph = _listParagraphs[0];
                 return;
             }

@@ -352,6 +352,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns>The cloned <see cref="WordSection"/>.</returns>
         public WordSection CloneSection() {
+            if (CloneOwnedSection() is { } owned) return owned;
             var body = _document._wordprocessingDocument!.MainDocumentPart!.Document!.Body!;
             OpenXmlElement sectionEnd;
             if (_sectionProperties.Parent is ParagraphProperties pPr && pPr.Parent is Paragraph para) {
@@ -406,6 +407,7 @@ namespace OfficeIMO.Word {
         /// cleaning up numbering and any unreferenced header and footer parts.
         /// </summary>
         public void RemoveSection() {
+            if (TryRemovePlainOwnedSection()) return;
             HashSet<int> numberingIds = CollectReferencedNumberingIds();
 
             foreach (var element in this.ElementsByType.ToList()) {
