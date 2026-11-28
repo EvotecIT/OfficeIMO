@@ -34,7 +34,7 @@ sheet.AddBarcode("C4", SymbolFormat.Ean, "590123412345");
 sheet.AddBarcode(10, 2, SymbolFormat.DataMatrix, "SN-0042-PL", options => options.Width = OfficeLength.Millimeters(15));
 ```
 
-Any CodeGlyphX `SymbolFormat` works. The optional callback sets `Width`, `Height`, `QuietZone`, `Color`, `BackgroundColor`, QR `ErrorCorrection`, linear `HumanReadableText` and `AlternativeText`; the defaults are listed in [OfficeIMO.Drawing.CodeGlyphX](../OfficeIMO.Drawing.CodeGlyphX/README.md#options).
+Any CodeGlyphX `SymbolFormat` works. The optional callback sets `Width`, `Height`, `QuietZone`, `Color`, `BackgroundColor`, QR `ErrorCorrection`, linear `HumanReadableText` and `AlternativeText`; the defaults are listed in [OfficeIMO.Drawing.CodeGlyphX](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Drawing.CodeGlyphX/README.md#options).
 
 ## Output
 

@@ -1,164 +1,73 @@
-using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Word.SmartArt.Templates;
+using System.Collections.Concurrent;
+using System.Text;
 
 namespace OfficeIMO.Word {
+    /// <summary>
+    /// Adds the parts of a built-in SmartArt diagram. Each layout ships as the part markup it writes, in
+    /// <c>SmartArt/Templates</c>; <c>$IDn$</c> marks a model identifier that is new for every diagram and
+    /// <c>$PERSIST$</c> the relationship to the persisted layout drawing.
+    /// </summary>
     internal static class SmartArtBuiltIn {
-        internal static (string relLayout, string relColors, string relStyle, string relData) AddParts(OpenXmlPart owner, WordSmartArtType type) {
-            switch (type) {
-                case WordSmartArtType.Cycle:
-                    return AddCycle(owner);
-                case WordSmartArtType.BasicProcess:
-                    return AddBasicProcess(owner);
-                case WordSmartArtType.CustomSmartArt1:
-                    return AddCustom1(owner);
-                case WordSmartArtType.CustomSmartArt2:
-                    return AddCustom2(owner);
-                case WordSmartArtType.Hierarchy:
-                    return AddHierarchy(owner);
-                case WordSmartArtType.PictureOrgChart:
-                    return AddPictureOrgChart(owner);
-                case WordSmartArtType.ContinuousBlockProcess:
-                    return AddContinuousBlockProcess(owner);
-                default:
-                    return AddBasicProcess(owner);
+        private static readonly ConcurrentDictionary<string, string> Templates = new(StringComparer.Ordinal);
+
+        internal static (string relLayout, string relColors, string relStyle, string relData) AddParts(object owner, WordSmartArtType type) {
+            string name = type switch {
+                WordSmartArtType.Cycle => "Cycle",
+                WordSmartArtType.CustomSmartArt1 => "Custom1",
+                WordSmartArtType.CustomSmartArt2 => "Custom2",
+                WordSmartArtType.Hierarchy => "Hierarchy",
+                WordSmartArtType.PictureOrgChart => "PictureOrgChart",
+                WordSmartArtType.ContinuousBlockProcess => "ContinuousBlockProcess",
+                _ => "BasicProcess"
+            };
+            bool custom = type is WordSmartArtType.CustomSmartArt1 or WordSmartArtType.CustomSmartArt2;
+            string styleSet = custom ? name : "Common";
+            var ids = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            string relLayout = WordPartOwnership.AddDiagramPart(owner, WordDiagramPartKind.Layout, Fill(name + ".layout.xml", ids, null));
+            string relColors = WordPartOwnership.AddDiagramPart(owner, WordDiagramPartKind.Colors, Fill(styleSet + ".colors.xml", ids, null));
+            string relStyle = WordPartOwnership.AddDiagramPart(owner, WordDiagramPartKind.Style, Fill(styleSet + ".quickStyle.xml", ids, null));
+            string? persist = custom
+                ? WordPartOwnership.AddDiagramPart(owner, WordDiagramPartKind.PersistLayout, Fill(name + ".drawing.xml", ids, null))
+                : null;
+            string relData = WordPartOwnership.AddDiagramPart(owner, WordDiagramPartKind.Data, Fill(name + ".data.xml", ids, persist));
+            return (relLayout, relColors, relStyle, relData);
+        }
+
+        private static byte[] Fill(string template, Dictionary<string, string> ids, string? persistRelationshipId) {
+            string markup = Templates.GetOrAdd(template, Load);
+            if (markup.IndexOf('$') < 0) return Encoding.UTF8.GetBytes(markup);
+            var builder = new StringBuilder(markup.Length + 64);
+            int position = 0;
+            while (position < markup.Length) {
+                int start = markup.IndexOf('$', position);
+                int end = start < 0 ? -1 : markup.IndexOf('$', start + 1);
+                if (end < 0) {
+                    builder.Append(markup, position, markup.Length - position);
+                    break;
+                }
+                builder.Append(markup, position, start - position);
+                string token = markup.Substring(start + 1, end - start - 1);
+                if (token == "PERSIST") {
+                    builder.Append(persistRelationshipId ?? throw new InvalidOperationException("The SmartArt template needs a persisted layout part."));
+                } else {
+                    if (!ids.TryGetValue(token, out string? id)) {
+                        id = "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}";
+                        ids.Add(token, id);
+                    }
+                    builder.Append(id);
+                }
+                position = end + 1;
             }
+            return Encoding.UTF8.GetBytes(builder.ToString());
         }
 
-        private static (string relLayout, string relColors, string relStyle, string relData) AddBasicProcess(OpenXmlPart owner) {
-            var layoutPart = owner.AddNewPart<DiagramLayoutDefinitionPart>();
-            SmartArtBasicProcessLayout.PopulateLayout(layoutPart);
-            var colorsPart = owner.AddNewPart<DiagramColorsPart>();
-            SmartArtCommonColors.PopulateColors(colorsPart);
-            var stylePart = owner.AddNewPart<DiagramStylePart>();
-            SmartArtCommonStyle.PopulateStyle(stylePart);
-            var dataPart = owner.AddNewPart<DiagramDataPart>();
-            SmartArtBasicProcessData.PopulateData(dataPart);
-
-            return (
-                owner.GetIdOfPart(layoutPart)!,
-                owner.GetIdOfPart(colorsPart)!,
-                owner.GetIdOfPart(stylePart)!,
-                owner.GetIdOfPart(dataPart)!
-            );
-        }
-
-        private static (string relLayout, string relColors, string relStyle, string relData) AddCycle(OpenXmlPart owner) {
-            var layoutPart = owner.AddNewPart<DiagramLayoutDefinitionPart>();
-            SmartArtCycleLayout.PopulateLayout(layoutPart);
-            var colorsPart = owner.AddNewPart<DiagramColorsPart>();
-            SmartArtCommonColors.PopulateColors(colorsPart);
-            var stylePart = owner.AddNewPart<DiagramStylePart>();
-            SmartArtCommonStyle.PopulateStyle(stylePart);
-            var dataPart = owner.AddNewPart<DiagramDataPart>();
-            SmartArtCycleData.PopulateData(dataPart);
-
-            return (
-                owner.GetIdOfPart(layoutPart)!,
-                owner.GetIdOfPart(colorsPart)!,
-                owner.GetIdOfPart(stylePart)!,
-                owner.GetIdOfPart(dataPart)!
-            );
-        }
-
-        private static (string relLayout, string relColors, string relStyle, string relData) AddHierarchy(OpenXmlPart owner) {
-            var layoutPart = owner.AddNewPart<DiagramLayoutDefinitionPart>();
-            SmartArtHierarchyLayout.PopulateLayout(layoutPart);
-            var colorsPart = owner.AddNewPart<DiagramColorsPart>();
-            SmartArtCommonColors.PopulateColors(colorsPart);
-            var stylePart = owner.AddNewPart<DiagramStylePart>();
-            SmartArtCommonStyle.PopulateStyle(stylePart);
-            var dataPart = owner.AddNewPart<DiagramDataPart>();
-            SmartArtHierarchyData.PopulateData(dataPart);
-
-            return (
-                owner.GetIdOfPart(layoutPart)!,
-                owner.GetIdOfPart(colorsPart)!,
-                owner.GetIdOfPart(stylePart)!,
-                owner.GetIdOfPart(dataPart)!
-            );
-        }
-
-        private static (string relLayout, string relColors, string relStyle, string relData) AddPictureOrgChart(OpenXmlPart owner) {
-            var layoutPart = owner.AddNewPart<DiagramLayoutDefinitionPart>();
-            SmartArtPictureOrgChartLayout.PopulateLayout(layoutPart);
-            var colorsPart = owner.AddNewPart<DiagramColorsPart>();
-            SmartArtCommonColors.PopulateColors(colorsPart);
-            var stylePart = owner.AddNewPart<DiagramStylePart>();
-            SmartArtCommonStyle.PopulateStyle(stylePart);
-            var dataPart = owner.AddNewPart<DiagramDataPart>();
-            SmartArtPictureOrgChartData.PopulateData(dataPart);
-
-            return (
-                owner.GetIdOfPart(layoutPart)!,
-                owner.GetIdOfPart(colorsPart)!,
-                owner.GetIdOfPart(stylePart)!,
-                owner.GetIdOfPart(dataPart)!
-            );
-        }
-
-        private static (string relLayout, string relColors, string relStyle, string relData) AddContinuousBlockProcess(OpenXmlPart owner) {
-            var layoutPart = owner.AddNewPart<DiagramLayoutDefinitionPart>();
-            SmartArtContinuousBlockProcessLayout.PopulateLayout(layoutPart);
-            var colorsPart = owner.AddNewPart<DiagramColorsPart>();
-            SmartArtCommonColors.PopulateColors(colorsPart);
-            var stylePart = owner.AddNewPart<DiagramStylePart>();
-            SmartArtCommonStyle.PopulateStyle(stylePart);
-            var dataPart = owner.AddNewPart<DiagramDataPart>();
-            SmartArtContinuousBlockProcessData.PopulateData(dataPart);
-
-            return (
-                owner.GetIdOfPart(layoutPart)!,
-                owner.GetIdOfPart(colorsPart)!,
-                owner.GetIdOfPart(stylePart)!,
-                owner.GetIdOfPart(dataPart)!
-            );
-        }
-
-        private static (string relLayout, string relColors, string relStyle, string relData) AddCustom1(OpenXmlPart owner) {
-            var layoutPart = owner.AddNewPart<DiagramLayoutDefinitionPart>();
-            SmartArt.Templates.SmartArtCustom1.PopulateLayout(layoutPart);
-            var colorsPart = owner.AddNewPart<DiagramColorsPart>();
-            SmartArt.Templates.SmartArtCustom1.PopulateColors(colorsPart);
-            var stylePart = owner.AddNewPart<DiagramStylePart>();
-            SmartArt.Templates.SmartArtCustom1.PopulateStyle(stylePart);
-
-            // Optional persisted layout for exact positioning
-            var persistPart = owner.AddNewPart<DiagramPersistLayoutPart>();
-            SmartArt.Templates.SmartArtCustom1.PopulatePersistLayout(persistPart);
-            var persistRel = owner.GetIdOfPart(persistPart)!;
-
-            var dataPart = owner.AddNewPart<DiagramDataPart>();
-            SmartArt.Templates.SmartArtCustom1.PopulateData(dataPart, persistRel);
-
-            return (
-                owner.GetIdOfPart(layoutPart)!,
-                owner.GetIdOfPart(colorsPart)!,
-                owner.GetIdOfPart(stylePart)!,
-                owner.GetIdOfPart(dataPart)!
-            );
-        }
-
-        private static (string relLayout, string relColors, string relStyle, string relData) AddCustom2(OpenXmlPart owner) {
-            var layoutPart = owner.AddNewPart<DiagramLayoutDefinitionPart>();
-            SmartArt.Templates.SmartArtCustom2.PopulateLayout(layoutPart);
-            var colorsPart = owner.AddNewPart<DiagramColorsPart>();
-            SmartArt.Templates.SmartArtCustom2.PopulateColors(colorsPart);
-            var stylePart = owner.AddNewPart<DiagramStylePart>();
-            SmartArt.Templates.SmartArtCustom2.PopulateStyle(stylePart);
-
-            var persistPart = owner.AddNewPart<DiagramPersistLayoutPart>();
-            SmartArt.Templates.SmartArtCustom2.PopulatePersistLayout(persistPart);
-            var persistRel = owner.GetIdOfPart(persistPart)!;
-
-            var dataPart = owner.AddNewPart<DiagramDataPart>();
-            SmartArt.Templates.SmartArtCustom2.PopulateData(dataPart, persistRel);
-
-            return (
-                owner.GetIdOfPart(layoutPart)!,
-                owner.GetIdOfPart(colorsPart)!,
-                owner.GetIdOfPart(stylePart)!,
-                owner.GetIdOfPart(dataPart)!
-            );
+        private static string Load(string template) {
+            string resource = "OfficeIMO.Word.SmartArt.Templates." + template;
+            using Stream stream = typeof(SmartArtBuiltIn).Assembly.GetManifestResourceStream(resource)
+                ?? throw new InvalidOperationException("The SmartArt template " + resource + " is missing.");
+            using var reader = new StreamReader(stream, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: false);
+            return reader.ReadToEnd();
         }
     }
 }

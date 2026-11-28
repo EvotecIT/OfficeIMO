@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Archives.Tests/Fixtures/IndependentRar5/legacy.rar" Link="Fixtures/legacy.rar" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

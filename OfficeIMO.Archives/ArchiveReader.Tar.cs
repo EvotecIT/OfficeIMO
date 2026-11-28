@@ -76,7 +76,7 @@ public static partial class ArchiveReader {
     }
 
     /// <summary>Copies a readable stream from its current position to EOF into a seekable snapshot under the input limit.</summary>
-    internal static Stream Snapshot(Stream source, ArchiveLimits limits, CancellationToken token) {
+    internal static Stream Snapshot(Stream source, ArchiveLimits limits, CancellationToken token, long? remainingInput = null) {
         if (!source.CanRead) throw new ArgumentException("A readable stream is required.", nameof(source));
         var snapshot = new ArchiveSpillStream();
         try {
@@ -84,7 +84,7 @@ public static partial class ArchiveReader {
             limits.Operation.AdmitInput(0);
             while (true) {
                 token.ThrowIfCancellationRequested();
-                long remaining = limits.Input - snapshot.Length;
+                long remaining = (remainingInput ?? limits.Input) - snapshot.Length;
                 int read = source.Read(buffer, 0, remaining >= buffer.Length ? buffer.Length : (int)remaining + 1);
                 if (read == 0) break;
                 if (read > remaining) throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxInputBytes), limits.Input);

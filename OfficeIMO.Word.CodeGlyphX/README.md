@@ -37,7 +37,7 @@ paragraph.AddBarcode(SymbolFormat.Code128, "ORD-2026-0042", options => {
 });
 ```
 
-The optional callback sets `Width`, `Height`, `QuietZone`, `Color`, `BackgroundColor`, QR `ErrorCorrection`, linear `HumanReadableText` and `AlternativeText`. The defaults are listed in [OfficeIMO.Drawing.CodeGlyphX](../OfficeIMO.Drawing.CodeGlyphX/README.md#options).
+The optional callback sets `Width`, `Height`, `QuietZone`, `Color`, `BackgroundColor`, QR `ErrorCorrection`, linear `HumanReadableText` and `AlternativeText`. The defaults are listed in [OfficeIMO.Drawing.CodeGlyphX](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Drawing.CodeGlyphX/README.md#options).
 
 ## Output
 

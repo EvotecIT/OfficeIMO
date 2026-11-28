@@ -652,7 +652,7 @@ The [archive codecs and containers design](officeimo.archives-codecs-design.md) 
 - [ ] Train Zstandard dictionaries, read and write the Zstandard seekable format, and compress with multiple threads while keeping output independent of the thread count.
 - [ ] Extend `OfficeIMO.Archives.Benchmarks` with opt-in codec comparison lanes (OneArchive and the runtime codecs) that validate identical decoded output before timing and compare compressed size and speed together. Keep comparison packages out of `OfficeIMO.slnx` and timing tests under `Category=Performance`.
 
-bzip2, Deflate64, PPMd, BCJ branch filters, 7z AES key derivation and CAB Quantum have no written specification apart from source code or independent descriptions; they wait for a decision recorded in the design. RAR compression, split archives and installer execution remain out of scope; RAR stored entries are separate work. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.
+bzip2, Deflate64, PPMd, BCJ branch filters, 7z AES key derivation and CAB Quantum wait for the specification decision recorded in the design. RAR encryption, RAR 4, compressed RAR 5 members, split archives beyond ordered RAR 5 volume sets, and installer execution remain deferred. Reassess further format expansion for an identified workflow, with compatibility and dependency approval. Lazy member streams and file-backed CAB/MSI input or selected output need a separate lifetime and verification contract.
 
 ## Email artifacts and archives
 
