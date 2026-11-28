@@ -23,10 +23,10 @@ public sealed class ArchiveReadOptions {
     /// charges 4 KiB per skippable frame, the dictionary copied into every frame that uses one, and the history copied
     /// when it grows or when a long window slides. Defaults to 2 GiB.</summary>
     public long MaxDecompressionWorkBytes { get; set; } = 2L * 1024 * 1024 * 1024;
-    /// <summary>Maximum window a Zstandard frame declares in its window descriptor. Defaults to 64 MiB, enough for zstd
-    /// levels up to 19; levels 20 to 22 with <c>--ultra</c> can declare up to 128 MiB and need a higher limit. It does not
-    /// limit a supplied dictionary. Single-segment frames have no window descriptor: their window is their declared
-    /// content size, which the output limit bounds instead. Each frame starts with a buffer for its dictionary and two blocks,
+    /// <summary>Maximum Zstandard window. Defaults to 64 MiB, enough for zstd levels up to 19; levels 20 to 22 with
+    /// <c>--ultra</c> can declare up to 128 MiB and need a higher limit. It applies to the window descriptor, to the declared
+    /// content size of a single-segment frame, which is that frame's window, and to the content of a supplied dictionary,
+    /// all before any history is allocated. Each frame starts with a buffer for its dictionary and two blocks,
     /// and the history grows towards the window only as output is produced.</summary>
     public long MaxWindowBytes { get; set; } = DefaultMaxWindowBytes;
     /// <summary>Maximum member path segments.</summary>

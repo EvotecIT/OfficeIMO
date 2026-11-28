@@ -59,9 +59,9 @@ public static class ZstandardArchive {
     /// <remarks>Input is bounded by <see cref="ArchiveReadOptions.MaxInputBytes"/>; output by the smaller of
     /// <see cref="ArchiveReadOptions.MaxEntryBytes"/> and <see cref="ArchiveReadOptions.MaxExpandedBytes"/>, and it is
     /// charged to the operation budget as selected bytes, and decode work by
-    /// <see cref="ArchiveReadOptions.MaxDecompressionWorkBytes"/>. Declared windows are bounded by
-    /// <see cref="ArchiveReadOptions.MaxWindowBytes"/>, except in single-segment frames, whose window is their declared
-    /// content size and which the output limit bounds instead. The source stays open. Seekable input is bounded to the bytes
+    /// <see cref="ArchiveReadOptions.MaxDecompressionWorkBytes"/>. Windows, including the declared content
+    /// size of a single-segment frame, and dictionary content are bounded by <see cref="ArchiveReadOptions.MaxWindowBytes"/>.
+    /// The source stays open. Seekable input is bounded to the bytes
     /// present when decoding starts, and on success the source is left at the end of them. Nonseekable input is snapshotted
     /// through its end first, within the input limit. Output is written block by block, so a failure can leave a
     /// partial result in the destination. <paramref name="destination"/> must be a different stream from
@@ -89,6 +89,11 @@ public static class ZstandardArchive {
         if (ReferenceEquals(source, destination)) throw new ArgumentException("The source and destination must be different streams.", nameof(destination));
         ArchiveReadOptions effective = options ?? new ArchiveReadOptions();
         if (effective.MaxWindowBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxWindowBytes must be positive.");
+        // Dictionary content becomes history in every frame, so it is admitted against the window limit up front.
+        if (dictionary != null && dictionary.ContentLength > effective.MaxWindowBytes)
+            throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxWindowBytes), effective.MaxWindowBytes);
+        // A call that is already cancelled admits nothing, so it leaves a shared operation budget untouched.
+        cancellationToken.ThrowIfCancellationRequested();
         var limits = effective.Limits();
         using Stream? snapshot = source.CanSeek ? null : ArchiveReader.Snapshot(source, limits, cancellationToken);
         // Seekable input is read only within the range admitted here, so bytes appended later are never decoded.

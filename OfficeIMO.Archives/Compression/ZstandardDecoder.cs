@@ -180,12 +180,11 @@ internal sealed class ZstandardDecoder {
 
         long remainingOutput = _settings.MaximumOutput - _total;
         if (contentSize > remainingOutput) throw ArchiveLimits.Exceeded(_settings.OutputLimitName, _settings.MaximumOutput);
-        if (singleSegment) {
-            // The window is the whole content, which the output limit has just bounded.
-            window = contentSize;
-        } else if (window > _settings.MaximumWindow) {
+        // A single-segment frame's window is its whole content (RFC 8878 section 3.1.1.1.2), held to the same limit as a
+        // window descriptor, as the reference decoder does.
+        if (singleSegment) window = contentSize;
+        if (window > _settings.MaximumWindow)
             throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxWindowBytes), _settings.MaximumWindow);
-        }
 
         ZstandardDictionaryData? dictionary = _settings.Dictionary;
         if (dictionaryId != 0) {

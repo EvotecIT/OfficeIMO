@@ -303,6 +303,35 @@ public sealed class ZstandardArchiveTests {
     }
 
     [Fact]
+    public void SingleSegmentFramesAreHeldToTheWindowLimit() {
+        // zstd writes a known-size input smaller than its window as one segment, so the content size is the window.
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
+            ZstandardArchive.Decompress(Open("text-level1.zst"), new MemoryStream(), new ArchiveReadOptions { MaxWindowBytes = 64 * 1024 }));
+        Assert.Equal(nameof(ArchiveReadOptions.MaxWindowBytes), error.LimitName);
+    }
+
+    [Fact]
+    public void DictionariesLargerThanTheWindowLimitAreRefusedBeforeDecoding() {
+        ZstandardDictionary dictionary = ZstandardDictionary.Load(ReadFixture("raw-content.dict"));
+        var budget = new ArchiveOperationBudget();
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
+            ZstandardArchive.DecompressWithDictionary(Open("message-raw-dict.zst"), new MemoryStream(), dictionary,
+                new ArchiveReadOptions { MaxWindowBytes = 64, OperationBudget = budget }));
+        Assert.Equal(nameof(ArchiveReadOptions.MaxWindowBytes), error.LimitName);
+        Assert.Equal(0, budget.Usage.InputBytes);
+    }
+
+    [Fact]
+    public void ACancelledCallAdmitsNoInput() {
+        var budget = new ArchiveOperationBudget();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            ZstandardArchive.Decompress(Open("empty.zst"), new MemoryStream(), new ArchiveReadOptions { OperationBudget = budget }, cancellation.Token));
+        Assert.Equal(0, budget.Usage.InputBytes);
+    }
+
+    [Fact]
     public void RawDictionariesShorterThanEightBytesAreRejected() {
         ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
             ZstandardDictionary.Load(new byte[] { 1, 2, 3, 4, 5, 6, 7 }));
