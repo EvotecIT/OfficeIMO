@@ -38,7 +38,7 @@ paths:
   - OfficeIMO.Reader.Json
   - OfficeIMO.Reader.OpenDocument
   - OfficeIMO.Reader.Xml
-  - OfficeIMO.Reader.Zip
+  - OfficeIMO.Reader.Archives
   - OfficeIMO.Shared
   - OfficeIMO.Visio
   - OfficeIMO.Word

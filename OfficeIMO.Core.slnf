@@ -27,7 +27,7 @@
       "OfficeIMO.Provenance.C2pa\\OfficeIMO.Provenance.C2pa.csproj",
       "OfficeIMO.Reader.Core\\OfficeIMO.Reader.Core.csproj",
       "OfficeIMO.Reader.Excel\\OfficeIMO.Reader.Excel.csproj",
-      "OfficeIMO.Reader.Zip\\OfficeIMO.Reader.Zip.csproj",
+      "OfficeIMO.Reader.Archives\\OfficeIMO.Reader.Archives.csproj",
       "OfficeIMO.Security.Tests\\OfficeIMO.Security.Tests.csproj",
       "OfficeIMO.Security\\OfficeIMO.Security.csproj",
       "OfficeIMO.Visio\\OfficeIMO.Visio.csproj",

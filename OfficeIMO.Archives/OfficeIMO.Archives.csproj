@@ -25,7 +25,7 @@
     <None Include="SUPPORT.md" Pack="true" PackagePath="\" />
     <InternalsVisibleTo Include="OfficeIMO.Archives.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Comic" />
-    <InternalsVisibleTo Include="OfficeIMO.Reader.Zip" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Archives" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'"><Reference Include="System.IO.Compression" /></ItemGroup>
 </Project>

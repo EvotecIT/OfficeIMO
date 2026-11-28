@@ -22,6 +22,6 @@
     { "name": "OfficeIMO.Reader.Html", "description": "HTML adapter backed by the Markdown pipeline", "install": "dotnet add package OfficeIMO.Reader.Html" },
     { "name": "OfficeIMO.Reader.Email", "description": "Email and MHTML adapters, including embedded archive resources", "install": "dotnet add package OfficeIMO.Reader.Email" },
     { "name": "OfficeIMO.Reader.Epub", "description": "EPUB adapter for packaged publications", "install": "dotnet add package OfficeIMO.Reader.Epub" },
-    { "name": "OfficeIMO.Reader.Zip", "description": "ZIP archive adapter for safe traversal", "install": "dotnet add package OfficeIMO.Reader.Zip" }
+    { "name": "OfficeIMO.Reader.Archives", "description": "Archive adapter for ZIP, 7z, CAB, TAR and compressed files, with nested archives", "install": "dotnet add package OfficeIMO.Reader.Archives" }
   ]
 }

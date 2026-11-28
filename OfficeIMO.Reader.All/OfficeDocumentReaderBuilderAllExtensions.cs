@@ -32,7 +32,7 @@ using OfficeIMO.Reader.DjVu;
 using OfficeIMO.Reader.Word;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 
 namespace OfficeIMO.Reader.All;
 
@@ -113,6 +113,6 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
         return builder
             .AddXmlHandler(configured.Xml)
             .AddYamlHandler(configured.Yaml)
-            .AddZipHandler(configured.ZipTraversal, configured.Zip);
+            .AddArchiveHandler(configured.ArchiveTraversal, configured.Archives);
     }
 }

@@ -209,12 +209,12 @@ converter until that route has its own artifact and degradation gates.
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Pdf;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddHtmlHandler()
     .AddPdfHandler()
-    .AddZipHandler()
+    .AddArchiveHandler()
     .Build();
 
 var chunks = reader.EnumerateFolder("KnowledgeBase", new ReaderFolderOptions {

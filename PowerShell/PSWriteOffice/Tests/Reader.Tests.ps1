@@ -26,7 +26,7 @@ Describe 'Reader cmdlets' {
         $capabilities.Id | Should -Contain 'officeimo.reader.json'
         $capabilities.Id | Should -Contain 'officeimo.reader.xml'
         $capabilities.Id | Should -Contain 'officeimo.reader.yaml'
-        $capabilities.Id | Should -Contain 'officeimo.reader.zip'
+        $capabilities.Id | Should -Contain 'officeimo.reader.archives'
         $capabilities.Id | Should -Contain 'officeimo.reader.epub'
         $capabilities.Id | Should -Contain 'officeimo.reader.visio'
         $capabilities.Id | Should -Contain 'officeimo.reader.rtf'

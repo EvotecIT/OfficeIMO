@@ -3,7 +3,7 @@ using System.IO.Compression;
 using System.Text.Json;
 using OfficeIMO.Archives;
 using OfficeIMO.Reader;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 
 #if NET8_0_OR_GREATER
 if (args.Length > 0 && args[0] == "--cab-staging-failure-evidence")
@@ -58,7 +58,7 @@ foreach (var fixture in manifest.RootElement.GetProperty("fixtures").EnumerateAr
         Require(read[i].RelativePath == entries[i].GetProperty("name").GetString(), "Memory read name mismatch");
         Require(Hash(read[i].Data) == entries[i].GetProperty("sha256").GetString(), "Memory read payload mismatch");
     }
-    var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler(new() { ZipLegacyCodePage = codePage }).Build();
+    var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddArchiveHandler(new() { ZipLegacyCodePage = codePage }).Build();
     var chunks = reader.Enumerate(path, new() { ComputeHashes = false }).ToArray();
     Require(chunks.Any(c => c.Text.Contains("Zażółć")) && chunks.All(c => !(c.Warnings?.Any() ?? false)), "Reader payload mismatch");
     using var oracleInput = File.OpenRead(path);

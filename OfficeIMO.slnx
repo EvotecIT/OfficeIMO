@@ -332,7 +332,7 @@
   <Project Path="OfficeIMO.Reader.Xml/OfficeIMO.Reader.Xml.csproj" />
   <Project Path="OfficeIMO.Reader.Xps/OfficeIMO.Reader.Xps.csproj" />
   <Project Path="OfficeIMO.Reader.Yaml/OfficeIMO.Reader.Yaml.csproj" />
-  <Project Path="OfficeIMO.Reader.Zip/OfficeIMO.Reader.Zip.csproj" />
+  <Project Path="OfficeIMO.Reader.Archives/OfficeIMO.Reader.Archives.csproj" />
   <Project Path="OfficeIMO.Rtf.Benchmarks/OfficeIMO.Rtf.Benchmarks.csproj" />
   <Project Path="OfficeIMO.Rtf.Markdown/OfficeIMO.Rtf.Markdown.csproj" />
   <Project Path="OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj" />

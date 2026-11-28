@@ -86,7 +86,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 | XML | Reader.Xml | xml | ✓ |
 | TOML | Reader.Toml | toml | ✓ |
 | Images | Reader.Image | png, jpg, gif, tiff, webp, svg +7 more | ✓ |
-| ZIP archives | Reader.Zip | zip; entries go to the other registered handlers | ✓ |
+| Archives | Reader.Archives | zip, 7z, cab, tar, tgz, gz, tzst, zst, txz, xz, tlz, lz (msi on request); entries go to the other registered handlers, nested archives included | ✓ |
 | Plain text | Reader.Core | txt, log; plus a fallback for unknown payloads | ✓ |
 | Source code | Reader.Core | cs, ps1, py, js, ts, java, go, rs, c, cpp, sql, sh +62 more; extensionless scripts by their `#!` line | ✓ |
 | OCR enrichment | Reader.Ocr | Adds recognized text to other handlers' candidates | |

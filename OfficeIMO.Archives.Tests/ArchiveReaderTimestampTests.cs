@@ -1,6 +1,6 @@
 using System.IO.Compression;
 using OfficeIMO.Reader;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 
 namespace OfficeIMO.Archives.Tests {
 
@@ -14,7 +14,7 @@ namespace OfficeIMO.Archives.Tests {
             byte[] bytes = CreateZip("test.txt", Encoding.UTF8.GetBytes("content"), out DateTime expected);
             if (corrupt) bytes[ArchiveZipInspectionTests.Payload(bytes)] ^= 1;
             if (nested) bytes = CreateZip("nested.zip", bytes, out _);
-            var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
+            var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddArchiveHandler().Build();
             using var input = new MemoryStream(bytes);
             var chunk = Assert.Single(reader.Enumerate(input, "input.zip", new() { ComputeHashes = false }));
             Assert.Equal(expected, chunk.SourceLastWriteUtc);
@@ -26,7 +26,7 @@ namespace OfficeIMO.Archives.Tests {
         public void DisabledNestedArchiveWarningUsesTheContainingEntryPlatformTime() {
             byte[] bytes = CreateZip("nested.zip", CreateZip("test.txt", Encoding.UTF8.GetBytes("content"), out _), out DateTime expected);
             var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers()
-                .AddZipHandler(readerZipOptions: new() { ReadNestedZipEntries = false }).Build();
+                .AddArchiveHandler(readerArchiveOptions: new() { ReadNestedArchives = false }).Build();
             using var input = new MemoryStream(bytes);
             var chunk = Assert.Single(reader.Enumerate(input, "input.zip", new() { ComputeHashes = false }));
             Assert.Equal(expected, chunk.SourceLastWriteUtc);

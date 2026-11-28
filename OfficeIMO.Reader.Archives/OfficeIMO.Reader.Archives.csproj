@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>ZIP adapter for OfficeIMO.Reader modular ingestion.</Description>
+    <Description>Archive adapter for OfficeIMO.Reader modular ingestion: ZIP, 7z, CAB, TAR plain or compressed, single compressed files and optional MSI packages, with nested archives.</Description>
     <VersionPrefix>3.6.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -10,7 +10,7 @@
 
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageTags>reader;zip;ingestion;officeimo</PackageTags>
+    <PackageTags>reader;archives;zip;7z;tar;cab;msi;ingestion;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>

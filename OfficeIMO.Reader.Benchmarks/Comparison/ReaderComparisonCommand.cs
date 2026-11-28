@@ -10,7 +10,7 @@ using OfficeIMO.Reader.PowerPoint;
 using OfficeIMO.Reader.Word;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -373,7 +373,7 @@ internal static class ReaderComparisonCommand {
         .AddWordHandler()
         .AddXmlHandler()
         .AddYamlHandler()
-        .AddZipHandler()
+        .AddArchiveHandler()
         .Build();
 
     private static ReaderOptions ComparisonReaderOptions() => new ReaderOptions {

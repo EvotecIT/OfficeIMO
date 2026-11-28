@@ -3132,17 +3132,17 @@
       ]
     },
     {
-      "name": "OfficeIMO.Reader.Zip",
-      "packageId": "OfficeIMO.Reader.Zip",
+      "name": "OfficeIMO.Reader.Archives",
+      "packageId": "OfficeIMO.Reader.Archives",
       "category": "Extraction and ingestion",
       "description": "ZIP adapter for OfficeIMO.Reader modular ingestion.",
       "kind": "package",
-      "projectPath": "OfficeIMO.Reader.Zip/OfficeIMO.Reader.Zip.csproj",
+      "projectPath": "OfficeIMO.Reader.Archives/OfficeIMO.Reader.Archives.csproj",
       "sourceFileCount": 5,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader-zip/",
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Zip",
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Archives",
       "targetFrameworks": [
         "netstandard2.0",
         "net8.0",

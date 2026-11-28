@@ -29,7 +29,7 @@ dotnet run --no-restore --project Build/Archives/PackageConsumer -c Release -f n
 
 Run the same consumer with `-f net8.0` and fresh output paths. The candidate feed
 must contain the matching `OfficeIMO.Core`, `OfficeIMO.Archives`,
-`OfficeIMO.Reader.Core` and `OfficeIMO.Reader.Zip` packages. Standard project
+`OfficeIMO.Reader.Core` and `OfficeIMO.Reader.Archives` packages. Standard project
 `dotnet pack` builds are sufficient for unsigned local qualification; release
 packaging and signing remain owned by the repository's PowerForge release lane.
 Do not publish qualification packages to the ordinary cache or public feeds.

@@ -110,9 +110,9 @@ public sealed class ReaderAllOptions {
     /// <summary>Gets or sets YAML adapter options.</summary>
     public Yaml.YamlReadOptions? Yaml { get; set; }
 
-    /// <summary>Gets or sets ZIP archive traversal limits.</summary>
-    public OfficeIMO.Archives.ArchiveTraversalOptions? ZipTraversal { get; set; }
+    /// <summary>Gets or sets archive traversal limits for ZIP, TAR, 7z, CAB and MSI inputs.</summary>
+    public OfficeIMO.Archives.ArchiveTraversalOptions? ArchiveTraversal { get; set; }
 
-    /// <summary>Gets or sets Reader-specific nested ZIP behavior.</summary>
-    public Zip.ReaderZipOptions? Zip { get; set; }
+    /// <summary>Gets or sets Reader-specific archive behavior: nested archives and Windows Installer packages.</summary>
+    public Archives.ReaderArchiveOptions? Archives { get; set; }
 }

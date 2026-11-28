@@ -54,7 +54,7 @@
       "OfficeIMO.Reader.Word",
       "OfficeIMO.Reader.Xml",
       "OfficeIMO.Reader.Yaml",
-      "OfficeIMO.Reader.Zip"
+      "OfficeIMO.Reader.Archives"
     ],
     "packageReferences": []
   },

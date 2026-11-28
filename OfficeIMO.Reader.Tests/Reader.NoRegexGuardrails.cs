@@ -14,7 +14,7 @@ public sealed class ReaderNoRegexGuardrailTests {
     [InlineData("OfficeIMO.Reader.Rtf")]
     [InlineData("OfficeIMO.Reader.AsciiDoc")]
     [InlineData("OfficeIMO.Reader.Latex")]
-    [InlineData("OfficeIMO.Reader.Zip")]
+    [InlineData("OfficeIMO.Reader.Archives")]
     [InlineData("OfficeIMO.Reader.Epub")]
     public void ModularReaderAdapters_DoNotUseRegexParsing(string projectFolderName) {
         var projectFolder = Path.Combine(GetRepositoryRoot(), projectFolderName);

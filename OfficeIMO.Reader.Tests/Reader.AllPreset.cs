@@ -1,13 +1,14 @@
 using OfficeIMO.OneNote;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Reader.All;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;
 
 public sealed class ReaderAllPresetTests {
     private static readonly string[] ExpectedModularHandlerIds = {
+        "officeimo.reader.archives",
         "officeimo.reader.asciidoc",
         "officeimo.reader.calendar",
         "officeimo.reader.cb7",
@@ -56,8 +57,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.word.legacy",
         "officeimo.reader.xml",
         "officeimo.reader.xps",
-        "officeimo.reader.yaml",
-        "officeimo.reader.zip"
+        "officeimo.reader.yaml"
     };
 
     [Fact]
@@ -264,7 +264,7 @@ public sealed class ReaderAllPresetTests {
         OdtDocument document = OdtDocument.Create();
         document.AddParagraph("ZIP fallback marker");
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-            .AddZipHandler()
+            .AddArchiveHandler()
             .Build();
 
         OfficeDocumentReadResult result = reader.ReadDocument(
@@ -285,7 +285,7 @@ public sealed class ReaderAllPresetTests {
             document.AddParagraph("ZIP path fallback marker");
             File.WriteAllBytes(path, document.ToBytes());
             OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-                .AddZipHandler()
+                .AddArchiveHandler()
                 .Build();
 
             OfficeDocumentReadResult result = reader.ReadDocument(path);

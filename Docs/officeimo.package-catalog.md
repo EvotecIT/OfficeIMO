@@ -1330,13 +1330,13 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core` plus platform XML APIs.
 
 _Dependency footprint:_ `OfficeIMO.Yaml` plus `OfficeIMO.Reader.Core`.
 
-#### [OfficeIMO.Reader.Zip](../OfficeIMO.Reader.Zip/README.md)
+#### [OfficeIMO.Reader.Archives](../OfficeIMO.Reader.Archives/README.md)
 
-- [x] Safe ZIP entry enumeration and best-effort extraction into Reader chunks
-- [x] Bounded nested-archive traversal and non-seekable stream support
+- [x] Documents inside ZIP, 7z, Cabinet, plain and compressed TAR, single compressed files and, on request, Windows Installer packages, chosen from content
+- [x] Bounded nested-archive traversal across all of these kinds, and non-seekable stream support
 - [x] Warning chunks for rejected, limited, or failed entries
 
-_Dependency footprint:_ only `OfficeIMO.Reader.Core` and Zip.
+_Dependency footprint:_ only `OfficeIMO.Reader.Core` and `OfficeIMO.Archives`.
 
 ### Markdown rendering and OfficeIMO Markup
 

@@ -141,7 +141,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Xml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Toml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Yaml" />
-    <InternalsVisibleTo Include="OfficeIMO.Reader.Zip" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Archives" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Opml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.DocBook" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.IWork" />

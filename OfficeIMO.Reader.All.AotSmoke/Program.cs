@@ -39,7 +39,7 @@ string[] requiredHandlers = {
     "officeimo.reader.xml",
     "officeimo.reader.xps",
     "officeimo.reader.yaml",
-    "officeimo.reader.zip"
+    "officeimo.reader.archives"
 };
 
 foreach (string handlerId in requiredHandlers) {

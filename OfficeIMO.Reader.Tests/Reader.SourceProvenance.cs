@@ -1,5 +1,5 @@
 using OfficeIMO.Reader;
-using OfficeIMO.Reader.Zip;
+using OfficeIMO.Reader.Archives;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using Xunit;
@@ -101,7 +101,7 @@ public sealed class ReaderSourceProvenanceTests {
     public async Task Processors_keep_member_provenance_when_local_ids_repeat(int copyMode, bool duplicateNames) {
         byte[] bytes = BuildZip(false, duplicateNames);
         OfficeDocumentReadResult original = CreateZipReader().ReadDocument(bytes, "members.zip");
-        var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler()
+        var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddArchiveHandler()
             .AddProcessor(new DelegateOfficeDocumentProcessor("transform", (document, _) => {
                 if (copyMode != 0) document.Chunks = document.Chunks.Select(chunk => new ReaderChunk {
                     Id = chunk.Id, Kind = chunk.Kind, Text = chunk.Text,
@@ -167,7 +167,7 @@ public sealed class ReaderSourceProvenanceTests {
     }
 
     private static OfficeDocumentReader CreateZipReader() =>
-        new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
+        new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddArchiveHandler().Build();
 
     private static string RelativePath(string path) {
         Uri relative = new Uri(Environment.CurrentDirectory + Path.DirectorySeparatorChar).MakeRelativeUri(new Uri(path));

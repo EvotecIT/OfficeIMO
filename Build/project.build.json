@@ -152,7 +152,7 @@
     "OfficeIMO.Reader.Xml": "3.6.X",
     "OfficeIMO.Reader.Xps": "3.6.X",
     "OfficeIMO.Reader.Yaml": "3.6.X",
-    "OfficeIMO.Reader.Zip": "3.6.X",
+    "OfficeIMO.Reader.Archives": "3.6.X",
     "OfficeIMO.Rtf": "3.6.X",
     "OfficeIMO.Rtf.Pdf": "3.6.X",
     "OfficeIMO.Toml": "3.6.X",
