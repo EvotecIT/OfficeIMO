@@ -75,7 +75,7 @@ public sealed partial class ZipExtractionTests {
         var selectNone = new ArchiveReadOptions { IncludeFile = _ => false };
         Assert.Throws<InvalidDataException>(() => ArchiveReader.ReadZip(Zip(("../escape", "A", CompressionLevel.Optimal)), selectNone));
         Assert.Throws<InvalidDataException>(() => ArchiveReader.ReadZip(Zip(("a", "A", CompressionLevel.Optimal), ("A", "B", CompressionLevel.Optimal)), selectNone));
-        Assert.Throws<NotSupportedException>(() => ArchiveReader.ReadZip(PatchHeaders(Zip(("a", "A", CompressionLevel.Optimal)), flagsToSet: 1), selectNone));
+        Assert.Throws<NotSupportedException>(() => ArchiveReader.ReadZip(PatchHeaders(Zip(("a", "A", CompressionLevel.Optimal)), flagsToSet: 0x41), selectNone));
     }
 
     [Fact]

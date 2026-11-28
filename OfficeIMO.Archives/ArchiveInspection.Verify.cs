@@ -34,8 +34,10 @@ namespace OfficeIMO.Archives {
                         if (Format == ArchiveFormat.Zip) VerifyZipMember(indexes[0], Stream.Null, cancellationToken);
                         else { using var batch = ReadMembers(indexes, long.MaxValue, cancellationToken); }
                         foreach (var entry in group) outcomes.Add(entry.Ordinal, new ArchiveMemberVerification(entry, ArchiveVerificationStatus.Verified, null, null));
-                    } catch (InvalidDataException error) {
+                    } catch (Exception error) when (error is InvalidDataException or ArchiveCorruptionException) {
                         foreach (var entry in group) outcomes.Add(entry.Ordinal, new ArchiveMemberVerification(entry, ArchiveVerificationStatus.Invalid, "ARCHIVE_INTEGRITY", error.Message));
+                    } catch (ArchivePasswordException error) {
+                        foreach (var entry in group) outcomes.Add(entry.Ordinal, new ArchiveMemberVerification(entry, ArchiveVerificationStatus.Invalid, ZipArchiveContent.PasswordRequired, error.Message));
                     }
                 }
                 var result = new ArchiveMemberVerification[count];

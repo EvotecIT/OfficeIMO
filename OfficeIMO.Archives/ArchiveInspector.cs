@@ -82,7 +82,7 @@ public static class ArchiveInspector {
 
     private static ArchiveLimits CreateLimits(ArchiveInspectionOptions requested) {
         var limits = new ArchiveLimits(new ArchiveExtractionOptions {
-            OperationBudget = requested.OperationBudget, ZipLegacyCodePage = requested.ZipLegacyCodePage,
+            OperationBudget = requested.OperationBudget, ZipLegacyCodePage = requested.ZipLegacyCodePage, ZipPassword = requested.ZipPassword,
             MaxInputBytes = requested.MaxInputBytes, MaxEntryCount = requested.MaxEntryCount,
             MaxCabinetCount = requested.MaxCabinetCount, MaxEntryBytes = requested.MaxEntryBytes,
             MaxExpandedBytes = requested.MaxExpandedBytes, MaxDecompressionWorkBytes = requested.MaxDecompressionWorkBytes,

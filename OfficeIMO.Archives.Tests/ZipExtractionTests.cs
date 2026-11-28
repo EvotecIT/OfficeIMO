@@ -189,10 +189,18 @@ public sealed partial class ZipExtractionTests {
     }
 
     [Fact]
-    public void EncryptedMembersAreNotSupported() {
+    public void StrongEncryptionIsNotSupported() {
+        using var fixture = new ArchiveFixtures();
+        byte[] zip = PatchHeaders(Zip(("Example.admx", "A", CompressionLevel.NoCompression)), flagsToSet: 0x0041);
+        Assert.Throws<NotSupportedException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination));
+        Assert.False(Directory.Exists(fixture.Destination));
+    }
+
+    [Fact]
+    public void EncryptedFlagWithoutAnEncryptionHeaderIsInvalid() {
         using var fixture = new ArchiveFixtures();
         byte[] zip = PatchHeaders(Zip(("Example.admx", "A", CompressionLevel.NoCompression)), flagsToSet: 0x0001);
-        Assert.Throws<NotSupportedException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination));
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination));
         Assert.False(Directory.Exists(fixture.Destination));
     }
 

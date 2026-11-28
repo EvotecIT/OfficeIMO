@@ -9,6 +9,9 @@ public sealed class ArchiveReadOptions {
     /// <summary>Explicit code page for unflagged non-ASCII ZIP names. Null retains strict ASCII/UTF-8 admission;
     /// the UTF-8 flag always takes precedence. No host-locale inference occurs.</summary>
     public int? ZipLegacyCodePage { get; set; }
+    /// <summary>Password for encrypted ZIP members (traditional ZipCrypto and WinZip AES), encoded as UTF-8. Null leaves
+    /// encrypted members unreadable: they raise <see cref="ArchivePasswordException"/> when opened.</summary>
+    public string? ZipPassword { get; set; }
 
     /// <summary>Maximum compressed input bytes, including unselected members. Defaults to 64 MiB. Stream snapshots are also bounded by Int32.MaxValue.</summary>
     public long MaxInputBytes { get; set; } = 64L * 1024 * 1024;
@@ -34,7 +37,7 @@ public sealed class ArchiveReadOptions {
     public Func<string, bool>? IncludeFile { get; set; }
 
     internal ArchiveLimits Limits() => new(new ArchiveExtractionOptions {
-        OperationBudget = OperationBudget, ZipLegacyCodePage = ZipLegacyCodePage, MaxInputBytes = MaxInputBytes, MaxEntryCount = MaxEntryCount, MaxEntryBytes = MaxEntryBytes,
+        OperationBudget = OperationBudget, ZipLegacyCodePage = ZipLegacyCodePage, ZipPassword = ZipPassword, MaxInputBytes = MaxInputBytes, MaxEntryCount = MaxEntryCount, MaxEntryBytes = MaxEntryBytes,
         MaxExpandedBytes = MaxExpandedBytes, MaxDecompressionWorkBytes = MaxDecompressionWorkBytes, MaxPathDepth = MaxPathDepth, MaxPathLength = MaxPathLength,
         IncludeFile = IncludeFile
     });

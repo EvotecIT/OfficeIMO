@@ -18,9 +18,10 @@ namespace OfficeIMO.Archives {
                 _limits.CheckEntry(record.UncompressedSize);
                 ArchiveLimits.Add(ref total, record.UncompressedSize, _limits.Expanded, "MaxExpandedBytes");
                 bool directory = name.EndsWith("/", StringComparison.Ordinal) || name.EndsWith("\\", StringComparison.Ordinal);
-                var diagnostic = ZipArchiveContent.Unsupported(record);
-                var compression = record.CompressionMethod == 0 ? ArchiveCompression.Store
-                    : record.CompressionMethod == 8 ? ArchiveCompression.Deflate : ArchiveCompression.Unknown;
+                var diagnostic = ZipArchiveContent.Unsupported(record, _limits.ZipPassword, out ZipMemberScheme scheme);
+                ushort method = diagnostic == null || diagnostic.Code == ZipArchiveContent.PasswordRequired ? scheme.Method : record.CompressionMethod;
+                var compression = method == 0 ? ArchiveCompression.Store
+                    : method == 8 ? ArchiveCompression.Deflate : ArchiveCompression.Unknown;
                 entries.Add(new ArchiveInspectionEntry(entries.Count, name, null, name, record.UncompressedSize,
                     null, null, null, compression, record.CompressionMethod, null, null, null, null, null,
                     diagnostic, directory, record.CompressedSize, ZipTime(record.DosDate, record.DosTime)));
@@ -31,7 +32,7 @@ namespace OfficeIMO.Archives {
         private Stream OpenZipMember(int ordinal, CancellationToken token) {
             var record = _zipRecords![ordinal];
             ReserveZipRead(record);
-            byte[] bytes = ZipArchiveContent.ReadVerified(_zipSource!, record, token);
+            byte[] bytes = ZipArchiveContent.ReadVerified(_zipSource!, record, _limits.ZipPassword, Entries[ordinal].RawName, token);
             if (Entries[ordinal].IsDirectory && bytes.Length != 0) throw new InvalidDataException("ZIP directory member has content.");
             return new MemoryStream(bytes, writable: false);
         }
@@ -47,7 +48,7 @@ namespace OfficeIMO.Archives {
             var record = _zipRecords![ordinal];
             ReserveZipRead(record);
             if (Entries[ordinal].IsDirectory && record.UncompressedSize != 0) throw new InvalidDataException("ZIP directory member has content.");
-            ZipArchiveContent.CopyVerified(_zipSource!, record, destination, token);
+            ZipArchiveContent.CopyVerified(_zipSource!, record, _limits.ZipPassword, Entries[ordinal].RawName, destination, token);
         }
 
         private ArchiveReadBatch ReadZipMembers(IReadOnlyList<int> ordinals, long maximum, CancellationToken token) {
@@ -63,7 +64,7 @@ namespace OfficeIMO.Archives {
                 if (ordinal < 0 || ordinal >= Entries.Count) throw new ArgumentOutOfRangeException(nameof(ordinals));
                 if (!seen.Add(ordinal)) throw new ArgumentException("A source ordinal is repeated.", nameof(ordinals));
                 var entry = Entries[ordinal];
-                if (entry.Diagnostic != null) throw new NotSupportedException(entry.Diagnostic.Code + ": " + entry.Diagnostic.Message);
+                if (entry.Diagnostic != null && entry.Diagnostic.Code != ZipArchiveContent.PasswordRequired) throw new NotSupportedException(entry.Diagnostic.Code + ": " + entry.Diagnostic.Message);
                 ArchiveLimits.Add(ref bytes, entry.Length, maximum, "maxSelectedBytes");
                 ArchiveLimits.Add(ref work, ZipArchiveContent.Work(_zipRecords![ordinal]), long.MaxValue, "Operation.MaxDecompressionWorkBytes");
                 selected[index] = ordinal;

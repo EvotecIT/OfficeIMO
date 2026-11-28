@@ -55,7 +55,7 @@ public static partial class ArchiveReader {
         using Stream snapshot = CreateBoundedSnapshot(zipStream, effective.MaxArchiveBytes, cancellationToken);
         ValidateZipSource(snapshot, effective, cancellationToken);
         using var inspection = ArchiveInspector.OpenZipSnapshot(snapshot, new ArchiveInspectionOptions {
-            OperationBudget = effective.OperationBudget, ZipLegacyCodePage = effective.ZipLegacyCodePage,
+            OperationBudget = effective.OperationBudget, ZipLegacyCodePage = effective.ZipLegacyCodePage, ZipPassword = effective.ZipPassword,
             MaxInputBytes = effective.MaxArchiveBytes, MaxEntryCount = effective.MaxPhysicalEntries,
             MaxEntryBytes = long.MaxValue, MaxExpandedBytes = long.MaxValue
         }, cancellationToken);
@@ -299,7 +299,7 @@ public static partial class ArchiveReader {
     private static ArchiveTraversalOptions Normalize(ArchiveTraversalOptions? options) {
         var source = options ?? new ArchiveTraversalOptions();
         var o = new ArchiveTraversalOptions {
-            OperationBudget = source.OperationBudget, ZipLegacyCodePage = source.ZipLegacyCodePage,
+            OperationBudget = source.OperationBudget, ZipLegacyCodePage = source.ZipLegacyCodePage, ZipPassword = source.ZipPassword,
             MaxEntries = source.MaxEntries,
             MaxPhysicalEntries = source.MaxPhysicalEntries,
             MaxArchiveBytes = source.MaxArchiveBytes,

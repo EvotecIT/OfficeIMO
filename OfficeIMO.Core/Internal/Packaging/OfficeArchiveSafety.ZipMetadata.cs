@@ -55,8 +55,14 @@ internal static partial class OfficeArchiveSafety {
     }
 
     /// <summary>Checks the local header and bounded compressed range even when a member is excluded.</summary>
-    internal static long ValidateEntryPayload(Stream source, ZipCentralDirectoryRecord record) {
-        if (!HasSupportedZipFlags(record.Flags, record.CompressionMethod))
+    internal static long ValidateEntryPayload(Stream source, ZipCentralDirectoryRecord record) =>
+        ValidateEntryPayload(source, record, encrypted: false);
+
+    /// <summary>Checks the local header and bounded payload range. With <paramref name="encrypted"/> the caller has
+    /// already accepted the member's encryption flags and method and checks the payload length against the
+    /// encryption overhead itself.</summary>
+    internal static long ValidateEntryPayload(Stream source, ZipCentralDirectoryRecord record, bool encrypted) {
+        if (!encrypted && !HasSupportedZipFlags(record.Flags, record.CompressionMethod))
             throw new InvalidDataException("ZIP entry uses unsupported compression flags.");
         long offset = record.LocalHeaderOffset;
         long bound = record.PayloadUpperBound;
@@ -79,7 +85,7 @@ internal static partial class OfficeArchiveSafety {
         ReadExactlyAt(source, offset + 30, name, name.Length);
         for (int index = 0; index < name.Length; index++)
             if (name[index] != record.NameBytes[index]) throw new InvalidDataException("ZIP local and central names disagree.");
-        ValidateLocalIntegrity(source, header, offset, payload, bound, record.Crc32, record.CompressedSize, record.UncompressedSize, record.UsesZip64);
+        ValidateLocalIntegrity(source, header, offset, payload, bound, record.Crc32, record.CompressedSize, record.UncompressedSize, record.UsesZip64, encrypted);
         return payload;
     }
 
@@ -89,8 +95,8 @@ internal static partial class OfficeArchiveSafety {
     }
 
     private static void ValidateLocalIntegrity(Stream source, byte[] header, long offset, long payload, long bound,
-        uint checksum, long compressedSize, long expandedSize, bool centralZip64) {
-        if (ReadZipUInt16(header, 8) == 0 && compressedSize != expandedSize)
+        uint checksum, long compressedSize, long expandedSize, bool centralZip64, bool encrypted = false) {
+        if (!encrypted && ReadZipUInt16(header, 8) == 0 && compressedSize != expandedSize)
             throw new InvalidDataException("A stored ZIP member has inconsistent compressed and expanded sizes.");
         var extra = new byte[ReadZipUInt16(header, 28)];
         ReadExactlyAt(source, offset + 30 + ReadZipUInt16(header, 26), extra, extra.Length);
