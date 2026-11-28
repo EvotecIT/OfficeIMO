@@ -11,7 +11,8 @@ public sealed class JavaScriptAssetsTests {
         JavaScriptAssets.Module, JavaScriptAssets.XlsxModule, JavaScriptAssets.CsvModule,
         JavaScriptAssets.PdfScript, JavaScriptAssets.PdfModule, JavaScriptAssets.ExecutionScript, JavaScriptAssets.ExecutionModule,
         JavaScriptAssets.DataTablesScript, JavaScriptAssets.DataTablesModule, JavaScriptAssets.DataTablesAdapterScript, JavaScriptAssets.DataTablesAdapterModule,
-        JavaScriptAssets.CanopyXScript, JavaScriptAssets.CanopyXModule, JavaScriptAssets.CanopyXAdapterScript, JavaScriptAssets.CanopyXAdapterModule };
+        JavaScriptAssets.CanopyXScript, JavaScriptAssets.CanopyXModule, JavaScriptAssets.CanopyXAdapterScript, JavaScriptAssets.CanopyXAdapterModule,
+        JavaScriptAssets.ChartForgeXScript, JavaScriptAssets.ChartForgeXModule, JavaScriptAssets.ChartForgeXAdapterScript, JavaScriptAssets.ChartForgeXAdapterModule };
 
     private static IEnumerable<JavaScriptAsset> All => Readable.Concat(Readable.Select(asset => asset.Minified));
 

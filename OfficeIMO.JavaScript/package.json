@@ -18,7 +18,9 @@
     "./execution": { "types": "./dist/execution/index.d.ts", "import": "./dist/execution/index.js" },
     "./integrations/datatables": { "types": "./dist/integrations/datatables/index.d.ts", "import": "./dist/integrations/datatables/index.js" },
     "./integrations/canopyx": { "types": "./dist/integrations/canopyx/index.d.ts", "import": "./dist/integrations/canopyx/index.js" },
+    "./integrations/chartforgex": { "types": "./dist/integrations/chartforgex/index.d.ts", "import": "./dist/integrations/chartforgex/index.js" },
     "./canopyx.js": "./bundles/officeimo-canopyx.js",
+    "./chartforgex.js": "./bundles/officeimo-chartforgex.js",
     "./datatables.js": "./bundles/officeimo-datatables.js",
     "./classic.js": "./bundles/officeimo.js",
     "./xlsx.js": "./bundles/officeimo-xlsx.js",
@@ -27,6 +29,7 @@
     "./execution.js": "./bundles/officeimo-execution.js",
     "./canopyx-adapter.js": "./bundles/officeimo-canopyx-adapter.js",
     "./datatables-adapter.js": "./bundles/officeimo-datatables-adapter.js",
+    "./chartforgex-adapter.js": "./bundles/officeimo-chartforgex-adapter.js",
     "./bundles/*": "./bundles/*"
   },
   "files": ["dist", "bundles", "LICENSE", "README.md"],
@@ -45,5 +48,5 @@
   "devDependencies": { "esbuild": "0.28.2", "typescript": "7.0.2" },
   "engines": { "node": "^22.0.0 || ^24.0.0 || ^25.0.0 || ^26.0.0" },
   "repository": { "type": "git", "url": "git+https://github.com/EvotecIT/OfficeIMO.git", "directory": "OfficeIMO.JavaScript" },
-  "keywords": ["officeimo", "xlsx", "csv", "pdf", "excel", "browser", "streaming", "typescript"]
+  "keywords": ["officeimo", "xlsx", "csv", "pdf", "excel", "browser", "streaming", "typescript", "chartforgex"]
 }

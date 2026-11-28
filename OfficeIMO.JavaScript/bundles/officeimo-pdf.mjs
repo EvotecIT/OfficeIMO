@@ -5932,6 +5932,17 @@ function clipRectangle(value) {
     const clip = record(value, ["x", "y", "width", "height"], "drawing clip");
     return { x: coordinate(clip.x), y: coordinate(clip.y), width: positive(clip.width, "Drawing clip width", 1000000), height: positive(clip.height, "Drawing clip height", 1000000) };
 }
+/** A PDF dash array: 1 through 16 nonnegative lengths, not all zero, and a finite phase. */
+function dashPattern(value, offset) {
+    if (value === undefined) {
+        if (offset !== undefined)
+            throw new TypeError("Drawing dashOffset requires dash.");
+        return "";
+    }
+    if (!Array.isArray(value) || !value.length || value.length > 16 || value.some(item => typeof item !== "number" || !Number.isFinite(item) || item < 0 || item > 14400) || !value.some(item => item > 0))
+        throw new TypeError("Drawing dash must list 1 through 16 nonnegative lengths with at least one positive length.");
+    return "[" + value.map(n).join(" ") + "] " + n(coordinate(offset ?? 0)) + " d\n";
+}
 async function cooperate(settings) {
     if (taskYieldDue())
         await pause();
@@ -5940,14 +5951,16 @@ async function cooperate(settings) {
 /** Take ownership of one bounded schema before any cooperative or font work can run caller code. */
 function captureDrawing(drawing, settings, used) {
     checkAbort(settings.options.signal);
-    const root = record(drawing, ["version", "width", "height", "elements"], "drawing");
+    const root = record(drawing, ["version", "width", "height", "elements", "standardFonts"], "drawing");
+    if (root.standardFonts !== undefined && typeof root.standardFonts !== "boolean")
+        throw new TypeError("Drawing standardFonts must be boolean.");
     if (root.version !== 1)
         throw new NotSupportedError("Only portable drawing version 1 is supported.");
     const width = positive(root.width, "Drawing width"), height = positive(root.height, "Drawing height");
     let commands = used.commands, elements = used.elements;
     const ancestors = new Set();
     function path(value) {
-        record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin"], "drawing path");
+        record(value, ["kind", "commands", "fill", "stroke", "strokeWidth", "fillRule", "lineCap", "lineJoin", "dash", "dashOffset"], "drawing path");
         const source = value.commands;
         if (!Array.isArray(source))
             throw new TypeError("Drawing path commands must be an array.");
@@ -5969,6 +5982,7 @@ function captureDrawing(drawing, settings, used) {
             throw new TypeError("Invalid drawing lineCap.");
         if (lineJoin !== undefined && !["miter", "round", "bevel"].includes(lineJoin))
             throw new TypeError("Invalid drawing lineJoin.");
+        const dash = dashPattern(value.dash, value.dashOffset);
         for (let i = 0; i < snapshot.length; i++) {
             const c = snapshot[i];
             if (!c || typeof c !== "object")
@@ -6001,11 +6015,11 @@ function captureDrawing(drawing, settings, used) {
         if (!started)
             throw new TypeError("A drawing path needs at least one command.");
         return { kind: "path", commands: copied, style: (fill === undefined ? "" : fill + " rg\n") + (stroke === undefined ? "" : stroke + " RG\n" + n(strokeWidth) + " w\n") +
-                String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n",
+                String(["butt", "round", "square"].indexOf(lineCap ?? "butt")) + " J\n" + String(["miter", "round", "bevel"].indexOf(lineJoin ?? "miter")) + " j\n10 M\n" + dash,
             paint: (fill !== undefined && stroke !== undefined ? "B" : fill !== undefined ? "f" : "S") + (fill !== undefined && fillRule === "evenodd" ? "*" : "") + "\n" };
     }
     function text(value) {
-        record(value, ["kind", "text", "x", "y", "font", "fontSize", "color"], "drawing text");
+        record(value, ["kind", "text", "x", "y", "font", "fontSize", "color", "anchor", "rotation"], "drawing text");
         const snapshot = value.text, slot = value.font;
         if (typeof snapshot !== "string")
             throw new TypeError("Drawing text must be a string.");
@@ -6016,8 +6030,16 @@ function captureDrawing(drawing, settings, used) {
         if (!["regular", "bold", "italic", "boldItalic"].includes(slot))
             throw new TypeError("Invalid drawing font slot.");
         const x = coordinate(value.x), y = coordinate(value.y), size = positive(value.fontSize, "Drawing font size"), foreground = color(value.color);
+        const anchor = value.anchor, rotation = value.rotation ?? 0;
+        if (anchor !== undefined && !["start", "middle", "end"].includes(anchor))
+            throw new TypeError("Invalid drawing text anchor.");
+        if (typeof rotation !== "number" || !Number.isFinite(rotation) || Math.abs(rotation) > 360)
+            throw new RangeError("Drawing text rotation must be finite degrees within -360 through 360.");
         settings.budget.cell(snapshot);
-        return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot };
+        // Quarter turns stay exact so upright and vertical axis labels keep integral matrices.
+        const turn = rotation % 90 === 0 ? (((rotation / 90) % 4) + 4) % 4 : -1, radians = rotation * Math.PI / 180;
+        const cos = turn < 0 ? Math.cos(radians) : [1, 0, -1, 0][turn], sin = turn < 0 ? Math.sin(radians) : [0, 1, 0, -1][turn];
+        return { kind: "text", text: snapshot, x, y, size, color: foreground, font: slot, anchor: anchor === "middle" ? .5 : anchor === "end" ? 1 : 0, cos, sin };
     }
     function children(input, depth) {
         if (!Array.isArray(input))
@@ -6057,7 +6079,7 @@ function captureDrawing(drawing, settings, used) {
     }
     const plan = children(root.elements, 1);
     checkAbort(settings.options.signal);
-    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements };
+    return { width, height, plan, commands: commands - used.commands, elements: elements - used.elements, standardFonts: root.standardFonts === true };
 }
 /** Preflight and paint owned records. The existing font owner retains glyph maps and subsets. */
 async function prepareDrawing(drawing, settings, fonts, used) {
@@ -6068,7 +6090,8 @@ async function prepareDrawing(drawing, settings, fonts, used) {
         if (existing)
             return existing;
         const font = fonts.select(slot === "bold" || slot === "boldItalic", slot === "italic" || slot === "boldItalic");
-        if (!font.program || font.syntheticBold || font.syntheticItalic)
+        // standardFonts admits the standard Helvetica face for a slot the document supplies no TrueType face for.
+        if (font.syntheticBold || font.syntheticItalic || !font.program && !captured.standardFonts)
             throw new NotSupportedError("Drawing text without an exact embedded font face at fonts." + slot);
         drawingFonts.set(slot, font);
         return font;
@@ -6124,7 +6147,15 @@ async function prepareDrawing(drawing, settings, fonts, used) {
             }
             else {
                 const font = fontFor(node.font);
-                add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr 1 0 0 -1 " + n(node.x) + " " + n(node.y) + " Tm <");
+                let shift = 0;
+                if (node.anchor) {
+                    for (const character of node.text)
+                        shift += font.width(character.codePointAt(0));
+                    shift *= node.size / 1000 * node.anchor;
+                }
+                // Text space is upright in the drawing's downward y axis; rotation turns the baseline clockwise about its anchor.
+                add(node.color + " rg\nBT /" + font.name + " " + n(node.size) + " Tf 0 Tr " +
+                    [node.cos, node.sin, node.sin, -node.cos, node.x - shift * node.cos, node.y - shift * node.sin].map(n).join(" ") + " Tm <");
                 let chunk = "";
                 for (const character of node.text) {
                     chunk += character;

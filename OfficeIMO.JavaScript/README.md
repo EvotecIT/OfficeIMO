@@ -240,6 +240,34 @@ Captured group identity is checked against the original raw scalar before relati
 
 `createCanopyExport(capture, format, options)` remains the flat source API: frozen columns, `rowCount` and fresh `rows()` enumerations. Full adapter writers add captured grouping, native rules and optional metadata. Each enumeration passes its cancellation signal into CanopyX's page requests. A live grid remains page-owned; worker hosts own and release their bounded capture/row bridge. CanopyX may retain identity/cursor bookkeeping, so streamed output does not imply constant memory for the source itself.
 
+## ChartForgeX chart exports
+
+`exportChartForgeX(capture, "xlsx" | "pdf", options)` turns a chart capture from the ChartForgeX browser runtime into a typed workbook of the chart's series, or a PDF with the chart's title, description and SVG as vector paths and text. It runs offline: no server, browser layout or chart runtime is involved. `writeChartForgeXTo` writes to a caller-owned destination.
+
+```ts
+import { exportChartForgeX } from "@evotecit/officeimo/integrations/chartforgex";
+
+const capture = {
+  version: 1, title: "Sign-ins", description: "Weekly sign-ins by method.",
+  x: { kind: "date", title: "Week" }, y: { title: "Sign-ins", unit: "count", format: "#,##0" },
+  series: [
+    { id: "passkey", name: "Passkey", points: [{ x: "2026-01-05", xCaption: "W1", y: 120, caption: "120" }] },
+    { id: "password", name: "Password", format: "0.0", points: [{ x: "2026-01-05", y: 300.5 }] }
+  ],
+  svg: serializedChartSvg
+};
+const excel = await exportChartForgeX(capture, "xlsx");
+const pdf = await exportChartForgeX(capture, "pdf", { onDiagnostic: d => console.info(d.code) });
+```
+
+`x.kind` types the x values: `date` takes ISO 8601 strings or `Date` values (a string without an offset is a UTC wall-clock time, which is how ChartForgeX serializes time axes), `number` takes finite numbers and `category` takes labels. `y` values are finite numbers or `null`. `xCaption` and `caption` are the texts the chart displays. Axis and series `format` values are native Excel number formats; dates default to `yyyy-mm-dd`, with time or seconds added only when the data has them.
+
+The workbook has one sheet, `Chart data` by default (`xlsx.sheetName`), with the title above the headings and the title and description in the document properties. With `layout: "wide"` there is a row per x value and a column per series, in series order; rows follow ascending dates and numbers, and categories keep their first-seen order. `layout: "long"` has a row per point with `Series`, `Series ID`, x and value columns. The default `auto` is wide unless a series repeats an x value or a date or number point has no x. A column of display captions, headed `<name> (display)`, follows the x column and each series column that has captions; the typed cells keep the underlying values. Units are appended to value headings, and a repeated series name gets its ID in brackets.
+
+The PDF puts the title on the first page and in the document information, the description as a paragraph, and the chart as a centred drawing whose figure alternative is the description (or title). It is landscape when the chart is wider than tall. The SVG must carry resolved paint inline, as style declarations or presentation attributes; stylesheets and classes are not evaluated. ChartForgeX's own SVG export produces this. The converter reads shapes, path data (arcs and quadratic curves become cubic curves), transforms, nested `svg` viewports, `use`, rectangular `clipPath`s, dashes, text with `tspan` lines, anchors and rotation, and colours in hex, named, `rgb()`, `hsl()`, `oklab()`, `oklch()` and `color(srgb …)` forms. Effects without a vector equivalent are skipped and reported once per code through `onDiagnostic`: translucency and gradients are flattened over white (`OPACITY_FLATTENED`, `GRADIENT_FLATTENED`), and images, filters, masks, markers, non-rectangular clips and text paths are left out. `unsupported: "reject"` fails instead. Without `pdf.fonts`, text uses the standard Helvetica faces: typographic minus and spaces become ASCII, and other characters outside WinAnsi become `?` (`TEXT_SUBSTITUTED`). Supply `pdf.fonts.regular` (and the emphasis faces the chart uses) to keep Unicode text. `chartForgeXDrawing(svg)` returns the [portable drawing](#portable-drawings) on its own for composing into a larger document.
+
+In a classic page, load `officeimo.min.js` and then `officeimo-chartforgex-adapter.min.js`; they add `OfficeIMO.exportChartForgeX`, which the ChartForgeX chart menu looks for to offer Excel and PDF downloads.
+
 ## PDF tables
 
 `writePdf` and `writePdfTo` use the same `Column<T>` projection and `ExportCell` values as Excel and CSV. The PDF owner lays out and writes one page at a time, repeats grouped headings, splits oversized data rows across pages and appends a table footer. `writePdfTo` awaits the destination and retains page references, font mappings and the current page rather than the complete report body. Blob mode also retains the finished file.
@@ -512,11 +540,11 @@ const report = await writePdfDocument([
 ], { tagged: { language: "en-US" } });
 ```
 
-Version 1 accepts `path`, `text` and `group` elements only. Paths use the existing `move`, `line`, `cubic` and `close` commands, RGB fills/strokes, positive `strokeWidth`, `fillRule`, `lineCap: "butt" | "round" | "square"`, and `lineJoin: "miter" | "round" | "bevel"`. The miter limit is 10. Groups contain ordered `elements` and an optional rectangular `clip`. Every drawing is also clipped to its own bounds. Coordinates use points from the top left; finite values from -1,000,000 through 1,000,000 allow geometry to extend beyond a clip. Drawing dimensions are positive and at most 14,400 points; rectangular clip dimensions may reach 1,000,000 points.
+Version 1 accepts `path`, `text` and `group` elements only. Paths use the existing `move`, `line`, `cubic` and `close` commands, RGB fills/strokes, positive `strokeWidth`, `fillRule`, `lineCap: "butt" | "round" | "square"`, and `lineJoin: "miter" | "round" | "bevel"`, and an optional stroke `dash` (1 through 16 nonnegative lengths in points, at least one positive) with `dashOffset`. The miter limit is 10. Groups contain ordered `elements` and an optional rectangular `clip`. Every drawing is also clipped to its own bounds. Coordinates use points from the top left; finite values from -1,000,000 through 1,000,000 allow geometry to extend beyond a clip. Drawing dimensions are positive and at most 14,400 points; rectangular clip dimensions may reach 1,000,000 points.
 
-Text elements declare `text`, `x`, `y`, `font`, `fontSize` and RGB `color`; `y` is the baseline. The font slot is `regular`, `bold`, `italic` or `boldItalic`, and that exact embedded static TrueType face must be supplied in the document's `fonts`. Use the same licensed static family in the .NET producer and the JavaScript writer. Missing faces and synthetic emphasis are rejected. Text stays at its authored position without wrapping or shaping; line breaks, control characters, unsupported scripts and missing glyphs fail explicitly under the existing scalar-text rules.
+Text elements declare `text`, `x`, `y`, `font`, `fontSize` and RGB `color`; `y` is the baseline. The font slot is `regular`, `bold`, `italic` or `boldItalic`, and that exact embedded static TrueType face must be supplied in the document's `fonts`. Use the same licensed static family in the .NET producer and the JavaScript writer. Missing faces and synthetic emphasis are rejected, unless the drawing sets `standardFonts: true`: then a slot the document supplies no face for uses the standard Helvetica face, which covers WinAnsi characters only. Optional `anchor: "start" | "middle" | "end"` places the measured run's start, middle or end at `x`, and `rotation` turns the baseline clockwise by degrees (-360 through 360) about that point, for example `-90` for a vertical axis title. Text stays at its authored position without wrapping or shaping; line breaks, control characters, unsupported scripts and missing glyphs fail explicitly under the existing scalar-text rules.
 
-The wire format rejects unknown properties, versions, commands and element kinds. It does not parse SVG/CSS or load fonts and external resources. `maxDrawingElements` (default 100,000) counts paths, text and groups across drawing blocks; nesting is limited to 32 element levels. Drawing path commands share `maxVectorCommands` with vector blocks. Text shares cell/character budgets with the rest of the document. Serialized drawing content obeys `maxPageBytes`, and preflight and serialization cooperate with cancellation. Keep the supplied drawing stable until its block is consumed.
+The wire format rejects unknown properties, versions, commands and element kinds. It does not parse SVG/CSS or load fonts and external resources; the [ChartForgeX integration](#chartforgex-chart-exports) converts chart SVG into this format. `maxDrawingElements` (default 100,000) counts paths, text and groups across drawing blocks; nesting is limited to 32 element levels. Drawing path commands share `maxVectorCommands` with vector blocks. Text shares cell/character budgets with the rest of the document. Serialized drawing content obeys `maxPageBytes`, and preflight and serialization cooperate with cancellation. Keep the supplied drawing stable until its block is consumed.
 
 ### Tagged PDF reports
 
@@ -1220,17 +1248,18 @@ The archive exports `@evotecit/officeimo/classic.js`, `/xlsx.js`, `/csv.js`, `/p
 
 The combined bundle exposes all seven namespaces on global `OfficeIMO` plus the established root helpers. The XLSX bundle exposes `core`, `zip`, `xml`, `opc`, `xlsx`; CSV exposes `core`, `csv`; PDF exposes `core`, `pdf`. Load `officeimo-execution.js` beside the chosen writer to add `executeWorkerExport` and `handleWorkerExports` to `OfficeIMO`. The standalone bundles compose in either order.
 
-The DataTables and CanopyX integrations also ship as thin adapters that take their document writers from the combined bundle instead of carrying their own copy. A page that uses both integrations, or also calls the writers directly, downloads the writers once:
+The DataTables, CanopyX and ChartForgeX integrations also ship as thin adapters that take their document writers from the combined bundle instead of carrying their own copy. A page that uses both integrations, or also calls the writers directly, downloads the writers once:
 
 ```html
 <script src="officeimo.min.js"></script>
 <script src="officeimo-datatables-adapter.min.js"></script>
 <script src="officeimo-canopyx-adapter.min.js"></script>
+<script src="officeimo-chartforgex-adapter.min.js"></script>
 ```
 
-Load `officeimo.js` (or `officeimo.min.js`) from the same build before an adapter script; an adapter loaded alone throws an error that names the missing file. The `officeimo-*-adapter.mjs` modules import the sibling `officeimo.mjs` (and `.min.mjs` the sibling `officeimo.min.mjs`), so serve them from one folder. The single-file `officeimo-datatables.js` and `officeimo-canopyx.js` remain for pages that embed one integration only.
+Load `officeimo.js` (or `officeimo.min.js`) from the same build before an adapter script; an adapter loaded alone throws an error that names the missing file. The `officeimo-*-adapter.mjs` modules import the sibling `officeimo.mjs` (and `.min.mjs` the sibling `officeimo.min.mjs`), so serve them from one folder. The single-file `officeimo-datatables.js`, `officeimo-canopyx.js` and `officeimo-chartforgex.js` remain for pages that embed one integration only.
 
-Every bundle also has a minified `.min.js`/`.min.mjs` variant. It has the same API. Classic `.min.js` scripts share module and class identities with the readable scripts of the same build, so the two can be mixed on one page. Each `.mjs` file is its own module graph: a `FormulaCell` or `PdfFont` from `officeimo.mjs` is not accepted by a writer from `officeimo.min.mjs`, so ES module consumers use one variant throughout. Keep the readable variant for debugging. The package exports the adapters as `@evotecit/officeimo/datatables-adapter.js` and `/canopyx-adapter.js`, and every bundle file under `@evotecit/officeimo/bundles/*`. Classic scripts work from `file://` and in host-owned workers without a module loader. ES modules use normal import paths on HTTP(S) and in Node; browser local-file module policy can block `file://` imports.
+Every bundle also has a minified `.min.js`/`.min.mjs` variant. It has the same API. Classic `.min.js` scripts share module and class identities with the readable scripts of the same build, so the two can be mixed on one page. Each `.mjs` file is its own module graph: a `FormulaCell` or `PdfFont` from `officeimo.mjs` is not accepted by a writer from `officeimo.min.mjs`, so ES module consumers use one variant throughout. Keep the readable variant for debugging. The package exports the adapters as `@evotecit/officeimo/datatables-adapter.js`, `/canopyx-adapter.js` and `/chartforgex-adapter.js`, and every bundle file under `@evotecit/officeimo/bundles/*`. Classic scripts work from `file://` and in host-owned workers without a module loader. ES modules use normal import paths on HTTP(S) and in Node; browser local-file module policy can block `file://` imports.
 
 [OfficeIMO.JavaScript.Assets](../OfficeIMO.JavaScript.Assets/README.md) embeds the same committed TypeScript-built bundles in .NET. Its `JavaScriptAsset` API returns exact content and content-hashed filenames; consuming .NET applications require no Node tooling. Standalone `.mjs` assemblies preserve the asset package's module API. The npm subpaths remain genuine separate `tsc` modules with generated declarations.
 

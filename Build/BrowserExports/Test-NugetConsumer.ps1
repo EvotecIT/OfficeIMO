@@ -26,7 +26,8 @@ using OfficeIMO.JavaScript.Assets;
 var readable = new[] { JavaScriptAssets.Script, JavaScriptAssets.Module, JavaScriptAssets.XlsxScript,
     JavaScriptAssets.XlsxModule, JavaScriptAssets.CsvScript, JavaScriptAssets.CsvModule, JavaScriptAssets.PdfScript, JavaScriptAssets.PdfModule, JavaScriptAssets.DataTablesScript, JavaScriptAssets.DataTablesModule,
     JavaScriptAssets.DataTablesAdapterScript, JavaScriptAssets.DataTablesAdapterModule, JavaScriptAssets.CanopyXScript, JavaScriptAssets.CanopyXModule,
-    JavaScriptAssets.CanopyXAdapterScript, JavaScriptAssets.CanopyXAdapterModule, JavaScriptAssets.ExecutionScript, JavaScriptAssets.ExecutionModule };
+    JavaScriptAssets.CanopyXAdapterScript, JavaScriptAssets.CanopyXAdapterModule, JavaScriptAssets.ChartForgeXScript, JavaScriptAssets.ChartForgeXModule,
+    JavaScriptAssets.ChartForgeXAdapterScript, JavaScriptAssets.ChartForgeXAdapterModule, JavaScriptAssets.ExecutionScript, JavaScriptAssets.ExecutionModule };
 var assets = readable.Concat(readable.Select(asset => asset.Minified)).ToArray();
 if (assets.Length != Directory.GetFiles(args[0]).Count(path => path.EndsWith(".js") || path.EndsWith(".mjs")))
     throw new InvalidDataException("Packed asset API and generated bundle set differ.");

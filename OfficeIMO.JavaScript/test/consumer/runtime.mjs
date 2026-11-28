@@ -107,6 +107,12 @@ try {
 // Installed thin adapters resolve their writers from the shared bundle of the same archive.
 await import("@evotecit/officeimo/classic.js"); await import("@evotecit/officeimo/canopyx-adapter.js");
 assert.equal(typeof globalThis.OfficeIMO.exportCanopy, "function"); assert.equal(globalThis.OfficeIMO.PdfFont, globalThis.OfficeIMO.pdf.PdfFont);
+await import("@evotecit/officeimo/chartforgex-adapter.js");
+assert.equal(typeof globalThis.OfficeIMO.exportChartForgeX, "function");
+const chartModule = await import("@evotecit/officeimo/integrations/chartforgex");
+const chartPdf = await chartModule.exportChartForgeX({ version: 1, title: "Packed", x: { kind: "category" }, series: [{ id: "a", name: "A", points: [{ x: "Q1", y: 1 }] }],
+  svg: '<svg width="40" height="20"><rect width="40" height="20" fill="#2A78D6"/><text x="2" y="12">Q1</text></svg>' }, "pdf");
+assert.equal(chartPdf.type, "application/pdf");
 const sharedModule = await import("@evotecit/officeimo/bundles/officeimo.min.mjs");
 assert.equal((await import("@evotecit/officeimo/bundles/officeimo-datatables-adapter.min.mjs")).PdfFont, sharedModule.PdfFont);
 // The exact installed archive must preserve grouped source ownership across public subpaths.
