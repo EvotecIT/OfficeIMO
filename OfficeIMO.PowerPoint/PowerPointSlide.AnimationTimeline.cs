@@ -1,6 +1,7 @@
-using System.Globalization;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Presentation;
+using System.Xml;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Start behavior for an authored timeline action.</summary>
@@ -40,21 +41,19 @@ namespace OfficeIMO.PowerPoint {
     }
 
     public partial class PowerPointSlide {
+        private const int TimingNamespace = OfficeXmlNamespaces.PresentationML;
+        private const int TimingCompatibilityNamespace = OfficeXmlNamespaces.MarkupCompatibility;
+
         /// <summary>Adds a native motion-path action without replacing the existing timeline.</summary>
         public PowerPointTimelineAction AddMotionAnimation(PowerPointShape shape,
             string path, PowerPointTimelineOptions? options = null) {
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
             uint shapeId = ValidateTimelineTarget(shape);
-            uint id = GetNextTimingId();
-            CommonBehavior behavior = CreateTimelineBehavior(shapeId, id, options);
-            var action = new AnimateMotion(behavior) {
-                Origin = AnimateMotionBehaviorOriginValues.Layout,
-                Path = path,
-                PathEditMode = AnimateMotionPathEditModeValues.Relative
-            };
-            AppendTimelineAction(action, options);
-            return new PowerPointTimelineAction(id,
-                PowerPointAnimationKind.AnimateMotion, shapeId);
+            (OfficeXmlNode action, uint id) = AppendTimelineAction(shapeId, "animMotion", options);
+            action.SetAttribute("origin", "layout");
+            action.SetAttribute("path", path);
+            action.SetAttribute("pathEditMode", "relative");
+            return new PowerPointTimelineAction(id, PowerPointAnimationKind.AnimateMotion, shapeId);
         }
 
         /// <summary>Adds a native rotation action without replacing the existing timeline.</summary>
@@ -62,13 +61,10 @@ namespace OfficeIMO.PowerPoint {
             double degrees, PowerPointTimelineOptions? options = null) {
             if (double.IsNaN(degrees) || double.IsInfinity(degrees)) throw new ArgumentOutOfRangeException(nameof(degrees));
             uint shapeId = ValidateTimelineTarget(shape);
-            uint id = GetNextTimingId();
-            var action = new AnimateRotation(CreateTimelineBehavior(shapeId, id, options)) {
-                By = checked((int)Math.Round(degrees * 60000D))
-            };
-            AppendTimelineAction(action, options);
-            return new PowerPointTimelineAction(id,
-                PowerPointAnimationKind.AnimateRotation, shapeId);
+            int angle = checked((int)Math.Round(degrees * 60000D));
+            (OfficeXmlNode action, uint id) = AppendTimelineAction(shapeId, "animRot", options);
+            action.SetInt32Attribute("by", angle);
+            return new PowerPointTimelineAction(id, PowerPointAnimationKind.AnimateRotation, shapeId);
         }
 
         /// <summary>Adds a native command action targeted at a shape.</summary>
@@ -82,21 +78,20 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTimelineOptions? options = null) {
             ArgumentException.ThrowIfNullOrWhiteSpace(command);
             uint shapeId = ValidateTimelineTarget(shape);
-            uint id = GetNextTimingId();
-            var action = new Command(CreateTimelineBehavior(shapeId, id, options)) {
-                Type = type.ToOpenXml(),
-                CommandName = command
-            };
-            AppendTimelineAction(action, options);
-            return new PowerPointTimelineAction(id,
-                PowerPointAnimationKind.Command, shapeId);
+            string commandType = type.ToOpenXmlToken();
+            (OfficeXmlNode action, uint id) = AppendTimelineAction(shapeId, "cmd", options);
+            action.SetAttribute("type", commandType);
+            action.SetAttribute("cmd", command);
+            return new PowerPointTimelineAction(id, PowerPointAnimationKind.Command, shapeId);
         }
 
         /// <summary>Changes duration on any typed or imported action with a common timing id.</summary>
         public bool SetAnimationDuration(uint timingId, uint durationMilliseconds) {
-            CommonTimeNode? node = FindUniqueCommonTimeNode(timingId);
-            if (node == null) return false;
-            node.Duration = durationMilliseconds.ToString(CultureInfo.InvariantCulture);
+            PowerPointPartRef part = PartRef;
+            OfficeXmlNode node = FindUniqueCommonTimeNode(part.Root, timingId);
+            if (node.IsNone) return false;
+            node.SetUInt32Attribute("dur", durationMilliseconds);
+            part.MarkEdited();
             return true;
         }
 
@@ -105,16 +100,17 @@ namespace OfficeIMO.PowerPoint {
         /// unmodeled producer sequences are retained.
         /// </summary>
         public bool RemoveAnimation(uint timingId) {
-            CommonTimeNode? node = FindUniqueCommonTimeNode(timingId);
-            OpenXmlElement? behavior = node?.Parent;
-            OpenXmlElement? action = behavior?.Parent;
-            if (action == null || action is not (AnimateMotion or AnimateRotation or Command))
-                return false;
-            ChildTimeNodeList? actionList = action.Parent as ChildTimeNodeList;
-            OpenXmlElement? owner = action.Ancestors<ParallelTimeNode>().FirstOrDefault();
+            PowerPointPartRef part = PartRef.ForMovingXmlNodes();
+            OfficeXmlNode node = FindUniqueCommonTimeNode(part.Root, timingId);
+            OfficeXmlNode behavior = node.Parent;
+            OfficeXmlNode action = behavior.Parent;
+            if (!behavior.Is(TimingNamespace, "cBhvr") || action.NamespaceId != TimingNamespace ||
+                action.LocalName is not ("animMotion" or "animRot" or "cmd")) return false;
+            OfficeXmlNode actionList = action.Parent;
+            OfficeXmlNode owner = action.AncestorOrSelf(TimingNamespace, "par");
             action.Remove();
-            if (owner != null && actionList != null &&
-                !actionList.ChildElements.Any()) owner.Remove();
+            if (actionList.Is(TimingNamespace, "childTnLst") && actionList.FirstChild.IsNone) owner.Remove();
+            part.MarkEdited();
             return true;
         }
 
@@ -124,64 +120,157 @@ namespace OfficeIMO.PowerPoint {
             return shape.Id ?? throw new InvalidOperationException("The animation target has no shape identifier.");
         }
 
-        private static CommonBehavior CreateTimelineBehavior(uint shapeId,
-            uint timingId, PowerPointTimelineOptions? options) {
-            PowerPointTimelineOptions resolved = options ?? new PowerPointTimelineOptions();
-            ValidateTimelineOptions(resolved);
-            return new CommonBehavior(new CommonTimeNode {
-                Id = timingId,
-                Duration = resolved.DurationMilliseconds.ToString(CultureInfo.InvariantCulture),
-                Fill = TimeNodeFillValues.Hold
-            }, new TargetElement(new ShapeTarget {
-                ShapeId = shapeId.ToString(CultureInfo.InvariantCulture)
-            }));
-        }
-
-        private void AppendTimelineAction(OpenXmlElement action,
+        private (OfficeXmlNode Action, uint Id) AppendTimelineAction(uint shapeId, string actionName,
             PowerPointTimelineOptions? options) {
             PowerPointTimelineOptions resolved = options ?? new PowerPointTimelineOptions();
             ValidateTimelineOptions(resolved);
-            uint actionTimingId = action.Descendants<CommonTimeNode>()
-                .Select(node => node.Id?.Value ?? 0U).DefaultIfEmpty().Max();
-            if (actionTimingId == uint.MaxValue)
-                throw new InvalidOperationException("The imported timing identifier space is exhausted.");
-            Timing timing = SlideRoot.Timing ??= new Timing();
-            TimeNodeList list = timing.GetFirstChild<TimeNodeList>() ?? timing.AppendChild(new TimeNodeList());
-            ParallelTimeNode rootParallel = list.Elements<ParallelTimeNode>()
-                .FirstOrDefault(node => node.GetFirstChild<CommonTimeNode>()?.NodeType?.Value == TimeNodeValues.TmingRoot)
-                ?? list.AppendChild(new ParallelTimeNode(new CommonTimeNode {
-                    Id = Math.Max(GetNextTimingId(), actionTimingId + 1U),
-                    Duration = "indefinite", Restart = TimeNodeRestartValues.Never,
-                    NodeType = TimeNodeValues.TmingRoot
-                }));
-            CommonTimeNode root = rootParallel.GetFirstChild<CommonTimeNode>()!;
-            ChildTimeNodeList children = root.GetFirstChild<ChildTimeNodeList>() ?? root.AppendChild(new ChildTimeNodeList());
-            Condition condition = resolved.Start == PowerPointTimelineStart.OnClick
-                ? new Condition(new TargetElement(new SlideTarget())) {
-                    Event = TriggerEventValues.OnClick,
-                    Delay = resolved.DelayMilliseconds.ToString(CultureInfo.InvariantCulture)
-                }
-                : new Condition { Delay = resolved.DelayMilliseconds.ToString(CultureInfo.InvariantCulture) };
-            var actions = new ChildTimeNodeList();
-            actions.Append(action);
-            uint ownerTimingId = Math.Max(GetNextTimingId(), actionTimingId + 1U);
-            var owner = new CommonTimeNode(new StartConditionList(condition), actions) {
-                Id = ownerTimingId, Duration = "indefinite", Fill = TimeNodeFillValues.Hold,
-                NodeType = resolved.Start == PowerPointTimelineStart.OnClick
-                    ? TimeNodeValues.ClickEffect
-                    : resolved.Start == PowerPointTimelineStart.WithPrevious
-                        ? TimeNodeValues.WithEffect : TimeNodeValues.AfterEffect
-            };
-            children.Append(new ParallelTimeNode(owner));
+
+            PowerPointPartRef part = PartRef;
+            OfficeXmlNode slide = part.Root;
+            OfficeXmlNode timing = slide.Child(TimingNamespace, "timing");
+            OfficeXmlNode list = timing.Child(TimingNamespace, "tnLst");
+            OfficeXmlNode root = default;
+            foreach (OfficeXmlNode parallel in list.Children(TimingNamespace, "par")) {
+                OfficeXmlNode node = parallel.Child(TimingNamespace, "cTn");
+                if (node.Attribute("nodeType") != "tmRoot") continue;
+                root = node;
+                break;
+            }
+
+            uint actionId = GetNextTimingId(slide);
+            uint ownerId = ReserveTimelineOwnerId(actionId, root.IsNone);
+            if (timing.IsNone) timing = InsertSlideTiming(slide);
+            if (list.IsNone) list = AppendTimingChild(timing, "tnLst");
+            if (root.IsNone) {
+                root = AppendTimingChild(AppendTimingChild(list, "par"), "cTn");
+                root.SetUInt32Attribute("id", actionId + 1);
+                root.SetAttribute("dur", "indefinite");
+                root.SetAttribute("restart", "never");
+                root.SetAttribute("nodeType", "tmRoot");
+            }
+
+            OfficeXmlNode children = root.Child(TimingNamespace, "childTnLst");
+            if (children.IsNone) children = AppendTimingChild(root, "childTnLst");
+            OfficeXmlNode owner = AppendTimingChild(AppendTimingChild(children, "par"), "cTn");
+            owner.SetUInt32Attribute("id", ownerId);
+            owner.SetAttribute("dur", "indefinite");
+            owner.SetAttribute("fill", "hold");
+            owner.SetAttribute("nodeType", resolved.Start switch {
+                PowerPointTimelineStart.OnClick => "clickEffect",
+                PowerPointTimelineStart.WithPrevious => "withEffect",
+                _ => "afterEffect"
+            });
+
+            OfficeXmlNode condition = AppendTimingChild(AppendTimingChild(owner, "stCondLst"), "cond");
+            if (resolved.Start == PowerPointTimelineStart.OnClick) {
+                condition.SetAttribute("evt", "onClick");
+                AppendTimingChild(AppendTimingChild(condition, "tgtEl"), "sldTgt");
+            }
+            condition.SetUInt32Attribute("delay", resolved.DelayMilliseconds);
+            OfficeXmlNode action = AppendTimingChild(AppendTimingChild(owner, "childTnLst"), actionName);
+            OfficeXmlNode behavior = AppendTimingChild(action, "cBhvr");
+            OfficeXmlNode actionTiming = AppendTimingChild(behavior, "cTn");
+            actionTiming.SetUInt32Attribute("id", actionId);
+            actionTiming.SetUInt32Attribute("dur", resolved.DurationMilliseconds);
+            actionTiming.SetAttribute("fill", "hold");
+            OfficeXmlNode target = AppendTimingChild(AppendTimingChild(behavior, "tgtEl"), "spTgt");
+            target.SetUInt32Attribute("spid", shapeId);
+            part.MarkEdited();
+            return (action, actionId);
         }
 
-        private CommonTimeNode? FindUniqueCommonTimeNode(uint timingId) {
-            CommonTimeNode[] matches = SlideRoot.Timing?
-                .Descendants<CommonTimeNode>()
-                .Where(candidate => candidate.Id?.Value == timingId)
-                .Take(2).ToArray() ?? Array.Empty<CommonTimeNode>();
-            return matches.Length == 1 ? matches[0] : null;
+        private static OfficeXmlNode AppendTimingChild(OfficeXmlNode parent, string name) =>
+            parent.Append(parent.CreateElement(TimingNamespace, name));
+
+        private static OfficeXmlNode InsertSlideTiming(OfficeXmlNode slide) {
+            // A trailing unknown element (including a Morph compatibility wrapper) made the SDK prepend timing.
+            // A presentation extension list remains the insertion anchor anywhere in the slide.
+            OfficeXmlNode before = slide.Child(TimingNamespace, "extLst");
+            if (before.IsNone) {
+                OfficeXmlNode last = slide.LastChild;
+                if (last.NamespaceId != TimingNamespace || last.LocalName is not ("cSld" or "clrMapOvr" or "transition")) {
+                    before = slide.FirstChild;
+                }
+            }
+            return slide.InsertBefore(slide.CreateElement(TimingNamespace, "timing"), before);
         }
+
+        private static uint ReserveTimelineOwnerId(uint actionId, bool rootNeeded) {
+            ulong ownerId = (ulong)actionId + (rootNeeded ? 2UL : 1UL);
+            if (ownerId > uint.MaxValue) throw TimingIdsExhausted();
+            return (uint)ownerId;
+        }
+
+        private uint GetNextTimingId() => GetNextTimingId(PartRef.Root);
+
+        private static uint GetNextTimingId(OfficeXmlNode slide) {
+            uint maxId = 0;
+            foreach (OfficeXmlNode node in CommonTimingNodes(slide)) {
+                if (ReadTimingId(node) is uint id && id > maxId) maxId = id;
+            }
+            if (maxId == uint.MaxValue) throw TimingIdsExhausted();
+            return maxId + 1;
+        }
+
+        private static InvalidOperationException TimingIdsExhausted() =>
+            new("The imported timing identifier space is exhausted.");
+
+        private static OfficeXmlNode FindUniqueCommonTimeNode(OfficeXmlNode slide, uint timingId) {
+            OfficeXmlNode match = default;
+            OfficeXmlNode timing = slide.Child(TimingNamespace, "timing");
+            foreach (OfficeXmlNode node in CommonTimingNodes(timing)) {
+                if (ReadTimingId(node) != timingId) continue;
+                if (match.Exists) return default;
+                match = node;
+            }
+            return match;
+        }
+
+        private static uint? ReadTimingId(OfficeXmlNode node) =>
+            node.Attribute("id") is { } value ? XmlConvert.ToUInt32(value) : null;
+
+        private static IEnumerable<OfficeXmlNode> CommonTimingNodes(OfficeXmlNode root) {
+            if (root.IsNone) yield break;
+            var pending = new Stack<(OfficeXmlNode Node, string Context)>();
+            PushTimingChildren(root, root.LocalName, pending);
+            while (pending.Count > 0) {
+                (OfficeXmlNode node, string context) = pending.Pop();
+                if (node.Is(TimingCompatibilityNamespace, "AlternateContent")) {
+                    // With markup compatibility processing off, the SDK exposes schema-typed branch children
+                    // in their parent's context. Unknown wrappers inside a branch still hide their contents.
+                    for (OfficeXmlNode branch = node.LastChild; branch.Exists; branch = branch.PreviousSibling) {
+                        if (branch.NamespaceId == TimingCompatibilityNamespace && branch.LocalName is "Choice" or "Fallback") {
+                            PushTimingChildren(branch, context, pending);
+                        }
+                    }
+                } else if (node.NamespaceId == TimingNamespace && IsTimingChild(context, node.LocalName)) {
+                    if (node.LocalName == "cTn") yield return node;
+                    PushTimingChildren(node, node.LocalName, pending);
+                }
+            }
+        }
+
+        private static void PushTimingChildren(OfficeXmlNode parent, string context, Stack<(OfficeXmlNode Node, string Context)> pending) {
+            for (OfficeXmlNode child = parent.LastChild; child.Exists; child = child.PreviousSibling) {
+                pending.Push((child, context));
+            }
+        }
+
+        private static bool IsTimingChild(string parent, string child) => parent switch {
+            "sld" => child == "timing",
+            "timing" => child is "tnLst" or "bldLst",
+            "bldLst" => child == "bldP",
+            "bldP" => child == "tmplLst",
+            "tmplLst" => child == "tmpl",
+            "tmpl" => child == "tnLst",
+            "tnLst" or "childTnLst" or "subTnLst" => child is "par" or "seq" or "excl" or "anim" or "animClr" or "animEffect"
+                or "animMotion" or "animRot" or "animScale" or "cmd" or "set" or "audio" or "video",
+            "par" or "seq" or "excl" or "cBhvr" or "cMediaNode" => child == "cTn",
+            "anim" or "animClr" or "animEffect" or "animMotion" or "animRot" or "animScale" or "cmd" or "set" => child == "cBhvr",
+            "audio" or "video" => child == "cMediaNode",
+            "cTn" => child is "childTnLst" or "subTnLst",
+            _ => false
+        };
 
         private static void ValidateTimelineOptions(PowerPointTimelineOptions options) {
             if (options.DurationMilliseconds == 0) throw new ArgumentOutOfRangeException(nameof(options), "Duration must be positive.");

@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal.OpenXml;
+using System.Text;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
@@ -256,6 +258,79 @@ namespace OfficeIMO.Tests {
             uint[] timingIds = emptyTimelineSlide.SlidePart.Slide!.Timing!
                 .Descendants<CommonTimeNode>().Select(node => node.Id!.Value).ToArray();
             Assert.Equal(timingIds.Length, timingIds.Distinct().Count());
+        }
+
+        [Fact]
+        public void TimelineEditsIgnoreMatchingTimingIdsInExtensionMarkup() {
+            using var source = PowerPointDocument.Create();
+            PowerPointSlide slide = source.AddSlide();
+            PowerPointTextBox shape = slide.AddTextBox("Animated");
+            PowerPointTimelineAction motion = slide.AddMotionAnimation(shape, "M 0 0 L 1 0 E");
+            Assert.False(source.IsSdkLoaded);
+            XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+            XNamespace mc = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+            XNamespace future = "urn:test:future-timing";
+            using var input = new MemoryStream(source.ToBytes());
+            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(input, leaveOpen: true);
+            const string slidePart = "/ppt/slides/slide1.xml";
+            XDocument markup = XDocument.Parse(Encoding.UTF8.GetString(package.ReadPartBytes(slidePart)));
+            XElement timing = markup.Root!.Element(p + "timing")!;
+            XElement list = timing.Element(p + "tnLst")!;
+            list.Add(new XElement(mc + "AlternateContent",
+                new XElement(mc + "Choice",
+                    new XAttribute(XNamespace.Xmlns + "future", future.NamespaceName), new XAttribute("Requires", "future"),
+                    new XElement(future + "state", new XElement(p + "par",
+                        new XElement(p + "cTn", new XAttribute("id", uint.MaxValue), new XAttribute("dur", "88"))))),
+                new XElement(mc + "Fallback", new XElement(p + "par", new XElement(p + "cTn", new XAttribute("id", 40))))));
+            timing.Add(new XElement(p + "bldLst", new XElement(p + "bldP", new XAttribute("spid", shape.Id!.Value),
+                new XAttribute("grpId", 0), new XElement(p + "tmplLst", new XElement(p + "tmpl", new XAttribute("lvl", 0),
+                    new XElement(p + "tnLst", new XElement(p + "par", new XElement(p + "cTn", new XAttribute("id", 50)))))))));
+            timing.Add(new XElement(p + "extLst", new XElement(p + "ext", new XAttribute("uri", "{3FD813FC-DF0B-4F2B-844C-441282BA8A9D}"),
+                new XElement(p + "cTn", new XAttribute("id", motion.TimingId), new XAttribute("dur", "99")))));
+            byte[] xml = Encoding.UTF8.GetBytes(markup.ToString());
+            package.ReplacePart(slidePart, xml, xml.Length);
+            using var edited = new MemoryStream();
+            package.Save(edited);
+            edited.Position = 0;
+
+            using var presentation = PowerPointDocument.Load(edited);
+            PowerPointSlide loaded = presentation.Slides.Single();
+            PowerPointTimelineAction rotation = loaded.AddRotationAnimation(loaded.TextBoxes.Single(), 90);
+            Assert.Equal(51U, rotation.TimingId);
+            Assert.True(loaded.SetAnimationDuration(motion.TimingId, 150));
+            Assert.True(loaded.SetAnimationDuration(40, 350));
+            Assert.True(loaded.SetAnimationDuration(50, 450));
+            Assert.False(loaded.SetAnimationDuration(uint.MaxValue, 100));
+            Assert.True(loaded.RemoveAnimation(rotation.TimingId));
+            byte[] saved = presentation.ToBytes();
+
+            Assert.False(presentation.IsSdkLoaded);
+            using OfficeOpcEditablePackage result = OfficeOpcEditablePackage.Open(new MemoryStream(saved));
+            XDocument savedSlide = XDocument.Parse(Encoding.UTF8.GetString(result.ReadPartBytes(slidePart)));
+            XElement newTiming = savedSlide.Root!.Element(p + "timing")!;
+            Assert.Single(newTiming.Descendants(p + "childTnLst"), children => children.Elements(p + "par").Any());
+            Assert.DoesNotContain(newTiming.Descendants(p + "childTnLst"), children => !children.Elements().Any());
+            Assert.Equal("150", (string?)newTiming.Descendants(p + "animMotion").Single()
+                .Element(p + "cBhvr")!.Element(p + "cTn")!.Attribute("dur"));
+            Assert.Equal("99", (string?)newTiming.Element(p + "extLst")!.Descendants(p + "cTn").Single().Attribute("dur"));
+            Assert.Equal("88", (string?)newTiming.Descendants(mc + "Choice").Single().Descendants(p + "cTn").Single().Attribute("dur"));
+            Assert.Equal("350", (string?)newTiming.Descendants(mc + "Fallback").Single().Descendants(p + "cTn").Single().Attribute("dur"));
+            Assert.Equal("450", (string?)newTiming.Descendants(p + "tmpl").Single().Descendants(p + "cTn").Single().Attribute("dur"));
+        }
+
+        [Fact]
+        public void FirstTimelineActionPreservesExistingMorphTransitionMarkup() {
+            using var presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.Transition = PowerPointSlideTransition.Morph;
+            slide.AddMotionAnimation(slide.AddTextBox("Animated"), "M 0 0 L 1 0 E");
+
+            using var bytes = new MemoryStream(presentation.ToBytes());
+            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(bytes);
+            XElement root = XDocument.Parse(Encoding.UTF8.GetString(package.ReadPartBytes("/ppt/slides/slide1.xml"))).Root!;
+            Assert.Equal(new[] { "timing", "cSld", "clrMapOvr", "AlternateContent" }, root.Elements().Select(element => element.Name.LocalName));
+            Assert.Equal(PowerPointSlideTransition.Morph, slide.Transition);
+            Assert.False(presentation.IsSdkLoaded);
         }
 
         [Fact]

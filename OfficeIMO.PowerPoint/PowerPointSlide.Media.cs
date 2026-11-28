@@ -284,21 +284,7 @@ namespace OfficeIMO.PowerPoint {
             childNodes.Append(mediaNode);
         }
 
-        private uint GetNextTimingId() {
-            uint maxId = 0;
-            foreach (CommonTimeNode node in SlideRoot.Descendants<CommonTimeNode>()) {
-                uint? id = node.Id?.Value;
-                if (id.HasValue && id.Value > maxId) {
-                    maxId = id.Value;
-                }
-            }
 
-            if (maxId == uint.MaxValue) {
-                throw new InvalidOperationException(
-                    "The imported timing identifier space is exhausted.");
-            }
-            return maxId + 1;
-        }
 
         private static string GetAudioContentType(string mediaPath) {
             return Path.GetExtension(mediaPath).ToLowerInvariant() switch {
