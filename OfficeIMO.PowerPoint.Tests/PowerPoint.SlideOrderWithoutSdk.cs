@@ -1,4 +1,9 @@
+using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint;
+using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 using Xunit;
 using static OfficeIMO.Tests.PowerPointUnchangedSaveTests;
 
@@ -115,7 +120,7 @@ public class PowerPointSlideOrderWithoutSdkTests {
     [Theory]
     [InlineData("custom show", false)]
     [InlineData("comment", true)]
-    [InlineData("link", true)]
+    [InlineData("link", false)]
     public void SlideRemovalMatchesTheModelForRelatedContent(string variant, bool opensSdk) {
         byte[] source;
         using (var created = PowerPointDocument.Load(new MemoryStream(CreateDeck()))) {
@@ -130,6 +135,145 @@ public class PowerPointSlideOrderWithoutSdkTests {
 
         Assert.Equal(opensSdk, presentation.IsSdkLoaded);
         AssertNoDifferences(Differences(source, Edits[0]));
+    }
+
+    [Fact]
+    public void SlideRemovalUnlinksShapesRunsAndUnusedEdgesInTheOwnedPackage() {
+        using var source = PowerPointDocument.Create();
+        PowerPointSlide first = source.AddSlide();
+        PowerPointSlide target = source.AddSlide();
+        PowerPointSlide text = source.AddSlide();
+        PowerPointSlide unused = source.AddSlide();
+        PowerPointAutoShape linkedShape = first.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(20),
+            OfficeLength.Points(120), OfficeLength.Points(40));
+        linkedShape.SetHyperlink(target);
+        PowerPointAutoShape keptShape = first.AddRectangle(OfficeLength.Points(20), OfficeLength.Points(80),
+            OfficeLength.Points(120), OfficeLength.Points(40));
+        keptShape.SetHyperlink(text);
+        PowerPointTextBox textBox = text.AddTextBox("Go to the removed slide");
+        PowerPointTextRun run = textBox.Paragraphs.Single().Runs.Single();
+        run.SetHyperlink(target);
+        target.AddTextBox("Return").Paragraphs.Single().Runs.Single().SetHyperlink(first);
+        PowerPointCustomShow show = source.AddCustomShow("Only target", new[] { target });
+
+        A.HyperlinkOnClick combinedAction = ((P.Shape)linkedShape.Element).NonVisualShapeProperties!
+            .NonVisualDrawingProperties!.GetFirstChild<A.HyperlinkOnClick>()!;
+        combinedAction.Action = "ppaction://customshow?id=" + show.Id;
+        string firstRelationship = combinedAction.Id!.Value!;
+        string runRelationship = text.SlidePart.GetIdOfPart(target.SlidePart);
+        P.TextBody textBody = ((P.Shape)textBox.Element).TextBody!;
+        textBody.ListStyle ??= new A.ListStyle();
+        textBody.ListStyle.Append(new A.Level1ParagraphProperties(new A.DefaultRunProperties(new A.HyperlinkOnClick {
+            Id = runRelationship,
+            Action = "ppaction://hlinksldjump"
+        })));
+        const string unusedRelationship = "rIdUnusedRemovedSlide";
+        unused.SlidePart.AddPart(target.SlidePart, unusedRelationship);
+        string firstPart = first.SlidePart.Uri.OriginalString;
+        string targetPart = target.SlidePart.Uri.OriginalString;
+        string textPart = text.SlidePart.Uri.OriginalString;
+        string unusedPart = unused.SlidePart.Uri.OriginalString;
+
+        using var input = OfficeOpcEditablePackage.Open(new MemoryStream(source.ToBytes(), writable: false));
+        OfficeXmlTree textTree = input.GetXml(textPart);
+        var textRoot = new OfficeXmlNode(textTree, textTree.Root);
+        const int p = OfficeXmlNamespaces.PresentationML, a = OfficeXmlNamespaces.DrawingML, r = OfficeXmlNamespaces.Relationships;
+        OfficeXmlNode extensions = textRoot.Child(p, "extLst");
+        if (extensions.IsNone) extensions = textRoot.Append(textRoot.CreateElement(p, "extLst"));
+        OfficeXmlNode payload = extensions.Append(extensions.CreateElement(p, "ext"));
+        payload.SetAttribute("uri", "urn:fixture:inbound-link-decoy");
+        OfficeXmlNode decoy = payload.Append(payload.CreateElement(a, "hlinkClick"));
+        decoy.SetAttribute(r, "id", runRelationship);
+        using var packaged = new MemoryStream();
+        input.Save(packaged);
+        byte[] authored = packaged.ToArray();
+
+        using var presentation = PowerPointDocument.Load(new MemoryStream(authored, writable: false));
+        PowerPointTextRun heldRun = presentation.Slides[2].TextBoxes.Single().Paragraphs.Single().Runs.Single();
+        PowerPointSlide heldTarget = presentation.Slides[1];
+        presentation.RemoveSlide(1);
+        Assert.Empty(presentation.CustomShows);
+        Assert.DoesNotContain(heldTarget, presentation.Slides);
+        Assert.Null(heldRun.Hyperlink);
+        byte[] output = presentation.ToBytes();
+        Assert.False(presentation.IsSdkLoaded);
+
+        using var saved = OfficeOpcEditablePackage.Open(new MemoryStream(output, writable: false));
+        Assert.False(saved.PartExists(targetPart));
+        Assert.DoesNotContain(firstRelationship, ReadRelationshipIds(saved, firstPart));
+        Assert.DoesNotContain(runRelationship, ReadRelationshipIds(saved, textPart));
+        Assert.DoesNotContain(unusedRelationship, ReadRelationshipIds(saved, unusedPart));
+        OfficeXmlTree savedText = saved.GetXml(textPart);
+        var savedRoot = new OfficeXmlNode(savedText, savedText.Root);
+        Assert.Empty(savedRoot.ContentDescendants(a, "hlinkClick"));
+        Assert.Equal(runRelationship, savedRoot.Child(p, "extLst").Child(p, "ext").Child(a, "hlinkClick").Attribute(r, "id"));
+
+        OfficeXmlTree firstTree = saved.GetXml(firstPart);
+        var firstRoot = new OfficeXmlNode(firstTree, firstTree.Root);
+        Assert.Single(firstRoot.ContentDescendants(a, "hlinkClick"));
+        AssertNoDifferences(Differences(authored, ("remove the target slide", 2, (deck, _) => deck.RemoveSlide(1))));
+
+        static IEnumerable<string?> ReadRelationshipIds(OfficeOpcEditablePackage package, string part) {
+            OfficeXmlTree tree = package.GetRelationships(part);
+            return new OfficeXmlNode(tree, tree.Root).Children(OfficeXmlNamespaces.PackageRelationships, "Relationship").ToList()
+                .Select(relationship => relationship.Attribute("Id"));
+        }
+    }
+
+    [Fact]
+    public void SlideRemovalPreservesSdkDeletionWhenAHyperlinkReferencesAnImagePart() {
+        using var source = PowerPointDocument.Create();
+        PowerPointSlide first = source.AddSlide();
+        PowerPointSlide removed = source.AddSlide();
+        first.AddTextBox("Go to the removed slide").SetHyperlink(removed);
+        ImagePart image = removed.SlidePart.AddImagePart(ImagePartType.Png);
+        using (var asset = new MemoryStream(Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="))) {
+            image.FeedData(asset);
+        }
+        string imageName = image.Uri.OriginalString;
+        first.SlidePart.AddHyperlinkRelationship(new Uri(OfficeOpcPartNames.GetRelativeTarget(first.SlidePart.Uri.OriginalString,
+            imageName), UriKind.Relative), false, "rIdImageReference");
+
+        byte[] bytes = source.ToBytes();
+        using var presentation = PowerPointDocument.Load(new MemoryStream(bytes, writable: false));
+        Assert.False(presentation.IsSdkLoaded);
+        presentation.RemoveSlide(1);
+
+        Assert.True(presentation.IsSdkLoaded);
+        using var saved = OfficeOpcPackage.Open(new MemoryStream(presentation.ToBytes(), writable: false));
+        Assert.False(saved.PartExists(imageName));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SlideRemovalRetainsSdkValidationForMalformedRelationshipIdentifiers(bool duplicateOnUnlinkedSlide) {
+        using var source = PowerPointDocument.Create();
+        PowerPointSlide first = source.AddSlide();
+        PowerPointSlide removed = source.AddSlide();
+        PowerPointSlide unrelated = source.AddSlide();
+        first.SlidePart.AddPart(removed.SlidePart, "rIdUnusedInbound");
+        unrelated.SlidePart.AddHyperlinkRelationship(new Uri("https://example.test/one"), true, "rIdExternalOne");
+        unrelated.SlidePart.AddHyperlinkRelationship(new Uri("https://example.test/two"), true, "rIdExternalTwo");
+        using var edit = OfficeOpcEditablePackage.Open(new MemoryStream(source.ToBytes(), writable: false));
+        OfficeXmlTree tree = edit.GetRelationships((duplicateOnUnlinkedSlide ? unrelated : first).SlidePart.Uri.OriginalString);
+        string originalId = duplicateOnUnlinkedSlide ? "rIdExternalTwo" : "rIdUnusedInbound";
+        const int ns = OfficeXmlNamespaces.PackageRelationships;
+        var relationshipRoot = new OfficeXmlNode(tree, tree.Root);
+        OfficeXmlNode edge = Assert.Single(relationshipRoot.Children(ns, "Relationship").ToList(),
+            node => node.Attribute("Id") == originalId);
+        edge.SetAttribute("Id", duplicateOnUnlinkedSlide ? "rIdExternalOne" : "bad id");
+        using var corrupt = new MemoryStream();
+        edit.Save(corrupt);
+        byte[] bytes = corrupt.ToArray();
+
+        using var sdk = PowerPointDocument.Load(new MemoryStream(bytes, writable: false));
+        Exception expected = Assert.ThrowsAny<Exception>(() => _ = sdk.OpenXmlDocument);
+        using var presentation = PowerPointDocument.Load(new MemoryStream(bytes, writable: false));
+        Assert.False(presentation.IsSdkLoaded);
+        Exception actual = Assert.ThrowsAny<Exception>(() => presentation.RemoveSlide(1));
+        Assert.IsType(expected.GetType(), actual);
     }
 
     // Opt-in, as the other corpus checks: OFFICEIMO_PPTX_CORPUS names a folder of presentations.

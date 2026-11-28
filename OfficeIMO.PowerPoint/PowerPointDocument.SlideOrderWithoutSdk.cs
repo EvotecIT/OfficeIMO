@@ -134,8 +134,13 @@ namespace OfficeIMO.PowerPoint {
                 if (presentationRelationship == OfficeXmlTree.NoNode) return false;
                 string main = PartIdentity(slides.Main), slidePart = PartIdentity(slide);
                 HashSet<string> kept = Reachable(package, string.Empty, main, relationship);
-                // A slide another part links to is unlinked there by the model.
-                if (kept.Contains(slidePart)) return false;
+                List<InboundSlideLinkEdit>? inboundLinks = null;
+                if (kept.Contains(slidePart)) {
+                    if (!TryPlanPackageInboundSlideLinks(package, slides, slidePart, relationship, kept, out inboundLinks,
+                        out Dictionary<string, string> excluded)) return false;
+                    kept = Reachable(package, string.Empty, main, relationship, excludedLinks: excluded);
+                    if (kept.Contains(slidePart)) return false;
+                }
                 var removed = new List<string>();
                 foreach (string part in Reachable(package, slidePart, null, null)) {
                     if (!kept.Contains(part)) removed.Add(part);
@@ -149,6 +154,7 @@ namespace OfficeIMO.PowerPoint {
 
                 presentation.Remove(entry);
                 if (customShows != null) ApplyPackageSlideCustomShows(customShows);
+                if (inboundLinks != null) ApplyPackageInboundSlideLinks(inboundLinks);
                 OfficeXmlTree relationships = package.GetXml(presentationRelationships);
                 relationships.Remove(presentationRelationship);
                 RelationshipsOf(package, main).RemoveAll(edge => string.Equals(edge.Id, relationship, StringComparison.Ordinal));
@@ -238,8 +244,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // Identities of the parts reachable from a part, or from the package when it is "", the part itself included,
-        // leaving out one relationship of one source.
-        private HashSet<string> Reachable(OfficeOpcEditablePackage package, string start, string? skipSource, string? skipId) {
+        // optionally leaving out planned relationship removals. A stopped part is included, but its edges are not followed.
+        private HashSet<string> Reachable(OfficeOpcEditablePackage package, string start, string? skipSource, string? skipId,
+            string? stopAt = null, Dictionary<string, string>? excludedLinks = null) {
             var reached = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
             var pending = new Stack<string>();
             if (start.Length > 0) reached.Add(start);
@@ -247,9 +254,14 @@ namespace OfficeIMO.PowerPoint {
             while (pending.Count > 0) {
                 string source = pending.Pop();
                 bool skipping = skipSource != null && OfficeAsciiIgnoreCaseComparer.Instance.Equals(source, skipSource);
+                string? excluded = null;
+                if (excludedLinks != null) excludedLinks.TryGetValue(source, out excluded);
                 foreach ((string id, string target) in RelationshipsOf(package, source)) {
-                    if (skipping && string.Equals(id, skipId, StringComparison.Ordinal)) continue;
-                    if (reached.Add(target)) pending.Push(target);
+                    if (skipping && string.Equals(id, skipId, StringComparison.Ordinal) ||
+                        excluded != null && string.Equals(id, excluded, StringComparison.Ordinal)) continue;
+                    if (reached.Add(target) && (stopAt == null || !OfficeAsciiIgnoreCaseComparer.Instance.Equals(target, stopAt))) {
+                        pending.Push(target);
+                    }
                 }
             }
             return reached;

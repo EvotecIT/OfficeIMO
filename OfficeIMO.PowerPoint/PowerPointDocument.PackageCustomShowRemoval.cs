@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
         private const int LinkDrawingNamespace = OfficeXmlNamespaces.DrawingML;
         private const int LinkPresentationNamespace = OfficeXmlNamespaces.PresentationML;
         private const int LinkRelationshipNamespace = OfficeXmlNamespaces.Relationships;
-        private static class CustomShowLinkMarkup {
+        private static class SlideActionMarkup {
             internal static readonly string[] Names = { "hlinkClick", "hlinkMouseOver", "hlinkHover" };
         }
 
@@ -84,13 +84,13 @@ namespace OfficeIMO.PowerPoint {
                     var actions = new List<OfficeXmlNode>();
                     var relationships = new HashSet<string>(StringComparer.Ordinal);
                     foreach (OfficeXmlNode action in FindCustomShowLinks(root, showIds)) {
-                        OfficeXmlNode extension = CustomShowLinkExtension(action);
+                        OfficeXmlNode extension = LinkOpaqueAncestor(action);
                         if (extension.Exists) {
-                            if (IsUnknownCustomShowDecoy(action, extension)) continue;
+                            if (IsUnknownSlideAction(action, extension)) continue;
                             // The SDK can recognize slide shapes and supported extensions inside these wrappers.
                             return false;
                         }
-                        if (!canEdit || !IsOwnedSlideCustomShowLink(action) ||
+                        if (!canEdit || !IsOwnedSlideLink(action) ||
                             action.Child(LinkDrawingNamespace, "snd").Exists) return false;
 
                         string? relationship = action.Attribute(LinkRelationshipNamespace, "id");
@@ -124,21 +124,21 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static IEnumerable<OfficeXmlNode> FindCustomShowLinks(OfficeXmlNode root, ICollection<uint> showIds) {
-            foreach (string name in CustomShowLinkMarkup.Names) {
+            foreach (string name in SlideActionMarkup.Names) {
                 foreach (OfficeXmlNode link in root.Descendants(LinkDrawingNamespace, name)) {
                     if (TryParseCustomShowAction(link.Attribute("action"), out uint id, out _) && showIds.Contains(id)) yield return link;
                 }
             }
         }
 
-        private static OfficeXmlNode CustomShowLinkExtension(OfficeXmlNode link) {
+        private static OfficeXmlNode LinkOpaqueAncestor(OfficeXmlNode link) {
             for (OfficeXmlNode parent = link.Parent; parent.Exists; parent = parent.Parent) {
                 if (parent.IsExtensionMarkup()) return parent;
             }
             return default;
         }
 
-        private static bool IsUnknownCustomShowDecoy(OfficeXmlNode link, OfficeXmlNode extension) {
+        private static bool IsUnknownSlideAction(OfficeXmlNode link, OfficeXmlNode extension) {
             // A hyperlink put directly in a slide extension or an alternate slide root has no typed parent.
             // An alternate shape, group or run can contain typed links and needs the original cleanup.
             if (!extension.Parent.Is(LinkPresentationNamespace, "sld") || extension.Parent.Parent.Exists) return false;
@@ -150,16 +150,22 @@ namespace OfficeIMO.PowerPoint {
                   parent.Is(OfficeXmlNamespaces.MarkupCompatibility, "Fallback");
         }
 
-        private static bool IsOwnedSlideCustomShowLink(OfficeXmlNode link) {
+        private static bool IsOwnedSlideLink(OfficeXmlNode link) {
             OfficeXmlNode owner = link.Parent;
             if (owner.Is(LinkPresentationNamespace, "cNvPr")) {
                 OfficeXmlNode shape = owner.Parent.Parent;
                 return link.LocalName is "hlinkClick" or "hlinkHover" &&
-                    PowerPointShape.NonVisualDrawingElement(shape, create: false).Equals(owner) && IsCustomShowLinkShape(shape);
+                    PowerPointShape.NonVisualDrawingElement(shape, create: false).Equals(owner) && IsSlideLinkShape(shape);
             }
 
             if (link.LocalName is not ("hlinkClick" or "hlinkMouseOver")) return false;
             OfficeXmlNode paragraph = owner.Parent;
+            if (owner.Is(LinkDrawingNamespace, "defRPr") && paragraph.Parent.Is(LinkDrawingNamespace, "lstStyle")) {
+                return paragraph.NamespaceId == LinkDrawingNamespace &&
+                    paragraph.LocalName is "defPPr" or "lvl1pPr" or "lvl2pPr" or "lvl3pPr" or "lvl4pPr" or "lvl5pPr" or
+                        "lvl6pPr" or "lvl7pPr" or "lvl8pPr" or "lvl9pPr" &&
+                    IsSlideLinkTextBody(paragraph.Parent.Parent);
+            }
             if ((owner.Is(LinkDrawingNamespace, "rPr") && paragraph.NamespaceId == LinkDrawingNamespace &&
                 paragraph.LocalName is "r" or "br" or "fld") ||
                 (owner.Is(LinkDrawingNamespace, "defRPr") && paragraph.Is(LinkDrawingNamespace, "pPr"))) {
@@ -167,12 +173,14 @@ namespace OfficeIMO.PowerPoint {
             } else if (!owner.Is(LinkDrawingNamespace, "endParaRPr")) {
                 return false;
             }
-            OfficeXmlNode body = paragraph.Parent;
-            return paragraph.Is(LinkDrawingNamespace, "p") && body.Is(LinkPresentationNamespace, "txBody") &&
-                body.Parent.Is(LinkPresentationNamespace, "sp") && IsCustomShowLinkShape(body.Parent);
+            return paragraph.Is(LinkDrawingNamespace, "p") && IsSlideLinkTextBody(paragraph.Parent);
         }
 
-        private static bool IsCustomShowLinkShape(OfficeXmlNode shape) {
+        private static bool IsSlideLinkTextBody(OfficeXmlNode body) =>
+            body.Is(LinkPresentationNamespace, "txBody") && body.Parent.Is(LinkPresentationNamespace, "sp") &&
+            IsSlideLinkShape(body.Parent);
+
+        private static bool IsSlideLinkShape(OfficeXmlNode shape) {
             OfficeXmlNode container = shape.Parent;
             while (container.Is(LinkPresentationNamespace, "grpSp")) container = container.Parent;
             OfficeXmlNode common = container.Parent;
