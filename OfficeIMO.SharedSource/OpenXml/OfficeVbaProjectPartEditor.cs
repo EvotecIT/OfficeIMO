@@ -13,9 +13,9 @@ namespace OfficeIMO.OpenXml.Internal {
 
         /// <summary>Removes a newly created relationship and payload if initialization fails.</summary>
         internal static bool Apply(OpenXmlPart owner, VbaProjectPart? existing, byte[] bytes,
-            OfficeVbaWriteOptions options, out VbaProjectPart part, Action<VbaProjectPart>? initialize = null) {
+            OfficeVbaWriteOptions options, out VbaProjectPart part, Action<VbaProjectPart>? initialize = null, Func<VbaProjectPart>? create = null) {
             ValidateRecoveryLimit(options);
-            part = existing ?? owner.AddNewPart<VbaProjectPart>();
+            part = existing ?? (create == null ? owner.AddNewPart<VbaProjectPart>() : create());
             try { return ApplyCore(part, bytes, options, initialize, existing != null); }
             catch (Exception failure) {
                 if (existing == null) {

@@ -1,5 +1,7 @@
+using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint {
@@ -11,6 +13,7 @@ namespace OfficeIMO.PowerPoint {
         public bool HasVbaProject {
             get {
                 ThrowIfDisposed();
+                if (TryReadPackageVbaProject(maximumBytes: null, inspectSignature: false, out var project, out _)) return project.HasValue;
                 return SdkPresentationPart.VbaProjectPart != null;
             }
         }
@@ -22,6 +25,7 @@ namespace OfficeIMO.PowerPoint {
             long maximumBytes = DefaultMaximumVbaProjectBytes) {
             ThrowIfDisposed();
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+            if (TryReadPackageVbaProject(maximumBytes, inspectSignature: false, out _, out byte[]? bytes)) return bytes;
             VbaProjectPart? part = SdkPresentationPart.VbaProjectPart;
             if (part == null) return null;
             using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
@@ -62,8 +66,9 @@ namespace OfficeIMO.PowerPoint {
                     "VBA project is not a valid compound storage: " + reason);
             }
 
-            VbaProjectPart part = SdkPresentationPart.VbaProjectPart
-                ?? SdkPresentationPart.AddNewPart<VbaProjectPart>();
+            if (TryMutatePackageVbaProject(project, out _)) return;
+
+            VbaProjectPart part = SdkPresentationPart.VbaProjectPart ?? AddSdkVbaProject();
             foreach (IdPartPair child in part.Parts.ToArray()) {
                 part.DeletePart(child.OpenXmlPart);
             }
@@ -71,9 +76,38 @@ namespace OfficeIMO.PowerPoint {
             part.FeedData(input);
         }
 
+        private VbaProjectPart AddSdkVbaProject() {
+            PresentationPart presentation = SdkPresentationPart;
+            VbaProjectPart part = presentation.AddNewPart<VbaProjectPart>();
+            if (_packagePartSequence == null || !_packagePartSequence.TryGetValue(VbaProjectContentType, out int previous)) return part;
+
+            // After the SDK opens, its allocator starts with the parts still in the package. Consume any earlier VBA
+            // names that were already allocated and deleted while the document used the owned package.
+            const string stem = "vbaProject";
+            int last = 0;
+            while (true) {
+                string name = Path.GetFileNameWithoutExtension(part.Uri.OriginalString);
+                if (!name.StartsWith(stem, StringComparison.Ordinal)) return part;
+                int number = 1;
+                if (name.Length > stem.Length && !int.TryParse(name.Substring(stem.Length), NumberStyles.None,
+                    CultureInfo.InvariantCulture, out number)) return part;
+                if (number <= last || number > previous) return part;
+                last = number;
+                presentation.DeletePart(part);
+                part = presentation.AddNewPart<VbaProjectPart>();
+            }
+        }
+
+        private byte[]? ReadSourceVbaBytesUsingSdk(int maximumBytes) => SdkPresentationPart.VbaProjectPart is { } part
+            ? OfficeVbaProjectPartEditor.Read(part, maximumBytes) : null;
+
+        private void SetSourceVbaProjectUsingSdk(byte[] bytes, OfficeVbaWriteOptions options) =>
+            OfficeVbaProjectPartEditor.Apply(SdkPresentationPart, SdkPresentationPart.VbaProjectPart, bytes, options, out _, create: AddSdkVbaProject);
+
         /// <summary>Removes the embedded VBA project and its related signature or cache parts.</summary>
         public bool RemoveVbaProject() {
             ThrowIfDisposed();
+            if (TryMutatePackageVbaProject(null, out bool removed)) return removed;
             VbaProjectPart? part = SdkPresentationPart.VbaProjectPart;
             if (part == null) return false;
             SdkPresentationPart.DeletePart(part);

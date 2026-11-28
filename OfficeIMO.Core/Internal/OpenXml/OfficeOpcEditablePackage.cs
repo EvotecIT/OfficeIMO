@@ -92,13 +92,14 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     /// A pull reader over a part the package has not parsed, edited or replaced, reading its stored bytes without building
     /// a tree; false for any other part, which <see cref="GetXml"/> reads. The caller disposes <paramref name="content"/>.
     /// </summary>
-    internal bool TryReadUnparsed(string partName, out OfficeXmlPullReader reader, out OfficePooledBytes content) {
+    internal bool TryReadUnparsed(string partName, out OfficeXmlPullReader reader, out OfficePooledBytes content,
+        bool processMarkupCompatibility = true) {
         reader = default!;
         content = default;
         Part? part = Find(partName);
         if (part == null || part.Tree != null || part.Content != null || !part.FromSource || !_zip!.TryRead(part.Member, out content)) return false;
         try {
-            reader = new OfficeXmlPullReader(content.Array, content.Length, Namespaces);
+            reader = new OfficeXmlPullReader(content.Array, content.Length, Namespaces, processMarkupCompatibility);
         } catch {
             content.Dispose();
             content = default;
@@ -138,6 +139,19 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         WritePart(part, output, new OfficeXmlUtf8Writer());
         return output.ToArray();
     }
+
+    /// <summary>Opens the current content for incremental reads without inflating a stored member in advance.</summary>
+    internal Stream OpenPartContentStream(string partName, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
+        if (part.Tree is { IsChanged: true }) return new MemoryStream(ReadPartBytes(partName), writable: false);
+        if (part.Content != null) return new MemoryStream(part.Content, 0, part.ContentLength, writable: false);
+        if (part.FromSource) return _zip!.OpenMemberStream(part.Member, cancellationToken);
+        return new MemoryStream(ReadPartBytes(partName), writable: false);
+    }
+
+    /// <summary>The package spelling of this part name, or null when the part is absent.</summary>
+    internal string? GetPartName(string partName) => Find(partName)?.Name;
 
     /// <summary>Adds a part with binary content, such as an image.</summary>
     internal void CreateBinaryPart(string partName, string? contentType, byte[] content) {
@@ -393,8 +407,14 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
 
     // ---- Save -----------------------------------------------------------------------------------------------
 
+    /// <summary>A saved part name and optional replacement tree. A null name omits the part from the output.</summary>
+    internal readonly record struct OutputPart(string? Name, OfficeXmlTree? Tree = null);
+
     /// <summary>Writes the package to <paramref name="destination"/>, which is not disposed.</summary>
-    internal void Save(Stream destination) {
+    internal void Save(Stream destination) => Save(destination, null);
+
+    /// <summary>Writes one output with selected parts renamed, replaced, or omitted without editing the open package.</summary>
+    internal void Save(Stream destination, IReadOnlyDictionary<string, OutputPart>? outputParts) {
         ArgumentNullException.ThrowIfNull(destination);
         var xml = new OfficeXmlUtf8Writer();
 #if NET8_0_OR_GREATER
@@ -404,21 +424,21 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
             Dictionary<Part, OfficeZipWriter.PreparedEntry>? prepared = PrepareLargeParts();
             try {
                 foreach (Part part in _parts) {
-                    if (part.Deleted) continue;
-                    if (prepared != null && prepared.TryGetValue(part, out OfficeZipWriter.PreparedEntry? preparedEntry)) {
-                        zip.WritePrepared(part.Member, preparedEntry);
+                    if (part.Deleted || !TryGetOutputPart(part, outputParts, out string member, out OfficeXmlTree? tree)) continue;
+                    if (tree == null && prepared != null && prepared.TryGetValue(part, out OfficeZipWriter.PreparedEntry? preparedEntry)) {
+                        zip.WritePrepared(member, preparedEntry);
                         continue;
                     }
-                    bool unchanged = part.FromSource && (part.Tree == null || !part.Tree.IsChanged);
+                    bool unchanged = part.FromSource && tree == part.Tree && (tree == null || !tree.IsChanged);
                     if (unchanged && _zip!.TryReadStored(part.Member, out OfficeZipStoredMember stored)) {
                         using (stored) {
-                            zip.WriteStored(part.Member, stored.Method, stored.Flags, stored.DosTime, stored.DosDate, stored.Crc, stored.Size,
+                            zip.WriteStored(member, stored.Method, stored.Flags, stored.DosTime, stored.DosDate, stored.Crc, stored.Size,
                                 stored.Compressed.Array, 0, stored.Compressed.Length);
                         }
                         continue;
                     }
-                    using Stream entry = zip.OpenEntry(part.Member, CompressionLevel.Fastest);
-                    WritePart(part, entry, xml);
+                    using Stream entry = zip.OpenEntry(member, CompressionLevel.Fastest);
+                    WritePart(part, entry, xml, tree);
                 }
             } finally {
                 // Entries a failed write never reached go back to the pool too; releasing one twice does nothing.
@@ -431,11 +451,22 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
 #endif
         using var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true);
         foreach (Part part in _parts) {
-            if (part.Deleted) continue;
-            ZipArchiveEntry entry = archive.CreateEntry(part.Member, CompressionLevel.Fastest);
+            if (part.Deleted || !TryGetOutputPart(part, outputParts, out string member, out OfficeXmlTree? tree)) continue;
+            ZipArchiveEntry entry = archive.CreateEntry(member, CompressionLevel.Fastest);
             using Stream output = entry.Open();
-            WritePart(part, output, xml);
+            WritePart(part, output, xml, tree);
         }
+    }
+
+    private static bool TryGetOutputPart(Part part, IReadOnlyDictionary<string, OutputPart>? outputParts,
+        out string member, out OfficeXmlTree? tree) {
+        member = part.Member;
+        tree = part.Tree;
+        if (outputParts == null || !outputParts.TryGetValue(part.Name, out OutputPart output)) return true;
+        if (output.Name == null) return false;
+        if (!string.Equals(output.Name, part.Name, StringComparison.Ordinal)) member = output.Name.Substring(1);
+        tree = output.Tree ?? tree;
+        return true;
     }
 
 #if NET8_0_OR_GREATER
@@ -464,10 +495,11 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     }
 #endif
 
-    private void WritePart(Part part, Stream output, OfficeXmlUtf8Writer xml) {
-        if (part.Tree != null) {
+    private void WritePart(Part part, Stream output, OfficeXmlUtf8Writer xml, OfficeXmlTree? tree = null) {
+        tree ??= part.Tree;
+        if (tree != null) {
             xml.Target = output;
-            part.Tree.WriteTo(xml);
+            tree.WriteTo(xml);
             xml.Flush();
             xml.Target = null;
         } else if (part.Content != null) {

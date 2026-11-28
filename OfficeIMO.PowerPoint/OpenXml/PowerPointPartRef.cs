@@ -411,7 +411,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
         internal void RemoveRelationshipIfUnused(string id, PowerPointPartRef owningSlide) {
             if (string.IsNullOrEmpty(id)) return;
             PowerPointPartRef current = Current;
-            if (References(current.Root, id)) return;
+            if (ReferencesRelationship(current.Root, id)) return;
             if (current._sdk != null) {
                 PowerPointSdkParts.RemoveRelationshipIfUnused(current._sdk, id, owningSlide.Current._sdk);
                 return;
@@ -429,8 +429,8 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             if (relationship.TargetPart._name is { } target && IsMedia(package, target) && !IsTargeted(package, target)) package.DeletePart(target);
         }
 
-        // Whether an r: attribute on the element or below it carries the relationship id.
-        private static bool References(OfficeXmlNode element, string id) {
+        /// <summary>Whether this subtree references an ID outside any owned nodes scheduled for deletion.</summary>
+        internal static bool ReferencesRelationship(OfficeXmlNode element, string id, ISet<int>? deletedNodes = null) {
             if (element.IsNone) return false;
             if (element.IsSdk) return PowerPointSdkParts.ReferencesRelationship(element.SdkElement!, id);
             OfficeXmlTree tree = element.Tree!;
@@ -438,6 +438,7 @@ namespace OfficeIMO.PowerPoint.OpenXml {
             pending.Push(element.Node);
             while (pending.Count > 0) {
                 int node = pending.Pop();
+                if (deletedNodes?.Contains(node) == true) continue;
                 if (tree.HasRelationshipAttribute(node, id)) return true;
                 for (int child = tree.FirstChildOf(node); child != OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
                     if (tree.KindOf(child) == OfficeXmlTreeNodeKind.Element) pending.Push(child);

@@ -4,22 +4,27 @@ using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    /// An element below a shape that a wrapper holds, such as a table row or cell: a node of the slide's package tree while
-    /// the SDK is not open, which binds to the same element in the SDK when it opens, or an SDK element.
+    /// An element held by a wrapper, such as a table cell or custom show. An owned package node binds to the same
+    /// element when the SDK opens.
     /// </summary>
     internal sealed class PowerPointHeldNode : IPackageSdkBinding {
         private OfficeXmlNode _element;
         private readonly PowerPointPartRef _packagePart;
         private readonly PowerPointSlide? _packageSlide;
-        // Whether the element is a standalone copy of one removed from its part.
+        private readonly bool _preserveDetached;
         // Whether the element was removed before the package that held it went.
         private bool _removed;
 
-        internal PowerPointHeldNode(OfficeXmlNode element, PowerPointShape owner) {
+        internal PowerPointHeldNode(OfficeXmlNode element, PowerPointShape owner)
+            : this(element, element.Tree == null ? default : owner.OwnerPartRef, owner.OwnerSlide) { }
+
+        internal PowerPointHeldNode(OfficeXmlNode element, PowerPointPartRef part, PowerPointSlide? slide = null,
+            bool preserveDetached = false) {
             _element = element;
             if (element.Tree == null) return;
-            _packagePart = owner.OwnerPartRef;
-            _packageSlide = owner.OwnerSlide;
+            _packagePart = part;
+            _packageSlide = slide;
+            _preserveDetached = preserveDetached;
             _packagePart.Document?.RegisterPackageBinding(this);
         }
 
@@ -49,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         void IPackageSdkBinding.InvalidateRemoved(bool sdkOpening) {
-            if (!_removed && _element.Tree != null && (OwnerSlideRemoved || sdkOpening && !_element.IsAttached
+            if (!_removed && _element.Tree != null && (OwnerSlideRemoved || sdkOpening && !_preserveDetached && !_element.IsAttached
                 && _packageSlide?.IsInDetachedPackageShape(_element) != true)) _removed = true;
         }
 

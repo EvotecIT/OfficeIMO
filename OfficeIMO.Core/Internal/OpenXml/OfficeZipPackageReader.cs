@@ -37,13 +37,13 @@ internal sealed class OfficeZipPackageReader : IDisposable {
 
     /// <summary>Opens the ZIP archive that starts at the current position of a readable, seekable stream.</summary>
     /// <exception cref="InvalidDataException">The archive is malformed, ambiguous or repeats a member name.</exception>
-    internal static OfficeZipPackageReader Open(Stream source, bool leaveOpen = false, long maximumEntryLength = 1L << 30) {
+    internal static OfficeZipPackageReader Open(Stream source, bool leaveOpen = false, long maximumEntryLength = 1L << 30, int? maximumEntries = null) {
         ArgumentNullException.ThrowIfNull(source);
         if (!source.CanRead || !source.CanSeek) throw new ArgumentException("The package stream must be readable and seekable.", nameof(source));
         long origin = source.Position;
         var records = new List<OfficeArchiveSafety.ZipCentralDirectoryRecord>();
         OfficeArchiveSafety.ZipCentralDirectoryScanResult scan = OfficeArchiveSafety.ScanZipCentralDirectoryForExtraction(
-            source, source.Length - origin, MaximumEntries, records);
+            source, source.Length - origin, maximumEntries ?? MaximumEntries, records);
         if (!scan.IsValid) throw new InvalidDataException(scan.Error ?? "The package is not a valid ZIP archive.");
         if (scan.LimitExceeded) throw new InvalidDataException("The package has more members than an Open XML reader accepts.");
 
@@ -87,6 +87,66 @@ internal sealed class OfficeZipPackageReader : IDisposable {
         }
         content = Read(_records[index]);
         return true;
+    }
+
+    /// <summary>Opens a member for incremental reads, so callers can enforce their own decoded-byte budget.</summary>
+    internal Stream OpenMemberStream(string name, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_entries.TryGetValue(name, out int index))
+            throw new InvalidDataException("The package has no member '" + name + "'.");
+        OfficeArchiveSafety.ZipCentralDirectoryRecord record = _records[index];
+        long payload = OfficeArchiveSafety.ValidateEntryPayload(_source, record);
+        Stream compressed = _buffer != null
+            ? new MemoryStream(_buffer, checked(_bufferOrigin + (int)payload), checked((int)record.CompressedSize), writable: false)
+            : new SeekableReadWindowStream(_source, payload, record.CompressedSize, preserveSourcePosition: true, cancellationToken);
+        return record.CompressionMethod == 0 ? compressed : new DecodedMemberStream(compressed, record.UncompressedSize);
+    }
+
+    // The packaging reader exposes at most the declared decoded size. Stop at that boundary without
+    // decompressing the rest of a member when a consumer reaches its own budget first.
+    private sealed class DecodedMemberStream(Stream compressed, long length) : Stream {
+        private readonly DeflateStream _decoder = new(compressed, CompressionMode.Decompress);
+        private long _remaining = length;
+
+        public override bool CanRead => _decoder.CanRead;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            ArgumentNullException.ThrowIfNull(buffer);
+            if (offset < 0 || count < 0 || offset > buffer.Length - count)
+                throw new ArgumentOutOfRangeException(nameof(count));
+            if (_remaining == 0) {
+#if NETFRAMEWORK
+                // The framework packaging reader rejects an inconsistent decoded size.
+                if (count != 0 && _decoder.ReadByte() >= 0)
+                    throw new InvalidDataException("Compressed part has inconsistent data length.");
+#endif
+                return 0;
+            }
+            int read = _decoder.Read(buffer, offset, (int)Math.Min(count, _remaining));
+#if NETFRAMEWORK
+            if (count != 0 && read == 0)
+                throw new InvalidDataException("Compressed part has inconsistent data length.");
+#endif
+            _remaining -= read;
+            return read;
+        }
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _decoder.Dispose();
+            base.Dispose(disposing);
+        }
+
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     /// <summary>The name of the member at a central-directory position.</summary>

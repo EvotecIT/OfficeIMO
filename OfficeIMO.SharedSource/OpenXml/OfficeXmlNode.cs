@@ -84,6 +84,9 @@ namespace OfficeIMO.OpenXml.Internal {
             _tree != null ? _tree.IsElement(_node, namespaceId, localName)
             : _sdk != null && OfficeSdkXml.Is(_sdk, namespaceId, localName);
 
+        /// <summary>Whether the SDK explicitly holds this element as unknown.</summary>
+        internal bool IsSdkUnknownElement => _sdk != null && OfficeSdkXml.IsUnknownElement(_sdk);
+
         internal bool Is(string namespaceUri, string localName) =>
             !IsNone && string.Equals(LocalName, localName, StringComparison.Ordinal) && string.Equals(NamespaceUri, namespaceUri, StringComparison.Ordinal);
 

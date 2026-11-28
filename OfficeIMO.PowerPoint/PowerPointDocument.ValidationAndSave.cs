@@ -226,7 +226,14 @@ namespace OfficeIMO.PowerPoint {
             PresentationDocumentType? destinationType = null) {
             EnsureWritableForSave();
             ApplySignatureMutationPolicy(options);
-            if (TryCreateUnchangedPackageBytes(destinationType is not { } type || type == PresentationDocumentType.Presentation, out byte[] unchangedPackageBytes)) {
+            bool keepsSubtype = destinationType is { } type
+                ? _loadedDocumentType == type
+                : IsLoadedStandardPresentation;
+            // With no requested type a projection can infer a macro subtype from a VBA project.
+            bool keepsVbaProject = preserveVbaProject && destinationType.HasValue;
+            string? destinationContentType = destinationType.HasValue || !preserveVbaProject
+                ? PresentationContentTypeForSave(destinationType ?? PresentationDocumentType.Presentation) : null;
+            if (TryCreateOwnedPackageBytes(keepsSubtype, destinationContentType, keepsVbaProject, out byte[] unchangedPackageBytes)) {
                 return unchangedPackageBytes;
             }
             PersistFooterDefinitions();
@@ -329,6 +336,23 @@ namespace OfficeIMO.PowerPoint {
                 return PresentationDocumentType.AddIn;
             }
             return PresentationDocumentType.Presentation;
+        }
+
+        private static string PresentationContentTypeForSave(PresentationDocumentType type) {
+            if (type == PresentationDocumentType.Presentation) return PresentationMainContentType;
+            string extension = type switch {
+                PresentationDocumentType.Template => ".potx",
+                PresentationDocumentType.Slideshow => ".ppsx",
+                PresentationDocumentType.MacroEnabledPresentation => ".pptm",
+                PresentationDocumentType.MacroEnabledTemplate => ".potm",
+                PresentationDocumentType.MacroEnabledSlideshow => ".ppsm",
+                PresentationDocumentType.AddIn => ".ppam",
+                _ => ".pptx"
+            };
+            foreach ((string contentType, string candidate) in PresentationSubtypes.ContentTypes) {
+                if (candidate == extension) return contentType;
+            }
+            throw new InvalidOperationException("The presentation subtype has no main part content type.");
         }
 
         private static bool IsMacroEnabledDocumentType(
