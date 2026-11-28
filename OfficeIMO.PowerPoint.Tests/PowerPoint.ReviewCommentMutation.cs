@@ -201,6 +201,188 @@ namespace OfficeIMO.Tests {
             return output.ToArray();
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ClassicCommentFieldEditsPersistAndKeepLookalikesInExtensions(bool omitPosition) {
+            const int ns = OfficeXmlNamespaces.PresentationML;
+            const int attributes = OfficeXmlNamespaces.None;
+            var before = new DateTime(2026, 4, 18, 12, 30, 0, DateTimeKind.Utc);
+            var after = before.AddDays(2);
+            var x = global::OfficeIMO.OfficeLength.Points(-20);
+            var y = global::OfficeIMO.OfficeLength.Points(45);
+            using var original = PowerPointDocument.Create();
+            PowerPointSlide slide = original.AddSlide();
+            original.AddClassicComment(slide, new PowerPointCommentAuthor("Reviewer"), "Before edit",
+                global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(30), before);
+
+            byte[] seed = original.ToBytes();
+            using var parts = OfficeOpcPackage.Open(new MemoryStream(seed, writable: false));
+            string main = parts.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            string slidePart = parts.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
+            string commentPart = parts.GetRelatedPartName(slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "comments")!;
+            using var edit = OfficeOpcEditablePackage.Open(new MemoryStream(seed, writable: false));
+            OfficeXmlTree tree = edit.GetXml(commentPart);
+            int commentNode = tree.FindChild(tree.Root, ns, "cm");
+            if (omitPosition) tree.Remove(tree.FindChild(commentNode, ns, "pos"));
+            int extensions = PowerPointDocument.Append(tree, commentNode, ns, "extLst");
+            int extension = PowerPointDocument.Append(tree, extensions, ns, "ext");
+            tree.SetAttribute(extension, attributes, "uri", "{D42B21E1-DEF6-4495-A835-4E14F68E42B7}");
+            int decoyText = PowerPointDocument.Append(tree, extension, ns, "text");
+            int decoyPosition = PowerPointDocument.Append(tree, extension, ns, "pos");
+            tree.SetInnerText(decoyText, "Extension text");
+            tree.SetAttribute(decoyPosition, attributes, "x", "1234");
+            using var modified = new MemoryStream();
+            edit.Save(modified);
+            byte[] source = modified.ToArray();
+
+            using var reference = PowerPointDocument.Load(new MemoryStream(source, writable: false));
+            _ = reference.OpenXmlDocument;
+            Apply(Assert.Single(reference.GetClassicComments(reference.Slides[0])));
+
+            using var actual = PowerPointDocument.Load(new MemoryStream(source, writable: false));
+            PowerPointClassicComment held = Assert.Single(actual.GetClassicComments(actual.Slides[0]));
+            Apply(held);
+            Assert.Equal("Revised review\nSecond line.", held.Text);
+            Assert.Equal(x, held.X);
+            Assert.Equal(omitPosition ? global::OfficeIMO.OfficeLength.Zero : y, held.Y);
+            Assert.Equal(after, held.Created);
+            byte[] saved = actual.ToBytes();
+            Assert.False(actual.IsSdkLoaded);
+
+            XElement expected = ReadClassicCommentPart(reference.ToBytes(), commentPart);
+            XElement reopened = ReadClassicCommentPart(saved, commentPart);
+            XNamespace p = reopened.Name.Namespace;
+            Assert.Equal((string?)expected.Attribute("dt"), (string?)reopened.Attribute("dt"));
+            Assert.True(XNode.DeepEquals(expected.Element(p + "pos"), reopened.Element(p + "pos")));
+            Assert.Equal(expected.Element(p + "text")!.Value, reopened.Element(p + "text")!.Value);
+            XElement retained = reopened.Element(p + "extLst")!.Element(p + "ext")!;
+            Assert.Equal("Extension text", retained.Element(p + "text")!.Value);
+            Assert.Equal("1234", (string?)retained.Element(p + "pos")!.Attribute("x"));
+
+            void Apply(PowerPointClassicComment item) {
+                item.Text = "Revised review\nSecond line.";
+                item.X = x;
+                if (!omitPosition) item.Y = y;
+                item.Created = after;
+            }
+
+        }
+
+        [Fact]
+        public void ClassicCommentNonUtcAssignmentRetainsTheOriginalDateTimeKindUntilSave() {
+            using var original = PowerPointDocument.Create();
+            PowerPointSlide slide = original.AddSlide();
+            original.AddClassicComment(slide, new PowerPointCommentAuthor("Reviewer"), "Review");
+            using var loaded = PowerPointDocument.Load(new MemoryStream(original.ToBytes(), writable: false));
+            PowerPointClassicComment comment = Assert.Single(loaded.GetClassicComments(loaded.Slides[0]));
+            var value = new DateTime(2026, 4, 18, 12, 30, 0, DateTimeKind.Unspecified);
+            comment.Created = value;
+            Assert.Equal(value, comment.Created);
+            Assert.Equal(DateTimeKind.Unspecified, comment.Created!.Value.Kind);
+        }
+
+        [Theory]
+        [InlineData("\r\n")]
+        [InlineData("\r")]
+        public void ClassicCommentTextWithCarriageReturnsMatchesSdkBeforeAndAfterSave(string separator) {
+            (byte[] source, _) = CreateClassicCommentMarkupFixture("plain");
+            string replacement = "First" + separator + "Second";
+            using var expected = PowerPointDocument.Load(new MemoryStream(source, writable: false));
+            _ = expected.OpenXmlDocument;
+            PowerPointClassicComment reference = Assert.Single(expected.GetClassicComments(expected.Slides[0]));
+            reference.Text = replacement;
+
+            using var actual = PowerPointDocument.Load(new MemoryStream(source, writable: false));
+            PowerPointClassicComment result = Assert.Single(actual.GetClassicComments(actual.Slides[0]));
+            result.Text = replacement;
+            Assert.Equal(reference.Text, result.Text);
+
+            using var expectedSaved = PowerPointDocument.Load(new MemoryStream(expected.ToBytes(), writable: false));
+            using var actualSaved = PowerPointDocument.Load(new MemoryStream(actual.ToBytes(), writable: false));
+            Assert.Equal(Assert.Single(expectedSaved.GetClassicComments(expectedSaved.Slides[0])).Text,
+                Assert.Single(actualSaved.GetClassicComments(actualSaved.Slides[0])).Text);
+        }
+
+        [Theory]
+        [InlineData("leading CDATA")]
+        [InlineData("trailing CDATA")]
+        public void ClassicCommentFieldEditsKeepSdkChildOrderWithDirectCData(string markup) {
+            (byte[] source, string part) = CreateClassicCommentMarkupFixture(markup);
+            XElement reference = SaveWithEdit(openSdk: true);
+            XElement actual = SaveWithEdit(openSdk: false);
+            Assert.Equal(reference.Nodes().Select(node => node.ToString(SaveOptions.DisableFormatting)),
+                actual.Nodes().Select(node => node.ToString(SaveOptions.DisableFormatting)));
+
+            XElement SaveWithEdit(bool openSdk) {
+                using var presentation = PowerPointDocument.Load(new MemoryStream(source, writable: false));
+                if (openSdk) _ = presentation.OpenXmlDocument;
+                PowerPointClassicComment comment = Assert.Single(presentation.GetClassicComments(presentation.Slides[0]));
+                if (markup == "leading CDATA") comment.X = global::OfficeIMO.OfficeLength.Points(25);
+                else comment.Text = "Revised";
+                return ReadClassicCommentPart(presentation.ToBytes(), part);
+            }
+        }
+
+        [Fact]
+        public void ClassicCommentFieldEditsRejectMalformedExtensionReferencesLikeTheSdk() {
+            (byte[] source, _) = CreateClassicCommentMarkupFixture("invalid extension entity");
+            Exception expected = Assert.ThrowsAny<Exception>(() => Edit(openSdk: true));
+            Assert.IsType(expected.GetType(), Record.Exception(() => Edit(openSdk: false)));
+
+            void Edit(bool openSdk) {
+                using var presentation = PowerPointDocument.Load(new MemoryStream(source, writable: false));
+                if (openSdk) _ = presentation.OpenXmlDocument;
+                PowerPointClassicComment comment = Assert.Single(presentation.GetClassicComments(presentation.Slides[0]));
+                comment.Created = new DateTime(2026, 4, 20, 9, 0, 0, DateTimeKind.Utc);
+            }
+        }
+
+        private static (byte[] Bytes, string Part) CreateClassicCommentMarkupFixture(string markup) {
+            using var original = PowerPointDocument.Create();
+            PowerPointSlide slide = original.AddSlide();
+            original.AddClassicComment(slide, new PowerPointCommentAuthor("Reviewer"), "Before edit");
+            byte[] source = original.ToBytes();
+            using var package = OfficeOpcPackage.Open(new MemoryStream(source, writable: false));
+            string main = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)!;
+            string slidePart = package.GetRelatedPartName(main, OfficeOpcPackage.SlideRelationshipType)!;
+            string partName = package.GetRelatedPartName(slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "comments")!;
+            if (markup == "plain") return (source, partName);
+            XElement comment = ReadClassicCommentPart(source, partName);
+            XNamespace p = comment.Name.Namespace;
+            switch (markup) {
+                case "leading CDATA":
+                    comment.Element(p + "pos")!.Remove();
+                    comment.AddFirst(new XCData("marker"));
+                    break;
+                case "trailing CDATA":
+                    comment.Add(new XCData("marker"));
+                    break;
+                case "invalid extension entity":
+                    XNamespace extension = "urn:officeimo:test:comment-extension";
+                    comment.Add(new XElement(p + "extLst", new XElement(p + "ext", new XAttribute("uri", "{CF2A7480-91B6-4A09-8075-22C63EB620D0}"),
+                        new XElement(extension + "payload", "InvalidEntityMarker"))));
+                    break;
+            }
+
+            string xml = comment.Parent!.ToString(SaveOptions.DisableFormatting);
+            if (markup == "invalid extension entity") xml = xml.Replace("InvalidEntityMarker", "&undeclared;");
+            byte[] replacement = Encoding.UTF8.GetBytes(xml);
+            using var edit = OfficeOpcEditablePackage.Open(new MemoryStream(source, writable: false));
+            edit.ReplacePart(partName, replacement, replacement.Length);
+            using var output = new MemoryStream();
+            edit.Save(output);
+            return (output.ToArray(), partName);
+        }
+
+        private static XElement ReadClassicCommentPart(byte[] bytes, string partName) {
+            using var package = OfficeOpcPackage.Open(new MemoryStream(bytes, writable: false));
+            using var part = package.ReadPart(partName);
+            using var input = new MemoryStream(part.Array, 0, part.Length, writable: false);
+            XElement root = XElement.Load(input);
+            return root.Element(root.Name.Namespace + "cm")!;
+        }
+
         [Fact]
         public void ClassicComments_CreateEditReassignRemove_AndRoundTripPpt() {
             byte[] binary;

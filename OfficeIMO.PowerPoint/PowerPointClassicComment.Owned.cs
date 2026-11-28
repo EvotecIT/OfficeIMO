@@ -15,6 +15,59 @@ namespace OfficeIMO.PowerPoint {
             return _ownedComments.CommentAt(_ownedIndex);
         }
 
+        private bool TryGetEditableComment(out OfficeXmlNode comment) {
+            comment = AttachedOwnedComment();
+            if (!comment.IsAttached || comment.Tree is not { } tree || _presentation.EditablePackage is not { } package ||
+                _presentation.GetPackageXml(_ownedComments!.PartName) != tree || !_ownedComments.CanEditMarkup(package, tree)) return false;
+
+            int previousRank = -1;
+            for (int node = tree.FirstChildOf(comment.Node); node != OfficeXmlTree.NoNode; node = tree.NextSiblingOf(node)) {
+                if (tree.KindOf(node) != OfficeXmlTreeNodeKind.Element) return false;
+                var child = new OfficeXmlNode(tree, node);
+                int rank = child.LocalName switch {
+                    "pos" => 0,
+                    "text" => 1,
+                    "extLst" => 2,
+                    _ => -1
+                };
+                if (rank <= previousRank || !child.Is(PresentationNamespace, child.LocalName) ||
+                    tree.UriIdOf(child.Node) != OfficeXmlNamespaces.TransitionalUriId(PresentationNamespace)) return false;
+                previousRank = rank;
+            }
+            return true;
+        }
+
+        private bool TrySetOwnedText(string value) {
+            if (value.IndexOf('\r') >= 0 || !TryGetEditableComment(out OfficeXmlNode comment)) return false;
+            OfficeXmlNode previous = comment.Child(PresentationNamespace, "text");
+            OfficeXmlNode replacement = comment.CreateElement(PresentationNamespace, "text");
+            replacement.SetInnerText(value);
+            comment.InsertBefore(replacement, previous.IsNone ? comment.Child(PresentationNamespace, "extLst") : previous);
+            if (!previous.IsNone) previous.Remove();
+            _presentation.MarkPackageEdited();
+            return true;
+        }
+
+        private bool TrySetOwnedCreated(DateTime value) {
+            if (value.Kind != DateTimeKind.Utc || !TryGetEditableComment(out OfficeXmlNode comment)) return false;
+            comment.SetAttribute("dt", XmlConvert.ToString(value, XmlDateTimeSerializationMode.Utc));
+            _presentation.MarkPackageEdited();
+            return true;
+        }
+
+        private bool TrySetOwnedPosition(string axis, long value) {
+            if (!TryGetEditableComment(out OfficeXmlNode comment)) return false;
+            OfficeXmlNode position = comment.Child(PresentationNamespace, "pos");
+            if (position.IsNone) {
+                position = comment.InsertBefore(comment.CreateElement(PresentationNamespace, "pos"), comment.FirstChild);
+                position.SetInt64Attribute("x", 0L);
+                position.SetInt64Attribute("y", 0L);
+            }
+            position.SetInt64Attribute(axis, value);
+            _presentation.MarkPackageEdited();
+            return true;
+        }
+
         private bool TryReadOwnedUInt(string attribute, out uint? value) {
             OfficeXmlNode comment = AttachedOwnedComment();
             string? text = comment.Attribute(attribute);
@@ -59,6 +112,7 @@ namespace OfficeIMO.PowerPoint {
         private IReadOnlyList<OfficeXmlNode>? _comments;
         private OfficeXmlNode[]? _sdkComments;
         private bool _removed;
+        private bool? _editableMarkup;
 
         internal PowerPointClassicCommentListBinding(PowerPointDocument document, PowerPointSlide slide, string partName,
             IReadOnlyList<OfficeXmlNode> comments) {
@@ -66,6 +120,22 @@ namespace OfficeIMO.PowerPoint {
             _partName = partName;
             _comments = comments;
             document.RegisterPackageBinding(this);
+        }
+
+        internal string PartName => _partName;
+
+        internal bool CanEditMarkup(OfficeOpcEditablePackage package, OfficeXmlTree tree) =>
+            _editableMarkup ??= !tree.HasCommentsOrInstructions() && HasValidXml(package);
+
+        private bool HasValidXml(OfficeOpcEditablePackage package) {
+            try {
+                // Unchanged extension bytes are copied verbatim by the tree writer. Decode them before the first edit.
+                using Stream source = package.OpenPartContentStream(_partName, default);
+                PowerPointXmlReader.ValidatePackagePartXml(source);
+                return true;
+            } catch (Exception exception) when (exception is XmlException or InvalidDataException) {
+                return false;
+            }
         }
 
         internal OfficeXmlNode CommentAt(int index) => _comments?[index] ?? default;

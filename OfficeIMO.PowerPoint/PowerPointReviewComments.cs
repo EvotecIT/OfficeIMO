@@ -154,7 +154,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 PowerPointDocument.ValidateClassicCommentText(
                     value, nameof(value));
-                RequireAttached().Text = new P.Text(value);
+                if (!TrySetOwnedText(value)) RequireAttached().Text = new P.Text(value);
             }
         }
 
@@ -166,7 +166,7 @@ namespace OfficeIMO.PowerPoint {
                     throw new ArgumentNullException(nameof(value),
                         "Classic comments require a creation timestamp.");
                 }
-                RequireAttached().DateTime = value.Value;
+                if (!TrySetOwnedCreated(value.Value)) RequireAttached().DateTime = value.Value;
             }
         }
 
@@ -177,7 +177,7 @@ namespace OfficeIMO.PowerPoint {
                 long position = PowerPointDocument.LengthToClassicCommentPosition(value);
                 PowerPointDocument.ValidateClassicCommentPosition(
                     position, nameof(value));
-                RequirePosition().X = position;
+                if (!TrySetOwnedPosition("x", position)) RequirePosition().X = position;
             }
         }
 
@@ -188,7 +188,7 @@ namespace OfficeIMO.PowerPoint {
                 long position = PowerPointDocument.LengthToClassicCommentPosition(value);
                 PowerPointDocument.ValidateClassicCommentPosition(
                     position, nameof(value));
-                RequirePosition().Y = position;
+                if (!TrySetOwnedPosition("y", position)) RequirePosition().Y = position;
             }
         }
 
