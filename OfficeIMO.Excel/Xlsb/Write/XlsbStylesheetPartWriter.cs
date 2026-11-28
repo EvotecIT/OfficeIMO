@@ -105,7 +105,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     || XlsbWorkbookMarkup.UnsupportedAttribute(differentialFormats, new[] { "count" }) != null)) {
                 throw new NotSupportedException("Native XLSB generation does not encode extensions on the differential formatting collection.");
             }
-            if (Child(stylesheet, "colors").Exists || Child(stylesheet, "extLst").Exists) {
+            bool hasStyleExtension = false;
+            foreach (OfficeXmlNode child in stylesheet.Children()) {
+                if (child.LocalName == "extLst") {
+                    hasStyleExtension = true;
+                    break;
+                }
+            }
+            if (Child(stylesheet, "colors").Exists || hasStyleExtension) {
                 throw new NotSupportedException("Native XLSB generation does not yet encode custom indexed colors or style extensions.");
             }
 
@@ -192,8 +199,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException("Native XLSB generation found a font with an unsupported name or size.");
             }
 
+            bool bold = FontFlag(font, "b");
             ushort flags = 0;
-            if (FontFlag(font, "b")) flags |= 0x0001;
+            if (bold) flags |= 0x0001;
             if (FontFlag(font, "i")) flags |= 0x0002;
             if (FontFlag(font, "strike")) flags |= 0x0008;
             if (FontFlag(font, "outline")) flags |= 0x0010;
@@ -204,7 +212,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             using var payload = new MemoryStream(32 + name.Length * 2);
             WriteUInt16(payload, checked((ushort)Math.Round(size * 20D, MidpointRounding.AwayFromZero)));
             WriteUInt16(payload, flags);
-            WriteUInt16(payload, FontFlag(font, "b") ? (ushort)700 : (ushort)400);
+            WriteUInt16(payload, bold ? (ushort)700 : (ushort)400);
             WriteUInt16(payload, Child(font, "vertAlign").Attribute("val") switch { "superscript" => (ushort)1, "subscript" => (ushort)2, _ => (ushort)0 });
             OfficeXmlNode underline = Child(font, "u");
             payload.WriteByte(underline.IsNone ? (byte)0 : (underline.Attribute("val") ?? "single") switch {
