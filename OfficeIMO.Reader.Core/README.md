@@ -29,7 +29,7 @@ OfficeDocumentReadResult document = reader.ReadDocument("Policy.docx");
 foreach (var item in document.EnumerateContent()) Console.WriteLine(item.Location);
 ```
 
-`EnumerateContent()` walks paragraphs and tables together in source order, each with its page, slide or sheet location.
+`EnumerateContent()` walks paragraphs and tables together in source order, each with the source location the reader knows. Word page numbers are computed only when you turn on `IncludePageLocations` in the Word reader options (`ReaderWordOptions`).
 
 ## What it does
 

@@ -173,8 +173,8 @@ IReadOnlyList<OfficeDocumentPageText> pageText = document.GetPageText();
 
 `Search` matches literal text by default. Ranked mode returns one hit per block, best first, scored with BM25 over
 Unicode (UAX #29) words with NFKC normalization and case folding; words in the heading path weigh double. Queries
-accept `"quoted phrases"`, `prefix*`, `OR` and parentheses, and adjacent words must all match. A query with no
-words, or no ranked match, falls back to literal search, which `Ranked` on the result reports.
+accept `"quoted phrases"`, `prefix*`, `OR` and parentheses, and adjacent words must all match. A nonempty query with no
+searchable words, or no ranked match, falls back to literal search, which `Ranked` on the result reports.
 
 ```csharp
 using OfficeIMO.Reader;

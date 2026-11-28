@@ -554,7 +554,7 @@ Auto layout considers styled cell text and generated content, block line boundar
 
 Column sets outside the ordinary auto-fill and terminal spanning-set subsets described below retain their source column arrangement across physical pages. Text and paragraph constraints survive page cuts, but per-page inter-column reflow is not qualified for those sets; content placement and page counts can differ from browser print output.
 
-Generated content on table, row and row-group boxes is omitted with `HtmlRenderTableValueUnsupported`; cells and captions retain generated content. CSS-only column boxes, `display: contents` within a table boundary and orphan internal table boxes inside inline flow receive an approximation diagnostic. Additional captions receive an omission diagnostic. `ThrowIfLoss` rejects these losses.
+Generated content on table, row and row-group boxes that is floated, absolutely or fixed positioned, or uses another table display is omitted with `HtmlRenderTableValueUnsupported`; in-flow inline and block generated content on those boxes participates in layout, as described above. CSS-only column boxes, `display: contents` within a table boundary and orphan internal table boxes inside inline flow receive an approximation diagnostic. Additional captions receive an omission diagnostic. `ThrowIfLoss` rejects these losses.
 
 Floated tables retain row breaks and repetition metadata through anonymous, inline and list wrappers. In one horizontal nowrap flex row or one ordinary auto grid row, top-aligned, auto-height items paginate their tables independently. Each item reserves space for its own repeated header and footer; the shorter flow stops repeating when it ends, and following content stays after its final row. PDF, PNG and SVG consume the same paged scene.
 
@@ -753,7 +753,7 @@ Missing or unusable font records use deterministic fallback geometry. Variable
 MATH metrics, complete operator dictionaries, embellished contexts, complete
 matrix/stack typesetting and the full MathML attribute/CSS grammar remain outside
 this subset. See the
-[shared math contract](../OfficeIMO.Core/README.md#structured-math) for limits and
+[shared math contract](officeimo.core-guide.md#structured-math) for limits and
 the caller's font-metric opt-out.
 
 For documents that opt into `hyphens:auto`, the managed renderer selects embedded US English
