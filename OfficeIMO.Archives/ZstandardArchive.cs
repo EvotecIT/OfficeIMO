@@ -89,11 +89,11 @@ public static class ZstandardArchive {
         if (ReferenceEquals(source, destination)) throw new ArgumentException("The source and destination must be different streams.", nameof(destination));
         ArchiveReadOptions effective = options ?? new ArchiveReadOptions();
         if (effective.MaxWindowBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxWindowBytes must be positive.");
+        // A call that is already cancelled admits nothing, so it leaves a shared operation budget untouched.
+        cancellationToken.ThrowIfCancellationRequested();
         // Dictionary content becomes history in every frame, so it is admitted against the window limit up front.
         if (dictionary != null && dictionary.ContentLength > effective.MaxWindowBytes)
             throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxWindowBytes), effective.MaxWindowBytes);
-        // A call that is already cancelled admits nothing, so it leaves a shared operation budget untouched.
-        cancellationToken.ThrowIfCancellationRequested();
         var limits = effective.Limits();
         using Stream? snapshot = source.CanSeek ? null : ArchiveReader.Snapshot(source, limits, cancellationToken);
         // Seekable input is read only within the range admitted here, so bytes appended later are never decoded.
@@ -119,6 +119,8 @@ public static class ZstandardArchive {
     }
 
     private static Stream Admit(Stream source, long start, long length, ArchiveLimits limits, CancellationToken cancellationToken) {
+        // Measuring the source can take long enough for cancellation to arrive; nothing is charged after it does.
+        cancellationToken.ThrowIfCancellationRequested();
         ArchiveLimits.Check(length, limits.Input, nameof(ArchiveReadOptions.MaxInputBytes));
         limits.Operation.AdmitInput(length);
         try {

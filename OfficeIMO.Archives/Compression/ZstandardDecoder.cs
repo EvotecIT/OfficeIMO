@@ -178,6 +178,8 @@ internal sealed class ZstandardDecoder {
             contentSize = (long)value;
         }
 
+        // The header is complete; a cancellation that arrived with it wins over any limit the header would break.
+        _settings.CancellationToken.ThrowIfCancellationRequested();
         long remainingOutput = _settings.MaximumOutput - _total;
         if (contentSize > remainingOutput) throw ArchiveLimits.Exceeded(_settings.OutputLimitName, _settings.MaximumOutput);
         // A single-segment frame's window is its whole content (RFC 8878 section 3.1.1.1.2), held to the same limit as a

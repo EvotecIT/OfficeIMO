@@ -366,6 +366,15 @@ public sealed class ZstandardArchiveTests {
     }
 
     [Fact]
+    public void CancellationWithTheHeaderWinsOverTheLimitTheHeaderBreaks() {
+        // The 128 MiB window is above the default limit; cancellation arrives with the window descriptor byte.
+        using var cancellation = new CancellationTokenSource();
+        var source = new TrickleStream(ReadFixture("text-window128m.zst"), 6, cancellation);
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            ZstandardArchive.Decompress(source, new MemoryStream(), cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
     public void RawDictionariesShorterThanEightBytesAreRejected() {
         ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
             ZstandardDictionary.Load(new byte[] { 1, 2, 3, 4, 5, 6, 7 }));
