@@ -20,8 +20,9 @@
     <IsPackable>true</IsPackable>
     <IsPublishable>true</IsPublishable>
     <LangVersion>Latest</LangVersion>
-    <!-- ReadyToRun needs a runtime: a RID-less restore or build doesn't request any platform's packs. -->
-    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != '' or '$(PowerForgePackaging)' == 'true'">true</PublishReadyToRun>
+    <!-- ReadyToRun needs a runtime: a RID-less restore or build doesn't request any platform's packs.
+         `dotnet restore -r <rid>` passes RuntimeIdentifiers, so it also restores the ReadyToRun compiler. -->
+    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != '' or '$(RuntimeIdentifiers)' != '' or '$(PowerForgePackaging)' == 'true'">true</PublishReadyToRun>
     <PublishReadyToRunComposite>false</PublishReadyToRunComposite>
   </PropertyGroup>
 
@@ -78,4 +79,9 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Tool.Tests" />
   </ItemGroup>
+  <!-- Without the runtime list, pack would quietly produce a RID-neutral package instead of the per-platform set. -->
+  <Target Name="RequireToolPackagingProperty" BeforeTargets="Pack"
+          Condition="'$(PowerForgePackaging)' != 'true' and '$(RuntimeIdentifier)' == ''">
+    <Error Text="OfficeIMO.Tool packs its per-platform packages only with -p:PowerForgePackaging=true, which PSPublishModule 3.0.196 or newer sets for releases." />
+  </Target>
 </Project>
