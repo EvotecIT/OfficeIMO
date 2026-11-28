@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            internal static byte[] CreateWorkbookWithBrokenBoundSheet(bool invalidName) {
+            internal static byte[] CreateWorkbookWithBrokenBoundSheet(bool invalidName, bool includeValue = false) {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0, 6, 5, 0, 0xdb, 0x0b, 0xcc, 7 });
                 WriteRecord(stream, 0x0085, invalidName
@@ -189,6 +189,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0, 6, 0x10, 0, 0xdb, 0x0b, 0xcc, 7 });
+                if (includeValue) WriteRecord(stream, 0x0203, BuildNumberPayload(0, 0, 42d));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
                 byte[] bytes = stream.ToArray();
                 Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)validBoundSheetPosition + 4), 4);

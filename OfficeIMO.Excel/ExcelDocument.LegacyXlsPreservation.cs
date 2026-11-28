@@ -11,16 +11,6 @@ public partial class ExcelDocument {
 
     private sealed record LegacyXlsDeferredPreservation(byte[] Projection, LegacyXlsWorkbook Workbook, bool NativeRecordsAreComplete);
 
-    /// <summary>Reuse the original package at the point before the deferred cell changes are replayed.</summary>
-    private void CaptureLegacyXlsBeforeCellReplay(byte[] openedProjection) {
-        if (_legacyXlsDeferredPreservation is not { } original || !ReferenceEquals(original.Projection, openedProjection)
-            || _packagePropertiesDirty || _customDocumentPropertiesDirty) return;
-        if (original.NativeRecordsAreComplete) {
-            _legacyXlsPreservationSnapshot = LegacyXlsPreservationSnapshot.Capture(this, original.Workbook, CancellationToken.None);
-        }
-        Volatile.Write(ref _legacyXlsDeferredPreservation, null);
-    }
-
     /// <summary>Builds the legacy edit baseline only when a save needs native preservation.</summary>
     private LegacyXlsPreservationSnapshot? GetLegacyXlsPreservationSnapshot(CancellationToken token = default) {
         if (Volatile.Read(ref _legacyXlsDeferredPreservation) == null) return _legacyXlsPreservationSnapshot;

@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
         private bool _deferredPackageWrittenHere { get; set; }
 
         private void OpenDeferredSdkLocked(ExcelDeferredWorkbook deferred, string? reason) {
-            byte[] sourceBytes = _deferredPackageBytes!, bytes = sourceBytes;
+            byte[] bytes = _deferredPackageBytes!;
 #if NETFRAMEWORK
             // .NET Framework's package API updates the ZIP in place and cannot move the blocks of a package that
             // System.IO.Compression wrote, so it gets the same package written by itself.
@@ -112,7 +112,7 @@ namespace OfficeIMO.Excel {
                 if (_deferredCreated) MarkRequiresSavePreflight();
                 _openXmlSdkFallbacks.Add(reason ?? DescribeSdkCaller());
                 // Values written before the package opened go through the model now, in the order they were written.
-                ReplayDeferredCellEdits(sourceBytes);
+                ReplayDeferredCellEdits();
             }
         }
 
