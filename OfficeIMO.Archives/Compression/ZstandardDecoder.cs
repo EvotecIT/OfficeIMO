@@ -131,8 +131,12 @@ internal sealed class ZstandardDecoder {
         long size = ReadUInt32(_small, 0);
         long available = _source.Length - _source.Position;
         if (size > available) throw Corrupt(frameOffset + 8, $"{size} bytes of skippable frame data");
-        _source.Position += size;
-        _offset += size;
+        // The payload is not read, but its last byte is, so a source that shrank since admission is still caught.
+        if (size > 0) {
+            _source.Position += size - 1;
+            _offset += size - 1;
+            ReadExact(_small, 0, 1, _offset, "the last byte of the skippable frame data");
+        }
     }
 
     private long DecodeFrame() {
@@ -169,7 +173,8 @@ internal sealed class ZstandardDecoder {
             ulong value = 0;
             for (int index = 0; index < contentSizeBytes; index++) value |= (ulong)_small[index] << (8 * index);
             if (contentSizeBytes == 2) value += 256;
-            if (value > long.MaxValue) throw Corrupt(contentOffset, "a frame content size below 2^63");
+            // Sizes up to 2^64 - 1 are valid; anything past long.MaxValue is beyond every output allowance.
+            if (value > long.MaxValue) throw ArchiveLimits.Exceeded(_settings.OutputLimitName, _settings.MaximumOutput);
             contentSize = (long)value;
         }
 
@@ -286,8 +291,8 @@ internal sealed class ZstandardDecoder {
         if (_history.Length - _position >= needed) return;
         if (_history.Length < _capacity) {
             long grown = Math.Min(_capacity, Math.Max(2L * _history.Length, (long)_position + needed));
-            // Growing copies the history, so the copy is charged as work first. Doubling keeps the copies below the output.
-            _settings.Budget.Charge(0, _position);
+            // Growing copies the whole buffer, so the copy is charged as work first. Doubling keeps the copies below the output.
+            _settings.Budget.Charge(0, _history.Length);
             Array.Resize(ref _history, (int)grown);
             if (_history.Length - _position >= needed) return;
         }

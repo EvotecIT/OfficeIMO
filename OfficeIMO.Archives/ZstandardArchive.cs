@@ -107,6 +107,11 @@ public static class ZstandardArchive {
         long length = source.Length - start;
         ArchiveLimits.Check(length, limits.Input, nameof(ArchiveReadOptions.MaxInputBytes));
         limits.Operation.AdmitInput(length);
-        return new OfficeIMO.Core.Internal.SeekableReadWindowStream(source, start, length);
+        try {
+            return new OfficeIMO.Core.Internal.SeekableReadWindowStream(source, start, length);
+        } catch (ArgumentOutOfRangeException) {
+            // The source shrank between measuring it and opening the view.
+            throw new ArchiveCorruptionException(ZstandardDecoder.FormatName, start, $"the {length} bytes of input measured when decoding started");
+        }
     }
 }

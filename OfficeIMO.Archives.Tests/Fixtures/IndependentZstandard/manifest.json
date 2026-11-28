@@ -74,6 +74,12 @@
       "sha256": "1a49274d7c9fb961fa2e427534205a27942abacbaac8fe917c3c4f42666beb77"
     },
     {
+      "file": "text4-window1k.zst",
+      "input": "inputs/text.txt four times",
+      "command": "zstd -12 --zstd=windowLog=10 on inputs/text.txt repeated four times",
+      "sha256": "4ae5351f248e1c0a1ff57b129e9f946893f5b11bac867140ec8faac2cebd203b"
+    },
+    {
       "file": "concatenated.zst",
       "input": "inputs/text.txt + inputs/mixed.bin",
       "command": "text-level1.zst, a 5-byte skippable frame (magic 0x184D2A50), then mixed-level-fast.zst",

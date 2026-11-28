@@ -105,6 +105,23 @@ try {
 }
 $records += [ordered]@{ file = 'text-window128m.zst'; input = 'inputs/text.txt'; command = 'zstd -3 --long=27 -c < inputs/text.txt' }
 
+# Four copies of the text through a 1 KiB window. The output passes the decoder's first history buffer twice over, so
+# matches after each slide read history that was moved.
+$repeated = Join-Path ([System.IO.Path]::GetTempPath()) ("zstd-repeated-" + [guid]::NewGuid().ToString('n'))
+try {
+    $once = [System.IO.File]::ReadAllBytes((Join-Path $inputs 'text.txt'))
+    [System.IO.File]::WriteAllBytes($repeated, [byte[]]($once + $once + $once + $once))
+    & $Zstd -q -f -12 --zstd=windowLog=10 $repeated -o (Join-Path $Destination 'text4-window1k.zst')
+    if ($LASTEXITCODE -ne 0) { throw 'zstd failed for text4-window1k.zst.' }
+} finally {
+    Remove-Item -Force -ErrorAction SilentlyContinue $repeated
+}
+$records += [ordered]@{
+    file = 'text4-window1k.zst'
+    input = 'inputs/text.txt four times'
+    command = 'zstd -12 --zstd=windowLog=10 on inputs/text.txt repeated four times'
+}
+
 # Two frames from separate runs, with a skippable frame between them.
 $skippable = [byte[]](0x50, 0x2A, 0x4D, 0x18, 0x05, 0x00, 0x00, 0x00, 0x68, 0x65, 0x6C, 0x6C, 0x6F)
 $first = [System.IO.File]::ReadAllBytes((Join-Path $Destination 'text-level1.zst'))
