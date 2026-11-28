@@ -14,17 +14,17 @@ dotnet add package OfficeIMO.ChartForgeX
 
 ## Supported delivery path
 
-Every destination takes the same `VisualArtifact` and needs no Office installation, network access or browser. Charts, topology and flow or sequence diagrams all use this path.
+All five destinations accept a `VisualArtifact` and run offline without Office or a browser. Chart and diagram artifacts can go to Word, Excel, PowerPoint and PDF. Editable Visio requires a supported diagram family.
 
 | Destination | Call | What is placed | Fallback |
 | --- | --- | --- | --- |
 | Word (.docx) | `paragraph.AddVisualArtifact(artifact)` | SVG picture with a PNG fallback image for older readers | PNG picture when SVG import is incomplete |
 | Excel (.xlsx) | `sheet.AddVisualArtifact("B4:I18", artifact)` | SVG picture with a PNG fallback image, fitted to the range | PNG picture when SVG import is incomplete |
 | PowerPoint (.pptx) | `slide.AddVisualArtifact(artifact, layoutBox)` | SVG picture with a PNG fallback image, fitted to the box | PNG picture when SVG import is incomplete |
-| PDF | `content.AddVisualArtifact(artifact)` | Vector drawing: paths and real text, no image XObject | Embedded PNG when the drawing contains effects the PDF writer can't express |
+| PDF | `content.AddVisualArtifact(artifact)` | A drawing with vector paths and PDF text where supported | Embedded PNG when SVG import is incomplete or the drawing uses a non-normal blend mode or a soft mask |
 | Visio (.vsdx) | `artifact.ToOfficeVisio()` | Native editable shapes and connectors, see [native editable Visio](#native-editable-visio) | None: unsupported families throw `NotSupportedException` |
 
-The default `OfficeVisualSvgPolicy.RasterizeWhenNeeded` picks vector output and falls back to PNG only when the SVG importer reports an incomplete conversion; the fallback is a reported approximation in `Report.Diagnostics`. Choose `RequireVector` to reject that fallback instead. Placed pictures carry the artifact's title and accessible description as alternative text.
+The default `OfficeVisualSvgPolicy.RasterizeWhenNeeded` prefers vector output. `Report.Diagnostics` records rasterization during SVG import. The PDF placement step can also rasterize for the effects listed above, after the conversion report is created. Choose `RequireVector` to reject either fallback. In Word, Excel and PowerPoint, a non-decorative picture uses the artifact title, or its ID when the title is empty, and preserves its accessible description when supplied.
 
 The [document delivery example](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.ChartForgeX.Examples/README.md) writes all five formats from one light and dark chart, topology and flow diagram. Its tests reopen each saved file with OfficeIMO's readers, check that every visual is present and that the Word, Excel and PowerPoint packages validate without errors.
 
@@ -138,7 +138,7 @@ Topology, flow, and sequence artifacts can be projected into native OfficeIMO.Vi
 
 | ChartForgeX family | Native shapes | Native connectors | Shape Data | Layout | Typical loss diagnostics |
 | --- | --- | --- | --- | --- | --- |
-| Topology (`TopologyChart`) | Nodes and groups as containers | Edges, glued to both ends, with prepared routes and labels | `CFX.Kind`, `CFX.TopologyNodeKind`, `CFX.Status`, `CFX.Role`, `CFX.Icon`, metrics, details, ports, extensions; hyperlinks from `Href` | Prepared bounds and routes preserved (`Preserve` or `Auto`) | `ArtworkNotProjected` (icons, symbols, badges), `EdgePresentationNormalized`, `AccessibilityNotProjected` |
+| Topology (`TopologyChart`) | Nodes and groups as containers | Edges, glued to both ends, with prepared routes and labels where available | `CFX.Kind`, `CFX.TopologyNodeKind`, `CFX.Status`, `CFX.Role`, `CFX.Icon`, metrics, details, ports, extensions; hyperlinks from `Href` | `Auto` preserves complete prepared bounds and reflows incomplete layouts. `Preserve` requires prepared bounds. | `ArtworkNotProjected` (icons, symbols, badges), `EdgePresentationNormalized`, `AccessibilityNotProjected` |
 | Flow (`FlowArtifact`) | Steps, lanes as containers | Connectors between steps | `CFX.FlowStepKind`, `CFX.FlowConnectorKind`, `CFX.Status`, `CFX.Role`, extensions | Native Visio layout | `LayoutRecomputed`, `NodeKindNormalized` (step kinds without a matching stencil), `ArtworkNotProjected` |
 | Sequence (`SequenceArtifact`) | Participants, lifelines, activations, notes, fragments | Messages | `CFX.Id`, `CFX.SequenceParticipantKind`, `CFX.SequenceParticipantOrder`, `CFX.SequenceMessageKind`, fragment and activation fields | Native Visio layout | `LayoutRecomputed`, `EndpointLabelsNotRendered`, `ActivationNotProjected` |
 | Charts, tables, KPI cards, canvases, stories | Not projected | Not projected | Not projected | | `ToOfficeVisio` throws `NotSupportedException`; place the SVG or PNG picture in Word, Excel, PowerPoint or PDF instead |

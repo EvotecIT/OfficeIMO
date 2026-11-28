@@ -25,8 +25,8 @@ dotnet run --project ./OfficeIMO.ChartForgeX.Examples/OfficeIMO.ChartForgeX.Exam
 
 The non-packable example links the shared development verifier from `Build/Verification/PowerPoint`; no COM renderer is included in the shipped OfficeIMO assemblies. That opt-in produces `powerpoint-desktop/` and a separate result report. Unavailable or failed native rendering returns a nonzero exit code; it does not fall back to managed images and claim native proof. Ordinary generation and managed rendering do not launch Office applications.
 
-Word, Excel and PowerPoint receive SVG pictures with PNG fallback images; PDF receives a vector drawing with real text. `visual-conversions.json` records the payload chosen for each visual, and a PNG payload there means the SVG importer reported an incomplete conversion.
+In this example, Word, Excel and PowerPoint receive SVG pictures with PNG fallback images. PDF receives vector drawings with text labels. `visual-conversions.json` records the SVG import result for each visual. A PNG payload there means the SVG importer reported an incomplete conversion.
 
 The editable Visio topology pages use prepared bounds and connector routes. The flow pages use native Visio layout and report `LayoutRecomputed`. Each page's report in `native-visio-fidelity.json` retains styling, font, accessibility and other conversion limits.
 
-`OfficeVisualDeliveryExampleTests` in `OfficeIMO.ChartForgeX.Tests` runs this example and reopens every saved file with OfficeIMO's readers: the Word, Excel and PowerPoint packages validate, each page, sheet or slide holds its visual, the PDF keeps chart text as vector text, and the Visio pages keep their shapes, connectors and Shape Data.
+`OfficeVisualDeliveryExampleTests` in `OfficeIMO.ChartForgeX.Tests` runs the example's document writer and reopens all five document formats with OfficeIMO's readers. The Word, Excel and PowerPoint packages validate, OfficeIMO extracts the labels inside the PDF visuals as text, and the Visio pages keep their shapes, connectors and Shape Data.

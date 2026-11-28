@@ -23,6 +23,8 @@ internal static class VisualSpecimens {
     public const double LogicalHeight = 360D;
 
     public static IReadOnlyList<VisualSpecimen> Create() {
+        const string topologyTitle = "Service delivery";
+        const string flowTitle = "Change approval";
         var result = new List<VisualSpecimen>();
         foreach (var mode in new[] { VisualThemeMode.Light, VisualThemeMode.Dark }) {
             var chart = Chart.Create()
@@ -46,9 +48,10 @@ internal static class VisualSpecimens {
                 Routing = TopologyEdgeRouting.ObstacleAvoidingOrthogonal });
             topology.Edges.Add(new TopologyEdge { Id = "persist", SourceNodeId = "worker", TargetNodeId = "ledger", Label = "Persist",
                 Routing = TopologyEdgeRouting.ObstacleAvoidingOrthogonal });
-            var topologyArtifact = topology.Prepare(Context(mode, "Service delivery", "Three editable services · prepared routes", false))
+            var topologyArtifact = topology.Prepare(Context(mode, topologyTitle, "Three editable services · prepared routes", false))
                 .ToArtifact("service-delivery");
-            topologyArtifact.Accessibility.WithTextAlternative("Service delivery",
+            topologyArtifact.Title = topologyTitle;
+            topologyArtifact.Accessibility.WithTextAlternative(topologyTitle,
                 "Gateway accepts requests into the Processing worker. The worker persists them in the Ledger store.", "en");
             result.Add(new VisualSpecimen("delivery-" + mode.ToString().ToLowerInvariant(), mode, topologyArtifact, true));
 
@@ -62,9 +65,10 @@ internal static class VisualSpecimens {
                 .AddConnector("review", "deploy", "Approved")
                 .AddConnector("review", "revise", "Rejected")
                 .AddConnector("revise", "review", "Resubmit");
-            var flowArtifact = flow.Prepare(Context(mode, "Change approval", "Two lanes · decision with a revision loop", false))
+            var flowArtifact = flow.Prepare(Context(mode, flowTitle, "Two lanes · decision with a revision loop", false))
                 .ToArtifact("change-approval", VisualArtifactKind.Flow);
-            flowArtifact.Accessibility.WithTextAlternative("Change approval",
+            flowArtifact.Title = flowTitle;
+            flowArtifact.Accessibility.WithTextAlternative(flowTitle,
                 "The requester submits a change. Operations reviews the risk and either deploys it or returns it for revision; a revised request goes back to review.", "en");
             result.Add(new VisualSpecimen("approval-" + mode.ToString().ToLowerInvariant(), mode, flowArtifact, true));
         }

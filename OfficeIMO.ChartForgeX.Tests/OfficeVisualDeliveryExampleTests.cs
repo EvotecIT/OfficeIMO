@@ -46,7 +46,10 @@ public sealed class OfficeVisualDeliveryExampleTests : IDisposable {
         using ExcelDocument workbook = ExcelDocument.Load(Path.Combine(_output, "service-review.xlsx"));
         Assert.Empty(workbook.ValidateDocument());
         Assert.Equal(_specimens.Select(item => item.Name), workbook.Sheets.Select(sheet => sheet.Name));
-        Assert.All(workbook.Sheets, sheet => Assert.Single(sheet.Images));
+        for (int index = 0; index < _specimens.Count; index++) {
+            ExcelImage picture = Assert.Single(workbook.Sheets[index].Images);
+            Assert.Equal(_specimens[index].Caption, picture.Description);
+        }
     }
 
     [Fact]
@@ -65,11 +68,16 @@ public sealed class OfficeVisualDeliveryExampleTests : IDisposable {
         using PdfDocument pdf = PdfDocument.Load(Path.Combine(_output, "service-review.pdf"));
         Assert.Equal(_specimens.Count, pdf.Pages.Count);
         Assert.Empty(pdf.Images.Extract());
-        string[] labels = { "Capacity", "Processing worker", "Review risk" };
+        (string Title, string Label)[] expectedVisuals = {
+            ("Service capacity", "six observation intervals"),
+            ("Service delivery", "Persist"),
+            ("Change approval", "Review risk")
+        };
         for (int index = 0; index < _specimens.Count; index++) {
             string text = pdf.Pages[index].ExtractText();
-            Assert.Contains(_specimens[index].Artifact.Title, text);
-            Assert.Contains(labels[index % 3], text);
+            var expected = expectedVisuals[index % expectedVisuals.Length];
+            Assert.Contains($"{expected.Title} · {_specimens[index].ModeName}", text);
+            Assert.Contains(expected.Label, text);
         }
     }
 
