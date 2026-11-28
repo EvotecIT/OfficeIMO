@@ -63,7 +63,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlNode transform = properties.Child(CustomGeometryDrawing, "xfrm");
             if (transform.IsNone) throw new InvalidOperationException("The added shape has no transform.");
             properties.RemoveChildren(CustomGeometryDrawing, "prstGeom");
-            properties.InsertBefore(customGeometry, transform.NextNode);
+            properties.InsertBefore(customGeometry, transform.NextNode());
             ApplyCustomGeometryStyle(result, properties, geometry);
             return result;
         }
@@ -258,7 +258,7 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 OfficeXmlNode custom = properties.Child(CustomGeometryDrawing, "custGeom");
                 if (custom.IsNone) throw new InvalidOperationException("The added shape has no custom geometry.");
-                properties.InsertBefore(properties.CreateElement(CustomGeometryDrawing, "noFill"), custom.NextNode);
+                properties.InsertBefore(properties.CreateElement(CustomGeometryDrawing, "noFill"), custom.NextNode());
             }
 
             result.OutlineColor = geometry.StrokeColor;

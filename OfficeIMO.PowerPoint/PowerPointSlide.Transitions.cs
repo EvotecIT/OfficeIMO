@@ -220,7 +220,7 @@ namespace OfficeIMO.PowerPoint {
             if (before.IsNone) {
                 OfficeXmlNode after = slide.Child(TransitionPresentationNamespace, "clrMapOvr");
                 if (after.IsNone) after = slide.Child(TransitionPresentationNamespace, "cSld");
-                before = after.NextNode;
+                before = after.NextNode();
             }
             slide.InsertBefore(alternate, before);
         }

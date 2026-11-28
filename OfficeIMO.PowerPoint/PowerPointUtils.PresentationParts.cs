@@ -5,10 +5,42 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
 using D = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointUtils {
+        internal static string? Attribute(this OfficeXmlNode element, string namespaceUri, string localName) {
+            if (element.Tree is { } tree) return tree.GetAttribute(element.Node, tree.Namespaces.GetId(namespaceUri), localName);
+            foreach (OfficeXmlAttribute attribute in element.Attributes()) {
+                if (attribute.NamespaceUri == namespaceUri && attribute.LocalName == localName) return attribute.Value;
+            }
+            return null;
+        }
+
+        internal static string? LookupNamespace(this OfficeXmlNode element, string prefix) {
+            if (element.Tree is { } tree) {
+                string name = prefix.Length == 0 ? "xmlns" : prefix;
+                for (int node = element.Node; node != OfficeXmlTree.NoNode; node = tree.ParentOf(node)) {
+                    if (tree.GetAttribute(node, OfficeXmlNamespaces.Xmlns, name) is { } uri) return uri;
+                }
+                return null;
+            }
+            return (element.SdkElement as OpenXmlElement)?.LookupNamespace(prefix);
+        }
+
+        internal static void SetAttribute(this OfficeXmlNode element, string namespaceUri, string localName, string? value, string prefix) {
+            if (element.Tree is { } tree) {
+                element.SetAttribute(tree.Namespaces.GetId(namespaceUri), localName, value);
+            } else if (element.SdkElement is OpenXmlElement sdk) {
+                if (value != null) sdk.SetAttribute(new OpenXmlAttribute(prefix, localName, namespaceUri, value));
+                else if (sdk.HasAttributes) sdk.RemoveAttribute(localName, namespaceUri);
+            } else {
+                throw new InvalidOperationException("There is no element to set the attribute on.");
+            }
+        }
+
         // Thumbnail extracted from Assets/PowerPointTemplates/PowerPointBlank.pptx (docProps/thumbnail.jpeg)
         private static readonly byte[] ThumbnailBytes = Convert.FromBase64String(
             "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUEBAUEBQUFBQUEBQUFBQUEBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQT/wAARCAAkAA4DAREAAhEBAxEB/8QAHQABAAEEAwEAAAAAAAAAAAAAAAYHAgUEAwIBCf/EADgQAAECAwQJBgUEAwAAAAAAAAECAwAEBRESBiExBxNBUWFxFCIyobHBFBZCksEVM1NiY//EABsBAQEAAwEBAQAAAAAAAAAAAAABAgMEAQUG/8QALREBAAIBBAECBQMEAwAAAAAAAAECAxEEEiExQQUTIlFhcZGh0fAUI0JSsf/aAAwDAQACEQMRAD8A9P8A0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARvbLcm6goc0JdU5pUW4RjjdM9i9Wxj6WutKLa9c7WJXu1L05PwnHA/0eFX3c/B/5UX5xvV+zY+q2cL6ZrGdOHFjT3yL1clOVruomDfaYy6USsvXxP6c8g3k3kDWK6byPXF0jHGU0kqdZSk0nFJJySgAAAAAAAAAAAAAAAAAAABK/pv3iQvqVps2fwXyrGnUsPW9jHTV6hBZ6wqn6UdZacK3WN+S2z87zuzp/8AflmWzNtZ0rJQ1pqSikopSnVKUqk1SlKSgAAbcRLRqy5F06ys3xcrKzJSmkoxVFLKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKUpSlKU//Z");
