@@ -1,6 +1,7 @@
 using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word;
 
@@ -417,8 +418,8 @@ public sealed class WordStyle {
         get {
             RequireParagraphFormatting();
             return new WordParagraphBorders(
-                () => Element.StyleParagraphProperties,
-                EnsureParagraph);
+                () => OfficeXmlNode.FromSdk(Element.StyleParagraphProperties),
+                createOrReplace => OfficeXmlNode.FromSdk(createOrReplace ? EnsureParagraph() : Element.StyleParagraphProperties));
         }
     }
 
