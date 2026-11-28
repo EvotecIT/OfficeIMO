@@ -793,7 +793,7 @@ document.AddParagraph()
     .AddHyperLink("Jump inside document", "target-section", addStyle: true);
 ```
 
-`AddBookmark` on a paragraph marks a position. To bookmark, comment on or link text that is already in the document, including part of a run or several paragraphs, use a [text range](../OfficeIMO.Word/README.md#text-ranges).
+`AddBookmark` on a paragraph marks a position. To bookmark, comment on or link text that is already in the document, including part of a run or several paragraphs, use a [text range](officeimo.word-guide.md#text-ranges).
 
 ### Fields and table of contents
 

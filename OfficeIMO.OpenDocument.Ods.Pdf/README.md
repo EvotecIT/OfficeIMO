@@ -46,7 +46,7 @@ Forward conversion takes `OdsPdfExportOptions` (`ConversionOptions` for the Open
 - Charts, pivot tables, validations and conditional formatting follow the [ODS-to-Excel mapping](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.OpenDocument/README.md); content outside that mapping is reported, not dropped silently.
 - The blank styled run that LibreOffice and Excel write to pad each row to the sheet edge does not become printed pages.
 
-PDF imports accept `PdfExcelExportOptions.PreserveColumnProportions` through `PdfOdsExportOptions.PdfOptions`. This optional policy retains detected relative column widths, with the [shared import settings and fallback behavior](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.Pdf/README.md#import-structured-pdf-data). ODS widths use the spreadsheet adapter's approximate unit conversion; physical PDF dimensions and exact printer geometry are not guaranteed. `PdfOdsConversionReport.PdfReport.Entries` exposes whether each table applied the proportions.
+PDF imports accept `PdfExcelExportOptions.PreserveColumnProportions` through `PdfOdsExportOptions.PdfOptions`. This optional policy retains detected relative column widths, with the [shared import settings and fallback behavior](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Pdf.Excel/README.md#import-structured-pdf-data). ODS widths use the spreadsheet adapter's approximate unit conversion; physical PDF dimensions and exact printer geometry are not guaranteed. `PdfOdsConversionReport.PdfReport.Entries` exposes whether each table applied the proportions.
 
 ## Current limits
 

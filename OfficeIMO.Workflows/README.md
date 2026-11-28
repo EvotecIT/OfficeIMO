@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Workflows)](https://www.nuget.org/packages/OfficeIMO.Workflows)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Workflows?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Workflows)
 
-Run document jobs end to end in .NET: convert, print, assemble, protect, sign, redact and publish, with typed requests, limits, cancellation, conflict policies, atomic output and validation of what was written. `OfficeIMO.Workflows` composes OfficeIMO's own engines and adds no document engine of its own, so Studio, the `officeimo` CLI, PSWriteOffice and your own services share the same job contract.
+Run document jobs end to end in .NET: convert, print, assemble, protect, sign, redact and publish, with typed requests, limits, cancellation, conflict policies, atomic local output and validation of what was written. Writes through a storage provider can end `Unconfirmed` and can't guarantee atomic replacement or rollback. `OfficeIMO.Workflows` composes OfficeIMO's own engines and adds no document engine of its own, so Studio, the `officeimo` CLI, PSWriteOffice and your own services share the same job contract.
 
 ## Install
 

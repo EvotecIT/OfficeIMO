@@ -6,6 +6,7 @@
 
 ```sh
 dotnet add package OfficeIMO.Reader.Web
+dotnet add package OfficeIMO.Reader.Html   # the handler the example uses
 ```
 
 ```csharp

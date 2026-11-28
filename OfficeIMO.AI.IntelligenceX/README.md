@@ -45,7 +45,7 @@ The native route uses IX's authentication support. `PreferCurrentCodexSession` e
 
 The example model is an explicit profile setting. If it is unavailable for an account, select an available model and qualify it; the adapter does not silently choose a replacement.
 
-For application-specific accounts, set `AuthStore` to a host-owned IX store, set `AccountId` when selecting an existing account, and disable `LoadCodexAuthJson`. Leave `PreferCurrentCodexSession` disabled unless the user explicitly selects the local Codex login. The executor exposes `LoginChatGptAsync`, `LoginCopilotAsync`, `GetAccountAsync`, `ListModelsAsync` and `LogoutAsync` through the same restricted connection. Await authentication and document operations before disposing the executor. Studio demonstrates an isolated account boundary in its [connection setup](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Studio/README.md#document-assistant).
+For application-specific accounts, set `AuthStore` to a host-owned IX store, set `AccountId` when selecting an existing account, and disable `LoadCodexAuthJson`. Leave `PreferCurrentCodexSession` disabled unless the user explicitly selects the local Codex login. The executor exposes `LoginChatGptAsync`, `LoginCopilotAsync`, `GetAccountAsync`, `ListModelsAsync` and `LogoutAsync` through the same restricted connection. Await authentication and document operations before disposing the executor. Studio demonstrates an isolated account boundary in its [connection setup](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.studio-guide.md#document-assistant).
 
 ## Compatible HTTP
 

@@ -347,7 +347,7 @@ not a full EPUB schema or accessibility certification route; independently valid
 the final publication and review its content in representative readers.
 
 DOCX and Markdown composition and editable book projects belong to
-[`OfficeIMO.Workflows`](../OfficeIMO.Workflows/README.md#book-publishing).
+[`OfficeIMO.Workflows`](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.workflows-guide.md#book-publishing).
 
 ### Read-aloud narration
 

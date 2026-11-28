@@ -4,10 +4,12 @@
 
 This project is built from the OfficeIMO source tree and is not published as a standalone NuGet package.
 
-## Install
+## Use from source
+
+This project isn't published to NuGet. Reference it from an OfficeIMO checkout:
 
 ```sh
-dotnet add package OfficeIMO.Markup.Excel
+dotnet add reference path/to/OfficeIMO/OfficeIMO.Markup.Excel/OfficeIMO.Markup.Excel.csproj
 ```
 
 ## Quick start

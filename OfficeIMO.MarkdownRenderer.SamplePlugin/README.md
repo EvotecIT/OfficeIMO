@@ -4,10 +4,12 @@
 
 This sample is not published as a standalone NuGet package.
 
-## Install
+## Use from source
+
+This project isn't published to NuGet. Reference it from an OfficeIMO checkout:
 
 ```sh
-dotnet add package OfficeIMO.MarkdownRenderer.SamplePlugin
+dotnet add reference path/to/OfficeIMO/OfficeIMO.MarkdownRenderer.SamplePlugin/OfficeIMO.MarkdownRenderer.SamplePlugin.csproj
 ```
 
 ## Use it from a renderer host

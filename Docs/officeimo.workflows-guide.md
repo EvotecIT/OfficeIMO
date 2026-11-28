@@ -40,6 +40,8 @@ var plan = await OfficeConverter.PlanAsync(saved);
 if (plan.CanRun) {
     var result = await OfficeConverter.ConvertAsync(saved);
     Console.WriteLine($"Completed {result.Summary.Completed}; failed {result.Summary.Failed}; skipped {result.Summary.Skipped}");
+    if (result.Summary.FailureSummary is { } failure) Console.WriteLine($"Incomplete: {failure}"); // completed files remain
+    else if (result.Summary.Cancelled) Console.WriteLine("Cancelled before every input finished.");
 }
 ```
 
@@ -90,7 +92,11 @@ var recorded = await OfficeConverter.ConvertAsync(saved with {
     ReportPath = Path.GetFullPath("runs/first.json")
 });
 Console.WriteLine(recorded.Summary.Completed);
-var inspected = OfficeBatchReport.Load("runs/first.json");
+if (recorded.RecordingError is { } recordingError) {
+    Console.WriteLine($"The run report wasn't finalized: {recordingError}");
+} else {
+    var inspected = OfficeBatchReport.Load("runs/first.json");
+}
 ```
 
 The `officeimo.conversion.batch.v2` contract records run identity,
