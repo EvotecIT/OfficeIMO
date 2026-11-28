@@ -1,5 +1,6 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint;
 using System.Globalization;
 using DocumentFormat.OpenXml;
@@ -184,6 +185,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             A.ListStyle? listStyle,
             OpenXmlCompositeElement? masterTextStyle,
             IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
+            OfficeXmlNode[]? styleNodes = tableTextStyles?.Select(OfficeXmlNode.FromSdk).ToArray();
             int offset = 0;
             for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
                 PowerPointParagraph paragraph = paragraphs[paragraphIndex];
@@ -195,7 +197,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     PowerPointTextRun? run = node.Run;
                     if (run == null) continue;
                     foreach (PowerPointEffectiveTextSegment segment in PowerPointEffectiveRunStyleResolver.ResolveSegments(
-                                 run, paragraph, listStyle, masterTextStyle, tableTextStyles)) {
+                                 run, paragraph, OfficeXmlNode.FromSdk(listStyle), OfficeXmlNode.FromSdk(masterTextStyle), styleNodes)) {
                         EffectiveGoogleRunStyle effective = ToGoogleRunStyle(segment.Style);
                         string text = GetGoogleText(segment.Text, effective);
                         int endIndex = offset + text.Length;
@@ -291,7 +293,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             OpenXmlCompositeElement? masterTextStyle,
             IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
             PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.Resolve(
-                run, paragraph, listStyle, masterTextStyle, tableTextStyles);
+                run, paragraph, OfficeXmlNode.FromSdk(listStyle), OfficeXmlNode.FromSdk(masterTextStyle),
+                tableTextStyles?.Select(OfficeXmlNode.FromSdk).ToArray());
             return ToGoogleRunStyle(effective);
         }
 

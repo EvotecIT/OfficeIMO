@@ -103,6 +103,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData("r=\"bad\"", "")]
+        [InlineData("r=\"1\"", "t=\"bogus\"")]
+        public void TabularProjectionRejectsMalformedWrittenAttributes(string rowAttribute, string cellAttribute) {
+            byte[] package = CreatePackage($"<row {rowAttribute}><c r=\"A1\" {cellAttribute}><v>42</v></c></row>");
+            using var document = ExcelDocument.Load(new MemoryStream(package));
+
+            Assert.Throws<FormatException>(() => document.Sheets[0].ToDataTable(headersInFirstRow: false));
+        }
+
+        [Fact]
+        public void EditableCellEnumerationRejectsAMalformedStyleIndex() {
+            byte[] package = CreatePackage("<row r=\"1\"><c r=\"A1\" s=\"bad\"><v>42</v></c></row>");
+            using var document = ExcelDocument.Load(new MemoryStream(package));
+            _ = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
+
+            Assert.Throws<FormatException>(() => document.Sheets[0].EnumerateCells().ToArray());
+        }
+
+        [Fact]
+        public void NonCanonicalUnloadedWorksheetUsesEditedStyles() {
+            byte[] package = CreatePackage(withStyles: true,
+                ("Edited", "<row r=\"1\"><c r=\"A1\"><v>1</v></c></row>"),
+                ("Untouched", "<row r=\"1\"><c r=\"A1\" s=\"1\"><v>42</v></c><c r=\"B1\" t=\"str\"><v>   </v></c></row>"));
+            using var document = ExcelDocument.Load(new MemoryStream(package));
+            ExcelSheet untouched = document["Untouched"];
+            document["Edited"].Cell(1, 1).SetValue(2);
+            var formats = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!.CellFormats!;
+            var format = formats.Elements<DocumentFormat.OpenXml.Spreadsheet.CellFormat>().ElementAt(1);
+            format.NumberFormatId = 14U;
+            format.ApplyNumberFormat = true;
+            Assert.False(untouched.WorksheetPart.IsRootElementLoaded);
+
+            Assert.Equal(new DateTime(1900, 2, 11), untouched.ToDataTable(headersInFirstRow: false).Rows[0][0]);
+        }
+
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public void OpenDocumentKeepsItsContentWhenTheSourceFileIsReplaced(bool fileBacked) {
@@ -146,7 +182,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void TabularReadersKeepTheSdkReadingOfNonCanonicalWorksheets() {
+        public void TabularReadersPreserveNonCanonicalWorksheetValues() {
             byte[] whitespace = CreatePackage("<row r=\"1\"><c r=\"A1\" t=\"str\"><v>   </v></c></row>");
             using (var document = ExcelDocument.Load(new MemoryStream(whitespace))) {
                 Assert.Equal("   ", document.Sheets[0].ToDataTable(headersInFirstRow: false).Rows[0][0]);
@@ -162,7 +198,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void NonCanonicalWorksheetKeepsTheSdkRouteWithoutAffectingItsNeighbour() {
+        public void NonCanonicalWorksheetAndItsNeighbourReadWithoutLoadingEditableRoots() {
             byte[] package = CreatePackage(
                 ("Good", "<row r=\"1\"><c r=\"A1\"><v>1</v></c></row>"),
                 ("Bad", "<row r=\"1\"><c r=\"A1\" t=\"str\"><v>   </v></c></row>"));
@@ -175,7 +211,7 @@ namespace OfficeIMO.Tests {
             var loaded = parts.Workbook!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Sheet>()
                 .ToDictionary(sheet => sheet.Name!.Value!, sheet => parts.GetPartById(sheet.Id!.Value!).IsRootElementLoaded);
             Assert.False(loaded["Good"]);
-            Assert.True(loaded["Bad"]);
+            Assert.False(loaded["Bad"]);
         }
 
         [Fact]
@@ -312,7 +348,9 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreatePackage(string rows) => CreatePackage(("Data", rows));
 
-        private static byte[] CreatePackage(params (string Name, string Rows)[] sheets) {
+        private static byte[] CreatePackage(params (string Name, string Rows)[] sheets) => CreatePackage(false, sheets);
+
+        private static byte[] CreatePackage(bool withStyles, params (string Name, string Rows)[] sheets) {
             var overrides = new StringBuilder();
             var sheetElements = new StringBuilder();
             var relationships = new StringBuilder();
@@ -320,6 +358,11 @@ namespace OfficeIMO.Tests {
                 overrides.Append($"<Override PartName=\"/xl/worksheets/sheet{index}.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>");
                 sheetElements.Append($"<sheet name=\"{sheets[index - 1].Name}\" sheetId=\"{index}\" r:id=\"rId{index}\"/>");
                 relationships.Append($"<Relationship Id=\"rId{index}\" Type=\"{RelationshipNamespace}/worksheet\" Target=\"worksheets/sheet{index}.xml\"/>");
+            }
+
+            if (withStyles) {
+                overrides.Append("<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>");
+                relationships.Append($"<Relationship Id=\"rId901\" Type=\"{RelationshipNamespace}/styles\" Target=\"styles.xml\"/>");
             }
 
             using var output = new MemoryStream();
@@ -344,6 +387,10 @@ namespace OfficeIMO.Tests {
                 for (int index = 1; index <= sheets.Length; index++) {
                     Add(archive, $"xl/worksheets/sheet{index}.xml",
                         $"<worksheet xmlns=\"{SpreadsheetNamespace}\"><sheetData>{sheets[index - 1].Rows}</sheetData></worksheet>");
+                }
+                if (withStyles) {
+                    Add(archive, "xl/styles.xml",
+                        $"<styleSheet xmlns=\"{SpreadsheetNamespace}\"><cellXfs count=\"2\"><xf numFmtId=\"0\"/><xf numFmtId=\"0\"/></cellXfs></styleSheet>");
                 }
                 Add(archive, "xl/sharedStrings.xml",
                     $"<sst xmlns=\"{SpreadsheetNamespace}\" count=\"2\" uniqueCount=\"2\"><si><t>shared</t></si><si><t>   </t></si></sst>");

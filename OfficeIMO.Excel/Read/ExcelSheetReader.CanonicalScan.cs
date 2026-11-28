@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         /// <summary>
         /// Returns the grid a worksheet spans, or null when a cell is one the tabular fast paths
-        /// resolve differently from the SDK route: a missing or out-of-grid reference, an unknown
+        /// resolve differently from the general projection: a missing or out-of-grid reference, an unknown
         /// type, or a whitespace-only value.
         /// </summary>
         internal static WorksheetExtent? MeasureCanonicalWorksheet(XmlReader reader, CancellationToken cancellationToken,

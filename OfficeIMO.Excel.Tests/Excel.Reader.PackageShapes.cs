@@ -74,6 +74,86 @@ namespace OfficeIMO.Tests {
             Assert.False(reader.NextResult());
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void WorkbookAndCellLookupsIgnoreExtensionAndAlternateContent(bool wrapLiveWorkbook) {
+            string workbook = $"""
+                <workbook xmlns="{SpreadsheetNamespace}" xmlns:r="{RelationshipNamespace}"
+                          xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                          xmlns:vendor="urn:extension">
+                  <extLst><ext uri="urn:inventory"><sheets><sheet name="Extension" sheetId="9" r:id="rId1"/></sheets></ext></extLst>
+                  <mc:AlternateContent>
+                    <mc:Choice Requires="vendor"><sheets><sheet name="Choice" sheetId="8" r:id="rId1"/></sheets></mc:Choice>
+                    <mc:Fallback><sheets><sheet name="Fallback" sheetId="7" r:id="rId1"/></sheets></mc:Fallback>
+                  </mc:AlternateContent>
+                  <sheets><sheet name="Data" sheetId="1" r:id="rId1"/></sheets>
+                </workbook>
+                """;
+            byte[] package = CreateWorkbook("""
+                <row r="1"><c r="A1"><extLst><ext uri="urn:cell"><v>999</v></ext></extLst><v>7</v></c></row>
+                """, workbookMarkup: workbook);
+
+            using var stream = new MemoryStream(package);
+            using var live = wrapLiveWorkbook ? DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(stream, true,
+                new DocumentFormat.OpenXml.Packaging.OpenSettings { AutoSave = false }) : null;
+            using var reader = live == null ? ExcelDocumentReader.Open(package) : ExcelDocumentReader.Wrap(live);
+            Assert.Equal(new[] { "Data" }, reader.GetValidatedWorksheetNames());
+            Assert.Equal("Data", reader.GetSheet(1).Name);
+            Assert.Equal(7d, Assert.Single(reader.GetSheet("Data").EnumerateCells()).Value);
+        }
+
+        [Fact]
+        public void StandaloneReaderResolvesSharedStringsByExactRelationshipType() {
+            byte[] package = CreatePackage(
+                ("[Content_Types].xml", ContentTypes(
+                    ("/xl/workbook.xml", WorkbookContentType), ("/xl/worksheets/sheet1.xml", WorksheetContentType),
+                    ("/xl/foreign.xml", SharedStringsContentType), ("/xl/sharedStrings.xml", SharedStringsContentType))),
+                ("_rels/.rels", Relationships(("rId1", "officeDocument", "xl/workbook.xml"))),
+                ("xl/workbook.xml", Workbook(("Data", "rId1"))),
+                ("xl/_rels/workbook.xml.rels", $"""
+                    <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                      <Relationship Id="rId1" Type="{RelationshipNamespace}/worksheet" Target="worksheets/sheet1.xml"/>
+                      <Relationship Id="rId2" Type="https://example.org/workbook/relationships/sharedStrings" Target="foreign.xml"/>
+                      <Relationship Id="rId3" Type="{RelationshipNamespace}/sharedStrings" Target="sharedStrings.xml"/>
+                    </Relationships>
+                    """),
+                ("xl/worksheets/sheet1.xml", Worksheet("""<row r="1"><c r="A1" t="s"><v>0</v></c></row>""")),
+                ("xl/foreign.xml", SharedStrings("<si><t>unrelated</t></si>")),
+                ("xl/sharedStrings.xml", SharedStrings("<si><t>actual</t></si>")));
+
+            using var reader = ExcelDocumentReader.Open(package);
+            Assert.Equal("actual", Assert.Single(reader.GetSheet(1).EnumerateCells()).Value);
+        }
+
+        [Fact]
+        public void StandaloneReaderRejectsWorksheetRelationshipWithTheWrongContentType() {
+            byte[] package = CreateWorkbook("""<row r="1"><c r="A1"><v>7</v></c></row>""",
+                worksheetContentType: "application/xml");
+            using var reader = ExcelDocumentReader.Open(package);
+            IOException error = Assert.Throws<IOException>(() => reader.GetValidatedWorksheetNames());
+            Assert.IsType<InvalidDataException>(error.InnerException);
+        }
+
+        [Fact]
+        public void CompressedWorkbookInputLimitDoesNotApplyToInflatedWorksheet() {
+            var options = Options();
+            options.Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL");
+            options.MaxInputBytes = 4096;
+            options.A1Range = "A1:A2";
+            byte[] package = CreateWorkbook(
+                """<row r="1"><c r="A1"><v>7</v></c></row><row r="2"><c r="A2"><v>8</v></c></row>"""
+                + "<!-- " + new string('x', 32_768) + " -->");
+            Assert.True(package.Length < options.MaxInputBytes);
+
+            using var reader = ExcelDocument.OpenReader(new MemoryStream(package), options);
+            Assert.True(reader.Read());
+            Assert.Equal(7d, reader.GetDouble(0));
+            Assert.True(reader.Read());
+            Assert.Equal(8d, reader.GetDouble(0));
+            Assert.False(reader.Read());
+        }
+
         private static ExcelReaderOptions Options() => new() {
             HasHeaderRow = false,
             TreatDatesUsingNumberFormat = false
@@ -89,10 +169,10 @@ namespace OfficeIMO.Tests {
             return values;
         }
 
-        private static byte[] CreateWorkbook(string rows, string? sharedStrings = null, string prefix = "") {
+        private static byte[] CreateWorkbook(string rows, string? sharedStrings = null, string prefix = "", string? workbookMarkup = null, string worksheetContentType = WorksheetContentType) {
             var types = new List<(string, string)> {
                 ("/xl/workbook.xml", WorkbookContentType),
-                ("/xl/worksheets/sheet1.xml", WorksheetContentType)
+                ("/xl/worksheets/sheet1.xml", worksheetContentType)
             };
             var relationships = new List<(string, string, string)> { ("rId1", "worksheet", "worksheets/sheet1.xml") };
             var entries = new List<(string, string)>();
@@ -104,7 +184,7 @@ namespace OfficeIMO.Tests {
 
             entries.Add(("[Content_Types].xml", ContentTypes(types.ToArray())));
             entries.Add(("_rels/.rels", Relationships(("rId1", "officeDocument", "xl/workbook.xml"))));
-            entries.Add(("xl/workbook.xml", Workbook(("Data", "rId1"))));
+            entries.Add(("xl/workbook.xml", workbookMarkup ?? Workbook(("Data", "rId1"))));
             entries.Add(("xl/_rels/workbook.xml.rels", Relationships(relationships.ToArray())));
             entries.Add(("xl/worksheets/sheet1.xml", prefix.Length == 0
                 ? Worksheet(rows)

@@ -1,14 +1,14 @@
 using System.Globalization;
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private const double NativeLayoutDevicePointsPerPixel = 72D / 600D;
         // Retain authored units until the effective paragraph font is resolved. An
         // automatic value is a multiplier, not a height measured with the style font.
-        private readonly record struct NativeLineSpacing(double? Value, W.LineSpacingRuleValues? Rule) {
+        private readonly record struct NativeLineSpacing(double? Value, string? Rule) {
             public double? GridPitch { get; init; }
-            public W.VerticalTextAlignmentValues? FontAlignment { get; init; }
+            public string? FontAlignment { get; init; }
             // WordPerfect-compatible line height: the natural box is the font size plus a
             // fixed leading rather than each font's own line metrics.
             public bool FixedFontLineBox { get; init; }
@@ -21,10 +21,10 @@ namespace OfficeIMO.Word.Pdf {
                 OfficeIMO.Pdf.PdfLineSpacing spacing;
                 if (!Value.HasValue) spacing = OfficeIMO.Pdf.PdfLineSpacing.Multiple(naturalLineHeight)
                     .WithFontLineBoxBaseline(naturalLineHeight);
-                else if (Rule == null || Rule == W.LineSpacingRuleValues.Auto)
+                else if (Rule == null || Rule == "auto")
                     spacing = OfficeIMO.Pdf.PdfLineSpacing.Multiple(Math.Max(0.01D, naturalLineHeight * Value.Value / 240D))
                         .WithFontLineBoxBaseline(naturalLineHeight);
-                else spacing = Rule == W.LineSpacingRuleValues.AtLeast
+                else spacing = Rule == "atLeast"
                     ? OfficeIMO.Pdf.PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(Value.Value / 20D), naturalLineHeight).WithFontLineBoxBaseline(naturalLineHeight)
                     // Word's exact-height baseline is four fifths of the line
                     // box in body, column and table exports, regardless of font.
@@ -34,10 +34,10 @@ namespace OfficeIMO.Word.Pdf {
                 if (FixedFontLineBox && !spacing.IsExact) spacing = spacing.WithFixedFontLeading(NativeWordPerfectLeading);
                 // The native PDF layout device uses 600 square pixels per inch.
                 // Align each font within its line without rounding line advances.
-                if (FontAlignment.HasValue) {
-                    var alignment = FontAlignment.Value == W.VerticalTextAlignmentValues.Top ? OfficeIMO.Pdf.PdfFontLineAlignment.Top
-                        : FontAlignment.Value == W.VerticalTextAlignmentValues.Center ? OfficeIMO.Pdf.PdfFontLineAlignment.Center
-                        : FontAlignment.Value == W.VerticalTextAlignmentValues.Bottom ? OfficeIMO.Pdf.PdfFontLineAlignment.Bottom
+                if (FontAlignment != null) {
+                    var alignment = FontAlignment == "top" ? OfficeIMO.Pdf.PdfFontLineAlignment.Top
+                        : FontAlignment == "center" ? OfficeIMO.Pdf.PdfFontLineAlignment.Center
+                        : FontAlignment == "bottom" ? OfficeIMO.Pdf.PdfFontLineAlignment.Bottom
                         : OfficeIMO.Pdf.PdfFontLineAlignment.Baseline;
                     spacing = spacing.WithFontAlignment(alignment, NativeLayoutDevicePointsPerPixel);
                 }
@@ -52,7 +52,7 @@ namespace OfficeIMO.Word.Pdf {
                 // Empty paragraphs and object spacing measure this value
                 // directly instead of entering the rich-text layout engine.
                 if (!Value.HasValue) return naturalLineHeight;
-                if (Rule == null || Rule == W.LineSpacingRuleValues.Auto) {
+                if (Rule == null || Rule == "auto") {
                     return Math.Max(0.01D, naturalLineHeight * (Value.Value / 240D));
                 }
                 return fontSize > 0D
@@ -61,11 +61,11 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static NativeLineSpacing ReadNativeLineSpacing(W.SpacingBetweenLines? spacing, W.TextAlignment? alignment = null) {
-            double? value = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(spacing?.Line?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double line) &&
+        private static NativeLineSpacing ReadNativeLineSpacing(OfficeXmlNode spacing, OfficeXmlNode alignment = default) {
+            double? value = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(spacing.WAttr("line"), NumberStyles.Float, CultureInfo.InvariantCulture, out double line) &&
                 line >= 0D && !double.IsNaN(line) && !double.IsInfinity(line) ? line : null;
-            return new NativeLineSpacing(value, spacing?.LineRule?.Value ?? (value.HasValue ? W.LineSpacingRuleValues.Auto : null)) {
-                FontAlignment = alignment?.Val?.Value
+            return new NativeLineSpacing(value, spacing.WAttr("lineRule") ?? (value.HasValue ? "auto" : null)) {
+                FontAlignment = alignment.WVal()
             };
         }
 
@@ -73,8 +73,8 @@ namespace OfficeIMO.Word.Pdf {
             WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults,
             NativeDocumentDefaults documentDefaults, NativeTableStyleDefaults? table = null) {
             table ??= NativeTableStyleDefaults.Empty;
-            NativeLineSpacing spacing = ReadNativeLineSpacing(paragraph._paragraph.ParagraphProperties?.SpacingBetweenLines,
-                paragraph._paragraph.ParagraphProperties?.TextAlignment)
+            NativeLineSpacing spacing = ReadNativeLineSpacing(paragraph.Node().WChild("pPr").WChild("spacing"),
+                paragraph.Node().WChild("pPr").WChild("textAlignment"))
                 .Inherit(styleDefaults.LineSpacing.Inherit(table.LineSpacing.Inherit(documentDefaults.LineSpacing)));
             return spacing with {
                 GridPitch = ResolveNativeLineGridPitch(paragraph, styleDefaults, documentDefaults, table),
@@ -88,9 +88,8 @@ namespace OfficeIMO.Word.Pdf {
             if (!snap) return null;
             // A projected frame copy keeps the line grid of the section its paragraph is in.
             if (IsNativeFrameCopy(paragraph)) return GetNativeSectionLineGridPitch(ResolveNativeFrameSourceParagraph(paragraph), documentDefaults.NoteContentSection);
-            if (paragraph._paragraph.Ancestors<W.TableCell>().Any() && ReadNativeOnOff(paragraph._document
-                ._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings?
-                .GetFirstChild<W.Compatibility>()?.GetFirstChild<W.AdjustLineHeightInTable>()) != true) return null;
+            if (paragraph.Node().Ancestor(WordXml.W, "tc").Exists && ReadNativeOnOff(paragraph._document
+                .SettingsNode().WChild("compat").WChild("adjustLineHeightInTable")) != true) return null;
             return GetNativeSectionLineGridPitch(paragraph, documentDefaults.NoteContentSection);
         }
 
@@ -99,7 +98,7 @@ namespace OfficeIMO.Word.Pdf {
         private static bool IsNativeParagraphMetricBearingRun(WordParagraph run, WordParagraph paragraph, bool noteContent) =>
             !run.IsImage && !IsNativeHiddenTextRun(run, paragraph) &&
             (!string.IsNullOrWhiteSpace(run.Text) || noteContent &&
-                run.EnumerateEffectiveRunContent().Any(child => child is W.SeparatorMark or W.ContinuationSeparatorMark));
+                run.EffectiveRunContentNodes().Any(child => child.IsW("separator") || child.IsW("continuationSeparator")));
 
         // A paragraph mark or a large run on another line must not impose a
         // paragraph-wide minimum on every content line. Runs retain their own sizes.
@@ -112,7 +111,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (size > 0D) minimum = minimum.HasValue ? Math.Min(minimum.Value, size) : size;
             }
             if (minimum.HasValue) return minimum.Value;
-            string? markSize = paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
+            string? markSize = paragraph.Node().WChild("pPr").WChild("rPr").WChild("sz").WVal();
             if (int.TryParse(markSize, NumberStyles.Integer, CultureInfo.InvariantCulture, out int halfPoints) && halfPoints > 0)
                 return halfPoints / 2D;
             // With no visible text, hidden run sizes cannot enlarge the mark's line.

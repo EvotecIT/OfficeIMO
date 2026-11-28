@@ -9,12 +9,13 @@ internal static class PdfProvenanceGraphEditor {
         long maximumOutputBytes,
         HashSet<int>? embeddedFileObjectNumbers = null,
         bool rewriteHistory = false,
+        Action<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo>? editObjects = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(fileSpecificationObjectNumbers, nameof(fileSpecificationObjectNumbers));
         Guard.NotNull(document, nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
-        if (fileSpecificationObjectNumbers.Count == 0 && !rewriteHistory) return (byte[])pdf.Clone();
+        if (fileSpecificationObjectNumbers.Count == 0 && !rewriteHistory && editObjects == null) return (byte[])pdf.Clone();
         _ = PdfMutationPlanner.RequireFullRewriteDocument(
             pdf,
             PdfMutationOperation.ModifyAttachments,
@@ -24,6 +25,7 @@ internal static class PdfProvenanceGraphEditor {
         cancellationToken.ThrowIfCancellationRequested();
         return PdfDocumentObjectGraphRewriter.Rewrite(pdf, document, readOptions, null, (objects, security) => {
             cancellationToken.ThrowIfCancellationRequested();
+            editObjects?.Invoke(objects, security);
             RemoveFromEmbeddedFilesNameTree(objects, security, fileSpecificationObjectNumbers, cancellationToken);
             HashSet<PdfDictionary> removedDirectAnnotations = CollectFileAttachmentAnnotations(
                 objects, security, fileSpecificationObjectNumbers, out HashSet<int> removedAnnotationObjectNumbers, cancellationToken);

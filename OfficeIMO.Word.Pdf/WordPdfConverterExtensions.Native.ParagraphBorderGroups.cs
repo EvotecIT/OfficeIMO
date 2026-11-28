@@ -1,7 +1,7 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     /// <summary>Matching adjacent paragraphs share the outer border and one optional separator.</summary>
@@ -18,8 +18,8 @@ public static partial class WordPdfConverterExtensions {
         double separatorWidth = HasNativeBorder(borders.Between.Style) ? (borders.Between.Size ?? 4U) / 8D : 0D;
         if (previous) {
             style.TopBorder = null;
-            W.Paragraph previousSource = (W.Paragraph)paragraph._paragraph!.PreviousSibling()!;
-            NativeParagraphBorderSide previousSeparator = GetNativeEffectiveParagraphBorders(new WordParagraph(paragraph._document, previousSource)).Between;
+            OfficeXmlNode previousSource = paragraph.Node().PreviousSibling;
+            NativeParagraphBorderSide previousSeparator = GetNativeEffectiveParagraphBorders(paragraph._document.ParagraphView(previousSource)).Between;
             double previousWidth = HasNativeBorder(previousSeparator.Style) ? (previousSeparator.Size ?? 4U) / 8D : 0D;
             double previousSpace = HasNativeBorder(previousSeparator.Style)
                 ? Math.Min(previousSeparator.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) : 0D;
@@ -32,8 +32,8 @@ public static partial class WordPdfConverterExtensions {
             if (!next) style.AllowTrailingPaddingOverflow = false;
         }
         if (next) {
-            W.Paragraph nextSource = (W.Paragraph)paragraph._paragraph!.NextSibling()!;
-            NativeParagraphBorderSide nextSeparator = GetNativeEffectiveParagraphBorders(new WordParagraph(paragraph._document, nextSource)).Between;
+            OfficeXmlNode nextSource = paragraph.Node().NextSibling;
+            NativeParagraphBorderSide nextSeparator = GetNativeEffectiveParagraphBorders(paragraph._document.ParagraphView(nextSource)).Between;
             double nextSpace = HasNativeBorder(nextSeparator.Style)
                 ? Math.Min(nextSeparator.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) : 0D;
             style.BorderContinuesWithNext = true;
@@ -51,14 +51,15 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static bool HasNativeMatchingBorderNeighbor(WordParagraph paragraph, NativeParagraphBorders borders, bool next) {
-        W.Paragraph? source = paragraph._paragraph;
-        if (source == null || !HasNativeParagraphBorder(borders) || !CanJoinNativeParagraphBorderGroup(paragraph)) return false;
-        if ((next ? source.NextSibling() : source.PreviousSibling()) is not W.Paragraph neighborSource) return false;
-        var neighbor = new WordParagraph(paragraph._document, neighborSource);
+        OfficeXmlNode source = paragraph.Node();
+        if (source.IsNone || !HasNativeParagraphBorder(borders) || !CanJoinNativeParagraphBorderGroup(paragraph)) return false;
+        OfficeXmlNode neighborSource = next ? source.NextSibling : source.PreviousSibling;
+        if (!neighborSource.IsW("p")) return false;
+        WordParagraph neighbor = paragraph._document.ParagraphView(neighborSource);
         WordParagraph first = next ? paragraph : neighbor;
         WordParagraph second = next ? neighbor : paragraph;
         if (!CanJoinNativeParagraphBorderGroup(neighbor) || HasNativePageBreakBefore(second) ||
-            first._paragraph?.ParagraphProperties?.SectionProperties != null ||
+            first.Node().WChild("pPr").WChild("sectPr").Exists ||
             HasNativeParagraphBorderFlowBreak(first) || HasNativeParagraphBorderFlowBreak(second)) return false;
         NativeParagraphBorders other = GetNativeEffectiveParagraphBorders(neighbor);
         if (!HasNativeParagraphBorder(other)) return false;
@@ -73,18 +74,17 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static bool HasNativeParagraphBorderFlowBreak(WordParagraph paragraph) =>
-        paragraph._paragraph?.Descendants<W.Break>().Any(b => b.Type?.Value is { } type &&
-            (type == W.BreakValues.Page || type == W.BreakValues.Column)) == true;
+        paragraph.Node().DescendantElements(WordXml.W, "br").Any(b => b.WAttr("type") is "page" or "column");
 
-    private static bool HasNativeBorderGroupText(W.Paragraph paragraph) =>
-        paragraph.Descendants<W.Text>().Any(text => !string.IsNullOrEmpty(text.Text));
+    private static bool HasNativeBorderGroupText(OfficeXmlNode paragraph) =>
+        paragraph.DescendantElements(WordXml.W, "t").Any(text => !string.IsNullOrEmpty(text.InnerText));
 
     private static bool CanJoinNativeParagraphBorderGroup(WordParagraph paragraph) =>
-        paragraph._paragraph is { } source && HasNativeBorderGroupText(source) && GetHeadingLevel(paragraph) == 0 &&
+        paragraph.Node() is { Exists: true } source && HasNativeBorderGroupText(source) && GetHeadingLevel(paragraph) == 0 &&
         // Mixed text boxes emit separate flow segments. Numbering can use a list
         // block or change the frame indents after paragraph style resolution.
         // Neither route currently owns a compatible shared paragraph frame.
-        !source.Descendants<W.TextBoxContent>().Any() && WordDocumentTraversal.GetListInfo(paragraph) == null;
+        !source.HasDescendant(WordXml.W, "txbxContent") && WordDocumentTraversal.GetListInfo(paragraph) == null;
 
     private static double ResolveNativeParagraphBorderGroupLeft(WordParagraph paragraph, NativeParagraphStyleDefaults defaults) {
         double firstLine = paragraph.IndentationHanging?.ToPoints() is { } hanging ? -hanging :

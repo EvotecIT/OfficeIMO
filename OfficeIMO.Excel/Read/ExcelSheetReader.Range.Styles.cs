@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
             int columnCount = lastColumn - firstColumn + 1;
             var styles = new uint?[rowCount, columnCount];
             try {
-                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = OpenReaderWorksheetStream(default);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
                 var worksheetRows = new WorksheetXmlRowSelector();

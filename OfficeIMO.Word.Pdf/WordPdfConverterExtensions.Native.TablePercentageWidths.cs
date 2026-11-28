@@ -1,7 +1,7 @@
-using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
+
 
 public static partial class WordPdfConverterExtensions {
     /// <summary>
@@ -11,9 +11,9 @@ public static partial class WordPdfConverterExtensions {
     private static void ApplyNativeTablePercentageWidth(WordTable table, TableLayout layout,
         PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults defaults) {
         if (!contentWidth.HasValue) return;
-        W.TableWidth? sourceWidth = table._tableProperties?.TableWidth;
+        OfficeXmlNode sourceWidth = table.PropertiesNode().WChild("tblW");
         if (!GetNativeTablePreferredWidth(sourceWidth, contentWidth).HasValue) sourceWidth = defaults.PreferredWidth;
-        if (sourceWidth == null || ResolveNativeTablePreferredWidthType(sourceWidth) != W.TableWidthUnitValues.Pct) return;
+        if (sourceWidth.IsNone || ResolveNativeTablePreferredWidthType(sourceWidth) != "pct") return;
         double? percent = GetNativeTablePreferredWidthPercent(sourceWidth);
         if (!percent.HasValue) return;
 
@@ -48,13 +48,13 @@ public static partial class WordPdfConverterExtensions {
         PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults) {
         if (UsesModernNativeWordLayout(table.Document) ||
             MapNativeTableAlignment(ResolveNativeTableAlignment(table, defaults)) != global::OfficeIMO.OfficeAlignment.Left ||
-            GetNativeTableLeftIndent(table._tableProperties?.TableIndentation).HasValue || defaults.LeftIndent.HasValue)
+            GetNativeTableLeftIndent(table.PropertiesNode().WChild("tblInd")).HasValue || defaults.LeftIndent.HasValue)
             return;
 
-        W.TableWidth? sourceWidth = table._tableProperties?.TableWidth;
-        if (ResolveNativeTablePreferredWidthType(sourceWidth) != W.TableWidthUnitValues.Pct)
+        OfficeXmlNode sourceWidth = table.PropertiesNode().WChild("tblW");
+        if (ResolveNativeTablePreferredWidthType(sourceWidth) != "pct")
             sourceWidth = defaults.PreferredWidth;
-        if (sourceWidth == null || ResolveNativeTablePreferredWidthType(sourceWidth) != W.TableWidthUnitValues.Pct ||
+        if (sourceWidth.IsNone || ResolveNativeTablePreferredWidthType(sourceWidth) != "pct" ||
             !GetNativeTablePreferredWidthPercent(sourceWidth).HasValue) return;
 
         NativeStyleLookupCache? styles = GetNativeStyleLookupCache(table.Document);

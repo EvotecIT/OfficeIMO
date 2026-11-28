@@ -340,14 +340,16 @@ public static partial class PowerPointPdfConverterExtensions {
     private static void RegisterPresentationTextBoxFonts(PptCore.PowerPointTextBox textBox, int slideNumber, PdfCore.PdfCreateOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfExportOptions options) {
         foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
             var paragraphStyle = PptCore.PowerPointEffectiveRunStyleResolver.ResolveParagraph(
-                paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle);
+                paragraph, PptCore.PowerPointEffectiveRunStyleResolver.TextBoxListStyle(textBox),
+                PptCore.PowerPointEffectiveRunStyleResolver.TextBoxMasterStyle(textBox));
             RegisterPresentationFontCandidate(paragraphStyle.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
             foreach (PptCore.PowerPointParagraphInline inline in paragraph.InlineNodes) {
                 if (inline.Run is not { } run || string.IsNullOrEmpty(inline.Text)) continue;
                 // Measurement and painting resolve inherited and script-specific faces,
                 // including fields. Register those same families before creating the PDF measurer.
                 foreach (PptCore.PowerPointEffectiveTextSegment segment in PptCore.PowerPointEffectiveRunStyleResolver.ResolveSegments(
-                    run, paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle)) {
+                    run, paragraph, PptCore.PowerPointEffectiveRunStyleResolver.TextBoxListStyle(textBox),
+                    PptCore.PowerPointEffectiveRunStyleResolver.TextBoxMasterStyle(textBox))) {
                     RegisterPresentationFontCandidate(segment.Style.FontName ?? textBox.FontFamily
                         ?? PptCore.PowerPointTextDefaults.ResolveBodyLatinFont(textBox.OwnerSlide),
                         pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
@@ -362,7 +364,7 @@ public static partial class PowerPointPdfConverterExtensions {
             options.CancellationToken.ThrowIfCancellationRequested();
             PptCore.PowerPointTableCell cell = anchor.Cell;
             RegisterPresentationFontCandidate(PptCore.PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                cell.FontFamily, cell.SlidePart ?? cell.OwnerPart), pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
+                cell.FontFamily, cell.SlidePartRef.IsNone ? cell.OwnerPartRef : cell.SlidePartRef), pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
             IReadOnlyList<A.TextCharacterPropertiesType> defaults = options.PdfOptions?.HasExplicitDefaultTableStyle == true
                 ? Array.Empty<A.TextCharacterPropertiesType>() : CreateTableTextDefaults(table, anchor.Row, anchor.Column);
             RegisterPresentationTableCellRunFonts(cell, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options, defaults);

@@ -138,6 +138,124 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_RemoveHiddenData_KeepsAiCreatorToolWithProvenanceAndStripsOtherXmp() {
+            string filePath = Path.Combine(_directoryWithFiles, "HiddenData.AiCreatorTool.docx");
+            string imagePath = Path.Combine(_directoryWithFiles, "ai-creator-tool.jpg");
+            byte[] source = File.ReadAllBytes(Path.Combine(_directoryWithImages, "Kulek.jpg"));
+            OfficeImageMetadata tagged = OfficeImageMetadata.Read(source);
+            tagged.XmpProfile = Encoding.UTF8.GetBytes(
+                "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
+                "<rdf:Description rdf:about=\"\" xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmp:CreatorTool=\"Midjourney\">" +
+                "<dc:creator>Private Person</dc:creator></rdf:Description></rdf:RDF></x:xmpmeta>");
+            File.WriteAllBytes(imagePath, OfficeImageMetadata.Apply(source, tagged));
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph().AddImage(imagePath);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                OfficeHiddenDataFinding declaration = Assert.Single(document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.Provenance));
+                Assert.Equal(OfficeProvenanceCarrierKind.AiGeneratorMetadata, declaration.Provenance!.Carrier);
+                Assert.Equal("Midjourney", declaration.Value);
+
+                OfficeHiddenDataReport removed = document.RemoveHiddenData();
+                Assert.Equal(OfficeHiddenDataOutcome.Removed, Assert.Single(removed.GetFindings(OfficeHiddenDataKind.ImageMetadata)).Outcome);
+                Assert.Equal(OfficeHiddenDataOutcome.Retained, Assert.Single(removed.GetFindings(OfficeHiddenDataKind.Provenance)).Outcome);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                string image = Encoding.UTF8.GetString(document.Images.Single().ToBytes());
+                Assert.DoesNotContain("Private Person", image);
+                Assert.Empty(document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.ImageMetadata));
+
+                OfficeHiddenDataReport removed = document.RemoveHiddenData(new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.Provenance });
+                Assert.Equal(OfficeHiddenDataOutcome.Removed, Assert.Single(removed.GetFindings(OfficeHiddenDataKind.Provenance)).Outcome);
+                document.Save();
+            }
+
+            Assert.Empty(WordDocument.InspectProvenance(filePath).Evidence);
+        }
+
+        [Fact]
+        public void Test_RemoveHiddenData_KeepsAiExifSoftwareWithProvenanceAndRemovesItOnRequest() {
+            string filePath = Path.Combine(_directoryWithFiles, "HiddenData.AiExifSoftware.docx");
+            string imagePath = Path.Combine(_directoryWithFiles, "ai-exif-software.jpg");
+            byte[] source = File.ReadAllBytes(Path.Combine(_directoryWithImages, "Kulek.jpg"));
+            OfficeImageMetadata tagged = OfficeImageMetadata.Read(source);
+            tagged.SetExifValue(OfficeExifTag.Software, "DALL-E 3 for /Users/private/client");
+            File.WriteAllBytes(imagePath, OfficeImageMetadata.Apply(source, tagged));
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph().AddImage(imagePath);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                OfficeHiddenDataFinding declaration = Assert.Single(document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.Provenance));
+                Assert.Equal("DALL-E", declaration.Value);
+
+                OfficeHiddenDataReport removed = document.RemoveHiddenData();
+                Assert.Equal(OfficeHiddenDataOutcome.Removed, Assert.Single(removed.GetFindings(OfficeHiddenDataKind.ImageMetadata)).Outcome);
+                Assert.Equal(OfficeHiddenDataOutcome.Retained, Assert.Single(removed.GetFindings(OfficeHiddenDataKind.Provenance)).Outcome);
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                OfficeImageMetadata kept = OfficeImageMetadata.Read(document.Images.Single().ToBytes());
+                Assert.Equal("DALL-E", kept.GetExifValue(OfficeExifTag.Software)?.Value);
+                Assert.Null(kept.GetExifValue(OfficeExifTag.Artist));
+                Assert.Empty(document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.ImageMetadata));
+
+                OfficeHiddenDataReport removed = document.RemoveHiddenData(new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.Provenance });
+                Assert.Equal(OfficeHiddenDataOutcome.Removed, Assert.Single(removed.GetFindings(OfficeHiddenDataKind.Provenance)).Outcome);
+                document.Save();
+            }
+
+            Assert.Empty(WordDocument.InspectProvenance(filePath).Evidence);
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                byte[] cleaned = document.Images.Single().ToBytes();
+                Assert.Null(OfficeImageMetadata.Read(cleaned).GetExifValue(OfficeExifTag.Software));
+                Assert.Equal(JpegScanData(source), JpegScanData(cleaned));
+            }
+        }
+
+        [Fact]
+        public void Test_RemoveHiddenData_RemovesAiGeneratorSettingsOnlyWhenProvenanceIsSelected() {
+            string filePath = Path.Combine(_directoryWithFiles, "HiddenData.AiGeneratorSettings.docx");
+            string imagePath = Path.Combine(_directoryWithFiles, "ai-parameters.png");
+            byte[] source = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+            byte[] text = Encoding.ASCII.GetBytes("parameters\0harbour at dusk, Steps: 30, Seed: 42");
+            byte[] chunk = new byte[text.Length + 12];
+            chunk[0] = (byte)(text.Length >> 24); chunk[1] = (byte)(text.Length >> 16); chunk[2] = (byte)(text.Length >> 8); chunk[3] = (byte)text.Length;
+            Encoding.ASCII.GetBytes("tEXt").CopyTo(chunk, 4);
+            text.CopyTo(chunk, 8);
+            uint crc = OfficePngCrc32.Compute(chunk, 4, text.Length + 4);
+            int crcOffset = chunk.Length - 4;
+            chunk[crcOffset] = (byte)(crc >> 24); chunk[crcOffset + 1] = (byte)(crc >> 16); chunk[crcOffset + 2] = (byte)(crc >> 8); chunk[crcOffset + 3] = (byte)crc;
+            File.WriteAllBytes(imagePath, Join(source.Take(33).ToArray(), chunk, source.Skip(33).ToArray()));
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(40));
+                document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                OfficeHiddenDataFinding settings = Assert.Single(document.InspectHiddenData().GetFindings(OfficeHiddenDataKind.Provenance));
+                Assert.Equal(OfficeProvenanceCarrierKind.AiGeneratorMetadata, settings.Provenance!.Carrier);
+                Assert.Equal("parameters", settings.Value);
+
+                Assert.Equal(OfficeHiddenDataOutcome.Retained, Assert.Single(document.RemoveHiddenData().GetFindings(OfficeHiddenDataKind.Provenance)).Outcome);
+                OfficeHiddenDataReport removed = document.RemoveHiddenData(new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.Provenance });
+                Assert.Equal(OfficeHiddenDataOutcome.Removed, Assert.Single(removed.GetFindings(OfficeHiddenDataKind.Provenance)).Outcome);
+                document.Save();
+            }
+
+            Assert.Empty(WordDocument.InspectProvenance(filePath).Evidence);
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal(source, document.Images.Single().ToBytes());
+            }
+        }
+
+        [Fact]
         public void Test_RemoveHiddenData_LeavesContentCredentialsIntactUnlessProvenanceIsSelected() {
             string filePath = Path.Combine(_directoryWithFiles, "HiddenData.ContentCredentials.docx");
             string imagePath = Path.Combine(_directoryWithFiles, "c2pa-gps.jpg");

@@ -1,12 +1,10 @@
-using DocumentFormat.OpenXml;
-using W = DocumentFormat.OpenXml.Wordprocessing;
-
 namespace OfficeIMO.Word.Pdf {
+
     public static partial class WordPdfConverterExtensions {
         private static bool IsNativeHiddenImageContent(WordImage image, WordParagraph paragraph) {
-            W.Run? sourceRun = image.OccurrenceElement.Ancestors<W.Run>().FirstOrDefault();
-            return IsNativeHiddenTextRun(sourceRun == null ? paragraph :
-                new WordParagraph(paragraph._document, paragraph._paragraph!, sourceRun), paragraph);
+            OfficeXmlNode sourceRun = image.OccurrenceNode().Ancestor(WordXml.W, "r");
+            return IsNativeHiddenTextRun(sourceRun.IsNone ? paragraph :
+                paragraph._document.RunView(paragraph.Node(), sourceRun), paragraph);
         }
 
         private static void AppendNativeVisibleRunContent(List<WordParagraph> runs, WordParagraph source) {
@@ -18,9 +16,9 @@ namespace OfficeIMO.Word.Pdf {
             // A Word run can contain both text and drawings. Consumers that
             // dispatch image runs must see each in its original position,
             // without discarding the text sharing the source run.
-            var pendingText = new List<OpenXmlElement>();
-            foreach (OpenXmlElement child in source.EnumerateEffectiveRunContent()) {
-                if (child is W.RunProperties) continue;
+            var pendingText = new List<OfficeXmlNode>();
+            foreach (OfficeXmlNode child in source.EffectiveRunContentNodes()) {
+                if (child.IsW("rPr")) continue;
                 WordParagraph view = CreateNativeRunContentView(source, new[] { child });
                 if (!view.IsImage) {
                     pendingText.Add(child);
@@ -36,17 +34,14 @@ namespace OfficeIMO.Word.Pdf {
                 runs.Add(CreateNativeRunContentView(source, pendingText));
         }
 
-        private static WordParagraph CreateNativeRunContentView(WordParagraph source, IReadOnlyList<OpenXmlElement> children) {
-            var visible = new W.Run();
+        private static WordParagraph CreateNativeRunContentView(WordParagraph source, IReadOnlyList<OfficeXmlNode> children) {
+            OfficeXmlNode paragraph = source.Node();
+            OfficeXmlNode visible = paragraph.CreateElement(WordXml.W, "r");
             // Formatting is resolved against the original run. Keep the projected
             // children aligned with their source identities for positioned media.
-            foreach (OpenXmlElement child in children)
-                visible.Append(child.CloneNode(true));
-            return new WordParagraph(source._document, source._paragraph!, source._run!) {
-                _hyperlink = source._hyperlink,
-                _visibleRun = visible,
-                _visibleRunSourceChildren = children
-            };
+            foreach (OfficeXmlNode child in children)
+                visible.Append(child.Clone());
+            return source._document.RunView(paragraph, source.RunNode(), source.HyperlinkNode(), visible, children);
         }
     }
 }

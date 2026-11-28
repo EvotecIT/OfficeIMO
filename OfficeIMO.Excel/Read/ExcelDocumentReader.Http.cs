@@ -18,8 +18,8 @@ namespace OfficeIMO.Excel {
             return OpenFromBytes(
                 bytes,
                 effectiveOptions,
-                normalizeContentTypes: false,
-                contextMessage: $"Failed to open remote workbook '{uri}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
+                normalize: false,
+                context: $"remote workbook '{uri}'");
         }
     }
 }

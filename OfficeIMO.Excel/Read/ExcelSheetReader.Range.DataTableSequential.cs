@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -95,11 +93,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                if (row.RowIndex == null) {
-                    return false;
-                }
-
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = row.Index;
                 if (rowIndex < r1) {
                     continue;
                 }
@@ -160,15 +154,15 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            void FillHeaderValues(Row row, int firstColumn, int lastColumn, int columnCount, object?[] headers, CancellationToken token, ref int visitedCells) {
+            void FillHeaderValues(ReaderRow row, int firstColumn, int lastColumn, int columnCount, object?[] headers, CancellationToken token, ref int visitedCells) {
                 bool rowCanCancel = token.CanBeCanceled;
                 int nextDomColumnIndex = 1;
-                foreach (var cell in row.Elements<Cell>()) {
+                foreach (var cell in row.Cells()) {
                     if (rowCanCancel && (++visitedCells & 1023) == 0) {
                         token.ThrowIfCancellationRequested();
                     }
 
-                    int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    int columnIndex = cell.GetColumnIndex(ref nextDomColumnIndex);
                     if (columnIndex < firstColumn || columnIndex > lastColumn) {
                         continue;
                     }
@@ -184,15 +178,15 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            void FillDataRow(Row row, int firstColumn, int lastColumn, int columnCount, DataRow dataRow, CancellationToken token, ref int visitedCells) {
+            void FillDataRow(ReaderRow row, int firstColumn, int lastColumn, int columnCount, DataRow dataRow, CancellationToken token, ref int visitedCells) {
                 bool rowCanCancel = token.CanBeCanceled;
                 int nextDomColumnIndex = 1;
-                foreach (var cell in row.Elements<Cell>()) {
+                foreach (var cell in row.Cells()) {
                     if (rowCanCancel && (++visitedCells & 1023) == 0) {
                         token.ThrowIfCancellationRequested();
                     }
 
-                    int columnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextDomColumnIndex);
+                    int columnIndex = cell.GetColumnIndex(ref nextDomColumnIndex);
                     if (columnIndex < firstColumn || columnIndex > lastColumn) {
                         continue;
                     }

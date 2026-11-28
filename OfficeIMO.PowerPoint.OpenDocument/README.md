@@ -41,14 +41,14 @@ IReadOnlyList<OfficeImageExportResult> images = source.ToImages(options);
 OfficeConversionReport saved = await source.SaveAsImagesAsync("pages", options);
 ```
 
-See the [shared image options, selection and diagnostics](../Docs/officeimo.image-export.md).
+See the [shared image options, selection and diagnostics](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.image-export.md).
 
 ## Dependency footprint
 
 - **External:** None.
 - **OfficeIMO:** `OfficeIMO.PowerPoint` and `OfficeIMO.OpenDocument`; the adapter owns feature mapping and fidelity reports.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
