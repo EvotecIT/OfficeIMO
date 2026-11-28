@@ -381,7 +381,7 @@ internal sealed class DbxSalvage {
             try {
                 using FileStream spill = _output.CreateSpill(".eml", deleteOnClose: false);
                 spillPath = spill.Name;
-                chain = CopyChain(firstFragment, spill, carving: isChain);
+                chain = CopyChain(firstFragment, spill, carving: isChain, declared);
             } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
                 diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_SALVAGE_ITEM_WRITE_FAILED", exception.Message,
                     EmailStoreDiagnosticSeverity.Error, id));
@@ -467,7 +467,12 @@ internal sealed class DbxSalvage {
         }
     }
 
-    private ChainResult CopyChain(uint first, Stream output, bool carving) {
+    /// <summary>
+    /// Copies a fragment chain. A carved chain stops before any fragment that opens with message headers; a
+    /// record's chain stops there only once it holds the size the record declares, because headers inside a
+    /// message (a forwarded one, say) can begin a fragment too.
+    /// </summary>
+    private ChainResult CopyChain(uint first, Stream output, bool carving, long? declared) {
         var seen = new HashSet<uint>();
         var header = new byte[FragmentHeaderLength];
         var buffer = new byte[MaximumFragmentAllocation];
@@ -511,7 +516,8 @@ internal sealed class DbxSalvage {
             uint next = UInt32(header, 12);
             if (next == 0) return new ChainResult(bytes, null, null, null, address);
             if (!seen.Contains(next) && (_bodyHeads.Contains(next) || _consumedFragments.Contains(next) ||
-                                         (carving && _messageStarts.Contains(next))))
+                                         ((carving || (declared.HasValue && bytes >= declared.Value)) &&
+                                          _messageStarts.Contains(next))))
                 return ChainResult.Damaged(bytes, next, "EMAIL_STORE_DBX_SALVAGE_FRAGMENT_CONFLICT",
                     "A message fragment links into another message's fragments, so the chain stops before them.");
             address = next;

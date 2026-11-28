@@ -49,6 +49,8 @@ internal sealed class OlmStoreSessionBackend : IEmailStoreSessionBackend {
     public IReadOnlyList<EmailStoreFolderInfo> Folders { get; }
     public IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _reader.Diagnostics;
 
+    internal IReadOnlyList<EmailStoreDiagnostic> IsolatedFailures => _reader.IsolatedFailures;
+
     public IEnumerable<EmailStoreItemReference> EnumerateItems(EmailStoreEnumerationOptions options,
         CancellationToken cancellationToken) {
         HashSet<string>? scope = null;

@@ -24,6 +24,7 @@ internal sealed class OlmSalvage {
     private const int MaximumEntryNameBytes = MaximumEntryPathLength * 4;
     // Bounds the entry names held at once while the archive is cataloged.
     private const long MaximumRetainedNameBytes = 128L * 1024 * 1024;
+    private const long DescriptorSearchAllowance = 1024 * 1024;
     private const int LocalHeaderLength = 30;
     private const int SearchBufferLength = 1 << 16;
     private const string ItemPrefix = "olm:item:";
@@ -46,10 +47,16 @@ internal sealed class OlmSalvage {
     private int _itemsAdmitted;
     private long _rebuiltBytes;
     private long _largestRebuiltEntry;
-    private readonly HashSet<string> _admittedXml = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private long _largestRepairedXml;
+    private readonly HashSet<string> _recoveredPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private bool _stoppedAtLimit;
     private bool _discoveryCompleted = true;
     private long _retainedNameBytes;
+    // Bytes the data-descriptor search may examine across the whole scan. An intact archive needs about one pass
+    // over its unsized entries' data, and each entry whose descriptor is lost costs up to two passes over the rest
+    // of the file; the bound keeps many such entries from rescanning the file each time.
+    private long _descriptorSearchBudget;
+    private bool _descriptorSearchExhausted;
 
     internal OlmSalvage(Stream source, string? sourceName, EmailStoreSalvageOptions options,
         EmailStoreSalvageWriter output, CancellationToken cancellationToken) {
@@ -59,6 +66,7 @@ internal sealed class OlmSalvage {
         _output = output;
         _cancellationToken = cancellationToken;
         _length = source.Length;
+        _descriptorSearchBudget = 4 * _length + DescriptorSearchAllowance;
         string baseName = string.IsNullOrWhiteSpace(sourceName)
             ? "Archive" : Path.GetFileNameWithoutExtension(sourceName) ?? "Archive";
         _archiveName = (baseName.Length == 0 ? "Archive" : baseName) + ".olm";
@@ -100,13 +108,7 @@ internal sealed class OlmSalvage {
                     : "The ZIP central directory is missing or damaged (" + (scan.Error ?? "unreadable") + ").") +
                 " Entries are recovered from their local headers.",
                 EmailStoreDiagnosticSeverity.Warning, null);
-            return null;
-        }
-        if (records.NamesExceeded) {
-            Add("EMAIL_STORE_OLM_SALVAGE_DIRECTORY_LIMIT",
-                "The central directory's entry names exceed the recovery metadata bound; later entries were not recovered.",
-                EmailStoreDiagnosticSeverity.Warning, null);
-            _stoppedAtLimit = true;
+            return DiscardDirectory();
         }
         var entries = new List<ZipEntry>(records.Count);
         var header = new byte[LocalHeaderLength];
@@ -120,13 +122,25 @@ internal sealed class OlmSalvage {
                 Add("EMAIL_STORE_OLM_SALVAGE_DIRECTORY_INCONSISTENT",
                     "The central directory points at a missing or different local entry header. Entries are recovered from their local headers.",
                     EmailStoreDiagnosticSeverity.Warning, record.LocalHeaderOffset);
-                return null;
+                return DiscardDirectory();
             }
             entries.Add(new ZipEntry(record.Name, record.Flags, record.CompressionMethod,
                 record.Crc32, record.CompressedSize, record.UncompressedSize, record.LocalHeaderOffset, dataOffset: null,
                 nameTooLong: record.NameTooLong));
         }
+        if (records.NamesExceeded) {
+            Add("EMAIL_STORE_OLM_SALVAGE_DIRECTORY_LIMIT",
+                "The central directory's entry names exceed the recovery metadata bound; later entries were not recovered.",
+                EmailStoreDiagnosticSeverity.Warning, null);
+            _stoppedAtLimit = true;
+        }
         return entries;
+    }
+
+    /// <summary>Drops a directory that will not be used, so the local scan starts with the full name allowance.</summary>
+    private List<ZipEntry>? DiscardDirectory() {
+        _retainedNameBytes = 0;
+        return null;
     }
 
     /// <summary>Whether the local header at a directory record's offset carries the same name.</summary>
@@ -393,10 +407,11 @@ internal sealed class OlmSalvage {
             return;
         }
 
-        if (isXml && _admittedXml.Contains(normalized)) {
+        if (_recoveredPaths.Contains(normalized)) {
             // The reader keeps the first copy of a path, so a later copy is skipped before it costs any decoding.
+            // A directory that repeats one record many times therefore decodes that entry once.
             Add("EMAIL_STORE_OLM_DUPLICATE_ENTRY",
-                "A later copy of an XML entry that was already recovered was ignored, as the OLM reader would ignore it.",
+                "A later copy of an entry that was already recovered was ignored, as the OLM reader would ignore it.",
                 EmailStoreDiagnosticSeverity.Warning, entry.LocalHeaderOffset, normalized);
             return;
         }
@@ -438,6 +453,7 @@ internal sealed class OlmSalvage {
             using Stream output = target.Open();
             CopyVerified(input, output, decoded, entry.Crc);
             TrackRebuilt(decoded);
+            if (!isXml) _recoveredPaths.Add(normalized);
             return;
         }
 
@@ -477,7 +493,7 @@ internal sealed class OlmSalvage {
 
     /// <summary>Records that this copy of an XML path supplies the recovered records, including its offset.</summary>
     private void Admit(string normalized, ZipEntry entry) {
-        _admittedXml.Add(normalized);
+        _recoveredPaths.Add(normalized);
         _entryOffsets[normalized] = entry.LocalHeaderOffset;
     }
 
@@ -489,6 +505,9 @@ internal sealed class OlmSalvage {
 
     private void WriteSpill(ZipArchive archive, string name, FileStream spill) {
         TrackRebuilt(spill.Length);
+        // Re-serialized XML can escape characters the source left bare, so a record read within the XML character
+        // bound may be a little longer once written. UTF-8 has at least one byte per character.
+        if (spill.Length > _largestRepairedXml) _largestRepairedXml = spill.Length;
         ZipArchiveEntry target = archive.CreateEntry(name, CompressionLevel.NoCompression);
         spill.Position = 0;
         using Stream output = target.Open();
@@ -681,12 +700,14 @@ internal sealed class OlmSalvage {
         try {
             // The source-length and archive bounds were enforced on the original input. The rebuilt archive is
             // stored uncompressed, and re-serialized XML can be a few bytes longer than its source entry, so it is
-            // opened with bounds that cover exactly what was written; every other limit is unchanged. One item
+            // opened with archive and XML character bounds that cover exactly what was written; every other limit
+            // is unchanged. One item
             // that cannot be projected is reported on its own instead of failing the catalog.
             EmailStoreReaderOptions rebuiltLimits = _limits.WithArchiveLimits(
                 Math.Max(_limits.MaxInputBytes, rebuilt.Length),
                 Math.Max(_limits.MaxArchiveEntryBytes, _largestRebuiltEntry),
-                Math.Max(_limits.MaxArchiveDecodedBytes, _rebuiltBytes));
+                Math.Max(_limits.MaxArchiveDecodedBytes, _rebuiltBytes),
+                Math.Max(_limits.MaxXmlCharactersPerItem, _largestRepairedXml));
             // The rebuilt archive is a private spill nobody else writes, so it is opened as a snapshot: each item
             // read does not re-hash the whole spill. The original input was checked while it was copied.
             backend = new OlmStoreSessionBackend(rebuilt, _archiveName, rebuiltLimits, _cancellationToken,
@@ -702,7 +723,9 @@ internal sealed class OlmSalvage {
         using (backend) {
             var outcomes = new List<Outcome>(_failures.Count);
             foreach (EmailStoreSalvageEntry failure in _failures) outcomes.Add(new Outcome(failure.SourceOffset, -1, failure, null));
-            foreach (EmailStoreDiagnostic diagnostic in backend.Diagnostics) {
+            // Isolated failures come from their own list, so every skipped entry and record keeps its row even
+            // when the reader's diagnostic catalog has filled up.
+            foreach (EmailStoreDiagnostic diagnostic in backend.IsolatedFailures) {
                 if (diagnostic.Code == "EMAIL_STORE_OLM_XML_INVALID" && diagnostic.Location != null &&
                     OlmStoreReader.TryNormalizeArchivePath(diagnostic.Location, out string entryPath)) {
                     long? offset = EntryOffset(entryPath);
@@ -716,8 +739,14 @@ internal sealed class OlmSalvage {
                     outcomes.Add(new Outcome(offset, index, new EmailStoreSalvageEntry(ItemPrefix + location,
                         EmailStoreSalvageStatus.NotRecovered, location, offset, 0, null, null, offset, diagnostic.Code,
                         null, null, null, 0, new[] { diagnostic }), null));
-                } else if (diagnostic.Code != "EMAIL_STORE_OLM_ATTACHMENT_MISSING" &&
-                           diagnostic.Code != "EMAIL_STORE_OLM_ATTACHMENT_PATH_MISSING") {
+                } else {
+                    _diagnostics.Add(diagnostic);
+                }
+            }
+            foreach (EmailStoreDiagnostic diagnostic in backend.Diagnostics) {
+                if (diagnostic.Code != "EMAIL_STORE_OLM_XML_INVALID" && diagnostic.Code != "EMAIL_STORE_OLM_ITEM_UNREADABLE" &&
+                    diagnostic.Code != "EMAIL_STORE_OLM_ATTACHMENT_MISSING" &&
+                    diagnostic.Code != "EMAIL_STORE_OLM_ATTACHMENT_PATH_MISSING") {
                     _diagnostics.Add(diagnostic);
                 }
             }
@@ -909,30 +938,40 @@ internal sealed class OlmSalvage {
     /// </summary>
     private bool TryFindDataDescriptor(long dataOffset, bool zip64, out uint crc, out long compressed,
         out long expanded, out long end) {
+        // The EOF layout costs a few bytes, so it is tried even after the search budget runs out.
+        bool atEnd = TryDescriptorEndingAt(dataOffset, _length, zip64, out uint endCrc, out long endCompressed,
+            out long endExpanded);
+        long limit = Math.Min(_length, dataOffset + Math.Max(0, _descriptorSearchBudget));
         long search = dataOffset;
         while (true) {
-            long header = FindHeader(search);
+            long header = FindHeader(search, limit);
             if (header < 0) break;
             if (TryDescriptorEndingAt(dataOffset, header, zip64, out crc, out compressed, out expanded)) {
+                ChargeDescriptorSearch(header + 4 - dataOffset);
                 end = header;
                 return true;
             }
             search = header + 1;
         }
-        if (TryDescriptorEndingAt(dataOffset, _length, zip64, out crc, out compressed, out expanded)) {
+        if (atEnd) {
+            ChargeDescriptorSearch(limit - dataOffset);
+            crc = endCrc;
+            compressed = endCompressed;
+            expanded = endExpanded;
             end = _length;
             return true;
         }
         search = dataOffset;
         var descriptor = new byte[24];
         while (true) {
-            long candidate = FindSignature(search, DataDescriptorSignature);
+            long candidate = FindSignature(search, DataDescriptorSignature, limit);
             if (candidate < 0) break;
             int read = ReadAvailable(candidate, descriptor, descriptor.Length);
             long distance = candidate - dataOffset;
             foreach (bool wide in zip64 ? new[] { true, false } : new[] { false, true }) {
                 int length = wide ? 24 : 16;
                 if (read < length || ReadSize(descriptor, 8, wide) != distance) continue;
+                ChargeDescriptorSearch(limit - dataOffset + candidate + 4 - dataOffset);
                 crc = UInt32(descriptor, 4);
                 compressed = distance;
                 expanded = ReadSize(descriptor, wide ? 16 : 12, wide);
@@ -941,10 +980,21 @@ internal sealed class OlmSalvage {
             }
             search = candidate + 1;
         }
+        ChargeDescriptorSearch(2 * (limit - dataOffset));
+        if (limit < _length && !_descriptorSearchExhausted) {
+            _descriptorSearchExhausted = true;
+            _stoppedAtLimit = true;
+            Add("EMAIL_STORE_OLM_SALVAGE_SEARCH_LIMIT",
+                "The archive has more entries without recorded sizes than recovery can search for data descriptors; " +
+                "later entries without a descriptor in reach cannot be verified.",
+                EmailStoreDiagnosticSeverity.Warning, dataOffset);
+        }
         crc = 0;
         compressed = expanded = end = 0;
         return false;
     }
+
+    private void ChargeDescriptorSearch(long bytes) => _descriptorSearchBudget -= Math.Max(0, bytes);
 
     private bool TryDescriptorEndingAt(long dataOffset, long end, bool zip64, out uint crc, out long compressed,
         out long expanded) {
@@ -971,18 +1021,18 @@ internal sealed class OlmSalvage {
     private static long ReadSize(byte[] bytes, int offset, bool wide) =>
         wide ? (long)BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(offset, 8)) : UInt32(bytes, offset);
 
-    private long FindHeader(long start) {
+    private long FindHeader(long start, long limit) {
         var buffer = new byte[SearchBufferLength];
         long position = start;
-        while (position + 4 <= _length) {
+        while (position + 4 <= limit) {
             _cancellationToken.ThrowIfCancellationRequested();
-            int read = ReadFull(position, buffer);
+            int read = ReadFull(position, buffer, limit);
             for (int index = 0; index + 4 <= read; index++) {
                 uint value = UInt32(buffer, index);
                 if (value == LocalHeaderSignature || value == CentralHeaderSignature ||
                     value == EndOfCentralDirectorySignature) return position + index;
             }
-            if (position + read >= _length) break;
+            if (position + read >= limit) break;
             position += read - 3;
         }
         return -1;
@@ -997,15 +1047,16 @@ internal sealed class OlmSalvage {
         return false;
     }
 
-    private long FindSignature(long start, uint signature) {
+    private long FindSignature(long start, uint signature, long limit = -1) {
+        if (limit < 0) limit = _length;
         var buffer = new byte[SearchBufferLength];
         long position = start;
-        while (position + 4 <= _length) {
+        while (position + 4 <= limit) {
             _cancellationToken.ThrowIfCancellationRequested();
-            int read = ReadFull(position, buffer);
+            int read = ReadFull(position, buffer, limit);
             for (int index = 0; index + 4 <= read; index++)
                 if (UInt32(buffer, index) == signature) return position + index;
-            if (position + read >= _length) break;
+            if (position + read >= limit) break;
             position += read - 3;
         }
         return -1;
@@ -1034,8 +1085,8 @@ internal sealed class OlmSalvage {
     private static string DecodeName(byte[] bytes) => Encoding.UTF8.GetString(bytes);
 
     /// <summary>Reads a search window; a short read means the source shrank, which would stall the search.</summary>
-    private int ReadFull(long position, byte[] buffer) {
-        int expected = (int)Math.Min(buffer.Length, _length - position);
+    private int ReadFull(long position, byte[] buffer, long limit) {
+        int expected = (int)Math.Min(buffer.Length, limit - position);
         int read = ReadAvailable(position, buffer, expected);
         if (read != expected) throw new IOException("The OLM source changed length during recovery.");
         return read;

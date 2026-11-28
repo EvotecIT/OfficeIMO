@@ -101,10 +101,13 @@ internal sealed class EmailStoreSalvageWriter {
 
     internal string Root { get; }
 
-    /// <summary>Creates a hidden spill file inside the destination root for raw or rebuilt source data.</summary>
+    /// <summary>
+    /// Creates a hidden spill file inside the destination root for raw or rebuilt source data. It holds mailbox
+    /// content, so only the current user can open it; a committed spill gets the destination's normal permissions.
+    /// </summary>
     internal FileStream CreateSpill(string extension, bool deleteOnClose) {
         string path = Path.Combine(Root, ".officeimo-salvage-" + Guid.NewGuid().ToString("N") + extension);
-        return new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 64 * 1024,
+        return OfficeTemporaryFile.CreateAtPath(path, 64 * 1024,
             deleteOnClose ? FileOptions.DeleteOnClose : FileOptions.None);
     }
 

@@ -11,6 +11,9 @@ internal sealed partial class OlmStoreReader {
     private readonly EmailStoreReaderOptions _options;
     private readonly bool _isolateItemFailures;
     private readonly EmailStoreDiagnosticCollection _diagnostics = new EmailStoreDiagnosticCollection();
+    // Isolated entry and item failures, kept apart from the capped diagnostic catalog so each one still has a
+    // recovery row. Their number is bounded by the entry and item limits.
+    private readonly List<EmailStoreDiagnostic> _isolatedFailures = new List<EmailStoreDiagnostic>();
     private readonly Dictionary<string, EmailStoreFolder> _folders =
         new Dictionary<string, EmailStoreFolder>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ZipArchiveEntry> _entries =
@@ -85,6 +88,14 @@ internal sealed partial class OlmStoreReader {
     }
 
     internal IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
+
+    /// <summary>Entries and items skipped in isolation mode, each one reported even after the diagnostic cap.</summary>
+    internal IReadOnlyList<EmailStoreDiagnostic> IsolatedFailures => _isolatedFailures;
+
+    private void AddFailure(EmailStoreDiagnostic diagnostic) {
+        _diagnostics.Add(diagnostic);
+        if (_isolateItemFailures) _isolatedFailures.Add(diagnostic);
+    }
 
     private static string GetItemElementName(OutlookItemKind kind) => kind switch {
         OutlookItemKind.Appointment => "appointment", OutlookItemKind.Contact => "contact",
@@ -172,13 +183,13 @@ internal sealed partial class OlmStoreReader {
             }
         } catch (EmailStoreLimitExceededException exception) when (_isolateItemFailures &&
                                                                  exception.LimitName != nameof(EmailStoreReaderOptions.MaxItemCount)) {
-            _diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_OLM_XML_INVALID", exception.Message,
+            AddFailure(new EmailStoreDiagnostic("EMAIL_STORE_OLM_XML_INVALID", exception.Message,
                 EmailStoreDiagnosticSeverity.Error, location));
         } catch (EmailStoreLimitExceededException) {
             throw;
         } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException ||
                                              exception is IOException) {
-            _diagnostics.Add(new EmailStoreDiagnostic(
+            AddFailure(new EmailStoreDiagnostic(
                 "EMAIL_STORE_OLM_XML_INVALID",
                 exception.Message,
                 EmailStoreDiagnosticSeverity.Error,
@@ -210,7 +221,7 @@ internal sealed partial class OlmStoreReader {
                                                                          exception is XmlException)) {
                 // A rejected record leaves the archive's attachment allowance as it found it.
                 _totalAttachmentBytes = attachmentBytes;
-                _diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_OLM_ITEM_UNREADABLE", exception.Message,
+                AddFailure(new EmailStoreDiagnostic("EMAIL_STORE_OLM_ITEM_UNREADABLE", exception.Message,
                     EmailStoreDiagnosticSeverity.Error, location));
                 index++;
                 continue;

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Buffers.Binary;
 using System.IO.Compression;
 using OfficeIMO.Drawing;
@@ -406,6 +407,112 @@ public sealed class OlmSalvageTests {
             Assert.All(report.Entries, entry => Assert.Equal(EmailStoreSalvageStatus.Recovered, entry.Status));
         });
     }
+
+    [Fact]
+    public void ReportsEveryRejectedRecordAfterTheDiagnosticCatalogFills() {
+        const int rejected = 10_001;
+        string contacts = "<contacts>" + string.Concat(Enumerable.Repeat("<contact><a/><b/><c/></contact>", rejected)) +
+            "<contact><OPFContactCopyDisplayName>Last</OPFContactCopyDisplayName></contact></contacts>";
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/Contacts/Contacts.xml", contacts).Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxPropertiesPerItem: 2),
+                    maxRecoveredItems: 20_000));
+
+            Assert.Equal(rejected + 1, report.Entries.Count);
+            Assert.Equal(rejected, report.Entries.Count(entry => entry.DamageCode == "EMAIL_STORE_OLM_ITEM_UNREADABLE"));
+            Assert.Equal("olm:item:Local/Contacts/Contacts.xml#" + (rejected - 1), report.Entries[rejected - 1].ItemId);
+            Assert.Equal(EmailStoreSalvageStatus.Recovered, report.Entries[rejected].Status);
+        });
+    }
+
+    [Fact]
+    public void OpensARepairedRecordThatEscapesPastTheXmlCharacterLimit() {
+        // The writer escapes each '>' in text, so the repaired record is longer than the character limit that the
+        // source met; the trailing text after the root forces the repair.
+        string source = "<contacts><contact><OPFContactCopyDisplayName>" + new string('>', 40) +
+            "</OPFContactCopyDisplayName></contact></contacts>x";
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/Contacts/Contacts.xml", source).Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(
+                    maxXmlCharactersPerItem: source.Length)));
+
+            EmailStoreSalvageEntry contact = Assert.Single(report.Entries);
+            Assert.Equal(EmailStoreSalvageStatus.Partial, contact.Status);
+            using EmailReadResult exported = new EmailDocumentReader().ReadDocument(contact.DestinationPath!);
+            Assert.Equal(new string('>', 40), exported.Document.Contact!.DisplayName);
+        });
+    }
+
+    [Fact]
+    public void DecodesARepeatedAttachmentEntryOnce() {
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/Contacts/Contacts.xml", OneContact)
+                .AddText("Local/Attachments/file.bin", "first").AddText("Local/Attachments/file.bin", "second").Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination);
+
+            // Recovery skips the later copy before decoding it, so only one copy reaches the rebuilt archive.
+            EmailStoreDiagnostic duplicate = Assert.Single(report.NativeDiagnostics,
+                diagnostic => diagnostic.Code == "EMAIL_STORE_OLM_DUPLICATE_ENTRY");
+            Assert.Equal("salvage", duplicate.Operation);
+            Assert.Equal("Local/Attachments/file.bin", duplicate.Location);
+            Assert.Equal(EmailStoreSalvageStatus.Recovered, Assert.Single(report.Entries).Status);
+        });
+    }
+
+    [Fact]
+    public void BoundsTheDescriptorSearchForEntriesWithoutSizes() {
+        // Unsized entries whose descriptors are missing would each search the rest of the file.
+        const int entries = 24;
+        var data = new byte[96 * 1024];
+        using var output = new MemoryStream();
+        for (int index = 0; index < entries; index++) {
+            byte[] name = Encoding.ASCII.GetBytes("Local/Attachments/file" + index.ToString("D2", CultureInfo.InvariantCulture) + ".bin");
+            var header = new byte[30 + name.Length];
+            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(0), 0x04034b50);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(4), 20);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(6), 0x0808);
+            BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(26), (ushort)name.Length);
+            name.CopyTo(header, 30);
+            output.Write(header, 0, header.Length);
+            output.Write(data, 0, data.Length);
+        }
+        byte[] archive = output.ToArray();
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination);
+
+            Assert.Single(report.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_OLM_SALVAGE_SEARCH_LIMIT");
+            Assert.True(report.StoppedAtLimit);
+        });
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void CreatesSalvageSpillsOnlyTheCurrentUserCanOpen() {
+        if (OperatingSystem.IsWindows()) return;
+        DbxStoreReaderTests.WithDestination(destination => {
+            Directory.CreateDirectory(destination);
+            var writer = new EmailStoreSalvageWriter(destination, new EmailStoreSalvageOptions(), sourcePath: null);
+            using FileStream spill = writer.CreateSpill(".olm", deleteOnClose: true);
+
+            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(spill.Name));
+        });
+    }
+#endif
 
     private const string OneContact = "<contacts><contact><OPFContactCopyDisplayName>Only</OPFContactCopyDisplayName></contact></contacts>";
 

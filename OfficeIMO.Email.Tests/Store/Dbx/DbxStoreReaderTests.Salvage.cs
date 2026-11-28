@@ -438,6 +438,33 @@ public sealed partial class DbxStoreReaderTests {
         });
     }
 
+    [Fact]
+    public void StopsAnIndexedChainAtItsDeclaredSizeBeforeAnOrphanMessage() {
+        byte[] database = CreateDatabase();
+        int length = 512 + BinaryPrimitives.ReadInt32LittleEndian(database.AsSpan(SecondFragment + 8));
+        byte[] expected = database.AsSpan(FirstFragment + 16, 512).ToArray()
+            .Concat(database.AsSpan(SecondFragment + 16, length - 512).ToArray()).ToArray();
+        // The first record declares its full size; the second record loses its body pointer, and the first
+        // message's last link is damaged so it points at the second message's body.
+        UInt32(database, FirstRecord + 4, 12);
+        database[FirstRecord + 10] = 3;
+        UInt32(database, FirstRecord + 20, (length << 8) | 0x91);
+        database[SecondRecord + 16] = 0x03;
+        UInt32(database, SecondFragment + 12, OtherMessage);
+        WithDestination(destination => {
+            using var input = new MemoryStream(database, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(input, "Inbox.dbx", destination);
+
+            EmailStoreSalvageEntry first = report.Entries[0];
+            Assert.Equal("EMAIL_STORE_DBX_SALVAGE_FRAGMENT_CONFLICT", first.DamageCode);
+            Assert.Equal(OtherMessage, first.DamageOffset);
+            Assert.Equal(expected, File.ReadAllBytes(first.DestinationPath!));
+            EmailStoreSalvageEntry orphan = Assert.Single(report.Entries, entry => entry.ItemId == "dbx:chain:00003720");
+            Assert.Equal(EmailStoreSalvageStatus.Recovered, orphan.Status);
+            Assert.Equal("Subject: Other message\r\n\r\nBody\r\n", File.ReadAllText(orphan.DestinationPath!));
+        });
+    }
+
     internal static string CorpusRoot => Path.Combine(EmailTestRepository.FindRoot(), "OfficeIMO.Email.Tests", "Corpora");
 
     internal static string DamagedFixture(string name) => Path.Combine(CorpusRoot, "damaged-stores", name);
