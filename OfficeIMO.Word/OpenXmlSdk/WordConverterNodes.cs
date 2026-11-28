@@ -484,6 +484,14 @@ internal static class WordConverterNodes {
     internal static List<OfficeXmlNode> EquationChildSequence(OfficeXmlNode paragraph) =>
         ((W.Paragraph)paragraph.SdkElement!).ChildElements.Select(child => Wrap(child)).ToList();
 
+    /// <summary>
+    /// Whether the element is an inline content control as the model types it. The SDK also types a <c>w:sdt</c> under a
+    /// run-level <c>w14:conflictIns</c> or <c>w14:conflictDel</c> as one, which <see cref="OpenXml.WordXml.IsRunContentControl"/>
+    /// leaves out for the PDF converter.
+    /// </summary>
+    internal static bool IsInlineContentControl(OfficeXmlNode element) =>
+        element.SdkElement is { } sdk ? sdk is W.SdtRun : OpenXml.WordXml.IsRunContentControl(element);
+
     /// <summary>Whether the element backs the equation, as <see cref="WordEquation.IsBackingElement"/>.</summary>
     internal static bool IsBackingNode(this WordEquation equation, OfficeXmlNode element) =>
         element.SdkElement is OpenXmlElement sdk && equation.IsBackingElement(sdk);

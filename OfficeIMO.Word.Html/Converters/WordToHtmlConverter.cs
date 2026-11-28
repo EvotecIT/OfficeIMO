@@ -231,34 +231,35 @@ namespace OfficeIMO.Word.Html {
                         return true;
                     }
 
-                    if ((includeAll || artifactElement.IsW("commentReference")) &&
+                    bool commentArtifact = artifactElement.IsW("commentReference") && artifactElement.IsModelElement();
+                    if ((includeAll || commentArtifact) &&
                         TryAppendCommentReference(htmlDoc, run, options, commentsById, comments, commentMap, target,
-                            artifactElement.IsW("commentReference") ? artifactElement : default)) {
+                            commentArtifact ? artifactElement : default)) {
                         return true;
                     }
 
-                    if ((includeAll || artifactElement.IsRunContentControl()) && run.IsCheckBox && run.CheckBox != null) {
+                    if ((includeAll || WordConverterNodes.IsInlineContentControl(artifactElement)) && run.IsCheckBox && run.CheckBox != null) {
                         target.Add(CreateCheckBoxInput(htmlDoc, run.CheckBox));
                         return true;
                     }
 
-                    if ((includeAll || artifactElement.IsRunContentControl()) && run.IsDropDownList && run.DropDownList != null) {
+                    if ((includeAll || WordConverterNodes.IsInlineContentControl(artifactElement)) && run.IsDropDownList && run.DropDownList != null) {
                         target.Add(CreateDropDownListSelect(htmlDoc, run.DropDownList));
                         return true;
                     }
 
-                    if ((includeAll || artifactElement.IsRunContentControl()) && run.IsComboBox && run.ComboBox != null) {
+                    if ((includeAll || WordConverterNodes.IsInlineContentControl(artifactElement)) && run.IsComboBox && run.ComboBox != null) {
                         formListIndex++;
                         target.AddRange(CreateComboBoxNodes(htmlDoc, run.ComboBox, formListIndex));
                         return true;
                     }
 
-                    if ((includeAll || artifactElement.IsRunContentControl()) && run.IsDatePicker && run.DatePicker != null) {
+                    if ((includeAll || WordConverterNodes.IsInlineContentControl(artifactElement)) && run.IsDatePicker && run.DatePicker != null) {
                         target.Add(CreateDatePickerInput(htmlDoc, run.DatePicker));
                         return true;
                     }
 
-                    if ((includeAll || artifactElement.IsRunContentControl()) && run.IsStructuredDocumentTag && run.StructuredDocumentTag != null && !run.IsPictureControl && !run.IsRepeatingSection) {
+                    if ((includeAll || WordConverterNodes.IsInlineContentControl(artifactElement)) && run.IsStructuredDocumentTag && run.StructuredDocumentTag != null && !run.IsPictureControl && !run.IsRepeatingSection) {
                         target.Add(CreateStructuredDocumentTagInput(htmlDoc, run.StructuredDocumentTag));
                         return true;
                     }
@@ -562,8 +563,8 @@ namespace OfficeIMO.Word.Html {
                     OfficeXmlNode selectedRun = run.RunNode();
                     IReadOnlyList<OfficeXmlNode>? visibleRunSourceChildren = run.VisibleRunSourceChildNodes();
                     bool multipleReferences = (visibleRunSourceChildren ?? (selectedRun.Exists ? selectedRun.Elements().ToList() : null))
-                        ?.Count(child =>
-                        child.IsW("footnoteReference") || child.IsW("endnoteReference") || child.IsW("commentReference")) > 1;
+                        ?.Count(child => child.IsModelElement() &&
+                        (child.IsW("footnoteReference") || child.IsW("endnoteReference") || child.IsW("commentReference"))) > 1;
                     if ((run.IsChart || HasExtendedChart(selectedRun) ||
                         selectedRun.DescendantElements(WordXml.C, "chart").Any(WordConverterNodes.IsModelElement) || multipleReferences) && selectedRun.Exists) {
                         foreach (INode expandedNode in CreateExpandedEquationContainerNodes(selectedRun,
@@ -880,7 +881,7 @@ namespace OfficeIMO.Word.Html {
                     run.IsStructuredDocumentTag || run.IsEquation ||
                     (options.ExportFootnotes && run.FootNote != null) ||
                     (options.ExportEndnotes && run.EndNote != null) ||
-                    (options.ExportComments && run.RunNode().WChild("commentReference").Exists))) return false;
+                    (options.ExportComments && run.RunNode().Elements(WordXml.W, "commentReference").Any(WordConverterNodes.IsModelElement)))) return false;
                 if (string.Equals(para.StyleId, "Code", StringComparison.Ordinal) ||
                     string.Equals(para.StyleId, "HTMLPreformatted", StringComparison.Ordinal) ||
                     (para.StyleId?.StartsWith("CodeLang_", StringComparison.Ordinal) ?? false)) {
@@ -905,7 +906,7 @@ namespace OfficeIMO.Word.Html {
                 var text = new StringBuilder();
                 foreach (OfficeXmlNode run in para.Node().ModelDescendants("r")) {
                     if (run.Ancestors().Any(ancestor => ancestor.IsW("del") && ancestor.IsTrackedChangeContainer())) continue;
-                    foreach (OfficeXmlNode child in run.Elements()) {
+                    foreach (OfficeXmlNode child in run.Elements().Where(WordConverterNodes.IsModelElement)) {
                         if (child.IsW("t")) text.Append(child.InnerText);
                         else if (child.IsW("tab")) text.Append('\t');
                         else if (child.IsW("br") && child.WAttr("type") is null or "textWrapping") text.Append('\n');
@@ -944,12 +945,12 @@ namespace OfficeIMO.Word.Html {
                     if (child.IsW("pPr")) {
                         continue;
                     }
-                    if (!child.IsW("r") || child.WChild("rPr").Exists) {
+                    if (!child.IsW("r") || !child.IsModelElement() || child.WChild("rPr").Exists) {
                         return false;
                     }
 
                     foreach (OfficeXmlNode runChild in child.Elements()) {
-                        if (!runChild.IsW("t")) {
+                        if (!runChild.IsW("t") || !runChild.IsModelElement()) {
                             return false;
                         }
 

@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests;
 
 /// <summary>
 /// Word content keeps its HTML export when the markup around it changes without changing what it is: an XML comment
-/// between paragraph children, a reference the package holds untyped, text moved into a selected alternate branch, and
-/// a control wrapped in a run-level conflict mark.
+/// between paragraph children, a reference or text the package holds untyped, text moved into a selected alternate
+/// branch, and a control wrapped in a run-level conflict mark.
 /// </summary>
 public sealed class HtmlWordMarkupPlacementTests {
     private const string WordNamespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
@@ -106,6 +106,48 @@ public sealed class HtmlWordMarkupPlacementTests {
 
         Assert.Equal(expected, actual);
         Assert.Contains("type=\"checkbox\"", actual, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnUntypedCommentReferenceLeavesTheRunTextAndCommentAnchorAlone() {
+        using var document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("Seen text");
+        WordComment comment = paragraph.AddComment("Reviewer", "R", "Remark");
+        var options = new WordHtmlExportOptions { ExportComments = true };
+        string expected = document.ToHtml(options);
+
+        W.Run textRun = paragraph._paragraph.Descendants<W.Run>().First(run => run.InnerText == "Seen text");
+        textRun.AppendChild(UntypedElement(
+            $"<w:commentReference xmlns:w=\"{WordNamespace}\" w:id=\"{comment.Id}\"/>"));
+        string actual = document.ToHtml(options);
+
+        Assert.Equal(expected, actual);
+        Assert.Contains("Seen text", actual, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("HTMLPreformatted")]
+    public void UntypedTextInARunIsNotExported(string? styleId) {
+        using var document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("Shown");
+        if (styleId != null) paragraph.SetStyleId(styleId);
+        string expected = document.ToHtml();
+
+        paragraph._paragraph.Elements<W.Run>().Single().AppendChild(UntypedElement(
+            $"<w:t xmlns:w=\"{WordNamespace}\">Hidden</w:t>"));
+        string actual = document.ToHtml();
+
+        Assert.Equal(expected, actual);
+        Assert.DoesNotContain("Hidden", actual, StringComparison.Ordinal);
+    }
+
+    // Word markup parsed inside an unknown wrapper stays untyped; detached, it keeps that.
+    private static OpenXmlElement UntypedElement(string outerXml) {
+        var wrapper = new OpenXmlUnknownElement("x", "wrapper", "urn:officeimo:tests:vendor") { InnerXml = outerXml };
+        OpenXmlElement element = wrapper.FirstChild!;
+        element.Remove();
+        return element;
     }
 
     private static IEnumerable<W.Run> NoteRuns(WordDocument document, bool footnotes) {
