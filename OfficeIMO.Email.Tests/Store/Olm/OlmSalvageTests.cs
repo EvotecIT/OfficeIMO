@@ -186,6 +186,70 @@ public sealed class OlmSalvageTests {
         });
     }
 
+    private const string TwoContacts = "<contacts><contact><OPFContactCopyDisplayName>First</OPFContactCopyDisplayName></contact>" +
+        "<contact><OPFContactCopyDisplayName>Second</OPFContactCopyDisplayName></contact></contacts>";
+
+    [Fact]
+    public void KeepsTheFirstRecordWhenTheEntryUsesTheWholeDecodedBudget() {
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/Contacts/Contacts.xml", TwoContacts).Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxItemCount: 1,
+                    maxArchiveDecodedBytes: Encoding.UTF8.GetByteCount(TwoContacts))));
+
+            EmailStoreSalvageEntry contact = Assert.Single(report.Entries);
+            Assert.Equal(EmailStoreSalvageStatus.Recovered, contact.Status);
+            Assert.True(report.StoppedAtLimit);
+        });
+    }
+
+    [Fact]
+    public void ChargesFailedXmlRepairsToTheDecodedBudget() {
+        // Each broken entry costs its verification and its failed repair read; the good entry fits only if the
+        // repair reads were free.
+        const string broken = "<contacts><contact>";
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/A/Contacts.xml", broken)
+                .AddText("Local/B/Contacts.xml", broken)
+                .AddText("Local/C/Contacts.xml", TwoContacts)
+                .Build();
+        }
+        long budget = 2L * Encoding.UTF8.GetByteCount(broken) + Encoding.UTF8.GetByteCount(TwoContacts) + 1;
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination,
+                new EmailStoreSalvageOptions(readerOptions: new EmailStoreReaderOptions(maxArchiveDecodedBytes: budget)));
+
+            Assert.DoesNotContain(report.Entries, entry => entry.Kind == OutlookItemKind.Contact);
+            Assert.Contains(report.NativeDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_OLM_SALVAGE_DECODED_LIMIT" && diagnostic.Location == "Local/C/Contacts.xml");
+        });
+    }
+
+    [Fact]
+    public void DoesNotAdmitAnEmptyRootFollowedByMalformedXml() {
+        byte[] archive;
+        using (var builder = new OlmTestArchiveBuilder()) {
+            archive = builder.AddText("Local/Contacts/Contacts.xml", "<contacts/><broken>")
+                .AddText("Local/Contacts/Contacts.xml", TwoContacts)
+                .Build();
+        }
+        DbxStoreReaderTests.WithDestination(destination => {
+            using var input = new MemoryStream(archive, writable: false);
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverOlmToDirectory(input, "archive.olm", destination);
+
+            Assert.Equal(EmailStoreSalvageStatus.NotRecovered, report.Entries[0].Status);
+            Assert.Equal(new[] { OutlookItemKind.Contact, OutlookItemKind.Contact },
+                report.Entries.Skip(1).Select(entry => entry.Kind!.Value));
+            Assert.All(report.Entries.Skip(1), entry => Assert.Equal(EmailStoreSalvageStatus.Recovered, entry.Status));
+        });
+    }
+
     [Fact]
     public void FindsSignaturelessZip64DescriptorsWhenTheDirectoryIsMissing() {
         byte[] source = File.ReadAllBytes(Path.Combine(DbxStoreReaderTests.CorpusRoot, "native-apple-20261003", "outlook",

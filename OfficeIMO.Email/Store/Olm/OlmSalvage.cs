@@ -228,8 +228,9 @@ internal sealed class OlmSalvage {
             if (isXml) {
                 if (count > itemsRemaining) {
                     // Keep the records that fit the source item bound; the rest of the entry is not examined.
-                    if (itemsRemaining > 0 && TryRepairXml(entry, dataOffset, itemsRemaining, out FileStream? subset,
-                            out int kept, out _, out _, out _)) {
+                    // The entry was verified and charged in full, so its subset is bounded by its own size.
+                    if (itemsRemaining > 0 && TryRepairXml(entry, dataOffset, itemsRemaining, entry.ExpandedSize,
+                            out FileStream? subset, out int kept, out _, out _, out _)) {
                         using (subset) WriteSpill(archive, entry.Name, subset!);
                         _itemsAdmitted += kept;
                         Admit(normalized, entry);
@@ -247,10 +248,16 @@ internal sealed class OlmSalvage {
             return;
         }
 
-        if (isXml && itemsRemaining > 0 && _decodedBytes < _limits.MaxArchiveDecodedBytes &&
-            TryRepairXml(entry, dataOffset, itemsRemaining, out FileStream? repaired, out int items, out long consumed,
-                out string? stopReason, out bool limited)) {
-            _decodedBytes += consumed;
+        FileStream? repaired = null;
+        int items = 0;
+        long consumed = 0;
+        string? stopReason = null;
+        bool limited = false;
+        bool repairedAny = isXml && itemsRemaining > 0 && _decodedBytes < _limits.MaxArchiveDecodedBytes &&
+            TryRepairXml(entry, dataOffset, itemsRemaining, _limits.MaxArchiveDecodedBytes - _decodedBytes,
+                out repaired, out items, out consumed, out stopReason, out limited);
+        _decodedBytes += consumed;
+        if (repairedAny) {
             using (repaired) WriteSpill(archive, entry.Name, repaired!);
             _itemsAdmitted += items;
             Admit(normalized, entry);
@@ -304,11 +311,12 @@ internal sealed class OlmSalvage {
         try {
             using Stream input = OpenPayload(entry, dataOffset);
             using XmlReader reader = XmlReader.Create(input, CreateXmlSettings());
-            if (reader.MoveToContent() != XmlNodeType.Element || reader.IsEmptyElement) return 0;
+            if (reader.MoveToContent() != XmlNodeType.Element) return 0;
             string rootName = reader.LocalName;
             int count = 0;
+            bool empty = reader.IsEmptyElement;
             reader.Read();
-            while (!reader.EOF && reader.NodeType != XmlNodeType.EndElement) {
+            while (!empty && !reader.EOF && reader.NodeType != XmlNodeType.EndElement) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 if (reader.NodeType == XmlNodeType.Element) {
                     if (IsItemElement(rootName, reader.LocalName) && ++count == int.MaxValue) return count;
@@ -317,6 +325,8 @@ internal sealed class OlmSalvage {
                     reader.Read();
                 }
             }
+            // Read to the end of the document so malformed trailing content is not admitted as a valid entry.
+            while (reader.Read()) _cancellationToken.ThrowIfCancellationRequested();
             return count;
         } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException) {
             return -1;
@@ -357,8 +367,8 @@ internal sealed class OlmSalvage {
         return null;
     }
 
-    private bool TryRepairXml(ZipEntry entry, long dataOffset, int maxItems, out FileStream? repaired, out int items,
-        out long consumed, out string? stopReason, out bool limited) {
+    private bool TryRepairXml(ZipEntry entry, long dataOffset, int maxItems, long maxRead, out FileStream? repaired,
+        out int items, out long consumed, out string? stopReason, out bool limited) {
         repaired = null;
         items = 0;
         consumed = 0;
@@ -367,7 +377,8 @@ internal sealed class OlmSalvage {
         FileStream spill = _output.CreateSpill(".xml", deleteOnClose: true);
         bool transferred = false;
         try {
-            transferred = RepairXml(entry, dataOffset, maxItems, spill, ref items, ref consumed, ref stopReason, ref limited);
+            transferred = RepairXml(entry, dataOffset, maxItems, maxRead, spill, ref items, ref consumed, ref stopReason,
+                ref limited);
             if (transferred) repaired = spill;
             return transferred;
         } finally {
@@ -376,11 +387,11 @@ internal sealed class OlmSalvage {
     }
 
     /// <summary>Copies up to <paramref name="maxItems"/> complete top-level records of an XML entry into a spill.</summary>
-    private bool RepairXml(ZipEntry entry, long dataOffset, int maxItems, FileStream spill, ref int items,
+    private bool RepairXml(ZipEntry entry, long dataOffset, int maxItems, long maxRead, FileStream spill, ref int items,
         ref long consumed, ref string? stopReason, ref bool limited) {
         XmlReaderSettings settings = CreateXmlSettings();
         var counting = new CountingStream(OpenPayload(entry, dataOffset, tolerateTruncation: true),
-            Math.Min(_limits.MaxArchiveEntryBytes, _limits.MaxArchiveDecodedBytes - _decodedBytes));
+            Math.Min(_limits.MaxArchiveEntryBytes, maxRead));
         try {
             using (counting)
             using (XmlReader reader = XmlReader.Create(counting, settings))
@@ -416,10 +427,12 @@ internal sealed class OlmSalvage {
                 }
                 if (started) writer.WriteEndElement();
             }
-            consumed = counting.BytesRead;
         } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException || exception is IOException) {
             stopReason = exception.Message;
             return false;
+        } finally {
+            // Bytes read count against the budget whether or not repair keeps any record.
+            consumed = counting.BytesRead;
         }
         return items > 0;
     }

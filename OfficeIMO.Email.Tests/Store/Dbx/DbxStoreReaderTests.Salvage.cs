@@ -232,6 +232,24 @@ public sealed partial class DbxStoreReaderTests {
     }
 
     [Fact]
+    public void NeverReplacesASourceFileNamedLikeTheManifest() {
+        WithDestination(destination => {
+            Directory.CreateDirectory(destination);
+            string source = Path.Combine(destination, "officeimo-email-store-salvage.tsv");
+            File.Copy(Path.Combine(CorpusRoot, "dbx-metadata-unknown-producer", "Inbox.dbx"), source);
+            byte[] original = File.ReadAllBytes(source);
+
+            EmailStoreSalvageReport report = EmailStoreSalvage.RecoverDbxToDirectory(source, destination,
+                new EmailStoreSalvageOptions(overwriteExisting: true));
+
+            Assert.Equal(EmailStoreSalvageStatus.Recovered, Assert.Single(report.Entries).Status);
+            Assert.Null(report.ManifestPath);
+            Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_SALVAGE_MANIFEST_IS_SOURCE");
+            Assert.Equal(original, File.ReadAllBytes(source));
+        });
+    }
+
+    [Fact]
     public void RefusesToSalvageAFolderCatalog() {
         WithDestination(destination => Assert.Throws<InvalidDataException>(() =>
             EmailStoreSalvage.RecoverDbxToDirectory(

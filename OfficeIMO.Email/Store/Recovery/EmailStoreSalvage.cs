@@ -171,6 +171,12 @@ internal sealed class EmailStoreSalvageWriter {
         ICollection<EmailStoreDiagnostic> diagnostics) {
         if (!_options.WriteManifest) return null;
         string path = Path.Combine(Root, EmailStoreSalvage.ManifestFileName);
+        if (_sourcePath != null && EmailStorePathIdentity.AreEquivalent(path, _sourcePath)) {
+            diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_SALVAGE_MANIFEST_IS_SOURCE",
+                "The salvage manifest path is the source file, so no manifest was written.",
+                EmailStoreDiagnosticSeverity.Error, path));
+            return null;
+        }
         if (File.Exists(path) && !_options.OverwriteExisting) {
             diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_SALVAGE_MANIFEST_EXISTS",
                 "The salvage manifest already exists and overwriteExisting is false.",
