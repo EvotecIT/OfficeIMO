@@ -380,6 +380,15 @@ public sealed class ZstandardArchiveTests {
     }
 
     [Fact]
+    public void CancellationWithAnInvalidBlockHeaderWinsOverTheCorruption() {
+        // A 1 KiB window and a last block of the reserved type 3; cancellation arrives with the block header's last byte.
+        byte[] source = { 0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x00, 0x07, 0x00, 0x00 };
+        using var cancellation = new CancellationTokenSource();
+        Assert.ThrowsAny<OperationCanceledException>(() => ZstandardArchive.Decompress(
+            new TrickleStream(source, source.Length, cancellation), new MemoryStream(), cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
     public void RawDictionariesShorterThanEightBytesAreRejected() {
         ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
             ZstandardDictionary.Load(new byte[] { 1, 2, 3, 4, 5, 6, 7 }));

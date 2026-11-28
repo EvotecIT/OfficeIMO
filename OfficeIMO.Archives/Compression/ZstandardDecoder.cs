@@ -569,6 +569,8 @@ internal sealed class ZstandardDecoder {
 
     private int ReadByte(string structure) {
         int value = _source.ReadByte();
+        // A read can request cancellation as it returns, so cancellation wins over anything the bytes would fail.
+        _settings.CancellationToken.ThrowIfCancellationRequested();
         if (value < 0) throw Corrupt(_offset, structure);
         _offset++;
         return value;
@@ -578,6 +580,7 @@ internal sealed class ZstandardDecoder {
         int total = 0;
         while (total < count) {
             int read = _source.Read(buffer, offset + total, count - total);
+            _settings.CancellationToken.ThrowIfCancellationRequested();
             if (read <= 0) throw Corrupt(inputOffset, $"{count} bytes of {structure}, found {total}");
             total += read;
         }
@@ -588,6 +591,7 @@ internal sealed class ZstandardDecoder {
         int total = 0;
         while (total < count) {
             int read = _source.Read(buffer, total, count - total);
+            _settings.CancellationToken.ThrowIfCancellationRequested();
             if (read <= 0) break;
             total += read;
         }
