@@ -134,13 +134,16 @@ internal static class LegacyXlsColdStart {
     internal static void Measure(string workload) {
         string root = Environment.GetEnvironmentVariable("OFFICEIMO_LEGACY_XLS_PROOF_OUTPUT")
             ?? throw new InvalidOperationException("Point OFFICEIMO_LEGACY_XLS_PROOF_OUTPUT to the master capture.");
-        byte[] input = workload == "import"
-            ? File.ReadAllBytes(Path.Combine(root, "test-files", "LegacyXls_NativeSave_WritesCalculationSettings", "001.xls"))
-            : Array.Empty<byte>();
+        byte[] input = workload switch {
+            "import" => File.ReadAllBytes(Path.Combine(root, "test-files", "LegacyXls_NativeSave_WritesCalculationSettings", "001.xls")),
+            "plain-import" => LegacyXlsPlainImportBenchmarks.LoadFixture(root),
+            _ => Array.Empty<byte>()
+        };
         long allocated = GC.GetAllocatedBytesForCurrentThread();
         long started = Stopwatch.GetTimestamp();
         int result = workload switch {
             "import" => Import(input),
+            "plain-import" => LegacyXlsPlainImportBenchmarks.ReadPlainCells(input),
             "stream" => Stream(),
             _ => throw new ArgumentOutOfRangeException(nameof(workload))
         };

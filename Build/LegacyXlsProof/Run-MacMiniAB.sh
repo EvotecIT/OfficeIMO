@@ -15,7 +15,9 @@ lock=/Volumes/Samsung/Development/Scratch/officeimo-bench.lock
 project=Build/LegacyXlsProof/Benchmarks/Benchmarks.csproj
 probe=$(dirname "$project")
 diff -q "$master/$project" "$candidate/$project"
-diff -q "$master/$probe/Program.cs" "$candidate/$probe/Program.cs"
+for source in Program.cs PlainImportBenchmarks.cs; do
+    diff -q "$master/$probe/$source" "$candidate/$probe/$source"
+done
 
 exec lockf -k -t 900 "$lock" /bin/bash -s -- "$master" "$candidate" "$capture" "$output" "$project" <<'RUN_LOCKED'
 set -euo pipefail
@@ -24,6 +26,12 @@ candidate=$2
 capture=$3
 output=$4
 project=$5
+for result in master-first-call.csv candidate-first-call.csv master candidate benchmark-order.txt; do
+    if [[ -e "$output/$result" || -L "$output/$result" ]]; then
+        printf 'Use a fresh evidence directory. Existing result: %s\n' "$output/$result" >&2
+        exit 2
+    fi
+done
 mkdir -p "$output/tmp"
 export TMPDIR="$output/tmp" TZ=UTC OFFICEIMO_LEGACY_XLS_PROOF_OUTPUT="$capture"
 
@@ -49,7 +57,7 @@ dotnet --version
 measure_first_call() {
     local checkout=$1
     local label=$2
-    dotnet "$checkout/$(dirname "$project")/bin/Release/net10.0/Benchmarks.dll" --startup stream >> "$output/$label-first-call.csv"
+    dotnet "$checkout/$(dirname "$project")/bin/Release/net10.0/Benchmarks.dll" --startup "${OFFICEIMO_LEGACY_XLS_STARTUP_WORKLOAD:-stream}" >> "$output/$label-first-call.csv"
 }
 
 wait_for_quiet
@@ -72,7 +80,14 @@ run() {
     (cd "$checkout" && dotnet run --project "$project" -c Release --no-build -- \
         --filter "${OFFICEIMO_LEGACY_XLS_BENCHMARK_FILTER:-LegacyXlsStreamingBenchmarks.*}" --exporters json --artifacts "$output/$label")
 }
-run "$master" master
-run "$candidate" candidate
+if (( RANDOM % 2 )); then
+    printf 'master\ncandidate\n' > "$output/benchmark-order.txt"
+    run "$master" master
+    run "$candidate" candidate
+else
+    printf 'candidate\nmaster\n' > "$output/benchmark-order.txt"
+    run "$candidate" candidate
+    run "$master" master
+fi
 uptime
 RUN_LOCKED

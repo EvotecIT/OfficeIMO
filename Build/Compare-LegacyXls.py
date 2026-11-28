@@ -10,7 +10,8 @@ zone and fixture set on both revisions. The runner may live in either checkout.
 
 XLS bytes are compared directly, apart from the generated OLE save time.
 For Open XML, compare each part after normalizing temporary relationship IDs,
-the generated core-properties part name and timestamp, and ZIP and XML serialization.
+generated core metadata, ZIP and XML serialization, the order of unique OPC
+content type declarations, and namespace prefixes in plain worksheets.
 The encryption test compares the decrypted package and retains the ciphertext.
 """
 
@@ -108,6 +109,10 @@ STABLE_CORE_PROPERTIES = "package/services/metadata/core-properties/core.psmdcp"
 ENCRYPTED_PACKAGE_TEST = "LegacyXls_NormalLoad_SaveEncryptedPathProducesEncryptedXlsx"
 MARKUP_COMPATIBILITY = "http://schemas.openxmlformats.org/markup-compatibility/2006"
 XMLNS = "http://www.w3.org/2000/xmlns/"
+XML_SCHEMA_INSTANCE = "http://www.w3.org/2001/XMLSchema-instance"
+XML_NAMESPACE = "http://www.w3.org/XML/1998/namespace"
+SPREADSHEET = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+CONTENT_TYPES = "http://schemas.openxmlformats.org/package/2006/content-types"
 PACKAGE_RELATIONSHIPS = "http://schemas.openxmlformats.org/package/2006/relationships"
 RELATIONSHIP_NAMESPACES = frozenset({
     "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
@@ -176,12 +181,9 @@ def normalize_xml(data, ids, generated_save_time, aliases=None, generated_creati
     return dom.toxml(encoding="utf-8")
 
 
-def markup_compatibility_bindings(data):
+def namespace_value_bindings(data):
     # Canonical XML omits namespace declarations that appear only in QName
     # or prefix-valued attributes. Those bindings can change markup selection.
-    if (MARKUP_COMPATIBILITY.encode("ascii") not in data
-            and not data.startswith((b"\xff\xfe", b"\xfe\xff", b"\0<", b"<\0"))):
-        return []
     dom = minidom.parseString(data)
     bindings = []
     prefix_lists = {"Ignorable", "MustUnderstand"}
@@ -191,16 +193,18 @@ def markup_compatibility_bindings(data):
                                     for name in prefix_lists | qname_lists]
         if element.namespaceURI == MARKUP_COMPATIBILITY and element.localName == "Choice":
             compatibility_attributes.append(("Requires", element.getAttribute("Requires")))
+        if element.hasAttributeNS(XML_SCHEMA_INSTANCE, "type"):
+            compatibility_attributes.append(("xsi:type", element.getAttributeNS(XML_SCHEMA_INSTANCE, "type")))
         for name, value in sorted(compatibility_attributes):
             for token in value.split():
-                if name in qname_lists:
+                if name in qname_lists or name == "xsi:type":
                     prefix, separator, _ = token.partition(":")
                     if not separator:
                         prefix = ""
                 else:
                     prefix = token
                 scope = element
-                uri = None
+                uri = XML_NAMESPACE if prefix == "xml" else None
                 while scope is not None and scope.nodeType == scope.ELEMENT_NODE:
                     if scope.hasAttributeNS(XMLNS, prefix or "xmlns"):
                         uri = scope.getAttributeNS(XMLNS, prefix or "xmlns")
@@ -210,9 +214,68 @@ def markup_compatibility_bindings(data):
     return bindings
 
 
-def canonical_xml_hash(data):
-    payload = ET.canonicalize(data, with_comments=True).encode("utf-8")
-    bindings = markup_compatibility_bindings(data)
+PLAIN_WORKSHEET_ATTRIBUTES = {
+    "worksheet": (),
+    "dimension": ("ref",),
+    "sheetViews": (),
+    "sheetView": ("workbookViewId",),
+    "selection": ("activeCell", "sqref"),
+    "sheetData": (),
+    "row": ("r",),
+    "c": ("r", "t", "s"),
+    "v": (),
+}
+
+
+def canonical_content_types(data):
+    # OPC defaults/overrides are keyed declarations. Their XML order has no
+    # meaning when the keys are unique; anything else uses the strict comparison.
+    dom = minidom.parseString(data)
+    root = dom.documentElement
+    if (root.namespaceURI, root.localName) != (CONTENT_TYPES, "Types"):
+        return data
+    declarations = {}
+    for item in root.childNodes:
+        if item.nodeType == item.TEXT_NODE and not item.data.strip():
+            continue
+        if item.nodeType != item.ELEMENT_NODE or item.namespaceURI != CONTENT_TYPES or item.hasChildNodes():
+            return data
+        key_attribute = {"Default": "Extension", "Override": "PartName"}.get(item.localName)
+        if key_attribute is None or set(item.attributes.keys()) != {key_attribute, "ContentType"}:
+            return data
+        key = (item.localName, item.getAttribute(key_attribute).casefold())
+        if key in declarations:
+            return data
+        declarations[key] = item
+    for key in sorted(declarations):
+        root.appendChild(declarations[key])
+    return dom.toxml(encoding="utf-8")
+
+
+def known_plain_worksheet(data):
+    # The primitive projection only produces this vocabulary. QName-valued or
+    # compatibility attributes and extension elements take the strict comparison.
+    parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True, insert_pis=True))
+    root = ET.fromstring(data, parser=parser)
+    prefix = "{" + SPREADSHEET + "}"
+    if root.tag != prefix + "worksheet":
+        return False
+    for node in root.iter():
+        if not isinstance(node.tag, str) or not node.tag.startswith(prefix):
+            return False
+        attributes = PLAIN_WORKSHEET_ATTRIBUTES.get(node.tag[len(prefix):])
+        if attributes is None or any(name not in attributes for name in node.attrib):
+            return False
+    return True
+
+
+def canonical_xml_hash(data, name=None):
+    if name == "[Content_Types].xml":
+        data = canonical_content_types(data)
+    plain_sheet = bool(name and name.startswith("xl/worksheets/") and name.endswith(".xml")
+                       and known_plain_worksheet(data))
+    payload = ET.canonicalize(data, with_comments=True, rewrite_prefixes=plain_sheet).encode("utf-8")
+    bindings = namespace_value_bindings(data)
     if bindings:
         payload += b"\0" + json.dumps(bindings, separators=(",", ":")).encode("utf-8")
     return sha(payload)
@@ -260,7 +323,7 @@ def package_manifest(path):
                                      generated_creation_time)
                 # Preserve sibling order, text, attributes, comments and unknown
                 # markup. Ignore ZIP layout, XML attribute order and declarations.
-                manifest[canonical_name] = canonical_xml_hash(data)
+                manifest[canonical_name] = canonical_xml_hash(data, name)
             elif (name == "OfficeIMOCompatibility/SourceMetadata"
                   and path.parent.name == "LegacyXls_Convert_PreservationOnlyRetainsOriginalInXlsxCarrier"):
                 manifest[name] = sha(normalize_source_metadata(data))
