@@ -1,5 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -607,11 +607,11 @@ namespace OfficeIMO.Word {
                 return true;
             }
 
-            if (!TryGetFieldTable(candidate, out Table? table, out diagnostic) || table == null) {
+            if (!TryGetFieldTable(candidate, out OfficeXmlNode table, out diagnostic)) {
                 return false;
             }
 
-            List<TableRow> rows = table.Elements<TableRow>().ToList();
+            List<OfficeXmlNode> rows = table.Children(FieldNamespace, "tr").ToList();
             var builder = new StringBuilder();
             int startIndex = 0;
 
@@ -654,25 +654,22 @@ namespace OfficeIMO.Word {
             values = Array.Empty<decimal>();
             diagnostic = null;
 
-            if (!TryGetFieldTable(candidate, out Table? table, out diagnostic, out TableCell? currentCell, out TableRow? currentRow)
-                || table == null
-                || currentCell == null
-                || currentRow == null) {
+            if (!TryGetFieldTable(candidate, out OfficeXmlNode table, out diagnostic, out OfficeXmlNode currentCell, out OfficeXmlNode currentRow)) {
                 diagnostic = $"Formula table reference {referenceName.ToUpperInvariant()} requires the field to be inside a table cell.";
                 return false;
             }
 
-            List<TableRow> rows = table.Elements<TableRow>().ToList();
+            List<OfficeXmlNode> rows = table.Children(FieldNamespace, "tr").ToList();
             List<TableCellGridPlacement> placements = GetRowCellGridPlacements(currentRow);
-            int rowIndex = rows.FindIndex(row => ReferenceEquals(row, currentRow));
-            TableCellGridPlacement? currentPlacement = placements.FirstOrDefault(placement => ReferenceEquals(placement.Cell, currentCell));
+            int rowIndex = rows.IndexOf(currentRow);
+            TableCellGridPlacement? currentPlacement = placements.FirstOrDefault(placement => placement.Cell == currentCell);
 
             if (rowIndex < 0 || currentPlacement == null) {
                 diagnostic = $"Formula table reference {referenceName.ToUpperInvariant()} could not locate the field cell.";
                 return false;
             }
 
-            IEnumerable<TableCell> sourceCells;
+            IEnumerable<OfficeXmlNode> sourceCells;
             switch (referenceName.ToUpperInvariant()) {
                 case "ABOVE":
                     sourceCells = GetCellsInVisualColumn(rows.Take(rowIndex), currentPlacement.StartColumn);
@@ -698,7 +695,7 @@ namespace OfficeIMO.Word {
             sourceCells = sourceCells.Where(sourceCell => !IsVerticalMergeContinuation(sourceCell));
 
             var resolvedValues = new List<decimal>();
-            foreach (TableCell sourceCell in sourceCells) {
+            foreach (OfficeXmlNode sourceCell in sourceCells) {
                 if (ContainsNestedTable(sourceCell)) {
                     diagnostic = $"Formula table reference {referenceName.ToUpperInvariant()} encountered nested table content; that complex table geometry was preserved without approximation.";
                     return false;
@@ -716,27 +713,21 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static bool TryGetFieldTable(MutableFieldCandidate candidate, out Table? table, out string? diagnostic) {
-            return TryGetFieldTable(candidate, out table, out diagnostic, out _, out _);
-        }
+        private static bool TryGetFieldTable(MutableFieldCandidate candidate, out OfficeXmlNode table, out string? diagnostic) =>
+            TryGetFieldTable(candidate, out table, out diagnostic, out _, out _);
 
-        private static bool TryGetFieldTable(
-            MutableFieldCandidate candidate,
-            out Table? table,
-            out string? diagnostic,
-            out TableCell? currentCell,
-            out TableRow? currentRow) {
-            currentCell = candidate.SdkAnchorElement is TableCell cell
-                ? cell
-                : candidate.SdkAnchorElement.Ancestors<TableCell>().FirstOrDefault();
-            currentRow = currentCell?.Ancestors<TableRow>().FirstOrDefault();
-            table = currentRow?.Ancestors<Table>().FirstOrDefault();
-            diagnostic = table == null ? "Formula table cell references require the field to be inside a table cell." : null;
-            return currentCell != null && currentRow != null && table != null;
+        private static bool TryGetFieldTable(MutableFieldCandidate candidate, out OfficeXmlNode table,
+            out string? diagnostic, out OfficeXmlNode cell, out OfficeXmlNode row) {
+            const int W = FieldNamespace;
+            cell = candidate.AnchorElement.AncestorOrSelf(W, "tc");
+            row = cell.AncestorOrSelf(W, "tr");
+            table = row.AncestorOrSelf(W, "tbl");
+            diagnostic = table.IsNone ? "Formula table cell references require the field to be inside a table cell." : null;
+            return table.Exists;
         }
 
         private static bool TryResolveTableAddressRange(
-            IReadOnlyList<TableRow> rows,
+            IReadOnlyList<OfficeXmlNode> rows,
             TableAddress startAddress,
             TableAddress endAddress,
             out IReadOnlyList<decimal> values,
@@ -755,7 +746,7 @@ namespace OfficeIMO.Word {
             }
 
             var resolvedValues = new List<decimal>();
-            var resolvedCells = new HashSet<TableCell>();
+            var resolvedCells = new HashSet<OfficeXmlNode>();
             for (int rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
                 List<TableCellGridPlacement> placements = GetRowCellGridPlacements(rows[rowIndex]);
                 for (int columnIndex = startColumn; columnIndex <= endColumn; columnIndex++) {
@@ -782,8 +773,8 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static IEnumerable<TableCell> GetCellsInVisualColumn(IEnumerable<TableRow> rows, int columnIndex) {
-            foreach (TableRow row in rows) {
+        private static IEnumerable<OfficeXmlNode> GetCellsInVisualColumn(IEnumerable<OfficeXmlNode> rows, int columnIndex) {
+            foreach (OfficeXmlNode row in rows) {
                 foreach (TableCellGridPlacement placement in GetRowCellGridPlacements(row)) {
                     if (placement.ContainsColumn(columnIndex)) {
                         yield return placement.Cell;
@@ -793,19 +784,19 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static List<TableCellGridPlacement> GetRowCellGridPlacements(TableRow row) {
-            List<TableCell> cells = row.Elements<TableCell>().ToList();
+        private static List<TableCellGridPlacement> GetRowCellGridPlacements(OfficeXmlNode row) {
+            List<OfficeXmlNode> cells = row.Children(FieldNamespace, "tc").ToList();
             var placements = new List<TableCellGridPlacement>();
             int columnIndex = GetRowGridBefore(row);
 
             for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                TableCell cell = cells[cellIndex];
-                if (cell.TableCellProperties?.HorizontalMerge?.Val?.Value == MergedCellValues.Continue) {
+                OfficeXmlNode cell = cells[cellIndex];
+                if (ReadFormulaHorizontalMerge(cell) == "continue") {
                     continue;
                 }
 
                 int span = GetGridSpan(cell);
-                if (span == 1 && cell.TableCellProperties?.HorizontalMerge?.Val?.Value == MergedCellValues.Restart) {
+                if (span == 1 && ReadFormulaHorizontalMerge(cell) == "restart") {
                     span = CountHorizontalMergeSpan(cells, cellIndex);
                 }
 
@@ -816,16 +807,17 @@ namespace OfficeIMO.Word {
             return placements;
         }
 
-        private static int GetRowGridBefore(TableRow row) {
-            int? gridBefore = row.TableRowProperties?.GetFirstChild<GridBefore>()?.Val?.Value;
+        private static int GetRowGridBefore(OfficeXmlNode row) {
+            const int W = FieldNamespace;
+            int? gridBefore = OfficeXmlViewValues.ParseInt32(row.Child(W, "trPr").Child(W, "gridBefore").Attribute(W, "val"));
             int value = gridBefore.GetValueOrDefault();
             return value > 0 ? value : 0;
         }
 
-        private static int CountHorizontalMergeSpan(IReadOnlyList<TableCell> cells, int restartIndex) {
+        private static int CountHorizontalMergeSpan(IReadOnlyList<OfficeXmlNode> cells, int restartIndex) {
             int span = 1;
             for (int index = restartIndex + 1; index < cells.Count; index++) {
-                if (cells[index].TableCellProperties?.HorizontalMerge?.Val?.Value != MergedCellValues.Continue) {
+                if (ReadFormulaHorizontalMerge(cells[index]) != "continue") {
                     break;
                 }
 
@@ -835,18 +827,22 @@ namespace OfficeIMO.Word {
             return span;
         }
 
-        private static int GetGridSpan(TableCell cell) {
-            int? span = cell.TableCellProperties?.GetFirstChild<GridSpan>()?.Val?.Value;
-            int value = span.GetValueOrDefault();
-            return value > 1 ? value : 1;
+        private static string? ReadFormulaHorizontalMerge(OfficeXmlNode cell) =>
+            cell.Child(FieldNamespace, "tcPr").Child(FieldNamespace, "hMerge").Attribute(FieldNamespace, "val");
+
+        private static int GetGridSpan(OfficeXmlNode cell) {
+            const int W = FieldNamespace;
+            int span = OfficeXmlViewValues.ParseInt32(cell.Child(W, "tcPr").Child(W, "gridSpan").Attribute(W, "val")).GetValueOrDefault();
+            return Math.Max(1, span);
         }
 
-        private static bool IsVerticalMergeContinuation(TableCell cell) {
-            VerticalMerge? verticalMerge = cell.TableCellProperties?.VerticalMerge;
-            return verticalMerge != null && verticalMerge.Val?.Value != MergedCellValues.Restart;
+        private static bool IsVerticalMergeContinuation(OfficeXmlNode cell) {
+            const int W = FieldNamespace;
+            OfficeXmlNode merge = cell.Child(W, "tcPr").Child(W, "vMerge");
+            return merge.Exists && merge.Attribute(W, "val") != "restart";
         }
 
-        private static bool TryReadTableCellNumber(TableCell cell, out decimal value, out bool hasText) {
+        private static bool TryReadTableCellNumber(OfficeXmlNode cell, out decimal value, out bool hasText) {
             string text = GetTableCellText(cell).Replace('\u00A0', ' ').Trim();
             hasText = text.Length > 0;
             if (text.EndsWith("%", StringComparison.Ordinal)) {
@@ -863,7 +859,8 @@ namespace OfficeIMO.Word {
             return decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out value);
         }
 
-        private static bool ContainsNestedTable(TableCell cell) => cell.Descendants<Table>().Any();
+        private static bool ContainsNestedTable(OfficeXmlNode cell) =>
+            WordFieldInventory.EnumerateFieldContent(cell).Any(node => node.Is(FieldNamespace, "tbl"));
 
         private static bool TryParseTableAddress(string text, out TableAddress address) {
             address = default;
@@ -897,9 +894,9 @@ namespace OfficeIMO.Word {
             return true;
         }
 
-        private static string GetTableCellText(TableCell cell) {
-            return string.Concat(cell.Descendants<Text>().Select(text => text.Text));
-        }
+        private static string GetTableCellText(OfficeXmlNode cell) =>
+            string.Concat(WordFieldInventory.EnumerateFieldContent(cell)
+                .Where(node => node.Is(FieldNamespace, "t")).Select(text => text.InnerText));
 
         private readonly struct TableAddress {
             internal TableAddress(int columnIndex, int rowIndex) {
@@ -929,13 +926,13 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class TableCellGridPlacement {
-            internal TableCellGridPlacement(TableCell cell, int startColumn, int endColumn) {
+            internal TableCellGridPlacement(OfficeXmlNode cell, int startColumn, int endColumn) {
                 Cell = cell;
                 StartColumn = startColumn;
                 EndColumn = endColumn;
             }
 
-            internal TableCell Cell { get; }
+            internal OfficeXmlNode Cell { get; }
 
             internal int StartColumn { get; }
 

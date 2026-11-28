@@ -1,6 +1,3 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Word.OpenXml;
@@ -30,8 +27,9 @@ namespace OfficeIMO.Word {
             }
             var state = new FieldEvaluationState();
             List<MutableFieldCandidate> candidates = EnumerateFields(document);
-            if (!options.DateTimeFieldsOnly && document._ownedModel != null && candidates.Any(RequiresSdkEvaluation)) {
-                document.OpenSdkPackage("Field evaluation needs document properties, list numbering or formula geometry");
+            if (!options.DateTimeFieldsOnly && document._ownedModel is { } owned &&
+                candidates.Any(candidate => RequiresSdkEvaluation(owned, candidate))) {
+                document.OpenSdkPackage("Field evaluation needs document properties");
                 candidates = EnumerateFields(document);
             }
             state.LockedTocFields.AddRange(candidates.Where(IsLockedToc));
@@ -122,22 +120,19 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>Page fields, fields whose instruction contains one, and the sequences they belong to take their result after the layout.</summary>
-        private static bool RequiresSdkEvaluation(MutableFieldCandidate candidate) {
-            // A complex instruction can derive its field name from an inner result. Its
-            // current token does not determine which evaluation it will eventually use.
+        private static bool RequiresSdkEvaluation(WordPackageModel model, MutableFieldCandidate candidate) {
+            // A nested field can change the command or property that the outer field needs.
             if (candidate.HasDynamicInstruction) return true;
             var parsed = WordFieldInventory.ParseInstruction(candidate.InstructionText);
-            if (parsed.FieldType == WordFieldType.Ref)
-                return TryGetReferenceSwitches(parsed, out ReferenceListSwitch? listSwitch, out _, out _) && listSwitch.HasValue;
-            return parsed.FieldType is
-                WordFieldType.Author or WordFieldType.Title or WordFieldType.Subject or WordFieldType.Keywords or
-                WordFieldType.Comments or WordFieldType.LastSavedBy or WordFieldType.CreateDate or WordFieldType.PrintDate or
-                WordFieldType.SaveDate or WordFieldType.Info or WordFieldType.DocProperty or WordFieldType.DocVariable or
-                WordFieldType.Formula or WordFieldType.ListNum or
-                WordFieldType.NumChars or WordFieldType.NumWords or WordFieldType.RevNum;
+            return parsed.FieldType switch {
+                WordFieldType.DocProperty => CustomFieldUsesUnsupportedVariant(model, parsed),
+                WordFieldType.NumChars => !ReadStoredFieldStatistic(model, "Characters").HasValue,
+                WordFieldType.NumWords => !ReadStoredFieldStatistic(model, "Words").HasValue,
+                _ => false
+            };
         }
 
+        /// <summary>Page fields, fields whose instruction contains one, and the sequences they belong to take their result after the layout.</summary>
         private static HashSet<int> GetPageDependentFields(IReadOnlyList<MutableFieldCandidate> candidates) {
             var bySequence = candidates.ToDictionary(candidate => candidate.Sequence);
             var dependent = new HashSet<int>();
@@ -280,25 +275,25 @@ namespace OfficeIMO.Word {
 
             switch (parsed.FieldType) {
                 case WordFieldType.Author:
-                    return TrySetTextValue(document.Properties.Creator, parsed, "Updated from built-in document property Creator.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Creator, parsed, out value, out status, out message);
                 case WordFieldType.Title:
-                    return TrySetTextValue(document.Properties.Title, parsed, "Updated from built-in document property Title.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Title, parsed, out value, out status, out message);
                 case WordFieldType.Subject:
-                    return TrySetTextValue(document.Properties.Subject, parsed, "Updated from built-in document property Subject.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Subject, parsed, out value, out status, out message);
                 case WordFieldType.Keywords:
-                    return TrySetTextValue(document.Properties.Keywords, parsed, "Updated from built-in document property Keywords.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Keywords, parsed, out value, out status, out message);
                 case WordFieldType.Comments:
-                    return TrySetTextValue(document.Properties.Description, parsed, "Updated from built-in document property Description.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Description, parsed, out value, out status, out message);
                 case WordFieldType.LastSavedBy:
-                    return TrySetTextValue(document.Properties.LastModifiedBy, parsed, "Updated from built-in document property LastModifiedBy.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.LastModifiedBy, parsed, out value, out status, out message);
                 case WordFieldType.CreateDate:
-                    return TrySetDate(document.Properties.Created, parsed, "Updated from built-in document property Created.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Created, parsed, out value, out status, out message);
                 case WordFieldType.Date:
                     return TrySetDate(updateDateTime, parsed, "Updated from field update date/time.", out value, out status, out message);
                 case WordFieldType.PrintDate:
-                    return TrySetDate(document.Properties.LastPrinted, parsed, "Updated from built-in document property LastPrinted.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.LastPrinted, parsed, out value, out status, out message);
                 case WordFieldType.SaveDate:
-                    return TrySetDate(document.Properties.Modified, parsed, "Updated from built-in document property Modified.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Modified, parsed, out value, out status, out message);
                 case WordFieldType.Time:
                     return TrySetDate(updateDateTime, parsed, "Updated from field update date/time.", out value, out status, out message);
                 case WordFieldType.FileName:
@@ -314,7 +309,7 @@ namespace OfficeIMO.Word {
                 case WordFieldType.Quote:
                     return TryEvaluateQuote(candidate.InstructionText, parsed, out value, out status, out message);
                 case WordFieldType.Ref:
-                    return TryEvaluateRef(document, candidate, parsed, out value, out status, out message);
+                    return TryEvaluateRef(document, candidate, parsed, state, out value, out status, out message);
                 case WordFieldType.PageRef:
                     return TryEvaluatePageRef(document, parsed, state.Layout, out value, out status, out message, out usedLayout);
                 case WordFieldType.Formula:
@@ -330,14 +325,14 @@ namespace OfficeIMO.Word {
                     }
                     return TryEvaluatePage(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.NumChars:
-                    return TryFormatIntegerField(document.Statistics.Characters, parsed, "Updated from OfficeIMO document statistics Characters.", out value, out status, out message);
+                    return TryFormatIntegerField(ReadFieldStatistic(document, "Characters"), parsed, "Updated from OfficeIMO document statistics Characters.", out value, out status, out message);
                 case WordFieldType.NumWords:
-                    return TryFormatIntegerField(document.Statistics.Words, parsed, "Updated from OfficeIMO document statistics Words.", out value, out status, out message);
+                    return TryFormatIntegerField(ReadFieldStatistic(document, "Words"), parsed, "Updated from OfficeIMO document statistics Words.", out value, out status, out message);
                 case WordFieldType.NumPages:
                     usedLayout = state.Layout != null;
                     return TryFormatIntegerField(state.Layout?.PageCount ?? (state.EstimatedTotalPages ??= EstimateTotalPages(document)), parsed, state.Layout != null ? "Updated from OfficeIMO page layout." : "Updated from OfficeIMO page-break count.", out value, out status, out message);
                 case WordFieldType.RevNum:
-                    return TrySetTextValue(document.Properties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Revision, parsed, out value, out status, out message);
                 case WordFieldType.Section:
                     return TryEvaluateSectionNumber(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.SectionPages:
@@ -409,15 +404,12 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            KeyValuePair<string, WordCustomProperty> customProperty = document.CustomProperties
-                .FirstOrDefault(pair => string.Equals(pair.Key, propertyName, StringComparison.OrdinalIgnoreCase));
-
-            if (!string.IsNullOrEmpty(customProperty.Key)) {
-                if (customProperty.Value.Date.HasValue) {
-                    return TrySetDate(customProperty.Value.Date.Value, parsed, $"Updated from custom document property {customProperty.Key}.", out value, out status, out message);
-                }
-
-                return TrySetTextValue(FormatValue(customProperty.Value.Value), parsed, $"Updated from custom document property {customProperty.Key}.", out value, out status, out message);
+            KeyValuePair<string, object?> custom = ReadFieldCustomProperty(document, propertyName);
+            if (!string.IsNullOrEmpty(custom.Key)) {
+                string success = $"Updated from custom document property {custom.Key}.";
+                return custom.Value is DateTime date
+                    ? TrySetDate(date, parsed, success, out value, out status, out message)
+                    : TrySetTextValue(FormatValue(custom.Value), parsed, success, out value, out status, out message);
             }
 
             status = WordFieldUpdateStatus.Skipped;
@@ -445,8 +437,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            KeyValuePair<string, string> variable = document.DocumentVariables
-                .FirstOrDefault(pair => string.Equals(pair.Key, variableName, StringComparison.OrdinalIgnoreCase));
+            KeyValuePair<string, string> variable = ReadFieldVariable(document, variableName);
 
             if (!string.IsNullOrEmpty(variable.Key)) {
                 return TrySetTextValue(variable.Value, parsed, $"Updated from document variable {variable.Key}.", out value, out status, out message);
@@ -596,28 +587,26 @@ namespace OfficeIMO.Word {
                 .GroupBy(candidate => candidate.InstructionParentSequence!.Value)
                 .ToDictionary(group => group.Key, group => group.OrderBy(candidate => candidate.Sequence).ToArray());
 
+            if (instructionChildren.Count == 0) return candidates;
             var ordered = new List<MutableFieldCandidate>(candidates.Count);
             var visited = new HashSet<int>();
-
-            foreach (MutableFieldCandidate candidate in candidates.OrderBy(candidate => candidate.Sequence)) {
-                Visit(candidate);
-            }
-
-            return ordered;
-
-            void Visit(MutableFieldCandidate candidate) {
-                if (!visited.Add(candidate.Sequence)) {
-                    return;
-                }
-
-                if (instructionChildren.TryGetValue(candidate.Sequence, out MutableFieldCandidate[]? children)) {
-                    foreach (MutableFieldCandidate child in children) {
-                        Visit(child);
+            var pending = new Stack<(MutableFieldCandidate Candidate, bool Ready)>();
+            foreach (MutableFieldCandidate candidate in candidates) {
+                if (visited.Contains(candidate.Sequence)) continue;
+                pending.Push((candidate, false));
+                while (pending.Count != 0) {
+                    var (current, ready) = pending.Pop();
+                    if (ready) {
+                        ordered.Add(current);
+                    } else if (visited.Add(current.Sequence)) {
+                        pending.Push((current, true));
+                        if (instructionChildren.TryGetValue(current.Sequence, out var children)) {
+                            for (int index = children.Length - 1; index >= 0; index--) pending.Push((children[index], false));
+                        }
                     }
                 }
-
-                ordered.Add(candidate);
             }
+            return ordered;
         }
 
         private static bool TryEvaluateBuiltInDocumentProperty(
@@ -634,35 +623,35 @@ namespace OfficeIMO.Word {
             switch (propertyName.Replace(" ", string.Empty).ToUpperInvariant()) {
                 case "AUTHOR":
                 case "CREATOR":
-                    return TrySetTextValue(document.Properties.Creator, parsed, "Updated from built-in document property Creator.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Creator, parsed, out value, out status, out message);
                 case "TITLE":
-                    return TrySetTextValue(document.Properties.Title, parsed, "Updated from built-in document property Title.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Title, parsed, out value, out status, out message);
                 case "SUBJECT":
-                    return TrySetTextValue(document.Properties.Subject, parsed, "Updated from built-in document property Subject.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Subject, parsed, out value, out status, out message);
                 case "CATEGORY":
-                    return TrySetTextValue(document.Properties.Category, parsed, "Updated from built-in document property Category.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Category, parsed, out value, out status, out message);
                 case "KEYWORDS":
-                    return TrySetTextValue(document.Properties.Keywords, parsed, "Updated from built-in document property Keywords.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Keywords, parsed, out value, out status, out message);
                 case "COMMENTS":
                 case "DESCRIPTION":
-                    return TrySetTextValue(document.Properties.Description, parsed, "Updated from built-in document property Description.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Description, parsed, out value, out status, out message);
                 case "LASTSAVEDBY":
                 case "LASTMODIFIEDBY":
-                    return TrySetTextValue(document.Properties.LastModifiedBy, parsed, "Updated from built-in document property LastModifiedBy.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.LastModifiedBy, parsed, out value, out status, out message);
                 case "LASTPRINTED":
                 case "PRINTDATE":
-                    return TrySetDate(document.Properties.LastPrinted, parsed, "Updated from built-in document property LastPrinted.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.LastPrinted, parsed, out value, out status, out message);
                 case "CREATED":
                 case "CREATEDATE":
-                    return TrySetDate(document.Properties.Created, parsed, "Updated from built-in document property Created.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Created, parsed, out value, out status, out message);
                 case "MODIFIED":
                 case "SAVEDATE":
-                    return TrySetDate(document.Properties.Modified, parsed, "Updated from built-in document property Modified.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Modified, parsed, out value, out status, out message);
                 case "REVISION":
                 case "REVNUM":
-                    return TrySetTextValue(document.Properties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Revision, parsed, out value, out status, out message);
                 case "VERSION":
-                    return TrySetTextValue(document.Properties.Version, parsed, "Updated from built-in document property Version.", out value, out status, out message);
+                    return TryEvaluateCoreProperty(document, CoreFieldProperty.Version, parsed, out value, out status, out message);
                 default:
                     return false;
             }
@@ -1110,6 +1099,7 @@ namespace OfficeIMO.Word {
         }
 
         private static bool IsNestedInsideReplacedField(MutableFieldCandidate candidate, IEnumerable<MutableFieldCandidate> replacedContainingFields) {
+            if (candidate.NestingLevel == 0) return false;
             foreach (MutableFieldCandidate containingField in replacedContainingFields) {
                 if (containingField.EndRun.IsNone || candidate.Sequence <= containingField.Sequence ||
                     candidate.NestingLevel <= containingField.NestingLevel || candidate.PartUri != containingField.PartUri) continue;
@@ -1227,7 +1217,6 @@ namespace OfficeIMO.Word {
 
             internal OfficeXmlNode AnchorElement { get; }
 
-            internal OpenXmlElement SdkAnchorElement => (OpenXmlElement)AnchorElement.SdkElement!;
 
             internal OfficeXmlNode SimpleField { get; }
 
@@ -1362,6 +1351,10 @@ namespace OfficeIMO.Word {
             internal Dictionary<string, OfficeXmlNode> SequenceHeadingResetKeys { get; } = new(StringComparer.OrdinalIgnoreCase);
 
             internal Dictionary<string, ListNumSequenceState> ListNumSequences { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+            internal Dictionary<int, ReferenceNumberingDefinition>? ReferenceNumberingDefinitions { get; set; }
+
+            internal IReadOnlyDictionary<string, ReferenceParagraphNumbering>? ReferenceStyleNumbering { get; set; }
 
             internal WordLayoutPagination? Layout { get; set; }
             internal int? EstimatedTotalPages { get; set; }

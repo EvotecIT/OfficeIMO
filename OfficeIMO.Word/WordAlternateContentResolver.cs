@@ -37,6 +37,8 @@ internal static class WordAlternateContentResolver {
         "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash"
     };
 
+    internal static bool IsSupportedExtensionNamespace(string namespaceUri) => SupportedNamespaces.Contains(namespaceUri);
+
     /// <summary>Returns the first supported choice, or the fallback when no choice can be interpreted.</summary>
     internal static OpenXmlCompositeElement? SelectBranch(AlternateContent alternateContent) =>
         (OpenXmlCompositeElement?)SelectBranch(OfficeXmlNode.FromSdk(alternateContent)).SdkElement;
@@ -70,7 +72,7 @@ internal static class WordAlternateContentResolver {
             string? namespaceUri = OfficeIMO.Word.OpenXml.WordXmlNodes.LookupNamespace(choice, prefix);
             // Older OfficeIMO documents could omit the canonical declaration from header/footer parts.
             if (namespaceUri == null) SupportedPrefixNamespaces.TryGetValue(prefix, out namespaceUri);
-            return namespaceUri != null && SupportedNamespaces.Contains(namespaceUri);
+            return namespaceUri != null && IsSupportedExtensionNamespace(namespaceUri);
         });
     }
 }
