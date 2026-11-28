@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.Word.OpenXml;
 using V = DocumentFormat.OpenXml.Vml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
@@ -478,11 +479,48 @@ internal static class WordConverterNodes {
         WordEquation.GetOccurrences(document, (W.Paragraph)paragraph.SdkElement!);
 
     /// <summary>
-    /// The children of <paramref name="paragraph"/> that <see cref="WordEquationOccurrence.StartChildIndex"/> counts,
-    /// XML comments and processing instructions included, so an index taken from an occurrence finds its element.
+    /// The children of <paramref name="element"/> as the model counts them, XML comments and processing instructions
+    /// included: <see cref="WordEquationOccurrence.StartChildIndex"/> indexes this sequence, and the element budget and
+    /// cell-placeholder checks see those nodes too.
     /// </summary>
-    internal static List<OfficeXmlNode> EquationChildSequence(OfficeXmlNode paragraph) =>
-        ((W.Paragraph)paragraph.SdkElement!).ChildElements.Select(child => Wrap(child)).ToList();
+    internal static List<OfficeXmlNode> ChildNodesIncludingMarkup(OfficeXmlNode element) =>
+        element.SdkElement is OpenXmlElement sdk ? sdk.ChildElements.Select(child => Wrap(child)).ToList() : element.Elements().ToList();
+
+    /// <summary>The first child, an XML comment or processing instruction included.</summary>
+    internal static OfficeXmlNode FirstChildIncludingMarkup(OfficeXmlNode element) =>
+        element.SdkElement is OpenXmlElement sdk ? Wrap(sdk.FirstChild) : element.FirstChild;
+
+    /// <summary>The next sibling, an XML comment or processing instruction included.</summary>
+    internal static OfficeXmlNode NextSiblingIncludingMarkup(OfficeXmlNode element) =>
+        element.SdkElement is OpenXmlElement sdk ? Wrap(sdk.NextSibling()) : element.NextSibling;
+
+    /// <summary>The first <c>w:</c> child with this name that is a model element, or <see cref="OfficeXmlNode.None"/>.</summary>
+    internal static OfficeXmlNode ModelChild(this OfficeXmlNode element, string localName) =>
+        element.Elements(OpenXml.WordXml.W, localName).FirstOrDefault(IsModelElement);
+
+    /// <summary>The <c>w:</c> children with this name that are model elements.</summary>
+    internal static IEnumerable<OfficeXmlNode> ModelChildren(this OfficeXmlNode element, string localName) =>
+        element.Elements(OpenXml.WordXml.W, localName).Where(IsModelElement);
+
+    /// <summary>The next <c>w:</c> sibling with this name that is a model element, or <see cref="OfficeXmlNode.None"/>.</summary>
+    internal static OfficeXmlNode NextModelSibling(this OfficeXmlNode element, string localName) {
+        for (OfficeXmlNode sibling = element.NextSibling; sibling.Exists; sibling = sibling.NextSibling) {
+            if (sibling.IsW(localName) && sibling.IsModelElement()) return sibling;
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// The text a code block takes from a run child: <c>w:t</c> text, a tab character, a text-wrapping break or a carriage
+    /// return, each as the model types it (a <c>w:tab</c> tab stop is not a tab character). Null for anything else.
+    /// </summary>
+    internal static string? CodeRunChildText(OfficeXmlNode child) => child.SdkElement switch {
+        W.Text text => text.Text,
+        W.TabChar => "\t",
+        W.Break lineBreak when lineBreak.Type == null || lineBreak.Type.Value == W.BreakValues.TextWrapping => "\n",
+        W.CarriageReturn => "\n",
+        _ => null
+    };
 
     /// <summary>
     /// Whether the element is an inline content control as the model types it. The SDK also types a <c>w:sdt</c> under a

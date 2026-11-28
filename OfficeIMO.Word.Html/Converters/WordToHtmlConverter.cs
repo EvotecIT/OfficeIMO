@@ -208,7 +208,7 @@ namespace OfficeIMO.Word.Html {
             void AppendRuns(IElement parent, WordParagraph para, bool processNotes = true) {
                 AppendAdditionalBookmarkAnchors(parent, para, options);
                 var runs = para.GetRuns().ToList();
-                List<OfficeXmlNode> paragraphChildren = WordConverterNodes.EquationChildSequence(para.Node());
+                List<OfficeXmlNode> paragraphChildren = WordConverterNodes.ChildNodesIncludingMarkup(para.Node());
                 IReadOnlyList<WordEquationOccurrence> equations = para._document.EquationOccurrences(para.Node());
                 List<INode> nodes = new();
                 int nextEquation = 0;
@@ -284,6 +284,7 @@ namespace OfficeIMO.Word.Html {
                             ? run._document.ImageView(artifactElement)
                             : artifactElement.Is(WordXml.V, "imagedata") &&
                                 artifactElement.Ancestors().FirstOrDefault(ancestor => ancestor.Is(WordXml.V, "shape")) is { Exists: true } vmlShape &&
+                                vmlShape.IsModelElement() &&
                                 run.RunNode().Exists
                                 ? WordConverterNodes.VmlImageView(run, vmlShape)
                                 : includeAll ? run.Image : null) is WordImage imgObj) {
@@ -485,7 +486,7 @@ namespace OfficeIMO.Word.Html {
                     if (occurrence.StartChildIndex >= 0 &&
                         occurrence.StartChildIndex < paragraphChildren.Count &&
                         paragraphChildren[occurrence.StartChildIndex] is { } hyperlink &&
-                        hyperlink.IsW("hyperlink")) {
+                        hyperlink.IsW("hyperlink") && hyperlink.IsModelElement()) {
                         IElement? anchor = CreateEquationHyperlinkNode(
                             htmlDoc,
                             para._document.HyperlinkView(para.Node(), hyperlink),
@@ -905,12 +906,10 @@ namespace OfficeIMO.Word.Html {
             static string GetCodeParagraphText(WordParagraph para) {
                 var text = new StringBuilder();
                 foreach (OfficeXmlNode run in para.Node().ModelDescendants("r")) {
-                    if (run.Ancestors().Any(ancestor => ancestor.IsW("del") && ancestor.IsTrackedChangeContainer())) continue;
-                    foreach (OfficeXmlNode child in run.Elements().Where(WordConverterNodes.IsModelElement)) {
-                        if (child.IsW("t")) text.Append(child.InnerText);
-                        else if (child.IsW("tab")) text.Append('\t');
-                        else if (child.IsW("br") && child.WAttr("type") is null or "textWrapping") text.Append('\n');
-                        else if (child.IsW("cr")) text.Append('\n');
+                    if (run.Ancestors().Any(ancestor => ancestor.IsW("del") && ancestor.IsTrackedChangeContainer() &&
+                        ancestor.IsModelElement())) continue;
+                    foreach (OfficeXmlNode child in run.Elements()) {
+                        text.Append(WordConverterNodes.CodeRunChildText(child));
                     }
                 }
                 return text.ToString();

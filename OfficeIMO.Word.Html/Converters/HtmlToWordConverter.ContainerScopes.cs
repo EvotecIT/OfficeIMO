@@ -18,21 +18,21 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsReplaceableEmptyCellParagraph(WordParagraph paragraph) {
-            foreach (OfficeXmlNode child in paragraph.Node().Children()) {
+            foreach (OfficeXmlNode child in WordConverterNodes.ChildNodesIncludingMarkup(paragraph.Node())) {
                 if (IsMeaningfulCellParagraphChild(child)) return false;
             }
             return true;
         }
 
         private static bool IsMeaningfulCellParagraphChild(OfficeXmlNode child) {
-            if (child.IsW("pPr")) {
+            if (child.IsW("pPr") && child.IsModelElement()) {
                 return child.HasChildren() || child.HasAttributes;
             }
 
-            if (child.IsW("r")) {
-                foreach (OfficeXmlNode runChild in child.Children()) {
-                    if (!runChild.IsW("rPr") &&
-                        (!runChild.IsW("t") || !string.IsNullOrEmpty(runChild.InnerText))) {
+            if (child.IsW("r") && child.IsModelElement()) {
+                foreach (OfficeXmlNode runChild in WordConverterNodes.ChildNodesIncludingMarkup(child)) {
+                    if (!(runChild.IsW("rPr") && runChild.IsModelElement()) &&
+                        (!(runChild.IsW("t") && runChild.IsModelElement()) || !string.IsNullOrEmpty(runChild.InnerText))) {
                         return true;
                     }
                 }

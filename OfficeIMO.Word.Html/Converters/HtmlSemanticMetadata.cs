@@ -70,7 +70,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (runNode.Exists) {
-                if (TryGetTimeDateTimeMetadata(runNode.NextSiblingNamed(WordXml.W, "r"), out dateTime)) {
+                if (TryGetTimeDateTimeMetadata(runNode.NextModelSibling("r"), out dateTime)) {
                     return true;
                 }
             }
@@ -83,7 +83,7 @@ namespace OfficeIMO.Word.Html {
 
         private static void SetTimeDateTimeMetadataRun(OfficeXmlNode run, string dateTime) {
             var tagValue = TimeDateTimeTagPrefix + Uri.EscapeDataString(dateTime);
-            OfficeXmlNode metadataRun = run.NextSiblingNamed(WordXml.W, "r");
+            OfficeXmlNode metadataRun = run.NextModelSibling("r");
             if (!IsTimeDateTimeMetadataRun(metadataRun)) {
                 OfficeXmlNode created = WordConverterNodes.CreateDetachedRun();
                 OfficeXmlNode properties = created.Append(created.CreateElement(WordXml.W, "rPr"));
@@ -91,7 +91,7 @@ namespace OfficeIMO.Word.Html {
                 metadataRun = run.InsertAfterSelf(created);
             }
 
-            OfficeXmlNode text = metadataRun.WChild("t");
+            OfficeXmlNode text = metadataRun.ModelChild("t");
             if (text.IsNone) {
                 metadataRun.Append(WordConverterNodes.CreateDetachedPreservedText(tagValue));
             } else {
@@ -106,17 +106,17 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            string tag = run.WChild("t").InnerText;
+            string tag = run.ModelChild("t").InnerText;
             dateTime = Uri.UnescapeDataString(tag.Substring(TimeDateTimeTagPrefix.Length));
             return true;
         }
 
         private static bool IsTimeDateTimeMetadataRun(OfficeXmlNode run) {
-            OfficeXmlNode text = run.WChild("t");
+            OfficeXmlNode text = run.ModelChild("t");
             string? tag = text.IsNone ? null : text.InnerText;
             return !string.IsNullOrEmpty(tag) &&
                 tag!.StartsWith(TimeDateTimeTagPrefix, StringComparison.Ordinal) &&
-                run.WChild("rPr").WChild("vanish").Exists;
+                run.ModelChild("rPr").ModelChild("vanish").Exists;
         }
 
         private sealed class HtmlTimeAnnotation {
