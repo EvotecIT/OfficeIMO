@@ -40,34 +40,6 @@ public partial class WordTableOfContent {
         if (_ownedSdt.Exists && _document._ownedModel is { } model) model.MarkChanged();
     }
 
-    internal static bool TryGetOwnedTable(WordDocument document, out WordTableOfContent? table) {
-        table = null;
-        if (document._ownedModel is not { } model) return false;
-        if (!model.BodyHasFieldsOrContentControls) return true;
-        OfficeXmlNode body = new OfficeXmlNode(model.Document, model.Body);
-        foreach (OfficeXmlNode block in body.Children(TocNamespace, "sdt")) {
-            if (!IsTocGallery(block)) continue;
-            table = new WordTableOfContent(document, block);
-            return true;
-        }
-        return false;
-    }
-
-    internal static bool TryGetOwnedTablesForRefresh(WordDocument document, out List<WordTableOfContent>? tables) {
-        tables = null;
-        if (document._ownedModel is not { } model) return false;
-        tables = new List<WordTableOfContent>();
-        if (!model.BodyHasFieldsOrContentControls) return true;
-        OfficeXmlNode body = new OfficeXmlNode(model.Document, model.Body);
-        foreach (OfficeXmlNode block in WordFieldInventory.EnumerateFieldContent(body)) {
-            if (block.Is(TocNamespace, "sdt") && IsTocGallery(block) && IsBlockTocControl(block))
-                tables.Add(new WordTableOfContent(document, block));
-        }
-
-        // An imported bare TOC field needs the existing block wrapping path.
-        return tables.Count != 0;
-    }
-
     private static bool IsTocGallery(OfficeXmlNode block) =>
         block.Child(TocNamespace, "sdtPr").Child(TocNamespace, "docPartObj")
             .Child(TocNamespace, "docPartGallery").Attribute(TocNamespace, "val") == "Table of Contents";

@@ -13,13 +13,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the table of contents defined in the document.
         /// </summary>
-        public WordTableOfContent? TableOfContent {
-            get {
-                if (WordTableOfContent.TryGetOwnedTable(this, out var owned)) return owned;
-                var sdtBlocks = _document.Body?.ChildElements.OfType<SdtBlock>() ?? Enumerable.Empty<SdtBlock>();
-                return WordSection.ConvertStdBlockToTableOfContent(this, sdtBlocks);
-            }
-        }
+        public WordTableOfContent? TableOfContent => WordTableOfContent.FindFirstTable(this);
 
         /// <summary>
         /// Gets the cover page if one is defined in the document.

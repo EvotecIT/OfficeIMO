@@ -113,6 +113,77 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_BareIndexWrapsAndRefreshesWithTheOwnedPackage(bool compatibilitySuffix) {
+            byte[] bytes;
+            using (WordDocument source = WordDocument.Create()) {
+                Paragraph paragraph = source.AddParagraph("Text before index")._paragraph;
+                paragraph.Append(new SimpleField(new Run(new Text("Stale index"))) { Instruction = " INDEX " });
+                var suffix = new Run(new Text("Text after index"));
+                if (compatibilitySuffix) {
+                    paragraph.Append(new AlternateContent(
+                        new AlternateContentChoice(new Run()) { Requires = "w14" },
+                        new AlternateContentFallback(suffix)));
+                } else {
+                    paragraph.Append(suffix);
+                }
+                source.AddParagraph("Indexed text")._paragraph.Append(new SimpleField() { Instruction = " XE Known " });
+                bytes = source.ToBytes();
+            }
+
+            using WordDocument document = WordDocument.Load(new MemoryStream(bytes));
+            WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
+            Assert.Equal("Known", Assert.Single(index.RefreshIndex().Entries).Term);
+#if NET
+            Assert.True(document.IsSdkDeferred);
+#endif
+
+            var body = document.OpenXmlDocument.MainDocumentPart!.Document.Body!;
+            Paragraph[] paragraphs = body.Elements<Paragraph>().ToArray();
+            Assert.Equal(3, paragraphs.Length);
+            Assert.Equal("Text before index", paragraphs[0].InnerText);
+            if (compatibilitySuffix) {
+                var alternate = Assert.Single(paragraphs[1].Elements<AlternateContent>());
+                Assert.Equal("Text after index", alternate.GetFirstChild<AlternateContentFallback>()!.InnerText);
+            } else {
+                Assert.Equal("Text after index", paragraphs[1].InnerText);
+            }
+            Assert.Equal("Indexed text", paragraphs[2].InnerText);
+            Assert.Single(body.Elements<SdtBlock>());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_CaptionAndIndexRefreshIgnoreExtensionFields(bool captionList) {
+            const string w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+            string instruction = captionList ? " SEQ Figure " : " XE Known ";
+            string hiddenInstruction = captionList ? " SEQ Figure " : " XE Hidden ";
+            byte[] bytes;
+            using (WordDocument source = WordDocument.Create()) {
+                source.AddTableOfContent();
+                source.AddParagraph("Visible source")._paragraph.Append(
+                    new SimpleField(new Run(new Text("1"))) { Instruction = instruction });
+                var extension = new OpenXmlUnknownElement("w", "extLst", w);
+                extension.Append(new SimpleField(new Run(new Text("99"))) { Instruction = hiddenInstruction });
+                source.AddParagraph("Extension source")._paragraph.Append(extension);
+                bytes = source.ToBytes();
+            }
+
+            using WordDocument document = WordDocument.Load(new MemoryStream(bytes));
+            WordTableOfContent table = Assert.IsType<WordTableOfContent>(document.TableOfContent);
+            if (captionList) {
+                Assert.Single(table.RefreshListOfFigures().Entries);
+            } else {
+                Assert.Equal("Known", Assert.Single(table.RefreshIndex().Entries).Term);
+            }
+#if NET
+            Assert.True(document.IsSdkDeferred);
+#endif
+        }
+
+        [Theory]
         [InlineData("figures")]
         [InlineData("index")]
         public void Test_CaptionListAndIndexRefreshKeepFieldCharactersNested(string kind) {

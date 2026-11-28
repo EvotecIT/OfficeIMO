@@ -1,7 +1,6 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.OpenXml.Internal;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.OpenXml;
 using System.Globalization;
 
 namespace OfficeIMO.Word {
@@ -15,7 +14,7 @@ namespace OfficeIMO.Word {
         /// <param name="title">Optional title shown above the generated list.</param>
         /// <returns>A report describing the generated caption-list entries.</returns>
         public WordCaptionListRefreshReport RefreshCaptionList(string sequenceIdentifier, string? title = null) {
-            if (_sdtBlock.SdtContentBlock == null) {
+            if (ContentNode.IsNone) {
                 throw new InvalidOperationException("Table of contents content block is missing.");
             }
 
@@ -23,6 +22,7 @@ namespace OfficeIMO.Word {
             string instruction = GetCaptionListInstruction(normalizedSequence);
             ISet<int> pageNumberSuppressedLevels = GetTocPageNumberSuppressedLevels(instruction);
             string pageNumberSeparator = GetTocPageNumberSeparator(instruction);
+            _ = ReadTocUpdateOnOpen();
             var entries = CollectCaptionEntries(normalizedSequence, out int skippedCaptionCount).ToArray();
             string listTitle = string.IsNullOrWhiteSpace(title) ? "List of " + normalizedSequence + "s" : title!.Trim();
 
@@ -53,260 +53,114 @@ namespace OfficeIMO.Word {
         }
 
         private IReadOnlyList<CaptionListEntry> CollectCaptionEntries(string sequenceIdentifier, out int skippedCaptionCount) {
-            MainDocumentPart mainPart = _document._wordprocessingDocument.MainDocumentPart
-                ?? throw new InvalidOperationException("Main document part is missing.");
-            Body body = mainPart.Document?.Body
-                ?? throw new InvalidOperationException("Document body is missing.");
+            OfficeXmlNode body = WordFieldInventory.BodyNode(_document);
+            if (body.IsNone) throw new InvalidOperationException("Document body is missing.");
+            if (_document._ownedModel is { } model) WordOwnedEdits.PrepareBodyEdit(model);
 
             var entries = new List<CaptionListEntry>();
-            var roots = WordFieldInventory.EnumerateFieldRoots(mainPart).ToArray();
-            Dictionary<Paragraph, int> paragraphPages = BuildParagraphPageMap(body, _sdtBlock);
-            Dictionary<string, int> footnotePages = BuildFootnoteAnchorPageMap(body, paragraphPages);
-            Dictionary<string, int> endnotePages = BuildEndnoteAnchorPageMap(body, paragraphPages);
-            var existingBookmarkNames = new HashSet<string>(
-                roots
-                    .SelectMany(root => root.Root.Descendants<BookmarkStart>())
-                    .Select(bookmark => bookmark.Name?.Value)
-                    .Where(name => !string.IsNullOrWhiteSpace(name))
-                    .Cast<string>(),
-                StringComparer.Ordinal);
+            var roots = WordFieldInventory.EnumerateStories(_document).ToArray();
+            OfficeXmlNode control = SdtNode;
+            Dictionary<OfficeXmlNode, int> paragraphPages = BuildParagraphPageMap(body, control);
+            Dictionary<int, int> footnotePages = BuildNoteAnchorPageMap(body, paragraphPages, "footnoteReference");
+            Dictionary<int, int> endnotePages = BuildNoteAnchorPageMap(body, paragraphPages, "endnoteReference");
+            var bookmarks = new CaptionBookmarks(roots);
 
-            int captionIndex = 0;
             skippedCaptionCount = 0;
-
-            foreach (WordFieldInventory.FieldRoot root in roots) {
-                int rootPageNumber = 1;
-                foreach (OpenXmlElement child in root.Root.ChildElements) {
-                    if (ReferenceEquals(child, _sdtBlock)) {
-                        continue;
-                    }
-
-                    if (child is Paragraph paragraph) {
-                        ProcessCaptionParagraph(paragraph, sequenceIdentifier, entries, existingBookmarkNames, paragraphPages, footnotePages, endnotePages, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
-                        continue;
-                    }
-
-                    if (child is Table || child is SdtBlock) {
-                        ProcessNestedCaptionParagraphs(child, sequenceIdentifier, entries, existingBookmarkNames, paragraphPages, footnotePages, endnotePages, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
-                        continue;
-                    }
-
-                    if (child is Footnote footnote && IsVisibleNote(footnote)) {
-                        ProcessNestedCaptionParagraphs(footnote, sequenceIdentifier, entries, existingBookmarkNames, paragraphPages, footnotePages, endnotePages, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
-                        continue;
-                    }
-
-                    if (child is Endnote endnote && IsVisibleNote(endnote)) {
-                        ProcessNestedCaptionParagraphs(endnote, sequenceIdentifier, entries, existingBookmarkNames, paragraphPages, footnotePages, endnotePages, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
-                    }
+            foreach (WordFieldInventory.NodeFieldRoot root in roots) {
+                foreach (OfficeXmlNode paragraph in EnumerateTocSourceParagraphs(root.Root, control)) {
+                    int page = GetParagraphPageNumber(paragraph, paragraphPages, footnotePages, endnotePages);
+                    ProcessCaptionParagraph(paragraph, sequenceIdentifier, entries, bookmarks, page, ref skippedCaptionCount);
                 }
             }
-
             return entries;
         }
 
-        private void ProcessNestedCaptionParagraphs(
-            OpenXmlElement container,
-            string sequenceIdentifier,
-            List<CaptionListEntry> entries,
-            HashSet<string> existingBookmarkNames,
-            IReadOnlyDictionary<Paragraph, int> paragraphPages,
-            IReadOnlyDictionary<string, int> footnotePages,
-            IReadOnlyDictionary<string, int> endnotePages,
-            ref int pageNumber,
-            ref int captionIndex,
-            ref int skippedCaptionCount) {
-            foreach (Paragraph nestedParagraph in container.Descendants<Paragraph>()) {
-                if (nestedParagraph.Ancestors<TextBoxContent>().Any()) {
-                    continue;
-                }
-
-                ProcessCaptionParagraph(nestedParagraph, sequenceIdentifier, entries, existingBookmarkNames, paragraphPages, footnotePages, endnotePages, ref pageNumber, ref captionIndex, ref skippedCaptionCount);
-            }
-        }
-
-        private void ProcessCaptionParagraph(
-            Paragraph paragraph,
-            string sequenceIdentifier,
-            List<CaptionListEntry> entries,
-            HashSet<string> existingBookmarkNames,
-            IReadOnlyDictionary<Paragraph, int> paragraphPages,
-            IReadOnlyDictionary<string, int> footnotePages,
-            IReadOnlyDictionary<string, int> endnotePages,
-            ref int pageNumber,
-            ref int captionIndex,
-            ref int skippedCaptionCount) {
-            if (WordParagraph.HasPageBreakBefore(paragraph)) {
-                pageNumber++;
-            }
-
-            int entryPageNumber = paragraphPages.TryGetValue(paragraph, out int mappedPage)
-                ? mappedPage
-                : GetParagraphPageNumber(paragraph, paragraphPages, footnotePages, endnotePages);
+        private void ProcessCaptionParagraph(OfficeXmlNode paragraph, string sequenceIdentifier, List<CaptionListEntry> entries,
+            CaptionBookmarks bookmarks, int pageNumber, ref int skippedCaptionCount) {
             bool containsOwnCaption = ContainsSequenceField(paragraph, sequenceIdentifier, includeTextBoxContent: false);
             if (containsOwnCaption) {
-                AddCaptionEntry(
-                    paragraph,
-                    sequenceIdentifier,
-                    entries,
-                    existingBookmarkNames,
-                    entryPageNumber,
-                    ref captionIndex,
-                    ref skippedCaptionCount,
-                    captionTextOverride: GetParagraphTextOutsideTextBoxes(paragraph),
+                AddCaptionEntry(paragraph, sequenceIdentifier, entries, bookmarks, pageNumber, ref skippedCaptionCount,
                     includeTextBoxBookmarks: false);
             }
 
-            IReadOnlyList<Paragraph> textBoxCaptionParagraphs = GetTextBoxCaptionParagraphs(paragraph, sequenceIdentifier);
-            if (textBoxCaptionParagraphs.Count > 0) {
-                var seenCaptionText = new HashSet<string>(StringComparer.Ordinal);
-                foreach (Paragraph textBoxCaptionParagraph in textBoxCaptionParagraphs) {
-                    AddCaptionEntry(
-                        textBoxCaptionParagraph,
-                        sequenceIdentifier,
-                        entries,
-                        existingBookmarkNames,
-                        entryPageNumber,
-                        ref captionIndex,
-                        ref skippedCaptionCount,
+            HashSet<string>? seenCaptionText = null;
+            foreach (OfficeXmlNode textBox in EnumerateTocElements(paragraph, "txbxContent")) {
+                foreach (OfficeXmlNode caption in EnumerateTocElements(textBox, "p")) {
+                    if (!ContainsSequenceField(caption, sequenceIdentifier)) continue;
+                    seenCaptionText ??= new HashSet<string>(StringComparer.Ordinal);
+                    AddCaptionEntry(caption, sequenceIdentifier, entries, bookmarks, pageNumber, ref skippedCaptionCount,
                         seenCaptionText);
                 }
-            } else if (!containsOwnCaption && ContainsSequenceField(paragraph, sequenceIdentifier)) {
-                AddCaptionEntry(
-                    paragraph,
-                    sequenceIdentifier,
-                    entries,
-                    existingBookmarkNames,
-                    entryPageNumber,
-                    ref captionIndex,
-                    ref skippedCaptionCount);
             }
-
-            pageNumber += paragraph.Descendants<Break>().Count(documentBreak => documentBreak.Type?.Value == BreakValues.Page);
-
-            if (StartsNewPage(paragraph.ParagraphProperties?.SectionProperties)) {
-                pageNumber++;
+            if (seenCaptionText == null && !containsOwnCaption && ContainsSequenceField(paragraph, sequenceIdentifier)) {
+                AddCaptionEntry(paragraph, sequenceIdentifier, entries, bookmarks, pageNumber, ref skippedCaptionCount);
             }
         }
 
-        private void AddCaptionEntry(
-            Paragraph paragraph,
-            string sequenceIdentifier,
-            List<CaptionListEntry> entries,
-            HashSet<string> existingBookmarkNames,
-            int pageNumber,
-            ref int captionIndex,
-            ref int skippedCaptionCount,
-            HashSet<string>? seenCaptionText = null,
-            string? captionTextOverride = null,
+        private void AddCaptionEntry(OfficeXmlNode paragraph, string sequenceIdentifier, List<CaptionListEntry> entries,
+            CaptionBookmarks bookmarks, int pageNumber, ref int skippedCaptionCount, HashSet<string>? seenCaptionText = null,
             bool includeTextBoxBookmarks = true) {
-            string captionText = (captionTextOverride ?? GetParagraphText(paragraph)).Trim();
+            string captionText = GetParagraphText(paragraph).Trim();
             if (captionText.Length == 0) {
                 skippedCaptionCount++;
                 return;
             }
+            if (seenCaptionText != null && !seenCaptionText.Add(captionText)) return;
 
-            if (seenCaptionText != null && !seenCaptionText.Add(captionText)) {
-                return;
-            }
-
-            string bookmarkName = EnsureCaptionBookmark(paragraph, existingBookmarkNames, sequenceIdentifier, captionIndex, includeTextBoxBookmarks);
+            string bookmarkName = EnsureCaptionBookmark(paragraph, bookmarks, sequenceIdentifier, entries.Count, includeTextBoxBookmarks);
             entries.Add(new CaptionListEntry(captionText, pageNumber, bookmarkName));
-            captionIndex++;
         }
 
-        private static IReadOnlyList<Paragraph> GetTextBoxCaptionParagraphs(Paragraph paragraph, string sequenceIdentifier) {
-            var captionParagraphs = new List<Paragraph>();
-            foreach (TextBoxContent textBoxContent in paragraph.Descendants<TextBoxContent>()) {
-                captionParagraphs.AddRange(textBoxContent.Descendants<Paragraph>()
-                    .Where(candidate => ContainsSequenceField(candidate, sequenceIdentifier)));
-            }
-
-            return captionParagraphs;
-        }
-
-        private static string GetParagraphTextOutsideTextBoxes(Paragraph paragraph) {
-            return string.Concat(paragraph.Descendants<Text>()
-                .Where(text => !text.Ancestors<TextBoxContent>().Any())
-                .Select(text => text.Text));
-        }
-
-        private void ReplaceCaptionListContent(string instruction, string sequenceIdentifier, string title, IReadOnlyList<CaptionListEntry> entries, ISet<int> pageNumberSuppressedLevels, string pageNumberSeparator) {
+        private void ReplaceCaptionListContent(string instruction, string sequenceIdentifier, string title, IReadOnlyList<CaptionListEntry> entries,
+            ISet<int> pageNumberSuppressedLevels, string pageNumberSeparator) {
+            const int W = TocNamespace;
             string noContentText = GetNoContentText("No " + sequenceIdentifier + " entries found.");
-            SdtContentBlock content = _sdtBlock.SdtContentBlock
-                ?? throw new InvalidOperationException("Table of contents content block is missing.");
-
-            Paragraph titleParagraph = GetTitleParagraph() ?? CreateTitleParagraph(title);
-            SetParagraphText(titleParagraph, title);
-            RemoveIfAttached(titleParagraph);
-
-            content.RemoveAllChildren();
-            content.Append(titleParagraph);
-            AppendGeneratedFieldResult(OfficeXmlNode.FromSdk(content), instruction, entries.Select(entry => CreateEntryParagraph(
-                new TocHeadingEntry(entry.Text, 1, entry.PageNumber, entry.BookmarkName, applyLevelRange: false),
-                !pageNumberSuppressedLevels.Contains(1), pageNumberSeparator)).Select(OfficeXmlNode.FromSdk), noContentText);
-        }
-
-        private static bool ContainsSequenceField(Paragraph paragraph, string sequenceIdentifier) {
-            return ContainsSequenceField(paragraph, sequenceIdentifier, includeTextBoxContent: true);
-        }
-
-        private static bool ContainsSequenceField(Paragraph paragraph, string sequenceIdentifier, bool includeTextBoxContent) {
-            foreach (SimpleField simpleField in paragraph.Descendants<SimpleField>()) {
-                if (!includeTextBoxContent && simpleField.Ancestors<TextBoxContent>().Any()) {
-                    continue;
-                }
-
-                if (IsSequenceInstruction(simpleField.Instruction?.Value ?? simpleField.Instruction, sequenceIdentifier)) {
-                    return true;
-                }
-            }
-
-            foreach (FieldCode fieldCode in paragraph.Descendants<FieldCode>()) {
-                if (!includeTextBoxContent && fieldCode.Ancestors<TextBoxContent>().Any()) {
-                    continue;
-                }
-
-                if (IsSequenceInstruction(fieldCode.Text, sequenceIdentifier)) {
-                    return true;
-                }
-            }
-
-            foreach (string instruction in EnumerateComplexFieldInstructions(paragraph, includeTextBoxContent)) {
-                if (IsSequenceInstruction(instruction, sequenceIdentifier)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static IEnumerable<string> EnumerateComplexFieldInstructions(Paragraph paragraph, bool includeTextBoxContent) {
-            int depth = 0;
-            var instruction = new System.Text.StringBuilder();
-            foreach (OpenXmlElement element in paragraph.Descendants<OpenXmlElement>()) {
-                if (!includeTextBoxContent && element.Ancestors<TextBoxContent>().Any()) {
-                    continue;
-                }
-
-                if (element is FieldChar fieldChar) {
-                    if (fieldChar.FieldCharType?.Value == FieldCharValues.Begin) {
-                        if (depth == 0) {
-                            instruction.Clear();
-                        }
-
-                        depth++;
-                    } else if (fieldChar.FieldCharType?.Value == FieldCharValues.End && depth > 0) {
-                        depth--;
-                        if (depth == 0 && instruction.Length > 0) {
-                            yield return instruction.ToString();
-                            instruction.Clear();
-                        }
+            OfficeXmlNode content = ResetTocContentWithTitle(title);
+            var paragraphs = new List<OfficeXmlNode>(entries.Count);
+            foreach (CaptionListEntry entry in entries) {
+                OfficeXmlNode paragraph = content.CreateElement(W, "p");
+                AppendTocChild(AppendTocChild(paragraph, "pPr"), "pStyle").SetAttribute(W, "val", "TOC1");
+                OfficeXmlNode link = AppendTocChild(paragraph, "hyperlink");
+                link.SetAttribute(W, "anchor", entry.BookmarkName);
+                link.SetAttribute(W, "history", "true");
+                link.Append(CreateTocTextRun(link, "t", entry.Text, preserveSpace: true));
+                if (!pageNumberSuppressedLevels.Contains(1)) {
+                    if (pageNumberSeparator == "\t") {
+                        AppendTocChild(AppendTocChild(link, "r"), "tab");
+                    } else if (pageNumberSeparator.Length > 0) {
+                        link.Append(CreateTocTextRun(link, "t", pageNumberSeparator, preserveSpace: true));
                     }
-                } else if (element is FieldCode fieldCode && depth > 0) {
-                    instruction.Append(fieldCode.Text);
+                    link.Append(CreateTocTextRun(link, "t", entry.PageNumber.ToString(CultureInfo.InvariantCulture), preserveSpace: false));
+                }
+                paragraphs.Add(paragraph);
+            }
+            AppendGeneratedFieldResult(content, instruction, paragraphs, noContentText);
+        }
+
+        private static bool ContainsSequenceField(OfficeXmlNode paragraph, string sequenceIdentifier, bool includeTextBoxContent = true) {
+            const int W = TocNamespace;
+            int depth = 0;
+            System.Text.StringBuilder? complex = null;
+            foreach (OfficeXmlNode element in WordFieldInventory.EnumerateFieldContent(paragraph)) {
+                if (element.NamespaceId != W ||
+                    !includeTextBoxContent && element.AncestorOrSelf(W, "txbxContent").Exists) continue;
+                if (element.Is(W, "fldSimple") && IsSequenceInstruction(element.Attribute(W, "instr"), sequenceIdentifier)) {
+                    return true;
+                }
+                if (element.Is(W, "fldChar")) {
+                    if (element.Attribute(W, "fldCharType") == "begin") {
+                        if (depth++ == 0) complex?.Clear();
+                    } else if (element.Attribute(W, "fldCharType") == "end" && depth > 0 && --depth == 0 &&
+                               complex?.Length > 0 && IsSequenceInstruction(complex.ToString(), sequenceIdentifier)) {
+                        return true;
+                    }
+                } else if (element.Is(W, "instrText")) {
+                    string instruction = element.InnerText;
+                    if (IsSequenceInstruction(instruction, sequenceIdentifier)) return true;
+                    if (depth > 0) (complex ??= new System.Text.StringBuilder()).Append(instruction);
                 }
             }
+            return false;
         }
 
         private static bool IsSequenceInstruction(string? instruction, string sequenceIdentifier) {
@@ -320,74 +174,66 @@ namespace OfficeIMO.Word {
                 string.Equals(TrimCaptionIdentifier(parsed.Instructions[0]), sequenceIdentifier, StringComparison.OrdinalIgnoreCase);
         }
 
-        private string EnsureCaptionBookmark(Paragraph paragraph, HashSet<string> existingBookmarkNames, string sequenceIdentifier, int captionIndex, bool includeTextBoxBookmarks = true) {
-            BookmarkStart? existing = paragraph.Descendants<BookmarkStart>()
-                .Where(bookmark => includeTextBoxBookmarks || !bookmark.Ancestors<TextBoxContent>().Any())
-                .FirstOrDefault(bookmark => !string.IsNullOrWhiteSpace(bookmark.Name?.Value));
-
-            string? existingName = existing?.Name?.Value;
-            if (existingName != null && existingName.Trim().Length > 0) {
-                return existingName;
+        private string EnsureCaptionBookmark(OfficeXmlNode paragraph, CaptionBookmarks bookmarks, string sequenceIdentifier,
+            int captionIndex, bool includeTextBoxBookmarks) {
+            const int W = TocNamespace;
+            foreach (OfficeXmlNode bookmark in EnumerateTocElements(paragraph, "bookmarkStart")) {
+                if ((includeTextBoxBookmarks || bookmark.AncestorOrSelf(W, "txbxContent").IsNone) &&
+                    bookmark.Attribute(W, "name") is { } name && !string.IsNullOrWhiteSpace(name)) return name;
             }
 
             string safeSequence = new string(sequenceIdentifier.Select(character => char.IsLetterOrDigit(character) ? character : '_').ToArray());
-            string bookmarkName;
-            do {
-                bookmarkName = "_OfficeIMO_Caption_" + safeSequence + "_" + captionIndex.ToString(CultureInfo.InvariantCulture) + "_" + existingBookmarkNames.Count.ToString(CultureInfo.InvariantCulture);
-            } while (!existingBookmarkNames.Add(bookmarkName));
-
-            int nextId = GetNextCaptionBookmarkId();
+            string prefix = "_OfficeIMO_Caption_" + safeSequence + "_" + captionIndex.ToString(CultureInfo.InvariantCulture) + "_";
+            string bookmarkName = bookmarks.AllocateName(prefix);
+            int nextId = bookmarks.AllocateId();
             _document.ObserveBookmarkId(nextId);
             string bookmarkId = nextId.ToString(CultureInfo.InvariantCulture);
-            var bookmarkStart = new BookmarkStart {
-                Name = bookmarkName,
-                Id = bookmarkId
-            };
-            var bookmarkEnd = new BookmarkEnd {
-                Id = bookmarkId
-            };
-
-            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
-            if (properties != null) {
-                paragraph.InsertAfter(bookmarkStart, properties);
-            } else {
-                paragraph.PrependChild(bookmarkStart);
-            }
-
-            paragraph.Append(bookmarkEnd);
+            OfficeXmlNode start = paragraph.CreateElement(W, "bookmarkStart");
+            start.SetAttribute(W, "name", bookmarkName);
+            start.SetAttribute(W, "id", bookmarkId);
+            OfficeXmlNode properties = paragraph.Child(W, "pPr");
+            paragraph.InsertBefore(start, properties.Exists ? properties.NextSibling : paragraph.FirstChild);
+            AppendTocChild(paragraph, "bookmarkEnd").SetAttribute(W, "id", bookmarkId);
             return bookmarkName;
         }
 
-        private int GetNextCaptionBookmarkId() {
-            MainDocumentPart? mainPart = _document._wordprocessingDocument.MainDocumentPart;
-            if (mainPart == null) {
-                return _document.BookmarkId;
-            }
+        private sealed class CaptionBookmarks {
+            private readonly HashSet<string> _names = new(StringComparer.Ordinal);
+            private int _maxId = -1;
+            private int _nextNameSuffix;
 
-            int maxId = -1;
-            foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
-                foreach (OpenXmlElement bookmark in root.Root.Descendants<BookmarkStart>().Cast<OpenXmlElement>().Concat(root.Root.Descendants<BookmarkEnd>())) {
-                    string? value = bookmark switch {
-                        BookmarkStart start => start.Id?.Value,
-                        BookmarkEnd end => end.Id?.Value,
-                        _ => null
-                    };
-
-                    if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id)) {
-                        maxId = Math.Max(maxId, id);
+            internal CaptionBookmarks(IReadOnlyList<WordFieldInventory.NodeFieldRoot> stories) {
+                const int W = TocNamespace;
+                foreach (WordFieldInventory.NodeFieldRoot story in stories) {
+                    foreach (OfficeXmlNode bookmark in EnumerateTocElements(story.Root, "bookmarkStart")) {
+                        if (bookmark.Attribute(W, "name") is { } name && !string.IsNullOrWhiteSpace(name)) _names.Add(name);
+                    }
+                }
+                _nextNameSuffix = _names.Count;
+                foreach (WordFieldInventory.NodeFieldRoot story in stories) {
+                    foreach (OfficeXmlNode node in WordFieldInventory.EnumerateFieldContent(story.Root, reserveInactiveCompatibilityIds: true)) {
+                        bool isStart = node.Is(W, "bookmarkStart");
+                        if (isStart && node.Attribute(W, "name") is { } name && !string.IsNullOrWhiteSpace(name)) _names.Add(name);
+                        if ((isStart || node.Is(W, "bookmarkEnd")) &&
+                            OfficeXmlViewValues.ParseInt32(node.Attribute(W, "id")) is int id) _maxId = Math.Max(_maxId, id);
                     }
                 }
             }
 
-            return maxId + 1;
-        }
+            internal string AllocateName(string prefix) {
+                int suffix = _nextNameSuffix++;
+                string name;
+                do {
+                    name = prefix + suffix.ToString(CultureInfo.InvariantCulture);
+                    suffix++;
+                } while (!_names.Add(name));
+                return name;
+            }
 
-        private static bool IsVisibleNote(Footnote footnote) {
-            return WordNoteResolver.IsOrdinary(footnote);
-        }
-
-        private static bool IsVisibleNote(Endnote endnote) {
-            return WordNoteResolver.IsOrdinary(endnote);
+            internal int AllocateId() {
+                if (_maxId == int.MaxValue) throw new InvalidOperationException("The document has exhausted the available bookmark identifier range.");
+                return ++_maxId;
+            }
         }
 
         private static string NormalizeCaptionSequenceIdentifier(string sequenceIdentifier) {
@@ -428,19 +274,6 @@ namespace OfficeIMO.Word {
             }
 
             return CreateCaptionListInstruction(sequenceIdentifier);
-        }
-
-        private static void SetParagraphText(Paragraph paragraph, string value) {
-            Text? text = paragraph.Descendants<Text>().FirstOrDefault();
-            if (text == null) {
-                paragraph.Append(new Run(new Text(value) { Space = SpaceProcessingModeValues.Preserve }));
-                return;
-            }
-
-            text.Text = value;
-            foreach (Text extraText in paragraph.Descendants<Text>().Skip(1)) {
-                extraText.Text = string.Empty;
-            }
         }
 
         private sealed class CaptionListEntry {
