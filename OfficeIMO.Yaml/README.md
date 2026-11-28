@@ -12,7 +12,7 @@ dotnet add package OfficeIMO.Yaml
 
 The serializer's source generator ships inside the package, so no second package is needed for trimmed or NativeAOT applications.
 
-To read YAML files through `Microsoft.Extensions.Configuration` (`AddYamlFile`), add [OfficeIMO.Yaml.Configuration](../OfficeIMO.Yaml.Configuration/README.md).
+To read YAML files through `Microsoft.Extensions.Configuration` (`AddYamlFile`), add [OfficeIMO.Yaml.Configuration](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Yaml.Configuration/README.md).
 
 ## Loading a document
 
@@ -102,7 +102,7 @@ string formatted = YamlFormatter.Format(text, new YamlFormatOptions { IndentWidt
 
 `YamlFormatter.Format` writes the whole document through the emitter `Reformat` uses, so values, spellings, anchors, aliases, tags, comments outside flow collections and blank lines above entries stay, and formatting formatted text returns it unchanged. `YamlFormatOptions` sets the indent width, `SequenceIndentation` (`Preserve`, `Compact`, `Indented`), `Quotes` (`Preserve`, `Single`, `Double`; strings that need escapes stay double-quoted), `LineEnding` and `FinalNewline`; settings left at their defaults follow the document's own conventions. `Format(YamlDocument, options)` formats an edited document without changing it. A document loaded with `YamlDialect.Unity` throws `NotSupportedException`, because Unity reads only the layout it writes; use `YamlLinter.Fix` for those files.
 
-The `officeimo yaml lint` and `officeimo yaml format` commands of [OfficeIMO.Tool](../OfficeIMO.Tool/README.md) run both on files and folders.
+The `officeimo yaml lint` and `officeimo yaml format` commands of [OfficeIMO.Tool](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Tool/README.md) run both on files and folders.
 
 ## Merge overlays
 
@@ -179,7 +179,7 @@ foreach (YamlDocumentPart part in manifest.Documents) {
 }
 ```
 
-Values take the type the document's schema resolves, so `enabled: yes` is a boolean under `%YAML 1.1` and a string under the default core schema. Merge keys apply, aliases share their anchored value, and timestamps and custom-tagged scalars stay strings. `ToJsonData()` on a node, document part or document returns the converted value; a schema written in YAML loads with `JsonSchema.Load(schemaDocument.ToJsonData())`. References outside the schema resolve only through `JsonSchemaOptions.ReferenceResolver`. The keywords, formats and limits are described in [JSON Schema validation](../Docs/officeimo.json-schema-design.md).
+Values take the type the document's schema resolves, so `enabled: yes` is a boolean under `%YAML 1.1` and a string under the default core schema. Merge keys apply, aliases share their anchored value, and timestamps and custom-tagged scalars stay strings. `ToJsonData()` on a node, document part or document returns the converted value; a schema written in YAML loads with `JsonSchema.Load(schemaDocument.ToJsonData())`. References outside the schema resolve only through `JsonSchemaOptions.ReferenceResolver`. The keywords, formats and limits are described in [JSON Schema validation](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.json-schema-design.md).
 
 ## Writing YAML
 

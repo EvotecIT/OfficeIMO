@@ -1,16 +1,15 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
 using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private static readonly Dictionary<HighlightColorValues, Color> _highlightColors = new[] {
-            HighlightColorValues.Yellow, HighlightColorValues.Green, HighlightColorValues.Cyan,
-            HighlightColorValues.Magenta, HighlightColorValues.Blue, HighlightColorValues.Red,
-            HighlightColorValues.DarkBlue, HighlightColorValues.DarkCyan, HighlightColorValues.DarkGreen,
-            HighlightColorValues.DarkMagenta, HighlightColorValues.DarkRed, HighlightColorValues.DarkYellow,
-            HighlightColorValues.DarkGray, HighlightColorValues.LightGray, HighlightColorValues.Black, HighlightColorValues.White
-        }.ToDictionary(highlight => highlight, highlight => Color.Parse("#" + WordRunFormatting.GetHighlightColorHex(highlight)));
+        private static readonly Dictionary<WordHighlightColor, Color> _highlightColors = new[] {
+            WordHighlightColor.Yellow, WordHighlightColor.Green, WordHighlightColor.Cyan,
+            WordHighlightColor.Magenta, WordHighlightColor.Blue, WordHighlightColor.Red,
+            WordHighlightColor.DarkBlue, WordHighlightColor.DarkCyan, WordHighlightColor.DarkGreen,
+            WordHighlightColor.DarkMagenta, WordHighlightColor.DarkRed, WordHighlightColor.DarkYellow,
+            WordHighlightColor.DarkGray, WordHighlightColor.LightGray, WordHighlightColor.Black, WordHighlightColor.White
+        }.ToDictionary(highlight => highlight, highlight => Color.Parse("#" + WordConverterNodes.HighlightColorHexOfToken(highlight.ToOpenXmlToken())));
 
         private void ApplyTextBackground(
             WordParagraph run,
@@ -30,12 +29,12 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            HighlightColorValues? highlight = MapColorToHighlight(formatting.BackgroundColorHex, out bool exact);
+            WordHighlightColor? highlight = MapColorToHighlight(formatting.BackgroundColorHex, out bool exact);
             if (!highlight.HasValue) {
                 return;
             }
 
-            run.SetHighlight(highlight.Value.ToOfficeEnum());
+            run.SetHighlight(highlight.Value);
             if (!exact) {
                 AddDiagnostic(
                     options,
@@ -73,7 +72,7 @@ namespace OfficeIMO.Word.Html {
                 .ToRgbHex();
         }
 
-        private static HighlightColorValues? MapColorToHighlight(string? hex, out bool exact) {
+        private static WordHighlightColor? MapColorToHighlight(string? hex, out bool exact) {
             exact = false;
             if (string.IsNullOrEmpty(hex)) {
                 return null;
@@ -81,9 +80,9 @@ namespace OfficeIMO.Word.Html {
 
             try {
                 Color target = Color.Parse("#" + hex);
-                HighlightColorValues? best = null;
+                WordHighlightColor? best = null;
                 int bestDistance = int.MaxValue;
-                foreach (KeyValuePair<HighlightColorValues, Color> pair in _highlightColors) {
+                foreach (KeyValuePair<WordHighlightColor, Color> pair in _highlightColors) {
                     Color candidate = pair.Value;
                     int distance = (candidate.R - target.R) * (candidate.R - target.R) +
                                    (candidate.G - target.G) * (candidate.G - target.G) +

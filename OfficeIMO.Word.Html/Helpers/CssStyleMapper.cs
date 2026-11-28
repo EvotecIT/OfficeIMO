@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 using Color = OfficeIMO.OfficeColor;
 
@@ -23,12 +22,14 @@ namespace OfficeIMO.Word.Html {
             internal int? PaddingTop { get; set; }
             internal int? PaddingBottom { get; set; }
             internal bool? Underline { get; set; }
-            internal UnderlineValues? UnderlineStyle { get; set; }
+            /// <summary>The <c>w:u</c> token of the CSS underline style (<c>single</c>, <c>double</c>, <c>dotted</c>, <c>dash</c>, <c>wave</c>).</summary>
+            internal string? UnderlineStyle { get; set; }
             internal bool? Strike { get; set; }
             internal string? BackgroundColor { get; set; }
             internal double? BackgroundColorAlpha { get; set; }
             internal int? LineHeight { get; set; }
-            internal LineSpacingRuleValues? LineHeightRule { get; set; }
+            /// <summary>The <c>w:lineRule</c> token of the line height (<c>exact</c> or <c>auto</c>).</summary>
+            internal string? LineHeightRule { get; set; }
             internal WhiteSpaceMode? WhiteSpace { get; set; }
         }
 
@@ -106,7 +107,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            if (properties.TryGetValue("line-height", out string? lh) && TryParseLineHeight(lh, out int line, out LineSpacingRuleValues rule)) {
+            if (properties.TryGetValue("line-height", out string? lh) && TryParseLineHeight(lh, out int line, out string rule)) {
                 result.LineHeight = line;
                 result.LineHeightRule = rule;
             }
@@ -449,7 +450,7 @@ namespace OfficeIMO.Word.Html {
                     return true;
                 case "underline":
                     result.Underline = true;
-                    result.UnderlineStyle ??= UnderlineValues.Single;
+                    result.UnderlineStyle ??= "single";
                     return true;
                 case "line-through":
                     result.Strike = true;
@@ -459,23 +460,23 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool TryMapTextDecorationStyle(string value, out UnderlineValues underlineStyle) {
-            underlineStyle = UnderlineValues.Single;
+        private static bool TryMapTextDecorationStyle(string value, out string underlineStyle) {
+            underlineStyle = "single";
             switch (value.Trim().ToLowerInvariant()) {
                 case "solid":
-                    underlineStyle = UnderlineValues.Single;
+                    underlineStyle = "single";
                     return true;
                 case "double":
-                    underlineStyle = UnderlineValues.Double;
+                    underlineStyle = "double";
                     return true;
                 case "dotted":
-                    underlineStyle = UnderlineValues.Dotted;
+                    underlineStyle = "dotted";
                     return true;
                 case "dashed":
-                    underlineStyle = UnderlineValues.Dash;
+                    underlineStyle = "dash";
                     return true;
                 case "wavy":
-                    underlineStyle = UnderlineValues.Wave;
+                    underlineStyle = "wave";
                     return true;
                 default:
                     return false;
@@ -627,31 +628,31 @@ namespace OfficeIMO.Word.Html {
             if (left.HasValue) result.PaddingLeft = left;
         }
 
-        private static bool TryParseLineHeight(string value, out int twips, out LineSpacingRuleValues rule) {
+        private static bool TryParseLineHeight(string value, out int twips, out string rule) {
             twips = 0;
-            rule = LineSpacingRuleValues.Auto;
+            rule = "auto";
             if (string.IsNullOrWhiteSpace(value)) {
                 return false;
             }
             value = value.Trim().ToLowerInvariant();
             if (value.EndsWith("pt") && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - 2), NumberStyles.Number, CultureInfo.InvariantCulture, out double pt)) {
                 twips = (int)Math.Round(pt * 20);
-                rule = LineSpacingRuleValues.Exact;
+                rule = "exact";
                 return true;
             }
             if (value.EndsWith("px") && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - 2), NumberStyles.Number, CultureInfo.InvariantCulture, out double px)) {
                 twips = (int)Math.Round(px * 15);
-                rule = LineSpacingRuleValues.Exact;
+                rule = "exact";
                 return true;
             }
             if (value.EndsWith("%") && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Number, CultureInfo.InvariantCulture, out double percent)) {
                 twips = (int)Math.Round(percent / 100d * 240d);
-                rule = LineSpacingRuleValues.Auto;
+                rule = "auto";
                 return true;
             }
             if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out double multiple)) {
                 twips = (int)Math.Round(multiple * 240d);
-                rule = LineSpacingRuleValues.Auto;
+                rule = "auto";
                 return true;
             }
             return false;

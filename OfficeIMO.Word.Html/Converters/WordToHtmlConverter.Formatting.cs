@@ -1,7 +1,5 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
 using System.Globalization;
 
@@ -30,8 +28,8 @@ namespace OfficeIMO.Word.Html {
                 return FormatNumber(twips / 20.0) + "pt";
             }
 
-            private static string? GetHighlightCss(HighlightColorValues? highlight) {
-                string? color = WordRunFormatting.GetHighlightColorHex(highlight);
+            private static string? GetHighlightCss(string? highlight) {
+                string? color = WordConverterNodes.HighlightColorHexOfToken(highlight);
                 return color == null ? null : "#" + color;
             }
 

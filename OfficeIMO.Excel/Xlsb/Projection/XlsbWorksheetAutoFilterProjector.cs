@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 && (expectedElement == null
                     ? actual.Length == 0
                     : actual.Length == 1
-                        && string.Equals(actual[0].OuterXml, expectedElement.OuterXml, StringComparison.Ordinal));
+                        && XlsbProjectionXmlComparer.SameContent(OfficeXmlNode.FromSdk(actual[0]), OfficeXmlNode.FromSdk(expectedElement)));
         }
 
         internal static AutoFilter Create(XlsbAutoFilter source) {

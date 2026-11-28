@@ -42,6 +42,8 @@ namespace OfficeIMO.Excel {
             // A sheet a new workbook just added has no tables, and the workbook has no cell metadata.
             if (edit.Kind != ExcelDeferredCellKind.Style && !entry.IsNewSheet) {
                 if (IsTableHeaderCell(entry, packageBytes, edit.Row, edit.Column)) {
+                    // Text renames the column, which the owned path applies unless formulas or fields follow the name.
+                    if (edit.Kind == ExcelDeferredCellKind.Text && TryRecordDeferredTableHeader(sheet, entry, edit)) return true;
                     OpenDeferredSdk("Cell value in a table header row on worksheet '" + entry.Name + "'");
                     return false;
                 }
@@ -192,11 +194,13 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// The owned save writes XLSX packages only. A save to XLS or XLSB opens the SDK before the binary writers look at
-        /// the workbook, so the replay puts the recorded values where those writers read them.
+        /// A binary save opens the SDK before the writers read recorded edits. An XLSB imported into the owned package
+        /// can copy its untouched source first. A rewrite opens the SDK when the XLSB writer needs those edits.
         /// </summary>
-        private void OpenDeferredSdkForBinaryTarget(bool binaryTarget) {
-            if (binaryTarget && _deferredWorkbook != null) OpenDeferredSdk("Save: the target is a binary workbook");
+        private void OpenDeferredSdkForBinaryTarget(bool binaryTarget, bool nativeXlsbTarget) {
+            if (binaryTarget && _deferredWorkbook != null && !(nativeXlsbTarget && _xlsbDeferredBaseline != null)) {
+                OpenDeferredSdk("Save: the target is a binary workbook");
+            }
         }
 
         private static bool IsBinaryWorkbookPath(string path) =>

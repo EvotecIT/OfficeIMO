@@ -34,8 +34,7 @@ public partial class ExcelDocument {
             return false;
         }
 
-        using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Create();
-        PopulateWorkbookShell(package, CreatedMainContentType(ExcelDocumentType.Workbook)!, theme: null);
+        using OfficeOpcEditablePackage package = CreateWorkbookPackage(CreatedMainContentType(ExcelDocumentType.Workbook)!, theme: null);
         const string worksheetPart = "/xl/worksheets/sheet1.xml";
         const string worksheetTarget = "worksheets/sheet1.xml";
         string relationship = package.AddRelationship(CreatedWorkbookPartName, WorksheetRelationshipType, worksheetTarget);

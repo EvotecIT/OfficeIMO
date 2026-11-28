@@ -10,10 +10,10 @@ Install the adapter for the format you write; it brings this package and CodeGly
 
 | Package | Call |
 | --- | --- |
-| [`OfficeIMO.Word.CodeGlyphX`](../OfficeIMO.Word.CodeGlyphX/README.md) | `document.AddQrCode("https://evotec.xyz")`, `paragraph.AddBarcode(SymbolFormat.Code128, "ORD-42")` |
-| [`OfficeIMO.Excel.CodeGlyphX`](../OfficeIMO.Excel.CodeGlyphX/README.md) | `sheet.AddQrCode("B2", "https://evotec.xyz")` |
-| [`OfficeIMO.PowerPoint.CodeGlyphX`](../OfficeIMO.PowerPoint.CodeGlyphX/README.md) | `slide.AddQrCode("https://evotec.xyz", box)` |
-| [`OfficeIMO.Pdf.CodeGlyphX`](../OfficeIMO.Pdf.CodeGlyphX/README.md) | `content.AddQrCode("https://evotec.xyz")`, `canvas.QrCode(...)` |
+| [`OfficeIMO.Word.CodeGlyphX`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Word.CodeGlyphX/README.md) | `document.AddQrCode("https://evotec.xyz")`, `paragraph.AddBarcode(SymbolFormat.Code128, "ORD-42")` |
+| [`OfficeIMO.Excel.CodeGlyphX`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.CodeGlyphX/README.md) | `sheet.AddQrCode("B2", "https://evotec.xyz")` |
+| [`OfficeIMO.PowerPoint.CodeGlyphX`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.PowerPoint.CodeGlyphX/README.md) | `slide.AddQrCode("https://evotec.xyz", box)` |
+| [`OfficeIMO.Pdf.CodeGlyphX`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Pdf.CodeGlyphX/README.md) | `content.AddQrCode("https://evotec.xyz")`, `canvas.QrCode(...)` |
 
 `AddBarcode` takes any CodeGlyphX `SymbolFormat`. Word, Excel and PowerPoint receive an SVG picture with a PNG fallback, the form Office itself writes; PDF receives vector paths.
 

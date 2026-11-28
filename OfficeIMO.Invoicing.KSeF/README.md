@@ -4,7 +4,13 @@ KSeF v2 token authentication, encrypted online FA(3) submission, asynchronous
 status and UPO retrieval for .NET 8 and .NET 10. The package depends on
 `OfficeIMO.Invoicing.Validation` and the invoice core, with no additional runtime
 packages. Native FA(3) authoring belongs to
-[OfficeIMO.Invoicing](../OfficeIMO.Invoicing/README.md#create-polish-fa3).
+[OfficeIMO.Invoicing](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Invoicing/README.md#create-polish-fa3).
+
+## Install
+
+```sh
+dotnet add package OfficeIMO.Invoicing.KSeF
+```
 
 ## Reference the library
 
@@ -25,7 +31,7 @@ record authentication headers and bodies.
 
 The example accepts exact FA(3) bytes, a caller-owned credential and a persistence
 callback. Load the four pinned FA(3) XSD files with `Fa3SchemaBundle.LoadDirectory`
-as described in the [validator guide](../OfficeIMO.Invoicing.Validation/README.md).
+as described in the [validator guide](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Invoicing.Validation/README.md).
 The callback stores the context, session reference, invoice reference and exact
 plaintext hash before closing or waiting for acceptance. It must not store tokens
 or session keys.

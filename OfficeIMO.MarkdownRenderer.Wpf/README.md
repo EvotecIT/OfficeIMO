@@ -101,4 +101,4 @@ Preview.Markdown = string.Empty;
 - **External:** Microsoft WebView2 and WPF.
 - **OfficeIMO:** `OfficeIMO.MarkdownRenderer` owns the shell; this package owns the WPF host control and integration contract.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

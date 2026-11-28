@@ -2,6 +2,12 @@
 
 `OfficeIMO.Markup` is a Markdown-inspired authoring layer for OfficeIMO. It parses `.omd` or Markdown-like text into a semantic AST that can be validated, emitted as starter code, or exported to real Office files by target-specific renderers.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Markup
+```
+
 ## Authoring model
 
 The pipeline is intentionally staged:
@@ -105,11 +111,11 @@ result.Document.SaveAsWord("status-brief.docx", new MarkupWordExportOptions {
 
 | Package | Use it for |
 | --- | --- |
-| [OfficeIMO.Markup.Word](../OfficeIMO.Markup.Word/README.md) | Export markup documents to Word. |
-| [OfficeIMO.Markup.Excel](../OfficeIMO.Markup.Excel/README.md) | Export markup workbooks to Excel. |
-| [OfficeIMO.Markup.PowerPoint](../OfficeIMO.Markup.PowerPoint/README.md) | Export markup presentations to PowerPoint. |
-| [OfficeIMO.Tool](../OfficeIMO.Tool/README.md) | Parse, validate, emit, and export from the `officeimo markup` command area. |
-| [OfficeIMO.Markdown](../OfficeIMO.Markdown/README.md) | Markdown model used by the markup parser. |
+| [OfficeIMO.Markup.Word](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Markup.Word/README.md) | Export markup documents to Word. |
+| [OfficeIMO.Markup.Excel](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Markup.Excel/README.md) | Export markup workbooks to Excel. |
+| [OfficeIMO.Markup.PowerPoint](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Markup.PowerPoint/README.md) | Export markup presentations to PowerPoint. |
+| [OfficeIMO.Tool](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Tool/README.md) | Parse, validate, emit, and export from the `officeimo markup` command area. |
+| [OfficeIMO.Markdown](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Markdown/README.md) | Markdown model used by the markup parser. |
 
 ## Targets and license
 
@@ -122,4 +128,4 @@ result.Document.SaveAsWord("status-brief.docx", new MarkupWordExportOptions {
 - **External:** None.
 - **OfficeIMO:** `OfficeIMO.Markdown` and `OfficeIMO.Core`; the semantic authoring model and validation are first-party.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

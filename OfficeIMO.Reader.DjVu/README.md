@@ -2,6 +2,12 @@
 
 Project native DjVu stored text, word geometry, source pages, outlines, and optional page images into the shared Reader contract. The adapter uses `OfficeIMO.DjVu` in process.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Reader.DjVu
+```
+
 ```xml
 <ProjectReference Include="../OfficeIMO/OfficeIMO.Reader.DjVu/OfficeIMO.Reader.DjVu.csproj" />
 ```
@@ -27,4 +33,5 @@ Stored text retains UTF-16 offsets, rotated geometry in PDF points, source ident
 
 Reader stream ingestion follows the shared Reader convention: seekable input is read from the beginning and its original position is restored; non-seekable input is read from its current position. Streams remain open. The native `DjVuDocument.Load(Stream)` API instead reads from the current position for both stream kinds.
 
-DjVu uses `ReaderInputKind.DjVu` (`28`) and transport schema v12. Older schemas remain available for their supported input kinds. The [native support matrix](../OfficeIMO.DjVu/SUPPORT.md) defines the codec and indirect-document limits.
+DjVu uses `ReaderInputKind.DjVu` (`28`) and transport schema v12. Older schemas remain available for their supported input kinds. The [native support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.DjVu/SUPPORT.md) defines the codec and indirect-document limits.
+

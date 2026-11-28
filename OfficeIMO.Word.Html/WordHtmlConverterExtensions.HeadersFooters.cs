@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html;
@@ -103,12 +102,11 @@ public static partial class WordHtmlConverterExtensions {
         if (section != null && (!ReferenceEquals(section._document, document) || !document.Sections.Contains(section))) {
             throw new ArgumentException("The layout section must belong to the receiver's document.", nameof(section));
         }
-        MainDocumentPart? main = document._wordprocessingDocument?.MainDocumentPart;
-        OpenXmlPart? part = story is WordHeader ? story._header?.HeaderPart : story._footer?.FooterPart;
-        if (main == null || part == null || !main.Parts.Any(relationship => ReferenceEquals(relationship.OpenXmlPart, part))) {
+        string? relationshipId = story.MainPartRelationshipId(story is WordHeader);
+        if (relationshipId == null) {
             throw new InvalidOperationException("The header or footer is not attached to its document.");
         }
-        List<WordSection> owners = WordStoryLayoutResolver.GetOwners(document, main.GetIdOfPart(part), story is WordHeader);
+        List<WordSection> owners = WordStoryLayoutResolver.GetOwners(document, relationshipId, story is WordHeader);
         if (owners.Count == 0) {
             throw new InvalidOperationException("The header or footer has no defining section in its document.");
         }

@@ -1,13 +1,95 @@
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Projection;
+using OfficeIMO.Excel.Xlsb.Write;
+using OfficeIMO.OpenXml.Internal;
 using System.IO.Compression;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed class ExcelXlsbCalculationSaveTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Workbook_calculation_writer_ignores_settings_inside_extension_markup(bool hasDirectSettings) {
+        string direct = hasDirectSettings ? """<calcPr calcId="42"/>""" : string.Empty;
+        byte[] markup = Encoding.UTF8.GetBytes($"""
+        <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                  xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main">
+          <mc:AlternateContent>
+            <mc:Choice Requires="x14"><calcPr calcMode="invalid-choice"/></mc:Choice>
+            <mc:Fallback><calcPr calcMode="invalid-fallback"/></mc:Fallback>
+          </mc:AlternateContent>
+          {direct}
+          <extLst><ext uri="urn:example"><calcPr calcMode="invalid-extension"/></ext></extLst>
+        </workbook>
+        """);
+        OfficeXmlTree tree = OfficeXmlTree.Parse(markup, markup.Length, new OfficeXmlNamespaces.Table());
+        var workbook = new OfficeXmlNode(tree, tree.Root);
+        using var output = new MemoryStream();
+        XlsbCalculationPropertiesWriter.Write(output,
+            XlsbWorkbookMarkup.Child(workbook, XlsbCalculationPropertiesProjector.ElementName));
+        output.Position = 0;
+        IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(output);
+        if (hasDirectSettings) {
+            XlsbRecord record = Assert.Single(records);
+            Assert.Equal(157, record.Type);
+            Assert.Equal(42, record.Data[0]);
+        } else {
+            Assert.Empty(records);
+        }
+    }
+
+    [Fact]
+    public void Import_and_unchanged_native_save_keep_the_workbook_on_the_owned_package() {
+        var options = new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb };
+        using var seed = ExcelDocument.Create();
+        ExcelSheet sample = seed.AddSheet("Data");
+        sample.Cell(1, 1).SetValue(123);
+        sample.Cell(2, 1).SetValue("Sample");
+        byte[] nativeBytes = seed.ToBytes(options);
+
+        using var source = new MemoryStream(nativeBytes, writable: false);
+        using ExcelDocument document = ExcelDocument.Load(source);
+        Assert.True(document.IsSdkDeferred);
+        ExcelSheet imported = Assert.Single(document.Sheets);
+        Assert.Equal("Data", imported.Name);
+
+        using var destination = new MemoryStream();
+        document.Save(destination, options);
+        Assert.Equal(nativeBytes, destination.ToArray());
+        Assert.Empty(document.OpenXmlSdkFallbacks);
+    }
+
+    [Fact]
+    public void Imported_scalar_edits_are_written_and_adopted_without_opening_the_sdk() {
+        var options = new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb };
+        using var seed = ExcelDocument.Create();
+        ExcelSheet seedSheet = seed.AddSheet("Data");
+        seedSheet.Cell(1, 1).SetValue(123);
+        seedSheet.Cell(2, 1).SetValue("Sample");
+
+        using ExcelDocument document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(options)));
+        ExcelSheet imported = Assert.Single(document.Sheets);
+        imported.Cell(1, 1).SetValue(456);
+        imported.Cell(3, 1).SetValue(true);
+        byte[] edited = document.ToBytes(options);
+
+        Assert.Empty(document.OpenXmlSdkFallbacks);
+        Assert.Equal(edited, document.ToBytes(options));
+        Assert.Empty(document.OpenXmlSdkFallbacks);
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(edited));
+        ExcelSheet result = Assert.Single(reloaded.Sheets);
+        Assert.Equal(456, result.Cell(1, 1).GetValue<int>());
+        Assert.Equal("Sample", result.Cell(2, 1).GetValue<string>());
+        Assert.True(result.Cell(3, 1).GetValue<bool>());
+    }
+
     [Theory]
     [InlineData("evaluate", false)]
     [InlineData("clear", false)]

@@ -1,7 +1,7 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text;
 using System.Security.Cryptography;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
@@ -35,32 +35,32 @@ namespace OfficeIMO.Word.Html {
                     if (!visited.Add(key)) {
                         return;
                     }
-                    if (styleMap.FindById(key) is not { } def) {
+                    OfficeXmlNode def = styleMap.FindStyleNodeById(key);
+                    if (def.IsNone) {
                         return;
                     }
-                    var baseId = def.BasedOn?.Val;
+                    var baseId = def.WChild("basedOn").WVal();
                     if (!string.IsNullOrEmpty(baseId)) {
                         Merge(baseId!);
                     }
-                    var pPr = def.StyleParagraphProperties;
-                    if (pPr?.Justification?.Val != null) {
-                        var justifyVal = pPr.Justification.Val.Value;
+                    var pPr = def.WChild("pPr");
+                    if (pPr.WChild("jc").WVal() is { } justifyVal) {
                         var alignment = "left";
-                        if (justifyVal == JustificationValues.Center) {
+                        if (justifyVal == "center") {
                             alignment = "center";
-                        } else if (justifyVal == JustificationValues.Right) {
+                        } else if (justifyVal == "right") {
                             alignment = "right";
-                        } else if (justifyVal == JustificationValues.Both) {
+                        } else if (justifyVal == "both") {
                             alignment = "justify";
                         }
                         props["text-align"] = alignment;
                     }
-                    var rPr = def.StyleRunProperties;
-                    if (rPr != null) {
-                        if (rPr.Bold != null) {
+                    var rPr = def.WChild("rPr");
+                    if (rPr.Exists) {
+                        if (rPr.WChild("b").Exists) {
                             props["font-weight"] = "bold";
                         }
-                        if (rPr.Italic != null) {
+                        if (rPr.WChild("i").Exists) {
                             props["font-style"] = "italic";
                         }
                         // Decorations are emitted as independent nested wrappers at each style
@@ -70,28 +70,28 @@ namespace OfficeIMO.Word.Html {
                             // Superscript and subscript are emitted as structural wrappers so their
                             // semantics survive without CSS. Only an explicit baseline needs a class
                             // declaration to reset a script inherited from a base style.
-                            if (rPr.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Baseline) {
+                            if (rPr.WChild("vertAlign").WVal() == "baseline") {
                                 props["vertical-align"] = "baseline";
                             }
                         }
-                        if (rPr.SmallCaps != null) {
-                            props["font-variant"] = IsEnabled(rPr.SmallCaps) ? "small-caps" : "normal";
+                        if (rPr.WChild("smallCaps").Exists) {
+                            props["font-variant"] = IsEnabled(rPr.WChild("smallCaps")) ? "small-caps" : "normal";
                         }
-                        if (rPr.Caps != null) {
-                            props["text-transform"] = IsEnabled(rPr.Caps) ? "uppercase" : "none";
+                        if (rPr.WChild("caps").Exists) {
+                            props["text-transform"] = IsEnabled(rPr.WChild("caps")) ? "uppercase" : "none";
                         }
-                        var colorVal = WordRunFormatting.ResolveColorHex(rPr.Color, document);
+                        var colorVal = WordConverterNodes.ResolveColorHex(rPr.WChild("color"), document);
                         if (!string.IsNullOrEmpty(colorVal) &&
                             !string.Equals(colorVal, "auto", StringComparison.OrdinalIgnoreCase) &&
                             IsSixDigitHexColor(colorVal!)) {
                             var cv = colorVal!;
                             props["color"] = "#" + cv.ToLowerInvariant();
                         }
-                        var sizeVal = rPr.FontSize?.Val;
+                        var sizeVal = rPr.WChild("sz").WVal();
                         if (!string.IsNullOrEmpty(sizeVal) && int.TryParse(sizeVal, out int sz)) {
                             props["font-size"] = (sz / 2.0).ToString("0.##") + "pt";
                         }
-                        var font = ResolveRunFonts(rPr.RunFonts, document._wordprocessingDocument?.MainDocumentPart);
+                        var font = ResolveRunFonts(rPr.WChild("rFonts"), document);
                         if (!string.IsNullOrEmpty(font)) {
                             props["font-family"] = FontFamilyCss(font!);
                         }
@@ -195,24 +195,24 @@ namespace OfficeIMO.Word.Html {
             if (_styleDecorationCache.TryGetValue(styleId!, out WordStyleTextDecorations? cached)) return cached;
             WordStyleCatalog? styleMap = _styleDecorationDefinitions;
             if (styleMap == null) return new WordStyleTextDecorations();
-            var chain = new Stack<Style>();
+            var chain = new Stack<OfficeXmlNode>();
             var visited = new HashSet<string>(StringComparer.Ordinal);
             string? current = styleId;
-            while (!string.IsNullOrWhiteSpace(current) && visited.Add(current!) && styleMap.FindById(current) is { } style) {
+            while (!string.IsNullOrWhiteSpace(current) && visited.Add(current!) && styleMap.FindStyleNodeById(current) is { Exists: true } style) {
                 chain.Push(style);
-                current = style.BasedOn?.Val?.Value;
+                current = style.WChild("basedOn").WVal();
             }
 
             var result = new WordStyleTextDecorations();
             while (chain.Count > 0) {
-                StyleRunProperties? properties = chain.Pop().StyleRunProperties;
-                if (properties?.Underline?.Val?.Value is UnderlineValues underline) {
-                    result.Underline = underline == UnderlineValues.None ? WordUnderlineStyle.None : underline.ToOfficeEnum();
+                OfficeXmlNode properties = chain.Pop().WChild("rPr");
+                if (properties.WChild("u").WVal() is { } underline) {
+                    result.Underline = ParseUnderlineToken(underline);
                 }
-                if (properties?.Strike != null) result.Strike = IsEnabled(properties.Strike);
-                if (properties?.DoubleStrike != null) result.DoubleStrike = IsEnabled(properties.DoubleStrike);
-                if (properties?.VerticalTextAlignment?.Val?.Value is VerticalPositionValues verticalPosition) {
-                    result.VerticalPosition = verticalPosition.ToOfficeEnum();
+                if (properties.WChild("strike").Exists) result.Strike = IsEnabled(properties.WChild("strike"));
+                if (properties.WChild("dstrike").Exists) result.DoubleStrike = IsEnabled(properties.WChild("dstrike"));
+                if (properties.WChild("vertAlign").WVal() is { } verticalPosition) {
+                    result.VerticalPosition = ParseVerticalPositionToken(verticalPosition);
                 }
             }
             _styleDecorationCache[styleId!] = result;

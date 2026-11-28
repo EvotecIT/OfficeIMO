@@ -7,7 +7,7 @@ using OfficeIMO.Excel.Xlsb.Model;
 namespace OfficeIMO.Excel.Xlsb.Projection;
 
 /// <summary>Projects an XLSB package's core, extended and custom document properties into the editable workbook.</summary>
-internal static class XlsbDocumentPropertiesProjector {
+internal static partial class XlsbDocumentPropertiesProjector {
     private const string CoreNamespace = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties";
     private const string DublinCoreNamespace = "http://purl.org/dc/elements/1.1/";
     private const string DublinCoreTermsNamespace = "http://purl.org/dc/terms/";

@@ -1,5 +1,5 @@
-using DocumentFormat.OpenXml.Presentation;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
+using OfficeIMO.OpenXml.Internal;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
@@ -7,36 +7,35 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointSectionInfo StartSectionAtNextSlide(string name) {
             ThrowIfDisposed();
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
-            List<SlideId> slides = PresentationRoot?.SlideIdList?.Elements<SlideId>().ToList() ?? new List<SlideId>();
-            P14.SectionList list = EnsureSectionList(slides);
-            P14.Section section = CreateSection(name, Array.Empty<uint>());
-            list.Append(section);
-            return BuildSectionInfo(section, slides);
+            PowerPointPartRef presentation = PresentationPartRef.ForMovingXmlNodes();
+            OfficeXmlNode root = presentation.Root;
+            List<OfficeXmlNode> slides = SlidesForSections(root);
+            OfficeXmlNode list = EnsureSectionList(root, slides);
+            OfficeXmlNode section = list.Append(CreateSection(list, name, Array.Empty<uint>()));
+            presentation.MarkEdited();
+            return BuildSectionInfo(section, BuildSlideIndexMap(slides));
         }
 
         /// <summary>Restores only section metadata when a collected slide or column is rejected.</summary>
         internal Action CaptureSectionRollback() {
-            var root = PresentationRoot ?? throw new InvalidOperationException("Presentation is missing.");
-            PresentationExtensionList? originalList = root.GetFirstChild<PresentationExtensionList>();
-            var original = (PresentationExtension?)originalList?.Elements<PresentationExtension>()
-                .FirstOrDefault(extension => string.Equals(extension.Uri?.Value, SectionListUri, StringComparison.Ordinal))?.CloneNode(true);
-            bool hadList = originalList != null;
+            PowerPointPartRef presentation = PresentationPartRef.ForMovingXmlNodes();
+            OfficeXmlNode capturedRoot = presentation.Root;
+            if (capturedRoot.IsNone) throw new InvalidOperationException("Presentation is missing.");
+            OfficeXmlNode capturedList = capturedRoot.Child(SectionPresentationNamespace, "extLst");
+            OfficeXmlNode original = GetSectionExtension(capturedList).Clone();
             return () => {
-                PresentationExtensionList? list = root.GetFirstChild<PresentationExtensionList>();
-                PresentationExtension? current = list?.Elements<PresentationExtension>()
-                    .FirstOrDefault(extension => string.Equals(extension.Uri?.Value, SectionListUri, StringComparison.Ordinal));
-                if (original != null) {
-                    if (list == null) {
-                        list = new PresentationExtensionList();
-                        root.Append(list);
-                    }
-                    var restored = (PresentationExtension)original.CloneNode(true);
-                    if (current == null) list.Append(restored);
-                    else list.ReplaceChild(restored, current);
-                } else {
-                    current?.Remove();
-                    if (!hadList && list != null && !list.HasChildren) list.Remove();
+                OfficeXmlNode root = presentation.Root;
+                OfficeXmlNode list = root.Child(SectionPresentationNamespace, "extLst");
+                OfficeXmlNode current = GetSectionExtension(list);
+                if (original.Exists) {
+                    if (list.IsNone) list = root.Append(root.CreateElement(SectionPresentationNamespace, "extLst"));
+                    list.InsertBefore(original.Clone(), current);
+                    if (current.Exists) current.Remove();
+                } else if (current.Exists) {
+                    current.Remove();
+                    if (capturedList.IsNone && list.ChildNodes().Count == 0) list.Remove();
                 }
+                presentation.MarkEdited();
             };
         }
     }

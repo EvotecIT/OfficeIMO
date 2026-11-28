@@ -1,6 +1,6 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
@@ -12,13 +12,16 @@ namespace OfficeIMO.Word.Html {
             List<(int Number, WordComment Comment)> comments,
             Dictionary<string, int> commentMap,
             List<INode> nodes,
-            CommentReference? occurrence = null) {
-            if (!options.ExportComments || run._run == null) {
+            OfficeXmlNode occurrence = default) {
+            OfficeXmlNode runNode = run.RunNode();
+            if (!options.ExportComments || runNode.IsNone) {
                 return false;
             }
 
-            var commentReference = occurrence ?? run._run.Elements<CommentReference>().FirstOrDefault();
-            var commentId = commentReference?.Id?.Value;
+            OfficeXmlNode commentReference = occurrence.Exists
+                ? occurrence
+                : runNode.Elements(WordXml.W, "commentReference").FirstOrDefault(WordConverterNodes.IsModelElement);
+            var commentId = commentReference.WAttr("id");
             if (string.IsNullOrEmpty(commentId)) {
                 return false;
             }

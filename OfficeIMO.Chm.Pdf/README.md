@@ -2,6 +2,12 @@
 
 Render each selected compiled-help topic through `OfficeIMO.Html.Pdf`, then combine its pages using `OfficeIMO.Pdf`. Independent topic rendering preserves separate CSS contexts and starts each topic at a page boundary.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Chm.Pdf
+```
+
 ```csharp
 using OfficeIMO.Chm;
 using OfficeIMO.Html.Pdf;
@@ -17,7 +23,7 @@ foreach (var diagnostic in report.Diagnostics)
 
 `ToPdf(options, out report)` returns the PDF model with the CHM source diagnostics in its `OfficeConversionReport`, `ToPdfAsync` returns both, and `SaveAsPdf`/`SaveAsPdfAsync` write a path or caller-owned stream. `ChmPdfExportOptions.ConversionOptions` selects topics and limits; `PdfOptions` carries page geometry, fonts and the supported PDF policy; `FailOnLoss` makes reported loss an error. All resources resolve inside the archive; conversion never fetches remote resources or opens external files. Encryption, when requested, applies once to the completed PDF.
 
-Multi-topic PDFs are untagged because the shared merger cannot preserve a merged structure tree. Cross-topic links and the keyword index are not rebuilt. These losses are reported. Select one topic to retain the renderer's tagging behavior. This adapter does not claim PDF/UA or browser-equivalent layout. See [CHM support](../OfficeIMO.Chm/SUPPORT.md) and [HTML PDF rendering](../OfficeIMO.Html.Pdf/README.md).
+Multi-topic PDFs are untagged because the shared merger cannot preserve a merged structure tree. Cross-topic links and the keyword index are not rebuilt. These losses are reported. Select one topic to retain the renderer's tagging behavior. This adapter does not claim PDF/UA or browser-equivalent layout. See [CHM support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm/SUPPORT.md) and [HTML PDF rendering](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Html.Pdf/README.md).
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

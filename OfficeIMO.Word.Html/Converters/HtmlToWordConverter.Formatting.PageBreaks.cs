@@ -1,6 +1,5 @@
 using AngleSharp.Css.Dom;
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {

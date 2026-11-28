@@ -1,8 +1,6 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Html;
 using System.Text;
-using W = DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
@@ -32,54 +30,48 @@ namespace OfficeIMO.Word.Html {
             bool hasRevisions = false;
             bool hasComments = false;
             long outputConstructionCharacters = 0;
-            var mainPart = document._wordprocessingDocument.MainDocumentPart;
-            if (mainPart != null) {
-                foreach ((OpenXmlElement? Root, string PartUri, long StreamedElements) root in EnumerateExportRoots(
-                    mainPart,
-                    options.IncludeCustomProperties ? document._wordprocessingDocument.CustomFilePropertiesPart : null)) {
-                    if (root.Root == null) {
-                        // A styles part that was never loaded is counted from its stream; it holds no exported content.
-                        elements = SaturatingAdd(elements, root.StreamedElements);
-                        if (elements > options.MaxDocumentElements) {
-                            ThrowExportLimitExceeded(options, "word-element-limit-exceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, options.MaxDocumentElements + 1, options.MaxDocumentElements);
-                        }
-                        continue;
+            foreach ((OfficeXmlNode Root, string PartUri, long StreamedElements) root in document.HtmlExportRoots(
+                options.IncludeCustomProperties)) {
+                if (root.Root.IsNone) {
+                    // A styles part that was never loaded is counted from its stream; it holds no exported content.
+                    elements = SaturatingAdd(elements, root.StreamedElements);
+                    if (elements > options.MaxDocumentElements) {
+                        ThrowExportLimitExceeded(options, "word-element-limit-exceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, options.MaxDocumentElements + 1, options.MaxDocumentElements);
                     }
-                    bool countOutputContent = IsOutputContentRoot(root.Root, options);
-                    bool inspectExportedStory = IsSelectedStoryRoot(root.Root, options);
-                    foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(
-                                 root.Root,
-                                 options.TrackedChangePolicy)) {
-                        OpenXmlElement element = inspected.Element;
-                        elements++;
-                        if (elements > options.MaxDocumentElements) {
-                            ThrowExportLimitExceeded(options, "word-element-limit-exceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, elements, options.MaxDocumentElements);
+                    continue;
+                }
+                bool countOutputContent = IsOutputContentRoot(root.Root, options);
+                bool inspectExportedStory = IsSelectedStoryRoot(root.Root, options);
+                foreach ((OfficeXmlNode Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(
+                             root.Root,
+                             options.TrackedChangePolicy)) {
+                    OfficeXmlNode element = inspected.Element;
+                    elements++;
+                    if (elements > options.MaxDocumentElements) {
+                        ThrowExportLimitExceeded(options, "word-element-limit-exceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, elements, options.MaxDocumentElements);
+                    }
+                    if (countOutputContent && !inspected.OmitOutputContent) {
+                        long elementCharacters = GetOutputContentCharacters(element);
+                        outputConstructionCharacters = SaturatingAdd(outputConstructionCharacters, elementCharacters);
+                        if (outputConstructionCharacters > options.MaxOutputCharacters) {
+                            ThrowExportLimitExceeded(
+                                options,
+                                "word-html-output-limit-exceeded",
+                                "Word text and attribute content exceeds the configured HTML output-character limit before DOM construction.",
+                                root.PartUri,
+                                outputConstructionCharacters,
+                                options.MaxOutputCharacters);
                         }
-                        if (countOutputContent && !inspected.OmitOutputContent) {
-                            long elementCharacters = GetOutputContentCharacters(element);
-                            outputConstructionCharacters = SaturatingAdd(outputConstructionCharacters, elementCharacters);
-                            if (outputConstructionCharacters > options.MaxOutputCharacters) {
-                                ThrowExportLimitExceeded(
-                                    options,
-                                    "word-html-output-limit-exceeded",
-                                    "Word text and attribute content exceeds the configured HTML output-character limit before DOM construction.",
-                                    root.PartUri,
-                                    outputConstructionCharacters,
-                                    options.MaxOutputCharacters);
-                            }
-                        }
-                        if (!hasFields && inspectExportedStory && !inspected.OmitOutputContent &&
-                            (element is DocumentFormat.OpenXml.Wordprocessing.SimpleField or
-                                DocumentFormat.OpenXml.Wordprocessing.FieldChar or
-                                DocumentFormat.OpenXml.Wordprocessing.FieldCode)) {
-                            hasFields = true;
-                        }
-                        if (!hasRevisions && inspectExportedStory && IsRevisionElement(element.LocalName)) {
-                            hasRevisions = true;
-                        }
-                        if (!hasComments && element is DocumentFormat.OpenXml.Wordprocessing.Comment) {
-                            hasComments = true;
-                        }
+                    }
+                    if (!hasFields && inspectExportedStory && !inspected.OmitOutputContent &&
+                        (element.IsW("fldSimple") || element.IsW("fldChar") || element.IsW("instrText")) && element.IsModelElement()) {
+                        hasFields = true;
+                    }
+                    if (!hasRevisions && inspectExportedStory && IsRevisionElement(element.LocalName)) {
+                        hasRevisions = true;
+                    }
+                    if (!hasComments && element.IsW("comment") && element.Parent.IsW("comments") && element.IsModelElement()) {
+                        hasComments = true;
                     }
                 }
             }
@@ -109,10 +101,10 @@ namespace OfficeIMO.Word.Html {
             return length;
         }
 
-        private static long MeasureOutputContentCharacters(OpenXmlElement root,
+        private static long MeasureOutputContentCharacters(OfficeXmlNode root,
             WordTrackedChangeExportPolicy policy = WordTrackedChangeExportPolicy.Markup) {
             long characters = 0;
-            foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(
+            foreach ((OfficeXmlNode Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(
                          root,
                          policy)) {
                 if (inspected.OmitOutputContent) continue;
@@ -121,9 +113,9 @@ namespace OfficeIMO.Word.Html {
             return characters;
         }
 
-        private static long GetOutputContentCharacters(OpenXmlElement element) {
-            long characters = element is OpenXmlLeafTextElement textElement && ShouldCountOutputLeafText(element)
-                ? GetHtmlEncodedLength(textElement.Text, attributeValue: false)
+        private static long GetOutputContentCharacters(OfficeXmlNode element) {
+            long characters = element.LeafText() is { } text && ShouldCountOutputLeafText(element)
+                ? GetHtmlEncodedLength(text, attributeValue: false)
                 : 0;
             if (IsVisibleRunArtifact(element)) {
                 characters = SaturatingAdd(characters, 1);
@@ -131,51 +123,53 @@ namespace OfficeIMO.Word.Html {
             return characters;
         }
 
-        private static bool IsVisibleRunArtifact(OpenXmlElement element) =>
-            element is W.TabChar or W.CarriageReturn or W.Break or W.NoBreakHyphen or W.SoftHyphen;
+        // A w:tab in a run is a tab character; in w:tabs it is a tab stop. Untyped markup is no run content.
+        private static bool IsVisibleRunArtifact(OfficeXmlNode element) =>
+            element.NamespaceId == WordXml.W && element.IsModelElement() && element.LocalName switch {
+                "tab" => !element.Parent.IsW("tabs"),
+                "cr" or "br" or "noBreakHyphen" or "softHyphen" => true,
+                _ => false
+            };
 
-        private static bool ShouldCountOutputLeafText(OpenXmlElement element) =>
-            element is not DocumentFormat.OpenXml.Wordprocessing.FieldCode &&
-            element is not DocumentFormat.OpenXml.Math.Text;
+        private static bool ShouldCountOutputLeafText(OfficeXmlNode element) =>
+            !((element.IsW("instrText") || element.Is(WordXml.M, "t")) && element.IsModelElement());
 
         // Header and footer parts are intentionally excluded here. A shared part can be emitted
         // once per section, so AppendHeaderFooterRegion measures and reserves its source content
         // immediately before every emitted region rather than charging the package part once.
-        private static bool IsOutputContentRoot(OpenXmlElement root, WordHtmlExportOptions options) =>
-            root is not DocumentFormat.OpenXml.Wordprocessing.Header &&
-            root is not DocumentFormat.OpenXml.Wordprocessing.Footer &&
-            root is not DocumentFormat.OpenXml.Wordprocessing.Footnotes &&
-            root is not DocumentFormat.OpenXml.Wordprocessing.Endnotes &&
-            root is not DocumentFormat.OpenXml.Wordprocessing.Comments &&
-            root is not DocumentFormat.OpenXml.Wordprocessing.Styles &&
-            root is not DocumentFormat.OpenXml.Wordprocessing.Numbering &&
-            root is not DocumentFormat.OpenXml.CustomProperties.Properties &&
-            root is not DocumentFormat.OpenXml.Drawing.Theme &&
-            root is not DocumentFormat.OpenXml.Wordprocessing.Fonts &&
-            root is not DocumentFormat.OpenXml.Wordprocessing.Settings &&
-            root is not DocumentFormat.OpenXml.Drawing.Charts.ChartSpace &&
-            root.NamespaceUri != "http://schemas.microsoft.com/office/drawing/2014/chartex" &&
-            root is not DocumentFormat.OpenXml.Wordprocessing.WebSettings;
+        private static bool IsOutputContentRoot(OfficeXmlNode root, WordHtmlExportOptions options) {
+            if (root.NamespaceId == WordXml.W) {
+                switch (root.LocalName) {
+                    case "hdr": case "ftr": case "footnotes": case "endnotes": case "comments": case "styles":
+                    case "numbering": case "fonts": case "settings": case "webSettings":
+                        return false;
+                }
+            }
+            return !root.Is("http://schemas.openxmlformats.org/officeDocument/2006/custom-properties", "Properties") &&
+                !root.Is(WordXml.A, "theme") &&
+                !root.Is(WordXml.C, "chartSpace") &&
+                root.NamespaceUri != "http://schemas.microsoft.com/office/drawing/2014/chartex";
+        }
 
-        private static IEnumerable<(OpenXmlElement Element, bool OmitOutputContent)> EnumerateRootAndDescendants(
-            OpenXmlElement root,
+        private static IEnumerable<(OfficeXmlNode Element, bool OmitOutputContent)> EnumerateRootAndDescendants(
+            OfficeXmlNode root,
             WordTrackedChangeExportPolicy policy) {
-            var pending = new Stack<(OpenXmlElement Element, bool InOmittedRevision)>();
+            var pending = new Stack<(OfficeXmlNode Element, bool InOmittedRevision)>();
             pending.Push((root, false));
             while (pending.Count > 0) {
-                (OpenXmlElement element, bool inOmittedRevision) = pending.Pop();
+                (OfficeXmlNode element, bool inOmittedRevision) = pending.Pop();
                 bool omitOutputContent = inOmittedRevision || IsRevisionContentExcluded(element, policy);
                 yield return (element, omitOutputContent);
                 // Retain one sibling continuation per depth rather than allocating a
                 // stack entry for every child before the element budget can stop traversal.
-                if (!ReferenceEquals(element, root) && element.NextSibling() is OpenXmlElement sibling)
+                if (!element.Equals(root) && WordConverterNodes.NextSiblingIncludingMarkup(element) is { Exists: true } sibling)
                     pending.Push((sibling, inOmittedRevision));
-                if (element.FirstChild is OpenXmlElement child)
+                if (WordConverterNodes.FirstChildIncludingMarkup(element) is { Exists: true } child)
                     pending.Push((child, omitOutputContent));
             }
         }
 
-        private static bool IsRevisionContentExcluded(OpenXmlElement element, WordTrackedChangeExportPolicy policy) {
+        private static bool IsRevisionContentExcluded(OfficeXmlNode element, WordTrackedChangeExportPolicy policy) {
             if (element.LocalName is not ("ins" or "del" or "moveFrom" or "moveTo")) return false;
             bool insertedView = element.LocalName is "ins" or "moveTo";
             return policy switch {
@@ -186,76 +180,22 @@ namespace OfficeIMO.Word.Html {
             };
         }
 
-        private static bool IsSelectedStoryRoot(OpenXmlElement root, WordHtmlExportOptions options) => root switch {
-            DocumentFormat.OpenXml.Wordprocessing.Body => true,
-            DocumentFormat.OpenXml.Wordprocessing.Header or DocumentFormat.OpenXml.Wordprocessing.Footer => options.ExportHeadersAndFooters,
-            DocumentFormat.OpenXml.Wordprocessing.Footnotes => options.ExportFootnotes,
-            DocumentFormat.OpenXml.Wordprocessing.Endnotes => options.ExportEndnotes,
-            DocumentFormat.OpenXml.Wordprocessing.Comments => options.ExportComments,
-            _ => false
-        };
-
-        private static IEnumerable<(OpenXmlElement? Root, string PartUri, long StreamedElements)> EnumerateExportRoots(
-            MainDocumentPart mainPart,
-            CustomFilePropertiesPart? customPropertiesPart) {
-            if (customPropertiesPart?.Properties is OpenXmlElement customProperties) {
-                yield return (customProperties, customPropertiesPart.Uri.ToString(), 0);
-            }
-
-            foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
-                yield return (root.Root, root.PartUri, 0);
-            }
-            var chartUris = new HashSet<Uri>();
-            IEnumerable<OpenXmlPart> stories = new OpenXmlPart[] { mainPart }
-                .Concat(mainPart.HeaderParts).Concat(mainPart.FooterParts);
-            if (mainPart.FootnotesPart != null) stories = stories.Append(mainPart.FootnotesPart);
-            if (mainPart.EndnotesPart != null) stories = stories.Append(mainPart.EndnotesPart);
-            foreach (var story in stories) {
-                foreach (var chart in story.Parts.Select(relationship => relationship.OpenXmlPart)
-                    .Where(part => part.ContentType.IndexOf("chart", StringComparison.OrdinalIgnoreCase) >= 0)) {
-                    if (chartUris.Add(chart.Uri) && chart.RootElement is OpenXmlElement chartRoot)
-                        yield return (chartRoot, chart.Uri.ToString(), 0);
-                    foreach (var presentation in chart.Parts.Select(relationship => relationship.OpenXmlPart)
-                        .Where(part => part.ContentType.IndexOf("chart", StringComparison.OrdinalIgnoreCase) >= 0)) {
-                        if (chartUris.Add(presentation.Uri) && presentation.RootElement is OpenXmlElement presentationRoot)
-                            yield return (presentationRoot, presentation.Uri.ToString(), 0);
-                    }
-                }
-            }
-            if (mainPart.WordprocessingCommentsPart?.Comments is OpenXmlElement comments) {
-                yield return (comments, mainPart.WordprocessingCommentsPart.Uri.ToString(), 0);
-            }
-            foreach (StylesPart? stylesPart in new StylesPart?[] { mainPart.StyleDefinitionsPart, mainPart.StylesWithEffectsPart }) {
-                if (stylesPart == null) continue;
-                if (WordStyleDefinitionsReader.TryCountElements(stylesPart) is long count) {
-                    yield return (null, stylesPart.Uri.ToString(), count);
-                } else if (stylesPart.Styles is OpenXmlElement styles) {
-                    yield return (styles, stylesPart.Uri.ToString(), 0);
-                }
-            }
-            if (mainPart.NumberingDefinitionsPart?.Numbering is OpenXmlElement numbering) {
-                yield return (numbering, mainPart.NumberingDefinitionsPart.Uri.ToString(), 0);
-            }
-            if (mainPart.ThemePart?.Theme is OpenXmlElement theme) {
-                yield return (theme, mainPart.ThemePart.Uri.ToString(), 0);
-            }
-            if (mainPart.FontTablePart?.Fonts is OpenXmlElement fonts) {
-                yield return (fonts, mainPart.FontTablePart.Uri.ToString(), 0);
-            }
-            if (mainPart.DocumentSettingsPart?.Settings is OpenXmlElement settings) {
-                yield return (settings, mainPart.DocumentSettingsPart.Uri.ToString(), 0);
-            }
-            if (mainPart.WebSettingsPart?.WebSettings is OpenXmlElement webSettings) {
-                yield return (webSettings, mainPart.WebSettingsPart.Uri.ToString(), 0);
-            }
-        }
+        private static bool IsSelectedStoryRoot(OfficeXmlNode root, WordHtmlExportOptions options) =>
+            root.NamespaceId == WordXml.W && root.LocalName switch {
+                "body" => true,
+                "hdr" or "ftr" => options.ExportHeadersAndFooters,
+                "footnotes" => options.ExportFootnotes,
+                "endnotes" => options.ExportEndnotes,
+                "comments" => options.ExportComments,
+                _ => false
+            };
 
         private static void ReportKnownExportLimitations(WordDocument document, WordHtmlExportOptions options, ExportInspection inspection) {
             Dictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> resolvedMarkers =
                 WordDocumentTraversal.BuildResolvedListMarkers(document);
             IEnumerable<WordDocumentTraversal.ResolvedListMarker> renderedMarkers = options.ExportHeadersAndFooters
                 ? resolvedMarkers.Values
-                : resolvedMarkers.Where(pair => pair.Key._paragraph.Ancestors<W.Body>().Any()).Select(pair => pair.Value);
+                : resolvedMarkers.Where(pair => pair.Key.Node().Ancestors().Any(ancestor => ancestor.IsW("body"))).Select(pair => pair.Value);
             foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(renderedMarkers)) {
                 AddExportDiagnostic(options, "picture-bullet-text-fallback",
                     "Picture bullet " + pictureBulletId + " is represented by a text bullet in HTML output.",
@@ -286,7 +226,7 @@ namespace OfficeIMO.Word.Html {
             if (document.HasMacros) {
                 AddExportDiagnostic(options, "macro-project-omitted", "The VBA project is package metadata and is not represented in HTML.", OfficeConversionLossKind.Omission);
             }
-            if (document._wordprocessingDocument.DigitalSignatureOriginPart != null ||
+            if (document.HasDigitalSignatureOriginPart() ||
                 document.ApplicationProperties.HasDigitalSignatureMetadata) {
                 AddExportDiagnostic(options, "package-signatures-omitted", "OPC package signature metadata is not represented in HTML.", OfficeConversionLossKind.Omission);
             }
@@ -302,7 +242,7 @@ namespace OfficeIMO.Word.Html {
                 AddExportDiagnostic(options, "endnotes-omitted", "Endnotes were omitted because ExportEndnotes is false.", OfficeConversionLossKind.Omission);
             }
             if (!options.IncludeSectionMetadata &&
-                (document.Sections.Count > 1 || document.Sections.Any(section => HasNonDefaultPageGeometry(section._sectionProperties)))) {
+                (document.Sections.Count > 1 || document.Sections.Any(section => HasNonDefaultPageGeometry(section.Node())))) {
                 AddExportDiagnostic(options, "section-layout-flattened", "Word section page geometry is exported without page metadata because IncludeSectionMetadata is false.", OfficeConversionLossKind.Approximation);
             }
         }
@@ -319,8 +259,8 @@ namespace OfficeIMO.Word.Html {
             }
             const string diagonalCode = "word-table-diagonal-border-omitted";
             if (!reported.Contains(diagonalCode) &&
-                (IsVisible(WordRunFormatting.ResolveTableCellDiagonalBorder(cell, true)) ||
-                 IsVisible(WordRunFormatting.ResolveTableCellDiagonalBorder(cell, false)))) {
+                (IsVisible(WordConverterNodes.ResolveTableCellDiagonalBorderNode(cell, true)) ||
+                 IsVisible(WordConverterNodes.ResolveTableCellDiagonalBorderNode(cell, false)))) {
                 reported.Add(diagonalCode);
                 AddExportDiagnostic(options, diagonalCode,
                     "Diagonal Word table-cell borders have no CSS table-border equivalent and are omitted.",
@@ -328,29 +268,29 @@ namespace OfficeIMO.Word.Html {
             }
 
             bool IsApproximate(WordTableBorderSide side) {
-                W.BorderType? border = WordRunFormatting.ResolveTableCellBorder(cell, side);
-                W.BorderValues? value = border?.Val?.Value;
-                return IsVisible(border) && value != W.BorderValues.Single && value != W.BorderValues.Dashed &&
-                    value != W.BorderValues.Dotted && value != W.BorderValues.Double;
+                OfficeXmlNode border = WordConverterNodes.ResolveTableCellBorderNode(cell, side);
+                string? value = border.WVal();
+                return IsVisible(border) && value != "single" && value != "dashed" &&
+                    value != "dotted" && value != "double";
             }
-            static bool IsVisible(W.BorderType? border) => border?.Val?.Value is { } value &&
-                value != W.BorderValues.Nil && value != W.BorderValues.None;
+            static bool IsVisible(OfficeXmlNode border) => border.WVal() is { } value &&
+                value != "nil" && value != "none";
         }
 
-        private static bool HasNonDefaultPageGeometry(DocumentFormat.OpenXml.Wordprocessing.SectionProperties sectionProperties) {
-            DocumentFormat.OpenXml.Wordprocessing.PageSize? pageSize = sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>();
-            if (pageSize?.Orient?.Value == DocumentFormat.OpenXml.Wordprocessing.PageOrientationValues.Landscape) return true;
-            if (pageSize?.Width?.Value is uint width && width != 12240U) return true;
-            if (pageSize?.Height?.Value is uint height && height != 15840U) return true;
+        private static bool HasNonDefaultPageGeometry(OfficeXmlNode sectionProperties) {
+            OfficeXmlNode pageSize = sectionProperties.WChild("pgSz");
+            if (pageSize.WAttr("orient") == "landscape") return true;
+            if (pageSize.WUInt32("w") is uint width && width != 12240U) return true;
+            if (pageSize.WUInt32("h") is uint height && height != 15840U) return true;
 
-            DocumentFormat.OpenXml.Wordprocessing.PageMargin? margin = sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageMargin>();
-            return (margin?.Top?.Value is int top && top != 1440) ||
-                   (margin?.Right?.Value is uint right && right != 1440U) ||
-                   (margin?.Bottom?.Value is int bottom && bottom != 1440) ||
-                   (margin?.Left?.Value is uint left && left != 1440U) ||
-                   (margin?.Header?.Value is uint header && header != 720U) ||
-                   (margin?.Footer?.Value is uint footer && footer != 720U) ||
-                   (margin?.Gutter?.Value is uint gutter && gutter != 0U);
+            OfficeXmlNode margin = sectionProperties.WChild("pgMar");
+            return (margin.WInt32("top") is int top && top != 1440) ||
+                   (margin.WUInt32("right") is uint right && right != 1440U) ||
+                   (margin.WInt32("bottom") is int bottom && bottom != 1440) ||
+                   (margin.WUInt32("left") is uint left && left != 1440U) ||
+                   (margin.WUInt32("header") is uint header && header != 720U) ||
+                   (margin.WUInt32("footer") is uint footer && footer != 720U) ||
+                   (margin.WUInt32("gutter") is uint gutter && gutter != 0U);
         }
 
         private static bool IsRevisionElement(string localName) {

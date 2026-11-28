@@ -120,7 +120,7 @@ internal partial class HtmlToWordConverter {
         }
         WordImage nativeImage = paragraphImages[paragraphImages.Count - 1];
         WordImage editableImage = nativeImage.Clone(paragraph);
-        nativeImage._Image.Remove();
+        nativeImage.DrawingNode().Remove();
         nativeImage = editableImage;
         nativeImage.Transparency = null;
         nativeImage.CropLeftRatio = null;

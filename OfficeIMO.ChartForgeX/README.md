@@ -6,6 +6,12 @@ The bridge uses ChartForgeX 3.1. Add `ChartForgeX.Visuals` when producing factua
 
 For source builds, reference `OfficeIMO.ChartForgeX.csproj` from the consuming project and make the ChartForgeX source projects available through the repository's project-reference configuration. The bridge remains optional: applications that do not reference it keep the standard OfficeIMO dependency graph.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.ChartForgeX
+```
+
 ## Put a chart in Word
 
 Prepare the chart at its intended document size, then insert its artifact. `OfficeVisualDocumentStyle` uses point-based typography and the shared light/dark palette. Word constrains an oversized visual to the paragraph's available content width when no explicit size is supplied.
@@ -35,7 +41,7 @@ document.Save();
 
 Use `OfficeVisualSvgPolicy.RequireVector` when producing a chart for the JavaScript PDF drawing block. Add the same licensed static TrueType faces to `OfficeVisualConversionOptions.Fonts` before conversion so SVG text measurement uses the faces registered during chart preparation. Call `conversion.Report.ThrowIfLoss()`, then pass `conversion.Drawing` to `OfficeDrawingPortableExporter.TryExportJson` in `OfficeIMO.Core` with the selected font family. The JavaScript consumer loads those same faces separately.
 
-This route uses the existing .NET SVG importer and canonical drawing model. The portable export rejects unsupported paint, fonts and text layout instead of dropping labels or substituting a raster image. See the [portable drawing profile](../OfficeIMO.Core/README.md#portable-report-drawings) for its limits.
+This route uses the existing .NET SVG importer and canonical drawing model. The portable export rejects unsupported paint, fonts and text layout instead of dropping labels or substituting a raster image. See the [portable drawing profile](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.core-guide.md#portable-report-drawings) for its limits.
 
 ## Choose the destination
 
@@ -85,7 +91,7 @@ The default `RasterizeWhenNeeded` policy preserves appearance with vector output
 
 Prepared artifacts retain their resolved viewport and accessible text. The default scale is 0.75 points per pixel; `PointsPerPixel` changes that scale, while `WidthPoints` or `HeightPoints` can set the document size explicitly. Raster DPI metadata does not change the chosen placement size.
 
-Choose a viewport and typography for the intended document size before preparing the visual. Reducing a wide chart to a small picture also reduces every label. `OfficeVisualDocumentStyle.Default.CreateContext(widthPoints, heightPoints)` supplies readable document typography at that size; its font and point sizes are also available for surrounding headings and captions. A custom style can change that scale, while a supplied `VisualTheme` retains the shared palette and geometry. The [document delivery example](../OfficeIMO.ChartForgeX.Examples/README.md) demonstrates light/dark charts, repeated placements, saved-file previews and editable topology fidelity across the five document formats.
+Choose a viewport and typography for the intended document size before preparing the visual. Reducing a wide chart to a small picture also reduces every label. `OfficeVisualDocumentStyle.Default.CreateContext(widthPoints, heightPoints)` supplies readable document typography at that size; its font and point sizes are also available for surrounding headings and captions. A custom style can change that scale, while a supplied `VisualTheme` retains the shared palette and geometry. The [document delivery example](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.ChartForgeX.Examples/README.md) demonstrates light/dark charts, repeated placements, saved-file previews and editable topology fidelity across the five document formats.
 
 Document contexts use 18-point padding for ordinary charts. For compact visuals such as a 64 × 18-point sparkline, padding scales down to a quarter of the shorter side so the plot retains usable space.
 

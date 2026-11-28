@@ -28,10 +28,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (autoFilter != null) CreateRecords(autoFilter, sheetName);
         }
 
-        internal static bool TryGetRange(AutoFilter? autoFilter, out XlsbCellRange? range) {
+        internal static bool TryGetRange(AutoFilter? autoFilter, out XlsbCellRange? range) =>
+            TryGetRange(autoFilter?.Reference?.Value, out range);
+
+        internal static bool TryGetRange(string? reference, out XlsbCellRange? range) {
             range = null;
-            if (autoFilter?.Reference?.Value is not string reference) return false;
-            return TryParseRange(reference, out range);
+            return reference != null && TryParseRange(reference, out range);
         }
 
         internal static IReadOnlyList<XlsbGeneratedRecord> CreateRecords(AutoFilter autoFilter, string sheetName) {

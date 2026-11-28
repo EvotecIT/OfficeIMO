@@ -96,7 +96,7 @@ namespace OfficeIMO.Excel {
         /// Adds the application properties a save through the model gives a new workbook, unless the package has them or
         /// another part holds their usual name.
         /// </summary>
-        private static void CreateApplicationPropertiesIfMissing(OfficeOpcEditablePackage package, bool related) {
+        internal static void CreateApplicationPropertiesIfMissing(OfficeOpcEditablePackage package, bool related) {
             const string partName = "/docProps/app.xml";
             if (related || package.PartExists(partName)) return;
             package.CreateBinaryPart(partName, "application/vnd.openxmlformats-officedocument.extended-properties+xml",
@@ -133,14 +133,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static byte[] CreateWorkbookShell(string mainContentType, OfficeTheme? theme) {
-            using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Create();
-            PopulateWorkbookShell(package, mainContentType, theme);
+            using OfficeOpcEditablePackage package = CreateWorkbookPackage(mainContentType, theme);
             using var output = new MemoryStream(16 * 1024);
             package.Save(output);
             return output.ToArray();
         }
 
-        private static void PopulateWorkbookShell(OfficeOpcEditablePackage package, string mainContentType, OfficeTheme? theme) {
+        private static OfficeOpcEditablePackage CreateWorkbookPackage(string mainContentType, OfficeTheme? theme) {
+            OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Create();
             package.CreateBinaryPart(CreatedWorkbookPartName, mainContentType, Encoding.UTF8.GetBytes(CreatedWorkbookXml));
             package.AddRelationship(null, OfficeOpcPackage.OfficeDocumentRelationshipType, "xl/workbook.xml");
             byte[] themeBytes = theme == null ? DefaultThemeBytes.Value : Encoding.UTF8.GetBytes(CreateWorkbookThemeXml(theme));
@@ -149,6 +149,7 @@ namespace OfficeIMO.Excel {
             package.CreateBinaryPart("/xl/styles.xml", "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml",
                 Encoding.UTF8.GetBytes(CreatedStylesXml(theme)));
             package.AddRelationship(CreatedWorkbookPartName, StylesRelationshipType, "styles.xml");
+            return package;
         }
     }
 }

@@ -1,5 +1,5 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
@@ -9,8 +9,8 @@ namespace OfficeIMO.Word.Html {
                 string? primary = container.GetAttribute("id");
                 if (primary != null) emitted.Add(primary);
             }
-            foreach (BookmarkStart bookmark in paragraph._paragraph.Descendants<BookmarkStart>()) {
-                string? name = bookmark.Name?.Value;
+            foreach (OfficeXmlNode bookmark in paragraph.Node().ModelDescendants("bookmarkStart")) {
+                string? name = bookmark.WAttr("name");
                 if (string.IsNullOrWhiteSpace(name) || !emitted.Add(name!)) continue;
                 string[] parts = name!.Split(new[] { ':' }, 2);
                 if (parts.Length == 2 && IsStructuralTag(parts[0])) continue;

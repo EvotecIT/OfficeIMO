@@ -2,7 +2,6 @@ using AngleSharp.Dom;
 using AngleSharp.Html;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
-using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
@@ -165,8 +164,8 @@ namespace OfficeIMO.Word.Html {
             var capitalizationStyles = new List<string>();
             if (run.CapsStyle == WordCapsStyle.SmallCaps) capitalizationStyles.Add("font-variant:small-caps");
             else if (run.CapsStyle == WordCapsStyle.Caps) capitalizationStyles.Add("text-transform:uppercase");
-            if (IsExplicitlyDisabled(run._runProperties?.SmallCaps)) capitalizationStyles.Add("font-variant:normal");
-            if (IsExplicitlyDisabled(run._runProperties?.Caps)) capitalizationStyles.Add("text-transform:none");
+            if (IsExplicitlyDisabled(run.RunPropertiesNode().WChild("smallCaps"))) capitalizationStyles.Add("font-variant:normal");
+            if (IsExplicitlyDisabled(run.RunPropertiesNode().WChild("caps"))) capitalizationStyles.Add("text-transform:none");
             if (capitalizationStyles.Count > 0) {
                 var span = CreateOutputElement(htmlDocument, "span");
                 SetOutputAttribute(
@@ -189,7 +188,7 @@ namespace OfficeIMO.Word.Html {
                     string? normalizedRunBackground = NormalizeSixDigitHexColor(
                         WordRunFormatting.ResolveRunShadingFillColorHex(run));
                     string? highlight = GetHighlightCss(
-                        WordRunFormatting.ResolveRunHighlight(run));
+                        WordConverterNodes.ResolveRunHighlightToken(run));
                     if (!string.IsNullOrEmpty(highlight) &&
                         (!isHtmlMarkedText || normalizedRunBackground != null)) {
                         styles.Add($"background-color:{highlight}");
@@ -213,10 +212,10 @@ namespace OfficeIMO.Word.Html {
                     run.CharacterStyleId,
                     node,
                     "EquationRunStyleFormatting",
-                    suppressUnderline: run._runProperties?.Underline?.Val?.Value == UnderlineValues.None,
-                    suppressStrike: IsExplicitlyDisabled(run._runProperties?.Strike),
-                    suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike),
-                    suppressVerticalPosition: run._runProperties?.VerticalTextAlignment?.Val != null));
+                    suppressUnderline: run.RunPropertiesNode().WChild("u").WVal() == "none",
+                    suppressStrike: IsExplicitlyDisabled(run.RunPropertiesNode().WChild("strike")),
+                    suppressDoubleStrike: IsExplicitlyDisabled(run.RunPropertiesNode().WChild("dstrike")),
+                    suppressVerticalPosition: run.RunPropertiesNode().WChild("vertAlign").WVal() != null));
                 node = span;
                 runStyles.Add(run.CharacterStyleId!);
             }
@@ -227,10 +226,10 @@ namespace OfficeIMO.Word.Html {
                     run.StyleId,
                     node,
                     "EquationParagraphStyleFormatting",
-                    suppressUnderline: run._runProperties?.Underline?.Val?.Value == UnderlineValues.None,
-                    suppressStrike: IsExplicitlyDisabled(run._runProperties?.Strike),
-                    suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike),
-                    suppressVerticalPosition: run._runProperties?.VerticalTextAlignment?.Val != null);
+                    suppressUnderline: run.RunPropertiesNode().WChild("u").WVal() == "none",
+                    suppressStrike: IsExplicitlyDisabled(run.RunPropertiesNode().WChild("strike")),
+                    suppressDoubleStrike: IsExplicitlyDisabled(run.RunPropertiesNode().WChild("dstrike")),
+                    suppressVerticalPosition: run.RunPropertiesNode().WChild("vertAlign").WVal() != null);
             }
             string? language = NormalizeRunLanguage(run.Language, documentLanguage);
             if (!string.IsNullOrEmpty(language)) {
@@ -260,7 +259,7 @@ namespace OfficeIMO.Word.Html {
                 string? normalizedRunBackground = includeRunHighlightStyles
                     ? NormalizeSixDigitHexColor(WordRunFormatting.ResolveRunShadingFillColorHex(run))
                     : null;
-                HighlightColorValues? resolvedHighlight = WordRunFormatting.ResolveRunHighlight(run);
+                string? resolvedHighlight = WordConverterNodes.ResolveRunHighlightToken(run);
                 string? highlightCss = includeRunHighlightStyles ? GetHighlightCss(resolvedHighlight) : null;
                 bool isDefaultMarkHighlight = string.Equals(
                     highlightCss,
@@ -271,7 +270,7 @@ namespace OfficeIMO.Word.Html {
                     SetOutputAttribute(semanticNode, "style", $"background-color:{highlightCss}", "EquationSemanticFormatting:highlight");
                 } else if (normalizedRunBackground != null) {
                     SetOutputAttribute(semanticNode, "style", $"background-color:#{normalizedRunBackground}", "EquationSemanticFormatting:highlight");
-                } else if (resolvedHighlight == HighlightColorValues.None) {
+                } else if (resolvedHighlight == "none") {
                     SetOutputAttribute(semanticNode, "style", "background-color:transparent", "EquationSemanticFormatting:highlight");
                 }
             } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.Ordinal)) {
@@ -310,7 +309,7 @@ namespace OfficeIMO.Word.Html {
             if (!string.IsNullOrEmpty(hyperlink.Tooltip)) {
                 SetOutputAttribute(htmlDocument, anchor, "title", hyperlink.Tooltip!, "EquationHyperlink:title");
             }
-            string? targetFrame = hyperlink._hyperlink.TargetFrame?.Value;
+            string? targetFrame = hyperlink.Node().WAttr("tgtFrame");
             if (!string.IsNullOrEmpty(targetFrame)) {
                 SetOutputAttribute(htmlDocument, anchor, "target", targetFrame!, "EquationHyperlink:target");
             }

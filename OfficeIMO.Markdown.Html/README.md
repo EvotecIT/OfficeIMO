@@ -133,7 +133,7 @@ string portableTable = HtmlConversionDocument
 - **External:** None beyond `OfficeIMO.Html`, which isolates AngleSharp DOM/CSS parsing.
 - **OfficeIMO:** `OfficeIMO.Html` and `OfficeIMO.Markdown` own the source models, mapping, plug-in hooks, and diagnostics.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

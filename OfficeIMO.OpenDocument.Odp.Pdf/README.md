@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.OpenDocument.Odp.Pdf)](https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odp.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.OpenDocument.Odp.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odp.Pdf)
 
-Bidirectional ODP and PDF conversion without Word or Excel dependencies. ODP to PDF converts the presentation through [OfficeIMO.PowerPoint.OpenDocument](../OfficeIMO.PowerPoint.OpenDocument/README.md) and renders it with the [PowerPoint PDF engine](../OfficeIMO.PowerPoint.Pdf/README.md). PDF to ODP reconstructs slides through the shared PowerPoint projection.
+Bidirectional ODP and PDF conversion without Word or Excel dependencies. ODP to PDF converts the presentation through [OfficeIMO.PowerPoint.OpenDocument](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.PowerPoint.OpenDocument/README.md) and renders it with the [PowerPoint PDF engine](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.PowerPoint.Pdf/README.md). PDF to ODP reconstructs slides through the shared PowerPoint projection.
 
 ## Install
 
@@ -39,7 +39,7 @@ Forward conversion takes `OdpPdfExportOptions` (`ConversionOptions` for the Open
 ## What it exports
 
 - One page per visible slide, sized to the presentation's slide size and in slide order, or notes pages and handouts through `PowerPointPdfExportOptions.PageLayout`; plain speaker notes come across from ODP.
-- Text boxes and runs, hyperlinks, images and crops, tables and merges, basic shapes and solid backgrounds, following the [ODP-to-PowerPoint mapping](../OfficeIMO.PowerPoint.OpenDocument/README.md).
+- Text boxes and runs, hyperlinks, images and crops, tables and merges, basic shapes and solid backgrounds, following the [ODP-to-PowerPoint mapping](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.PowerPoint.OpenDocument/README.md).
 - Placeholder roles and inherited solid master backgrounds.
 
 PDF to ODP defaults to reconstructing supported editable content through the shared PowerPoint projection. An already reduced `PdfDocumentReadResult` resolves the default `Auto` profile to detected tables only. Use `PdfPowerPointExportOptions.CreateVisualPages()` for one rendered page image per slide, `CreateHybrid()` for visual pages with editable table overlays, or `CreateEditableTables()` for detected tables only.
@@ -52,9 +52,9 @@ PDF to ODP defaults to reconstructing supported editable content through the sha
 
 ## Related packages
 
-- [OfficeIMO.OpenDocument](../OfficeIMO.OpenDocument/README.md) reads, edits and writes ODP.
-- [OfficeIMO.PowerPoint.OpenDocument](../OfficeIMO.PowerPoint.OpenDocument/README.md) converts between ODP and PPTX.
-- [OfficeIMO.OpenDocument.Odt.Pdf](../OfficeIMO.OpenDocument.Odt.Pdf/README.md) and [OfficeIMO.OpenDocument.Ods.Pdf](../OfficeIMO.OpenDocument.Ods.Pdf/README.md) cover ODT and ODS.
+- [OfficeIMO.OpenDocument](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.OpenDocument/README.md) reads, edits and writes ODP.
+- [OfficeIMO.PowerPoint.OpenDocument](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.PowerPoint.OpenDocument/README.md) converts between ODP and PPTX.
+- [OfficeIMO.OpenDocument.Odt.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.OpenDocument.Odt.Pdf/README.md) and [OfficeIMO.OpenDocument.Ods.Pdf](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.OpenDocument.Ods.Pdf/README.md) cover ODT and ODS.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

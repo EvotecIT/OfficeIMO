@@ -4,6 +4,12 @@ Convert recovered Publisher pages to PDF through the shared OfficeIMO drawing
 and PDF engines. The adapter references `OfficeIMO.Publisher` and `OfficeIMO.Pdf`;
 it does not decode `.pub` records itself or require Publisher to be installed.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Publisher.Pdf
+```
+
 ```csharp
 using OfficeIMO.Publisher;
 using OfficeIMO.Publisher.Pdf;
@@ -36,7 +42,7 @@ var withFonts = PublisherDocument.Load("newsletter.pub",
 withFonts.SaveAsPdf("newsletter.pdf");
 ```
 
-The [font support contract](../OfficeIMO.Publisher/SUPPORT.md) describes the
+The [font support contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md) describes the
 qualified native PDF baseline profile. Font substitution, broader line breaking
 and other native layout profiles remain reported approximations.
 
@@ -50,7 +56,7 @@ before anything is written.
 the report, and `SaveAsPdf`/`SaveAsPdfAsync` write a path or a caller-owned
 stream, which stays open. All routes accept cancellation; the options and their
 `PdfCreateOptions` are cloned for the operation. The async forms run the
-CPU-bound conversion on the thread pool and write the output asynchronously. Refer to the [Publisher support contract](../OfficeIMO.Publisher/SUPPORT.md)
+CPU-bound conversion on the thread pool and write the output asynchronously. Refer to the [Publisher support contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Publisher/SUPPORT.md)
 for profile and reconstruction limits, including linked text flow and native
 metafile placeholders.
 

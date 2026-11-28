@@ -1,7 +1,9 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
+using Shape = DocumentFormat.OpenXml.Presentation.Shape;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -53,6 +55,38 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void BringToFrontKeepsTheSlideExtensionListLast(bool openSdk) {
+            byte[] authored;
+            using (var presentation = PowerPointDocument.Create()) {
+                PowerPointSlide slide = presentation.AddSlide();
+                slide.AddRectangle(OfficeLength.Points(0), OfficeLength.Points(0),
+                    OfficeLength.Points(10), OfficeLength.Points(10), "First");
+                slide.AddRectangle(OfficeLength.Points(10), OfficeLength.Points(0),
+                    OfficeLength.Points(10), OfficeLength.Points(10), "Second");
+                var sdkSlide = presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide;
+                sdkSlide.CommonSlideData!.ShapeTree!.AppendChild(new ExtensionListWithModification());
+                Assert.Empty(new OpenXmlValidator().Validate(sdkSlide));
+                authored = presentation.ToBytes();
+            }
+
+            using var loaded = PowerPointDocument.Load(new MemoryStream(authored, writable: false));
+            PowerPointSlide reopened = Assert.Single(loaded.Slides);
+            if (openSdk) _ = loaded.OpenXmlDocument;
+            reopened.BringToFront(reopened.Shapes[0]);
+            Assert.Equal(openSdk, loaded.IsSdkLoaded);
+
+            using var saved = PresentationDocument.Open(new MemoryStream(loaded.ToBytes(), writable: false), false);
+            var savedSlide = saved.PresentationPart!.SlideParts.Single().Slide;
+            ShapeTree tree = savedSlide.CommonSlideData!.ShapeTree!;
+            Assert.Equal(new[] { "Second", "First" }, tree.Elements<Shape>()
+                .Select(shape => shape.NonVisualShapeProperties!.NonVisualDrawingProperties!.Name!.Value));
+            Assert.IsType<ExtensionListWithModification>(tree.LastChild);
+            Assert.Empty(new OpenXmlValidator().Validate(savedSlide));
         }
 
         [Fact]

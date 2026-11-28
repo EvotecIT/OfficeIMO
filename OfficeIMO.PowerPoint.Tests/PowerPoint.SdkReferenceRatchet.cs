@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests;
 /// change that removes files from the list. The engine is off the SDK when it reaches zero.
 /// </summary>
 public class PowerPointSdkReferenceRatchetTests {
-    private const int Baseline = 179;
+    private const int Baseline = 176;
     private const int PackagingBaseline = 1;
     private readonly ITestOutputHelper _output;
 
@@ -48,6 +48,15 @@ public class PowerPointSdkReferenceRatchetTests {
             $"{files.Count} files outside OfficeIMO.PowerPoint/OpenXmlSdk use System.IO.Packaging, more than the baseline of {PackagingBaseline}. Use OfficeIMO's own package layer, or keep it in the bridge.");
         Assert.True(files.Count == PackagingBaseline,
             $"Only {files.Count} files outside OfficeIMO.PowerPoint/OpenXmlSdk use System.IO.Packaging now. Lower {nameof(PackagingBaseline)} in {nameof(PowerPointSdkReferenceRatchetTests)} to {files.Count}.");
+    }
+
+    [Fact]
+    public void TheSharedSdkElementBridgeDoesNotGrow() {
+        const int sharedElementBridgeBaseline = 382;
+        string path = Path.Combine(FindRepositoryRoot(), "OfficeIMO.SharedSource", "OpenXmlSdk", "OfficeSdkXml.cs");
+        int lines = File.ReadLines(path).Count();
+        Assert.True(lines <= sharedElementBridgeBaseline,
+            $"The shared SDK element bridge grew from {sharedElementBridgeBaseline} to {lines} lines.");
     }
 
     [Fact]

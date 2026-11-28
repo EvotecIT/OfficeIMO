@@ -33,8 +33,6 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointSlideSize? _slideSize;
         private bool _disposed = false;
         private const int StreamBufferSize = 4096;
-        private const string P14Namespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
-        private const string SectionListUri = "{521415D9-36F7-43E2-AB2F-B90AF26B5E84}";
         private const string DefaultSectionName = "Section 1";
         private const string TableStylesResourceName = "OfficeIMO.PowerPoint.Resources.tableStyles.xml";
         private PowerPointDocument(PresentationDocument document, string filePath, bool isNewDocument) {

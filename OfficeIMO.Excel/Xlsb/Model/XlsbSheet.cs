@@ -101,6 +101,11 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         /// </summary>
         internal IReadOnlyList<DocumentFormat.OpenXml.OpenXmlElement> FeatureElements => _featureElements;
 
+        /// <summary>Provides the decoded worksheet feature records as SpreadsheetML fragments.</summary>
+        internal IEnumerable<OfficeXmlNode> ReadFeatureMarkup() {
+            foreach (var feature in _featureElements) yield return OfficeXmlNode.FromSdk(feature);
+        }
+
         internal void AddFeatureElement(DocumentFormat.OpenXml.OpenXmlElement element) => _featureElements.Add(element);
 
         /// <summary>

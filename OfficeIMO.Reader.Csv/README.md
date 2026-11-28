@@ -85,4 +85,4 @@ foreach (var table in chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<Rea
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
 - **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.CSV`; parsing stays in the native CSV package.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

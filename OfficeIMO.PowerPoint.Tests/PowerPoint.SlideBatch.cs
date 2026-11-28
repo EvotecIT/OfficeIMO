@@ -1,3 +1,5 @@
+using System.IO.Compression;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
@@ -32,6 +34,114 @@ public sealed class PowerPointSlideBatchTests {
         Assert.Equal(new[] { "First", "Batch 0", "Batch 2", "Batch 3", "Last" },
             reopened.Slides.Select(slide => Assert.Single(slide.TextBoxes).Text));
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
+    }
+
+    [Fact]
+    public void BatchAppendsSlidesToTheCurrentSectionWithoutOpeningTheSdk() {
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.AddSlide().AddTextBox("Opening");
+        presentation.AddSection("Opening", 0);
+        presentation.StartSectionAtNextSlide("Results");
+
+        IReadOnlyList<PowerPointSlide> slides = presentation.AddSlides(3);
+        for (int index = 0; index < slides.Count; index++) slides[index].AddTextBox("Result " + index);
+
+        Assert.Equal(new[] { 1, 2, 3 }, presentation.GetSections()[1].SlideIndices);
+        Assert.False(presentation.IsSdkLoaded);
+        using var reopened = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes(), writable: false));
+        Assert.Equal(new[] { "Opening", "Result 0", "Result 1", "Result 2" },
+            reopened.Slides.Select(slide => Assert.Single(slide.TextBoxes).Text));
+        Assert.Equal(new[] { 1, 2, 3 }, reopened.GetSections()[1].SlideIndices);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BatchAfterDeletingTheLastSlideMatchesSdkPartNamesAndRelationshipTargets(bool deleteLast) {
+        using var presentation = PowerPointDocument.Create();
+        presentation.AddSlides(3);
+        presentation.AddSection("Opening", 0);
+        presentation.AddSection("Results", 1);
+        if (deleteLast) presentation.RemoveSlide(2);
+        string appendedSlide = deleteLast ? "slide3.xml" : "slide4.xml";
+
+        using var sdk = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes(), writable: false));
+        _ = sdk.OpenXmlDocument;
+        sdk.AddSlides(1);
+        presentation.AddSlides(1);
+        Assert.False(presentation.IsSdkLoaded);
+        Assert.Equal(Enumerable.Range(1, deleteLast ? 2 : 3), presentation.GetSections()[1].SlideIndices);
+
+        using var expected = new ZipArchive(new MemoryStream(sdk.ToBytes(), writable: false));
+        using var actual = new ZipArchive(new MemoryStream(presentation.ToBytes(), writable: false));
+        Assert.NotNull(expected.GetEntry("ppt/slides/" + appendedSlide));
+        Assert.Equal(expected.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal),
+            actual.Entries.Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal));
+
+        const string slideRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide";
+        Assert.Equal(ReadRelationships(expected, "ppt/_rels/presentation.xml.rels").Where(rel =>
+                rel.Type == slideRelationship && rel.Target.EndsWith("/" + appendedSlide, StringComparison.Ordinal)),
+            ReadRelationships(actual, "ppt/_rels/presentation.xml.rels").Where(rel =>
+                rel.Type == slideRelationship && rel.Target.EndsWith("/" + appendedSlide, StringComparison.Ordinal)));
+        Assert.Equal(ReadRelationships(expected, "ppt/slides/_rels/" + appendedSlide + ".rels"),
+            ReadRelationships(actual, "ppt/slides/_rels/" + appendedSlide + ".rels"));
+    }
+
+    private static (string Id, string Type, string Target)[] ReadRelationships(ZipArchive package, string part) {
+        using Stream stream = package.GetEntry(part)!.Open();
+        return XDocument.Load(stream).Root!.Elements()
+            .Select(element => ((string)element.Attribute("Id")!, (string)element.Attribute("Type")!, (string)element.Attribute("Target")!))
+            .ToArray();
+    }
+
+    [Fact]
+    public void BatchFailureKeepsOnlyCompletedSlidesAndSectionMembers() {
+        byte[] authoredBytes;
+        using (PowerPointDocument authored = PowerPointDocument.Create()) {
+            authored.AddSlide().AddTextBox("Opening");
+            authored.AddSection("Opening", 0);
+            authoredBytes = authored.ToBytes();
+        }
+
+        using var source = new MemoryStream();
+        using (var original = new ZipArchive(new MemoryStream(authoredBytes, writable: false)))
+        using (var package = new ZipArchive(source, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (ZipArchiveEntry entry in original.Entries) {
+                using Stream input = entry.Open();
+                using Stream output = package.CreateEntry(entry.FullName).Open();
+                input.CopyTo(output);
+            }
+
+            var relationships = package.CreateEntry("ppt/slides/_rels/slide3.xml.rels");
+            using var writer = new StreamWriter(relationships.Open());
+            writer.Write("""
+                <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.org/" TargetMode="External"/>
+                </Relationships>
+                """);
+        }
+
+        source.Position = 0;
+        using PowerPointDocument presentation = PowerPointDocument.Load(source);
+        Assert.Throws<InvalidDataException>(() => presentation.AddSlides(2));
+        Assert.False(presentation.IsSdkLoaded);
+        Assert.Equal(2, presentation.Slides.Count);
+        Assert.Equal(new[] { 0, 1 }, Assert.Single(presentation.GetSections()).SlideIndices);
+
+        byte[] saved = presentation.ToBytes();
+        using var result = new ZipArchive(new MemoryStream(saved, writable: false));
+        Assert.NotNull(result.GetEntry("ppt/slides/slide2.xml"));
+        Assert.Null(result.GetEntry("ppt/slides/slide3.xml"));
+        using var reopened = PowerPointDocument.Load(new MemoryStream(saved, writable: false));
+        Assert.Equal(2, reopened.Slides.Count);
+        Assert.Equal(new[] { 0, 1 }, Assert.Single(reopened.GetSections()).SlideIndices);
+    }
+
+    [Fact]
+    public void BatchValidatesTheSlideIdRangeBeforeAllocatingTheResult() {
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        Assert.Throws<InvalidOperationException>(() => presentation.AddSlides(int.MaxValue));
+        Assert.Empty(presentation.Slides);
     }
 
     [Fact]

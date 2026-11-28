@@ -4,6 +4,14 @@
 
 This project is built from the OfficeIMO source tree and is not published as a standalone NuGet package.
 
+## Use from source
+
+This project isn't published to NuGet. Reference it from an OfficeIMO checkout:
+
+```sh
+dotnet add reference path/to/OfficeIMO/OfficeIMO.Markup.Excel/OfficeIMO.Markup.Excel.csproj
+```
+
 ## Quick start
 
 ```csharp
@@ -59,7 +67,7 @@ result.Document.SaveAsExcel("revenue.xlsx", new MarkupExcelExportOptions {
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
 - **OfficeIMO:** `OfficeIMO.Markup` and `OfficeIMO.Excel`; the exporter maps semantic nodes to editable workbook content.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

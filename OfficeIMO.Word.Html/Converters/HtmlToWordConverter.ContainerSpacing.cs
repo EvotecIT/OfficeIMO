@@ -1,6 +1,5 @@
 using AngleSharp.Dom;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
@@ -48,10 +47,10 @@ namespace OfficeIMO.Word.Html {
             }
 
             int accumulatedSpacing = horizontalStart + horizontalEnd;
-            if (_tableContainerHorizontalSpacing.TryGetValue(table._table, out int priorSpacing)) {
+            if (_tableContainerHorizontalSpacing.TryGetValue(table.Node(), out int priorSpacing)) {
                 accumulatedSpacing += priorSpacing;
             }
-            _tableContainerHorizontalSpacing[table._table] = accumulatedSpacing;
+            _tableContainerHorizontalSpacing[table.Node()] = accumulatedSpacing;
 
             int availableWidth = table.EstimateAvailableContainerWidthInDxa();
             long constrainedWidth = (long)availableWidth - accumulatedSpacing;
@@ -74,32 +73,32 @@ namespace OfficeIMO.Word.Html {
             IReadOnlyList<WordParagraph> paragraphs,
             IReadOnlyList<WordTable> tables) {
             CssStyleMapper.CssProperties box = ParseElementBoxStyles(element);
-            OpenXmlElement? first = GetGeneratedBlockBoundary(paragraphs, tables, first: true);
+            OfficeXmlNode first = GetGeneratedBlockBoundary(paragraphs, tables, first: true);
             int verticalStart = (box.MarginTop ?? 0) + (box.PaddingTop ?? 0);
-            if (verticalStart != 0 && first != null) {
+            if (verticalStart != 0 && first.Exists) {
                 WordParagraph? paragraph = paragraphs.FirstOrDefault(
-                    candidate => ReferenceEquals(candidate._paragraph, first));
+                    candidate => candidate.Node() == first);
                 if (paragraph != null) {
                     paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.LineSpacingBefore?.ToTwips())) ?? 0) + verticalStart) / 20D);
                 } else {
                     WordTable? table = tables.FirstOrDefault(
-                        candidate => ReferenceEquals(candidate._table, first));
+                        candidate => candidate.Node() == first);
                     if (table != null) {
                         ApplySpacingAdjacentToTable(table, verticalStart, before: true);
                     }
                 }
             }
 
-            OpenXmlElement? last = GetGeneratedBlockBoundary(paragraphs, tables, first: false);
+            OfficeXmlNode last = GetGeneratedBlockBoundary(paragraphs, tables, first: false);
             int verticalEnd = (box.MarginBottom ?? 0) + (box.PaddingBottom ?? 0);
-            if (verticalEnd != 0 && last != null) {
+            if (verticalEnd != 0 && last.Exists) {
                 WordParagraph? paragraph = paragraphs.FirstOrDefault(
-                    candidate => ReferenceEquals(candidate._paragraph, last));
+                    candidate => candidate.Node() == last);
                 if (paragraph != null) {
                     paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.LineSpacingAfter?.ToTwips())) ?? 0) + verticalEnd) / 20D);
                 } else {
                     WordTable? table = tables.FirstOrDefault(
-                        candidate => ReferenceEquals(candidate._table, last));
+                        candidate => candidate.Node() == last);
                     if (table != null) {
                         ApplySpacingAdjacentToTable(table, verticalEnd, before: false);
                     }
@@ -108,44 +107,41 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ApplySpacingAdjacentToTable(WordTable table, int spacing, bool before) {
-            Paragraph? paragraph = before ? null : table._table.NextSibling<Paragraph>();
-            if (paragraph == null || !HasOnlySyntheticZeroSpacing(paragraph)) {
-                paragraph = new Paragraph(
-                    new ParagraphProperties(
-                        new SpacingBetweenLines {
-                            Before = "0",
-                            After = "0",
-                            Line = "0"
-                        }));
-                if (before) {
-                    table._table.InsertBeforeSelf(paragraph);
-                } else {
-                    table._table.InsertAfterSelf(paragraph);
-                }
+            OfficeXmlNode tableNode = table.Node();
+            OfficeXmlNode paragraph = before ? default : tableNode.NextSiblingNamed(WordXml.W, "p");
+            if (paragraph.IsNone || !HasOnlySyntheticZeroSpacing(paragraph)) {
+                OfficeXmlNode created = WordConverterNodes.CreateDetachedParagraph();
+                OfficeXmlNode createdProperties = created.Append(created.CreateElement(WordXml.W, "pPr"));
+                OfficeXmlNode createdSpacing = createdProperties.Append(createdProperties.CreateElement(WordXml.W, "spacing"));
+                createdSpacing.SetAttribute(WordXml.W, "before", "0");
+                createdSpacing.SetAttribute(WordXml.W, "after", "0");
+                createdSpacing.SetAttribute(WordXml.W, "line", "0");
+                paragraph = before
+                    ? tableNode.Parent.InsertBefore(created, tableNode)
+                    : tableNode.InsertAfterSelf(created);
             }
 
-            ParagraphProperties properties =
-                paragraph.ParagraphProperties ?? paragraph.PrependChild(new ParagraphProperties());
-            SpacingBetweenLines spacingElement =
-                properties.GetFirstChild<SpacingBetweenLines>() ??
-                properties.AppendChild(new SpacingBetweenLines());
+            OfficeXmlNode properties = paragraph.WChild("pPr");
+            if (properties.IsNone) properties = paragraph.InsertBefore(paragraph.CreateElement(WordXml.W, "pPr"), paragraph.FirstChild);
+            OfficeXmlNode spacingElement = properties.WChild("spacing");
+            if (spacingElement.IsNone) spacingElement = properties.Append(properties.CreateElement(WordXml.W, "spacing"));
             if (before) {
-                spacingElement.After = spacing.ToString(CultureInfo.InvariantCulture);
+                spacingElement.SetAttribute(WordXml.W, "after", spacing.ToString(CultureInfo.InvariantCulture));
             } else {
-                spacingElement.Before = spacing.ToString(CultureInfo.InvariantCulture);
+                spacingElement.SetAttribute(WordXml.W, "before", spacing.ToString(CultureInfo.InvariantCulture));
             }
-            spacingElement.Line ??= "0";
+            if (spacingElement.WAttr("line") == null) spacingElement.SetAttribute(WordXml.W, "line", "0");
         }
 
-        private static bool HasOnlySyntheticZeroSpacing(Paragraph paragraph) {
-            ParagraphProperties? properties = paragraph.ParagraphProperties;
-            SpacingBetweenLines? spacing = properties?.GetFirstChild<SpacingBetweenLines>();
+        private static bool HasOnlySyntheticZeroSpacing(OfficeXmlNode paragraph) {
+            OfficeXmlNode properties = paragraph.WChild("pPr");
+            OfficeXmlNode spacing = properties.WChild("spacing");
             return string.IsNullOrEmpty(paragraph.InnerText) &&
-                   paragraph.ChildElements.All(element => element is ParagraphProperties) &&
-                   properties?.ChildElements.Count == 1 &&
-                   spacing?.Before?.Value == "0" &&
-                   spacing.After?.Value == "0" &&
-                   spacing.Line?.Value == "0";
+                   WordConverterNodes.ChildNodesIncludingMarkup(paragraph).All(element => element.IsW("pPr")) &&
+                   properties.Exists && WordConverterNodes.ChildNodesIncludingMarkup(properties).Count == 1 &&
+                   spacing.WAttr("before") == "0" &&
+                   spacing.WAttr("after") == "0" &&
+                   spacing.WAttr("line") == "0";
         }
     }
 }

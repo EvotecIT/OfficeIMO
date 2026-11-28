@@ -2,6 +2,12 @@
 
 Convert compiled help to a reflowable EPUB through the shared EPUB manuscript importer and writer. Topic contents hierarchy, internal links, supported HTML structures and embedded resources flow into the publication.
 
+## Install
+
+```sh
+dotnet add package OfficeIMO.Chm.Epub
+```
+
 ```csharp
 using OfficeIMO.Chm;
 
@@ -13,7 +19,7 @@ foreach (var diagnostic in report.Diagnostics)
 
 Use `ToEpub(options, out report)` or `ToEpubAsync` to obtain an editable `EpubPublication` before writing. `ChmEpubExportOptions` groups the settings: `ConversionOptions` (`ChmConversionOptions`) selects topics and bounds aggregate projection/output; `EpubManuscriptOptions` configures the existing importer, and `EpubSaveOptions` bounds package writing. Resource resolution is replaced with the archive-only resolver.
 
-The report combines CHM projection, manuscript import and package-write evidence. Failed manuscript imports and later output failures carry the completed findings in `OfficeConversionException.Report`. Set `FailOnLoss` to reject reported loss before anything is written. Reflow can change topic CSS scope; the compiled keyword index, See Also and Windows help behavior are not recreated. Multi-target contents entries use one EPUB destination and report the reduction. See [CHM support](../OfficeIMO.Chm/SUPPORT.md) and [EPUB authoring](../OfficeIMO.Epub/README.md).
+The report combines CHM projection, manuscript import and package-write evidence. Failed manuscript imports and later output failures carry the completed findings in `OfficeConversionException.Report`. Set `FailOnLoss` to reject reported loss before anything is written. Reflow can change topic CSS scope; the compiled keyword index, See Also and Windows help behavior are not recreated. Multi-target contents entries use one EPUB destination and report the reduction. See [CHM support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Chm/SUPPORT.md) and [EPUB authoring](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Epub/README.md).
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

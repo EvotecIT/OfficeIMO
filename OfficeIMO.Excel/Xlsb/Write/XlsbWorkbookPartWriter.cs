@@ -13,10 +13,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static byte[] Create(
             IReadOnlyList<ExcelSheet> sheets,
             bool uses1904DateSystem,
-            DocumentFormat.OpenXml.Spreadsheet.BookViews? workbookViews,
-            DocumentFormat.OpenXml.Spreadsheet.WorkbookProtection? workbookProtection,
-            DocumentFormat.OpenXml.Spreadsheet.DefinedNames? definedNames,
-            DocumentFormat.OpenXml.Spreadsheet.CalculationProperties? calculationProperties,
+            OfficeXmlNode workbookViews,
+            OfficeXmlNode workbookProtection,
+            OfficeXmlNode definedNames,
+            OfficeXmlNode calculationProperties,
             XlsbNewWorkbookFormulaContext? formulas = null) {
             ArgumentNullException.ThrowIfNull(sheets);
             if (sheets.Count == 0) throw new NotSupportedException("Native XLSB generation requires at least one worksheet.");

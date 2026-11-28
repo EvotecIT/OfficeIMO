@@ -122,7 +122,7 @@ namespace OfficeIMO.Excel {
             EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
 
-            OpenDeferredSdkForBinaryTarget(IsBinaryWorkbookPath(path));
+            OpenDeferredSdkForBinaryTarget(IsBinaryWorkbookPath(path), ExcelDocumentLoadRouting.HasXlsbExtension(path));
             if (TrySaveUnchangedXlsbToFile(path, options)) {
                 return;
             }
@@ -291,7 +291,7 @@ namespace OfficeIMO.Excel {
             EnsureDestinationFileWritable(target);
             EnsureDirectoryWritable(target);
 
-            OpenDeferredSdkForBinaryTarget(IsBinaryWorkbookPath(target));
+            OpenDeferredSdkForBinaryTarget(IsBinaryWorkbookPath(target), ExcelDocumentLoadRouting.HasXlsbExtension(target));
             if (await TrySaveUnchangedXlsbToFileAsync(target, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }
@@ -416,7 +416,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            OpenDeferredSdkForBinaryTarget(format is ExcelFileFormat.Xls or ExcelFileFormat.Xlsb);
+            OpenDeferredSdkForBinaryTarget(format is ExcelFileFormat.Xls or ExcelFileFormat.Xlsb, format == ExcelFileFormat.Xlsb);
             if (TrySaveUnchangedXlsbToStream(destination, format, options)) {
                 return;
             }
@@ -582,7 +582,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            OpenDeferredSdkForBinaryTarget(format is ExcelFileFormat.Xls or ExcelFileFormat.Xlsb);
+            OpenDeferredSdkForBinaryTarget(format is ExcelFileFormat.Xls or ExcelFileFormat.Xlsb, format == ExcelFileFormat.Xlsb);
             if (await TrySaveUnchangedXlsbToStreamAsync(destination, format, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }

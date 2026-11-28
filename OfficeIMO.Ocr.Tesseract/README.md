@@ -118,7 +118,7 @@ Console.WriteLine(recognition.Result.Text);
 Console.WriteLine($"Review recommended: {recognition.ReviewRecommended}");
 ```
 
-`adaptive` can also serve as the engine in Reader and PDF OCR. Retries do not deskew, crop, resize, or silently approve text. Provider confidence and a retained word count do not establish recognition accuracy. Use the [shared review policy](../OfficeIMO.Ocr/README.md#retry-weak-recognition-evidence) and the [hash-bound native scorecard](../OfficeIMO.TestAssets/OcrQuality/README.md) to choose and evaluate a policy for your documents.
+`adaptive` can also serve as the engine in Reader and PDF OCR. Retries do not deskew, crop, resize, or silently approve text. Provider confidence and a retained word count do not establish recognition accuracy. Use the [shared review policy](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Ocr/README.md#retry-weak-recognition-evidence) and the [hash-bound native scorecard](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/OcrQuality/README.md) to choose and evaluate a policy for your documents.
 
 Tesseract's complete `Estimating resolution as <dpi>` message is retained as informational diagnostic evidence and does not itself trigger a review-policy retry. Unknown stderr messages, real warnings and truncated logs remain warnings for both recognition and orientation detection.
 
@@ -139,4 +139,4 @@ The engine advertises `SupportsOrientationDetection`. Set `OcrRequest.Operation`
 - **External:** An installed Tesseract CLI. Language data is not bundled; callers may use their system data or explicitly invoke the checksum-pinned provisioner.
 - **OfficeIMO:** `OfficeIMO.Ocr` owns the neutral contracts. `OfficeIMO.Ocr.Process` supplies the bounded cross-platform process runner used by this provider.
 
-See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+See the [complete OfficeIMO package map](https://github.com/EvotecIT/OfficeIMO/blob/master/README.md) for related formats and conversion paths.

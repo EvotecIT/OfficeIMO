@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             Assert.True(properties.Strike);
             Assert.Equal("112233", properties.BackgroundColor);
             Assert.Equal(360, properties.LineHeight);
-            Assert.Equal(LineSpacingRuleValues.Auto, properties.LineHeightRule);
+            Assert.Equal("auto", properties.LineHeightRule);
             Assert.Equal(WhiteSpaceMode.PreWrap, properties.WhiteSpace);
         }
 
