@@ -219,6 +219,94 @@ public sealed class ZstandardArchiveTests {
     }
 
     [Fact]
+    public void ATrailingSkippableFrameLeavesTheSourceAfterIt() {
+        byte[] frame = ReadFixture("text-level1.zst");
+        byte[] skippable = { 0x50, 0x2A, 0x4D, 0x18, 0x05, 0x00, 0x00, 0x00, 1, 2, 3, 4, 5 };
+        var source = new MemoryStream(frame.Concat(skippable).ToArray());
+
+        ZstandardReadResult result = ZstandardArchive.Decompress(source, new MemoryStream());
+
+        Assert.Equal(1, result.SkippableFrameCount);
+        Assert.Equal(source.Length, source.Position);
+    }
+
+    [Fact]
+    public void ASourcePositionedPastItsEndIsEmptyInput() {
+        var source = new MemoryStream(ReadFixture("text-level1.zst"));
+        source.Position = source.Length + 1;
+        ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
+            ZstandardArchive.Decompress(source, new MemoryStream()));
+        Assert.Equal(0, error.Offset);
+    }
+
+    [Fact]
+    public void HistoryThatStopsGrowingShortOfABlockSlidesInstead() {
+        // A 704 KiB window (exponent 9, mantissa 3) grows its history to a 1,056 KiB cap. After eight full raw blocks the
+        // capped resize leaves only 32 KiB free, so the ninth block needs a slide.
+        const int block = 128 * 1024;
+        var expected = new byte[12 * block];
+        for (int index = 0; index < expected.Length; index++) expected[index] = (byte)(index * 7 + index / block);
+        var frame = new MemoryStream();
+        frame.Write(new byte[] { 0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x4B }, 0, 6);
+        for (int index = 0; index < 12; index++) {
+            int header = (block << 3) | (index == 11 ? 1 : 0);
+            frame.Write(new[] { (byte)header, (byte)(header >> 8), (byte)(header >> 16) }, 0, 3);
+            frame.Write(expected, index * block, block);
+        }
+        frame.Position = 0;
+        var output = new MemoryStream();
+
+        ZstandardArchive.Decompress(frame, output);
+
+        Assert.Equal(expected, output.ToArray());
+    }
+
+    [Fact]
+    public void RawDictionariesShorterThanEightBytesAreRejected() {
+        ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
+            ZstandardDictionary.Load(new byte[] { 1, 2, 3, 4, 5, 6, 7 }));
+        Assert.Equal(7, error.Offset);
+    }
+
+    [Fact]
+    public void SkippableFramesCountAsDecodeWork() {
+        byte[] empty = { 0x50, 0x2A, 0x4D, 0x18, 0x00, 0x00, 0x00, 0x00 };
+        byte[] source = empty.Concat(empty).ToArray();
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
+            ZstandardArchive.Decompress(new MemoryStream(source), new MemoryStream(),
+                new ArchiveReadOptions { MaxDecompressionWorkBytes = 4096 }));
+        Assert.Equal(nameof(ArchiveReadOptions.MaxDecompressionWorkBytes), error.LimitName);
+    }
+
+    [Fact]
+    public void ASourceThatShrinksAfterAFrameIsReportedAsTruncated() {
+        byte[] frame = ReadFixture("text-level1.zst");
+        var source = new MemoryStream();
+        source.Write(frame, 0, frame.Length);
+        source.Write(frame, 0, frame.Length);
+        source.Position = 0;
+        var output = new TruncatingStream(source, frame.Length);
+
+        ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
+            ZstandardArchive.Decompress(source, output));
+
+        Assert.Equal(frame.Length, error.Offset);
+    }
+
+    [Fact]
+    public void BlockWorkIsChargedBeforeTheBlockIsDecoded() {
+        // A 1 KiB window and a last compressed block of four invalid bytes: charging comes first, so the work limit is
+        // reported rather than the corruption decoding would find.
+        byte[] source = { 0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x00, 0x25, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF };
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
+            ZstandardArchive.Decompress(new MemoryStream(source), new MemoryStream(),
+                new ArchiveReadOptions { MaxDecompressionWorkBytes = 4095 }));
+        Assert.Equal(nameof(ArchiveReadOptions.MaxDecompressionWorkBytes), error.LimitName);
+        Assert.Throws<ArchiveCorruptionException>(() =>
+            ZstandardArchive.Decompress(new MemoryStream(source), new MemoryStream()));
+    }
+
+    [Fact]
     public void ReservedBlockTypeIsRejectedAtTheBlockHeader() {
         // Frame header: magic, descriptor with single segment and a 1-byte content size of 1, then a last block of type 3.
         byte[] source = { 0x28, 0xB5, 0x2F, 0xFD, 0x20, 0x01, 0x07, 0x00, 0x00 };
@@ -264,5 +352,19 @@ public sealed class ZstandardArchiveTests {
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    /// <summary>Output that truncates the source once the first frame's output arrives, as if the file shrank mid-read.</summary>
+    private sealed class TruncatingStream : MemoryStream {
+        private readonly MemoryStream _source;
+        private readonly long _length;
+        public TruncatingStream(MemoryStream source, long length) {
+            _source = source;
+            _length = length;
+        }
+        public override void Write(byte[] buffer, int offset, int count) {
+            base.Write(buffer, offset, count);
+            if (_source.Length > _length) _source.SetLength(_length);
+        }
     }
 }

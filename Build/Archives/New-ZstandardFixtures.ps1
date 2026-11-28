@@ -16,6 +16,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Resolve the tool once, so a relative path keeps working after the fixture loop changes directory.
+$Zstd = (Get-Command -Name $Zstd -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $Destination = [System.IO.Path]::GetFullPath($Destination)
 New-Item -ItemType Directory -Force -Path $Destination | Out-Null
 $inputs = Join-Path $Destination 'inputs'

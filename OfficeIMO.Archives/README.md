@@ -175,11 +175,11 @@ using (var target = File.Create("events.json"))
 
 ZstandardDictionary dictionary = ZstandardDictionary.Load(File.ReadAllBytes("messages.dict"));
 using (var source = File.OpenRead("message.zst"))
-using (var target = new MemoryStream())
+using (var target = File.Create("message.txt"))
     ZstandardArchive.DecompressWithDictionary(source, target, dictionary);
 ```
 
-`ZstandardArchive` decodes RFC 8878 frames in managed code on every target framework. It reads concatenated frames as one stream, passes over skippable frames, and verifies declared content sizes and XXH64 content checksums. Dictionaries written by `zstd --train` and raw-content dictionaries are supported; a frame that names a different dictionary ID is rejected. Declared windows are limited by `MaxWindowBytes` (64 MiB by default, enough for zstd levels up to 19; `--ultra` levels 20 to 22 need up to 128 MiB) and history memory grows only as output is produced. Single-segment frames have no window descriptor: their window is their declared content size, which the output limit bounds instead. Output is bounded by the smaller of `MaxEntryBytes` and `MaxExpandedBytes`. Malformed input raises `ArchiveCorruptionException` with the byte offset and the structure expected there. Output is written block by block, so a failure can leave partial output in the destination.
+`ZstandardArchive` decodes RFC 8878 frames in managed code on every target framework. It reads concatenated frames as one stream, passes over skippable frames, and verifies declared content sizes and XXH64 content checksums. Dictionaries written by `zstd --train` and raw-content dictionaries are supported; a frame that names a different dictionary ID is rejected. Declared windows are limited by `MaxWindowBytes` (64 MiB by default, enough for zstd levels up to 19; `--ultra` levels 20 to 22 need up to 128 MiB) and each frame starts with a buffer for its dictionary and two blocks; history grows towards the window only as output is produced. Single-segment frames have no window descriptor: their window is their declared content size, which the output limit bounds instead. Output is bounded by the smaller of `MaxEntryBytes` and `MaxExpandedBytes`. Malformed input raises `ArchiveCorruptionException` with the byte offset and the structure expected there. Output is written block by block, so a failure can leave partial output in the destination.
 
 ## Read ZIP content in memory
 

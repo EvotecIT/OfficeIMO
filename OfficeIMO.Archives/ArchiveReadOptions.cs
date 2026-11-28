@@ -18,14 +18,16 @@ public sealed class ArchiveReadOptions {
     public long MaxEntryBytes { get; set; } = DefaultMaxEntryBytes;
     /// <summary>Maximum expanded data, including siblings in a selected solid folder. Defaults to 64 MiB.</summary>
     public long MaxExpandedBytes { get; set; } = 64L * 1024 * 1024;
-    /// <summary>Maximum decompression work for 7z and Zstandard. Zstandard counts each block's input plus output, at least
-    /// 4 KiB per block, plus the dictionary copied into every frame that uses one and the history moved when a long
-    /// window slides. Defaults to 2 GiB.</summary>
+    /// <summary>Maximum decompression work for 7z and Zstandard. Zstandard charges each block before decoding it: its input
+    /// plus its largest possible output (the block maximum for a compressed block), at least 4 KiB per block. It also
+    /// charges 4 KiB per skippable frame, the dictionary copied into every frame that uses one, and the history copied
+    /// when it grows or when a long window slides. Defaults to 2 GiB.</summary>
     public long MaxDecompressionWorkBytes { get; set; } = 2L * 1024 * 1024 * 1024;
     /// <summary>Maximum window a Zstandard frame declares in its window descriptor. Defaults to 64 MiB, enough for zstd
     /// levels up to 19; levels 20 to 22 with <c>--ultra</c> can declare up to 128 MiB and need a higher limit. It does not
     /// limit a supplied dictionary. Single-segment frames have no window descriptor: their window is their declared
-    /// content size, which the output limit bounds instead. History is allocated only as output is produced.</summary>
+    /// content size, which the output limit bounds instead. Each frame starts with a buffer for its dictionary and two blocks,
+    /// and the history grows towards the window only as output is produced.</summary>
     public long MaxWindowBytes { get; set; } = DefaultMaxWindowBytes;
     /// <summary>Maximum member path segments.</summary>
     public int MaxPathDepth { get; set; } = 64;

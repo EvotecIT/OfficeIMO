@@ -9,6 +9,7 @@ internal sealed class ZstandardDecoder {
     internal const uint SkippableMagicMask = 0xFFFFFFF0;
     internal const uint SkippableMagic = 0x184D2A50;
     private const int MaxBlockSize = 128 * 1024;
+    private const long MaxHistoryBytes = int.MaxValue - 64;
     private const int LiteralLengthMaxSymbol = 35;
     private const int MatchLengthMaxSymbol = 52;
     private const int OffsetMaxSymbol = 31;
@@ -105,6 +106,8 @@ internal sealed class ZstandardDecoder {
             int read = ReadUpTo(_small, 4);
             if (read == 0) {
                 if (frames + skippable == 0) throw Corrupt(0, "a Zstandard frame");
+                // A source that shrinks while it is read must not pass for one that ended after its last frame.
+                if (_source.Position < _source.Length) throw Corrupt(frameOffset, $"the remaining {_source.Length - _source.Position} bytes of input");
                 break;
             }
             if (read < 4) throw Corrupt(frameOffset, "a 4-byte frame magic number");
@@ -122,6 +125,8 @@ internal sealed class ZstandardDecoder {
     }
 
     private void SkipFrame(long frameOffset) {
+        // Passing over a skippable frame costs no output, so each one is charged like an empty block.
+        _settings.Budget.Charge(0, 4096);
         ReadExact(_small, 0, 4, frameOffset + 4, "the skippable frame size");
         long size = ReadUInt32(_small, 0);
         long available = _source.Length - _source.Position;
@@ -196,28 +201,30 @@ internal sealed class ZstandardDecoder {
             int type = (header >> 1) & 3;
             int size = header >> 3;
             _blockOffset = blockOffset;
-            EnsureRoom();
+            if (type == 3) throw Corrupt(blockOffset, "a block type other than the reserved type 3");
+            CheckBlockSize(size, blockOffset);
+            // Work is charged before the block is decoded, so a block that fails part way still counts. A compressed
+            // block is charged its largest possible output, since its real output is known only after decoding.
+            int input = type == 1 ? 1 : size;
+            _settings.Budget.Charge(0, Math.Max(4096, (long)input + (type == 2 ? _blockMaximum : size)));
+            // Raw and RLE blocks know their output size; only a compressed block needs room for the block maximum.
+            EnsureRoom(type == 2 ? _blockMaximum : size);
             int start = _position;
             switch (type) {
                 case 0:
-                    CheckBlockSize(size, blockOffset);
                     ReadExact(_history, _position, size, blockOffset + 3, "the raw block content");
                     _position += size;
                     break;
                 case 1:
-                    CheckBlockSize(size, blockOffset);
                     byte value = (byte)ReadByte("the RLE block byte");
                     for (int index = 0; index < size; index++) _history[_position++] = value;
                     break;
-                case 2:
-                    CheckBlockSize(size, blockOffset);
+                default:
                     ReadExact(_block, 0, size, blockOffset + 3, "the compressed block content");
                     DecodeCompressedBlock(size, blockOffset + 3);
                     break;
-                default:
-                    throw Corrupt(blockOffset, "a block type other than the reserved type 3");
             }
-            Publish(start, type == 1 ? 1 : size);
+            Publish(start);
         } while (!last);
 
         if (contentSize >= 0 && _frameProduced != contentSize)
@@ -241,9 +248,11 @@ internal sealed class ZstandardDecoder {
         long history = Math.Min(window, contentSize >= 0 ? contentSize : Math.Max(0, _settings.MaximumOutput - _total));
         // Spare room of at least half the window means a slide, which copies one window, happens at most once per half
         // window of output, so history copies stay below twice the output.
-        _capacity = content.Length + history + Math.Max(2L * MaxBlockSize, (content.Length + history) / 2);
-        if (_capacity > int.MaxValue - 64)
-            throw ArchiveLimits.Exceeded(nameof(ArchiveReadOptions.MaxWindowBytes), _settings.MaximumWindow);
+        // Near the managed array ceiling the spare room shrinks towards one block; slides are charged as work either way.
+        // Compared without adding first, so a huge declared content size cannot overflow past the check.
+        if (history > MaxHistoryBytes - content.Length - _blockMaximum) throw ArchiveLimits.Exceeded("Zstandard history buffer", MaxHistoryBytes);
+        _capacity = Math.Min(MaxHistoryBytes,
+            content.Length + history + Math.Max(2L * MaxBlockSize, (content.Length + history) / 2));
         // Every frame starts from a fresh copy of the dictionary, so the copy is decode work like any block. It is
         // charged before the history is allocated, so a refused frame allocates nothing.
         if (content.Length > 0) _settings.Budget.Charge(0, content.Length);
@@ -273,30 +282,31 @@ internal sealed class ZstandardDecoder {
 
     /// <summary>Makes room for one more block, growing the history towards its capacity and then sliding it so the
     /// last window of output stays addressable.</summary>
-    private void EnsureRoom() {
-        if (_history.Length - _position >= _blockMaximum) return;
+    private void EnsureRoom(int needed) {
+        if (_history.Length - _position >= needed) return;
         if (_history.Length < _capacity) {
-            long grown = Math.Min(_capacity, Math.Max(2L * _history.Length, (long)_position + _blockMaximum));
+            long grown = Math.Min(_capacity, Math.Max(2L * _history.Length, (long)_position + needed));
+            // Growing copies the history, so the copy is charged as work first. Doubling keeps the copies below the output.
+            _settings.Budget.Charge(0, _position);
             Array.Resize(ref _history, (int)grown);
-            return;
+            if (_history.Length - _position >= needed) return;
         }
         int keep = (int)Math.Min(_position, _window);
         _settings.Budget.Charge(0, keep);
         Buffer.BlockCopy(_history, _position - keep, _history, 0, keep);
         _position = keep;
         // Only a frame that outgrows its declared content can run out of history capacity.
-        if (_history.Length - _position < _blockMaximum)
+        if (_history.Length - _position < needed)
             throw Corrupt(_blockOffset, $"no more than the declared {_contentSize} bytes of frame content");
     }
 
-    private void Publish(int start, int compressedBytes) {
+    private void Publish(int start) {
         int produced = _position - start;
-        long work = Math.Max(4096, (long)compressedBytes + produced);
         if (produced > _settings.MaximumOutput - _total - _frameProduced)
             throw ArchiveLimits.Exceeded(_settings.OutputLimitName, _settings.MaximumOutput);
         if (_contentSize >= 0 && produced > _contentSize - _frameProduced)
             throw Corrupt(_blockOffset, $"no more than the declared {_contentSize} bytes of frame content");
-        _settings.Budget.Charge(produced, work);
+        _settings.Budget.Charge(produced, 0);
         _settings.Select?.Invoke(produced);
         if (produced > 0) {
             _destination.Write(_history, start, produced);
@@ -631,7 +641,8 @@ internal sealed class ZstandardDictionaryData {
         if (bytes.Length >= 4 && Read32(bytes, 0) == DictionaryMagic && bytes.Length < 8)
             throw new ArchiveCorruptionException(FormatName, 4, "a 4-byte dictionary ID after the dictionary magic");
         if (bytes.Length < 8 || Read32(bytes, 0) != DictionaryMagic) {
-            if (bytes.Length == 0) throw new ArchiveCorruptionException(FormatName, 0, "non-empty dictionary content");
+            // RFC 8878 section 5: raw-content dictionaries must be at least 8 bytes.
+            if (bytes.Length < 8) throw new ArchiveCorruptionException(FormatName, bytes.Length, "at least 8 bytes of raw dictionary content");
             return new ZstandardDictionaryData(0, (byte[])bytes.Clone(), new[] { 1, 4, 8 }, null, null, null, null);
         }
         uint id = Read32(bytes, 4);

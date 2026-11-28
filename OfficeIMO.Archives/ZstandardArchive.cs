@@ -36,7 +36,7 @@ public sealed class ZstandardDictionary {
     public int ContentLength => Data.Content.Length;
 
     /// <summary>Parses a dictionary, such as one written by <c>zstd --train</c>. Bytes without the dictionary magic
-    /// number are used as raw content.</summary>
+    /// number are used as raw content, which must be at least 8 bytes.</summary>
     /// <exception cref="ArchiveCorruptionException">The dictionary header or tables are malformed.</exception>
     public static ZstandardDictionary Load(byte[] dictionary) {
         ArgumentNullException.ThrowIfNull(dictionary);
@@ -53,8 +53,9 @@ public static class ZstandardArchive {
     /// charged to the operation budget as selected bytes, and decode work by
     /// <see cref="ArchiveReadOptions.MaxDecompressionWorkBytes"/>. Declared windows are bounded by
     /// <see cref="ArchiveReadOptions.MaxWindowBytes"/>, except in single-segment frames, whose window is their declared
-    /// content size and which the output limit bounds instead. Nonseekable input is snapshotted first. The source stays open.
-    /// Only the bytes present when decoding starts are read. Output is written block by block, so a failure can leave a
+    /// content size and which the output limit bounds instead. The source stays open. Seekable input is bounded to the bytes
+    /// present when decoding starts, and on success the source is left at the end of them. Nonseekable input is snapshotted
+    /// through its end first, within the input limit. Output is written block by block, so a failure can leave a
     /// partial result in the destination. <paramref name="destination"/> must be a different stream from
     /// <paramref name="source"/> and must not write over the data being read.</remarks>
     /// <exception cref="ArchiveCorruptionException">The input is not Zstandard, is truncated, or fails a checksum.</exception>
@@ -83,7 +84,8 @@ public static class ZstandardArchive {
         var limits = effective.Limits();
         using Stream? snapshot = source.CanSeek ? null : ArchiveReader.Snapshot(source, limits, cancellationToken);
         // Seekable input is read only within the range admitted here, so bytes appended later are never decoded.
-        using Stream? admitted = snapshot == null ? Admit(source, limits) : null;
+        long start = source.CanSeek ? Math.Min(source.Position, source.Length) : 0;
+        using Stream? admitted = snapshot == null ? Admit(source, start, limits) : null;
         Stream input = snapshot ?? admitted!;
         bool entryLimit = limits.Entry <= limits.Expanded;
         var settings = new ZstandardDecoderSettings(
@@ -95,13 +97,16 @@ public static class ZstandardArchive {
             dictionary?.Data,
             cancellationToken);
         ZstandardDecodeResult result = ZstandardDecoder.Decode(input, destination, settings);
+        // The decoder skips over skippable frames by seeking the view, so leave the caller after everything it consumed.
+        if (admitted != null) source.Position = start + admitted.Length;
         return new ZstandardReadResult(result.Frames, result.SkippableFrames, result.Length);
     }
 
-    private static Stream Admit(Stream source, ArchiveLimits limits) {
-        long length = source.Length - source.Position;
+    private static Stream Admit(Stream source, long start, ArchiveLimits limits) {
+        // A position past the end, which MemoryStream allows, is empty input like a position at the end.
+        long length = source.Length - start;
         ArchiveLimits.Check(length, limits.Input, nameof(ArchiveReadOptions.MaxInputBytes));
         limits.Operation.AdmitInput(length);
-        return new OfficeIMO.Core.Internal.SeekableReadWindowStream(source, source.Position, length);
+        return new OfficeIMO.Core.Internal.SeekableReadWindowStream(source, start, length);
     }
 }
