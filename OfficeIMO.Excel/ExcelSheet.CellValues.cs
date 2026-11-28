@@ -69,6 +69,19 @@ namespace OfficeIMO.Excel {
                 return true;
             });
 
+        /// <summary>
+        /// Writes this sheet's pending buffer to the DOM before a batch writes its cells there. The batch looks for the
+        /// buffer before it takes the document lock, so a batch on another thread can start one in between; left pending,
+        /// it would stand in for the sheet at save with this batch's cells beside it.
+        /// </summary>
+        private void MaterializeConcurrentPendingDirectCellValues(CancellationToken ct) {
+            if (_pendingCellValueDirectSaveBuffer != null
+                && !_materializingPendingCellValueDirectSaveBuffer
+                && !_excelDocument.IsMaterializingDeferredDataSetImport) {
+                MaterializePendingDirectCellValues(ct);
+            }
+        }
+
         private void CellValuesCore(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode, CancellationToken ct, bool preserveMissingValues) {
             ArgumentNullException.ThrowIfNull(cells);
             var list = cells as IReadOnlyList<(int Row, int Column, object Value)> ?? cells.ToList();
@@ -191,6 +204,7 @@ namespace OfficeIMO.Excel {
                 },
                 applySequential: () => {
                     // Apply phase - first fix shared strings, then write all values to DOM
+                    MaterializeConcurrentPendingDirectCellValues(ct);
                     ssPlanner.ApplyAndFixup(prepared, _excelDocument);
                     ApplyPreparedCells(prepared, list, preserveMissingValues);
                 },
