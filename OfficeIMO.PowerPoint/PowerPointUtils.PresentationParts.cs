@@ -19,6 +19,8 @@ namespace OfficeIMO.PowerPoint {
             return null;
         }
 
+        internal static bool IsSdkUnknownElement(this OfficeXmlNode element) => element.SdkElement is OpenXmlUnknownElement;
+
         internal static string? LookupNamespace(this OfficeXmlNode element, string prefix) {
             if (element.Tree is { } tree) {
                 string name = prefix.Length == 0 ? "xmlns" : prefix;

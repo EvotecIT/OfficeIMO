@@ -73,7 +73,7 @@ namespace OfficeIMO.PowerPoint {
                     OfficeXmlNode sound = start.Append(start.CreateElement(TransitionPresentationNamespace, "snd"));
                     sound.SetAttribute(OfficeXmlNamespaces.Relationships, "embed", relationshipId);
                     sound.SetAttribute("name", name);
-                    added.Add((transition, transition.Append(action)));
+                    added.Add((transition, transition.InsertBefore(action, FindTerminalPresentationExtension(transition))));
                 }
             } catch {
                 foreach (var (_, sound) in added) sound.Remove();
@@ -172,7 +172,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static OfficeXmlNode ReplaceSoundAction(OfficeXmlNode transition) {
             transition.RemoveChildren(TransitionPresentationNamespace, "sndAc");
-            return transition.Append(transition.CreateElement(TransitionPresentationNamespace, "sndAc"));
+            return transition.InsertBefore(transition.CreateElement(TransitionPresentationNamespace, "sndAc"),
+                FindTerminalPresentationExtension(transition));
         }
 
         private static IReadOnlyList<OfficeXmlNode> GetOrCreateTransitionNodes(OfficeXmlNode root) {

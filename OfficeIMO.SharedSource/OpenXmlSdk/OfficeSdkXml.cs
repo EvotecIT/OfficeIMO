@@ -29,8 +29,6 @@ namespace OfficeIMO.OpenXml.Internal {
             return OfficeXmlNamespaces.TryGetKnownId(uri, out int id) && id == namespaceId;
         }
 
-        internal static bool IsUnknownElement(object element) => element is OpenXmlUnknownElement;
-
         internal static object? Parent(object element) => E(element).Parent;
 
         /// <summary>Adds the descendant elements with this name, in document order, as the element handle walks them.</summary>

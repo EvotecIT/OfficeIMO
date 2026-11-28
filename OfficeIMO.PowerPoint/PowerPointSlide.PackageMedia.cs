@@ -94,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
             geometry.SetAttribute("prst", "rect");
             AppendMediaElement(geometry, a, "avLst");
             AppendMediaTiming(part.Root, shapeId, kind, timingId);
-            picture = tree.Append(picture);
+            picture = tree.InsertBefore(picture, FindTerminalPresentationExtension(tree));
             part.MarkEdited();
             return TrackShape((PowerPointMedia)WrapSlideShape(picture, part)!);
         }

@@ -145,14 +145,14 @@ namespace OfficeIMO.PowerPoint {
 
         private static OfficeXmlNode KnownCustomShowChild(OfficeXmlNode parent, string name) {
             foreach (OfficeXmlNode child in parent.Children(CustomShowNamespace, name)) {
-                if (!child.IsSdkUnknownElement) return child;
+                if (!child.IsSdkUnknownElement()) return child;
             }
             return default;
         }
 
         private static IEnumerable<OfficeXmlNode> KnownCustomShowChildren(OfficeXmlNode parent, string name) {
             foreach (OfficeXmlNode child in parent.Children(CustomShowNamespace, name)) {
-                if (!child.IsSdkUnknownElement) yield return child;
+                if (!child.IsSdkUnknownElement()) yield return child;
             }
         }
 
@@ -236,10 +236,10 @@ namespace OfficeIMO.PowerPoint {
             if (index < entries.Count) {
                 slideList.InsertBefore(entry, entries[index].Entry);
             } else if (entries.Count > 0) {
-                slideList.InsertBefore(entry, entries[entries.Count - 1].Entry.NextNode);
+                slideList.InsertBefore(entry, entries[entries.Count - 1].Entry.NextNode());
             } else {
                 OfficeXmlNode reference = FirstCustomShowChild(slideList);
-                while (reference.Is(CustomShowNamespace, "sld") && !reference.IsSdkUnknownElement) reference = reference.NextNode;
+                while (reference.Is(CustomShowNamespace, "sld") && !reference.IsSdkUnknownElement()) reference = reference.NextNode();
                 slideList.InsertBefore(entry, reference);
             }
         }
