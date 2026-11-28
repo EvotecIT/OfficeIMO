@@ -26,7 +26,10 @@ namespace OfficeIMO.Tests {
 
             stream.Position = 0;
             using var loaded = ExcelDocument.Load(stream);
+            Assert.True(loaded.IsSdkDeferred);
             ExcelInCellImage roundTripped = Assert.Single(loaded.Sheets[0].GetInCellImages());
+            Assert.True(loaded.IsSdkDeferred);
+            Assert.Empty(loaded.OpenXmlSdkFallbacks);
             Assert.Equal("C3", roundTripped.CellReference);
             Assert.Equal("image/png", roundTripped.ContentType);
             Assert.Equal(TinyPng, roundTripped.Bytes);

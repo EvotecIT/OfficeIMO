@@ -4,6 +4,9 @@ using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -324,15 +327,12 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelFormulaAnalysisReport AnalyzeFormulas() {
             var formulas = new List<ExcelFormulaInfo>();
-            foreach (var item in EnumerateWorksheetParts()) {
-                Worksheet? worksheet = item.WorksheetPart.Worksheet;
-                if (worksheet == null) continue;
-
-                foreach (Cell cell in worksheet.Descendants<Cell>()) {
-                    string? formulaText = cell.CellFormula?.Text;
+            foreach (ExcelSheet sheet in Sheets) {
+                foreach (ExcelFormulaCell cell in sheet.EnumerateFormulaCells()) {
+                    string? formulaText = cell.FormulaText;
                     if (string.IsNullOrWhiteSpace(formulaText)) continue;
 
-                    string address = cell.CellReference?.Value ?? string.Empty;
+                    string address = cell.Reference ?? string.Empty;
                     ExcelFormulaSyntaxTree syntaxTree = ExcelFormulaSyntaxTree.Parse(formulaText!);
                     var references = syntaxTree.Nodes
                         .OfType<ExcelFormulaReferenceSyntax>()
@@ -346,7 +346,7 @@ namespace OfficeIMO.Excel {
                         .ToArray();
 
                     formulas.Add(new ExcelFormulaInfo(
-                        item.SheetName,
+                        sheet.Name,
                         address,
                         formulaText!,
                         references,
@@ -362,26 +362,36 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Returns all workbook and sheet-scoped defined names with scope and hidden metadata.
         /// </summary>
-        public IReadOnlyList<ExcelNamedRangeInfo> ListNamedRanges(bool includeBuiltIn = true, bool includeHidden = true) {
-            var definedNames = WorkbookRoot.DefinedNames;
-            if (definedNames == null) return Array.Empty<ExcelNamedRangeInfo>();
+        public IReadOnlyList<ExcelNamedRangeInfo> ListNamedRanges(bool includeBuiltIn = true, bool includeHidden = true) =>
+            ExecuteReadWithoutMaterializing(() => {
+                if (TryReadWorkbookObjectPackage((includeBuiltIn, includeHidden), static (package, filter) => {
+                    string part = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)
+                        ?? throw new InvalidOperationException("Workbook part is missing.");
+                    using OfficePooledBytes markup = package.ReadPart(part);
+                    OfficeXmlTree tree = OfficeXmlTree.Parse(markup.Array, markup.Length, package.Namespaces);
+                    return ReadNamedRangeReport(new OfficeXmlNode(tree, tree.Root), filter.includeBuiltIn, filter.includeHidden);
+                }, out IReadOnlyList<ExcelNamedRangeInfo> owned)) return owned;
 
-            var sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
+                return ReadNamedRangeReport(ExcelPartRef.Workbook(this).Root, includeBuiltIn, includeHidden);
+            });
+
+        private static IReadOnlyList<ExcelNamedRangeInfo> ReadNamedRangeReport(OfficeXmlNode workbook, bool includeBuiltIn, bool includeHidden) {
+            const int spreadsheet = OfficeXmlNamespaces.SpreadsheetML;
+            OfficeXmlNode names = workbook.Child(spreadsheet, "definedNames");
+            if (names.IsNone) return Array.Empty<ExcelNamedRangeInfo>();
+
+            var sheets = workbook.Child(spreadsheet, "sheets").Children(spreadsheet, "sheet").ToList();
             var result = new List<ExcelNamedRangeInfo>();
-            foreach (DefinedName name in definedNames.Elements<DefinedName>()) {
-                string nameValue = name.Name?.Value ?? string.Empty;
-                bool builtIn = nameValue.StartsWith("_xlnm.", StringComparison.OrdinalIgnoreCase);
-                bool hidden = name.Hidden?.Value ?? false;
+            foreach (OfficeXmlNode name in names.Children(spreadsheet, "definedName")) {
+                string value = name.Attribute("name") ?? string.Empty;
+                bool builtIn = value.StartsWith("_xlnm.", StringComparison.OrdinalIgnoreCase);
+                bool hidden = name.BooleanAttribute("hidden") ?? false;
                 if ((!includeBuiltIn && builtIn) || (!includeHidden && hidden)) continue;
 
-                string? sheetName = null;
-                if (name.LocalSheetId?.Value is uint local && local < sheets.Count) {
-                    sheetName = sheets[(int)local].Name?.Value;
-                }
-
-                result.Add(new ExcelNamedRangeInfo(nameValue, name.Text ?? string.Empty, sheetName, hidden, builtIn));
+                string? sheetName = name.UInt32Attribute("localSheetId") is uint local && local < sheets.Count
+                    ? sheets[(int)local].Attribute("name") : null;
+                result.Add(new ExcelNamedRangeInfo(value, name.InnerText, sheetName, hidden, builtIn));
             }
-
             return result;
         }
 
@@ -455,15 +465,34 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Inspects data model, Power Query, connection, query table, and external link package parts.
         /// </summary>
-        public ExcelDataModelReport InspectDataModel() {
+        public ExcelDataModelReport InspectDataModel() =>
+            ExecuteReadWithoutMaterializing(() => {
+                if (TryReadWorkbookObjectPackage(this, static (package, _) => InspectOwnedDataModel(package), out ExcelDataModelReport report)) return report;
+                ExcelPartRef workbook = ExcelPartRef.Workbook(this);
+                var seen = new HashSet<Uri>();
+                if (workbook.Uri is Uri uri) seen.Add(uri);
+                return BuildDataModelReport(EnumerateReportParts(workbook.Parts.Select(relationship => relationship.Part),
+                    part => part.Parts.Select(relationship => relationship.Part), part => part.Uri!, seen)
+                    .Select(part => (part.Uri?.ToString() ?? string.Empty, part.ContentType)));
+            });
+
+        private static ExcelDataModelReport InspectOwnedDataModel(OfficeOpcPackage package) {
+            string workbook = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType)
+                ?? throw new InvalidOperationException("Workbook part is missing.");
+            IEnumerable<string> Children(string part) => package.GetRelationships(part)
+                .Select(relationship => relationship.TargetPartName).OfType<string>().Where(package.PartExists);
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { workbook };
+            return BuildDataModelReport(EnumerateReportParts(Children(workbook), Children, part => part, seen)
+                .Select(part => (part, package.GetContentType(part) ?? string.Empty)));
+        }
+
+        private static ExcelDataModelReport BuildDataModelReport(IEnumerable<(string Name, string ContentType)> parts) {
             var details = new List<string>();
             int connection = 0;
             int queryTable = 0;
             int model = 0;
             int external = 0;
-            foreach (OpenXmlPart part in EnumerateParts(WorkbookPartRoot)) {
-                string contentType = part.ContentType ?? string.Empty;
-                string uri = part.Uri.ToString();
+            foreach ((string uri, string contentType) in parts) {
                 if (contentType.IndexOf("connections", StringComparison.OrdinalIgnoreCase) >= 0) { connection++; details.Add(uri); }
                 if (contentType.IndexOf("queryTable", StringComparison.OrdinalIgnoreCase) >= 0) { queryTable++; details.Add(uri); }
                 if (contentType.IndexOf("model", StringComparison.OrdinalIgnoreCase) >= 0) { model++; details.Add(uri); }
@@ -471,6 +500,28 @@ namespace OfficeIMO.Excel {
             }
 
             return new ExcelDataModelReport(connection, queryTable, model, external, details.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+        }
+
+        private static IEnumerable<T> EnumerateReportParts<T, TKey>(IEnumerable<T> roots,
+            Func<T, IEnumerable<T>> children, Func<T, TKey> identity, HashSet<TKey> seen) {
+            var stack = new Stack<IEnumerator<T>>();
+            stack.Push(roots.GetEnumerator());
+            try {
+                while (stack.Count != 0) {
+                    IEnumerator<T> descendants = stack.Peek();
+                    if (!descendants.MoveNext()) {
+                        stack.Pop().Dispose();
+                        continue;
+                    }
+
+                    T part = descendants.Current;
+                    if (!seen.Add(identity(part))) continue;
+                    yield return part;
+                    stack.Push(children(part).GetEnumerator());
+                }
+            } finally {
+                while (stack.Count != 0) stack.Pop().Dispose();
+            }
         }
 
         private void AddDefinedNameDiagnostics(ICollection<ExcelWorkbookDiagnosticIssue> issues) {
@@ -530,15 +581,6 @@ namespace OfficeIMO.Excel {
                 if (sheet.Id?.Value == null) continue;
                 if (workbookPart.GetPartById(sheet.Id.Value) is WorksheetPart worksheetPart) {
                     yield return (sheet.Name?.Value ?? string.Empty, worksheetPart);
-                }
-            }
-        }
-
-        private static IEnumerable<OpenXmlPart> EnumerateParts(OpenXmlPartContainer container) {
-            foreach (IdPartPair pair in container.Parts) {
-                yield return pair.OpenXmlPart;
-                foreach (OpenXmlPart child in EnumerateParts(pair.OpenXmlPart)) {
-                    yield return child;
                 }
             }
         }

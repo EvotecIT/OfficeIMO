@@ -1,9 +1,6 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {

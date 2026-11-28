@@ -1,9 +1,6 @@
 using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -55,8 +52,9 @@ namespace OfficeIMO.Excel {
         internal IReadOnlyList<ExcelTemplateMarkerInfo> GetTemplateMarkers(IReadOnlyDictionary<string, object?>? bindings = null) {
             return _excelDocument.ExecuteReadAfterMaterializing(() => {
                 var markers = new List<ExcelTemplateMarkerInfo>();
-                foreach (var cell in WorksheetRoot.Descendants<Cell>()) {
-                    var value = GetCellValueSnapshot(cell);
+                foreach (ExcelFormulaCell cell in EnumerateStoredFormulaCells()) {
+                    if (!cell.Record!.TryGetPosition(out int row, out int column)) continue;
+                    ExcelCellData value = GetFormulaValueSnapshot(row, column);
                     if (value.Value is not string text || text.IndexOf("{{", StringComparison.Ordinal) < 0) {
                         continue;
                     }
@@ -77,7 +75,7 @@ namespace OfficeIMO.Excel {
                             }
                         }
 
-                        markers.Add(new ExcelTemplateMarkerInfo(Name, cell.CellReference?.Value ?? string.Empty, name, format, text, wholeCell, isBound, boundValueKind, boundValueTypeName));
+                        markers.Add(new ExcelTemplateMarkerInfo(Name, cell.Reference ?? string.Empty, name, format, text, wholeCell, isBound, boundValueKind, boundValueTypeName));
                     }
                 }
 

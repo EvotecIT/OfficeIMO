@@ -96,6 +96,8 @@ namespace OfficeIMO.Excel {
             if (prepared.Count == 0) return Array.Empty<ExcelThreadedCommentResult>();
             var results = new List<ExcelThreadedCommentResult>(prepared.Count);
             WriteLock(() => {
+                if (DeferredEntry is { } entry && _excelDocument.TryEditWorksheetPackage(entry, (package, worksheet) =>
+                    AddOwnedThreadedComments(package, worksheet, prepared, results, nameof(options)))) return;
                 WorkbookPart workbook = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("Workbook part is missing.");
                 var identities = new Dictionary<string, (WorksheetPart Worksheet, string? Address, bool IsReply)>(StringComparer.OrdinalIgnoreCase);
                 foreach (WorksheetPart worksheet in workbook.WorksheetParts) {

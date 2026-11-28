@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
-using DocumentFormat.OpenXml.Office2010.Excel;
-using OfficeReferenceSequence = DocumentFormat.OpenXml.Office.Excel.ReferenceSequence;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     /// <summary>Format-neutral snapshot of one worksheet sparkline.</summary>
@@ -24,94 +23,82 @@ namespace OfficeIMO.Excel {
 
     public partial class ExcelSheet {
         /// <summary>Lists authored worksheet sparklines in package order.</summary>
-        public IReadOnlyList<ExcelSparklineInfo> GetSparklines() {
-            return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
+        public IReadOnlyList<ExcelSparklineInfo> GetSparklines() =>
+            ReadWorksheetObject(worksheet => {
                 var result = new List<ExcelSparklineInfo>();
                 int groupIndex = 0;
-                foreach (SparklineGroup group in WorksheetRoot.Descendants<SparklineGroup>()) {
-                    ExcelSparklineType type = group.Type?.Value.ToOfficeEnum() ?? ExcelSparklineType.Line;
-                    foreach (Sparkline sparkline in group.Descendants<Sparkline>()) {
+                foreach (OfficeXmlNode group in FindSparklineGroups(worksheet)) {
+                    ExcelSparklineType type = ReadSparklineType(group);
+                    foreach (OfficeXmlNode sparkline in FindSparklines(group)) {
                         result.Add(new ExcelSparklineInfo(
                             groupIndex,
-                            sparkline.Formula?.Text ?? string.Empty,
-                            sparkline.GetFirstChild<OfficeReferenceSequence>()?.Text ?? string.Empty,
+                            sparkline.Child(ExcelFormulaNamespace, "f").InnerText,
+                            sparkline.Child(ExcelFormulaNamespace, "sqref").InnerText,
                             type));
                     }
                     groupIndex++;
                 }
                 return new ReadOnlyCollection<ExcelSparklineInfo>(result);
             });
-        }
 
         /// <summary>Changes the type of every sparkline whose destination intersects a range.</summary>
         public int SetSparklineType(string locationRange, ExcelSparklineType type) {
-            if (type != ExcelSparklineType.Line
-                && type != ExcelSparklineType.Column
-                && type != ExcelSparklineType.Stacked) {
-                throw new ArgumentOutOfRangeException(nameof(type));
-            }
+            string typeName = SparklineTypeName(type);
             ExcelReference target = ParseLocalSparklineReference(locationRange);
             int changed = 0;
-            WriteLock(() => {
-                foreach (SparklineGroup group in WorksheetRoot.Descendants<SparklineGroup>().ToList()) {
-                    Sparkline[] all = group.Descendants<Sparkline>().ToArray();
-                    Sparkline[] matches = all.Where(sparkline => SparklineLocationIntersects(sparkline, target)).ToArray();
-                    ExcelSparklineType currentType = group.Type?.Value.ToOfficeEnum() ?? ExcelSparklineType.Line;
-                    if (matches.Length == 0 || currentType == type) continue;
+            EditWorksheetObject(worksheet => {
+                foreach (OfficeXmlNode group in FindSparklineGroups(worksheet).ToList()) {
+                    if (ReadSparklineType(group) == type) continue;
+                    OfficeXmlNode[] all = FindSparklines(group).ToArray();
+                    OfficeXmlNode[] matches = all.Where(sparkline => SparklineLocationIntersects(sparkline, target)).ToArray();
+                    if (matches.Length == 0) continue;
                     if (matches.Length == all.Length) {
-                        group.Type = type.ToOpenXml();
+                        group.SetAttribute("type", typeName);
                     } else {
-                        var changedGroup = (SparklineGroup)group.CloneNode(true);
-                        Sparkline[] changedClones = changedGroup.Descendants<Sparkline>().ToArray();
-                        for (int index = changedClones.Length - 1; index >= 0; index--) {
-                            if (!SparklineLocationIntersects(changedClones[index], target)) changedClones[index].Remove();
+                        OfficeXmlNode changedGroup = group.Clone();
+                        foreach (OfficeXmlNode sparkline in FindSparklines(changedGroup).ToList()) {
+                            if (!SparklineLocationIntersects(sparkline, target)) sparkline.Remove();
                         }
-                        foreach (Sparkline match in matches) match.Remove();
-                        changedGroup.Type = type.ToOpenXml();
-                        group.Parent!.InsertAfter(changedGroup, group);
+                        foreach (OfficeXmlNode match in matches) match.Remove();
+                        changedGroup.SetAttribute("type", typeName);
+                        group.InsertAfterSelf(changedGroup);
                     }
                     changed += matches.Length;
                 }
-                if (changed > 0) WorksheetRoot.Save();
-            });
+                return changed != 0;
+            }, save: true);
             return changed;
         }
 
         /// <summary>Removes every sparkline whose destination intersects a range and prunes empty groups.</summary>
         public int RemoveSparklines(string locationRange) {
             ExcelReference target = ParseLocalSparklineReference(locationRange);
-            int removed = 0;
-            WriteLock(() => {
-                foreach (SparklineGroup group in WorksheetRoot.Descendants<SparklineGroup>().ToList()) {
-                    foreach (Sparkline sparkline in group.Descendants<Sparkline>().ToList()) {
-                        if (!SparklineLocationIntersects(sparkline, target)) continue;
-                        sparkline.Remove();
-                        removed++;
-                    }
-                    Sparklines? collection = group.GetFirstChild<Sparklines>();
-                    if (collection == null || !collection.Elements<Sparkline>().Any()) group.Remove();
-                }
-                if (removed > 0) {
-                    CleanupEmptySparklineStructures(WorksheetRoot);
-                    WorksheetRoot.Save();
-                }
-            });
-            return removed;
+            return RemoveSparklinesCore(sparkline => SparklineLocationIntersects(sparkline, target));
         }
 
         /// <summary>Removes all worksheet sparkline groups.</summary>
-        public int ClearSparklines() {
+        public int ClearSparklines() => RemoveSparklinesCore(static _ => true);
+
+        private int RemoveSparklinesCore(Func<OfficeXmlNode, bool> remove) {
             int removed = 0;
-            WriteLock(() => {
-                foreach (SparklineGroups groups in WorksheetRoot.Descendants<SparklineGroups>().ToList()) {
-                    removed += groups.Descendants<Sparkline>().Count();
-                    groups.Remove();
+            EditWorksheetObject(worksheet => {
+                foreach (OfficeXmlNode group in FindSparklineGroups(worksheet).ToList()) {
+                    foreach (OfficeXmlNode sparkline in FindSparklines(group).ToList()) {
+                        if (!remove(sparkline)) continue;
+                        sparkline.Remove();
+                        removed++;
+                    }
+                    if (FindSparklines(group).Any()) continue;
+                    OfficeXmlNode collection = group.Parent;
+                    OfficeXmlNode extension = collection.Parent;
+                    OfficeXmlNode list = extension.Parent;
+                    group.Remove();
+                    if (collection.FirstChild.IsNone) collection.Remove();
+                    if (extension.FirstChild.IsNone) extension.Remove();
+                    if (list.FirstChild.IsNone) list.Remove();
                 }
-                if (removed > 0) {
-                    CleanupEmptySparklineStructures(WorksheetRoot);
-                    WorksheetRoot.Save();
-                }
-            });
+                return removed != 0;
+            }, save: true);
             return removed;
         }
 
@@ -128,8 +115,8 @@ namespace OfficeIMO.Excel {
             return parsed!;
         }
 
-        private static bool SparklineLocationIntersects(Sparkline sparkline, ExcelReference target) {
-            string? text = sparkline.GetFirstChild<OfficeReferenceSequence>()?.Text;
+        private static bool SparklineLocationIntersects(OfficeXmlNode sparkline, ExcelReference target) {
+            string? text = sparkline.Child(ExcelFormulaNamespace, "sqref").InnerText;
             return ExcelReference.TryParse(text, out ExcelReference? location)
                 && ReferencesIntersectIgnoringQualifier(location!, target);
         }

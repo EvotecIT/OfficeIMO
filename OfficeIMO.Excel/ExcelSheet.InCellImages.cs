@@ -200,9 +200,10 @@ namespace OfficeIMO.Excel {
 
             var metadataBlock = new MetadataBlock(new MetadataRecord { TypeIndex = typeIndex, Val = futureIndex });
             valueMetadata.Append(metadataBlock);
-            valueMetadata.Count = (uint)valueMetadata.Elements<MetadataBlock>().Count();
+            uint metadataIndex = (uint)valueMetadata.Elements<MetadataBlock>().Count();
+            valueMetadata.Count = metadataIndex;
             SetInCellImageCellValue(cell);
-            cell.ValueMetaIndex = valueMetadata.Count;
+            cell.ValueMetaIndex = metadataIndex;
             metadata.Save();
             return resolvedImagePart;
         }
@@ -271,49 +272,60 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal IReadOnlyList<string> GetInCellImageCellReferences() {
-            if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) return Array.Empty<string>();
-            return WorksheetRoot.Descendants<Cell>()
-                .Where(cell => lookup!.TryResolve(cell, out _, out _))
-                .Select(cell => cell.CellReference?.Value ?? string.Empty)
-                .Where(reference => reference.Length > 0)
-                .ToArray();
-        }
+        internal IReadOnlyList<string> GetInCellImageCellReferences() =>
+            _excelDocument.ExecuteReadWithoutMaterializing(() => {
+                if (DeferredEntry is { } entry && _excelDocument.TryReadWorksheetPackage(entry,
+                    ReadOwnedInCellImageLocations, out IReadOnlyList<PackageRichImage> owned)) {
+                    return owned.Where(image => image.Reference.Length != 0).Select(image => image.Reference).ToArray();
+                }
+                return ReadModelInCellImageLocations().Where(image => image.Reference.Length != 0).Select(image => image.Reference).ToArray();
+            });
 
         /// <summary>Reads native in-cell images with a deterministic aggregate payload budget.</summary>
         public IReadOnlyList<ExcelInCellImage> GetInCellImages(long maximumTotalImageBytes = 64_000_000) {
             ArgumentOutOfRangeException.ThrowIfLessThan(maximumTotalImageBytes, 1);
-            return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
-                var result = new List<ExcelInCellImage>();
-                if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) {
-                    return new ReadOnlyCollection<ExcelInCellImage>(result);
-                }
-                var payloads = new Dictionary<OpenXmlPart, byte[]>();
-                long total = 0;
-                foreach (Cell cell in WorksheetRoot.Descendants<Cell>()) {
-                    if (!lookup!.TryResolve(cell, out OpenXmlPart? imagePart, out string altText) || imagePart == null) continue;
-                    bool sharedPayload = payloads.TryGetValue(imagePart, out byte[]? payload);
-                    if (!sharedPayload) {
-                        using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-                        payload = ReadInCellImagePayload(
-                            source,
-                            maximumTotalImageBytes - total,
-                            maximumTotalImageBytes);
-                        payloads.Add(imagePart, payload);
-                    }
-                    byte[] resolvedPayload = payload!;
-                    total = checked(total + resolvedPayload.LongLength);
-                    if (total > maximumTotalImageBytes) {
-                        throw new InvalidOperationException($"In-cell image payloads exceed maximumTotalImageBytes ({maximumTotalImageBytes}).");
-                    }
-                    result.Add(new ExcelInCellImage(
-                        cell.CellReference?.Value ?? string.Empty,
-                        imagePart.ContentType,
-                        altText,
-                        sharedPayload ? (byte[])resolvedPayload.Clone() : resolvedPayload));
-                }
-                return new ReadOnlyCollection<ExcelInCellImage>(result);
+            return _excelDocument.ExecuteReadWithoutMaterializing(() => {
+                if (DeferredEntry is { } entry && _excelDocument.TryReadWorksheetPackage(entry, (package, sheet) =>
+                    ReadInCellImages(ReadOwnedInCellImageLocations(package, sheet)
+                        .Select(image => (image.Reference, image.PartName, image.ContentType, image.AltText)),
+                        (part, remaining) => ReadOwnedImagePayload(package, part, remaining, maximumTotalImageBytes),
+                        maximumTotalImageBytes), out IReadOnlyList<ExcelInCellImage> owned)) return owned;
+
+                return ReadInCellImages(ReadModelInCellImageLocations(), (part, remaining) => {
+                    using Stream source = part.GetStream(FileMode.Open, FileAccess.Read);
+                    return ReadInCellImagePayload(source, remaining, maximumTotalImageBytes);
+                }, maximumTotalImageBytes);
             });
+        }
+
+        private IEnumerable<(string Reference, OpenXmlPart Asset, string ContentType, string AltText)> ReadModelInCellImageLocations() {
+            if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) yield break;
+            foreach (Cell cell in WorksheetRoot.Descendants<Cell>()) {
+                if (lookup!.TryResolve(cell, out OpenXmlPart? image, out string altText) && image != null) {
+                    yield return (cell.CellReference?.Value ?? string.Empty, image, image.ContentType, altText);
+                }
+            }
+        }
+
+        private static IReadOnlyList<ExcelInCellImage> ReadInCellImages<TAsset>(
+            IEnumerable<(string Reference, TAsset Asset, string ContentType, string AltText)> locations,
+            Func<TAsset, long, byte[]> readPayload, long maximumTotalImageBytes) where TAsset : notnull {
+            var result = new List<ExcelInCellImage>();
+            var payloads = new Dictionary<TAsset, byte[]>();
+            long total = 0;
+            foreach (var image in locations) {
+                bool shared = payloads.TryGetValue(image.Asset, out byte[]? payload);
+                if (!shared) {
+                    payload = readPayload(image.Asset, maximumTotalImageBytes - total);
+                    payloads.Add(image.Asset, payload);
+                }
+                total = checked(total + payload!.LongLength);
+                if (total > maximumTotalImageBytes) {
+                    throw new InvalidOperationException($"In-cell image payloads exceed maximumTotalImageBytes ({maximumTotalImageBytes}).");
+                }
+                result.Add(new ExcelInCellImage(image.Reference, image.ContentType, image.AltText, shared ? (byte[])payload.Clone() : payload));
+            }
+            return new ReadOnlyCollection<ExcelInCellImage>(result);
         }
 
         /// <summary>Reads one image without allowing a non-seekable package stream to exceed the remaining aggregate budget.</summary>

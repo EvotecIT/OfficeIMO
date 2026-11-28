@@ -1,28 +1,30 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private static bool IsHiddenSheet(DocumentFormat.OpenXml.Spreadsheet.Sheet sheet) {
-            return sheet.State?.Value == DocumentFormat.OpenXml.Spreadsheet.SheetStateValues.Hidden
-                   || sheet.State?.Value == DocumentFormat.OpenXml.Spreadsheet.SheetStateValues.VeryHidden;
+        private const int ReportWorksheetMarkup = OfficeXmlNamespaces.SpreadsheetML;
+
+        private static bool IsHiddenSheet(OfficeXmlNode sheet) => sheet.Attribute("state") is "hidden" or "veryHidden";
+
+        private static bool IsHiddenSheet(DocumentFormat.OpenXml.Spreadsheet.Sheet sheet) => IsHiddenSheet(OfficeXmlNode.FromSdk(sheet));
+
+        private static bool HasWorkbookRecalculationRequest(OfficeXmlNode workbook) {
+            OfficeXmlNode properties = workbook.Child(ReportWorksheetMarkup, "calcPr");
+            return properties.BooleanAttribute("forceFullCalc") == true || properties.BooleanAttribute("fullCalcOnLoad") == true;
         }
 
-        private static bool HasWorkbookRecalculationRequest(DocumentFormat.OpenXml.Spreadsheet.Workbook workbook) {
-            var properties = workbook.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.CalculationProperties>();
-            return properties?.ForceFullCalculation?.Value == true
-                   || properties?.FullCalculationOnLoad?.Value == true;
-        }
-
-        private static IEnumerable<string> DescribeWorkbookRecalculationRequest(DocumentFormat.OpenXml.Spreadsheet.Workbook workbook) {
-            var properties = workbook.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.CalculationProperties>();
-            if (properties?.ForceFullCalculation?.Value == true) {
+        private static IEnumerable<string> DescribeWorkbookRecalculationRequest(OfficeXmlNode workbook) {
+            OfficeXmlNode properties = workbook.Child(ReportWorksheetMarkup, "calcPr");
+            if (properties.BooleanAttribute("forceFullCalc") == true) {
                 yield return "Workbook calculation properties set forceFullCalc.";
             }
 
-            if (properties?.FullCalculationOnLoad?.Value == true) {
+            if (properties.BooleanAttribute("fullCalcOnLoad") == true) {
                 yield return "Workbook calculation properties set fullCalcOnLoad.";
             }
         }
@@ -69,34 +71,27 @@ namespace OfficeIMO.Excel {
         private void AddUnsupportedWorksheetHyperlinks(
             WorkbookPart workbookPart,
             IReadOnlyList<DocumentFormat.OpenXml.Spreadsheet.Sheet> sheets,
-            WorksheetPart worksheetPart,
+            OfficeXmlNode worksheet,
             string sheetName,
             ref int count,
             List<string> details) {
-            var hyperlinks = worksheetPart.Worksheet?.Elements<DocumentFormat.OpenXml.Spreadsheet.Hyperlinks>().FirstOrDefault();
-            if (hyperlinks == null) {
-                return;
-            }
+            OfficeXmlNode links = worksheet.Child(ReportWorksheetMarkup, "hyperlinks");
+            foreach (OfficeXmlNode hyperlink in links.Children(ReportWorksheetMarkup, "hyperlink")) {
+                if (hyperlink.Attribute(OfficeXmlNamespaces.Relationships, "id") != null) continue;
 
-            foreach (var hyperlink in hyperlinks.Elements<DocumentFormat.OpenXml.Spreadsheet.Hyperlink>()) {
-                if (hyperlink.Id != null) {
-                    continue;
-                }
-
-                string? location = hyperlink.Location?.Value;
-                if (string.IsNullOrWhiteSpace(location)) {
-                    continue;
-                }
+                string? location = hyperlink.Attribute("location");
+                if (string.IsNullOrWhiteSpace(location)) continue;
+                string reference = hyperlink.Attribute("ref") ?? "hyperlink";
 
                 if (!TryResolveInternalHyperlinkTarget(sheetName, location!, out string targetSheetName, out string targetCellReference)) {
                     count++;
-                    details.Add($"{sheetName}: {hyperlink.Reference?.Value ?? "hyperlink"} -> {location} is not a worksheet cell target supported by the first-party PDF hyperlink writer.");
+                    details.Add($"{sheetName}: {reference} -> {location} is not a worksheet cell target supported by the first-party PDF hyperlink writer.");
                     continue;
                 }
 
                 if (!IsDefaultPdfExportedCell(workbookPart, sheets, targetSheetName, targetCellReference, out string reason)) {
                     count++;
-                    details.Add($"{sheetName}: {hyperlink.Reference?.Value ?? "hyperlink"} -> {location} is skipped by the first-party PDF hyperlink writer because {reason}");
+                    details.Add($"{sheetName}: {reference} -> {location} is skipped by the first-party PDF hyperlink writer because {reason}");
                 }
             }
         }
@@ -144,7 +139,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (IsHiddenSheet(sheet)) {
+            if (IsHiddenSheet(OfficeXmlNode.FromSdk(sheet))) {
                 reason = $"target sheet '{sheetName}' is hidden and skipped by default PDF export.";
                 return false;
             }
@@ -170,7 +165,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (!TryGetWorksheetUsedRange(worksheetPart, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (!TryGetWorksheetUsedRange(OfficeXmlNode.FromSdk(worksheetPart.Worksheet), out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 reason = $"target sheet '{sheetName}' has no exported cells in the default PDF range.";
                 return false;
             }
@@ -184,22 +179,20 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool TryGetWorksheetUsedRange(WorksheetPart worksheetPart, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
+        private static bool TryGetWorksheetUsedRange(OfficeXmlNode worksheet, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
             firstRow = int.MaxValue;
             firstColumn = int.MaxValue;
             lastRow = 0;
             lastColumn = 0;
 
-            foreach (var cell in worksheetPart.Worksheet?.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>() ?? Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Cell>()) {
-                string? reference = cell.CellReference?.Value;
-                if (!ExcelA1.TryParseCellReferenceFast(reference, out int row, out int column)) {
-                    continue;
+            foreach (OfficeXmlNode row in worksheet.Child(ReportWorksheetMarkup, "sheetData").Children(ReportWorksheetMarkup, "row")) {
+                foreach (OfficeXmlNode cell in row.Children(ReportWorksheetMarkup, "c")) {
+                    if (!ExcelA1.TryParseCellReferenceFast(cell.Attribute("r"), out int rowIndex, out int column)) continue;
+                    firstRow = Math.Min(firstRow, rowIndex);
+                    firstColumn = Math.Min(firstColumn, column);
+                    lastRow = Math.Max(lastRow, rowIndex);
+                    lastColumn = Math.Max(lastColumn, column);
                 }
-
-                firstRow = Math.Min(firstRow, row);
-                firstColumn = Math.Min(firstColumn, column);
-                lastRow = Math.Max(lastRow, row);
-                lastColumn = Math.Max(lastColumn, column);
             }
 
             return lastRow > 0 && lastColumn > 0;

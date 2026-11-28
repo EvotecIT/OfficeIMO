@@ -1,6 +1,9 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.Excel.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using System.Globalization;
 using System.Xml.Linq;
 
@@ -246,10 +249,27 @@ namespace OfficeIMO.Excel {
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
             string reference = ExcelA1.CellReference(row, column);
-            var commentsPart = WorksheetCommentsPartRoot;
-            return commentsPart?.Comments?.CommentList?
-                .Elements<Comment>()
-                .Any(c => string.Equals(c.Reference?.Value, reference, StringComparison.OrdinalIgnoreCase)) is true;
+            return _excelDocument.ExecuteReadWithoutMaterializing(() => {
+                const string relationship = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "comments";
+                if (DeferredEntry is { } entry && _excelDocument.TryReadWorksheetPackage(entry, (package, sheet) => {
+                    string? target = package.GetRelatedPartName(sheet.PartName, relationship);
+                    if (target == null || !package.PartExists(target)) return false;
+                    using OfficePooledBytes bytes = package.ReadPart(target);
+                    OfficeXmlTree tree = OfficeXmlTree.Parse(bytes.Array, bytes.Length, package.Namespaces);
+                    return ContainsNote(new OfficeXmlNode(tree, tree.Root), reference);
+                }, out bool found)) return found;
+
+                ExcelPartRef part = ExcelPartRef.WorksheetForMetadata(this).Parts.Select(item => item.Part)
+                    .FirstOrDefault(item => item.RelationshipType == relationship);
+                return ContainsNote(part.Root, reference);
+            });
+        }
+
+        private static bool ContainsNote(OfficeXmlNode root, string reference) {
+            foreach (OfficeXmlNode comment in root.Child(WorksheetMarkup, "commentList").Children(WorksheetMarkup, "comment")) {
+                if (string.Equals(comment.Attribute("ref"), reference, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
         }
 
         /// <summary>

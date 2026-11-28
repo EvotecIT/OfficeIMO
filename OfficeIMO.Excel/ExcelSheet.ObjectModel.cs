@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel {
                 return new ExcelCellData(ExcelCellDataKind.Blank, null);
             }
 
-            string? cached = ResolveRichValueError(cell, ExcelWorksheetScan.FindValue(cell)?.Text);
+            string? cached = ResolveRichValueError(cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error, cell.ValueMetaIndex?.Value, ExcelWorksheetScan.FindValue(cell)?.Text);
             var type = cell.DataType?.Value;
             if (ExcelWorksheetScan.FindFormula(cell) != null) {
                 object? formulaValue = cached;

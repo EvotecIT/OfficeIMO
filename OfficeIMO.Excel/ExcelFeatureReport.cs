@@ -2,7 +2,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.OpenXml;
 using OfficeIMO.Excel.Utilities;
+using OfficeIMO.OpenXml.Internal;
 using System.Text;
 
 namespace OfficeIMO.Excel {
@@ -317,6 +319,7 @@ namespace OfficeIMO.Excel {
             var features = new List<ExcelFeatureFinding>();
             WorkbookPart workbookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing.");
             var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
+            OfficeXmlNode workbookMarkup = OfficeXmlNode.FromSdk(workbook);
             var sheetElements = workbook.Sheets?.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToList()
                 ?? new List<DocumentFormat.OpenXml.Spreadsheet.Sheet>();
 
@@ -365,7 +368,7 @@ namespace OfficeIMO.Excel {
             var sparklineDetails = new List<string>();
             var pdfUnrenderedSparklineDetails = new List<string>();
             var pdfUnrenderedDrawingShapeDetails = new List<string>();
-            var threadedCommentPeople = ExcelWorksheetCommentResolver.BuildThreadedCommentPersonMap(workbookPart);
+            var threadedCommentPeople = ExcelSheet.ReadThreadedPeople(ExcelPartRef.FromSdk(workbookPart));
             var defaultPdfExportSheetsByName = new Dictionary<string, ExcelSheet>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var sheet in sheetElements) {
@@ -382,7 +385,8 @@ namespace OfficeIMO.Excel {
 
                 var excelSheet = new ExcelSheet(this, _spreadSheetDocument!, sheet);
                 var worksheet = worksheetPart.Worksheet;
-                bool isVisibleForDefaultPdfExport = !IsHiddenSheet(sheet);
+                OfficeXmlNode worksheetMarkup = OfficeXmlNode.FromSdk(worksheet);
+                bool isVisibleForDefaultPdfExport = !IsHiddenSheet(OfficeXmlNode.FromSdk(sheet));
                 string sheetName = sheet.Name?.Value ?? string.Empty;
                 if (isVisibleForDefaultPdfExport && !string.IsNullOrWhiteSpace(sheetName)) {
                     defaultPdfExportSheetsByName[sheetName] = excelSheet;
@@ -410,10 +414,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
                 legacyCommentCount += worksheetPart.WorksheetCommentsPart?.Comments?.CommentList?.Elements<DocumentFormat.OpenXml.Spreadsheet.Comment>().Count() ?? 0;
-                var threadedComments = ExcelWorksheetCommentResolver.BuildThreadedCommentMap(worksheetPart, threadedCommentPeople, sheetName)
-                    .Values
-                    .SelectMany(comments => comments)
-                    .ToList();
+                var threadedComments = ExcelSheet.ReadThreadedComments(ExcelPartRef.FromSdk(worksheetPart), threadedCommentPeople, sheetName);
                 threadedCommentPartCount += threadedComments.Count;
                 foreach (var threadedComment in threadedComments) {
                     string author = string.IsNullOrWhiteSpace(threadedComment.Author) ? threadedComment.PersonId ?? "unknown author" : threadedComment.Author!;
@@ -472,7 +473,7 @@ namespace OfficeIMO.Excel {
                     AddUnsupportedHeaderFooterFormatting(headerFooter, sheetName, ref pdfUnsupportedHeaderFooterFormattingCount, pdfUnsupportedHeaderFooterFormattingDetails);
                     AddUnsupportedPrintArea(excelSheet, sheetName, ref pdfUnsupportedPrintAreaCount, pdfUnsupportedPrintAreaDetails);
                     AddUnrenderedDrawingShapes(worksheetPart, sheetName, ref pdfUnrenderedDrawingShapeCount, pdfUnrenderedDrawingShapeDetails);
-                    AddUnsupportedWorksheetHyperlinks(workbookPart, sheetElements, worksheetPart, sheetName, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
+                    AddUnsupportedWorksheetHyperlinks(workbookPart, sheetElements, worksheetMarkup, sheetName, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
                     AddUnsupportedDrawingHyperlinks(worksheetPart, sheetName, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
                 }
                 int sheetOleObjects = CountDescendantsByLocalName(worksheet, "oleObject");
@@ -552,8 +553,8 @@ namespace OfficeIMO.Excel {
             var pdfExportFormulas = formulas.Formulas
                 .Where(formula => IsDefaultPdfExportedFormulaCell(formula, defaultPdfExportSheetsByName))
                 .ToArray();
-            bool hasWorkbookRecalculationRequest = formulas.Formulas.Count > 0 && HasWorkbookRecalculationRequest(workbook);
-            bool hasPdfWorkbookRecalculationRequest = pdfExportFormulas.Length > 0 && HasWorkbookRecalculationRequest(workbook);
+            bool hasWorkbookRecalculationRequest = formulas.Formulas.Count > 0 && HasWorkbookRecalculationRequest(workbookMarkup);
+            bool hasPdfWorkbookRecalculationRequest = pdfExportFormulas.Length > 0 && HasWorkbookRecalculationRequest(workbookMarkup);
             Add(features, "Calculation", "Supported formulas", OfficeFeatureSupportLevel.PartiallyEditable, formulas.SupportedFormulas, null,
                 "Simple supported formulas can be recalculated by OfficeIMO.");
             Add(features, "Calculation", "Unsupported formulas", OfficeFeatureSupportLevel.Preserved, formulas.UnsupportedFormulas, null,
@@ -568,7 +569,7 @@ namespace OfficeIMO.Excel {
                     .ToArray());
             Add(features, "Calculation", "Workbook recalculation requests", OfficeFeatureSupportLevel.Preserved, hasWorkbookRecalculationRequest ? 1 : 0, null,
                 "The workbook requests full recalculation on open, so cached formula values should be refreshed before cached-value reads are trusted.",
-                hasWorkbookRecalculationRequest ? DescribeWorkbookRecalculationRequest(workbook).ToArray() : Array.Empty<string>());
+                hasWorkbookRecalculationRequest ? DescribeWorkbookRecalculationRequest(workbookMarkup).ToArray() : Array.Empty<string>());
             Add(features, "Calculation", "PDF-missing formula caches", OfficeFeatureSupportLevel.Preserved, pdfExportFormulas.Count(formula => !formula.HasCachedValue), null,
                 "Visible worksheet formulas without cached results need OfficeIMO calculation support or Excel recalculation before PDF export can trust cached values.",
                 pdfExportFormulas
@@ -583,7 +584,7 @@ namespace OfficeIMO.Excel {
                     .ToArray());
             Add(features, "Calculation", "PDF-workbook recalculation requests", OfficeFeatureSupportLevel.Preserved, hasPdfWorkbookRecalculationRequest ? 1 : 0, null,
                 "The workbook requests full recalculation on open while visible worksheet formulas are exported to PDF, so cached values should be refreshed first.",
-                hasPdfWorkbookRecalculationRequest ? DescribeWorkbookRecalculationRequest(workbook).ToArray() : Array.Empty<string>());
+                hasPdfWorkbookRecalculationRequest ? DescribeWorkbookRecalculationRequest(workbookMarkup).ToArray() : Array.Empty<string>());
             var formulaCalculationBlockers = formulas.Formulas
                 .SelectMany(GetFormulaCalculationBlockers)
                 .ToArray();
@@ -746,35 +747,12 @@ namespace OfficeIMO.Excel {
             features.Add(new ExcelFeatureFinding(category, name, supportLevel, count, scope, note, details));
         }
 
-        private static IEnumerable<OpenXmlPart> EnumeratePackageParts(OpenXmlPackage package) {
-            var seen = new HashSet<Uri>();
-            foreach (var pair in package.Parts) {
-                foreach (var part in EnumeratePartAndChildren(pair.OpenXmlPart, seen)) {
-                    yield return part;
-                }
-            }
-        }
+        private static IEnumerable<OpenXmlPart> EnumeratePackageParts(OpenXmlPackage package) =>
+            EnumerateReportParts(package.Parts.Select(relationship => relationship.OpenXmlPart),
+                part => part.Parts.Select(relationship => relationship.OpenXmlPart), part => part.Uri, new HashSet<Uri>());
 
-        private static IEnumerable<OpenXmlPart> EnumeratePartAndChildren(OpenXmlPart part, HashSet<Uri> seen) {
-            if (!seen.Add(part.Uri)) {
-                yield break;
-            }
-
-            yield return part;
-
-            foreach (var child in EnumerateParts(part, seen)) {
-                yield return child;
-            }
-        }
-
-        private static IEnumerable<OpenXmlPart> EnumerateParts(OpenXmlPartContainer container, HashSet<Uri> seen) {
-            foreach (var pair in container.Parts) {
-                var part = pair.OpenXmlPart;
-                foreach (var child in EnumeratePartAndChildren(part, seen)) {
-                    yield return child;
-                }
-            }
-        }
+        private static IEnumerable<OpenXmlPart> EnumeratePartAndChildren(OpenXmlPart part, HashSet<Uri> seen) =>
+            EnumerateReportParts(new[] { part }, item => item.Parts.Select(relationship => relationship.OpenXmlPart), item => item.Uri, seen);
 
         private static int CountPartsByUri(IEnumerable<OpenXmlPart> parts, string uriFragment) {
             return parts.Count(part => part.Uri.OriginalString.IndexOf(uriFragment, StringComparison.OrdinalIgnoreCase) >= 0);

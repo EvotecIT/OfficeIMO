@@ -35,7 +35,10 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Load(filePath))
             {
+                Assert.True(document.IsSdkDeferred);
                 var pivots = document.GetPivotTables();
+                Assert.True(document.IsSdkDeferred);
+                Assert.Empty(document.OpenXmlSdkFallbacks);
                 Assert.Single(pivots);
                 var pivot = pivots[0];
                 Assert.Equal("SalesPivot", pivot.Name);

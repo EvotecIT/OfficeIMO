@@ -1,5 +1,5 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Drawing;
 
 #pragma warning disable RS0026
@@ -21,16 +21,24 @@ namespace OfficeIMO.Excel {
             EvenPageFooter = new ExcelHeaderFooter(sheet, ExcelHeaderFooterKind.EvenFooter);
         }
 
-        private PageSetup? Element => _sheet.WorksheetRoot.GetFirstChild<PageSetup>();
+        private const int Spreadsheet = OfficeXmlNamespaces.SpreadsheetML;
+
+        private T ReadSetup<T>(Func<OfficeXmlNode, T> read) =>
+            _sheet.ReadWorksheetObject(worksheet => read(worksheet.Child(Spreadsheet, "pageSetup")));
+
+        private uint? ReadFitDimension(string name) =>
+            _sheet.ReadWorksheetObject(worksheet =>
+                worksheet.Child(Spreadsheet, "sheetPr").Child(Spreadsheet, "pageSetUpPr").BooleanAttribute("fitToPage") == true
+                    ? worksheet.Child(Spreadsheet, "pageSetup").UInt32Attribute(name) ?? 1U
+                    : (uint?)null);
 
         /// <summary>Page orientation; null when the worksheet does not store one (Excel prints portrait).</summary>
         public OfficePageOrientation? Orientation {
-            get {
-                OrientationValues? value = Element?.Orientation?.Value;
-                if (value == OrientationValues.Landscape) return OfficePageOrientation.Landscape;
-                if (value == OrientationValues.Portrait) return OfficePageOrientation.Portrait;
-                return null;
-            }
+            get => ReadSetup<OfficePageOrientation?>(setup => setup.Attribute("orientation") switch {
+                "landscape" => OfficePageOrientation.Landscape,
+                "portrait" => OfficePageOrientation.Portrait,
+                _ => null
+            });
             set {
                 if (value.HasValue) _sheet.SetOrientationCore(value.Value);
                 else _sheet.ClearPageSetupAttribute("orientation");
@@ -39,7 +47,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Known paper size; null when none is stored or the stored code has no <see cref="ExcelPaperSize"/> value.</summary>
         public ExcelPaperSize? PaperSize {
-            get => Element?.PaperSize?.Value is uint code && Enum.IsDefined(typeof(ExcelPaperSize), code) ? (ExcelPaperSize)code : null;
+            get => PaperSizeCode is uint code && Enum.IsDefined(typeof(ExcelPaperSize), code) ? (ExcelPaperSize)code : null;
             set {
                 if (value.HasValue) _sheet.SetPaperSizeCore(value.Value);
                 else _sheet.ClearPageSetupAttribute("paperSize");
@@ -47,14 +55,14 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Stored OpenXML paper-size code, including codes without an <see cref="ExcelPaperSize"/> value.</summary>
-        public uint? PaperSizeCode => Element?.PaperSize?.Value;
+        public uint? PaperSizeCode => ReadSetup(setup => setup.UInt32Attribute("paperSize"));
 
         /// <summary>
         /// Pages to fit horizontally when fit-to-page is on; null when it is off. Setting a value turns fit-to-page on.
         /// An omitted dimension defaults to one; zero leaves the axis unlimited.
         /// </summary>
         public uint? FitToWidth {
-            get => IsFitToPage ? Element?.FitToWidth?.Value ?? 1U : null;
+            get => ReadFitDimension("fitToWidth");
             set => _sheet.SetFitToPageDimension(width: true, value);
         }
 
@@ -63,13 +71,13 @@ namespace OfficeIMO.Excel {
         /// An omitted dimension defaults to one; zero leaves the axis unlimited.
         /// </summary>
         public uint? FitToHeight {
-            get => IsFitToPage ? Element?.FitToHeight?.Value ?? 1U : null;
+            get => ReadFitDimension("fitToHeight");
             set => _sheet.SetFitToPageDimension(width: false, value);
         }
 
         /// <summary>Manual print scale percentage (10-400); null when none is stored.</summary>
         public uint? Scale {
-            get => Element?.Scale?.Value;
+            get => ReadSetup(setup => setup.UInt32Attribute("scale"));
             set {
                 if (value.HasValue) _sheet.SetPageSetupCore(scale: value.Value);
                 else _sheet.ClearPageSetupAttribute("scale");
@@ -78,35 +86,29 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Order in which multi-page sheets print; null when none is stored.</summary>
         public ExcelPageOrder? PageOrder {
-            get {
-                PageOrderValues? value = Element?.PageOrder?.Value;
-                if (value == PageOrderValues.OverThenDown) return ExcelPageOrder.OverThenDown;
-                if (value == PageOrderValues.DownThenOver) return ExcelPageOrder.DownThenOver;
-                return null;
-            }
+            get => ReadSetup<ExcelPageOrder?>(setup => setup.Attribute("pageOrder") switch {
+                "overThenDown" => ExcelPageOrder.OverThenDown,
+                "downThenOver" => ExcelPageOrder.DownThenOver,
+                _ => null
+            });
             set {
                 if (value.HasValue) _sheet.SetPageSetupCore(pageOrder: value.Value);
                 else _sheet.ClearPageSetupAttribute("pageOrder");
             }
         }
 
-        private bool IsFitToPage => _sheet.WorksheetRoot.GetFirstChild<SheetProperties>()?
-            .GetFirstChild<PageSetupProperties>()?.FitToPage?.Value == true;
-
         /// <summary>Page margins; null when the worksheet does not store them.</summary>
-        public ExcelSheetPageMargins? Margins {
-            get {
-                PageMargins? margins = _sheet.WorksheetRoot.GetFirstChild<PageMargins>();
-                return margins == null ? null : new ExcelSheetPageMargins {
-                    Left = OfficeLength.Inches(margins.Left?.Value ?? 0D),
-                    Right = OfficeLength.Inches(margins.Right?.Value ?? 0D),
-                    Top = OfficeLength.Inches(margins.Top?.Value ?? 0D),
-                    Bottom = OfficeLength.Inches(margins.Bottom?.Value ?? 0D),
-                    Header = OfficeLength.Inches(margins.Header?.Value ?? 0D),
-                    Footer = OfficeLength.Inches(margins.Footer?.Value ?? 0D)
-                };
-            }
-        }
+        public ExcelSheetPageMargins? Margins => _sheet.ReadWorksheetObject<ExcelSheetPageMargins?>(worksheet => {
+            OfficeXmlNode margins = worksheet.Child(Spreadsheet, "pageMargins");
+            return margins.IsNone ? null : new ExcelSheetPageMargins {
+                Left = OfficeLength.Inches(margins.DoubleAttribute("left") ?? 0D),
+                Right = OfficeLength.Inches(margins.DoubleAttribute("right") ?? 0D),
+                Top = OfficeLength.Inches(margins.DoubleAttribute("top") ?? 0D),
+                Bottom = OfficeLength.Inches(margins.DoubleAttribute("bottom") ?? 0D),
+                Header = OfficeLength.Inches(margins.DoubleAttribute("header") ?? 0D),
+                Footer = OfficeLength.Inches(margins.DoubleAttribute("footer") ?? 0D)
+            };
+        });
 
         /// <summary>Sets physical page margins. Omitted header and footer margins are 0.3 inches.</summary>
         public ExcelSheetPageSetup SetMargins(OfficeLength left, OfficeLength right, OfficeLength top, OfficeLength bottom, OfficeLength? header = null, OfficeLength? footer = null) {
@@ -202,7 +204,7 @@ namespace OfficeIMO.Excel {
         /// footer into a missing first-page variant; existing first-page text is kept when it is turned off.
         /// </summary>
         public bool DifferentFirstPage {
-            get => HeaderFooterElement?.DifferentFirst?.Value ?? false;
+            get => ReadHeaderFooterFlag("differentFirst") ?? false;
             set => _sheet.SetHeaderCore(differentFirstPage: value);
         }
 
@@ -211,23 +213,24 @@ namespace OfficeIMO.Excel {
         /// into a missing even-page variant; existing even-page text is kept when it is turned off.
         /// </summary>
         public bool DifferentOddEven {
-            get => HeaderFooterElement?.DifferentOddEven?.Value ?? false;
+            get => ReadHeaderFooterFlag("differentOddEven") ?? false;
             set => _sheet.SetHeaderCore(differentOddEven: value);
         }
 
         /// <summary>Whether headers and footers align with the page margins.</summary>
         public bool AlignHeaderFooterWithMargins {
-            get => HeaderFooterElement?.AlignWithMargins?.Value ?? true;
+            get => ReadHeaderFooterFlag("alignWithMargins") ?? true;
             set => _sheet.SetHeaderCore(alignWithMargins: value);
         }
 
         /// <summary>Whether headers and footers scale with the document.</summary>
         public bool ScaleHeaderFooterWithDocument {
-            get => HeaderFooterElement?.ScaleWithDoc?.Value ?? true;
+            get => ReadHeaderFooterFlag("scaleWithDoc") ?? true;
             set => _sheet.SetHeaderCore(scaleWithDocument: value);
         }
 
-        private HeaderFooter? HeaderFooterElement => _sheet.WorksheetRoot.GetFirstChild<HeaderFooter>();
+        private bool? ReadHeaderFooterFlag(string name) =>
+            _sheet.ReadWorksheetObject(worksheet => worksheet.Child(Spreadsheet, "headerFooter").BooleanAttribute(name));
     }
 
     internal enum ExcelHeaderFooterKind {

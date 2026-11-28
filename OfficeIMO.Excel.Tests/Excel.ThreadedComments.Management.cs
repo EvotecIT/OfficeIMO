@@ -50,7 +50,8 @@ namespace OfficeIMO.Tests {
                     ExcelThreadedCommentResult reopened = sheet.SetThreadedCommentResolved(rootId, resolved: false);
                     Assert.False(reopened.Done);
                     document.Save();
-                    Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                    Assert.Equal(ExcelSavePackageWriter.OwnedPackage, document.LastSaveDiagnostics.Writer);
+                    Assert.Empty(document.OpenXmlSdkFallbacks);
                 }
 
                 using (ExcelDocument document = ExcelDocument.Load(filePath)) {

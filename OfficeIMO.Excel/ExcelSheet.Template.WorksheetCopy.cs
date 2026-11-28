@@ -4,6 +4,8 @@ using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -13,7 +15,7 @@ namespace OfficeIMO.Excel {
             _excelDocument.CarryDefaultWidthColumns(_excelDocument, WorksheetRoot, worksheet);
             RemoveRelationshipBackedTemplateCopyElements(worksheet);
             target.WorksheetRoot = worksheet;
-            RewriteTemplateWorksheetLocalReferences(target.WorksheetRoot, Name, target.Name);
+            RewriteTemplateWorksheetLocalReferences(OfficeXmlNode.FromSdk(target.WorksheetRoot), Name, target.Name);
             CopyTemplateWorksheetTableParts(target);
             CopyTemplateWorksheetHyperlinks(target);
             CopyTemplateWorksheetDrawings(target);
@@ -33,68 +35,56 @@ namespace OfficeIMO.Excel {
             return target;
         }
 
-        private static void RewriteTemplateWorksheetLocalReferences(Worksheet worksheet, string sourceSheetName, string targetSheetName) {
-            if (string.Equals(sourceSheetName, targetSheetName, StringComparison.Ordinal)) {
-                return;
-            }
+        private static void RewriteTemplateWorksheetLocalReferences(OfficeXmlNode worksheet, string sourceSheetName, string targetSheetName) {
+            if (string.Equals(sourceSheetName, targetSheetName, StringComparison.Ordinal)) return;
 
-            foreach (var formula in worksheet.Descendants<CellFormula>()) {
+            foreach (OfficeXmlNode formula in ReadTemplateWorksheetFormulas(worksheet)) {
                 RewriteTemplateFormulaText(formula, sourceSheetName, targetSheetName);
             }
 
-            foreach (var formula in worksheet.Descendants<Formula>()) {
-                RewriteTemplateFormulaText(formula, sourceSheetName, targetSheetName);
-            }
-
-            foreach (var formula in worksheet.Descendants<Formula1>()) {
-                RewriteTemplateFormulaText(formula, sourceSheetName, targetSheetName);
-            }
-
-            foreach (var formula in worksheet.Descendants<Formula2>()) {
-                RewriteTemplateFormulaText(formula, sourceSheetName, targetSheetName);
-            }
-
-            foreach (var formula in worksheet.Descendants<DocumentFormat.OpenXml.Office.Excel.Formula>()) {
-                RewriteTemplateFormulaText(formula, sourceSheetName, targetSheetName);
-            }
-
-            foreach (var hyperlink in worksheet.Descendants<Hyperlink>()) {
-                string? location = hyperlink.Location?.Value;
-                if (string.IsNullOrEmpty(location)) {
-                    continue;
-                }
-
+            foreach (OfficeXmlNode hyperlink in worksheet.ContentDescendants(WorksheetMarkup, "hyperlink")) {
+                string? location = hyperlink.Attribute("location");
+                if (string.IsNullOrEmpty(location)) continue;
                 string updated = ExcelDocument.ReplaceSheetNameReferences(location!, sourceSheetName, targetSheetName);
-                if (!string.Equals(updated, location, StringComparison.Ordinal)) {
-                    hyperlink.Location = updated;
+                if (!string.Equals(updated, location, StringComparison.Ordinal)) hyperlink.SetAttribute("location", updated);
+            }
+        }
+
+        private static IEnumerable<OfficeXmlNode> ReadTemplateWorksheetFormulas(OfficeXmlNode root) {
+            OfficeXmlNode node = root.FirstChild;
+            while (node.Exists) {
+                bool extension = node.IsExtensionMarkup();
+                if (!extension && (
+                        node.NamespaceId == WorksheetMarkup && node.LocalName is "f" or "formula" or "formula1" or "formula2"
+                        || node.Is(ExcelFormulaNamespace, "f"))) yield return node;
+
+                OfficeXmlNode next = extension ? default : node.FirstChild;
+                if (next.IsNone) {
+                    for (OfficeXmlNode ancestor = node; ancestor.Exists && ancestor != root; ancestor = ancestor.Parent) {
+                        next = ancestor.NextSibling;
+                        if (next.Exists) break;
+                    }
                 }
+                node = next;
             }
         }
 
-        private static void RewriteTemplateTableLocalReferences(Table table, string sourceSheetName, string targetSheetName) {
-            if (string.Equals(sourceSheetName, targetSheetName, StringComparison.Ordinal)) {
-                return;
-            }
+        private static void RewriteTemplateTableLocalReferences(OfficeXmlNode table, string sourceSheetName, string targetSheetName) {
+            if (string.Equals(sourceSheetName, targetSheetName, StringComparison.Ordinal)) return;
 
-            foreach (var formula in table.Descendants<CalculatedColumnFormula>()) {
+            foreach (OfficeXmlNode formula in table.ContentDescendants(WorksheetMarkup, "calculatedColumnFormula")) {
                 RewriteTemplateFormulaText(formula, sourceSheetName, targetSheetName);
             }
-
-            foreach (var formula in table.Descendants<TotalsRowFormula>()) {
+            foreach (OfficeXmlNode formula in table.ContentDescendants(WorksheetMarkup, "totalsRowFormula")) {
                 RewriteTemplateFormulaText(formula, sourceSheetName, targetSheetName);
             }
         }
 
-        private static void RewriteTemplateFormulaText(OpenXmlLeafTextElement formula, string sourceSheetName, string targetSheetName) {
-            string? text = formula.Text;
-            if (string.IsNullOrEmpty(text)) {
-                return;
-            }
-
+        private static void RewriteTemplateFormulaText(OfficeXmlNode formula, string sourceSheetName, string targetSheetName) {
+            string text = formula.InnerText;
+            if (text.Length == 0) return;
             string updated = ExcelDocument.ReplaceSheetNameReferences(text, sourceSheetName, targetSheetName);
-            if (!string.Equals(updated, text, StringComparison.Ordinal)) {
-                formula.Text = updated;
-            }
+            if (!string.Equals(updated, text, StringComparison.Ordinal)) formula.SetInnerText(updated);
         }
 
         private void CopyTemplateWorksheetScopedDefinedNames(ExcelSheet target) {
@@ -219,11 +209,11 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            RewriteDefinedNameReferences(target.WorksheetRoot, definedNameMap);
+            RewriteDefinedNameReferences(OfficeXmlNode.FromSdk(target.WorksheetRoot), definedNameMap);
 
             foreach (TableDefinitionPart tablePart in target._worksheetPart.TableDefinitionParts) {
                 if (tablePart.Table != null) {
-                    RewriteDefinedNameReferences(tablePart.Table, definedNameMap);
+                    RewriteDefinedNameReferences(OfficeXmlNode.FromSdk(tablePart.Table), definedNameMap);
                     tablePart.Table.Save();
                 }
             }
@@ -232,51 +222,28 @@ namespace OfficeIMO.Excel {
             if (drawingsPart != null) {
                 foreach (ChartPart chartPart in drawingsPart.ChartParts) {
                     if (chartPart.ChartSpace != null) {
-                        RewriteDefinedNameReferences(chartPart.ChartSpace, definedNameMap);
+                        RewriteDefinedNameReferences(OfficeXmlNode.FromSdk(chartPart.ChartSpace), definedNameMap);
                         chartPart.ChartSpace.Save();
                     }
                 }
             }
         }
 
-        private static void RewriteDefinedNameReferences(OpenXmlElement root, IReadOnlyDictionary<string, string> definedNameMap) {
-            foreach (var formula in root.Descendants<CellFormula>()) {
+        private static void RewriteDefinedNameReferences(OfficeXmlNode root, IReadOnlyDictionary<string, string> definedNameMap) {
+            foreach (OfficeXmlNode formula in ReadTemplateWorksheetFormulas(root)) {
                 RewriteDefinedNameFormulaText(formula, definedNameMap);
             }
-
-            foreach (var formula in root.Descendants<Formula>()) {
-                RewriteDefinedNameFormulaText(formula, definedNameMap);
-            }
-
-            foreach (var formula in root.Descendants<Formula1>()) {
-                RewriteDefinedNameFormulaText(formula, definedNameMap);
-            }
-
-            foreach (var formula in root.Descendants<Formula2>()) {
-                RewriteDefinedNameFormulaText(formula, definedNameMap);
-            }
-
-            foreach (var formula in root.Descendants<DocumentFormat.OpenXml.Office.Excel.Formula>()) {
-                RewriteDefinedNameFormulaText(formula, definedNameMap);
-            }
-
-            foreach (var formula in root.Descendants<DocumentFormat.OpenXml.Drawing.Charts.Formula>()) {
+            foreach (OfficeXmlNode formula in root.ContentDescendants(OfficeXmlNamespaces.Chart, "f")) {
                 RewriteDefinedNameFormulaText(formula, definedNameMap);
             }
         }
 
-        private static void RewriteDefinedNameFormulaText(OpenXmlLeafTextElement formula, IReadOnlyDictionary<string, string> definedNameMap) {
-            string? text = formula.Text;
-            if (string.IsNullOrEmpty(text)) {
-                return;
-            }
-
-            string updated = ExcelFormulaSyntaxTree.Parse(text!).RewriteNames(name =>
+        private static void RewriteDefinedNameFormulaText(OfficeXmlNode formula, IReadOnlyDictionary<string, string> definedNameMap) {
+            string text = formula.InnerText;
+            if (text.Length == 0) return;
+            string updated = ExcelFormulaSyntaxTree.Parse(text).RewriteNames(name =>
                 definedNameMap.TryGetValue(name, out string? replacement) ? replacement : name);
-
-            if (!string.Equals(updated, text, StringComparison.Ordinal)) {
-                formula.Text = updated;
-            }
+            if (!string.Equals(updated, text, StringComparison.Ordinal)) formula.SetInnerText(updated);
         }
 
         private ushort GetTemplateSheetPositionIndex(string sheetName) {
@@ -339,7 +306,7 @@ namespace OfficeIMO.Excel {
                 string targetRelationshipId = GetUnusedRelationshipId(target._worksheetPart);
                 TableDefinitionPart targetTablePart = target._worksheetPart.AddNewPart<TableDefinitionPart>(targetRelationshipId);
                 Table clonedTable = (Table)sourceTablePart.Table.CloneNode(true);
-                RewriteTemplateTableLocalReferences(clonedTable, Name, target.Name);
+                RewriteTemplateTableLocalReferences(OfficeXmlNode.FromSdk(clonedTable), Name, target.Name);
                 clonedTable.Id = _excelDocument.AllocateTableId();
 
                 string requestedName = clonedTable.Name?.Value ?? clonedTable.DisplayName?.Value ?? "Table";
@@ -514,16 +481,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            foreach (var formula in chartPart.ChartSpace.Descendants<DocumentFormat.OpenXml.Drawing.Charts.Formula>()) {
-                string? text = formula.Text;
-                if (string.IsNullOrEmpty(text)) {
-                    continue;
-                }
-
-                string updated = ExcelDocument.ReplaceSheetNameReferences(text, sourceSheetName, targetSheetName);
-                if (!string.Equals(updated, text, StringComparison.Ordinal)) {
-                    formula.Text = updated;
-                }
+            foreach (OfficeXmlNode formula in OfficeXmlNode.FromSdk(chartPart.ChartSpace).ContentDescendants(OfficeXmlNamespaces.Chart, "f")) {
+                RewriteTemplateFormulaText(formula, sourceSheetName, targetSheetName);
             }
         }
 

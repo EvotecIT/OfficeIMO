@@ -800,7 +800,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Default: take cell value as-is (numbers, booleans, etc.)
-            string cellText = ResolveRichValueError(cell, ExcelWorksheetScan.FindValue(cell)?.InnerText) ?? string.Empty;
+            string cellText = ResolveRichValueError(cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error, cell.ValueMetaIndex?.Value, ExcelWorksheetScan.FindValue(cell)?.InnerText) ?? string.Empty;
             return cell.DataType?.Value == CellValues.String ? Utilities.ExcelSanitizer.DecodeXString(cellText) : cellText;
         }
 

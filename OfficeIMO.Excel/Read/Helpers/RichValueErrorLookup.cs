@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
     internal sealed class RichValueErrorLookup {
         internal static readonly RichValueErrorLookup Empty = new RichValueErrorLookup(new Dictionary<uint, string>());
         private const int Spreadsheet = OfficeXmlNamespaces.SpreadsheetML;
-        private const string RichData = "http://schemas.microsoft.com/office/spreadsheetml/2017/richdata";
+        internal const string RichData = "http://schemas.microsoft.com/office/spreadsheetml/2017/richdata";
         private const string RichValueExtension = "{3e2802c4-a4d2-4d8b-9148-e3be6c30e623}";
         private const int MaximumEntries = 100_000;
         internal const int MaximumPartBytes = 16 * 1024 * 1024;
@@ -90,12 +90,7 @@ namespace OfficeIMO.Excel {
             }
             string? DecodeFuture(uint futureIndex) {
                 if (futureErrors.TryGetValue(futureIndex, out string? cached)) return cached;
-                OfficeXmlNode valueBlock = default;
-                foreach (OfficeXmlNode extension in future[futureIndex].Child(Spreadsheet, "extLst").Children(Spreadsheet, "ext")) {
-                    if (!string.Equals(extension.Attribute("uri"), RichValueExtension, StringComparison.OrdinalIgnoreCase)) continue;
-                    valueBlock = extension.Child(RichData, "rvb");
-                    if (valueBlock.Exists) break;
-                }
+                OfficeXmlNode valueBlock = FindValueBlock(future[futureIndex]);
                 string? error = valueBlock.Exists && TryIndex(valueBlock, "i", out uint valueIndex)
                     && valueIndex < richValues.Length ? DecodeValue(valueIndex) : null;
                 futureErrors.Add(futureIndex, error);
@@ -111,6 +106,15 @@ namespace OfficeIMO.Excel {
                 }
             }
             return new RichValueErrorLookup(errors);
+        }
+
+        internal static OfficeXmlNode FindValueBlock(OfficeXmlNode futureBlock) {
+            foreach (OfficeXmlNode extension in futureBlock.Child(Spreadsheet, "extLst").Children(Spreadsheet, "ext")) {
+                if (!string.Equals(extension.Attribute("uri"), RichValueExtension, StringComparison.OrdinalIgnoreCase)) continue;
+                OfficeXmlNode value = extension.Child(RichData, "rvb");
+                if (value.Exists) return value;
+            }
+            return default;
         }
 
         private static bool TryIndex(OfficeXmlNode element, string name, out uint value) =>
