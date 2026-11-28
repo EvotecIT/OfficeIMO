@@ -283,7 +283,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (!visited.Add(part.Name)) continue;
                 yield return part;
                 foreach (LegacyPptRelationshipView relationship in part.Relationships) {
-                    if (!relationship.TargetPart.IsNone) pending.Push(relationship.TargetPart);
+                    // Custom XML and parts of unknown relationship types are opaque to the typed SDK reads, whatever
+                    // content type they declare.
+                    if (!relationship.TargetPart.IsNone && LegacyPptPackageView.IsTypedRelationship(relationship)) {
+                        pending.Push(relationship.TargetPart);
+                    }
                 }
             }
         }

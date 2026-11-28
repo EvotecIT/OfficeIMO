@@ -177,6 +177,7 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("application/xml")]
         [InlineData("application/vnd.example.payload+xml")]
+        [InlineData("application/vnd.openxmlformats-officedocument.drawingml.chart+xml")]
         public void Preflight_ReportsOversizedCustomXmlWithoutReadingIt(string contentType) {
             byte[] pptx;
             using (PowerPointDocument created = PowerPointDocument.Create()) {

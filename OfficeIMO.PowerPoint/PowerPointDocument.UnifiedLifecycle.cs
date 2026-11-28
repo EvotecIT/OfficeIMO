@@ -231,10 +231,15 @@ public sealed partial class PowerPointDocument {
                 LoadForMarkupCompatibility(presentationPart);
                 pending.Push(presentationPart);
             }
+            // The document properties the binary property sets are written from.
+            if (copy.ExtendedFilePropertiesPart is { } application) LoadForMarkupCompatibility(application);
+            if (copy.CustomFilePropertiesPart is { } custom) LoadForMarkupCompatibility(custom);
             while (pending.Count > 0) {
                 foreach (IdPartPair pair in pending.Pop().Parts) {
                     OpenXmlPart part = pair.OpenXmlPart;
                     if (!seen.Add(part)) continue;
+                    // Custom XML and parts of unknown relationship types are opaque, whatever content type they declare.
+                    if (part is CustomXmlPart or ExtendedPart) continue;
                     if (!OfficeIMO.PowerPoint.LegacyPpt.Internal.LegacyPptPackageView.IsPresentationMarkup(part.ContentType)) continue;
                     LoadForMarkupCompatibility(part);
                     pending.Push(part);

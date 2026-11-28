@@ -217,6 +217,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 || contentType.StartsWith("application/vnd.ms-office.drawingml.", StringComparison.OrdinalIgnoreCase)
                 || contentType.StartsWith("application/vnd.ms-powerpoint.", StringComparison.OrdinalIgnoreCase));
 
+        /// <summary>
+        /// Whether a relationship leads to a part the SDK reads as typed markup: an Open XML or Office relationship other
+        /// than custom XML. Parts of unknown relationship types and custom XML are opaque payloads.
+        /// </summary>
+        internal static bool IsTypedRelationship(LegacyPptRelationshipView relationship) {
+            string type = OfficeXmlNamespaces.NormalizeRelationshipType(relationship.Type);
+            if (type.EndsWith("/customXml", StringComparison.Ordinal)) return false;
+            return type.StartsWith("http://schemas.openxmlformats.org/officeDocument/2006/relationships/", StringComparison.Ordinal)
+                || type.StartsWith("http://schemas.microsoft.com/office/", StringComparison.Ordinal);
+        }
+
         internal string? ContentTypeOf(string partName) => _package.GetContentType(partName);
 
         internal byte[] BytesOf(string partName) => _package.ReadPartBytes(partName);
