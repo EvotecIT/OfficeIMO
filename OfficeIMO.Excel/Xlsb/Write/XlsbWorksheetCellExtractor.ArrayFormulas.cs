@@ -1,4 +1,5 @@
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Projection;
 
 namespace OfficeIMO.Excel.Xlsb.Write;
 
