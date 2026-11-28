@@ -42,6 +42,14 @@ public sealed class ZstandardDictionary {
         ArgumentNullException.ThrowIfNull(dictionary);
         return new ZstandardDictionary(ZstandardDictionaryData.Parse(dictionary));
     }
+
+    /// <summary>Uses <paramref name="content"/> as a raw-content dictionary, even when it starts with the dictionary magic
+    /// number, as <c>zstd</c>'s raw dictionary mode does. Raw content must be at least 8 bytes and has dictionary ID zero.</summary>
+    /// <exception cref="ArchiveCorruptionException"><paramref name="content"/> is shorter than 8 bytes.</exception>
+    public static ZstandardDictionary LoadRaw(byte[] content) {
+        ArgumentNullException.ThrowIfNull(content);
+        return new ZstandardDictionary(ZstandardDictionaryData.Raw(content));
+    }
 }
 
 /// <summary>Decompresses Zstandard (RFC 8878) streams in managed code.</summary>

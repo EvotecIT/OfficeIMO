@@ -421,6 +421,8 @@ internal sealed class ZstandardDecoder {
             }
         }
         if (regenerated > _blockMaximum) throw Corrupt(offset, $"at most {_blockMaximum} literals in a block");
+        // RFC 8878 erratum 7297: four Huffman streams carry at least six literals, as the reference decoder requires.
+        if (streams == 4 && regenerated < 6) throw Corrupt(offset, "at least 6 literals in four Huffman streams");
         switch (type) {
             case 0:
                 if (regenerated > size - headerBytes) throw Corrupt(offset + headerBytes, $"{regenerated} raw literals");
@@ -642,14 +644,16 @@ internal sealed class ZstandardDictionaryData {
     internal ZstandardFseTable? MatchLengths { get; }
     internal bool HasEntropyTables => Huffman != null;
 
+    internal static ZstandardDictionaryData Raw(byte[] bytes) {
+        // RFC 8878 section 5: raw-content dictionaries must be at least 8 bytes.
+        if (bytes.Length < 8) throw new ArchiveCorruptionException(FormatName, bytes.Length, "at least 8 bytes of raw dictionary content");
+        return new ZstandardDictionaryData(0, (byte[])bytes.Clone(), new[] { 1, 4, 8 }, null, null, null, null);
+    }
+
     internal static ZstandardDictionaryData Parse(byte[] bytes) {
         if (bytes.Length >= 4 && Read32(bytes, 0) == DictionaryMagic && bytes.Length < 8)
             throw new ArchiveCorruptionException(FormatName, 4, "a 4-byte dictionary ID after the dictionary magic");
-        if (bytes.Length < 8 || Read32(bytes, 0) != DictionaryMagic) {
-            // RFC 8878 section 5: raw-content dictionaries must be at least 8 bytes.
-            if (bytes.Length < 8) throw new ArchiveCorruptionException(FormatName, bytes.Length, "at least 8 bytes of raw dictionary content");
-            return new ZstandardDictionaryData(0, (byte[])bytes.Clone(), new[] { 1, 4, 8 }, null, null, null, null);
-        }
+        if (bytes.Length < 8 || Read32(bytes, 0) != DictionaryMagic) return Raw(bytes);
         uint id = Read32(bytes, 4);
         if (id == 0) throw new ArchiveCorruptionException(FormatName, 4, "a non-zero dictionary ID");
         int position = 8;

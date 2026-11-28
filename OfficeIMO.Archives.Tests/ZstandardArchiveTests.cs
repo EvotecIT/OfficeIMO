@@ -266,6 +266,24 @@ public sealed class ZstandardArchiveTests {
     }
 
     [Fact]
+    public void LoadRawKeepsContentThatStartsWithTheDictionaryMagic() {
+        byte[] content = { 0x37, 0xA4, 0x30, 0xEC, 0x01, 0x00, 0x00, 0x00, 0x2A, 0x2A };
+        ZstandardDictionary dictionary = ZstandardDictionary.LoadRaw(content);
+        Assert.Equal(0u, dictionary.Id);
+        Assert.False(dictionary.HasEntropyTables);
+        Assert.Equal(content.Length, dictionary.ContentLength);
+    }
+
+    [Fact]
+    public void FourHuffmanStreamsNeedAtLeastSixLiterals() {
+        // A 1 KiB window and one compressed block whose literals header declares four streams but only four literals.
+        byte[] source = { 0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x00, 0x25, 0x00, 0x00, 0x46, 0x40, 0x00, 0x00 };
+        ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
+            ZstandardArchive.Decompress(new MemoryStream(source), new MemoryStream()));
+        Assert.Equal(9, error.Offset);
+    }
+
+    [Fact]
     public void RawDictionariesShorterThanEightBytesAreRejected() {
         ArchiveCorruptionException error = Assert.Throws<ArchiveCorruptionException>(() =>
             ZstandardDictionary.Load(new byte[] { 1, 2, 3, 4, 5, 6, 7 }));
